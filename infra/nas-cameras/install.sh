@@ -144,6 +144,27 @@ if ! COMPOSE_OUT="$($COMPOSE $COMPOSE_FILES -p poetech-cameras up -d 2>&1)"; the
 fi
 echo "$COMPOSE_OUT"
 
+echo "== cameras install: go2rtc released once per recorded epoch (DR-1097, seventh read) =="
+# go2rtc 1.9.14's frame.jpeg never lets go of a request on a session that
+# connected and carries no video, and go2rtc redials a stream for as long as
+# one such request hangs on it -- even a stream a PUT has already replaced.
+# Only a restart of go2rtc releases them. go2rtc.release-epoch names why; a new
+# epoch restarts go2rtc ONCE (its streams come back from the config on disk,
+# which the forwarder keeps); the same epoch never again. Budget: one restart
+# per committed epoch. Stop-path: leave the file unchanged.
+EPOCH="$(head -n 1 "$SRC/go2rtc.release-epoch" 2>/dev/null | tr -cd 'A-Za-z0-9._-')"
+ESTAMP="$DATA/.go2rtc.release.epoch"
+if [ -n "$EPOCH" ] && [ "$($SUDO cat "$ESTAMP" 2>/dev/null)" != "$EPOCH" ]; then
+  if $DOCKER restart poetech-go2rtc >/dev/null 2>&1; then
+    echo "$EPOCH" | $SUDO tee "$ESTAMP" >/dev/null
+    echo "  go2rtc restarted for epoch $EPOCH: every hung frame request and orphaned session released"
+  else
+    echo "  go2rtc restart for epoch $EPOCH FAILED -- the next cycle tries again"
+  fi
+else
+  echo "  epoch ${EPOCH:-none} already released -- go2rtc left running"
+fi
+
 echo "== cameras install: go2rtc must answer on 127.0.0.1:1984 =="
 TRIES=0; UP=0
 while [ "$TRIES" -lt 12 ]; do

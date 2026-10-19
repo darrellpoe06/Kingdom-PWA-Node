@@ -1798,7 +1798,13 @@ def set_stream_source(upstream, name, src, config_path=None, log=print, timeout=
             r.read(4096)
         registered = True
     except urllib.error.HTTPError as e:
-        log("bridge-road: go2rtc refused PUT %s (HTTP %d); the config line is rewritten directly (DR-0789)" % (name, e.code))
+        # go2rtc's own reason: streams.New refused the source, or the stream is
+        # live and only app.PatchConfig failed to write the file (DR-1097, seventh read).
+        try:
+            why = scrub_text(e.read(300).decode("utf-8", "replace").strip(), 160)
+        except Exception:  # noqa: BLE001
+            why = ""
+        log("bridge-road: go2rtc refused PUT %s (HTTP %d%s); the config line is rewritten directly (DR-0789)" % (name, e.code, ": " + why if why else ""))
     except (urllib.error.URLError, OSError):
         log("bridge-road: go2rtc unreachable while setting %s" % name)
         return False
@@ -2398,14 +2404,35 @@ def judge_snapshot():
 # with no byte in KVS_DIAL_SECONDS is abandoned: the camera's own line is put
 # again (a PUT gives go2rtc a fresh stream, so the next dial is a fresh offer),
 # at most once per KVS_REARM_GAP.
+#
+# A FRAME IS ASKED ONLY OF A SESSION CARRYING VIDEO (DR-1097, seventh read).
+# camera-health 39193314318 read 9 of 33, down from 15 of 31, and cams-diag
+# 39194598172 showed why: front_cam had 13 consumers, front_door_view 10 and
+# 805_hallway_-_north_east 8, all "bytes-frozen" for 39 minutes with nobody
+# watching. go2rtc 1.9.14's /api/frame.jpeg (internal/mjpeg/mjpeg.go,
+# handlerKeyframe) waits for a key frame with no clock and never looks at the
+# request's context, so a frame asked of a session that connected but carries
+# no video is never let go, whoever gave up on it. While a stream has a
+# consumer go2rtc redials its producer forever (internal/streams/producer.go,
+# reconnect), and a PUT puts a NEW stream in the map (streams.New) and leaves
+# the old one running with its consumers: each re-arm of a frozen camera left
+# one more session dialling Wyze for good. So a frame of a held Kinesis camera
+# waits for its holder to see KVS_HELD_MIN_BYTES of video, fresh within
+# KVS_FLOWING_FRESH, and go2rtc is never asked otherwise (a 504 that says so).
+# A dial that brings less than KVS_HELD_MIN_BYTES (the judge's own mark of
+# video, 16 KB) is unanswered, whatever bytes it carried. The live MP4 the
+# holder reads lets go when its reader does (internal/mp4/mp4.go reads the
+# request context), so the holder itself never leaks.
 # BRAKES (deterministic class, DR-0248): a budget (KVS_HOLD_MAX holders; each
 # ends KVS_HOLD_SECONDS after the last ask and never outlives
 # KVS_HOLD_LIFE_SECONDS; one dial per KVS_REDIAL_SECONDS), a lock (one holder
 # per camera, under one table lock), and the stop-paths CAMS_KVS=0 or
 # CAMS_KVS_HOLD_MAX=0.
 KVS_HOLD_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_SECONDS", "60"))
-# 16: every camera the judge kept on Kinesis (14 tonight) is held while the tab is open.
-KVS_HOLD_MAX = max(0, int(os.environ.get("CAMS_KVS_HOLD_MAX", "16")))
+# 32: every camera the judge keeps on Kinesis is held while the tab is open (20 of
+# the 33 on 2026-10-19). A camera past the budget is asked of go2rtc unheld, and
+# a frame of an unheld frozen session is the request go2rtc never lets go of.
+KVS_HOLD_MAX = max(0, int(os.environ.get("CAMS_KVS_HOLD_MAX", "32")))
 KVS_HOLD_LIFE_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_LIFE_SECONDS", "3600"))
 KVS_DIAL_SECONDS = float(os.environ.get("CAMS_KVS_DIAL_SECONDS", "20"))
 KVS_REARM_GAP = float(os.environ.get("CAMS_KVS_REARM_GAP", "30"))
@@ -2414,6 +2441,9 @@ KVS_REDIAL_SECONDS = float(os.environ.get("CAMS_KVS_REDIAL_SECONDS", "5"))
 # judge measured 16 KB of video at 6.3-9.5 s, which the 12 s frame clock
 # missed on 4 of 14 cameras the judge had just watched carry video.
 KVS_SNAP_TIMEOUT = float(os.environ.get("CAMS_KVS_SNAP_TIMEOUT", "20"))
+KVS_HELD_MIN_BYTES = max(1, int(os.environ.get("CAMS_KVS_HELD_MIN_BYTES", "16384")))
+KVS_FLOWING_FRESH = float(os.environ.get("CAMS_KVS_FLOWING_FRESH", "3"))
+KVS_FLOWING_POLL = 0.25
 
 _KVS_IDS = {"path": None, "mtime": None, "ids": frozenset()}
 
@@ -2450,7 +2480,7 @@ class KvsHold:
     injectable, so it is proven in plain Python."""
 
     def __init__(self, clock=time.time, opener=None, rearm=None, spawn=None, sleep=None, log=print,
-                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None):
+                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None):
         self.clock = clock
         self.opener = opener or urllib.request.urlopen
         self.rearm = rearm or kvs_rearm
@@ -2463,6 +2493,8 @@ class KvsHold:
         self.dial = KVS_DIAL_SECONDS if dial is None else float(dial)
         self.gap = KVS_REARM_GAP if gap is None else float(gap)
         self.redial = KVS_REDIAL_SECONDS if redial is None else float(redial)
+        self.held_min = KVS_HELD_MIN_BYTES if held_min is None else int(held_min)
+        self.fresh = KVS_FLOWING_FRESH if fresh is None else float(fresh)
         self.lock = threading.Lock()
         self.holds = {}
         self.last_rearm = {}
@@ -2481,7 +2513,7 @@ class KvsHold:
             if len(self.holds) >= self.max_holds:
                 self.counts["full"] += 1
                 return "full"
-            self.holds[sid] = {"touched": now, "started": now, "state": "dialing", "dials": 0, "bytes": 0, "last_bytes": None}
+            self.holds[sid] = {"touched": now, "started": now, "state": "dialing", "dials": 0, "bytes": 0, "dial_bytes": 0, "last_bytes": None}
             self.counts["started"] += 1
         self.spawn(lambda: self._run(upstream, sid, config_path), "cams-kvs-hold-%s" % sid)
         return "started"
@@ -2504,19 +2536,22 @@ class KvsHold:
                 t0 = self.clock()
                 with self.lock:
                     self.holds[sid]["dials"] += 1
+                    self.holds[sid]["dial_bytes"] = 0
                 got = self._read(upstream, sid)
-                if got:
-                    continue
-                # No byte on this dial: Wyze left the offer unanswered (or go2rtc
-                # refused). The next viewer gets a fresh offer, never the hung one.
-                self._note(sid, state="unanswered")
-                now = self.clock()
-                if now - self.last_rearm.get(sid, -1e18) >= self.gap:
-                    self.last_rearm[sid] = now
-                    if self.rearm(upstream, sid, config_path):
-                        with self.lock:
-                            self.counts["rearmed"] += 1
-                        self.log("kvs-hold: %s gave no byte in %d s on Wyze's WebRTC road; its line was put again for a fresh offer" % (sid, int(self.dial)))
+                if got < self.held_min:
+                    # Less than a key frame's worth on this dial: Wyze left the
+                    # offer unanswered, go2rtc refused, or the session connected
+                    # and carries no video (the frozen case, seventh read). The
+                    # next viewer gets a fresh offer, never the hung one.
+                    self._note(sid, state="unanswered")
+                    now = self.clock()
+                    if now - self.last_rearm.get(sid, -1e18) >= self.gap:
+                        self.last_rearm[sid] = now
+                        if self.rearm(upstream, sid, config_path):
+                            with self.lock:
+                                self.counts["rearmed"] += 1
+                            self.log("kvs-hold: %s gave %d bytes in %d s on Wyze's WebRTC road (video is %d); its line was put again for a fresh offer" % (sid, got, int(self.dial), self.held_min))
+                # One dial per KVS_REDIAL_SECONDS, whatever the last one carried.
                 wait = self.redial - (self.clock() - t0)
                 if wait > 0 and self._alive(sid):
                     self.sleep(wait)
@@ -2545,8 +2580,10 @@ class KvsHold:
                     h = self.holds.get(sid)
                     if h is not None:
                         h["bytes"] += len(chunk)
+                        h["dial_bytes"] += len(chunk)
                         h["last_bytes"] = self.clock()
-                        h["state"] = "held"
+                        if h["dial_bytes"] >= self.held_min:
+                            h["state"] = "held"
         finally:
             try:
                 r.close()
@@ -2554,10 +2591,34 @@ class KvsHold:
                 pass
         return got
 
+    def holding(self, sid):
+        with self.lock:
+            return sid in self.holds
+
+    def flowing(self, sid):
+        """True while `sid`'s held session carries video: this dial brought
+        held_min bytes and the last arrived within `fresh` seconds."""
+        now = self.clock()
+        with self.lock:
+            h = self.holds.get(sid)
+            return (h is not None and h["dial_bytes"] >= self.held_min and h["last_bytes"] is not None
+                    and now - h["last_bytes"] <= self.fresh)
+
+    def wait_flowing(self, sid, seconds):
+        """Wait up to `seconds` for `sid` to carry video. Answers the seconds left
+        (> 0) when it does, or 0.0 when it never did or its holder ended."""
+        end = self.clock() + float(seconds)
+        while True:
+            if self.flowing(sid):
+                return max(end - self.clock(), 0.001)
+            if self.clock() >= end or not self.holding(sid):
+                return 0.0
+            self.sleep(KVS_FLOWING_POLL)
+
     def snapshot(self):
         now = self.clock()
         with self.lock:
-            return {"max": self.max_holds, "hold_s": self.hold, "dial_s": self.dial,
+            return {"max": self.max_holds, "hold_s": self.hold, "dial_s": self.dial, "held_min": self.held_min,
                     "holding": dict((sid, {"state": h["state"], "dials": h["dials"], "bytes": h["bytes"],
                                            "for_s": int(now - h["started"])}) for sid, h in sorted(self.holds.items())),
                     "counts": dict(self.counts)}
@@ -3799,7 +3860,18 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         params.append((key, v))
                 # A camera on Wyze's WebRTC road keeps one held session while it
                 # is looked at, and its first frame waits for the dial (DR-1097).
-                frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs_viewed(upstream, cam) else snap_timeout
+                kvs = kvs_viewed(upstream, cam)
+                frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs else snap_timeout
+                if kvs and KVS_HOLD.holding(base_of(cam)):
+                    # go2rtc's frame.jpeg never lets go of a request on a session
+                    # with no video (seventh read): it is asked only once the
+                    # held session carries video, with the time that is left.
+                    left = KVS_HOLD.wait_flowing(base_of(cam), frame_timeout)
+                    if left <= 0:
+                        breaker_note(cam, False, "no video on Wyze's WebRTC road in %d s" % int(frame_timeout))
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(frame_timeout),
+                                                "detail": "no video on Wyze's WebRTC road yet; go2rtc was not asked"})
+                    frame_timeout = max(left, 5.0)
                 try:
                     status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
                 except urllib.error.HTTPError as e:
@@ -5062,7 +5134,7 @@ def _selftest():
 
 
     print("=== 8n. the Wyze bridge road (DR-0809): a camera the NAS cannot reach, or without DTLS, rides the bridge; the owner can force a road ===")
-    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON
+    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON, KVS_HOLD
     br_tmp = tempfile.mkdtemp(prefix="cams-bridge-")
     br_wyze_env = os.path.join(br_tmp, "wyze.env")
     br_env = os.path.join(br_tmp, "wyze-bridge.env")
@@ -5591,8 +5663,9 @@ def _selftest():
     retouch = {"on": None}
 
     class FakeHoldResp:
-        def __init__(self, n):
+        def __init__(self, n, size=1000):
             self.n = n
+            self.size = size
 
         def read1(self, _size):
             clk[0] += 10.0
@@ -5602,7 +5675,7 @@ def _selftest():
             if self.n <= 0:
                 return b""
             self.n -= 1
-            return b"x" * 1000
+            return b"x" * self.size
 
         def close(self):
             pass
@@ -5614,6 +5687,8 @@ def _selftest():
             raise socket.timeout("timed out")
         if step == "refuse":
             raise urllib.error.URLError("refused")
+        if isinstance(step, tuple):
+            return FakeHoldResp(*step)
         return FakeHoldResp(step)
 
     hold = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda up, s_, cp: (rearmed.append(s_), True)[1],
@@ -5621,7 +5696,7 @@ def _selftest():
                    log=quiet, max_holds=2, hold=60, life=600, dial=20, gap=30, redial=5)
     check(hold.touch(kup, "a_cam") == "started" and hold.touch(kup, "a_cam") == "held" and len(pending) == 1, "a watched Kinesis camera gets one holder; a second look joins it (the lock)")
     check(hold.touch(kup, "b_cam") == "started" and hold.touch(kup, "c_cam") == "full" and hold.snapshot()["counts"]["full"] == 1, "the budget: no more holders than KVS_HOLD_MAX")
-    script[:] = ["hang", 3]
+    script[:] = ["hang", (3, 16384)]
     pending[0]()
     check(rearmed == ["a_cam"] and hold.counts["rearmed"] == 1 and "a_cam" not in hold.holds and not script,
           "PROVEN TO CATCH: an offer Wyze leaves unanswered is abandoned after the dial clock and the camera re-armed; the next dial carries video; the holder ends KVS_HOLD_SECONDS after the last look (%r)" % rearmed)
@@ -5658,7 +5733,7 @@ def _selftest():
     check(kvs_viewed(kup, "a_cam_sd", roads_path=kv_roads, hold=vh) is True and list(vh.holds) == ["a_cam"], "a frame of a Kinesis camera's twin holds the camera's own session")
     check(kvs_viewed(kup, "b_cam", roads_path=kv_roads, hold=vh) is False and list(vh.holds) == ["a_cam"], "a camera on the bridge is never held")
     snap_ = vh.snapshot()
-    check(set(snap_) == {"max", "hold_s", "dial_s", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
+    check(set(snap_) == {"max", "hold_s", "dial_s", "held_min", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
     print("=== 8s. the cameras go2rtc's Wyze sign-in drops are added on Wyze's WebRTC road (DR-1097, sixth read) ===")
     bl = [{"uri": "a-cam", "mac": norm_mac("AA:BB:CC:00:00:01"), "nickname": "A Cam"}, {"uri": "b-cam", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"}, {"uri": "b-cam-sub", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"},
           {"uri": "c-cam", "mac": norm_mac("AA:BB:CC:00:00:03"), "nickname": "C Cam"}, {"uri": "d-cam", "mac": norm_mac("AA:BB:CC:00:00:04"), "nickname": "D Cam"},
@@ -5752,6 +5827,102 @@ def _selftest():
     check(seen.get("puts") == [("front_door", "ring:?camera_id=11&device_id=22&refresh_token=RINGSECRET"), ("driveway", "ring:?camera_id=33&device_id=44&refresh_token=RINGSECRET")] and "RINGSECRET" not in d.decode("utf-8"), "the ring: sources go to go2rtc with their refresh token, and the token never comes back to the app")
     s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "nope", "password": "pw"}).encode(), auth=B)
     check(s == 400 and b"missing-field" in d, "a bad email is refused before any call")
+
+    print("=== 8t. a frame of a held Kinesis camera is asked of go2rtc only while its session carries video (DR-1097, seventh read) ===")
+    c7 = [5000.0]
+    s7 = []
+    r7 = []
+    p7 = []
+
+    class VidResp:
+        """A live MP4 from go2rtc: these chunks, then silence ("hang") or the end."""
+
+        def __init__(self, chunks, then="end"):
+            self.chunks = list(chunks)
+            self.then = then
+
+        def read1(self, _size):
+            if self.chunks:
+                c7[0] += 1.0
+                return b"v" * self.chunks.pop(0)
+            if self.then == "hang":
+                c7[0] += 20.0
+                raise socket.timeout("timed out")
+            c7[0] += 1.0
+            return b""
+
+        def close(self):
+            pass
+
+    def vopen(url, timeout=None):
+        if not s7:
+            raise urllib.error.URLError("refused")
+        return s7.pop(0)
+
+    def hold7():
+        return KvsHold(clock=lambda: c7[0], opener=vopen, rearm=lambda up, s_, cp: (r7.append(s_), True)[1],
+                       spawn=lambda fn, name: p7.append(fn), sleep=lambda w: c7.__setitem__(0, c7[0] + w),
+                       log=quiet, max_holds=4, hold=60, life=600, dial=20, gap=30, redial=5, held_min=16384, fresh=3)
+    h7 = hold7()
+    h7.touch(kup, "front_cam")
+    s7[:] = [VidResp([900], then="hang"), VidResp([16384] * 70)]
+    p7.pop(0)()
+    check(r7 == ["front_cam"] and h7.counts["rearmed"] == 1 and not s7,
+          "PROVEN TO CATCH: a session that connected and then carried 900 bytes and no video (front_cam, 13 frozen consumers live) is unanswered and re-armed, not counted as held (%r)" % r7)
+    r7[:] = []
+    h7.touch(kup, "front_door_view")
+    s7[:] = [VidResp([16384] * 70)]
+    p7.pop(0)()
+    check(r7 == [], "a dial that carries a key frame's worth of video is held, never re-armed")
+    h8 = hold7()
+    h8.touch(kup, "cam_v")
+    p7[:] = []
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=900, last_bytes=c7[0])
+    check(h8.flowing("cam_v") is False, "an MP4 header's worth of bytes is not video")
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=20000, last_bytes=c7[0])
+    check(h8.flowing("cam_v") is True, "16 KB of this dial, the last byte just now, is video")
+    c7[0] += 4.0
+    check(h8.flowing("cam_v") is False, "video that stopped 4 s ago is no longer flowing")
+    t0_ = c7[0]
+    check(h8.wait_flowing("cam_v", 2.0) == 0.0 and c7[0] >= t0_ + 2.0, "a frame waits at most its own clock for video, then gives up")
+    t0_ = c7[0]
+    check(h8.wait_flowing("nobody", 20.0) == 0.0 and c7[0] == t0_, "a camera nobody holds is not waited on")
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=20000, last_bytes=c7[0])
+    check(h8.wait_flowing("cam_v", 20.0) > 0, "a camera carrying video answers at once with the time that is left")
+
+    class StubHold:
+        def __init__(self, flow):
+            self.flow = flow
+
+        def touch(self, up, sid, config_path=None):
+            return "held"
+
+        def holding(self, sid):
+            return True
+
+        def wait_flowing(self, sid, seconds):
+            return 15.0 if self.flow else 0.0
+    saved_hold, saved_roads7 = KVS_HOLD, BRIDGE_ROADS_FILE
+    roads7 = os.path.join(rec_tmp, "roads-8t.json")
+    roads_save({"front_yard": {"road": "kvs"}}, roads7)
+    BRIDGE_ROADS_FILE = roads7
+    frames = lambda: sum(1 for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=front_yard"))  # noqa: E731
+    breaker_note("front_yard", True)
+    try:
+        KVS_HOLD = StubHold(False)
+        n0 = frames()
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 504 and b"go2rtc was not asked" in d and frames() == n0,
+              "PROVEN TO CATCH: a frame of a Kinesis camera whose held session carries no video is a 504, and go2rtc's frame.jpeg (which never lets go of such a request) is not asked (%d %r)" % (s, d[:120]))
+        KVS_HOLD = StubHold(True)
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 200 and d.startswith(b"\xff\xd8JPEG-front_yard") and frames() == n0 + 1, "once it carries video the frame is asked of go2rtc and served (%d %r, %d asks)" % (s, d[:60], frames() - n0))
+    finally:
+        KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
+        breaker_note("front_yard", True)
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

@@ -229,3 +229,39 @@ Darrell sent three screenshots: the 805 N Prospect group live in the Wyze app, o
 - PROVEN TO CATCH: with the add removed, five checks fail. Those five cover the add itself, its record, the never-add-back rule, the budget, and the hour between asks.
 
 **Live, after merge:** the next judge pass asks Wyze for the two Floodlight Pros. cams-diag names whether each was added and prints Wyze's own online word per camera.
+
+## Seventh field read (2026-10-19 03:09-03:25 UTC; cams-diag 39193312253 and 39194598172, camera-health 39193314318)
+
+The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same as on disk.
+
+- **Both Floodlight Pros are in the app now.** The forwarder added them on Wyze's WebRTC road at 21:46 CDT ("added on Wyze's own WebRTC road: go2rtc's Wyze sign-in skips a camera Wyze gives no address"). The judge then measured 16 KB of video from each: West in 8.8 s, Porch East in 8.3 s. On the witness pass West gave a frame in 4.3 s, and Porch East timed out on both asks (the cause is below).
+- **Wyze's own word, per camera: 22 online, 11 offline, of 33.** Wyze itself calls these offline: 805 Apt 4, 805 Front Outside, 805 Porch Cam, Basement Living Room, East North Cam, Front Driveway & Door, Front Yard, Kitchen Cam, Living Room, North East Cam, Outside Front Door. They are 11 of the 13 cameras dark on both roads, so the cause for each is at the camera (its power or its Wi-Fi), as the sixth read said. The other two, Back Yard North and Garage Doors, are online to Wyze and dark to us, so they are ours.
+- **The witness read 9 of 33, down from 15 of 31.** The 9 that answered: 805 Back Door, 805 Basement, 805 Floodlight Cam - West, 805 North East, 805 Upper Hallway - South West, Basketball Cam, Great Room, Kitchen 2, PoeBasement. Thirteen cameras Wyze calls online gave no frame on either ask: 805 Front Office View, 805 Hallway - North East, 805 North, 805 Porch - Floodlight Cam - East, Back Yard North, Back Yard South, Basement North, Front, Front Cam, Front Door View, Garage Doors, Garage Front Yard, Outside 7.
+
+**The cause is ours, measured and read in go2rtc's own source (v1.9.14):**
+
+- **The forwarder's stream sampler showed hung frame requests with nobody watching.** Front Cam had 13 consumers, Front Door View 10, 805 Hallway - North East 8, and 805 Front Office View and 805 North 2 each. Every one of them read "bytes-frozen" for 155 samples, which is 39 minutes. 805 Front Office View held a live Kinesis socket with 3 medias and no bytes. These sessions had connected and carried no video.
+- **go2rtc never lets go of a frame request on such a session.** In `internal/mjpeg/mjpeg.go`, `handlerKeyframe` waits for a key frame (`cons.WriteTo`) with no clock and never reads the request's context. A client that gives up leaves its consumer behind. `internal/mp4/mp4.go`, by contrast, removes its consumer when the reader drops ("handle when the client drops the connection"), so the holder's live MP4 never leaked.
+- **A stream with a consumer is redialled forever.** `internal/streams/producer.go` (`reconnect`) retries with backoff that tops out at one minute. `stopProducers` stops a producer only when no consumer is left.
+- **A PUT does not close the old stream.** `streams.New` puts a NEW stream in the map and leaves the old one running with its consumers. So each re-arm and each road try on a frozen camera left one more session dialling Wyze for good. go2rtc's log carried 560 Kinesis sockets closed by Amazon, with several a minute for the same camera.
+- **The holder counted any bytes as video.** A dial that brought a few hundred bytes and then went silent was "held", so it was never re-armed.
+
+**The change, same record:**
+
+- **A frame of a held Kinesis camera is asked of go2rtc only while its session carries video.** `/snap` waits, within its own 20 s clock, until the holder has read 16 KB of video (`KVS_HELD_MIN_BYTES`, the judge's own mark) on the current dial, with the last byte within 3 s (`KVS_FLOWING_FRESH`). Otherwise it answers 504 "no video on Wyze's WebRTC road yet; go2rtc was not asked". A camera the holder is not holding (holders full, or `CAMS_KVS_HOLD_MAX=0`) is asked as before.
+- **A dial that brings less than 16 KB is unanswered, whatever bytes it carried.** It is re-armed at most once per `KVS_REARM_GAP`, and every dial is spaced by `KVS_REDIAL_SECONDS`.
+- **Every Kinesis camera can be held: the budget is 32 holders, up from 16.** 20 of the 33 cameras ride Kinesis now. A camera past the budget is asked of go2rtc unheld, which is the request go2rtc never lets go of.
+- **go2rtc is released once.** `infra/nas-cameras/go2rtc.release-epoch` names this read. On its next cycle the installer restarts `poetech-go2rtc` once for that epoch and records it; the streams come back from the config on disk. Only a restart frees the requests that already leaked.
+  - Budget: one restart per committed epoch.
+  - Stop-path: leave the file unchanged.
+- **A refused PUT now logs go2rtc's own reason.** The journal showed "HTTP 400" with no words; it now says whether `streams.New` refused the source or only `app.PatchConfig` failed to write the file.
+
+**Verification:**
+
+- Selftest: 446 passing; section 8t is new.
+- PROVEN TO CATCH, the old byte rule restored: the frozen dial (900 bytes, then silence) is counted as held and never re-armed, so 8t's first check fails.
+- PROVEN TO CATCH, the `/snap` gate removed: go2rtc is asked for a frame of a session with no video, so two checks fail.
+
+**Live, after merge:** services-sync restarts go2rtc once, and the forwarder restarts on its new code. Then the next every-camera pass of camera-health is read against the 22 cameras Wyze calls online, and cams-diag against the sampler's consumer counts, which should be 0 with nobody watching.
+
+- `re-review: 2026-10-20`, unchanged.
