@@ -51,6 +51,7 @@ import socket
 import sys
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -76,6 +77,22 @@ CHAT_PREFERRED = ("qwen2.5:14b",)
 CHAT_FALLBACK = ("qwen",)
 EMBED_PREFERRED = ("nomic-embed-text",)
 EMBED_FALLBACK = ("embed",)
+
+# WHICH MACHINE ANSWERS, AND WHETHER IT MAY (2026-10-19). The first live
+# witnesses timed out at 180 s with /health 200: the installer had fallen back
+# to the NAS's own CPU Ollama, where a 14B model could not say "OK" in 150 s
+# (measured), and /health only asked Vane for its model list, which says
+# nothing about whether the model can answer. So the door now checks the
+# tower itself, first and cheaply: the URL the installer chose (a GPU tower,
+# never the NAS CPU), that tower answering /api/tags, and the DR-0012
+# streaming hold -- while a service is live the CUDA towers belong to the
+# stream. Any of those failing makes /health say why and /ask refuse in
+# seconds instead of hanging three minutes.
+OLLAMA_FILE_DEFAULT = "/volume1/docker/research/ollama.url"
+HOLD_FILE_DEFAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "..", "gpu-scheduler", "state", "STREAMING_HOLD")
+TOWER_TIMEOUT = 4
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 ASK_PATHS = {"/ask", "/research/ask"}
 HEALTH_PATHS = {"/health", "/research/health"}
@@ -202,7 +219,46 @@ class Vane:
             return json.loads(r.read().decode("utf-8"))
 
 
-def health(vane):
+class Tower:
+    """The GPU tower Vane answers with, and whether it may answer right now."""
+
+    def __init__(self, ollama_file=None, hold_file=None, timeout=TOWER_TIMEOUT, allow_loopback=False):
+        self.ollama_file = ollama_file or os.environ.get("RESEARCH_OLLAMA_FILE", OLLAMA_FILE_DEFAULT)
+        self.hold_file = hold_file or os.environ.get("RESEARCH_HOLD_FILE", HOLD_FILE_DEFAULT)
+        self.timeout = timeout
+        self.allow_loopback = allow_loopback  # the selftest's fake tower lives on loopback
+
+    def base(self):
+        try:
+            with open(self.ollama_file, "r", encoding="utf-8") as fh:
+                return fh.read().strip().rstrip("/")
+        except OSError:
+            return ""
+
+    def state(self):
+        """(True, host) when the tower may answer, else (False, the reason in plain words)."""
+        if os.path.exists(self.hold_file):
+            return False, "The AI towers are reserved for a live service right now (DR-0012). Ask again after the service."
+        base = self.base()
+        if not base:
+            return False, "No AI tower was answering when the research road last looked; it looks again every 15 minutes."
+        host = urllib.parse.urlparse(base).hostname or ""
+        if host in LOOPBACK_HOSTS and not self.allow_loopback:
+            return False, "The research road is set to the NAS's own processor, which cannot answer with a 14B model in time; it needs a GPU tower on."
+        try:
+            with urllib.request.urlopen(base + "/api/tags", timeout=self.timeout) as r:
+                if r.status != 200:
+                    raise OSError(f"answered {r.status}")
+        except (urllib.error.URLError, socket.timeout, OSError, ValueError):
+            return False, f"The AI tower ({host}) is not answering; it may be off or asleep."
+        return True, host
+
+
+def health(vane, tower=None):
+    if tower is not None:
+        ok, why = tower.state()
+        if not ok:
+            return 503, {"ok": False, "reason": why, "code": code_sha()}
     try:
         doc = vane.providers()
     except (urllib.error.URLError, socket.timeout, OSError, ValueError) as e:
@@ -210,10 +266,13 @@ def health(vane):
     chosen, why = choose_models(doc)
     if not chosen:
         return 503, {"ok": False, "reason": why, "code": code_sha()}
-    return 200, {"ok": True, "chat": chosen["chat"], "embedding": chosen["embedding"], "code": code_sha()}
+    out = {"ok": True, "chat": chosen["chat"], "embedding": chosen["embedding"], "code": code_sha()}
+    if tower is not None:
+        out["tower"] = tower.state()[1]
+    return 200, out
 
 
-def make_handler(vane, token, ask_timeout=ASK_TIMEOUT):
+def make_handler(vane, token, ask_timeout=ASK_TIMEOUT, tower=None):
     inflight = threading.BoundedSemaphore(MAX_INFLIGHT)
 
     class Handler(BaseHTTPRequestHandler):
@@ -261,7 +320,7 @@ def make_handler(vane, token, ask_timeout=ASK_TIMEOUT):
 
         def do_GET(self):
             if self._path() in HEALTH_PATHS:
-                code, obj = health(vane)
+                code, obj = health(vane, tower)
                 return self._json(code, obj)
             return self._json(404, {"error": "not found"})
 
@@ -279,6 +338,10 @@ def make_handler(vane, token, ask_timeout=ASK_TIMEOUT):
             ask, err = parse_ask(self.rfile.read(length))
             if err:
                 return self._json(err[0], {"error": err[1]})
+            if tower is not None:
+                ok, why = tower.state()
+                if not ok:
+                    return self._json(503, {"error": why})
             if not inflight.acquire(blocking=False):
                 return self._json(503, {"error": "a question is already being answered; ask again in a minute"})
             try:
@@ -376,7 +439,31 @@ def _selftest():
     up = ThreadingHTTPServer(("127.0.0.1", 0), FakeVane)
     threading.Thread(target=up.serve_forever, daemon=True).start()
     token = "selftest-family-key"
-    srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(Vane(f"http://127.0.0.1:{up.server_port}"), token, ask_timeout=10))
+
+    # A fake GPU tower: an Ollama that answers GET /api/tags.
+    class FakeTower(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            data = b'{"models": [{"name": "qwen2.5:14b-instruct-q4_K_M"}, {"name": "nomic-embed-text:latest"}]}'
+            self.send_response(200 if self.path == "/api/tags" else 404)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+    gpu = ThreadingHTTPServer(("127.0.0.1", 0), FakeTower)
+    threading.Thread(target=gpu.serve_forever, daemon=True).start()
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="research-selftest-")
+    url_file = os.path.join(tmp, "ollama.url")
+    hold_file = os.path.join(tmp, "STREAMING_HOLD")
+    tower_url = f"http://127.0.0.1:{gpu.server_port}"
+    with open(url_file, "w", encoding="utf-8") as fh:
+        fh.write(tower_url + "\n")
+    tower = Tower(ollama_file=url_file, hold_file=hold_file, timeout=2, allow_loopback=True)
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(Vane(f"http://127.0.0.1:{up.server_port}"), token, ask_timeout=10, tower=tower))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{srv.server_port}"
 
@@ -484,7 +571,45 @@ def _selftest():
         check("Access-Control-Allow-Origin" not in h, f"CATCHES the origin {o}: refused, not echoed")
     check("*" not in CORS_ALLOWED_ORIGINS, "the LIVE allowlist holds no wildcard")
 
+    # --- the tower: which machine answers, and whether it may -------------
+    import time as _time
+
+    def write_url(text):
+        with open(url_file, "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 200 and b.get("tower") == "127.0.0.1", "health names the tower it will answer with")
+    open(hold_file, "w").close()
+    state["search_body"] = None
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 503 and "live service" in b.get("reason", ""), "CATCHES the DR-0012 streaming hold: health 503 with the reason")
+    t0 = _time.time()
+    s, b, _ = req("POST", "/ask", body={"query": "while the service is live"})
+    check(s == 503 and state["search_body"] is None and _time.time() - t0 < 2,
+          "CATCHES a question during a live service: refused at once, Vane never asked")
+    os.remove(hold_file)
+    write_url("")
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 503 and "No AI tower" in b.get("reason", ""), "CATCHES no tower chosen at install: health says so")
+    write_url("http://127.0.0.1:9\n")
+    t0 = _time.time()
+    s, b, _ = req("POST", "/ask", body={"query": "tower asleep"})
+    check(s == 503 and "not answering" in b.get("error", "") and state["search_body"] is None and _time.time() - t0 < 5,
+          "CATCHES a tower that is off: refused in seconds, not a three-minute hang")
+    write_url("http://127.0.0.1:11434\n")
+    ok, why = Tower(ollama_file=url_file, hold_file=hold_file, timeout=2).state()
+    check(not ok and "NAS's own processor" in why, "CATCHES the NAS CPU set as the model: never treated as able to answer")
+    write_url(tower_url + "\n")
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 200, "the road comes back the moment the tower answers again")
+    gpu.shutdown()
+    gpu.server_close()
+    write_url(tower_url + "\n")
+
     # --- Vane down --------------------------------------------------------
+    write_url("")  # with no tower check in the way, these measure Vane alone
+    srv.RequestHandlerClass = make_handler(Vane(f"http://127.0.0.1:{up.server_port}"), token, ask_timeout=10)
     up.shutdown()
     up.server_close()
     s, b, _ = req("GET", "/health", auth=None)
@@ -509,7 +634,7 @@ def main():
     if not token:
         print("research: no family bearer token -- refusing to start an unlocked door", file=sys.stderr)
         sys.exit(2)
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(Vane(a.upstream), token))
+    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(Vane(a.upstream), token, tower=Tower()))
     print(f"research on 127.0.0.1:{a.port} -> {a.upstream} (code {code_sha()})")
     srv.serve_forever()
 
