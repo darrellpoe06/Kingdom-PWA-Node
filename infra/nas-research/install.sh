@@ -60,6 +60,37 @@ command -v curl >/dev/null 2>&1 || { echo "  curl missing -- cannot probe; nothi
 PY="$(command -v python3 || true)"
 [ -n "$PY" ] || { echo "  python3 not found -- nothing done"; exit 0; }
 
+if sudo -n true 2>/dev/null; then SUDO="sudo -n"; else SUDO=""; fi
+# The running forwarder must follow the code (the cameras lesson, DR-0770),
+# on EVERY path that reaches it -- including "no tower answered", where the
+# new code is the one that tells the app why. 2026-10-19, measured: this ran
+# only after the tower check, so with no tower the old forwarder kept hanging
+# 180 s on every question while the reason sat unread in ollama.url.
+forwarder_follows_code() {
+  TMPU="$(mktemp)"
+  sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@PORT@|$PORT|" "$SRC/poetech-research.service" > "$TMPU"
+  NEED_RESTART=0
+  if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
+    $SUDO cp "$TMPU" "$UNIT"
+    $SUDO systemctl daemon-reload
+    NEED_RESTART=1
+    echo "  unit written"
+  fi
+  rm -f "$TMPU"
+  CODE_SHA="$(sha256sum < "$SRC/research_forwarder.py" | cut -c1-16)"
+  STAMP="$DATA/.forwarder.code.sha"
+  if [ "$($SUDO cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  forwarder code changed ($CODE_SHA) -- restarting so the running process follows the code"
+  fi
+  $SUDO systemctl enable poetech-research >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    $SUDO systemctl restart poetech-research && echo "$CODE_SHA" | $SUDO tee "$STAMP" >/dev/null
+  else
+    $SUDO systemctl is-active --quiet poetech-research || $SUDO systemctl restart poetech-research || true
+  fi
+}
+
 echo "== research install: an Ollama with both a qwen chat model and nomic-embed-text =="
 OLLAMA=""
 for CAND in $OLLAMA_CANDIDATES; do
@@ -84,6 +115,8 @@ rm -f "$TMPU"
 $SUDO_URL chmod 644 "$OLLAMA_URL_FILE"
 if [ -z "$OLLAMA" ]; then
   echo "  no GPU tower serves both models -- the forwarder now says so instead of hanging (the towers may be off; the next cycle looks again)"
+  echo "== research install: forwarder unit (so the app hears the reason) =="
+  forwarder_follows_code
   exit 0
 fi
 
@@ -179,29 +212,8 @@ fi
 echo "  Vane answering: $(curl -fsS -m 5 "$VANE/api/providers" 2>/dev/null | head -c 200)"
 
 echo "== research install: forwarder unit =="
-TMPU="$(mktemp)"
-sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@PORT@|$PORT|" "$SRC/poetech-research.service" > "$TMPU"
-NEED_RESTART=0
-if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
-  $SUDO cp "$TMPU" "$UNIT"
-  $SUDO systemctl daemon-reload
-  NEED_RESTART=1
-  echo "  unit written"
-fi
-rm -f "$TMPU"
-# The running process must follow the code (the cameras lesson, DR-0770).
-CODE_SHA="$(sha256sum < "$SRC/research_forwarder.py" | cut -c1-16)"
-STAMP="$DATA/.forwarder.code.sha"
-if [ "$($SUDO cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
-  NEED_RESTART=1
-  echo "  forwarder code changed ($CODE_SHA) -- restarting so the running process follows the code"
-fi
-$SUDO systemctl enable poetech-research >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  $SUDO systemctl restart poetech-research && echo "$CODE_SHA" | $SUDO tee "$STAMP" >/dev/null
-else
-  $SUDO systemctl is-active --quiet poetech-research || $SUDO systemctl restart poetech-research || true
-fi
+echo "== research install: forwarder unit =="
+forwarder_follows_code
 
 echo "== research install: the forwarder must answer 200 (it asks Vane for its models) =="
 sleep 2
