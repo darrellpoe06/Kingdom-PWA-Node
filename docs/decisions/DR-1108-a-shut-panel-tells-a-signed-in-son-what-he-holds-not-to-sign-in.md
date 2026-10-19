@@ -101,3 +101,32 @@ while the decision waits. That is the whole reason it can wait.
 - Shell **5193 / 5193** lines — this slice costs the frozen monolith nothing.
   Lint exit **0**; `verify:gates` exit **0**; **201 cases green** across the 14
   suites that touch the three components and the model.
+
+## The deferral got a gate, right after this record was committed
+
+Written and pushed immediately after the commit above, because the deferral as
+first written relied on someone remembering it. The gap's real lesson is not
+*"those two props are wrong"* — it is that **the DR-1107 scanner could not see
+them at all**, since it only inspected bindings *named* `isGovernor`. A
+`re-review:` date on an invisible thing is a promise with nothing holding it.
+
+`the-role-decides-who-governs.test.js` now declares **every** authority-shaped
+prop in the shell that is fed `isFamilyMember` / `isFamilyEmail`, each with its
+class and its reason, and asserts the declared set **equals** the live set — so
+a stale entry fails as loudly as a new one:
+
+| prop | class | why |
+|---|---|---|
+| `ReadingVoiceControl.isOwner`, `TTSControl.isOwner` | **entitlement — correct** | `use-read-aloud.js:57` documents `isOwner` as *"entitled to personal (subscriber) voices"* and `:335` sets `subscribed: isOwner`. The family are subscribers; a daughter and a son keep the family's voices. Nothing to change. |
+| `Practice.isStaff` | **office role — deferred** | reaches `PracticeLearn`'s `visibleAudiences({ isStaff })` and `listMyAssignments` — TLC office staff, whose real wall is the therapy-practice instance (0193). The honest source is `my_office_instance_role`, not the family allowlist. A separate door with its own blast radius. **`re-review: 2026-11-02`** |
+| `WorkflowScribe.isSteward`, `Forecast.isOwner` | **books-visibility — deferred** | the decision above; **`re-review: 2026-10-26`** |
+
+**Proven to catch, both directions** (DR-0076 §3): a new `canApprove={isFamilyMember}`
+added to the real `Forecast` line is caught as undeclared; `isSteward` fixed to
+`isGov` is caught as a stale declaration. A population case keeps the scan from
+passing vacuously, and a third case requires every entry to name one of the
+three decided classes rather than a free-text excuse. **19 cases** in that file,
+lint and gates green.
+
+This is the DR-0076 rule applied to my own miss: the class that got past the
+check becomes a check.
