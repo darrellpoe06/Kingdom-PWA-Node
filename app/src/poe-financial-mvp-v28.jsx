@@ -4196,7 +4196,7 @@ ${THEME_CSS}
                   2026-07-10, hides itself once installed) and SHARE the way in
                   to someone else -- the QR + link he asked for in the header
                   2026-10-15, the church's own door on a church surface (DR-1056). */}
-              <AppDoorControls church={churchBrand || view === 'church'} />
+              <AppDoorControls church={churchBrand} />
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any

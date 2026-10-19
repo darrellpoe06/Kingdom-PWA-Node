@@ -25,8 +25,12 @@ import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import AppDoorControls, { doorFor } from '../components/AppDoorControls.jsx';
+import AppDoorControls, { doorFor, doorKeyFor } from '../components/AppDoorControls.jsx';
 import { SHARE_DOOR_URL } from '../lib/church-own-door.js';
+import { TLC_SHARE_URL } from '../lib/tlc-door.js';
+import { MOORE_SHARE_URL } from '../lib/moore-door.js';
+import { PROPERTIES_SHARE_URL } from '../modules/properties/config.js';
+import { DOORS } from '../lib/app-doors.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(join(HERE, '..', rel), 'utf8');
@@ -47,7 +51,7 @@ afterEach(() => {
 
 describe('doorFor — the header never hands out the wrong app', () => {
   it('on a church surface it is the CHURCH door, by the one shared constant', () => {
-    const d = doorFor(true);
+    const d = doorFor('lovecorner');
     expect(d.url).toBe(SHARE_DOOR_URL);
     // Not a second hardcoded string: the value must be the module's own.
     expect(SELF.includes("'https://poetech.us/lovecorner"), 'the URL is hardcoded here instead of imported').toBe(false);
@@ -55,22 +59,55 @@ describe('doorFor — the header never hands out the wrong app', () => {
     expect(d.title).toMatch(/Love Corner/);
   });
 
-  it('off a church surface it falls back to the platform join URL', () => {
-    const d = doorFor(false);
+  it('PoeTech falls back to the platform join URL, and never names the church', () => {
+    const d = doorFor('poetech');
     // null means "let AppShareQR use appJoinUrl()" — the existing behaviour of
     // every caller that passes nothing. Never a guessed string.
     expect(d.url).toBe(null);
     expect(d.shown).toBe(null);
+    expect(d.title).toMatch(/PoeTech/);
     expect(d.title).not.toMatch(/Love Corner/);
   });
 
+  it('every app shares ITSELF, by its own door\'s constant (DR-1112)', () => {
+    expect(doorFor('tlc').url).toBe(TLC_SHARE_URL);
+    expect(doorFor('moore').url).toBe(MOORE_SHARE_URL);
+    expect(doorFor('properties').url).toBe(PROPERTIES_SHARE_URL);
+    expect(doorFor('tlc').title).toMatch(/TLC/);
+    expect(doorFor('moore').title).toMatch(/Moore/);
+    expect(doorFor('properties').title).toMatch(/Properties/);
+    // Every door the app can boot as has a share of its own — a new door that
+    // lacks one would silently fall back to PoeTech's.
+    for (const d of DOORS) expect(doorFor(d.key).key, `${d.key} has no share card`).toBe(d.key);
+    // And an unknown key is PoeTech's own door, never another app's.
+    expect(doorFor('nope').key).toBe('poetech');
+  });
+
   it('every door names itself on the button, so the label is never generic', () => {
-    for (const church of [true, false]) {
-      const d = doorFor(church);
-      expect(d.label.length).toBeGreaterThan(3);
-      expect(d.ariaLabel).toMatch(/QR code/);
-      expect(d.blurb.length).toBeGreaterThan(40);
+    for (const d of DOORS) {
+      const door = doorFor(d.key);
+      expect(door.label.length).toBeGreaterThan(3);
+      expect(door.ariaLabel).toMatch(/QR code/);
+      expect(door.blurb.length).toBeGreaterThan(40);
     }
+  });
+});
+
+describe('doorKeyFor — the app you are IN decides, never the tab you are on (DR-1112)', () => {
+  it('THE BUG: the PoeTech app on its Church tab shares PoeTech, not the Love Corner', () => {
+    // Darrell's screenshot: poetech.us/poetech-app/?view=church, "Share our
+    // app" opened the Love Corner card. The tab is in the query; the app is
+    // in the path.
+    expect(doorKeyFor({ church: false, pathname: '/poetech-app/', search: '?view=church' })).toBe('poetech');
+  });
+  it('each installed app shares itself by where it booted', () => {
+    expect(doorKeyFor({ pathname: '/lovecorner/app/', search: '' })).toBe('lovecorner');
+    expect(doorKeyFor({ pathname: '/tlc/app/', search: '?view=overview' })).toBe('tlc');
+    expect(doorKeyFor({ pathname: '/moore/app/', search: '' })).toBe('moore');
+    expect(doorKeyFor({ pathname: '/properties/app/', search: '' })).toBe('properties');
+  });
+  it('a page wearing the church brand is the Love Corner, wherever it is served', () => {
+    expect(doorKeyFor({ church: true, pathname: '/poetech-app/', search: '' })).toBe('lovecorner');
   });
 });
 
@@ -90,7 +127,11 @@ describe('the card is REUSED, not copied', () => {
 
 describe('the shell', () => {
   it('renders it in the header, on every tab, with the church flag', () => {
-    expect(SHELL).toMatch(/<AppDoorControls church=\{churchBrand \|\| view === 'church'\}/);
+    // The church flag is the page's BRAND, never the tab (DR-1112): the old
+    // `|| view === 'church'` turned the PoeTech app's Church tab into the
+    // church's door.
+    expect(SHELL).toMatch(/<AppDoorControls church=\{churchBrand\} \/>/);
+    expect(/<AppDoorControls[^>]*view\s*===/.test(SHELL), 'the tab still decides which app is shared').toBe(false);
     // And the old direct render is gone, or the install button would double.
     expect(SHELL.includes('<InstallAppButton />'), 'the shell still renders InstallAppButton directly').toBe(false);
   });
@@ -123,14 +164,15 @@ describe('it renders, and the card is behind one tap', () => {
     const text = document.body.textContent;
     expect(text).toMatch(/poetech\.us\/lovecorner/);
     expect(text).toMatch(/The Love Corner app/);
-    // And the promise the card has always carried travels with it.
-    expect(text).toMatch(/doesn’t grant access/);
+    // And the promise the card has always carried travels with it — ONCE.
+    // The header added a second copy beneath AppShareQR's own (DR-1112).
+    expect(text.match(/grant access/g) || []).toHaveLength(1);
   });
 
   it('off the church door it opens the platform card, not the church one', () => {
     act(() => root.render(createElement(AppDoorControls, { church: false })));
     const share = [...container.querySelectorAll('button')]
-      .find((b) => (b.getAttribute('aria-label') || '').includes('Share app'));
+      .find((b) => (b.getAttribute('aria-label') || '').includes('Share our app'));
     expect(share).toBeTruthy();
     act(() => share.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(document.body.textContent).not.toMatch(/poetech\.us\/lovecorner/);
