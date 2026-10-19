@@ -48,7 +48,7 @@ The night before, the research road (DR-1101) came home and could not answer. It
 ## Impact
 
 - Nothing new runs. Immich's pilot is a dated step by the Way (re-review 2026-11-08): measure the pool, register, install, forwarder, witness, surface, then prove one phone's backup landed before the Google plan's storage is cancelled.
-- The 21 services born before the Way are not fixed tonight. They are listed with what they lack, and the gate makes that list keep telling the truth; the audit lands by 2026-11-15, in order of blast radius.
+- The 22 services born before the Way (the 21 read that night, and `db-backup`, born the same day by another session, DR-1113, which the gate caught on the merge) are not fixed tonight. They are listed with what they lack, and the gate makes that list keep telling the truth; the audit lands by 2026-11-15, in order of blast radius.
 - Hold is not no: Jellyfin and Audiobookshelf wait on a library and a shelf, with dates.
 
 ## Verification

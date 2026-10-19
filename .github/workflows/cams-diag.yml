@@ -117,6 +117,25 @@ jobs:
           print("streams defined:", n)
           print("wyze block present:", any(re.match(r"^wyze:",l) for l in lines))
           print("total lines:", len(lines))
+          # THE LINE GO2RTC CANNOT READ (DR-1097, eighth read): go2rtc said "yaml: line 96:
+          # could not find expected ':'" at its restart. The shape of every line that is not
+          # a key, a list item, blank or a comment, and of the last 6 lines -- never a value:
+          # indent, class, quote counts, length, and the key name only under streams:.
+          def cls(l):
+              t=l.strip()
+              if not t: return "blank"
+              if t.startswith("#"): return "comment"
+              if t.startswith("- "): return "list-item"
+              if re.match(r"^[^\s:]+:(\s|$)", t) or re.match(r'^"[^"]*":(\s|$)', t): return "key"
+              return "NOT-A-KEY"
+          blk=None
+          for k,l in enumerate(lines, 1):
+              if l and not l[0].isspace(): blk=(l.split(":")[0] if re.match(r"^[A-Za-z_][A-Za-z0-9_-]*:", l) else "<not-a-key>")
+              c=cls(l)
+              if c=="NOT-A-KEY" or k>len(lines)-6:
+                  m=re.match(r"^\s*([A-Za-z0-9_.-]+):", l)
+                  name=m.group(1) if (m and blk=="streams") else ("<key>" if c=="key" else "-")
+                  print("line %d: block=%s indent=%d class=%s key=%s dq=%d sq=%d len=%d ends=%s" % (k, blk, len(l)-len(l.lstrip()), c, name, l.count('"'), l.count("'"), len(l), ("quote" if l.rstrip()[-1:] in "\"'" else "colon" if l.rstrip()[-1:] == ":" else "other") if l.strip() else "-"))
           PY
           else
             echo "(go2rtc.yaml unreadable)"

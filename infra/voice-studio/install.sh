@@ -134,7 +134,10 @@ TS="$(command -v tailscale 2>/dev/null || true)"
 if [ -n "$TS" ]; then
   if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
   FSTAT="$($TSC funnel status 2>/dev/null || true)"
-  printf '%s' "$FSTAT" | grep -q "/voice" \
+  # Match /voice as a whole path (DR-1110). A bare `grep -q "/voice"` also
+  # matched /voice-lite, so once voice-lite was mounted this branch said
+  # "already mounted" and /voice itself was never mounted.
+  printf '%s' "$FSTAT" | grep -qE '/voice([[:space:]]|$)' \
     && echo "  /voice already mounted on the funnel" \
     || { $TSC funnel --bg --set-path /voice "$FWD" \
          && echo "  mounted /voice -> $FWD on the PUBLIC funnel (additive)" \

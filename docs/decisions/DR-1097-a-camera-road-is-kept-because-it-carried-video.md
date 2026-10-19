@@ -265,3 +265,113 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 **Live, after merge:** services-sync restarts go2rtc once, and the forwarder restarts on its new code. Then the next every-camera pass of camera-health is read against the 22 cameras Wyze calls online, and cams-diag against the sampler's consumer counts, which should be 0 with nobody watching.
 
 - `re-review: 2026-10-20`, unchanged.
+
+## Eighth field read (2026-10-19 04:29 UTC; cams-diag 39199689871): the release took every camera down
+
+**Stated plainly: the one go2rtc restart this record shipped took every camera in the app down.**
+
+- The forwarder runs the seventh read's code (`733cfd6749f8936e`), and the installer released go2rtc for epoch `2026-10-19.frozen-frames` at 23:02 CDT.
+- go2rtc came back with **zero streams**, on its default listeners (`rtsp :8554`, not `127.0.0.1:8554`).
+- Its own log at start: `yaml: line 96: could not find expected ':'`. `go2rtc.yaml` would not parse, so go2rtc ran without it.
+
+**The cause is older than the release, and it explains a second mystery.**
+
+- The file was last written at 22:55 CDT by the old forwarder's direct line rewrite (the judge's road try on Front). go2rtc had refused every PUT with HTTP 400 for hours before that.
+- A PUT runs `streams.New` (the stream goes live in memory) and then `app.PatchConfig`, which must parse the file. An unreadable file fails the second step every time. The 400s were never the stream: they were the file.
+- The old go2rtc kept running only because it had read the file before it broke. The restart was the first moment anything had to read it again.
+- The self-heal then tried to re-add the cameras from the Wyze sign-in and was refused (HTTP 502) every ten minutes.
+
+**The change, same record:**
+
+- **A go2rtc that lists no streams gets back every stream its own file defines, before anything else** (`restore_streams_from_config`, on the self-heal's clock: 20 s after start, then every 10 min).
+  - The file is read by shape, the way `config_stream_names` reads it, with every source of a list. Each stream is PUT with its own sources.
+  - The expected 400 is ignored: the stream is in memory all the same.
+- **cams-diag prints the shape of every line that is not a key, a list item, a comment or blank, and of the last six lines.** That is the indent, the class, the quote counts, the length and how the line ends. Never a value, and a key name only under `streams:`. This finds line 96 without reading a secret.
+
+**Verification:**
+
+- Selftest: 448 passing.
+- PROVEN TO CATCH: with the restore removed from the self-heal, its check fails.
+
+**What is left:**
+
+- **Repair line 96 itself,** once cams-diag names its shape. Until then the streams live in go2rtc's memory and the next go2rtc restart empties it again, though the self-heal puts them back within ten minutes.
+- **No go2rtc release without proving the file parses first:** a restart is a config load. The installer's epoch step gains that check before any new epoch.
+- `re-review: 2026-10-20`, unchanged.
+
+## Ninth field read (2026-10-19 05:13 UTC; cams-diag 39203389412): the cameras are back, and line 96 has a shape
+
+- **The cameras are back in go2rtc:** `/health` lists 66 streams on the forwarder `8b86e1cbbf5f1000`. The restore from the file worked on its first tick.
+- **Line 96 has a shape:**
+  - It is one character at column 0, and it is the file's last line.
+  - It follows the `wyze:` block, whose lines 91-95 are well-formed keys.
+  - It is not a key, which is the line go2rtc could not read.
+  - No line at column 0 that is not a key can sit in a block mapping, so taking it out loses nothing a parser could read.
+
+**The change, same record:**
+
+- **The forwarder repairs the file, and go2rtc proves the repair** (`repair_config_strays`, on every self-heal tick).
+  - Lines at column 0 that are not a key, a comment, blank or a document marker are taken out.
+  - The result goes to go2rtc's own `POST /api/config`. go2rtc parses it with its own yaml and writes it only when it parses (`internal/api/config.go`).
+  - A refusal leaves the file exactly as it was and logs go2rtc's reason.
+- **No go2rtc release without a parse.** Before an epoch restart, the installer has the running go2rtc parse the current file the same way. Anything but 200 means no restart and no epoch recorded, and the reason is said.
+
+**Verification:**
+
+- Selftest: 454 passing.
+- PROVEN TO CATCH, the repair taken out of the self-heal: the check that every tick repairs fails.
+- PROVEN TO CATCH, the repair that keeps the stray line: two checks fail.
+
+**Live, after merge:** the next self-heal tick logs "config-repair". From then on a PUT is accepted (200), so the journal's "refused PUT ... HTTP 400" lines stop.
+
+- How the stray character got there is not yet known; the repair stands guard every ten minutes whatever wrote it.
+- `re-review: 2026-10-20`, unchanged.
+
+## Tenth field read (2026-10-19 06:16-06:22 UTC; cams-diag 39208913645, camera-health 39208915955): the floor is met
+
+- **The repair is live.**
+  - At 00:31:26 CDT the journal logged: "config-repair: line(s) 96 of go2rtc.yaml held nothing YAML can read; taken out, and go2rtc parsed the result before writing it".
+  - `go2rtc.yaml` now has 95 lines, and none fails the shape check.
+  - No "refused PUT" line has been logged since.
+  - go2rtc lists 66 streams, and the forwarder runs `a9c0e306c7c02777`.
+- **Unanswered Kinesis offers in go2rtc's log fell to 44, from 560 before the release.**
+- **The witness reads 18 of 33 (17 on the first ask), the best read in this record.**
+  - The baseline before the repair (camera-health 39203690931) was 16 of 33. Before the seventh read it was 9 of 33.
+  - The floor is half (17), so the pass is not an incident. The `priority:cameras` label came off.
+- **Dark: 15.**
+  - **11 that Wyze itself called offline in the sixth and seventh reads:** 805 Apt 4, 805 Front Outside, 805 Porch Cam, Basement Living Room, East North Cam, Front Driveway & Door, Front Yard, Kitchen Cam, Living Room, North East Cam, Outside Front Door. Wyze's own list answered HTTP 429 this time: the cloud is rate-limiting this account's listing.
+  - **4 that are ours:**
+    - **805 Floodlight Cam - West:** go2rtc answered "exit status 183" on both asks. Its held session carried video (the judge measured 16 KB in 4.5 s), and ffmpeg could not make a JPEG of the key frame. 183 is ffmpeg's invalid-data code.
+    - **Back Yard South, Front Cam, Garage Doors:** "no video on Wyze's WebRTC road yet". Each camera left the offer unanswered on both asks, and go2rtc was rightly not asked for a frame.
+- **Back Yard North, Basement North, Front Door View, Outside 7 and Front all answered.** The judge had called each of them dark on both roads; every one was a camera the frozen sessions had been holding.
+
+**What is left:**
+
+- **805 Floodlight Cam - West's frame: fixed in the same record.**
+  - cams-diag 39210024616 with `camera=805_floodlight_cam_-_west`: the full-size frame answered 200 in 4.2 s (169 KB), and the 35 s stream probe carried 4.8 MB.
+  - Only the resized frame (`?w=640`, the size the tab and the witness ask for) failed, because go2rtc hands the resize to ffmpeg, which exits 183 on that camera's key frame.
+  - `/snap` now asks once more at the camera's own size when go2rtc's resize answers 500 "exit status ...". Any other 500 is passed on in go2rtc's own words and never retried.
+  - Selftest: 456 passing. PROVEN TO CATCH: with the retry taken out, its check fails.
+- `re-review: 2026-10-20`, unchanged: decide on the IDisposable fork for the Kinesis dial clock against this read.
+
+## Eleventh field read (2026-10-19 07:22-07:29 UTC; camera-health 39215549062): Floodlight West answers
+
+- **805 Floodlight Cam - West now gives a frame** (9.2 s, 28 KB) on forwarder `1b9bec4d5cf9784a`. The full-size retry is live.
+- **The witness reads 18 of 33 again (17 on the first ask)**, which meets the floor. The `priority:cameras` label stays off.
+- **The Kinesis cameras that go dark change from pass to pass:**
+  - Back Yard South, dark in the tenth read, answered in 8.9 s.
+  - Basement North and Outside 7, which answered in the tenth read, left both offers unanswered.
+  - Front Cam and Garage Doors left the offer unanswered in both reads.
+  - So on Wyze's WebRTC road a camera answers an offer some of the time; this is not a fixed set of broken cameras.
+- **Dark, 15:**
+  - The same 11 that Wyze itself calls offline.
+  - 4 that left Wyze's offer unanswered on both asks: Basement North, Front Cam, Garage Doors, Outside 7.
+- **In the app this means:**
+  - The tab asks again every 30 s, and the holder sends a fresh offer every 30 s while someone looks.
+  - A camera that answers some offers shows up within a minute or two.
+  - A camera Wyze calls offline shows Wyze's own "offline" word.
+
+`re-review: 2026-10-20`, unchanged. Two questions stand at that review:
+
+- Whether a camera that answers only some offers needs a longer dial than 20 s.
+- Whether the IDisposable fork is needed at all.

@@ -24,5 +24,5 @@ By 04:04 UTC the road answered `/health 503` in 0.3 s with the reason in words. 
 
 **For the next session.**
 - Bring Immich home by the Way: measure the pool first.
-- The audit of the 21 older services, by blast radius, by 2026-11-15; strike each part from the ledger as it is built.
+- The audit of the 22 older services (21 read that night, plus `db-backup`, born the same day on main and caught by the gate on the merge), by blast radius, by 2026-11-15; strike each part from the ledger as it is built.
 - Jellyfin and Audiobookshelf: name a library or a shelf, or re-date on 2026-12-01 with a why.

@@ -89,6 +89,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/SITUATIONAL-PEACE.md`
 - `docs/00-foundations/_root/SOVEREIGN-COMMS-AND-MEETINGS.md`
 - `docs/00-foundations/_root/SYSTEM-SKILLS-INVENTORY.md`
+- `docs/00-foundations/_root/SYSTEM-UNDERSTANDING-STANDARD.md` — what a full understanding of the system contains (DR-1111): goals, inside, outside, standards, critical paths, jobs, incentives, placeholders, change log, reversal, interdependency, each evaluated prudently. Pairs with COMPREHENSIVE-REVIEW-STANDARD (a surface) as the frame around the surfaces.
 - `docs/00-foundations/_root/THE-ROOT-OPEN-INVESTIGATIONS.md`
 - `docs/00-foundations/_root/THE-ROOT-POSITIONS-AND-INQUIRY.md`
 - `docs/00-foundations/_root/THE-ROOT.md`

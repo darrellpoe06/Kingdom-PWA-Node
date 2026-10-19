@@ -68,6 +68,9 @@ const BORN_BEFORE_THE_WAY = {
   'lesson-builder': { lacks: ['health', 'witness'] },
   cameras: { lacks: ['stands'], witness: 'camera-health.yml' },
   announce: { lacks: ['codeFollows', 'witness'] },
+  // Born the same day by another session (DR-1113), before this Way merged;
+  // the gate caught it on the merge, which is exactly its job.
+  'db-backup': { lacks: ['codeFollows', 'health', 'witness'] },
 };
 
 // ---- the readable parts of the Way -----------------------------------------

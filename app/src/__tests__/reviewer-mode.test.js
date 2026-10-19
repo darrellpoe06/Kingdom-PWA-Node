@@ -98,7 +98,12 @@ const SHELL_WIRING = [
   'const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);',
   'const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(',
   'const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);',
-  'const isGov = !!authSession && !reviewerMode && isFamilyEmail(',
+  // the ONE authority derivation every Governor surface now reads (DR-1106:
+  // the database role decides, not the email allowlist). The narrowing moved
+  // INSIDE the rule (lib/family-standing.js governsHere returns false in the
+  // lens, for the role as well as the address) — the shell's duty is to hand
+  // it `reviewerMode`, which is what this entry pins.
+  'const isGov = governsHere({ signedIn: !!authSession, reviewerMode, allowlisted: isFamilyMember, role: instanceRoleState.role });',
   // the family-PII Imported gate treats a reviewer like a demo/outside state
   'isAnyDemoMode: isAnyDemoMode || reviewerMode',
   // boot data is the public user sample, never this device's saved steward blob
@@ -144,9 +149,17 @@ describe('shell wiring — every narrowing + suppression point is present', () =
       expect(m, `${name} is gone`).toBeTruthy();
       expect(m[1].startsWith('!reviewerMode &&'), `${name} no longer narrows for a reviewer: ${m[1]}`).toBe(true);
     }
-    // isGov narrows too, with the session test first.
-    const gov = shell.match(/const isGov = ([^;]*);/);
-    expect(gov[1]).toContain('!reviewerMode');
+    // The authority derivation narrows too. It is no longer spelled with
+    // isFamilyEmail (DR-1106 moved it to the database role) and the narrowing
+    // now lives inside governsHere, so what the shell must still do is HAND IT
+    // the lens — checked here, with the rule's own behavior in
+    // family-standing.test.js ("the reviewer lens is senior to BOTH").
+    const gov = shell.match(/const isGov = governsHere\(([^;]*)\);/);
+    expect(gov, 'isGov is gone').toBeTruthy();
+    expect(gov[1]).toContain('reviewerMode');
+    expect(gov[1]).toContain('signedIn: !!authSession');
+    // and nothing else in the shell may derive authority around it.
+    expect(/const isGov = (?!governsHere)/.test(shell), 'isGov must come from the rule').toBe(false);
   });
 
   it('the reviewer strip rides EVERY shell return path — the app shell AND the TLC door takeover (Exit is never hidable, DR-0104)', () => {
@@ -176,12 +189,18 @@ describe('shell wiring — every narrowing + suppression point is present', () =
     // DR-0241: on a private host the open (no-session) state keeps the entry,
     // but a signed-in non-steward — an invited guest on the house WiFi — never
     // gets Admin. The gate must carry the !authSession term at both sites.
-    const gate = '!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))';
-    // The nav tab moved to lib/nav-items.jsx with the Heritage rail (DR-1046);
-    // the console gate stays in the shell. Both sites are counted together.
+    // DR-1106 swapped the steward term for the role-derived one at both sites:
+    // the shell reads its own `isGovernorHere`, nav-items reads the
+    // `isGovernor` it is handed. Same gate, two spellings, so each file is
+    // checked for its own — and the shell must actually PASS the role-derived
+    // flag, or nav-items would quietly fall back to the allowlist default.
     const navItems = readFileSync(join(SRC, 'lib', 'nav-items.jsx'), 'utf8');
-    const count = (shell + navItems).split(gate).length - 1;
-    expect(count, 'nav tab AND AdminConsole isGovernor must both carry the gate').toBeGreaterThanOrEqual(2);
+    expect(shell.includes('!reviewerMode && (isGov || (!isPublicHost() && !authSession))'),
+      'the AdminConsole gate must carry the reviewer + signed-in-guest terms').toBe(true);
+    expect(navItems.includes('!reviewerMode && (isGovernor || (!isPublicHost() && !authSession))'),
+      'the Admin nav tab must carry the same gate').toBe(true);
+    expect(/navItems\(\{[^)]*isGovernor: isGov/.test(shell),
+      'the shell must hand nav-items the role-derived flag, not the allowlist default').toBe(true);
     // The old host-only form must be gone (it granted Admin UI to any signed-in
     // user on the LAN).
     expect(shell.includes('(isFamilyMember || !isPublicHost())')).toBe(false);
