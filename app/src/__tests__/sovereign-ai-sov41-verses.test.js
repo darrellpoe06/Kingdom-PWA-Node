@@ -104,12 +104,27 @@ describe('sov41 — the verses are the corpus, verbatim', () => {
     }
   });
 
-  it('the weeks run in order and sov41 is the last of them', () => {
+  // This case used to read "sov41 is the last of them" and pinned
+  // Math.max(...nums) to 41 and the final module's id to sov41. Both were
+  // claims about the NEWEST lesson wearing the clothes of a sov41 fact, and
+  // they expired the moment sov42 was written: CI shard 1/4 failed on
+  // e65918fc with "expected 42 to be 41". A lesson's own test may pin what is
+  // true of that lesson forever; it may not pin what happens to be true of the
+  // catalog on the day it was written, because the next lesson is what proves
+  // it wrong and the next lesson is the point.
+  //
+  // What replaces them is strictly stronger than the max pin. The near-miss
+  // this file was written after was a COUNT that reported gaps (two regexes
+  // over two module formats answered "max sov32" while verse tests existed for
+  // sov33-sov40), and acting on it would have spliced a lesson ON TOP of an
+  // existing module. Contiguity catches that; a maximum never did.
+  it('the weeks run in order, with no gaps, and sov41 is among them', () => {
     const nums = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)-/.exec(m.id)[1]));
     expect(nums).toEqual([...nums].sort((a, b) => a - b));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(41);
-    expect(SOVEREIGN_AI_MODULES[SOVEREIGN_AI_MODULES.length - 1].id).toBe(SOV41_ID);
+    expect(nums).toContain(41);
+    expect(SOVEREIGN_AI_MODULES.filter((x) => x.id === SOV41_ID)).toHaveLength(1);
+    expect(nums).toEqual(Array.from({ length: Math.max(...nums) }, (_, i) => i + 1));
   });
 
   it('every quoted span that names a reference IS that verse, character for character', () => {
