@@ -73,9 +73,8 @@
 // A ROW MAY STILL BE PARKED, but only the way DR-0075 permits anything to be
 // parked: `strandedUntil` is a DATE, and it is the promise the placement gets
 // made. No date, no parking -- the row fails until the passage leaves the
-// lesson that introduced it. Job 31:1 is parked to 2026-10-19 because the
-// hosts discussing its subject all carry full-levels debt today, and placing
-// into those deepens debt instead of paying it.
+// lesson that introduced it. Job 31:1 was parked to 2026-10-19 and was
+// discharged that day into ll92, a host with no full-levels debt.
 
 export const PASSAGES_THAT_MUST_REACH = Object.freeze([
   {
@@ -117,9 +116,8 @@ export const PASSAGES_THAT_MUST_REACH = Object.freeze([
     ref: 'Job 31:1',
     subject: 'a covenant with your eyes',
     introducedBy: 'll183-',
-    minLessons: 1,
-    strandedUntil: '2026-10-19',
-    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. STRANDED in the lesson that introduced it: every lesson discussing its subject carries full-levels debt today, and placing into those deepens debt instead of paying it. Parked with a date, not with a floor of 1 — re-review: 2026-10-19.',
+    minLessons: 2,
+    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. DISCHARGED 2026-10-19 into ll92 (Yahweh Standardized Love), which carries no full-levels debt: in all four bands and the lesson it now follows Matthew 5:28, where Jesus counts the look, as the discipline that answers it at the eye.',
   },
   {
     ref: 'Luke 4:19',
