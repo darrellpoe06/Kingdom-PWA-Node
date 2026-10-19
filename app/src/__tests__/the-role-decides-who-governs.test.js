@@ -201,12 +201,13 @@ describe('the role seam serves EVERY role — narrowing it would re-open the hol
 // `isOwner={isFamilyMember}` on Forecast — authority-shaped props wearing a
 // different name. Found while writing DR-1108, after DR-1107 had shipped.
 //
-// The answer is NOT to sweep them: for Forecast the correct gate is
-// books-visibility, not governorship (a 'member' reads the financial tables
-// under 0082, so gating it on isGov would make the CLIENT stricter than RLS,
-// which DR-1106 forbids), and that is a decision DR-0094 keeps with the
-// guardian. The answer is that every such prop is DECLARED, with its class and
-// its reason, so a NEW one cannot appear unnoticed the way these two did.
+// The answer was NOT to sweep them, and it was NOT to defer them either — an
+// earlier draft of this file deferred three to the Governor with dates, which
+// was wrong: the database had already decided each one. Every prop below is now
+// DECLARED with its class, so a NEW one cannot appear unnoticed the way these
+// did, and the three that were fixed are declared as FALLBACKS — the prop still
+// exists, but it is the allowlist serving as the unread-role fallback at the
+// point of use, never the grant.
 const ALLOWLIST_FED_PROPS = Object.freeze({
   // ENTITLEMENT, not governance — correct as membership. use-read-aloud.js:57
   // documents isOwner as "entitled to personal (subscriber) voices" and :335
@@ -215,16 +216,26 @@ const ALLOWLIST_FED_PROPS = Object.freeze({
   'ReadingVoiceControl.isOwner': 'entitlement',
   'TTSControl.isOwner': 'entitlement',
 
-  // THE OFFICE'S ROLE, not the household's. isStaff reaches PracticeLearn's
-  // visibleAudiences({ isStaff }) and listMyAssignments — TLC office staff.
-  // Its real wall is the therapy-practice instance (0193), so the honest
-  // source is my_office_instance_role, not the family allowlist. A separate
-  // door with its own blast radius. `re-review: 2026-11-02`.
-  'Practice.isStaff': 'office-role-deferred',
+  // FIXED IN PLACE (DR-1109), the prop demoted to the fallback. Each component
+  // now reads its own standing at the point of use and the gate mirrors the
+  // wall the database already built:
+  //   Practice.isStaff      -> the OFFICE's role (0193), canWrite, the same
+  //                            owner/admin/member test TlcPublicDoor.jsx:255 uses
+  //   WorkflowScribe        -> canWrite (0082's write CHECK: 'member' yes,
+  //                            'child'/'successor' no) — a recording is a record
+  //   Forecast              -> canSeeBooks (0082's read policy: 'member' reads,
+  //                            'child' does not) — these views model the money
+  'Practice.isStaff': 'fallback-only',
+  'WorkflowScribe.isSteward': 'fallback-only',
+  'Forecast.isOwner': 'fallback-only',
+});
 
-  // BOOKS-VISIBILITY, deferred to the Governor with a date (DR-1108).
-  'WorkflowScribe.isSteward': 'books-visibility-deferred',
-  'Forecast.isOwner': 'books-visibility-deferred',
+// A prop declared `fallback-only` must actually BE a fallback: its component
+// reads a standing at the point of use and gates on that, not on the prop.
+const FALLBACK_ONLY_GATES = Object.freeze({
+  'Practice.isStaff': { file: 'Practice.jsx', hook: 'useOfficeStandingHere', gate: 'canWrite' },
+  'WorkflowScribe.isSteward': { file: 'WorkflowScribe.jsx', hook: 'useStandingHere', gate: 'canWrite' },
+  'Forecast.isOwner': { file: 'Forecast.jsx', hook: 'useStandingHere', gate: 'canSeeBooks' },
 });
 
 describe('every authority-shaped prop fed by the allowlist is declared', () => {
@@ -256,11 +267,38 @@ describe('every authority-shaped prop fed by the allowlist is declared', () => {
     expect(fed(shellSrc()).length).toBeGreaterThanOrEqual(5);
   });
 
-  it('every declaration names one of the three decided classes', () => {
-    const ok = ['entitlement', 'office-role-deferred', 'books-visibility-deferred'];
+  it('every declaration names one of the two decided classes', () => {
+    // No "deferred" class exists any more. A prop here is either an
+    // entitlement (correct as membership) or a fallback behind a real
+    // standing read. There is nowhere left to park one.
+    const ok = ['entitlement', 'fallback-only'];
     for (const [k, v] of Object.entries(ALLOWLIST_FED_PROPS)) {
       expect(ok, `${k} has an undecided class`).toContain(v);
     }
+    expect(Object.values(ALLOWLIST_FED_PROPS).join(' ')).not.toMatch(/deferred/);
+  });
+
+  it('a fallback-only prop really IS only a fallback — its component gates on a standing', () => {
+    for (const [prop, { file, hook, gate }] of Object.entries(FALLBACK_ONLY_GATES)) {
+      expect(ALLOWLIST_FED_PROPS[prop], `${prop} must be declared fallback-only`).toBe('fallback-only');
+      const src = readFileSync(join(ROOT, 'app', 'src', 'components', file), 'utf8');
+      const propName = prop.split('.')[1];
+      // the prop is passed in as the allowlist, not read as the gate
+      expect(src, `${file} must read its own standing`).toMatch(
+        new RegExp(`${hook}\\(\\{\\s*allowlisted:\\s*${propName}\\s*\\}\\)`)
+      );
+      expect(src, `${file} must gate on ${gate}`).toMatch(new RegExp(`[Ss]tanding\\.${gate}`));
+      // and the bare prop must no longer be the gate anywhere in that file
+      expect(src, `${file} still gates on the bare prop`).not.toMatch(new RegExp(`if \\(!${propName}\\)`));
+    }
+  });
+
+  it('CATCHES a fallback-only prop whose component goes back to gating on it', () => {
+    const src = readFileSync(join(ROOT, 'app', 'src', 'components', 'Forecast.jsx'), 'utf8');
+    const regressed = src.replace('if (!standing.canSeeBooks) {', 'if (!isOwner) {');
+    expect(regressed).not.toBe(src);
+    expect(/if \(!isOwner\)/.test(regressed)).toBe(true);
+    expect(/standing\.canSeeBooks/.test(regressed)).toBe(false);
   });
 
   it('CATCHES a NEW authority-shaped prop fed the allowlist (the DR-1108 miss)', () => {
