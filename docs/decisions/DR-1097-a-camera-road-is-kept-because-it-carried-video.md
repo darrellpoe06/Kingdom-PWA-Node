@@ -199,3 +199,33 @@ The floor is half, 16 of 31, so the pass is still an incident: one camera short.
 
 - **Darrell's hand:** the 13 cameras dark on both roads, in the Wyze app; the seven on old firmware first.
 - `re-review: 2026-10-20`, unchanged.
+
+## Sixth field read (2026-10-18 20:29 CDT, Darrell's Wyze app on the Fold)
+
+Darrell sent three screenshots: the 805 N Prospect group live in the Wyze app, one camera the Wyze app itself calls "The device is offline", and Wyze's own Firmware Update list.
+
+- **Correction, stated plainly.** The fourth read said seven of the dark cameras "run older firmware than their siblings" and treated that as a sign of being off the network. Wyze's Firmware Update list shows the family's cameras "Up to Date". Garage Doors is on current firmware and still dark. Firmware does not explain the dark cameras, and that inference is withdrawn.
+- **Two cameras the Wyze app shows live were never in the app at all:** 805 Porch - Floodlight Cam - East and 805 Floodlight Cam - West (Floodlight Pro, LD_CFP).
+  - **The cause, from go2rtc's own source** (`pkg/wyze/cloud.go`, v1.9.14): `if dev.DeviceParams.IP == "" { continue // skip cameras without IP (gwell protocol) }`. The Floodlight Pro is a Gwell camera, so go2rtc's Wyze sign-in dropped it, and it never became a stream.
+  - The bridge does list both cameras (`webrtc=True`, `enabled=False`, firmware 2.2.1.1345).
+  - None of the counts in this record could see them, because the witness counted 31 go2rtc streams.
+- **The Wyze app itself shows a camera offline.** That is the same fact our two roads measured from the NAS for the dark cameras: Wyze issues the channel and the camera never answers. The fix is at the camera, not on the NAS.
+
+**The change, same record:**
+
+- **The cameras go2rtc's sign-in drops are added** (`missing_cameras`, `ensure_missing_cameras`, in the judge's own thread).
+  - Which cameras: those the bridge lists that no go2rtc stream (Kinesis, bridge, or direct by MAC) and no roads record carries.
+  - How: each is asked of Wyze's signaling. On "ok", it is added on Wyze's WebRTC road under its Wyze nickname, with its restreamed twin, and its record names `reason: not-in-go2rtc`.
+  - A camera the family later removes keeps its record and is never added back.
+  - **Brakes (DR-0248):**
+    - 2 cameras a pass;
+    - a camera Wyze refused is not asked again for an hour, and its refusal is kept in Wyze's words;
+    - stop-paths `CAMS_KVS=0` or `CAMS_ADD_MISSING=0`.
+- **cams-diag prints Wyze's own online/offline word for every camera** (the forwarder's `/devices`, `conn_state`), so "is this camera offline?" is answered by Wyze, not inferred.
+
+**Verification:**
+
+- Selftest: 436 passing; section 8s is new.
+- PROVEN TO CATCH: with the add removed, five checks fail. Those five cover the add itself, its record, the never-add-back rule, the budget, and the hour between asks.
+
+**Live, after merge:** the next judge pass asks Wyze for the two Floodlight Pros. cams-diag names whether each was added and prints Wyze's own online word per camera.
