@@ -1,4 +1,4 @@
-# DR-1102: A promise that comes due is paid, not renewed — Job 31:1 leaves the lesson that introduced it
+# DR-1105: A promise that comes due is paid, not renewed — Job 31:1 leaves the lesson that introduced it
 
 **Date:** 2026-10-19
 **Status:** accepted
@@ -120,7 +120,7 @@ file currently does not do, and should read how this one ended.
 - Lint clean; `verify:gates` green **by exit code** from `app/`.
 - **This record's own first draft failed a gate, and it is recorded rather than
   quietly fixed:** `decision-citation-guard` refused the build because
-  `passage-reach.js:81` cited DR-1102 before the record existed — *"A citation
+  `passage-reach.js:81` cited DR-1105 before the record existed — *"A citation
   promises the reasoning is written down."* The citation was written first and the
   record second; the gate is right that this is the wrong order.
 

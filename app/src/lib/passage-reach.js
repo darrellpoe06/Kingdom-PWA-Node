@@ -78,7 +78,7 @@
 // NO ROW IS PARKED TODAY. Job 31:1 was the last one, parked to 2026-10-19, and
 // the date did its whole job: the gate failed the build on 2026-10-19 with
 // "its parking expired", the parking's stated reason was re-measured and found
-// no longer true, and the passage was placed rather than re-parked (DR-1102).
+// no longer true, and the passage was placed rather than re-parked (DR-1105).
 // That is the mechanism working exactly as DR-0075 intends -- the date is the
 // promise, and a promise that comes due is paid, not renewed by default.
 
