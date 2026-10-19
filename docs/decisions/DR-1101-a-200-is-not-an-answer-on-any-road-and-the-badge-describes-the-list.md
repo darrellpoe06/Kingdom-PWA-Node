@@ -86,9 +86,13 @@ decides both.
 ## Impact
 
 Nothing in this record was found by a report from the live site; it was found
-by honoring a date. Two of the three defects need a stranger at 200 to bite and
-no such body has been measured on those two roads — that is said plainly rather
-than dressed up as an outage averted. **The third is reachable from the real
+by honoring a date. But the condition it defends against is not theoretical:
+measured at 00:12 UTC today, poetech.us is on **day 9** of answering the SPA
+shell at 200 in place of every Pages Function, on all eleven NAS-backed roads
+at once (see Verification). Two of the three defects additionally need a
+*stranger's JSON* at 200 to bite and no such body has been measured on those
+two roads — that is said plainly rather than dressed up as an outage averted.
+**The third is reachable from the real
 producer today**: any brain with an empty principles list makes the Ways card
 print "live" over deploy-time data, and a reader has no way to tell. That is
 the one that was actually lying, and it is the one that would never have been
@@ -138,10 +142,34 @@ shape its producer does not write.
   code** (run from `app/`), not by reading its output.
 - Every contract in the tables above is a read of the producer's source, cited
   by file and line (DR-0076 §8). Nothing here is recalled.
-- **Not measured, and so not claimed:** no live HTTP request was made to
-  poetech.us from this session — the cloud sandbox has no route to it
-  (DR-0125). `site-health.yml` was dispatched on `main` at 00:12 UTC for the
-  independent outside-in read; this record does not depend on its result.
+- **The premise is the live condition of the site, measured while this was
+  written.** `site-health.yml` was dispatched on `main` and read the product
+  from a runner at **00:12 UTC 2026-10-19** (run 39179658168) — the cloud
+  sandbox has no route to poetech.us, so the runner is the eye (DR-0125). Its
+  verdict, in its own words:
+
+  > `NO PAGES FUNCTION IS RUNNING` — GET poetech.us/automation-status answered
+  > with 'text/html; charset=utf-8', the SPA shell, instead of its Function's
+  > JSON. When this is true EVERY NAS-backed road is dark at once: /sb
+  > sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice,
+  > /nas-photos, /ways, /scribe.
+
+  `VERDICT: KNOWN`, `DAYS: 9`, `ANY_NEW: false` — #2057, Cloudflare-side, no
+  code change in this repository reaches it. The site itself is **up and
+  serving the current build** (`PAGES_CODE: 200`, `SERVED: fc23337` =
+  `MAIN: fc23337`), and the heal-a-stale-build step was skipped because there
+  was nothing stale to heal.
+
+  So the hostile answer this gate feeds nine probes is not a thought
+  experiment: **it is what poetech.us is handing every one of those roads
+  right now, and has been for nine days.** Seven of the eleven roads the probe
+  names have a case in the roster. That is the honest grounds for this work,
+  and it is stronger than the "no live body has been measured" caveat that an
+  earlier draft of this record carried before the probe was read.
+- **Still not claimed:** the *stranger's-JSON-at-200* half remains unmeasured
+  on `/ways` and `/cams`. Both already refuse HTML, so the live outage does not
+  make either probe lie today; the guards were tightened because the shape was
+  wrong, not because it had bitten.
 
 ## What this does not do
 
