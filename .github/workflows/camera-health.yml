@@ -42,7 +42,7 @@ concurrency:
 jobs:
   witness:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Check secrets (no-op with instructions when absent)
         id: gate
@@ -68,9 +68,19 @@ jobs:
         id: nas
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-          PROBE_ALL: ${{ inputs.probe_all }}
+          PROBE_ALL_IN: ${{ inputs.probe_all }}
+          EVENT: ${{ github.event_name }}
         run: |
           umask 077
+          # EVERY CAMERA, EVERY THREE HOURS (DR-1097). A pass probed only the cameras
+          # recording or watched -- 2 of 31 at 18:41 on 2026-10-17 -- and a regression
+          # was only a camera that answered last time going silent, so 28 cameras that
+          # never answered were never an incident while Darrell said "Cameras never
+          # work". The scheduled run in the first half of every third hour (UTC) now
+          # probes all of them, and the judge holds those passes to a floor.
+          PROBE_ALL="$PROBE_ALL_IN"
+          if [ "$EVENT" = "schedule" ] && [ $((10#$(date -u +%H) % 3)) -eq 0 ] && [ $((10#$(date -u +%M))) -lt 30 ]; then PROBE_ALL=true; fi
+          echo "probe_all=$PROBE_ALL ($EVENT)"
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
           $SSH "PROBE_ALL='$PROBE_ALL' sh -s" <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
@@ -82,15 +92,15 @@ jobs:
           STREAMS="$(curl -s -m 10 http://127.0.0.1:1984/api/streams)"
           # The first run (37704739922) judged the forwarder silent while cams-diag had just read it:
           # these four were shell variables, never exported, so the Python below saw none of them.
-          export H SH REC STREAMS
+          export H SH REC STREAMS TOK
           python3 - "$PROBE_ALL" <<'PY'
-          import json, os, sys, time, urllib.parse, urllib.request
+          import json, os, sys, time, urllib.error, urllib.parse, urllib.request
           probe_all = sys.argv[1] == "true"
           def load(v):
               try: return json.loads(v)
               except Exception: return None
           health = load(os.environ.get("H", "")) ; sh = load(os.environ.get("SH", "")) ; rec = load(os.environ.get("REC", "")) ; streams = load(os.environ.get("STREAMS", ""))
-          out = {"reachable": True, "at": int(time.time()), "health": None, "streams": 0, "probed": [], "answering": 0, "silent": [], "sampler_age_s": None, "resting": 0}
+          out = {"reachable": True, "at": int(time.time()), "probe_all": probe_all, "health": None, "streams": 0, "probed": [], "answering": 0, "silent": [], "sampler_age_s": None, "resting": 0}
           if isinstance(health, dict):
               out["health"] = {k: health.get(k) for k in ("ok", "go2rtc", "streams", "forwarder", "on_disk", "live_open", "live_bytes_per_s", "max_live")}
               out["resting"] = len(health.get("resting") or [])
@@ -106,15 +116,38 @@ jobs:
               for cid, c in (sh.get("cameras") or {}).items():
                   if isinstance(c, dict) and (c.get("watchers") or 0) > 0: want.add(cid)
           targets = ids if probe_all else [i for i in ids if i in want]
-          for cid in sorted(targets):
+          # THE APP'S OWN ROAD (DR-1097, fourth read). A frame is asked of the forwarder's
+          # /snap -- the road the Cameras tab takes, with its breaker, its held Kinesis
+          # session and its 20 s Kinesis clock -- never of go2rtc behind its back. The tab
+          # asks a camera that failed again after 30 s (SNAP_RETRY_FAILED_MS), so a camera
+          # silent on the first ask is asked once more after 30 s: a camera the family sees
+          # on the second ask is a camera that works, and the first-ask count is kept beside it.
+          def ask(cid):
               t0 = time.time()
               try:
-                  with urllib.request.urlopen("http://127.0.0.1:1984/api/frame.jpeg?src=" + urllib.parse.quote(cid), timeout=12) as r:
+                  req = urllib.request.Request("http://127.0.0.1:8773/snap/" + urllib.parse.quote(cid) + ".jpg?w=640", headers={"Authorization": "Bearer " + os.environ.get("TOK", "")})
+                  with urllib.request.urlopen(req, timeout=25) as r:
                       body = r.read(2 * 1024 * 1024)
-                  ok = len(body) > 0
-                  out["probed"].append({"id": cid, "ok": ok, "ms": int((time.time() - t0) * 1000), "bytes": len(body)})
+                  return {"id": cid, "ok": len(body) > 0, "ms": int((time.time() - t0) * 1000), "bytes": len(body)}
+              except urllib.error.HTTPError as e:
+                  return {"id": cid, "ok": False, "ms": int((time.time() - t0) * 1000), "error": ("HTTP %d " % e.code + e.read(300).decode("utf-8", "replace"))[:120]}
               except Exception as e:
-                  out["probed"].append({"id": cid, "ok": False, "ms": int((time.time() - t0) * 1000), "error": str(e)[:120]})
+                  return {"id": cid, "ok": False, "ms": int((time.time() - t0) * 1000), "error": str(e)[:120]}
+          first_at = {}
+          for cid in sorted(targets):
+              first_at[cid] = time.time()
+              out["probed"].append(ask(cid))
+          out["first_ask"] = sum(1 for p in out["probed"] if p["ok"])
+          for p in out["probed"]:
+              if p["ok"]:
+                  continue
+              wait = 30 - (time.time() - first_at[p["id"]])
+              if wait > 0:
+                  time.sleep(wait)
+              again = ask(p["id"])
+              p["again"] = {k: again[k] for k in again if k != "id"}
+              if again["ok"]:
+                  p["ok"] = True
           out["answering"] = sum(1 for p in out["probed"] if p["ok"])
           out["silent"] = [p["id"] for p in out["probed"] if not p["ok"]]
           print(json.dumps(out))
@@ -169,14 +202,19 @@ jobs:
             const commonNowAns = common.filter((p) => p.ok).length;
             if (last && common.length > 0 && lost.length > 0) reasons.push(`${commonNowAns} of the ${common.length} cameras both passes probed answer a frame; ${commonLastAns} did last time (${lost.join(', ')} went silent)`);
             if (last && (last.streams || 0) > 0 && w.streams < last.streams) reasons.push(`go2rtc lists ${w.streams} cameras; it listed ${last.streams} last time`);
+            // THE FLOOR (DR-1097): a pass that probed every camera is held to half of them
+            // answering, whatever the last pass said. "Never worked" is an incident too.
+            const FLOOR = 0.5;
+            if (w.probe_all && probedN >= 4 && w.answering < Math.ceil(probedN * FLOOR)) reasons.push(`only ${w.answering} of the ${probedN} cameras give a frame on an every-camera pass (the floor is half); dark: ${(w.silent || []).join(', ')}`);
             const regression = reasons.length > 0;
-            const summary = w.reachable ? `${w.answering}/${probedN} probed cameras answer · ${w.streams} streams · ${w.resting} resting · forwarder ${w.health ? w.health.forwarder : '?'} · live ${w.health ? w.health.live_open : '?'} open, ${w.health ? Math.round((w.health.live_bytes_per_s || 0) * 8 / 1000) : '?'} kb/s` : 'the NAS was not reachable from the runner';
+            const summary = w.reachable ? `${w.answering}/${probedN} probed cameras answer${w.first_ask != null ? ` (${w.first_ask} on the first ask)` : ''} · ${w.streams} streams · ${w.resting} resting · forwarder ${w.health ? w.health.forwarder : '?'} · live ${w.health ? w.health.live_open : '?'} open, ${w.health ? Math.round((w.health.live_bytes_per_s || 0) * 8 / 1000) : '?'} kb/s` : 'the NAS was not reachable from the runner';
             const body = [
               `# Camera road witness (DR-0806)`,
               ``,
               `Updated ${now} by \`camera-health.yml\` (run ${context.runId}). The last witness is the JSON below; every run compares itself with it. A regression adds the \`${prio}\` label: fix now, before anything else in the lane.`,
               ``,
               `**Now:** ${summary}`,
+              w.probe_all ? `\n**Every camera probed.** Dark now (${(w.silent || []).length}): ${(w.silent || []).join(', ') || 'none'}\n` : ``,
               regression ? `\n**REGRESSION:**\n${reasons.map((r) => `- ${r}`).join('\n')}\n` : `\n**No regression against the last witness.**\n`,
               '```json', JSON.stringify(w), '```',
               ``, `---`, `_Generated by [Claude Code](https://claude.ai/code)_`,

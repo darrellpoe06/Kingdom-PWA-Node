@@ -201,6 +201,21 @@ export async function chapterVerses(nameOrFile, chapter, edition = 'kjv') {
   return ch.map((text, i) => ({ v: i + 1, text }));
 }
 
+// Another per-book JSON asset that sits beside the text under bible/<dir>/ (the
+// red-letter voices, DR-1103), fetched through the same seam so tests and the
+// offline cache treat it exactly like the text. null on any miss; never throws.
+export async function loadBibleAsset(dir, nameOrFile) {
+  const meta = bookMeta(nameOrFile);
+  if (!meta || !fetcher || !/^[a-z]+$/.test(String(dir))) return null;
+  try {
+    const res = await fetcher(`${BASE}bible/${dir}/${meta.file}.json`);
+    if (!res || !res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // How many chapters a book has (from the bundled index; no fetch). 0 if unknown.
 export function chapterCount(nameOrFile) {
   const meta = bookMeta(nameOrFile);

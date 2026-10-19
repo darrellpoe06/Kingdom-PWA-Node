@@ -1712,3 +1712,101 @@ export async function loadPublicStayWallImage(id, client = supabase) {
     return error ? no('read-failed', error) : ok({ image: data || null });
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// THE METER (DR-1098, migration 0302). What a door's utility meter said, read
+// from the utility's own Green Button file. Owner, admin and member read; a
+// viewer and the assistant read nothing, because hourly reads show when a
+// house stands empty. RLS is the wall; these functions never widen it.
+// Every call carries a timeout, so a dark network ends in a reason, never a
+// spinner that waits forever.
+// ---------------------------------------------------------------------------
+const ENERGY_TIMEOUT_MS = 15000;
+const ENERGY_PAGE = 1000;
+const ENERGY_MAX_PAGES = 60;   // 60,000 folded hours: two years of electricity in, out, and gas
+const ENERGY_CHUNK = 500;
+
+const withTimeout = (q, ms = ENERGY_TIMEOUT_MS) => {
+  if (q && typeof q.abortSignal === 'function' && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    return q.abortSignal(AbortSignal.timeout(ms));
+  }
+  return q;
+};
+const timedOut = (e) => e && (e.name === 'TimeoutError' || e.name === 'AbortError' || /abort|timed? ?out/i.test(e.message || ''));
+
+/** The files imported onto a door, newest first. */
+export async function loadEnergyImports(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ imports: [] });
+  try {
+    const { data, error } = await withTimeout(client.from('property_energy_imports').select('*')
+      .eq('rental_ref', rentalRef).order('created_at', { ascending: false }));
+    if (error) return no(timedOut(error) ? 'timed-out' : 'read-failed', error);
+    return ok({ imports: data || [] });
+  } catch (e) { return no(timedOut(e) ? 'timed-out' : 'unexpected', e); }
+}
+
+/**
+ * The door's readings folded to the hour by the database (0302's
+ * property_energy_hourly), paged. Says `truncated` when the ceiling was hit,
+ * so a screen never presents a cut-off history as the whole one.
+ */
+export async function loadEnergyHours(rentalRef, { since = null } = {}, client = supabase) {
+  if (!rentalRef) return ok({ hours: [], truncated: false });
+  const hours = [];
+  try {
+    for (let page = 0; page < ENERGY_MAX_PAGES; page += 1) {
+      const from = page * ENERGY_PAGE;
+      const { data, error } = await withTimeout(client.rpc('property_energy_hourly', { p_rental_ref: rentalRef, p_since: since })
+        .range(from, from + ENERGY_PAGE - 1));
+      if (error) {
+        const msg = error.message || String(error);
+        const reason = /property_energy_hourly.* does not exist|Could not find the function/i.test(msg) ? 'not-enabled-yet'
+          : timedOut(error) ? 'timed-out' : 'read-failed';
+        return no(reason, error);
+      }
+      const rows = data || [];
+      hours.push(...rows);
+      if (rows.length < ENERGY_PAGE) return ok({ hours, truncated: false });
+    }
+    return ok({ hours, truncated: true });
+  } catch (e) { return no(timedOut(e) ? 'timed-out' : 'unexpected', e); }
+}
+
+/**
+ * File one meter file: the ledger row, then its readings in chunks, upserted
+ * on the reading's identity so an overlapping file replaces and never doubles.
+ * A chunk that fails stops the save and says how many readings landed; the
+ * same file imported again finishes the job, because the write is idempotent.
+ */
+export async function saveEnergyImport({ importRow, buildRows }, client = supabase) {
+  if (!importRow || typeof buildRows !== 'function') return no('nothing-to-save');
+  try {
+    // Filed in the signed-in person's name, always: 0302 refuses any other.
+    const uid = await userId(client);
+    if (!uid) return no('signed-out');
+    const { data: imp, error } = await withTimeout(client.from('property_energy_imports')
+      .insert({ ...importRow, created_by: uid }).select().single());
+    if (error) return no(timedOut(error) ? 'timed-out' : 'insert-failed', error);
+    const rows = buildRows(imp.id);
+    let saved = 0;
+    for (let i = 0; i < rows.length; i += ENERGY_CHUNK) {
+      const chunk = rows.slice(i, i + ENERGY_CHUNK);
+      const { error: e2 } = await withTimeout(client.from('property_energy_readings')
+        .upsert(chunk, { onConflict: 'rental_ref,commodity,direction,start_at,seconds' }));
+      if (e2) return { ok: false, reason: timedOut(e2) ? 'timed-out' : 'readings-failed', saved, total: rows.length, importId: imp.id, error: e2.message };
+      saved += chunk.length;
+    }
+    return ok({ importId: imp.id, saved, total: rows.length });
+  } catch (e) { return no(timedOut(e) ? 'timed-out' : 'unexpected', e); }
+}
+
+/** Take back a wrong file. The owner or an admin only; its readings go with it. */
+export async function deleteEnergyImport(id, client = supabase) {
+  if (!id) return no('no-import');
+  try {
+    const { data, error } = await withTimeout(client.from('property_energy_imports').delete().eq('id', id).select('id'));
+    if (error) return no(timedOut(error) ? 'timed-out' : 'delete-failed', error);
+    if (!data || !data.length) return no('not-allowed');
+    return ok();
+  } catch (e) { return no(timedOut(e) ? 'timed-out' : 'unexpected', e); }
+}

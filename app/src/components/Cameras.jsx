@@ -42,14 +42,14 @@ import { enterFullScreen, exitFullScreen, leavesFullScreen } from '../lib/reader
 import { useScreenAwake } from '../lib/screen-awake.js';
 import { noteUse } from '../lib/usage-events.js';
 import {
-  SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
+  SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, FRAME_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_DELAY_MAX_MS, reconnectDelayMs, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine, cameraRoadLine, bridgeLine, setStreamRoad,
+  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine, cameraRoadLine, judgedLine, bridgeLine, setStreamRoad,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   saveOpenWindow, loadOpenWindow, windowToResume, barShowing,
@@ -1122,7 +1122,8 @@ function WhyPanel({ cam, token, onHide, health = null, devices = null, owner = f
     setRoadBusy(true); setRoadMsg('');
     const res = await setStreamRoad(cam.id, road, token);
     setRoadBusy(false);
-    setRoadMsg(res.ok ? `Now ${res.road === 'bridge' ? 'through the Wyze bridge' : 'on the direct road'}${res.forced ? ' (your choice)' : ' (automatic)'}. The picture follows within a few seconds.` : res.text || res.error);
+    const where = res.road === 'bridge' ? 'through the Wyze bridge' : res.road === 'kvs' ? "through Wyze's own WebRTC" : 'on the direct road';
+    setRoadMsg(res.ok ? `Now ${where}${res.forced ? ' (your choice)' : ' (automatic)'}. The picture follows within a few seconds.` : res.text || res.error);
     if (res.ok && onRoad) onRoad();
   };
   const drops = health ? dropLines(health.events, cam.id) : [];
@@ -1136,10 +1137,12 @@ function WhyPanel({ cam, token, onHide, health = null, devices = null, owner = f
           <div className={`font-semibold ${ex.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`}>{ex.headline}</div>
           {ex.lines.map((l) => <div key={l} className="text-[#5A5751] mt-0.5">{l}</div>)}
           {says && ex.kind !== 'ok' ? <div className="text-[#1A1815] mt-0.5" data-testid={`why-wyze-${cam.id}`}>{says}</div> : null}
-          {cam.kind === 'wyze' ? <div className="text-[#5A5751] mt-0.5" data-testid={`why-road-${cam.id}`}>{cameraRoadLine(cam)}</div> : null}
+          {cam.kind === 'wyze' ? <div className="text-[#5A5751] mt-0.5" data-testid={`why-road-${cam.id}`}>{cameraRoadLine(cam, (r.why && r.why.road) || null)}</div> : null}
+          {cam.kind === 'wyze' && judgedLine(r.why && r.why.road) ? <div className="text-[#5A5751] mt-0.5" data-testid={`why-judged-${cam.id}`}>{judgedLine(r.why && r.why.road)}</div> : null}
           {cam.kind === 'wyze' && owner ? (
             <div className="mt-1 flex flex-wrap gap-1" data-testid={`why-road-pick-${cam.id}`}>
               <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('bridge')} data-testid={`road-bridge-${cam.id}`}>Use the Wyze bridge</button>
+              <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('kvs')} data-testid={`road-kvs-${cam.id}`}>Use Wyze&apos;s WebRTC</button>
               <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('direct')} data-testid={`road-direct-${cam.id}`}>Use the direct road</button>
               <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('auto')} data-testid={`road-auto-${cam.id}`}>Let the NAS choose</button>
               {roadMsg ? <div className="w-full text-[#1A1815]" role="status" data-testid={`road-result-${cam.id}`}>{roadMsg}</div> : null}
@@ -1587,7 +1590,7 @@ export default function Cameras() {
       if (stop) return;
       const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
       try {
-        const r = await fetchWithTimeout(snapUrl(cam.id), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS);
+        const r = await fetchWithTimeout(snapUrl(cam.id), { headers: authHeaders(token) }, FRAME_TIMEOUT_MS);
         if (!r.ok) {
           let body = null;
           try { body = await r.json(); } catch { body = null; }

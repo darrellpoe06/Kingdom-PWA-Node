@@ -17,6 +17,7 @@ import { __setXrefFetcher } from '../lib/bible-xref.js';
 
 const KJV_ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/kjv');
 const XREF_ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/xref');
+const VOICES_ASSETS = join(dirname(fileURLToPath(import.meta.url)), '../../public/bible/voices');
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const diskFetcher = (dir) => async (url) => {
@@ -29,8 +30,14 @@ const diskFetcher = (dir) => async (url) => {
   }
 };
 
+// The text and the red-letter voices share a file name per book (Psalms.json), so
+// the bible fetcher routes by folder the way the server does.
+const bibleFetcher = async (url) => (
+  /\/voices\//.test(String(url)) ? diskFetcher(VOICES_ASSETS)(url) : diskFetcher(KJV_ASSETS)(url)
+);
+
 beforeAll(() => {
-  __setBibleFetcher(diskFetcher(KJV_ASSETS));
+  __setBibleFetcher(bibleFetcher);
   __setXrefFetcher(diskFetcher(XREF_ASSETS));
 });
 
@@ -198,6 +205,23 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     const tempter = [...container.querySelectorAll('span')].find(
       (s) => /command that these stones be made bread/.test(s.textContent || '') && s.style && s.style.fontStyle === 'italic');
     expect(tempter, 'the tempter cold + italic').toBeTruthy();
+  });
+
+  it('Yahweh’s voices in red on Psalms 110: only what He says, never the psalmist (DR-1103)', async () => {
+    await mount();
+    setValue(container.querySelector('#bible-jump'), 'Psalms 110');
+    await clickText(/^Go$/);
+    await clickText(/voices/i);
+    await tick(); await tick();
+    const red = (re) => [...container.querySelectorAll('span')].find(
+      (s) => re.test(s.textContent || '') && s.style && /rgb\(176, 30, 30\)|#b01e1e/i.test(s.style.color));
+    // verse 1: the Father's words to the Son are red; "The LORD said unto my Lord," is narration
+    expect(red(/^Sit thou at my right hand, until I make thine enemies thy footstool\.$/), 'Psalms 110:1 in red').toBeTruthy();
+    expect(red(/The LORD said unto my Lord/), 'the narration stays plain').toBeFalsy();
+    // verse 4: His oath is red; verse 2 is David speaking of Him, and stays plain
+    expect(red(/^Thou art a priest for ever after the order of Melchizedek\.$/), 'Psalms 110:4 in red').toBeTruthy();
+    expect(red(/send the rod of thy strength/), 'Psalms 110:2 is not His voice').toBeFalsy();
+    expect(container.textContent).toMatch(/The Father/);
   });
 
   it('Voices mode offers the dramatized "Play the voices" control', async () => {

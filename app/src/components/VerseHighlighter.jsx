@@ -9,16 +9,57 @@
 // #B85838 focus outline (AA). No device-font emoji (consistency-guard) — the
 // swatches ARE colored chips; the control is labelled for screen readers. Sizes
 // are rem-based so the large-print primitive scales them.
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { HIGHLIGHT_GROUPS, styleFor, cssForHighlight } from '../lib/scripture-highlights.js';
 
 const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
+
+// WHERE THE PALETTE OPENS (Darrell 2026-10-18, on Psalms 110: "we can't adjust the
+// color of the text because it's cut off"). It used to drop down from the dot every
+// time, so on the last verses of a chapter, at large print, its lower rows slid
+// under the bottom dock (FEEDBACK · GIVE · READ) and could not be reached. Now it
+// measures the room it really has: below the dot down to the dock's top edge (the
+// dock publishes its height as --chrome-dock-h), and above the dot. It opens down
+// when it fits, up when there is more room above, and scrolls inside itself when
+// neither side holds it, so every row and Clear can always be reached. Pure.
+export const MENU_GAP_PX = 8;
+export function placeMenu({ triggerTop, triggerBottom, menuHeight, viewportHeight, dockHeight = 0 }) {
+  const below = Math.max(0, viewportHeight - dockHeight - triggerBottom - MENU_GAP_PX);
+  const above = Math.max(0, triggerTop - MENU_GAP_PX);
+  if (menuHeight <= below) return { up: false, maxHeight: null };
+  if (above > below) return { up: true, maxHeight: menuHeight <= above ? null : Math.floor(above) };
+  return { up: false, maxHeight: Math.floor(below) };
+}
+
+function dockHeightPx() {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--chrome-dock-h');
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  } catch { return 0; }
+}
 
 // value: the current style key ('none' or a palette key). onPick(key) fires with
 // the chosen key (or 'none' to clear). refLabel names the verse for a11y.
 export default function VerseHighlighter({ value = 'none', onPick, refLabel = 'this verse' }) {
   const [open, setOpen] = useState(false);
+  const [place, setPlace] = useState({ up: false, maxHeight: null });
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
   const current = styleFor(value);
+
+  // Measure before paint so the palette never flashes in the wrong place.
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current || !menuRef.current) return;
+    const r = buttonRef.current.getBoundingClientRect();
+    setPlace(placeMenu({
+      triggerTop: r.top,
+      triggerBottom: r.bottom,
+      menuHeight: menuRef.current.scrollHeight,
+      viewportHeight: window.innerHeight || document.documentElement.clientHeight || 0,
+      dockHeight: dockHeightPx(),
+    }));
+  }, [open]);
   const marked = value && value !== 'none';
 
   const pick = (key) => {
@@ -43,6 +84,7 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
           menu, which is why it belongs here rather than as a special case in
           the reader. */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -61,9 +103,12 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
 
       {open && (
         <span
+          ref={menuRef}
           role="menu"
           aria-label={`Highlight styles for ${refLabel}`}
-          className="absolute right-0 top-full mt-1 z-10 flex flex-col gap-1.5 bg-white border border-[#E8E4DC] shadow-md p-2 w-64"
+          data-opens={place.up ? 'up' : 'down'}
+          className={`absolute right-0 ${place.up ? 'bottom-full mb-1' : 'top-full mt-1'} z-10 flex flex-col gap-1.5 bg-white border border-[#E8E4DC] shadow-md p-2 w-64`}
+          style={place.maxHeight ? { maxHeight: `${place.maxHeight}px`, overflowY: 'auto' } : undefined}
         >
           {/* Grouped the way Logos groups it: colored text · highlighter pens ·
               emphasis markup. Each chip previews its own look on a sample "Aa". */}

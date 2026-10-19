@@ -646,6 +646,12 @@ const NODES = [
     reads: [{ res: 'device:family-key', file: 'app/src/components/Cameras.jsx', token: 'bridgeToken' }, { res: 'http:cams', token: '/cams' }],
     seeds: [],
   }),
+  app('app/src/lib/research.js', {
+    id: 'research', name: 'Research (Vane: an answer with its sources)',
+    purpose: 'Asks one question of the research road on the NAS: Vane searches the web through our own SearxNG, answers on our own model, and returns the sources, marked unverified (DR-1101; the first tool DR-1099 brought home).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/ResearchTry.jsx', token: 'bridgeToken' }, { res: 'http:research', token: '/research' }],
+    seeds: [],
+  }),
   app('app/src/lib/clip-queue.js', {
     id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
     purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
@@ -696,6 +702,30 @@ const NODES = [
     ],
     writes: [{ res: 'db:choir_songs', token: 'choir_songs' }],
     seeds: ['songbook'],
+  }),
+  // DR-1091: the church office's emails become the app's documents on the
+  // NAS, by themselves — filed when new, refilled where a row's file was left
+  // on the old server, read on Choir → Team Docs and the Pulpit.
+  rider('service:church-mail', 'infra/nas-church-mail/church_mail.py', {
+    id: 'church-mail', name: 'The church office’s emails, filed',
+    purpose: 'Files each emailed team document and puts back any file a row names but the server lacks.',
+    reads: [
+      { res: 'mail:church-office', token: 'imaplib' },
+      { res: 'db:choir_team_documents', token: 'choir_team_documents' },
+      { res: 'db:choir_sermon_documents', token: 'choir_sermon_documents' },
+    ],
+    writes: [{ res: 'db:choir_team_documents', token: 'insert_team' }],
+    seeds: ['team-docs'],
+  }),
+  app('app/src/lib/choir-sync.js', {
+    id: 'team-docs', name: 'Team Docs and sermon documents',
+    purpose: 'The choir opens the week’s documents; a steward starts the order of service from one.',
+    reads: [
+      { res: 'db:choir_team_documents', token: 'subscribeTeamDocuments' },
+      { res: 'db:choir_sermon_documents', token: 'subscribeSermonDocuments' },
+    ],
+    writes: [{ res: 'db:choir_sermon_documents', token: "from('choir_sermon_documents').insert" }],
+    seeds: ['church-mail'],
   }),
   rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
     id: 'transcript-trickle', name: 'NAS transcript trickle',
@@ -1109,6 +1139,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
     writes: [{ res: 'gh:incident', token: 'camera-incident' }], seeds: ['ops-surface'],
   }),
+  wf('research-health.yml', {
+    id: 'research-health', name: 'Research road witness (DR-1101)', purpose: 'Once a day and on dispatch: over the tailnet, reads the research forwarder’s /health and asks ONE question through /ask with the family key; passes only when an answer and an http(s) source come back, still marked unverified.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
+    writes: [{ res: 'gh:incident', token: 'research-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
@@ -1231,6 +1266,21 @@ const NODES = [
       { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('door_money_months')" },
     ],
     seeds: ['record-clock'],
+  }),
+  // A door's meter (DR-1098): the owner files the utility's own Green Button
+  // file on a door; the readings are upserted on their identity so a newer
+  // download replaces an hour and never doubles it; the Energy tab reads them
+  // folded to the hour and counts every figure it shows.
+  app('app/src/modules/properties/EnergyTab.jsx', {
+    id: 'door-meter', name: 'What a door\u2019s meter recorded (Energy tab)', purpose: 'The owner files the utility\u2019s Green Button file on a door, home or rental; the tab counts what it used, when, the always-on draw, the busiest hour and the rate, and keeps which file said each hour.',
+    writes: [
+      { res: 'db:property_energy_imports', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_imports')\n      .insert" },
+      { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_readings')\n        .upsert" },
+    ],
+    reads: [
+      { res: 'db:property_energy_imports', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_imports').select" },
+      { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "rpc('property_energy_hourly'" },
+    ],
   }),
   // A door's cameras, asked for and given (DR-0938): the family offers names
   // on a door; anyone on it asks; the family gives (the NAS mints the grant),
@@ -1494,6 +1544,10 @@ const NODES = [
     id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
   }),
+  rider('service:research', 'infra/nas-research/research_forwarder.py', {
+    id: 'research-road', name: 'Research road (Vane behind the locked door)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }], writes: [{ res: 'http:research', token: '/research' }], seeds: ['research'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1747,6 +1801,7 @@ const RESOURCES = {
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
   'file:app/src/lib/lesson-sources.json': { label: 'the sources behind a lesson’s researched figures', source: 'Written by the research pass that follows a NAS lesson build (the session that reads the public record and names each publisher, url and the strings its page must say; DR-0750); the witness reads it back from the publishers on a GitHub runner.' },
 
+  'mail:church-office': { label: 'the church office’s emails', source: 'The church office (bg@thechurchofthelivinggod.com) emails the order of service, announcements, the calendar and PROCLAIM to the church mailbox.' },
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
@@ -1775,6 +1830,7 @@ const RESOURCES = {
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
+  'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

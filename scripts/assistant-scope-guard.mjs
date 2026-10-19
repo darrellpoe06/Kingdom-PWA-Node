@@ -170,6 +170,39 @@ export function scanFutureMigrations(dirOverride = null) {
   return { ok: problems.length === 0, problems };
 }
 
+// Redefinitions: a migration after 0130 that redefines the overlay function
+// becomes the live policy source from then on (0301 does, DR-1090), so it is
+// held to the same shape as 0130: RESTRICTIVE, denies 'assistant' on all four
+// verbs, and the allowlist ARRAY is exactly the reviewed set. Mirrors the
+// tenancy-guard's redefinition check for the viewer overlay.
+const REDEFINE_RE = /create\s+or\s+replace\s+function\s+public\.apply_assistant_scope_overlay\s*\(/;
+
+export function scanOverlayRedefinitions(dirOverride = null) {
+  const dir = dirOverride || MIGRATIONS_DIR;
+  const problems = [];
+  const files = readdirSync(dir).filter((f) => f.endsWith('.sql') && f > MIGRATION_FILE).sort();
+  for (const f of files) {
+    const n = normalize(readFileSync(join(dir, f), 'utf8'));
+    if (!REDEFINE_RE.test(n)) continue;
+    if (!n.includes('as restrictive')) problems.push(`${f} redefines the assistant overlay without RESTRICTIVE policies`);
+    if (!n.includes("is distinct from 'assistant'")) problems.push(`${f} redefines the assistant overlay without denying 'assistant'`);
+    for (const verb of ['for select', 'for insert', 'for update', 'for delete']) {
+      if (!n.includes(verb)) problems.push(`${f} redefines the assistant overlay without a ${verb.toUpperCase()} deny`);
+    }
+    const arrayMatch = n.match(/allowed\s+text\[\]\s*:=\s*array\s*\[([^\]]*)\]/);
+    if (!arrayMatch) {
+      problems.push(`${f} redefines the assistant overlay but its allowlist ARRAY was not found`);
+    } else {
+      const listed = (arrayMatch[1].match(/'[a-z0-9_]+'/g) || []).map((x) => x.slice(1, -1));
+      const extras = listed.filter((t) => !ASSISTANT_ALLOWED_TABLES.includes(t));
+      const missing = ASSISTANT_ALLOWED_TABLES.filter((t) => !listed.includes(t));
+      if (extras.length) problems.push(`${f} widens the assistant allowlist: ${extras.join(', ')}`);
+      if (missing.length) problems.push(`${f} drops from the assistant allowlist: ${missing.join(', ')}`);
+    }
+  }
+  return { ok: problems.length === 0, problems };
+}
+
 // --- CLI ---------------------------------------------------------------------
 function isMain() {
   return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
@@ -177,13 +210,14 @@ function isMain() {
 if (isMain()) {
   const scope = scanAssistantScope();
   const future = scanFutureMigrations();
-  const ok = scope.ok && future.ok;
+  const redefs = scanOverlayRedefinitions();
+  const ok = scope.ok && future.ok && redefs.ok;
   console.log('# ASSISTANT SCOPE GUARD (an assistant reaches the office workspace and nothing else)\n');
   if (ok) {
     console.log('PASS — the assistant scope overlay + office workspace policies are intact.');
     process.exit(0);
   }
   console.log('FAIL — the assistant scope is not intact:');
-  [...scope.problems, ...future.problems].forEach((p) => console.log(`  - ${p}`));
+  [...scope.problems, ...future.problems, ...redefs.problems].forEach((p) => console.log(`  - ${p}`));
   process.exit(1);
 }

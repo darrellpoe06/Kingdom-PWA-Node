@@ -30,7 +30,9 @@ import { VAULT_CATEGORIES, categoryLabel, documentSlug, validateDocument, shelfS
 import { listDocuments, saveDocument, shareDocument, removeDocument, uploadDocumentFile, BUCKET as FAMILY_DOCS_BUCKET } from '../lib/family-vault-sync.js';
 import { householdInsights, workflowCandidates, WORKFLOW_LADDER } from '../lib/household-insights.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
-import { householdDocRecord } from '../lib/document-record.js';
+import { householdDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -196,6 +198,15 @@ function Shelf({ instanceId }) {
         {state.message && <p className="text-xs text-[#B85838] mb-2" role="alert">The shelf could not be read: {state.message}</p>}
         {!state.loaded && <p className="text-xs text-[#5A5751]">Opening…</p>}
         {state.loaded && rows.length === 0 && <p className="text-xs text-[#5A5751]">Nothing filed yet. The first document you add shows up here.</p>}
+        {rows.length > 0 && (() => {
+          const model = () => shelfReport(rows.map((r) => householdDocRecord({ ...r, categoryLabel: categoryLabel(r.category) }, { admin: true })), { title: 'Household documents' });
+          return (
+            <>
+              <ReportActions className="mb-2" label="Every household document" filenameBase="household-documents" buildModel={model} />
+              <ShelfLedger model={model()} items={rows} label="See every household document, sorted" />
+            </>
+          );
+        })()}
         {VAULT_CATEGORIES.map((c) => {
           const mine = rows.filter((r) => r.category === c.id);
           if (!mine.length) return null;

@@ -270,6 +270,12 @@ jobs:
       - name: tax archive asks for the key on every route
         working-directory: infra/nas-tax-ingest
         run: python3 -m unittest test_tax_auth -v
+      # The church mail reader (DR-1091): path parity with the PC import
+      # script's JavaScript safe(), file/refill/leave-alone, the message and
+      # time budgets, and a failing message set aside instead of looped.
+      - name: church mail reader files, refills and stays within its budget
+        working-directory: infra/nas-church-mail
+        run: python3 -m unittest test_church_mail -v
       # The NAS lesson builder proofs (DR-0669): the verse re-verification
       # (a one-word change fails the build), the identical prompt to every
       # writer (a writer that alters it is caught), the modes, the budget, the
@@ -318,6 +324,14 @@ jobs:
       - name: cams forwarder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_forwarder.py --selftest
+      # Research forwarder selftest (DR-1101): the locked door in front of Vane,
+      # which has no login of its own. Proven-to-catch: fails if /ask accepts a
+      # missing or wrong bearer, if any Vane page or API is ever passed through,
+      # if a javascript: or file: source reaches the app, if an answer stops
+      # saying it is unverified, or if a second question queues instead of 503.
+      - name: research forwarder selftest
+        working-directory: infra/nas-research
+        run: python3 research_forwarder.py --selftest
       # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
       # config is not normalized, if a disabled camera keeps recording, if a
       # dead ffmpeg is restarted without backoff, if retention or the disk
@@ -1296,6 +1310,16 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0291-borrowing-goes-both-ways.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0291-borrowing-both-ways-smoke.sql 2>&1 | tee "$RUNNER_TEMP/borrow-both-ways.txt"
           grep -q 'BORROW BOTH WAYS SMOKE: PASS' "$RUNNER_TEMP/borrow-both-ways.txt"
+          # 0302 (DR-1098): a door keeps what its meter said. The owner files a
+          # meter file and its readings; a reading cannot point at another
+          # door's file, mix kWh with therms, last zero seconds or go negative;
+          # a re-import replaces an hour; a member reads, while a VIEWER and a
+          # stranger read nothing (hourly reads show who is home); the hourly
+          # fold sums quarters and never reports a partial cost; only the
+          # owner or an admin takes back a file, and its readings go with it.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0302-a-door-keeps-what-its-meter-said.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0302-door-meter-smoke.sql 2>&1 | tee "$RUNNER_TEMP/door-meter.txt"
+          grep -q 'DOOR METER SMOKE: PASS' "$RUNNER_TEMP/door-meter.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

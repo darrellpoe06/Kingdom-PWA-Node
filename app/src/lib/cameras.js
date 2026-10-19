@@ -43,7 +43,11 @@ export const CAMS_BASE = (import.meta.env?.VITE_CAMS_BASE || '/cams').replace(/\
 
 // Cadence + ceilings (the surface's brakes, mirrored from the forwarder's).
 export const SNAPSHOT_INTERVAL_MS = 5000;   // one frame per camera per 5 s while the tab is visible
-export const FETCH_TIMEOUT_MS = 12000;      // any single call (list / ticket / frame)
+export const FETCH_TIMEOUT_MS = 12000;      // any single call (list / ticket)
+// A frame waits longer: a camera on Wyze's WebRTC road answers its first frame
+// after the Kinesis dial (6-10 s measured) and a whole key frame; the NAS gives
+// it 20 s (DR-1097, third read), so the tab waits a little past that.
+export const FRAME_TIMEOUT_MS = 22000;
 export const LIVE_FIRST_FRAME_TIMEOUT_MS = 20000; // a live view that shows nothing by then is reported, not left spinning
 export const SNAPSHOT_WIDTH = 640;
 
@@ -112,8 +116,9 @@ export function parseCameraList(json) {
       h264: c.h264 === true,
       // The NAS keeps an SD twin (the camera's own substream) for grids of tiles (DR-0799).
       sd: c.sd === true,
-      // Which road the camera takes into go2rtc (DR-0809): its own network, or the Wyze bridge's relay.
-      road: c.road === 'bridge' ? 'bridge' : 'direct',
+      // Which road the camera takes into go2rtc (DR-0809): its own network, the Wyze bridge's
+      // peer-to-peer road, or Wyze's own WebRTC relay through the bridge's signaling (DR-1097).
+      road: c.road === 'bridge' || c.road === 'kvs' ? c.road : 'direct',
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -1869,7 +1874,10 @@ export async function setupRing({ email, password, code = '' }, token, fetchImpl
 export function streamRoadUrl(id) { return `${CAMS_BASE}/streams/${encodeURIComponent(id)}/road`; }
 export function streamRoadsUrl() { return `${CAMS_BASE}/streams/roads`; }
 export const ROAD_WORDS = Object.freeze({
-  bridge: 'through the Wyze bridge (Wyze\'s relay, the road the Wyze app itself uses)',
+  // DR-1097 corrected the bridge's words: the bridge dials Wyze's peer-to-peer (TUTK)
+  // road; the road the Wyze app and its web view watch through is Wyze's WebRTC.
+  bridge: 'through the Wyze bridge on the NAS (Wyze\'s peer-to-peer road)',
+  kvs: 'through Wyze\'s own WebRTC relay, the road the Wyze app watches through',
   direct: 'on its own network, straight from the camera',
 });
 export const ROAD_REASONS = Object.freeze({
@@ -1877,7 +1885,22 @@ export const ROAD_REASONS = Object.freeze({
   'no-dtls': 'its firmware has no DTLS, which the direct road needs',
   forced: 'you chose this road',
   'reachable-again': 'the NAS can reach it again',
+  'direct-unreachable': 'its own network gave no picture, so it rides the bridge',
+  'retrying-direct': 'the NAS is trying its own network again',
+  'tutk-dark': 'the bridge\'s peer-to-peer road gave no picture; Wyze\'s WebRTC did',
+  'kvs-dark': 'Wyze\'s WebRTC gave no picture; the bridge did',
 });
+/** What the NAS measured when it last judged a camera's road (DR-1097), in one line; '' when it has not. */
+export function judgedLine(roadRec) {
+  const j = roadRec && roadRec.judged;
+  if (!j || typeof j !== 'object') return '';
+  const said = (p) => (p && p.ok ? `a picture in ${Math.max(1, Math.round((p.ms || 0) / 1000))} s` : 'no picture');
+  const name = (r) => (r === 'kvs' ? 'Wyze\'s WebRTC' : r === 'bridge' ? 'the bridge' : 'its own network');
+  const parts = [`${name(j.current)} gave ${said(j.current_probe)}`];
+  if (j.alt) parts.push(`${name(j.alt)} gave ${said(j.alt_probe)}`);
+  else if (j.kvs_signal && j.kvs_signal !== 'ok') parts.push(`Wyze says: ${j.kvs_signal}`);
+  return `Last checked: ${parts.join('; ')}.${j.dark ? ' Neither road carried video, so it is off or out of reach at the camera.' : ''}`;
+}
 /** One line for a tile: how this camera reaches the NAS, and why (not roadLine, the live-road stats line of DR-0782). */
 export function cameraRoadLine(cam, roadRec = null) {
   const road = (cam && cam.road) || 'direct';
@@ -1893,9 +1916,10 @@ export function bridgeLine(health) {
   if (!last.at) return 'Wyze bridge: configured; the NAS has not synced the roads yet (within a minute of the forwarder starting).';
   if (last.reachable === false) return 'Wyze bridge: configured but not answering on the NAS yet. It signs in to Wyze on its first start; the NAS asks again every minute.';
   const unknown = Array.isArray(last.unknown) && last.unknown.length ? ` ${last.unknown.length} the bridge does not list yet.` : '';
-  return `Wyze bridge: up, knows ${last.known || 0} cameras, ${last.bridged || 0} ride it.${unknown}`;
+  const kvs = last.kvs ? ` ${last.kvs} ride Wyze's own WebRTC.` : '';
+  return `Wyze bridge: up, knows ${last.known || 0} cameras, ${last.bridged || 0} ride it.${kvs}${unknown}`;
 }
-/** The owner picks a camera's road: 'bridge' | 'direct' | 'auto'. Resolves {ok, road?, reason?, error?}. */
+/** The owner picks a camera's road: 'bridge' | 'direct' | 'kvs' | 'auto'. Resolves {ok, road?, reason?, error?}. */
 export async function setStreamRoad(id, road, token, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 20000 } = {}) {
   if (!fetchImpl) return { ok: false, error: 'no-fetch' };
   try {

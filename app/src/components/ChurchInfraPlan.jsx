@@ -15,6 +15,7 @@ import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import { SEED_DEVICES } from '../lib/church-devices.js';
 import ChurchNetworkPosture from './ChurchNetworkPosture.jsx';
+import OpenSourceCandidates from './OpenSourceCandidates.jsx';
 import {
   FAIRNESS_GATE, WORKSTREAMS, PLANNED_RIG, MILESTONES,
   statusTone, statusLabel, workstreamLabel,
@@ -252,6 +253,10 @@ export default function ChurchInfraPlan() {
           ("Network, devices, and the media/AI node plan"). Derived from the
           register by church-network-topology.js + church-network-security.js. */}
       <ChurchNetworkPosture devices={SEED_DEVICES} />
+
+      {/* The open-source tools weighed against these machines (DR-1099):
+          verdict, placement, licence, egress, opportunities and constraints. */}
+      <OpenSourceCandidates />
 
       {/* Milestones by workstream */}
       {WORKSTREAMS.map((w) => (

@@ -16,7 +16,9 @@
 import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, fetchTaxFile, printableUrl } from '../lib/tax-archive.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
-import { taxDocRecord } from '../lib/document-record.js';
+import { taxDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
 import { ARCHIVE_REASON } from '../lib/tax-archive.js';
 import { uploadTaxDocWithFreshKey, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
@@ -173,6 +175,15 @@ export default function BooksTaxes({ entities = [] }) {
   return (
     <section className="space-y-5">
       {viewer.element}
+      {docs.length > 0 && (() => {
+        const model = () => shelfReport(docs.map((d) => taxDocRecord({ ...d, kindLabel: KIND_LABEL[d.kind] || d.kind, entityName: entityName(d.entityId) }, { admin: true })), { title: 'Tax returns' });
+        return (
+          <div>
+            <ReportActions className="mb-2" label="Every return" filenameBase="tax-returns" buildModel={model} />
+            <ShelfLedger model={model()} items={docs} onOpen={openReturn} label="See every return, sorted" />
+          </div>
+        );
+      })()}
       <div>
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Taxes — your filed returns, by year</h3>
         <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
