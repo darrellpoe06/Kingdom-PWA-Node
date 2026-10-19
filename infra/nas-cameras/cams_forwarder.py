@@ -2233,6 +2233,96 @@ def _judge_alt(upstream, sid, verdict, cur, cur_road, alt, alt_road, uri, rec, k
         (verdict["alt_probe"] if cur_road == "bridge" else verdict["current_probe"]).get("error")))
 
 
+# THE CAMERAS GO2RTC'S SIGN-IN DROPS (DR-1097, sixth read; Darrell 2026-10-18,
+# the Wyze app showing "805 Porch - Floodlight Cam - East" and "805 Floodlight
+# Cam - West" live). go2rtc 1.9.14 lists the Wyze account and skips every
+# camera Wyze gives no IP (pkg/wyze/cloud.go: "skip cameras without IP (gwell
+# protocol)"), so the Floodlight Pros never became streams and the app never
+# showed them. The bridge still lists them, and Wyze's WebRTC road needs no IP.
+# A camera the bridge lists that no go2rtc stream and no roads record carries is
+# asked of Wyze's signaling; on "ok" it is added on that road, named by its Wyze
+# nickname, with its restreamed twin. A camera the family later removes keeps
+# its record, so it is never added back.
+# BRAKES (deterministic class, DR-0248): KVS_ADD_PER_PASS a pass, a camera Wyze
+# refused is asked again only after KVS_ADD_RETRY_SECONDS, inside the judge's
+# own thread and lock; stop-paths CAMS_KVS=0 or CAMS_ADD_MISSING=0.
+ADD_MISSING_ON = os.environ.get("CAMS_ADD_MISSING", "1") != "0"
+KVS_ADD_PER_PASS = max(0, int(os.environ.get("CAMS_KVS_ADD_PER_PASS", "2")))
+KVS_ADD_RETRY_SECONDS = float(os.environ.get("CAMS_KVS_ADD_RETRY_SECONDS", "3600"))
+ADD_TRIED = {}  # bridge name -> (when, Wyze's word) for a camera not added yet
+
+
+def missing_cameras(streams, bridge_cams, roads):
+    """The bridge's cameras that no go2rtc stream and no roads record carries -> [{uri, mac, nickname}]."""
+    by_mac = by_mac_main(bridge_cams)
+    carried = set()
+    for sid, entry in (streams or {}).items():
+        url = stream_source_url(entry)
+        if not url:
+            continue
+        if is_kvs_source(url):
+            carried.add(main_uri(kvs_uri_of(url)))
+        elif is_bridge_source(url):
+            carried.add(main_uri(urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1]))
+        elif mac_of(url) and by_mac.get(mac_of(url)):
+            carried.add(by_mac[mac_of(url)])
+    for rec in (roads or {}).values():
+        if isinstance(rec, dict) and rec.get("uri"):
+            carried.add(main_uri(rec["uri"]))
+    out, seen = [], set()
+    for c in bridge_cams or []:
+        uri = c.get("uri") or ""
+        if not uri or uri.endswith(BRIDGE_SUB_SUFFIX) or uri in carried or uri in seen:
+            continue
+        seen.add(uri)
+        out.append({"uri": uri, "mac": c.get("mac") or "", "nickname": c.get("nickname") or uri})
+    return out
+
+
+def ensure_missing_cameras(upstream, streams, bridge_cams, log=print, config_path=None, roads_path=None, now=None, signal=None, budget=None):
+    """Add the cameras go2rtc's sign-in dropped on Wyze's WebRTC road (see above). Answers {added, refused}."""
+    now = time.time() if now is None else now
+    signal = signal or bridge_kvs_signal
+    budget = KVS_ADD_PER_PASS if budget is None else int(budget)
+    out = {"added": [], "refused": {}}
+    if not (KVS_ON and ADD_MISSING_ON) or budget <= 0 or not isinstance(streams, dict):
+        return out
+    with ROADS_LOCK:
+        roads = roads_load(roads_path)
+    asked = 0
+    for cam in missing_cameras(streams, bridge_cams, roads):
+        if asked >= budget:
+            break
+        uri = cam["uri"]
+        tried = ADD_TRIED.get(uri)
+        if tried and now - tried[0] < KVS_ADD_RETRY_SECONDS:
+            out["refused"][uri] = tried[1]
+            continue
+        line = kvs_source(uri)
+        if not line:
+            break  # no web sign-in: nothing can be asked
+        asked += 1
+        word = signal(uri).get("result")
+        if word != "ok":
+            ADD_TRIED[uri] = (now, word)
+            out["refused"][uri] = word
+            log("bridge-road: %s is in the Wyze account but not in go2rtc, and Wyze's WebRTC road answered: %s" % (uri, word))
+            continue
+        with ROADS_LOCK:
+            roads = roads_load(roads_path)
+            sid = stream_name_for(cam["nickname"], set(streams.keys()) | set(roads.keys()))
+            if not set_stream_source(upstream, sid, line, config_path, log):
+                continue
+            set_stream_source(upstream, sd_of(sid), restream_source(sid), config_path, log)
+            roads[sid] = {"road": "kvs", "kvs": line, "uri": uri, "mac": cam["mac"], "reason": "not-in-go2rtc", "since": now, "added": now}
+            roads_save(roads, roads_path)
+        streams[sid] = {"producers": [{"url": line}]}
+        ADD_TRIED.pop(uri, None)
+        out["added"].append(sid)
+        log("bridge-road: %s (%s) added on Wyze's own WebRTC road: go2rtc's Wyze sign-in skips a camera Wyze gives no address" % (sid, cam["nickname"]))
+    return out
+
+
 def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None, probe=None, signal=None, health=None, clock=None):
     """One bounded pass of the road judge. Answers the summary kept for /health."""
     clock = clock or time.time
@@ -2243,10 +2333,16 @@ def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None,
             streams = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
     except (urllib.error.URLError, OSError, ValueError):
         return None
+    added = {"added": [], "refused": {}}
+    if bridge_configured():
+        bcams = bridge_cameras()
+        if bcams:
+            added = ensure_missing_cameras(upstream, streams, bcams, log=log, config_path=config_path, roads_path=roads_path, now=now, signal=signal)
     with ROADS_LOCK:
         roads = roads_load(roads_path)
     todo = judge_candidates(streams, roads, health=health, now=now)
-    summary = {"at": now, "waiting": len(todo), "judged": [], "moved": [], "dark": [], "kept": []}
+    summary = {"at": now, "waiting": len(todo), "judged": [], "moved": [], "dark": [], "kept": [],
+               "added": added["added"], "add_refused": added["refused"]}
     for sid in todo[:KVS_JUDGE_PER_PASS]:
         if clock() - t0 > KVS_PASS_SECONDS:
             break
@@ -4966,7 +5062,7 @@ def _selftest():
 
 
     print("=== 8n. the Wyze bridge road (DR-0809): a camera the NAS cannot reach, or without DTLS, rides the bridge; the owner can force a road ===")
-    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE
+    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON
     br_tmp = tempfile.mkdtemp(prefix="cams-bridge-")
     br_wyze_env = os.path.join(br_tmp, "wyze.env")
     br_env = os.path.join(br_tmp, "wyze-bridge.env")
@@ -5563,6 +5659,43 @@ def _selftest():
     check(kvs_viewed(kup, "b_cam", roads_path=kv_roads, hold=vh) is False and list(vh.holds) == ["a_cam"], "a camera on the bridge is never held")
     snap_ = vh.snapshot()
     check(set(snap_) == {"max", "hold_s", "dial_s", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
+    print("=== 8s. the cameras go2rtc's Wyze sign-in drops are added on Wyze's WebRTC road (DR-1097, sixth read) ===")
+    bl = [{"uri": "a-cam", "mac": norm_mac("AA:BB:CC:00:00:01"), "nickname": "A Cam"}, {"uri": "b-cam", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"}, {"uri": "b-cam-sub", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"},
+          {"uri": "c-cam", "mac": norm_mac("AA:BB:CC:00:00:03"), "nickname": "C Cam"}, {"uri": "d-cam", "mac": norm_mac("AA:BB:CC:00:00:04"), "nickname": "D Cam"},
+          {"uri": "805-floodlight-cam---west", "mac": norm_mac("AA:BB:CC:00:00:05"), "nickname": "805 Floodlight Cam - West"}, {"uri": "805-floodlight-cam---west-sub", "mac": norm_mac("AA:BB:CC:00:00:05"), "nickname": "805 Floodlight Cam - West"}]
+    st_m = {"a_cam": {"producers": [{"url": kvs_source("a-cam")}]}, "b_cam": {"producers": [{"url": bridge_source("b-cam-sub")}]},
+            "c_cam": {"producers": [{"url": "wyze://192.168.1.9?uid=U&enr=S&mac=AABBCC000003&model=X"}]}}
+    rd_m = {"d_cam": {"road": "bridge", "uri": "d-cam"}}
+    mc = missing_cameras(st_m, bl, rd_m)
+    check([m["uri"] for m in mc] == ["805-floodlight-cam---west"], "a camera the bridge lists that no stream (Kinesis, bridge, direct by MAC) and no record carries is found missing, its -sub never (%r)" % mc)
+    G["src"] = dict((k, v["producers"][0]["url"]) for k, v in st_m.items())
+    G["puts"] = []
+    roads_save(dict(rd_m), kv_roads)
+    asked_m = []
+    sig_m = lambda u: (asked_m.append(u), {"result": "ok" if u == "805-floodlight-cam---west" else "Camera does not support WebRTC"})[1]  # noqa: E731
+    ADD_TRIED.clear()
+    am = ensure_missing_cameras(kup, dict(st_m), bl, log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=14000.0, signal=sig_m)
+    rm = roads_load(kv_roads).get("805_floodlight_cam_-_west") or {}
+    check(am["added"] == ["805_floodlight_cam_-_west"] and ("805_floodlight_cam_-_west", kvs_source("805-floodlight-cam---west")) in G["puts"] and ("805_floodlight_cam_-_west_sd", restream_source("805_floodlight_cam_-_west")) in G["puts"],
+          "PROVEN TO CATCH: the Floodlight Pro go2rtc skipped is added on Wyze's WebRTC road under its Wyze nickname, with its restreamed twin (%r)" % am)
+    check(rm.get("road") == "kvs" and rm.get("uri") == "805-floodlight-cam---west" and rm.get("reason") == "not-in-go2rtc" and asked_m == ["805-floodlight-cam---west"], "and its record names the road and why it was added")
+    G["src"].pop("805_floodlight_cam_-_west", None)
+    G["puts"] = []
+    asked_m[:] = []
+    am2 = ensure_missing_cameras(kup, dict(st_m), bl, log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=14100.0, signal=sig_m)
+    check(am2["added"] == [] and G["puts"] == [] and asked_m == [], "a camera the family removed keeps its record and is never added back")
+    bl2 = bl + [{"uri": "x-cam", "mac": norm_mac("AA:BB:CC:00:00:06"), "nickname": "X"}, {"uri": "y-cam", "mac": norm_mac("AA:BB:CC:00:00:07"), "nickname": "Y"}, {"uri": "z-cam", "mac": norm_mac("AA:BB:CC:00:00:08"), "nickname": "Z"}]
+    am3 = ensure_missing_cameras(kup, dict(st_m), bl2, log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=14200.0, signal=sig_m)
+    check(len(asked_m) == 2 and am3["added"] == [] and set(am3["refused"]) == {"x-cam", "y-cam"} and am3["refused"]["x-cam"] == "Camera does not support WebRTC", "the budget: two cameras a pass, and Wyze's refusal kept in its own words (%r)" % am3)
+    asked_m[:] = []
+    am4 = ensure_missing_cameras(kup, dict(st_m), bl2, log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=14300.0, signal=sig_m)
+    check(asked_m == ["z-cam"] and "x-cam" in am4["refused"], "a refused camera is not asked again within the hour; the next one is (%r)" % asked_m)
+    saved_add = ADD_MISSING_ON
+    ADD_MISSING_ON = False
+    asked_m[:] = []
+    check(ensure_missing_cameras(kup, dict(st_m), bl2, log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=99999.0, signal=sig_m) == {"added": [], "refused": {}} and asked_m == [], "the stop-path: CAMS_ADD_MISSING=0 adds nothing and asks nothing")
+    ADD_MISSING_ON = saved_add
+    ADD_TRIED.clear()
     BRIDGE_ENV, BRIDGE_API = saved_env, saved_api
     fkb.shutdown(); fgk.shutdown()
 

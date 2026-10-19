@@ -181,6 +181,19 @@ jobs:
               print(line)
           print("roads: %s" % ", ".join("%s=%d" % kv for kv in sorted(roads.items())))
           ' 2>&1 | scrub
+          echo "=== Wyze's own word: online or offline, per camera (the Wyze app's 'The device is offline'; DR-1097 sixth read) ==="
+          WTOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || $SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          if [ -n "$WTOK" ]; then curl -s -m 25 -H "Authorization: Bearer $WTOK" http://127.0.0.1:8773/devices | python3 -c '
+          import json,sys
+          try: d=json.load(sys.stdin)
+          except Exception as e: print("(devices unreadable: %s)" % e); sys.exit(0)
+          devs=d.get("devices") if isinstance(d,dict) else None
+          if not isinstance(devs,list): print("(no devices: %s)" % (d.get("error") if isinstance(d,dict) else "?")); sys.exit(0)
+          on=sum(1 for x in devs if x.get("online"))
+          for x in sorted(devs, key=lambda x: (bool(x.get("online")), str(x.get("nickname")))):
+              print("%-34s %-8s %-16s stream=%s" % (str(x.get("nickname"))[:34], "online" if x.get("online") else "OFFLINE", str(x.get("model"))[:16], x.get("stream")))
+          print("Wyze says: %d online, %d offline, of %d cameras" % (on, len(devs)-on, len(devs)))
+          ' 2>&1 | scrub; else echo "(token file unreadable by this user)"; fi
           echo "=== Kinesis offers Wyze never answered (go2rtc gives up when Amazon closes the idle socket, 10 min later) ==="
           curl -s -m 10 "http://127.0.0.1:1984/api/log" | grep -c 'close 1001 (going away)' || true
           echo "=== forwarder journal (last 40 lines) ==="
