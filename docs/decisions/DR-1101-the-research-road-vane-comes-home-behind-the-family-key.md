@@ -60,3 +60,28 @@ What it does not do yet: no lesson reads from it. Wiring research answers into t
 - CI: `research forwarder selftest` (ci.yml), `research-road.test.jsx`, and the transport, routing and flow-graph gates named above.
 - Live: `research-health.yml` asks one question through the real door from a runner on the tailnet. It passes only when an answer and an http(s) source come back still marked unverified. A failure opens one rolling issue labelled `incident` + `research-incident`, which the OpsBoard ledger reads; the next pass closes it.
 - `re-review: 2026-10-25`. The witness has passed live (or its incident names why not); the answer quality on three real research questions has been read by a person; and the decision on wiring it into the lesson builder has been made.
+
+## Governor's decision: the public door (2026-10-19)
+
+Darrell said "Go" to `/research` as a new public path on the Funnel. The line that finishes it is `'/research/'` in `REHOMED_ROUTES` (`app/src/lib/native-shell.js`), so the installed app reaches the road the same way the website does.
+
+**Opportunities**
+- **Research from any device.** From a phone off the home network, a question is searched by our own SearxNG and answered by our own model. No vendor key is used, and nothing private goes to a vendor.
+- **The pattern for the next four tools.** InvokeAI, ACE-Step, OpenShorts and Upscayl (DR-1099) can come home the same way: a loopback service, a forwarder with two verbs, the family key, and a daily witness.
+- **A future input for lessons.** The lesson builder can draw on sourced research once the sourced-claim gate exists and the witness has passed live.
+
+**Constraints, and what holds each one**
+- **It is reachable from the internet.**
+  - *What holds it:* the family key is checked on the NAS itself, and every path but `GET /health` and `POST /ask` gets a 404. Vane, which has no login, is never exposed; it listens on 127.0.0.1 only.
+  - *What is left:* anyone can see that the door exists, and `/health` answers without the key. `/health` shows only whether the road is up and which model names it uses.
+- **It costs compute.**
+  - *What holds it:* one question at a time (a second is refused at once), 500 characters, 180 seconds, and the witness asks only once a day.
+  - *What is left:* a holder of the family key could keep the tower's GPU busy one question after another. The key is the boundary.
+- **The answers are unchecked.**
+  - *What holds it:* every answer is marked `verified: false`; only http(s) sources are passed on, and the app checks that again.
+  - *What is left:* a reader can still trust a wrong sentence. The panel says so, and nothing reaches a lesson until the gate for sourced claims exists.
+- **There is one more thing to watch.**
+  - *What holds it:* the `funnel_watchdog` re-mounts `/research` after a Funnel reset, and `research-health.yml` opens a rolling incident when the road goes dark.
+  - *What is left:* it is one more service on the NAS that needs care.
+- **The way to close it is plain.**
+  - Set the services.json `research` entry to `enabled:false` and drop the Funnel mount. The app then shows "Not ready", and nothing else depends on the road.
