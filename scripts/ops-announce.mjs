@@ -79,6 +79,21 @@ export function classifyBellResponse({ code, body = '', transportError = null } 
     };
   }
   if (n >= 200 && n < 300) {
+    // A 200 IS NOT A RING (DR-1104). The sovereign relay answers 200 with
+    // {ok, delivered, detail} whether or not ntfy took the push
+    // (infra/nas-announce/announce_server.py, do_POST), so "accepted" said
+    // nothing about the phone. Only `delivered: false` is read as a failure;
+    // a body with no such field keeps the old meaning.
+    let parsed = null;
+    try { parsed = JSON.parse(String(body || '')); } catch { /* not JSON: the code decides */ }
+    if (parsed && parsed.delivered === false) {
+      const detail = String(parsed.detail || 'no reason given').split('\n')[0].slice(0, 200);
+      return {
+        rang: false,
+        dead: true,
+        reason: `the announce relay took the push (HTTP ${n}) but ntfy did not deliver it (${detail}), so no phone rang.`,
+      };
+    }
     return { rang: true, dead: false, reason: `the announce relay accepted the push (HTTP ${n}).` };
   }
   if (n === 404) {

@@ -164,6 +164,20 @@ describe('ring — the thin shell around the decision', () => {
     expect(JSON.parse(init.body)).toEqual({ title: 'down', message: 'the site', url: 'u', priority: '5' });
   });
 
+  // A 200 IS NOT A RING (DR-1104): the sovereign relay answers 200 with
+  // {ok, delivered, detail} even when ntfy refused or was unreachable.
+  it('a 200 that says delivered:false is a dead bell, with ntfy\'s own reason', () => {
+    const r = classifyBellResponse({ code: 200, body: JSON.stringify({ ok: true, delivered: false, detail: 'ntfy unreachable: Name or service not known' }) });
+    expect(r.rang).toBe(false);
+    expect(r.dead).toBe(true);
+    expect(r.reason).toMatch(/ntfy did not deliver it \(ntfy unreachable: Name or service not known\)/);
+    expect(ledgerLine(r)).toMatch(/did not ring/);
+  });
+  it('a 200 that says delivered:true, or carries no JSON, still rings', () => {
+    expect(classifyBellResponse({ code: 200, body: JSON.stringify({ ok: true, delivered: true, detail: 'ntfy HTTP 200' }) }).rang).toBe(true);
+    expect(classifyBellResponse({ code: 200, body: 'ok' }).rang).toBe(true);
+    expect(classifyBellResponse({ code: 204 }).rang).toBe(true);
+  });
   it('a throwing fetch is a dead bell, never an exception out of ring()', async () => {
     const r = await ring({ title: 't', message: 'm', token: 'tok', fetchImpl: async () => { throw new Error('getaddrinfo ENOTFOUND'); } });
     expect(r.dead).toBe(true);
