@@ -50,6 +50,7 @@ import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
 import DownloadLatest from './DownloadLatest.jsx';
+import StandingNote from './StandingNote.jsx';
 import {
   FACULTIES,
   seatOf,
@@ -103,6 +104,10 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             This is the steward&apos;s seat — the cockpit from which the app is built and observed. Access is reserved for the family stewards.
           </p>
+          {/* No false instruction here to remove, but since DR-1107 a signed-in
+              son or daughter can reach this box, and it told them nothing about
+              where they DO stand. */}
+          <StandingNote className="text-xs mt-1.5 leading-relaxed text-[#5A5751]" />
         </section>
       </div>
     );

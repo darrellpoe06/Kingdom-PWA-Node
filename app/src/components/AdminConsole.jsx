@@ -62,6 +62,7 @@ import MemberInspect from './MemberInspect.jsx';
 import PersonRecord from './PersonRecord.jsx';
 import ChatPane from './ChatPane.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
+import StandingNote from './StandingNote.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -180,8 +181,15 @@ export default function AdminConsole({
         </div>
         <p className="text-sm mt-1 text-[#1A1815]" style={serif}>
           Admin is a stewardship space. It opens for the family stewards — each serves only their own
-          domain, and no one sees another’s people or private data. Sign in with a steward account to enter.
+          domain, and no one sees another’s people or private data.
         </p>
+        {/* Since DR-1107 wired authority to the database role, the people who
+            meet this panel are signed IN — a son at 'child', a daughter at
+            'member'. "Sign in with a steward account" was written for a reader
+            who was signed out and is false to them, so the standing line says
+            what they hold instead and the old sentence stays as the fallback
+            for a reader we have not identified. */}
+        <StandingNote fallback="Sign in with a steward account to enter." className="text-xs mt-1.5 leading-relaxed text-[#5A5751]" />
       </section>
     );
   }
