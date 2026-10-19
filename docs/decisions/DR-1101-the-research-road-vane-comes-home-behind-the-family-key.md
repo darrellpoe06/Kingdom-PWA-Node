@@ -102,3 +102,22 @@ Darrell said "Go" to `/research` as a new public path on the Funnel. The line th
 - **Self-test:** it gains 7 checks. Proven to catch: when the tower check is mutated to always pass, 6 of them fail.
 
 **Still open:** this fix makes the road honest. It does not turn a tower on. If both towers are off, or the LEFT tower's Ollama listens only on its own machine, the app will say so in those words until a tower answers. The installer looks again every 15 minutes.
+
+**The second witness after the fix (2026-10-19, 03:09 UTC) was still a 504.** Vane still pointed at `127.0.0.1:11434`, and a question still hung for 180 seconds. That fits only two cases. Either the box had not pulled #2257 yet, or the installer found no tower and stopped. The second case was a second mistake of mine: the forwarder restart sat after the tower check, so with no tower the installer exited first. The old forwarder kept hanging, and the reason the new one would have given went unread.
+- **Fixed:** the restart is now one step, `forwarder_follows_code`, that runs on both paths. With no tower, the forwarder still moves onto the new code before the installer stops, so the app hears why.
+- **Proven:**
+  - a stubbed run with no tower answering restarts the unit and stamps the code;
+  - the new `research-road` test fails on the old installer.
+- **The witness now says where the install stands.** It reports:
+  - the box's checkout;
+  - the tower it chose (or that `ollama.url` is absent);
+  - the forwarder code that is running against the repo's;
+  - whether each tower answers `/api/tags` from the NAS, with its models.
+
+**What the new witness measured (2026-10-19, 03:29 UTC, run 39193961242):**
+- **The box:** on `46b28e6` (#2257), before #2258.
+- **The installer:** ran and found no tower; `ollama.url` was empty.
+- **The forwarder:** still running the old code (`6840f585…`, against the repo's `415d7317…`). This is exactly the early exit #2258 removes.
+- **From the NAS, port 11434 timed out on both towers** (`100.69.19.13` and `100.72.5.90`, 6 s each), and the OpenClaw lane's SSH to `tlcmediadpt` has failed since 2026-10-18. Neither tower was reachable that night.
+- **What the next cycle does:** once the NAS pulls #2258, the app says "No AI tower was answering…" in seconds instead of hanging.
+- **What it takes to answer:** the LEFT tower awake, with `church-ollama` up and both `qwen2.5:14b-instruct-q4_K_M` and `nomic-embed-text` pulled. The installer then picks the tower within 15 minutes.

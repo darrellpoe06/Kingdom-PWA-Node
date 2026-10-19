@@ -1,0 +1,5 @@
+2026-10-19.frozen-frames
+# DR-1097, seventh read: frame requests go2rtc 1.9.14 never let go of
+# (front_cam 13, front_door_view 10, 805_hallway_-_north_east 8), and the
+# sessions they kept dialling Wyze. The installer restarts go2rtc once when
+# the first line changes. Change it only to release go2rtc again, and say why.

@@ -1798,7 +1798,13 @@ def set_stream_source(upstream, name, src, config_path=None, log=print, timeout=
             r.read(4096)
         registered = True
     except urllib.error.HTTPError as e:
-        log("bridge-road: go2rtc refused PUT %s (HTTP %d); the config line is rewritten directly (DR-0789)" % (name, e.code))
+        # go2rtc's own reason: streams.New refused the source, or the stream is
+        # live and only app.PatchConfig failed to write the file (DR-1097, seventh read).
+        try:
+            why = scrub_text(e.read(300).decode("utf-8", "replace").strip(), 160)
+        except Exception:  # noqa: BLE001
+            why = ""
+        log("bridge-road: go2rtc refused PUT %s (HTTP %d%s); the config line is rewritten directly (DR-0789)" % (name, e.code, ": " + why if why else ""))
     except (urllib.error.URLError, OSError):
         log("bridge-road: go2rtc unreachable while setting %s" % name)
         return False
@@ -2398,14 +2404,35 @@ def judge_snapshot():
 # with no byte in KVS_DIAL_SECONDS is abandoned: the camera's own line is put
 # again (a PUT gives go2rtc a fresh stream, so the next dial is a fresh offer),
 # at most once per KVS_REARM_GAP.
+#
+# A FRAME IS ASKED ONLY OF A SESSION CARRYING VIDEO (DR-1097, seventh read).
+# camera-health 39193314318 read 9 of 33, down from 15 of 31, and cams-diag
+# 39194598172 showed why: front_cam had 13 consumers, front_door_view 10 and
+# 805_hallway_-_north_east 8, all "bytes-frozen" for 39 minutes with nobody
+# watching. go2rtc 1.9.14's /api/frame.jpeg (internal/mjpeg/mjpeg.go,
+# handlerKeyframe) waits for a key frame with no clock and never looks at the
+# request's context, so a frame asked of a session that connected but carries
+# no video is never let go, whoever gave up on it. While a stream has a
+# consumer go2rtc redials its producer forever (internal/streams/producer.go,
+# reconnect), and a PUT puts a NEW stream in the map (streams.New) and leaves
+# the old one running with its consumers: each re-arm of a frozen camera left
+# one more session dialling Wyze for good. So a frame of a held Kinesis camera
+# waits for its holder to see KVS_HELD_MIN_BYTES of video, fresh within
+# KVS_FLOWING_FRESH, and go2rtc is never asked otherwise (a 504 that says so).
+# A dial that brings less than KVS_HELD_MIN_BYTES (the judge's own mark of
+# video, 16 KB) is unanswered, whatever bytes it carried. The live MP4 the
+# holder reads lets go when its reader does (internal/mp4/mp4.go reads the
+# request context), so the holder itself never leaks.
 # BRAKES (deterministic class, DR-0248): a budget (KVS_HOLD_MAX holders; each
 # ends KVS_HOLD_SECONDS after the last ask and never outlives
 # KVS_HOLD_LIFE_SECONDS; one dial per KVS_REDIAL_SECONDS), a lock (one holder
 # per camera, under one table lock), and the stop-paths CAMS_KVS=0 or
 # CAMS_KVS_HOLD_MAX=0.
 KVS_HOLD_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_SECONDS", "60"))
-# 16: every camera the judge kept on Kinesis (14 tonight) is held while the tab is open.
-KVS_HOLD_MAX = max(0, int(os.environ.get("CAMS_KVS_HOLD_MAX", "16")))
+# 32: every camera the judge keeps on Kinesis is held while the tab is open (20 of
+# the 33 on 2026-10-19). A camera past the budget is asked of go2rtc unheld, and
+# a frame of an unheld frozen session is the request go2rtc never lets go of.
+KVS_HOLD_MAX = max(0, int(os.environ.get("CAMS_KVS_HOLD_MAX", "32")))
 KVS_HOLD_LIFE_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_LIFE_SECONDS", "3600"))
 KVS_DIAL_SECONDS = float(os.environ.get("CAMS_KVS_DIAL_SECONDS", "20"))
 KVS_REARM_GAP = float(os.environ.get("CAMS_KVS_REARM_GAP", "30"))
@@ -2414,6 +2441,9 @@ KVS_REDIAL_SECONDS = float(os.environ.get("CAMS_KVS_REDIAL_SECONDS", "5"))
 # judge measured 16 KB of video at 6.3-9.5 s, which the 12 s frame clock
 # missed on 4 of 14 cameras the judge had just watched carry video.
 KVS_SNAP_TIMEOUT = float(os.environ.get("CAMS_KVS_SNAP_TIMEOUT", "20"))
+KVS_HELD_MIN_BYTES = max(1, int(os.environ.get("CAMS_KVS_HELD_MIN_BYTES", "16384")))
+KVS_FLOWING_FRESH = float(os.environ.get("CAMS_KVS_FLOWING_FRESH", "3"))
+KVS_FLOWING_POLL = 0.25
 
 _KVS_IDS = {"path": None, "mtime": None, "ids": frozenset()}
 
@@ -2450,7 +2480,7 @@ class KvsHold:
     injectable, so it is proven in plain Python."""
 
     def __init__(self, clock=time.time, opener=None, rearm=None, spawn=None, sleep=None, log=print,
-                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None):
+                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None):
         self.clock = clock
         self.opener = opener or urllib.request.urlopen
         self.rearm = rearm or kvs_rearm
@@ -2463,6 +2493,8 @@ class KvsHold:
         self.dial = KVS_DIAL_SECONDS if dial is None else float(dial)
         self.gap = KVS_REARM_GAP if gap is None else float(gap)
         self.redial = KVS_REDIAL_SECONDS if redial is None else float(redial)
+        self.held_min = KVS_HELD_MIN_BYTES if held_min is None else int(held_min)
+        self.fresh = KVS_FLOWING_FRESH if fresh is None else float(fresh)
         self.lock = threading.Lock()
         self.holds = {}
         self.last_rearm = {}
@@ -2481,7 +2513,7 @@ class KvsHold:
             if len(self.holds) >= self.max_holds:
                 self.counts["full"] += 1
                 return "full"
-            self.holds[sid] = {"touched": now, "started": now, "state": "dialing", "dials": 0, "bytes": 0, "last_bytes": None}
+            self.holds[sid] = {"touched": now, "started": now, "state": "dialing", "dials": 0, "bytes": 0, "dial_bytes": 0, "last_bytes": None}
             self.counts["started"] += 1
         self.spawn(lambda: self._run(upstream, sid, config_path), "cams-kvs-hold-%s" % sid)
         return "started"
@@ -2504,19 +2536,22 @@ class KvsHold:
                 t0 = self.clock()
                 with self.lock:
                     self.holds[sid]["dials"] += 1
+                    self.holds[sid]["dial_bytes"] = 0
                 got = self._read(upstream, sid)
-                if got:
-                    continue
-                # No byte on this dial: Wyze left the offer unanswered (or go2rtc
-                # refused). The next viewer gets a fresh offer, never the hung one.
-                self._note(sid, state="unanswered")
-                now = self.clock()
-                if now - self.last_rearm.get(sid, -1e18) >= self.gap:
-                    self.last_rearm[sid] = now
-                    if self.rearm(upstream, sid, config_path):
-                        with self.lock:
-                            self.counts["rearmed"] += 1
-                        self.log("kvs-hold: %s gave no byte in %d s on Wyze's WebRTC road; its line was put again for a fresh offer" % (sid, int(self.dial)))
+                if got < self.held_min:
+                    # Less than a key frame's worth on this dial: Wyze left the
+                    # offer unanswered, go2rtc refused, or the session connected
+                    # and carries no video (the frozen case, seventh read). The
+                    # next viewer gets a fresh offer, never the hung one.
+                    self._note(sid, state="unanswered")
+                    now = self.clock()
+                    if now - self.last_rearm.get(sid, -1e18) >= self.gap:
+                        self.last_rearm[sid] = now
+                        if self.rearm(upstream, sid, config_path):
+                            with self.lock:
+                                self.counts["rearmed"] += 1
+                            self.log("kvs-hold: %s gave %d bytes in %d s on Wyze's WebRTC road (video is %d); its line was put again for a fresh offer" % (sid, got, int(self.dial), self.held_min))
+                # One dial per KVS_REDIAL_SECONDS, whatever the last one carried.
                 wait = self.redial - (self.clock() - t0)
                 if wait > 0 and self._alive(sid):
                     self.sleep(wait)
@@ -2545,8 +2580,10 @@ class KvsHold:
                     h = self.holds.get(sid)
                     if h is not None:
                         h["bytes"] += len(chunk)
+                        h["dial_bytes"] += len(chunk)
                         h["last_bytes"] = self.clock()
-                        h["state"] = "held"
+                        if h["dial_bytes"] >= self.held_min:
+                            h["state"] = "held"
         finally:
             try:
                 r.close()
@@ -2554,10 +2591,34 @@ class KvsHold:
                 pass
         return got
 
+    def holding(self, sid):
+        with self.lock:
+            return sid in self.holds
+
+    def flowing(self, sid):
+        """True while `sid`'s held session carries video: this dial brought
+        held_min bytes and the last arrived within `fresh` seconds."""
+        now = self.clock()
+        with self.lock:
+            h = self.holds.get(sid)
+            return (h is not None and h["dial_bytes"] >= self.held_min and h["last_bytes"] is not None
+                    and now - h["last_bytes"] <= self.fresh)
+
+    def wait_flowing(self, sid, seconds):
+        """Wait up to `seconds` for `sid` to carry video. Answers the seconds left
+        (> 0) when it does, or 0.0 when it never did or its holder ended."""
+        end = self.clock() + float(seconds)
+        while True:
+            if self.flowing(sid):
+                return max(end - self.clock(), 0.001)
+            if self.clock() >= end or not self.holding(sid):
+                return 0.0
+            self.sleep(KVS_FLOWING_POLL)
+
     def snapshot(self):
         now = self.clock()
         with self.lock:
-            return {"max": self.max_holds, "hold_s": self.hold, "dial_s": self.dial,
+            return {"max": self.max_holds, "hold_s": self.hold, "dial_s": self.dial, "held_min": self.held_min,
                     "holding": dict((sid, {"state": h["state"], "dials": h["dials"], "bytes": h["bytes"],
                                            "for_s": int(now - h["started"])}) for sid, h in sorted(self.holds.items())),
                     "counts": dict(self.counts)}
@@ -3799,12 +3860,38 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         params.append((key, v))
                 # A camera on Wyze's WebRTC road keeps one held session while it
                 # is looked at, and its first frame waits for the dial (DR-1097).
-                frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs_viewed(upstream, cam) else snap_timeout
+                kvs = kvs_viewed(upstream, cam)
+                frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs else snap_timeout
+                if kvs and KVS_HOLD.holding(base_of(cam)):
+                    # go2rtc's frame.jpeg never lets go of a request on a session
+                    # with no video (seventh read): it is asked only once the
+                    # held session carries video, with the time that is left.
+                    left = KVS_HOLD.wait_flowing(base_of(cam), frame_timeout)
+                    if left <= 0:
+                        breaker_note(cam, False, "no video on Wyze's WebRTC road in %d s" % int(frame_timeout))
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(frame_timeout),
+                                                "detail": "no video on Wyze's WebRTC road yet; go2rtc was not asked"})
+                    frame_timeout = max(left, 5.0)
+                said = None  # go2rtc's words, once read for the resize check below
                 try:
-                    status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
+                    try:
+                        status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
+                    except urllib.error.HTTPError as e:
+                        # THE FRAME AT ITS OWN SIZE (DR-1097, tenth read). 805 Floodlight
+                        # Cam - West gave a full frame in 4.2 s and 4.8 MB of live video in
+                        # 35 s, and every ?w=640 frame answered 500 "exit status 183": go2rtc
+                        # hands a resize to ffmpeg, which refused that camera's key frame. A
+                        # resize ffmpeg refuses is asked once more at the camera's own size.
+                        if e.code != 500 or len(params) == 1:
+                            raise
+                        said = e.read(2048).decode("utf-8", "replace")
+                        if "exit status" not in said:
+                            raise
+                        said = None
+                        status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params[:1]), frame_timeout)
                 except urllib.error.HTTPError as e:
                     # go2rtc answered, and said why (its body is the error text).
-                    detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300)
+                    detail = scrub_text((said if said is not None else e.read(2048).decode("utf-8", "replace")).strip(), 300)
                     breaker_note(cam, False, detail)
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code, "detail": detail})
                 except socket.timeout:
@@ -4174,6 +4261,8 @@ def _selftest():
                     return self._send(200, "image/jpeg", b"\xff\xd8late\xff\xd9")
                 if q.get("src", [""])[0] == "dark_cam":
                     return self._send(500, "text/plain", b"source not ready")
+                if q.get("src", [""])[0] == "scale_cam" and q.get("w"):
+                    return self._send(500, "text/plain", b"exit status 183")
                 return self._send(200, "image/jpeg", b"\xff\xd8JPEG-" + q.get("src", [""])[0].encode() + b"-w" + q.get("w", ["0"])[0].encode())
             if path == "/api/stream.mp4":
                 self.send_response(200); self.send_header("Content-Type", "video/mp4")
@@ -4203,7 +4292,14 @@ def _selftest():
         def do_POST(self):
             path, _, _q = self.path.partition("?")
             n = int(self.headers.get("Content-Length") or 0)
-            form = urllib.parse.parse_qs(self.rfile.read(n).decode("utf-8"))
+            raw_body = self.rfile.read(n).decode("utf-8")
+            if path == "/api/config":
+                # go2rtc 1.9.14: yaml.Unmarshal the body; 500 with the error, or write it.
+                seen.setdefault("config_posts", []).append(raw_body)
+                if seen.get("config_refuse"):
+                    return self._send(500, "text/plain", b"yaml: line 3: could not find expected ':'")
+                return self._send(200, "application/yaml", b"")
+            form = urllib.parse.parse_qs(raw_body)
             if path != "/api/wyze":
                 return self._send(404, "text/plain", b"nope")
             seen["wyze_form"] = {k: v[0] for k, v in form.items()}
@@ -4700,6 +4796,65 @@ def _selftest():
     check(r == "re-added" or r == "no-credentials", "self-heal on an EMPTY restreamer re-adds from the kept sign-in (here: %s; 'no-credentials' only because the real loader reads the box's own file, which this sandbox lacks)" % r)
     r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
     check(r == "has-streams", "self-heal on a restreamer WITH streams touches nothing (%s)" % r)
+    # A go2rtc that started without its config (DR-1097, eighth read): the file's own streams go back first.
+    cfg8 = os.path.join(tempfile.mkdtemp(prefix="cams-unreadable-"), "go2rtc.yaml")
+    with open(cfg8, "w") as fh:
+        fh.write('api:\n  listen: "127.0.0.1:1984"\nstreams:\n  front: "webrtc:http://u:p@127.0.0.1:8597/signaling/front?kvs#format=wyze"\n  back:\n    - rtsp://a\n    - "ffmpeg:back#video=h264"\nwyze:\n  "me@x.y":\n    password: "p\n')
+    mem8 = {}
+    puts8 = []
+
+    class R8:
+        def __init__(self, b):
+            self.b = b
+
+        def read(self, _n=-1):
+            return self.b
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            return False
+
+    def op8(req, timeout=None):
+        if isinstance(req, urllib.request.Request) and req.get_method() == "PUT":
+            q8 = urllib.parse.parse_qs(urllib.parse.urlsplit(req.full_url).query)
+            puts8.append((q8["name"][0], q8["src"]))
+            mem8[q8["name"][0]] = q8["src"]
+            raise urllib.error.HTTPError(req.full_url, 400, "Bad Request", {}, None)
+        return R8(json.dumps(mem8).encode("utf-8"))
+    n8 = restore_streams_from_config("http://g", config_path=cfg8, log=lambda *_a: None, opener=op8)
+    check(n8 == 2 and puts8 == [("back", ["rtsp://a", "ffmpeg:back#video=h264"]), ("front", ["webrtc:http://u:p@127.0.0.1:8597/signaling/front?kvs#format=wyze"])],
+          "a go2rtc that came up empty gets every stream its file defines, with all its sources, even when each PUT answers 400 (the file go2rtc cannot write) (%d, %r)" % (n8, puts8))
+    seen["puts"] = []
+    seen["empty_streams"] = True
+    seen["put_refuses"] = True
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None, config_path=cfg8)
+    seen["empty_streams"] = False
+    seen["put_refuses"] = False
+    check(("front", "webrtc:http://u:p@127.0.0.1:8597/signaling/front?kvs#format=wyze") in seen["puts"] and ("back", "rtsp://a") in seen["puts"],
+          "PROVEN TO CATCH: the self-heal of an EMPTY go2rtc puts back the streams its own file defines before anything else (23:02 CDT: 0 streams, 66 in the file) (%s, %r)" % (r, seen["puts"][:3]))
+    # The line go2rtc cannot read (DR-1097, ninth read): line 96, one character at column 0 after wyze:.
+    live96 = 'api:\n  listen: "127.0.0.1:1984"\nstreams:\n  front: "rtsp://f"\n# kept\n"quoted top": 1\nwyze:\n  me@x.y:\n    api_id: a\n    password: b\nZ\n'
+    check(config_stray_lines(live96) == [11], "the stray line is found by shape: one character at column 0, not a key (%r)" % config_stray_lines(live96))
+    check(config_stray_lines('api:\n  listen: ":1984"\n---\nstreams:\n  a: "x:y"\n') == [], "keys, quoted keys, comments, document markers and indented lines are never strays")
+    cfg9 = os.path.join(tempfile.mkdtemp(prefix="cams-stray-"), "go2rtc.yaml")
+    with open(cfg9, "w") as fh:
+        fh.write(live96)
+    seen["config_posts"] = []
+    r9 = repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg9, log=lambda *_a: None)
+    posted = seen["config_posts"][-1] if seen["config_posts"] else ""
+    check(r9 == "repaired-1" and "\nZ\n" not in posted and posted.endswith("    password: b\n") and '  front: "rtsp://f"' in posted and "# kept" in posted,
+          "the file goes to go2rtc's own /api/config without the stray line, every other line kept, and go2rtc's parse decides (%s)" % r9)
+    seen["config_refuse"] = True
+    r9b = repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg9, log=lambda *_a: None)
+    seen["config_refuse"] = False
+    check(r9b == "refused" and open(cfg9).read() == live96, "when go2rtc's own parse refuses, the file is left exactly as it was")
+    check(repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg8 + ".none", log=lambda *_a: None) == "unreadable", "no file, nothing done")
+    seen["config_posts"] = []
+    self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None, config_path=cfg9)
+    check(len(seen["config_posts"]) == 1 and "\nZ\n" not in seen["config_posts"][0],
+          "PROVEN TO CATCH: every self-heal tick repairs a go2rtc.yaml go2rtc cannot read (the file behind every PUT 400 and the empty 23:02 start)")
 
     print("=== 8h. access is given and taken back, never a password (DR-0778): grants ===")
     fake_cloud.last = {}
@@ -5062,7 +5217,7 @@ def _selftest():
 
 
     print("=== 8n. the Wyze bridge road (DR-0809): a camera the NAS cannot reach, or without DTLS, rides the bridge; the owner can force a road ===")
-    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON
+    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON, KVS_HOLD
     br_tmp = tempfile.mkdtemp(prefix="cams-bridge-")
     br_wyze_env = os.path.join(br_tmp, "wyze.env")
     br_env = os.path.join(br_tmp, "wyze-bridge.env")
@@ -5591,8 +5746,9 @@ def _selftest():
     retouch = {"on": None}
 
     class FakeHoldResp:
-        def __init__(self, n):
+        def __init__(self, n, size=1000):
             self.n = n
+            self.size = size
 
         def read1(self, _size):
             clk[0] += 10.0
@@ -5602,7 +5758,7 @@ def _selftest():
             if self.n <= 0:
                 return b""
             self.n -= 1
-            return b"x" * 1000
+            return b"x" * self.size
 
         def close(self):
             pass
@@ -5614,6 +5770,8 @@ def _selftest():
             raise socket.timeout("timed out")
         if step == "refuse":
             raise urllib.error.URLError("refused")
+        if isinstance(step, tuple):
+            return FakeHoldResp(*step)
         return FakeHoldResp(step)
 
     hold = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda up, s_, cp: (rearmed.append(s_), True)[1],
@@ -5621,7 +5779,7 @@ def _selftest():
                    log=quiet, max_holds=2, hold=60, life=600, dial=20, gap=30, redial=5)
     check(hold.touch(kup, "a_cam") == "started" and hold.touch(kup, "a_cam") == "held" and len(pending) == 1, "a watched Kinesis camera gets one holder; a second look joins it (the lock)")
     check(hold.touch(kup, "b_cam") == "started" and hold.touch(kup, "c_cam") == "full" and hold.snapshot()["counts"]["full"] == 1, "the budget: no more holders than KVS_HOLD_MAX")
-    script[:] = ["hang", 3]
+    script[:] = ["hang", (3, 16384)]
     pending[0]()
     check(rearmed == ["a_cam"] and hold.counts["rearmed"] == 1 and "a_cam" not in hold.holds and not script,
           "PROVEN TO CATCH: an offer Wyze leaves unanswered is abandoned after the dial clock and the camera re-armed; the next dial carries video; the holder ends KVS_HOLD_SECONDS after the last look (%r)" % rearmed)
@@ -5658,7 +5816,7 @@ def _selftest():
     check(kvs_viewed(kup, "a_cam_sd", roads_path=kv_roads, hold=vh) is True and list(vh.holds) == ["a_cam"], "a frame of a Kinesis camera's twin holds the camera's own session")
     check(kvs_viewed(kup, "b_cam", roads_path=kv_roads, hold=vh) is False and list(vh.holds) == ["a_cam"], "a camera on the bridge is never held")
     snap_ = vh.snapshot()
-    check(set(snap_) == {"max", "hold_s", "dial_s", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
+    check(set(snap_) == {"max", "hold_s", "dial_s", "held_min", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
     print("=== 8s. the cameras go2rtc's Wyze sign-in drops are added on Wyze's WebRTC road (DR-1097, sixth read) ===")
     bl = [{"uri": "a-cam", "mac": norm_mac("AA:BB:CC:00:00:01"), "nickname": "A Cam"}, {"uri": "b-cam", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"}, {"uri": "b-cam-sub", "mac": norm_mac("AA:BB:CC:00:00:02"), "nickname": "B Cam"},
           {"uri": "c-cam", "mac": norm_mac("AA:BB:CC:00:00:03"), "nickname": "C Cam"}, {"uri": "d-cam", "mac": norm_mac("AA:BB:CC:00:00:04"), "nickname": "D Cam"},
@@ -5752,6 +5910,110 @@ def _selftest():
     check(seen.get("puts") == [("front_door", "ring:?camera_id=11&device_id=22&refresh_token=RINGSECRET"), ("driveway", "ring:?camera_id=33&device_id=44&refresh_token=RINGSECRET")] and "RINGSECRET" not in d.decode("utf-8"), "the ring: sources go to go2rtc with their refresh token, and the token never comes back to the app")
     s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "nope", "password": "pw"}).encode(), auth=B)
     check(s == 400 and b"missing-field" in d, "a bad email is refused before any call")
+
+    print("=== 8t. a frame of a held Kinesis camera is asked of go2rtc only while its session carries video (DR-1097, seventh read) ===")
+    c7 = [5000.0]
+    s7 = []
+    r7 = []
+    p7 = []
+
+    class VidResp:
+        """A live MP4 from go2rtc: these chunks, then silence ("hang") or the end."""
+
+        def __init__(self, chunks, then="end"):
+            self.chunks = list(chunks)
+            self.then = then
+
+        def read1(self, _size):
+            if self.chunks:
+                c7[0] += 1.0
+                return b"v" * self.chunks.pop(0)
+            if self.then == "hang":
+                c7[0] += 20.0
+                raise socket.timeout("timed out")
+            c7[0] += 1.0
+            return b""
+
+        def close(self):
+            pass
+
+    def vopen(url, timeout=None):
+        if not s7:
+            raise urllib.error.URLError("refused")
+        return s7.pop(0)
+
+    def hold7():
+        return KvsHold(clock=lambda: c7[0], opener=vopen, rearm=lambda up, s_, cp: (r7.append(s_), True)[1],
+                       spawn=lambda fn, name: p7.append(fn), sleep=lambda w: c7.__setitem__(0, c7[0] + w),
+                       log=quiet, max_holds=4, hold=60, life=600, dial=20, gap=30, redial=5, held_min=16384, fresh=3)
+    h7 = hold7()
+    h7.touch(kup, "front_cam")
+    s7[:] = [VidResp([900], then="hang"), VidResp([16384] * 70)]
+    p7.pop(0)()
+    check(r7 == ["front_cam"] and h7.counts["rearmed"] == 1 and not s7,
+          "PROVEN TO CATCH: a session that connected and then carried 900 bytes and no video (front_cam, 13 frozen consumers live) is unanswered and re-armed, not counted as held (%r)" % r7)
+    r7[:] = []
+    h7.touch(kup, "front_door_view")
+    s7[:] = [VidResp([16384] * 70)]
+    p7.pop(0)()
+    check(r7 == [], "a dial that carries a key frame's worth of video is held, never re-armed")
+    h8 = hold7()
+    h8.touch(kup, "cam_v")
+    p7[:] = []
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=900, last_bytes=c7[0])
+    check(h8.flowing("cam_v") is False, "an MP4 header's worth of bytes is not video")
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=20000, last_bytes=c7[0])
+    check(h8.flowing("cam_v") is True, "16 KB of this dial, the last byte just now, is video")
+    c7[0] += 4.0
+    check(h8.flowing("cam_v") is False, "video that stopped 4 s ago is no longer flowing")
+    t0_ = c7[0]
+    check(h8.wait_flowing("cam_v", 2.0) == 0.0 and c7[0] >= t0_ + 2.0, "a frame waits at most its own clock for video, then gives up")
+    t0_ = c7[0]
+    check(h8.wait_flowing("nobody", 20.0) == 0.0 and c7[0] == t0_, "a camera nobody holds is not waited on")
+    with h8.lock:
+        h8.holds["cam_v"].update(dial_bytes=20000, last_bytes=c7[0])
+    check(h8.wait_flowing("cam_v", 20.0) > 0, "a camera carrying video answers at once with the time that is left")
+
+    class StubHold:
+        def __init__(self, flow):
+            self.flow = flow
+
+        def touch(self, up, sid, config_path=None):
+            return "held"
+
+        def holding(self, sid):
+            return True
+
+        def wait_flowing(self, sid, seconds):
+            return 15.0 if self.flow else 0.0
+    saved_hold, saved_roads7 = KVS_HOLD, BRIDGE_ROADS_FILE
+    roads7 = os.path.join(rec_tmp, "roads-8t.json")
+    roads_save({"front_yard": {"road": "kvs"}}, roads7)
+    BRIDGE_ROADS_FILE = roads7
+    frames = lambda: sum(1 for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=front_yard"))  # noqa: E731
+    breaker_note("front_yard", True)
+    try:
+        KVS_HOLD = StubHold(False)
+        n0 = frames()
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 504 and b"go2rtc was not asked" in d and frames() == n0,
+              "PROVEN TO CATCH: a frame of a Kinesis camera whose held session carries no video is a 504, and go2rtc's frame.jpeg (which never lets go of such a request) is not asked (%d %r)" % (s, d[:120]))
+        KVS_HOLD = StubHold(True)
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 200 and d.startswith(b"\xff\xd8JPEG-front_yard") and frames() == n0 + 1, "once it carries video the frame is asked of go2rtc and served (%d %r, %d asks)" % (s, d[:60], frames() - n0))
+    finally:
+        KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
+        breaker_note("front_yard", True)
+    n_sc = sum(1 for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=scale_cam"))
+    s, _h, d = call("GET", "/snap/scale_cam.jpg?w=640", auth=B)
+    asks_sc = [q for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=scale_cam")][n_sc:]
+    check(s == 200 and d.startswith(b"\xff\xd8JPEG-scale_cam-w0") and len(asks_sc) == 2 and "w=640" in asks_sc[0] and "w=" not in asks_sc[1],
+          "PROVEN TO CATCH: a resize ffmpeg refuses (500 exit status 183, 805 Floodlight Cam - West) is asked once more at the camera's own size and served (%d, %r)" % (s, asks_sc))
+    s, _h, d = call("GET", "/snap/dark_cam.jpg?w=640", auth=B)
+    check(s == 500 and b"source not ready" in d, "any other 500 is go2rtc's own answer, passed on in its words, never retried")
+    breaker_note("dark_cam", True)
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
@@ -5965,10 +6227,138 @@ def persist_missing_streams(upstream, streams, log=print, config_path=None):
     return "wrote-%d" % (wrote + direct)
 
 
-def self_heal_once(upstream, port, token, log=print):
+def yaml_unquote(v):
+    """The value of one go2rtc.yaml scalar as yaml_quote (or go2rtc) wrote it."""
+    v = str(v or "").strip()
+    if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+        return re.sub(r'\\(.)', lambda m: {"n": "\n", "t": "\t"}.get(m.group(1), m.group(1)), v[1:-1])
+    if len(v) >= 2 and v[0] == "'" and v[-1] == "'":
+        return v[1:-1].replace("''", "'")
+    return re.sub(r"\s+#.*$", "", v)
+
+
+def config_stream_sources(text):
+    """{name: [source, ...]} for every stream go2rtc.yaml DEFINES, read by shape
+    the way config_stream_names reads it (no yaml library on the box): a
+    `  name: value` line, or a `  name:` line with `    - value` items under it."""
+    out = {}
+    inside = False
+    cur = None
+    for line in str(text or "").split("\n"):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line[0].isspace():
+            inside = line.startswith("streams:")
+            cur = None
+            continue
+        if not inside:
+            continue
+        m = re.match(r"^\s{1,3}(\"[^\"]+\"|'[^']+'|[^\s#\"'][^:]*?):(?:\s+(.*))?$", line)
+        if m and not line.lstrip().startswith("- "):
+            cur = m.group(1).strip("\"'")
+            v = (m.group(2) or "").strip()
+            out[cur] = [yaml_unquote(v)] if v and v != "{}" else []
+            continue
+        m = re.match(r"^\s+-\s+(.*)$", line)
+        if m and cur is not None:
+            out[cur].append(yaml_unquote(m.group(1)))
+    return dict((k, [x for x in v if x]) for k, v in out.items() if any(v))
+
+
+def config_stray_lines(text):
+    """The line numbers of go2rtc.yaml lines no YAML block mapping can hold: a
+    line at column 0 that is not a key, a comment, blank or a document marker."""
+    out = []
+    for k, line in enumerate(str(text or "").split("\n"), 1):
+        if not line.strip() or line[0].isspace():
+            continue
+        if re.match(r"^(#|---|\.\.\.)", line) or re.match(r"^(\"[^\"]*\"|'[^']*'|[^\s:#'\"-][^:]*):(\s|$)", line):
+            continue
+        out.append(k)
+    return out
+
+
+def repair_config_strays(upstream, config_path=None, log=print, opener=None):
+    """GO2RTC.YAML IS MADE READABLE AGAIN, AND GO2RTC ITSELF PROVES IT (DR-1097,
+    ninth read). cams-diag 39203389412: line 96, the file's last, was one
+    character at column 0 after the wyze: block, the line go2rtc named ("could
+    not find expected ':'"). A line at column 0 that is not a key can never sit
+    in a block mapping, so taking it out loses nothing a parser could read. The
+    result is handed to go2rtc's own POST /api/config, which parses it with
+    go2rtc's yaml and writes it ONLY if it parses (internal/api/config.go); a
+    refusal leaves the file exactly as it was and says why. Answers 'clean',
+    'repaired-N', 'refused' or 'unreadable'."""
+    opener = opener or urllib.request.urlopen
+    path = config_path or GO2RTC_YAML_PATH
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return "unreadable"
+    stray = config_stray_lines(text)
+    if not stray:
+        return "clean"
+    drop = set(stray)
+    fixed = "\n".join(l for k, l in enumerate(text.split("\n"), 1) if k not in drop)
+    req = urllib.request.Request(upstream.rstrip("/") + "/api/config", data=fixed.encode("utf-8"), method="POST",
+                                 headers={"Content-Type": "application/yaml"})
+    try:
+        with opener(req, timeout=HEALTH_TIMEOUT) as r:
+            r.read(4096)
+    except urllib.error.HTTPError as e:
+        try:
+            why = scrub_text(e.read(300).decode("utf-8", "replace").strip(), 160)
+        except Exception:  # noqa: BLE001
+            why = ""
+        log("config-repair: go2rtc would not take go2rtc.yaml without line(s) %s (HTTP %d%s); the file is left as it was" % (",".join(str(k) for k in stray), e.code, ": " + why if why else ""))
+        return "refused"
+    except (urllib.error.URLError, OSError):
+        return "unreadable"
+    log("config-repair: line(s) %s of go2rtc.yaml held nothing YAML can read; taken out, and go2rtc parsed the result before writing it (DR-1097, ninth read)" % ",".join(str(k) for k in stray))
+    return "repaired-%d" % len(stray)
+
+
+def restore_streams_from_config(upstream, config_path=None, log=print, opener=None):
+    """A GO2RTC THAT STARTED WITHOUT ITS CONFIG GETS ITS STREAMS BACK FROM IT
+    (DR-1097, eighth read). 2026-10-19 23:02 CDT: the one go2rtc release came back
+    with zero streams because go2rtc.yaml would not parse ("yaml: line 96: could
+    not find expected ':'"), so go2rtc ran on its defaults; the same file is why
+    every PUT had answered 400 for hours (streams.New took the stream, then
+    app.PatchConfig failed). PUT puts a stream in memory before it writes the
+    file, so each stream the file defines is PUT with its own sources; a 400 is
+    expected and the stream is still live. Answers how many go2rtc lists after."""
+    opener = opener or urllib.request.urlopen
+    base = upstream.rstrip("/")
+    try:
+        with open(config_path or GO2RTC_YAML_PATH, "r", encoding="utf-8") as fh:
+            sources = config_stream_sources(fh.read())
+    except OSError:
+        return 0
+    for name, srcs in sorted(sources.items()):
+        q = urllib.parse.urlencode([("name", name)] + [("src", x) for x in srcs])
+        try:
+            with opener(urllib.request.Request(base + "/api/streams?" + q, method="PUT"), timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+        except urllib.error.HTTPError:
+            pass  # app.PatchConfig refused the file; the stream is in memory all the same
+        except (urllib.error.URLError, OSError):
+            return 0
+    try:
+        with opener(base + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
+            parsed = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return 0
+    n = len(parsed) if isinstance(parsed, dict) else 0
+    log("self-heal: go2rtc listed no streams while go2rtc.yaml defines %d; put them back from the file, go2rtc lists %d now (DR-1097, eighth read)" % (len(sources), n))
+    return n
+
+
+def self_heal_once(upstream, port, token, log=print, config_path=None):
     """If go2rtc lists ZERO streams and a Wyze sign-in is kept, re-add the
     cameras through this process's own /setup/wyze/again. If it lists streams
     its config does not define, write them (DR-0787). Returns what it did."""
+    # A file go2rtc cannot read refuses every PUT's write and empties the next start.
+    repair_config_strays(upstream, config_path=config_path, log=log)
     try:
         with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
             parsed = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
@@ -5977,6 +6367,9 @@ def self_heal_once(upstream, port, token, log=print):
     if isinstance(parsed, dict) and len(parsed) > 0:
         wrote = persist_missing_streams(upstream, parsed, log=log)
         return wrote if wrote.startswith("wrote-") else "has-streams"
+    # The file first: it holds every road the judge chose, which a fresh Wyze listing does not.
+    if restore_streams_from_config(upstream, config_path=config_path, log=log) > 0:
+        return "restored-from-config"
     if _wyze is None or not _wyze.load_credentials():
         return "no-credentials"
     req = urllib.request.Request("http://127.0.0.1:%d/setup/wyze/again" % port, data=b"", method="POST",
