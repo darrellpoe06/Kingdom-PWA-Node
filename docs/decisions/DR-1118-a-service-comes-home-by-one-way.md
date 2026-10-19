@@ -1,4 +1,4 @@
-# DR-1104: A service comes home by one Way: it installs itself on every path, says why in plain words, and its witness says where the install stands; the home-server video's four jobs weighed
+# DR-1118: A service comes home by one Way: it installs itself on every path, says why in plain words, and its witness says where the install stands; the home-server video's four jobs weighed
 
 **Date:** 2026-10-19
 **Status:** accepted
@@ -54,5 +54,5 @@ The night before, the research road (DR-1101) came home and could not answer. It
 ## Verification
 
 - `a-service-comes-home.test.js`: 9 tests, green on the first run, so the ledger matched the files as read.
-- `open-source-candidates.test.jsx`: counts 6 / 3 / 4, the three rows under DR-1104, only Vane marked built; the header text asserted.
+- `open-source-candidates.test.jsx`: counts 6 / 3 / 4, the three rows under DR-1118, only Vane marked built; the header text asserted.
 - `research-road.test.jsx`, lint and the gate scripts: see the session note.

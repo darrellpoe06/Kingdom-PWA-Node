@@ -4,7 +4,7 @@
 // Darrell, 2026-10-18: "Go get all these repos and integrate them into our
 // technology stacks so we can see how we can gain more control and visibility
 // into our projects and productivity... opportunities and constraints..."
-// The record is DR-1099. Three more rows were added on 2026-10-19 (DR-1104),
+// The record is DR-1099. Three more rows were added on 2026-10-19 (DR-1118),
 // from the home-server video Darrell sent with "Fix our processes and create
 // a way": Jellyfin, Immich and Audiobookshelf, read the same way at their
 // latest releases; the fourth job it names, cameras, is already home (DR-0756).
@@ -399,7 +399,7 @@ export const OPEN_SOURCE_CANDIDATES = [
     gapRef: null,
     drRef: 'DR-1099',
   },
-  // ---- 2026-10-19: the home-server video (DR-1104) ------------------------
+  // ---- 2026-10-19: the home-server video (DR-1118) ------------------------
   // Each read at its latest release the same way: shallow-cloned at the pin,
   // licence and egress read from the source, never run. The bills: the inbox
   // holds ONE subscription in this class, Google AI Plus (2 TB) (Google One),
@@ -438,7 +438,7 @@ export const OPEN_SOURCE_CANDIDATES = [
     nextStep: 'Bring it home by the Way (THE-WAY-A-SERVICE-COMES-HOME): measure the pool, register it in services.json with an installer that owns its data folder, a forwarder that says why, a witness and a surface; then prove one phone’s backup landed before anything is cancelled.',
     reReview: '2026-11-08',
     gapRef: null,
-    drRef: 'DR-1104',
+    drRef: 'DR-1118',
   },
   {
     id: 'jellyfin',
@@ -472,7 +472,7 @@ export const OPEN_SOURCE_CANDIDATES = [
     nextStep: 'Name the first library (the sermon and worship recordings, or the household’s own discs ripped to the pool); then bring it home by the Way.',
     reReview: '2026-12-01',
     gapRef: null,
-    drRef: 'DR-1104',
+    drRef: 'DR-1118',
   },
   {
     id: 'audiobookshelf',
@@ -504,7 +504,7 @@ export const OPEN_SOURCE_CANDIDATES = [
     nextStep: 'Name the first shelf; then bring it home by the Way.',
     reReview: '2026-12-01',
     gapRef: null,
-    drRef: 'DR-1104',
+    drRef: 'DR-1118',
   },
 ];
 

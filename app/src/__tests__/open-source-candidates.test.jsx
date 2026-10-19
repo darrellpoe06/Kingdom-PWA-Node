@@ -39,12 +39,12 @@ describe('the register', () => {
     expect(OPEN_SOURCE_CANDIDATES.map((c) => c.id).sort()).toEqual(
       ['ace-step', 'audiobookshelf', 'dyad', 'freellmapi', 'immich', 'invokeai', 'jellyfin', 'odysseus', 'openmanus', 'openshorts', 'upscayl', 'vane', 'voicestudio'],
     );
-    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.drRef === 'DR-1104').map((c) => c.id).sort()).toEqual(['audiobookshelf', 'immich', 'jellyfin']);
+    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.drRef === 'DR-1118').map((c) => c.id).sort()).toEqual(['audiobookshelf', 'immich', 'jellyfin']);
     for (const c of OPEN_SOURCE_CANDIDATES) expect(c.pin.sha).toMatch(/^[0-9a-f]{40}$/);
     expect(pinnedUrl(byId('invokeai'))).toBe('https://github.com/invoke-ai/InvokeAI/tree/438246b846391385b074eae82bdbc82df2938007');
   });
 
-  it('records the verdicts DR-1099 and DR-1104 decided', () => {
+  it('records the verdicts DR-1099 and DR-1118 decided', () => {
     const s = summarizeCandidates();
     expect(s.byVerdict).toEqual({ pilot: 6, hold: 3, decline: 4 });
     expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.verdict === 'pilot').map((c) => c.id).sort())
@@ -120,7 +120,7 @@ describe('the Infra Plan section', () => {
     expect(t).toMatch(/4 decline/);
     for (const c of OPEN_SOURCE_CANDIDATES) expect(t).toContain(c.name);
     // The header is counted from the rows: which record weighed how many, and what is built.
-    expect(t).toMatch(/10 under DR-1099, 3 under DR-1104/);
+    expect(t).toMatch(/10 under DR-1099, 3 under DR-1118/);
     expect(t).toMatch(/Built: Vane \(DR-1101\)\. The rest are not installed\./);
     expect(t).not.toMatch(/None of them is installed yet/);
     expect(host.querySelectorAll('[aria-expanded="true"]').length).toBe(0);
