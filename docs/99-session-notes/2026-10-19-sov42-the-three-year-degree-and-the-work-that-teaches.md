@@ -92,7 +92,7 @@ would otherwise imply a closeness to the sources that we did not have.
 | adult lesson | 41,052 chars, twelve movements |
 | `hasAllThree` | true |
 | `placesMissingDirections` | `[]` |
-| four-band ratchet | 246 → 247, by hand, with its dated note |
+| four-band ratchet | 247 → **248**, by hand, with its dated note (measured, not predicted) |
 | cases in the lesson's own test file | 32 |
 
 Every verse was filled from the corpus by `scripts/sov42-fill.mjs` and never
@@ -131,6 +131,52 @@ line of prose was written, so the lesson was authored around them. That is why
 Isaiah 55:1-2 is absent from a lesson about the price of learning, where it
 would otherwise have been the obvious anchor. All 114 cases across the three
 gates are green.
+
+## The ratchet was re-measured after pm13 landed, not predicted
+
+pm13 (DR-1116, PR #2271) merged first at 22:57:34Z and moved the ratchet
+246 → 247, so sov42 is the **248th** four-band lesson and not the 247th. Both
+branches had edited the same pinned line, so the merge surfaced it as a real
+conflict rather than silently taking one side — and the number came from
+re-running `scripts/course-band-baseline-write.mjs` against the merged catalog:
+**`total 422 allFour 248 adultOnly 0`**, with sovereign-ai 42 lessons / 21
+four-band and project-management 13 / 13. The dated note keeps the chain
+visible — 248 (sov42) after 247 (pm13) after 246 (sov41) — so the number is
+seen moving rather than jumping. `docs/decisions/INDEX.md` was resolved only by
+`scripts/resolve-ledger-conflicts.mjs`, which folded the pointer to DR-1118,
+kept both the DR-1115 and DR-1116 rows and left zero conflict markers;
+`lesson-dates.json` merged to the union with real shas on both new rows
+(sov42 `dfb7b87a`, pm13 `920732f4`) and zero `working-tree` rows.
+
+## What was run locally, and what was NOT
+
+**The full 1,600-file vitest suite did NOT complete locally. CI's four disjoint
+shards are the full-suite witness on this push.** Said here rather than implied.
+
+Run to completion after the merge: this lesson's own 32 cases,
+`course-band-coverage` (23), `decision-chain` (14), `lesson-dates` (16),
+`project-management-pm13-verses` (37), and the three exclusivity gates (114) —
+**236, all green**. Before the merge: `every-catalog-quotes-the-verse` (51),
+`course-quotation-integrity` (8), `sovereign-ai-class` (22). `npm run lint`
+exit 0; `npm run verify:gates` exit 0 by exit code.
+
+Not completed: the whole suite. Two runs, both stopped by hand rather than by
+failure — 731 of 1,600 files before the merge (a pre-merge tree is the wrong
+tree to judge) and 328 of 1,600 after it, with **zero failures in everything
+either run reached**. `app/vitest.local-slot.js` caps a non-CI run to one of two
+slots, after seven parallel runs held ~13 GB on this 16 GB / 4-CPU container and
+builds were OOM-killed with 137. **The worker count and the slot count were not
+raised to force a verdict** — that is the incident the slot file exists to
+prevent.
+
+One number here is mine and disagrees with the one I was handed, so both are
+printed: DR-1116 measured ~2.7 files a minute (~10 hours); my second run
+measured ~27 files a minute (slot taken 23:02 UTC, 328 files by 23:14, which
+would be near an hour). pm13's rate was taken while a sibling held the other
+slot and mine with no contender, so the two do not conflict about the mechanism
+— and nothing turns on it, because CI's shards are what actually cover all
+1,600 files. It is recorded because repeating somebody else's measurement as my
+own is the habit DR-0076 §4 exists to break.
 
 ## Left undone, named
 
