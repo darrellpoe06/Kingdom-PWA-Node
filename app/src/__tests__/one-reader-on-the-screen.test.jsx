@@ -69,6 +69,10 @@ describe('only one reader renders', () => {
 
   it('the Practice Learn tab does not mount a second reader', () => {
     const src = readFileSync(join(HERE, '..', 'components', 'Practice.jsx'), 'utf8');
-    expect(src).toMatch(/<PracticeLearn email=\{email\} isStaff=\{isStaff\} readAloud=\{false\} \/>/);
+    // The property this case holds is `readAloud={false}` — one reader on the
+    // screen. DR-1109 changed the neighbouring staff prop from the email
+    // allowlist to the office standing (`staff`), which is not this case's
+    // business, so the match no longer pins that attribute's spelling.
+    expect(src).toMatch(/<PracticeLearn email=\{email\} isStaff=\{\w+\} readAloud=\{false\} \/>/);
   });
 });

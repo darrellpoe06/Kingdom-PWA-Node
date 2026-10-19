@@ -32,6 +32,11 @@ import { isPublicHost } from './access-gate.js';
 export function navItems({
   isAssistantAcct = false, isFamilyMember = false, authSession = null, isStudyCircle = false,
   healthPrograms = null, userTier = null, reviewerMode = false, churchDoorOnly = false,
+  // Who GOVERNS — from the database role, not the email allowlist (DR-1106).
+  // The Admin tab reads this so the nav agrees with the console gate instead of
+  // painting a tab a child can open into a locked panel. It defaults to
+  // isFamilyMember so every existing caller keeps exactly today's answer.
+  isGovernor = isFamilyMember,
 } = {}) {
   return [
     ['overview','Big Picture'],
@@ -147,7 +152,7 @@ export function navItems({
     // disagree): family stewards anywhere; home host only in the
     // OPEN no-session state — a signed-in guest on the house WiFi
     // gets no Admin (DR-0241: the network trusts devices, not sessions).
-    ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
+    ...((!reviewerMode && (isGovernor || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
   ].filter(([id]) => (!churchDoorOnly || id === 'church')
      && (!isAssistantAcct || ['tlc-assistant', 'messages', 'about'].includes(id)))
    .map(([id, label]) => [id, label] /* top-level-nav */);
