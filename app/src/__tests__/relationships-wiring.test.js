@@ -32,7 +32,11 @@ describe('Relationships surface is fully wired', () => {
     expect(navItems).toMatch(/\(isFamilyMember \|\| tierMeets\(userTier, 'business'\)\)\s*\?\s*\[\['relationships'/);
     expect(mono).toMatch(/\{navTabs\.map\(/); // no-leak nav spread — family/governor OR Business tier (DR-0128)
     expect(mono).toMatch(/view === 'relationships'/);                          // render branch
-    expect(mono).toMatch(/<Relationships\s+isGovernor=\{isFamilyMember \|\| tierMeets\(data.userTier, 'business'\)\}/); // steward render — own instance on the Business tier (DR-0128)
+    // DR-1106: the steward term is now the ROLE-derived isGov, not the email
+    // allowlist — the guardian panel in here governs a child's capabilities, so
+    // a child on the allowlist must never render as its governor. The Business
+    // tier clause is untouched (an outside customer governs their own space).
+    expect(mono).toMatch(/<Relationships\s+isGovernor=\{isGov \|\| tierMeets\(data.userTier, 'business'\)\}/); // steward render — own instance on the Business tier (DR-0128)
     // FEEDBACK_AREAS moved to components/FeedbackCenter.jsx with the extraction.
     expect(read('components/FeedbackCenter.jsx')).toMatch(/\['relationships',/); // FEEDBACK_AREAS entry
   });

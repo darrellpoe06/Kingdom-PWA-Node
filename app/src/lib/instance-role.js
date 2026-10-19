@@ -97,6 +97,13 @@ export const useInstanceRole = defaultStore.use;
 export const fetchOfficeInstanceRole = officeStore.fetch;
 export const useOfficeInstanceRole = officeStore.use;
 
+// WHO GOVERNS, from the role this seam reads (DR-1106). Re-exported HERE on
+// purpose: the shell already imports this module for the role, so the authority
+// rule rides that import instead of costing the frozen monolith a line — and a
+// reader who finds the role read finds the rule that consumes it in the same
+// breath. The rule itself lives in lib/family-standing.js with its own cases.
+export { governsHere } from './family-standing.js';
+
 // Pure helpers the shell + doors read (kept dumb on purpose — the DB decides).
 export const isAssistantRole = (s) => (s?.role ?? null) === 'assistant';
 export const canManageTeam = (s) => ['owner', 'admin'].includes(s?.role ?? '');

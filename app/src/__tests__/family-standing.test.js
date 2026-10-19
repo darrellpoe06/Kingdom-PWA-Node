@@ -20,8 +20,36 @@
 import { describe, it, expect } from 'vitest';
 import {
   STANDING, roleStanding, isGovernorRole, readsBooks, writesRecords,
-  standingInSpace, standingAcrossSpaces, standingSentence,
+  standingInSpace, standingAcrossSpaces, standingSentence, governsHere,
 } from '../lib/family-standing.js';
+
+describe('governsHere — the one line the shell reads', () => {
+  const base = { signedIn: true, reviewerMode: false, allowlisted: true };
+
+  it('the son on the allowlist does not govern the app', () => {
+    expect(governsHere({ ...base, role: 'child' })).toBe(false);
+    expect(governsHere({ ...base, role: 'member' })).toBe(false);
+    expect(governsHere({ ...base, role: 'owner' })).toBe(true);
+    expect(governsHere({ ...base, role: 'admin' })).toBe(true);
+  });
+
+  it('an anonymous visitor governs nothing, whatever role is lying around', () => {
+    expect(governsHere({ ...base, signedIn: false, role: 'owner' })).toBe(false);
+    expect(governsHere({})).toBe(false);
+  });
+
+  it('the reviewer lens is senior to BOTH the role and the address (DR-0104)', () => {
+    // Darrell previewing as a visitor must not be re-promoted by his own
+    // membership row — that would make the preview a lie.
+    expect(governsHere({ ...base, reviewerMode: true, role: 'owner' })).toBe(false);
+    expect(governsHere({ ...base, reviewerMode: true, role: null })).toBe(false);
+  });
+
+  it('a failed role read leaves the owner exactly where he was (DR-0107)', () => {
+    expect(governsHere({ ...base, role: null })).toBe(true);
+    expect(governsHere({ ...base, allowlisted: false, role: null })).toBe(false);
+  });
+});
 
 describe('the son on the allowlist is NOT a governor (the 2026-08-23 exposure)', () => {
   it('allowlisted + child role -> a witness, never a governor', () => {
