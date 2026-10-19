@@ -19,7 +19,7 @@ import supabase, { resolveInitialSession, readPersistedSession, signOut } from '
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 import Cameras from './Cameras.jsx';
-import { POE_PROPERTIES } from '../modules/properties/config.js';
+import { POE_PROPERTIES, PROPERTIES_SHARE_URL } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, readListingTarget, resolveScan } from '../modules/properties/apply-link.js';
@@ -62,8 +62,9 @@ import { WELCOME_CSS, PoePropertiesMark, WelcomeHero, PortalCards, DoorFooter, c
 // className's constant only within the file that uses it.
 const FOCUS_RING = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#E00000]';
 
-/** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
-export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
+/** The door's own address, the one a tenant shares or scans (DR-0258 scope).
+ *  It lives in the pure config now (DR-1112); re-exported so callers keep it. */
+export { PROPERTIES_SHARE_URL };
 
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
