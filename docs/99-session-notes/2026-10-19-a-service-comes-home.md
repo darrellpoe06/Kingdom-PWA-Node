@@ -1,4 +1,4 @@
-# 2026-10-19 — A service comes home by one Way (DR-1118)
+# 2026-10-19 — A service comes home by one Way (DR-1119)
 
 **What Darrell sent.** A summary of a home-server video (one machine you own in place of about $1,000 a year of subscriptions: Jellyfin for films, Immich for photos, Audiobookshelf for audiobooks, cameras on your own network; the files on your own disk are the asset) and one line: *"Fix our processes and create a way."*
 
@@ -12,7 +12,7 @@ By 04:04 UTC the road answered `/health 503` in 0.3 s with the reason in words. 
 1. **The Way:** `docs/00-foundations/_root/THE-WAY-A-SERVICE-COMES-HOME.md`, eight steps with a proof each. Routed in `docs/CONTEXT.md`, registered as `SERVICE-COMES-HOME` in `PRINCIPLES.md`, named in `required-reading.js`.
 2. **The gate:** `app/src/__tests__/a-service-comes-home.test.js`. Every enabled installer exists and parses; research has every readable part; the 21 services born before the Way are listed with exactly what they lack, audited by 2026-11-15; a new service must join at birth.
 3. **The register:** Immich (pilot, NAS), Jellyfin (hold) and Audiobookshelf (hold) weighed at their latest releases; the Infra Plan header is now counted from the rows and says what is built (Vane) instead of "none is installed".
-4. **The ledger:** DR-1118; LESSONS-LEARNED 2026-10-19 entry and P73.
+4. **The ledger:** DR-1119; LESSONS-LEARNED 2026-10-19 entry and P73.
 
 **Measured, not assumed.**
 - The inbox, last twelve months: one subscription in the class, Google AI Plus (2 TB) (Google One), $9.99 a month. No Netflix, Hulu, Disney, Spotify, Audible, Plex, Prime Video or Apple TV receipt.

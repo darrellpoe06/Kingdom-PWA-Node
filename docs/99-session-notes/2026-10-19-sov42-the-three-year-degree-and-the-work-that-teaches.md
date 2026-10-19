@@ -168,7 +168,7 @@ re-running `scripts/course-band-baseline-write.mjs` against the merged catalog:
 four-band and project-management 13 / 13. The dated note keeps the chain
 visible — 248 (sov42) after 247 (pm13) after 246 (sov41) — so the number is
 seen moving rather than jumping. `docs/decisions/INDEX.md` was resolved only by
-`scripts/resolve-ledger-conflicts.mjs`, which folded the pointer to DR-1118,
+`scripts/resolve-ledger-conflicts.mjs`, which folded the pointer to DR-1119,
 kept both the DR-1115 and DR-1116 rows and left zero conflict markers;
 `lesson-dates.json` merged to the union with real shas on both new rows
 (sov42 `dfb7b87a`, pm13 `920732f4`) and zero `working-tree` rows.

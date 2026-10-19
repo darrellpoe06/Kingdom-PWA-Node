@@ -1,5 +1,5 @@
 // =============================================================================
-// A SERVICE COMES HOME BY ONE WAY (DR-1118)
+// A SERVICE COMES HOME BY ONE WAY (DR-1119)
 // =============================================================================
 // Darrell 2026-10-19, with the home-server video: "Fix our processes and create
 // a way." The night before, the research road (DR-1101) took three merges to
@@ -113,7 +113,7 @@ export function restartOnEveryPath(installText) {
 const answersWithReason = (doorText) => /"reason"/.test(doorText) && /\/health/.test(doorText);
 
 // ---- the gate ---------------------------------------------------------------
-describe('a service comes home by one Way (DR-1118)', () => {
+describe('a service comes home by one Way (DR-1119)', () => {
   it('every enabled service has an installer that exists and parses', () => {
     for (const s of ENABLED) {
       expect(has(s.install), `${s.name}: ${s.install}`).toBe(true);

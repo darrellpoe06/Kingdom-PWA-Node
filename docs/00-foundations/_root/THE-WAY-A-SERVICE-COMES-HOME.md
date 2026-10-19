@@ -1,6 +1,6 @@
 # The Way a Service Comes Home
 
-**Status:** Foundation (one of our Ways). Declared by Darrell 2026-10-19. Recorded as **DR-1118**. Principle ID **SERVICE-COMES-HOME** (see `docs/decisions/PRINCIPLES.md`).
+**Status:** Foundation (one of our Ways). Declared by Darrell 2026-10-19. Recorded as **DR-1119**. Principle ID **SERVICE-COMES-HOME** (see `docs/decisions/PRINCIPLES.md`).
 **Pairs with:** DR-0621 (hold the hand of the process), DR-1099 (the candidates register and its gate), DR-1101 (the research road, the first service to walk this Way and the one whose stumbles wrote it), DR-1000 (a 200 is not an answer), DR-0756 (the locked-door forwarder), DR-0770 (the running process follows the code), DR-0076 (verification), DR-0108 (review our Ways).
 
 ---
@@ -60,7 +60,7 @@ The whole night is recorded in DR-1101, with the timestamps.
 
 ## The four jobs the video names, against what we run
 
-| Job the video brings home | Tool it names | What we already run | Verdict (DR-1118) |
+| Job the video brings home | Tool it names | What we already run | Verdict (DR-1119) |
 |---|---|---|---|
 | Cameras on our own network | — | `infra/nas-cameras` (go2rtc behind the family key, DR-0756), live in the app | **Already home** |
 | Phone photos backed up to our own disk | Immich | `infra/nas-property-photos` reads the Synology phone backups for property and family albums; nothing backs the phones up except Google | **Pilot on the NAS.** The inbox holds one subscription in this class: Google AI Plus (2 TB) (Google One), $9.99 a month, charged on the 14th. Immich does the storage half of that job on our pool. |
