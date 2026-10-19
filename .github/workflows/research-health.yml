@@ -38,7 +38,7 @@ concurrency:
 jobs:
   witness:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 16
     steps:
       - name: Check secrets (no-op with instructions when absent)
         id: gate
@@ -132,6 +132,85 @@ jobs:
           json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
           PY
 
+      # When the road is dark, say WHERE the time goes instead of only that it
+      # went (2026-10-19: two 504s in a row with health 200, models found). Each
+      # stage is timed on the NAS on its own -- the tower's model, our SearxNG,
+      # Vane's provider list, then Vane answering the same question with a longer
+      # budget -- and the last log lines of both containers are printed with
+      # anything key-shaped scrubbed. Runs only on a failed verdict.
+      - name: "Diagnose a dark road: time each stage on the NAS"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          DATA=/volume1/docker/research
+          OLLAMA="$(sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null || sudo -n sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null)"
+          export OLLAMA
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+          def call(method, url, body=None, timeout=10):
+              t = time.time()
+              req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body is not None else None)
+              if body is not None: req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      raw = r.read()
+                      return r.status, round(time.time() - t, 1), raw
+              except urllib.error.HTTPError as e:
+                  return e.code, round(time.time() - t, 1), e.read()[:400]
+              except Exception as e:
+                  return None, round(time.time() - t, 1), str(e)[:200].encode()
+          out = {"ollama": os.environ.get("OLLAMA") or None}
+          o = out["ollama"]
+          if o:
+              c, s, raw = call("GET", o + "/api/tags", timeout=10)
+              out["ollama_tags"] = {"code": c, "secs": s}
+              c, s, raw = call("POST", o + "/api/generate", {"model": "qwen2.5:14b-instruct-q4_K_M", "prompt": "Say OK.", "stream": False, "options": {"num_predict": 5}}, timeout=150)
+              d = {}
+              try: d = json.loads(raw)
+              except Exception: pass
+              out["ollama_generate"] = {"code": c, "secs": s, "load_secs": round((d.get("load_duration") or 0) / 1e9, 1), "reply": (d.get("response") or str(raw[:120]))[:60]}
+          c, s, raw = call("GET", "http://127.0.0.1:8798/search?q=Dead+Sea+Scrolls&format=json", timeout=40)
+          d = {}
+          try: d = json.loads(raw)
+          except Exception: pass
+          out["searxng"] = {"code": c, "secs": s, "results": len(d.get("results") or []), "unresponsive": d.get("unresponsive_engines"), "body": None if d else raw[:160].decode("utf8", "replace")}
+          c, s, raw = call("GET", "http://127.0.0.1:3017/api/providers", timeout=15)
+          prov = {}
+          try: prov = json.loads(raw)
+          except Exception: pass
+          out["vane_providers"] = {"code": c, "secs": s, "count": len(prov.get("providers") or [])}
+          p = next((x for x in (prov.get("providers") or []) if x.get("chatModels") and x.get("embeddingModels")), None)
+          if p:
+              chat = next((m["key"] for m in p["chatModels"] if m.get("key", "").startswith("qwen2.5")), p["chatModels"][0]["key"])
+              emb = next((m["key"] for m in p["embeddingModels"] if "nomic" in m.get("key", "")), p["embeddingModels"][0]["key"])
+              body = {"chatModel": {"providerId": p["id"], "key": chat}, "embeddingModel": {"providerId": p["id"], "key": emb}, "optimizationMode": "speed", "sources": ["web"], "query": "Where were the Dead Sea Scrolls found, and when?", "history": [], "stream": False}
+              c, s, raw = call("POST", "http://127.0.0.1:3017/api/search", body, timeout=280)
+              d = {}
+              try: d = json.loads(raw)
+              except Exception: pass
+              out["vane_search_direct"] = {"code": c, "secs": s, "answer_chars": len(d.get("message") or ""), "sources": len(d.get("sources") or []), "body": None if d else raw[:300].decode("utf8", "replace")}
+          print("DIAGNOSIS " + json.dumps(out, indent=1))
+          PY
+          D=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then D="$CAND"; break; fi
+            if sudo -n "$CAND" ps >/dev/null 2>&1; then D="sudo -n $CAND"; break; fi
+          done
+          for C in poetech-vane poetech-searxng; do
+            echo "---- last lines of $C ----"
+            [ -n "$D" ] && $D logs --tail 40 "$C" 2>&1 | cut -c1-300 || echo "(no docker this user can run)"
+          done
+          EOS
       - name: "Ledger: a dark road is an incident; the next pass closes it"
         if: steps.gate.outputs.go == 'true'
         uses: actions/github-script@v7
