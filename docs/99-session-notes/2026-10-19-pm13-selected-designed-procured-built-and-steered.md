@@ -123,6 +123,22 @@ Neither is a stuck failure — each case also asserts the real module is clean:
   `hasAllThree` still reads green — which is exactly why the per-band check
   exists (DR-0795).
 
+## What CI caught that I had not run
+
+The first CI run failed **shard 4/4 only**, on `course-four-bands-hold.test.js`
+through `scripts/title-in-narrative.mjs`: a band must name its own lesson in its
+first 200 characters. Teen and senior opened on the five verbs and passed; the
+**child and youth bands opened on "Count the cost" and named nothing.** Fixed by
+carrying the title into each reader's register — the child band on the five
+steps in a child's words, the youth band on what those five words are and what
+they do not change — never a prefix. Child reading grade still under the 5.0
+ceiling; 634 band/reading/title/quotation/catalog tests green.
+
+The full local suite did not finish: `app/vitest.local-slot.js` caps a non-CI
+run at 2 workers (P65) and a sibling builder held the other slot — 2.7 files a
+minute, about 10 hours for 1,600 files on 4 cores. The worker count was not
+raised, and the slot was freed. CI's four shards are the full-suite witness.
+
 ## What is left
 
 `re-review: 2026-12-19`. If the article body ever becomes readable and carries a

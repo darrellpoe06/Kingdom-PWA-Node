@@ -188,8 +188,46 @@ naming this lesson and this record.
   `npm run lesson-dates` (after the lesson was committed, so the row carries a
   real 8-hex commit sha rather than `working-tree`) and
   `course-band-baseline-write.mjs` (total 421, allFour 247, adultOnly 0).
-- Lint clean, `npm run verify:gates` green by exit code, and the **full** vitest
-  suite green before the push.
+- Lint clean and `npm run verify:gates` green by exit code.
+- **The full local suite did not finish, and that is said plainly (DR-0076 §8).**
+  Measured: `app/vitest.local-slot.js` caps a non-CI run at 2 workers (P65 /
+  DR-0697) and a sibling builder held the other slot, giving **2.7 test files a
+  minute** — about **10 hours** for all 1,600 files on this 4-core container. The
+  worker count was NOT raised: that is the OOM incident the slot file exists to
+  prevent, and my own slot was freed when the run was stopped. **CI's four
+  disjoint shards are the full-suite witness**, and they are what decided this
+  change — see the gate finding below.
+
+### A gate I had not run caught two bands, and it was right
+
+The first CI run failed **shard 4/4 only**, on `course-four-bands-hold.test.js`
+via `scripts/title-in-narrative.mjs` (Darrell 2026-09-17: *"the title ... in the
+actual narrative so that people can remember what we're talking about"*). That
+gate asks whether a band's first 200 characters carry at least half of the
+title's distinctive words. The teen and senior bands opened on the five verbs
+and passed; the **child and youth bands opened on "Count the cost" and named
+nothing**, so a reader inside either narrative was never told what he was in.
+Shards 1, 2 and 3 were green, and nothing else in the suite objected.
+
+It was fixed the way that module explicitly asks for — the title carried into
+that reader's register rather than a mechanical prefix, which the module
+forbids for the same reason this house forbids a blind God→Yahweh sweep. The
+child band now opens on the five steps in a child's words (*picked, drawn up,
+bought for, built, and watched over* — *grown-ups call those five steps
+selected, designed, procured, built and steered*), and the youth band on what
+those five words are and what they do not change. Both kept everything they
+carried: the child band still says who brought the letter and that we could not
+read the long story behind it, and the youth band still names McKinsey and the
+one word he wrote on it.
+
+Re-measured rather than assumed: the child reading grade is still under the 5.0
+new-lesson ceiling, the bands are still full, distinct and in order, and **634
+tests across the sixteen band, reading-level, title, quotation and catalog
+gates** are green, with 252 more across the pm13 pin, the course, talk-together,
+the band ratchet, the three verse-exclusivity gates and `lesson-dates`.
+Recorded because the honest version of "the full local suite did not finish" is
+that CI found something I had not run, and the brake worked exactly as DR-0103
+says it should: a red shard kept it out of the lane.
 
 ### A correction worth recording
 
