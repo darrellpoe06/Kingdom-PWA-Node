@@ -44,6 +44,7 @@ export const REHOMED_ROUTES = Object.freeze([
   '/nas-photos/',
   '/openers/',
   '/poetech-app/taxes/',
+  '/research/',
   '/reviews/',
   '/sb/',
   '/scribe/',

@@ -73,14 +73,8 @@
 // A ROW MAY STILL BE PARKED, but only the way DR-0075 permits anything to be
 // parked: `strandedUntil` is a DATE, and it is the promise the placement gets
 // made. No date, no parking -- the row fails until the passage leaves the
-// lesson that introduced it.
-//
-// NO ROW IS PARKED TODAY. Job 31:1 was the last one, parked to 2026-10-19, and
-// the date did its whole job: the gate failed the build on 2026-10-19 with
-// "its parking expired", the parking's stated reason was re-measured and found
-// no longer true, and the passage was placed rather than re-parked (DR-1105).
-// That is the mechanism working exactly as DR-0075 intends -- the date is the
-// promise, and a promise that comes due is paid, not renewed by default.
+// lesson that introduced it. Job 31:1 was parked to 2026-10-19 and was
+// discharged that day into ll92, a host with no full-levels debt.
 
 export const PASSAGES_THAT_MUST_REACH = Object.freeze([
   {
@@ -123,7 +117,7 @@ export const PASSAGES_THAT_MUST_REACH = Object.freeze([
     subject: 'a covenant with your eyes',
     introducedBy: 'll183-',
     minLessons: 2,
-    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. PARKED TO 2026-10-19 AND PAID ON IT: the parking said every host discussing its subject carried full-levels debt, so placing would deepen debt instead of paying it. Measured on the date, that premise no longer held — ll113 (the spirit willing, the flesh weak) carries all five bands, and its CUT THE SUPPLY LINE movement already teaches intake decided in advance from Romans 13:14 with James 1:14, which is the same discipline Job bound on one faculty with its reason in the same breath. Placed there in all five registers, in each register\'s own voice, and the floor raised from 1 to 2 so the placement cannot regress quietly.',
+    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. DISCHARGED 2026-10-19 into ll92 (Yahweh Standardized Love), which carries no full-levels debt: in all four bands and the lesson it now follows Matthew 5:28, where Jesus counts the look, as the discipline that answers it at the eye.',
   },
   {
     ref: 'Luke 4:19',

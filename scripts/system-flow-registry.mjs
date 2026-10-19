@@ -646,6 +646,12 @@ const NODES = [
     reads: [{ res: 'device:family-key', file: 'app/src/components/Cameras.jsx', token: 'bridgeToken' }, { res: 'http:cams', token: '/cams' }],
     seeds: [],
   }),
+  app('app/src/lib/research.js', {
+    id: 'research', name: 'Research (Vane: an answer with its sources)',
+    purpose: 'Asks one question of the research road on the NAS: Vane searches the web through our own SearxNG, answers on our own model, and returns the sources, marked unverified (DR-1101; the first tool DR-1099 brought home).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/ResearchTry.jsx', token: 'bridgeToken' }, { res: 'http:research', token: '/research' }],
+    seeds: [],
+  }),
   app('app/src/lib/clip-queue.js', {
     id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
     purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
@@ -1133,6 +1139,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
     writes: [{ res: 'gh:incident', token: 'camera-incident' }], seeds: ['ops-surface'],
   }),
+  wf('research-health.yml', {
+    id: 'research-health', name: 'Research road witness (DR-1101)', purpose: 'Once a day and on dispatch: over the tailnet, reads the research forwarder’s /health and asks ONE question through /ask with the family key; passes only when an answer and an http(s) source come back, still marked unverified.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
+    writes: [{ res: 'gh:incident', token: 'research-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
@@ -1533,6 +1544,10 @@ const NODES = [
     id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
   }),
+  rider('service:research', 'infra/nas-research/research_forwarder.py', {
+    id: 'research-road', name: 'Research road (Vane behind the locked door)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }], writes: [{ res: 'http:research', token: '/research' }], seeds: ['research'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1815,6 +1830,7 @@ const RESOURCES = {
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
+  'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

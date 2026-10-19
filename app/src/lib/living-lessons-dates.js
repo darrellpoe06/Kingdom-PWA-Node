@@ -320,22 +320,25 @@ export const LIVING_LESSONS_ADDED = {
   // L252 (DR-1100): Darrell's fifty-three messages of 2026-10-18, sent while
   // it was being built, carried in one lesson the same session.
   'll252-this-life-is-the-curriculum-made-to-be-his-temple': '2026-10-18',
-  // L253 AND L254 CARRY 2026-10-18, NOT THE DAY THEY WERE SPOKEN, AND THIS IS
+  // L253 (DR-1102): Darrell's one message of 2026-10-18 on benefiters and
+  // underminers of the eternal kingdom, carried the same session.
+  'll253-benefiters-or-underminers-of-the-eternal-kingdom': '2026-10-18',
+  // L254 AND L255 CARRY 2026-10-18, NOT THE DAY THEY WERE SPOKEN, AND THIS IS
   // THE RULE AT THE HEAD OF THIS FILE RATHER THAN AN EXCEPTION TO IT. The day
   // here is "the day the commit that FIRST carried the lesson's id landed",
-  // never the day a teaching was spoken — the lesson's own prose and its
-  // decision record hold that. Both of these were spoken and built on
-  // 2026-10-17 as ll251 and ll252; both ids were taken out from under them
-  // while their branch sat under a `hold` (main's #2243 took 251, #2251 took
-  // 252), so the ids `ll253-` and `ll254-` first exist in commits of
-  // 2026-10-18.
+  // never the day a teaching was spoken - the lesson's own prose and its
+  // decision record hold that.
   //
-  // It also keeps the promise the app makes to a reader. Main's ll252 landed
-  // 2026-10-18; dating these two 2026-10-17 would put a newer lesson BELOW an
-  // older one, and "By number, oldest first" — offered as ONE order, not two
-  // (DR-0686) — would be false at the end of the list. The same reasoning
-  // dated L79 by its slot day: keep number order and date order the same list.
-  // Nothing about when Darrell spoke is changed or lost by this.
-  'll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-18',
-  'll254-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-18',
+  // These two have now been renumbered four and three times, every move forced
+  // by a number taken out from under them while their branch sat under a
+  // `hold`: built as ll251/ll252 on 2026-10-17, moved to 253/254 when main's
+  // #2243 took 251 and #2251 took 252, and moved again to 254/255 when #2252
+  // took 253 for Benefiters or Underminers. So the ids `ll254-` and `ll255-`
+  // first exist in a commit of 2026-10-19 - but they are dated 2026-10-18
+  // deliberately, with main's ll253 above them, because "By number, oldest
+  // first" is offered as ONE order (DR-0686) and a 10-19 date here would read
+  // as newer than lessons that were built after these two were written. The
+  // spoken day, 2026-10-17, is carried in each lesson's prose and its record.
+  'll254-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-18',
+  'll255-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-18',
 };

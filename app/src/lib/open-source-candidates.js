@@ -87,7 +87,7 @@ export const OPEN_SOURCE_CANDIDATES = [
       'The single image adds passwordless sudo for its search user; use the slim image with a separate SearxNG instead.',
       'No test suite in the repo.',
     ],
-    nextStep: 'Build the NAS service: Vane slim plus SearxNG, loopback only, a /research forwarder behind the family key, and a witness that asks one question and checks a source URL comes back.',
+    nextStep: 'Built (DR-1101): Vane slim plus our own SearxNG on loopback, the /research forwarder behind the family key, and research-health.yml, which asks one question and checks a source URL comes back. It starts on the NAS when services-sync runs it and the tower’s qwen and nomic-embed-text models answer; try it below.',
     reReview: '2026-10-25',
     gapRef: null,
     drRef: 'DR-1099',

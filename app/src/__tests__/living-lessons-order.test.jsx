@@ -125,16 +125,20 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land. The highest
-    // number is L254 (DR-1094, all things work together), and it carries
-    // 2026-10-18 — the day its id landed, not the day Darrell spoke it
-    // (2026-10-17). It and L253 were built as 251 and 252 and renumbered as
-    // main took those numbers while this branch was held; dating them by the
-    // day their ids landed is what keeps THIS check true, so "By number,
-    // oldest first" stays one order and not two. (Main's L252, This Life Is
-    // the Curriculum, also carries 2026-10-18; L251 and L248-L250 hold
-    // 2026-10-17 and 2026-10-16 behind them.)
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-18'); // L254 (DR-1094)
+    // The newest lesson's day, kept current as lessons land. Main's own
+    // history behind it: L245-L247 (DR-1034-1036) hold 2026-10-15, L248
+    // (DR-1074, "His ways are higher, so He gives us the bread") 2026-10-16,
+    // L251 (DR-1096, "That Rock was Christ") 2026-10-17, and L252 (DR-1100,
+    // "This Life Is the Curriculum") and L253 (DR-1102, "Benefiters or
+    // Underminers of the Eternal Kingdom") both 2026-10-18.
+    //
+    // The highest number is now L255 (all things work together), and it also
+    // carries 2026-10-18 - the day its id landed, not the day Darrell spoke it
+    // (2026-10-17). It and L254 were built as 251 and 252 and renumbered three
+    // more times as main took each number from under them while this branch
+    // was held. Dating them by the day their ids landed is what keeps THIS
+    // check true, so "By number, oldest first" stays one order and not two.
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-18'); // L255
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

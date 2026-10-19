@@ -1,0 +1,336 @@
+{
+ "source": "https://raw.githubusercontent.com/seven1m/open-bibles/master/eng-kjv.osis.xml",
+ "sourceSha256": "eeeae647fc28360ce47f9c0d5cc3b397b7fdd9913fe53dc9f44eb6deee50e253",
+ "books": {
+  "Genesis": {
+   "jesus": 0,
+   "father": 129,
+   "spirit": 0
+  },
+  "Exodus": {
+   "jesus": 0,
+   "father": 365,
+   "spirit": 0
+  },
+  "Leviticus": {
+   "jesus": 0,
+   "father": 523,
+   "spirit": 0
+  },
+  "Numbers": {
+   "jesus": 0,
+   "father": 328,
+   "spirit": 0
+  },
+  "Deuteronomy": {
+   "jesus": 0,
+   "father": 54,
+   "spirit": 0
+  },
+  "Joshua": {
+   "jesus": 0,
+   "father": 29,
+   "spirit": 0
+  },
+  "Judges": {
+   "jesus": 0,
+   "father": 21,
+   "spirit": 0
+  },
+  "Ruth": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "1Samuel": {
+   "jesus": 0,
+   "father": 22,
+   "spirit": 0
+  },
+  "2Samuel": {
+   "jesus": 0,
+   "father": 16,
+   "spirit": 0
+  },
+  "1Kings": {
+   "jesus": 0,
+   "father": 35,
+   "spirit": 0
+  },
+  "2Kings": {
+   "jesus": 0,
+   "father": 34,
+   "spirit": 0
+  },
+  "1Chronicles": {
+   "jesus": 0,
+   "father": 16,
+   "spirit": 0
+  },
+  "2Chronicles": {
+   "jesus": 0,
+   "father": 25,
+   "spirit": 0
+  },
+  "Ezra": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Nehemiah": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Esther": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Job": {
+   "jesus": 0,
+   "father": 19,
+   "spirit": 0
+  },
+  "Psalms": {
+   "jesus": 11,
+   "father": 94,
+   "spirit": 5
+  },
+  "Proverbs": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Ecclesiastes": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "SongofSolomon": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Isaiah": {
+   "jesus": 4,
+   "father": 349,
+   "spirit": 0
+  },
+  "Jeremiah": {
+   "jesus": 0,
+   "father": 650,
+   "spirit": 0
+  },
+  "Lamentations": {
+   "jesus": 0,
+   "father": 1,
+   "spirit": 0
+  },
+  "Ezekiel": {
+   "jesus": 0,
+   "father": 514,
+   "spirit": 0
+  },
+  "Daniel": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Hosea": {
+   "jesus": 0,
+   "father": 22,
+   "spirit": 0
+  },
+  "Joel": {
+   "jesus": 0,
+   "father": 7,
+   "spirit": 0
+  },
+  "Amos": {
+   "jesus": 0,
+   "father": 72,
+   "spirit": 0
+  },
+  "Obadiah": {
+   "jesus": 0,
+   "father": 8,
+   "spirit": 0
+  },
+  "Jonah": {
+   "jesus": 0,
+   "father": 7,
+   "spirit": 0
+  },
+  "Micah": {
+   "jesus": 0,
+   "father": 13,
+   "spirit": 0
+  },
+  "Nahum": {
+   "jesus": 0,
+   "father": 8,
+   "spirit": 0
+  },
+  "Habakkuk": {
+   "jesus": 0,
+   "father": 1,
+   "spirit": 0
+  },
+  "Zephaniah": {
+   "jesus": 0,
+   "father": 10,
+   "spirit": 0
+  },
+  "Haggai": {
+   "jesus": 0,
+   "father": 18,
+   "spirit": 0
+  },
+  "Zechariah": {
+   "jesus": 0,
+   "father": 60,
+   "spirit": 0
+  },
+  "Malachi": {
+   "jesus": 0,
+   "father": 40,
+   "spirit": 0
+  },
+  "Matthew": {
+   "jesus": 648,
+   "father": 2,
+   "spirit": 0
+  },
+  "Mark": {
+   "jesus": 294,
+   "father": 2,
+   "spirit": 0
+  },
+  "Luke": {
+   "jesus": 602,
+   "father": 2,
+   "spirit": 0
+  },
+  "John": {
+   "jesus": 437,
+   "father": 1,
+   "spirit": 0
+  },
+  "Acts": {
+   "jesus": 31,
+   "father": 6,
+   "spirit": 5
+  },
+  "Romans": {
+   "jesus": 0,
+   "father": 2,
+   "spirit": 0
+  },
+  "1Corinthians": {
+   "jesus": 2,
+   "father": 1,
+   "spirit": 0
+  },
+  "2Corinthians": {
+   "jesus": 1,
+   "father": 3,
+   "spirit": 0
+  },
+  "Galatians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Ephesians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Philippians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Colossians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "1Thessalonians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "2Thessalonians": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "1Timothy": {
+   "jesus": 1,
+   "father": 0,
+   "spirit": 0
+  },
+  "2Timothy": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Titus": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Philemon": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Hebrews": {
+   "jesus": 0,
+   "father": 12,
+   "spirit": 5
+  },
+  "James": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "1Peter": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "2Peter": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "1John": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "2John": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "3John": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Jude": {
+   "jesus": 0,
+   "father": 0,
+   "spirit": 0
+  },
+  "Revelation": {
+   "jesus": 65,
+   "father": 3,
+   "spirit": 0
+  }
+ }
+}

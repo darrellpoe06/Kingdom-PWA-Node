@@ -1,0 +1,20 @@
+# SearxNG settings for the research road (DR-1101), seeded ONCE by install.sh
+# into /volume1/docker/research/searxng/settings.yml and never overwritten.
+# The installer replaces @SECRET@ with a fresh random key on that first seed.
+use_default_settings: true
+
+general:
+  instance_name: "poetech-research"
+
+search:
+  # Vane asks /search?format=json; html stays for a person debugging on the box.
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "@SECRET@"
+  # Only Vane calls this, from 127.0.0.1; the limiter needs a valkey we do
+  # not run, and there is no public traffic for it to limit.
+  limiter: false
+  image_proxy: false

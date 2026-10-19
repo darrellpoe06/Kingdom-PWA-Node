@@ -3,8 +3,8 @@
 // scripture-voices — the red-letter "who is speaking" color code (Darrell
 // 2026-07-04). The load-bearing test is HONESTY (DR-0076): every attributed quote
 // must exist VERBATIM in the shipped KJV verse — we never put words in a speaker's
-// mouth. Also pins the color theology: Jesus is red (the Blood, DR-0099) and
-// nothing else in the voice palette draws in red.
+// mouth. Also pins the color theology: the Godhead is red (the Blood, DR-0099;
+// all of Yahweh's voices, DR-1103) and nothing else in the voice palette draws in red.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -34,7 +34,7 @@ async function verseText(ref) {
   return (verses.find((v) => v.v === p.v1) || {}).text || '';
 }
 
-describe('the voices palette is well-formed + red is reserved for the Son', () => {
+describe('the voices palette is well-formed + red is reserved for the Godhead', () => {
   it('each voice has a label, meaning, swatch, and visible css', () => {
     const seen = new Set();
     for (const v of VOICES) {
@@ -47,14 +47,15 @@ describe('the voices palette is well-formed + red is reserved for the Son', () =
       expect(v.css.color, `${v.key} color`).toBeTruthy();
     }
   });
-  it('only Jesus draws in red (#B01E1E) — the Blood / the Son (DR-0099)', () => {
+  it('only the Godhead draws in red (#B01E1E) — the Father, the Son, the Holy Spirit (DR-0099, DR-1103)', () => {
     const RED = '#b01e1e';
     for (const v of VOICES) {
       const red = (v.swatch || '').toLowerCase() === RED
         || Object.values(v.css).some((x) => typeof x === 'string' && x.toLowerCase() === RED);
-      if (red) expect(v.key, `${v.key} is red but is not Jesus`).toBe('jesus');
+      if (red) expect(['jesus', 'father', 'spirit'], `${v.key} is red but is not the Godhead`).toContain(v.key);
     }
-    expect(cssForVoice('jesus').color.toLowerCase()).toBe('#b01e1e');   // red-letter
+    // all of Yahweh's voices are red — one God, one color
+    for (const k of ['jesus', 'father', 'spirit']) expect(cssForVoice(k).color.toLowerCase(), k).toBe(RED);
     expect(cssForVoice('nobody')).toEqual({});
   });
   it('the adversary is dishonored — a cold color, set apart by italic too', () => {

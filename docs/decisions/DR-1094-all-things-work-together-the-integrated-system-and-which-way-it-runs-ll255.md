@@ -1,13 +1,13 @@
-# DR-1094: All things work together — the integrated system, and which way it runs (ll254)
+# DR-1094: All things work together — the integrated system, and which way it runs (ll255)
 
 **Date:** 2026-10-17
 **Status:** accepted
 **Tier:** A (additive curriculum: one new Living Lessons module, dated, with its own pinned gate)
 **Type:** curriculum
 **Area:**
-- `app/src/lib/living-lessons-class.js` (`ll254-all-things-work-together-the-integrated-system-and-which-way-it-runs`, appended after ll250)
+- `app/src/lib/living-lessons-class.js` (`ll255-all-things-work-together-the-integrated-system-and-which-way-it-runs`, appended after ll250)
 - `app/src/lib/living-lessons-dates.js` (ll252's line; the day it was spoken)
-- `app/src/__tests__/living-lessons-ll254-all-things-work-together.test.js` (its gate, 114 cases)
+- `app/src/__tests__/living-lessons-ll255-all-things-work-together.test.js` (its gate, 114 cases)
 - `app/src/__tests__/living-lessons-order.test.jsx` (the newest-lesson day pin, which that gate's own comment says is kept current as lessons land: 2026-10-16 → 2026-10-17)
 
 **Grounds (his words, verbatim, in the order he spoke them).** Darrell, 2026-10-17, spoken into the house:
@@ -58,11 +58,11 @@ The congregation gets a lesson that answers the question his sentence raises: *h
 
 ## Decision
 
-Ship `ll254-all-things-work-together-the-integrated-system-and-which-way-it-runs` as a Living Lesson dated 2026-10-17, the day it was spoken, with its own pinned gate. His sentence and his sharpening are quoted in the adult lesson and in this record. The ten movements run in the same order in all five places a reader reads, and the two halves of his distinction travel together in every one of them.
+Ship `ll255-all-things-work-together-the-integrated-system-and-which-way-it-runs` as a Living Lesson dated 2026-10-17, the day it was spoken, with its own pinned gate. His sentence and his sharpening are quoted in the adult lesson and in this record. The ten movements run in the same order in all five places a reader reads, and the two halves of his distinction travel together in every one of them.
 
 ## Verification
 
-- **114 cases green** in `app/src/__tests__/living-lessons-ll254-all-things-work-together.test.js`; `npm run lint` exit 0.
+- **114 cases green** in `app/src/__tests__/living-lessons-ll255-all-things-work-together.test.js`; `npm run lint` exit 0.
 - `living-lessons-order.test.jsx` green (19), including the date-order invariant and the refreshed newest-lesson pin.
 - **PROVEN TO CATCH (DR-0076 §3), four live-file mutations**, each anchored to text asserted present exactly once first (an anchor that is not found did not mutate and proves nothing), each restored byte-identical and verified with `cmp`, and the suite re-run green after each:
   1. **one word altered inside a quoted verse** — 1 Corinthians 12:26 "suffer" → "suffers" in the senior band → *every referenced span is verbatim in the verse it cites* failed, naming the path and the reference. 1 failed / 113 passed.
