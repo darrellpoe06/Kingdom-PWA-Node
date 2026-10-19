@@ -25,7 +25,7 @@
     "verify:gates": "node ../scripts/module-boundary-guard.mjs && node ../scripts/workflow-list-order-guard.mjs && node ../scripts/monolith-budget-guard.mjs && node ../scripts/interconnect-guard.mjs && node ../scripts/source-adapter-guard.mjs && node ../scripts/business-systems-guard.mjs && node ../scripts/infra-transport-guard.mjs && node ../scripts/his-hand-guard.mjs && node ../scripts/lessons-gate-coverage.mjs && node ../scripts/rls-isolation-matrix-guard.mjs && node ../scripts/migration-replay-order-guard.mjs && node ../scripts/replay-completeness-guard.mjs && node ../scripts/migration-return-type-guard.mjs && node ../scripts/no-prompt-guard.mjs && node ../scripts/unknown-is-not-a-no-guard.mjs && node ../scripts/stamp-carries-its-year-guard.mjs && node ../scripts/smoke-sql-language-guard.mjs && node ../scripts/surface-hollow-guard.mjs && node ../scripts/decision-citation-guard.mjs && node ../scripts/constraint-allow-list-guard.mjs && node ../scripts/inline-constraint-replay-guard.mjs && node ../scripts/newest-definition-replay-guard.mjs && node ../scripts/measurement-carries-no-identity-guard.mjs && node ../scripts/migration-prose-guard.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.3",
+    "@supabase/supabase-js": "^2.118.0",
     "libheif-js": "^1.23.5",
     "libsodium-wrappers": "^0.8.4",
     "node-forge": "^1.4.0",
@@ -50,7 +50,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^25.0.1",
-    "postcss": "^8.5.29",
+    "postcss": "^8.5.30",
     "tailwindcss": "^3.4.14",
     "vite": "^5.4.10",
     "vitest": "^2.1.5"
