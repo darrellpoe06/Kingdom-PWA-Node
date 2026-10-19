@@ -168,7 +168,7 @@ import {
   surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
-import { useInstanceRole } from './lib/instance-role.js';
+import { useInstanceRole, governsHere } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
 import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME } from './lib/theme-css.js';
@@ -1249,8 +1249,9 @@ export default function PoeFinancialSystem() {
   // any other view (deep-links included) steers back to the workspace.
   const instanceRoleState = useInstanceRole();
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
+  const isGov = governsHere({ signedIn: !!authSession, reviewerMode, allowlisted: isFamilyMember, role: instanceRoleState.role });  // the ROLE governs, not the address (DR-1106; lib/family-standing.js)
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
-  const navTabs = navItems({ isAssistantAcct, isFamilyMember, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
+  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
   const { homeView } = useHomePrefs();
   const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); } };
   const showSideNav = !churchDoorOnly;
@@ -4417,7 +4418,6 @@ ${THEME_CSS}
           const submitClassInterest = authSession
             ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${CLASS_INTEREST_TAG} ${(name || 'A parishioner').trim()} wants to join the youth A.I. class.` })
             : null;
-          const isGov = !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email);
           const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
 
           // The Broadcast course descriptor (second course in the Learn tab). The
@@ -4673,7 +4673,7 @@ ${THEME_CSS}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
-              station={{ signedIn: !!authSession, isGovernor: !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email), voice: { addNote, patchNote, sendToPoeTech: sendNoteToPoeTech, addPrayerRequest, addChurchVoice, addIncident, addInquiry }, governance: { discussions: data.discussions || [], concerns: data.concerns || [] }, onNavigate: (v, sub) => { if (!v) return; setView(v); if (v === 'church' && sub) setChurchView(sub); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* no scroll */ } } }}
+              station={{ signedIn: !!authSession, isGovernor: isGov, voice: { addNote, patchNote, sendToPoeTech: sendNoteToPoeTech, addPrayerRequest, addChurchVoice, addIncident, addInquiry }, governance: { discussions: data.discussions || [], concerns: data.concerns || [] }, onNavigate: (v, sub) => { if (!v) return; setView(v); if (v === 'church' && sub) setChurchView(sub); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* no scroll */ } } }}
             />
           </SectionBoundary>
         )}
@@ -4796,7 +4796,7 @@ ${THEME_CSS}
             </div>
           ))}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <SectionBoundary name="Projects"><ProjectsWrapper incidents={data.incidents || []} projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={derivedDebts} demoRowIds={authSession && !isAnyDemoMode ? DEMO_ONLY_IDS : null} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+          ? <SectionBoundary name="Projects"><ProjectsWrapper incidents={data.incidents || []} projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={derivedDebts} demoRowIds={authSession && !isAnyDemoMode ? DEMO_ONLY_IDS : null} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={isGov}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
@@ -4835,7 +4835,7 @@ ${THEME_CSS}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} authCreatedAt={authSession?.user?.created_at || null} familyFullAccess={!reviewerMode && !!personaOf(authSession?.user?.email)} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'center' && (
           <CommandServeCenter
-            isGovernor={isFamilyMember}
+            isGovernor={isGov}
             persona={personaOf(authSession?.user?.email)}
             email={authSession?.user?.email || null}
             onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
@@ -4863,7 +4863,7 @@ ${THEME_CSS}
             this surface. */}
         {view === 'relationships' && (
           <SectionBoundary name="Relationships">
-            <Relationships isGovernor={isFamilyMember || tierMeets(data.userTier, 'business')} currentUserId={authSession?.user?.id || null} />
+            <Relationships isGovernor={isGov || tierMeets(data.userTier, 'business')} currentUserId={authSession?.user?.id || null} />
           </SectionBoundary>
         )}
 
@@ -4927,7 +4927,7 @@ ${THEME_CSS}
             error degrades just this surface. */}
         {view === 'cohorts' && (
           <SectionBoundary name="Academy">
-            <CohortPrograms isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+            <CohortPrograms isGovernor={!reviewerMode && (isGov || tierMeets(data.userTier, 'business'))} />
           </SectionBoundary>
         )}
 
@@ -4939,7 +4939,7 @@ ${THEME_CSS}
         {view === 'tlc-assistant' && ((isFamilyMember || tierMeets(data.userTier, 'business') || isAssistantAcct)
           ? (
             <SectionBoundary name="Assistant">
-              <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+              <TlcAssistant isGovernor={!reviewerMode && (isGov || tierMeets(data.userTier, 'business'))} />
             </SectionBoundary>
           )
           : (
@@ -4968,7 +4968,7 @@ ${THEME_CSS}
                 <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
               )}
               {tlcSub === 'assistant' && (
-                <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+                <TlcAssistant isGovernor={!reviewerMode && (isGov || tierMeets(data.userTier, 'business'))} />
               )}
               {tlcSub === 'onboard' && <TlcOnboarding />}
             </SectionBoundary>
@@ -4986,7 +4986,7 @@ ${THEME_CSS}
             ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
-            isGovernor={!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))}
+            isGovernor={!reviewerMode && (isGov || (!isPublicHost() && !authSession))}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}

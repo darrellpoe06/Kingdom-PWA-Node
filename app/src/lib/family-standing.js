@@ -128,6 +128,31 @@ export function standingInSpace({ allowlisted = false, role = null } = {}) {
 }
 
 /**
+ * THE SHELL'S ONE AUTHORITY LINE. Every Governor affordance in
+ * poe-financial-mvp-v28.jsx reads this and nothing else, so the nav, the Admin
+ * console, the governance station, the Relationships capability panel and the
+ * Projects controls cannot disagree about who governs.
+ *
+ * It composes the three things the shell already knows:
+ *   signedIn      there is a session (an anonymous visitor governs nothing)
+ *   reviewerMode  the Governor is previewing the app as a visitor (DR-0104), so
+ *                 BOTH the address and the role are dropped — otherwise his own
+ *                 membership row would re-promote him inside his own preview
+ *   allowlisted   what isFamilyEmail says: MEMBERSHIP, never authority (DR-1106)
+ *   role          the database role from my_default_instance_role (0130), which
+ *                 serves every role and not only admins — that is what lets a
+ *                 son read his own standing instead of falling back to the list
+ *
+ * Why it lives here and not in the shell: the shell is frozen (monolith-budget)
+ * and, more to the point, this is the rule — it belongs beside the model it
+ * composes, where a reader looking for "who governs?" will actually find it.
+ */
+export function governsHere({ signedIn = false, reviewerMode = false, allowlisted = false, role = null } = {}) {
+  if (!signedIn || reviewerMode) return false;
+  return standingInSpace({ allowlisted, role }).isGovernor;
+}
+
+/**
  * The same question across every space a person belongs to, which is how a
  * family actually works: witness at home, helper in the business.
  *
