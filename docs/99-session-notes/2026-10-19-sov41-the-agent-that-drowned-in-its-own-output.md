@@ -2,7 +2,7 @@
 
 **Module id:** `sov41-the-agent-that-drowned-in-its-own-output`
 **Course:** Sovereign A.I. (`app/src/lib/sovereign-ai-class.js`), week 41
-**Decision record:** DR-1110
+**Decision record:** DR-1114
 **Captured by:** the Gmail-lesson-intake Way (DR-0312), hourly tick at 16:11 UTC
 
 ## Where the word came from

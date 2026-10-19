@@ -1,4 +1,4 @@
-# DR-1110: The agent that drowned in its own output — sov41, and the pointer Yahweh commanded at the Jordan
+# DR-1114: The agent that drowned in its own output — sov41, and the pointer Yahweh commanded at the Jordan
 
 **Date:** 2026-10-19
 **Status:** accepted

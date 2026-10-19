@@ -1,7 +1,7 @@
 // =============================================================================
 // sov41 — the agent that drowned in its own output: a bigger window is not a
 // sounder mind, the pointer that keeps what matters, and the clear "It is
-// finished" (DR-1110)
+// finished" (DR-1114)
 // =============================================================================
 // Week 41 of Sovereign A.I., captured 2026-10-19 by the Gmail-lesson-intake Way
 // from The Neuron of that morning, which Darrell forwarded from
