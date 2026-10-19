@@ -52,6 +52,12 @@
       "description": "The SOVEREIGN Supabase stack (DR-0306). Born 2026-08-14: the hosted free tier restricted the project for exceeding its egress quota and locked all 23 users out of all four apps for 86 hours; Darrell: 'I'm not paying them... other options!!!!!!!?' -> 'start the NAS supabase stack.' Self-hosted Supabase serves the IDENTICAL API, so cutover is a URL + anon key rather than a rewrite -- measured: 196 .from(), 68 .auth, 64 .rpc(), 3 .storage, 2 .channel, all unchanged, and RLS stays enforced by Postgres so DR-0060's guard carries over. Eight containers on their own supabase-net, every port bound 127.0.0.1 ONLY (8800 kong / 5433 postgres / 8801 studio -- all clear of the ports measured live on this NAS), data under /volume1/docker/supabase. NOTHING POINTS AT IT YET, deliberately: standing it up proves it works and costs nothing, while the cutover stays a separate deliberate step so a half-proven stack can never take the family's app down. Secrets minted ONCE by the stdlib-only mint_keys.py (root cannot import dpoe's site-packages on this box) and never re-minted over a live stack -- re-minting JWT_SECRET signs out every user at once. The installer PROVES rather than claims: it polls the gateway's /auth/v1/health and exits non-zero with `compose ps` if it never answers 200. Selftest (12 checks, 2 proven-to-catch) gates merge in ci.yml. Runbook: infra/nas-supabase/README.md."
     },
     {
+      "name": "db-backup",
+      "install": "infra/nas-db-backup/install.sh",
+      "enabled": true,
+      "description": "The sovereign database's own backup (DR-1113). infra/nas-supabase/README.md said from the start that on the NAS backups are ours and not optional, and none was ever built; the 2026-10-19 system ledger named it the largest risk to reversibility. Rides the ALREADY-ARMED services-sync clock (transcript-trickle pattern): costs milliseconds unless the local hour is in BACKUP_HOURS (2-4) and the last success is over 20 h old, then launches db_backup.sh detached under its own wall clock. One verified pg_dump of the whole database (auth included) per night, sha256 beside it, retention only after a verified new dump, a weekly restore drill into a scratch database, and status.json for nas-health to judge."
+    },
+    {
       "name": "mcp",
       "install": "infra/nas-mcp/install.sh",
       "enabled": true,

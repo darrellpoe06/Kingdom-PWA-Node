@@ -153,7 +153,8 @@ The ten dimensions (`COMPREHENSIVE-REVIEW-STANDARD.md`) review **a surface and i
 | 11 | Cameras 18 of 33 | **CARRIED** by DR-1097's live reads (another session, eleven reads so far, rising) |
 | 12 | Documents copy-down (task #3) | Blocked on Darrell placing the hosted key from ConnectBot |
 | 13 | roads Worker token | Blocked on Darrell's Cloudflare token permission edit |
-| 14 | **No backup of the sovereign database** | **Next build**: a braked nightly dump on the NAS, with retention, a witness and a restore proven on a copy |
+| 14 | **No backup of the sovereign database** | **DONE in code** (DR-1113): nightly verified dump, weekly restore drill, judged by nas-health. **Live proof**: the first night's nas-health line. Storage file bytes still need Hyper Backup (carried, `re-review: 2026-10-21`) |
+| 17 | The PoeTech app's header shared the Love Corner (Darrell's screenshot) | **DONE** (DR-1112): each app shares itself by `currentDoor`, never by the tab |
 | 15 | No Cloudflare rollback; revert-button branches ignored by the lane | Open: a dispatch-a-past-deployment rollback workflow, and the lane accepting `revert-` branches |
 | 16 | No outcome measure for G1 (quality of life) | Open: the incentive gap in §9 |
 
@@ -209,7 +210,7 @@ Each chain is listed hop by hop, and a chain is only as strong as its weakest ho
 - **Counts:** 73 workflow files, 23 live schedules and 17 CI gate commands.
 - **Brakes:**
   - Schedules without a timeout: `deploy-freshness`, `daily-review` and `corpus-reconcile`.
-  - Without a concurrency lock: `nas-health`.
+  - Without a concurrency lock: `nas-health` (**given one in DR-1113**).
   - With no kill-switch variable:
     - `keep-prs-current` (it has a PR budget and honours `hold`);
     - `camera-health`, `lesson-mail-watch` and `nas-health`;
