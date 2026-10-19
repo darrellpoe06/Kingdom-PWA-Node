@@ -23,6 +23,12 @@ on:
 permissions:
   contents: read
 
+# One look at the NAS at a time (the system ledger found this schedule had no
+# lock, 2026-10-19, DR-1111): a slow ssh must not stack a second on top of it.
+concurrency:
+  group: nas-health
+  cancel-in-progress: false
+
 jobs:
   observe:
     runs-on: ubuntu-latest
@@ -647,5 +653,27 @@ jobs:
           ${SUDO} tail -40 "$LOOPS/events/cron-services-sync.log" 2>/dev/null \
             | grep -E "services-sync: (FAILED|[a-z0-9-]+ (exit|ok|skipped))|\[done\]|took [0-9]+" \
             | tail -14 || echo "   no per-rider lines in the last 40"
+          # THE DATABASE'S BACKUP (DR-1113). db_backup.sh writes one verdict per
+          # night to status.json; this reads it and JUDGES it, because a backup
+          # nobody checks is the hosted-Supabase assumption all over again.
+          echo "=== database backup (DR-1113) ==="
+          BK=/volume1/PoeTech/backups/db/status.json
+          if ${SUDO} test -f "$BK"; then
+            ${SUDO} cat "$BK"
+            ${SUDO} cat "$BK" | python3 -c '
+          import json, sys, datetime
+          s = json.load(sys.stdin)
+          at = datetime.datetime.strptime(s["at"], "%Y-%m-%dT%H:%M:%SZ")
+          age = (datetime.datetime.utcnow() - at).total_seconds() / 3600
+          if not s.get("ok"):
+              print("::error::the last database backup FAILED (%s): %s" % (s.get("drill"), s.get("error")))
+          elif age > 36:
+              print("::error::the newest database backup is %.0f hours old (a night was missed)" % age)
+          else:
+              print("database backup ok: %s, %.0f h old, %s archives kept, drill %s" % (s["file"], age, s["kept"], s["drill"]))
+          ' || echo "::error::status.json could not be read"
+          else
+            echo "::warning::no database backup has run yet (status.json absent)"
+          fi
           echo "=== END OF VERDICT ==="
           EOS

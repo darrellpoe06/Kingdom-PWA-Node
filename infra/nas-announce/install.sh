@@ -30,11 +30,20 @@ fi
 echo "== announce install: systemd unit =="
 TOKEN="$(cat "$TOKEN_FILE")"
 NEED_RELOAD=0
-if [ ! -f "$UNIT" ] || ! grep -q "ANNOUNCE_TOKEN=$TOKEN" "$UNIT" 2>/dev/null; then
-  sed -e "s|^Environment=ANNOUNCE_TOKEN=.*|Environment=ANNOUNCE_TOKEN=$TOKEN|" \
-      "$SRC/poetech-announce.service" > "$UNIT"
+# The unit is rewritten whenever the RENDERED unit differs from the installed
+# one, not only when the token changed (DR-1110). The old test looked at the
+# token line alone, so a corrected Environment line (NTFY_URL moved from
+# Docker's `ntfy:80`, which the host cannot resolve, to 127.0.0.1:8081) would
+# never have reached a NAS whose token was already in place.
+RENDERED="$(mktemp)"
+sed -e "s|^Environment=ANNOUNCE_TOKEN=.*|Environment=ANNOUNCE_TOKEN=$TOKEN|" \
+    "$SRC/poetech-announce.service" > "$RENDERED"
+if [ ! -f "$UNIT" ] || ! cmp -s "$RENDERED" "$UNIT"; then
+  cat "$RENDERED" > "$UNIT"
   NEED_RELOAD=1
+  echo "  unit installed (new, or its contents changed)"
 fi
+rm -f "$RENDERED"
 [ "$NEED_RELOAD" = "1" ] && systemctl daemon-reload
 systemctl enable poetech-announce >/dev/null 2>&1 || true
 

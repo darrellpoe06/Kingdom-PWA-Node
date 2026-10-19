@@ -1146,7 +1146,7 @@ const NODES = [
   }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
-    reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
+    reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }, { res: 'nas:db-backup', token: 'backups/db/status.json' }],
     writes: [], seeds: [],
   }),
   wf('nas-agent-arm.yml', {
@@ -1483,6 +1483,12 @@ const NODES = [
     reads: [{ res: 'nas:smtp', file: 'infra/nas-supabase/enable_email_smtp.sh', token: 'SMTP' }, { res: 'nas:storage', token: 'storage' }, { res: 'auth:users', file: 'infra/nas-supabase/reset_password.sh', token: 'auth.users' }],
     writes: [{ res: 'http:supabase', token: 'kong' }],
     seeds: ['app-client'],
+  }),
+  rider('service:db-backup', 'infra/nas-db-backup/db_backup.sh', {
+    id: 'db-backup', name: 'The database\u2019s own backup', purpose: 'One verified pg_dump of the whole sovereign database (sign-in accounts included) per night, a checksum beside it, retention only after a verified new copy, and a weekly restore drill; the README said from the start it is not optional for the family\u2019s data (DR-1113).',
+    reads: [{ res: 'http:supabase', token: 'pg_dump' }, { res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'db-backup' }],
+    writes: [{ res: 'nas:db-backup', token: 'status.json' }],
+    seeds: ['nas-health'],
   }),
   app('app/src/lib/supabase.js', {
     id: 'app-client', name: 'The app’s database client', purpose: 'Every screen reads and writes through it.',

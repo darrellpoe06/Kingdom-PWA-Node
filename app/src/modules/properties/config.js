@@ -13,6 +13,11 @@
 // can prove, not a number typed into a chat message.
 // =============================================================================
 
+/** The Poe Properties door's own address, the one a tenant shares or scans
+ *  (DR-0258 scope). Here, in the pure config, so the header's share control
+ *  can name it without importing the whole PropertiesDoor (DR-1112). */
+export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
+
 export const POE_PROPERTIES = Object.freeze({
   id: 'poe-properties',
   brand: Object.freeze({
