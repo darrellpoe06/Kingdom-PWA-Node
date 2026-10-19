@@ -17,8 +17,8 @@
 // =============================================================================
 
 // The three Persons, each borrowing its color from the voices palette so the
-// Godhead panel and the red-letter code speak one language: the Son wears red
-// (the Blood — DR-0099), the Father gold, the Spirit living-water teal.
+// Godhead panel and the red-letter code speak one language: all three wear red,
+// the Blood and the Godhead's own color (DR-0099, DR-1103); the names tell them apart.
 export const PERSONS = [
   { key: 'father', voice: 'father', label: 'The Father' },
   { key: 'son', voice: 'jesus', label: 'The Son — the Word' },

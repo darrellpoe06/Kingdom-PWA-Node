@@ -1,0 +1,241 @@
+# research-health -- the research road's own witness (DR-1101).
+#
+# DR-1099 put Vane first among the ten repos Darrell sent on 2026-10-18 and
+# named its proof: "a witness that asks one question and checks a source URL
+# comes back". This is that witness. It joins the tailnet, asks the forwarder
+# on the NAS for /health, then asks ONE question through POST /ask with the
+# family key -- the same door the app uses -- and passes only when an answer
+# AND at least one http(s) source come back. Read-only on the box; the key is
+# read on the NAS and never leaves it; the output is the judged fields only
+# (no secret travels through the log, so masking cannot alter what is judged).
+# A failing pass opens (or comments on) ONE rolling issue labelled
+# `incident` + `research-incident`, the downtime ledger the OpsBoard reads; the
+# next passing run closes it with the time it came back.
+#
+# Brakes: one question per run (the forwarder refuses a second at once), a
+# 10-minute job ceiling, one run at a time, and a daily schedule -- each run
+# spends a few seconds of the tower's GPU, so it is not run every half hour.
+name: research-health
+
+on:
+  schedule:
+    - cron: '41 13 * * *'
+  workflow_dispatch:
+    inputs:
+      ask:
+        description: 'Ask one question through /ask (off: /health only)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: research-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the NAS (read-only, judged fields only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ASK_IN: ${{ inputs.ask }}
+        run: |
+          umask 077
+          ASK="${ASK_IN:-true}"
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "ASK='$ASK' sh -s" <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          export TOK ASK
+          python3 - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          out = {"reachable": True, "at": int(time.time()), "asked": os.environ.get("ASK") == "true",
+                 "health_code": None, "health": None, "ask_code": None, "answer_chars": 0,
+                 "sources": 0, "first_source": None, "model": None, "verified": None, "error": None}
+          def call(method, path, body=None, auth=False, timeout=10):
+              req = urllib.request.Request("http://127.0.0.1:8797" + path, method=method,
+                                           data=json.dumps(body).encode() if body is not None else None)
+              if body is not None: req.add_header("Content-Type", "application/json")
+              if auth: req.add_header("Authorization", "Bearer " + os.environ.get("TOK", ""))
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      return r.status, json.loads(r.read().decode() or "{}")
+              except urllib.error.HTTPError as e:
+                  try: return e.code, json.loads(e.read().decode() or "{}")
+                  except Exception: return e.code, {}
+              except Exception as e:
+                  return None, {"error": str(e)[:200]}
+          code, h = call("GET", "/health")
+          out["health_code"] = code
+          out["health"] = {k: h.get(k) for k in ("ok", "chat", "embedding", "code", "reason")}
+          if out["asked"] and code == 200:
+              code, a = call("POST", "/ask", {"query": "Where were the Dead Sea Scrolls found, and when?", "mode": "speed"}, auth=True, timeout=200)
+              out["ask_code"] = code
+              srcs = [s for s in (a.get("sources") or []) if str(s.get("url", "")).startswith(("https://", "http://"))]
+              out.update(answer_chars=len(a.get("answer") or ""), sources=len(srcs),
+                         first_source=(srcs[0]["url"][:200] if srcs else None),
+                         model=a.get("model"), verified=a.get("verified"), error=a.get("error"))
+          print(json.dumps(out))
+          PY
+          EOS
+          cat /tmp/witness.json
+
+      - name: Judge and report
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          if not w.get("reachable"):
+              problems.append("the NAS did not answer over SSH")
+          elif w.get("health_code") != 200:
+              problems.append(f"/health answered {w.get('health_code')}: {(w.get('health') or {}).get('reason')}")
+          elif w.get("asked"):
+              if w.get("ask_code") != 200:
+                  problems.append(f"/ask answered {w.get('ask_code')}: {w.get('error')}")
+              else:
+                  if w.get("answer_chars", 0) < 20: problems.append("the answer came back empty")
+                  if w.get("sources", 0) < 1: problems.append("no http(s) source came back with the answer")
+                  if w.get("verified") is not False: problems.append("the answer stopped saying it is unverified")
+          verdict = "PASS" if not problems else "FAIL"
+          lines = [f"## research road: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          PY
+
+      # When the road is dark, say WHERE the time goes instead of only that it
+      # went (2026-10-19: two 504s in a row with health 200, models found). Each
+      # stage is timed on the NAS on its own -- the tower's model, our SearxNG,
+      # Vane's provider list, then Vane answering the same question with a longer
+      # budget -- and the last log lines of both containers are printed with
+      # anything key-shaped scrubbed. Runs only on a failed verdict.
+      - name: "Diagnose a dark road: time each stage on the NAS"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          DATA=/volume1/docker/research
+          OLLAMA="$(sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null || sudo -n sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null)"
+          export OLLAMA
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+          def call(method, url, body=None, timeout=10):
+              t = time.time()
+              req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body is not None else None)
+              if body is not None: req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      raw = r.read()
+                      return r.status, round(time.time() - t, 1), raw
+              except urllib.error.HTTPError as e:
+                  return e.code, round(time.time() - t, 1), e.read()[:400]
+              except Exception as e:
+                  return None, round(time.time() - t, 1), str(e)[:200].encode()
+          out = {"ollama": os.environ.get("OLLAMA") or None}
+          o = out["ollama"]
+          if o:
+              c, s, raw = call("GET", o + "/api/tags", timeout=10)
+              out["ollama_tags"] = {"code": c, "secs": s}
+              c, s, raw = call("POST", o + "/api/generate", {"model": "qwen2.5:14b-instruct-q4_K_M", "prompt": "Say OK.", "stream": False, "options": {"num_predict": 5}}, timeout=150)
+              d = {}
+              try: d = json.loads(raw)
+              except Exception: pass
+              out["ollama_generate"] = {"code": c, "secs": s, "load_secs": round((d.get("load_duration") or 0) / 1e9, 1), "reply": (d.get("response") or str(raw[:120]))[:60]}
+          c, s, raw = call("GET", "http://127.0.0.1:8798/search?q=Dead+Sea+Scrolls&format=json", timeout=40)
+          d = {}
+          try: d = json.loads(raw)
+          except Exception: pass
+          out["searxng"] = {"code": c, "secs": s, "results": len(d.get("results") or []), "unresponsive": d.get("unresponsive_engines"), "body": None if d else raw[:160].decode("utf8", "replace")}
+          c, s, raw = call("GET", "http://127.0.0.1:3017/api/providers", timeout=15)
+          prov = {}
+          try: prov = json.loads(raw)
+          except Exception: pass
+          out["vane_providers"] = {"code": c, "secs": s, "count": len(prov.get("providers") or [])}
+          p = next((x for x in (prov.get("providers") or []) if x.get("chatModels") and x.get("embeddingModels")), None)
+          if p:
+              chat = next((m["key"] for m in p["chatModels"] if m.get("key", "").startswith("qwen2.5")), p["chatModels"][0]["key"])
+              emb = next((m["key"] for m in p["embeddingModels"] if "nomic" in m.get("key", "")), p["embeddingModels"][0]["key"])
+              body = {"chatModel": {"providerId": p["id"], "key": chat}, "embeddingModel": {"providerId": p["id"], "key": emb}, "optimizationMode": "speed", "sources": ["web"], "query": "Where were the Dead Sea Scrolls found, and when?", "history": [], "stream": False}
+              c, s, raw = call("POST", "http://127.0.0.1:3017/api/search", body, timeout=280)
+              d = {}
+              try: d = json.loads(raw)
+              except Exception: pass
+              out["vane_search_direct"] = {"code": c, "secs": s, "answer_chars": len(d.get("message") or ""), "sources": len(d.get("sources") or []), "body": None if d else raw[:300].decode("utf8", "replace")}
+          print("DIAGNOSIS " + json.dumps(out, indent=1))
+          PY
+          D=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then D="$CAND"; break; fi
+            if sudo -n "$CAND" ps >/dev/null 2>&1; then D="sudo -n $CAND"; break; fi
+          done
+          for C in poetech-vane poetech-searxng; do
+            echo "---- last lines of $C ----"
+            [ -n "$D" ] && $D logs --tail 40 "$C" 2>&1 | cut -c1-300 || echo "(no docker this user can run)"
+          done
+          EOS
+      - name: "Ledger: a dark road is an incident; the next pass closes it"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'research-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The research road witness ledger (DR-1101)' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('Research road'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `The research road (DR-1101) failed its witness at ${now} ([run](${run})):\n${why}\n\n\`\`\`json\n${JSON.stringify(v.witness)}\n\`\`\``;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'Research road is dark (DR-1101)', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('research road: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `The research road answered again at ${now} ([run](${run})): an answer and a source came back.${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

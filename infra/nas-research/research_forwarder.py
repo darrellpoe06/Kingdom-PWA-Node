@@ -1,0 +1,518 @@
+#!/usr/bin/env python3
+# =============================================================================
+# research_forwarder -- the locked door in front of Vane (DR-1101)
+# =============================================================================
+# Darrell 2026-10-18: "Go get all these repos and integrate them into our
+# technology stacks..." and then "When should I expect those github
+# repositories to be operational and test ready for me to use them and see
+# their capabilities?" DR-1099 weighed ten tools and named Vane the first to
+# bring home: research that searches the web and returns its sources, on our
+# own SearxNG and our own model, with no vendor key. This is its door.
+#
+# WHY A DOOR AND NOT A PROXY. Vane has no login of any kind (its README lists
+# login as a future feature). So nothing of Vane is passed through: not its
+# pages, not its settings API, not its upload or chat routes. This forwarder
+# serves exactly two things, and every other path is 404:
+#   GET  /health, /research/health -> 200 only when Vane answers on loopback
+#        AND offers a usable chat model and embedding model; 503 with the
+#        reason otherwise. Open (says nothing worth guarding).
+#   POST /ask, /research/ask -> Authorization: Bearer <family token>.
+#        Body {"query": "...", "mode": "speed"|"balanced"|"quality",
+#              "sources": ["web"|"academic"|"discussions", ...]}.
+#        Returns {"answer", "sources": [{"title","url"}], "model", "verified":
+#        false, "note"}. 401 bad/missing bearer, 400 empty or bad shape, 413
+#        too long, 503 busy or Vane down, 504 slow.
+# (The Funnel mount /research is STRIPPED by tailscale, so the bare paths
+# arrive; the prefixed spellings are served too, for a proxy that does not.)
+#
+# NOT VERIFIED, AND SAYS SO (DR-0076). Vane's [n] citation marks are the model
+# following a prompt; nothing checks that a source supports its sentence. Every
+# answer leaves here marked "verified": false, and a research answer enters a
+# lesson only through the verification gates, never straight from this road.
+# Only http(s) source URLs are passed on, de-duplicated, at most SOURCES_MAX.
+#
+# Brakes (request-driven, not the timer class; a public door still has bounds):
+#   * MAX_INFLIGHT questions at once (one: the tower's GPU answers one at a
+#     time anyway); the next gets 503 immediately, never a queue.
+#   * MAX_QUERY_CHARS per question.
+#   * ASK_TIMEOUT seconds per answer; a hung model hangs nobody.
+#
+# Run:
+#   python3 research_forwarder.py --port 8797
+#   python3 research_forwarder.py --selftest    # offline, stdlib, no Vane needed
+# Installed + kept running by infra/nas-research/install.sh via services-sync.
+# =============================================================================
+import argparse
+import hashlib
+import hmac
+import json
+import os
+import socket
+import sys
+import threading
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+VANE_UPSTREAM_DEFAULT = "http://127.0.0.1:3017"
+# NEVER "*": this road carries a bearer. One origin is echoed, anything else
+# gets nothing (the voice-lite rule, measured on the Funnel 2026-10-09).
+CORS_ALLOWED_ORIGINS = ("https://poetech.us",)
+
+MAX_INFLIGHT = 1
+MAX_QUERY_CHARS = 500
+MAX_BODY_BYTES = 8192
+ASK_TIMEOUT = 180
+HEALTH_TIMEOUT = 6
+SOURCES_MAX = 12
+MODES = ("speed", "balanced", "quality")
+SOURCE_KINDS = ("web", "academic", "discussions")
+
+# The models DR-1099 named: qwen2.5:14b on the tower answers, nomic-embed-text
+# ranks. Preferred first; any qwen / any embedder is the fallback, so a renamed
+# tag does not take the road down.
+CHAT_PREFERRED = ("qwen2.5:14b",)
+CHAT_FALLBACK = ("qwen",)
+EMBED_PREFERRED = ("nomic-embed-text",)
+EMBED_FALLBACK = ("embed",)
+
+ASK_PATHS = {"/ask", "/research/ask"}
+HEALTH_PATHS = {"/health", "/research/health"}
+
+UNVERIFIED_NOTE = ("Sources are what the search returned; the answer's [n] marks are the "
+                   "model's, not checked. Read the source before relying on a sentence.")
+
+
+def code_sha():
+    try:
+        with open(os.path.abspath(__file__), "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:16]
+    except OSError:
+        return "unknown"
+
+
+def expected_token(token_file=None):
+    if os.environ.get("RESEARCH_BRIDGE_TOKEN"):
+        return os.environ["RESEARCH_BRIDGE_TOKEN"].strip()
+    try:
+        with open(token_file or TOKEN_FILE_DEFAULT, "r", encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
+def bearer_ok(header_value, expected):
+    if not expected or not header_value or not header_value.lower().startswith("bearer "):
+        return False
+    return hmac.compare_digest(header_value[7:].strip(), expected)
+
+
+def _pick(models, preferred, fallback):
+    keys = [m.get("key") for m in (models or []) if isinstance(m, dict) and m.get("key")]
+    for want in preferred:
+        for k in keys:
+            if k.startswith(want):
+                return k
+    for want in fallback:
+        for k in keys:
+            if want in k:
+                return k
+    return None
+
+
+def choose_models(providers_doc):
+    """From Vane's GET /api/providers, the provider + chat + embedding to ask with.
+
+    Returns {"providerId", "chat", "embedding"} or None, with the reason, when
+    no provider offers both. Vane gives its providers random ids on first start,
+    so they are looked up every time, never written down.
+    """
+    providers = (providers_doc or {}).get("providers") or []
+    for p in providers:
+        chat = _pick(p.get("chatModels"), CHAT_PREFERRED, CHAT_FALLBACK)
+        emb = _pick(p.get("embeddingModels"), EMBED_PREFERRED, EMBED_FALLBACK)
+        if p.get("id") and chat and emb:
+            return {"providerId": p["id"], "chat": chat, "embedding": emb}, None
+    if not providers:
+        return None, "Vane lists no model provider (OLLAMA_BASE_URL unset or unreachable at its start)"
+    return None, "no provider offers both a chat model and an embedding model"
+
+
+def clean_sources(raw):
+    """Only http(s) URLs, de-duplicated in order, at most SOURCES_MAX."""
+    out, seen = [], set()
+    for s in raw or []:
+        meta = (s or {}).get("metadata") or {}
+        url = str(meta.get("url") or "").strip()
+        if not (url.startswith("https://") or url.startswith("http://")) or url in seen:
+            continue
+        seen.add(url)
+        out.append({"title": str(meta.get("title") or url)[:300], "url": url[:2000]})
+        if len(out) >= SOURCES_MAX:
+            break
+    return out
+
+
+def parse_ask(body_bytes):
+    """Validate the question. Returns (request, None) or (None, (status, error))."""
+    try:
+        doc = json.loads(body_bytes.decode("utf-8") or "{}")
+    except (UnicodeDecodeError, ValueError):
+        return None, (400, "the body is not JSON")
+    if not isinstance(doc, dict):
+        return None, (400, "the body must be a JSON object")
+    query = doc.get("query")
+    if not isinstance(query, str) or not query.strip():
+        return None, (400, "query is empty")
+    query = query.strip()
+    if len(query) > MAX_QUERY_CHARS:
+        return None, (413, f"query is longer than {MAX_QUERY_CHARS} characters")
+    mode = doc.get("mode", "speed")
+    if mode not in MODES:
+        return None, (400, f"mode must be one of {', '.join(MODES)}")
+    sources = doc.get("sources", ["web"])
+    if (not isinstance(sources, list) or not sources
+            or any(s not in SOURCE_KINDS for s in sources)):
+        return None, (400, f"sources must be a list drawn from {', '.join(SOURCE_KINDS)}")
+    return {"query": query, "mode": mode, "sources": list(dict.fromkeys(sources))}, None
+
+
+class Vane:
+    """The upstream, on loopback. Every call has a ceiling."""
+
+    def __init__(self, base):
+        self.base = base.rstrip("/")
+
+    def _get(self, path, timeout):
+        with urllib.request.urlopen(self.base + path, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+    def providers(self):
+        return self._get("/api/providers", HEALTH_TIMEOUT)
+
+    def search(self, payload, timeout):
+        req = urllib.request.Request(
+            self.base + "/api/search",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+
+
+def health(vane):
+    try:
+        doc = vane.providers()
+    except (urllib.error.URLError, socket.timeout, OSError, ValueError) as e:
+        return 503, {"ok": False, "reason": f"Vane is not answering on loopback: {e}", "code": code_sha()}
+    chosen, why = choose_models(doc)
+    if not chosen:
+        return 503, {"ok": False, "reason": why, "code": code_sha()}
+    return 200, {"ok": True, "chat": chosen["chat"], "embedding": chosen["embedding"], "code": code_sha()}
+
+
+def make_handler(vane, token, ask_timeout=ASK_TIMEOUT):
+    inflight = threading.BoundedSemaphore(MAX_INFLIGHT)
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "poetech-research"
+        ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
+
+        def log_message(self, fmt, *args):  # a question is the family's business
+            sys.stderr.write("research: %s %s\n" % (self.command, self.path.split("?")[0]))
+
+        def _cors_origin(self):
+            o = self.headers.get("Origin")
+            return o if o in self.ALLOWED_ORIGINS else None
+
+        def end_headers(self):
+            o = self._cors_origin()
+            if o:
+                self.send_header("Access-Control-Allow-Origin", o)
+                self.send_header("Vary", "Origin")
+            BaseHTTPRequestHandler.end_headers(self)
+
+        def _json(self, code, obj):
+            data = json.dumps(obj).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _path(self):
+            return self.path.split("?", 1)[0].rstrip("/") or "/"
+
+        def do_OPTIONS(self):
+            if not self._cors_origin():
+                self.send_response(403)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            self.send_response(204)
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Max-Age", "600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def do_GET(self):
+            if self._path() in HEALTH_PATHS:
+                code, obj = health(vane)
+                return self._json(code, obj)
+            return self._json(404, {"error": "not found"})
+
+        def do_POST(self):
+            if self._path() not in ASK_PATHS:
+                return self._json(404, {"error": "not found"})
+            if not bearer_ok(self.headers.get("Authorization"), token):
+                return self._json(401, {"error": "the family key is missing or wrong"})
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = -1
+            if length < 0 or length > MAX_BODY_BYTES:
+                return self._json(413, {"error": "the body is too large"})
+            ask, err = parse_ask(self.rfile.read(length))
+            if err:
+                return self._json(err[0], {"error": err[1]})
+            if not inflight.acquire(blocking=False):
+                return self._json(503, {"error": "a question is already being answered; ask again in a minute"})
+            try:
+                try:
+                    chosen, why = choose_models(vane.providers())
+                except (urllib.error.URLError, socket.timeout, OSError, ValueError) as e:
+                    return self._json(503, {"error": f"Vane is not answering: {e}"})
+                if not chosen:
+                    return self._json(503, {"error": why})
+                payload = {
+                    "chatModel": {"providerId": chosen["providerId"], "key": chosen["chat"]},
+                    "embeddingModel": {"providerId": chosen["providerId"], "key": chosen["embedding"]},
+                    "optimizationMode": ask["mode"],
+                    "sources": ask["sources"],
+                    "query": ask["query"],
+                    "history": [],
+                    "stream": False,
+                }
+                try:
+                    res = vane.search(payload, ask_timeout)
+                except socket.timeout:
+                    return self._json(504, {"error": f"no answer within {ask_timeout}s"})
+                except urllib.error.HTTPError as e:
+                    return self._json(502, {"error": f"Vane answered {e.code}"})
+                except (urllib.error.URLError, OSError, ValueError) as e:
+                    if "timed out" in str(e):
+                        return self._json(504, {"error": f"no answer within {ask_timeout}s"})
+                    return self._json(502, {"error": f"Vane failed: {e}"})
+                return self._json(200, {
+                    "answer": str((res or {}).get("message") or ""),
+                    "sources": clean_sources((res or {}).get("sources")),
+                    "model": chosen["chat"],
+                    "verified": False,
+                    "note": UNVERIFIED_NOTE,
+                })
+            finally:
+                inflight.release()
+
+    return Handler
+
+
+# ---------------------------------------------------------------------------
+# selftest: a fake Vane on loopback, the real Handler in front of it. Every
+# refusal the door exists for is shown to fire (proven-to-catch, DR-0076).
+# ---------------------------------------------------------------------------
+def _selftest():
+    failures = []
+
+    def check(ok, what):
+        print(("  ok   " if ok else "  FAIL ") + what)
+        if not ok:
+            failures.append(what)
+
+    state = {"providers": None, "search_body": None, "search_delay": 0, "hold": None}
+    good_providers = {"providers": [
+        {"id": "p-openai", "name": "OpenAI", "chatModels": [{"key": "gpt-4o"}], "embeddingModels": []},
+        {"id": "p-ollama", "name": "Ollama",
+         "chatModels": [{"key": "llama3"}, {"key": "qwen2.5-coder:14b"}, {"key": "qwen2.5:14b-instruct-q4_K_M"}],
+         "embeddingModels": [{"key": "qwen2.5:14b-instruct-q4_K_M"}, {"key": "nomic-embed-text:latest"}]},
+    ]}
+
+    class FakeVane(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def _send(self, code, obj):
+            data = json.dumps(obj).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self):
+            if self.path == "/api/providers":
+                return self._send(200, state["providers"])
+            return self._send(200, {"page": "vane ui"})
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            state["search_body"] = json.loads(self.rfile.read(n).decode("utf-8"))
+            if state["hold"] is not None:
+                state["hold"].wait(5)
+            return self._send(200, {
+                "message": "Vane is an answer engine [1].",
+                "sources": [
+                    {"content": "a", "metadata": {"title": "One", "url": "https://example.org/one"}},
+                    {"content": "b", "metadata": {"title": "One again", "url": "https://example.org/one"}},
+                    {"content": "c", "metadata": {"title": "Bad", "url": "javascript:alert(1)"}},
+                    {"content": "d", "metadata": {"title": "Local", "url": "file:///etc/passwd"}},
+                    {"content": "e", "metadata": {"title": "Two", "url": "http://example.org/two"}},
+                ],
+            })
+
+    up = ThreadingHTTPServer(("127.0.0.1", 0), FakeVane)
+    threading.Thread(target=up.serve_forever, daemon=True).start()
+    token = "selftest-family-key"
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(Vane(f"http://127.0.0.1:{up.server_port}"), token, ask_timeout=10))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{srv.server_port}"
+
+    def req(method, path, body=None, auth=token, origin=None):
+        data = json.dumps(body).encode("utf-8") if isinstance(body, (dict, list)) else body
+        r = urllib.request.Request(base + path, data=data, method=method)
+        if auth:
+            r.add_header("Authorization", f"Bearer {auth}")
+        if data is not None:
+            r.add_header("Content-Type", "application/json")
+        if origin:
+            r.add_header("Origin", origin)
+        try:
+            with urllib.request.urlopen(r, timeout=15) as res:
+                return res.status, json.loads(res.read().decode("utf-8") or "{}"), dict(res.headers)
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8") or "{}"
+            try:
+                obj = json.loads(raw)
+            except ValueError:
+                obj = {}
+            return e.code, obj, dict(e.headers)
+
+    # --- models ----------------------------------------------------------
+    chosen, _ = choose_models(good_providers)
+    check(chosen == {"providerId": "p-ollama", "chat": "qwen2.5:14b-instruct-q4_K_M", "embedding": "nomic-embed-text:latest"},
+          "choose_models picks the Ollama provider, qwen2.5:14b to answer and nomic-embed-text to rank")
+    chosen, why = choose_models({"providers": [{"id": "x", "chatModels": [{"key": "qwen2.5:14b"}], "embeddingModels": []}]})
+    check(chosen is None and "embedding" in why, "CATCHES a provider with no embedding model: refused, with the reason")
+    chosen, why = choose_models({"providers": []})
+    check(chosen is None and "OLLAMA_BASE_URL" in why, "CATCHES an empty provider list: names the missing setting")
+
+    # --- health ----------------------------------------------------------
+    state["providers"] = {"providers": []}
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 503 and b.get("ok") is False, "health is 503 while Vane offers no usable models")
+    state["providers"] = good_providers
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 200 and b.get("ok") is True and b.get("chat", "").startswith("qwen2.5:14b"), "health is 200 with the model it will use")
+    s, b, _ = req("GET", "/research/health", auth=None)
+    check(s == 200, "the prefixed /research/health is served too (a proxy that does not strip)")
+    check(len(b.get("code", "")) == 16, "health carries the forwarder's code sha (the running process follows the code)")
+
+    # --- the door: nothing of Vane passes ---------------------------------
+    for p in ("/", "/api/providers", "/api/config", "/api/search", "/research/api/search", "/c/123", "/library"):
+        s, _, _ = req("GET", p)
+        check(s == 404, f"CATCHES a reach for Vane's own {p} (GET): 404, never proxied")
+    s, _, _ = req("POST", "/api/search", body={"query": "x"})
+    check(s == 404, "CATCHES a direct POST to Vane's /api/search through the door: 404")
+
+    # --- the bearer -------------------------------------------------------
+    s, _, _ = req("POST", "/ask", body={"query": "What is Vane?"}, auth=None)
+    check(s == 401, "CATCHES a question with no family key: 401")
+    s, _, _ = req("POST", "/ask", body={"query": "What is Vane?"}, auth="wrong-key")
+    check(s == 401, "CATCHES a question with the wrong key: 401")
+    check(not bearer_ok("Bearer x", ""), "CATCHES an empty expected token: nothing matches an unset key")
+
+    # --- the question's shape ---------------------------------------------
+    s, _, _ = req("POST", "/ask", body={"query": "   "})
+    check(s == 400, "CATCHES an empty question: 400")
+    s, _, _ = req("POST", "/ask", body={"query": "x" * (MAX_QUERY_CHARS + 1)})
+    check(s == 413, "CATCHES a question over the length cap: 413")
+    s, _, _ = req("POST", "/ask", body={"query": "ok", "mode": "turbo"})
+    check(s == 400, "CATCHES an unknown mode: 400")
+    s, _, _ = req("POST", "/ask", body={"query": "ok", "sources": ["web", "files"]})
+    check(s == 400, "CATCHES an unknown source kind: 400")
+    s, _, _ = req("POST", "/ask", body=b"not json")
+    check(s == 400, "CATCHES a body that is not JSON: 400")
+
+    # --- a good question --------------------------------------------------
+    s, b, _ = req("POST", "/ask", body={"query": "What is Vane?"})
+    check(s == 200 and b.get("answer", "").startswith("Vane is"), "a question with the key returns the answer")
+    urls = [x["url"] for x in b.get("sources", [])]
+    check(urls == ["https://example.org/one", "http://example.org/two"],
+          "sources are http(s) only and de-duplicated: CATCHES javascript: and file: URLs")
+    check(b.get("verified") is False and "not checked" in b.get("note", ""), "every answer is marked unverified, in words")
+    sb = state["search_body"] or {}
+    check(sb.get("chatModel") == {"providerId": "p-ollama", "key": "qwen2.5:14b-instruct-q4_K_M"}
+          and sb.get("embeddingModel", {}).get("key") == "nomic-embed-text:latest"
+          and sb.get("stream") is False and sb.get("history") == [] and sb.get("sources") == ["web"],
+          "Vane is asked with our models, no history, no streaming, web only by default")
+
+    # --- one at a time ----------------------------------------------------
+    hold = threading.Event()
+    state["hold"] = hold
+    first = {}
+    t = threading.Thread(target=lambda: first.update(r=req("POST", "/ask", body={"query": "slow one"})))
+    t.start()
+    for _ in range(50):
+        if state["search_body"] and state["search_body"].get("query") == "slow one":
+            break
+        threading.Event().wait(0.05)
+    s, b, _ = req("POST", "/ask", body={"query": "second"})
+    check(s == 503 and "already" in b.get("error", ""), "CATCHES a second question while one is answered: 503, never a queue")
+    hold.set()
+    t.join(10)
+    state["hold"] = None
+    check(first.get("r", (0,))[0] == 200, "the first question still finishes")
+
+    # --- CORS -------------------------------------------------------------
+    _, _, h = req("GET", "/health", auth=None, origin="https://poetech.us")
+    check(h.get("Access-Control-Allow-Origin") == "https://poetech.us", "the app's own origin is allowed")
+    for o in ("https://evil.example", "https://poetech.us.evil.example", "http://poetech.us", "*"):
+        _, _, h = req("GET", "/health", auth=None, origin=o)
+        check("Access-Control-Allow-Origin" not in h, f"CATCHES the origin {o}: refused, not echoed")
+    check("*" not in CORS_ALLOWED_ORIGINS, "the LIVE allowlist holds no wildcard")
+
+    # --- Vane down --------------------------------------------------------
+    up.shutdown()
+    up.server_close()
+    s, b, _ = req("GET", "/health", auth=None)
+    check(s == 503 and "not answering" in b.get("reason", ""), "health is 503 when Vane is down, and says so")
+    s, _, _ = req("POST", "/ask", body={"query": "anyone there?"})
+    check(s == 503, "a question while Vane is down: 503, not a hang")
+
+    srv.shutdown()
+    print("research selftest: " + ("OK" if not failures else f"{len(failures)} FAILURE(S)"))
+    return 1 if failures else 0
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8797")))
+    ap.add_argument("--upstream", default=os.environ.get("VANE_UPSTREAM", VANE_UPSTREAM_DEFAULT))
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args()
+    if a.selftest:
+        sys.exit(_selftest())
+    token = expected_token()
+    if not token:
+        print("research: no family bearer token -- refusing to start an unlocked door", file=sys.stderr)
+        sys.exit(2)
+    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(Vane(a.upstream), token))
+    print(f"research on 127.0.0.1:{a.port} -> {a.upstream} (code {code_sha()})")
+    srv.serve_forever()
+
+
+if __name__ == "__main__":
+    main()
