@@ -298,3 +298,31 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 - **Repair line 96 itself,** once cams-diag names its shape. Until then the streams live in go2rtc's memory and the next go2rtc restart empties it again, though the self-heal puts them back within ten minutes.
 - **No go2rtc release without proving the file parses first:** a restart is a config load. The installer's epoch step gains that check before any new epoch.
 - `re-review: 2026-10-20`, unchanged.
+
+## Ninth field read (2026-10-19 05:13 UTC; cams-diag 39203389412): the cameras are back, and line 96 has a shape
+
+- **The cameras are back in go2rtc:** `/health` lists 66 streams on the forwarder `8b86e1cbbf5f1000`. The restore from the file worked on its first tick.
+- **Line 96 has a shape:**
+  - It is one character at column 0, and it is the file's last line.
+  - It follows the `wyze:` block, whose lines 91-95 are well-formed keys.
+  - It is not a key, which is the line go2rtc could not read.
+  - No line at column 0 that is not a key can sit in a block mapping, so taking it out loses nothing a parser could read.
+
+**The change, same record:**
+
+- **The forwarder repairs the file, and go2rtc proves the repair** (`repair_config_strays`, on every self-heal tick).
+  - Lines at column 0 that are not a key, a comment, blank or a document marker are taken out.
+  - The result goes to go2rtc's own `POST /api/config`. go2rtc parses it with its own yaml and writes it only when it parses (`internal/api/config.go`).
+  - A refusal leaves the file exactly as it was and logs go2rtc's reason.
+- **No go2rtc release without a parse.** Before an epoch restart, the installer has the running go2rtc parse the current file the same way. Anything but 200 means no restart and no epoch recorded, and the reason is said.
+
+**Verification:**
+
+- Selftest: 454 passing.
+- PROVEN TO CATCH, the repair taken out of the self-heal: the check that every tick repairs fails.
+- PROVEN TO CATCH, the repair that keeps the stray line: two checks fail.
+
+**Live, after merge:** the next self-heal tick logs "config-repair". From then on a PUT is accepted (200), so the journal's "refused PUT ... HTTP 400" lines stop.
+
+- How the stray character got there is not yet known; the repair stands guard every ten minutes whatever wrote it.
+- `re-review: 2026-10-20`, unchanged.

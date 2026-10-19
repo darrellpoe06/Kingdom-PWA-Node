@@ -4275,7 +4275,14 @@ def _selftest():
         def do_POST(self):
             path, _, _q = self.path.partition("?")
             n = int(self.headers.get("Content-Length") or 0)
-            form = urllib.parse.parse_qs(self.rfile.read(n).decode("utf-8"))
+            raw_body = self.rfile.read(n).decode("utf-8")
+            if path == "/api/config":
+                # go2rtc 1.9.14: yaml.Unmarshal the body; 500 with the error, or write it.
+                seen.setdefault("config_posts", []).append(raw_body)
+                if seen.get("config_refuse"):
+                    return self._send(500, "text/plain", b"yaml: line 3: could not find expected ':'")
+                return self._send(200, "application/yaml", b"")
+            form = urllib.parse.parse_qs(raw_body)
             if path != "/api/wyze":
                 return self._send(404, "text/plain", b"nope")
             seen["wyze_form"] = {k: v[0] for k, v in form.items()}
@@ -4810,6 +4817,27 @@ def _selftest():
     seen["put_refuses"] = False
     check(("front", "webrtc:http://u:p@127.0.0.1:8597/signaling/front?kvs#format=wyze") in seen["puts"] and ("back", "rtsp://a") in seen["puts"],
           "PROVEN TO CATCH: the self-heal of an EMPTY go2rtc puts back the streams its own file defines before anything else (23:02 CDT: 0 streams, 66 in the file) (%s, %r)" % (r, seen["puts"][:3]))
+    # The line go2rtc cannot read (DR-1097, ninth read): line 96, one character at column 0 after wyze:.
+    live96 = 'api:\n  listen: "127.0.0.1:1984"\nstreams:\n  front: "rtsp://f"\n# kept\n"quoted top": 1\nwyze:\n  me@x.y:\n    api_id: a\n    password: b\nZ\n'
+    check(config_stray_lines(live96) == [11], "the stray line is found by shape: one character at column 0, not a key (%r)" % config_stray_lines(live96))
+    check(config_stray_lines('api:\n  listen: ":1984"\n---\nstreams:\n  a: "x:y"\n') == [], "keys, quoted keys, comments, document markers and indented lines are never strays")
+    cfg9 = os.path.join(tempfile.mkdtemp(prefix="cams-stray-"), "go2rtc.yaml")
+    with open(cfg9, "w") as fh:
+        fh.write(live96)
+    seen["config_posts"] = []
+    r9 = repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg9, log=lambda *_a: None)
+    posted = seen["config_posts"][-1] if seen["config_posts"] else ""
+    check(r9 == "repaired-1" and "\nZ\n" not in posted and posted.endswith("    password: b\n") and '  front: "rtsp://f"' in posted and "# kept" in posted,
+          "the file goes to go2rtc's own /api/config without the stray line, every other line kept, and go2rtc's parse decides (%s)" % r9)
+    seen["config_refuse"] = True
+    r9b = repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg9, log=lambda *_a: None)
+    seen["config_refuse"] = False
+    check(r9b == "refused" and open(cfg9).read() == live96, "when go2rtc's own parse refuses, the file is left exactly as it was")
+    check(repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg8 + ".none", log=lambda *_a: None) == "unreadable", "no file, nothing done")
+    seen["config_posts"] = []
+    self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None, config_path=cfg9)
+    check(len(seen["config_posts"]) == 1 and "\nZ\n" not in seen["config_posts"][0],
+          "PROVEN TO CATCH: every self-heal tick repairs a go2rtc.yaml go2rtc cannot read (the file behind every PUT 400 and the empty 23:02 start)")
 
     print("=== 8h. access is given and taken back, never a password (DR-0778): grants ===")
     fake_cloud.last = {}
@@ -6212,6 +6240,59 @@ def config_stream_sources(text):
     return dict((k, [x for x in v if x]) for k, v in out.items() if any(v))
 
 
+def config_stray_lines(text):
+    """The line numbers of go2rtc.yaml lines no YAML block mapping can hold: a
+    line at column 0 that is not a key, a comment, blank or a document marker."""
+    out = []
+    for k, line in enumerate(str(text or "").split("\n"), 1):
+        if not line.strip() or line[0].isspace():
+            continue
+        if re.match(r"^(#|---|\.\.\.)", line) or re.match(r"^(\"[^\"]*\"|'[^']*'|[^\s:#'\"-][^:]*):(\s|$)", line):
+            continue
+        out.append(k)
+    return out
+
+
+def repair_config_strays(upstream, config_path=None, log=print, opener=None):
+    """GO2RTC.YAML IS MADE READABLE AGAIN, AND GO2RTC ITSELF PROVES IT (DR-1097,
+    ninth read). cams-diag 39203389412: line 96, the file's last, was one
+    character at column 0 after the wyze: block, the line go2rtc named ("could
+    not find expected ':'"). A line at column 0 that is not a key can never sit
+    in a block mapping, so taking it out loses nothing a parser could read. The
+    result is handed to go2rtc's own POST /api/config, which parses it with
+    go2rtc's yaml and writes it ONLY if it parses (internal/api/config.go); a
+    refusal leaves the file exactly as it was and says why. Answers 'clean',
+    'repaired-N', 'refused' or 'unreadable'."""
+    opener = opener or urllib.request.urlopen
+    path = config_path or GO2RTC_YAML_PATH
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return "unreadable"
+    stray = config_stray_lines(text)
+    if not stray:
+        return "clean"
+    drop = set(stray)
+    fixed = "\n".join(l for k, l in enumerate(text.split("\n"), 1) if k not in drop)
+    req = urllib.request.Request(upstream.rstrip("/") + "/api/config", data=fixed.encode("utf-8"), method="POST",
+                                 headers={"Content-Type": "application/yaml"})
+    try:
+        with opener(req, timeout=HEALTH_TIMEOUT) as r:
+            r.read(4096)
+    except urllib.error.HTTPError as e:
+        try:
+            why = scrub_text(e.read(300).decode("utf-8", "replace").strip(), 160)
+        except Exception:  # noqa: BLE001
+            why = ""
+        log("config-repair: go2rtc would not take go2rtc.yaml without line(s) %s (HTTP %d%s); the file is left as it was" % (",".join(str(k) for k in stray), e.code, ": " + why if why else ""))
+        return "refused"
+    except (urllib.error.URLError, OSError):
+        return "unreadable"
+    log("config-repair: line(s) %s of go2rtc.yaml held nothing YAML can read; taken out, and go2rtc parsed the result before writing it (DR-1097, ninth read)" % ",".join(str(k) for k in stray))
+    return "repaired-%d" % len(stray)
+
+
 def restore_streams_from_config(upstream, config_path=None, log=print, opener=None):
     """A GO2RTC THAT STARTED WITHOUT ITS CONFIG GETS ITS STREAMS BACK FROM IT
     (DR-1097, eighth read). 2026-10-19 23:02 CDT: the one go2rtc release came back
@@ -6251,6 +6332,8 @@ def self_heal_once(upstream, port, token, log=print, config_path=None):
     """If go2rtc lists ZERO streams and a Wyze sign-in is kept, re-add the
     cameras through this process's own /setup/wyze/again. If it lists streams
     its config does not define, write them (DR-0787). Returns what it did."""
+    # A file go2rtc cannot read refuses every PUT's write and empties the next start.
+    repair_config_strays(upstream, config_path=config_path, log=log)
     try:
         with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
             parsed = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
