@@ -193,6 +193,94 @@ describe('the role seam serves EVERY role — narrowing it would re-open the hol
   });
 });
 
+// =============================================================================
+// THE GAP THIS SCANNER MISSED, now its own gate.
+// =============================================================================
+// The scanner above inspects bindings NAMED isGovernor. It therefore said
+// nothing about `isSteward={isFamilyMember}` on WorkflowScribe or
+// `isOwner={isFamilyMember}` on Forecast — authority-shaped props wearing a
+// different name. Found while writing DR-1108, after DR-1107 had shipped.
+//
+// The answer is NOT to sweep them: for Forecast the correct gate is
+// books-visibility, not governorship (a 'member' reads the financial tables
+// under 0082, so gating it on isGov would make the CLIENT stricter than RLS,
+// which DR-1106 forbids), and that is a decision DR-0094 keeps with the
+// guardian. The answer is that every such prop is DECLARED, with its class and
+// its reason, so a NEW one cannot appear unnoticed the way these two did.
+const ALLOWLIST_FED_PROPS = Object.freeze({
+  // ENTITLEMENT, not governance — correct as membership. use-read-aloud.js:57
+  // documents isOwner as "entitled to personal (subscriber) voices" and :335
+  // sets `subscribed: isOwner`. The family are subscribers; a daughter and a
+  // son keep the family's voices. Nothing to change.
+  'ReadingVoiceControl.isOwner': 'entitlement',
+  'TTSControl.isOwner': 'entitlement',
+
+  // THE OFFICE'S ROLE, not the household's. isStaff reaches PracticeLearn's
+  // visibleAudiences({ isStaff }) and listMyAssignments — TLC office staff.
+  // Its real wall is the therapy-practice instance (0193), so the honest
+  // source is my_office_instance_role, not the family allowlist. A separate
+  // door with its own blast radius. `re-review: 2026-11-02`.
+  'Practice.isStaff': 'office-role-deferred',
+
+  // BOOKS-VISIBILITY, deferred to the Governor with a date (DR-1108).
+  'WorkflowScribe.isSteward': 'books-visibility-deferred',
+  'Forecast.isOwner': 'books-visibility-deferred',
+});
+
+describe('every authority-shaped prop fed by the allowlist is declared', () => {
+  // <Component ... isX={<expr mentioning isFamilyMember/isFamilyEmail>}
+  const fed = (src) => {
+    const out = [];
+    const rx = /<([A-Z][A-Za-z]*)\b([^>]*?)>/gs;
+    let m;
+    while ((m = rx.exec(src)) !== null) {
+      const [, component, attrs] = m;
+      const prx = /\b((?:is|can)[A-Za-z]*)=\{([^}]{0,120})\}/g;
+      let p;
+      while ((p = prx.exec(attrs)) !== null) {
+        const [, prop, expr] = p;
+        if (prop === 'isFamilyMember') continue;          // named for membership, given membership
+        if (!/isFamilyMember|isFamilyEmail/.test(expr)) continue;
+        out.push(`${component}.${prop}`);
+      }
+    }
+    return [...new Set(out)];
+  };
+
+  it('the live set is exactly what is declared — no undeclared one, no stale entry', () => {
+    const live = fed(shellSrc()).sort();
+    expect(live).toEqual(Object.keys(ALLOWLIST_FED_PROPS).sort());
+  });
+
+  it('it is checking something: the live set is not empty', () => {
+    expect(fed(shellSrc()).length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('every declaration names one of the three decided classes', () => {
+    const ok = ['entitlement', 'office-role-deferred', 'books-visibility-deferred'];
+    for (const [k, v] of Object.entries(ALLOWLIST_FED_PROPS)) {
+      expect(ok, `${k} has an undecided class`).toContain(v);
+    }
+  });
+
+  it('CATCHES a NEW authority-shaped prop fed the allowlist (the DR-1108 miss)', () => {
+    const grown = shellSrc().replace(
+      '<Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />',
+      '<Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} canApprove={isFamilyMember} />'
+    );
+    expect(grown).not.toBe(shellSrc());
+    expect(fed(grown)).toContain('Forecast.canApprove');
+    expect(fed(grown).sort()).not.toEqual(Object.keys(ALLOWLIST_FED_PROPS).sort());
+  });
+
+  it('CATCHES a declaration left behind after the prop is fixed', () => {
+    const fixed = shellSrc().replace('<WorkflowScribe isSteward={isFamilyMember} />', '<WorkflowScribe isSteward={isGov} />');
+    expect(fixed).not.toBe(shellSrc());
+    expect(fed(fixed)).not.toContain('WorkflowScribe.isSteward');
+    expect(fed(fixed).sort()).not.toEqual(Object.keys(ALLOWLIST_FED_PROPS).sort());
+  });
+});
+
 describe('what the wiring deliberately leaves alone', () => {
   it('membership and seed data still come from the address — by decision, not oversight', () => {
     // DR-1106: an email CAN make you a member. isFamilyMember still gates which
