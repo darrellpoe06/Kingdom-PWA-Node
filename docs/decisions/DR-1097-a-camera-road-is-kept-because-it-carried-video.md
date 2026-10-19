@@ -326,3 +326,28 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 
 - How the stray character got there is not yet known; the repair stands guard every ten minutes whatever wrote it.
 - `re-review: 2026-10-20`, unchanged.
+
+## Tenth field read (2026-10-19 06:16-06:22 UTC; cams-diag 39208913645, camera-health 39208915955): the floor is met
+
+- **The repair is live.**
+  - At 00:31:26 CDT the journal logged: "config-repair: line(s) 96 of go2rtc.yaml held nothing YAML can read; taken out, and go2rtc parsed the result before writing it".
+  - `go2rtc.yaml` now has 95 lines, and none fails the shape check.
+  - No "refused PUT" line has been logged since.
+  - go2rtc lists 66 streams, and the forwarder runs `a9c0e306c7c02777`.
+- **Unanswered Kinesis offers in go2rtc's log fell to 44, from 560 before the release.**
+- **The witness reads 18 of 33 (17 on the first ask), the best read in this record.**
+  - The baseline before the repair (camera-health 39203690931) was 16 of 33. Before the seventh read it was 9 of 33.
+  - The floor is half (17), so the pass is not an incident. The `priority:cameras` label came off.
+- **Dark: 15.**
+  - **11 that Wyze itself called offline in the sixth and seventh reads:** 805 Apt 4, 805 Front Outside, 805 Porch Cam, Basement Living Room, East North Cam, Front Driveway & Door, Front Yard, Kitchen Cam, Living Room, North East Cam, Outside Front Door. Wyze's own list answered HTTP 429 this time: the cloud is rate-limiting this account's listing.
+  - **4 that are ours:**
+    - **805 Floodlight Cam - West:** go2rtc answered "exit status 183" on both asks. Its held session carried video (the judge measured 16 KB in 4.5 s), and ffmpeg could not make a JPEG of the key frame. 183 is ffmpeg's invalid-data code.
+    - **Back Yard South, Front Cam, Garage Doors:** "no video on Wyze's WebRTC road yet". Each camera left the offer unanswered on both asks, and go2rtc was rightly not asked for a frame.
+- **Back Yard North, Basement North, Front Door View, Outside 7 and Front all answered.** The judge had called each of them dark on both roads; every one was a camera the frozen sessions had been holding.
+
+**What is left:**
+
+- **805 Floodlight Cam - West's frame.**
+  - The session carries video, but go2rtc's JPEG step refuses it.
+  - Next: read its codecs from the stream sampler. A Floodlight Pro may send H.265, and an H.264 twin (DR-0798) would then be the road for a frame.
+- `re-review: 2026-10-20`, unchanged: decide on the IDisposable fork for the Kinesis dial clock against this read.
