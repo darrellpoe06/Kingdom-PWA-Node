@@ -74,7 +74,7 @@
 // parked: `strandedUntil` is a DATE, and it is the promise the placement gets
 // made. No date, no parking -- the row fails until the passage leaves the
 // lesson that introduced it. Job 31:1 was parked to 2026-10-19 and was
-// discharged that day into ll92, a host with no full-levels debt.
+// discharged that day into ll92 and ll113, two hosts with no full-levels debt.
 
 export const PASSAGES_THAT_MUST_REACH = Object.freeze([
   {
@@ -117,7 +117,7 @@ export const PASSAGES_THAT_MUST_REACH = Object.freeze([
     subject: 'a covenant with your eyes',
     introducedBy: 'll183-',
     minLessons: 2,
-    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. DISCHARGED 2026-10-19 into ll92 (Yahweh Standardized Love), which carries no full-levels debt: in all four bands and the lesson it now follows Matthew 5:28, where Jesus counts the look, as the discipline that answers it at the eye.',
+    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. DISCHARGED 2026-10-19 into ll92 (Yahweh Standardized Love), which carries no full-levels debt: in all four bands and the lesson it now follows Matthew 5:28, where Jesus counts the look, as the discipline that answers it at the eye. The same day it was also placed in ll113 (The Spirit Is Willing, but the Flesh Is Weak), in every band beside that lesson\u2019s point that most falls are lost at the provisioning stage (Romans 13:14 with James 1:14): Job 31:1 is that decision made binding before the moment.',
   },
   {
     ref: 'Luke 4:19',

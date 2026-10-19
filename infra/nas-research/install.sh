@@ -40,9 +40,16 @@ UNIT=/etc/systemd/system/poetech-research.service
 PORT=8797
 SEARX=http://127.0.0.1:8798
 VANE=http://127.0.0.1:3017
-# The right tower first (DR-1099: qwen2.5:14b answers there), by tailnet IP and
-# by name; the NAS's own CPU Ollama last (slower, but always on).
-OLLAMA_CANDIDATES="${RESEARCH_OLLAMA_CANDIDATES:-http://100.72.5.90:11434 http://livestream-main-pc.tail5a2f35.ts.net:11434 http://127.0.0.1:11434}"
+# GPU towers only, the LEFT tower first. 2026-10-19, measured: the NAS's own
+# CPU Ollama (the old last resort) could not answer "Say OK." with qwen2.5:14b
+# in 150 s, so the road timed out on every question while /health said 200.
+# pipeline-nodes.json names tlcmediadpt (LEFT) "THE designated AI worker",
+# expected always on; livestream-main-pc (RIGHT) is not expected always on and
+# feeds the stream, so it is second (DR-0012). Each by tailnet IP, then name.
+OLLAMA_CANDIDATES="${RESEARCH_OLLAMA_CANDIDATES:-http://100.69.19.13:11434 http://tlcmediadpt.tail5a2f35.ts.net:11434 http://100.72.5.90:11434 http://livestream-main-pc.tail5a2f35.ts.net:11434}"
+# The tower chosen, for the forwarder to check before every question (not a
+# secret, so readable by the forwarder; empty when no tower answered).
+OLLAMA_URL_FILE="$DATA/ollama.url"
 
 echo "== research install: token =="
 if [ ! -s "$TOKEN_FILE" ]; then
@@ -68,8 +75,15 @@ for CAND in $OLLAMA_CANDIDATES; do
   fi
   echo "  $CAND -- answering, but without both qwen and nomic-embed-text"
 done
+if sudo -n true 2>/dev/null; then SUDO_URL="sudo -n"; else SUDO_URL=""; fi
+$SUDO_URL mkdir -p "$DATA"
+TMPU="$(mktemp)"
+printf '%s\n' "$OLLAMA" > "$TMPU"
+$SUDO_URL cp "$TMPU" "$OLLAMA_URL_FILE"
+rm -f "$TMPU"
+$SUDO_URL chmod 644 "$OLLAMA_URL_FILE"
 if [ -z "$OLLAMA" ]; then
-  echo "  no reachable Ollama serves both models -- nothing started (the right tower may be off; the next cycle looks again)"
+  echo "  no GPU tower serves both models -- the forwarder now says so instead of hanging (the towers may be off; the next cycle looks again)"
   exit 0
 fi
 
