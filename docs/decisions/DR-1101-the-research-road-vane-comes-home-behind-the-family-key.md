@@ -85,3 +85,20 @@ Darrell said "Go" to `/research` as a new public path on the Funnel. The line th
   - *What is left:* it is one more service on the NAS that needs care.
 - **The way to close it is plain.**
   - Set the services.json `research` entry to `enabled:false` and drop the Funnel mount. The app then shows "Not ready", and nothing else depends on the road.
+
+## First live answers: the wrong machine was answering (2026-10-19)
+
+**What happened.** The road installed itself and `/health` answered 200 with both models found. Yet the first three live witnesses all returned 504 "no answer within 180s". The diagnostic step (#2256) timed each stage on the NAS:
+- **The tower URL Vane was given:** `http://127.0.0.1:11434`, the NAS's own CPU Ollama, not a GPU tower. The installer had fallen back to it because neither tower answered at 01:46 UTC.
+- **That CPU with qwen2.5:14b:** it could not answer "Say OK." in 150 seconds. The NAS is a Xeon D-1527 with no GPU, and its Ollama unloads the model after each call (DR-0012), so every question reloaded 9 GB.
+- **Vane's own log:** `HeadersTimeoutError` while waiting on that model.
+- **SearxNG:** it was fine, with 20 results in 2.8 seconds. Brave rate-limited the search and DuckDuckGo showed a CAPTCHA, and the other engines covered for them.
+
+**The mistake was mine.** I gave the installer the wrong machines, in the wrong order. It tried the RIGHT tower first, which is not expected to be always on and which feeds the stream. It never tried the LEFT tower, which `pipeline-nodes.json` names "THE designated AI worker". And it kept the NAS CPU as a last resort that cannot do this work.
+
+**Fixed:**
+- **Installer:** it tries GPU towers only, LEFT first, and never the NAS CPU. It records the tower it chose, or that none answered, in `/volume1/docker/research/ollama.url`.
+- **Forwarder:** before `/health` or `/ask` it checks that tower directly, with a 4-second timeout. It also refuses during the DR-0012 streaming hold, which is the presence of `infra/gpu-scheduler/state/STREAMING_HOLD` in the NAS mirror. When a check fails, `/health` says why in plain words and a question is refused in seconds instead of hanging for three minutes.
+- **Self-test:** it gains 7 checks. Proven to catch: when the tower check is mutated to always pass, 6 of them fail.
+
+**Still open:** this fix makes the road honest. It does not turn a tower on. If both towers are off, or the LEFT tower's Ollama listens only on its own machine, the app will say so in those words until a tower answers. The installer looks again every 15 minutes.
