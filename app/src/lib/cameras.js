@@ -1582,7 +1582,18 @@ export async function fetchStreamHealth(token, fetchImpl = globalThis.fetch) {
     const r = await fetchWithTimeout(streamHealthUrl(), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
     let body = null;
     try { body = await r.json(); } catch { body = null; }
-    if (r.status !== 200 || !body || typeof body !== 'object') return { ok: false, status: r.status, cameras: {}, events: [] };
+    // THE FORWARDER'S OWN SHAPE, NOT MERELY "AN OBJECT" (2026-10-19, DR-1000's
+    // re-review). `typeof body === 'object'` admitted any JSON a stranger
+    // answered with at 200 — a proxy's error body, a misrouted road — and
+    // reported ok:true with no cameras, which reads as a healthy house with
+    // nothing in it. StreamHealth.summary() in infra/nas-cameras/
+    // cams_forwarder.py always stamps a numeric interval_s and a cameras
+    // object; `sampled_at` is deliberately NOT required, because it is null
+    // until the first sample is taken.
+    const fromTheForwarder = !!body && typeof body === 'object'
+      && typeof body.interval_s === 'number'
+      && !!body.cameras && typeof body.cameras === 'object';
+    if (r.status !== 200 || !fromTheForwarder) return { ok: false, status: r.status, cameras: {}, events: [] };
     return { ok: true, status: 200, cameras: body.cameras || {}, events: Array.isArray(body.events) ? body.events : [], sampledAt: Number(body.sampled_at) || null, intervalS: Number(body.interval_s) || null };
   } catch {
     return { ok: false, status: 0, cameras: {}, events: [] };
