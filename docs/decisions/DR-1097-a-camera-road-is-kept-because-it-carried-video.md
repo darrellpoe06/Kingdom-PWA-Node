@@ -353,3 +353,25 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
   - `/snap` now asks once more at the camera's own size when go2rtc's resize answers 500 "exit status ...". Any other 500 is passed on in go2rtc's own words and never retried.
   - Selftest: 456 passing. PROVEN TO CATCH: with the retry taken out, its check fails.
 - `re-review: 2026-10-20`, unchanged: decide on the IDisposable fork for the Kinesis dial clock against this read.
+
+## Eleventh field read (2026-10-19 07:22-07:29 UTC; camera-health 39215549062): Floodlight West answers
+
+- **805 Floodlight Cam - West now gives a frame** (9.2 s, 28 KB) on forwarder `1b9bec4d5cf9784a`. The full-size retry is live.
+- **The witness reads 18 of 33 again (17 on the first ask)**, which meets the floor. The `priority:cameras` label stays off.
+- **The Kinesis cameras that go dark change from pass to pass:**
+  - Back Yard South, dark in the tenth read, answered in 8.9 s.
+  - Basement North and Outside 7, which answered in the tenth read, left both offers unanswered.
+  - Front Cam and Garage Doors left the offer unanswered in both reads.
+  - So on Wyze's WebRTC road a camera answers an offer some of the time; this is not a fixed set of broken cameras.
+- **Dark, 15:**
+  - The same 11 that Wyze itself calls offline.
+  - 4 that left Wyze's offer unanswered on both asks: Basement North, Front Cam, Garage Doors, Outside 7.
+- **In the app this means:**
+  - The tab asks again every 30 s, and the holder sends a fresh offer every 30 s while someone looks.
+  - A camera that answers some offers shows up within a minute or two.
+  - A camera Wyze calls offline shows Wyze's own "offline" word.
+
+`re-review: 2026-10-20`, unchanged. Two questions stand at that review:
+
+- Whether a camera that answers only some offers needs a longer dial than 20 s.
+- Whether the IDisposable fork is needed at all.
