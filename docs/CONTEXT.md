@@ -64,6 +64,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/FATHERS-PROVOKE-TO-GOOD-WORKS.md`
 - `docs/00-foundations/_root/FOUNDERS-CONFESSION.md`
 - `docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md`
+- `docs/00-foundations/_root/THE-WAY-A-SERVICE-COMES-HOME.md` — how a job a subscription did comes home onto our own hardware: weighed, files owned, one locked door, installs itself on every path, says why, a witness that says where the install stands, shown in the app, seeds the next (DR-1104; gate `a-service-comes-home.test.js`).
 - `docs/00-foundations/_root/IDENTITY-ROLES-AUDIT.md`
 - `docs/00-foundations/_root/IN-PLACE-FIRST.md`
 - `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md`

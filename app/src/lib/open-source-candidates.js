@@ -4,7 +4,10 @@
 // Darrell, 2026-10-18: "Go get all these repos and integrate them into our
 // technology stacks so we can see how we can gain more control and visibility
 // into our projects and productivity... opportunities and constraints..."
-// The record is DR-1099.
+// The record is DR-1099. Three more rows were added on 2026-10-19 (DR-1104),
+// from the home-server video Darrell sent with "Fix our processes and create
+// a way": Jellyfin, Immich and Audiobookshelf, read the same way at their
+// latest releases; the fourth job it names, cameras, is already home (DR-0756).
 //
 // WHAT THIS IS. Each tool is a CANDIDATE for a capability, never a habit: it
 // carries the exact release it was read at, its code and weight licences, what
@@ -88,6 +91,7 @@ export const OPEN_SOURCE_CANDIDATES = [
       'No test suite in the repo.',
     ],
     nextStep: 'Built (DR-1101): Vane slim plus our own SearxNG on loopback, the /research forwarder behind the family key, and research-health.yml, which asks one question and checks a source URL comes back. It starts on the NAS when services-sync runs it and the tower’s qwen and nomic-embed-text models answer; try it below.',
+    builtRef: 'DR-1101',
     reReview: '2026-10-25',
     gapRef: null,
     drRef: 'DR-1099',
@@ -394,6 +398,113 @@ export const OPEN_SOURCE_CANDIDATES = [
     reReview: '2027-01-18',
     gapRef: null,
     drRef: 'DR-1099',
+  },
+  // ---- 2026-10-19: the home-server video (DR-1104) ------------------------
+  // Each read at its latest release the same way: shallow-cloned at the pin,
+  // licence and egress read from the source, never run. The bills: the inbox
+  // holds ONE subscription in this class, Google AI Plus (2 TB) (Google One),
+  // $9.99 a month, charged on the 14th; no Netflix, Hulu, Disney, Spotify,
+  // Audible, Plex or Prime Video receipt in the last year.
+  {
+    id: 'immich',
+    name: 'Immich',
+    repo: 'immich-app/immich',
+    pin: { ref: 'v3.3.3', sha: 'd2dac658fe1c67e8bbd08aa18200a32e5d45b9e4' },
+    replaces: 'Google One (the storage half of the household’s Google AI Plus 2 TB plan, $9.99 a month)',
+    capability: 'Phones back up their photos and videos to our own disk, searchable by face, place and date',
+    codeLicense: 'AGPL-3.0',
+    weightsLicense: 'CLIP and face models downloaded from Hugging Face on first use; per-model licences, read before any public use',
+    commercialUse: 'review',
+    copyleftNetwork: true,
+    canExecuteCode: false,
+    egress: 'Map tiles from tiles.immich.cloud, the machine-learning models from Hugging Face on first use, and a release check against GitHub; each can be turned off. Metrics only if IMMICH_TELEMETRY_INCLUDE is set.',
+    auth: 'Its own multi-user login with an admin; OAuth optional.',
+    hardware: 'No GPU needed: the machine-learning image defaults to CPU, so faces and scenes index slowly on the NAS’s Xeon, once, as a backlog. Needs its pinned Postgres (vectorchord) and Valkey containers.',
+    placement: 'nas',
+    frontedBy: 'Loopback only, behind a family-key forwarder on the Funnel like the cameras (DR-0756); its own login stays on as the second lock',
+    verdict: 'pilot',
+    why: 'It does the one job in the video that the inbox actually pays for: the 2 TB plan exists because the phones back up to Google. Immich backs them up to our pool instead, and the files stay ours as plain folders if Immich is ever removed. Our property-photos server keeps serving the app’s albums; this is the phone-backup job beside it.',
+    opportunities: [
+      'The phones’ photos and videos land on our own pool, in folders that outlive the app.',
+      'Faces, places and dates searchable at home, with no account outside the house.',
+      'The storage half of the one subscription in this class can be cancelled once the backup is proven.',
+    ],
+    constraints: [
+      'AGPL-3.0: run unmodified and never offered outside the household; a change triggers the source-offer duty.',
+      'Pool space is measured before the first backup; 2 TB of phone media must fit beside what the pool already holds.',
+      'The CPU-only index of a large library takes days on the NAS; it runs under the services-sync clock and never during the property-photos server’s work.',
+      'The mobile app needs the Funnel path to upload from outside the house, so the forwarder passes the upload routes under the family key.',
+    ],
+    nextStep: 'Bring it home by the Way (THE-WAY-A-SERVICE-COMES-HOME): measure the pool, register it in services.json with an installer that owns its data folder, a forwarder that says why, a witness and a surface; then prove one phone’s backup landed before anything is cancelled.',
+    reReview: '2026-11-08',
+    gapRef: null,
+    drRef: 'DR-1104',
+  },
+  {
+    id: 'jellyfin',
+    name: 'Jellyfin',
+    repo: 'jellyfin/jellyfin',
+    pin: { ref: 'v12.2', sha: 'ca0f16eb7c195f720a1493ed469a27c4657db0c6' },
+    replaces: 'Netflix and the other video subscriptions, none of which the inbox holds a receipt for',
+    capability: 'Our own films, shows and recordings served to every screen in the house',
+    codeLicense: 'GPL-2.0',
+    weightsLicense: 'None; it runs no models',
+    commercialUse: 'clear',
+    copyleftNetwork: false,
+    canExecuteCode: false,
+    egress: 'Artwork and metadata from TMDb and the other providers that are switched on; nothing when they are off. No telemetry found.',
+    auth: 'Its own multi-user login with sessions.',
+    hardware: 'Direct play is light; transcoding wants a GPU the NAS does not have, so files are kept in formats the screens play as they are.',
+    placement: 'none',
+    frontedBy: 'Not placed',
+    verdict: 'hold',
+    why: 'The inbox shows no video subscription to replace and no library of our own films has been named; the sermon archive is served another way (church-media-golive). It is read again when a library exists.',
+    opportunities: [
+      'The sermon and worship recordings as one browseable library on the family’s screens.',
+      'Discs the household owns, ripped to the pool, served without a subscription.',
+      'A real test suite in the repository, and releases tagged.',
+    ],
+    constraints: [
+      'No library yet: a server with nothing to serve is a container running for its own sake.',
+      'Transcoding on the NAS CPU would starve the other services; only direct play is on the table.',
+      'Metadata providers send film titles off the network; they stay off until that is weighed.',
+    ],
+    nextStep: 'Name the first library (the sermon and worship recordings, or the household’s own discs ripped to the pool); then bring it home by the Way.',
+    reReview: '2026-12-01',
+    gapRef: null,
+    drRef: 'DR-1104',
+  },
+  {
+    id: 'audiobookshelf',
+    name: 'Audiobookshelf',
+    repo: 'advplyr/audiobookshelf',
+    pin: { ref: 'v2.37.1', sha: '3563d49424d50170324de9236a24c591b6d965e9' },
+    replaces: 'Audible, for which the inbox holds no receipt',
+    capability: 'Our own audiobooks and podcasts shelved and streamed to the phone, with progress kept',
+    codeLicense: 'GPL-3.0',
+    weightsLicense: 'None; it runs no models',
+    commercialUse: 'clear',
+    copyleftNetwork: false,
+    canExecuteCode: false,
+    egress: 'Cover art and metadata from Audible (through audnex), Google Books, Open Library, iTunes and FantLab only when a match is asked for. No telemetry found.',
+    auth: 'Its own multi-user login.',
+    hardware: 'Light; one Node process on port 13378 in its compose file, with the library as a plain folder.',
+    placement: 'none',
+    frontedBy: 'Not placed',
+    verdict: 'hold',
+    why: 'No Audible receipt and no shelf of audiobooks has been named. The sermon audio already has a road. It is read again when a shelf exists.',
+    opportunities: [
+      'The household’s own audiobooks and the sermon audio in one shelf, with progress kept across phones.',
+      'A plain folder of files is the library; the app only reads it.',
+    ],
+    constraints: [
+      'No shelf yet: nothing to serve.',
+      'Metadata lookups send titles to Audible and Google; they stay off until weighed.',
+    ],
+    nextStep: 'Name the first shelf; then bring it home by the Way.',
+    reReview: '2026-12-01',
+    gapRef: null,
+    drRef: 'DR-1104',
   },
 ];
 
