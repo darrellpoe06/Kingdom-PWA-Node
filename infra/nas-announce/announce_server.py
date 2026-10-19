@@ -73,7 +73,7 @@ TOPIC = 'darrell'                       # PINNED. Never taken from the request.
 # The relay runs on the HOST (poetech-announce.service), where Docker's
 # `ntfy` name does not resolve: that name exists only inside the n8n compose
 # network (infra/n8n/INSTALL.md item 9). ntfy is published on host port 8081
-# (infra/n8n/docker-compose.yml), so the host address is the default (DR-1104).
+# (infra/n8n/docker-compose.yml), so the host address is the default (DR-1110).
 NTFY_URL = os.environ.get('NTFY_URL', 'http://127.0.0.1:8081') + '/' + TOPIC
 # CORRECTED 2026-10-15: this default was '/volume1/poetech/.announce-token',
 # which is a path that does not exist. install.sh writes the token to

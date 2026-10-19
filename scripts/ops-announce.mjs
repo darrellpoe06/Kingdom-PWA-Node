@@ -79,7 +79,7 @@ export function classifyBellResponse({ code, body = '', transportError = null } 
     };
   }
   if (n >= 200 && n < 300) {
-    // A 200 IS NOT A RING (DR-1104). The sovereign relay answers 200 with
+    // A 200 IS NOT A RING (DR-1110). The sovereign relay answers 200 with
     // {ok, delivered, detail} whether or not ntfy took the push
     // (infra/nas-announce/announce_server.py, do_POST), so "accepted" said
     // nothing about the phone. Only `delivered: false` is read as a failure;

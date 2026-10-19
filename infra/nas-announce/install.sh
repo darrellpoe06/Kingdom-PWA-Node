@@ -31,7 +31,7 @@ echo "== announce install: systemd unit =="
 TOKEN="$(cat "$TOKEN_FILE")"
 NEED_RELOAD=0
 # The unit is rewritten whenever the RENDERED unit differs from the installed
-# one, not only when the token changed (DR-1104). The old test looked at the
+# one, not only when the token changed (DR-1110). The old test looked at the
 # token line alone, so a corrected Environment line (NTFY_URL moved from
 # Docker's `ntfy:80`, which the host cannot resolve, to 127.0.0.1:8081) would
 # never have reached a NAS whose token was already in place.

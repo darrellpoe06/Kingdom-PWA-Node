@@ -164,7 +164,7 @@ describe('ring — the thin shell around the decision', () => {
     expect(JSON.parse(init.body)).toEqual({ title: 'down', message: 'the site', url: 'u', priority: '5' });
   });
 
-  // A 200 IS NOT A RING (DR-1104): the sovereign relay answers 200 with
+  // A 200 IS NOT A RING (DR-1110): the sovereign relay answers 200 with
   // {ok, delivered, detail} even when ntfy refused or was unreachable.
   it('a 200 that says delivered:false is a dead bell, with ntfy\'s own reason', () => {
     const r = classifyBellResponse({ code: 200, body: JSON.stringify({ ok: true, delivered: false, detail: 'ntfy unreachable: Name or service not known' }) });
