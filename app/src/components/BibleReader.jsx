@@ -23,7 +23,7 @@ import {
 import { crossRefsFor, XREF_SOURCE } from '../lib/bible-xref.js';
 import { THEMES, themeMarkerStyle } from '../lib/scripture-themes.js';
 import { scanThemeSpans, themesPresent } from '../lib/scripture-theme-scan.js';
-import { VOICES, cssForVoice, voiceSpansFor, voicesPresent } from '../lib/scripture-voices.js';
+import { VOICES, cssForVoice, voiceSpansFor, voicesPresent, loadVoiceBook, voiceBookLoaded } from '../lib/scripture-voices.js';
 import { castScript } from '../lib/scripture-voice-cast.js';
 import { useCastRead } from '../lib/use-cast-read.js';
 import { momentsForChapter, personOf } from '../lib/scripture-godhead-moments.js';
@@ -249,8 +249,8 @@ export default function BibleReader({ email = null }) {
   // One-click "Highlighted Bible" (Darrell 2026-07-04). Two color codes the reader
   // LEARNS over time, each a VIEW computed on the fly (never touches saved marks):
   //   'themes' — every verse auto-colors by the theme key/color code (patterns).
-  //   'voices' — the red-letter code: who is SPEAKING (Jesus red, the tempter cold,
-  //     the Father gold…) so the eye comes to know the voice by its color.
+  //   'voices' — the red-letter code: who is SPEAKING. Yahweh's voices — the
+  //     Father, the Son, the Holy Spirit — in red; the tempter cold (DR-1103).
   // 'off' reads plain. The mode stays on as you read chapter to chapter.
   const [autoMode, setAutoMode] = useState('off'); // 'off' | 'themes' | 'voices'
   // Dramatized reading: play the chapter with each speaker in their own voice
@@ -269,9 +269,22 @@ export default function BibleReader({ email = null }) {
     () => (autoMode === 'themes' ? themesPresent(verses.map((x) => x.text).join(' ')) : []),
     [autoMode, verses],
   );
+  // The book's voices load on demand the first time the voices view meets it; the
+  // view redraws when they land (voicesReady), and reads the hand-verified set until then.
+  const [voicesReady, setVoicesReady] = useState(() => voiceBookLoaded(book));
+  useEffect(() => {
+    if (autoMode !== 'voices') return undefined;
+    let on = true;
+    setVoicesReady(voiceBookLoaded(book));
+    loadVoiceBook(book).then((ok) => { if (on) setVoicesReady(ok); });
+    return () => { on = false; };
+  }, [autoMode, book]);
   const chapterVoices = useMemo(
-    () => (autoMode === 'voices' ? voicesPresent(verses.map((x) => `${book} ${chapter}:${x.v}`)) : []),
-    [autoMode, verses, book, chapter],
+    // the quotes are KJV text, so another edition shows none rather than a legend with nothing colored
+    () => (autoMode === 'voices' && edition === 'kjv' ? voicesPresent(verses.map((x) => `${book} ${chapter}:${x.v}`)) : []),
+    // voicesReady re-reads the attributions once the book's voices have loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [autoMode, verses, book, chapter, voicesReady, edition],
   );
   // The whole chapter as one utterance for the plain read-aloud.
   const chapterText = useMemo(() => verses.map((x) => x.text).join(' '), [verses]);
@@ -544,7 +557,7 @@ export default function BibleReader({ email = null }) {
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Voices here:</span>
               {chapterVoices.length === 0 ? (
-                <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>no voices verified in this chapter yet — only the narration.</span>
+                <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>{edition !== 'kjv' ? 'the voices are marked on the KJV text — switch the edition to KJV to see them.' : 'no one speaks here in the Godhead’s own words — only the narration.'}</span>
               ) : chapterVoices.map((k) => {
                 const vc = VOICES.find((x) => x.key === k);
                 return (
@@ -555,7 +568,7 @@ export default function BibleReader({ email = null }) {
                 );
               })}
             </div>
-            <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>Red-letter: Jesus in red (the Blood), the tempter cold. Only verified speakers are colored — the set grows verse by verse; the rest reads plain.</p>
+            <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>Red-letter: Yahweh’s voices in red — the Father, the Son and the Holy Spirit, wherever the Word itself says He is speaking. The tempter reads cold. Only the spoken words are colored; the narration reads plain.</p>
             {/* Dramatized read — hear each speaker in their own voice. */}
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
               <button type="button" disabled={!cast.supported}

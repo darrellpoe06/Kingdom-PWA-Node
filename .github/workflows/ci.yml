@@ -324,6 +324,14 @@ jobs:
       - name: cams forwarder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_forwarder.py --selftest
+      # Research forwarder selftest (DR-1101): the locked door in front of Vane,
+      # which has no login of its own. Proven-to-catch: fails if /ask accepts a
+      # missing or wrong bearer, if any Vane page or API is ever passed through,
+      # if a javascript: or file: source reaches the app, if an answer stops
+      # saying it is unverified, or if a second question queues instead of 503.
+      - name: research forwarder selftest
+        working-directory: infra/nas-research
+        run: python3 research_forwarder.py --selftest
       # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
       # config is not normalized, if a disabled camera keeps recording, if a
       # dead ffmpeg is restarted without backoff, if retention or the disk

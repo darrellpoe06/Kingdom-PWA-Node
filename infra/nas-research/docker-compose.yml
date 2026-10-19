@@ -1,0 +1,43 @@
+# The research road (DR-1101; the Vane pilot of DR-1099): Vane, an open-source
+# answer engine that searches the web and returns its sources, on our own
+# SearxNG and our own Ollama. Nothing here is reachable from outside the NAS:
+# SearxNG publishes on 127.0.0.1 only, and Vane binds 127.0.0.1 on the host
+# network. The only door is poetech-research.service (research_forwarder.py),
+# which takes the family key and exposes one question endpoint, never Vane's
+# own pages (Vane has no login of any kind).
+#
+# PINNED (services-sync-guard refuses a floating tag):
+#   Vane slim-v1.12.2, the release read for DR-1099 (git 9e8d8837). The slim
+#     image, never the single image: that one adds passwordless sudo for its
+#     bundled search user (read 2026-10-18, Dockerfile line 71).
+#   SearxNG 2026.10.13-22c64b8d3, unmodified, AGPL-3.0; it serves only Vane on
+#     loopback, so no one outside this box ever interacts with it.
+#
+# Brakes: request-driven (no timers); the caps live in research_forwarder.py.
+services:
+  searxng:
+    image: searxng/searxng:2026.10.13-22c64b8d3@sha256:9b61996edcc679fb6665290f95fda15389a14eda6060e41a25c63ab2758f2436
+    container_name: poetech-searxng
+    ports:
+      - "127.0.0.1:8798:8080"
+    volumes:
+      - /volume1/docker/research/searxng:/etc/searxng
+    restart: unless-stopped
+
+  vane:
+    image: itzcrazykns1337/vane:slim-v1.12.2@sha256:d2878cf9c91962aa3fc053b59bc9b89adcbdcaeb7ee36b54906e853464b2c190
+    container_name: poetech-vane
+    # Host network so Vane can reach the tower's Ollama over the tailnet, the
+    # way go2rtc reaches the cameras; HOSTNAME pins Next.js to loopback.
+    network_mode: host
+    env_file:
+      - /volume1/docker/research/vane.env
+    environment:
+      HOSTNAME: "127.0.0.1"
+      PORT: "3017"
+      SEARXNG_API_URL: "http://127.0.0.1:8798"
+    volumes:
+      - /volume1/docker/research/vane-data:/home/vane/data
+    depends_on:
+      - searxng
+    restart: unless-stopped

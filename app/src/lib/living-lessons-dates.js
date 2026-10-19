@@ -300,4 +300,7 @@ export const LIVING_LESSONS_ADDED = {
   // L252 (DR-1100): Darrell's fifty-three messages of 2026-10-18, sent while
   // it was being built, carried in one lesson the same session.
   'll252-this-life-is-the-curriculum-made-to-be-his-temple': '2026-10-18',
+  // L253 (DR-1102): Darrell's one message of 2026-10-18 on benefiters and
+  // underminers of the eternal kingdom, carried the same session.
+  'll253-benefiters-or-underminers-of-the-eternal-kingdom': '2026-10-18',
 };

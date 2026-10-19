@@ -5,7 +5,8 @@
 // Reads open-source-candidates.js (DR-1099) and nothing else: every line is a
 // field of that register, and the gaps panel reads sovereignty-gaps.js live, so
 // a passed re-review shows the day it passes. Nothing is painted: a pilot says
-// "bring home next", never "running".
+// "bring home next", never "running"; the one tool with a road (Vane, DR-1101)
+// says whether it runs by asking that road's own /health in ResearchTry.
 //
 // UX-PATTERNS 3 (progressive disclosure) and 2e (the still screen): each tool's
 // essential view is its verdict, why, machine and next step; the licences,
@@ -18,6 +19,7 @@ import {
   OPEN_SOURCE_CANDIDATES, CANDIDATES_RECORDED, CANDIDATES_DR, VERDICTS, PLACES, COMMERCIAL_USE,
   summarizeCandidates, touchedGaps, pinnedUrl,
 } from '../lib/open-source-candidates.js';
+import ResearchTry from './ResearchTry.jsx';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -122,6 +124,8 @@ export default function OpenSourceCandidates({ today = todayIso(), list = OPEN_S
           </ul>
         </div>
       )}
+
+      {list.some((c) => c.id === 'vane') && <ResearchTry />}
 
       {groups.map((v) => {
         const items = list.filter((c) => c.verdict === v);
