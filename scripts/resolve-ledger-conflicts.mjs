@@ -135,9 +135,47 @@ export function unionConflictHunks(text) {
   return out.join('\n');
 }
 
+/** Split an UNBALANCED annotation tail on its "(DR-NNNN = " segment markers.
+ *
+ * MEASURED 2026-10-19 on main's own INDEX.md: the pointer line had grown to
+ * 25,721,382 characters -- 25.7 MB on ONE line, inside a 27.5 MB file that
+ * every session pays for before any work (DR-0245 fold discipline). It held
+ * 28,240 annotation segments of which only 35 were DISTINCT; several appeared
+ * 1,074 times each.
+ *
+ * The cause was this function's own fallback. The split below is paren-BALANCE
+ * based, and the accumulated prose carried 70,959 "(" against 69,237 ")" -- a
+ * final depth of 1,722, never negative. ONE unclosed paren in prose is enough:
+ * depth never returns to 0, so the old `loose += buf` path kept the entire
+ * remainder as a single opaque group. Two opaque blobs from opposite sides of
+ * a merge are never string-equal, so unionAnnotations could not dedupe them
+ * and every fold appended the whole blob to the whole blob. The 1,722 unclosed
+ * parens are both cause and consequence: one seed paren, multiplied by the
+ * doubling it caused.
+ *
+ * Splitting on the "(DR-NNNN = " marker does not care how the prose inside a
+ * segment parenthesises, so a blob becomes comparable groups again and dedupe
+ * works. Text before the first marker is kept as its own group, so nothing is
+ * dropped -- the old contract's promise, kept by a means an unclosed paren
+ * cannot defeat. */
+function splitUnbalancedTail(tail) {
+  const MARK = /\(DR-\d{4} = /g;
+  const starts = [];
+  for (let m = MARK.exec(tail); m; m = MARK.exec(tail)) starts.push(m.index);
+  if (!starts.length) return tail.trim() ? [tail.trim()] : [];
+  const out = [];
+  if (tail.slice(0, starts[0]).trim()) out.push(tail.slice(0, starts[0]).trim());
+  starts.forEach((s, i) => {
+    const seg = tail.slice(s, i + 1 < starts.length ? starts[i + 1] : tail.length).trim();
+    if (seg) out.push(seg);
+  });
+  return out;
+}
+
 /** Split the text after "**Next ID:** DR-NNNN." into its annotation groups:
  * each balanced top-level "( ... )" is one group; loose text between groups is
- * kept as its own group. Unbalanced text is kept whole (never dropped). */
+ * kept as its own group. Unbalanced text is split on its "(DR-NNNN = " markers
+ * (never dropped) -- see splitUnbalancedTail for why that fallback exists. */
 export function nextIdAnnotations(line) {
   const rest = line.replace(/^\*\*Next ID:\*\*\s*(?:DR-\d{4})?\.?\s*/, '');
   const groups = [];
@@ -154,16 +192,31 @@ export function nextIdAnnotations(line) {
       else if (ch === ')') { depth--; if (depth === 0) { groups.push(buf); buf = ''; } }
     }
   }
-  if (depth !== 0) loose += buf; // unbalanced tail: keep it verbatim
+  // Unbalanced tail: split it on its segment markers instead of keeping the
+  // whole remainder as one opaque group, which is what let the line double.
+  if (depth !== 0) {
+    if (loose.trim()) groups.push(loose.trim());
+    loose = '';
+    groups.push(...splitUnbalancedTail(buf));
+  }
   if (loose.trim()) groups.push(loose.trim());
   return groups;
 }
 
 /** Union annotation lists: the first list's order, then each later list's new
  * groups — the ones that come BEFORE its first shared group go to the front
- * (they are the newest, as every PR prepends), the rest to the end. */
+ * (they are the newest, as every PR prepends), the rest to the end.
+ *
+ * The FIRST list is de-duplicated against itself too. It was not, so a list
+ * that already carried repeats kept every one of them forever and the file
+ * could never shrink no matter how often the resolver ran — the second-order
+ * half of the 25.7 MB pointer line measured 2026-10-19. */
 export function unionAnnotations(lists) {
-  let merged = [...(lists[0] || [])];
+  const seen = new Set();
+  let merged = [...(lists[0] || [])].filter((g) => {
+    if (seen.has(g)) return false;
+    seen.add(g); return true;
+  });
   for (const list of lists.slice(1)) {
     const have = new Set(merged);
     const firstShared = list.findIndex((g) => have.has(g));
