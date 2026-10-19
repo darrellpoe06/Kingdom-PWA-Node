@@ -29,18 +29,21 @@ describe('every path lands in exactly one named layer', () => {
     expect(layerOf('docs/decisions/DR-1110-a-200-is-not-a-ring.md')).toBe('ledger');
     expect(layerOf('docs/99-session-notes/x.md')).toBe('docs');
   });
-  it('places every path main has changed in the last week — nothing falls into "other"', () => {
+  it('places EVERY tracked file in the repository in a named layer — nothing falls into "other"', () => {
+    // CI checks out one commit (a shallow clone), so a walk over history sees
+    // that commit "add" the whole tree; the first version of this case failed
+    // there on .gitignore, LICENSE, _archive/, backend/, builds/... So the
+    // check is the stronger one: every file git tracks today has a layer,
+    // with or without history.
     const root = join(process.cwd(), '..');
-    let shas;
-    try {
-      shas = execFileSync('git', ['log', 'HEAD', '--first-parent', '-n', '60', '--format=%H'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
-    } catch { return; } // a checkout without history cannot be measured here; CI has history
-    const unplaced = new Set();
-    for (const s of shas) {
-      const files = execFileSync('git', ['show', '--name-only', '--format=', s], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
-      for (const f of files) if (layerOf(f) === 'other') unplaced.add(f);
-    }
-    expect([...unplaced]).toEqual([]);
+    const files = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim().split('\n').filter(Boolean);
+    expect(files.length).toBeGreaterThan(1000);
+    const unplaced = [...new Set(files.filter((f) => layerOf(f) === 'other'))];
+    expect(unplaced).toEqual([]);
+    expect(layerOf('_archive/voice-ops-typescript-v0/src/worker.ts')).toBe('archive');
+    expect(layerOf('backend/voice-worker/src/index.js')).toBe('transport');
+    expect(layerOf('LICENSE')).toBe('repo');
+    expect(layerOf('store/android.keystore.enc')).toBe('factory');
   });
 });
 

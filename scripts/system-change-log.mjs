@@ -42,6 +42,13 @@ export const LAYER_RULES = [
   { layer: 'content', test: (p) => /^app\/public\/bible\//.test(p) || /^app\/src\/lib\/(living-lessons|.*-course|.*-class|learn-|lesson-)/.test(p) },
   { layer: 'tests', test: (p) => /^app\/src\/__tests__\//.test(p) },
   { layer: 'app', test: (p) => /^app\//.test(p) },
+  // Build and packaging tooling outside .github/scripts: the Android store
+  // files, the dispatch-page builder, the NAS deploy helpers, the skills lock.
+  { layer: 'factory', test: (p) => /^(builds|tools|store)\//.test(p) || /^deploy-to-synology\./.test(p) || p === 'skills-lock.json' },
+  // backend/voice-worker is a Cloudflare Worker at the edge, beside the Functions.
+  { layer: 'transport', test: (p) => /^backend\//.test(p) },
+  { layer: 'archive', test: (p) => /^_archive\//.test(p) },
+  { layer: 'repo', test: (p) => ['.gitattributes', '.gitignore', 'LICENSE', 'NOTICE', 'vercel.json'].includes(p) },
   { layer: 'ledger', test: (p) => /^docs\/decisions\//.test(p) },
   { layer: 'docs', test: (p) => /^docs\//.test(p) || /\.md$/.test(p) },
 ];
@@ -55,7 +62,7 @@ export function layerOf(path) {
 
 /** The distinct layers a change touched, in a stable order. */
 export function layersOf(paths) {
-  const order = ['app', 'transport', 'nas', 'data', 'factory', 'content', 'tests', 'ledger', 'docs', 'other'];
+  const order = ['app', 'transport', 'nas', 'data', 'factory', 'content', 'tests', 'ledger', 'docs', 'repo', 'archive', 'other'];
   const set = new Set((paths || []).map(layerOf));
   return order.filter((l) => set.has(l));
 }
