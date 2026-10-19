@@ -17,6 +17,7 @@
 // blocks on it). Re-fetches on each auth change.
 import { useSyncExternalStore } from 'react';
 import supabase, { onAuthChange } from './supabase.js';
+import { standingInSpace } from './family-standing.js';
 
 // TWO RESOLVERS, ONE STORE SHAPE (0193, DR-0351). The shell reads
 // my_default_instance_role() (family-first, 0130). The TLC door and everything
@@ -96,6 +97,31 @@ export const useInstanceRole = defaultStore.use;
 // Onboarding, Governance and Assistant read THIS; the shell never does.
 export const fetchOfficeInstanceRole = officeStore.fetch;
 export const useOfficeInstanceRole = officeStore.use;
+
+// WHO GOVERNS, from the role this seam reads (DR-1106). Re-exported HERE on
+// purpose: the shell already imports this module for the role, so the authority
+// rule rides that import instead of costing the frozen monolith a line — and a
+// reader who finds the role read finds the rule that consumes it in the same
+// breath. The rule itself lives in lib/family-standing.js with its own cases.
+export { governsHere } from './family-standing.js';
+
+// THE STANDING AT THE POINT OF USE. A surface outside the shell reads its OWN
+// standing, and its existing membership prop becomes the FALLBACK rather than
+// the grant: the email allowlist can no longer confer authority, while a failed
+// role read still cannot lock the owner out (DR-0107). This is the TlcAssistant
+// precedent (a component resolving its own role) and it costs the frozen
+// monolith nothing — which is why the gates below could be fixed in place
+// instead of waiting for a line in the shell.
+export function useStandingHere({ allowlisted = false } = {}) {
+  return standingInSpace({ allowlisted, role: defaultStore.use().role });
+}
+
+// The same, against the OFFICE's instance (0193) — for a surface whose wall is
+// the therapy practice and not the household. A family member who is not office
+// staff is a client at the office door.
+export function useOfficeStandingHere({ allowlisted = false } = {}) {
+  return standingInSpace({ allowlisted, role: officeStore.use().role });
+}
 
 // Pure helpers the shell + doors read (kept dumb on purpose — the DB decides).
 export const isAssistantRole = (s) => (s?.role ?? null) === 'assistant';
