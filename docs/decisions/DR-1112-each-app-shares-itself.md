@@ -21,6 +21,18 @@ DR-1056 put the share control in the header and passed it `church={churchBrand |
 
 The card also printed its access promise twice. AppShareQR carries *"Showing this code doesn't grant access…"*, and AppDoorControls added a second copy beneath it. Darrell's screenshot shows both.
 
+## What was measured
+
+- **The screenshot:** the URL bar reads `poetech.us/poetech-app/?view=church`, and the card reads *THE LOVE CORNER APP* with `poetech.us/lovecorner`.
+- **The trace:** the shell passed `church={churchBrand || view === 'church'}`. On `/poetech-app/`, `churchBrand` is false, so the tab alone flipped the card.
+- **The reach:** the header held only two cards, PoeTech and the Love Corner. The other three apps (TLC, Moore Divahs, Poe Properties) had no header card of their own, so their headers fell back to PoeTech's.
+- **The duplicate:** the same access sentence was rendered twice in one modal, once by AppShareQR and once by AppDoorControls.
+
+## Impact
+
+- **Left as it was:** anyone sharing from the PoeTech app's Church tab handed out a code that installs a different app. A code that installs the wrong app is worse than no code, because the person scanning it cannot tell.
+- **What the call obligates:** every new app door must add its own entry to `SHARES`. The test fails when a `DOORS` key has no share card, so a sixth app cannot ship with the header silently sharing PoeTech.
+
 ## Decision
 
 - **The header shares the app the page booted as.** `doorKeyFor({ church, pathname, search })` returns the Love Corner when the page wears the church brand. Otherwise it returns `currentDoor(pathname, search).key`.

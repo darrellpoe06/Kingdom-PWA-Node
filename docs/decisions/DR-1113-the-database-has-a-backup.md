@@ -26,6 +26,24 @@ The reversal trace (DR-1111) found:
 
 Migrations are forward-only, and the `BASELINE-REFRESH` path drops the public schema and restores from a hosted dump that has been stale since 2026-08-19. A bad migration, a failed disk, or a mistaken refresh therefore had nothing to restore from.
 
+## What was measured
+
+- **A search of `infra/`, `.github/` and `scripts/` for `pg_dump`** found no job that dumps the sovereign database. Every hit runs the other way:
+  - `replay_migrations.sh` and `cutover_sync.py` pull **hosted into** the NAS;
+  - `ai-orchestrator/registry/docker-compose.yml` only says such a schedule should exist.
+  - `services.json` had no backup rider.
+- **`infra/nas-supabase/replay_migrations.sh`** (`BASELINE-REFRESH`, DR-0309) drops the public schema and restores the committed hosted dump, which was last refreshed on 2026-08-19.
+- **The only scheduled backup** in the repository is restic, and it covers n8n's folder alone.
+- **Hyper Backup and Btrfs snapshots** appear only as setup steps in `docs/01-architecture/SETUP-TODAY.md`, with nothing that records them running.
+
+## Impact
+
+- **Left as it was:** a bad migration, a mistaken refresh, or a corrupted volume would have lost every family account, lesson record and ledger row written since 2026-08-19, with nothing to restore from.
+- **What the call obligates:**
+  - **Disk space:** about 14 archives' worth on `/volume1`. The free-space floor refuses a run before the disk fills.
+  - **A nightly read load** inside the 2–4 am window.
+- **Stated plainly:** the archives sit on the same `/volume1` as the database. This covers a bad change. It does not cover a lost disk. An off-box copy (Hyper Backup to a second target) is the next step on the queue, beside the Storage bytes below.
+
 ## Decision
 
 **What one run does, stopping at the first failure:**
