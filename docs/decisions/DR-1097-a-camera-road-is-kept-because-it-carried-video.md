@@ -347,7 +347,9 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 
 **What is left:**
 
-- **805 Floodlight Cam - West's frame.**
-  - The session carries video, but go2rtc's JPEG step refuses it.
-  - Next: read its codecs from the stream sampler. A Floodlight Pro may send H.265, and an H.264 twin (DR-0798) would then be the road for a frame.
+- **805 Floodlight Cam - West's frame: fixed in the same record.**
+  - cams-diag 39210024616 with `camera=805_floodlight_cam_-_west`: the full-size frame answered 200 in 4.2 s (169 KB), and the 35 s stream probe carried 4.8 MB.
+  - Only the resized frame (`?w=640`, the size the tab and the witness ask for) failed, because go2rtc hands the resize to ffmpeg, which exits 183 on that camera's key frame.
+  - `/snap` now asks once more at the camera's own size when go2rtc's resize answers 500 "exit status ...". Any other 500 is passed on in go2rtc's own words and never retried.
+  - Selftest: 456 passing. PROVEN TO CATCH: with the retry taken out, its check fails.
 - `re-review: 2026-10-20`, unchanged: decide on the IDisposable fork for the Kinesis dial clock against this read.

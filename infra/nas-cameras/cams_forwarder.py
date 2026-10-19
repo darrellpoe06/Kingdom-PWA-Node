@@ -3872,11 +3872,26 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         return self._json(504, {"error": "frame-timeout", "after_s": int(frame_timeout),
                                                 "detail": "no video on Wyze's WebRTC road yet; go2rtc was not asked"})
                     frame_timeout = max(left, 5.0)
+                said = None  # go2rtc's words, once read for the resize check below
                 try:
-                    status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
+                    try:
+                        status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
+                    except urllib.error.HTTPError as e:
+                        # THE FRAME AT ITS OWN SIZE (DR-1097, tenth read). 805 Floodlight
+                        # Cam - West gave a full frame in 4.2 s and 4.8 MB of live video in
+                        # 35 s, and every ?w=640 frame answered 500 "exit status 183": go2rtc
+                        # hands a resize to ffmpeg, which refused that camera's key frame. A
+                        # resize ffmpeg refuses is asked once more at the camera's own size.
+                        if e.code != 500 or len(params) == 1:
+                            raise
+                        said = e.read(2048).decode("utf-8", "replace")
+                        if "exit status" not in said:
+                            raise
+                        said = None
+                        status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params[:1]), frame_timeout)
                 except urllib.error.HTTPError as e:
                     # go2rtc answered, and said why (its body is the error text).
-                    detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300)
+                    detail = scrub_text((said if said is not None else e.read(2048).decode("utf-8", "replace")).strip(), 300)
                     breaker_note(cam, False, detail)
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code, "detail": detail})
                 except socket.timeout:
@@ -4246,6 +4261,8 @@ def _selftest():
                     return self._send(200, "image/jpeg", b"\xff\xd8late\xff\xd9")
                 if q.get("src", [""])[0] == "dark_cam":
                     return self._send(500, "text/plain", b"source not ready")
+                if q.get("src", [""])[0] == "scale_cam" and q.get("w"):
+                    return self._send(500, "text/plain", b"exit status 183")
                 return self._send(200, "image/jpeg", b"\xff\xd8JPEG-" + q.get("src", [""])[0].encode() + b"-w" + q.get("w", ["0"])[0].encode())
             if path == "/api/stream.mp4":
                 self.send_response(200); self.send_header("Content-Type", "video/mp4")
@@ -5989,6 +6006,14 @@ def _selftest():
     finally:
         KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
         breaker_note("front_yard", True)
+    n_sc = sum(1 for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=scale_cam"))
+    s, _h, d = call("GET", "/snap/scale_cam.jpg?w=640", auth=B)
+    asks_sc = [q for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=scale_cam")][n_sc:]
+    check(s == 200 and d.startswith(b"\xff\xd8JPEG-scale_cam-w0") and len(asks_sc) == 2 and "w=640" in asks_sc[0] and "w=" not in asks_sc[1],
+          "PROVEN TO CATCH: a resize ffmpeg refuses (500 exit status 183, 805 Floodlight Cam - West) is asked once more at the camera's own size and served (%d, %r)" % (s, asks_sc))
+    s, _h, d = call("GET", "/snap/dark_cam.jpg?w=640", auth=B)
+    check(s == 500 and b"source not ready" in d, "any other 500 is go2rtc's own answer, passed on in its words, never retried")
+    breaker_note("dark_cam", True)
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
