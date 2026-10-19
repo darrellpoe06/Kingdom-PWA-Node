@@ -64,7 +64,7 @@ nothing at all.
 **4. Nothing for a governor.** A person who governs is not reading a locked
 panel; a standing line there would be noise.
 
-## What this deliberately does NOT do — with the why and the date
+## Impact — what this deliberately does not do, with the why and the date
 
 **`Forecast` (`isOwner`) and `WorkflowScribe` (`isSteward`) still read
 `isFamilyMember`.** They are authority-shaped props that the DR-1107 scanner did
@@ -130,3 +130,19 @@ lint and gates green.
 
 This is the DR-0076 rule applied to my own miss: the class that got past the
 check becomes a check.
+
+## Superseded, within the hour, by DR-1109 — and rightly
+
+**The three deferrals above are closed, not pending.** The `ari-integrity-guard`
+stop hook flagged the reply carrying them before Darrell read it (*"asks
+permission for work already directed"*), and it was correct: migration `0082`
+had already decided Forecast and Scribe, and `0193` had already decided
+Practice. I had cited DR-0094, which governs a child's money **education**, over
+a question about whether a surface agrees with the database.
+
+**DR-1109** closes all three — Forecast on `canSeeBooks`, Scribe on `canWrite`,
+Practice on the office standing — and the registry's `deferred` class is gone
+entirely. The deferral text above is left standing rather than edited away,
+because the mistake is the useful part of this record: a `re-review:` date is
+the right instrument for a real decision and the wrong one for a question the
+schema already answers.
