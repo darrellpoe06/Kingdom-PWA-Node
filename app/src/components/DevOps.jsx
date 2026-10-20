@@ -7,6 +7,7 @@ import SectionTabs from './SectionTabs.jsx';
 import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
 import OpenersPanel from './OpenersPanel.jsx';
 import ChurchCostToServe from './ChurchCostToServe.jsx';
+import FullTimePath from './FullTimePath.jsx';
 import { useInstanceRole } from '../lib/instance-role.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -795,8 +796,10 @@ function PoeTechProjections() {
       </div>
 
       {/* DR-1128: a church's price is checked against its whole cost to serve
-          before it is offered. */}
+          before it is offered. DR-1137: then every revenue line against the
+          family's full-time pay and the next hire. */}
       <ChurchCostToServe />
+      <FullTimePath />
 
       <div className="bg-white border border-[#1A1815]">
         <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
