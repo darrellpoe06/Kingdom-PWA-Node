@@ -1,4 +1,4 @@
-# DR-1137: The thief who forgot to lock his own door — the pit he digged, the old hole nobody repaired, and the Keeper who neither slumbers nor sleeps (sov44)
+# DR-1143: The thief who forgot to lock his own door — the pit he digged, the old hole nobody repaired, and the Keeper who neither slumbers nor sleeps (sov44)
 
 **Date:** 2026-10-20
 **Status:** accepted
