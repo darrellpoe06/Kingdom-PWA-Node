@@ -401,6 +401,7 @@ const NODES = [
       { res: 'db:lesson_parity_promotion', token: 'FROM public.lesson_parity_promotion' },
     ],
     writes: [
+      { res: 'nas:lesson-builder', token: 'write_status' },
       { res: 'db:lesson_versions', token: 'INSERT INTO public.lesson_versions' },
       { res: 'db:curriculum_lessons', token: 'INSERT INTO public.curriculum_lessons' },
       { res: 'db:lesson_decisions', token: 'UPDATE public.lesson_decisions' },
@@ -1177,6 +1178,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:taxes', token: '127.0.0.1:8790' }],
     writes: [{ res: 'gh:incident', token: 'tax-upload-incident' }], seeds: ['ops-surface'],
   }),
+  wf('lesson-builder-health.yml', {
+    id: 'lesson-builder-health', name: 'Lesson-builder loop witness (DR-0669, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, asks the lesson builder for its own status (the unit, the kill state, each writer and its why, the push credential); on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:lesson-builder', token: '--status' }],
+    writes: [{ res: 'gh:incident', token: 'lesson-builder-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
@@ -1892,6 +1898,7 @@ const RESOURCES = {
   'http:libraries': { label: 'the libraries road’s health door on the NAS (Jellyfin and Audiobookshelf live on the tailnet)', route: '/libraries' },
   'db:home_accounts': { label: 'a person’s own logins on the home servers, written by the NAS after the account exists (0303, DR-1121; owner reads only)' },
   'nas:home-accounts': { label: 'the home-accounts loop’s last-pass ledger on the NAS' },
+  'nas:lesson-builder': { label: 'the lesson builder’s own status on the NAS (status.json; --status)' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

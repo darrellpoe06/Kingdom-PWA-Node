@@ -61,6 +61,9 @@ const ON_THE_WAY = {
  *  nothing else may be. */
 const LOOPS_ON_THE_WAY = {
   'home-accounts': { witness: 'libraries-health.yml' },
+  // Born before the Way; brought up to it 2026-10-20 (the audit). It stamps its
+  // code, so it lacks only health, which a loop lacks by nature.
+  'lesson-builder': { witness: 'lesson-builder-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -87,7 +90,6 @@ const BORN_BEFORE_THE_WAY = {
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
   'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-builder': { lacks: ['health', 'witness'] },
   announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
@@ -160,7 +162,10 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const [name, w] of Object.entries(LOOPS_ON_THE_WAY)) {
       const s = SERVICES.find((x) => x.name === name);
       expect(s, name).toBeTruthy();
-      expect(lacksOf(s, w.witness), `${name} lacks`).toEqual(['codeFollows', 'health']);
+      const lacks = lacksOf(s, w.witness);
+      expect(lacks, `${name} lacks`).not.toContain('witness');
+      expect(lacks, `${name} lacks`).not.toContain('stands');
+      for (const part of lacks) expect(['codeFollows', 'health'], `${name} lacks ${part}, which a loop may not`).toContain(part);
     }
   });
 
@@ -214,11 +219,11 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // lesson-builder stamps its code and has no witness; a ledger row that still
-    // listed codeFollows, or one that claimed a witness, would not match the files.
-    const s = SERVICES.find((x) => x.name === 'lesson-builder');
-    expect(lacksOf(s)).toEqual(['health', 'witness']);
-    expect(lacksOf(s)).not.toEqual(['codeFollows', 'health', 'witness']);
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['health']);
+    // announce probes its /health and stamps nothing; a ledger row that struck
+    // codeFollows, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'announce');
+    expect(lacksOf(s)).toEqual(['codeFollows', 'witness']);
+    expect(lacksOf(s)).not.toEqual(['witness']);
+    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows']);
   });
 });

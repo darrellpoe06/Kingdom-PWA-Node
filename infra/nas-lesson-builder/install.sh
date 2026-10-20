@@ -31,6 +31,36 @@ for f in /volume1/PoeTech/secrets/lesson-writers.json /volume1/PoeTech/secrets/l
   [ -f "$f" ] && chown "$RUN_AS" "$f" 2>/dev/null && chmod 0600 "$f"
 done
 
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). The CLI install
+# (a 180 s curl | bash) and the clone (240 s) each can spend the whole
+# services-sync cycle, and the unit block sat after both, so a cycle that
+# installed the CLI left the OLD builder listening with the new code on disk.
+# The function runs once before either and once more at the end. No-op when
+# the unit and the code are already the ones running.
+service_follows_code() {
+  NEED_RELOAD=0
+  if [ ! -f "$UNIT" ] || [ "$(sha256sum < "$SRC/poetech-lesson-builder.service")" != "$(sha256sum < "$UNIT")" ]; then
+    cp "$SRC/poetech-lesson-builder.service" "$UNIT"
+    NEED_RELOAD=1
+    systemctl daemon-reload
+  fi
+  systemctl enable poetech-lesson-builder >/dev/null 2>&1 || true
+  CODE_SHA=$(cat "$SRC/lesson_builder.py" "$SRC/lesson_writer.py" "$SRC/lesson_gates.py" | sha256sum | cut -c1-16)
+  if [ "$NEED_RELOAD" = "1" ] || [ "$(cat "$DATA/.code.sha" 2>/dev/null)" != "$CODE_SHA" ]; then
+    systemctl restart poetech-lesson-builder && echo "$CODE_SHA" > "$DATA/.code.sha" && echo "  restarted (code $CODE_SHA)"
+  else
+    systemctl is-active --quiet poetech-lesson-builder || systemctl restart poetech-lesson-builder
+    # The per-cycle safety sweep: a notification missed while it was down is
+    # picked up now (the LISTEN itself is instant; this is the backstop).
+    systemctl kill -s HUP poetech-lesson-builder 2>/dev/null || true
+  fi
+  return 0
+}
+
+echo "== lesson-builder: the service, before anything that can spend this cycle =="
+service_follows_code
+
 echo "== lesson-builder: the Claude Code CLI for $RUN_AS =="
 HOME_DIR=$(getent passwd "$RUN_AS" 2>/dev/null | cut -d: -f6)
 [ -n "$HOME_DIR" ] || HOME_DIR=/var/services/homes/$RUN_AS
@@ -62,23 +92,8 @@ else
   echo "  present"
 fi
 
-echo "== lesson-builder: the service =="
-NEED_RELOAD=0
-if [ ! -f "$UNIT" ] || [ "$(sha256sum < "$SRC/poetech-lesson-builder.service")" != "$(sha256sum < "$UNIT")" ]; then
-  cp "$SRC/poetech-lesson-builder.service" "$UNIT"
-  NEED_RELOAD=1
-  systemctl daemon-reload
-fi
-systemctl enable poetech-lesson-builder >/dev/null 2>&1 || true
-CODE_SHA=$(cat "$SRC/lesson_builder.py" "$SRC/lesson_writer.py" "$SRC/lesson_gates.py" | sha256sum | cut -c1-16)
-if [ "$NEED_RELOAD" = "1" ] || [ "$(cat "$DATA/.code.sha" 2>/dev/null)" != "$CODE_SHA" ]; then
-  systemctl restart poetech-lesson-builder && echo "$CODE_SHA" > "$DATA/.code.sha" && echo "  restarted (code $CODE_SHA)"
-else
-  systemctl is-active --quiet poetech-lesson-builder || systemctl restart poetech-lesson-builder
-  # The per-cycle safety sweep: a notification missed while it was down is
-  # picked up now (the LISTEN itself is instant; this is the backstop).
-  systemctl kill -s HUP poetech-lesson-builder 2>/dev/null || true
-fi
+echo "== lesson-builder: the service, once more =="
+service_follows_code
 
 echo "== lesson-builder: status =="
 cd "$SRC" || exit 1
