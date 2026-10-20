@@ -1183,6 +1183,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:lesson-builder', token: '--status' }],
     writes: [{ res: 'gh:incident', token: 'lesson-builder-incident' }], seeds: ['ops-surface'],
   }),
+  wf('property-photos-health.yml', {
+    id: 'property-photos-health', name: 'Property-photos road witness (DR-0268, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo server’s /healthz and asks which archives exist through the door with the family key, counting only; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:nas-photos', token: '127.0.0.1:8099' }],
+    writes: [{ res: 'gh:incident', token: 'property-photos-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],

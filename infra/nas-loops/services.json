@@ -73,7 +73,7 @@
       "name": "property-photos",
       "install": "infra/nas-property-photos/install.sh",
       "enabled": true,
-      "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one."
+      "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one. Witness: property-photos-health (its own, on the Way since 2026-10-20: /healthz, one archives read with the family key counted only; where the install stands on a failure)."
     },
     {
       "name": "tax-upload",
