@@ -46,6 +46,23 @@ describe('curriculum shape', () => {
     // no longer missing, so a hold cannot quietly become a permanent gap. If
     // either week is abandoned rather than merged, its number is taken by the
     // next lesson written and the entry goes out with it.
+    //
+    // THIS LIST IS RECOMPUTED ON EVERY MERGE, NEVER CARRIED ACROSS ONE -- and
+    // 2026-10-20 is the first time THREE branches edited this one line at once,
+    // which is what makes the rule worth writing down. The list is a claim
+    // about the MERGED tree, not about the branch you are standing on, and from
+    // each branch's own vantage point a different value is correct: week 44's
+    // branch has no hole below its top and reads [], week 45's reads [44], and
+    // this one reads [44, 45]. All three are right locally and two of them are
+    // wrong the moment another lands. So when this file conflicts in a merge,
+    // DO NOT take either side wholesale: read which sov weeks actually exist in
+    // the merged tree and set this to the holes that REMAIN -- [] once all
+    // three are in. A number left here after its week exists is a DISARMED
+    // check: it tells the gate to ignore a gap that has already closed, which
+    // is the expiring-evidence defect DR-1025 recorded when filling L79
+    // disarmed three checks keyed on a gap that had closed. The assertion below
+    // fails in BOTH directions, so a stale entry cannot pass quietly -- but it
+    // fails after the fact, and recomputing at the merge is the discipline.
     const HELD_IN_FLIGHT = [44, 45];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
@@ -53,7 +70,12 @@ describe('curriculum shape', () => {
     // Every number from 1 to the highest week is present, apart from the holds.
     const missing = [];
     for (let n = 1; n <= weeks[weeks.length - 1]; n += 1) if (!weeks.includes(n)) missing.push(n);
-    expect(missing, 'a missing week number that is not recorded as held in flight').toEqual(HELD_IN_FLIGHT);
+    // The message names BOTH directions and the remedy, because the two fail
+    // for opposite reasons and want opposite fixes: a gap nobody recorded is a
+    // dropped or misfiled week, while a recorded number that is no longer
+    // missing is a HOLD THAT OUTLIVED ITS WEEK -- a disarmed check, cleared by
+    // deleting that entry, never by widening the list to match.
+    expect(missing, `week gaps on disk are [${missing.join(',')}] and HELD_IN_FLIGHT records [${HELD_IN_FLIGHT.join(',')}]: a gap that is not recorded is a dropped or misfiled week; a recorded number that is NOT missing any more is a hold that outlived its week, so DELETE that entry (recompute the list from the merged tree) rather than widen it`).toEqual(HELD_IN_FLIGHT);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
