@@ -48,9 +48,15 @@ const gapClause = (missing) => (missing.length <= NAMED_GAPS
   : `${missing.length} numbers unused`);
 
 describe('the facts (measured from the lessons, not assumed)', () => {
-  it('every Living Lesson carries its own number; none is shared; L79 was never made', () => {
+  it('every Living Lesson carries its own number; none is shared; the gaps are real', () => {
+    // 79 was the gap this named until 2026-10-14, when the lesson meant for it
+    // was mined out of PR #1255 and the number was claimed (DR-1013). The claim
+    // here is arithmetic — the count, the span and the holes must agree — so it
+    // is asserted against the gaps the schedule actually has rather than against
+    // one that could be filled, which is what happened.
     expect(new Set(nums).size).toBe(COUNT);
-    expect(GAPS).toContain(79);
+    expect(nums).toContain(79);
+    expect(GAPS.length, 'the holes the series still carries').toBeGreaterThan(0);
     expect(HIGHEST - GAPS.length).toBe(COUNT);
   });
 });

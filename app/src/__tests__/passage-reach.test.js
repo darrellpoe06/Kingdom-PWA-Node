@@ -22,6 +22,7 @@ import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import {
   PASSAGES_THAT_MUST_REACH, measureReach, passagesBelowFloor,
   passagesStrandedInTheirIntroduction, parkedPassages,
+  dischargeClaimsNotKept, IN_FLIGHT_NOTE,
 } from '../lib/passage-reach.js';
 
 describe('the measure itself is sound before anything is measured with it', () => {
@@ -211,5 +212,79 @@ describe('THE LIVE SERIES — no declared passage is stranded in its own introdu
       expect(p.reReview, `${p.ref} is parked with no date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(p.why.length, `${p.ref} is parked with no reason`).toBeGreaterThan(40);
     }
+  });
+});
+
+// =============================================================================
+// A DATED FLAG FIRES FOR EVERY SESSION AT ONCE, AND A ROW'S CLAIM MUST BE TRUE
+// =============================================================================
+// Job 31:1's parking came due on 2026-10-19 and was paid THREE times by two
+// sessions inside two and a half hours -- into ll113, then ll92 by another
+// session, then ll113 AGAIN by that session, twice at the same four anchor
+// seams. Two of the three placements were thrown away. Nothing in the lane told
+// either session the other was already on it (DR-1105).
+//
+// Two stronger gates were measured against the live series and REJECTED, which
+// is why the ones here are narrow:
+//   * "no passage may repeat the same quoted span near itself" -- 11 existing
+//     instances across 253 lessons are deliberate emphasis (ll203's child band
+//     repeats Deuteronomy 18:15 after 332 characters on purpose). A gate that
+//     needs an 11-entry allow-list on day one is not an invariant.
+//   * "a row must name every lesson that carries its passage" -- Luke 4:21 sits
+//     in eight lessons by ordinary spread. That turns a floor into bookkeeping,
+//     the same error as treating a floor as a quota.
+// So what is gated is the one non-heuristic fact: the DISCHARGE a row claims
+// must be real. The in-flight note is a prompt and is tested as a prompt.
+describe('the row\u2019s DISCHARGED claim is checked, not trusted', () => {
+  it('every claim the live rows make is borne out by the catalog', () => {
+    expect(dischargeClaimsNotKept(LIVING_LESSONS_MODULES)).toEqual([]);
+  });
+
+  it('the live series really does make such claims, so the case above means something', () => {
+    // A gate that passes because it checked nothing is the theatre DR-0076 forbids.
+    const claims = PASSAGES_THAT_MUST_REACH.filter((p) => /DISCHARGED[^.]*?\binto\s+ll\d+/i.test(p.why));
+    expect(claims.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('PROVEN-TO-CATCH: a row claiming a discharge into a lesson that does not carry it is named', () => {
+    const faults = dischargeClaimsNotKept(
+      [{ id: 'll92-yahweh-standardized-love', lesson: 'it quotes (Job 31:1) here' }],
+      [{
+        ref: 'Job 31:1',
+        subject: 'a covenant with your eyes',
+        introducedBy: 'll183-',
+        minLessons: 2,
+        why: 'DISCHARGED 2026-10-19 into ll777, which is not in this catalog.',
+      }],
+    );
+    expect(faults).toHaveLength(1);
+    expect(faults[0]).toContain('claims DISCHARGED into ll777');
+  });
+
+  it('a row with no discharge claim is not asked to have one', () => {
+    expect(dischargeClaimsNotKept(
+      [{ id: 'll1-a', lesson: 'nothing' }],
+      [{ ref: 'Job 31:1', subject: 's', introducedBy: 'll183-', minLessons: 1, why: 'no claim here at all' }],
+    )).toEqual([]);
+  });
+
+  it('the expired-parking message carries the in-flight prompt, so the next session reads it while deciding', () => {
+    const stranded = [{
+      ref: 'Luke 4:19',
+      subject: 'the acceptable year of the Lord',
+      introducedBy: 'll188-',
+      minLessons: 1,
+      strandedUntil: '2026-01-01',
+      why: 'a row shaped like the real one was',
+    }];
+    const out = passagesStrandedInTheirIntroduction(
+      [{ id: 'll188-x', lesson: 'He read on (Luke 4:19) and stopped' }], stranded, new Date('2026-06-01'),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain('parking expired');
+    expect(out[0]).toContain(IN_FLIGHT_NOTE);
+    expect(IN_FLIGHT_NOTE).toMatch(/DATED flag/);
+    // It is a prompt, not a lock, and must not read as one.
+    expect(IN_FLIGHT_NOTE).not.toMatch(/\block\b|reserved|claimed by/i);
   });
 });
