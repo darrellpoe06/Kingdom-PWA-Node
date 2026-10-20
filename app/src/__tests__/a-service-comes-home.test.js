@@ -58,6 +58,8 @@ const ON_THE_WAY = {
   'property-photos': { door: 'infra/nas-property-photos/photo_server.py', witness: 'property-photos-health.yml' },
   // The seventh: the phone bell, whose door now probes ntfy and says why.
   announce: { door: 'infra/nas-announce/announce_server.py', witness: 'announce-health.yml' },
+  // The eighth: the reading voice's road to the tower.
+  'voice-transport': { door: 'infra/voice-studio/voice_forwarder.py', witness: 'voice-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -87,7 +89,6 @@ const BORN_BEFORE_THE_WAY = {
   'ops-runner': { lacks: ['codeFollows', 'health', 'stands'] },
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   supabase: { lacks: ['codeFollows', 'witness'] },
-  'voice-transport': { lacks: ['codeFollows', 'witness'] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },
   'choir-dates': { lacks: ['codeFollows', 'health', 'witness'] },
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
@@ -221,9 +222,9 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // voice-transport probes its /health and stamps nothing; a ledger row that
-    // struck codeFollows, or one that claimed a witness, would not match the files.
-    const s = SERVICES.find((x) => x.name === 'voice-transport');
+    // supabase probes its /health and stamps nothing; a ledger row that struck
+    // codeFollows, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'supabase');
     expect(lacksOf(s)).toEqual(['codeFollows', 'witness']);
     expect(lacksOf(s)).not.toEqual(['witness']);
     expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows']);
