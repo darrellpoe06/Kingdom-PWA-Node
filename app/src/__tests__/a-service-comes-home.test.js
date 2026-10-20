@@ -19,7 +19,7 @@
 // lines, and a stale ledger entry each fail.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -121,6 +121,16 @@ const BORN_BEFORE_THE_WAY = {
 // ---- the readable parts of the Way -----------------------------------------
 const STANDS = /where the install stands/;
 
+/** A log tail a witness ships to python through the environment: one exported
+ *  variable is capped at 128 KB on Linux, and the exec fails ("Argument list
+ *  too long") -- the loops witness's first live run. A tail over 100 KB rides
+ *  a file. Returns the names it finds exported. */
+function tailsExported(wf) {
+  const big = [...wf.matchAll(/(\w+)="?\$\((?:[^)]*\|\|\s*)?(?:sudo -n )?tail -c (\d+)/g)].filter((m) => Number(m[2]) > 100000).map((m) => m[1]);
+  const exported = new Set((wf.match(/^\s*export [^\n]+$/gm) || []).flatMap((l) => l.trim().split(/\s+/).slice(1)));
+  return big.filter((n) => exported.has(n));
+}
+
 /** The witness workflow a service names: an override, else "Witness: <name>" in its description. */
 function witnessOf(s, override) {
   const m = /Witness: ([\w-]+)/.exec(s.description || '');
@@ -219,6 +229,12 @@ describe('a service comes home by one Way (DR-1119)', () => {
     }
   });
 
+  it('no witness ships a log tail to python through the environment', () => {
+    for (const wf of readdirSync(join(ROOT, '.github/workflows')).filter((f) => f.endsWith('.yml'))) {
+      expect(tailsExported(read(`.github/workflows/${wf}`)), `${wf} exports a tail over 100 KB; it rides a file`).toEqual([]);
+    }
+  });
+
   it('the Way is written, routed and registered, and the video’s four jobs are weighed', () => {
     expect(has(WAY)).toBe(true);
     const way = read(WAY);
@@ -250,6 +266,13 @@ describe('the gate catches each break (proven to catch)', () => {
     // site-health.yml watches the site, not an install, so it never says where one stands.
     expect(lacksOf(s, 'site-health.yml')).toEqual(['stands']);
     expect(answersWithReason('def health(): return 200')).toBe(false);
+  });
+  it('the loops witness as first run: a 400 KB tail exported into one variable', () => {
+    const first = 'CRON="$(tail -c 400000 "$LOG" 2>/dev/null || sudo -n tail -c 400000 "$LOG" 2>/dev/null || true)"\nexport CRON CHECKOUT REPO\n';
+    expect(tailsExported(first)).toEqual(['CRON']);
+    const small = 'CMG="$(tail -c 1200 "$E")"\nexport CMG\n';
+    expect(tailsExported(small)).toEqual([]);
+    expect(tailsExported(read('.github/workflows/loops-health.yml'))).toEqual([]);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
     // ytzero stamps its code and names nas-health, but can only ask its root; a
