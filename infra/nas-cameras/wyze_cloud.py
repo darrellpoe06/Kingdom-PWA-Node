@@ -337,6 +337,10 @@ class WyzeCloud:
             self._devices_at = self.now()
             return out
 
+    def cached_devices(self):
+        """The last list Wyze gave, without asking Wyze (None if it never has). For hot paths that must never wait on the cloud."""
+        return self._devices
+
     def devices_age(self):
         """Seconds since Wyze last gave the list, or None if it never has."""
         return None if self._devices is None else int(self.now() - self._devices_at)

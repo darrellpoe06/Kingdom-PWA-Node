@@ -566,6 +566,8 @@ export function classifySnapError({ status, body } = {}) {
   const err = body && typeof body.error === 'string' ? body.error : '';
   if (status === 504 || err === 'frame-timeout') return `no answer in ${Number.isFinite(Number(body && body.after_s)) ? body.after_s : 12} s`;
   if (err === 'resting') return `resting ${Math.max(1, Math.round((Number(body && body.retry_in) || 300) / 60))} min after repeated misses${body && body.detail ? ` (${humanizeCameraError(body.detail).kind === 'other-network' ? 'NAS cannot reach it on its network' : String(body.detail).replace(/^wyze:\s*/i, '').slice(0, 60)})` : ''}`;
+  // DR-1097 thirteenth read: the NAS sends no Kinesis offer to a camera Wyze's own list calls offline.
+  if (err === 'wyze-offline') return 'Wyze says it is offline';
   if (status === 503 || err === 'busy') return 'NAS busy, next sweep';
   if (status === 401) return 'family key refused';
   if (err === 'go2rtc-unreachable') return 'restreamer dark';

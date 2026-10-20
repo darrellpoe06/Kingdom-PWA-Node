@@ -1158,6 +1158,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
     writes: [{ res: 'gh:incident', token: 'research-incident' }], seeds: ['ops-surface'],
   }),
+  wf('research-ask.yml', {
+    id: 'research-ask', name: 'The research road as a build tool (DR-1127)', purpose: 'On dispatch only: asks the research road ONE question supplied by the caller (the witness’s question stays nailed down so its green keeps meaning), over the tailnet with the family key read on the NAS; prints the answer and its http(s) sources labelled a LEAD, never a finding, since the road marks every answer unverified.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
+    writes: [{ res: 'gh:research-lead', token: 'LEAD, not a finding' }], seeds: [],
+  }),
   wf('immich-health.yml', {
     id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8803' }],
@@ -1906,6 +1911,7 @@ const RESOURCES = {
   'gh:rls-dispatch': { label: 'the isolation matrix dispatch' },
   'gh:heal-nas': { label: 'a NAS heal dispatch' },
   'gh:incident': { label: 'incident issues (the downtime ledger)' },
+  'gh:research-lead': { label: 'an unverified research lead in a run’s summary (DR-1127)', sink: 'A session or a steward reads the lead and proves it in this repo before anything is written down; the road marks every answer verified:false, so nothing machine-readable may consume it — a consumer here would be a claim nobody checked.' },
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
