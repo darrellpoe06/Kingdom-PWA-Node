@@ -114,9 +114,9 @@ export default function BusinessRoad({ entity, data, now }) {
           </div>
         ))}
         <div className="flex gap-2">
-          <button type="button" className="text-xs border border-[#E8E4DC] px-3 py-1.5 min-h-[36px]" onClick={() => setPeople((ps) => [...ps, { role: '', pay: '', hours: '' }])}>+ Another owner</button>
+          <button type="button" className="text-xs border border-[#E8E4DC] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" onClick={() => setPeople((ps) => [...ps, { role: '', pay: '', hours: '' }])}>+ Another owner</button>
           {people.length > 1 && (
-            <button type="button" className="text-xs border border-[#E8E4DC] px-3 py-1.5 min-h-[36px]" onClick={() => setPeople((ps) => ps.slice(0, -1))}>Remove the last</button>
+            <button type="button" className="text-xs border border-[#E8E4DC] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" onClick={() => setPeople((ps) => ps.slice(0, -1))}>Remove the last</button>
           )}
         </div>
       </div>
