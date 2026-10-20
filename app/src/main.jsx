@@ -20,7 +20,7 @@ import { markTvDevice } from './lib/tv-device.js';
 import { markDeviceClass } from './lib/device-roles.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
 import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
-import { watchTypedIntake } from './lib/intake-guard.js';
+import { watchTypedIntake, watchUse } from './lib/intake-guard.js';
 
 // The local app (the native shell, DR-0570) carries the house's address: the
 // same-origin NAS routes are re-homed to poetech.us before any module fetches.
@@ -74,6 +74,14 @@ wireChunkHeal(window);
 // nothing opens itself. Recording, dictation, a reading and a download take
 // the same hold from their own hooks (lib/intake-guard.js).
 watchTypedIntake(document, { win: window });
+
+// AND NOTHING INTERRUPTS YOU USING IT (DR-1130). Every kind above protects
+// words coming IN; none protected a person reading a board or tapping between
+// tabs, so the update reload fired straight through ordinary use — the flash
+// Darrell reported on 2026-10-20 while using the app as it was being rebuilt.
+// A tap, key or scroll holds the app still; USE_IDLE_MS of quiet releases it,
+// and a hidden tab releases at once, so the swap lands BETWEEN sessions of use.
+watchUse(document, { win: window });
 
 // Record every uncaught error + unhandled rejection to the device-local error
 // journal (DR-0092) — the failure stays visible to the steward on the Quality &
