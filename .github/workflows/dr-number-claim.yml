@@ -1,0 +1,186 @@
+# dr-number-claim -- a decision number claimed twice is caught BEFORE the merge.
+#
+# WHY. Six number collisions on 2026-10-20 in five hours, all one shape:
+# business-systems-guard is correct on each branch (that branch's ledger IS
+# whole), the duplicate exists only in the UNION, and the union only comes into
+# being when the second branch merges. Each repair cost a rename, a citation
+# pass read by hand, a gate run and a full re-verify; two had to be redone
+# because main moved mid-repair. Measured on the DR-1143 collision: the number
+# was verified free at 22:12, taken at 22:17 and the verifying push merged at
+# 22:26 -- so a union check BY HAND cannot close the window. Only something
+# that reads the whole union at PR time can.
+#
+# WHAT IT BLOCKS AND WHAT IT ONLY SAYS, deliberately:
+#   * taken on main          -> FAILS. A number already belonging to a
+#                               different MERGED record is a settled fact, and
+#                               by DR-1136 this branch is the one that moves.
+#   * contested with an open PR -> REPORTS, never fails. Nobody has merged, so
+#                               merge order has not decided. Failing both PRs
+#                               would be a gate picking a winner it has no
+#                               standing to pick -- and renumbering into a
+#                               moving target is the treadmill this is meant to
+#                               end, not extend.
+# That split is why this could ship while three lesson branches were in flight:
+# it cannot block a PR over a race nobody has lost.
+#
+# Read-only. It reads the base ref and the open PRs' changed files; it writes
+# nothing but its own step summary and one PR comment.
+# Brakes: one pass per run, a 10-minute ceiling, one run at a time per PR.
+name: dr-number-claim
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'docs/decisions/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dr-number-claim-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claims:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: The reader's own selftest, before it judges anything
+        run: node scripts/dr-number-claims.mjs --selftest
+
+      - name: Read the union — the base branch, and every other open PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+          THIS_PR: ${{ github.event.pull_request.number || 0 }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, urllib.request, urllib.error
+
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          TOKEN = os.environ["GITHUB_TOKEN"]
+          THIS = int(os.environ.get("THIS_PR") or 0)
+          BASE = os.environ.get("BASE_REF") or "main"
+
+          def api(path):
+              req = urllib.request.Request(
+                  f"https://api.github.com/{path}",
+                  headers={"Authorization": f"Bearer {TOKEN}",
+                           "Accept": "application/vnd.github+json",
+                           "User-Agent": "poetech-dr-number-claim"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+
+          REC = re.compile(r"^DR-(\d+)[-.].*\.md$")
+
+          # The base branch's claims, read from git rather than the API: the
+          # checkout has the full history, and a tree read cannot be paginated
+          # wrong.
+          subprocess.run(["git", "fetch", "origin", BASE, "--quiet"], check=False)
+          tree = subprocess.run(
+              ["git", "ls-tree", "--name-only", f"origin/{BASE}", "docs/decisions/"],
+              capture_output=True, text=True).stdout
+          main_claims = {}
+          for line in tree.splitlines():
+              m = REC.match(line.split("/")[-1])
+              if m:
+                  main_claims.setdefault(str(int(m.group(1))), line.split("/")[-1])
+          print(f"{BASE} holds {len(main_claims)} decision records")
+
+          # Every OTHER open PR's introduced records, from the files it changes.
+          # Only ADDED files count: a PR that merely edits an existing record is
+          # not claiming its number.
+          pr_claims = {}
+          page, seen = 1, 0
+          while True:
+              prs = api(f"repos/{REPO}/pulls?state=open&per_page=100&page={page}")
+              if not prs:
+                  break
+              for pr in prs:
+                  n = pr["number"]
+                  seen += 1
+                  if n == THIS:
+                      continue
+                  try:
+                      files, fpage = [], 1
+                      while True:
+                          batch = api(f"repos/{REPO}/pulls/{n}/files?per_page=100&page={fpage}")
+                          files.extend(batch)
+                          if len(batch) < 100:
+                              break
+                          fpage += 1
+                  except (urllib.error.URLError, urllib.error.HTTPError) as e:
+                      # Asked and not answered: say so rather than treating the
+                      # PR as claiming nothing (DR-0076 -- unknown is not a no).
+                      print(f"  !! could not read #{n}'s files: {str(e)[:80]}")
+                      continue
+                  for f in files:
+                      if f.get("status") not in ("added", "renamed"):
+                          continue
+                      name = f["filename"].split("/")[-1]
+                      if not f["filename"].startswith("docs/decisions/"):
+                          continue
+                      m = REC.match(name)
+                      if m:
+                          pr_claims.setdefault(str(int(m.group(1))), []).append(
+                              {"pr": n, "file": name})
+              if len(prs) < 100:
+                  break
+              page += 1
+          print(f"read {seen} open PR(s); other PRs claim {len(pr_claims)} number(s)")
+
+          json.dump(main_claims, open("/tmp/claims-main.json", "w"))
+          json.dump(pr_claims, open("/tmp/claims-prs.json", "w"))
+          PY
+
+      - name: Judge this branch's introduced numbers
+        id: judge
+        run: |
+          set +e
+          node scripts/dr-number-claims.mjs \
+            --main-claims /tmp/claims-main.json \
+            --pr-claims /tmp/claims-prs.json > /tmp/claims.txt 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/claims.txt
+          {
+            echo '## Decision number claims'
+            echo
+            echo '```'
+            cat /tmp/claims.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Say it on the PR when a number is already taken
+        if: steps.judge.outputs.code != '0' && github.event.pull_request.number
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = '**dr-number-claim**: a decision number this branch introduces is '
+              + 'already held by a different record on `'
+              + (context.payload.pull_request.base.ref || 'main') + '`.\n\n```\n'
+              + fs.readFileSync('/tmp/claims.txt', 'utf8') + '\n```\n'
+              + '\nThis is the collision class that cost six repairs on 2026-10-20, each '
+              + 'found only after a second merge. Renumber on a **clean** tree — '
+              + 'renumbering mid-merge cannot work, because two records hold the number '
+              + 'and every bare citation becomes ambiguous.\n'
+              + '\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const { owner, repo } = context.repo;
+            const n = context.payload.pull_request.number;
+            const mine = await github.rest.issues.listComments({ owner, repo, issue_number: n, per_page: 100 });
+            const prev = mine.data.find((c) => c.body && c.body.startsWith('**dr-number-claim**'));
+            if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number: n, body });
+
+      - name: A number already on main fails this check
+        if: steps.judge.outputs.code != '0'
+        run: |
+          echo "A decision number this branch introduces is already held by a different record on the base branch."
+          exit 1
