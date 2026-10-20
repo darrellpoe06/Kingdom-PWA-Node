@@ -66,6 +66,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
@@ -170,6 +171,40 @@ class Piper:
             input=text.encode("utf-8"), check=True, timeout=SYNTH_TIMEOUT,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
+
+
+# A CLIP TOO SHORT TO HOLD ITS WORDS IS NOT KEPT (DR-1131, measured 2026-10-20).
+# The clarity witness found one cached piece that was babble at every pace:
+# 35 words in 5.17 s (0.15 s a word) where the same words, made again,
+# took 8.58 s (0.25 s a word) and read back at WER 0.00. Every clean clip
+# the witness measured at normal pace ran 0.22-0.33 s a word; babble ran
+# 0.15. So a clip under MIN_SECONDS_PER_WORD a word (at its pace) is made
+# once more; if it is still that short it is served -- something beats
+# silence -- but never cached, so the next reader gets a new attempt instead
+# of the same garbage for a day. Short lines are exempt: under MIN_GUARD_WORDS
+# the ratio says nothing. A clip whose length cannot be read is kept as before.
+MIN_SECONDS_PER_WORD = float(os.environ.get("VOICE_LITE_MIN_SECONDS_PER_WORD", "0.17"))
+MIN_GUARD_WORDS = int(os.environ.get("VOICE_LITE_MIN_GUARD_WORDS", "6"))
+
+
+def wav_seconds(path):
+    """The clip's length from its own header, or None when it is not a WAV
+    the stdlib can read (the Opus shape, or a header piper did not write)."""
+    try:
+        with wave.open(path, "rb") as w:
+            rate = w.getframerate()
+            return (w.getnframes() / float(rate)) if rate else None
+    except (wave.Error, EOFError, OSError, ValueError):
+        return None
+
+
+def too_short_for_words(seconds, text, speed=1.0):
+    """True when a clip could not have spoken these words: pure, so the
+    self-test can prove the line where it falls."""
+    words = len(str(text or "").split())
+    if seconds is None or words < MIN_GUARD_WORDS:
+        return False
+    return seconds * clamp_speed(speed) < MIN_SECONDS_PER_WORD * words
 
 
 def cache_key(voice, text, speed=1.0):
@@ -312,18 +347,21 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
             self.end_headers()
             self.wfile.write(data)
 
-        def _audio(self, path, fmt="wav"):
+        def _audio(self, path, fmt="wav", keep=True):
             with open(path, "rb") as fh:
                 data = fh.read()
             self.send_response(200)
             self.send_header("Content-Type", AUDIO_TYPES.get(fmt, AUDIO_TYPES["wav"]))
             self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "private, max-age=86400")
+            # A suspect clip (too short for its words) is not kept by the
+            # browser either: the next play asks again and may get a good one.
+            self.send_header("Cache-Control", "private, max-age=86400" if keep else "no-store")
+            self.send_header("X-Voice-Lite-Clip", "kept" if keep else "suspect")
             self.end_headers()
             self.wfile.write(data)
 
-        def _wav(self, path):
-            return self._audio(path, "wav")
+        def _wav(self, path, keep=True):
+            return self._audio(path, "wav", keep)
 
         def _opus_or_wav(self, wav_path, key):
             """Serve the Opus shape of a cached WAV, encoding it once; WAV when it cannot be made."""
@@ -417,6 +455,21 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                     engine.synthesize(text, voice, tmp, speed)
                     if os.path.getsize(tmp) <= 44:
                         raise RuntimeError("empty clip")
+                    if too_short_for_words(wav_seconds(tmp), text, speed):
+                        # Once more; piper has made babble in the minutes
+                        # around a failure and a second pass has come clean.
+                        engine.synthesize(text, voice, tmp, speed)
+                        if os.path.getsize(tmp) <= 44:
+                            raise RuntimeError("empty clip")
+                        if too_short_for_words(wav_seconds(tmp), text, speed):
+                            # Served, not kept: the next reader asks again.
+                            try:
+                                return self._wav(tmp, keep=False)
+                            finally:
+                                try:
+                                    os.remove(tmp)
+                                except OSError:
+                                    pass
                     os.replace(tmp, out)
                     if fresh:
                         # The Opus shape of the old clip is stale too.
@@ -460,6 +513,16 @@ def _selftest():
             self.slow = 0.0
             self.voices_seen = []
             self.speeds_seen = []
+            # Clip lengths by text: a list of seconds, one per call, the last
+            # repeating (so "babble once, then clean" and "always babble" can
+            # both be scripted); unscripted texts get a real WAV of 0.3 s a word.
+            self.seconds_for = {}
+            self.made = {}
+
+        def _write_wav(self, out_path, seconds):
+            with wave.open(out_path, "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(22050)
+                w.writeframes(b"\x01\x02" * int(22050 * seconds))
 
         def available_voices(self):
             return list(VOICES) if self.installed else []
@@ -470,8 +533,12 @@ def _selftest():
             self.speeds_seen.append(speed)
             if self.slow:
                 time.sleep(self.slow)
-            with open(out_path, "wb") as fh:
-                fh.write(RIFF)
+            n = self.made.get(text, 0); self.made[text] = n + 1
+            plan = self.seconds_for.get(text)
+            if plan:
+                self._write_wav(out_path, plan[min(n, len(plan) - 1)])
+            else:
+                self._write_wav(out_path, 0.3 * max(1, len(text.split())))
 
     tmpdir = tempfile.mkdtemp()
     eng = FakeEngine()
@@ -520,6 +587,32 @@ def _selftest():
     check(s == 200 and eng.calls == calls, "the same paragraph is served from the cache, not re-synthesized")
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
+    # TOO SHORT FOR ITS WORDS (2026-10-20, run 39489093593): a 35-word clip of
+    # 5.17 s is babble; made again clean it is kept; made again still short it
+    # is served once and never cached. A short line is never judged.
+    long_text = " ".join(["word"] * 35)
+    eng.seconds_for[long_text] = [5.17, 9.0]
+    calls = eng.calls
+    s, _, b = req("POST", "/speak", {"text": long_text})
+    check(s == 200 and eng.calls == calls + 2 and len(b) > 44, "a clip too short for its words is made once more (5.17 s for 35 words, then 9.0 s)")
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": long_text})
+    check(s == 200 and eng.calls == calls, "the clean second clip is the one the cache keeps")
+    always_short = " ".join(["babble"] * 35)
+    eng.seconds_for[always_short] = [5.0]
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": always_short})
+    check(s == 200 and eng.calls == calls + 2, "still short after a second pass: served anyway (something beats silence)")
+    s, _, _ = req("POST", "/speak", {"text": always_short})
+    check(s == 200 and eng.calls == calls + 4, "...but never cached: the next reader gets a new attempt")
+    check(not os.path.exists(os.path.join(tmpdir, cache_key(DEFAULT_VOICE, always_short) + ".wav")), "no suspect clip in the cache dir")
+    short_line = "Amen so be it."
+    eng.seconds_for[short_line] = [0.2]
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": short_line})
+    check(s == 200 and eng.calls == calls + 1, "a short line is never judged by the ratio")
+    check(too_short_for_words(5.17, long_text) and not too_short_for_words(8.58, long_text) and not too_short_for_words(4.3, long_text, speed=2.0) and too_short_for_words(2.5, long_text, speed=2.0) is True and not too_short_for_words(None, long_text),
+          "the line: 0.17 s a word at the clip's pace; 5.17 s of 35 words falls, 8.58 s stands, a 2x clip is judged at its pace, no length is no verdict")
     # FRESH (2026-10-20): the same words with fresh: true are made again and
     # the cached clip is replaced; without the flag the cache still answers.
     calls = eng.calls
