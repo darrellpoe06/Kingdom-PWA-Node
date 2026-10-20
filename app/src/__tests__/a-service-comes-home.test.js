@@ -76,6 +76,19 @@ const LOOPS_ON_THE_WAY = {
   // loop IS the installer's run, and the witness reads its fruit.
   'transcript-trickle': { witness: 'harvest-health.yml' },
   'ops-runner': { witness: 'ops-queue-health.yml' },
+  // Nine loops on the services-sync clock that had no witness at all, now
+  // witnessed together by loops-health.yml, which reads what services-sync
+  // said of each one's last run and what each one's own ledger says, and says
+  // where the install stands per loop (2026-10-20, the audit).
+  'lesson-voice': { witness: 'loops-health.yml' },
+  'lesson-parity': { witness: 'loops-health.yml' },
+  'church-mail': { witness: 'loops-health.yml' },
+  'family-key': { witness: 'loops-health.yml' },
+  'agent-consumer': { witness: 'loops-health.yml' },
+  'db-backup': { witness: 'loops-health.yml' },
+  'choir-dates': { witness: 'loops-health.yml' },
+  'stream-length': { witness: 'loops-health.yml' },
+  'worship-song-harvest': { witness: 'loops-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -87,11 +100,6 @@ const LOOPS_ON_THE_WAY = {
 // ceiling the build fails at, not the day the work starts.
 const AUDIT_BY = '2026-11-15';
 const BORN_BEFORE_THE_WAY = {
-  'church-mail': { lacks: ['codeFollows', 'health', 'witness'] },
-  'family-key': { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-voice': { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-parity': { lacks: ['codeFollows', 'health', 'witness'] },
-  'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   // 2026-10-20: lacks none of the readable parts (the stack stamps the code it
   // converged on; nas-health is its witness and says where the install stands).
   // It stays here, not on ON_THE_WAY, because its restart is `compose up -d`,
@@ -99,13 +107,9 @@ const BORN_BEFORE_THE_WAY = {
   // restart-on-every-path reader can count.
   supabase: { lacks: [] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },
-  'choir-dates': { lacks: ['codeFollows', 'health', 'witness'] },
-  'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
-  'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
-  'db-backup': { lacks: ['codeFollows', 'health', 'witness'] },
 };
 
 // ---- the readable parts of the Way -----------------------------------------

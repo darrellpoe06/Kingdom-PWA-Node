@@ -1198,6 +1198,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:voice', token: '127.0.0.1:8771' }],
     writes: [{ res: 'gh:incident', token: 'voice-incident' }], seeds: ['ops-surface'],
   }),
+  wf('loops-health.yml', {
+    id: 'loops-health', name: 'Loops witness (the services-sync clock, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads what services-sync said of each loop’s last run and what each loop’s own ledger says (lesson-voice, lesson-parity, church-mail, family-key, agent-consumer, db-backup, choir-dates, stream-length, worship-song-harvest); judges only on what is written; on a failure says where the install stands per loop.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }],
+    writes: [{ res: 'gh:incident', token: 'loops-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
