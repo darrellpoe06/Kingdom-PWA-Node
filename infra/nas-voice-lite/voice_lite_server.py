@@ -61,6 +61,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -205,6 +206,22 @@ def too_short_for_words(seconds, text, speed=1.0):
     if seconds is None or words < MIN_GUARD_WORDS:
         return False
     return seconds * clamp_speed(speed) < MIN_SECONDS_PER_WORD * words
+
+
+# A SENTENCE STARTS WITH A CAPITAL BEFORE PIPER SEES IT (DR-1131, 2026-10-20).
+# Piper's phonemizer does not take a period followed by a lowercase word as a
+# sentence end: "...before each reading. not to say I got you..." came back as
+# five seconds of babble at every pace (runs 39489093593, 39492075479,
+# 39493087468) while the same words with "Not" read at WER 0.00. The app now
+# capitalizes every sentence it hands the voice (synthesis-text.js); this is
+# the same rule one layer down, so any caller is safe. The cache key is the
+# text as sent, so a caller's clip stays its own.
+_SENTENCE_START = re.compile(r'([.!?]["\'\u201d\u2019)\]]*\s+)(["\'\u201c\u2018(\[]*)([a-z])')
+
+
+def piper_text(text):
+    """The text piper is handed: a capital after every sentence end."""
+    return _SENTENCE_START.sub(lambda m: m.group(1) + m.group(2) + m.group(3).upper(), str(text or ""))
 
 
 def cache_key(voice, text, speed=1.0):
@@ -452,13 +469,14 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                 fd, tmp = tempfile.mkstemp(suffix=".wav", dir=cache_dir)
                 os.close(fd)
                 try:
-                    engine.synthesize(text, voice, tmp, speed)
+                    spoken = piper_text(text)
+                    engine.synthesize(spoken, voice, tmp, speed)
                     if os.path.getsize(tmp) <= 44:
                         raise RuntimeError("empty clip")
                     if too_short_for_words(wav_seconds(tmp), text, speed):
                         # Once more; piper has made babble in the minutes
                         # around a failure and a second pass has come clean.
-                        engine.synthesize(text, voice, tmp, speed)
+                        engine.synthesize(spoken, voice, tmp, speed)
                         if os.path.getsize(tmp) <= 44:
                             raise RuntimeError("empty clip")
                         if too_short_for_words(wav_seconds(tmp), text, speed):
@@ -513,6 +531,7 @@ def _selftest():
             self.slow = 0.0
             self.voices_seen = []
             self.speeds_seen = []
+            self.texts_seen = []
             # Clip lengths by text: a list of seconds, one per call, the last
             # repeating (so "babble once, then clean" and "always babble" can
             # both be scripted); unscripted texts get a real WAV of 0.3 s a word.
@@ -531,6 +550,7 @@ def _selftest():
             self.calls += 1
             self.voices_seen.append(voice)
             self.speeds_seen.append(speed)
+            self.texts_seen.append(text)
             if self.slow:
                 time.sleep(self.slow)
             n = self.made.get(text, 0); self.made[text] = n + 1
@@ -587,11 +607,25 @@ def _selftest():
     check(s == 200 and eng.calls == calls, "the same paragraph is served from the cache, not re-synthesized")
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
+    # A CAPITAL AFTER EVERY SENTENCE END, BEFORE PIPER (2026-10-20): the exact
+    # junction that babbled, and the shapes that must not change.
+    check(piper_text("before each reading. not to say I got you. and then to do His Way.") == "before each reading. Not to say I got you. And then to do His Way.",
+          "a period followed by a lowercase word becomes a sentence start (the junction that babbled)")
+    check(piper_text('He said "go." then "stay!" (and left.) now.') == 'He said "go." Then "stay!" (And left.) Now.',
+          "a quote or bracket after the stop is kept and the word inside it is capitalized")
+    check(piper_text("e.g. this and i.e. that, Mr. smith") == "e.g. This and i.e. That, Mr. Smith",
+          "an abbreviation's period counts too: piper reads a capital there as cleanly as a sentence")
+    check(piper_text("Already Capital. Already Capital.") == "Already Capital. Already Capital." and piper_text("") == "",
+          "capitals and an empty text pass through")
+    calls = eng.calls
+    req("POST", "/speak", {"text": "before each reading. not to say I got you."})
+    check(eng.texts_seen[-1] == "before each reading. Not to say I got you." and eng.calls == calls + 1, "the synthesizer is handed the capitalized text; the cache key stays the text as sent")
+
     # TOO SHORT FOR ITS WORDS (2026-10-20, run 39489093593): a 35-word clip of
     # 5.17 s is babble; made again clean it is kept; made again still short it
     # is served once and never cached. A short line is never judged.
     long_text = " ".join(["word"] * 35)
-    eng.seconds_for[long_text] = [5.17, 9.0]
+    eng.seconds_for[piper_text(long_text)] = [5.17, 9.0]
     calls = eng.calls
     s, _, b = req("POST", "/speak", {"text": long_text})
     check(s == 200 and eng.calls == calls + 2 and len(b) > 44, "a clip too short for its words is made once more (5.17 s for 35 words, then 9.0 s)")
@@ -599,7 +633,7 @@ def _selftest():
     s, _, _ = req("POST", "/speak", {"text": long_text})
     check(s == 200 and eng.calls == calls, "the clean second clip is the one the cache keeps")
     always_short = " ".join(["babble"] * 35)
-    eng.seconds_for[always_short] = [5.0]
+    eng.seconds_for[piper_text(always_short)] = [5.0]
     calls = eng.calls
     s, _, _ = req("POST", "/speak", {"text": always_short})
     check(s == 200 and eng.calls == calls + 2, "still short after a second pass: served anyway (something beats silence)")
@@ -607,7 +641,7 @@ def _selftest():
     check(s == 200 and eng.calls == calls + 4, "...but never cached: the next reader gets a new attempt")
     check(not os.path.exists(os.path.join(tmpdir, cache_key(DEFAULT_VOICE, always_short) + ".wav")), "no suspect clip in the cache dir")
     short_line = "Amen so be it."
-    eng.seconds_for[short_line] = [0.2]
+    eng.seconds_for[piper_text(short_line)] = [0.2]
     calls = eng.calls
     s, _, _ = req("POST", "/speak", {"text": short_line})
     check(s == 200 and eng.calls == calls + 1, "a short line is never judged by the ratio")
