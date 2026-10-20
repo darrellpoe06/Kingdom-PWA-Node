@@ -97,7 +97,7 @@ export function BooksEntities({ entityRollups, entityFilter, setEntityFilter, da
             <MetricCell label="Debt total" value={fmt(r.debtBalance)} small accent={r.debtBalance > 0 ? 'rust' : null} sub="from Debts tab" />
             <MetricCell label="Accounts" value={`${r.accounts.length}`} small sub="all types" />
           </div>
-          {/* DR-1136: each business's own road to full time, from its own records. */}
+          {/* DR-1138: each business's own road to full time, from its own records. */}
           {['business', 'nonprofit'].includes(r.entity.type) && <BusinessRoad entity={r.entity} data={data} />}
         </section>
       ))}

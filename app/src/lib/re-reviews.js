@@ -65,6 +65,23 @@ function makeItem(base, nowMs) {
 // that carry that guarantee.
 const DONE_MARKER_RE = /^[\s—–:;.,()[\]`*_"'>-]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
 
+// A markdown link to a decision record: `[DR-1122](DR-1122-….md)`. The ledger
+// INDEX is a table of exactly these, one row per record.
+const OWNER_LINK_RE = /\[(DR-\d{4})\]/g;
+
+// The record a position in a multi-record document belongs to: the nearest
+// `[DR-NNNN]` link BEFORE it. In the ledger INDEX that is the row's own record,
+// because a row opens with its link.
+function ownerLinkBefore(text, offset) {
+  OWNER_LINK_RE.lastIndex = 0;
+  let id = null;
+  for (let m = OWNER_LINK_RE.exec(text); m; m = OWNER_LINK_RE.exec(text)) {
+    if (m.index >= offset) break;
+    id = m[1];
+  }
+  return id;
+}
+
 // Pull every OPEN re-review date out of one free-text blob, tagged with source.
 function fromText(text, meta, nowMs, out) {
   const s = String(text || '');
@@ -111,8 +128,57 @@ function fromText(text, meta, nowMs, out) {
     // a "click", a "setting" a human performs) — a bare "add a dashboard chart"
     // BUILD item must not be falsely gated (2026-07-30 iter-4 dry-run note).
     const governorGated = /governor-gated|human-gated|darrell'?s decision|never merges?\b|secret-onto-device|onto (?:the |family )?devices?\b|(?:dashboard|console)(?:\s+\w+){0,3}\s*(?:sitting|click|setting|shutoff|toggle|by hand)|(?:sitting|click|setting|shutoff|toggle|by hand)(?:\s+\w+){0,3}\s*(?:dashboard|console)|bright line|\btier [bc]\b|front-door|\bcolg\b/i.test(itemText);
-    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, detail, governorGated }, nowMs));
+    // WHICH RECORD THIS CLAUSE BELONGS TO. For a decision record it is the
+    // record itself. For the ledger INDEX — whose every row summarises one
+    // record and reproduces its `re-review:` dates — it is the DR that row
+    // links to, read as the nearest preceding `[DR-NNNN]` link. Carried on the
+    // item so an ECHO of a commitment can be told from the commitment, which is
+    // what dropIndexEchoes() needs and no text fingerprint can supply: the row's
+    // prose and the record's prose differ, so they never collapse by `clue`.
+    const owner = meta.origin === 'decision' ? (meta.sourceId || null) : ownerLinkBefore(s, m.index);
+    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, detail, governorGated, owner }, nowMs));
   }
+}
+
+// The ledger index's source id, as the watcher pushes it.
+export const LEDGER_INDEX_ID = 'INDEX.md';
+
+/**
+ * Drop a ledger-INDEX row's commitment when the record that row links to
+ * already carries the same date in its own body — the row is an ECHO, not a
+ * second commitment.
+ *
+ * WHY THIS IS NOT THE EXISTING DEDUP, and why no fingerprint could do it. The
+ * dedup key is `origin|sourceId|date|clue`, and an echo differs on THREE of
+ * those four: the index row's origin is `review`, its sourceId is `INDEX.md`,
+ * and its `clue` is the row's summary prose where the record's is the record's
+ * own. Nothing in the text says "I am the same commitment as that one"; only
+ * the LINK does. So the owner is read off the link and the two are matched on
+ * (record, date).
+ *
+ * WHY THE INDEX IS STILL SCANNED. It was added deliberately (2026-07-30
+ * comprehensive review) because commitments lived there and nothing read them.
+ * Measured on this ledger: of 463 index-row commitments, 445 are echoes and 18
+ * are NOT — 15 dates that exist only in an index row, and 3 rows citing a DR
+ * with no record file at all. Those are exactly what the widening was for, and
+ * they survive this: an echo is dropped only when the record itself carries the
+ * date, so a commitment recorded in the index alone is never silenced.
+ *
+ * Narrow by construction: ONLY the ledger index is treated this way, because
+ * only the index is a table whose every row summarises one record. A session
+ * note that happens to cite a DR is a different document making its own
+ * commitment, and is left alone.
+ */
+export function dropIndexEchoes(items) {
+  const inRecord = new Set();
+  for (const it of items) {
+    if (it && it.origin === 'decision' && it.sourceId && it.date) inRecord.add(`${it.sourceId}|${it.date}`);
+  }
+  return items.filter((it) => {
+    if (!it || it.sourceId !== LEDGER_INDEX_ID) return true;
+    if (!it.owner || !it.date) return true;         // no link to attribute it to — keep it
+    return !inRecord.has(`${it.owner}|${it.date}`); // the record says it too — the row is the echo
+  });
 }
 
 // Accept either a normalized `{ items: [...] }` shape or a raw array.
@@ -145,9 +211,10 @@ export function extractReReviews({ reviews, decisions } = {}, nowMs = null) {
       source: d.id ? `DR ${d.id}` : 'docs/decisions', origin: 'decision',
     }, nowMs, out);
   }
+  const counted = dropIndexEchoes(out);
   const seen = new Set();
   const deduped = [];
-  for (const it of out) {
+  for (const it of counted) {
     // Key includes the clause fingerprint so two DIFFERENT same-date commitments
     // in one record both survive; a true exact-repeat (same clue) still dedups.
     const k = `${it.origin}|${it.sourceId}|${it.date}|${it.clue || ''}`;

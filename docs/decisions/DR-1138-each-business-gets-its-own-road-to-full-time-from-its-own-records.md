@@ -1,4 +1,4 @@
-# DR-1136: Each business gets its own road to full time, read from its own records
+# DR-1138: Each business gets its own road to full time, read from its own records
 
 **Date:** 2026-10-20
 **Status:** accepted
@@ -7,12 +7,12 @@
 **Area:**
 - `app/src/lib/business-road.js`, `app/src/components/BusinessRoad.jsx` (new), mounted beneath each business and nonprofit card in `app/src/components/BooksEntities.jsx` (Books → Entities); test `app/src/__tests__/business-road.test.jsx`; `app/src/lib/legibility-health.json` regenerated for the new page
 
-**Grounds:** Darrell, 2026-10-20, after the PoeTech card (DR-1135) was explained as family-only: **"Road to full time for who? Is this a feature for everyone?"** Then: **"Their road to full-time?"**
-**Principles:** DR-1135 (the road to full time, the hire rule and its 1099 start); DR-1128 (the reserve); DR-0076 (nothing guessed: a blank is not zero, a month with no records is absent data); DR-0061 (a surface is a live view of real records); the capacity guard's active statuses and 80% line in `lib/opportunity-capacity.js`
+**Grounds:** Darrell, 2026-10-20, after the PoeTech card (DR-1137) was explained as family-only: **"Road to full time for who? Is this a feature for everyone?"** Then: **"Their road to full-time?"**
+**Principles:** DR-1137 (the road to full time, the hire rule and its 1099 start); DR-1128 (the reserve); DR-0076 (nothing guessed: a blank is not zero, a month with no records is absent data); DR-0061 (a surface is a live view of real records); the capacity guard's active statuses and 80% line in `lib/opportunity-capacity.js`
 
 ## Context
 
-DR-1135 built the road to full time for PoeTech itself: Darrell and Christina's pay against PoeTech's revenue lines, on the family-only Opportunities tab. Darrell asked who it was for, heard the answer, and pointed it outward: every business here has the same question about its own owners. The Explore trace of the data model (2026-10-20) found what a business already records and what it does not.
+DR-1137 built the road to full time for PoeTech itself: Darrell and Christina's pay against PoeTech's revenue lines, on the family-only Opportunities tab. Darrell asked who it was for, heard the answer, and pointed it outward: every business here has the same question about its own owners. The Explore trace of the data model (2026-10-20) found what a business already records and what it does not.
 
 ## What was measured
 
@@ -38,17 +38,17 @@ DR-1135 built the road to full time for PoeTech itself: Darrell and Christina's 
    - each owner's full-time pay and hours, in order;
    - the employer costs;
    - the reserve (DR-1128's 20% to start);
-   - the next hire (1099 to start, per DR-1135);
+   - the next hire (1099 to start, per DR-1137);
    - **how much of the recorded costs is already the owner's pay.** There is no owner-draw category, so without this the same pay would be counted twice.
 4. **It answers in revenue a month, not in units.** A business's income is not a count of identical sales, so each milestone is the monthly revenue at which it comes true:
    - each owner full time;
    - the next hire needed, when the work passes 80% of the owners' hours;
    - the next hire paid for.
 
-   When the work outruns the money, it says by how much revenue, and names the same answer as DR-1135: raise the prices, slow what you take on, or fund the hire first.
+   When the work outruns the money, it says by how much revenue, and names the same answer as DR-1137: raise the prices, slow what you take on, or fund the hire first.
 5. **Two assumptions are printed on the screen, not hidden:** the costs stay where they are as revenue grows, and the work grows in step with it. Without project hours, the hire's timing is said to be unknown rather than guessed.
 6. **Nothing is guessed.** No complete month of records names what to do: link the accounts, or set the business on a transaction. Any blank entry is named, and no answer is given until it is filled.
-7. **PoeTech's own card (DR-1135) stays as it is**, family-only on Opportunities, because PoeTech's revenue is planned in units it sells. The engine underneath is shared: the 80% line and the 1099/W-2 rule are the same.
+7. **PoeTech's own card (DR-1137) stays as it is**, family-only on Opportunities, because PoeTech's revenue is planned in units it sells. The engine underneath is shared: the 80% line and the 1099/W-2 rule are the same.
 
 ## Impact
 
@@ -75,4 +75,4 @@ DR-1135 built the road to full time for PoeTech itself: Darrell and Christina's 
   - counting the month in progress fails 3;
   - counting owner pay twice fails 4;
   - ignoring a transaction set on the business fails 3.
-- **re-review:** 2026-11-20, with DR-1128 and DR-1135, once one business has entered its owner pay. Record whether the months it read matched its statements, and whether an owner-draw category is needed.
+- **re-review:** 2026-11-20, with DR-1128 and DR-1137, once one business has entered its owner pay. Record whether the months it read matched its statements, and whether an owner-draw category is needed.

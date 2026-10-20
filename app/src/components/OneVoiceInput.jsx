@@ -30,7 +30,7 @@ import { sendVoiceLesson, formatClock, RECORDING_KINDS, RECORDING_KIND_LABELS, D
 import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
-import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
+import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT, boxAfter } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
 
@@ -231,9 +231,13 @@ export function OneVoiceInput({
     const onUse = (e) => {
       const body = String(e?.detail?.body || '');
       if (!body) return;
-      setText(body);
+      // 'append' gathers: the words land UNDER what the box holds (DR-1139),
+      // so a lesson can be made from a situation, or a few; the route the
+      // person already chose for the gathering is kept.
+      const mode = e?.detail?.mode === 'append' ? 'append' : 'replace';
+      setText((cur) => boxAfter(cur, body, mode));
       setRestoredDraft(false);
-      if (!touchedRoute) setRoute(suggestDestination(body, cfg.defaultRoute, DESTS.map(d => d.key)));
+      if (mode === 'replace' && !touchedRoute) setRoute(suggestDestination(body, cfg.defaultRoute, DESTS.map(d => d.key)));
     };
     window.addEventListener(USE_PROMPT_EVENT, onUse);
     return () => window.removeEventListener(USE_PROMPT_EVENT, onUse);
