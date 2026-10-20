@@ -23,6 +23,12 @@ on:
 permissions:
   contents: read
 
+# One look at the NAS at a time (the system ledger found this schedule had no
+# lock, 2026-10-19, DR-1111): a slow ssh must not stack a second on top of it.
+concurrency:
+  group: nas-health
+  cancel-in-progress: false
+
 jobs:
   observe:
     runs-on: ubuntu-latest
@@ -291,6 +297,19 @@ jobs:
           # passes of the password cure). The cron log holds full stdout.
           # The direct witness (DR-0076): the literal HTTP code from kong,
           # read fresh -- a passing installer is inferred; this is measured.
+          # WHERE THE INSTALL STANDS (THE-WAY-A-SERVICE-COMES-HOME, step 6;
+          # 2026-10-20, the audit): the box's checkout, the code the stack last
+          # converged on against the repo's, each container, the gateway. Said
+          # before anything else, so a red is never only "it failed".
+          echo "=== where the install stands (supabase) ==="
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || ${SUDO} git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "stack converged on code: $(${SUDO} cat /volume1/docker/supabase/.code.sha 2>/dev/null || echo none) / repo code: $(cat "$REPO/infra/nas-supabase/docker-compose.yml" "$REPO/infra/nas-supabase/kong.yml" "$REPO/infra/nas-supabase/replay_migrations.sh" 2>/dev/null | sha256sum | cut -c1-16)"
+          ${SUDO} docker ps -a --filter name=supabase- --format '{{.Names}} {{.Status}}' 2>/dev/null || echo "(no docker this user can run)"
+          echo "=== where the install stands (ytzero) ==="
+          echo "stack converged on code: $(${SUDO} cat /volume1/docker/ytzero/.code.sha 2>/dev/null || echo none) / repo code: $(sha256sum < "$REPO/infra/nas-ytzero/docker-compose.yml" 2>/dev/null | cut -c1-16)"
+          ${SUDO} docker ps -a --filter name=ytzero --format '{{.Names}} {{.Status}}' 2>/dev/null || echo "(no docker this user can run)"
+          echo "ytzero root (loopback): HTTP $(curl -s -o /dev/null -w '%{http_code}' --max-time 6 http://127.0.0.1:3701/ 2>/dev/null || echo 000)"
           echo "=== sovereign gateway: does kong answer? (direct probe) ==="
           curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
           # The reading voice's road home (DR-0566): the forwarder on :8771
@@ -647,5 +666,27 @@ jobs:
           ${SUDO} tail -40 "$LOOPS/events/cron-services-sync.log" 2>/dev/null \
             | grep -E "services-sync: (FAILED|[a-z0-9-]+ (exit|ok|skipped))|\[done\]|took [0-9]+" \
             | tail -14 || echo "   no per-rider lines in the last 40"
+          # THE DATABASE'S BACKUP (DR-1113). db_backup.sh writes one verdict per
+          # night to status.json; this reads it and JUDGES it, because a backup
+          # nobody checks is the hosted-Supabase assumption all over again.
+          echo "=== database backup (DR-1113) ==="
+          BK=/volume1/PoeTech/backups/db/status.json
+          if ${SUDO} test -f "$BK"; then
+            ${SUDO} cat "$BK"
+            ${SUDO} cat "$BK" | python3 -c '
+          import json, sys, datetime
+          s = json.load(sys.stdin)
+          at = datetime.datetime.strptime(s["at"], "%Y-%m-%dT%H:%M:%SZ")
+          age = (datetime.datetime.utcnow() - at).total_seconds() / 3600
+          if not s.get("ok"):
+              print("::error::the last database backup FAILED (%s): %s" % (s.get("drill"), s.get("error")))
+          elif age > 36:
+              print("::error::the newest database backup is %.0f hours old (a night was missed)" % age)
+          else:
+              print("database backup ok: %s, %.0f h old, %s archives kept, drill %s" % (s["file"], age, s["kept"], s["drill"]))
+          ' || echo "::error::status.json could not be read"
+          else
+            echo "::warning::no database backup has run yet (status.json absent)"
+          fi
           echo "=== END OF VERDICT ==="
           EOS

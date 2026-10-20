@@ -170,6 +170,38 @@ def _call_tool(name, args):
     return None
 
 
+def _code_sha():
+    """The sha of the file actually serving, so a witness can hold it against
+    the repo's (the running process follows the code, DR-0770)."""
+    import hashlib
+    try:
+        with open(__file__, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:16]
+    except OSError:
+        return None
+
+
+# An OPEN liveness route beside the RPC door (THE-WAY-A-SERVICE-COMES-HOME,
+# step 5; 2026-10-20, the audit). It carries no token and reads nothing: ok
+# only when the brake is set (a server with no token refuses everything, so
+# it is not serving anyone) and the state dirs resolve; otherwise 503 with
+# the reason in words. Both spellings, as the Funnel strips the mount point.
+@app.get("/health")
+@app.get("/mcp/health")
+def health():
+    reasons = []
+    if not TOKEN:
+        reasons.append("no MCP token is set on this box, so every call is refused; the installer stamps it into the unit")
+    if not os.path.isdir(BRIEFING_DIR):
+        reasons.append("the briefing dir does not resolve, so the reel and the dispatch state cannot be read")
+    body = {"ok": not reasons, "tools": len(TOOLS), "protocolVersion": PROTOCOL_VERSION, "code": _code_sha(),
+            "briefingDirResolves": os.path.isdir(BRIEFING_DIR), "cageStateDirResolves": os.path.isdir(CAGE_STATE_DIR)}
+    if reasons:
+        body["reason"] = "; ".join(reasons)
+        return JSONResponse(body, status_code=503)
+    return body
+
+
 # The public Funnel's `--set-path /mcp` STRIPS the mount point, so a call to
 # https://<funnel>/mcp arrives here as POST / (the same stripping the /voice
 # row in infra/nas-transport/RECORDED-STATE.md records). Serving only "/mcp"

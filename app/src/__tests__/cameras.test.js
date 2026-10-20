@@ -346,6 +346,8 @@ describe('humanizeCameraError + classifySnapError', () => {
   });
   it('a failed frame is a short true reason on the tile, never a bare 502', () => {
     expect(classifySnapError({ status: 504, body: { error: 'frame-timeout', after_s: 12 } })).toBe('no answer in 12 s');
+    // DR-1097 thirteenth read: Wyze's own offline word, never "NAS busy"
+    expect(classifySnapError({ status: 503, body: { error: 'wyze-offline' } })).toBe('Wyze says it is offline');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout' } })).toBe('NAS cannot reach it on its network');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: only DTLS cameras are supported' } })).toBe('firmware has no DTLS');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: K10002 failed' } })).toBe('camera refused the sign-in');
@@ -562,6 +564,12 @@ describe('doors: devices, the garage action, the kept sign-in', () => {
     expect(classifyDevicesResult({ status: 403, body: { error: 'no-actions' } }).kind).toBe('no-actions');
     expect(classifyDevicesResult({ status: 502, body: { error: 'unreachable' } }).message).toMatch(/Wyze's cloud did not answer/);
     expect(classifyDevicesResult({ networkError: true }).kind).toBe('unreachable');
+    // Wyze's 429, obeyed on the NAS (DR-1097 twelfth read): the wait is said, not "did not answer"
+    const rl = classifyDevicesResult({ status: 503, body: { error: 'rate-limited', retry_in: 600 } });
+    expect(rl.kind).toBe('rate-limited');
+    expect(rl.message).toBe('Wyze asked the NAS to slow down. It asks Wyze again in about 10 minutes.');
+    expect(classifyDevicesResult({ status: 503, body: { error: 'rate-limited', retry_in: 45 } }).message).toMatch(/again in 45 seconds\.$/);
+    expect(classifyDevicesResult({ status: 503, body: { error: 'rate-limited' } }).message).toMatch(/again in a few minutes\.$/);
   });
   it('classifyActionResult: accepted, too soon, offline, no controller, refused, old service', () => {
     expect(classifyActionResult({ status: 200, body: { ok: true, nickname: 'Garage Doors' } })).toEqual({ kind: 'ok', message: 'The door was told to move. Wyze accepted it for Garage Doors.' });

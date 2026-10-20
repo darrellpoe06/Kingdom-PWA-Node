@@ -4,7 +4,10 @@
 // Darrell, 2026-10-18: "Go get all these repos and integrate them into our
 // technology stacks so we can see how we can gain more control and visibility
 // into our projects and productivity... opportunities and constraints..."
-// The record is DR-1099.
+// The record is DR-1099. Three more rows were added on 2026-10-19 (DR-1119),
+// from the home-server video Darrell sent with "Fix our processes and create
+// a way": Jellyfin, Immich and Audiobookshelf, read the same way at their
+// latest releases; the fourth job it names, cameras, is already home (DR-0756).
 //
 // WHAT THIS IS. Each tool is a CANDIDATE for a capability, never a habit: it
 // carries the exact release it was read at, its code and weight licences, what
@@ -88,6 +91,7 @@ export const OPEN_SOURCE_CANDIDATES = [
       'No test suite in the repo.',
     ],
     nextStep: 'Built (DR-1101): Vane slim plus our own SearxNG on loopback, the /research forwarder behind the family key, and research-health.yml, which asks one question and checks a source URL comes back. It starts on the NAS when services-sync runs it and the tower’s qwen and nomic-embed-text models answer; try it below.',
+    builtRef: 'DR-1101',
     reReview: '2026-10-25',
     gapRef: null,
     drRef: 'DR-1099',
@@ -394,6 +398,117 @@ export const OPEN_SOURCE_CANDIDATES = [
     reReview: '2027-01-18',
     gapRef: null,
     drRef: 'DR-1099',
+  },
+  // ---- 2026-10-19: the home-server video (DR-1119) ------------------------
+  // Each read at its latest release the same way: shallow-cloned at the pin,
+  // licence and egress read from the source, never run. The bills: the inbox
+  // holds ONE subscription in this class, Google AI Plus (2 TB) (Google One),
+  // $9.99 a month, charged on the 14th; no Netflix, Hulu, Disney, Spotify,
+  // Audible, Plex or Prime Video receipt in the last year.
+  {
+    id: 'immich',
+    name: 'Immich',
+    repo: 'immich-app/immich',
+    pin: { ref: 'v3.3.3', sha: 'd2dac658fe1c67e8bbd08aa18200a32e5d45b9e4' },
+    replaces: 'Google One (the storage half of the household’s Google AI Plus 2 TB plan, $9.99 a month)',
+    capability: 'Phones back up their photos and videos to our own disk, searchable by face, place and date',
+    codeLicense: 'AGPL-3.0',
+    weightsLicense: 'CLIP and face models downloaded from Hugging Face on first use; per-model licences, read before any public use',
+    commercialUse: 'review',
+    copyleftNetwork: true,
+    canExecuteCode: false,
+    egress: 'Map tiles from tiles.immich.cloud, the machine-learning models from Hugging Face on first use, and a release check against GitHub; each can be turned off. Metrics only if IMMICH_TELEMETRY_INCLUDE is set.',
+    auth: 'Its own multi-user login with an admin; OAuth optional.',
+    hardware: 'No GPU needed: the machine-learning image defaults to CPU, so faces and scenes index slowly on the NAS’s Xeon, once, as a backlog. Needs its pinned Postgres (vectorchord) and Valkey containers.',
+    placement: 'nas',
+    frontedBy: 'Loopback only, behind a family-key forwarder on the Funnel like the cameras (DR-0756); its own login stays on as the second lock',
+    verdict: 'pilot',
+    why: 'It does the one job in the video that the inbox actually pays for: the 2 TB plan exists because the phones back up to Google in the background, which a PWA cannot do (the app’s own pick-and-verify lane, PhoneBackup.jsx, is foreground only, and says so). Immich backs them up to our pool instead, and the files stay ours as plain folders if Immich is ever removed. The property-photos server and the pick-and-verify lane stay as they are; this is the automatic job beside them.',
+    opportunities: [
+      'The phones’ photos and videos land on our own pool, in folders that outlive the app.',
+      'Faces, places and dates searchable at home, with no account outside the house.',
+      'The storage half of the one subscription in this class can be cancelled once the backup is proven.',
+    ],
+    constraints: [
+      'AGPL-3.0: run unmodified and never offered outside the household; a change triggers the source-offer duty.',
+      'Pool space is measured before the first backup; 2 TB of phone media must fit beside what the pool already holds.',
+      'The CPU-only index of a large library takes days on the NAS; it runs under the services-sync clock and never during the property-photos server’s work.',
+      'The mobile app needs the Funnel path to upload from outside the house, so the forwarder passes the upload routes under the family key.',
+    ],
+    nextStep: 'Built (DR-1120): Immich pinned on loopback with its library at /volume1/PoeTech/immich, the /photo-backup forwarder behind the family key (uploads paused under 50 GB free), immich-health.yml, and the panel below with the phone steps. It starts on the NAS when services-sync runs it; a phone is set up once from the panel, then its backup is proven in the library before the Google plan’s storage is cancelled.',
+    builtRef: 'DR-1120',
+    reReview: '2026-11-08',
+    gapRef: null,
+    drRef: 'DR-1119',
+  },
+  {
+    id: 'jellyfin',
+    name: 'Jellyfin',
+    repo: 'jellyfin/jellyfin',
+    pin: { ref: 'v12.2', sha: 'ca0f16eb7c195f720a1493ed469a27c4657db0c6' },
+    replaces: 'Netflix and the other video subscriptions, none of which the inbox holds a receipt for',
+    capability: 'Our own films, shows and recordings served to every screen in the house',
+    codeLicense: 'GPL-2.0',
+    weightsLicense: 'None; it runs no models',
+    commercialUse: 'clear',
+    copyleftNetwork: false,
+    canExecuteCode: false,
+    egress: 'Artwork and metadata from TMDb and the other providers that are switched on; nothing when they are off. No telemetry found.',
+    auth: 'Its own multi-user login with sessions.',
+    hardware: 'Direct play is light; transcoding wants a GPU the NAS does not have, so files are kept in formats the screens play as they are.',
+    placement: 'nas',
+    frontedBy: 'Loopback only, behind a family-key forwarder on the Funnel like the cameras (DR-0756); its own login stays on as the second lock',
+    verdict: 'pilot',
+    why: 'Darrell 2026-10-19: "Why can’t we use them for our audio tts... etc..." The library already exists: the harvested sermon and worship video under /volume1/PoeTech/yt-dlp and /volume1/docker/ytzero/downloads (church-media-golive, ytzero), which today no screen in the house can browse. Jellyfin serves that folder as one library; no bill is behind it, so the gain is reach, not money.',
+    opportunities: [
+      'The sermon and worship recordings as one browseable library on the family’s screens.',
+      'The lesson readings the voice makes, played from the same shelf as the sermons.',
+      'A real test suite in the repository, and releases tagged.',
+    ],
+    constraints: [
+      'Transcoding on the NAS CPU would starve the other services; only direct play is on the table, so the harvest keeps formats the screens play as they are.',
+      'Metadata providers send titles off the network; they stay off until that is weighed.',
+      'A library is read-only to Jellyfin; the harvest loops keep owning the folders.',
+    ],
+    nextStep: 'Built (DR-1121): Jellyfin 12.2 pinned on loopback with the harvest, lesson and library folders mounted read-only, served on the tailnet (its apps cannot carry the family key, so never the Funnel), its logins made for every family member by the home-accounts loop and shown on the Big Picture; libraries-health.yml watches it.',
+    builtRef: 'DR-1121',
+    reReview: '2026-11-08',
+    gapRef: null,
+    drRef: 'DR-1119',
+  },
+  {
+    id: 'audiobookshelf',
+    name: 'Audiobookshelf',
+    repo: 'advplyr/audiobookshelf',
+    pin: { ref: 'v2.37.1', sha: '3563d49424d50170324de9236a24c591b6d965e9' },
+    replaces: 'Audible, for which the inbox holds no receipt',
+    capability: 'Our own audiobooks and podcasts shelved and streamed to the phone, with progress kept',
+    codeLicense: 'GPL-3.0',
+    weightsLicense: 'None; it runs no models',
+    commercialUse: 'clear',
+    copyleftNetwork: false,
+    canExecuteCode: false,
+    egress: 'Cover art and metadata from Audible (through audnex), Google Books, Open Library, iTunes and FantLab only when a match is asked for. No telemetry found.',
+    auth: 'Its own multi-user login.',
+    hardware: 'Light; one Node process on port 13378 in its compose file, with the library as a plain folder.',
+    placement: 'nas',
+    frontedBy: 'Loopback only, behind a family-key forwarder on the Funnel like the cameras (DR-0756); its own login stays on as the second lock',
+    verdict: 'pilot',
+    why: 'Darrell 2026-10-19: "Why can’t we use them for our audio tts... etc..." The shelf already exists: the lesson readings the NAS voice makes (/volume1/PoeTech/voice-lite) and the spoken lessons with their transcripts (/volume1/PoeTech/lesson-voice). Audiobookshelf shelves them with progress kept across phones, which no surface does today. No bill is behind it.',
+    opportunities: [
+      'The lesson readings and the spoken lessons in one shelf, with progress kept across phones.',
+      'The sermon audio beside them, from the same harvest folders Jellyfin serves.',
+      'A plain folder of files is the library; the app only reads it.',
+    ],
+    constraints: [
+      'Metadata lookups send titles to Audible and Google; they stay off until weighed.',
+      'The shelf is read-only to Audiobookshelf; the voice loops keep owning the folders.',
+    ],
+    nextStep: 'Built (DR-1121): Audiobookshelf 2.37.1 pinned on loopback with the lesson, harvest and library folders mounted read-only, served on the tailnet beside Jellyfin, its logins made for every family member by the home-accounts loop and shown on the Big Picture; libraries-health.yml watches it.',
+    builtRef: 'DR-1121',
+    reReview: '2026-11-08',
+    gapRef: null,
+    drRef: 'DR-1119',
   },
 ];
 

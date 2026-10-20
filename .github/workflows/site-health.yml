@@ -559,6 +559,35 @@ jobs:
                 fi ;;
             esac
 
+            # AND THE OTHER CLASS OF ROAD, which nothing here has ever asked
+            # about (DR-1124). The probe above names the Pages Function class and
+            # names it correctly. But /edge/* is NOT a Pages Function: it is the
+            # poetech-roads WORKER, bound by zone route in
+            # infra/cf-roads-worker/wrangler.toml, and it runs before Pages. So
+            # through ten days of "every Pages Function stopped being invoked",
+            # NOTHING measured whether the Worker roads were dark too -- and the
+            # Edge Guard and the visitor-funnel count a steward reads in Admin
+            # both ride /edge/*.
+            #
+            # Unauthenticated is the right probe, and the only one available: a
+            # request with no bearer token gets JSON 401 {"reason":"signed-out"}
+            # from edge.js, BEFORE it looks anything up. Only a running Worker
+            # writes that. A dead road gives the SPA shell, a 404 or nothing, so
+            # content-type tells the two apart without holding a steward's token.
+            EDGE_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/edge/whoami" 2>/dev/null) || EDGE_CODE="000"
+            EDGE_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/edge/whoami" 2>/dev/null) || EDGE_CT=""
+            note "- \`GET /edge/whoami\` (is the poetech-roads WORKER alive? JSON 401 = yes) -> **${EDGE_CODE}** \`${EDGE_CT:-unknown}\`"
+            case "${EDGE_CT:-}" in
+              *application/json*)
+                # Up. This says nothing about whether a steward can get IN:
+                # edge.js verifies the session by calling /sb/auth/v1/user, a
+                # Pages Function, so while /sb is dark the Worker answers and
+                # still cannot admit anybody. A reading, not a second outage.
+                : ;;
+              *)
+                add_fail "THE WORKER ROADS ARE DARK TOO — GET poetech.us/edge/whoami answered ${EDGE_CODE} with '${EDGE_CT:-nothing}' instead of the JSON 401 edge.js returns to any unauthenticated caller. This is a DIFFERENT layer from the Pages Functions above: /edge/* is the poetech-roads Worker on a zone route, and it is the only road the Edge Guard and the Admin visitor count ride. If the Function probe above is failing too, the outage is wider than Pages and the wrangler zone route or the Worker's own deploy is the place to look" ;;
+            esac
+
             # WHICH SIGN-IN DOORS ARE ACTUALLY ON (DR-0900). 2026-10-10, Darrell
             # on the "Link requested" screen: "Need to work with Google...
             # doesn't work!!!!!!!" -- and nothing anywhere had ever measured

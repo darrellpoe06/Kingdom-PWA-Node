@@ -1,0 +1,69 @@
+# The photo-backup road (DR-1120; Immich, the pilot DR-1119 named): the phones
+# back up every new photo and video, in the background, onto our own pool, and
+# the library is plain folders that outlive the app. Nothing here is reachable
+# from outside the NAS: Immich publishes on 127.0.0.1 only; its database and
+# cache never publish a port at all. The only door is
+# poetech-photo-backup.service (immich_forwarder.py), which takes the family
+# key on its own header and passes only Immich's API, never its pages.
+#
+# PINNED (services-sync-guard refuses a floating tag):
+#   immich-server and immich-machine-learning v3.3.3, the release read for
+#     DR-1119 (git d2dac658), by digest. The machine-learning image is the CPU
+#     build: the NAS has no GPU, so faces and scenes index slowly, once.
+#   valkey 9 and the immich postgres (vectorchord) image, by the digests the
+#     release's own compose file carries.
+#
+# Brakes: request-driven (no timers); the caps live in immich_forwarder.py.
+# Files: the library at /volume1/PoeTech/immich (the pool, beside the app's own
+# phone-backup lane); the database at /volume1/docker/immich/postgres; the
+# model cache at /volume1/docker/immich/model-cache. Remove every container
+# and the photos are still a folder of files.
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v3.3.3@sha256:bae7664ff3aa4c2c1fcbdcdd86b40b105643c5f861f3e6a770fc760089f25862
+    container_name: poetech-immich
+    ports:
+      - "127.0.0.1:2283:2283"
+    env_file:
+      - /volume1/docker/immich/immich.env
+    environment:
+      TZ: "America/Chicago"
+      IMMICH_HOST: "0.0.0.0"
+      IMMICH_PORT: "2283"
+      DB_HOSTNAME: "database"
+      REDIS_HOSTNAME: "redis"
+      IMMICH_MACHINE_LEARNING_URL: "http://immich-machine-learning:3003"
+    volumes:
+      - /volume1/PoeTech/immich:/data
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - redis
+      - database
+    restart: unless-stopped
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v3.3.3@sha256:73915f07e1f4289ba45b174c58443db74cef47ddf502613f475fc5e52458ea42
+    container_name: poetech-immich-ml
+    environment:
+      TZ: "America/Chicago"
+    volumes:
+      - /volume1/docker/immich/model-cache:/cache
+    restart: unless-stopped
+
+  redis:
+    image: docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
+    container_name: poetech-immich-valkey
+    restart: unless-stopped
+
+  database:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    container_name: poetech-immich-postgres
+    env_file:
+      - /volume1/docker/immich/immich.env
+    environment:
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      DB_STORAGE_TYPE: "HDD"
+    volumes:
+      - /volume1/docker/immich/postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: unless-stopped

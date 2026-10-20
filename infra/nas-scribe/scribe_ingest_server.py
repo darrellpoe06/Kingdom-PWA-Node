@@ -90,6 +90,10 @@ def _all_consented(consent) -> bool:
 
 @app.get("/health")
 def health():
+    # A 200 is not an answer (DR-1000): the folder every recording lands in
+    # must be there and writable, or the door says which it is not.
+    if not os.path.isdir(DATA) or not os.access(DATA, os.W_OK):
+        return JSONResponse({"ok": False, "data": DATA, "reason": f"the data folder {DATA} is missing or not writable; the installer makes it"}, status_code=503)
     return {"ok": True, "data": DATA}
 
 

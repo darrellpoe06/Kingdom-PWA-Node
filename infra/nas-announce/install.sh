@@ -27,85 +27,105 @@ if [ ! -s "$TOKEN_FILE" ]; then
   chmod 0600 "$TOKEN_FILE"
 fi
 
-echo "== announce install: systemd unit =="
-TOKEN="$(cat "$TOKEN_FILE")"
-NEED_RELOAD=0
-if [ ! -f "$UNIT" ] || ! grep -q "ANNOUNCE_TOKEN=$TOKEN" "$UNIT" 2>/dev/null; then
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). The unit, the
+# code sha and the restart are one function, run once before anything else
+# and once more at the end, past the loud exit below. The stamp keeps its
+# file; the sum is named CODE_SHA like every other service's.
+server_follows_code() {
+  TOKEN="$(cat "$TOKEN_FILE")"
+  NEED_RELOAD=0
+  # The unit is rewritten whenever the RENDERED unit differs from the installed
+  # one, not only when the token changed (DR-1110). The old test looked at the
+  # token line alone, so a corrected Environment line (NTFY_URL moved from
+  # Docker's `ntfy:80`, which the host cannot resolve, to 127.0.0.1:8081) would
+  # never have reached a NAS whose token was already in place.
+  RENDERED="$(mktemp)"
   sed -e "s|^Environment=ANNOUNCE_TOKEN=.*|Environment=ANNOUNCE_TOKEN=$TOKEN|" \
-      "$SRC/poetech-announce.service" > "$UNIT"
-  NEED_RELOAD=1
-fi
-[ "$NEED_RELOAD" = "1" ] && systemctl daemon-reload
-systemctl enable poetech-announce >/dev/null 2>&1 || true
+      "$SRC/poetech-announce.service" > "$RENDERED"
+  if [ ! -f "$UNIT" ] || ! cmp -s "$RENDERED" "$UNIT"; then
+    cat "$RENDERED" > "$UNIT"
+    NEED_RELOAD=1
+    echo "  unit installed (new, or its contents changed)"
+  fi
+  rm -f "$RENDERED"
+  [ "$NEED_RELOAD" = "1" ] && systemctl daemon-reload
+  systemctl enable poetech-announce >/dev/null 2>&1 || true
 
-# AN INSTALLER THAT CHANGES THE CODE MUST RESTART WHAT IS RUNNING IT.
-#
-# THIS LINE USED TO BE, AND IT COST A WHOLE DAY'S FIX:
-#
-#   systemctl is-active --quiet poetech-announce || systemctl restart ...
-#
-# That is a START-IF-DEAD guard wearing a deploy step's clothes. The unit was
-# already active, so the `||` branch never fired: services-sync copied the new
-# announce_server.py onto disk every cycle and the RUNNING PROCESS never picked
-# it up. Python reads its source at start, so the process kept serving the old
-# file out of memory.
-#
-# MEASURED 2026-10-15, end to end, which is the only reason this was found:
-#   mirror HEAD            8b5d0cac, committed 18:32:47Z  (HAS the fix)
-#   services-sync          exit=0, "all services synced"
-#   poetech-announce        active
-#   POST /announce/ops-announce  502   <-- STILL BROKEN
-# Every signal read fine and the thing actually serving was stale. That is the
-# built-correct-never-connected class one layer deeper than the Funnel mount
-# below: not an unmounted route, but a mounted route to a stale process.
-#
-# `is-active` cannot tell "active on the new code" from "active on the old
-# code", so it is the wrong question. The right question is whether what we
-# just installed differs from what the process started with, and the honest
-# answer when we cannot know is to restart -- a restart of this service costs
-# one dropped connection on a bell nobody is mid-ring on.
-#
-# So: restart when the payload or the unit changed, start when it is dead, and
-# leave it alone only when nothing changed and it is already up.
-NEED_RESTART="$NEED_RELOAD"
-STAMP=/volume1/PoeTech/secrets/.announce-installed-sha
-NEW_SUM="$(sha256sum "$SRC/announce_server.py" 2>/dev/null | cut -d' ' -f1)"
-if [ -z "$NEW_SUM" ]; then
-  # Cannot tell what changed -> restart rather than silently serve stale code.
-  NEED_RESTART=1
-  echo "  cannot checksum announce_server.py -- restarting rather than assume"
-elif [ ! -f "$STAMP" ] || [ "$NEW_SUM" != "$(cat "$STAMP" 2>/dev/null)" ]; then
-  NEED_RESTART=1
-  echo "  announce_server.py changed since the running process started"
-fi
+  # AN INSTALLER THAT CHANGES THE CODE MUST RESTART WHAT IS RUNNING IT.
+  #
+  # THIS LINE USED TO BE, AND IT COST A WHOLE DAY'S FIX:
+  #
+  #   systemctl is-active --quiet poetech-announce || systemctl restart ...
+  #
+  # That is a START-IF-DEAD guard wearing a deploy step's clothes. The unit was
+  # already active, so the `||` branch never fired: services-sync copied the new
+  # announce_server.py onto disk every cycle and the RUNNING PROCESS never picked
+  # it up. Python reads its source at start, so the process kept serving the old
+  # file out of memory.
+  #
+  # MEASURED 2026-10-15, end to end, which is the only reason this was found:
+  #   mirror HEAD            8b5d0cac, committed 18:32:47Z  (HAS the fix)
+  #   services-sync          exit=0, "all services synced"
+  #   poetech-announce        active
+  #   POST /announce/ops-announce  502   <-- STILL BROKEN
+  # Every signal read fine and the thing actually serving was stale. That is the
+  # built-correct-never-connected class one layer deeper than the Funnel mount
+  # below: not an unmounted route, but a mounted route to a stale process.
+  #
+  # `is-active` cannot tell "active on the new code" from "active on the old
+  # code", so it is the wrong question. The right question is whether what we
+  # just installed differs from what the process started with, and the honest
+  # answer when we cannot know is to restart -- a restart of this service costs
+  # one dropped connection on a bell nobody is mid-ring on.
+  #
+  # So: restart when the payload or the unit changed, start when it is dead, and
+  # leave it alone only when nothing changed and it is already up.
+  NEED_RESTART="$NEED_RELOAD"
+  STAMP=/volume1/PoeTech/secrets/.announce-installed-sha
+  CODE_SHA="$(sha256sum "$SRC/announce_server.py" 2>/dev/null | cut -d' ' -f1)"
+  if [ -z "$CODE_SHA" ]; then
+    # Cannot tell what changed -> restart rather than silently serve stale code.
+    NEED_RESTART=1
+    echo "  cannot checksum announce_server.py -- restarting rather than assume"
+  elif [ ! -f "$STAMP" ] || [ "$CODE_SHA" != "$(cat "$STAMP" 2>/dev/null)" ]; then
+    NEED_RESTART=1
+    echo "  announce_server.py changed since the running process started"
+  fi
 
-if ! systemctl is-active --quiet poetech-announce; then
-  systemctl restart poetech-announce
-  echo "  started poetech-announce (it was not running)"
-elif [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-announce
-  echo "  RESTARTED poetech-announce onto the newly installed code"
-else
-  echo "  poetech-announce already running the installed code"
-fi
+  if ! systemctl is-active --quiet poetech-announce; then
+    systemctl restart poetech-announce
+    echo "  started poetech-announce (it was not running)"
+  elif [ "$NEED_RESTART" = "1" ]; then
+    systemctl restart poetech-announce
+    echo "  RESTARTED poetech-announce onto the newly installed code"
+  else
+    echo "  poetech-announce already running the installed code"
+  fi
 
-# The stamp is written only AFTER a successful restart decision, so a crash
-# before this line leaves the old sum and the next cycle tries again.
-#
-# The `[ -n ] &&` guard is SAFE under this script's `set -e`, and that was
-# measured rather than reasoned about: a failing test at the head of an AND
-# list does not abort, confirmed in sh, bash and dash. (This file's own
-# neighbours record two `bash -e` traps that hid in three lines, so the habit
-# here is to run it, not to argue it.)
-[ -n "$NEW_SUM" ] && printf '%s' "$NEW_SUM" > "$STAMP" && chmod 0600 "$STAMP"
+  # The stamp is written only AFTER a successful restart decision, so a crash
+  # before this line leaves the old sum and the next cycle tries again.
+  #
+  # The `[ -n ] &&` guard is SAFE under this script's `set -e`, and that was
+  # measured rather than reasoned about: a failing test at the head of an AND
+  # list does not abort, confirmed in sh, bash and dash. (This file's own
+  # neighbours record two `bash -e` traps that hid in three lines, so the habit
+  # here is to run it, not to argue it.)
+  [ -n "$CODE_SHA" ] && printf '%s' "$CODE_SHA" > "$STAMP" && chmod 0600 "$STAMP"
+  return 0
+}
+
+echo "== announce install: systemd unit, before anything that can stop this install =="
+server_follows_code
 
 echo "== announce install: proving it answers =="
 # Liveness only -- no token needed, and a failure here is LOUD (DR-0310).
 sleep 1
-if curl -sS --max-time 5 http://127.0.0.1:8796/healthz | grep -q '"ok"'; then
-  echo "  announce relay is up on 127.0.0.1:8796"
+H="$(curl -sS --max-time 8 http://127.0.0.1:8796/healthz 2>/dev/null || true)"
+if printf '%s' "$H" | grep -q '"ok": *true'; then
+  echo "  announce relay is up on 127.0.0.1:8796 and ntfy answers it"
 else
-  echo "  ANNOUNCE RELAY DID NOT ANSWER /healthz -- the bell is still dead" >&2
+  echo "  ANNOUNCE RELAY IS NOT WELL -- the bell is still dead: ${H:-no answer on /healthz}" >&2
   exit 1
 fi
 
@@ -145,4 +165,6 @@ else
   echo "  tailscale binary not found (checked PATH + /var/packages/Tailscale) -- mount by hand:"
   echo "    sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /announce http://127.0.0.1:8796"
 fi
+echo "== announce install: systemd unit, once more =="
+server_follows_code
 echo "== announce install: done =="

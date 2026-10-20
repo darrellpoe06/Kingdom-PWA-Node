@@ -76,9 +76,58 @@ else
   exit 0
 fi
 
-echo "== cameras install: config (seed once, never overwrite) =="
 if sudo -n true 2>/dev/null; then SUDO="sudo -n"; else SUDO=""; fi
+
+# THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07, DR-0770 landing).
+# This used to restart the forwarder only when the UNIT changed, so a merge
+# that changed cams_forwarder.py left the OLD process serving: the app's new
+# Wyze sign-in (POST /setup/wyze) answered 404 from the NAS an hour after the
+# merge, with the new file already on disk. The lesson builder's installer
+# had the right pattern all along (a code sha beside the service); same here.
+# The forwarder imports cams_recorder.py (the recording config + clip helpers),
+# so a change in EITHER file restarts it.
+# ...and wyze_cloud.py (the devices + the garage action over Wyze's cloud, DR-0777).
+#
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). This block used
+# to sit AFTER the go2rtc wait, so "go2rtc silent after 60s -- exit 0" left the
+# old forwarder serving and the new code's reason unread: the research road's
+# stumble 2, here. It now runs once before anything that can stop the install
+# (compose up, the go2rtc wait) and once more at the end. No-op when the unit
+# and the code are already the ones running.
+forwarder_follows_code() {
+  PY="$(command -v python3 || true)"
+  if [ -z "$PY" ]; then echo "  python3 not found -- the forwarder cannot run"; return 0; fi
+  TMPU="$(mktemp)"
+  sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@PORT@|$PORT|" "$SRC/poetech-cams.service" > "$TMPU"
+  NEED_RESTART=0
+  if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
+    $SUDO cp "$TMPU" "$UNIT"
+    $SUDO systemctl daemon-reload
+    NEED_RESTART=1
+    echo "  unit written"
+  fi
+  rm -f "$TMPU"
+  CODE_SHA="$(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" "$SRC/wyze_cloud.py" | sha256sum | cut -c1-16)"
+  STAMP="$DATA/.forwarder.code.sha"
+  if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  forwarder code changed ($CODE_SHA) -- restarting the service so the running process follows the code"
+  fi
+  $SUDO systemctl enable poetech-cams >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    $SUDO systemctl restart poetech-cams && echo "$CODE_SHA" | $SUDO tee "$STAMP" >/dev/null
+  else
+    $SUDO systemctl is-active --quiet poetech-cams || $SUDO systemctl restart poetech-cams || true
+  fi
+  return 0
+}
+
+echo "== cameras install: forwarder unit, before anything that can stop this install =="
 $SUDO mkdir -p "$DATA"
+forwarder_follows_code
+
+echo "== cameras install: config (seed once, never overwrite) =="
 if [ ! -s "$CFG" ]; then
   $SUDO cp "$SRC/go2rtc.seed.yaml" "$CFG"
   $SUDO chmod 600 "$CFG"
@@ -201,40 +250,10 @@ if $SUDO test -s "$BRIDGE_ENV"; then
   [ "$BUP" = "1" ] || echo "  bridge silent after 60s -- see: $DOCKER logs poetech-wyze-bridge (the forwarder retries each sync)"
 fi
 
-echo "== cameras install: forwarder unit =="
+echo "== cameras install: forwarder unit, once more now that go2rtc answers =="
+forwarder_follows_code
 PY="$(command -v python3 || true)"
-[ -n "$PY" ] || { echo "  python3 not found -- nothing mounted"; exit 0; }
-TMPU="$(mktemp)"
-sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@PORT@|$PORT|" "$SRC/poetech-cams.service" > "$TMPU"
-NEED_RESTART=0
-if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
-  $SUDO cp "$TMPU" "$UNIT"
-  $SUDO systemctl daemon-reload
-  NEED_RESTART=1
-  echo "  unit written"
-fi
-rm -f "$TMPU"
-# THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07, DR-0770 landing).
-# This used to restart the forwarder only when the UNIT changed, so a merge
-# that changed cams_forwarder.py left the OLD process serving: the app's new
-# Wyze sign-in (POST /setup/wyze) answered 404 from the NAS an hour after the
-# merge, with the new file already on disk. The lesson builder's installer
-# had the right pattern all along (a code sha beside the service); same here.
-# The forwarder imports cams_recorder.py (the recording config + clip helpers),
-# so a change in EITHER file restarts it.
-# ...and wyze_cloud.py (the devices + the garage action over Wyze's cloud, DR-0777).
-CODE_SHA="$(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" "$SRC/wyze_cloud.py" | sha256sum | cut -c1-16)"
-STAMP="$DATA/.forwarder.code.sha"
-if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
-  NEED_RESTART=1
-  echo "  forwarder code changed ($CODE_SHA) -- restarting the service so the running process follows the code"
-fi
-$SUDO systemctl enable poetech-cams >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  $SUDO systemctl restart poetech-cams && echo "$CODE_SHA" | $SUDO tee "$STAMP" >/dev/null
-else
-  $SUDO systemctl is-active --quiet poetech-cams || $SUDO systemctl restart poetech-cams || true
-fi
+[ -n "$PY" ] || { echo "  python3 not found -- the recorder cannot run"; exit 0; }
 
 echo "== cameras install: recorder unit (DR-0775: recorded loops, owner-chosen retention) =="
 TMPR="$(mktemp)"

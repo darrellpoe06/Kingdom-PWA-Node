@@ -81,6 +81,12 @@ def _safe_filename(name):
     return cleaned if cleaned.lower().endswith(".pdf") else cleaned + ".pdf"
 
 
+def _can_take_returns():
+    """The drop folder is there and writable. A boolean only: the open health
+    route must carry nothing about where the family's returns live."""
+    return os.path.isdir(tax_ingest.SRC) and os.access(tax_ingest.SRC, os.W_OK)
+
+
 @app.get("/health")
 @app.get("/taxes/health")
 def health():
@@ -88,10 +94,17 @@ def health():
     this on 127.0.0.1. It is the one route that does not ask for the bearer, so
     it carries nothing about the family: no file names, and (since DR-1086) no
     filesystem paths either, because the Funnel makes it public."""
-    return {
-        "ok": True,
-        "archive_published": os.path.isfile(tax_ingest.OUT),
-    }
+    # A 200 is not an answer (DR-1000): the drop folder every return lands in
+    # must be there and writable, or the door says so, in words and without a
+    # path. An unpublished archive is not a fault; it says why it is empty.
+    if not _can_take_returns():
+        return JSONResponse({"ok": False, "archive_published": False,
+                             "reason": "the drop folder is missing or not writable; the installer makes it"}, status_code=503)
+    published = os.path.isfile(tax_ingest.OUT)
+    out = {"ok": True, "archive_published": published}
+    if not published:
+        out["reason"] = "no archive is published yet; the first dropped return writes it"
+    return out
 
 
 def _published_path(*parts):

@@ -401,6 +401,7 @@ const NODES = [
       { res: 'db:lesson_parity_promotion', token: 'FROM public.lesson_parity_promotion' },
     ],
     writes: [
+      { res: 'nas:lesson-builder', token: 'write_status' },
       { res: 'db:lesson_versions', token: 'INSERT INTO public.lesson_versions' },
       { res: 'db:curriculum_lessons', token: 'INSERT INTO public.curriculum_lessons' },
       { res: 'db:lesson_decisions', token: 'UPDATE public.lesson_decisions' },
@@ -650,6 +651,19 @@ const NODES = [
     id: 'research', name: 'Research (Vane: an answer with its sources)',
     purpose: 'Asks one question of the research road on the NAS: Vane searches the web through our own SearxNG, answers on our own model, and returns the sources, marked unverified (DR-1101; the first tool DR-1099 brought home).',
     reads: [{ res: 'device:family-key', file: 'app/src/components/ResearchTry.jsx', token: 'bridgeToken' }, { res: 'http:research', token: '/research' }],
+    seeds: [],
+  }),
+  app('app/src/lib/photo-backup.js', {
+    id: 'photo-backup', name: 'Photo backup (Immich: the phones’ photos, backed up at home)',
+    purpose: 'Shows the photo-backup road’s own /health and the steps a phone takes once; the phones then back up every new photo and video in the background to Immich on the NAS pool, behind the family key (DR-1120; the pilot DR-1119 named).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/PhotoBackupStatus.jsx', token: 'bridgeToken' }, { res: 'http:photo-backup', token: '/photo-backup' }],
+    seeds: [],
+  }),
+  app('app/src/lib/home-accounts.js', {
+    id: 'home-accounts', name: 'Home accounts (your logins on the home servers, ready)',
+    purpose: 'Shows the signed-in person their own ready logins on Immich, Jellyfin and Audiobookshelf, made for them by the NAS from the household roster, with each road’s live health; "I have it" clears the first password (DR-1121).',
+    reads: [{ res: 'db:home_accounts', token: "from('home_accounts')" }, { res: 'http:photo-backup', token: '/photo-backup' }, { res: 'http:libraries', token: '/libraries' }, { res: 'device:family-key', file: 'app/src/components/HomeAccounts.jsx', token: 'bridgeToken' }],
+    writes: [{ res: 'db:home_accounts', token: "rpc('home_account_seen'" }],
     seeds: [],
   }),
   app('app/src/lib/clip-queue.js', {
@@ -1144,9 +1158,64 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
     writes: [{ res: 'gh:incident', token: 'research-incident' }], seeds: ['ops-surface'],
   }),
+  wf('immich-health.yml', {
+    id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8803' }],
+    writes: [{ res: 'gh:incident', token: 'photo-backup-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('voice-lite-health.yml', {
+    id: 'voice-lite-health', name: 'Voice-lite road witness (DR-0627, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the NAS reading voice’s /health and asks one sentence through the door with the family key, passing only on real audio; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:voice-lite', token: '127.0.0.1:8772' }],
+    writes: [{ res: 'gh:incident', token: 'voice-lite-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('scribe-health.yml', {
+    id: 'scribe-health', name: 'Scribe road witness (DR-0622, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the Scribe ingest’s /health and asks for the sessions list through the door with the family key; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:scribe-results', token: '127.0.0.1:8791' }],
+    writes: [{ res: 'gh:incident', token: 'scribe-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('tax-upload-health.yml', {
+    id: 'tax-upload-health', name: 'Tax-upload road witness (DR-0330, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the tax archive server’s /health and asks for the archive through the door with the family key, counting entries only; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:taxes', token: '127.0.0.1:8790' }],
+    writes: [{ res: 'gh:incident', token: 'tax-upload-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('lesson-builder-health.yml', {
+    id: 'lesson-builder-health', name: 'Lesson-builder loop witness (DR-0669, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, asks the lesson builder for its own status (the unit, the kill state, each writer and its why, the push credential); on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:lesson-builder', token: '--status' }],
+    writes: [{ res: 'gh:incident', token: 'lesson-builder-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('property-photos-health.yml', {
+    id: 'property-photos-health', name: 'Property-photos road witness (DR-0268, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo server’s /healthz and asks which archives exist through the door with the family key, counting only; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:nas-photos', token: '127.0.0.1:8099' }],
+    writes: [{ res: 'gh:incident', token: 'property-photos-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('announce-health.yml', {
+    id: 'announce-health', name: 'Announce road witness (DR-1040, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the phone bell relay’s /healthz (which probes ntfy and says why) and ntfy’s own health from the box, never ringing a phone; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:announce', token: '127.0.0.1:8796' }],
+    writes: [{ res: 'gh:incident', token: 'announce-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('voice-health.yml', {
+    id: 'voice-health', name: 'Voice road witness (DR-0394, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the voice forwarder’s /health (the studio’s own answer passed through, or why it is dark) and asks one sentence through the door with the family key, passing only on real audio; on a failure says where the install stands first, each studio candidate from the NAS.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:voice', token: '127.0.0.1:8771' }],
+    writes: [{ res: 'gh:incident', token: 'voice-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('loops-health.yml', {
+    id: 'loops-health', name: 'Loops witness (the services-sync clock, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads what services-sync said of each loop’s last run and what each loop’s own ledger says (lesson-voice, lesson-parity, church-mail, family-key, agent-consumer, db-backup, choir-dates, stream-length, worship-song-harvest); judges only on what is written; on a failure says where the install stands per loop.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }],
+    writes: [{ res: 'gh:incident', token: 'loops-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('funnel-health.yml', {
+    id: 'funnel-health', name: 'Public Funnel witness (on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: asks each sovereign mount’s health path through the Funnel from outside and judges only on what comes back (JSON from our door, the Funnel’s own 404, or nothing); on a failure reads where the install stands over the tailnet: the box’s funnel status, the watchdog’s last lines, each door on loopback.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:funnel', token: 'poetech.tail5a2f35.ts.net' }],
+    writes: [{ res: 'gh:incident', token: 'funnel-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('libraries-health.yml', {
+    id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
+    writes: [{ res: 'gh:incident', token: 'libraries-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
-    reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
+    reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }, { res: 'nas:db-backup', token: 'backups/db/status.json' }],
     writes: [], seeds: [],
   }),
   wf('nas-agent-arm.yml', {
@@ -1446,8 +1515,8 @@ const NODES = [
     reads: [{ res: 'tailnet:nodes', token: 'tailscale' }], writes: [{ res: 'gh:incident', token: 'incident' }], seeds: ['ops-surface'],
   }),
   wf('mcp-health.yml', {
-    id: 'mcp-health', name: 'MCP server health', purpose: 'Proves the sovereign MCP server answers and enforces its token.',
-    reads: [{ res: 'http:mcp', token: '/mcp' }], writes: [], seeds: [],
+    id: 'mcp-health', name: 'MCP road witness (DR-0244, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: the outside-in Funnel probe, then over the tailnet the open /health on loopback and one discover with the token read on the box; on a failure says where the install stands first, and keeps a rolling mcp-incident issue.',
+    reads: [{ res: 'http:mcp', token: '/mcp' }], writes: [{ res: 'gh:incident', token: 'mcp-incident' }], seeds: ['ops-surface'],
   }),
   wf('history-voices-witness.yml', {
     id: 'history-voices-witness', name: 'History voices witness', purpose: 'Fetches each quoted historical record and proves the quoted words are in it.',
@@ -1483,6 +1552,12 @@ const NODES = [
     reads: [{ res: 'nas:smtp', file: 'infra/nas-supabase/enable_email_smtp.sh', token: 'SMTP' }, { res: 'nas:storage', token: 'storage' }, { res: 'auth:users', file: 'infra/nas-supabase/reset_password.sh', token: 'auth.users' }],
     writes: [{ res: 'http:supabase', token: 'kong' }],
     seeds: ['app-client'],
+  }),
+  rider('service:db-backup', 'infra/nas-db-backup/db_backup.sh', {
+    id: 'db-backup', name: 'The database\u2019s own backup', purpose: 'One verified pg_dump of the whole sovereign database (sign-in accounts included) per night, a checksum beside it, retention only after a verified new copy, and a weekly restore drill; the README said from the start it is not optional for the family\u2019s data (DR-1113).',
+    reads: [{ res: 'http:supabase', token: 'pg_dump' }, { res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'db-backup' }],
+    writes: [{ res: 'nas:db-backup', token: 'status.json' }],
+    seeds: ['nas-health'],
   }),
   app('app/src/lib/supabase.js', {
     id: 'app-client', name: 'The app’s database client', purpose: 'Every screen reads and writes through it.',
@@ -1537,7 +1612,7 @@ const NODES = [
     id: 'announce-bell', name: 'The bell (sovereign ops-announce)',
     purpose: 'Pushes an incident to the family\u2019s phones through our own ntfy, with the topic pinned server-side so a leaked bearer can only ring the family\u2019s own bell; replaces the retired n8n wf-ops-announce (DR-0218).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'announce' }],
-    writes: [{ res: 'push:phone', token: 'TOPIC' }],
+    writes: [{ res: 'push:phone', token: 'TOPIC' }, { res: 'http:announce', token: 'healthz' }],
     seeds: [],
   }),
   rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
@@ -1547,6 +1622,19 @@ const NODES = [
   rider('service:research', 'infra/nas-research/research_forwarder.py', {
     id: 'research-road', name: 'Research road (Vane behind the locked door)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }], writes: [{ res: 'http:research', token: '/research' }], seeds: ['research'],
+  }),
+  rider('service:immich', 'infra/nas-immich/immich_forwarder.py', {
+    id: 'photo-backup-road', name: 'Photo-backup road (Immich behind the locked door)', purpose: 'Takes the phones’ photos and videos onto the pool through Immich; the forwarder is the only door, passing Immich’s API under the family key and never its pages (DR-1120).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'immich' }], writes: [{ res: 'http:photo-backup', token: '/photo-backup' }], seeds: ['photo-backup'],
+  }),
+  rider('service:libraries', 'infra/nas-libraries/libraries_forwarder.py', {
+    id: 'libraries-road', name: 'Libraries road (Jellyfin and Audiobookshelf on the tailnet; a health door on the Funnel)', purpose: 'Serves the household’s own video and audio to its screens and phones over the tailnet, behind each server’s own login; the Funnel sees only /health (DR-1121).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'libraries' }], writes: [{ res: 'http:libraries', token: '/libraries' }], seeds: ['home-accounts'],
+  }),
+  rider('service:home-accounts', 'infra/nas-home-accounts/home_accounts_sync.py', {
+    id: 'home-accounts-loop', name: 'Home accounts loop (this household’s logins, made for them)', purpose: 'Each cycle reads this household’s roster (by this NAS’s own family key), makes a missing account on each home server that is up, and writes one home_accounts row per person and service for the app to show (DR-1121).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'home-accounts' }, { res: 'db:home_accounts', token: '/rest/v1/home_accounts' }, { res: 'http:photo-backup', token: '127.0.0.1:2283' }, { res: 'http:libraries', token: '127.0.0.1:8096' }],
+    writes: [{ res: 'db:home_accounts', token: '/rest/v1/home_accounts' }, { res: 'nas:home-accounts', token: 'last-pass.json' }], seeds: ['home-accounts'],
   }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
@@ -1831,6 +1919,12 @@ const RESOURCES = {
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
   'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
+  'http:photo-backup': { label: 'the photo-backup road on the NAS (Immich behind the family key)', route: '/photo-backup' },
+  'http:announce': { label: 'the phone bell relay’s door on the NAS (its /healthz probes ntfy)', route: '/announce' },
+  'http:libraries': { label: 'the libraries road’s health door on the NAS (Jellyfin and Audiobookshelf live on the tailnet)', route: '/libraries' },
+  'db:home_accounts': { label: 'a person’s own logins on the home servers, written by the NAS after the account exists (0303, DR-1121; owner reads only)' },
+  'nas:home-accounts': { label: 'the home-accounts loop’s last-pass ledger on the NAS' },
+  'nas:lesson-builder': { label: 'the lesson builder’s own status on the NAS (status.json; --status)' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

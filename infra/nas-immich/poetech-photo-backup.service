@@ -1,0 +1,24 @@
+# PoeTech photo-backup forwarder -- the locked door in front of Immich (DR-1120).
+# Request-driven (no timers): it does no work until a phone or the app asks.
+# The Funnel mounts /photo-backup here. The family bridge bearer is read from
+# /volume1/PoeTech/secrets/chat-bridge-token.txt at start (never a second
+# token). Installed + kept running by infra/nas-immich/install.sh via
+# services-sync; the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech photo-backup forwarder (/photo-backup -> Immich on 127.0.0.1:2283)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PORT=@PORT@
+Environment=IMMICH_UPSTREAM=http://127.0.0.1:2283
+Environment=PHOTO_BACKUP_LIBRARY=@LIBRARY@
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/immich_forwarder.py --port @PORT@
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
