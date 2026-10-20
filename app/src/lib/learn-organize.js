@@ -591,6 +591,35 @@ export function searchLessons(index, query, limit = 40) {
     }
   }
 
+  // AND THE FIRST ROUND OF THAT TIER IS DEALT AHEAD OF EVERY TITLE HIT
+  // (2026-10-20, DR-1129). The round-robin above made the promise hold INSIDE
+  // the plain tier, but the tier itself sits behind every title and
+  // anchor-reference hit in the catalog, and those grow without bound. Measured
+  // the day Sovereign A.I. week 43 landed with "work" in its title: `work` had
+  // 35 title hits, kingdom-economics was the sixth of seven courses declaring
+  // it, and its first row sat at 41 - one past the window the product passes -
+  // having sat at exactly 40 the day before. Nothing about the lesson's prose
+  // could have prevented it, and the ratchet in course-plain-words.test.js
+  // forbids the raised ceiling by name: the honest move is the finder. So the
+  // first round - ONE row per course that declared the word, courses in catalog
+  // order - is lifted to the top of the list. A declared word is a course's own
+  // door for an everyday word; the reader who types it sees each such door
+  // first, then every title that happens to carry the word, then the rest of
+  // the tier, then body matches. N rows, N being the number of declaring
+  // courses, whatever the catalog grows to - which is what the sentence above
+  // promised and could not keep. A verse reference is never a declared word,
+  // so a reference query is untouched; a multi-word query reaches the tier only
+  // when EVERY token is declared, so an incidental overlap is never promoted.
+  if (plain.length > 0) {
+    const firstRound = new Set();
+    const lifted = [];
+    for (const s of scored) {
+      if (s.rank === PLAIN_TIER && !firstRound.has(s.e.courseKey)) { firstRound.add(s.e.courseKey); lifted.push(s); }
+    }
+    const rest = scored.filter((s) => !lifted.includes(s));
+    return [...lifted, ...rest].slice(0, limit).map((s) => s.e);
+  }
+
   return scored.slice(0, limit).map((s) => s.e);
 }
 
