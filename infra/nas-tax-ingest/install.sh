@@ -49,37 +49,53 @@ if [ ! -s "$TOKEN_FILE" ]; then
   echo "  generated $TOKEN_FILE (NEW token -- devices provision via the 0128 RPC)"
 fi
 
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). Under set -e a
+# venv build that fails stopped this installer before the unit block, leaving
+# the OLD server serving the new file on disk. The function runs once before
+# the venv step and once more at the end; without uvicorn it says so and
+# returns. The code stamp is sha256 like every other service's (.code.sha) and
+# is written only when the restart succeeded: the old md5 stamp was written
+# even when the restart had failed, so a failed restart read as current.
+server_follows_code() {
+  if [ ! -x "$VENV/bin/uvicorn" ]; then echo "  venv not ready yet -- the unit cannot start until it is"; return 0; fi
+  TOKEN="$(cat "$TOKEN_FILE")"
+  NEED_RESTART=0
+  if [ ! -f "$UNIT" ] || ! grep -q "TAX_UPLOAD_TOKEN=$TOKEN" "$UNIT" 2>/dev/null; then
+    sed -e "s|^Environment=TAX_UPLOAD_TOKEN=.*|Environment=TAX_UPLOAD_TOKEN=$TOKEN|" \
+        "$SRC/poetech-tax-upload.service" > "$UNIT"
+    systemctl daemon-reload
+    NEED_RESTART=1
+  fi
+  # A CODE change restarts the service too (DR-0708). uvicorn loads the .py once;
+  # a repo pull that changes tax_upload_server.py or tax_ingest.py (the 60 MB cap,
+  # 2026-09-30) would otherwise run the old code until something else restarted it.
+  STAMP="$VENV/.code.sha"
+  CODE_SHA="$(cat "$SRC/tax_upload_server.py" "$SRC/tax_ingest.py" "$SRC/tax_auth.py" | sha256sum | cut -c1-16)"
+  if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  service code changed ($CODE_SHA) -- restarting so the running process follows the code"
+  fi
+  systemctl enable poetech-tax-upload >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    systemctl restart poetech-tax-upload && echo "$CODE_SHA" > "$STAMP"
+  else
+    systemctl is-active --quiet poetech-tax-upload || systemctl restart poetech-tax-upload
+  fi
+  return 0
+}
+
+echo "== tax-upload install: systemd unit, before anything that can stop this install =="
+server_follows_code
+
 echo "== tax-upload install: venv =="
 if [ ! -x "$VENV/bin/uvicorn" ]; then
   python3 -m venv "$VENV"
   "$VENV/bin/pip" install --quiet fastapi uvicorn python-multipart
 fi
 
-echo "== tax-upload install: systemd unit =="
-TOKEN="$(cat "$TOKEN_FILE")"
-NEED_RESTART=0
-if [ ! -f "$UNIT" ] || ! grep -q "TAX_UPLOAD_TOKEN=$TOKEN" "$UNIT" 2>/dev/null; then
-  sed -e "s|^Environment=TAX_UPLOAD_TOKEN=.*|Environment=TAX_UPLOAD_TOKEN=$TOKEN|" \
-      "$SRC/poetech-tax-upload.service" > "$UNIT"
-  systemctl daemon-reload
-  NEED_RESTART=1
-fi
-# A CODE change restarts the service too (DR-0708). uvicorn loads the .py once;
-# a repo pull that changes tax_upload_server.py or tax_ingest.py (the 60 MB cap,
-# 2026-09-30) would otherwise run the old code until something else restarted it.
-CODE_STAMP=/volume1/PoeTech/venvs/tax-upload/.code-md5
-CODE_MD5="$(cat "$SRC/tax_upload_server.py" "$SRC/tax_ingest.py" "$SRC/tax_auth.py" | md5sum | cut -d' ' -f1)"
-if [ "$(cat "$CODE_STAMP" 2>/dev/null)" != "$CODE_MD5" ]; then
-  NEED_RESTART=1
-  echo "  service code changed -- restarting to load it"
-fi
-systemctl enable poetech-tax-upload >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-tax-upload
-else
-  systemctl is-active --quiet poetech-tax-upload || systemctl restart poetech-tax-upload
-fi
-printf '%s' "$CODE_MD5" > "$CODE_STAMP" 2>/dev/null || true
+echo "== tax-upload install: systemd unit, once more now the venv is there =="
+server_follows_code
 
 echo "== tax-upload install: publish whatever is already dropped =="
 # Deterministic, idempotent, stdlib-only. A NAS that already holds returns

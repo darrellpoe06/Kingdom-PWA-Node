@@ -50,6 +50,8 @@ const ON_THE_WAY = {
   // that says why, and a restart called before the step that used to exit first.
   'voice-lite': { door: 'infra/nas-voice-lite/voice_lite_server.py', witness: 'voice-lite-health.yml' },
   scribe: { door: 'infra/nas-scribe/scribe_ingest_server.py', witness: 'scribe-health.yml' },
+  // The fourth: real money's road; its witness was the site's, now its own.
+  'tax-upload': { door: 'infra/nas-tax-ingest/tax_upload_server.py', witness: 'tax-upload-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -78,7 +80,6 @@ const BORN_BEFORE_THE_WAY = {
   supabase: { lacks: ['codeFollows', 'witness'] },
   mcp: { lacks: ['health', 'witness'] },
   'property-photos': { lacks: ['codeFollows', 'witness'] },
-  'tax-upload': { lacks: ['codeFollows', 'stands'] },
   'voice-transport': { lacks: ['codeFollows', 'witness'] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },
   'choir-dates': { lacks: ['codeFollows', 'health', 'witness'] },

@@ -22,4 +22,6 @@ Then **voice-lite** (the reading voice the phones fall back to) and **scribe** (
 - Each installer's restart is one function, `server_follows_code`, called before the step that used to exit first (voice-lite: the piper and voice downloads, each an `exit 0`; scribe: the venv build under `set -e`) and once more at the end. Proven under stubs for scribe: on a box with no venv the function runs first, says "venv not ready yet", and the failing venv step is still loud.
 - `voice-lite-health.yml` and `scribe-health.yml`, one shape: `/health`, one real question with the family key (one spoken sentence measured as audio bytes; one sessions read measured as a count), "where the install stands" on a failed verdict, a rolling incident issue each.
 
-The gate lists `cameras`, `voice-lite` and `scribe` on the Way. Nineteen remain in the ledger, each with what it lacks; the next is taken in the same order.
+Then **tax-upload** (real money's road, DR-0330), whose witness was the site's: its door now says why (503 without a path when the drop folder is not writable; a reason when no archive is published yet); its restart is one function before the venv step and at the end, with a sha256 stamp written only on a successful restart (the old md5 stamp was written even when the restart had failed); `tax-upload-health.yml` asks for the archive with the family key and counts entries only.
+
+The gate lists `cameras`, `voice-lite`, `scribe` and `tax-upload` on the Way. Eighteen remain in the ledger, each with what it lacks; the next is taken in the same order.
