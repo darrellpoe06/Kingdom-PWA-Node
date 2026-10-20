@@ -39,6 +39,50 @@ if [ ! -s "$TOKEN_FILE" ]; then
 fi
 command -v curl >/dev/null 2>&1 || { echo "  curl missing -- cannot download or verify; nothing done"; exit 0; }
 
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). This block sat
+# after the piper and voice downloads, each of which exits 0 on failure, so a
+# box still downloading left the OLD server serving and the new code's reason
+# (/health 503 "piper or its voices are not on this box yet") unread. It now
+# runs once before the first download and once more at the end. No-op when
+# the unit and the code are already the ones running.
+server_follows_code() {
+  PY="$(command -v python3 || true)"
+  [ -n "$PY" ] || { echo "  python3 not found -- the server cannot run"; return 0; }
+  TMPU="$(mktemp)"
+  sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@HOME@|$HOME_DIR|" -e "s|@PORT@|$PORT|" \
+      "$SRC/poetech-voice-lite.service" > "$TMPU"
+  NEED_RESTART=0
+  if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
+    cp "$TMPU" "$UNIT"
+    systemctl daemon-reload
+    NEED_RESTART=1
+    echo "  unit written"
+  fi
+  rm -f "$TMPU"
+  # THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07). The service restarted
+  # only when its UNIT changed, so a merge that changed voice_lite_server.py
+  # (the pace, DR-0769) left the OLD process serving with the new file on disk.
+  CODE_SHA="$(sha256sum < "$SRC/voice_lite_server.py" | cut -c1-16)"
+  STAMP="$HOME_DIR/.code.sha"
+  if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  server code changed ($CODE_SHA) -- restarting so the running process follows the code"
+  fi
+  systemctl enable poetech-voice-lite >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    systemctl restart poetech-voice-lite && echo "$CODE_SHA" > "$STAMP"
+  else
+    systemctl is-active --quiet poetech-voice-lite || systemctl restart poetech-voice-lite || true
+  fi
+  return 0
+}
+
+echo "== voice-lite install: systemd unit, before anything that can stop this install =="
+mkdir -p "$HOME_DIR"
+server_follows_code
+
+
 mkdir -p "$HOME_DIR/voices" "$HOME_DIR/cache"
 
 echo "== voice-lite install: piper binary =="
@@ -142,35 +186,8 @@ if [ -n "$FF" ]; then
   fi
 fi
 
-echo "== voice-lite install: systemd unit =="
-PY="$(command -v python3 || true)"
-[ -n "$PY" ] || { echo "  python3 not found -- nothing mounted"; exit 0; }
-TMPU="$(mktemp)"
-sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@HOME@|$HOME_DIR|" -e "s|@PORT@|$PORT|" \
-    "$SRC/poetech-voice-lite.service" > "$TMPU"
-NEED_RESTART=0
-if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
-  cp "$TMPU" "$UNIT"
-  systemctl daemon-reload
-  NEED_RESTART=1
-  echo "  unit written"
-fi
-rm -f "$TMPU"
-# THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07). The service restarted
-# only when its UNIT changed, so a merge that changed voice_lite_server.py
-# (the pace, DR-0769) left the OLD process serving with the new file on disk.
-CODE_SHA="$(sha256sum < "$SRC/voice_lite_server.py" | cut -c1-16)"
-STAMP="$HOME_DIR/.code.sha"
-if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
-  NEED_RESTART=1
-  echo "  server code changed ($CODE_SHA) -- restarting so the running process follows the code"
-fi
-systemctl enable poetech-voice-lite >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-voice-lite && echo "$CODE_SHA" > "$STAMP"
-else
-  systemctl is-active --quiet poetech-voice-lite || systemctl restart poetech-voice-lite || true
-fi
+echo "== voice-lite install: systemd unit, once more now the downloads have run =="
+server_follows_code
 
 echo "== voice-lite install: the server must answer before the Funnel points at it =="
 sleep 2

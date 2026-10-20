@@ -37,6 +37,26 @@ const ENABLED = SERVICES.filter((s) => s.enabled);
 /** The services that walk the whole Way: their door answers with a reason. */
 const ON_THE_WAY = {
   research: { door: 'infra/nas-research/research_forwarder.py', witness: 'research-health.yml' },
+  // The first service born BY the Way (DR-1120), the day after it was written.
+  immich: { door: 'infra/nas-immich/immich_forwarder.py', witness: 'immich-health.yml' },
+  // The libraries road (DR-1121): its door is health-only, the servers live on the tailnet.
+  libraries: { door: 'infra/nas-libraries/libraries_forwarder.py', witness: 'libraries-health.yml' },
+  // The first service born BEFORE the Way brought up to it (2026-10-20, the audit,
+  // highest blast radius first): its witness now says where the install stands,
+  // and its installer's restart is one function called before the go2rtc wait
+  // that used to exit ahead of it.
+  cameras: { door: 'infra/nas-cameras/cams_forwarder.py', witness: 'camera-health.yml' },
+  // The second and third (same night): each gained a witness that stands, a door
+  // that says why, and a restart called before the step that used to exit first.
+  'voice-lite': { door: 'infra/nas-voice-lite/voice_lite_server.py', witness: 'voice-lite-health.yml' },
+  scribe: { door: 'infra/nas-scribe/scribe_ingest_server.py', witness: 'scribe-health.yml' },
+};
+
+/** Loops born by the Way: no door of their own (their "says why" is the ledger
+ *  row the witness reads), so codeFollows and health are lacking BY NATURE and
+ *  nothing else may be. */
+const LOOPS_ON_THE_WAY = {
+  'home-accounts': { witness: 'libraries-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -44,6 +64,8 @@ const ON_THE_WAY = {
  *  fails: the ledger says what is true. They are brought up to the Way in
  *  order of blast radius by the audit date (DR-0075: a why and a date, never a
  *  silent stall). */
+// The audit began 2026-10-20 (DR-0236: nothing buildable waits); the date is the
+// ceiling the build fails at, not the day the work starts.
 const AUDIT_BY = '2026-11-15';
 const BORN_BEFORE_THE_WAY = {
   'transcript-trickle': { lacks: ['codeFollows', 'health', 'stands'] },
@@ -55,7 +77,6 @@ const BORN_BEFORE_THE_WAY = {
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   supabase: { lacks: ['codeFollows', 'witness'] },
   mcp: { lacks: ['health', 'witness'] },
-  scribe: { lacks: ['witness'] },
   'property-photos': { lacks: ['codeFollows', 'witness'] },
   'tax-upload': { lacks: ['codeFollows', 'stands'] },
   'voice-transport': { lacks: ['codeFollows', 'witness'] },
@@ -64,9 +85,7 @@ const BORN_BEFORE_THE_WAY = {
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
   'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
-  'voice-lite': { lacks: ['witness'] },
   'lesson-builder': { lacks: ['health', 'witness'] },
-  cameras: { lacks: ['stands'], witness: 'camera-health.yml' },
   announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
@@ -98,7 +117,10 @@ function lacksOf(s, override) {
 }
 
 /** The restart that moves the running code onto the repo's is one function,
- *  called from more than one path. Returns the function's name, or null. */
+ *  called from more than one path (the no-dependency path too). A position
+ *  rule was tried and dropped: by position alone a gate cannot tell a
+ *  dependency check from the door's own prerequisites. Returns the
+ *  function's name, or null. */
 export function restartOnEveryPath(installText) {
   const fns = [...installText.matchAll(/^([a-z_][\w]*)\(\) \{\n([\s\S]*?)\n\}/gm)];
   for (const [, name, body] of fns) {
@@ -132,6 +154,14 @@ describe('a service comes home by one Way (DR-1119)', () => {
     }
   });
 
+  it('a loop on the Way: its witness says where the install stands, and it lacks only what a loop lacks by nature', () => {
+    for (const [name, w] of Object.entries(LOOPS_ON_THE_WAY)) {
+      const s = SERVICES.find((x) => x.name === name);
+      expect(s, name).toBeTruthy();
+      expect(lacksOf(s, w.witness), `${name} lacks`).toEqual(['codeFollows', 'health']);
+    }
+  });
+
   it('every service born before the Way is listed with exactly what it still lacks, and the audit date has not passed', () => {
     const today = new Date().toISOString().slice(0, 10);
     expect(today <= AUDIT_BY, `the audit of the services born before the Way came due on ${AUDIT_BY}: bring them up to the Way or record a new date with a why (DR-0075)`).toBe(true);
@@ -143,7 +173,7 @@ describe('a service comes home by one Way (DR-1119)', () => {
   });
 
   it('a new service joins the Way at birth: every enabled service is on one list, and no listed service is gone', () => {
-    const listed = new Set([...Object.keys(ON_THE_WAY), ...Object.keys(BORN_BEFORE_THE_WAY)]);
+    const listed = new Set([...Object.keys(ON_THE_WAY), ...Object.keys(LOOPS_ON_THE_WAY), ...Object.keys(BORN_BEFORE_THE_WAY)]);
     for (const s of ENABLED) expect(listed.has(s.name), `${s.name} is enabled but on neither list; a new service walks the Way (THE-WAY-A-SERVICE-COMES-HOME)`).toBe(true);
     const names = new Set(SERVICES.map((s) => s.name));
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);
@@ -168,18 +198,25 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(restartOnEveryPath(GOOD)).toBe('x');
     const old = 'if [ -z "$DEP" ]; then\n  exit 0\nfi\nx() {\n  $SUDO systemctl restart poetech-x\n}\nx\n';
     expect(restartOnEveryPath(old)).toBeNull();
+    // Called once, after a stop: the no-dependency path never reaches it.
+    const late = 'x() {\n  $SUDO systemctl restart poetech-x\n}\nif [ -z "$DEP" ]; then\n  exit 0\nfi\nx\n';
+    expect(restartOnEveryPath(late)).toBeNull();
   });
   it('a restart that is not a function at all', () => {
     expect(restartOnEveryPath('if [ -z "$DEP" ]; then exit 0; fi\n$SUDO systemctl restart poetech-x\n')).toBeNull();
   });
   it('a witness without its standing lines, and a door without a reason', () => {
     const s = SERVICES.find((x) => x.name === 'research');
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['stands']);
+    // site-health.yml watches the site, not an install, so it never says where one stands.
+    expect(lacksOf(s, 'site-health.yml')).toEqual(['stands']);
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    const s = SERVICES.find((x) => x.name === 'scribe');
-    expect(lacksOf(s)).toEqual(['witness']);
-    expect(lacksOf(s)).not.toEqual(['codeFollows', 'witness']);
+    // lesson-builder stamps its code and has no witness; a ledger row that still
+    // listed codeFollows, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'lesson-builder');
+    expect(lacksOf(s)).toEqual(['health', 'witness']);
+    expect(lacksOf(s)).not.toEqual(['codeFollows', 'health', 'witness']);
+    expect(lacksOf(s, 'camera-health.yml')).toEqual(['health']);
   });
 });

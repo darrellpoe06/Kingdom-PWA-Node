@@ -1,0 +1,22 @@
+# PoeTech libraries health door (DR-1121): /libraries -> says whether Jellyfin
+# and Audiobookshelf answer on loopback and the shelves are on the pool. Serves
+# /health and nothing else; the servers themselves are on the tailnet, never
+# the Funnel. Installed + kept running by infra/nas-libraries/install.sh via
+# services-sync; the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech libraries health door (/libraries -> Jellyfin 8096 + Audiobookshelf 13378 on loopback)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PORT=@PORT@
+Environment=LIBRARY_SHELVES=@SHELVES@
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/libraries_forwarder.py --port @PORT@
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

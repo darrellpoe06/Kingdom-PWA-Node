@@ -20,6 +20,7 @@ import {
   summarizeCandidates, touchedGaps, pinnedUrl,
 } from '../lib/open-source-candidates.js';
 import ResearchTry from './ResearchTry.jsx';
+import PhotoBackupStatus from './PhotoBackupStatus.jsx';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -134,6 +135,7 @@ export default function OpenSourceCandidates({ today = todayIso(), list = OPEN_S
       )}
 
       {list.some((c) => c.id === 'vane') && <ResearchTry />}
+      {list.some((c) => c.id === 'immich') && <PhotoBackupStatus />}
 
       {groups.map((v) => {
         const items = list.filter((c) => c.verdict === v);
