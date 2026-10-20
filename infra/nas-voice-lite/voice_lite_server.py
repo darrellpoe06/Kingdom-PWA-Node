@@ -465,6 +465,15 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                 return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             if not gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_inflight": max_inflight})
+            # THE GATE COVERS SYNTHESIS, NOT THE SEND (2026-10-20, ci run
+            # 39503065622). It used to be released in a finally AFTER the clip's
+            # bytes were written, and on this threaded server a client has the
+            # whole body (Content-Length) a moment before that finally runs; the
+            # reader's very next request could find the gate held and get 503
+            # busy. The self-test's "never cached" check met it one run in two.
+            # Now the gate is let go the moment the clip exists; serving is not
+            # a synthesis in flight.
+            suspect = None  # a clip served once and never kept
             try:
                 fd, tmp = tempfile.mkstemp(suffix=".wav", dir=cache_dir)
                 os.close(fd)
@@ -479,32 +488,35 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                         engine.synthesize(spoken, voice, tmp, speed)
                         if os.path.getsize(tmp) <= 44:
                             raise RuntimeError("empty clip")
-                        if too_short_for_words(wav_seconds(tmp), text, speed):
-                            # Served, not kept: the next reader asks again.
+                    if too_short_for_words(wav_seconds(tmp), text, speed):
+                        # Served, not kept: the next reader asks again.
+                        suspect = tmp
+                    else:
+                        os.replace(tmp, out)
+                        if fresh:
+                            # The Opus shape of the old clip is stale too.
                             try:
-                                return self._wav(tmp, keep=False)
-                            finally:
-                                try:
-                                    os.remove(tmp)
-                                except OSError:
-                                    pass
-                    os.replace(tmp, out)
-                    if fresh:
-                        # The Opus shape of the old clip is stale too.
-                        try:
-                            os.remove(os.path.join(cache_dir, key + ".opus"))
-                        except OSError:
-                            pass
+                                os.remove(os.path.join(cache_dir, key + ".opus"))
+                            except OSError:
+                                pass
                 except Exception:  # noqa: BLE001 -- any synth failure is one honest 502
                     try:
                         os.remove(tmp)
                     except OSError:
                         pass
                     return self._json(502, {"error": "synthesis-failed"})
-                prune_cache(cache_dir, CACHE_MAX_BYTES)
-                return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             finally:
                 gate.release()
+            if suspect:
+                try:
+                    return self._wav(suspect, keep=False)
+                finally:
+                    try:
+                        os.remove(suspect)
+                    except OSError:
+                        pass
+            prune_cache(cache_dir, CACHE_MAX_BYTES)
+            return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
 
     return Handler
 
