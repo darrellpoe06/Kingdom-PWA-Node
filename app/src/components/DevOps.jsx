@@ -6,6 +6,7 @@ import { SectionTitle, MetricCell } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
 import OpenersPanel from './OpenersPanel.jsx';
+import ChurchCostToServe from './ChurchCostToServe.jsx';
 import { useInstanceRole } from '../lib/instance-role.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -792,6 +793,10 @@ function PoeTechProjections() {
           Industry-typical freemium SaaS: 5-15% paying conversion. Calendly's free→paid is ~3%. The remaining {totalPct < 100 ? (100-totalPct) : 0}% is Loved Ones + Community tiers (free, sponsored).
         </p>
       </div>
+
+      {/* DR-1128: a church's price is checked against its whole cost to serve
+          before it is offered. */}
+      <ChurchCostToServe />
 
       <div className="bg-white border border-[#1A1815]">
         <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
