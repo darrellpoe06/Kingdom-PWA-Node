@@ -11,4 +11,10 @@
 
 **Measured.** Loop selftest 32 checks (7 fail with the declarations emptied); door selftest 15; `home-accounts.test.jsx` 12; the gate: `libraries` on the Way, `home-accounts` a loop on the Way; digests from ghcr.io; YAML, JSON, registry, lint, gates.
 
-**Next, now, in this session:** the 22 older services brought up to the Way, Funnel doors first.
+## The audit of the services born before the Way began the same night (2026-10-20)
+
+Highest blast radius first: **cameras** (Darrell: "Cameras never work"). Two parts, both proven:
+- `infra/nas-cameras/install.sh`: the forwarder restart is now one function, `forwarder_follows_code`, called before compose up and the go2rtc wait, and once more at the end. Before: "go2rtc silent after 60s" exited ahead of the restart and left the OLD forwarder serving with the new code's reason unread, the research road's stumble 2 in this installer. Proven under stubs: on the no-go2rtc path the unit is enabled, restarted and stamped (`systemctl restart poetech-cams`, `.forwarder.code.sha` written).
+- `camera-health.yml`: a "where the install stands" step after a failed judge: checkout, forwarder and recorder running code against the repo's, the release epoch on both sides, each unit, go2rtc and the bridge from the box, the Funnel mount, the last lines of each.
+
+The gate lists `cameras` on the Way now. Twenty-one remain in the ledger, each with what it lacks; the next is taken in the same order.

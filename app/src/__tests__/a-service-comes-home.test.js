@@ -41,6 +41,11 @@ const ON_THE_WAY = {
   immich: { door: 'infra/nas-immich/immich_forwarder.py', witness: 'immich-health.yml' },
   // The libraries road (DR-1121): its door is health-only, the servers live on the tailnet.
   libraries: { door: 'infra/nas-libraries/libraries_forwarder.py', witness: 'libraries-health.yml' },
+  // The first service born BEFORE the Way brought up to it (2026-10-20, the audit,
+  // highest blast radius first): its witness now says where the install stands,
+  // and its installer's restart is one function called before the go2rtc wait
+  // that used to exit ahead of it.
+  cameras: { door: 'infra/nas-cameras/cams_forwarder.py', witness: 'camera-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -55,6 +60,8 @@ const LOOPS_ON_THE_WAY = {
  *  fails: the ledger says what is true. They are brought up to the Way in
  *  order of blast radius by the audit date (DR-0075: a why and a date, never a
  *  silent stall). */
+// The audit began 2026-10-20 (DR-0236: nothing buildable waits); the date is the
+// ceiling the build fails at, not the day the work starts.
 const AUDIT_BY = '2026-11-15';
 const BORN_BEFORE_THE_WAY = {
   'transcript-trickle': { lacks: ['codeFollows', 'health', 'stands'] },
@@ -77,7 +84,6 @@ const BORN_BEFORE_THE_WAY = {
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
   'voice-lite': { lacks: ['witness'] },
   'lesson-builder': { lacks: ['health', 'witness'] },
-  cameras: { lacks: ['stands'], witness: 'camera-health.yml' },
   announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
@@ -199,7 +205,8 @@ describe('the gate catches each break (proven to catch)', () => {
   });
   it('a witness without its standing lines, and a door without a reason', () => {
     const s = SERVICES.find((x) => x.name === 'research');
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['stands']);
+    // site-health.yml watches the site, not an install, so it never says where one stands.
+    expect(lacksOf(s, 'site-health.yml')).toEqual(['stands']);
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {

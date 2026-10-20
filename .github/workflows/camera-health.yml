@@ -230,3 +230,50 @@ jobs:
             }
             core.summary.addHeading('Camera road witness').addRaw(summary + (regression ? `\n\nREGRESSION: ${reasons.join('; ')}` : '\n\nno regression')).write();
             if (regression) core.setFailed('camera road regression: ' + reasons.join('; '));
+
+      # When the road regresses, say WHERE THE INSTALL STANDS first (THE-WAY-A-
+      # SERVICE-COMES-HOME, step 6; 2026-10-20, the audit of the services born
+      # before the Way): the box's checkout, the forwarder's and the recorder's
+      # running code against the repo's, each unit, go2rtc and the bridge from
+      # the box, the Funnel mount. Runs only after a failed judge; read-only;
+      # anything key-shaped scrubbed.
+      - name: "Diagnose a regression: where the install stands"
+        if: steps.gate.outputs.go == 'true' && failure()
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          DATA=/volume1/docker/go2rtc
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          SRC="$REPO/infra/nas-cameras"
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "forwarder running code: $(rd "$DATA/.forwarder.code.sha" || echo none) / repo code: $(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" "$SRC/wyze_cloud.py" 2>/dev/null | sha256sum | cut -c1-16)"
+          echo "recorder running code: $(rd "$DATA/.recorder.code.sha" || echo none) / repo code: $(sha256sum < "$SRC/cams_recorder.py" 2>/dev/null | cut -c1-16)"
+          echo "go2rtc release epoch: box $(rd "$DATA/.go2rtc.release.epoch" || echo none) / repo $(head -n 1 "$SRC/go2rtc.release-epoch" 2>/dev/null || echo none)"
+          for U in poetech-cams poetech-cams-recorder; do echo "unit $U: $(systemctl is-active "$U" 2>/dev/null || echo unknown)"; done
+          if [ -s "$DATA/go2rtc.yaml" ] || sudo -n test -s "$DATA/go2rtc.yaml" 2>/dev/null; then echo "config: go2rtc.yaml present"; else echo "config: go2rtc.yaml ABSENT -- never seeded"; fi
+          echo "go2rtc /api (loopback): $(curl -sS -m 6 -o /dev/null -w '%{http_code}' http://127.0.0.1:1984/api 2>&1)"
+          echo "forwarder /health (loopback): $(curl -sS -m 8 http://127.0.0.1:8773/health 2>&1 | head -c 300)"
+          echo "wyze bridge /api (loopback): $(curl -sS -m 6 -o /dev/null -w '%{http_code}' http://127.0.0.1:8597/api 2>&1)"
+          TSB=/var/packages/Tailscale/target/bin/tailscale
+          echo "funnel /cams: $(sudo -n $TSB funnel status 2>/dev/null | grep -c '/cams' || echo 0) mount line(s)"
+          D=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then D="$CAND"; break; fi
+            if sudo -n "$CAND" ps >/dev/null 2>&1; then D="sudo -n $CAND"; break; fi
+          done
+          [ -n "$D" ] && $D ps --filter name=poetech- --format '{{.Names}} {{.Status}}' || echo "(no docker this user can run)"
+          for C in poetech-go2rtc poetech-wyze-bridge; do
+            echo "---- last lines of $C ----"
+            [ -n "$D" ] && $D logs --tail 25 "$C" 2>&1 | cut -c1-300 || echo "(no docker this user can run)"
+          done
+          echo "---- last lines of the forwarder ----"
+          (journalctl -u poetech-cams -n 25 --no-pager 2>/dev/null || sudo -n journalctl -u poetech-cams -n 25 --no-pager 2>/dev/null || echo "(no journal this user can read)") | cut -c1-300
+          EOS
