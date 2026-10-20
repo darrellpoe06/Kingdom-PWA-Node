@@ -375,3 +375,54 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 
 - Whether a camera that answers only some offers needs a longer dial than 20 s.
 - Whether the IDisposable fork is needed at all.
+
+## Twelfth field read (2026-10-20 13:55-14:03 UTC; cams-diag 39434555270, camera-health 39434540645): the review
+
+- **The witness reads 16 of 33 (16 on the first ask), one under the floor of 17.** The `priority:cameras` label is back on #2011.
+- **Six Kinesis cameras gave no video on both asks**, 30 s apart. Each answered 504 "no video on Wyze's WebRTC road yet". They were Back Yard North, Basement North, Front, Garage Doors, Garage Front Yard and Outside 7.
+  - Front Cam (6.1 s) and Front Door View (10.5 s) answered this time. Front Cam had been dark in the two reads before. The dark set keeps rotating.
+- **Eleven cameras answered "go2rtc answered an empty frame" in 5 s on both asks.**
+  - Wyze's own list could not be read (HTTP 429; see below).
+  - The bridge's log names IOTC_ER_DEVICE_OFFLINE for seven of them in the lines read: Kitchen Cam, Living Room, North East Cam, Outside Front Door, Front Driveway & Door, Front Yard and 805 Apt 4. That is Wyze's P2P service saying the camera itself is not connected. It is a second witness, separate from the cloud list.
+  - The other four were not in the lines read: Basement Living Room, East North Cam, 805 Front Outside and 805 Porch Cam.
+  - Their addresses sit outside the NAS's own 192.168.1.0/24 (192.168.4.76, 10.0.0.7, 192.168.7.0).
+
+**Question 1, a longer dial than 20 s: no.**
+- Every camera that gave a frame did so in 3.8 to 12.0 s (all 16 this pass).
+- The judge's own successful dials took 3.5 to 9.4 s.
+- Every camera that gave no frame gave nothing for the full 20 s, on both asks.
+- What decides is whether Wyze answers the offer at all. A longer wait on an unanswered offer only puts off the next fresh one. The dial stays at 20 s.
+
+**Question 2, the IDisposable fork: not built.**
+- The bar set when this record was opened: "If Kinesis carries fewer than half of the dark cameras, the fork comes next." The judge counts 13 of the 20 Kinesis-road cameras carrying video.
+- The 7 it calls dark are not a fixed set: Back Yard South, Front Cam and Front Door View each answered in this read or one of the two before it.
+- The fork reaches these firmwares on the same Wyze WebRTC road, so it would not change an unanswered offer.
+- The other eleven are offline at Wyze's P2P service, which no bridge image reaches.
+
+**Found by this read, and fixed in this record: Wyze's 429 was never waited out.**
+- Wyze's cloud answered HTTP 429 to the device list in the tenth read, and again in this one.
+- `wyze_cloud.py` had no wait after a 429:
+  - A sign-in that failed left no token.
+  - The next open of the tab signed in again.
+- In the app, this was the Doors note "Wyze's cloud did not answer the NAS (http-429)". The garage button and Wyze's per-camera offline word went missing.
+- **The fix:** a 429 is obeyed per endpoint (sign-in, refresh, the list, an action).
+  - The NAS asks again only after Wyze's `Retry-After`. Without one, it waits 5 minutes, doubling to 1 hour while the 429s continue.
+  - During the wait, the last list Wyze gave is served, with its age (`age_s`).
+  - With no list to serve, `/devices` answers 503 `rate-limited` with `retry_in`. The tab says "Wyze asked the NAS to slow down. It asks Wyze again in about N minutes."
+- **Proven:**
+  - `wyze_cloud.py --selftest` passes with 10 new checks.
+  - The forwarder selftest passes 458 (was 456).
+  - CI now runs the Wyze cloud selftest, which it never ran before.
+  - PROVEN TO CATCH: with the wait taken out, 6 of those 10 checks fail.
+- **Not known yet:** whether Wyze's 429 is on the sign-in or on the list. cams-diag now prints Wyze's own detail and the wait.
+
+**Found by this read, not yet decided: TURN clients failing to refresh.**
+- In about 90 seconds, 78 of go2rtc's last 80 log lines were TURN clients failing to refresh permissions:
+  - 10 of Amazon's 401 Unauthorized, and 29 broken pipes;
+  - 15 different relay servers, and 39 different permission ids.
+- A live Kinesis relay refreshes. This many failures points to sessions that ended without being closed.
+- That is not yet measured as a leak, and not yet tied to the unanswered offers. cams-diag now counts these failures over the last 10 minutes, so two reads hours apart can tell a leak from a moment.
+
+`re-review: 2026-10-21`. Two questions stand at that review:
+- **The TURN count, read twice, hours apart.** If it climbs, sessions are being left open, and the fix is between releasing go2rtc on a clock and closing them at the source.
+- **Wyze's 429.** Which endpoint answers it, and whether it lifts once the NAS waits.

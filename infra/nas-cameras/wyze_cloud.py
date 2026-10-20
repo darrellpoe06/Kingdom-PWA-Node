@@ -39,11 +39,16 @@ key or token.
 
 Brakes: one action per device per ACTION_MIN_SECONDS (a double tap never
 cycles a door twice); every HTTP call bounded by TIMEOUT; the device list is
-cached DEVICES_TTL seconds so a tab's refreshes do not hammer Wyze.
+cached DEVICES_TTL seconds so a tab's refreshes do not hammer Wyze; and a 429
+from Wyze is OBEYED (DR-1097, twelfth read): that endpoint is not asked again
+until Wyze's Retry-After, or RATE_LIMIT_BACKOFF doubling to RATE_LIMIT_MAX, has
+passed. Until then the last list Wyze gave is served with its age, and a call
+with no list to fall back on is refused as "rate-limited" with the seconds left.
+Before this, every tab open asked again, so nothing on our side ever let a limit lapse.
 
 Selftest: `python3 wyze_cloud.py --selftest` against a fake Wyze cloud on
-loopback (login, list, action, token refresh, offline, rate limit, the
-credential readers).
+loopback (login, list, action, token refresh, offline, rate limit, Wyze's
+429 obeyed, the credential readers).
 """
 import argparse
 import hashlib
@@ -62,6 +67,8 @@ API_URL = os.environ.get("WYZE_API_URL", "https://api.wyzecam.com")
 TIMEOUT = float(os.environ.get("WYZE_HTTP_TIMEOUT", "15"))
 DEVICES_TTL = float(os.environ.get("WYZE_DEVICES_TTL", "60"))
 ACTION_MIN_SECONDS = float(os.environ.get("WYZE_ACTION_MIN_SECONDS", "3"))
+RATE_LIMIT_BACKOFF = float(os.environ.get("WYZE_RATE_LIMIT_BACKOFF", "300"))
+RATE_LIMIT_MAX = float(os.environ.get("WYZE_RATE_LIMIT_MAX", "3600"))
 SECRETS_ENV = os.environ.get("WYZE_ENV", "/volume1/PoeTech/secrets/wyze.env")
 GO2RTC_YAML = os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "go2rtc.yaml")
 
@@ -87,10 +94,21 @@ CODE_OK, CODE_PARAM, CODE_TOKEN, CODE_OFFLINE = "1", "1001", "2001", "3019"
 
 
 class WyzeError(Exception):
-    def __init__(self, kind, detail=""):
+    def __init__(self, kind, detail="", retry_after=None):
         super().__init__("%s: %s" % (kind, detail))
         self.kind = kind
         self.detail = detail
+        self.retry_after = retry_after
+
+
+def _retry_after_seconds(value):
+    """Retry-After as seconds, or None. Only the delta-seconds form is read; an
+    HTTP-date (or nothing) leaves the backoff to choose."""
+    try:
+        n = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
 
 
 def hash_password(password):
@@ -188,7 +206,8 @@ def _post_json(url, payload, headers=None, timeout=TIMEOUT, opener=None):
         with open_fn(req, timeout=timeout) as r:
             body = r.read(4 * 1024 * 1024)
     except urllib.error.HTTPError as e:
-        raise WyzeError("http-%d" % e.code, e.read(512).decode("utf-8", "replace")[:200])
+        retry_after = _retry_after_seconds(e.headers.get("Retry-After") if e.headers else None)
+        raise WyzeError("http-%d" % e.code, e.read(512).decode("utf-8", "replace")[:200], retry_after=retry_after)
     except (urllib.error.URLError, OSError) as e:
         raise WyzeError("unreachable", str(getattr(e, "reason", e))[:200])
     try:
@@ -213,14 +232,39 @@ class WyzeCloud:
         self._devices = None
         self._devices_at = 0.0
         self._last_action = {}  # mac -> monotonic
+        self._cool = {}  # endpoint ("login" or an API path) -> {"until", "span", "detail"}
+
+    # -- Wyze's 429, obeyed --
+    def cooling(self, key=None):
+        """Seconds left before `key` may be asked again (0 when it may), or the
+        longest wait among all endpoints when no key is given."""
+        now = self.now()
+        keys = [key] if key else list(self._cool)
+        return max([0] + [int(self._cool[k]["until"] - now + 0.999) for k in keys if k in self._cool and self._cool[k]["until"] > now])
+
+    def _guarded(self, key, fn):
+        left = self.cooling(key)
+        if left > 0:
+            raise WyzeError("rate-limited", "%d s before the NAS asks Wyze again (%s)" % (left, key), retry_after=left)
+        try:
+            out = fn()
+        except WyzeError as e:
+            if e.kind != "http-429":
+                raise
+            prev = self._cool.get(key, {}).get("span", 0)
+            span = e.retry_after or min(RATE_LIMIT_MAX, max(RATE_LIMIT_BACKOFF, prev * 2))
+            self._cool[key] = {"until": self.now() + span, "span": span, "detail": e.detail}
+            raise WyzeError("rate-limited", "Wyze answered 429 to %s; the NAS waits %d s before asking again" % (key, int(span)), retry_after=int(span))
+        self._cool.pop(key, None)
+        return out
 
     # -- auth --
     def login(self):
         c = self.creds
         if not c or not all(c.get(k) for k in ("email", "password", "api_id", "api_key")):
             raise WyzeError("no-credentials", "sign in to Wyze in the Cameras tab first")
-        j = _post_json(self.auth_url, {"email": c["email"], "password": hash_password(c["password"])},
-                       headers={"keyid": c["api_id"], "apikey": c["api_key"]}, opener=self.opener)
+        j = self._guarded("login", lambda: _post_json(self.auth_url, {"email": c["email"], "password": hash_password(c["password"])},
+                                                       headers={"keyid": c["api_id"], "apikey": c["api_key"]}, opener=self.opener))
         if not j.get("access_token"):
             raise WyzeError("sign-in-refused", str(j.get("description") or j.get("errorMessage") or j.get("msg") or "no access token")[:200])
         self.access_token = j["access_token"]
@@ -230,9 +274,9 @@ class WyzeCloud:
     def _refresh(self):
         if not self.refresh_token:
             return self.login()
-        j = _post_json(self.api_url + "/app/user/refresh_token",
-                       {**self._base(), "refresh_token": self.refresh_token},
-                       headers={"X-API-Key": API_KEY_HEADER}, opener=self.opener)
+        j = self._guarded("refresh", lambda: _post_json(self.api_url + "/app/user/refresh_token",
+                                                         {**self._base(), "refresh_token": self.refresh_token},
+                                                         headers={"X-API-Key": API_KEY_HEADER}, opener=self.opener))
         data = j.get("data") or {}
         if j.get("code") == CODE_OK and data.get("access_token"):
             self.access_token = data["access_token"]
@@ -248,11 +292,11 @@ class WyzeCloud:
     def _call(self, path, extra):
         if not self.access_token:
             self.login()
-        j = _post_json(self.api_url + path, {**self._base(), **extra}, opener=self.opener)
+        j = self._guarded(path, lambda: _post_json(self.api_url + path, {**self._base(), **extra}, opener=self.opener))
         code = str(j.get("code", ""))
         if code == CODE_TOKEN:
             self._refresh()
-            j = _post_json(self.api_url + path, {**self._base(), **extra}, opener=self.opener)
+            j = self._guarded(path, lambda: _post_json(self.api_url + path, {**self._base(), **extra}, opener=self.opener))
             code = str(j.get("code", ""))
         if code == CODE_OK:
             return j
@@ -267,7 +311,12 @@ class WyzeCloud:
         with self.lock:
             if not force and self._devices is not None and self.now() - self._devices_at < DEVICES_TTL:
                 return self._devices
-            j = self._call("/app/v2/home_page/get_object_list", {})
+            try:
+                j = self._call("/app/v2/home_page/get_object_list", {})
+            except WyzeError as e:
+                if e.kind == "rate-limited" and self._devices is not None:
+                    return self._devices  # the last list Wyze gave; devices_age() says how old
+                raise
             raw = (j.get("data") or {}).get("device_list") or []
             out = []
             for d in raw:
@@ -287,6 +336,10 @@ class WyzeCloud:
             self._devices = out
             self._devices_at = self.now()
             return out
+
+    def devices_age(self):
+        """Seconds since Wyze last gave the list, or None if it never has."""
+        return None if self._devices is None else int(self.now() - self._devices_at)
 
     def device(self, mac):
         for d in self.devices():
@@ -335,15 +388,21 @@ def _selftest():
         def log_message(self, *a):
             pass
 
-        def _send(self, obj, code=200):
+        def _send(self, obj, code=200, retry_after=None):
             b = json.dumps(obj).encode("utf-8")
-            self.send_response(code); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+            self.send_response(code); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b)))
+            if retry_after is not None:
+                self.send_header("Retry-After", retry_after)
+            self.end_headers(); self.wfile.write(b)
 
         def do_POST(self):
             n = int(self.headers.get("Content-Length") or 0)
             body = json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
             if self.path == "/api/user/login":
                 state["logins"] += 1
+                if state.get("rl_login"):
+                    state["rl_login"] -= 1
+                    return self._send({"errorCode": 429, "description": "Too Many Requests"}, 429)
                 if self.headers.get("keyid") != "id1" or self.headers.get("apikey") != "key1":
                     return self._send({"errorCode": 1000, "description": "api key required"}, 400)
                 if body.get("email") != "d@example.com" or body.get("password") != hash_password("pw-secret"):
@@ -358,6 +417,9 @@ def _selftest():
             if body.get("access_token") not in ("AT1", "AT2") or state["expire_next"]:
                 state["expire_next"] = False
                 return self._send({"code": "2001", "msg": "AccessTokenError"})
+            if self.path == "/app/v2/home_page/get_object_list" and state.get("rl_list"):
+                state["rl_list"] -= 1
+                return self._send({"code": "429", "msg": "Too Many Requests"}, 429, retry_after=state.get("rl_retry_after"))
             if self.path == "/app/v2/home_page/get_object_list":
                 check(body.get("sc") == SC and body.get("sv") == SV and body.get("app_ver") == APP_VER and body.get("phone_id"), "the device list call carries wyzeapy's app identity") if state["token_calls"] == 1 else None
                 return self._send({"code": "1", "data": {"device_list": [
@@ -447,6 +509,45 @@ def _selftest():
     before = state["refreshes"]
     devs2 = w.devices(force=True)
     check(state["refreshes"] == before + 1 and w.access_token == "AT2" and len(devs2) == 3, "2001 -> refresh_token -> retry succeeds with the new token")
+
+    print("=== 6. Wyze's 429 is obeyed (DR-1097 twelfth read): no ask until the wait has passed; the last list meanwhile ===")
+    clock = {"t": 10000.0}
+    w6 = WyzeCloud(good, auth_url=base + "/api/user/login", api_url=base, now=lambda: clock["t"])
+    first = w6.devices()
+    check(len(first) == 3 and w6.devices_age() == 0 and w6.cooling() == 0, "a first list, age 0, nothing to wait for")
+    clock["t"] += DEVICES_TTL + 1
+    state["rl_list"], state["rl_retry_after"] = 1, "120"
+    calls = state["token_calls"]
+    got = w6.devices()
+    check(got == first and state["token_calls"] == calls + 1, "the list call answered 429 -> the last list Wyze gave is served, not an error")
+    check(w6.cooling() == 120 and w6.cooling("/app/v2/home_page/get_object_list") == 120, "Wyze's Retry-After (120 s) is the wait (%r)" % w6.cooling())
+    for _ in range(5):
+        w6.devices()
+    check(state["token_calls"] == calls + 1, "five more reads inside the wait ask Wyze nothing (%d calls)" % (state["token_calls"] - calls))
+    check(w6.devices_age() == int(DEVICES_TTL + 1), "the served list says how old it is (%r s)" % w6.devices_age())
+    clock["t"] += 121
+    fresh = w6.devices()
+    check(state["token_calls"] == calls + 2 and w6.cooling() == 0 and w6.devices_age() == 0 and len(fresh) == 3, "past the wait Wyze is asked once more, and the list is fresh")
+
+    w7 = WyzeCloud(good, auth_url=base + "/api/user/login", api_url=base, now=lambda: clock["t"])
+    state["rl_login"] = 1
+    logins = state["logins"]
+    try:
+        w7.devices(); check(False, "a 429 on sign-in with no list to serve is said")
+    except WyzeError as e:
+        check(e.kind == "rate-limited" and e.retry_after == int(RATE_LIMIT_BACKOFF) and "login" in e.detail, "sign-in answered 429 with no Retry-After -> rate-limited, %d s (%r)" % (RATE_LIMIT_BACKOFF, e.detail))
+    try:
+        w7.devices(); check(False, "a second read inside the wait raises")
+    except WyzeError as e:
+        check(e.kind == "rate-limited" and state["logins"] == logins + 1, "a second read inside the wait never signs in again (%d sign-ins)" % (state["logins"] - logins))
+    clock["t"] += RATE_LIMIT_BACKOFF + 1
+    state["rl_login"] = 1
+    try:
+        w7.devices(); check(False, "a second 429 raises")
+    except WyzeError as e:
+        check(e.retry_after == int(min(RATE_LIMIT_MAX, RATE_LIMIT_BACKOFF * 2)), "a second 429 in a row doubles the wait (%r s)" % e.retry_after)
+    clock["t"] += RATE_LIMIT_BACKOFF * 2 + 1
+    check(len(w7.devices()) == 3 and w7.cooling() == 0 and state["logins"] == logins + 3, "past the doubled wait the sign-in is asked once, and the list arrives")
 
     srv.shutdown()
     import shutil
