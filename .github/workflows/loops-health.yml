@@ -87,10 +87,10 @@ jobs:
           EV="$(grep -a '"detail":"loop=services-sync ' "$EV_FILE" | grep -aE '"event":"loop_run_(done|fail)"' | tail -n 1 | head -c 2000)"
           CHECKOUT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
           rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
-          LV="$(rd /volume1/PoeTech/lesson-voice/last-run.json | head -c 2000)"; LV_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || echo 0) ))"
-          LP="$(rd /volume1/PoeTech/lesson-parity/last-measure.json | head -c 600)"; LP_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-parity/last-measure.json 2>/dev/null || echo 0) ))"
-          DB="$(rd /volume1/PoeTech/backups/db/status.json | head -c 600)"; DB_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/backups/db/status.json 2>/dev/null || echo 0) ))"
-          CM="$(rd "$REPO/infra/nas-church-mail/out/.church-mail.state.json" | head -c 600)"; CM_AGE="$(( $(date +%s) - $(cat "$REPO/infra/nas-church-mail/out/.church-mail.last" 2>/dev/null || echo 0) ))"
+          LV="$(rd /volume1/PoeTech/lesson-voice/last-run.json | head -c 2000)"; LV_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || date +%s) ))"
+          LP="$(rd /volume1/PoeTech/lesson-parity/last-measure.json | head -c 600)"; LP_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-parity/last-measure.json 2>/dev/null || date +%s) ))"
+          DB="$(rd /volume1/PoeTech/backups/db/status.json | head -c 600)"; DB_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/backups/db/status.json 2>/dev/null || date +%s) ))"
+          CM="$(rd "$REPO/infra/nas-church-mail/out/.church-mail.state.json" | head -c 600)"; CM_AGE="$(( $(date +%s) - $(cat "$REPO/infra/nas-church-mail/out/.church-mail.last" 2>/dev/null || date +%s) ))"
           CMG="$(tail -n 2 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | head -c 1200)"
           if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then CRED=present; else CRED=absent; fi
           export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE CMG CRED REPO
@@ -204,7 +204,7 @@ jobs:
               led = e.get("ledger")
               led_s = (json.dumps(led)[:160] if isinstance(led, (dict, list)) else str(led or "")[:160]) + (f" ({e.get('ledger_age_s')}s old)" if e.get("ledger_age_s") else "")
               own = (e.get("own_lines") or [""])[-1][:160]
-              lines.append(f"| {name} | {e.get('last_run')} | {led_s or own} |")
+              lines.append(f"| {name} | {e.get('last_run')} | {led_s or own or '(no ledger file yet)'} |")
           if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
           print("\n".join(lines))
