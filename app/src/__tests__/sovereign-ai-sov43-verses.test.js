@@ -115,12 +115,23 @@ describe('sov43 — the verses are the corpus, verbatim', () => {
   // A lesson's own test pins what is true of that lesson forever, never what
   // happens to be true of the catalog on the day it was written (sov41's and
   // sov42's "is the last of them" each expired the day the next week landed).
-  it('the weeks run in order, with no gaps, and sov43 is among them', () => {
+  it('the weeks run in order, uniquely, and sov43 is among them', () => {
     const nums = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)-/.exec(m.id)[1]));
     expect(nums).toEqual([...nums].sort((a, b) => a - b));
     expect(new Set(nums).size).toBe(nums.length);
     expect(nums).toContain(43);
-    expect(nums).toEqual(Array.from({ length: Math.max(...nums) }, (_, i) => i + 1));
+    // CONTIGUITY MOVED TO ITS OWNER, 2026-10-20 (week 46). This line read
+    // `expect(nums).toEqual(Array.from({ length: Math.max(...nums) }, (_, i) => i + 1))`,
+    // a CATALOG-wide claim inside a LESSON's own test - the very class this
+    // file's own comment warns about. Weeks 44, 45 and 46 were written on three
+    // parallel branches, so each later branch carries a hole the branch itself
+    // cannot fill, and this line turned one lesson's test red for a condition
+    // in another lesson's lane. sovereign-ai-class.test.js owns contiguity and
+    // has the mechanism for it (HELD_IN_FLIGHT: a gap must be named, dated and
+    // deleted by the merge that fills it), which a bare toEqual does not. What
+    // stays here is what is true of this lesson for ever: the weeks ascend,
+    // they are unique, and this week is among them - the durable form sov37
+    // through sov40 already use (decide by exact identity, never by position).
   });
 
   it('every quoted span that names a reference IS that verse, character for character', () => {
