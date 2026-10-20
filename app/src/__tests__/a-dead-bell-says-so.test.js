@@ -112,6 +112,16 @@ describe('classifyBellResponse — every other answer', () => {
   it('a redirect is not an acceptance', () => {
     expect(classifyBellResponse({ code: 302 }).reason).toMatch(/not an acceptance/);
   });
+
+  it('an unexplained answer carries WHAT THE RELAY SAID, on one line, capped (site-health run 39487383850 said only "HTTP 400")', () => {
+    const r = classifyBellResponse({ code: 400, body: '{"ok": false,\n  "error": "bad json"}' });
+    expect(r.dead).toBe(true);
+    expect(r.reason).toBe('the announce relay answered HTTP 400, which is not an acceptance (it said: {"ok": false, "error": "bad json"})');
+    expect(r.reason.split('\n')).toHaveLength(1);
+    const long = classifyBellResponse({ code: 400, body: 'x'.repeat(1000) });
+    expect(long.reason.length).toBeLessThan(260);
+    expect(classifyBellResponse({ code: 400 }).reason).toBe('the announce relay answered HTTP 400, which is not an acceptance.');
+  });
 });
 
 describe('ledgerLine — the record a human actually reads', () => {

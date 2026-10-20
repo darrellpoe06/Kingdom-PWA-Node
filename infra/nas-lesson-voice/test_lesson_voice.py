@@ -74,6 +74,21 @@ class TheRoad(unittest.TestCase):
         self.assertIn("lesson-name:Sister Mae", named["tags"])
         self.assertFalse(any(str(t).startswith("lesson-name") for t in plain["tags"]))
 
+    def test_a_withdrawn_recording_still_gets_its_words_and_the_transcript_carries_the_tag(self):
+        """DR-1142: a recording its person withdrew from the lesson door is
+        still transcribed (the words are the only copy, and they are what the
+        person moves elsewhere); the transcript carries `withdrawn` so the
+        builder never makes a lesson of it either. A plain row carries nothing."""
+        io = FakeIO([voice_row(1, ["withdrawn", "withdrawn@2026-10-20T19:00:00Z"]), voice_row(2)])
+        lv.run_once(io, data_dir=self.dir)
+        taken = [r for r in io.inserted if "of:row-1" in r["tags"]][0]
+        plain = [r for r in io.inserted if "of:row-2" in r["tags"]][0]
+        self.assertIn("voice-transcript", taken["tags"])
+        self.assertIn("withdrawn", taken["tags"])
+        self.assertNotIn("withdrawn", plain["tags"])
+        self.assertEqual(lv.carried_tags_of(["lesson", "voice"]), [])
+        self.assertEqual(lv.carried_tags_of(None), [])
+
     def test_an_unmarked_transcript_says_why(self):
         """Darrell 2026-10-02, his own voice enrolled and the transcript back
         unmarked: "Why don't it work". The reason rides the row, never only a

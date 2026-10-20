@@ -57,21 +57,27 @@ describe('curriculum shape', () => {
     // fails loudly rather than passing silently; that is the safety net, not
     // the plan.
     //
-    // 44 IS HELD here, recorded 2026-10-20 and RECOMPUTED by reading the weeks
-    // on origin/main at f0b0977be -- which carries weeks 1..43, so 44 is
-    // genuinely still absent and this value is right for the merged tree too.
-    // THE MOMENT WEEK 44 LANDS THIS BECOMES `[]`: with 44 and 45 both present
-    // the highest week is 45 and nothing below it is missing, so `[44]` would
-    // then fail toEqual. That is the recompute rule working, not a surprise.
-    // The merge order is 44 -> 45 -> 46, and week 46 -- whose tree jumps to 46
-    // with BOTH 44 and 45 absent -- is the last to merge and clears this to [].
-    // main is READ here rather than merged: it carries a pre-existing DR-1135
-    // number collision (two records, from #2300 and #2306) that
-    // resolve-ledger-conflicts.mjs refuses, and whose fix renumbers a record
-    // this branch does not own. Week 45 (no single witness: the office of the
-    // critic, DR-1146) was written on this branch and week 44 on a parallel
-    // branch; recompute this list, do not carry it, when they come together.
-    const HELD_IN_FLIGHT = [44];
+    // 44 WAS HELD here, recorded 2026-10-20 while Sovereign A.I. week 45 (no
+    // single witness: the office of the critic, DR-1146) was written on one
+    // branch and week 44 on another at the same time. Week 44 merged first, so
+    // THE ENTRY IS DELETED IN THE MERGE THAT BROUGHT ITS WEEK IN -- the same
+    // discharge the 33 and 35 entries above record, and exactly what this
+    // assertion forces, since `[44]` would now fail toEqual against a tree
+    // that has no holes.
+    //
+    // RECOMPUTED on the merged tree, not assumed: 45 modules, weeks 1..45
+    // ascending, max 45, nothing missing below it -- so `[]`.
+    //
+    // AND MEASURED OFF THE MOUNTED MODULE LIST RATHER THAN BY GREPPING THE
+    // FILE, which matters more than the value. The catalog holds modules in TWO
+    // shapes: `id: 'sov1-...'` for the older literals and `"id": "sov45-..."`
+    // for the JSON-spliced ones. A `/"sov(\d+)-/` pattern sees only the second
+    // kind, and on this very tree it answered "13 weeks, 32 holes" with
+    // complete confidence -- a wrong answer that looks exactly like a right
+    // one. Read SOVEREIGN_AI_MODULES, the same thing the assertion below
+    // reads. `scripts/unchecked-claims.mjs` records the identical defect
+    // against the identical file in its own header; this is its third sighting.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
