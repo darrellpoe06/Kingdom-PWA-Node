@@ -50,6 +50,9 @@ SOVEREIGN_MOUNTS = [
     # Funnel reset drops the mount and the only symptom is a question that
     # never answers.
     ("/research", "http://127.0.0.1:8797"),
+    # /photo-backup added 2026-10-19 (DR-1120): the phones' background backup
+    # door; a dropped mount is a phone that silently stops backing up.
+    ("/photo-backup", "http://127.0.0.1:8801"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]

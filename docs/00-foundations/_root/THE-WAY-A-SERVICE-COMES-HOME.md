@@ -63,9 +63,9 @@ The whole night is recorded in DR-1101, with the timestamps.
 | Job the video brings home | Tool it names | What we already run | Verdict (DR-1119) |
 |---|---|---|---|
 | Cameras on our own network | — | `infra/nas-cameras` (go2rtc behind the family key, DR-0756), live in the app | **Already home** |
-| Phone photos backed up to our own disk | Immich | `infra/nas-property-photos` reads the Synology phone backups for property and family albums; nothing backs the phones up except Google | **Pilot on the NAS.** The inbox holds one subscription in this class: Google AI Plus (2 TB) (Google One), $9.99 a month, charged on the 14th. Immich does the storage half of that job on our pool. |
-| Our own films and shows | Jellyfin | nothing; the sermon archive is served by `church-media-golive` | **Hold.** No video subscription in the inbox and no library of our own films named. Re-read when a library exists. |
-| Our own audiobooks | Audiobookshelf | nothing | **Hold.** No Audible receipt and no shelf of audiobooks named. Re-read when one exists. |
+| Phone photos backed up to our own disk | Immich | the app's own pick-and-verify lane (`PhoneBackup.jsx` → `/volume1/PoeTech/phone-backup`), foreground only because a PWA cannot reach the camera roll in the background; `infra/nas-property-photos` serves the albums; the background job is Google's | **Pilot on the NAS, built 2026-10-19 (DR-1120).** The inbox holds one subscription in this class: Google AI Plus (2 TB) (Google One), $9.99 a month, charged on the 14th. Immich does the background half of that job on our pool. |
+| Our own films and shows | Jellyfin | the harvested sermon and worship video under `/volume1/PoeTech/yt-dlp` and `/volume1/docker/ytzero/downloads`, which no screen can browse | **Pilot on the NAS** (Darrell 2026-10-19: "Why can't we use them for our audio tts... etc..."; the first hold had a wrong premise, "no library named"). Next by the Way. |
+| Our own audiobooks | Audiobookshelf | the lesson readings the voice makes (`/volume1/PoeTech/voice-lite`) and the spoken lessons (`/volume1/PoeTech/lesson-voice`), with no shelf and no progress kept | **Pilot on the NAS** (the same correction). Next by the Way. |
 
 The rows live in the candidates register and show on the Infra Plan. A hold is not a no: it is the honest answer until there is a library to serve, with a date.
 

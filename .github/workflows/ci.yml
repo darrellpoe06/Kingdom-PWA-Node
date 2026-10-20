@@ -332,6 +332,15 @@ jobs:
       - name: research forwarder selftest
         working-directory: infra/nas-research
         run: python3 research_forwarder.py --selftest
+      # Photo-backup forwarder selftest (DR-1120): the locked door in front of
+      # Immich. Proven-to-catch: fails if any Immich page is passed through, if
+      # the family key is missing, wrong, or offered as a bearer, if the key
+      # reaches Immich, if a body over the cap or without a length is read, if
+      # an upload lands while the pool is under its floor, or if a request
+      # queues instead of 503.
+      - name: photo-backup forwarder selftest
+        working-directory: infra/nas-immich
+        run: python3 immich_forwarder.py --selftest
       # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
       # config is not normalized, if a disabled camera keeps recording, if a
       # dead ffmpeg is restarted without backoff, if retention or the disk

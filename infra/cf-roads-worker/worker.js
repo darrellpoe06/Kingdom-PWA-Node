@@ -44,6 +44,7 @@ export const ROADS = [
   ['/llm', '/llm', 'llm'],
   ['/reviews', '/reviews', 'reviews'],
   ['/research', '/research', 'research'],
+  ['/photo-backup', '/photo-backup', 'photo-backup'],
   ['/scribe', '/scribe', 'scribe'],
   ['/ways', '/ways', 'ways'],
   ['/openers', '/openers', 'openers'],

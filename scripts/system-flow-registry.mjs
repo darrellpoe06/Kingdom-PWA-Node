@@ -652,6 +652,12 @@ const NODES = [
     reads: [{ res: 'device:family-key', file: 'app/src/components/ResearchTry.jsx', token: 'bridgeToken' }, { res: 'http:research', token: '/research' }],
     seeds: [],
   }),
+  app('app/src/lib/photo-backup.js', {
+    id: 'photo-backup', name: 'Photo backup (Immich: the phones’ photos, backed up at home)',
+    purpose: 'Shows the photo-backup road’s own /health and the steps a phone takes once; the phones then back up every new photo and video in the background to Immich on the NAS pool, behind the family key (DR-1120; the pilot DR-1119 named).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/PhotoBackupStatus.jsx', token: 'bridgeToken' }, { res: 'http:photo-backup', token: '/photo-backup' }],
+    seeds: [],
+  }),
   app('app/src/lib/clip-queue.js', {
     id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
     purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
@@ -1144,6 +1150,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
     writes: [{ res: 'gh:incident', token: 'research-incident' }], seeds: ['ops-surface'],
   }),
+  wf('immich-health.yml', {
+    id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8801' }],
+    writes: [{ res: 'gh:incident', token: 'photo-backup-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }, { res: 'nas:db-backup', token: 'backups/db/status.json' }],
@@ -1554,6 +1565,10 @@ const NODES = [
     id: 'research-road', name: 'Research road (Vane behind the locked door)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }], writes: [{ res: 'http:research', token: '/research' }], seeds: ['research'],
   }),
+  rider('service:immich', 'infra/nas-immich/immich_forwarder.py', {
+    id: 'photo-backup-road', name: 'Photo-backup road (Immich behind the locked door)', purpose: 'Takes the phones’ photos and videos onto the pool through Immich; the forwarder is the only door, passing Immich’s API under the family key and never its pages (DR-1120).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'immich' }], writes: [{ res: 'http:photo-backup', token: '/photo-backup' }], seeds: ['photo-backup'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1837,6 +1852,7 @@ const RESOURCES = {
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
   'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
+  'http:photo-backup': { label: 'the photo-backup road on the NAS (Immich behind the family key)', route: '/photo-backup' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

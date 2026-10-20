@@ -37,6 +37,8 @@ const ENABLED = SERVICES.filter((s) => s.enabled);
 /** The services that walk the whole Way: their door answers with a reason. */
 const ON_THE_WAY = {
   research: { door: 'infra/nas-research/research_forwarder.py', witness: 'research-health.yml' },
+  // The first service born BY the Way (DR-1120), the day after it was written.
+  immich: { door: 'infra/nas-immich/immich_forwarder.py', witness: 'immich-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -98,7 +100,10 @@ function lacksOf(s, override) {
 }
 
 /** The restart that moves the running code onto the repo's is one function,
- *  called from more than one path. Returns the function's name, or null. */
+ *  called from more than one path (the no-dependency path too). A position
+ *  rule was tried and dropped: by position alone a gate cannot tell a
+ *  dependency check from the door's own prerequisites. Returns the
+ *  function's name, or null. */
 export function restartOnEveryPath(installText) {
   const fns = [...installText.matchAll(/^([a-z_][\w]*)\(\) \{\n([\s\S]*?)\n\}/gm)];
   for (const [, name, body] of fns) {
@@ -168,6 +173,9 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(restartOnEveryPath(GOOD)).toBe('x');
     const old = 'if [ -z "$DEP" ]; then\n  exit 0\nfi\nx() {\n  $SUDO systemctl restart poetech-x\n}\nx\n';
     expect(restartOnEveryPath(old)).toBeNull();
+    // Called once, after a stop: the no-dependency path never reaches it.
+    const late = 'x() {\n  $SUDO systemctl restart poetech-x\n}\nif [ -z "$DEP" ]; then\n  exit 0\nfi\nx\n';
+    expect(restartOnEveryPath(late)).toBeNull();
   });
   it('a restart that is not a function at all', () => {
     expect(restartOnEveryPath('if [ -z "$DEP" ]; then exit 0; fi\n$SUDO systemctl restart poetech-x\n')).toBeNull();
