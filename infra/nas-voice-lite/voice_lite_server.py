@@ -355,7 +355,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                 return self._json(404, {"error": "not-found"})
             voices = engine.available_voices()
             if not voices:
-                return self._json(503, {"ok": False, "error": "piper-not-installed"})
+                return self._json(503, {"ok": False, "error": "piper-not-installed", "reason": "piper or its voices are not on this box yet; the installer downloads them one file per cycle"})
             return self._json(200, {"ok": True, "voices": voices, "formats": formats, "code": CODE_SHA})
 
         def do_POST(self):
@@ -389,7 +389,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
             if len(text) > MAX_CHARS:
                 return self._json(413, {"error": "text-too-long", "max": MAX_CHARS})
             if not engine.available_voices():
-                return self._json(503, {"ok": False, "error": "piper-not-installed"})
+                return self._json(503, {"ok": False, "error": "piper-not-installed", "reason": "piper or its voices are not on this box yet; the installer downloads them one file per cycle"})
             key = cache_key(voice, text, speed)
             out = os.path.join(cache_dir, key + ".wav")
             if os.path.isfile(out) and os.path.getsize(out) > 44:

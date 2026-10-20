@@ -1162,6 +1162,16 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8801' }],
     writes: [{ res: 'gh:incident', token: 'photo-backup-incident' }], seeds: ['ops-surface'],
   }),
+  wf('voice-lite-health.yml', {
+    id: 'voice-lite-health', name: 'Voice-lite road witness (DR-0627, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the NAS reading voice’s /health and asks one sentence through the door with the family key, passing only on real audio; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:voice-lite', token: '127.0.0.1:8772' }],
+    writes: [{ res: 'gh:incident', token: 'voice-lite-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('scribe-health.yml', {
+    id: 'scribe-health', name: 'Scribe road witness (DR-0622, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the Scribe ingest’s /health and asks for the sessions list through the door with the family key; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:scribe-results', token: '127.0.0.1:8791' }],
+    writes: [{ res: 'gh:incident', token: 'scribe-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],

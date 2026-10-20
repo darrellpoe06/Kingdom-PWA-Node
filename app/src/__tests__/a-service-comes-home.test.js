@@ -46,6 +46,10 @@ const ON_THE_WAY = {
   // and its installer's restart is one function called before the go2rtc wait
   // that used to exit ahead of it.
   cameras: { door: 'infra/nas-cameras/cams_forwarder.py', witness: 'camera-health.yml' },
+  // The second and third (same night): each gained a witness that stands, a door
+  // that says why, and a restart called before the step that used to exit first.
+  'voice-lite': { door: 'infra/nas-voice-lite/voice_lite_server.py', witness: 'voice-lite-health.yml' },
+  scribe: { door: 'infra/nas-scribe/scribe_ingest_server.py', witness: 'scribe-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -73,7 +77,6 @@ const BORN_BEFORE_THE_WAY = {
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   supabase: { lacks: ['codeFollows', 'witness'] },
   mcp: { lacks: ['health', 'witness'] },
-  scribe: { lacks: ['witness'] },
   'property-photos': { lacks: ['codeFollows', 'witness'] },
   'tax-upload': { lacks: ['codeFollows', 'stands'] },
   'voice-transport': { lacks: ['codeFollows', 'witness'] },
@@ -82,7 +85,6 @@ const BORN_BEFORE_THE_WAY = {
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
   'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
-  'voice-lite': { lacks: ['witness'] },
   'lesson-builder': { lacks: ['health', 'witness'] },
   announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
@@ -210,8 +212,11 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    const s = SERVICES.find((x) => x.name === 'scribe');
-    expect(lacksOf(s)).toEqual(['witness']);
-    expect(lacksOf(s)).not.toEqual(['codeFollows', 'witness']);
+    // lesson-builder stamps its code and has no witness; a ledger row that still
+    // listed codeFollows, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'lesson-builder');
+    expect(lacksOf(s)).toEqual(['health', 'witness']);
+    expect(lacksOf(s)).not.toEqual(['codeFollows', 'health', 'witness']);
+    expect(lacksOf(s, 'camera-health.yml')).toEqual(['health']);
   });
 });
