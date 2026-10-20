@@ -40,6 +40,10 @@ on:
         description: 'faster-whisper model (small.en is the measured default)'
         required: false
         default: 'small.en'
+      texts:
+        description: "Listen to these lines instead of the corpus, separated by ' || ' (a piece that failed, or variants of it)"
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -108,9 +112,11 @@ jobs:
         if: steps.gate.outputs.go == 'true'
         env:
           TOK: ${{ steps.nas.outputs.tok }}
+          TEXTS: ${{ github.event.inputs.texts || '' }}
         run: |
           python3 scripts/voice-clarity-witness.py \
             --corpus infra/nas-voice-lite/fixtures/clarity-corpus.json \
+            --texts "$TEXTS" \
             --out clarity \
             --paces '${{ github.event.inputs.paces || '1,1.5,2' }}' \
             --fail-wer '${{ github.event.inputs.fail_wer || '0.5' }}' \

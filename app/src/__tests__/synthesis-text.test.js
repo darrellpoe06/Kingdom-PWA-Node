@@ -38,15 +38,15 @@ describe('the two photographed pieces', () => {
     }
     expect(synthesisSentences(PIECE_1)).toEqual([
       'Rendered for meaning.',
-      'reading the Word for the Spirit.',
-      'doing the Word for competent conversations and learning skills.',
-      'and never reading just to say I got you.',
+      'Reading the Word for the Spirit.',
+      'Doing the Word for competent conversations and learning skills.',
+      'And never reading just to say I got you.',
     ]);
   });
   it('loses no word: joining the sentences gives back every word of the piece', () => {
     for (const p of [PIECE_1, PIECE_2]) {
       const strip = (t) => t.replace(/[.,;:!?"'’”()]/g, ' ').replace(/\s+/g, ' ').trim();
-      expect(strip(forSynthesis(p))).toBe(strip(p));
+      expect(strip(forSynthesis(p)).toLowerCase()).toBe(strip(p).toLowerCase()); // every sentence now starts with a capital (DR-1131)
     }
   });
 });
@@ -56,9 +56,9 @@ describe('what is NOT cut', () => {
     expect(forSynthesis('So then every one of us shall give account of himself to God.')).toBe('So then every one of us shall give account of himself to God.');
   });
   it('a piece that ends on a comma or nothing is closed with a stop', () => {
-    expect(forSynthesis('but reading to become a better person')).toBe('but reading to become a better person.');
-    expect(forSynthesis('and then doing His Way, not our ways,')).toBe('and then doing His Way, not our ways.');
-    expect(forSynthesis('he said, "Where art thou?"')).toBe('he said, "Where art thou?"');
+    expect(forSynthesis('but reading to become a better person')).toBe('But reading to become a better person.');
+    expect(forSynthesis('and then doing His Way, not our ways,')).toBe('And then doing His Way, not our ways.');
+    expect(forSynthesis('he said, "Where art thou?"')).toBe('He said, "Where art thou?"');
   });
   it('numbers keep their shape: a thousands comma, a clock colon, a spoken reference', () => {
     expect(forSynthesis('It cost $2,450 at 3:16 pm.')).toBe('It cost $2,450 at 3:16 pm.');
@@ -66,13 +66,13 @@ describe('what is NOT cut', () => {
   });
   it('a long sentence with no safe cut is handed whole', () => {
     const run = Array.from({ length: 25 }, (_, i) => `w${i}`).join(' ');
-    expect(forSynthesis(run)).toBe(`${run}.`);
+    expect(forSynthesis(run)).toBe(`W${run.slice(1)}.`); // the first letter is a capital now (DR-1131)
   });
   it('a long sentence is cut at its last comma inside the window, never shorter than the minimum', () => {
     const s = 'One two three four five six seven eight nine ten eleven twelve, thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two.';
     expect(synthesisSentences(s)).toEqual([
       'One two three four five six seven eight nine ten eleven twelve.',
-      'thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two.',
+      'Thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two.',
     ]);
   });
 });
@@ -89,25 +89,25 @@ describe('an aside in parentheses, a spaced hyphen, and a subordinator (DR-1131)
     expect(synthesisSentences(toSpokenForm(LIT))).toEqual([
       'Leviticus chapter 19 verse 34.',
       'This week teaches what an education is before it argues about how long one should be.',
-      'and names plainly that we read a digest, not one full article.',
+      'And names plainly that we read a digest, not one full article.',
     ]);
   });
   it('a citation in the middle of a quotation that runs on is spoken between two stops, and the tail is cut on its own', () => {
     const run = 'and see that the LORD is good" (Psalm 34:8) together with a readiness always "to give an answer to every man that asketh you a reason of the hope that is in you with meekness.';
     expect(synthesisSentences(toSpokenForm(run))).toEqual([
-      'and see that the LORD is good".',
+      'And see that the LORD is good".',
       'Psalm 34 verse 8.',
-      'together with a readiness always "to give an answer to every man.',
-      'that asketh you a reason of the hope that is in you with meekness.',
+      'Together with a readiness always "to give an answer to every man.',
+      'That asketh you a reason of the hope that is in you with meekness.',
     ]);
   });
   it('the aside itself is cut when it is long, and a clause mark that joined it to its neighbour is not spoken as a dangling comma', () => {
     const s = 'who already holds the morning ("he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him", Hebrews 11:6).';
     const out = synthesisSentences(toSpokenForm(s));
-    expect(out[0]).toBe('who already holds the morning.');
+    expect(out[0]).toBe('Who already holds the morning.');
     expect(out.every((x) => x.split(' ').length <= MAX_SENTENCE_WORDS), out.join(' | ')).toBe(true);
     expect(synthesisSentences(toSpokenForm('" (Matthew 3:17) - and the very next line is "Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.')))
-      .toEqual(['Matthew chapter 3 verse 17.', 'and the very next line is "Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.']);
+      .toEqual(['Matthew chapter 3 verse 17.', 'And the very next line is "Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.']);
   });
   it('a short sentence with an aside is left exactly as it was (the cut is for long sentences only)', () => {
     expect(forSynthesis(toSpokenForm('"For God so loved the world" (John 3:16)'))).toBe('"For God so loved the world" (John chapter 3 verse 16).');
@@ -117,7 +117,7 @@ describe('an aside in parentheses, a spaced hyphen, and a subordinator (DR-1131)
     expect(synthesisSentences(s)[0]).toBe('Anyone teaching this material.');
     const comma = 'Anyone teaching this material, who turns a depression into a demon to be shouted at has departed from how He handled the most successful prophet in the book.';
     expect(synthesisSentences(comma)[0]).toBe('Anyone teaching this material.');
-    expect(synthesisSentences(comma)[1]).toMatch(/^who turns/);
+    expect(synthesisSentences(comma)[1]).toMatch(/^Who turns/);
   });
   it('PROVEN TO CATCH: without the aside and subordinator cuts the lit piece reached the voice as one 23-word sentence', () => {
     const before = toSpokenForm(LIT).replace(/\s*\([^)]*\)\s*/, ' ');
