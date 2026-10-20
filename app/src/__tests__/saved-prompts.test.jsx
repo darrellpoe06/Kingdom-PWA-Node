@@ -27,7 +27,7 @@ const P = [
 
 describe('dated and sortable', () => {
   it('offers five sorts and each orders as named', () => {
-    expect(SORTS.map((s) => s.key)).toEqual(['recent', 'oldest', 'used', 'kept', 'az']);
+    expect(SORTS.map((s) => s.key)).toEqual(['recent', 'type', 'oldest', 'used', 'kept', 'az']);
     expect(sortPrompts(P, 'recent').map((p) => p.id)).toEqual(['a', 'b', 'c']);
     expect(sortPrompts(P, 'oldest').map((p) => p.id)).toEqual(['b', 'c', 'a']);
     expect(sortPrompts(P, 'used').map((p) => p.id)).toEqual(['b', 'c', 'a']);
