@@ -77,7 +77,7 @@ jobs:
           out = {"reachable": True, "at": int(time.time()), "asked": os.environ.get("ASK") == "true",
                  "health_code": None, "health": None, "ask_code": None, "version": None, "error": None}
           def call(method, path, auth=False, timeout=10):
-              req = urllib.request.Request("http://127.0.0.1:8801" + path, method=method)
+              req = urllib.request.Request("http://127.0.0.1:8803" + path, method=method)
               if auth: req.add_header("X-Family-Key", os.environ.get("TOK", ""))
               try:
                   with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -154,6 +154,13 @@ jobs:
           echo "pool: $(df -Pk "$LIB" 2>/dev/null | awk 'NR==2 {printf "%d GB free of %d GB", $4/1024/1024, $2/1024/1024}')"
           if [ -e "$DATA/immich.env" ]; then echo "config: immich.env present"; else echo "config: immich.env ABSENT -- never seeded"; fi
           echo "unit: $(systemctl is-active poetech-photo-backup 2>/dev/null || echo unknown)"
+          # The first live run (39364279520) said "unit: activating" and "/health 404" and
+          # could not say WHO answered on 8801 or WHY the unit kept restarting; these two
+          # lines are that answer (2026-10-20).
+          echo "who listens on 8803: $( (ss -ltnp 2>/dev/null || sudo -n ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E '[:.]8803\b' | head -3 | tr '\n' ' ' || echo nobody)"
+          echo "forwarder /health (loopback): $(curl -sS -m 6 http://127.0.0.1:8803/health 2>&1 | head -c 300)"
+          echo "---- last lines of the forwarder's own journal ----"
+          (journalctl -u poetech-photo-backup -n 30 --no-pager 2>/dev/null || sudo -n journalctl -u poetech-photo-backup -n 30 --no-pager 2>/dev/null || echo "(no journal this user can read)") | cut -c1-300
           echo "immich ping (loopback): $(curl -sS -m 6 http://127.0.0.1:2283/api/server/ping 2>&1 | head -c 80)"
           D=""
           for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do

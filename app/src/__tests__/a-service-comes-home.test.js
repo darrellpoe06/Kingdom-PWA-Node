@@ -50,6 +50,16 @@ const ON_THE_WAY = {
   // that says why, and a restart called before the step that used to exit first.
   'voice-lite': { door: 'infra/nas-voice-lite/voice_lite_server.py', witness: 'voice-lite-health.yml' },
   scribe: { door: 'infra/nas-scribe/scribe_ingest_server.py', witness: 'scribe-health.yml' },
+  // The fourth: real money's road; its witness was the site's, now its own.
+  'tax-upload': { door: 'infra/nas-tax-ingest/tax_upload_server.py', witness: 'tax-upload-health.yml' },
+  // The fifth: the agent's own hand on the NAS gained an open door that says why.
+  mcp: { door: 'infra/nas-mcp/mcp_server.py', witness: 'mcp-health.yml' },
+  // The sixth: the family's and the properties' pictures.
+  'property-photos': { door: 'infra/nas-property-photos/photo_server.py', witness: 'property-photos-health.yml' },
+  // The seventh: the phone bell, whose door now probes ntfy and says why.
+  announce: { door: 'infra/nas-announce/announce_server.py', witness: 'announce-health.yml' },
+  // The eighth: the reading voice's road to the tower.
+  'voice-transport': { door: 'infra/voice-studio/voice_forwarder.py', witness: 'voice-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -57,6 +67,28 @@ const ON_THE_WAY = {
  *  nothing else may be. */
 const LOOPS_ON_THE_WAY = {
   'home-accounts': { witness: 'libraries-health.yml' },
+  // Born before the Way; brought up to it 2026-10-20 (the audit). It stamps its
+  // code, so it lacks only health, which a loop lacks by nature.
+  'lesson-builder': { witness: 'lesson-builder-health.yml' },
+  // Two loops on the services-sync clock whose witnesses read the database
+  // the loop writes; each now says where the install stands before it records
+  // a stall (2026-10-20, the audit). Neither has a door or a code stamp: the
+  // loop IS the installer's run, and the witness reads its fruit.
+  'transcript-trickle': { witness: 'harvest-health.yml' },
+  'ops-runner': { witness: 'ops-queue-health.yml' },
+  // Nine loops on the services-sync clock that had no witness at all, now
+  // witnessed together by loops-health.yml, which reads what services-sync
+  // said of each one's last run and what each one's own ledger says, and says
+  // where the install stands per loop (2026-10-20, the audit).
+  'lesson-voice': { witness: 'loops-health.yml' },
+  'lesson-parity': { witness: 'loops-health.yml' },
+  'church-mail': { witness: 'loops-health.yml' },
+  'family-key': { witness: 'loops-health.yml' },
+  'agent-consumer': { witness: 'loops-health.yml' },
+  'db-backup': { witness: 'loops-health.yml' },
+  'choir-dates': { witness: 'loops-health.yml' },
+  'stream-length': { witness: 'loops-health.yml' },
+  'worship-song-harvest': { witness: 'loops-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -68,28 +100,16 @@ const LOOPS_ON_THE_WAY = {
 // ceiling the build fails at, not the day the work starts.
 const AUDIT_BY = '2026-11-15';
 const BORN_BEFORE_THE_WAY = {
-  'transcript-trickle': { lacks: ['codeFollows', 'health', 'stands'] },
-  'church-mail': { lacks: ['codeFollows', 'health', 'witness'] },
-  'family-key': { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-voice': { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-parity': { lacks: ['codeFollows', 'health', 'witness'] },
-  'ops-runner': { lacks: ['codeFollows', 'health', 'stands'] },
-  'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
-  supabase: { lacks: ['codeFollows', 'witness'] },
-  mcp: { lacks: ['health', 'witness'] },
-  'property-photos': { lacks: ['codeFollows', 'witness'] },
-  'tax-upload': { lacks: ['codeFollows', 'stands'] },
-  'voice-transport': { lacks: ['codeFollows', 'witness'] },
+  // 2026-10-20: lacks none of the readable parts (the stack stamps the code it
+  // converged on; nas-health is its witness and says where the install stands).
+  // It stays here, not on ON_THE_WAY, because its restart is `compose up -d`,
+  // a compose stack's own idempotent converge, not a systemd function the
+  // restart-on-every-path reader can count.
+  supabase: { lacks: [] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },
-  'choir-dates': { lacks: ['codeFollows', 'health', 'witness'] },
-  'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
-  'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
-  'lesson-builder': { lacks: ['health', 'witness'] },
-  announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
-  'db-backup': { lacks: ['codeFollows', 'health', 'witness'] },
 };
 
 // ---- the readable parts of the Way -----------------------------------------
@@ -132,7 +152,7 @@ export function restartOnEveryPath(installText) {
 }
 
 /** A door answers with a reason in words, not only a code (DR-1000). */
-const answersWithReason = (doorText) => /"reason"/.test(doorText) && /\/health/.test(doorText);
+const answersWithReason = (doorText) => /["']reason["']/.test(doorText) && /\/health/.test(doorText);
 
 // ---- the gate ---------------------------------------------------------------
 describe('a service comes home by one Way (DR-1119)', () => {
@@ -158,7 +178,10 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const [name, w] of Object.entries(LOOPS_ON_THE_WAY)) {
       const s = SERVICES.find((x) => x.name === name);
       expect(s, name).toBeTruthy();
-      expect(lacksOf(s, w.witness), `${name} lacks`).toEqual(['codeFollows', 'health']);
+      const lacks = lacksOf(s, w.witness);
+      expect(lacks, `${name} lacks`).not.toContain('witness');
+      expect(lacks, `${name} lacks`).not.toContain('stands');
+      for (const part of lacks) expect(['codeFollows', 'health'], `${name} lacks ${part}, which a loop may not`).toContain(part);
     }
   });
 
@@ -212,11 +235,11 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // lesson-builder stamps its code and has no witness; a ledger row that still
-    // listed codeFollows, or one that claimed a witness, would not match the files.
-    const s = SERVICES.find((x) => x.name === 'lesson-builder');
-    expect(lacksOf(s)).toEqual(['health', 'witness']);
-    expect(lacksOf(s)).not.toEqual(['codeFollows', 'health', 'witness']);
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['health']);
+    // ytzero probes nothing and stamps nothing; a ledger row that struck any of
+    // the three, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'ytzero');
+    expect(lacksOf(s)).toEqual(['codeFollows', 'health', 'witness']);
+    expect(lacksOf(s)).not.toEqual(['health', 'witness']);
+    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows', 'health']);
   });
 });

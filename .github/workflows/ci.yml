@@ -314,6 +314,11 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # The phone bell's door says why (the Way, step 5): ntfy down, no token,
+      # never a path or a token in a reason (2026-10-20, the audit).
+      - name: announce relay selftest (the door says why)
+        working-directory: infra/nas-announce
+        run: python3 announce_server.py --selftest
       # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
       # the family camera road. Proven-to-catch: fails if /list or /ticket ever
       # accept a missing or wrong bearer, if a source URL (credentials) leaks in

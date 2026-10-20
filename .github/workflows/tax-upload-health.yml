@@ -1,0 +1,191 @@
+# tax-upload-health -- the tax archive's own witness (DR-0330; the audit of
+# the services born before THE-WAY-A-SERVICE-COMES-HOME, 2026-10-20).
+#
+# The Way, step 6: a witness asks the service one real question on a schedule
+# and on dispatch, and when the answer is wrong it says WHERE THE INSTALL
+# STANDS before anything else. This one joins the tailnet, asks the server on
+# the NAS for /health (503 with the reason when the drop folder is not
+# writable; a reason when no archive is published yet), then asks ONE question
+# with the family key -- GET /taxes/archive.json, the read the Books -> Taxes
+# screen makes -- and passes only when the archive comes back. Read-only on
+# the box; the key is read on the NAS and never leaves it; the output is the
+# judged fields only (a count of entries, never a name, a year or a file).
+# A failing pass opens (or comments on) ONE rolling issue labelled `incident`
+# + `tax-upload-incident`; the next passing run closes it.
+#
+# Brakes: one read per run, a 12-minute job ceiling, one run at a time, a
+# daily schedule.
+name: tax-upload-health
+
+on:
+  schedule:
+    - cron: '51 13 * * *'
+  workflow_dispatch:
+    inputs:
+      ask:
+        description: 'Ask one archive read through the door with the family key (off: /health only)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: tax-upload-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the NAS (read-only, judged fields only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ASK_IN: ${{ inputs.ask }}
+        run: |
+          umask 077
+          ASK="${ASK_IN:-true}"
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "ASK='$ASK' sh -s" <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          export TOK ASK
+          python3 - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          out = {"reachable": True, "at": int(time.time()), "asked": os.environ.get("ASK") == "true",
+                 "health_code": None, "health": None, "ask_code": None, "entries": None, "error": None}
+          def call(method, path, auth=False, timeout=10):
+              req = urllib.request.Request("http://127.0.0.1:8790" + path, method=method)
+              if auth: req.add_header("Authorization", "Bearer " + os.environ.get("TOK", ""))
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as r:
+                      return r.status, json.loads(r.read().decode() or "{}")
+              except urllib.error.HTTPError as e:
+                  try: return e.code, json.loads(e.read().decode() or "{}")
+                  except Exception: return e.code, {}
+              except Exception as e:
+                  return None, {"error": str(e)[:200]}
+          code, h = call("GET", "/health")
+          out["health_code"] = code
+          out["health"] = {k: h.get(k) for k in ("ok", "archive_published", "reason")} if isinstance(h, dict) else {"reason": str(h)[:200]}
+          if out["asked"] and code == 200:
+              code, a = call("GET", "/taxes/archive.json", auth=True, timeout=30)
+              out["ask_code"] = code
+              # the archive's shape is its own; only a count leaves the box
+              items = a.get("entries") if isinstance(a, dict) and isinstance(a.get("entries"), list) else (a.get("returns") if isinstance(a, dict) and isinstance(a.get("returns"), list) else (a if isinstance(a, list) else None))
+              out["entries"] = len(items) if isinstance(items, list) else (len(a) if isinstance(a, dict) and code == 200 else None)
+              out["error"] = a.get("error") if isinstance(a, dict) else None
+          print(json.dumps(out))
+          PY
+          EOS
+          cat /tmp/witness.json
+
+      - name: Judge and report
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          if not w.get("reachable"):
+              problems.append("the NAS did not answer over SSH")
+          elif w.get("health_code") != 200:
+              problems.append(f"/health answered {w.get('health_code')}: {(w.get('health') or {}).get('reason')}")
+          elif w.get("asked"):
+              if w.get("ask_code") == 404 and not (w.get("health") or {}).get("archive_published"):
+                  pass  # no archive yet is not a dark road; /health already says why
+              elif w.get("ask_code") != 200:
+                  problems.append(f"the door answered {w.get('ask_code')} to an archive read with the family key: {w.get('error')}")
+              elif w.get("entries") is None:
+                  problems.append("the door passed the request but no archive came back through it")
+          verdict = "PASS" if not problems else "FAIL"
+          lines = [f"## tax-upload road: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          PY
+
+      # When the road is dark, say WHERE THE INSTALL STANDS first (the Way,
+      # step 6), then what each piece says for itself. Runs only on a failed
+      # verdict; read-only; anything key-shaped scrubbed.
+      - name: "Diagnose a dark road: where the install stands"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          VENV=/volume1/PoeTech/venvs/tax-upload
+          echo "server running code: $(rd "$VENV/.code.sha" || echo none) / repo code: $(cat "$REPO/infra/nas-tax-ingest/tax_upload_server.py" "$REPO/infra/nas-tax-ingest/tax_ingest.py" "$REPO/infra/nas-tax-ingest/tax_auth.py" 2>/dev/null | sha256sum | cut -c1-16)"
+          echo "unit: $(systemctl is-active poetech-tax-upload 2>/dev/null || echo unknown)"
+          if [ -x "$VENV/bin/uvicorn" ]; then echo "venv: uvicorn present"; else echo "venv: uvicorn ABSENT -- the installer's venv step did not finish"; fi
+          if [ -d /volume1/PoeTech/tax-documents ]; then echo "drop folder: present, $(find /volume1/PoeTech/tax-documents -type f 2>/dev/null | wc -l) file(s)"; else echo "drop folder: ABSENT"; fi
+          if [ -f /volume1/PoeTech/caddy/site/poetech-app/taxes/archive.json ]; then echo "archive: published"; else echo "archive: not published yet"; fi
+          echo "health (loopback): $(curl -sS -m 8 http://127.0.0.1:8790/health 2>&1 | head -c 300)"
+          TSB=/var/packages/Tailscale/target/bin/tailscale
+          echo "funnel /taxes: $(sudo -n $TSB funnel status 2>/dev/null | grep -c '/taxes' || echo 0) mount line(s)"
+          echo "---- last lines of the service ----"
+          (journalctl -u poetech-tax-upload -n 25 --no-pager 2>/dev/null || sudo -n journalctl -u poetech-tax-upload -n 25 --no-pager 2>/dev/null || echo "(no journal this user can read)") | cut -c1-300
+          EOS
+      - name: "Ledger: a dark road is an incident; the next pass closes it"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'tax-upload-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The tax-upload road witness ledger (DR-0330)' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('Tax-upload road'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `tax-upload road failed its witness at ${now} ([run](${run})):\n${why}\n\n\`\`\`json\n${JSON.stringify(v.witness)}\n\`\`\``;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'Tax-upload road is dark', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('tax-upload-health: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `tax-upload road answered again at ${now} ([run](${run})): the archive came back through the door.${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

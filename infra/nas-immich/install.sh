@@ -45,7 +45,11 @@ LIBRARY="${IMMICH_LIBRARY:-/volume1/PoeTech/immich}"
 ENV_FILE="$DATA/immich.env"
 TOKEN_FILE=/volume1/PoeTech/secrets/chat-bridge-token.txt
 UNIT=/etc/systemd/system/poetech-photo-backup.service
-PORT=8801
+# 8803, not 8801: 127.0.0.1:8801 is Supabase Studio (infra/nas-supabase/docker-compose.yml),
+# found by the first live witness run (39364279520, 2026-10-20): the forwarder could
+# never bind, the unit sat "activating", and /photo-backup on the Funnel would have
+# pointed at Studio. The next free loopback port in our own list.
+PORT=8803
 IMMICH=http://127.0.0.1:2283
 # The forwarder refuses uploads under this many GB free; the installer refuses
 # to START under it too, so a full pool never gets a new 2 TB tenant.
@@ -196,11 +200,17 @@ TS="$(command -v tailscale 2>/dev/null || true)"
 if [ -n "$TS" ]; then
   if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
   FSTAT="$($TSC funnel status 2>/dev/null || true)"
-  printf '%s' "$FSTAT" | grep -q "/photo-backup" \
-    && echo "  /photo-backup already mounted on the funnel" \
-    || { $TSC funnel --bg --set-path /photo-backup "http://127.0.0.1:$PORT" \
-         && echo "  mounted /photo-backup -> 127.0.0.1:$PORT on the PUBLIC funnel (additive; the forwarder holds the lock)" \
-         || echo "  mount FAILED -- by hand: sudo $TS funnel --bg --set-path /photo-backup http://127.0.0.1:$PORT"; }
+  # A mount that exists but points ELSEWHERE is re-pointed, never left: on
+  # 2026-10-20 a mount at 8801 would have put Supabase Studio on the public
+  # Funnel under /photo-backup. set-path on an existing path replaces it.
+  if printf '%s' "$FSTAT" | grep -A1 "/photo-backup" | grep -q "127.0.0.1:$PORT"; then
+    echo "  /photo-backup already mounted on the funnel -> 127.0.0.1:$PORT"
+  else
+    printf '%s' "$FSTAT" | grep -q "/photo-backup" && echo "  /photo-backup is mounted at the WRONG backend -- re-pointing to 127.0.0.1:$PORT"
+    $TSC funnel --bg --set-path /photo-backup "http://127.0.0.1:$PORT" \
+      && echo "  mounted /photo-backup -> 127.0.0.1:$PORT on the PUBLIC funnel (additive; the forwarder holds the lock)" \
+      || echo "  mount FAILED -- by hand: sudo $TS funnel --bg --set-path /photo-backup http://127.0.0.1:$PORT"
+  fi
 else
   echo "  tailscale binary not found -- mount by hand:"
   echo "    sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /photo-backup http://127.0.0.1:$PORT"

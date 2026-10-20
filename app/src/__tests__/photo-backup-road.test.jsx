@@ -110,8 +110,8 @@ describe('the road is wired end to end', () => {
     expect(read('infra/cf-roads-worker/worker.js')).toContain("['/photo-backup', '/photo-backup', 'photo-backup']");
     expect(read('infra/cf-roads-worker/wrangler.toml')).toContain('poetech.us/photo-backup/*');
     expect(JSON.parse(read('app/public/_routes.json')).include).toContain('/photo-backup/*');
-    expect(read('infra/nas-transport/RECORDED-STATE.md')).toMatch(/^\| `\/photo-backup` \| `http:\/\/127\.0\.0\.1:8801`/m);
-    expect(read('infra/nas-loops/loops/funnel_watchdog.py')).toContain('("/photo-backup", "http://127.0.0.1:8801")');
+    expect(read('infra/nas-transport/RECORDED-STATE.md')).toMatch(/^\| `\/photo-backup` \| `http:\/\/127\.0\.0\.1:8803`/m);
+    expect(read('infra/nas-loops/loops/funnel_watchdog.py')).toContain('("/photo-backup", "http://127.0.0.1:8803")');
   });
   it('is in the self-deploy manifest, last, with a witness that exists', () => {
     const svcs = JSON.parse(read('infra/nas-loops/services.json')).services;

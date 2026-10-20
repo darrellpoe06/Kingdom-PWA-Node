@@ -4,7 +4,7 @@
 
 **What changed.** The first service born by THE-WAY-A-SERVICE-COMES-HOME, the day after it was written:
 1. **Own the files:** the library at `/volume1/PoeTech/immich` on the pool, the database under `/volume1/docker/immich`.
-2. **One door, locked:** Immich on `127.0.0.1:2283`; `immich_forwarder.py` on `127.0.0.1:8801` passes only `/api/*` under `X-Family-Key` (the key stripped before Immich; Immich's login still behind it); pages are 404. Brakes: 6 in flight, 4 GB per body, 600 s, uploads paused under 50 GB free.
+2. **One door, locked:** Immich on `127.0.0.1:2283`; `immich_forwarder.py` on `127.0.0.1:8803` (8801 until 2026-10-20, when the first live witness found Supabase Studio already on it) passes only `/api/*` under `X-Family-Key` (the key stripped before Immich; Immich's login still behind it); pages are 404. Brakes: 6 in flight, 4 GB per body, 600 s, uploads paused under 50 GB free.
 3. **Installs itself:** `services.json` (last), `install.sh` that moves the forwarder onto the repo's code before any step that can stop it, measures the pool, seeds the password once, waits for Immich's ping, mounts `/photo-backup` only after the whole road answers.
 4. **Says why:** `/health` reasons in words (library missing, pool under the floor with the numbers, Immich not answering, a wrong ping).
 5. **Witness:** `immich-health.yml`, a version lookup through the door with the family key; on failure, where the install stands first.

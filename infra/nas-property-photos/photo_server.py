@@ -1095,6 +1095,15 @@ def make_handler(args):
             parsed = urlparse(self.path)
             path = parsed.path.rstrip("/")
             if path.endswith("/healthz") or path == "/healthz" or path == "/health":
+                # A 200 is not an answer (DR-1000): the folder every upload lands
+                # in must be writable, or the door says so in words and without
+                # a path (the Funnel makes this route public).
+                root = upload_root()
+                can_write = (os.path.isdir(root) and os.access(root, os.W_OK)) or \
+                    (not os.path.exists(root) and os.access(os.path.dirname(root) or "/", os.W_OK))
+                if not can_write:
+                    self._send(503, {"ok": False, "reason": "the family's upload folder is missing or not writable; the pool may not be mounted"}, cache="no-store")
+                    return
                 self._send(200, {"ok": True})
                 return
             # Family gallery read-back (sovereign; replaces n8n wf-family-photos).
@@ -1762,6 +1771,12 @@ def selftest():
 
         st, _h, body = _get("/healthz", bearer=False)
         ok("http: /healthz answers", st == 200 and body == {"ok": True})
+        _keep = os.environ["PHOTO_UPLOAD_ROOT"]
+        os.environ["PHOTO_UPLOAD_ROOT"] = os.path.join(_d2, "no-such-pool", "uploads")
+        st, _h, body = _get("/healthz", bearer=False)
+        ok("http: CATCHES an upload folder that cannot be written: /healthz is 503 with the reason, no path",
+           st == 503 and body.get("ok") is False and "not writable" in str(body.get("reason")) and "/" not in str(body.get("reason")))
+        os.environ["PHOTO_UPLOAD_ROOT"] = _keep
         st, _h, body = _get("/channels", bearer=False)
         ok("http: /channels without the bearer is 401", st == 401)
         st, _h, body = _get("/channels")

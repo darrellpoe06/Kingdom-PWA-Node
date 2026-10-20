@@ -146,6 +146,42 @@ def push(fields, opener=None):
         return False, str(exc)[:200]
 
 
+def ntfy_health(opener=None):
+    """
+    Is the sovereign ntfy container answering, from where this service runs?
+    (ok, detail); never raises. The Way, step 5: the thing a service depends
+    on is probed from the box before the door says it is well.
+    """
+    base = NTFY_URL.rsplit('/', 1)[0]
+    req = urllib.request.Request(base + '/v1/health', method='GET')
+    try:
+        send = opener or urllib.request.urlopen
+        with send(req, timeout=4) as resp:
+            code = getattr(resp, 'status', 200)
+            if 200 <= code < 300:
+                return True, ''
+            return False, f'ntfy HTTP {code}'
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        return False, str(exc)[:200]
+
+
+def health_body(opener=None):
+    """
+    The open door's answer (status, payload). ok only when the token is set
+    (an empty token refuses every ring) and ntfy answers; otherwise the
+    reason in words. No path, no token: the Funnel makes this route public.
+    """
+    reasons = []
+    if not load_token():
+        reasons.append('no announce token is set on this box, so every ring is refused; the installer stamps it into the unit')
+    up, detail = ntfy_health(opener)
+    if not up:
+        reasons.append(f'the ntfy container on the box is not answering its /v1/health ({detail}), so the bell cannot ring')
+    if reasons:
+        return 503, {'ok': False, 'reason': '; '.join(reasons)}
+    return 200, {'ok': True, 'ntfy': 'up'}
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -162,7 +198,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.split('?')[0].endswith('/healthz'):
-            return self._json(200, {'ok': True})
+            code, payload = health_body()
+            return self._json(code, payload)
         return self._json(404, {'ok': False, 'error': 'not found'})
 
     def do_POST(self):
@@ -234,6 +271,29 @@ def selftest():
     check('bad priority falls back to 4', sanitize({'priority': 'urgent'})['priority'] == '4')
 
     check('topic is pinned, not caller-supplied', NTFY_URL.endswith('/' + TOPIC) and 'topic' not in sanitize({'topic': 'other'}))
+
+    # THE DOOR SAYS WHY (the Way, step 5; 2026-10-20). A fake ntfy that answers
+    # and one that does not; the token present and absent; no path and no
+    # token in any reason.
+    class _Resp:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    def _up(req, timeout=0): return _Resp()
+    def _down(req, timeout=0): raise urllib.error.URLError('connection refused')
+    _tok = os.environ.get('ANNOUNCE_TOKEN'); os.environ['ANNOUNCE_TOKEN'] = 'selftest-token'
+    code, body = health_body(opener=_up)
+    check('healthz 200 with the token set and ntfy answering', code == 200 and body == {'ok': True, 'ntfy': 'up'})
+    code, body = health_body(opener=_down)
+    check('CATCHES ntfy down: healthz 503 with the reason in words', code == 503 and body['ok'] is False and 'not answering' in body['reason'])
+    os.environ['ANNOUNCE_TOKEN'] = ''
+    _tf = TOKEN_FILE; globals()['TOKEN_FILE'] = '/nonexistent/announce-token.txt'
+    code, body = health_body(opener=_up)
+    check('CATCHES no token: healthz 503 says every ring is refused', code == 503 and 'no announce token' in body['reason'])
+    check('a reason never carries a path or a token', '/' not in body['reason'] and 'selftest-token' not in body['reason'])
+    globals()['TOKEN_FILE'] = _tf
+    if _tok is None: os.environ.pop('ANNOUNCE_TOKEN', None)
+    else: os.environ['ANNOUNCE_TOKEN'] = _tok
 
     # THE BEARER PARSE, which is what actually broke the bell (2026-10-15).
     # do_POST's one 3.9+ call (`removeprefix`) raised on DSM's interpreter and

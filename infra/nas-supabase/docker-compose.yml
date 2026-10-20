@@ -19,6 +19,8 @@
 #       8800 kong (the API URL the app points at)
 #       5433 postgres (5432 left alone -- DSM may want it)
 #       8801 studio
+#       (8802 libraries door, 8803 photo-backup door: nas-libraries, nas-immich; the
+#        photo-backup door was born on 8801 and collided with studio, 2026-10-20)
 #   * Container names are prefixed `supabase-` and the network is its own, so
 #     nothing here can collide with n8n / ollama / ntfy / ytzero.
 #   * Data lives under /volume1/docker/supabase, beside the other stacks.

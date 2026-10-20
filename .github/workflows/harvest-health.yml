@@ -223,6 +223,33 @@ jobs:
           gh workflow run nas-bootstrap.yml --repo "$REPO" --ref main \
             || echo "::warning::heal dispatch failed — the stall record still stands"
 
+      # WHERE THE INSTALL STANDS (THE-WAY-A-SERVICE-COMES-HOME, step 6;
+      # 2026-10-20, the audit). Before the stall is recorded, the box says
+      # where the loop stands: the checkout, the trickle's last fire and its backoff, the installer's own last
+      # lines from the services-sync cron log. Read-only; nothing key-shaped
+      # printed.
+      - name: "Diagnose a stall: where the install stands"
+        if: ${{ steps.probe.outputs.stalled != '' || steps.probe.outputs.unknown == 'true' }}
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          [ -n "${NAS_SSH_KEY:-}" ] || { echo "no NAS_SSH_KEY -- cannot say where the install stands"; exit 0; }
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "the NAS did not answer over SSH"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          OUT=$REPO/infra/nas-sme-pipeline/out
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          if [ -f "$OUT/.transcript-trickle.last" ]; then echo "last fire: $(( $(date +%s) - $(cat "$OUT/.transcript-trickle.last" 2>/dev/null || echo 0) ))s ago (gap 10800s)"; else echo "last fire: never (no stamp)"; fi
+          ls -la "$OUT" 2>/dev/null | grep -i "backoff\|pause\|transcript" | cut -c1-160 || true
+          echo "youtube-transcript-api importable as $(id -un): $(PYTHONPATH="$REPO/infra/nas-sme-pipeline/vendor:${PYTHONPATH:-}" python3 -c 'import youtube_transcript_api; print("yes")' 2>/dev/null || echo NO)"
+          if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then echo "database credential: present"; else echo "database credential: ABSENT at /volume1/PoeTech/secrets/supabase.json"; fi
+          echo "---- the installer's own last lines ----"
+          (grep -a "transcript-trickle" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || sudo -n grep -a "transcript-trickle" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || echo "(no cron log readable)") | tail -12 | cut -c1-300
+          EOS
       - name: Record the stall (rolling issue, labeled `incident`)
         if: ${{ steps.probe.outputs.stalled != '' }}
         env:

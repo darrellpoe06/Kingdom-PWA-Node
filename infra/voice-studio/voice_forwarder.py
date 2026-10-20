@@ -137,7 +137,8 @@ def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TI
                     self.end_headers()
                     self.wfile.write(body)
             except (urllib.error.URLError, OSError, ValueError):
-                self._json(502, {"ok": False, "error": "studio-unreachable", "upstream": upstream})
+                self._json(502, {"ok": False, "error": "studio-unreachable", "upstream": upstream,
+                                 "reason": "the voice studio is not answering from the NAS; the reader falls back to the NAS's own voice (voice-lite) until the tower is up"})
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -320,6 +321,7 @@ def _selftest():
     studio.shutdown(); studio.server_close()
     s, _, d = call("GET", "/health")
     check(s == 502 and b"studio-unreachable" in d, "studio down -> /health 502 studio-unreachable")
+    check(b'"reason"' in d and b"not answering from the NAS" in d, "studio down -> /health says why in words (the Way, step 5)")
     s, _, d = call("POST", "/speak", body, auth="Bearer " + token)
     check(s == 502, "studio down -> /speak 502 (the app's tagged-error path)")
 
