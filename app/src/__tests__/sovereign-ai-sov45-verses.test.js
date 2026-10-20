@@ -1,7 +1,7 @@
 // =============================================================================
 // sov45 — no single witness: the office of the critic, a separate pair of eyes
 // on the evidence, the record that remembers, and the specimen that spoke into
-// the lane (DR-1138)
+// the lane (DR-1144)
 // =============================================================================
 // Week 45 of Sovereign A.I. On 2026-10-20 at 15:13 UTC Darrell forwarded a
 // Level Up Coding newsletter by Nikki Siapno — "How Slack Built a Multi-Agent

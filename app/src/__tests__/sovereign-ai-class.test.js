@@ -69,7 +69,7 @@ describe('curriculum shape', () => {
     // number collision (two records, from #2300 and #2306) that
     // resolve-ledger-conflicts.mjs refuses, and whose fix renumbers a record
     // this branch does not own. Week 45 (no single witness: the office of the
-    // critic, DR-1138) was written on this branch and week 44 on a parallel
+    // critic, DR-1144) was written on this branch and week 44 on a parallel
     // branch; recompute this list, do not carry it, when they come together.
     const HELD_IN_FLIGHT = [44];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));

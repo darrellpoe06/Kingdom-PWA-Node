@@ -35,7 +35,7 @@ const REPO = join(HERE, '..', '..', '..');
 // Measured, not chosen. The gap may SHRINK as figures gain their sources; it
 // may never grow without a reader seeing this go red.
 //
-// 9 -> 10 on 2026-10-20 (DR-1138), and the reason is on the record rather than
+// 9 -> 10 on 2026-10-20 (DR-1144), and the reason is on the record rather than
 // in a wording change. sov45 (no single witness: the office of the critic) is
 // built from a Level Up Coding newsletter about Slack's multi-agent security
 // system, and the whole subject of the lesson is that a producer may not certify

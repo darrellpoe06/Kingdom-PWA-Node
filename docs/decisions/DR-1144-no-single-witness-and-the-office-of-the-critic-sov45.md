@@ -1,4 +1,4 @@
-# DR-1138: No single witness — the office of the critic, a separate pair of eyes on the evidence, the record that remembers, and the specimen that spoke into the lane (sov45)
+# DR-1144: No single witness — the office of the critic, a separate pair of eyes on the evidence, the record that remembers, and the specimen that spoke into the lane (sov45)
 
 **Date:** 2026-10-20
 **Status:** accepted
