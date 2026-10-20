@@ -89,6 +89,9 @@ const LOOPS_ON_THE_WAY = {
   'choir-dates': { witness: 'loops-health.yml' },
   'stream-length': { witness: 'loops-health.yml' },
   'worship-song-harvest': { witness: 'loops-health.yml' },
+  // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
+  // asks each one through the Funnel from outside (2026-10-20, the audit).
+  funnel: { witness: 'funnel-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -106,8 +109,11 @@ const BORN_BEFORE_THE_WAY = {
   // a compose stack's own idempotent converge, not a systemd function the
   // restart-on-every-path reader can count.
   supabase: { lacks: [] },
-  funnel: { lacks: ['codeFollows', 'health', 'witness'] },
-  ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
+  // 2026-10-20: the stack stamps the code it converged on and nas-health is its
+  // witness and says where it stands; it still lacks a door that says why,
+  // because the app offers no health route (its own healthcheck is a TCP
+  // connect) and the installer can only ask its root. Honest, with the why.
+  ytzero: { lacks: ['health'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
 };
@@ -202,6 +208,17 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);
   });
 
+  it('the Funnel witness asks every mount the watchdog restores, by the same path', () => {
+    const wd = read('infra/nas-loops/loops/funnel_watchdog.py');
+    const fh = read('.github/workflows/funnel-health.yml');
+    const mounts = [...wd.matchAll(/\("(\/[a-z-]+)", "http:\/\/127\.0\.0\.1:(\d+)"\)/g)];
+    expect(mounts.length).toBeGreaterThanOrEqual(6);
+    for (const [, path, port] of mounts) {
+      expect(fh, `the witness asks ${path}`).toContain(`("${path}", `);
+      expect(fh, `the witness probes 127.0.0.1:${port} from the box`).toMatch(new RegExp(`\\b${port}\\b`));
+    }
+  });
+
   it('the Way is written, routed and registered, and the video’s four jobs are weighed', () => {
     expect(has(WAY)).toBe(true);
     const way = read(WAY);
@@ -235,11 +252,12 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // ytzero probes nothing and stamps nothing; a ledger row that struck any of
-    // the three, or one that claimed a witness, would not match the files.
+    // ytzero stamps its code and names nas-health, but can only ask its root; a
+    // ledger row that struck health, or one that named a witness without the
+    // standing lines, would not match the files.
     const s = SERVICES.find((x) => x.name === 'ytzero');
-    expect(lacksOf(s)).toEqual(['codeFollows', 'health', 'witness']);
-    expect(lacksOf(s)).not.toEqual(['health', 'witness']);
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows', 'health']);
+    expect(lacksOf(s)).toEqual(['health']);
+    expect(lacksOf(s)).not.toEqual([]);
+    expect(lacksOf(s, 'site-health.yml')).toEqual(['health', 'stands']);
   });
 });
