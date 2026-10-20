@@ -35,21 +35,24 @@ describe('the register', () => {
     expect(v.ok).toBe(true);
   });
 
-  it('holds the ten tools from the video, each pinned to a commit', () => {
+  it('holds the ten tools from the first video and the three from the home-server video, each pinned to a commit', () => {
     expect(OPEN_SOURCE_CANDIDATES.map((c) => c.id).sort()).toEqual(
-      ['ace-step', 'dyad', 'freellmapi', 'invokeai', 'odysseus', 'openmanus', 'openshorts', 'upscayl', 'vane', 'voicestudio'],
+      ['ace-step', 'audiobookshelf', 'dyad', 'freellmapi', 'immich', 'invokeai', 'jellyfin', 'odysseus', 'openmanus', 'openshorts', 'upscayl', 'vane', 'voicestudio'],
     );
+    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.drRef === 'DR-1119').map((c) => c.id).sort()).toEqual(['audiobookshelf', 'immich', 'jellyfin']);
     for (const c of OPEN_SOURCE_CANDIDATES) expect(c.pin.sha).toMatch(/^[0-9a-f]{40}$/);
     expect(pinnedUrl(byId('invokeai'))).toBe('https://github.com/invoke-ai/InvokeAI/tree/438246b846391385b074eae82bdbc82df2938007');
   });
 
-  it('records the verdicts DR-1099 decided', () => {
+  it('records the verdicts DR-1099 and DR-1119 decided', () => {
     const s = summarizeCandidates();
-    expect(s.byVerdict).toEqual({ pilot: 5, hold: 1, decline: 4 });
+    expect(s.byVerdict).toEqual({ pilot: 6, hold: 3, decline: 4 });
     expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.verdict === 'pilot').map((c) => c.id).sort())
-      .toEqual(['ace-step', 'invokeai', 'openshorts', 'upscayl', 'vane']);
+      .toEqual(['ace-step', 'immich', 'invokeai', 'openshorts', 'upscayl', 'vane']);
     expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.canExecuteCode && c.verdict === 'pilot')).toEqual([]);
-    expect(s.byPlace).toEqual({ nas: 1, 'dev-gpu-node-1': 3, 'dev-gpu-node-2': 1 });
+    expect(s.byPlace).toEqual({ nas: 2, 'dev-gpu-node-1': 3, 'dev-gpu-node-2': 1 });
+    // Only what is built says so; the rest is not installed (never a painted status).
+    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.builtRef).map((c) => c.id)).toEqual(['vane']);
   });
 
   it('never pilots InvokeAI from its alpha branch', () => {
@@ -112,11 +115,14 @@ describe('the Infra Plan section', () => {
     await act(async () => { root.render(createElement(OpenSourceCandidates, { today: '2026-10-18' })); });
     const t = text();
     expect(t).toMatch(/Open-source tools, weighed/);
-    expect(t).toMatch(/5 bring home next/);
-    expect(t).toMatch(/1 hold/);
+    expect(t).toMatch(/6 bring home next/);
+    expect(t).toMatch(/3 hold/);
     expect(t).toMatch(/4 decline/);
     for (const c of OPEN_SOURCE_CANDIDATES) expect(t).toContain(c.name);
-    expect(t).toMatch(/None of them is installed yet/);
+    // The header is counted from the rows: which record weighed how many, and what is built.
+    expect(t).toMatch(/10 under DR-1099, 3 under DR-1119/);
+    expect(t).toMatch(/Built: Vane \(DR-1101\)\. The rest are not installed\./);
+    expect(t).not.toMatch(/None of them is installed yet/);
     expect(host.querySelectorAll('[aria-expanded="true"]').length).toBe(0);
     expect(t).not.toMatch(/Leaves our network/);
     expect(t).toMatch(/has passed/);
