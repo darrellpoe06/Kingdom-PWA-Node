@@ -25,9 +25,37 @@
 // this one implementation.
 //
 // This directory is underscore-prefixed, so Pages does NOT route it.
+//
+// EVERY ANSWER FROM HERE SIGNS ITSELF (2026-10-17, DR-1092). From 2026-10-09 to
+// 2026-10-17 this repository carried an incident — #2057, 38 comments, a zone
+// Worker written to route around it (DR-1068) and an unlock that put the
+// absolute Funnel origin back into the client bundle — all on the claim that NO
+// PAGES FUNCTION WAS RUNNING. The claim was false the whole time. It rested on
+// reading the CONTENT TYPE of /automation-status: text/html was taken to mean
+// "the SPA shell answered, no Function ran". But /automation-status is a PROXY,
+// like every road in this file, and it forwards whatever the NAS returns —
+// content type and all. /automation-status is not a Funnel mount, so it lands
+// on the Funnel's root and comes back as the NAS's own HTML page. The Function
+// ran perfectly and returned HTML, and the probe called that a dead transport.
+//
+// A content type cannot answer "did a Function run", because a proxy's job is
+// to return somebody else's content type. So the answer is no longer inferred:
+// every response this factory produces — the proxied one AND both 502s — sets
+// `x-poetech-road: pages-function`. Only code running here can set a response
+// header; the SPA fallback is a static file and can set nothing. The probes
+// read the header and the question is settled structurally.
+//
+// The zone Worker (infra/cf-roads-worker/worker.js) already signed itself
+// `x-poetech-road: worker` for exactly this reason. This is the same idea on
+// the door that was actually carrying the traffic.
 // =============================================================================
 
 const FUNNEL_ORIGIN = 'https://poetech.tail5a2f35.ts.net';
+
+// The signature every answer from this factory carries. A probe that reads it
+// knows a Function ran; its ABSENCE is what a dark road looks like.
+export const ROAD_HEADER = 'x-poetech-road';
+export const ROAD_VALUE = 'pages-function';
 
 // upstreamPrefix: the path prefix ON THE FUNNEL that this route forwards to.
 //   ''            -> strip the route's own prefix (the legacy /n8n behavior:
@@ -71,7 +99,7 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
       // so the client surfaces a real error instead of an opaque/CORS fail.
       return new Response(
         JSON.stringify({ error: `${label} proxy upstream unreachable`, detail: String((err && err.message) || err) }),
-        { status: 502, headers: { 'content-type': 'application/json' } }
+        { status: 502, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
       );
     }
 
@@ -102,15 +130,20 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
           detail: title || `HTTP ${upstream.status} from the edge`,
           message: `The church server could not be reached${title ? ` (${title})` : ''}. Nothing was changed — try again in a moment.`,
         }),
-        { status: 502, headers: { 'content-type': 'application/json' } }
+        { status: 502, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
       );
     }
 
-    // Stream the upstream response back unchanged (status + headers + body).
+    // Stream the upstream response back unchanged (status + headers + body),
+    // plus the one header that says this Function answered. The upstream's own
+    // headers are copied first and never dropped, so the signature is additive:
+    // a road that was working keeps behaving exactly as it did.
+    const out = new Headers(upstream.headers);
+    out.set(ROAD_HEADER, ROAD_VALUE);
     return new Response(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
-      headers: upstream.headers,
+      headers: out,
     });
   };
 }

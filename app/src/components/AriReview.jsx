@@ -127,10 +127,17 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     fetchWaysBrain().then((b) => { if (!cancelled && b.live) setBrain(b); });
     return () => { cancelled = true; };
   }, []);
-  const ways = (brain && brain.live && brain.principles.length)
+  // THE BADGE DESCRIBES THE LIST UNDERNEATH IT, NOT THE FETCH (2026-10-19).
+  // These two lines disagreed: the list fell back to the snapshot when the
+  // live brain carried no principles, while the badge read "live" off the
+  // fetch alone — so a brain that answered with an empty list printed "live"
+  // over build-time data. One condition now decides both, so the word over
+  // the card is always true of what is in the card (DR-0076; the
+  // surface-says-truth dimension of COMPREHENSIVE-REVIEW-STANDARD).
+  const waysLive = !!(brain && brain.live && brain.principles.length);
+  const ways = waysLive
     ? { ok: true, count: brain.principles.length, items: brain.principles }
     : snapshot;
-  const waysLive = !!(brain && brain.live);
 
   return (
     <div className="space-y-4">

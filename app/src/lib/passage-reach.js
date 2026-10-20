@@ -200,11 +200,54 @@ export function passagesStrandedInTheirIntroduction(
     .filter((r) => !r.strandedUntil || new Date(r.strandedUntil) < today)
     .map((r) => (r.strandedUntil
       ? `${r.ref} is still stranded in ${r.introducedBy} and its parking expired ${r.strandedUntil} — ${r.subject}`
+        + ` ${IN_FLIGHT_NOTE}`
       : `${r.ref} reaches only ${r.introducedBy}, the lesson that introduced it — ${r.subject}`));
 }
+
+// A DATED FLAG FIRES FOR EVERY SESSION AT ONCE (2026-10-19, DR-1105). Job 31:1's
+// parking came due and was paid THREE times by two sessions inside two and a
+// half hours -- into ll113, then ll92, then ll113 again, twice at the same four
+// anchor seams -- because nothing told either session the other was already on
+// it. Two of those placements had to be thrown away. This note rides the
+// failure message so the next session reads it at the moment it is deciding.
+// It is a prompt, NOT a lock, and is deliberately not claimed as one.
+export const IN_FLIGHT_NOTE = 'Before placing it: this is a DATED flag, so it fired for every '
+  + 'session at once — check for a placement already in flight (open PRs, and this row\'s own '
+  + 'DISCHARGED-into note) before writing a new one.';
 
 /** Rows parked with a date, for the re-review sweep to pick up. */
 export function parkedPassages(passages = PASSAGES_THAT_MUST_REACH) {
   return passages.filter((p) => p.strandedUntil)
     .map((p) => ({ ref: p.ref, reReview: p.strandedUntil, why: p.why }));
+}
+
+// THE ROW'S CLAIM MUST BE TRUE (2026-10-19, DR-1105). A row that says
+// "DISCHARGED <date> into llNN" is the ledger's record of a deliberate
+// placement, and the rest of the house reads it as settled -- the stranded
+// check goes quiet on the strength of it. So the claim is checked against the
+// catalog rather than trusted: if the named lesson does not actually carry the
+// passage, the row is asserting a placement that is not there (reverted,
+// renumbered, or lost in a merge) and the build fails saying so.
+//
+// WHAT THIS DOES NOT DO, stated because the alternatives were measured and
+// rejected: it does not require a row to name every lesson that carries its
+// passage. Luke 4:21 sits in eight lessons by ordinary spread, and demanding
+// the row list them would turn a floor into bookkeeping -- the same mistake as
+// treating a floor as a quota. Only the DISCHARGE the row itself claims is
+// checked.
+const DISCHARGE_CLAIM = /DISCHARGED[^.]*?\binto\s+(ll\d+)\b/gi;
+export function dischargeClaimsNotKept(modules, passages = PASSAGES_THAT_MUST_REACH) {
+  const reach = new Map(measureReach(modules, passages).map((r) => [r.ref, r]));
+  const faults = [];
+  for (const p of passages) {
+    for (const m of String(p.why || '').matchAll(DISCHARGE_CLAIM)) {
+      const claimed = m[1];
+      const row = reach.get(p.ref);
+      const kept = !!row && row.carriedBy.some((id) => id.startsWith(`${claimed}-`));
+      if (!kept) {
+        faults.push(`${p.ref}: its row claims DISCHARGED into ${claimed}, but ${claimed} does not carry it`);
+      }
+    }
+  }
+  return faults;
 }

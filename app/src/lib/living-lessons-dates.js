@@ -17,7 +17,21 @@
 //
 // Measured when written: 191 of 191 lessons dated; in number order the dates
 // never go backwards (L1 2026-06-24 ... L192 2026-09-24), so "by number" and
-// "by date" agree. L79 does not exist (the id was never minted).
+// "by date" agree. L79 did not exist then (the id was never minted).
+//
+// THE ONE DATE HERE THAT IS NOT A COMMIT DAY, AND WHY (2026-10-14). L79 is the
+// exception and is written down rather than smoothed over. Its slot opened on
+// 2026-08-14, beside L78 and before L80, and then stayed EMPTY: the text meant
+// to fill it sat in PR #1255 on a branch whose catalog held 81 modules against
+// main's 238, so the file could never be merged — only the module mined out of
+// it, which happened on 2026-10-14. The commit day is therefore 2026-10-14 and
+// the course's own slot day is 2026-08-15. The SLOT day is recorded, on the
+// same ground the L153/L164/L189 lines stand on: where the course itself
+// recorded a day, the course's day is kept. It also keeps the product claim
+// true — living-lessons-order.test.jsx asserts that in number order the days
+// never go backwards, which is what lets the app offer "By number, oldest
+// first" as one order instead of two. Read this line as the slot, not the
+// commit; the commit is in the history and in the lesson's own banner.
 //
 // A NEW LESSON JOINS AT BIRTH (DR-0621): living-lessons-order.test.jsx fails
 // when a lesson in LIVING_LESSONS_MODULES has no line here, or when its date
@@ -103,6 +117,8 @@ export const LIVING_LESSONS_ADDED = {
   'll76-the-sky-the-speculation-and-the-test-that-works': '2026-08-11', // commit e882d3cd
   'll77-the-king-over-the-children-of-pride': '2026-08-14', // commit ee27ff39
   'll78-the-snare-of-the-fear-of-man': '2026-08-15', // commit 8abbde4a
+  // The slot day, not the commit day — see the note at the head of this file.
+  'll79-justice-and-righteousness-travel-together': '2026-08-15', // slot 2026-08-14/15; mined out of #1255 and committed 2026-10-14
   'll80-the-four-warnings-of-a-hardening-heart': '2026-08-18', // commit 51ae4738
   'll81-tongues-weighed-word-first': '2026-08-18', // commit 51ae4738
   'll82-love-fulfils-the-law-wake-up-and-get-dressed': '2026-08-20', // commit 0015c6cb
@@ -295,7 +311,11 @@ export const LIVING_LESSONS_ADDED = {
   // L251, sent into the house by Darrell on 2026-10-17 (the summary of an
   // episode of The Deep End with Lecrae, under the word Lesson, then his own
   // line: the Rock of Yahweh in the wilderness in Old Testament times) and
-  // built the same session. ll251 and ll252 are held by an unlanded branch.
+  // built the same session. Its own note said "ll251 and ll252 are held by an
+  // unlanded branch" and then took 251 anyway, because the shrink-only gap
+  // ratchet forbids leaving a number empty while a branch waits under a hold.
+  // That is why the laziness lesson below is 253: it was built as 251, and
+  // moved twice as 251 and 252 were taken under it.
   'll251-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
   // L252 (DR-1100): Darrell's fifty-three messages of 2026-10-18, sent while
   // it was being built, carried in one lesson the same session.
@@ -303,4 +323,22 @@ export const LIVING_LESSONS_ADDED = {
   // L253 (DR-1102): Darrell's one message of 2026-10-18 on benefiters and
   // underminers of the eternal kingdom, carried the same session.
   'll253-benefiters-or-underminers-of-the-eternal-kingdom': '2026-10-18',
+  // L254 AND L255 CARRY 2026-10-18, NOT THE DAY THEY WERE SPOKEN, AND THIS IS
+  // THE RULE AT THE HEAD OF THIS FILE RATHER THAN AN EXCEPTION TO IT. The day
+  // here is "the day the commit that FIRST carried the lesson's id landed",
+  // never the day a teaching was spoken - the lesson's own prose and its
+  // decision record hold that.
+  //
+  // These two have now been renumbered four and three times, every move forced
+  // by a number taken out from under them while their branch sat under a
+  // `hold`: built as ll251/ll252 on 2026-10-17, moved to 253/254 when main's
+  // #2243 took 251 and #2251 took 252, and moved again to 254/255 when #2252
+  // took 253 for Benefiters or Underminers. So the ids `ll254-` and `ll255-`
+  // first exist in a commit of 2026-10-19 - but they are dated 2026-10-18
+  // deliberately, with main's ll253 above them, because "By number, oldest
+  // first" is offered as ONE order (DR-0686) and a 10-19 date here would read
+  // as newer than lessons that were built after these two were written. The
+  // spoken day, 2026-10-17, is carried in each lesson's prose and its record.
+  'll254-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-18',
+  'll255-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-18',
 };

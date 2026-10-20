@@ -174,21 +174,33 @@ for (const spec of LESSONS) {
 
   describe(`L${spec.n} exists, is numbered, and is dated the night it was spoken`, () => {
     it('is in the catalog exactly once', () => {
-      expect(LIVING_LESSONS_MODULES.filter((m) => m.id === spec.id)).toHaveLength(1);
+    expect(LIVING_LESSONS_MODULES.filter((m) => m.id === spec.id)).toHaveLength(1);
     });
-    it(`takes ${spec.n} and leaves the 79/211/212 gaps alone`, () => {
+    it(`takes ${spec.n} and leaves the 211/212 gaps alone`, () => {
       const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-      expect(claimed.filter((n) => n === spec.n)).toHaveLength(1);
-      for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    expect(claimed.filter((n) => n === spec.n)).toHaveLength(1);
+      for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    // 79 IS NO LONGER A HOLE. It was one when this check was written -- the
+    // comment on the original said so: "79 is #2166's held lesson". That
+    // lesson (DR-1025) is on this branch and fills it, so asserting 79 is
+    // UNCLAIMED now fails for a reason that has nothing to do with this
+    // lesson. The question the check actually means is still asked, and more
+    // strictly: 211 and 212 are still open holes nobody may fill by
+    // accident, and 79 is claimed EXACTLY ONCE, by the lesson whose number
+    // it is. A lesson that drifted onto 79 would make that count 2.
+    expect(
+        LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+        '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
     });
     it('carries the spoken day, and never precedes the lesson numbered before it', () => {
-      expect(LIVING_LESSONS_ADDED[spec.id]).toBe('2026-10-15');
+    expect(LIVING_LESSONS_ADDED[spec.id]).toBe('2026-10-15');
       const before = Object.entries(LIVING_LESSONS_ADDED).find(([k]) => k.startsWith(spec.prev));
-      expect(before, `${spec.prev} is dated`).toBeTruthy();
-      expect(LIVING_LESSONS_ADDED[spec.id] >= before[1]).toBe(true);
+    expect(before, `${spec.prev} is dated`).toBeTruthy();
+    expect(LIVING_LESSONS_ADDED[spec.id] >= before[1]).toBe(true);
     });
     it('names Darrell as the one who spoke it, in the adult lesson', () => {
-      expect(/spoken into this house by Darrell/.test(L.lesson)).toBe(true);
+    expect(/spoken into this house by Darrell/.test(L.lesson)).toBe(true);
     });
   });
 
@@ -201,14 +213,14 @@ for (const spec of LESSONS) {
   describe(`L${spec.n} — every quoted span is the verse`, () => {
     it.each(spec.strands)('%s — %s %s:%s', (_why, book, ch, n, span) => {
       const v = verse(book, ch, n);
-      expect(v, `${book} ${ch}:${n} resolves`).toBeTruthy();
-      expect(v.includes(span), `the span is not in ${book} ${ch}:${n}`).toBe(true);
-      expect(whole.includes(span), `the lesson does not carry ${book} ${ch}:${n}`).toBe(true);
+    expect(v, `${book} ${ch}:${n} resolves`).toBeTruthy();
+    expect(v.includes(span), `the span is not in ${book} ${ch}:${n}`).toBe(true);
+    expect(whole.includes(span), `the lesson does not carry ${book} ${ch}:${n}`).toBe(true);
     });
 
     const spans = spansOf(L);
     it('finds a substantial number of referenced spans', () => {
-      expect(spans.length).toBeGreaterThan(150);
+    expect(spans.length).toBeGreaterThan(150);
     });
     it('every referenced span is verbatim in the verse it cites, case and all', () => {
       const bad = [];
@@ -222,14 +234,14 @@ for (const spec of LESSONS) {
         const joined = nums.map((n) => verse(s.book, s.ch, n)).join(' ');
         if (!joined || !norm(joined).includes(norm(s.quoted))) bad.push(`${s.path} :: ${s.book} ${s.ch}:${s.label} :: "${s.quoted.slice(0, 70)}"`);
       }
-      expect(bad, `not His words as written:\n${bad.join('\n')}`).toEqual([]);
+    expect(bad, `not His words as written:\n${bad.join('\n')}`).toEqual([]);
     });
     it('uses the corpus apostrophe inside quotations', () => {
       for (const s of spans) expect(/'/.test(s.quoted), `${s.path} carries a straight apostrophe inside a quotation`).toBe(false);
     });
     it('marks no elision and recites no record', () => {
-      expect(elidedQuotations(L)).toEqual([]);
-      expect(recitedRecords(L)).toEqual([]);
+    expect(elidedQuotations(L)).toEqual([]);
+    expect(recitedRecords(L)).toEqual([]);
     });
     it('leaves "God" exactly as the verses carry it', () => {
       for (const u of spec.untouched) expect(whole.includes(u), `drops: ${u}`).toBe(true);
@@ -239,40 +251,40 @@ for (const spec of LESSONS) {
   describe(`L${spec.n} — four bands, each carrying the whole message`, () => {
     const measured = measureFullness(L);
     it.each(BANDS)('%s clears its floor', (b) => {
-      expect(measured.bands[b].share).toBeGreaterThanOrEqual(FULL_FLOOR[b]);
+    expect(measured.bands[b].share).toBeGreaterThanOrEqual(FULL_FLOOR[b]);
     });
     it('reports no short band, and would report one trimmed back (proven-to-catch)', () => {
-      expect(shortBands(measured)).toEqual([]);
+    expect(shortBands(measured)).toEqual([]);
       const faked = { ...L, levels: { ...L.levels, senior: L.levels.senior.slice(0, 500) } };
-      expect(shortBands(measureFullness(faked))).toContain('senior');
+    expect(shortBands(measureFullness(faked))).toContain('senior');
     });
     it('every band names its own lesson near the start', () => {
-      expect(unnamedBands(L)).toEqual([]);
+    expect(unnamedBands(L)).toEqual([]);
     });
     it('keeps the bands genuinely different', () => {
-      expect(duplicatedBands(measureDifferentiation(L))).toEqual([]);
-      expect(measureDifferentiation(L).worst).toBeLessThan(DIFF_CEILING);
+    expect(duplicatedBands(measureDifferentiation(L))).toEqual([]);
+    expect(measureDifferentiation(L).worst).toBeLessThan(DIFF_CEILING);
     });
     it('sends the reader all three ways in every place', () => {
-      expect(placesMissingDirections(L)).toEqual([]);
+    expect(placesMissingDirections(L)).toEqual([]);
     });
     it('the ladder rises and the child band is under the ceiling', () => {
       const g = (k) => fleschKincaidGrade(ourProseOnly(TEXTS[k]));
-      expect(isInverted(measureLesson(L))).toBe(false);
-      expect(g('child')).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
-      expect(g('youth')).toBeGreaterThan(g('child') + 1);
-      expect(g('teen')).toBeGreaterThan(g('youth') + 1);
-      expect(g('senior')).toBeGreaterThan(g('teen') + 1);
+    expect(isInverted(measureLesson(L))).toBe(false);
+    expect(g('child')).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
+    expect(g('youth')).toBeGreaterThan(g('child') + 1);
+    expect(g('teen')).toBeGreaterThan(g('youth') + 1);
+    expect(g('senior')).toBeGreaterThan(g('teen') + 1);
     });
   });
 
   describe(`L${spec.n} — two stories, and Yahweh in our voice`, () => {
     it('carries two real stories, one light and one solemn, with no double-quoted span', () => {
       const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
-      expect(real.length).toBeGreaterThanOrEqual(2);
+    expect(real.length).toBeGreaterThanOrEqual(2);
       const tones = L.stories.map((s) => s.tone);
-      expect(tones).toContain('light');
-      expect(tones).toContain('solemn');
+    expect(tones).toContain('light');
+    expect(tones).toContain('solemn');
       for (const s of L.stories) expect(String(s.body)).not.toMatch(/"/);
     });
     it('the stories teach this lesson rather than decorating it', () => {
@@ -281,8 +293,8 @@ for (const spec of LESSONS) {
     });
     it.each(ALL)('%s names Him by covenant name and never the generic in our prose', (k) => {
       const ours = ourProseOnly(TEXTS[k]);
-      expect(/\bYahweh\b/.test(ours), `${k} never names Him by covenant name`).toBe(true);
-      expect(/\bGod(?:'s|’s)?\b/.test(ours), `${k} uses the generic "God" in our own voice`).toBe(false);
+    expect(/\bYahweh\b/.test(ours), `${k} never names Him by covenant name`).toBe(true);
+    expect(/\bGod(?:'s|’s)?\b/.test(ours), `${k} uses the generic "God" in our own voice`).toBe(false);
     });
   });
 }
