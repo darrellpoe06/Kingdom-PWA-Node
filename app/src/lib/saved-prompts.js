@@ -26,7 +26,7 @@ export const SORTS = Object.freeze([
   { key: 'az', label: 'A to Z' },
 ]);
 
-// THE TYPE OF A PROMPT IS WHERE IT WAS SENT (DR-1139; Darrell 2026-10-20:
+// THE TYPE OF A PROMPT IS WHERE IT WAS SENT (DR-1141; Darrell 2026-10-20:
 // "Can we sort based on type and use our standard subtab standard?"). A row
 // remembered by a send carries its destination (lesson, poetech, prayer…);
 // a row kept by "Save as prompt" carries none and is its own type, "saved".
@@ -142,7 +142,7 @@ export async function deletePrompt({ supabase, id }) {
 // Reuse: the history hands a prompt back to the box through one window event,
 // so the box needs no knowledge of the history and the history none of the box.
 export const USE_PROMPT_EVENT = 'poetech:use-prompt';
-// THE WORDS GO ANYWHERE, ONE OR SEVERAL (DR-1139; Darrell 2026-10-20: "Do we
+// THE WORDS GO ANYWHERE, ONE OR SEVERAL (DR-1141; Darrell 2026-10-20: "Do we
 // have the ability to send our words anywhere after collected???! We need that
 // in case it goes to the wrong location or we may want to create a lesson from
 // a situation or few"). One row's words could always come back to the box and

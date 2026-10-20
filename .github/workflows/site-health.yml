@@ -628,10 +628,10 @@ jobs:
             # Note what this also proves: a 502 here is the Function RUNNING and
             # correctly reporting trouble behind it. It is never evidence of a
             # dead transport, which is the confusion this whole record is about.
-            SB_ERR=$(grep -o '"error":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
-            SB_ERRCODE=$(grep -o '"code":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
-            SB_UPSTATUS=$(grep -o '"upstreamStatus":[0-9]*' "$SB_BODY" 2>/dev/null | head -1 | cut -d: -f2)
-            SB_DETAIL=$(grep -o '"detail":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
+            SB_ERR=$(grep -o '"error":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4) || SB_ERR=""
+            SB_ERRCODE=$(grep -o '"code":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4) || SB_ERRCODE=""
+            SB_UPSTATUS=$(grep -o '"upstreamStatus":[0-9]*' "$SB_BODY" 2>/dev/null | head -1 | cut -d: -f2) || SB_UPSTATUS=""
+            SB_DETAIL=$(grep -o '"detail":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4) || SB_DETAIL=""
             rm -f "$SB_BODY"
             if [ -n "${SB_ERR:-}" ]; then
               note "- the /sb answer carries our proxy's own diagnosis: \`${SB_ERR}\`${SB_ERRCODE:+ · code \`${SB_ERRCODE}\`}${SB_UPSTATUS:+ · the Funnel answered HTTP ${SB_UPSTATUS}}${SB_DETAIL:+ · \`${SB_DETAIL}\`}. A 502 here is the Function RUNNING and reporting trouble BEHIND it — never a dead transport."

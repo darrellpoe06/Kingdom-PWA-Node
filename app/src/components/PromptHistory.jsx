@@ -11,7 +11,7 @@ import { SORTS, sortPrompts, searchPrompts, dateText, listPrompts, setKept, dele
 import SectionTabs from './SectionTabs.jsx';
 import supabase from '../lib/supabase.js';
 import { confirmThen } from '../lib/confirm-action.js';
-// THE WORDS COME BACK WHERE THE LINE WAS MADE (DR-1139). A spoken lesson's row
+// THE WORDS COME BACK WHERE THE LINE WAS MADE (DR-1141). A spoken lesson's row
 // here reads "the words come back from Whisper" — and kept reading it eleven
 // days after they had (Darrell 2026-10-20: "Not working..."). The words land
 // on the lesson rows (lib/lesson-inbox.js); this row now shows where they are.
