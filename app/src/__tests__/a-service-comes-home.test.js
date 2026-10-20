@@ -88,7 +88,12 @@ const BORN_BEFORE_THE_WAY = {
   'lesson-parity': { lacks: ['codeFollows', 'health', 'witness'] },
   'ops-runner': { lacks: ['codeFollows', 'health', 'stands'] },
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
-  supabase: { lacks: ['codeFollows', 'witness'] },
+  // 2026-10-20: lacks none of the readable parts (the stack stamps the code it
+  // converged on; nas-health is its witness and says where the install stands).
+  // It stays here, not on ON_THE_WAY, because its restart is `compose up -d`,
+  // a compose stack's own idempotent converge, not a systemd function the
+  // restart-on-every-path reader can count.
+  supabase: { lacks: [] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },
   'choir-dates': { lacks: ['codeFollows', 'health', 'witness'] },
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
@@ -222,11 +227,11 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // supabase probes its /health and stamps nothing; a ledger row that struck
-    // codeFollows, or one that claimed a witness, would not match the files.
-    const s = SERVICES.find((x) => x.name === 'supabase');
-    expect(lacksOf(s)).toEqual(['codeFollows', 'witness']);
-    expect(lacksOf(s)).not.toEqual(['witness']);
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows']);
+    // ytzero probes nothing and stamps nothing; a ledger row that struck any of
+    // the three, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'ytzero');
+    expect(lacksOf(s)).toEqual(['codeFollows', 'health', 'witness']);
+    expect(lacksOf(s)).not.toEqual(['health', 'witness']);
+    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows', 'health']);
   });
 });
