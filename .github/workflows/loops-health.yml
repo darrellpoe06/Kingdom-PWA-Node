@@ -5,7 +5,9 @@
 # the file it writes and the witness that reads it. Nine loops ride the
 # fifteen-minute services-sync clock and had no witness at all: lesson-voice,
 # lesson-parity, church-mail, family-key, agent-consumer, db-backup,
-# choir-dates, stream-length, worship-song-harvest. This workflow joins the
+# choir-dates, stream-length, worship-song-harvest. A tenth, lesson-mail, joined
+# here at BIRTH rather than in an audit (DR-1132 / DR-0621) -- the Way's own
+# gate refused it otherwise, which is exactly its job. This workflow joins the
 # tailnet once and asks the box, for each loop: what services-sync said of its
 # LAST run (installing ... then exit=/TIMED OUT/DEGRADED, or nothing), and what
 # the loop's own ledger says (last-run.json, last-measure.json, status.json,
@@ -91,13 +93,19 @@ jobs:
           LP="$(rd /volume1/PoeTech/lesson-parity/last-measure.json | head -c 600)"; LP_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-parity/last-measure.json 2>/dev/null || date +%s) ))"
           DB="$(rd /volume1/PoeTech/backups/db/status.json | head -c 600)"; DB_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/backups/db/status.json 2>/dev/null || date +%s) ))"
           CM="$(rd "$REPO/infra/nas-church-mail/out/.church-mail.state.json" | head -c 600)"; CM_AGE="$(( $(date +%s) - $(cat "$REPO/infra/nas-church-mail/out/.church-mail.last" 2>/dev/null || date +%s) ))"
+          # NOT under the repo: this reader keeps its state in its own home
+          # (LESSON_MAIL_HOME, /volume1/PoeTech/lesson-mail), the way lesson-voice
+          # and db-backup do. Copying church-mail's in-repo `out/` path here would
+          # have read a file that is never written and reported a fresh loop as
+          # having no ledger -- caught by reading the installer, not the sibling.
+          LM="$(rd /volume1/PoeTech/lesson-mail/.lesson-mail.state.json | head -c 600)"; LM_AGE="$(( $(date +%s) - $(cat /volume1/PoeTech/lesson-mail/.lesson-mail.last 2>/dev/null || date +%s) ))"
           CMG="$(tail -n 2 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | head -c 1200)"
           if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then CRED=present; else CRED=absent; fi
-          export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE CMG CRED REPO
+          export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE LM LM_AGE CMG CRED REPO
           python3 - <<'PY'
           import json, os, re, time
           from datetime import datetime, timezone
-          loops = ["lesson-voice","lesson-parity","church-mail","family-key","agent-consumer","db-backup","choir-dates","stream-length","worship-song-harvest"]
+          loops = ["lesson-voice","lesson-parity","church-mail","lesson-mail","family-key","agent-consumer","db-backup","choir-dates","stream-length","worship-song-harvest"]
           try:
               with open(os.environ["CRON_FILE"], encoding="utf-8", errors="replace") as fh: cron = fh.read().splitlines()
           except OSError: cron = []
@@ -132,11 +140,13 @@ jobs:
               "lesson-parity": (jl(os.environ.get("LP", "")), int(os.environ.get("LP_AGE") or 0)),
               "db-backup": (jl(os.environ.get("DB", "")), int(os.environ.get("DB_AGE") or 0)),
               "church-mail": (jl(os.environ.get("CM", "")), int(os.environ.get("CM_AGE") or 0)),
+              "lesson-mail": (jl(os.environ.get("LM", "")), int(os.environ.get("LM_AGE") or 0)),
           }
           for name in loops:
               e = {"last_run": None, "why": None, "own_lines": [], "ledger": None, "ledger_age_s": None, "installer": os.path.isfile(os.path.join(os.environ["REPO"], {
                   "lesson-voice": "infra/nas-lesson-voice/install.sh", "lesson-parity": "infra/nas-lesson-parity/install.sh",
-                  "church-mail": "infra/nas-church-mail/install.sh", "family-key": "infra/nas-bridge-publish/install.sh",
+                  "church-mail": "infra/nas-church-mail/install.sh", "lesson-mail": "infra/nas-lesson-mail/install.sh",
+                  "family-key": "infra/nas-bridge-publish/install.sh",
                   "agent-consumer": "infra/nas-agent/install.sh", "db-backup": "infra/nas-db-backup/install.sh",
                   "choir-dates": "infra/church-media-golive/choir_dates_install.sh", "stream-length": "infra/church-media-golive/stream_length_install.sh",
                   "worship-song-harvest": "infra/church-media-golive/worship_song_harvest_install.sh"}[name]))}
@@ -152,7 +162,11 @@ jobs:
               else:
                   e["last_run"] = "ok"
               # the loop's own last lines (prefixes the scripts print)
-              prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "db-backup": "db-backup:",
+              # lesson-mail's prefix carries NO colon on purpose: its dormant line
+              # reads "lesson-mail dormant: ..." while its worked line reads
+              # "lesson-mail: seen ...", and the quiet no-op is the line most worth
+              # seeing before the credential is placed.
+              prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "lesson-mail": "lesson-mail", "db-backup": "db-backup:",
                           "worship-song-harvest": "worship-song-harvest", "lesson-voice": "lesson-voice", "lesson-parity": "lesson-parity",
                           "choir-dates": "choir", "stream-length": "stream-length"}
               own = [l[:240] for l in cron if l.startswith(prefixes[name])]
@@ -241,6 +255,12 @@ jobs:
               lesson-parity) ls -la /volume1/PoeTech/lesson-parity/ 2>/dev/null | head -8; tail -n 5 /volume1/PoeTech/lesson-parity/fix.log 2>/dev/null | cut -c1-200 ;;
               db-backup) (cat /volume1/PoeTech/backups/db/status.json 2>/dev/null || sudo -n cat /volume1/PoeTech/backups/db/status.json 2>/dev/null); ls -la /volume1/PoeTech/backups/db 2>/dev/null | tail -4 ;;
               church-mail) ls -la "$REPO/infra/nas-church-mail/out" 2>/dev/null | head -6; (cat "$REPO/infra/nas-church-mail/out/.church-mail.state.json" 2>/dev/null | head -c 400); echo ;;
+              lesson-mail) ls -la /volume1/PoeTech/lesson-mail 2>/dev/null | head -6; (cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null) | head -c 400; echo
+                # The one thing that decides whether this loop can work at all, said
+                # without printing it: is the mailbox credential in agent.env, and is
+                # the roster beside it. Names only (DR-1132).
+                if grep -q '^LESSON_MAIL_APP_PASSWORD=' /volume1/docker/poetech/agent.env 2>/dev/null || sudo -n grep -q '^LESSON_MAIL_APP_PASSWORD=' /volume1/docker/poetech/agent.env 2>/dev/null; then echo "mailbox credential: present"; else echo "mailbox credential: ABSENT (the only step that is Darrell's: mint a Google App Password)"; fi
+                echo "roster: $(ls -la /volume1/PoeTech/secrets/lesson-mail-roster.json 2>/dev/null || sudo -n ls -la /volume1/PoeTech/secrets/lesson-mail-roster.json 2>/dev/null || echo absent)" ;;
               choir-dates|stream-length) tail -n 4 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | cut -c1-300; ls "$REPO/infra/church-media-golive/state" 2>/dev/null
                 echo "sovereign yt-dlp (DR-0723): $( (/volume1/PoeTech/yt-dlp/yt-dlp --version 2>&1 || sudo -n /volume1/PoeTech/yt-dlp/yt-dlp --version 2>&1) | tail -1 | cut -c1-160)"
                 echo "its install log, last lines: $( (tail -n 4 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null || sudo -n tail -n 4 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null) | tr '\n' ' ' | cut -c1-500)"
