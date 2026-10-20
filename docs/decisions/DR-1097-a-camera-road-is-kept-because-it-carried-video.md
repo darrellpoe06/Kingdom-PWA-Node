@@ -477,3 +477,20 @@ Darrell, the same afternoon: "Build the turn fix it now". The second reading the
 `re-review: 2026-10-21`. Two readings decide it, both from cams-diag:
 - **The TURN count after the first release.** It should fall to near zero, then climb back only at the rate of offers Wyze leaves unanswered.
 - **Whether a release has happened at all**, from `bridge.go2rtc_release` in `/health`. If the threshold of 200 is never reached between 6-hour windows, lower it.
+
+## Fourteenth field read (2026-10-20 16:17-16:25 UTC; cams-diag 39456101489, camera-health 39456108466): the first release, live
+
+- **The forwarder released go2rtc by itself at 15:46:36 UTC**, about 14 minutes after #2291 merged, on forwarder `b6d7158648f84ad6`. `/health` → `bridge.go2rtc_release` reads `released_dials: 906`.
+  - go2rtc came back with all 66 streams from `go2rtc.yaml`, so the parse check before the restart held.
+- **TURN refresh failures in the last 10 minutes: 0**, down from 524 an hour earlier.
+  - Unanswered Kinesis offers since go2rtc's start: 5, where the count had reached 811 before the release.
+- **The judge read Wyze's list** (`wyze_list: true`) and skipped all eleven cameras Wyze calls offline.
+- **The witness reads 18 of 33, all 18 on the first ask.** The floor is met, and the `priority:cameras` label came off #2011.
+  - Front, Basement North and Front Cam answered.
+  - Four Kinesis cameras left both offers unanswered: Back Yard North, Garage Doors, Garage Front Yard and Outside 7.
+  - 805 Apt 4 answered `wyze-offline` in 9 ms with no offer sent, which is the new `/snap` gate working.
+- **Dark, 15:**
+  - the 11 Wyze calls offline;
+  - the 4 Kinesis cameras above.
+
+`re-review: 2026-10-21`, unchanged: read the TURN count again hours after this release. It should climb back only at the rate of offers Wyze leaves unanswered.
