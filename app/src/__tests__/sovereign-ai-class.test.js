@@ -58,8 +58,13 @@ describe('curriculum shape', () => {
     // the plan.
     //
     // 44 IS HELD here, recorded 2026-10-20 and RECOMPUTED by reading the weeks
-    // on origin/main at 3f95f4142 -- which carries weeks 1..43, so 44 is
+    // on origin/main at f0b0977be -- which carries weeks 1..43, so 44 is
     // genuinely still absent and this value is right for the merged tree too.
+    // THE MOMENT WEEK 44 LANDS THIS BECOMES `[]`: with 44 and 45 both present
+    // the highest week is 45 and nothing below it is missing, so `[44]` would
+    // then fail toEqual. That is the recompute rule working, not a surprise.
+    // The merge order is 44 -> 45 -> 46, and week 46 -- whose tree jumps to 46
+    // with BOTH 44 and 45 absent -- is the last to merge and clears this to [].
     // main is READ here rather than merged: it carries a pre-existing DR-1135
     // number collision (two records, from #2300 and #2306) that
     // resolve-ledger-conflicts.mjs refuses, and whose fix renumbers a record
