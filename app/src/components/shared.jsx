@@ -17,7 +17,7 @@ function MarketCard({ title, need, have }) {
   );
 }
 
-function PricingTier({ name, tagline, monthly, annual, features, availableNow, shipsLater, shipsTarget, bestFor, badge, replaces, highlight, community, business, onChoose }) {
+function PricingTier({ name, tagline, monthly, annual, pricePrefix, features, availableNow, shipsLater, shipsTarget, bestFor, badge, replaces, highlight, community, business, onChoose }) {
   const borderClass = highlight ? 'border-[#5A6E3D] border-2' : community ? 'border-[#B85838] border-2' : business ? 'border-[#1A1815] border-2' : 'border-[#1A1815]';
   const isFree = monthly === '0';
   const buttonLabel = isFree ? 'Claim it →' : 'Subscribe →';
@@ -44,8 +44,9 @@ function PricingTier({ name, tagline, monthly, annual, features, availableNow, s
             <div className="text-2xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Free</div>
           ) : (
             <>
-              <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${monthly}<span className="text-sm text-[#5A5751]">/mo</span></div>
-              <div className="text-xs text-[#5A5751]">or ${annual}/yr</div>
+              <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{pricePrefix ? <span className="text-sm text-[#5A5751] mr-1">{pricePrefix}</span> : null}${monthly}<span className="text-sm text-[#5A5751]">/mo</span></div>
+              {/* DR-1144: a flat price with no yearly rate (a church) shows no yearly line rather than an invented one. */}
+              {annual ? <div className="text-xs text-[#5A5751]">or ${annual}/yr</div> : null}
             </>
           )}
         </div>
