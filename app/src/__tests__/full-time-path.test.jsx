@@ -29,12 +29,13 @@ const base = (over = {}) => ({
     { name: 'Apps built for others', count: 0, priceCents: 100000, costCents: 0, hoursEach: 20 },
   ],
   employerCostPct: 0,
+  missionCents: 0,
   reservePct: 0,
   people: [
     { role: 'Darrell', monthlyPayCents: 500000, hoursPerMonth: 160 },
     { role: 'Christina', monthlyPayCents: 500000, hoursPerMonth: 160 },
   ],
-  nextHire: { monthlyPayCents: 300000, hoursPerMonth: 160 },
+  nextHire: { kind: '1099', monthlyPayCents: 300000, hoursPerMonth: 160 },
   ...over,
 });
 
@@ -42,7 +43,7 @@ describe('the road to full time', () => {
   it('a blank is missing, never zero, and nothing is claimed', () => {
     const r = fullTimePath({ lines: [{ name: 'Churches', count: '', priceCents: 20000, costCents: '', hoursEach: '' }], people: [{ role: 'Darrell' }] });
     expect(r.complete).toBe(false);
-    expect(r.missing).toEqual(['how many Churches', 'the running cost for Churches', 'the hours for Churches', 'employer costs (%)', "Darrell's full-time pay", "Darrell's hours a month"]);
+    expect(r.missing).toEqual(['how many Churches', 'the running cost for Churches', 'the hours for Churches', 'employer costs (%)', 'what the mission work costs each month', "Darrell's full-time pay", "Darrell's hours a month"]);
     expect(r.allCovered).toBeUndefined();
   });
 
@@ -85,6 +86,17 @@ describe('the road to full time', () => {
     expect(fullTimePath(costly).eachFullTimeAt[0]).toBeGreaterThan(plain);
   });
 
+  it('the mission work the paid lines carry comes out before anyone is paid (DR-0018)', () => {
+    // $2,000 of mission work a month = 10 more churches before the first person.
+    expect(fullTimePath(base({ missionCents: 200000 })).eachFullTimeAt[0]).toBe(27 + 10);
+  });
+
+  it('a 1099 hire carries no employer costs; a W-2 hire does (DR-0021)', () => {
+    const contractor = fullTimePath(base({ employerCostPct: 10 }));
+    const employee = fullTimePath(base({ employerCostPct: 10, nextHire: { kind: 'w2', monthlyPayCents: 300000, hoursPerMonth: 160 } }));
+    expect(employee.hireAffordableAt).toBeGreaterThan(contractor.hireAffordableAt);
+  });
+
   it('a hire is needed on workload and paid for on revenue, and the gap is named', () => {
     // 320 payroll hours; 80% = 256 hours = 128 churches at 2 h. Paid for: $13,000 + $308.11 at $200 → 67.
     const r = fullTimePath(base());
@@ -123,8 +135,8 @@ describe('the screen', () => {
   });
   const status = () => host.querySelector('[role=status]').textContent;
   const fill = () => {
-    ['0', '1', '2', '3'].forEach((i) => { type(`ftp-count-${i}`, '0'); type(`ftp-price-${i}`, i === '0' ? '200' : '100'); type(`ftp-cost-${i}`, '0'); type(`ftp-hrs-${i}`, '1'); });
-    type('ftp-employer', '0'); type('ftp-reserve', '0');
+    ['0', '1', '2', '3', '4'].forEach((i) => { type(`ftp-count-${i}`, '0'); type(`ftp-price-${i}`, i === '0' ? '200' : '100'); type(`ftp-cost-${i}`, '0'); type(`ftp-hrs-${i}`, '1'); });
+    type('ftp-employer', '0'); type('ftp-reserve', '0'); type('ftp-mission', '0');
     type('ftp-pay-0', '5000'); type('ftp-hours-0', '160'); type('ftp-pay-1', '5000'); type('ftp-hours-1', '160');
     type('ftp-hire-pay', '3000'); type('ftp-hire-hours', '160');
   };
@@ -133,7 +145,10 @@ describe('the screen', () => {
     mount();
     expect(host.querySelector('#ftp-price-0').value).toBe('200');
     expect(host.querySelector('#ftp-price-1').value).toBe('249');
-    expect(host.querySelector('#ftp-line-3').value).toBe('Apps built for others');
+    expect(host.querySelector('#ftp-price-3').value).toBe('150');
+    expect(host.querySelector('#ftp-line-4').value).toBe('Apps built this month');
+    expect(host.querySelector('#ftp-price-4').value).toBe('2000');
+    expect(host.querySelector('#ftp-hire-kind').value).toBe('1099');
     expect(status()).toMatch(/^Not yet known: enter how many Churches, the running cost for Churches/);
   });
 
@@ -144,10 +159,10 @@ describe('the screen', () => {
     expect(host.querySelector('[data-testid=ftp-milestones]').textContent).toContain('Darrell full time after 27 more churches');
     act(() => {
       const sel = host.querySelector('#ftp-grow');
-      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, '3');
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, '4');
       sel.dispatchEvent(new window.Event('change', { bubbles: true }));
     });
-    expect(host.querySelector('[data-testid=ftp-milestones]').textContent).toContain('Darrell full time after 54 more apps built for others');
+    expect(host.querySelector('[data-testid=ftp-milestones]').textContent).toContain('Darrell full time after 54 more apps built this month');
   });
 
   it('names the work outrunning the money', () => {

@@ -24,13 +24,26 @@
 // is the "dead process" DR-1128 exists to prevent: the answer then is the
 // price or the pace, not a hope.
 //
+// Fitted to what is already decided (each one quoted in DR-1129):
+// - the three-ring market: the paid rings carry the free mission tier, so
+//   what the mission work costs (sponsored time not covered, gifted months
+//   per DR-1128 §6) comes out BEFORE anyone is paid.
+// - the Workforce Layer: the next hire starts as a 1099 contractor, so
+//   employer costs land on a hire only when it is a W-2 employee (and that
+//   class goes to the employment attorney first). The family enters what
+//   applies to their own pay (owners on a draw may enter 0).
+// - DR-0010 / DR-0011: agents carry the toil, so "hours each" means the hours
+//   a PERSON spends after what the agents carry.
+// - DR-0117: build clients pay a $2,000 minimum per build and $150 a month
+//   support (which replaces the $249 Business tier for them).
+//
 // "How many more" is asked of ONE line at a time (the one chosen to grow),
 // with every other line held where it was entered. People are paid in the
 // order entered. Pure and deterministic. NOTHING IS GUESSED (DR-0076): a pay,
 // hour, count or cost nobody entered is named as missing and nothing is
 // claimed until it is filled.
 // =============================================================================
-import { MEASURED_PLATFORM_MONTHLY_CENTS } from './church-cost-to-serve.js';
+import { MEASURED_PLATFORM_MONTHLY_CENTS, DEFAULT_RESERVE_PCT } from './church-cost-to-serve.js';
 
 // The capacity guard's warn line: past this share of the hours, more help is due.
 export const HIRE_AT_LOAD_PCT = 80;
@@ -44,6 +57,7 @@ const num = (v) => Number(v);
 /**
  * lines:  [{ name, count, priceCents, costCents, hoursEach }]   (each a month)
  * people: [{ role, monthlyPayCents, hoursPerMonth }]             (paid in order)
+ * nextHire: { kind: '1099' | 'w2', monthlyPayCents, hoursPerMonth }
  * growLine: index of the line "how many more" is counted in.
  */
 export function fullTimePath({
@@ -51,7 +65,9 @@ export function fullTimePath({
   growLine = 0,
   platformMonthlyCents = MEASURED_PLATFORM_MONTHLY_CENTS,
   employerCostPct,
-  reservePct = 20,
+  missionCents,
+  // DR-1128's reserve, a decided policy value rather than a guess.
+  reservePct = DEFAULT_RESERVE_PCT,
   people = [],
   nextHire = null,
 } = {}) {
@@ -65,6 +81,7 @@ export function fullTimePath({
     if (!known(l.hoursEach)) missing.push(`the hours for ${what}`);
   });
   if (!known(employerCostPct)) missing.push('employer costs (%)');
+  if (!known(missionCents)) missing.push('what the mission work costs each month');
   if (!people.length) missing.push('who is going full time');
   people.forEach((p, i) => {
     const who = p.role || `person ${i + 1}`;
@@ -78,7 +95,7 @@ export function fullTimePath({
   if (missing.length) return { complete: false, missing };
 
   const g = Math.min(Math.max(0, Math.floor(num(growLine) || 0)), lines.length - 1);
-  const ctx = { lines, g, platformMonthlyCents, employerCostPct, reservePct, people, nextHire };
+  const ctx = { lines, g, platformMonthlyCents, employerCostPct, missionCents, reservePct, people, nextHire };
   const now = month(ctx, 0);
 
   // The least number ADDED to the growing line at which a step comes true.
@@ -105,7 +122,7 @@ export function fullTimePath({
   };
 }
 
-function month({ lines, g, platformMonthlyCents, employerCostPct, reservePct, people, nextHire }, added) {
+function month({ lines, g, platformMonthlyCents, employerCostPct, missionCents, reservePct, people, nextHire }, added) {
   let revenueCents = 0;
   let lineCostCents = 0;
   let workloadHours = 0;
@@ -117,8 +134,11 @@ function month({ lines, g, platformMonthlyCents, employerCostPct, reservePct, pe
   });
   const reserveCents = Math.ceil(revenueCents * Math.max(0, num(reservePct) || 0) / 100);
   const runCents = Math.round(num(platformMonthlyCents)) + lineCostCents;
-  const forPeopleCents = revenueCents - reserveCents - runCents;
-  const loaded = (p) => Math.ceil(Math.round(num(p.monthlyPayCents)) * (1 + num(employerCostPct) / 100));
+  const mission = Math.round(num(missionCents));
+  const forPeopleCents = revenueCents - reserveCents - runCents - mission;
+  const loaded = (p, pct = employerCostPct) => Math.ceil(Math.round(num(p.monthlyPayCents)) * (1 + num(pct) / 100));
+  // A 1099 contractor carries no employer costs; a W-2 employee does.
+  const hireLoaded = (h) => loaded(h, h.kind === 'w2' ? employerCostPct : 0);
 
   let left = forPeopleCents;
   let fullTimeCovered = 0;
@@ -137,6 +157,7 @@ function month({ lines, g, platformMonthlyCents, employerCostPct, reservePct, pe
     revenueCents,
     reserveCents,
     runCents,
+    missionCents: mission,
     forPeopleCents,
     payrollCents,
     fullTimeCovered,
@@ -145,6 +166,6 @@ function month({ lines, g, platformMonthlyCents, employerCostPct, reservePct, pe
     workloadHours: Math.round(workloadHours * 10) / 10,
     capacityHours,
     loadPct,
-    hireAffordable: nextHire ? allCovered && left >= loaded(nextHire) : false,
+    hireAffordable: nextHire ? allCovered && left >= hireLoaded(nextHire) : false,
   };
 }
