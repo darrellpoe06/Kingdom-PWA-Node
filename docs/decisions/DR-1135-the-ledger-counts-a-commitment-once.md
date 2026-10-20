@@ -1,4 +1,4 @@
-# DR-1131: A commitment is counted once, not once per place it is written — and the finding I reported first was wrong
+# DR-1135: A commitment is counted once, not once per place it is written — and the finding I reported first was wrong
 
 **Date:** 2026-10-20
 **Status:** accepted
