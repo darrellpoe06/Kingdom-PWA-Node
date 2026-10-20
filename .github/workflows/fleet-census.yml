@@ -1,0 +1,206 @@
+# fleet-census -- how many jobs, how many are on, how many have EVER run, and
+# which ones nobody can account for.
+#
+# WHY. Darrell brought back a job-migration census in this shape:
+#   Total jobs: 149 / Enabled: 131 / Enabled with a last run date: 78
+#   "Do the disabled jobs need to be migrated?"
+#   "Have the enabled jobs with no run dates never been run?"
+# We could not answer either question about our own automation. scripts/
+# fleet-census.mjs reads the shape and the enabled flags out of the repo, but
+# LAST RUN is not in the repo -- it lives in GitHub's run history. This job is
+# the half that can ask.
+#
+# THE DISTINCTION THIS EXISTS TO KEEP. For each workflow it reads total_count
+# from the runs endpoint, which is the exact count of runs GitHub still holds:
+#   total_count > 0  -> it has run; the date is the most recent run returned
+#   total_count == 0 -> NEVER run, as far as retained history goes
+#   endpoint errored -> UNKNOWN, and it is written as unknown
+# "Unknown" never reads as "never" (DR-0076). The retention caveat is printed
+# with every verdict rather than left for the reader to remember: GitHub keeps
+# run history for a limited window, so "never" means "no run in retained
+# history", which for an old workflow is not the same as "never once fired".
+#
+# Read-only: no writes to the repository, no deploys, nothing mutated.
+# Brakes: one pass per run, a 10-minute job ceiling, one run at a time.
+name: fleet-census
+
+on:
+  schedule:
+    # Weekly, off the hour (most schedules land on :00 and get delayed).
+    - cron: '38 13 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+  # Only to keep its own rolling ledger issue (below). Nothing in the
+  # repository, the fleet or any run is mutated.
+  issues: write
+
+concurrency:
+  group: fleet-census
+  cancel-in-progress: false
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ask GitHub for each workflow's state and whether it has ever run
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          TOKEN = os.environ["GITHUB_TOKEN"]
+          API = "https://api.github.com"
+
+          def get(path):
+              req = urllib.request.Request(
+                  f"{API}/{path}",
+                  headers={"Authorization": f"Bearer {TOKEN}",
+                           "Accept": "application/vnd.github+json",
+                           "User-Agent": "poetech-fleet-census"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+
+          # Every workflow GitHub knows about, with the state only GitHub can
+          # tell us: active / disabled_manually / disabled_inactivity. A file in
+          # the repo cannot say which -- that is why this half has to be asked.
+          wfs, page = [], 1
+          while True:
+              d = get(f"repos/{REPO}/actions/workflows?per_page=100&page={page}")
+              batch = d.get("workflows") or []
+              wfs.extend(batch)
+              if len(wfs) >= d.get("total_count", 0) or not batch:
+                  break
+              page += 1
+          print(f"workflows GitHub knows: {len(wfs)}")
+
+          out = {}
+          for w in wfs:
+              name = os.path.basename(w.get("path") or "")
+              row = {"state": w.get("state") or "unknown"}
+              # total_count is the EXACT number of runs GitHub still holds for
+              # this workflow id, so 0 is a real "never, in retained history"
+              # rather than an inference from an empty page. The one run
+              # returned supplies the date; it is the most recent run the API
+              # returned, not asserted to be the newest -- a filtered runs list
+              # is not reliably newest-first (P62).
+              try:
+                  r = get(f"repos/{REPO}/actions/workflows/{w['id']}/runs?per_page=1")
+                  runs = r.get("workflow_runs") or []
+                  row["runs_counted"] = r.get("total_count", 0)
+                  row["last_run_at"] = (runs[0].get("run_started_at")
+                                        or runs[0].get("created_at")) if runs else None
+              except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError) as e:
+                  # Asked and could not be answered -> UNKNOWN, written as
+                  # unknown. It must never fall through to "never" (DR-0076).
+                  row["runs_counted"] = None
+                  row["why_unknown"] = str(e)[:120]
+              out[name] = row
+              time.sleep(0.05)
+
+          doc = {"window": "the GitHub Actions run history retained for this repository, "
+                           "read at " + time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                 "workflows": out}
+          with open("/tmp/runs.json", "w", encoding="utf-8") as fh:
+              json.dump(doc, fh, indent=2)
+          ran = sum(1 for v in out.values() if v.get("last_run_at"))
+          never = sum(1 for v in out.values() if v.get("runs_counted") == 0)
+          unknown = sum(1 for v in out.values() if v.get("runs_counted") is None)
+          print(f"asked {len(out)}: ran {ran}, never-in-retained-history {never}, unknown {unknown}")
+          PY
+          python3 -c "import json; json.load(open('/tmp/runs.json')); print('runs.json parses')"
+
+      - name: The census, and the two questions
+        run: |
+          node scripts/fleet-census.mjs --runs /tmp/runs.json | tee /tmp/census.txt
+          {
+            echo '## Fleet census'
+            echo
+            echo '```'
+            cat /tmp/census.txt
+            echo '```'
+            echo
+            echo '**Retention caveat, stated with the verdict:** GitHub keeps Actions run'
+            echo 'history for a limited window. A workflow reported as NEVER RUN has no run'
+            echo 'in *retained* history -- for an old workflow that is not the same claim as'
+            echo '"it has never once fired". UNKNOWN means the API could not be asked.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the machine-readable census as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fleet-census
+          path: |
+            /tmp/runs.json
+            /tmp/census.txt
+          retention-days: 30
+
+      # WHY THIS STEP EXISTS, and why it is narrow. The interconnect guard
+      # (DR-0621) refused this workflow for having no consumer: "every workflow
+      # must read something real, write something real, and seed the next." A
+      # census whose output only lands in a step summary nobody reads is the
+      # hollow kind. But a census is not a failure detector either, so it files
+      # ONLY the two things that are genuinely broken rather than merely
+      # unaccounted for:
+      #   * a job nothing can fire at all (inert)
+      #   * a job something fires on a CLOCK that has no run in retained
+      #     history -- the clock is set and nothing has ever come of it
+      # "On-demand with no runs" is NOT filed: nothing is meant to fire it.
+      # "Unknown" is NOT filed: that is a gap in the report, not a fault in the
+      # job (DR-0076). The ledger issue is the OpsBoard's existing road.
+      - name: "Ledger: a clock set with nothing behind it is an incident"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const c = JSON.parse(require('child_process')
+              .execSync('node scripts/fleet-census.mjs --runs /tmp/runs.json --json').toString());
+            const broken = c.jobs.filter((j) =>
+              j.kind === 'inert'
+              || (j.kind === 'scheduled' && j.lastRunClass === 'never'));
+            const { owner, repo } = context.repo;
+            const label = 'fleet-census';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name }); }
+            }
+            const found = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: label, per_page: 1 });
+            const open = found.data[0];
+            if (!broken.length) {
+              core.info(`fleet census clean: ${c.total} jobs, ${c.enabled} enabled, ` +
+                        `${c.withALastRun} with a last run, ${c.unknownLastRun} unknown`);
+              if (open) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: open.number,
+                  body: `Clean as of ${new Date().toISOString()}: ${c.total} jobs, ${c.enabled} enabled, ` +
+                        `${c.withALastRun} with a last run, ${c.neverRun} never in retained history, ` +
+                        `${c.unknownLastRun} unknown. No clock is set with nothing behind it.` });
+                await github.rest.issues.update({ owner, repo, issue_number: open.number, state: 'closed' });
+              }
+              return;
+            }
+            const body = [
+              `Read at ${new Date().toISOString()}. Window: ${c.window}`, '',
+              '| job | what fires it | last run |', '|---|---|---|',
+              ...broken.map((j) => `| \`${j.name}\` | ${j.kind} | ${j.lastRunClass === 'never' ? 'none in retained history' : '—'} |`),
+              '',
+              '**Retention caveat:** GitHub keeps run history for a limited window, so',
+              '"none in retained history" is not the same claim as "never once fired".',
+              'Decide per job: retire it, fix what should have been firing it, or say why',
+              'it stays with a re-review date (DR-0075).',
+            ].join('\n');
+            if (open) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: open.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo,
+                title: 'fleet census: a clock set with nothing behind it',
+                labels: ['incident', label], body });
+            }
+            core.setFailed(`${broken.length} job(s) a clock should have fired and never did`);
