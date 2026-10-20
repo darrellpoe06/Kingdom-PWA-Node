@@ -17,7 +17,7 @@ import { confirmThen } from '../lib/confirm-action.js';
 // on the lesson rows (lib/lesson-inbox.js); this row now shows where they are.
 import { fetchMyLessons } from '../lib/lesson-inbox.js';
 import { wordsForPrompt, anySpokenLine } from '../lib/prompt-words.js';
-// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1137): the same control
+// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1142): the same control
 // Your lessons carries, on the row that made the promise.
 import MoveMyWords from './MoveMyWords.jsx';
 

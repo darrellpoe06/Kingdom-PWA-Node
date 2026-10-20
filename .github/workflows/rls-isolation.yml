@@ -226,7 +226,7 @@ jobs:
           - feature: learner-records
             migrations: "0250-a-learners-record-reaches-the-governor.sql"
             smokes: "0250-learner-records-smoke.sql"
-          # Added 2026-10-20 (DR-1137): a person withdraws their OWN inbox row
+          # Added 2026-10-20 (DR-1142): a person withdraws their OWN inbox row
           # (and its of:<id> children) from the lesson door, and only their
           # own: a member of the same house, an outsider and anon are refused;
           # a captured row and a child row refuse; the stale sweep alarms a

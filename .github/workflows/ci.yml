@@ -945,7 +945,7 @@ jobs:
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
   # YOUR WORDS CAN BE WITHDRAWN, AND SENT WHERE THEY BELONG: 0304'S WALLS, ON A
-  # REAL POSTGRESQL (DR-1137). 0304 applies twice (idempotent), then the smoke
+  # REAL POSTGRESQL (DR-1142). 0304 applies twice (idempotent), then the smoke
   # proves: only the person who wrote an inbox row withdraws it (a member of
   # the same house, an outsider and anon are refused), its transcript child
   # follows, a captured row and a child row refuse, the stale sweep alarms a

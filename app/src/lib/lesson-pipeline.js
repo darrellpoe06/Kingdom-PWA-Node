@@ -189,7 +189,7 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
   const review = it.review || null;
   let buildDone = false;
   if (it.withdrawn && !captured && !pushedAt) {
-    // DR-1137: the person took it back from the lesson door. Nothing is built
+    // DR-1142: the person took it back from the lesson door. Nothing is built
     // from it; its words are theirs to send where they belong.
     stages.push(stage('building', 'stopped', it.withdrawnAt || null, 'Withdrawn by you: nothing is built from it. Its words are yours to send where they belong.'));
   } else if (!wordsDone) {

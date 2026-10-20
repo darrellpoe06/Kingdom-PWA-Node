@@ -15,7 +15,7 @@ WHERE tags ? 'lesson'
   -- through Whisper; no builder tries to make a lesson of it, and it never
   -- rings the bell.
   AND NOT (tags ? 'not-a-lesson')
-  -- Taken back by its person (DR-1137): the words still come back, nothing
+  -- Taken back by its person (DR-1142): the words still come back, nothing
   -- builds from it, it never rings the bell, until they restore it.
   AND NOT (tags ? 'withdrawn')
 ORDER BY created_at ASC;

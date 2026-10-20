@@ -75,7 +75,7 @@ class TheRoad(unittest.TestCase):
         self.assertFalse(any(str(t).startswith("lesson-name") for t in plain["tags"]))
 
     def test_a_withdrawn_recording_still_gets_its_words_and_the_transcript_carries_the_tag(self):
-        """DR-1137: a recording its person withdrew from the lesson door is
+        """DR-1142: a recording its person withdrew from the lesson door is
         still transcribed (the words are the only copy, and they are what the
         person moves elsewhere); the transcript carries `withdrawn` so the
         builder never makes a lesson of it either. A plain row carries nothing."""

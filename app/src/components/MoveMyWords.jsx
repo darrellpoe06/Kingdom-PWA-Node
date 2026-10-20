@@ -1,7 +1,7 @@
 // =============================================================================
 // MoveMyWords — withdraw a lesson row you sent, or send its words elsewhere
-// (DR-1137). Sits on every row of Your lessons and on the spoken-lesson rows
-// of Your prompts (DR-1135).
+// (DR-1142). Sits on every row of Your lessons and on the spoken-lesson rows
+// of Your prompts (DR-1141).
 // =============================================================================
 import React, { useState } from 'react';
 import { withdrawable, withdrawMyWords, moveMyWords, MOVE_ROUTES } from '../lib/withdraw-my-words.js';

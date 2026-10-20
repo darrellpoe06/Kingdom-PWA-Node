@@ -1,6 +1,6 @@
 -- =============================================================================
 -- withdraw-ci-bootstrap.sql — the tables and the one helper 0304 touches, in
--- their migration shapes, for the CI `withdraw-walls` job (DR-1137)
+-- their migration shapes, for the CI `withdraw-walls` job (DR-1142)
 -- =============================================================================
 -- Runs after scripts/curriculum-ci-bootstrap.sql (roles, auth.users, auth.uid())
 -- against a throwaway postgres:16. It supplies only what 0304 and its smoke

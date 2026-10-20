@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0304 WITHDRAW MY WORDS SMOKE — only the writer withdraws, the children
--- follow, a built row refuses, the sweep leaves a withdrawn row alone (DR-1137)
+-- follow, a built row refuses, the sweep leaves a withdrawn row alone (DR-1142)
 -- =============================================================================
 -- Run as postgres AFTER 0304, in a transaction that ROLLS BACK: in ci.yml
 -- (withdraw-walls) on a bare postgres:16 after scripts/curriculum-ci-bootstrap.sql

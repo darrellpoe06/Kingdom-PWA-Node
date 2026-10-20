@@ -152,7 +152,7 @@ export const USE_PROMPT_EVENT = 'poetech:use-prompt';
 // situation, or a few.
 export function sendPromptToBox(body, target = typeof window !== 'undefined' ? window : null, { mode = 'replace', route = '' } = {}) {
   if (!target || typeof target.dispatchEvent !== 'function') return false;
-  // `route` (DR-1137): the door already chosen for these words; the box sets
+  // `route` (DR-1142): the door already chosen for these words; the box sets
   // its chip to it and the person presses Send. Absent, the box suggests one.
   const detail = { body: String(body || ''), mode: mode === 'append' ? 'append' : 'replace' };
   if (route) detail.route = String(route);

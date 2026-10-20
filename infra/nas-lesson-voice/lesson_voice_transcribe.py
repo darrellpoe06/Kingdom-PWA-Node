@@ -163,7 +163,7 @@ def naming_tags_of(tags):
 
 
 def carried_tags_of(tags):
-    """A verdict on the recording that its words must carry (DR-1137): a
+    """A verdict on the recording that its words must carry (DR-1142): a
     person who WITHDREW the recording from the lesson door still gets the
     words back (they are the only copy), but the transcript must not be built
     into a lesson either, so the tag travels with it."""

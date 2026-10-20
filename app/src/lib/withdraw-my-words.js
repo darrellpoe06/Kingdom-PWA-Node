@@ -1,6 +1,6 @@
 // =============================================================================
 // withdraw-my-words — a person's own words can be WITHDRAWN from the lesson
-// door and SENT where they belong (DR-1137)
+// door and SENT where they belong (DR-1142)
 // =============================================================================
 // Darrell 2026-10-20: "Do we have the ability to send our words anywhere after
 // collected???! We need that in case it goes to the wrong location or we may
@@ -8,7 +8,7 @@
 // sure... it goes to the correct location... for processing".
 //
 // BEFORE: the words could come back to the box and go anywhere (DR-0636,
-// DR-1135), but the row that went to the wrong door stayed there, and the NAS
+// DR-1141), but the row that went to the wrong door stayed there, and the NAS
 // lesson builder would still build a lesson from it. The inbox is append-only
 // from the app (0127), so no client could change that row.
 //
@@ -16,7 +16,7 @@
 // database opens for this, and only to the row's own writer — marks the row
 // and its children `withdrawn`. Nothing builds from a withdrawn row; its words
 // still come back through Whisper; p_undo restores it. The MOVE is then the
-// DR-1135 move with the route pre-chosen: the words land in the box, the chip
+// DR-1141 move with the route pre-chosen: the words land in the box, the chip
 // is set, and the person's own Send carries them through that door with that
 // door's own effects (a PoeTech request is also filed in Feedback, a prayer
 // joins the list). Nothing is routed invisibly; the person has the last word.

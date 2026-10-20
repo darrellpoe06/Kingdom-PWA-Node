@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0304 — Your words can be withdrawn, and sent where they belong (DR-1137)
+-- 0304 — Your words can be withdrawn, and sent where they belong (DR-1142)
 -- =============================================================================
 -- Darrell 2026-10-20: "Do we have the ability to send our words anywhere after
 -- collected???! We need that in case it goes to the wrong location or we may
@@ -8,7 +8,7 @@
 --
 -- WHAT EXISTED. agent_inbox is append-only from the app (0127: INSERT only,
 -- no UPDATE/DELETE by a client). The words of a row could come back to the box
--- and be sent anywhere (DR-0636, DR-1135), but the row that went to the wrong
+-- and be sent anywhere (DR-0636, DR-1141), but the row that went to the wrong
 -- door STAYED there: the NAS lesson builder would still build a lesson from a
 -- recording that was meant for PoeTech, or for a prayer, or for nobody.
 --
@@ -21,7 +21,7 @@
 --   * the stale sweep below never alarms or pushes for it.
 -- Its WORDS still come back: the voice rider transcribes a withdrawn recording
 -- as before and carries the tag onto the transcript, so the person can put the
--- words in the box and send them where they belong (the same move DR-1135
+-- words in the box and send them where they belong (the same move DR-1141
 -- built, now with the route pre-chosen). p_undo = true takes it back
 -- (`restored@<time>`); nothing is ever deleted (HOLD-THE-HAND-OF-THE-PROCESS).
 --
@@ -141,7 +141,7 @@ BEGIN
        AND NOT (a.tags ? 'lesson-building')
        AND NOT (a.tags ? 'awaiting-review')
        AND NOT (a.tags ? 'canary')
-       AND NOT (a.tags ? 'withdrawn')      -- DR-1137: taken back by its person
+       AND NOT (a.tags ? 'withdrawn')      -- DR-1142: taken back by its person
        AND NOT (a.tags ? 'not-a-lesson')   -- DR-0810: a reading, never a lesson
        AND a.created_by IS NOT NULL
        AND a.created_at <= v_now - make_interval(hours => v_first)

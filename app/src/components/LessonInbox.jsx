@@ -25,7 +25,7 @@ import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
 import AddMyVoiceLink from './AddMyVoiceLink.jsx';
-// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1137).
+// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1142).
 import MoveMyWords from './MoveMyWords.jsx';
 // DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
 // published) is marked seen here, so the icon and the bell drop their number.

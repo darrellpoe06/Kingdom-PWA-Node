@@ -1,4 +1,4 @@
-# DR-1137: Your words can be withdrawn, and sent where they belong — one database door, owner-only; nothing builds from a withdrawn row; the words still come back; the move pre-chooses the door
+# DR-1142: Your words can be withdrawn, and sent where they belong — one database door, owner-only; nothing builds from a withdrawn row; the words still come back; the move pre-chooses the door
 
 **Date:** 2026-10-20
 **Status:** accepted
@@ -11,14 +11,14 @@
 - `app/src/lib/withdraw-my-words.js` (new, pure but for the one call), `app/src/components/MoveMyWords.jsx` (new), `lesson-inbox.js` (`withdrawn`, `withdrawnAt`), `lesson-pipeline.js` (the road stops), `saved-prompts.js` + `OneVoiceInput.jsx` (the box event carries a chosen door), `LessonInbox.jsx`, `PromptHistory.jsx`
 - `app/src/__tests__/your-words-can-be-withdrawn-and-sent-where-they-belong.test.jsx` (new, 18 cases); the two riders' suites (+3)
 
-**Amends:** DR-1136 (the words go anywhere, one or several: the words moved, the row did not), DR-0636 (the words go back to the box). Grounds: DR-0218 / migration 0127 (the inbox is append-only from the app — this is the one door opened, and only to the writer), DR-0669 (a built lesson is decided elsewhere), DR-0771 / 0252 (the stale sweep), DR-0810 (`not-a-lesson`: the precedent for "the words still come back, nothing builds, no bell"), DR-0076 (proven-to-catch), HOLD-THE-HAND-OF-THE-PROCESS (nothing is discarded).
+**Amends:** DR-1141 (the words go anywhere, one or several: the words moved, the row did not), DR-0636 (the words go back to the box). Grounds: DR-0218 / migration 0127 (the inbox is append-only from the app — this is the one door opened, and only to the writer), DR-0669 (a built lesson is decided elsewhere), DR-0771 / 0252 (the stale sweep), DR-0810 (`not-a-lesson`: the precedent for "the words still come back, nothing builds, no bell"), DR-0076 (proven-to-catch), HOLD-THE-HAND-OF-THE-PROCESS (nothing is discarded).
 **Declared by:** Darrell, 2026-10-20: *"Do we have the ability to send our words anywhere after collected???! We need that in case it goes to the wrong location or we may want to create a lesson from a situation or few... make sense?"* Then: *"Before or after... just to make sure... it goes to the correct location... for processing...."*
 
 ---
 
 ## Context
 
-Before the send, the chips choose the door. After the send, the words could come back to the box and go anywhere (DR-0636; DR-1136 added gathering), but the ROW stayed where it landed. A recording meant for PoeTech, or for a prayer, that went through the lesson door kept waiting at the lesson door: the NAS lesson builder would build a lesson from it, the stale sweep would alarm for it, and nothing a signed-in person could do would change that row (0127: INSERT only; DR-0241 viewer overlay). Re-sending made a second record and left the first.
+Before the send, the chips choose the door. After the send, the words could come back to the box and go anywhere (DR-0636; DR-1141 added gathering), but the ROW stayed where it landed. A recording meant for PoeTech, or for a prayer, that went through the lesson door kept waiting at the lesson door: the NAS lesson builder would build a lesson from it, the stale sweep would alarm for it, and nothing a signed-in person could do would change that row (0127: INSERT only; DR-0241 viewer overlay). Re-sending made a second record and left the first.
 
 ## What was measured
 

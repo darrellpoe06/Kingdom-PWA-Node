@@ -156,7 +156,7 @@ def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
     if "lesson-captured" in tags:
         return False, "already captured"
     if "withdrawn" in tags:
-        # DR-1137: its person took it back from the lesson door (the wrong
+        # DR-1142: its person took it back from the lesson door (the wrong
         # door, or a situation they will gather into a lesson later). Its words
         # still come back through Whisper; nothing builds from it unless they
         # restore it.

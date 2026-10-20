@@ -855,7 +855,7 @@ class Stages(unittest.TestCase):
             self.assertEqual(lb.eligibility(row("r", TEACHING, tags, who))[0], ok, tags)
 
     def test_a_withdrawn_row_is_nobody_s_to_build_and_never_waits(self):
-        """DR-1137: its person took it back from the lesson door. The reason is
+        """DR-1142: its person took it back from the lesson door. The reason is
         named, the bell does not count it as waiting, and the database reads
         that select it (pending, waiting_tags) carry the same exclusion."""
         import inspect

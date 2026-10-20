@@ -82,7 +82,7 @@ export function lessonItems(rows) {
     const rungTag = transcript ? (transcript.tags || []).find((t) => String(t).startsWith('whisper:')) : '';
     // DR-0771: the stale alarm writes stale-alarm@<time> on the ROOT row; the
     // screen reads that field, never a clock of its own.
-    // DR-1137: taken back by its person (the tag and its latest stamp sit on
+    // DR-1142: taken back by its person (the tag and its latest stamp sit on
     // the ROOT row); nothing builds from it, its words still come back.
     const mark = withdrawnMark(r.tags || []);
     const alarmStamps = (r.tags || []).filter((t) => /^stale-alarm@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(String(t))).map((t) => String(t).slice('stale-alarm@'.length)).sort();
