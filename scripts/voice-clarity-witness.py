@@ -116,6 +116,19 @@ def _show_refusal(code, body):
     print(f'/voice-lite/speak answered HTTP {code}: {head}', flush=True)
 
 
+def retryable(code):
+    """A status worth one more try before a piece is dropped: the voice busy
+    (503), or the Funnel edge failing between the runner and the box (502,
+    504, Cloudflare's 52x). Run 39494621749 lost photographed-02 at pace 1 to
+    a single 525 (SSL handshake at the edge) that the next request would not
+    have seen; a refusal (401, 403, 413) or a bad request (400) is not retried."""
+    try:
+        c = int(code)
+    except (TypeError, ValueError):
+        return False
+    return c in (502, 503, 504) or 520 <= c <= 527
+
+
 def speak(base, tok, text, voice, pace, out_path, attempts=5, fresh=False):
     """The app's own call. Returns the HTTP status; 200 wrote the WAV.
     fresh=True asks the server to make the clip again instead of serving its
@@ -143,7 +156,7 @@ def speak(base, tok, text, voice, pace, out_path, attempts=5, fresh=False):
                     fh.write(blob)
                 return 200
         except urllib.error.HTTPError as e:
-            if e.code == 503 and attempt + 1 < attempts:
+            if retryable(e.code) and attempt + 1 < attempts:
                 time.sleep(2 * (attempt + 1))
                 continue
             try:
@@ -352,6 +365,8 @@ def selftest():
         checks.append((bool(ok), what))
         print(('ok   ' if ok else 'FAIL ') + what)
     check(number_words(0) == 'zero' and number_words(19) == 'nineteen' and number_words(20) == 'twenty', 'small numbers')
+    check(all(retryable(c) for c in (502, 503, 504, 520, 525, 527)) and not any(retryable(c) for c in (200, 400, 401, 403, 413, 500, 528, 'not-audio', None)),
+          'an edge failure is tried again; a refusal is not')
     check(number_words(34) == 'thirty four' and number_words(119) == 'one hundred nineteen', 'tens and hundreds')
     check(number_words(2026) == 'two thousand twenty six' and number_words(1000) == 'one thousand', 'thousands')
     check(normalize('chapter 19, verse 34.') == 'chapter nineteen verse thirty four', 'a reference normalizes to words')
