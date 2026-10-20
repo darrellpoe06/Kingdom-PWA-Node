@@ -91,6 +91,7 @@ export default function ChurchCostToServe() {
       </div>
 
       <table className="w-full text-xs mb-2" style={SERIF}>
+        <caption className="sr-only">The cost to serve one church, line by line</caption>
         <tbody>
           {r.lines.map((l) => (
             <tr key={l.label} className="border-t border-[#F0ECE4]">

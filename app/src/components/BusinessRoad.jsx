@@ -78,8 +78,9 @@ export default function BusinessRoad({ entity, data, now }) {
         </p>
       ) : (
         <table className="w-full text-xs mb-2" style={SERIF} data-testid={`br-${id}-months`}>
+          <caption className="sr-only">Money in and out by month, from this business's transactions</caption>
           <thead>
-            <tr className="text-[#5A5751]"><th className="text-left font-normal py-1">Month</th><th className="text-right font-normal">In</th><th className="text-right font-normal">Out</th></tr>
+            <tr className="text-[#5A5751]"><th scope="col" className="text-left font-normal py-1">Month</th><th scope="col" className="text-right font-normal">In</th><th scope="col" className="text-right font-normal">Out</th></tr>
           </thead>
           <tbody>
             {recorded.months.map((m) => (
