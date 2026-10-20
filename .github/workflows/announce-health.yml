@@ -14,6 +14,17 @@
 #
 # Brakes: two reads per run, a 12-minute job ceiling, one run at a time, a
 # daily schedule.
+#
+# RING ON REQUEST (2026-10-20). The loopback reads above passed at 18:26Z the
+# same day site-health run 39487383850 rang the bell through the Funnel and
+# was answered HTTP 400 -- the road the alarms actually take was dead while
+# this witness was green (the hollow green, DR-0381). `ring: true` on a
+# dispatch sends ONE real push from the runner (the outside) through
+# https://poetech.tail5a2f35.ts.net/announce/ops-announce with the bearer
+# read on the box (masked, never printed), classifies the answer with
+# scripts/ops-announce.mjs and prints what the relay said. A dead ring is a
+# failed verdict, on the same incident ledger. Never on the schedule: one
+# phone buzz is a person's choice.
 name: announce-health
 
 on:
@@ -25,6 +36,10 @@ on:
         description: "Also ask ntfy's own /v1/health from the box (off: the relay's /healthz only)"
         type: boolean
         default: true
+      ring:
+        description: "Also ring ONCE from the outside, through the Funnel, with the bearer read on the box (one real push to the family topic, priority 2) -- the road the alarms actually take"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -98,6 +113,41 @@ jobs:
           EOS
           cat /tmp/witness.json
 
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.go == 'true' && inputs.ring == true
+        with:
+          sparse-checkout: |
+            scripts/ops-announce.mjs
+      - name: "Ring once from the outside (on request): the road the alarms take"
+        if: steps.gate.outputs.go == 'true' && inputs.ring == true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          TOK="$($SSH 'T=$(cat /volume1/PoeTech/secrets/announce-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/announce-token.txt 2>/dev/null); printf %s "$T" | tr -d "[:space:]"')"
+          if [ -z "$TOK" ]; then
+            echo '{"rang": false, "dead": true, "reason": "no announce bearer could be read on the box, so no ring was attempted"}' > /tmp/ring.json
+            cat /tmp/ring.json; exit 0
+          fi
+          echo "::add-mask::$TOK"
+          set +e
+          N8N_BEARER="$TOK" RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            node scripts/ops-announce.mjs \
+              --title="announce-health: a test ring" \
+              --message="One ring from the outside, through the Funnel, to prove the family's bell. Nothing is wrong." \
+              --url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              --priority=2 > /tmp/bell.txt 2>&1
+          bell=$?
+          set -e
+          sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+          reason=$(grep '^ops-announce: ' /tmp/bell.txt | head -1 | cut -c15- | tr -d '"' | head -c 400)
+          if [ "$bell" = "0" ]; then
+            printf '{"rang": true, "dead": false, "reason": "%s"}\n' "$reason" > /tmp/ring.json
+          else
+            printf '{"rang": false, "dead": true, "reason": "%s"}\n' "$reason" > /tmp/ring.json
+          fi
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'
         run: |
@@ -105,6 +155,11 @@ jobs:
           import json, os
           w = json.load(open("/tmp/witness.json"))
           problems = []
+          if os.path.exists("/tmp/ring.json"):
+              r = json.load(open("/tmp/ring.json"))
+              w["ring"] = r
+              if not r.get("rang"):
+                  problems.append(f"the bell rung from the outside (the Funnel road the alarms take) did NOT ring: {r.get('reason')}")
           if not w.get("reachable"):
               problems.append("the NAS did not answer over SSH")
           elif w.get("health_code") != 200:
