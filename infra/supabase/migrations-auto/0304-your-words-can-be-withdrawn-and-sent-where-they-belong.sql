@@ -101,6 +101,14 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.withdraw_my_inbox_row(uuid, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.withdraw_my_inbox_row(uuid, boolean) TO authenticated;
+-- A hosted project grants anon EXECUTE on every new public function by default
+-- privilege; PUBLIC's revoke does not reach that grant. Say it plainly.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    REVOKE ALL ON FUNCTION public.withdraw_my_inbox_row(uuid, boolean) FROM anon;
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- The stale sweep (0252), re-declared: a withdrawn row, and a reading marked

@@ -2,8 +2,10 @@
 -- 0304 WITHDRAW MY WORDS SMOKE — only the writer withdraws, the children
 -- follow, a built row refuses, the sweep leaves a withdrawn row alone (DR-1137)
 -- =============================================================================
--- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql,
--- scripts/withdraw-ci-bootstrap.sql and 0304, in a transaction that ROLLS BACK.
+-- Run as postgres AFTER 0304, in a transaction that ROLLS BACK: in ci.yml
+-- (withdraw-walls) on a bare postgres:16 after scripts/curriculum-ci-bootstrap.sql
+-- and scripts/withdraw-ci-bootstrap.sql; in rls-isolation.yml (the
+-- withdraw-my-words leg) against the real database, which carries the chain.
 -- PROVES:
 --   a member of the same house cannot withdraw another's row (42501);
 --   an outsider cannot (42501); anon cannot call it at all;
@@ -21,13 +23,13 @@ INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, c
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-a000-000000000304', 'authenticated','authenticated','writer0304@test.local','', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-4000-a000-000000000304', 'authenticated','authenticated','member0304@test.local','', now(), now()),
   ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-a000-000000000304', 'authenticated','authenticated','outsider0304@test.local','', now(), now());
-INSERT INTO public.instances (id, slug) VALUES
-  ('f0000000-0000-4000-b000-000000000304', 'house-0304'),
-  ('f0000000-0000-4000-b000-000000010304', 'other-house-0304');
-INSERT INTO public.instance_members (instance_id, user_id, role) VALUES
-  ('f0000000-0000-4000-b000-000000000304', 'a0000000-0000-4000-a000-000000000304', 'owner'),
-  ('f0000000-0000-4000-b000-000000000304', 'b0000000-0000-4000-a000-000000000304', 'member'),
-  ('f0000000-0000-4000-b000-000000010304', 'c0000000-0000-4000-a000-000000000304', 'owner');
+INSERT INTO public.instances (id, slug, display_name, instance_type) VALUES
+  ('f0000000-0000-4000-b000-000000000304', 'house-0304',       'Withdraw smoke household', 'family'),
+  ('f0000000-0000-4000-b000-000000010304', 'other-house-0304', 'Withdraw smoke outsider',  'family');
+INSERT INTO public.instance_members (instance_id, user_id, role, display_name) VALUES
+  ('f0000000-0000-4000-b000-000000000304', 'a0000000-0000-4000-a000-000000000304', 'owner',  'Writer'),
+  ('f0000000-0000-4000-b000-000000000304', 'b0000000-0000-4000-a000-000000000304', 'member', 'Member'),
+  ('f0000000-0000-4000-b000-000000010304', 'c0000000-0000-4000-a000-000000000304', 'owner',  'Outsider');
 
 -- Rows are written as postgres (the smoke tests the move, not the insert).
 --   r1  the writer's spoken lesson, waiting, 10 hours old   (withdrawn below)

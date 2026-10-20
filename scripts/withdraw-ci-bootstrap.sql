@@ -13,8 +13,10 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS public.instances (
-  id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug text UNIQUE NOT NULL
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug          text UNIQUE NOT NULL,
+  display_name  text,
+  instance_type text
 );
 CREATE TABLE IF NOT EXISTS public.instance_members (
   instance_id  uuid NOT NULL REFERENCES public.instances(id) ON DELETE CASCADE,
