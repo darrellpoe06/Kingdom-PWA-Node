@@ -2,7 +2,7 @@
 
 **Module id:** `sov44-the-thief-who-forgot-to-lock-his-own-door`
 **Course:** Sovereign A.I. (`app/src/lib/sovereign-ai-class.js`), week 44
-**Decision record:** DR-1143
+**Decision record:** DR-1145
 **Captured from:** a forwarded teaching into the lesson lane (CLAUDE.md "Spoken Teachings Are Build Input")
 
 ## Where it came from
