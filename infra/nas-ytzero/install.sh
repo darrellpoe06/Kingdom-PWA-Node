@@ -74,7 +74,17 @@ if ! COMPOSE_OUT="$($COMPOSE -f "$SRC/docker-compose.yml" -p ytzero up -d 2>&1)"
   exit 1
 fi
 echo "$COMPOSE_OUT"
+# THE RUNNING STACK FOLLOWS THE CODE (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit): `compose up -d` is this stack's restart, reached on
+# every path past "no docker / no compose"; the stamp names the compose file
+# it converged on so nas-health can hold the box against the repo (DR-0770).
+CODE_SHA="$(sha256sum < "$SRC/docker-compose.yml" | cut -c1-16)"
+printf '%s' "$CODE_SHA" > "$DATA/.code.sha" 2>/dev/null || true
+echo "  stack converged on code $CODE_SHA"
 
+# The app offers no health route of its own (its container healthcheck is a
+# TCP connect to 3001), so the root is what can be asked; the Way's "says why"
+# stays with nas-health, which prints where this install stands.
 echo "== ytzero install: health =="
 TRIES=0
 UP=0

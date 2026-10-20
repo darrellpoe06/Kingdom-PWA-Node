@@ -19,7 +19,7 @@
 // lines, and a stale ledger entry each fail.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -89,6 +89,9 @@ const LOOPS_ON_THE_WAY = {
   'choir-dates': { witness: 'loops-health.yml' },
   'stream-length': { witness: 'loops-health.yml' },
   'worship-song-harvest': { witness: 'loops-health.yml' },
+  // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
+  // asks each one through the Funnel from outside (2026-10-20, the audit).
+  funnel: { witness: 'funnel-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -106,14 +109,27 @@ const BORN_BEFORE_THE_WAY = {
   // a compose stack's own idempotent converge, not a systemd function the
   // restart-on-every-path reader can count.
   supabase: { lacks: [] },
-  funnel: { lacks: ['codeFollows', 'health', 'witness'] },
-  ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
+  // 2026-10-20: the stack stamps the code it converged on and nas-health is its
+  // witness and says where it stands; it still lacks a door that says why,
+  // because the app offers no health route (its own healthcheck is a TCP
+  // connect) and the installer can only ask its root. Honest, with the why.
+  ytzero: { lacks: ['health'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
 };
 
 // ---- the readable parts of the Way -----------------------------------------
 const STANDS = /where the install stands/;
+
+/** A log tail a witness ships to python through the environment: one exported
+ *  variable is capped at 128 KB on Linux, and the exec fails ("Argument list
+ *  too long") -- the loops witness's first live run. A tail over 100 KB rides
+ *  a file. Returns the names it finds exported. */
+function tailsExported(wf) {
+  const big = [...wf.matchAll(/(\w+)="?\$\((?:[^)]*\|\|\s*)?(?:sudo -n )?tail -c (\d+)/g)].filter((m) => Number(m[2]) > 100000).map((m) => m[1]);
+  const exported = new Set((wf.match(/^\s*export [^\n]+$/gm) || []).flatMap((l) => l.trim().split(/\s+/).slice(1)));
+  return big.filter((n) => exported.has(n));
+}
 
 /** The witness workflow a service names: an override, else "Witness: <name>" in its description. */
 function witnessOf(s, override) {
@@ -202,6 +218,23 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);
   });
 
+  it('the Funnel witness asks every mount the watchdog restores, by the same path', () => {
+    const wd = read('infra/nas-loops/loops/funnel_watchdog.py');
+    const fh = read('.github/workflows/funnel-health.yml');
+    const mounts = [...wd.matchAll(/\("(\/[a-z-]+)", "http:\/\/127\.0\.0\.1:(\d+)"\)/g)];
+    expect(mounts.length).toBeGreaterThanOrEqual(6);
+    for (const [, path, port] of mounts) {
+      expect(fh, `the witness asks ${path}`).toContain(`("${path}", `);
+      expect(fh, `the witness probes 127.0.0.1:${port} from the box`).toMatch(new RegExp(`\\b${port}\\b`));
+    }
+  });
+
+  it('no witness ships a log tail to python through the environment', () => {
+    for (const wf of readdirSync(join(ROOT, '.github/workflows')).filter((f) => f.endsWith('.yml'))) {
+      expect(tailsExported(read(`.github/workflows/${wf}`)), `${wf} exports a tail over 100 KB; it rides a file`).toEqual([]);
+    }
+  });
+
   it('the Way is written, routed and registered, and the video’s four jobs are weighed', () => {
     expect(has(WAY)).toBe(true);
     const way = read(WAY);
@@ -234,12 +267,20 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(lacksOf(s, 'site-health.yml')).toEqual(['stands']);
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
+  it('the loops witness as first run: a 400 KB tail exported into one variable', () => {
+    const first = 'CRON="$(tail -c 400000 "$LOG" 2>/dev/null || sudo -n tail -c 400000 "$LOG" 2>/dev/null || true)"\nexport CRON CHECKOUT REPO\n';
+    expect(tailsExported(first)).toEqual(['CRON']);
+    const small = 'CMG="$(tail -c 1200 "$E")"\nexport CMG\n';
+    expect(tailsExported(small)).toEqual([]);
+    expect(tailsExported(read('.github/workflows/loops-health.yml'))).toEqual([]);
+  });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // ytzero probes nothing and stamps nothing; a ledger row that struck any of
-    // the three, or one that claimed a witness, would not match the files.
+    // ytzero stamps its code and names nas-health, but can only ask its root; a
+    // ledger row that struck health, or one that named a witness without the
+    // standing lines, would not match the files.
     const s = SERVICES.find((x) => x.name === 'ytzero');
-    expect(lacksOf(s)).toEqual(['codeFollows', 'health', 'witness']);
-    expect(lacksOf(s)).not.toEqual(['health', 'witness']);
-    expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows', 'health']);
+    expect(lacksOf(s)).toEqual(['health']);
+    expect(lacksOf(s)).not.toEqual([]);
+    expect(lacksOf(s, 'site-health.yml')).toEqual(['health', 'stands']);
   });
 });

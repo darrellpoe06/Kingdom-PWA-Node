@@ -1203,6 +1203,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }],
     writes: [{ res: 'gh:incident', token: 'loops-incident' }], seeds: ['ops-surface'],
   }),
+  wf('funnel-health.yml', {
+    id: 'funnel-health', name: 'Public Funnel witness (on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: asks each sovereign mount’s health path through the Funnel from outside and judges only on what comes back (JSON from our door, the Funnel’s own 404, or nothing); on a failure reads where the install stands over the tailnet: the box’s funnel status, the watchdog’s last lines, each door on loopback.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:funnel', token: 'poetech.tail5a2f35.ts.net' }],
+    writes: [{ res: 'gh:incident', token: 'funnel-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
