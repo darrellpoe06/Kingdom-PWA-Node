@@ -22,12 +22,22 @@ import {
 } from '../lib/workflow-scribe.js';
 import { bridgeToken } from '../lib/nas-photos.js';
 import ScribeRecordings from './ScribeRecordings.jsx';
+import StandingNote from './StandingNote.jsx';
+import { useStandingHere } from '../lib/instance-role.js';
 import { buildGuide } from '../lib/scribe-guide.js';
 
 const box = 'rounded-xl border border-[#E5E0D8] bg-white p-4';
 const btn = 'px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed';
 
 export function WorkflowScribe({ isSteward = false }) {
+  // WRITING RECORDS IS THE WALL HERE. A recording of a real meeting with real
+  // people is a record this surface CREATES, so the gate is canWrite — which
+  // mirrors 0082's write CHECK (it excludes 'child' and 'successor' and admits
+  // 'member'). That is exactly "learn by doing or helping": a daughter at
+  // 'member' can record a workflow; a son at 'child' cannot write one. Consent
+  // remains the front door for every party either way. `isSteward` is now the
+  // FALLBACK for an unread role, never the grant by itself (DR-0107).
+  const standing = useStandingHere({ allowlisted: isSteward });
   const scribe = useWorkflowScribe();
   const [kind, setKind] = useState('workflow');
   const [parties, setParties] = useState([{ name: '', consented: false }]);
@@ -81,11 +91,12 @@ export function WorkflowScribe({ isSteward = false }) {
 
   // Steward gate lives INSIDE the surface (Academy pattern) so the monolith
   // seam stays minimal; the nav spread already hides the tab for non-stewards.
-  if (!isSteward) {
+  if (!standing.canWrite) {
     return (
       <div className={`${box} max-w-2xl mx-auto mt-6 text-center`}>
         <p className="text-sm text-[#1A1815] font-semibold">Scribe is a stewardship space.</p>
-        <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Recording workflows and meetings is steward-only for now. Sign in with a family/governor account.</p>
+        <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Recording a workflow or a meeting creates a record of real people, so it stays with those who may write the household&apos;s records.</p>
+        <StandingNote fallback="Sign in with a family/governor account." />
       </div>
     );
   }

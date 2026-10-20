@@ -20,6 +20,7 @@ import {
   summarizeCandidates, touchedGaps, pinnedUrl,
 } from '../lib/open-source-candidates.js';
 import ResearchTry from './ResearchTry.jsx';
+import PhotoBackupStatus from './PhotoBackupStatus.jsx';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -97,12 +98,20 @@ export default function OpenSourceCandidates({ today = todayIso(), list = OPEN_S
   const sum = summarizeCandidates(list);
   const gaps = touchedGaps(today, list);
   const groups = ['pilot', 'hold', 'decline'];
+  // Counted from the rows, never painted: how many each record weighed, and
+  // which ones are built (a row says so only when its road exists).
+  const records = Object.entries(list.reduce((acc, c) => ({ ...acc, [c.drRef]: (acc[c.drRef] || 0) + 1 }), {}));
+  const built = list.filter((c) => c.builtRef);
   return (
     <section className={card} aria-labelledby="oss-candidates-title">
       <h3 id="oss-candidates-title" className="text-base sm:text-lg text-[#1A1815]" style={serif}>Open-source tools, weighed</h3>
       <p className="mt-1 text-sm text-[#5A5751]">
-        {sum.total} tools offered as replacements for paid services, each read at an exact release on {CANDIDATES_RECORDED} ({CANDIDATES_DR}).
-        None of them is installed yet. A tool that can run code needs a budget, a lock and a kill switch before it is piloted.
+        {sum.total} tools offered as replacements for paid services, each read at an exact release
+        ({records.map(([dr, n]) => `${n} under ${dr}`).join(', ')}; the first on {CANDIDATES_RECORDED}, {CANDIDATES_DR}).{' '}
+        {built.length
+          ? `Built: ${built.map((c) => `${c.name} (${c.builtRef})`).join(', ')}. The rest are not installed.`
+          : 'None of them is installed yet.'}{' '}
+        A tool that can run code needs a budget, a lock and a kill switch before it is piloted.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {groups.map((v) => <span key={v} className={chip}>{sum.byVerdict[v] || 0} {VERDICTS[v].toLowerCase()}</span>)}
@@ -126,6 +135,7 @@ export default function OpenSourceCandidates({ today = todayIso(), list = OPEN_S
       )}
 
       {list.some((c) => c.id === 'vane') && <ResearchTry />}
+      {list.some((c) => c.id === 'immich') && <PhotoBackupStatus />}
 
       {groups.map((v) => {
         const items = list.filter((c) => c.verdict === v);

@@ -1,0 +1,178 @@
+# lesson-builder-health -- the lesson builder's own witness (DR-0669; brought
+# up to THE-WAY-A-SERVICE-COMES-HOME on 2026-10-20, the audit).
+#
+# A loop is a service too (the Way): it has no door, so its "says why" is the
+# status it writes for itself. This witness joins the tailnet and asks the
+# builder, as the user it runs as, for `lesson_builder.py --status`: the
+# unit, the kill state and its why, each writer READY or not with its why,
+# the push credential. It passes only when the unit is active, the builder is
+# not stopped, and a writer is ready; otherwise the builder's own words are
+# the reason. Read-only; nothing a writer holds leaves the box; the output is
+# the judged fields only. A failing pass opens (or comments on) ONE rolling
+# issue labelled `incident` + `lesson-builder-incident`; the next passing run
+# closes it. On a failure, where the install stands is printed first.
+#
+# Brakes: one status read per run, a 12-minute job ceiling, one run at a
+# time, a daily schedule.
+name: lesson-builder-health
+
+on:
+  schedule:
+    - cron: '3 14 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: lesson-builder-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the builder for its own status (read-only, judged fields only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SRC=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder
+          UNIT="$(systemctl is-active poetech-lesson-builder 2>/dev/null || echo unknown)"
+          STATUS="$(cd "$SRC" && LESSON_BUILDER_DATA=/volume1/PoeTech/lesson-builder timeout 120 python3 lesson_builder.py --status 2>&1 || true)"
+          export UNIT STATUS
+          python3 - <<'PY'
+          import json, os, time
+          out = {"reachable": True, "at": int(time.time()), "unit": os.environ.get("UNIT"), "status_read": False,
+                 "state": None, "stopped": None, "why": None, "push_credential": None, "writers": [], "error": None}
+          raw = os.environ.get("STATUS", "")
+          try:
+              st = json.loads(raw)
+              out["status_read"] = True
+              out["state"] = st.get("state")
+              out["stopped"] = (st.get("kill") or {}).get("stopped")
+              out["why"] = (st.get("kill") or {}).get("why")
+              out["push_credential"] = "present" if st.get("push_credential") == "present" else "missing"
+              out["writers"] = [{"writer": x.get("writer"), "ok": bool(x.get("ok")), "why": str(x.get("why") or "")[:160]} for x in (st.get("writers") or [])]
+          except Exception:
+              out["error"] = raw[-300:].replace("\n", " ")
+          print(json.dumps(out))
+          PY
+          EOS
+          cat /tmp/witness.json
+
+      - name: Judge and report
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          if not w.get("reachable"):
+              problems.append("the NAS did not answer over SSH")
+          else:
+              if w.get("unit") != "active":
+                  problems.append(f"the unit is {w.get('unit')}, not active")
+              if not w.get("status_read"):
+                  problems.append(f"the builder's status could not be read: {w.get('error')}")
+              else:
+                  if w.get("stopped"):
+                      problems.append(f"the builder is stopped: {w.get('why')}")
+                  if not any(x.get("ok") for x in (w.get("writers") or [])):
+                      problems.append("no writer is ready: " + "; ".join(f"{x.get('writer')}: {x.get('why')}" for x in (w.get("writers") or [])))
+                  if w.get("push_credential") != "present":
+                      problems.append("the push credential is missing, so a built lesson cannot be shipped")
+          verdict = "PASS" if not problems else "FAIL"
+          lines = [f"## lesson-builder loop: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          PY
+
+      # When the road is dark, say WHERE THE INSTALL STANDS first (the Way,
+      # step 6), then what each piece says for itself. Runs only on a failed
+      # verdict; read-only; anything key-shaped scrubbed.
+      - name: "Diagnose a dark road: where the install stands"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          DATA=/volume1/PoeTech/lesson-builder
+          SRC="$REPO/infra/nas-lesson-builder"
+          echo "builder running code: $(rd "$DATA/.code.sha" || echo none) / repo code: $(cat "$SRC/lesson_builder.py" "$SRC/lesson_writer.py" "$SRC/lesson_gates.py" 2>/dev/null | sha256sum | cut -c1-16)"
+          echo "unit: $(systemctl is-active poetech-lesson-builder 2>/dev/null || echo unknown)"
+          HOME_DIR=$(getent passwd dpoe 2>/dev/null | cut -d: -f6); [ -n "$HOME_DIR" ] || HOME_DIR=/var/services/homes/dpoe
+          if [ -x "$HOME_DIR/.local/bin/claude" ]; then echo "claude CLI: present ($("$HOME_DIR/.local/bin/claude" --version 2>&1 | head -1))"; else echo "claude CLI: ABSENT -- the installer tries once a day (log: $DATA/cli-install.log)"; fi
+          if [ -d "$DATA/repo/.git" ]; then echo "builder's own clone: present at $(git -C "$DATA/repo" rev-parse --short HEAD 2>/dev/null || echo unknown)"; else echo "builder's own clone: ABSENT -- the first build finishes it"; fi
+          for f in /volume1/PoeTech/secrets/lesson-writers.json /volume1/PoeTech/secrets/lesson-builder.env; do if [ -s "$f" ] || sudo -n test -s "$f" 2>/dev/null; then echo "$(basename "$f"): present"; else echo "$(basename "$f"): ABSENT"; fi; done
+          echo "status: $(cd "$SRC" && LESSON_BUILDER_DATA="$DATA" timeout 120 python3 lesson_builder.py --status 2>&1 | tr '\n' ' ' | cut -c1-600)"
+          echo "---- last lines of the service ----"
+          (journalctl -u poetech-lesson-builder -n 25 --no-pager 2>/dev/null || sudo -n journalctl -u poetech-lesson-builder -n 25 --no-pager 2>/dev/null || echo "(no journal this user can read)") | cut -c1-300
+          EOS
+      - name: "Ledger: a dark road is an incident; the next pass closes it"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'lesson-builder-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The lesson-builder loop witness ledger (DR-0669)' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('Lesson-builder loop'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `lesson-builder loop failed its witness at ${now} ([run](${run})):\n${why}\n\n\`\`\`json\n${JSON.stringify(v.witness)}\n\`\`\``;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'Lesson-builder loop is dark', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('lesson-builder-health: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `lesson-builder loop answered again at ${now} ([run](${run})): the unit is active, the builder is not stopped, and a writer is ready.${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

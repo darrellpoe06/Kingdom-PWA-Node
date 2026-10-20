@@ -314,6 +314,11 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # The phone bell's door says why (the Way, step 5): ntfy down, no token,
+      # never a path or a token in a reason (2026-10-20, the audit).
+      - name: announce relay selftest (the door says why)
+        working-directory: infra/nas-announce
+        run: python3 announce_server.py --selftest
       # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
       # the family camera road. Proven-to-catch: fails if /list or /ticket ever
       # accept a missing or wrong bearer, if a source URL (credentials) leaks in
@@ -324,6 +329,13 @@ jobs:
       - name: cams forwarder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_forwarder.py --selftest
+      # Wyze cloud client selftest (DR-0777; DR-1097 twelfth read): proven-to-
+      # catch -- fails if a 429 from Wyze is asked again before its wait has
+      # passed, if the last list stops being served during the wait, or if a
+      # second 429 in a row stops doubling the wait.
+      - name: wyze cloud selftest
+        working-directory: infra/nas-cameras
+        run: python3 wyze_cloud.py --selftest
       # Research forwarder selftest (DR-1101): the locked door in front of Vane,
       # which has no login of its own. Proven-to-catch: fails if /ask accepts a
       # missing or wrong bearer, if any Vane page or API is ever passed through,
@@ -332,6 +344,28 @@ jobs:
       - name: research forwarder selftest
         working-directory: infra/nas-research
         run: python3 research_forwarder.py --selftest
+      # Photo-backup forwarder selftest (DR-1120): the locked door in front of
+      # Immich. Proven-to-catch: fails if any Immich page is passed through, if
+      # the family key is missing, wrong, or offered as a bearer, if the key
+      # reaches Immich, if a body over the cap or without a length is read, if
+      # an upload lands while the pool is under its floor, or if a request
+      # queues instead of 503.
+      - name: photo-backup forwarder selftest
+        working-directory: infra/nas-immich
+        run: python3 immich_forwarder.py --selftest
+      # Libraries health door selftest (DR-1121): fails if a server page is ever
+      # passed through, if a missing shelf reads as up, or if a dark server
+      # reads as this process's own 200.
+      - name: libraries door selftest
+        working-directory: infra/nas-libraries
+        run: python3 libraries_forwarder.py --selftest
+      # Home-accounts loop selftest (DR-1121): fails if an admin is made twice,
+      # if a second pass creates anything, if another household's key lists
+      # anyone, if a pass stacks on a running one, or if the cap per pass is
+      # not kept.
+      - name: home-accounts loop selftest
+        working-directory: infra/nas-home-accounts
+        run: python3 home_accounts_sync.py --selftest
       # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
       # config is not normalized, if a disabled camera keeps recording, if a
       # dead ffmpeg is restarted without backoff, if retention or the disk

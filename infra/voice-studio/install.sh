@@ -67,12 +67,58 @@ if [ ! -s "$TOKEN_FILE" ]; then
   exit 0
 fi
 
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). The forwarder
+# restarted only when its UPSTREAM changed, never when its code did, so a
+# merge that changed voice_forwarder.py left the OLD process serving. The
+# unit, the upstream, a code sha and the restart are one function: run once
+# before the studio search (which ends in exit 0 when no studio answers) with
+# whatever upstream the unit already has, and once more after the search with
+# the studio that answered. No-op when nothing changed and it is running.
+forwarder_follows_code() {
+  NEED_RESTART=0
+  if [ -n "$BACKEND" ]; then
+    # Point the unit at the studio that answered. Only rewrite when it changed,
+    # so a stable box never restarts its forwarder mid-sentence.
+    if [ ! -f "$UNIT" ] || ! grep -q "VOICE_STUDIO_UPSTREAM=$BACKEND\$" "$UNIT" 2>/dev/null; then
+      sed -e "s|^Environment=VOICE_STUDIO_UPSTREAM=.*|Environment=VOICE_STUDIO_UPSTREAM=$BACKEND|" \
+          "$SRC/poetech-voice-forwarder.service" > "$UNIT"
+      systemctl daemon-reload
+      NEED_RESTART=1
+      echo "  unit written, upstream $BACKEND"
+    else
+      echo "  unit already points at $BACKEND"
+    fi
+  elif [ ! -f "$UNIT" ]; then
+    cp "$SRC/poetech-voice-forwarder.service" "$UNIT"
+    systemctl daemon-reload
+    NEED_RESTART=1
+    echo "  no studio known yet; unit installed with its default upstream so the service exists and says why"
+  fi
+  CODE_SHA="$(sha256sum < "$SRC/voice_forwarder.py" | cut -c1-16)"
+  STAMP=/volume1/PoeTech/secrets/.voice-forwarder.code.sha
+  if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  forwarder code changed ($CODE_SHA) -- restarting so the running process follows the code"
+  fi
+  systemctl enable poetech-voice-forwarder >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    systemctl restart poetech-voice-forwarder && echo "$CODE_SHA" > "$STAMP"
+  else
+    systemctl is-active --quiet poetech-voice-forwarder || systemctl restart poetech-voice-forwarder || true
+  fi
+  return 0
+}
+
+echo "== voice install: forwarder unit, before the studio search =="
+BACKEND=""
+forwarder_follows_code
+
 echo "== voice install: find a studio that is actually answering =="
 if ! command -v curl >/dev/null 2>&1; then
   echo "  curl is not on this box -- cannot verify a backend, so nothing changes"
   exit 0
 fi
-BACKEND=""
 for C in $CANDIDATES; do
   [ -n "$C" ] || continue
   CODE="$(curl -s -m 5 -o /dev/null -w '%{http_code}' "$C/health" 2>/dev/null || echo 000)"
@@ -80,31 +126,8 @@ for C in $CANDIDATES; do
   if [ "$CODE" = "200" ]; then BACKEND="$C"; break; fi
 done
 
-echo "== voice install: forwarder unit =="
-NEED_RESTART=0
-if [ -n "$BACKEND" ]; then
-  # Point the unit at the studio that answered. Only rewrite when it changed,
-  # so a stable box never restarts its forwarder mid-sentence.
-  if [ ! -f "$UNIT" ] || ! grep -q "VOICE_STUDIO_UPSTREAM=$BACKEND\$" "$UNIT" 2>/dev/null; then
-    sed -e "s|^Environment=VOICE_STUDIO_UPSTREAM=.*|Environment=VOICE_STUDIO_UPSTREAM=$BACKEND|" \
-        "$SRC/poetech-voice-forwarder.service" > "$UNIT"
-    systemctl daemon-reload
-    NEED_RESTART=1
-    echo "  unit written, upstream $BACKEND"
-  else
-    echo "  unit already points at $BACKEND"
-  fi
-elif [ ! -f "$UNIT" ]; then
-  cp "$SRC/poetech-voice-forwarder.service" "$UNIT"
-  systemctl daemon-reload
-  echo "  no studio answered; unit installed with its default upstream so the service exists"
-fi
-systemctl enable poetech-voice-forwarder >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-voice-forwarder
-else
-  systemctl is-active --quiet poetech-voice-forwarder || systemctl restart poetech-voice-forwarder || true
-fi
+echo "== voice install: forwarder unit, pointed at the studio that answered =="
+forwarder_follows_code
 
 if [ -z "$BACKEND" ]; then
   echo "  no voice studio answered on this cycle."

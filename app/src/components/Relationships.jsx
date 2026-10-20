@@ -43,6 +43,7 @@ import {
 // The setting palette lives with the guardian panel now (its one home); this
 // surface still reads it for the matrix + landlord status badges.
 import { SETTING_CLASS } from './GuardianChildPanel.jsx';
+import StandingNote from './StandingNote.jsx';
 
 function Badge({ children, cls }) {
   // shrink-0: a badge never squeezes below its label; the ROW wraps instead
@@ -447,8 +448,14 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
         <div className="mb-2 text-[#1A1815]"><UiIcon name="lock" /></div>
         <p className="text-sm font-semibold text-[#1A1815]">Relationships is a stewardship space.</p>
         <p className="text-xs mt-1.5 leading-relaxed text-[#5A5751]">
-          Setting what a child can do and managing landlord/tenant/manager access is steward-only. Sign in with a family/governor account — or run it for your own operation on the Business tier.
+          Setting what a child can do and managing landlord/tenant/manager access is steward-only.
         </p>
+        {/* DR-1107 moved this gate to the database role, so the reader here is
+            now most often signed in — including the child whose capabilities
+            this panel sets. Telling them to sign in would be false; the
+            standing line says what they hold. The old sentence remains the
+            fallback for a reader we have not identified. */}
+        <StandingNote fallback="Sign in with a family/governor account — or run it for your own operation on the Business tier." />
       </div>
     );
   }

@@ -151,7 +151,7 @@ const CONDITIONAL_TRUTH = Object.freeze({
       deep:
         "The mercy is His own posture: “As a father shows compassion to his children, so the Lord shows " +
         "compassion to those who fear him. For he knows our frame; he remembers that we are dust” " +
-        "(Ps 103:13-14). The accountability is just as real: each of us gives an account (2 Cor 5:10; the " +
+        "(Psalm 103:13-14). The accountability is just as real: each of us gives an account (2 Cor 5:10; the " +
         "measure in Matt 25 is what was DONE). Both are true at once. The historical grounding: Arain M, et " +
         "al., “Maturation of the adolescent brain,” Neuropsychiatr Dis Treat. 2013;9:449-461 — “the " +
         "brain undergoes a ‘rewiring’ process that is not complete until approximately 25 years of age … " +
@@ -227,7 +227,7 @@ const CONDITIONAL_TRUTH = Object.freeze({
       prompt: 'Do you agree the choice is really set before you — life or death, blessing or curse?',
       probe: 'The last fork where you knew the life-path, which did you choose?',
       mirror:
-        '"Therefore choose life" (Deut 30:19). The next fork is still open. The algorithm is not fate — it ' +
+        '"Therefore choose life" (Deuteronomy 30:19). The next fork is still open. The algorithm is not fate — it ' +
         'is a choice He keeps setting before you.',
       gameLens: 'The if/then is a live choice, set before you today (Deut 30:19).',
     },
@@ -237,7 +237,7 @@ const CONDITIONAL_TRUTH = Object.freeze({
       prompt: 'Are you willing to examine yourself honestly here?',
       probe: 'Name one mirror-truth about yourself you keep forgetting the moment you walk away.',
       mirror:
-        '"Examine yourselves … test yourselves" (2 Cor 13:5). The willingness to look is itself the first ' +
+        '"Examine yourselves … test yourselves" (2 Corinthians 13:5). The willingness to look is itself the first ' +
         'obedience. Christ is in you — that is the ground you stand on to look.',
       gameLens: 'The examined life is the doer’s life; the unexamined one forgets (2 Cor 13:5).',
     },

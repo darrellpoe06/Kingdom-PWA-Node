@@ -16,6 +16,7 @@ import SectionBoundary from './SectionBoundary.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { TLC_INSURANCE, TLC_SERVICES, TLC_BRAND } from '../lib/tlc-practice.js';
 import { useTlcRoster } from '../lib/tlc-roster.js';
+import { useOfficeStandingHere } from '../lib/instance-role.js';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -102,6 +103,16 @@ const insuranceLabel = (val) => {
 // ('operations' | 'growth' | 'learn'), that section renders directly — no
 // third strip. The banner + live inquiry KPIs stay pinned on Operations only.
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false, section = null }) {
+  // THE OFFICE'S WALL, NOT THE HOUSEHOLD'S. `isStaff` reaches PracticeLearn's
+  // visibleAudiences({ isStaff }) and listMyAssignments — the therapist and
+  // training audiences. Those belong to the THERAPY PRACTICE instance (0193),
+  // so the honest source is the office role, not the family email allowlist: a
+  // family member who is not office staff is a client at the office door. The
+  // test for "operates the office" is the one TlcPublicDoor.jsx:255 already
+  // uses — owner / admin / member — which is canWrite over the office role.
+  // The passed prop stays as the FALLBACK for an unread role (DR-0107).
+  const officeStanding = useOfficeStandingHere({ allowlisted: isStaff });
+  const staff = officeStanding.canWrite;
   // The live roster over the seed cards (DR-0344): an approved colleague
   // appears here the same way the seven current therapists do.
   const team = useTlcRoster();
@@ -516,7 +527,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           {/* Both places that show Practice already carry the one reader (the
               app and the TLC door), so this Learn tab does not mount a second
               one (DR-0718: two readers drew two panels in one corner). */}
-          <PracticeLearn email={email} isStaff={isStaff} readAloud={false} />
+          <PracticeLearn email={email} isStaff={staff} readAloud={false} />
         </SectionBoundary>
       ),
     },

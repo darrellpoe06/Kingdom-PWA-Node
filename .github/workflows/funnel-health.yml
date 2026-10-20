@@ -1,0 +1,171 @@
+# funnel-health -- the public Funnel's own witness (the funnel watchdog loop,
+# DR-0218/RECORDED-STATE rule 1; brought up to THE-WAY-A-SERVICE-COMES-HOME on
+# 2026-10-20, the audit).
+#
+# The watchdog is a loop with no door: its "says why" is the lines it prints
+# and the mounts it restores. The runner is the outside (site-health's
+# pattern, DR-0125): this workflow asks each sovereign mount's health path
+# THROUGH the Funnel host and judges only on what comes back. A mount that is
+# there reaches a backend of ours, whose health answers JSON (200 or 503 with
+# a reason); a mount that is gone answers the Funnel's own plain 404; a dark
+# Funnel answers nothing. On any failure, WHERE THE INSTALL STANDS is read
+# over the tailnet first: `tailscale funnel status` on the box, the watchdog's
+# own last lines in the services-sync cron log, the mounts the box's checkout
+# names against the ones this witness asks for. Read-only; no token leaves
+# the box; nothing key-shaped printed. One rolling issue labelled `incident`
+# + `funnel-incident`; the next passing run closes it.
+#
+# Brakes: six GETs per run from outside, one SSH pass only on failure, a
+# 12-minute job ceiling, one run at a time, a daily schedule.
+name: funnel-health
+
+on:
+  schedule:
+    - cron: '33 14 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: funnel-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Ask each sovereign mount's health through the Funnel (the outside eye)
+        id: outside
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.error, urllib.request
+          HOST = "https://poetech.tail5a2f35.ts.net"
+          # The same list funnel_watchdog.py restores (SOVEREIGN_MOUNTS), with each
+          # door's open health path. The gate pins this list to the watchdog's.
+          MOUNTS = [("/mcp", "/health"), ("/nas-photos", "/healthz"), ("/taxes", "/health"), ("/research", "/health"),
+                    ("/photo-backup", "/health"), ("/libraries", "/health")]
+          out = {"at": int(time.time()), "host": HOST, "mounts": {}}
+          for path, hp in MOUNTS:
+              url = HOST + path + hp
+              e = {"url": url, "code": None, "json": False, "ok": None, "reason": None, "state": None}
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url, method="GET"), timeout=20) as r:
+                      e["code"] = r.status; body = r.read(4096)
+              except urllib.error.HTTPError as x:
+                  e["code"] = x.code; body = x.read(4096)
+              except Exception as x:
+                  e["reason"] = str(x)[:200]; body = b""
+              try:
+                  j = json.loads(body.decode() or "")
+                  if isinstance(j, dict):
+                      e["json"] = True; e["ok"] = j.get("ok"); e["reason"] = j.get("reason") or j.get("error") or e["reason"]
+              except Exception:
+                  pass
+              if e["code"] is None: e["state"] = "funnel-dark"
+              elif e["json"]: e["state"] = "mounted"
+              elif e["code"] == 404: e["state"] = "not-mounted"
+              else: e["state"] = f"mounted-but-{e['code']}"
+              out["mounts"][path] = e
+          json.dump(out, open("/tmp/witness.json", "w"))
+          print(json.dumps(out, indent=1))
+          PY
+
+      - name: Judge and report
+        id: judge
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          for path, e in w["mounts"].items():
+              if e["state"] == "funnel-dark":
+                  problems.append(f"{path}: the Funnel did not answer at all ({e.get('reason')})")
+              elif e["state"] == "not-mounted":
+                  problems.append(f"{path}: not mounted on the Funnel (the Funnel's own 404); the watchdog restores it only when the Funnel is dark")
+              elif e["state"].startswith("mounted-but"):
+                  problems.append(f"{path}: mounted but the backend answered {e['code']} without a health body")
+          verdict = "PASS" if not problems else "FAIL"
+          lines = [f"## the public Funnel: {verdict}", "", "| mount | state | code | ok | reason |", "|---|---|---|---|---|"]
+          for path, e in w["mounts"].items():
+              lines.append(f"| {path} | {e['state']} | {e['code']} | {e['ok']} | {str(e.get('reason') or '')[:120]} |")
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          print(("pass=true" if not problems else "pass=false"), file=open(os.environ["GITHUB_OUTPUT"], "a"))
+          PY
+
+      - name: Check secrets (needed only to say where the install stands)
+        if: steps.judge.outputs.pass == 'false'
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY to read where the install stands."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.judge.outputs.pass == 'false' && steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      # WHERE THE INSTALL STANDS (the Way, step 6), before anything else is said.
+      - name: "Diagnose a dark or short Funnel: where the install stands"
+        if: steps.judge.outputs.pass == 'false' && steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || echo "the NAS did not answer over SSH"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          TSB=/var/packages/Tailscale/target/bin/tailscale
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "watchdog in the checkout: $([ -f "$REPO/infra/nas-loops/loops/funnel_watchdog.py" ] && echo present || echo ABSENT); mounts it restores: $(grep -oE '\("/[a-z-]+", "http://127.0.0.1:[0-9]+"\)' "$REPO/infra/nas-loops/loops/funnel_watchdog.py" 2>/dev/null | tr '\n' ' ')"
+          echo "---- tailscale funnel status (the box's own words) ----"
+          (sudo -n $TSB funnel status 2>&1 || $TSB funnel status 2>&1 || echo "(funnel status unreadable)") | head -40 | cut -c1-200
+          echo "---- the watchdog's last lines in the cron log ----"
+          (grep -a "funnel-watchdog" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || sudo -n grep -a "funnel-watchdog" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || echo "(none)") | tail -10 | cut -c1-300
+          echo "---- each door from the box (loopback) ----"
+          for P in 8795 8099 8790 8797 8803 8802; do echo "127.0.0.1:$P: $(curl -sS -m 6 -o /dev/null -w '%{http_code}' http://127.0.0.1:$P/health 2>&1)"; done
+          EOS
+
+      - name: "Ledger: a dark or short Funnel is an incident; the next pass closes it"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'funnel-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The public Funnel witness ledger' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('The public Funnel'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `The public Funnel failed its witness at ${now} ([run](${run})):\n${why}`;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'The public Funnel is dark or short a mount', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('funnel-health: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `Every sovereign mount answers through the Funnel again at ${now} ([run](${run})).${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

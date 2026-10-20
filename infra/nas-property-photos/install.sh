@@ -18,6 +18,44 @@ SCRIPT=/volume1/PoeTech/scripts/photo_server.py
 TOKEN_FILE=/volume1/PoeTech/secrets/chat-bridge-token.txt
 UNIT=/etc/systemd/system/poetech-photo-server.service
 
+# ONE FUNCTION, CALLED ON EVERY PATH (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit of the services born before the Way). The script copy,
+# the unit and the restart are one function, run once before anything else
+# this installer does and once more at the end, and the running code is
+# stamped by its sha256 beside the script, so a witness can hold the box's
+# code against the repo's (DR-0770). No-op when the copy, the unit and the
+# code are already the ones running.
+server_follows_code() {
+  NEED_RESTART=0
+  if [ ! -f "$SCRIPT" ] || ! cmp -s "$SRC/photo_server.py" "$SCRIPT"; then
+    cp "$SRC/photo_server.py" "$SCRIPT"
+    NEED_RESTART=1
+    echo "  updated $SCRIPT"
+  fi
+  if [ ! -f "$UNIT" ] || ! cmp -s "$SRC/poetech-photo-server.service" "$UNIT"; then
+    cp "$SRC/poetech-photo-server.service" "$UNIT"
+    systemctl daemon-reload
+    NEED_RESTART=1
+    echo "  unit written"
+  fi
+  CODE_SHA="$(sha256sum < "$SRC/photo_server.py" | cut -c1-16)"
+  STAMP="$(dirname "$SCRIPT")/.photo_server.code.sha"
+  if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+    NEED_RESTART=1
+    echo "  server code changed ($CODE_SHA) -- restarting so the running process follows the code"
+  fi
+  systemctl enable poetech-photo-server >/dev/null 2>&1 || true
+  if [ "$NEED_RESTART" = "1" ]; then
+    systemctl restart poetech-photo-server && echo "$CODE_SHA" > "$STAMP"
+  else
+    systemctl is-active --quiet poetech-photo-server || systemctl restart poetech-photo-server
+  fi
+  return 0
+}
+
+echo "== photo-server install: script + unit, before anything else =="
+server_follows_code
+
 echo "== photo-server install: secrets =="
 mkdir -p /volume1/PoeTech/scripts /volume1/PoeTech/secrets
 if [ ! -s "$TOKEN_FILE" ]; then
@@ -26,26 +64,8 @@ if [ ! -s "$TOKEN_FILE" ]; then
   echo "  generated $TOKEN_FILE (NEW token -- family devices provision via the 0128 RPC once a steward publishes it)"
 fi
 
-echo "== photo-server install: script =="
-NEED_RESTART=0
-if [ ! -f "$SCRIPT" ] || ! cmp -s "$SRC/photo_server.py" "$SCRIPT"; then
-  cp "$SRC/photo_server.py" "$SCRIPT"
-  NEED_RESTART=1
-  echo "  updated $SCRIPT"
-fi
-
-echo "== photo-server install: systemd unit =="
-if [ ! -f "$UNIT" ] || ! cmp -s "$SRC/poetech-photo-server.service" "$UNIT"; then
-  cp "$SRC/poetech-photo-server.service" "$UNIT"
-  systemctl daemon-reload
-  NEED_RESTART=1
-fi
-systemctl enable poetech-photo-server >/dev/null 2>&1 || true
-if [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-photo-server
-else
-  systemctl is-active --quiet poetech-photo-server || systemctl restart poetech-photo-server
-fi
+echo "== photo-server install: script + unit, once more =="
+server_follows_code
 
 echo "== photo-server install: funnel path mount (guarded, additive, reversible) =="
 # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md

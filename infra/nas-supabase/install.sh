@@ -168,6 +168,15 @@ echo "nas-supabase: docker compose up -d (no-op when already current)"
 # --env-file keeps the secrets OUT of the repo tree; the compose file itself is
 # committed and carries no values.
 $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
+# THE RUNNING STACK FOLLOWS THE CODE (THE-WAY-A-SERVICE-COMES-HOME, step 4;
+# 2026-10-20, the audit). `compose up -d` is the restart for a compose stack:
+# it converges every container on the compose file and is reached on every
+# path past "docker unreachable" (without docker nothing can move). The stamp
+# names the code it converged on, so a witness can hold the box against the
+# repo (DR-0770): the compose file, the kong template and the replay script.
+CODE_SHA="$(cat "$SRC/docker-compose.yml" "$SRC/kong.yml" "$SRC/replay_migrations.sh" 2>/dev/null | sha256sum | cut -c1-16)"
+printf '%s' "$CODE_SHA" > "$DATA/.code.sha" 2>/dev/null || true
+echo "nas-supabase: stack converged on code $CODE_SHA"
 
 # kong.yml is a bind mount: compose cannot see content changes, and kong 2.8
 # reads declarative config only at start. Track the RENDERED file's hash; a

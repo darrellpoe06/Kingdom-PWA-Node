@@ -232,6 +232,23 @@ def wyze_client_reset():
         WYZE_STATE["client"] = None
 
 
+def wyze_offline_streams(fetch=True, factory=None):
+    """The stream ids Wyze's own list calls offline (DR-0807's word), or None
+    when the list cannot be read. fetch=False never asks the cloud: it reads
+    only the list already held, for paths that must not wait on Wyze."""
+    try:
+        client = (factory or wyze_client_default)()
+        if client is None:
+            return None
+        devs = client.devices() if fetch else (client.cached_devices() if hasattr(client, "cached_devices") else None)
+    except Exception:  # noqa: BLE001 -- no list is "unknown", never "all online"
+        return None
+    if not isinstance(devs, list):
+        return None
+    return {stream_name_for(d.get("nickname") or "", set()) for d in devs
+            if isinstance(d, dict) and d.get("type") == "Camera" and not d.get("online")}
+
+
 def wyze_error_response(e):
     """A WyzeError -> (status, json) the app can read; never a secret."""
     kind = getattr(e, "kind", "wyze-error")
@@ -239,11 +256,13 @@ def wyze_error_response(e):
     status = {
         "no-credentials": 503, "sign-in-refused": 401, "unreachable": 502, "bad-json": 502,
         "too-soon": 429, "device-offline": 409, "unknown-action": 400, "unknown-device": 400,
-        "no-garage-controller": 400, "parameter-error": 502,
+        "no-garage-controller": 400, "parameter-error": 502, "rate-limited": 503,
     }.get(kind, 502)
     if kind.startswith("http-"):
         status = 502
     out = {"error": kind, "detail": detail}
+    if kind == "rate-limited":  # Wyze's 429, obeyed (DR-1097 twelfth read): the seconds until the NAS asks again
+        out["retry_in"] = int(getattr(e, "retry_after", None) or 0)
     if kind == "too-soon":
         m = re.match(r"^(\d+)", detail)
         out["retry_in"] = int(m.group(1)) if m else int(getattr(_wyze, "ACTION_MIN_SECONDS", 3))
@@ -2023,7 +2042,8 @@ def bridge_snapshot():
     with BRIDGE_LOCK:
         last = dict(BRIDGE_LAST)
     return {"configured": bridge_configured(), "api": BRIDGE_API, "rtsp": BRIDGE_RTSP, "last": last,
-            "kvs_on": KVS_ON, "judge": judge_snapshot(), "kvs_hold": KVS_HOLD.snapshot()}
+            "kvs_on": KVS_ON, "judge": judge_snapshot(), "kvs_hold": KVS_HOLD.snapshot(),
+            "go2rtc_release": dict(RELEASE_LAST, after=RELEASE_AFTER, min_s=int(RELEASE_MIN_SECONDS))}
 
 
 def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads_path=None, only=None):
@@ -2104,17 +2124,23 @@ def current_source(upstream, stream_id, timeout=None):
     return stream_source_url(streams.get(stream_id)) if isinstance(streams, dict) else None
 
 
-def judge_candidates(streams, roads, health=None, now=None, dark=None, rejudge=None):
+def judge_candidates(streams, roads, health=None, now=None, dark=None, rejudge=None, offline=None):
     """The Wyze cameras to judge, in order (never judged first, then the longest
     since judged): on the bridge or Wyze's WebRTC road, not pinned by the owner,
-    not judged within `rejudge`, and no byte for `dark` seconds."""
+    not judged within `rejudge`, no byte for `dark` seconds, and not one Wyze's
+    own list calls offline (`offline`, DR-1097 thirteenth read: every judgement
+    of such a camera was a Kinesis offer nobody could answer, and go2rtc 1.9.14
+    never closes the PeerConnection an unanswered offer leaves behind)."""
     health = health or STREAM_HEALTH
+    offline = offline or set()
     now = time.time() if now is None else now
     dark = KVS_DARK_SECONDS if dark is None else float(dark)
     rejudge = KVS_REJUDGE_SECONDS if rejudge is None else float(rejudge)
     out = []
     for sid, entry in (streams or {}).items():
         if not CAMERA_ID.match(str(sid)) or is_twin(sid) or not isinstance(entry, dict):
+            continue
+        if sid in offline:
             continue
         url = stream_source_url(entry)
         if not url or not (is_bridge_source(url) or is_kvs_source(url)):
@@ -2329,8 +2355,9 @@ def ensure_missing_cameras(upstream, streams, bridge_cams, log=print, config_pat
     return out
 
 
-def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None, probe=None, signal=None, health=None, clock=None):
-    """One bounded pass of the road judge. Answers the summary kept for /health."""
+def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None, probe=None, signal=None, health=None, clock=None, offline=None):
+    """One bounded pass of the road judge. Answers the summary kept for /health.
+    `offline` is the set of stream ids Wyze calls offline; None asks Wyze's list."""
     clock = clock or time.time
     t0 = clock()
     now = t0 if now is None else now
@@ -2346,9 +2373,13 @@ def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None,
             added = ensure_missing_cameras(upstream, streams, bcams, log=log, config_path=config_path, roads_path=roads_path, now=now, signal=signal)
     with ROADS_LOCK:
         roads = roads_load(roads_path)
-    todo = judge_candidates(streams, roads, health=health, now=now)
+    if offline is None:
+        offline = wyze_offline_streams()
+    todo = judge_candidates(streams, roads, health=health, now=now, offline=offline)
     summary = {"at": now, "waiting": len(todo), "judged": [], "moved": [], "dark": [], "kept": [],
-               "added": added["added"], "add_refused": added["refused"]}
+               "added": added["added"], "add_refused": added["refused"],
+               "wyze_offline": sorted(x for x in (offline or ()) if x in (streams or {})),
+               "wyze_list": offline is not None}
     for sid in todo[:KVS_JUDGE_PER_PASS]:
         if clock() - t0 > KVS_PASS_SECONDS:
             break
@@ -3767,7 +3798,14 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     "stream": stream_name_for(d["nickname"], set()),
                     "actions": (["garage"] if d["garage"] else []) + ["siren_on", "siren_off"],
                 })
-            return self._json(200, {"devices": out, "count": len(out), "garages": sum(1 for d in out if d["garage"])})
+            body = {"devices": out, "count": len(out), "garages": sum(1 for d in out if d["garage"])}
+            age = client.devices_age() if hasattr(client, "devices_age") else None
+            if age is not None:
+                body["age_s"] = age  # how old Wyze's word is; past the cache TTL only while Wyze has us waiting
+            wait = client.cooling() if hasattr(client, "cooling") else 0
+            if wait:
+                body["wyze_wait_s"] = wait
+            return self._json(200, body)
 
         def _action(self, body, grant=None):
             mac = body.get("mac")
@@ -3860,6 +3898,12 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         params.append((key, v))
                 # A camera on Wyze's WebRTC road keeps one held session while it
                 # is looked at, and its first frame waits for the dial (DR-1097).
+                # A Kinesis camera Wyze's own list calls offline gets no offer (DR-1097,
+                # thirteenth read): nobody can answer it, and go2rtc 1.9.14 never
+                # closes the PeerConnection an unanswered offer leaves behind. Only
+                # the list already held is read; a frame never waits on Wyze's cloud.
+                if base_of(cam) in kvs_road_ids() and base_of(cam) in (wyze_offline_streams(fetch=False, factory=wyze_factory) or ()):
+                    return self._json(503, {"error": "wyze-offline", "detail": "Wyze's own list says this camera is offline; no Kinesis offer was sent"})
                 kvs = kvs_viewed(upstream, cam)
                 frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs else snap_timeout
                 if kvs and KVS_HOLD.holding(base_of(cam)):
@@ -4358,12 +4402,24 @@ def _selftest():
     persisted = []
     heal = {"creds": None, "client": "fake"}
     actions = []
+    cloud_rl = {"wait": 0, "age": 7}
 
     class FakeCloud:
         def __init__(self):
             self.last = {}
 
+        def cooling(self, key=None):
+            return cloud_rl["wait"]
+
+        def devices_age(self):
+            return cloud_rl["age"]
+
+        def cached_devices(self):
+            return [dict(d, online=False) if d["mac"] in cloud_rl.get("offline", ()) else d for d in self.devices()]
+
         def devices(self):
+            if cloud_rl["wait"]:
+                raise WyzeError("rate-limited", "Wyze answered 429 to login; the NAS waits %d s before asking again" % cloud_rl["wait"], retry_after=cloud_rl["wait"])
             return [
                 {"mac": "GD1", "nickname": "Garage Doors", "model": "WYZE_CAKP2JFUS", "type": "Camera", "online": True, "garage": True, "dongle": "HL_CGDC", "firmware": "4.36.17.21"},
                 {"mac": "FY1", "nickname": "Front Yard", "model": "HL_CAM4", "type": "Camera", "online": True, "garage": False, "dongle": "", "firmware": ""},
@@ -4748,6 +4804,12 @@ def _selftest():
     check(gd["garage"] is True and gd["stream"] == "garage_doors" and "garage" in gd["actions"] and gd["online"] is True, "the garage camera is marked, paired with its go2rtc stream id by the same nickname rule the sign-in used")
     check(j["devices"][1]["garage"] is False and "garage" not in j["devices"][1]["actions"], "a camera without the controller offers no garage action")
     check(b"pw-secret" not in d and b"key-secret" not in d and b"access_token" not in d, "no credential or token leaves with the device list")
+    check(j.get("age_s") == 7 and "wyze_wait_s" not in j, "the list says how old Wyze's word is, and no wait is claimed when there is none (%r)" % {k: j.get(k) for k in ("age_s", "wyze_wait_s")})
+    cloud_rl["wait"] = 240
+    s, _h, d = call("GET", "/devices", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 503 and j.get("error") == "rate-limited" and j.get("retry_in") == 240 and "429" in j.get("detail", ""), "Wyze's 429 with no list to serve -> 503 rate-limited with the seconds until the NAS asks again (DR-1097 twelfth read) (%r)" % j)
+    cloud_rl["wait"] = 0
     s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "garage"}).encode())
     check(s == 401 and actions == [], "POST /action needs the bearer; nothing was triggered")
     s, _h, d = call("POST", "/action", json.dumps({"mac": "../x", "action": "garage"}).encode(), auth=B)
@@ -5626,7 +5688,7 @@ def _selftest():
         tick["t"] += 1.0
         return tick["t"]
 
-    summ = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "Camera does not support WebRTC"}, health=FakeHealth({}), clock=clk)
+    summ = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "Camera does not support WebRTC"}, health=FakeHealth({}), clock=clk, offline=set())
     check(summ["waiting"] == 5 and len(summ["judged"]) == KVS_JUDGE_PER_PASS and summ["dark"] == summ["judged"], "a pass judges at most KVS_JUDGE_PER_PASS cameras of those waiting and names the dark ones (%r)" % summ)
     tick["t"] = 30000.0
     late = {"n": 0}
@@ -5635,7 +5697,7 @@ def _selftest():
         late["n"] += 1
         return 30000.0 if late["n"] == 1 else 30000.0 + KVS_PASS_SECONDS + 1
 
-    summ2 = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass2.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "x"}, health=FakeHealth({}), clock=clk_late)
+    summ2 = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass2.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "x"}, health=FakeHealth({}), clock=clk_late, offline=set())
     check(summ2["judged"] == [], "a pass past its own clock stops before the next camera (the budget)")
     check(_JUDGE_LOCK.acquire(blocking=False), "the judge's lock is free between passes")
     check(start_judge(kup) is False, "while a pass holds the lock no second pass starts (the lock)")
@@ -6003,7 +6065,20 @@ def _selftest():
         KVS_HOLD = StubHold(True)
         s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
         check(s == 200 and d.startswith(b"\xff\xd8JPEG-front_yard") and frames() == n0 + 1, "once it carries video the frame is asked of go2rtc and served (%d %r, %d asks)" % (s, d[:60], frames() - n0))
+        # DR-1097 thirteenth read: a Kinesis camera Wyze calls offline is never offered.
+        touched = []
+        KVS_HOLD = StubHold(True)
+        KVS_HOLD.touch = lambda up, sid, config_path=None: touched.append(sid) or "held"
+        cloud_rl["offline"] = {"FY1"}
+        n1 = frames()
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 503 and b"wyze-offline" in d and frames() == n1 and touched == [],
+              "PROVEN TO CATCH: a frame of a Kinesis camera Wyze's own list calls offline is 503 wyze-offline: no held session, no go2rtc ask, so no offer go2rtc would leave open (%d %r)" % (s, d[:100]))
+        cloud_rl["offline"] = set()
+        s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+        check(s == 200 and touched == ["front_yard"], "back online in Wyze's list, the same camera is held and served again (%d)" % s)
     finally:
+        cloud_rl["offline"] = set()
         KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
         breaker_note("front_yard", True)
     n_sc = sum(1 for q in seen["queries"] if q.startswith("/api/frame.jpeg?src=scale_cam"))
@@ -6014,6 +6089,77 @@ def _selftest():
     s, _h, d = call("GET", "/snap/dark_cam.jpg?w=640", auth=B)
     check(s == 500 and b"source not ready" in d, "any other 500 is go2rtc's own answer, passed on in its words, never retried")
     breaker_note("dark_cam", True)
+
+    print("=== 8u. the sessions go2rtc 1.9.14 never closes are released, and fewer are made (DR-1097, thirteenth read) ===")
+    import io as _io8u
+    import shutil as _sh8u
+    log_lines = "\n".join([
+        json.dumps({"level": "error", "error": "streams: websocket: close 1001 (going away): Going away", "caller": "mp4.go:107", "time": 1000}),
+        json.dumps({"level": "error", "error": "streams: webrtc: failed", "caller": "mp4.go:107", "time": 2000}),
+        json.dumps({"level": "error", "error": "streams: read tcp 127.0.0.1:1->127.0.0.1:8555: i/o timeout", "time": 3000}),
+        json.dumps({"level": "error", "error": "streams: websocket: close 1001 (going away): Going away", "time": 4000}),
+        "not json",
+    ])
+    check(kvs_failed_dials(log_lines) == 3, "every failed Kinesis dial is counted (going away, webrtc: failed); the bridge's i/o timeout is not one")
+    check(kvs_failed_dials(log_lines, since_ms=2000) == 1, "only the ones after the last release count")
+
+    class RelOpener:
+        def __init__(self, text, config_code=200):
+            self.text, self.config_code, self.calls = text, config_code, []
+
+        def __call__(self, req, timeout=None):
+            url = req if isinstance(req, str) else req.full_url
+            method = "GET" if isinstance(req, str) else req.get_method()
+            self.calls.append((method, url.rsplit("/api/", 1)[-1]))
+            if url.endswith("/api/config") and self.config_code != 200:
+                raise urllib.error.HTTPError(url, self.config_code, "yaml: line 96", {}, _io8u.BytesIO(b"yaml: line 96"))
+            return _io8u.BytesIO(self.text.encode("utf-8") if url.endswith("/api/log") else b"")
+    rel_tmp = tempfile.mkdtemp(prefix="cams-release-")
+    rel_cfg = os.path.join(rel_tmp, "go2rtc.yaml")
+    with open(rel_cfg, "w") as fh:
+        fh.write("streams:\n  front_yard: rtsp://x\n")
+    stamp = os.path.join(rel_tmp, ".go2rtc.leak-release.at")
+    rel = lambda op, **kw: release_leaked_sessions("http://g", config_path=rel_cfg, log=lambda *_a: None, opener=op, stamp_path=stamp, min_seconds=3600, **kw)  # noqa: E731
+    op = RelOpener(log_lines)
+    check(rel(op, now=10000.0, after=0, watched=lambda: False) == "off" and op.calls == [], "CAMS_GO2RTC_RELEASE_AFTER=0 is the stop-path: nothing is asked")
+    check(rel(op, now=10000.0, after=4, watched=lambda: False) == "under-3" and ("POST", "restart") not in op.calls, "3 failed dials under a threshold of 4 -> no restart")
+    op = RelOpener(log_lines)
+    check(rel(op, now=10000.0, after=3, watched=lambda: True) == "watched" and ("POST", "restart") not in op.calls, "PROVEN TO CATCH: someone watching -> no restart, whatever the count (a viewer is never cut off)")
+    op = RelOpener(log_lines, config_code=500)
+    check(rel(op, now=10000.0, after=3, watched=lambda: False) == "config-refused" and ("POST", "restart") not in op.calls and not os.path.exists(stamp),
+          "PROVEN TO CATCH: go2rtc cannot parse go2rtc.yaml -> no restart (a restart into an unreadable file starts empty, the eighth read)")
+    op = RelOpener(log_lines)
+    r = rel(op, now=10000.0, after=3, watched=lambda: False)
+    check(r == "released-3" and op.calls[-2:] == [("POST", "config"), ("POST", "restart")] and _release_stamp_read(stamp) == 10000.0,
+          "PROVEN TO CATCH: 3 failed dials at a threshold of 3, nobody watching, config parsed -> go2rtc restarted once and the release stamped (%s, %r)" % (r, op.calls))
+    op = RelOpener(log_lines)
+    check(rel(op, now=10000.0 + 1800, after=3, watched=lambda: False) == "too-soon" and op.calls == [], "a second release inside the budget window asks go2rtc nothing")
+    os.remove(stamp)
+
+    class CutShort(RelOpener):
+        def __call__(self, req, timeout=None):
+            if not isinstance(req, str) and req.full_url.endswith("/api/restart"):
+                self.calls.append(("POST", "restart"))
+                raise urllib.error.URLError("connection reset")
+            return RelOpener.__call__(self, req, timeout)
+    op = CutShort(log_lines)
+    check(rel(op, now=10000.0, after=3, watched=lambda: False) == "restart-unconfirmed" and _release_stamp_read(stamp) == 10000.0,
+          "PROVEN TO CATCH: a restart whose answer go2rtc cut short still spends the budget (stamped before the ask)")
+    op = RelOpener(log_lines)
+    check(rel(op, now=10000.0 + 600, after=3, watched=lambda: False) == "too-soon" and ("POST", "restart") not in op.calls, "...so the next tick ten minutes later does not restart go2rtc again")
+    op = RelOpener(log_lines)
+    check(rel(op, now=10000.0 + 3601, after=1, watched=lambda: False) == "under-0", "after the window, dials from before the release are not counted again (they were released)")
+    _sh8u.rmtree(rel_tmp, ignore_errors=True)
+    jt_host, jt_port = _bridge_api_netloc()
+    jt_streams = {n: {"producers": [{"url": "webrtc:http://%s:%d/signaling/%s?kvs#format=wyze" % (jt_host, jt_port, n.replace("_", "-"))}]}
+                  for n in ("off_cam", "on_cam")}
+
+    class NoHealth:
+        def last_bytes_at(self, sid):
+            return None
+    check(judge_candidates(jt_streams, {}, health=NoHealth(), now=1e9, offline={"off_cam"}) == ["on_cam"],
+          "PROVEN TO CATCH: the road judge never dials a camera Wyze's own list calls offline (each such dial was an offer nobody could answer)")
+    check(sorted(judge_candidates(jt_streams, {}, health=NoHealth(), now=1e9, offline=None)) == ["off_cam", "on_cam"], "with no Wyze list, nothing is skipped (unknown is not offline)")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
@@ -6353,6 +6499,126 @@ def restore_streams_from_config(upstream, config_path=None, log=print, opener=No
     return n
 
 
+# THE SESSIONS GO2RTC 1.9.14 NEVER CLOSES (DR-1097, thirteenth read). Read in
+# go2rtc's own source (internal/webrtc/kinesis.go, v1.9.14 and master alike):
+# kinesisClient makes a PeerConnection, sends the offer, and on any error --
+# Amazon closing the unanswered signaling socket ("close 1001 (going away)"),
+# or "webrtc: failed" -- returns without pc.Close(). go2rtcClient beside it
+# closes its pc on error; this one does not. Each such dial leaves a pion
+# PeerConnection whose TURN clients refresh with Amazon until the process ends:
+# cams-diag 39445926381 counted 524 TURN refresh failures in 10 minutes across
+# 264 permission ids. Only a new go2rtc process lets go of them.
+# So the forwarder RELEASES go2rtc (POST /api/restart, which re-executes it in
+# place and reloads go2rtc.yaml) once enough failed Kinesis dials have piled up
+# since the last release, and only when that is safe:
+#   - nobody is watching live and no Kinesis session is held (a viewer is never cut off);
+#   - go2rtc itself parses go2rtc.yaml first (POST /api/config answers 200), the
+#     eighth read's lesson: a restart into an unreadable file starts empty;
+#   - at most once per RELEASE_MIN_SECONDS (budget), inside the self-heal
+#     thread and RELEASE_LOCK (one at a time).
+# A recording drops a few seconds; the recorder reconnects with its own backoff.
+# Stop-path: CAMS_GO2RTC_RELEASE_AFTER=0. The count is a reading of go2rtc's own
+# in-memory log (1 MB, so it can undercount, never overcount past what it holds).
+RELEASE_AFTER = max(0, int(os.environ.get("CAMS_GO2RTC_RELEASE_AFTER", "200")))
+RELEASE_MIN_SECONDS = float(os.environ.get("CAMS_GO2RTC_RELEASE_MIN_SECONDS", str(6 * 3600)))
+RELEASE_STAMP = os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), ".go2rtc.leak-release.at")
+RELEASE_MARKS = ("close 1001 (going away)", "webrtc: failed")
+RELEASE_LOCK = threading.Lock()
+RELEASE_LAST = {}
+
+
+def kvs_failed_dials(log_text, since_ms=0):
+    """go2rtc's /api/log (jsonlines) -> how many Kinesis dials failed after `since_ms`.
+    Each one left a PeerConnection go2rtc 1.9.14 never closes."""
+    n = 0
+    for line in (log_text or "").splitlines():
+        try:
+            j = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(j, dict):
+            continue
+        err = str(j.get("error") or "")
+        if not any(m in err for m in RELEASE_MARKS):
+            continue
+        t = j.get("time")
+        if isinstance(t, (int, float)) and t <= since_ms:
+            continue
+        n += 1
+    return n
+
+
+def _release_stamp_read(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return float(fh.read().strip() or 0)
+    except (OSError, ValueError):
+        return 0.0
+
+
+def release_leaked_sessions(upstream, config_path=None, log=print, opener=None, now=None, stamp_path=None,
+                            after=None, min_seconds=None, watched=None):
+    """Release go2rtc when failed Kinesis dials have piled up (see above). Answers
+    'off', 'busy', 'too-soon', 'unreadable', 'under-N', 'watched',
+    'config-refused', 'no-stamp', 'restart-unconfirmed' or 'released-N'."""
+    opener = opener or urllib.request.urlopen
+    now = time.time() if now is None else now
+    after = RELEASE_AFTER if after is None else int(after)
+    min_seconds = RELEASE_MIN_SECONDS if min_seconds is None else float(min_seconds)
+    stamp_path = stamp_path or RELEASE_STAMP
+    watched = watched or (lambda: live_snapshot()["live_open"] > 0 or bool(KVS_HOLD.snapshot().get("holding")))
+    if after <= 0:
+        return "off"
+    if not RELEASE_LOCK.acquire(blocking=False):
+        return "busy"
+    try:
+        last = _release_stamp_read(stamp_path)
+        RELEASE_LAST.update({"checked_at": now, "last_release": last or None})
+        if last and now - last < min_seconds:
+            return "too-soon"
+        try:
+            with opener(upstream.rstrip("/") + "/api/log", timeout=HEALTH_TIMEOUT) as r:
+                text = r.read(2 * 1024 * 1024).decode("utf-8", "replace")
+        except (urllib.error.URLError, OSError, ValueError):
+            return "unreadable"
+        failed = kvs_failed_dials(text, since_ms=last * 1000.0)
+        RELEASE_LAST["failed_dials"] = failed
+        if failed < after:
+            return "under-%d" % failed
+        if watched():
+            return "watched"
+        path = config_path or GO2RTC_YAML_PATH
+        try:
+            with open(path, "rb") as fh:
+                body = fh.read()
+            req = urllib.request.Request(upstream.rstrip("/") + "/api/config", data=body, method="POST",
+                                         headers={"Content-Type": "application/yaml"})
+            with opener(req, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+        except (urllib.error.URLError, OSError, ValueError):
+            log("go2rtc-release: %d failed Kinesis dials are held, but go2rtc would not parse go2rtc.yaml; no restart" % failed)
+            return "config-refused"
+        # Stamped BEFORE the ask: go2rtc re-executes itself from a goroutine and can
+        # cut its own reply short, which must still count against the budget.
+        try:
+            with open(stamp_path, "w", encoding="utf-8") as fh:
+                fh.write("%d\n" % int(now))
+        except OSError:
+            return "no-stamp"  # no budget can be kept, so no restart is made
+        RELEASE_LAST.update({"last_release": now, "released_dials": failed})
+        try:
+            req = urllib.request.Request(upstream.rstrip("/") + "/api/restart", data=b"", method="POST")
+            with opener(req, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+        except (urllib.error.URLError, OSError, ValueError):
+            log("go2rtc-release: %d failed Kinesis dials; the restart was asked and its answer cut short (go2rtc re-executes itself); the next try waits out the budget" % failed)
+            return "restart-unconfirmed"
+        log("go2rtc-release: %d failed Kinesis dials since the last release each left a PeerConnection go2rtc 1.9.14 never closes; go2rtc restarted to let them go (its streams come back from go2rtc.yaml)" % failed)
+        return "released-%d" % failed
+    finally:
+        RELEASE_LOCK.release()
+
+
 def self_heal_once(upstream, port, token, log=print, config_path=None):
     """If go2rtc lists ZERO streams and a Wyze sign-in is kept, re-add the
     cameras through this process's own /setup/wyze/again. If it lists streams
@@ -6397,6 +6663,10 @@ def start_self_heal(upstream, port, token, first=None, every=None):
                 self_heal_once(upstream, port, token)
             except Exception as e:  # noqa: BLE001 -- the loop outlives any one surprise
                 print("self-heal: %s" % e, file=sys.stderr)
+            try:
+                release_leaked_sessions(upstream)
+            except Exception as e:  # noqa: BLE001
+                print("go2rtc-release: %s" % e, file=sys.stderr)
             time.sleep(every)
 
     t = threading.Thread(target=run, name="cams-self-heal", daemon=True)

@@ -297,6 +297,19 @@ jobs:
           # passes of the password cure). The cron log holds full stdout.
           # The direct witness (DR-0076): the literal HTTP code from kong,
           # read fresh -- a passing installer is inferred; this is measured.
+          # WHERE THE INSTALL STANDS (THE-WAY-A-SERVICE-COMES-HOME, step 6;
+          # 2026-10-20, the audit): the box's checkout, the code the stack last
+          # converged on against the repo's, each container, the gateway. Said
+          # before anything else, so a red is never only "it failed".
+          echo "=== where the install stands (supabase) ==="
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || ${SUDO} git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "stack converged on code: $(${SUDO} cat /volume1/docker/supabase/.code.sha 2>/dev/null || echo none) / repo code: $(cat "$REPO/infra/nas-supabase/docker-compose.yml" "$REPO/infra/nas-supabase/kong.yml" "$REPO/infra/nas-supabase/replay_migrations.sh" 2>/dev/null | sha256sum | cut -c1-16)"
+          ${SUDO} docker ps -a --filter name=supabase- --format '{{.Names}} {{.Status}}' 2>/dev/null || echo "(no docker this user can run)"
+          echo "=== where the install stands (ytzero) ==="
+          echo "stack converged on code: $(${SUDO} cat /volume1/docker/ytzero/.code.sha 2>/dev/null || echo none) / repo code: $(sha256sum < "$REPO/infra/nas-ytzero/docker-compose.yml" 2>/dev/null | cut -c1-16)"
+          ${SUDO} docker ps -a --filter name=ytzero --format '{{.Names}} {{.Status}}' 2>/dev/null || echo "(no docker this user can run)"
+          echo "ytzero root (loopback): HTTP $(curl -s -o /dev/null -w '%{http_code}' --max-time 6 http://127.0.0.1:3701/ 2>/dev/null || echo 000)"
           echo "=== sovereign gateway: does kong answer? (direct probe) ==="
           curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
           # The reading voice's road home (DR-0566): the forwarder on :8771

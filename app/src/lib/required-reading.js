@@ -134,7 +134,7 @@ export const DONT_REPEAT = [
     id: 'orchestration',
     match: (p) => /^infra\/nas-loops\//.test(p)
       || /^docs\/templates\/builder-brief\.md$/.test(p)
-      || /^docs\/00-foundations\/_root\/(ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL|AUTONOMOUS-OPERATING-MODEL|HOLD-THE-HAND-OF-THE-PROCESS)\.md$/.test(p),
+      || /^docs\/00-foundations\/_root\/(ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL|AUTONOMOUS-OPERATING-MODEL|HOLD-THE-HAND-OF-THE-PROCESS|THE-WAY-A-SERVICE-COMES-HOME)\.md$/.test(p),
     edits: true,
     points: [
       'Work that must outlive a session gets a durable, braked driver, and it counts as working only after its first run is seen doing real work (P66; P10).',

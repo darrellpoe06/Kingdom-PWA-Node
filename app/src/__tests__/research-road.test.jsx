@@ -157,7 +157,9 @@ describe('the road is wired end to end', () => {
     const svcs = JSON.parse(read('infra/nas-loops/services.json')).services;
     const r = svcs.find((s) => s.name === 'research');
     expect(r).toMatchObject({ install: 'infra/nas-research/install.sh', enabled: true });
-    expect(svcs[svcs.length - 1].name).toBe('research');
+    // Registered after every service that came before it; the photo-backup
+    // road (DR-1120), whose first pull is larger still, is the one entry after.
+    expect(svcs.map((s) => s.name).slice(-2)).toEqual(['research', 'immich']);
     expect(r.description).toMatch(/Witness: research-health\.yml/);
     expect(existsSync(join(ROOT, '.github/workflows/research-health.yml'))).toBe(true);
   });

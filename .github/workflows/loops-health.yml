@@ -1,0 +1,282 @@
+# loops-health -- the witness of the loops on the services-sync clock
+# (2026-10-20, the audit of the services born before THE-WAY-A-SERVICE-COMES-HOME).
+#
+# A loop is a service too (the Way): no door, so its "says why" is the row or
+# the file it writes and the witness that reads it. Nine loops ride the
+# fifteen-minute services-sync clock and had no witness at all: lesson-voice,
+# lesson-parity, church-mail, family-key, agent-consumer, db-backup,
+# choir-dates, stream-length, worship-song-harvest. This workflow joins the
+# tailnet once and asks the box, for each loop: what services-sync said of its
+# LAST run (installing ... then exit=/TIMED OUT/DEGRADED, or nothing), and what
+# the loop's own ledger says (last-run.json, last-measure.json, status.json,
+# the state file, its own last line in the cron log). It judges only on what
+# is written: a failed or timed-out last run, db-backup's own ok:false,
+# lesson-voice's own "stopped", or a ledger nobody can read. "Unknown" never
+# reads as healthy (DR-0076). On any failure, WHERE THE INSTALL STANDS is
+# printed per loop first: the checkout, the installer on disk, the ledger and
+# its age, the credential, the loop's last lines. Read-only; nothing
+# key-shaped printed. One rolling issue labelled `incident` + `loops-incident`;
+# the next passing run closes it.
+#
+# Brakes: one SSH pass per run, a 12-minute job ceiling, one run at a time,
+# a daily schedule.
+name: loops-health
+
+on:
+  schedule:
+    - cron: '27 14 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: loops-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the box what each loop's last run and own ledger say (read-only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOG="$REPO/infra/nas-loops/events/cron-services-sync.log"
+          # The cron tail is ~400 KB: it rides a file, never the environment (one
+          # exported variable is capped at 128 KB on Linux and python3 would not
+          # exec -- "Argument list too long", the first live run).
+          CRON_FILE="$(mktemp /tmp/loops-cron.XXXXXX)"
+          (tail -c 400000 "$LOG" 2>/dev/null || sudo -n tail -c 400000 "$LOG" 2>/dev/null || true) > "$CRON_FILE"
+          # The runner keeps ONE timestamped JSON line per services-sync run in
+          # events.jsonl (loop_run_done / loop_run_fail, detail = the summary line
+          # naming every FAILED and DEGRADED service). The cron log holds only the
+          # runner's own lines plus stderr on a failure; per-service stdout never
+          # reaches it (the first live run read every loop as never-in-log).
+          EVJ="$REPO/infra/nas-loops/events/events.jsonl"
+          EV_FILE="$(mktemp /tmp/loops-events.XXXXXX)"
+          (tail -c 400000 "$EVJ" 2>/dev/null || sudo -n tail -c 400000 "$EVJ" 2>/dev/null || true) > "$EV_FILE"
+          EV="$(grep -a '"detail":"loop=services-sync ' "$EV_FILE" | grep -aE '"event":"loop_run_(done|fail)"' | tail -n 1 | head -c 2000)"
+          CHECKOUT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          LV="$(rd /volume1/PoeTech/lesson-voice/last-run.json | head -c 2000)"; LV_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || date +%s) ))"
+          LP="$(rd /volume1/PoeTech/lesson-parity/last-measure.json | head -c 600)"; LP_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-parity/last-measure.json 2>/dev/null || date +%s) ))"
+          DB="$(rd /volume1/PoeTech/backups/db/status.json | head -c 600)"; DB_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/backups/db/status.json 2>/dev/null || date +%s) ))"
+          CM="$(rd "$REPO/infra/nas-church-mail/out/.church-mail.state.json" | head -c 600)"; CM_AGE="$(( $(date +%s) - $(cat "$REPO/infra/nas-church-mail/out/.church-mail.last" 2>/dev/null || date +%s) ))"
+          CMG="$(tail -n 2 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | head -c 1200)"
+          if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then CRED=present; else CRED=absent; fi
+          export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE CMG CRED REPO
+          python3 - <<'PY'
+          import json, os, re, time
+          from datetime import datetime, timezone
+          loops = ["lesson-voice","lesson-parity","church-mail","family-key","agent-consumer","db-backup","choir-dates","stream-length","worship-song-harvest"]
+          try:
+              with open(os.environ["CRON_FILE"], encoding="utf-8", errors="replace") as fh: cron = fh.read().splitlines()
+          except OSError: cron = []
+          now = int(time.time())
+          out = {"reachable": True, "at": now, "checkout": os.environ.get("CHECKOUT"), "cron_log_lines": len(cron),
+                 "credential": os.environ.get("CRED"), "clock": {"last_run_at": None, "age_s": None, "event": None, "summary": None}, "loops": {}}
+          # The last services-sync run, from the runner's own timestamped event.
+          try: ev = json.loads(os.environ.get("EV") or "null")
+          except Exception: ev = None
+          summary, failed_sec, degraded_sec = "", "", ""
+          if isinstance(ev, dict):
+              try: out["clock"]["last_run_at"] = ev.get("ts"); out["clock"]["age_s"] = now - int(datetime.strptime(ev["ts"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp())
+              except Exception: pass
+              out["clock"]["event"] = ev.get("event")
+              detail = str(ev.get("detail") or "")
+              m = re.search(r"\| (services-sync: .*?)(?: calls_today=\d+)?$", detail)
+              summary = (m.group(1) if m else detail)[:900]
+              out["clock"]["summary"] = summary
+              mf = re.search(r"FAILED: (.*)$", summary); failed_sec = mf.group(1) if mf else ""
+              md = re.search(r"DEGRADED: (.*)$", summary); degraded_sec = md.group(1) if md else ""
+          def named_in(sec, name):
+              m = re.search(r"(?:^|; )" + re.escape(name) + r"(?= \(|;|$)", sec)
+              if not m: return None
+              rest = sec[m.start():].lstrip("; ")
+              n = re.search(r"; (?=[a-z0-9-]+(?: \(|;|$))", rest)
+              return (rest[:n.start()] if n else rest)[:300]
+          def jl(s):
+              try: return json.loads(s) if s else None
+              except Exception: return {"unparsed": s[:200]}
+          ledgers = {
+              "lesson-voice": (jl(os.environ.get("LV", "")), int(os.environ.get("LV_AGE") or 0)),
+              "lesson-parity": (jl(os.environ.get("LP", "")), int(os.environ.get("LP_AGE") or 0)),
+              "db-backup": (jl(os.environ.get("DB", "")), int(os.environ.get("DB_AGE") or 0)),
+              "church-mail": (jl(os.environ.get("CM", "")), int(os.environ.get("CM_AGE") or 0)),
+          }
+          for name in loops:
+              e = {"last_run": None, "why": None, "own_lines": [], "ledger": None, "ledger_age_s": None, "installer": os.path.isfile(os.path.join(os.environ["REPO"], {
+                  "lesson-voice": "infra/nas-lesson-voice/install.sh", "lesson-parity": "infra/nas-lesson-parity/install.sh",
+                  "church-mail": "infra/nas-church-mail/install.sh", "family-key": "infra/nas-bridge-publish/install.sh",
+                  "agent-consumer": "infra/nas-agent/install.sh", "db-backup": "infra/nas-db-backup/install.sh",
+                  "choir-dates": "infra/church-media-golive/choir_dates_install.sh", "stream-length": "infra/church-media-golive/stream_length_install.sh",
+                  "worship-song-harvest": "infra/church-media-golive/worship_song_harvest_install.sh"}[name]))}
+              f, d = named_in(failed_sec, name), named_in(degraded_sec, name)
+              if not isinstance(ev, dict):
+                  e["last_run"] = "unknown"; e["why"] = "no services-sync run is recorded in the runner's events.jsonl (or it could not be read)"
+              elif f:
+                  e["last_run"] = "failed"; e["why"] = f"services-sync's last run: {f}"
+              elif d:
+                  e["last_run"] = "degraded"; e["why"] = f"services-sync's last run: {d}"
+              elif ev.get("event") == "loop_run_fail" and not failed_sec:
+                  e["last_run"] = "unknown"; e["why"] = f"services-sync itself did not finish: {summary[:200]}"
+              else:
+                  e["last_run"] = "ok"
+              # the loop's own last lines (prefixes the scripts print)
+              prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "db-backup": "db-backup:",
+                          "worship-song-harvest": "worship-song-harvest", "lesson-voice": "lesson-voice", "lesson-parity": "lesson-parity",
+                          "choir-dates": "choir", "stream-length": "stream-length"}
+              own = [l[:240] for l in cron if l.startswith(prefixes[name])]
+              e["own_lines"] = own[-3:]
+              if name in ledgers:
+                  e["ledger"], e["ledger_age_s"] = ledgers[name]
+              if name in ("choir-dates", "stream-length"):
+                  e["ledger"] = (os.environ.get("CMG") or "")[-600:] or None
+              out["loops"][name] = e
+          print(json.dumps(out))
+          PY
+          rm -f "$CRON_FILE" "$EV_FILE"
+          EOS
+          cat /tmp/witness.json | head -c 6000; echo
+
+      - name: Judge each loop on what it wrote, and report
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          if not w.get("reachable"):
+              problems.append("the NAS did not answer over SSH")
+          else:
+              clock = w.get("clock") or {}
+              if clock.get("age_s") is not None and clock["age_s"] > 3600:
+                  problems.append(f"services-sync: the 15-minute clock last fired {clock['age_s'] // 60} minutes ago ({clock.get('last_run_at')}); it is not firing")
+              for name, e in (w.get("loops") or {}).items():
+                  # A loop that could not do its work last cycle is dark for that
+                  # loop; "degraded" is the fleet's word, not the loop's (DR-0076).
+                  if e.get("last_run") in ("failed", "degraded", "unknown"):
+                      problems.append(f"{name}: last run {e.get('last_run')}: {e.get('why')}")
+                  if name == "db-backup" and isinstance(e.get("ledger"), dict) and e["ledger"].get("ok") is False:
+                      problems.append(f"db-backup: its own status.json says ok:false: {e['ledger'].get('error')}")
+                  if name == "lesson-voice" and isinstance(e.get("ledger"), dict):
+                      # queue-drained / item-budget / time-budget / locked-skip are the
+                      # loop's normal ends; "did not run" and a missing credential are not.
+                      t = e["ledger"].get("transcribe") if isinstance(e["ledger"].get("transcribe"), dict) else e["ledger"]
+                      if t.get("ran") is False or "credential" in str(t.get("stopped") or ""):
+                          problems.append(f"lesson-voice: its own last-run.json says it did not run: {t.get('stopped') or 'no reason written'}")
+                  if not e.get("installer"):
+                      problems.append(f"{name}: its installer is not in the box's checkout")
+          verdict = "PASS" if not problems else "FAIL"
+          clock = w.get("clock") or {}
+          lines = [f"## loops on the services-sync clock: {verdict}", "", f"checkout `{w.get('checkout')}` · credential {w.get('credential')} · services-sync last fired {clock.get('last_run_at')} ({(clock.get('age_s') or 0) // 60} min ago, {clock.get('event')}) · cron log lines read {w.get('cron_log_lines')}", "", f"last run said: `{(clock.get('summary') or '(nothing recorded)')[:400]}`", ""]
+          lines += ["| loop | last run | own ledger / last line |", "|---|---|---|"]
+          for name, e in (w.get("loops") or {}).items():
+              led = e.get("ledger")
+              led_s = (json.dumps(led)[:160] if isinstance(led, (dict, list)) else str(led or "")[:160]) + (f" ({e.get('ledger_age_s')}s old)" if e.get("ledger_age_s") else "")
+              own = (e.get("own_lines") or [""])[-1][:160]
+              lines.append(f"| {name} | {e.get('last_run')} | {led_s or own or '(no ledger file yet)'} |")
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          PY
+
+      # WHERE THE INSTALL STANDS (the Way, step 6), per loop that is wrong, before
+      # anything else is said about it. Read-only; nothing key-shaped printed.
+      - name: "Diagnose the dark loops: where the install stands"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          NAMES="$(python3 -c "import json; v=json.load(open('/tmp/verdict.json')); print(' '.join(sorted({p.split(':')[0] for p in v['problems'] if ':' in p and p.split(':')[0] in v['witness'].get('loops', {})})))")"
+          echo "loops to diagnose: $NAMES"
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "NAMES='$NAMES' sh -s" <<'EOS' | sed -E 's/(Bearer +[^ ,"]+|(token|secret|key|password)[^ ,"]*["=:] *[^ ,"]+)/<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOG="$REPO/infra/nas-loops/events/cron-services-sync.log"
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "services-sync last lines: $( (tail -n 3 "$LOG" 2>/dev/null || sudo -n tail -n 3 "$LOG" 2>/dev/null) | tr '\n' ' ' | cut -c1-400)"
+          if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then echo "database credential: present"; else echo "database credential: ABSENT"; fi
+          for N in $NAMES; do
+            echo "---- $N ----"
+            case "$N" in
+              lesson-voice) ls -la /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null; (cat /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null) | head -c 600; echo ;;
+              lesson-parity) ls -la /volume1/PoeTech/lesson-parity/ 2>/dev/null | head -8; tail -n 5 /volume1/PoeTech/lesson-parity/fix.log 2>/dev/null | cut -c1-200 ;;
+              db-backup) (cat /volume1/PoeTech/backups/db/status.json 2>/dev/null || sudo -n cat /volume1/PoeTech/backups/db/status.json 2>/dev/null); ls -la /volume1/PoeTech/backups/db 2>/dev/null | tail -4 ;;
+              church-mail) ls -la "$REPO/infra/nas-church-mail/out" 2>/dev/null | head -6; (cat "$REPO/infra/nas-church-mail/out/.church-mail.state.json" 2>/dev/null | head -c 400); echo ;;
+              choir-dates|stream-length) tail -n 4 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | cut -c1-300; ls "$REPO/infra/church-media-golive/state" 2>/dev/null
+                echo "sovereign yt-dlp (DR-0723): $( (/volume1/PoeTech/yt-dlp/yt-dlp --version 2>&1 || sudo -n /volume1/PoeTech/yt-dlp/yt-dlp --version 2>&1) | tail -1 | cut -c1-160)"
+                echo "its install log, last lines: $( (tail -n 4 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null || sudo -n tail -n 4 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null) | tr '\n' ' ' | cut -c1-500)"
+                echo "docker wrapper: $(ls -la "$REPO/infra/church-media-golive/state/yt-dlp" 2>/dev/null || echo absent)" ;;
+              *) : ;;
+            esac
+            echo "its last lines in the cron log:"
+            (grep -a "$N" "$LOG" 2>/dev/null || sudo -n grep -a "$N" "$LOG" 2>/dev/null || echo "(none)") | tail -8 | cut -c1-300
+          done
+          EOS
+
+      - name: "Ledger: dark loops are an incident; the next pass closes it"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'loops-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The services-sync loops witness ledger' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('Loops on the services-sync clock'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `Loops on the services-sync clock failed their witness at ${now} ([run](${run})):\n${why}`;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'Loops on the services-sync clock are dark', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('loops-health: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `Every loop's last run is ok and its own ledger says nothing wrong, at ${now} ([run](${run})).${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

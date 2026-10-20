@@ -32,6 +32,8 @@ import {
 } from '../lib/financial-scenarios.js';
 import { forecastSync } from '../lib/forecast-sync.js';
 import BudgetPlanner from './BudgetPlanner.jsx';
+import StandingNote from './StandingNote.jsx';
+import { useStandingHere } from '../lib/instance-role.js';
 
 // Shared tokens — identical to the other family surfaces (already contrast-gated).
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -372,6 +374,15 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
 }
 
 export default function Forecast({ data, currentDate, isOwner = false }) {
+  // THE BOOKS ARE THE WALL HERE, NOT GOVERNORSHIP. These views model the
+  // family's real money — accounts, transactions, debts — the exact tables
+  // migration 0082 walls on the 'child' role while letting 'member' read. So
+  // the gate is canSeeBooks: a daughter helping in the business keeps it, a son
+  // at 'child' does not, and the app agrees with RLS instead of being stricter
+  // than it (which DR-1106 forbids — the model mirrors the wall, never invents
+  // one). `isOwner` is now the FALLBACK, so a failed role read cannot lock the
+  // owner out (DR-0107); it can no longer be the grant on its own.
+  const standing = useStandingHere({ allowlisted: isOwner });
   const [tab, setTab] = useState('outlook');
   const [scope, setScope] = useState('consolidated');
   const [months, setMonths] = useState(12);
@@ -419,12 +430,13 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
     }
   }, [scope, months, cd]);
 
-  if (!isOwner) {
+  if (!standing.canSeeBooks) {
     return (
       <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
         <div className="text-2xl mb-1" aria-hidden="true">🔒</div>
         <p className="text-sm text-[#1A1815] font-semibold">Forecast is a stewardship space.</p>
-        <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The financial-engineering views model the family’s real money. Sign in with a family/governor account to open them.</p>
+        <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The financial-engineering views model the family’s real money.</p>
+        <StandingNote fallback="Sign in with a family/governor account to open them." />
       </div>
     );
   }
