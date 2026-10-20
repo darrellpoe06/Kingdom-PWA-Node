@@ -392,7 +392,17 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                 return self._json(503, {"ok": False, "error": "piper-not-installed", "reason": "piper or its voices are not on this box yet; the installer downloads them one file per cycle"})
             key = cache_key(voice, text, speed)
             out = os.path.join(cache_dir, key + ".wav")
-            if os.path.isfile(out) and os.path.getsize(out) > 44:
+            # fresh: true (DR-1131, measured 2026-10-20): re-synthesize and
+            # REPLACE the cached clip. The clarity witness found one piece
+            # (photographed-03) babbling at every pace on run 39489093593; all
+            # three clips had been synthesized in the minutes around a Piper
+            # failure (a 502 at 19:56:46) and cached, so every later reader of
+            # that piece got the same garbage forever. A clip the cache holds
+            # is only as good as the moment it was made; the witness (and an
+            # admin's re-read) can now make it again. Bearer-gated like every
+            # speak, so nobody outside can churn the cache.
+            fresh = bool(body.get("fresh"))
+            if not fresh and os.path.isfile(out) and os.path.getsize(out) > 44:
                 try:
                     os.utime(out, None)  # recently used stays in the cache
                 except OSError:
@@ -408,6 +418,12 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                     if os.path.getsize(tmp) <= 44:
                         raise RuntimeError("empty clip")
                     os.replace(tmp, out)
+                    if fresh:
+                        # The Opus shape of the old clip is stale too.
+                        try:
+                            os.remove(os.path.join(cache_dir, key + ".opus"))
+                        except OSError:
+                            pass
                 except Exception:  # noqa: BLE001 -- any synth failure is one honest 502
                     try:
                         os.remove(tmp)
@@ -504,6 +520,15 @@ def _selftest():
     check(s == 200 and eng.calls == calls, "the same paragraph is served from the cache, not re-synthesized")
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
+    # FRESH (2026-10-20): the same words with fresh: true are made again and
+    # the cached clip is replaced; without the flag the cache still answers.
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": "In the beginning was the Word.", "voice": "female", "fresh": True})
+    check(s == 200 and eng.calls == calls + 1, "fresh: true re-synthesizes a clip the cache already holds")
+    s, _, _ = req("POST", "/speak", {"text": "In the beginning was the Word.", "voice": "female"})
+    check(s == 200 and eng.calls == calls + 1, "and the fresh clip is what the cache serves next")
+    s, _, _ = req("POST", "/speak", {"text": "In the beginning was the Word.", "voice": "female", "fresh": True}, auth="Bearer wrong")
+    check(s == 401 and eng.calls == calls + 1, "fresh is bearer-gated like every speak: nobody outside churns the cache")
 
     # SPEED: the voice speaks at the asked pace; a pace is its own clip in the
     # cache; the 1.0 key is the old key; nonsense and out-of-range are clamped.

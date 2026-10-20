@@ -116,11 +116,17 @@ def _show_refusal(code, body):
     print(f'/voice-lite/speak answered HTTP {code}: {head}', flush=True)
 
 
-def speak(base, tok, text, voice, pace, out_path, attempts=5):
-    """The app's own call. Returns the HTTP status; 200 wrote the WAV."""
+def speak(base, tok, text, voice, pace, out_path, attempts=5, fresh=False):
+    """The app's own call. Returns the HTTP status; 200 wrote the WAV.
+    fresh=True asks the server to make the clip again instead of serving its
+    cache (voice_lite_server.py honours it from DR-1131's heal; an older
+    server ignores the flag and the cached clip comes back, which the heal
+    pass reports as still bad)."""
     body = {'text': text, 'voice': voice, 'format': 'wav'}
     if abs(float(pace) - 1.0) > 1e-9:
         body['speed'] = float(pace)
+    if fresh:
+        body['fresh'] = True
     data = json.dumps(body).encode('utf-8')
     for attempt in range(attempts):
         req = urllib.request.Request(base.rstrip('/') + '/voice-lite/speak', data=data, method='POST',
@@ -237,6 +243,11 @@ def transcribe_all(paths, model_name):
 def render(results, paces, fail_wer):
     """The step summary: a table a person reads, worst first per pace."""
     lines = ['## Voice clarity witness', '', 'Word error rate per piece: 0 = every word came back; the number is the share of words a listener writing down what they heard got wrong.', '']
+    healed = [r for r in results if r.get('fresh_wer') is not None and r['fresh_wer'] <= fail_wer]
+    for r in healed:
+        lines.append(f"- **{r['id']} healed**: the cache held a bad clip (WER {r['wer']:.2f}); made fresh it reads at WER {r['fresh_wer']:.2f} and the cache now holds that one.")
+    if healed:
+        lines.append('')
     for pace in paces:
         rows = [r for r in results if r['pace'] == pace and r['wer'] is not None]
         if not rows:
@@ -261,12 +272,19 @@ def render(results, paces, fail_wer):
     return '\n'.join(lines)
 
 
+def adhoc_corpus(texts):
+    """`--texts 'a || b'` -> a corpus of ad-hoc pieces, group adhoc: listen to one
+    line (or a few variants) without the whole catalog."""
+    items = [t.strip() for t in str(texts).split('||') if t.strip()]
+    return {'pieces': [{'id': f'adhoc-{i + 1:02d}', 'group': 'adhoc', 'spoken': t, 'longestSentenceWords': len(t.split())} for i, t in enumerate(items)]}
+
+
 def run(args):
     tok = os.environ.get('TOK', '').strip()
     if not tok:
         print('no bearer in TOK', file=sys.stderr)
         return 2
-    corpus = json.load(open(args.corpus, encoding='utf-8'))
+    corpus = adhoc_corpus(args.texts) if args.texts else json.load(open(args.corpus, encoding='utf-8'))
     paces = [float(p) for p in args.paces.split(',') if p.strip()]
     os.makedirs(args.out, exist_ok=True)
     results = []
@@ -287,6 +305,23 @@ def run(args):
             if r['path']:
                 r['transcript'] = heard.get(r['path'], '')
                 r['wer'] = wer(r['spoken'], r['transcript'])
+    # THE HEAL PASS (2026-10-20, run 39489093593): a piece over the line at pace
+    # 1 is spoken once more with fresh: true, so a bad clip the cache holds is
+    # told apart from a voice that cannot say these words. Healed = the fresh
+    # clip comes back under the line (and the cache now holds the good one).
+    for r in results:
+        if r['pace'] == 1.0 and r['wer'] is not None and r['wer'] > args.fail_wer:
+            fresh_path = r['path'][:-4] + '.fresh.wav'
+            code = speak(args.base, tok, r['spoken'], args.voice, 1.0, fresh_path, fresh=True)
+            r['fresh_http'] = code
+            if code == 200:
+                r['fresh_transcript'] = transcribe_all([fresh_path], args.model).get(fresh_path, '')
+                r['fresh_wer'] = wer(r['spoken'], r['fresh_transcript'])
+                r['fresh_seconds'] = wav_seconds(fresh_path)
+                print(f"heal {r['id']}: fresh clip WER {r['fresh_wer']:.2f} ({r['fresh_seconds']} s) -- "
+                      + ('HEALED: the cache held a bad clip' if r['fresh_wer'] <= args.fail_wer else 'still bad: the voice cannot say these words'), flush=True)
+            else:
+                print(f"heal {r['id']}: the fresh clip was refused ({code})", flush=True)
     with open(os.path.join(args.out, 'results.json'), 'w', encoding='utf-8') as fh:
         json.dump({'base': args.base, 'voice': args.voice, 'model': args.model, 'paces': paces, 'results': results}, fh, indent=2)
     summary = render(results, paces, args.fail_wer)
@@ -301,7 +336,8 @@ def run(args):
     if len(failed_http) == len(results):
         print('::error::no clip came back from /voice-lite at all', file=sys.stderr)
         return 3
-    bad = [r for r in results if r['pace'] == 1.0 and r['wer'] is not None and r['wer'] > args.fail_wer]
+    bad = [r for r in results if r['pace'] == 1.0 and r['wer'] is not None and r['wer'] > args.fail_wer
+           and not (r.get('fresh_wer') is not None and r['fresh_wer'] <= args.fail_wer)]
     if bad:
         for r in bad:
             print(f"::error::{r['id']} at pace 1: WER {r['wer']:.2f} -- handed \"{r['spoken'][:120]}\" heard \"{r['transcript'][:120]}\"", file=sys.stderr)
@@ -331,6 +367,10 @@ def selftest():
             {'id': 'b', 'group': 'g', 'pace': 1.0, 'longestSentenceWords': 30, 'wer': 0.6, 'seconds': 8.1, 'transcript': 'y | z'}]
     md = render(rows, [1.0], 0.5)
     check('| b | 30 | 0.60 |' in md and '1 of 2 over 0.5' in md and 'y / z' in md, 'the summary names the worst piece first and escapes the table')
+    healed_md = render(rows + [dict(rows[1], id='c', fresh_wer=0.05)], [1.0], 0.5)
+    check('**c healed**' in healed_md and 'WER 0.60' in healed_md and 'WER 0.05' in healed_md, 'a healed piece is named: the cache held a bad clip')
+    ad = adhoc_corpus(' Change why you open the Book. || and then to do His Way. ||  ')
+    check([p['id'] for p in ad['pieces']] == ['adhoc-01', 'adhoc-02'] and ad['pieces'][1]['spoken'] == 'and then to do His Way.' and ad['pieces'][0]['longestSentenceWords'] == 6, 'ad-hoc texts become pieces, blanks dropped')
     # The clip decoder: a stereo 22050 Hz 16-bit WAV (Piper's shape, two channels
     # on purpose) comes back mono at 16 kHz, in [-1, 1], by the stdlib alone.
     import math, os, struct, tempfile
@@ -365,6 +405,7 @@ def main():
     ap.add_argument('--paces', default='1,1.5,2')
     ap.add_argument('--model', default='small.en')
     ap.add_argument('--fail-wer', type=float, default=0.5)
+    ap.add_argument('--texts', default='', help="ad-hoc pieces separated by ' || ' instead of the corpus")
     args = ap.parse_args()
     if args.selftest:
         sys.exit(selftest())

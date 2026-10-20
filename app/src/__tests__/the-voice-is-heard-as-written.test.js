@@ -60,7 +60,7 @@ describe('the scorer', () => {
   it('passes its own offline checks (word error rate, numbers as words, the summary)', () => {
     const r = spawnSync('python3', [join(ROOT, 'scripts', 'voice-clarity-witness.py'), '--selftest'], { encoding: 'utf8' });
     expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toMatch(/15 of 15 checks passed/);
+    expect(r.stdout).toMatch(/17 of 17 checks passed/);
   });
 });
 
