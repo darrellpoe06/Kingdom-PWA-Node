@@ -796,7 +796,7 @@ function PoeTechProjections() {
       </div>
 
       {/* DR-1128: a church's price is checked against its whole cost to serve
-          before it is offered. DR-1133: then every revenue line against the
+          before it is offered. DR-1135: then every revenue line against the
           family's full-time pay and the next hire. */}
       <ChurchCostToServe />
       <FullTimePath />
