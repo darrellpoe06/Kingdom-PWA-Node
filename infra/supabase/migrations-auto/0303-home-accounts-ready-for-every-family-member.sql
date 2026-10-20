@@ -104,3 +104,12 @@ REVOKE ALL ON FUNCTION public.home_accounts_roster(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.home_accounts_roster(text) FROM anon;
 REVOKE ALL ON FUNCTION public.home_accounts_roster(text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.home_accounts_roster(text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- The two tenancy overlays only see tables that exist when they run (0125,
+-- 0130; DR-0241). home_accounts carries instance_id, so both are re-run here:
+-- the assistant scope never reaches it, and a viewer cannot write it. Both are
+-- RESTRICTIVE, so re-running only narrows: the owner-read policy above stands.
+-- ---------------------------------------------------------------------------
+SELECT public.apply_assistant_scope_overlay();
+SELECT public.apply_viewer_readonly_overlay();
