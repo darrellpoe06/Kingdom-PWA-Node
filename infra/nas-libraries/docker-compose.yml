@@ -1,0 +1,51 @@
+# The libraries road (DR-1121; the Jellyfin and Audiobookshelf pilots of
+# DR-1119, corrected): the household's own video and audio, served to its own
+# screens and phones. Darrell 2026-10-19: "Why can't we use them for our audio
+# tts... etc..." The libraries already existed on the pool; nothing could
+# browse them.
+#
+# WHERE THEY LISTEN (an exception the Way names, DR-1121). The TV and phone
+# apps for these two cannot carry the family key on a header, so neither is
+# on the public Funnel. Each publishes on loopback only; install.sh serves it
+# on the TAILNET (tailscale serve, never funnel) on its own port, and the
+# house's devices on Tailscale reach it with the server's own login. The
+# Funnel sees only the health door (libraries_forwarder.py).
+#
+# PINNED (services-sync-guard refuses a floating tag):
+#   jellyfin 12.2 (git v12.2, the release read for DR-1119), by digest.
+#   audiobookshelf 2.37.1 (git v2.37.1), by digest.
+#
+# THE SHELVES, read-only. The harvest and voice loops keep owning their folders;
+# these servers only read them. The household's own files go under
+# /volume1/PoeTech/library/{video,audio}, which the installer makes.
+services:
+  jellyfin:
+    image: ghcr.io/jellyfin/jellyfin:12.2@sha256:c3efa69a22f2691fc88d6bb035e87a8560e395a6047f062fb381c61c3185e8f5
+    container_name: poetech-jellyfin
+    ports:
+      - "127.0.0.1:8096:8096"
+    environment:
+      TZ: "America/Chicago"
+      JELLYFIN_PublishedServerUrl: "https://poetech.tail5a2f35.ts.net:8096"
+    volumes:
+      - /volume1/docker/jellyfin/config:/config
+      - /volume1/docker/jellyfin/cache:/cache
+      - /volume1/PoeTech/library/video:/media/video:ro
+      - /volume1/docker/ytzero/downloads:/media/harvest:ro
+      - /volume1/PoeTech/lesson-voice:/media/lessons:ro
+    restart: unless-stopped
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:2.37.1@sha256:581d68b2a6fc7ebf58d81c878a9f387cbbc0d88ac9d37b298b9cee10168af85b
+    container_name: poetech-audiobookshelf
+    ports:
+      - "127.0.0.1:13378:80"
+    environment:
+      TZ: "America/Chicago"
+    volumes:
+      - /volume1/docker/audiobookshelf/config:/config
+      - /volume1/docker/audiobookshelf/metadata:/metadata
+      - /volume1/PoeTech/library/audio:/audiobooks:ro
+      - /volume1/PoeTech/lesson-voice:/lessons:ro
+      - /volume1/docker/ytzero/downloads:/harvest:ro
+    restart: unless-stopped

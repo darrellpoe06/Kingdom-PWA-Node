@@ -39,6 +39,15 @@ const ON_THE_WAY = {
   research: { door: 'infra/nas-research/research_forwarder.py', witness: 'research-health.yml' },
   // The first service born BY the Way (DR-1120), the day after it was written.
   immich: { door: 'infra/nas-immich/immich_forwarder.py', witness: 'immich-health.yml' },
+  // The libraries road (DR-1121): its door is health-only, the servers live on the tailnet.
+  libraries: { door: 'infra/nas-libraries/libraries_forwarder.py', witness: 'libraries-health.yml' },
+};
+
+/** Loops born by the Way: no door of their own (their "says why" is the ledger
+ *  row the witness reads), so codeFollows and health are lacking BY NATURE and
+ *  nothing else may be. */
+const LOOPS_ON_THE_WAY = {
+  'home-accounts': { witness: 'libraries-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -137,6 +146,14 @@ describe('a service comes home by one Way (DR-1119)', () => {
     }
   });
 
+  it('a loop on the Way: its witness says where the install stands, and it lacks only what a loop lacks by nature', () => {
+    for (const [name, w] of Object.entries(LOOPS_ON_THE_WAY)) {
+      const s = SERVICES.find((x) => x.name === name);
+      expect(s, name).toBeTruthy();
+      expect(lacksOf(s, w.witness), `${name} lacks`).toEqual(['codeFollows', 'health']);
+    }
+  });
+
   it('every service born before the Way is listed with exactly what it still lacks, and the audit date has not passed', () => {
     const today = new Date().toISOString().slice(0, 10);
     expect(today <= AUDIT_BY, `the audit of the services born before the Way came due on ${AUDIT_BY}: bring them up to the Way or record a new date with a why (DR-0075)`).toBe(true);
@@ -148,7 +165,7 @@ describe('a service comes home by one Way (DR-1119)', () => {
   });
 
   it('a new service joins the Way at birth: every enabled service is on one list, and no listed service is gone', () => {
-    const listed = new Set([...Object.keys(ON_THE_WAY), ...Object.keys(BORN_BEFORE_THE_WAY)]);
+    const listed = new Set([...Object.keys(ON_THE_WAY), ...Object.keys(LOOPS_ON_THE_WAY), ...Object.keys(BORN_BEFORE_THE_WAY)]);
     for (const s of ENABLED) expect(listed.has(s.name), `${s.name} is enabled but on neither list; a new service walks the Way (THE-WAY-A-SERVICE-COMES-HOME)`).toBe(true);
     const names = new Set(SERVICES.map((s) => s.name));
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);

@@ -98,7 +98,7 @@ export function scanFocusRing(src, id) {
     if (!tag.includes('className=')) continue;          // unstyled: not ours to judge
     if (/\bsr-only\b|\bhidden\b/.test(tag)) continue;    // not visible, cannot show a ring
     if (tag.includes('focus:outline') || tag.includes('focus-visible:')) continue;
-    if (ringNames.some((n) => tag.includes('${' + n + '}'))) continue;
+    if (ringNames.some((n) => tag.includes('${' + n + '}') || tag.includes('className={' + n + '}'))) continue;
     out.push({
       kind: 'focus-ring', file: id,
       detail: squash(tag),

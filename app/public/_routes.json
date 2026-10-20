@@ -6,6 +6,7 @@
     "/cams/*",
     "/geocode",
     "/interest",
+    "/libraries/*",
     "/link",
     "/llm/*",
     "/n8n/*",

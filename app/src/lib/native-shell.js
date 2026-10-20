@@ -39,6 +39,7 @@ export const HOUSE_ORIGIN = 'https://poetech.us';
 export const REHOMED_ROUTES = Object.freeze([
   '/api/',
   '/cams/',
+  '/libraries/',
   '/llm/',
   '/n8n/',
   '/nas-photos/',

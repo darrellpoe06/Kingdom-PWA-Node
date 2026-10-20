@@ -658,6 +658,13 @@ const NODES = [
     reads: [{ res: 'device:family-key', file: 'app/src/components/PhotoBackupStatus.jsx', token: 'bridgeToken' }, { res: 'http:photo-backup', token: '/photo-backup' }],
     seeds: [],
   }),
+  app('app/src/lib/home-accounts.js', {
+    id: 'home-accounts', name: 'Home accounts (your logins on the home servers, ready)',
+    purpose: 'Shows the signed-in person their own ready logins on Immich, Jellyfin and Audiobookshelf, made for them by the NAS from the household roster, with each road’s live health; "I have it" clears the first password (DR-1121).',
+    reads: [{ res: 'db:home_accounts', token: "from('home_accounts')" }, { res: 'http:photo-backup', token: '/photo-backup' }, { res: 'http:libraries', token: '/libraries' }, { res: 'device:family-key', file: 'app/src/components/HomeAccounts.jsx', token: 'bridgeToken' }],
+    writes: [{ res: 'db:home_accounts', token: "rpc('home_account_seen'" }],
+    seeds: [],
+  }),
   app('app/src/lib/clip-queue.js', {
     id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
     purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
@@ -1155,6 +1162,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8801' }],
     writes: [{ res: 'gh:incident', token: 'photo-backup-incident' }], seeds: ['ops-surface'],
   }),
+  wf('libraries-health.yml', {
+    id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
+    writes: [{ res: 'gh:incident', token: 'libraries-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }, { res: 'nas:db-backup', token: 'backups/db/status.json' }],
@@ -1569,6 +1581,15 @@ const NODES = [
     id: 'photo-backup-road', name: 'Photo-backup road (Immich behind the locked door)', purpose: 'Takes the phones’ photos and videos onto the pool through Immich; the forwarder is the only door, passing Immich’s API under the family key and never its pages (DR-1120).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'immich' }], writes: [{ res: 'http:photo-backup', token: '/photo-backup' }], seeds: ['photo-backup'],
   }),
+  rider('service:libraries', 'infra/nas-libraries/libraries_forwarder.py', {
+    id: 'libraries-road', name: 'Libraries road (Jellyfin and Audiobookshelf on the tailnet; a health door on the Funnel)', purpose: 'Serves the household’s own video and audio to its screens and phones over the tailnet, behind each server’s own login; the Funnel sees only /health (DR-1121).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'libraries' }], writes: [{ res: 'http:libraries', token: '/libraries' }], seeds: ['home-accounts'],
+  }),
+  rider('service:home-accounts', 'infra/nas-home-accounts/home_accounts_sync.py', {
+    id: 'home-accounts-loop', name: 'Home accounts loop (this household’s logins, made for them)', purpose: 'Each cycle reads this household’s roster (by this NAS’s own family key), makes a missing account on each home server that is up, and writes one home_accounts row per person and service for the app to show (DR-1121).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'home-accounts' }, { res: 'db:home_accounts', token: '/rest/v1/home_accounts' }, { res: 'http:photo-backup', token: '127.0.0.1:2283' }, { res: 'http:libraries', token: '127.0.0.1:8096' }],
+    writes: [{ res: 'db:home_accounts', token: '/rest/v1/home_accounts' }, { res: 'nas:home-accounts', token: 'last-pass.json' }], seeds: ['home-accounts'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1853,6 +1874,9 @@ const RESOURCES = {
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
   'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
   'http:photo-backup': { label: 'the photo-backup road on the NAS (Immich behind the family key)', route: '/photo-backup' },
+  'http:libraries': { label: 'the libraries road’s health door on the NAS (Jellyfin and Audiobookshelf live on the tailnet)', route: '/libraries' },
+  'db:home_accounts': { label: 'a person’s own logins on the home servers, written by the NAS after the account exists (0303, DR-1121; owner reads only)' },
+  'nas:home-accounts': { label: 'the home-accounts loop’s last-pass ledger on the NAS' },
   'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
   'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },

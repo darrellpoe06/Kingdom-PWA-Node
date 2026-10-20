@@ -22,6 +22,7 @@ import { DispatchPanel } from './DispatchPanel.jsx';
 import { CapacityPanel } from './CapacityPanel.jsx';
 import { LifeGallery } from './LifeGallery.jsx';
 import { PhoneBackup } from './PhoneBackup.jsx';
+import HomeAccounts from './HomeAccounts.jsx';
 import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
@@ -798,6 +799,8 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           only on devices holding the bridge token — fail-quiet like every
           NAS surface. */}
       <PhoneBackup />
+      {/* Your logins on the home servers, made for you by the NAS (DR-1121). */}
+      <HomeAccounts />
       {/* THE BIGGEST PICTURE — family / business / project hero photos. Moved to
           the BOTTOM (2026-06-24, Darrell): the Action Queue ("what needs you")
           leads the tab; the photo wall closes it as the "this is what it's all

@@ -53,6 +53,9 @@ SOVEREIGN_MOUNTS = [
     # /photo-backup added 2026-10-19 (DR-1120): the phones' background backup
     # door; a dropped mount is a phone that silently stops backing up.
     ("/photo-backup", "http://127.0.0.1:8801"),
+    # /libraries added 2026-10-19 (DR-1121): the health door of the video and
+    # audio libraries (the servers themselves are on the tailnet, not here).
+    ("/libraries", "http://127.0.0.1:8802"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]

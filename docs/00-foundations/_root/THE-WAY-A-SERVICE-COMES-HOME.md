@@ -44,6 +44,10 @@ A service comes home in this order. Each step leaves something a gate can read, 
 
 **A loop is a service too.** A batch loop with no door (a harvest, a sync) keeps steps 1, 2, 4, 6, 7 and 8; its "says why" is the row it writes and the witness that reads it.
 
+**The named exception to step 3 (DR-1121).** A service whose own clients cannot carry the family key on a header (a TV app, a phone app with no custom headers) is never put on the public Funnel with its login exposed, and never given the key on a query string (P71). It listens on loopback and is served on the TAILNET only (`tailscale serve`, never `funnel`), behind its own login, reached by the household's devices on Tailscale or the house network. Its Funnel door is `/health` alone. Jellyfin and Audiobookshelf are the first two.
+
+**Accounts are made, never set up (DR-1121).** "Your do everything so users can just use them... End to end workflows" (Darrell, 2026-10-19). A service with its own login is not home until every household member's account on it exists without anyone making it: the `home-accounts` loop reads the household's roster (the members of the instance whose family key is this NAS's key: one NAS, one family; another household's server serves theirs), makes the missing accounts, and writes each person their row; the app shows a person their own ready login and nothing else. A person's part is to install the app and sign in once.
+
 ---
 
 ## The processes fixed on 2026-10-19
@@ -64,8 +68,8 @@ The whole night is recorded in DR-1101, with the timestamps.
 |---|---|---|---|
 | Cameras on our own network | — | `infra/nas-cameras` (go2rtc behind the family key, DR-0756), live in the app | **Already home** |
 | Phone photos backed up to our own disk | Immich | the app's own pick-and-verify lane (`PhoneBackup.jsx` → `/volume1/PoeTech/phone-backup`), foreground only because a PWA cannot reach the camera roll in the background; `infra/nas-property-photos` serves the albums; the background job is Google's | **Pilot on the NAS, built 2026-10-19 (DR-1120).** The inbox holds one subscription in this class: Google AI Plus (2 TB) (Google One), $9.99 a month, charged on the 14th. Immich does the background half of that job on our pool. |
-| Our own films and shows | Jellyfin | the harvested sermon and worship video under `/volume1/PoeTech/yt-dlp` and `/volume1/docker/ytzero/downloads`, which no screen can browse | **Pilot on the NAS** (Darrell 2026-10-19: "Why can't we use them for our audio tts... etc..."; the first hold had a wrong premise, "no library named"). Next by the Way. |
-| Our own audiobooks | Audiobookshelf | the lesson readings the voice makes (`/volume1/PoeTech/voice-lite`) and the spoken lessons (`/volume1/PoeTech/lesson-voice`), with no shelf and no progress kept | **Pilot on the NAS** (the same correction). Next by the Way. |
+| Our own films and shows | Jellyfin | the harvested sermon and worship video under `/volume1/docker/ytzero/downloads` and the spoken lessons, which no screen could browse | **Built 2026-10-19 (DR-1121)**, on the tailnet with the named exception (Darrell: "Why can't we use them for our audio tts... etc..."; the first hold had a wrong premise, "no library named"). |
+| Our own audiobooks | Audiobookshelf | the spoken lessons (`/volume1/PoeTech/lesson-voice`) and the harvests, with no shelf and no progress kept (`voice-lite` is a pruned cache, not a shelf) | **Built 2026-10-19 (DR-1121)**, beside Jellyfin, logins made for every member by the `home-accounts` loop. |
 
 The rows live in the candidates register and show on the Infra Plan. A hold is not a no: it is the honest answer until there is a library to serve, with a date.
 

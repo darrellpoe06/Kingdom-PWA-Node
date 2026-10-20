@@ -1,0 +1,178 @@
+# libraries-health -- the libraries road's witness, and the home-accounts
+# loop's (DR-1121).
+#
+# THE-WAY-A-SERVICE-COMES-HOME, step 6. Over the tailnet it reads the health
+# door on the NAS (Jellyfin and Audiobookshelf on loopback, the shelves on the
+# pool) and the home-accounts loop's last ledger (how many of the household
+# have their logins), and passes only when both servers answer, the shelves
+# are there, and the loop's last pass finished without error. When it fails it
+# says WHERE THE INSTALL STANDS first. Read-only on the box; nothing secret
+# travels through the log.
+# A failing pass opens (or comments on) ONE rolling issue labelled
+# `incident` + `libraries-incident`; the next passing run closes it.
+name: libraries-health
+
+on:
+  schedule:
+    - cron: '7 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: libraries-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the NAS (read-only, judged fields only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          python3 - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          out = {"reachable": True, "at": int(time.time()), "health_code": None, "health": None, "accounts": None}
+          try:
+              with urllib.request.urlopen("http://127.0.0.1:8802/health", timeout=10) as r:
+                  out["health_code"], h = r.status, json.loads(r.read().decode() or "{}")
+          except urllib.error.HTTPError as e:
+              out["health_code"] = e.code
+              try: h = json.loads(e.read().decode() or "{}")
+              except Exception: h = {}
+          except Exception as e:
+              h = {"reason": str(e)[:200]}
+          out["health"] = {k: h.get(k) for k in ("ok", "jellyfin", "audiobookshelf", "shelves", "code", "reason")}
+          try:
+              with open("/volume1/docker/home-accounts/last-pass.json") as fh:
+                  led = json.load(fh)
+              out["accounts"] = {k: led.get(k) for k in ("at", "skipped", "roster", "created", "errors")}
+              out["accounts"]["servers"] = {n: {k: v.get(k) for k in ("up", "accounts", "error")} for n, v in (led.get("servers") or {}).items()}
+          except Exception as e:
+              out["accounts"] = {"note": "no pass recorded yet: " + str(e)[:80]}
+          print(json.dumps(out))
+          PY
+          EOS
+          cat /tmp/witness.json
+
+      - name: Judge and report
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          problems = []
+          if not w.get("reachable"):
+              problems.append("the NAS did not answer over SSH")
+          elif w.get("health_code") != 200:
+              problems.append(f"/health answered {w.get('health_code')}: {(w.get('health') or {}).get('reason')}")
+          a = w.get("accounts") or {}
+          if "note" in a:
+              problems.append("the home-accounts loop has not recorded a pass yet")
+          elif a.get("errors"):
+              problems.append("the home-accounts loop's last pass had errors: " + "; ".join(a["errors"])[:300])
+          verdict = "PASS" if not problems else "FAIL"
+          lines = [f"## libraries road: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
+          if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh: fh.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
+          PY
+
+      - name: "Diagnose a dark road: where the install stands"
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          if python3 -c "import json,sys; sys.exit(0 if json.load(open('/tmp/verdict.json'))['pass'] else 1)"; then
+            echo "verdict passed -- nothing to diagnose"; exit 0
+          fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | sed -E 's/(Bearer|token|secret|key|password)([^ ,"]*)["=: ]+[^ ,"]+/\1\2=<scrubbed>/Ig' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "door running code: $(rd /volume1/docker/libraries/.forwarder.code.sha || echo none) / repo code: $(sha256sum < "$REPO/infra/nas-libraries/libraries_forwarder.py" 2>/dev/null | cut -c1-16)"
+          for D in /volume1/PoeTech/library/video /volume1/PoeTech/library/audio /volume1/docker/ytzero/downloads /volume1/PoeTech/lesson-voice; do
+            if [ -d "$D" ]; then echo "shelf: $D present, $(ls "$D" 2>/dev/null | wc -l) entries"; else echo "shelf: $D ABSENT"; fi
+          done
+          echo "unit: $(systemctl is-active poetech-libraries 2>/dev/null || echo unknown)"
+          echo "jellyfin (loopback): $(curl -sS -m 6 http://127.0.0.1:8096/System/Info/Public 2>&1 | head -c 120)"
+          echo "audiobookshelf (loopback): $(curl -sS -m 6 http://127.0.0.1:13378/status 2>&1 | head -c 120)"
+          TS="$(command -v tailscale 2>/dev/null || ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"
+          [ -n "$TS" ] && echo "tailnet serve: $(sudo -n $TS serve status 2>/dev/null | grep -cE ':8096|:13378') of 2 served"
+          echo "home-accounts last pass: $(rd /volume1/docker/home-accounts/last-pass.json | head -c 400)"
+          echo "home-accounts secrets: $([ -e /volume1/PoeTech/secrets/home-accounts.json ] && echo present || echo ABSENT)"
+          D=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then D="$CAND"; break; fi
+            if sudo -n "$CAND" ps >/dev/null 2>&1; then D="sudo -n $CAND"; break; fi
+          done
+          [ -n "$D" ] && $D ps --filter name=poetech-jellyfin --filter name=poetech-audiobookshelf --format '{{.Names}} {{.Status}}' || echo "(no docker this user can run)"
+          for C in poetech-jellyfin poetech-audiobookshelf; do
+            echo "---- last lines of $C ----"
+            [ -n "$D" ] && $D logs --tail 25 "$C" 2>&1 | cut -c1-300 || echo "(no docker this user can run)"
+          done
+          EOS
+      - name: "Ledger: a dark road is an incident; the next pass closes it"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const { owner, repo } = context.repo;
+            const label = 'libraries-incident';
+            for (const name of ['incident', label]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The libraries road witness ledger (DR-1121)' : 'The downtime ledger' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            const issue = open.data.find((i) => i.title.startsWith('Libraries road'));
+            const now = new Date().toISOString();
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const foot = '\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_';
+            const why = v.problems.map((p) => `- ${p}`).join('\n');
+            if (!v.pass) {
+              const body = `The libraries road (DR-1121) failed its witness at ${now} ([run](${run})):\n${why}\n\n\`\`\`json\n${JSON.stringify(v.witness)}\n\`\`\``;
+              if (!issue) await github.rest.issues.create({ owner, repo, title: 'Libraries road is dark (DR-1121)', body: body + foot, labels: ['incident', label] });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: body + foot });
+              core.setFailed('libraries road: ' + v.problems.join('; '));
+            } else if (issue) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `The libraries road answered again at ${now} ([run](${run})).${foot}` });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed' });
+            }

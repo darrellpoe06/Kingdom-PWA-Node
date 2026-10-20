@@ -25,7 +25,9 @@ DR-1119 weighed the home-server video's four jobs and named Immich the pilot: th
 - DR-1119 said "nothing backs the phones up except Google". Not so: the app has its own pick-and-verify lane (`PhoneBackup.jsx` → `media-backup.js` → `photo_server.py`, files under `/volume1/PoeTech/phone-backup`), and the Synology backups feed the albums. What neither can do is the background job: a PWA cannot reach the camera roll unless a person picks files (`2026-06-11-photo-sovereignty-and-phone-backup.md`). That is the gap Immich fills, and it is exactly what the 2 TB plan is paid for. The register row says so now; the existing lanes stay as they are.
 - DR-1119 held Jellyfin and Audiobookshelf on "no library named". Darrell: "Why can't we use them for our audio tts... etc..." The libraries exist in the code: the lesson readings the NAS voice makes (`/volume1/PoeTech/voice-lite`), the spoken lessons with transcripts (`/volume1/PoeTech/lesson-voice`), and the harvested sermon and worship video (`/volume1/PoeTech/yt-dlp`, `/volume1/docker/ytzero/downloads`). Both are pilots on the NAS now, next by the Way in this session; no bill is behind either, so the gain is reach.
 
-## What was built, step by step
+## Decision
+
+What was built, step by step:
 
 1. **Weigh it.** Done in DR-1119 at v3.3.3 (`d2dac658`). The row now carries `builtRef: 'DR-1120'`.
 2. **Own the files.** The library at `/volume1/PoeTech/immich` (the pool, beside the pick-and-verify lane), the database at `/volume1/docker/immich/postgres`, the model cache at `/volume1/docker/immich/model-cache`. The installer makes all three; nothing lives inside a container alone.

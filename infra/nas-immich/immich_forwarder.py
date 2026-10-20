@@ -470,7 +470,10 @@ def _selftest():
             sk.sendall(body)
         except OSError:
             pass
-        sk.shutdown(socket.SHUT_WR)
+        try:
+            sk.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass  # the door already answered and closed (a refused upload); the status line is still read below
         data = b""
         try:
             while len(data) < 4096:

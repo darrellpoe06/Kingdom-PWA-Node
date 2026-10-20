@@ -55,7 +55,7 @@ describe('the register', () => {
     expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.canExecuteCode && c.verdict === 'pilot')).toEqual([]);
     expect(s.byPlace).toEqual({ nas: 4, 'dev-gpu-node-1': 3, 'dev-gpu-node-2': 1 });
     // Only what is built says so; the rest is not installed (never a painted status).
-    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.builtRef).map((c) => c.id)).toEqual(['vane', 'immich']);
+    expect(OPEN_SOURCE_CANDIDATES.filter((c) => c.builtRef).map((c) => c.id)).toEqual(['vane', 'immich', 'jellyfin', 'audiobookshelf']);
   });
 
   it('never pilots InvokeAI from its alpha branch', () => {
@@ -124,7 +124,7 @@ describe('the Infra Plan section', () => {
     for (const c of OPEN_SOURCE_CANDIDATES) expect(t).toContain(c.name);
     // The header is counted from the rows: which record weighed how many, and what is built.
     expect(t).toMatch(/10 under DR-1099, 3 under DR-1119/);
-    expect(t).toMatch(/Built: Vane \(DR-1101\), Immich \(DR-1120\)\. The rest are not installed\./);
+    expect(t).toMatch(/Built: Vane \(DR-1101\), Immich \(DR-1120\), Jellyfin \(DR-1121\), Audiobookshelf \(DR-1121\)\. The rest are not installed\./);
     expect(t).toMatch(/Immich: the phones’ photos, backed up at home/);
     expect(t).not.toMatch(/None of them is installed yet/);
     expect(host.querySelectorAll('[aria-expanded="true"]').length).toBe(0);
