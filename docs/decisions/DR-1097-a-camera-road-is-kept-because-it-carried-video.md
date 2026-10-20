@@ -426,3 +426,54 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 `re-review: 2026-10-21`. Two questions stand at that review:
 - **The TURN count, read twice, hours apart.** If it climbs, sessions are being left open, and the fix is between releasing go2rtc on a clock and closing them at the source.
 - **Wyze's 429.** Which endpoint answers it, and whether it lifts once the NAS waits.
+
+## Thirteenth field read (2026-10-20 15:10 UTC; cams-diag 39445926381): the TURN flood is a leak in go2rtc, and it is answered
+
+Darrell, the same afternoon: "Build the turn fix it now". The second reading the twelfth read set for 2026-10-21 was not waited for.
+
+**The reading, on forwarder `94989bcb1da43bd7`:**
+- **TURN:** go2rtc logged 524 TURN refresh failures in 10 minutes. That is 80 of Amazon's 401 Unauthorized and 180 broken pipes, across 19 relay servers and 264 permission ids.
+  - The twelfth read's 78 lines in about 90 s is the same rate. This is a steady state, not a moment.
+- **Kinesis offers Wyze never answered:** 811, counted since go2rtc's last start.
+- **Wyze's own list answers again:** 22 online and 11 offline. The 11 are exactly the eleven the twelfth read named. The 429 lifted after the forwarder restarted with the wait from the twelfth read; whether the wait is what lifted it is not known.
+
+**The cause, read in go2rtc's own source (`internal/webrtc/kinesis.go`, identical at v1.9.14 and on master):**
+- `kinesisClient` creates a PeerConnection, sends the offer, then waits on `connState`.
+- On any error it returns without `pc.Close()`. The errors are Amazon closing the signaling socket of an unanswered offer (`close 1001 (going away)`), or `webrtc: failed`.
+- `go2rtcClient` beside it does close its PeerConnection on error. This one never does.
+- So every failed Kinesis dial leaves a pion PeerConnection behind. Its TURN clients keep refreshing with Amazon until go2rtc exits, and the 401s begin once the credentials expire.
+- There is no newer release to move to: master carries the same code.
+
+**What the forwarder does now (built the same day):**
+- **Fewer leaks are made.**
+  - The road judge no longer dials a camera Wyze's own list calls offline. Every judgement of one of those eleven was an offer nobody could answer.
+  - `/snap` answers a Kinesis camera that Wyze calls offline with 503 `wyze-offline`. It sends no offer, and it reads only the list already held, so a frame never waits on Wyze's cloud.
+  - The tab says "Wyze says it is offline". With no Wyze list, nothing is skipped: unknown is not offline.
+- **The leaks are released.** go2rtc is restarted in place, with `POST /api/restart`, which re-executes it and reloads `go2rtc.yaml`. That happens only when all of these hold:
+  - at least `CAMS_GO2RTC_RELEASE_AFTER` (200) failed Kinesis dials have been logged since the last release;
+  - nobody is watching live, and no Kinesis session is held;
+  - go2rtc parses `go2rtc.yaml` first (`POST /api/config` answers 200), per the eighth read;
+  - no release has happened in the last 6 hours.
+- **The brakes** (deterministic class, DR-0248):
+  - budget: one release per 6 hours, stamped before the restart is asked;
+  - lock: the release runs in the self-heal thread, under `RELEASE_LOCK`;
+  - stop-path: `CAMS_GO2RTC_RELEASE_AFTER=0`.
+- **What a release costs:**
+  - A recording loses a few seconds; the recorder reconnects with its own backoff.
+  - The count comes from go2rtc's in-memory log, which holds 1 MB. It can undercount; it never counts a dial twice.
+- **Where it shows:** `/health` → `bridge.go2rtc_release` carries the last check, the failed-dial count and the last release.
+
+**Proven:**
+- Forwarder selftest: 473 passing (was 458).
+- PROVEN TO CATCH, each part taken out on its own turns its checks red:
+  - the judge's offline skip;
+  - the "nobody watching" rule;
+  - the config parse before a restart;
+  - the `/snap` offline gate;
+  - the 6-hour budget;
+  - the stamp written before the restart is asked. go2rtc re-executes itself from a goroutine and can cut its own reply short. Stamped after the ask, a cut-short reply would read as a failure and the next tick would restart go2rtc again.
+- App camera tests: 161 pass. Lint exit 0. verify:gates exit 0.
+
+`re-review: 2026-10-21`. Two readings decide it, both from cams-diag:
+- **The TURN count after the first release.** It should fall to near zero, then climb back only at the rate of offers Wyze leaves unanswered.
+- **Whether a release has happened at all**, from `bridge.go2rtc_release` in `/health`. If the threshold of 200 is never reached between 6-hour windows, lower it.

@@ -346,6 +346,8 @@ describe('humanizeCameraError + classifySnapError', () => {
   });
   it('a failed frame is a short true reason on the tile, never a bare 502', () => {
     expect(classifySnapError({ status: 504, body: { error: 'frame-timeout', after_s: 12 } })).toBe('no answer in 12 s');
+    // DR-1097 thirteenth read: Wyze's own offline word, never "NAS busy"
+    expect(classifySnapError({ status: 503, body: { error: 'wyze-offline' } })).toBe('Wyze says it is offline');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout' } })).toBe('NAS cannot reach it on its network');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: only DTLS cameras are supported' } })).toBe('firmware has no DTLS');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: K10002 failed' } })).toBe('camera refused the sign-in');
