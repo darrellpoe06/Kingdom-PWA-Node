@@ -1534,7 +1534,7 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
-  // THE VOICE IS LISTENED TO (DR-1114). Real lesson pieces, cut by the reader's
+  // THE VOICE IS LISTENED TO (DR-1130). Real lesson pieces, cut by the reader's
   // own pipeline, spoken through /voice-lite at each pace and transcribed back
   // on the runner: word error per piece is the measure of "it mumbles".
   wf('voice-clarity-witness.yml', {

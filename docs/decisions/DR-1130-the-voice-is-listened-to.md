@@ -1,4 +1,4 @@
-# DR-1114: The voice is listened to, not only inspected — a clarity witness that transcribes what the reader plays, and three more places a long sentence is cut
+# DR-1130: The voice is listened to, not only inspected — a clarity witness that transcribes what the reader plays, and three more places a long sentence is cut
 
 **Date:** 2026-10-20
 **Status:** accepted
