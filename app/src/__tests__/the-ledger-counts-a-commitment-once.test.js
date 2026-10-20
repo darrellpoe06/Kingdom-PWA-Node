@@ -109,13 +109,37 @@ describe('the echo of a commitment is not a second commitment', () => {
 });
 
 describe('MEASURED on the real ledger, not a fixture', () => {
-  it('443 of the 481 index-row commitments are echoes, and 38 are not', () => {
+  // WHY THIS PINS THE INVARIANT AND NOT THE TOTAL, learned by getting it wrong
+  // one commit earlier. I first pinned the exact figures measured on
+  // 15141ac71 -- 481 rows, 38 kept, 443 echoes -- and merging the base moved
+  // them to 483 / 38 / 445 before this branch was an hour old, because an
+  // unrelated record (DR-1097) and this branch's own row added `re-review:`
+  // dates to the index. A pin tied to the SIZE of a ledger that grows several
+  // times a day is not a guard; it goes red on work that has nothing to do
+  // with it, and it teaches the next session to bump a number instead of
+  // reading it. So the figures are stated as the day's measurement in prose
+  // and the TEST asserts what must be true at any size.
+  it('no surviving index row is one its own record already carries', () => {
+    // The whole correctness property, computed from the RECORDS rather than
+    // from the function under test -- so it is an independent check and not
+    // the implementation agreeing with itself (DR-0076 section 7).
+    const all = extractReReviews({ reviews: indexOnly(), decisions: decisions() }, NOW);
+    const inRecord = new Set(all.filter((i) => i.origin === 'decision').map((i) => `${i.sourceId}|${i.date}`));
+    const survivors = all.filter((i) => i.sourceId === LEDGER_INDEX_ID);
+    const wrongly = survivors.filter((i) => i.owner && inRecord.has(`${i.owner}|${i.date}`));
+    expect(wrongly.map((w) => `${w.owner} ${w.date}`)).toEqual([]);
+  });
+
+  it('and the echoes are the large majority, so the phenomenon is real', () => {
+    // A floor, not a pin: measured 445 of 483 on 2026-10-20. Were the ratio to
+    // collapse, either the index stopped summarising records or the suppression
+    // stopped working, and both deserve a reader.
     const rows = extractReReviews({ reviews: indexOnly(), decisions: { items: [] } }, NOW);
-    const beside = extractReReviews({ reviews: indexOnly(), decisions: decisions() }, NOW)
+    const kept = extractReReviews({ reviews: indexOnly(), decisions: decisions() }, NOW)
       .filter((i) => i.sourceId === LEDGER_INDEX_ID);
-    expect(rows.length).toBe(481);
-    expect(beside.length).toBe(38);
-    expect(rows.length - beside.length).toBe(443);
+    expect(rows.length).toBeGreaterThan(400);
+    expect(rows.length - kept.length).toBeGreaterThan(400);
+    expect(kept.length).toBeLessThan(rows.length / 4);
   });
 
   it('the survivors include the rows whose record is not on disk', () => {
