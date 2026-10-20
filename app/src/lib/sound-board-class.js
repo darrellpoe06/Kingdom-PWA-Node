@@ -141,7 +141,7 @@ export const SOUND_BOARD_MODULES = [
         'Two destinations from one channel: the mains (what the house hears) and the monitor sends (what the stage hears) — different needs, same source.',
         'Troubleshooting is just walking the chain in order: signal at input? unmuted, fader up? routed to the right bus? bus up? amp/speaker live?',
         'The layout changes board to board; the chain never does. That is what lets you sit down at any console.',
-        'Order is ministry: "decently and in order" (1 Cor 14:40) — a clean chain serves the gathering; chaos pulls people out of worship.',
+        'Order is ministry: "decently and in order" (1 Corinthians 14:40) — a clean chain serves the gathering; chaos pulls people out of worship.',
       ],
       howToRun: 'Pray + read the anchor (3): pray, read 1 Corinthians 14:40 — we serve order so the Word is heard. | The big idea (10): walk to the board and physically trace one channel; have the learner point to each stop. | Go deeper (15): name the channel-strip order (HPF → EQ → dynamics → fader) and the two destinations (mains + monitor). | Hands-on at the board (20): the learner traces THREE different channels (a vocal, an instrument, the choir mic) end to end, out loud. | Check yourself + next service (7): troubleshoot a "dead channel" together by walking the chain in order.',
       discussionPrompts: [
@@ -275,7 +275,7 @@ export const SOUND_BOARD_MODULES = [
         'High-pass aggressively — vocals ~80–120 Hz, most non-bass channels accordingly — so the low end isn’t forty channels of mud.',
         'Carve complementary lanes: kick vs bass, keys vs guitar — make room rather than turning everything up.',
         'Narrow Q to kill a resonance, wide Q for musical shaping. The goal is FIT in the whole, not a great soloed channel.',
-        'Intelligibility is the point: 1 Cor 14:7–9 — distinct notes, clear speech — and "play skillfully" (Ps 33:3) is the craft.',
+        'Intelligibility is the point: 1 Cor 14:7–9 — distinct notes, clear speech — and "play skillfully" (Psalm 33:3) is the craft.',
       ],
       howToRun: 'Pray + read the anchor (3): read 1 Corinthians 14:7–9 — make it distinct. | The big idea (10): play a muddy vocal, then a cut-clean one; let them HEAR subtractive EQ. | Go deeper (15): walk the frequency map; demo the sweep-and-cut and a high-pass. | Hands-on at the board (20): learner sweeps-and-cuts a vocal, high-passes it, then carves keys vs guitar. | Check yourself + next service (7): have them name the range for "muddy," "boxy," "harsh," "thin," "no air."',
       discussionPrompts: [
@@ -491,7 +491,7 @@ export const SOUND_BOARD_MODULES = [
         'Carve keys vs guitars into complementary mid lanes and pan for width — clarity comes from lanes, not from turning everything up.',
         'The CHOIR is the COLG craft + hardest feedback case: few distant open mics → ring out, HPF, fewest mics, ride down when not singing.',
         'Choir aesthetic = blend, not spotlight: reinforce the section as one unified voice. More mics ≠ more choir.',
-        'Mix as a dynamic arc — ride faders so the lead stays clear from quiet verse to full vamp. Standard: "as one... one sound" (2 Chr 5:13); skillful (1 Chr 15:22).',
+        'Mix as a dynamic arc — ride faders so the lead stays clear from quiet verse to full vamp. Standard: "as one... one sound" (2 Chronicles 5:13); skillful (1 Chr 15:22).',
       ],
       howToRun: 'Pray + read the anchor (3): read 2 Chronicles 5:13 — one sound, and the glory filled the house. | The big idea (10): build the hierarchy live — lead first, then foundation, then harmony, then choir. | Go deeper (15): kick/bass pockets, mid lanes, and the choir’s feedback + blend discipline. | Hands-on at the board (20): learner mixes a full set: lead on top, choir blended as one section, every word intelligible. | Check yourself + next service (7): ride a dynamic arc from a soft verse to a full-choir peak, keeping the lead clear.',
       discussionPrompts: [

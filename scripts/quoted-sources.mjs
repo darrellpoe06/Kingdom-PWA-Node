@@ -60,6 +60,37 @@ function walk(dir, out = []) {
 export const QUOTED_SOURCES = Object.freeze([...walk(LIB), ...walk(COMPONENTS)].sort());
 
 /**
+ * Every DATA MODULE that actually holds a quotation beside its reference, by the
+ * only test that cannot go stale: the file says so.
+ *
+ * WHY THIS EXISTS BESIDE CATALOGS. `CATALOGS` names the 42 lesson courses, and a
+ * gate built on it reads the 42. But quoted Scripture also lives in
+ * scriptures.js, godhead-study.js, yahweh-by-century.js, world-issues-class.js,
+ * study-space.js and eleven more that are not courses and never were -- measured
+ * 2026-10-20: 16 such modules, 1,850 spans, 95 faults that no instrument in this
+ * repository had ever read. Deriving the list means a store written tomorrow is
+ * gated the day it lands whether or not anyone remembers it is a store.
+ *
+ * `.js` only, and that limit is real, not an oversight. A quotation written into
+ * a COMPONENT BODY (`<p>"..." (John 3:16)</p>` inside a .jsx function) is not a
+ * value any import can reach, so a value walk cannot see it and this list does
+ * not pretend to. Measured at four such spans; they are named in DR-1122's
+ * remainder rather than counted as covered.
+ */
+export function modulesWithSpans() {
+  const SPAN = /"[^"]+"\s*\([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*\s+\d+:[\d\-,\s]/;
+  return QUOTED_SOURCES
+    .filter((rel) => rel.endsWith('.js'))
+    .filter((rel) => {
+      try {
+        return SPAN.test(readFileSync(join(ROOT, rel), 'utf8'));
+      } catch {
+        return false;
+      }
+    });
+}
+
+/**
  * The course catalogs, as [file, exported name]. Explicit because the gate
  * imports the export; kept honest by everyCatalogExport() below.
  */

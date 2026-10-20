@@ -324,7 +324,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Response over Circumstance (90/10)',
     fourD: {
-      summary: 'Joy is located in the response, not the event. "Count it all joy, my brothers, when you meet trials of various kinds" (Jas 1:2, ESV) — the trial is not the joy; the counting is. The testing is assigned to PRODUCE steadfastness so you become "perfect and complete, lacking in nothing" (Jas 1:3-4).',
+      summary: 'Joy is located in the response, not the event. "Count it all joy, my brothers, when you meet trials of various kinds" (James 1:2, ESV) — the trial is not the joy; the counting is. The testing is assigned to PRODUCE steadfastness so you become "perfect and complete, lacking in nothing" (James 1:3-4).',
       scripture: 'James 1:2-4',
     },
     threeD: {
@@ -340,7 +340,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Build by Resistance (the enemy as material)',
     fourD: {
-      summary: 'What was meant for harm is re-purposed as material for good. "You meant evil against me, but God meant it for good, to bring it about that many people should be kept alive" (Gen 50:20, ESV). The same enemies become a resting place: "until I make your enemies your footstool" (Ps 110:1). "All things work together for good for those who love God" (Rom 8:28).',
+      summary: 'What was meant for harm is re-purposed as material for good. "You meant evil against me, but God meant it for good, to bring it about that many people should be kept alive" (Genesis 50:20, ESV). The same enemies become a resting place: "until I make your enemies your footstool" (Psalm 110:1). "All things work together for good for those who love God" (Romans 8:28).',
       scripture: 'Genesis 50:20; Psalm 110:1; Romans 8:28',
     },
     threeD: {
@@ -355,7 +355,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Prepare then Execute (Research → Plan → Execute)',
     fourD: {
-      summary: 'Build to a pattern already shown, after counting the cost. "See that you make them after the pattern for them, which is being shown you on the mountain" (Ex 25:40, ESV). "Which of you, desiring to build a tower, does not first sit down and count the cost?" (Luke 14:28). "Write the vision; make it plain on tablets, so he may run who reads it" (Hab 2:2).',
+      summary: 'Build to a pattern already shown, after counting the cost. "See that you make them after the pattern for them, which is being shown you on the mountain" (Exodus 25:40, ESV). "Which of you, desiring to build a tower, does not first sit down and count the cost?" (Luke 14:28). "Write the vision; make it plain on tablets, so he may run who reads it" (Habakkuk 2:2).',
       scripture: 'Exodus 25:40; Luke 14:28-30; Habakkuk 2:2-3',
     },
     threeD: {
@@ -371,7 +371,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Change the Frame (metanoia)',
     fourD: {
-      summary: 'Change the mind itself and the life follows. "Do not be conformed to this world, but be transformed by the renewing of your mind" (Rom 12:2, ESV) — metamorphoo, the caterpillar to the butterfly. "We have the mind of Christ" (1 Cor 2:16). "Take every thought captive to obey Christ" (2 Cor 10:5). The apparatus of thought is re-tooled, not merely coached.',
+      summary: 'Change the mind itself and the life follows. "Do not be conformed to this world, but be transformed by the renewing of your mind" (Romans 12:2, ESV) — metamorphoo, the caterpillar to the butterfly. "We have the mind of Christ" (1 Corinthians 2:16). "Take every thought captive to obey Christ" (2 Corinthians 10:5). The apparatus of thought is re-tooled, not merely coached.',
       scripture: 'Romans 12:2; 1 Corinthians 2:16; 2 Corinthians 10:5',
     },
     threeD: {
@@ -387,7 +387,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Broken and Healed in the Wilderness',
     fourD: {
-      summary: 'The wilderness is the curriculum, not the detour. "He humbled you... testing you to know what was in your heart... that he might make you know that man does not live by bread alone but by every word that comes from the mouth of the Lord" (Deut 8:2-3, ESV). "Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me" (Ps 23:4) — through, not camped in.',
+      summary: 'The wilderness is the curriculum, not the detour. "He humbled you... testing you to know what was in your heart... that he might make you know that man does not live by bread alone but by every word that comes from the mouth of the Lord" (Deuteronomy 8:2-3, ESV). "Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me" (Psalm 23:4) — through, not camped in.',
       scripture: 'Deuteronomy 8:2-3; Psalm 23:4',
     },
     threeD: {
@@ -402,7 +402,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'The Table Before the Enemy',
     fourD: {
-      summary: '"You prepare a table before me in the presence of my enemies; you anoint my head with oil; my cup overflows" (Ps 23:5, ESV). Provision and honor are served openly, with the opposition watching and unable to interrupt the meal. The feast precedes the resolution.',
+      summary: '"You prepare a table before me in the presence of my enemies; you anoint my head with oil; my cup overflows" (Psalm 23:5, ESV). Provision and honor are served openly, with the opposition watching and unable to interrupt the meal. The feast precedes the resolution.',
       scripture: 'Psalm 23:5',
     },
     threeD: {
@@ -422,7 +422,7 @@ export const SEED_ALGORITHMS = [
     // verbatim (KJV, public domain) — never from memory (DR-0076).
     name: "Yahweh's Table (eat the Word, stay at the table)",
     fourD: {
-      summary: 'Yahweh\'s table is eternal, and the meal is the Word — the Bread of Life Himself. "Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God" (Mt 4:4, KJV). To sit at the table IS to eat: dissecting the meal, enjoying it, understanding it, comprehending it. If you are not eating the Word, you are not sitting at the table — and crumbs that fall from it get treated as if they were the meal. There is no dual seating: "ye cannot be partakers of the Lord\'s table, and of the table of devils" (1 Cor 10:21, KJV) — the world sets other tables, and the adversary\'s table is one of them. Even suffering at His table is not a catastrophe but "your reasonable service" (Rom 12:1), because you know what is at stake — your soul, everybody\'s soul — and you know a crown is coming. So: "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth" (2 Tim 2:15, KJV). Why? Because we want to stay at HIS table.',
+      summary: 'Yahweh\'s table is eternal, and the meal is the Word — the Bread of Life Himself. "Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God" (Matthew 4:4, KJV). To sit at the table IS to eat: dissecting the meal, enjoying it, understanding it, comprehending it. If you are not eating the Word, you are not sitting at the table — and crumbs that fall from it get treated as if they were the meal. There is no dual seating: "ye cannot be partakers of the Lord\'s table, and of the table of devils" (1 Corinthians 10:21, KJV) — the world sets other tables, and the adversary\'s table is one of them. Even suffering at His table is not a catastrophe but "your reasonable service" (Romans 12:1), because you know what is at stake — your soul, everybody\'s soul — and you know a crown is coming. So: "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth" (2 Timothy 2:15, KJV). Why? Because we want to stay at HIS table.',
       scripture: '1 Corinthians 10:21; 2 Timothy 2:15; Matthew 4:4; Romans 12:1',
     },
     threeD: {
@@ -438,7 +438,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'The Finish Is Guaranteed (Author and Finisher)',
     fourD: {
-      summary: 'You run toward a finish already secured. "Looking to Jesus, the founder and perfecter of our faith" (Heb 12:2, ESV; KJV: "the author and finisher of our faith"). "He who began a good work in you will bring it to completion at the day of Jesus Christ" (Phil 1:6). The One who starts it is the One who finishes it.',
+      summary: 'You run toward a finish already secured. "Looking to Jesus, the founder and perfecter of our faith" (Heb 12:2, ESV; KJV: "the author and finisher of our faith"). "He who began a good work in you will bring it to completion at the day of Jesus Christ" (Philippians 1:6). The One who starts it is the One who finishes it.',
       scripture: 'Hebrews 12:2; Philippians 1:6',
     },
     threeD: {
@@ -453,7 +453,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Joy Is the Strength',
     fourD: {
-      summary: 'Joy is a strength carried in, not a reward waited for. "The joy of the Lord is your strength" (Neh 8:10, ESV) — spoken to a people WEEPING at the reading of the Law. "Though you have not seen him, you love him... you rejoice with joy that is inexpressible and filled with glory" (1 Pet 1:8) — joy as a settled possession in the middle of trial.',
+      summary: 'Joy is a strength carried in, not a reward waited for. "The joy of the Lord is your strength" (Nehemiah 8:10, ESV) — spoken to a people WEEPING at the reading of the Law. "Though you have not seen him, you love him... you rejoice with joy that is inexpressible and filled with glory" (1 Peter 1:8) — joy as a settled possession in the middle of trial.',
       scripture: 'Nehemiah 8:10; 1 Peter 1:8',
     },
     threeD: {
@@ -468,7 +468,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Seedtime and Harvest (sowing and reaping)',
     fourD: {
-      summary: '"Do not be deceived: God is not mocked, for whatever one sows, that will he also reap... And let us not grow weary of doing good, for in due season we will reap, if we do not give up" (Gal 6:7-9, ESV). "While the earth remains, seedtime and harvest... shall not cease" (Gen 8:22). The harvest comes later, in a different season, and multiplied.',
+      summary: '"Do not be deceived: God is not mocked, for whatever one sows, that will he also reap... And let us not grow weary of doing good, for in due season we will reap, if we do not give up" (Galatians 6:7-9, ESV). "While the earth remains, seedtime and harvest... shall not cease" (Genesis 8:22). The harvest comes later, in a different season, and multiplied.',
       scripture: 'Galatians 6:7-9; Genesis 8:22',
     },
     threeD: {
@@ -484,7 +484,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'Faithful in Little, Set Over Much',
     fourD: {
-      summary: '"Well done, good and faithful servant. You have been faithful over a little; I will set you over much" (Matt 25:21, ESV). "One who is faithful in a very little is also faithful in much, and one who is dishonest in a very little is also dishonest in much" (Luke 16:10). Capacity is granted on proof, and integrity in the unseen governs the seen.',
+      summary: '"Well done, good and faithful servant. You have been faithful over a little; I will set you over much" (Matthew 25:21, ESV). "One who is faithful in a very little is also faithful in much, and one who is dishonest in a very little is also dishonest in much" (Luke 16:10). Capacity is granted on proof, and integrity in the unseen governs the seen.',
       scripture: 'Matthew 25:21; Luke 16:10',
     },
     threeD: {
@@ -499,7 +499,7 @@ export const SEED_ALGORITHMS = [
   {
     name: 'The Perfect You Were Made For (whole, not flawless)',
     fourD: {
-      summary: 'God\'s "perfect" never meant flawless. "You therefore must be perfect, as your heavenly Father is perfect" (Matt 5:48, ESV) uses teleios (Strong\'s G5046, from telos, "end / goal") — complete, brought to its purpose, full-grown, mature, lacking nothing necessary. "Walk before me, and be thou perfect" (Gen 17:1, KJV) is tamim (H8549) — whole, sound, having integrity (ESV: "blameless"). The KJV renders BOTH as "perfect," and the old English "perfect" simply meant whole. It is grace-work, not self-manufacture: "perfect and complete, lacking in nothing" (Jas 1:4), "go on to maturity" (Heb 6:1), "perfected in love" so that "perfect love casts out fear" (1 Jn 4:17-18). Even Paul: "Not that I am already perfect, but I press on" (Phil 3:12).',
+      summary: 'God\'s "perfect" never meant flawless. "You therefore must be perfect, as your heavenly Father is perfect" (Matthew 5:48, ESV) uses teleios (Strong\'s G5046, from telos, "end / goal") — complete, brought to its purpose, full-grown, mature, lacking nothing necessary. "Walk before me, and be thou perfect" (Genesis 17:1, KJV) is tamim (H8549) — whole, sound, having integrity (ESV: "blameless"). The KJV renders BOTH as "perfect," and the old English "perfect" simply meant whole. It is grace-work, not self-manufacture: "perfect and complete, lacking in nothing" (James 1:4), "go on to maturity" (Hebrews 6:1), "perfected in love" so that "perfect love casts out fear" (1 John 4:17-18). Even Paul: "Not that I am already perfect, but I press on" (Philippians 3:12).',
       scripture: 'Matthew 5:48; Genesis 17:1; James 1:4; Hebrews 6:1; Colossians 1:28; 1 John 4:17-18; Philippians 3:12-15',
     },
     threeD: {
@@ -523,11 +523,11 @@ export const SEED_ALGORITHMS = [
     theme: 'The Unseen Realm',
     character: '',
     fourD: {
-      summary: 'The 4th dimension is the higher, senior reality: Spirit, not flesh; unseen, not seen; eternal, not temporal. "God is a Spirit" (Jn 4:24, KJV) — the Godhead lives and rules there, and frames and holds the seen world from outside it: "he is before all things, and by him all things consist" (Col 1:17); "in him we live, and move, and have our being" (Acts 17:28). It is a populated realm, and our real contest is in it, not in the flesh: "we wrestle not against flesh and blood, but against principalities, against powers... against spiritual wickedness in high places" (Eph 6:12). Man was made by the Godhead FOR both dimensions — "Let us make man in our image" (Gen 1:26) — a body in the 3rd, a spirit reaching the 4th. And the 4th entered the 3rd in Christ: "in him dwelleth all the fulness of the Godhead bodily" (Col 2:9).',
+      summary: 'The 4th dimension is the higher, senior reality: Spirit, not flesh; unseen, not seen; eternal, not temporal. "God is a Spirit" (John 4:24, KJV) — the Godhead lives and rules there, and frames and holds the seen world from outside it: "he is before all things, and by him all things consist" (Colossians 1:17); "in him we live, and move, and have our being" (Acts 17:28). It is a populated realm, and our real contest is in it, not in the flesh: "we wrestle not against flesh and blood, but against principalities, against powers... against spiritual wickedness in high places" (Ephesians 6:12). Man was made by the Godhead FOR both dimensions — "Let us make man in our image" (Genesis 1:26) — a body in the 3rd, a spirit reaching the 4th. And the 4th entered the 3rd in Christ: "in him dwelleth all the fulness of the Godhead bodily" (Colossians 2:9).',
       scripture: 'John 4:24; Colossians 1:17; Acts 17:27-28; Ephesians 6:12; Genesis 1:26; Colossians 2:9',
     },
     threeD: {
-      summary: 'The 3rd dimension is the flesh, the physical, the measurable — what humans and science can see and touch. It is real, but it is not the whole; it is the LOWER dimension, framed by the higher. And here science and Scripture ALIGN rather than argue: a true 4th dimension would contain and see all of the 3rd at once — exactly how Scripture describes the unseen holding the seen — and creation itself points past itself to its Author. "The invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead" (Rom 1:20, KJV). The science that keeps reaching for a higher dimension and an "outside agent" is feeling after the very realm the Word already named.',
+      summary: 'The 3rd dimension is the flesh, the physical, the measurable — what humans and science can see and touch. It is real, but it is not the whole; it is the LOWER dimension, framed by the higher. And here science and Scripture ALIGN rather than argue: a true 4th dimension would contain and see all of the 3rd at once — exactly how Scripture describes the unseen holding the seen — and creation itself points past itself to its Author. "The invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead" (Romans 1:20, KJV). The science that keeps reaching for a higher dimension and an "outside agent" is feeling after the very realm the Word already named.',
     },
     outcome: 'You read reality on BOTH dimensions at once — you stop mistaking the 3rd-dimensional (flesh, seen, temporal) for all that is, and you weigh the 4th-dimensional (Spirit, unseen, eternal, the Godhead) as the senior reality that frames it. Flesh vs. Spirit, seen vs. unseen, human vs. spirit stop being vague religious words and become a working map; and science and Scripture stop being rivals — two windows on one truth.',
     tags: ['3d-4d', 'seen-unseen', 'flesh-spirit', 'godhead', 'spirit-realm', 'science', 'dimensions', 'worldview'],
