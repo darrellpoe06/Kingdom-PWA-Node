@@ -3710,19 +3710,14 @@ ${THEME_CSS}
                 <span className="text-[0.5625rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
               </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[0.6875rem] text-[#1A1815]">
-                <span className="text-[#5A5751]">Paid for businesses, professionals + landlords:</span>
+                <span className="text-[#5A5751]">Paid for businesses, professionals, landlords + churches:</span>
                 <span><span className="font-semibold">from $39</span> PoeTech+</span>
                 <span className="text-[#5A5751]">·</span>
                 <span><span className="font-semibold">$89</span> Household</span>
                 <span className="text-[#5A5751]">·</span>
                 <span><span className="font-semibold">$149</span> Premium</span>
                 <span className="text-[#5A5751]">·</span>
-                <span><span className="font-semibold">$249</span> Business</span>
-              </div>
-              {/* DR-1128: a church's Supported tier, the floor price. */}
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1 text-[0.6875rem] text-[#1A1815]">
-                <span className="text-[#5A5751]">For churches:</span>
-                <span><span className="font-semibold">from $200</span> a month, no contract, 0% of giving</span>
+                <span><span className="font-semibold">$249</span> Business</span> <span className="text-[#5A5751]">·</span> <span><span className="font-semibold">from $200</span> Church (no contract, 0% of giving)</span>
               </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[0.625rem] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
