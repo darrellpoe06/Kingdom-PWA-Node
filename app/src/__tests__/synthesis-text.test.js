@@ -77,13 +77,13 @@ describe('what is NOT cut', () => {
   });
 });
 
-// WHERE THERE WAS NO COMMA AND NO JOINER (DR-1130). Darrell 2026-10-20, a
+// WHERE THERE WAS NO COMMA AND NO JOINER (DR-1131). Darrell 2026-10-20, a
 // Living Lessons week on the phone: "still mumbling in sections". The lit piece
 // in his screenshot opened on a quotation mark and a citation and ran 23 words
 // to the voice; the catalog's longest pieces were quotations with a citation in
 // the middle, 30 to 37 words with no stop. An aside in parentheses is now its
 // own sentence, a spaced hyphen is a breath, and a subordinator is the last cut.
-describe('an aside in parentheses, a spaced hyphen, and a subordinator (DR-1130)', () => {
+describe('an aside in parentheses, a spaced hyphen, and a subordinator (DR-1131)', () => {
   const LIT = '" (Leviticus 19:34) This week teaches what an education IS before it argues about how long one should be - and names plainly that we read a digest, not one full article.';
   it('the lit piece from the 2026-10-20 screenshot: the citation is its own sentence, the lone quotation mark is not spoken, the hyphen is a breath', () => {
     expect(synthesisSentences(toSpokenForm(LIT))).toEqual([

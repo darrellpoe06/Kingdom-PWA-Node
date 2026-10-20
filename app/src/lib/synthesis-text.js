@@ -51,7 +51,7 @@ const CLOSERS = `["'’”)\\]]*`;
 const ENDS_WITH_STOP = new RegExp(`[.!?]${CLOSERS}$`);
 const SENTENCE_SPLIT = new RegExp(`(?<=[.!?]${CLOSERS})\\s+`);
 const JOINERS = /^(and|but|so|because|which|while|then)$/i;
-// WHERE A LONG SENTENCE IS CUT WHEN IT HAS NO COMMA AND NO JOINER (DR-1130).
+// WHERE A LONG SENTENCE IS CUT WHEN IT HAS NO COMMA AND NO JOINER (DR-1131).
 // Darrell 2026-10-20: "still mumbling in sections". DR-0851 left 894 catalog
 // pieces handed whole at 19 to 37 words because nothing in this file could cut
 // them; the clarity witness's "longest" group is drawn from exactly those. Two

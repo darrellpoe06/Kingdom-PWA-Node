@@ -49,7 +49,7 @@ describe('typography the engine mishandles', () => {
   it('an em-dash becomes a real breath instead of a spoken word', () => {
     expect(plainTypography('the point — and this is it')).toBe('the point, and this is it');
   });
-  it('a hyphen with a space either side is the same breath; a hyphenated word is untouched (DR-1130)', () => {
+  it('a hyphen with a space either side is the same breath; a hyphenated word is untouched (DR-1131)', () => {
     expect(plainTypography('how long one should be - and names plainly')).toBe('how long one should be, and names plainly');
     expect(plainTypography('aged forty to forty-four')).toBe('aged forty to forty-four');
   });

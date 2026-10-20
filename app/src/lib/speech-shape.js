@@ -225,7 +225,7 @@ export function plainTypography(text) {
     .replace(/[“”]/g, '"')
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/\s+--\s+/g, ', ') // the typed double hyphen is the same breath (DR-0851)
-    .replace(/\s+-\s+/g, ', ') // and so is a hyphen with a space either side (DR-1130); "twenty-six" is untouched
+    .replace(/\s+-\s+/g, ', ') // and so is a hyphen with a space either side (DR-1131); "twenty-six" is untouched
     .replace(/…/g, '.')
     .replace(/\s+/g, ' ')
     .trim();
