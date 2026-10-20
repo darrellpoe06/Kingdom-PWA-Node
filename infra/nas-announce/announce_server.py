@@ -182,6 +182,25 @@ def health_body(opener=None):
     return 200, {'ok': True, 'ntfy': 'up'}
 
 
+MAX_BODY = 64_000
+
+
+def read_body(headers, rfile):
+    """The request body, read whole before the handler answers anything:
+    bytes (possibly empty), or None when it is larger than a bell could be
+    or cannot be read. Pure over its two arguments."""
+    try:
+        n = int(headers.get('Content-Length') or 0)
+    except (TypeError, ValueError):
+        return None
+    if n < 0 or n > MAX_BODY:
+        return None
+    try:
+        return rfile.read(n) if n else b''
+    except OSError:
+        return None
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -203,6 +222,24 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(404, {'ok': False, 'error': 'not found'})
 
     def do_POST(self):
+        # THE BODY IS READ BEFORE ANY ANSWER, OR THE NEXT REQUEST READS IT
+        # (measured 2026-10-20, announce-health run 39490048742). This handler
+        # speaks HTTP/1.1, so the Funnel keeps the connection and sends the
+        # next request down it. A refused call (wrong path, wrong bearer) used
+        # to answer without ever reading its body, so the unread JSON stayed
+        # in the stream and was parsed as the START of the next request --
+        # which then got Python's own 400 page ("Bad request syntax"). That
+        # is exactly site-health's shape: its probe POSTs keyless (401), then
+        # its alarm rings on the same kept connection and is answered 400
+        # with "<!DOCTYPE HTML PUBLIC" -- while a lone ring (run 39489289287)
+        # was accepted. Read the body first, bounded; the checks come after.
+        raw = read_body(self.headers, self.rfile)
+        if raw is None:
+            # Too big to be a bell, or unreadable: refuse and let this
+            # connection go, so what was not read can never be misread.
+            self.close_connection = True
+            return self._json(413, {'ok': False, 'error': 'too large'})
+
         if not self.path.split('?')[0].endswith('/ops-announce'):
             return self._json(404, {'ok': False, 'error': 'not found'})
 
@@ -236,9 +273,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(401, {'ok': False, 'error': 'unauthorized'})
 
         try:
-            n = int(self.headers.get('Content-Length') or 0)
-            body = json.loads(self.rfile.read(min(n, 64_000)) or b'{}')
-        except (ValueError, OSError):
+            body = json.loads(raw or b'{}')
+        except ValueError:
             return self._json(400, {'ok': False, 'error': 'bad json'})
 
         delivered, detail = push(sanitize(body))
@@ -271,6 +307,41 @@ def selftest():
     check('bad priority falls back to 4', sanitize({'priority': 'urgent'})['priority'] == '4')
 
     check('topic is pinned, not caller-supplied', NTFY_URL.endswith('/' + TOPIC) and 'topic' not in sanitize({'topic': 'other'}))
+
+    # ONE KEPT CONNECTION, A REFUSED RING, THEN A GOOD ONE (2026-10-20, run
+    # 39490048742): the second must be answered as a ring, never as Python's
+    # 400 page for a request that begins with the first ring's unread body.
+    import http.client, socket, threading
+    _tok = os.environ.get('ANNOUNCE_TOKEN'); os.environ['ANNOUNCE_TOKEN'] = 'selftest-token'
+    srv = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        conn = http.client.HTTPConnection('127.0.0.1', srv.server_address[1], timeout=10)
+        body = json.dumps({'title': 'selftest', 'message': 'x' * 300, 'priority': 2})
+        conn.request('POST', '/announce/ops-announce', body=body, headers={'Authorization': 'Bearer wrong', 'Content-Type': 'application/json'})
+        r1 = conn.getresponse(); b1 = r1.read()
+        conn.request('POST', '/announce/ops-announce', body=body, headers={'Authorization': 'Bearer selftest-token', 'Content-Type': 'application/json'})
+        r2 = conn.getresponse(); b2 = r2.read()
+        check('a refused ring answers 401 as JSON', r1.status == 401 and b'unauthorized' in b1)
+        check('CATCHES the unread body: the next ring on the SAME connection is answered as a ring (200 JSON), not a 400 page',
+              r2.status == 200 and b2.startswith(b'{') and b'"ok": true' in b2)
+        conn.request('POST', '/announce/elsewhere', body=body, headers={'Authorization': 'Bearer selftest-token'})
+        r3 = conn.getresponse(); r3.read()
+        conn.request('POST', '/announce/ops-announce', body=body, headers={'Authorization': 'Bearer selftest-token'})
+        r4 = conn.getresponse(); b4 = r4.read()
+        check('a wrong path (404) leaves the connection clean too', r3.status == 404 and r4.status == 200 and b4.startswith(b'{'))
+        conn.close()
+    finally:
+        srv.shutdown(); srv.server_close()
+        if _tok is None: os.environ.pop('ANNOUNCE_TOKEN', None)
+        else: os.environ['ANNOUNCE_TOKEN'] = _tok
+    class _H:
+        def __init__(self, n): self.n = n
+        def get(self, k): return self.n
+    import io
+    check('read_body reads exactly Content-Length and refuses a body too big to be a bell',
+          read_body(_H('5'), io.BytesIO(b'hello!')) == b'hello' and read_body(_H('0'), io.BytesIO(b'')) == b''
+          and read_body(_H(str(MAX_BODY + 1)), io.BytesIO(b'x')) is None and read_body(_H('nope'), io.BytesIO(b'')) is None)
 
     # THE DOOR SAYS WHY (the Way, step 5; 2026-10-20). A fake ntfy that answers
     # and one that does not; the token present and absent; no path and no
