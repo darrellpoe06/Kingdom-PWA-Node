@@ -97,6 +97,25 @@ def wer(reference, hypothesis):
     return round(prev[len(h)] / len(r), 4)
 
 
+# THE ROAD IS CLOUDFLARE'S BEFORE IT IS THE NAS'S. The first run (39477326790)
+# got 403 on all 168 requests in under a second each: a wrong bearer is a 401
+# from the NAS server, and a 403 that fast is Cloudflare refusing the client
+# before the Function runs -- urllib announces itself as "Python-urllib", which
+# the managed rules block, while the app is a browser and the probe is curl.
+# So this asks as the app does, and when a refusal comes it prints the body
+# once per status so the next reader is not guessing either.
+USER_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36 PoeTech-voice-clarity-witness'
+_refusals_shown = set()
+
+
+def _show_refusal(code, body):
+    if code in _refusals_shown:
+        return
+    _refusals_shown.add(code)
+    head = (body or b'')[:200].decode('utf-8', 'replace').replace('\n', ' ')
+    print(f'/voice-lite/speak answered HTTP {code}: {head}', flush=True)
+
+
 def speak(base, tok, text, voice, pace, out_path, attempts=5):
     """The app's own call. Returns the HTTP status; 200 wrote the WAV."""
     body = {'text': text, 'voice': voice, 'format': 'wav'}
@@ -105,7 +124,9 @@ def speak(base, tok, text, voice, pace, out_path, attempts=5):
     data = json.dumps(body).encode('utf-8')
     for attempt in range(attempts):
         req = urllib.request.Request(base.rstrip('/') + '/voice-lite/speak', data=data, method='POST',
-                                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok})
+                                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok,
+                                              'Accept': 'audio/wav, audio/ogg, application/json', 'User-Agent': USER_AGENT,
+                                              'Origin': base.rstrip('/'), 'Referer': base.rstrip('/') + '/poetech-app/'})
         try:
             with urllib.request.urlopen(req, timeout=120) as res:
                 ctype = res.headers.get('Content-Type', '')
@@ -119,6 +140,10 @@ def speak(base, tok, text, voice, pace, out_path, attempts=5):
             if e.code == 503 and attempt + 1 < attempts:
                 time.sleep(2 * (attempt + 1))
                 continue
+            try:
+                _show_refusal(e.code, e.read())
+            except OSError:
+                _show_refusal(e.code, b'')
             return e.code
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             if attempt + 1 < attempts:
