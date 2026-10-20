@@ -1,0 +1,125 @@
+# voice-clarity-witness — does the reading voice SAY the words it was handed?
+#
+# Darrell 2026-10-20, a Living Lessons week on the phone: "Our app is still
+# mumbling in sections of the tts.... fix it so it can be fully functional
+# without defective speaking parts of the lessons". DR-0653, DR-0794 and
+# DR-0851 each changed what the Piper voice is handed, and each was proven on
+# the text. Nothing listened. This workflow does, the only way a runner can:
+#
+#   1. the family bearer is read over ssh on the NAS (masked, never printed);
+#   2. every piece of infra/nas-voice-lite/fixtures/clarity-corpus.json — real
+#      lesson pieces cut by the reader's own pipeline, pinned by a test — is
+#      spoken through https://poetech.us/voice-lite exactly as the app asks,
+#      at each pace;
+#   3. each clip is transcribed back with speech recognition on this runner,
+#      and scored as word error rate against the text (scripts/
+#      voice-clarity-witness.py);
+#   4. the table lands in the step summary, every clip in the artifact, and
+#      the run FAILS when a piece at pace 1 loses more than FAIL_WER of its
+#      words — naming the piece and what was heard.
+#
+# THE THREE BRAKES (CLAUDE.md):
+#   1. BUDGET  — one runner, hard 35-minute timeout, one bounded corpus.
+#   2. LOCK    — concurrency group `voice-clarity-witness`, single-instance.
+#   3. KILL    — dispatch-only; disable the workflow in the Actions UI.
+# Read-only: `permissions: contents: read`; the NAS keeps its own clip cache
+# and nothing else is written anywhere.
+name: voice-clarity-witness
+on:
+  workflow_dispatch:
+    inputs:
+      paces:
+        description: 'Paces to measure (the reader asks the voice to speak at these)'
+        required: false
+        default: '1,1.5,2'
+      fail_wer:
+        description: 'A piece at pace 1 over this word error rate fails the run'
+        required: false
+        default: '0.5'
+      model:
+        description: 'faster-whisper model (small.en is the measured default)'
+        required: false
+        default: 'small.en'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-clarity-witness
+  cancel-in-progress: false
+
+jobs:
+  listen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.go == 'true'
+        with:
+          sparse-checkout: |
+            infra/nas-voice-lite/fixtures
+            scripts/voice-clarity-witness.py
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the family bearer on the NAS (masked)
+        if: steps.gate.outputs.go == 'true'
+        id: nas
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          TOK="$($SSH 'T=$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null); printf %s "$T"')"
+          if [ -n "$TOK" ]; then
+            echo "::add-mask::$TOK"
+            echo "tok=$TOK" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::no bearer could be read on the NAS"
+          fi
+          echo "voice-lite health from the outside:"
+          curl -s -m 20 -w ' HTTP %{http_code}\n' https://poetech.us/voice-lite/health | head -c 300; echo
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.go == 'true'
+        with:
+          python-version: '3.12'
+      - name: Install speech recognition (CPU)
+        if: steps.gate.outputs.go == 'true'
+        run: pip install --quiet faster-whisper
+      - name: The script's own offline checks
+        if: steps.gate.outputs.go == 'true'
+        run: python3 scripts/voice-clarity-witness.py --selftest
+      - name: Speak every piece, transcribe it back, score it
+        if: steps.gate.outputs.go == 'true'
+        env:
+          TOK: ${{ steps.nas.outputs.tok }}
+        run: |
+          python3 scripts/voice-clarity-witness.py \
+            --corpus infra/nas-voice-lite/fixtures/clarity-corpus.json \
+            --out clarity \
+            --paces '${{ github.event.inputs.paces || '1,1.5,2' }}' \
+            --fail-wer '${{ github.event.inputs.fail_wer || '0.5' }}' \
+            --model '${{ github.event.inputs.model || 'small.en' }}'
+      - name: Keep every clip and the scores (listen to what the number says)
+        if: always() && steps.gate.outputs.go == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-clarity
+          path: clarity/
+          if-no-files-found: warn
+          retention-days: 30

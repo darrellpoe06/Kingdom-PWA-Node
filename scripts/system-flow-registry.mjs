@@ -717,6 +717,29 @@ const NODES = [
     writes: [{ res: 'db:choir_songs', token: 'choir_songs' }],
     seeds: ['songbook'],
   }),
+  // DR-1132: email stops being the one lesson lane that bypasses the app's own
+  // inbox. A sibling of church-mail below, deliberately — same brakes, same
+  // shape, a different mailbox and a different table.
+  rider('service:lesson-mail', 'infra/nas-lesson-mail/lesson_mail.py', {
+    id: 'lesson-mail', name: 'An emailed lesson becomes an app row (DR-1132)',
+    purpose: 'Reads Darrell’s two addresses on the NAS and inserts the lesson as an agent_inbox row, so the app’s own machinery carries it instead of a Claude session.',
+    reads: [
+      { res: 'mail:lesson', token: 'imaplib' },
+      // The idempotence read: the `mail:` tags already on the rows, so a lost
+      // state file cannot make a filed lesson look new. TAGS ONLY, never a body.
+      { res: 'db:agent_inbox#lesson', token: 'def filed_tags' },
+    ],
+    writes: [{ res: 'db:agent_inbox#lesson', token: 'INSERT INTO public.agent_inbox' }],
+    // THE REAL CONSUMER, named by the guard rather than by me. I first wrote
+    // seeds: ['lesson-capture'] — plausible, because that is what the Gmail
+    // WATCHER seeds — and the interconnect guard refused it: "lesson-mail says
+    // it seeds lesson-capture, but lesson-capture reads nothing lesson-mail
+    // writes." It reads gh:signal-pr, the PR poke. This reader writes a ROW, so
+    // its consumer is the NAS lesson builder, which reads db:agent_inbox#lesson
+    // through `def pending` — and that is the whole point of the change: an
+    // emailed lesson now reaches the same builder every other lesson reaches.
+    seeds: ['lesson-builder'],
+  }),
   // DR-1091: the church office's emails become the app's documents on the
   // NAS, by themselves — filed when new, refilled where a row's file was left
   // on the old server, read on Choir → Team Docs and the Pulpit.
@@ -1606,6 +1629,14 @@ const NODES = [
   }),
   wf('voice-lite-probe.yml', {
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
+    reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
+  }),
+  // THE VOICE IS LISTENED TO (DR-1131). Real lesson pieces, cut by the reader's
+  // own pipeline, spoken through /voice-lite at each pace and transcribed back
+  // on the runner: word error per piece is the measure of "it mumbles".
+  wf('voice-clarity-witness.yml', {
+    id: 'voice-clarity-witness', name: 'Voice clarity witness (speak, transcribe, score)',
+    purpose: 'Speaks the pinned corpus of lesson pieces through /voice-lite, transcribes each clip back, and fails on a piece whose words do not come back.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
   // THE BELL, SOVEREIGN (DR-1040). It reads only its manifest entry and writes
