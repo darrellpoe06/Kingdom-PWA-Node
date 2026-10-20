@@ -2,7 +2,7 @@
 
 **Module id:** `sov45-no-single-witness-and-the-office-of-the-critic`
 **Course:** Sovereign A.I. (`app/src/lib/sovereign-ai-class.js`), week 45
-**Decision record:** DR-1144
+**Decision record:** DR-1146
 **Captured by:** a forwarded newsletter with one word on it (CLAUDE.md "Spoken Teachings Are Build Input"; the lesson lane)
 
 ## Where it came from
