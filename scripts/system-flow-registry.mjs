@@ -1160,7 +1160,7 @@ const NODES = [
   }),
   wf('immich-health.yml', {
     id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
-    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8801' }],
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:photo-backup', token: '127.0.0.1:8803' }],
     writes: [{ res: 'gh:incident', token: 'photo-backup-incident' }], seeds: ['ops-surface'],
   }),
   wf('voice-lite-health.yml', {

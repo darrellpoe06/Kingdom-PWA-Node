@@ -130,6 +130,9 @@ jobs:
             if [ -d "$D" ]; then echo "shelf: $D present, $(ls "$D" 2>/dev/null | wc -l) entries"; else echo "shelf: $D ABSENT"; fi
           done
           echo "unit: $(systemctl is-active poetech-libraries 2>/dev/null || echo unknown)"
+          echo "who listens on 8802: $( (ss -ltnp 2>/dev/null || sudo -n ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E '[:.]8802\b' | head -3 | tr '\n' ' ' || echo nobody)"
+          echo "---- last lines of the door's own journal ----"
+          (journalctl -u poetech-libraries -n 30 --no-pager 2>/dev/null || sudo -n journalctl -u poetech-libraries -n 30 --no-pager 2>/dev/null || echo "(no journal this user can read)") | cut -c1-300
           echo "jellyfin (loopback): $(curl -sS -m 6 http://127.0.0.1:8096/System/Info/Public 2>&1 | head -c 120)"
           echo "audiobookshelf (loopback): $(curl -sS -m 6 http://127.0.0.1:13378/status 2>&1 | head -c 120)"
           TS="$(command -v tailscale 2>/dev/null || ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"

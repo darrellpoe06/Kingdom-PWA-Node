@@ -37,7 +37,7 @@
 #     this, so a phone can never fill the disk the NAS's other services need.
 #
 # Run:
-#   python3 immich_forwarder.py --port 8801
+#   python3 immich_forwarder.py --port 8803
 #   python3 immich_forwarder.py --selftest    # offline, stdlib, no Immich needed
 # Installed + kept running by infra/nas-immich/install.sh via services-sync.
 # =============================================================================
@@ -536,7 +536,7 @@ def _selftest():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8801")))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8803")))
     ap.add_argument("--upstream", default=os.environ.get("IMMICH_UPSTREAM", UPSTREAM_DEFAULT))
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
