@@ -77,6 +77,55 @@ describe('what is NOT cut', () => {
   });
 });
 
+// WHERE THERE WAS NO COMMA AND NO JOINER (DR-1131). Darrell 2026-10-20, a
+// Living Lessons week on the phone: "still mumbling in sections". The lit piece
+// in his screenshot opened on a quotation mark and a citation and ran 23 words
+// to the voice; the catalog's longest pieces were quotations with a citation in
+// the middle, 30 to 37 words with no stop. An aside in parentheses is now its
+// own sentence, a spaced hyphen is a breath, and a subordinator is the last cut.
+describe('an aside in parentheses, a spaced hyphen, and a subordinator (DR-1131)', () => {
+  const LIT = '" (Leviticus 19:34) This week teaches what an education IS before it argues about how long one should be - and names plainly that we read a digest, not one full article.';
+  it('the lit piece from the 2026-10-20 screenshot: the citation is its own sentence, the lone quotation mark is not spoken, the hyphen is a breath', () => {
+    expect(synthesisSentences(toSpokenForm(LIT))).toEqual([
+      'Leviticus chapter 19 verse 34.',
+      'This week teaches what an education is before it argues about how long one should be.',
+      'and names plainly that we read a digest, not one full article.',
+    ]);
+  });
+  it('a citation in the middle of a quotation that runs on is spoken between two stops, and the tail is cut on its own', () => {
+    const run = 'and see that the LORD is good" (Psalm 34:8) together with a readiness always "to give an answer to every man that asketh you a reason of the hope that is in you with meekness.';
+    expect(synthesisSentences(toSpokenForm(run))).toEqual([
+      'and see that the LORD is good".',
+      'Psalm 34 verse 8.',
+      'together with a readiness always "to give an answer to every man.',
+      'that asketh you a reason of the hope that is in you with meekness.',
+    ]);
+  });
+  it('the aside itself is cut when it is long, and a clause mark that joined it to its neighbour is not spoken as a dangling comma', () => {
+    const s = 'who already holds the morning ("he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him", Hebrews 11:6).';
+    const out = synthesisSentences(toSpokenForm(s));
+    expect(out[0]).toBe('who already holds the morning.');
+    expect(out.every((x) => x.split(' ').length <= MAX_SENTENCE_WORDS), out.join(' | ')).toBe(true);
+    expect(synthesisSentences(toSpokenForm('" (Matthew 3:17) - and the very next line is "Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.')))
+      .toEqual(['Matthew chapter 3 verse 17.', 'and the very next line is "Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.']);
+  });
+  it('a short sentence with an aside is left exactly as it was (the cut is for long sentences only)', () => {
+    expect(forSynthesis(toSpokenForm('"For God so loved the world" (John 3:16)'))).toBe('"For God so loved the world" (John chapter 3 verse 16).');
+  });
+  it('a subordinator is the cut of last resort, after a comma and a joiner, inside the window first', () => {
+    const s = 'Anyone teaching this material who turns a depression into a demon to be shouted at has departed from how He handled the most successful prophet in the book.';
+    expect(synthesisSentences(s)[0]).toBe('Anyone teaching this material.');
+    const comma = 'Anyone teaching this material, who turns a depression into a demon to be shouted at has departed from how He handled the most successful prophet in the book.';
+    expect(synthesisSentences(comma)[0]).toBe('Anyone teaching this material.');
+    expect(synthesisSentences(comma)[1]).toMatch(/^who turns/);
+  });
+  it('PROVEN TO CATCH: without the aside and subordinator cuts the lit piece reached the voice as one 23-word sentence', () => {
+    const before = toSpokenForm(LIT).replace(/\s*\([^)]*\)\s*/, ' ');
+    expect(before.split(' ').length).toBeGreaterThan(MAX_SENTENCE_WORDS);
+    expect(synthesisSentences(toSpokenForm(LIT)).every((x) => x.split(' ').length <= MAX_SENTENCE_WORDS)).toBe(true);
+  });
+});
+
 describe('across the catalog the voice is never handed a long sentence where a cut was safe', () => {
   it('every piece of every Living Lesson, in spoken form, stays within the cap or has no safe cut', () => {
     let pieces = 0; let over = 0; const examples = [];

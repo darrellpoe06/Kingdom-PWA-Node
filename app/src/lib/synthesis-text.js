@@ -51,10 +51,46 @@ const CLOSERS = `["'’”)\\]]*`;
 const ENDS_WITH_STOP = new RegExp(`[.!?]${CLOSERS}$`);
 const SENTENCE_SPLIT = new RegExp(`(?<=[.!?]${CLOSERS})\\s+`);
 const JOINERS = /^(and|but|so|because|which|while|then)$/i;
+// WHERE A LONG SENTENCE IS CUT WHEN IT HAS NO COMMA AND NO JOINER (DR-1131).
+// Darrell 2026-10-20: "still mumbling in sections". DR-0851 left 894 catalog
+// pieces handed whole at 19 to 37 words because nothing in this file could cut
+// them; the clarity witness's "longest" group is drawn from exactly those. Two
+// more places a reader breathes, used only when the two above are not there:
+//   * an ASIDE IN PARENTHESES — nearly always a citation, "(Psalm 34 verse 8)",
+//     sitting in the middle of a quotation that runs on: the reader pauses
+//     before it and after it, so it is spoken as its own short sentence;
+//   * a SUBORDINATOR — that / who / where / when / before / after / if / as /
+//     than / until / unless / though / for / or / nor / yet: a clause boundary
+//     without a comma, and the least natural cut of the three, so it is last.
+const SUBORDINATORS = /^(that|who|whom|whose|where|when|before|after|until|unless|though|although|if|as|than|for|nor|or|yet)$/i;
+const ASIDE = /^(.*?)\s*\(([^()]*[A-Za-z][^()]*)\)\s*(.*)$/;
+const hasWords = (s) => /[A-Za-z0-9]/.test(s);
+const closed = (s) => (ENDS_WITH_STOP.test(s) ? s : `${s.replace(/[,;:]+(["'’”)]*)$/, '$1')}.`);
+
+function cutBefore(words, test, from, to, step) {
+  for (let i = from; step > 0 ? i <= to : i >= to; i += step) {
+    if (test(words[i + 1])) return `${words.slice(0, i + 1).join(' ')}. ${cutLong(words.slice(i + 1).join(' '))}`;
+  }
+  return null;
+}
 
 function cutLong(sentence) {
   const words = sentence.split(' ');
   if (words.length <= MAX_SENTENCE_WORDS) return sentence;
+  // an aside in parentheses is its own sentence; what is before and after it
+  // is cut on its own (a lone quotation mark left before it is not a word)
+  const aside = sentence.match(ASIDE);
+  if (aside) {
+    const [, head, inner, tail] = aside;
+    // the clause mark that joined the aside to its neighbour is spoken as the
+    // stop that now stands there, not as a dangling comma
+    const rest = tail.replace(/^[\s,;:]+/, '');
+    const parts = [];
+    if (hasWords(head)) parts.push(cutLong(closed(head.trim())));
+    parts.push(cutLong(closed(inner.trim())));
+    if (hasWords(rest)) parts.push(cutLong(rest));
+    return parts.join(' ');
+  }
   const hi = Math.min(MAX_SENTENCE_WORDS - 1, words.length - 2);
   // the last comma inside the window, never inside a number ("2,450" is one word)
   for (let i = hi; i >= MIN_CUT_WORDS - 1; i--) {
@@ -63,12 +99,10 @@ function cutLong(sentence) {
       return `${head} ${cutLong(words.slice(i + 1).join(' '))}`;
     }
   }
-  // else before a joiner word
-  for (let i = hi; i >= MIN_CUT_WORDS - 1; i--) {
-    if (JOINERS.test(words[i + 1])) {
-      return `${words.slice(0, i + 1).join(' ')}. ${cutLong(words.slice(i + 1).join(' '))}`;
-    }
-  }
+  // else before a joiner word, else before a subordinator, inside the window
+  const joined = cutBefore(words, (w) => JOINERS.test(w), hi, MIN_CUT_WORDS - 1, -1)
+    || cutBefore(words, (w) => SUBORDINATORS.test(w), hi, MIN_CUT_WORDS - 1, -1);
+  if (joined) return joined;
   // No safe cut inside the window: cut at the FIRST comma or joiner after it,
   // so the head is as short as the text allows rather than the whole run.
   for (let i = hi + 1; i <= words.length - 2; i++) {
@@ -78,7 +112,9 @@ function cutLong(sentence) {
     }
     if (JOINERS.test(words[i + 1])) return `${words.slice(0, i + 1).join(' ')}. ${cutLong(words.slice(i + 1).join(' '))}`;
   }
-  return sentence; // nothing safe to cut anywhere: handed whole
+  // else the first subordinator after the window
+  return cutBefore(words, (w) => SUBORDINATORS.test(w), hi + 1, words.length - 2, 1)
+    || sentence; // nothing safe to cut anywhere: handed whole
 }
 
 /** The sentences a piece is spoken as, each ≤ MAX_SENTENCE_WORDS where a cut was safe. */
@@ -94,7 +130,8 @@ export function synthesisSentences(text) {
     if (!t) continue;
     for (const part of cutLong(t).split(SENTENCE_SPLIT)) {
       const p = part.trim();
-      if (p) out.push(ENDS_WITH_STOP.test(p) ? p : `${p.replace(/[,;:]+(["'’”)]*)$/, '$1')}.`);
+      // a part with no word in it (a quotation mark an aside left behind) is not spoken
+      if (p && hasWords(p)) out.push(closed(p));
     }
   }
   return out;
