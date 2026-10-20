@@ -38,13 +38,34 @@ describe('curriculum shape', () => {
     // so the entry is DELETED in the merge that brought it in -- which is
     // exactly what this assertion forces: it fails the moment a held number is
     // no longer missing, so a hold cannot quietly become a permanent gap.
-    // 44 IS HELD here, recorded 2026-10-20, while Sovereign A.I. week 45 (no
-    // single witness: the office of the critic, DR-1138) was written on this
-    // branch and week 44 was written on a parallel branch at the same time.
-    // Whichever week merges second DELETES its own hold; if 45 lands first the
-    // entry below stays only until 44 arrives, and goes with it -- which is
-    // exactly what this assertion forces, because it fails the moment a held
-    // number is no longer missing.
+    // THIS LIST IS RECOMPUTED, NEVER CARRIED. It is not a record of what was
+    // once in flight; it is the set of week numbers BELOW the highest week that
+    // are missing from THIS tree, so it is only ever correct from the vantage
+    // point of the tree it sits in. Three branches wrote weeks 44, 45 and 46 at
+    // the same time on 2026-10-20, and the right value differs on each one: on
+    // the week-44 branch `[]` (max 44, nothing missing below it), on the
+    // week-45 branch `[44]`, on the week-46 branch `[44, 45]`. Once all three
+    // are on main there are no holes at all and the right value is `[]`.
+    //
+    // SO WHEN THIS FILE CONFLICTS IN A MERGE, DO NOT TAKE EITHER SIDE. Read
+    // which sov weeks actually exist in the merged tree and set this to the
+    // numbers still missing below the highest one. An entry left behind after
+    // its week exists is a DISARMED CHECK -- it tells the gate to ignore a
+    // number that is no longer missing, which is the expiring-evidence defect
+    // DR-1025 found when filling L79 disarmed three checks keyed on a gap that
+    // had already closed. The assertion below is `toEqual`, so a stale entry
+    // fails loudly rather than passing silently; that is the safety net, not
+    // the plan.
+    //
+    // 44 IS HELD here, recorded 2026-10-20 and RECOMPUTED by reading the weeks
+    // on origin/main at 3f95f4142 -- which carries weeks 1..43, so 44 is
+    // genuinely still absent and this value is right for the merged tree too.
+    // main is READ here rather than merged: it carries a pre-existing DR-1135
+    // number collision (two records, from #2300 and #2306) that
+    // resolve-ledger-conflicts.mjs refuses, and whose fix renumbers a record
+    // this branch does not own. Week 45 (no single witness: the office of the
+    // critic, DR-1138) was written on this branch and week 44 on a parallel
+    // branch; recompute this list, do not carry it, when they come together.
     const HELD_IN_FLIGHT = [44];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
