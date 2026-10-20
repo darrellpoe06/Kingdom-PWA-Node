@@ -132,6 +132,37 @@ def apply_action(d, ident, action, now):
     return {"ok": True, "id": ident, "status": new_status}
 
 
+def health(d=None):
+    """The door says WHY it cannot serve, instead of a 200 that means nothing.
+
+    DR-1000 named the defect and asked, on its re-review, whether the same shape
+    sat on any OTHER sovereign surface. MEASURED 2026-10-20: of the thirteen
+    sovereign servers and forwarders under infra/, this was the last one whose
+    health route answered an unconditional `200 {"ok": true}` -- it checked
+    nothing at all. (llm_server also names no 503, but it is honest: its header
+    documents ok:false when Ollama is unreachable, so the reason rides the body.)
+
+    This server can answer only when two things hold, and it is up and useless
+    without either. The freshness folder is what it reads, and a token is what
+    lets anyone in: with none configured, expected_token() is "" and token_ok()
+    refuses EVERY call. Neither reason prints the folder path or the token,
+    which is photo_server's and announce's rule for a reason.
+
+    The audit of the services born before the Way could not reach this file:
+    that list is drawn from infra/nas-loops/services.json, and nas-review-feed
+    is absent from the manifest because it has no installer -- its README starts
+    it by hand. So the gate's green never spoke for this door.
+    """
+    dirpath = d or fresh_dir()
+    if not os.path.isdir(dirpath):
+        return 503, {"ok": False, "error": "the review queue folder is not there"}
+    if not os.access(dirpath, os.R_OK):
+        return 503, {"ok": False, "error": "the review queue folder cannot be read"}
+    if not expected_token(dirpath):
+        return 503, {"ok": False, "error": "no review token is configured, so every call is refused"}
+    return 200, {"ok": True}
+
+
 # --- HTTP server -------------------------------------------------------------
 def make_handler():
     class Handler(BaseHTTPRequestHandler):
@@ -155,7 +186,8 @@ def make_handler():
         def do_GET(self):
             path = urlparse(self.path).path.rstrip("/")
             if path.endswith("/healthz") or path in ("/healthz", "/health"):
-                self._send(200, {"ok": True})
+                code, payload = health()
+                self._send(code, payload)
                 return
             if not (path.endswith("/review-feed") or path == "/review-feed"):
                 self._send(404, {"ok": False, "error": "not found"})
@@ -258,6 +290,57 @@ def selftest():
         ok("token_ok rejects empty got", not token_ok("", "secret"))
         ok("id regex accepts fr- shape", bool(VALID_ID.match("fr-20260721-abc")))
         ok("id regex rejects dotted", not VALID_ID.match("fr-a.b"))
+
+        # The door says why (DR-1000). REVIEW_TOKEN is cleared around these, so
+        # a token in the runner's environment cannot make the no-token case pass.
+        saved_tok = os.environ.pop("REVIEW_TOKEN", None)
+        try:
+            with open(token_file(d), "w", encoding="utf-8") as fh:
+                fh.write("a-token")
+            ok("health is 200 when the folder is there and a token is set", health(d) == (200, {"ok": True}))
+
+            # A folder with NO token file: the one place the env path can be
+            # told apart from the file path.
+            bare = tempfile.mkdtemp()
+            try:
+                code, payload = health(bare)
+                ok("health is 503 when no token is configured", code == 503 and payload["ok"] is False)
+                ok("the no-token reason says every call is refused", "refused" in payload["error"])
+                ok("the no-token reason never prints the folder", bare not in json.dumps(payload))
+
+                # The env token alone is enough: the door must not demand a file.
+                os.environ["REVIEW_TOKEN"] = "from-the-env"
+                ok("health is 200 on the env token alone, with no token file", health(bare) == (200, {"ok": True}))
+                os.environ.pop("REVIEW_TOKEN", None)
+                ok("and 503 again once the env token is gone", health(bare)[0] == 503)
+            finally:
+                shutil.rmtree(bare, ignore_errors=True)
+
+            gone = os.path.join(d, "not-a-real-folder")
+            code, payload = health(gone)
+            ok("health is 503 when the folder is not there", code == 503 and payload["ok"] is False)
+            ok("the missing-folder reason never prints the path", gone not in json.dumps(payload))
+
+            # PROVEN TO CATCH: the shape this replaces. A handler that answers a
+            # bare 200 passes every check above vacuously, so the source itself
+            # is held -- the old line must be gone and the branch must delegate.
+            src = open(__file__, "r", encoding="utf-8").read() if os.path.exists(__file__) else ""
+            # BOTH needles are built from halves ON PURPOSE. Written whole, each
+            # line would contain the very string it searches for, and the check
+            # would answer against its own text instead of the handler. The
+            # bare-200 one FAILED that way on the first run, and its twin below
+            # PASSED vacuously -- the only occurrence of its needle was the
+            # assertion itself, so it could never have gone red. Do not join
+            # these strings back together.
+            delegates = "code, payload = " + "health()"
+            ok("the healthz branch delegates to health()", delegates in src)
+            bare_200 = 'self._send(200, {"ok": ' + 'True})'
+            ok("the bare 200 is gone from the healthz branch", bare_200 not in src)
+        finally:
+            if saved_tok is not None:
+                os.environ["REVIEW_TOKEN"] = saved_tok
+            else:
+                os.environ.pop("REVIEW_TOKEN", None)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
