@@ -1534,6 +1534,14 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
+  // THE VOICE IS LISTENED TO (DR-1115). Real lesson pieces, cut by the reader's
+  // own pipeline, spoken through /voice-lite at each pace and transcribed back
+  // on the runner: word error per piece is the measure of "it mumbles".
+  wf('voice-clarity-witness.yml', {
+    id: 'voice-clarity-witness', name: 'Voice clarity witness (speak, transcribe, score)',
+    purpose: 'Speaks the pinned corpus of lesson pieces through /voice-lite, transcribes each clip back, and fails on a piece whose words do not come back.',
+    reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
+  }),
   // THE BELL, SOVEREIGN (DR-1040). It reads only its manifest entry and writes
   // only the push, and it deliberately declares NO http: resource: the caller
   // (scripts/ops-announce.mjs) still posts to the retired n8n relay and is NOT
