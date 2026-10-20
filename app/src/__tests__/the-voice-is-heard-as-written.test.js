@@ -66,10 +66,10 @@ describe('the scorer', () => {
 
 describe('the workflow', () => {
   it('is dispatch-only, read-only and braked', () => {
-    expect(WF).toMatch(/^on:\n  workflow_dispatch:/m);
+    expect(WF).toContain('on:\n  workflow_dispatch:');
     expect(WF).not.toMatch(/^\s+schedule:/m);
-    expect(WF).toMatch(/permissions:\n  contents: read/);
-    expect(WF).toMatch(/concurrency:\n  group: voice-clarity-witness\n  cancel-in-progress: false/);
+    expect(WF).toContain('permissions:\n  contents: read');
+    expect(WF).toContain('concurrency:\n  group: voice-clarity-witness\n  cancel-in-progress: false');
     expect(WF).toMatch(/timeout-minutes: 35/);
   });
   it('speaks the pinned corpus through the app’s own route and scores it with the script', () => {
