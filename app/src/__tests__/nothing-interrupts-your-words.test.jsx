@@ -363,11 +363,27 @@ describe('typing in any box holds the app still', () => {
 describe('every taker of the screen consults the hold', () => {
   it('main.jsx watches typing from boot, after the heal is wired', () => {
     const main = codeOnly(read('main.jsx'));
-    expect(main).toContain("import { watchTypedIntake } from './lib/intake-guard.js';");
+    // The IMPORT is asserted by PROPERTY, not by its exact line (DR-1130).
+    // This read `toContain("import { watchTypedIntake } from …")` verbatim and
+    // went red the moment a sibling watcher was co-imported from the same
+    // module — a formatting change, with the wiring it exists to protect fully
+    // intact. The property is that main.jsx imports this watcher from the
+    // guard; how the line is punctuated is not this gate's business.
+    expect(main).toMatch(/import \{[^}]*\bwatchTypedIntake\b[^}]*\} from '\.\/lib\/intake-guard\.js';/);
     const heal = main.indexOf('wireChunkHeal(window);');
     const watch = main.indexOf('watchTypedIntake(document, { win: window });');
     expect(heal).toBeGreaterThan(0);
     expect(watch).toBeGreaterThan(heal);
+  });
+  it('and it watches USE from boot too, so a reload never lands mid-session (DR-1130)', () => {
+    // The same wiring gate, extended rather than duplicated: ONE place says
+    // what main.jsx must do at boot — for words coming in, and for use.
+    const main = codeOnly(read('main.jsx'));
+    expect(main).toMatch(/import \{[^}]*\bwatchUse\b[^}]*\} from '\.\/lib\/intake-guard\.js';/);
+    const typed = main.indexOf('watchTypedIntake(document, { win: window });');
+    const use = main.indexOf('watchUse(document, { win: window });');
+    expect(typed).toBeGreaterThan(0);
+    expect(use).toBeGreaterThan(typed);
   });
   it('the recorder holds for the take and for the kept result; the mic holds while listening; the reader and the download hold while they run', () => {
     const scribe = codeOnly(read('lib', 'workflow-scribe.js'));
