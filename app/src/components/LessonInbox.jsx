@@ -25,6 +25,8 @@ import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
 import AddMyVoiceLink from './AddMyVoiceLink.jsx';
+// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1137).
+import MoveMyWords from './MoveMyWords.jsx';
 // DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
 // published) is marked seen here, so the icon and the bell drop their number.
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
@@ -179,6 +181,7 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                   <button type="button" data-testid="lesson-words-add-to-box" onClick={() => addToBox(words)} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] mt-1 ml-1 focus:outline focus:outline-2 focus:outline-[#B85838]">Add these words to the box</button>
                 </>
               )}
+              <MoveMyWords item={it} words={it.spoken ? words : it.body.replace(/^Lesson\.\s*/, '')} deps={{ supabase: deps.supabase }} onChanged={load} />
             </li>
           );
         })}

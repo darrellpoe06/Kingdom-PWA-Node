@@ -237,6 +237,10 @@ export function OneVoiceInput({
       const mode = e?.detail?.mode === 'append' ? 'append' : 'replace';
       setText((cur) => boxAfter(cur, body, mode));
       setRestoredDraft(false);
+      // A door already chosen for these words (DR-1137, the move): the chip is
+      // set to it and counts as the person's choice; else the box suggests.
+      const wanted = String(e?.detail?.route || '');
+      if (wanted && DESTS.some((d) => d.key === wanted)) { setRoute(wanted); setTouchedRoute(true); return; }
       if (mode === 'replace' && !touchedRoute) setRoute(suggestDestination(body, cfg.defaultRoute, DESTS.map(d => d.key)));
     };
     window.addEventListener(USE_PROMPT_EVENT, onUse);

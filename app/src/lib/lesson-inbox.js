@@ -22,6 +22,7 @@
 import { memberOutcome } from './member-lesson-review.js';
 import { isLessonDoorOwner } from './one-voice-surfaces.js';
 import { publishedLessonOf } from './lesson-review-messages.js';
+import { withdrawnMark } from './withdraw-my-words.js';
 
 const has = (row, t) => Array.isArray(row && row.tags) && row.tags.includes(t);
 const ofTag = (row) => (Array.isArray(row && row.tags) ? (row.tags.find((t) => String(t).startsWith('of:')) || '').slice(3) : '');
@@ -81,6 +82,9 @@ export function lessonItems(rows) {
     const rungTag = transcript ? (transcript.tags || []).find((t) => String(t).startsWith('whisper:')) : '';
     // DR-0771: the stale alarm writes stale-alarm@<time> on the ROOT row; the
     // screen reads that field, never a clock of its own.
+    // DR-1137: taken back by its person (the tag and its latest stamp sit on
+    // the ROOT row); nothing builds from it, its words still come back.
+    const mark = withdrawnMark(r.tags || []);
     const alarmStamps = (r.tags || []).filter((t) => /^stale-alarm@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(String(t))).map((t) => String(t).slice('stale-alarm@'.length)).sort();
     items.push({
       id: r.id,
@@ -94,6 +98,8 @@ export function lessonItems(rows) {
       spoken,
       state,
       label: LESSON_STATES[state],
+      withdrawn: mark.withdrawn,
+      withdrawnAt: mark.withdrawn ? mark.at : '',
       body: String(r.body || ''),
       words: transcript ? String(transcript.body || '') : '',
       why: failure ? String(failure.body || '') : '',

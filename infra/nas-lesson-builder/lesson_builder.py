@@ -155,6 +155,12 @@ def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
         return False, "not a lesson row"
     if "lesson-captured" in tags:
         return False, "already captured"
+    if "withdrawn" in tags:
+        # DR-1137: its person took it back from the lesson door (the wrong
+        # door, or a situation they will gather into a lesson later). Its words
+        # still come back through Whisper; nothing builds from it unless they
+        # restore it.
+        return False, "withdrawn by its person"
     if "lesson-building" in tags:
         return False, "a build holds it"
     if "awaiting-review" in tags:
@@ -1331,7 +1337,8 @@ class Db:
     def pending(self):
         rows = self.con.run(
             "SELECT id::text, instance_id::text, created_by::text, body, tags, created_at::text FROM public.agent_inbox "
-            "WHERE tags @> '[\"lesson\"]'::jsonb AND NOT tags @> '[\"lesson-captured\"]'::jsonb ORDER BY created_at ASC")
+            "WHERE tags @> '[\"lesson\"]'::jsonb AND NOT tags @> '[\"lesson-captured\"]'::jsonb "
+            "AND NOT tags @> '[\"withdrawn\"]'::jsonb ORDER BY created_at ASC")
         return [{"id": r[0], "instance_id": r[1], "created_by": r[2], "body": r[3],
                  "tags": r[4] if isinstance(r[4], list) else json.loads(r[4] or "[]"), "created_at": r[5]} for r in rows]
 
@@ -1351,7 +1358,8 @@ class Db:
         """Every waiting lesson row's id and tags (never a body), for the bell's sweep."""
         rows = self.con.run(
             "SELECT id::text, tags FROM public.agent_inbox WHERE tags ? 'lesson' AND NOT (tags ? 'lesson-captured') "
-            "AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review') ORDER BY created_at ASC")
+            "AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review') AND NOT (tags ? 'withdrawn') "
+            "ORDER BY created_at ASC")
         return [{"id": r[0], "tags": r[1] if isinstance(r[1], list) else json.loads(r[1] or "[]")} for r in rows]
 
     def stale_sweep(self, first_hours, repeat_hours):
@@ -2043,7 +2051,7 @@ def bell_waits(tags):
     """The waiting rule of scripts/lesson-inbox-waiting.sql, on one row's tags."""
     tags = tags or []
     return ("lesson" in tags and "lesson-captured" not in tags and "lesson-building" not in tags
-            and "awaiting-review" not in tags)
+            and "awaiting-review" not in tags and "withdrawn" not in tags)
 
 
 def bell_milestone(tags):

@@ -162,6 +162,14 @@ def naming_tags_of(tags):
     return out
 
 
+def carried_tags_of(tags):
+    """A verdict on the recording that its words must carry (DR-1137): a
+    person who WITHDREW the recording from the lesson door still gets the
+    words back (they are the only copy), but the transcript must not be built
+    into a lesson either, so the tag travels with it."""
+    return ["withdrawn"] if "withdrawn" in (tags or []) else []
+
+
 def transcript_text_path(audio_path):
     """Where a note's words wait for their owner: beside the audio, in the
     owner's own folder of the private bucket (0229's owner-folder policy), so
@@ -333,7 +341,7 @@ def failure_row(row, kind, n, reason):
     else:
         body = (f"Lesson. A spoken lesson could not be transcribed after {n} tries. "
                 f"Last reason: {reason}. The recording is kept; send it again or type it.")
-        tags = ["lesson", "voice-failed", f"of:{rid}"]
+        tags = ["lesson", "voice-failed", f"of:{rid}"] + carried_tags_of(row.get("tags"))
     return {"instance_id": row["instance_id"], "created_by": row["created_by"],
             "body": body, "tags": tags, "source": "lesson-voice-transcribe"}
 
@@ -438,7 +446,7 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                         "instance_id": row["instance_id"],
                         "created_by": row["created_by"],
                         "body": transcript_body(text, rung, model, secs, speakers),
-                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + speaker_tags(speakers, speakers_why) + naming_tags_of(row.get("tags")),
+                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + speaker_tags(speakers, speakers_why) + naming_tags_of(row.get("tags")) + carried_tags_of(row.get("tags")),
                         "source": "lesson-voice-transcribe",
                     })
                 io.add_tags(row, ["voice-transcribed"])
