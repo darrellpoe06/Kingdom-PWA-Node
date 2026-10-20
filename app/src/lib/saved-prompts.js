@@ -150,9 +150,13 @@ export const USE_PROMPT_EVENT = 'poetech:use-prompt';
 // only ever REPLACED what it held. `mode: 'append'` adds the words under what
 // is already in the box, a blank line between, so a lesson can be made from a
 // situation, or a few.
-export function sendPromptToBox(body, target = typeof window !== 'undefined' ? window : null, { mode = 'replace' } = {}) {
+export function sendPromptToBox(body, target = typeof window !== 'undefined' ? window : null, { mode = 'replace', route = '' } = {}) {
   if (!target || typeof target.dispatchEvent !== 'function') return false;
-  target.dispatchEvent(new CustomEvent(USE_PROMPT_EVENT, { detail: { body: String(body || ''), mode: mode === 'append' ? 'append' : 'replace' } }));
+  // `route` (DR-1142): the door already chosen for these words; the box sets
+  // its chip to it and the person presses Send. Absent, the box suggests one.
+  const detail = { body: String(body || ''), mode: mode === 'append' ? 'append' : 'replace' };
+  if (route) detail.route = String(route);
+  target.dispatchEvent(new CustomEvent(USE_PROMPT_EVENT, { detail }));
   return true;
 }
 /** Add these words UNDER what the box already holds (the gathering move). */
