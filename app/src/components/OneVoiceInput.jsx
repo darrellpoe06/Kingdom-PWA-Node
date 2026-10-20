@@ -231,7 +231,7 @@ export function OneVoiceInput({
     const onUse = (e) => {
       const body = String(e?.detail?.body || '');
       if (!body) return;
-      // 'append' gathers: the words land UNDER what the box holds (DR-1135),
+      // 'append' gathers: the words land UNDER what the box holds (DR-1141),
       // so a lesson can be made from a situation, or a few; the route the
       // person already chose for the gathering is kept.
       const mode = e?.detail?.mode === 'append' ? 'append' : 'replace';

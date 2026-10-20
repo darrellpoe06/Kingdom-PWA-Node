@@ -1,4 +1,4 @@
-# DR-1135: The words come back where the line was made — a spoken lesson's prompt row shows its transcript's state, and Your prompts reads by type through the standard sub-tabs
+# DR-1141: The words come back where the line was made — a spoken lesson's prompt row shows its transcript's state, and Your prompts reads by type through the standard sub-tabs
 
 **Date:** 2026-10-20
 **Status:** accepted
