@@ -329,6 +329,13 @@ jobs:
       - name: cams forwarder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_forwarder.py --selftest
+      # Wyze cloud client selftest (DR-0777; DR-1097 twelfth read): proven-to-
+      # catch -- fails if a 429 from Wyze is asked again before its wait has
+      # passed, if the last list stops being served during the wait, or if a
+      # second 429 in a row stops doubling the wait.
+      - name: wyze cloud selftest
+        working-directory: infra/nas-cameras
+        run: python3 wyze_cloud.py --selftest
       # Research forwarder selftest (DR-1101): the locked door in front of Vane,
       # which has no login of its own. Proven-to-catch: fails if /ask accepts a
       # missing or wrong bearer, if any Vane page or API is ever passed through,
