@@ -107,7 +107,6 @@ const PINNED = {
   // The largest single store outside the courses, and it was never read.
   'scriptures.js': 41,
   'seeing-study.js': 2,
-  'sound-board-class.js': 1,
   'sovereign-ai-class.js': 27,
   'story-exploration.js': 1,
   'study-space.js': 4,

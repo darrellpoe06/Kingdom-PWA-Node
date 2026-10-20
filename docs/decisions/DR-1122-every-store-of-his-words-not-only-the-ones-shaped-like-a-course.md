@@ -94,6 +94,22 @@ our *"from TWENTY years old"* is a lowered capital as well as a shout, and
 rewriting it would swap one fault class for another and report progress that is
 not progress.
 
+**And writing them out immediately found a misquotation, which is the argument
+for writing them out.** DR-0545 predicted this exactly — *"a twenty-eighth fault
+surfaced only once the abbreviations were written out"* — and it happened again
+in CI on this change's first run. `sound-board-class.js` quoted **"play
+skillfully" (Ps 33:3)** twice; Psalm 33:3 reads **"play skilfully"**, one L. For
+as long as the reference was abbreviated, no instrument could fetch the verse,
+so nobody could see it. His spelling is restored inside both quotations and left
+alone in our own prose beside them, where modern spelling is ours to use
+(DR-0210). **That catalog now reaches ZERO and leaves both pin lists, 3 → 0.**
+
+Worth naming: the curriculum gate caught it, not either gate here, because this
+change's own pins had it counted inside `sound-board-class.js`'s 1 while
+`curriculum-cli.mjs` measures a FRESH verse fault against its own debt record of
+472. Two instruments, two questions, and the one I had not run locally is the
+one that spoke.
+
 **Every abbreviation beside a quotation is written out — 55 of them, 26 distinct
 forms, all now at zero.** 46 by `fix-quote-abbreviation.mjs`, which rewrites a
 book name only when it is the prefix of EXACTLY ONE book the corpus holds and
@@ -112,8 +128,9 @@ a span that was **never compared to a verse at all**, which is why two of
 `sound-board-class.js`'s three pinned faults evaporated the moment its references
 could be read: both quotations were the verse exactly.
 
-**The debt, in the open.** The catalog gate's pins fall **247 → 202**. The new
-gate pins **322 faults across 58 modules and 60,955 spans**, plus 38
+**The debt, in the open.** The catalog gate's pins fall **247 → 201**, and
+`sound-board-class.js` leaves the list entirely. The new
+gate pins **321 faults across 58 modules and 60,955 spans**, plus 38
 uncheckable. That 322 is larger than 202 because it is measuring more, not
 because anything got worse; the two numbers answer different questions and both
 are now true. 120 of the 322 are in `made-in-time-course.js` and 41 in
@@ -156,9 +173,13 @@ are now true. 120 of the 322 are in `made-in-time-course.js` and 41 in
 
 `app/src/__tests__/every-store-of-his-words.test.js`, **163 cases**; the three
 existing quotation gates still green beside it — **234 passing in total** across
-the four. `npm run lint` exit 0. `npm run verify:gates` exit 0.
+the four, and **2,965 across all 63 files that touch the changed modules**.
+`npm run lint` exit 0. `npm run verify:gates` exit 0. `curriculum-cli.mjs`
+PASS: 51 courses, 828 lessons, 60,879 spans, 60,634 verbatim — the gate suite
+that found the Psalm 33:3 misquotation, run locally after the fix as well as in
+CI.
 
-Measured: 58 modules, 60,955 spans, 322 faults, 38 uncheckable. The derived list
+Measured: 58 modules, 60,955 spans, 321 faults, 38 uncheckable. The derived list
 is asserted against what the file imports in both directions, and no pin may
 outlive the file it names.
 

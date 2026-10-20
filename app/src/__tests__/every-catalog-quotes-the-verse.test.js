@@ -184,11 +184,15 @@ const PINNED = {
   // for another.
   'made-in-time-course.js': 110,
   'prophetic-voices.js': 5,
-  // 3 -> 1 on 2026-10-20 (DR-1122): two of the three were abbreviated
-  // references ("1 Cor 14:40", "2 Chr 5:13") that no resolver could reach, so
-  // the quotations under them had never been compared to anything at all.
-  // Written out, both turned out to be their verse exactly.
-  'sound-board-class.js': 1,
+  // sound-board-class.js LEAVES THIS LIST ENTIRELY on 2026-10-20 (DR-1122),
+  // 3 -> 0. Two of the three were abbreviated references ("1 Cor 14:40",
+  // "2 Chr 5:13") that no resolver could reach, so the quotations under them
+  // had never been compared to anything at all; written out, both turned out
+  // to be their verse exactly. The third was "Ps 33:3", and writing IT out is
+  // what finally compared the quotation: we had "play skillfully" where the
+  // KJV reads "play skilfully", one L. Caught by the curriculum gate in CI,
+  // not here, because this gate had it inside its pin of 1 while the
+  // curriculum gate counts a FRESH verse fault against its own debt record.
   // 36 -> 25 by DR-1030's apostrophes, 25 -> 24 by DR-1031's capitals,
   // 24 -> 23 on 2026-10-20 (DR-1122): "1 Thess 5:21" written out, and the
   // quotation beneath it was sound.
