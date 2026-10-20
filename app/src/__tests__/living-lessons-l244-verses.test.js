@@ -113,13 +113,25 @@ describe('L244 exists, is numbered, and is dated', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
   });
 
-  it('takes 244 and leaves the 79/211/212 gaps alone', () => {
+  it('takes 244, leaves the 211/212 gaps alone, and 79 claimed once', () => {
     const claimed = LIVING_LESSONS_MODULES
       .map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 244)).toHaveLength(1);
-    for (const n of [79, 211, 212]) {
-      expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    for (const n of [211, 212]) {
+    expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
     }
+    // 79 IS NO LONGER A HOLE. It was one when this check was written -- the
+    // comment on the original said so: "79 is #2166's held lesson". That
+    // lesson (DR-1025) is on this branch and fills it, so asserting 79 is
+    // UNCLAIMED now fails for a reason that has nothing to do with this
+    // lesson. The question the check actually means is still asked, and more
+    // strictly: 211 and 212 are still open holes nobody may fill by
+    // accident, and 79 is claimed EXACTLY ONCE, by the lesson whose number
+    // it is. A lesson that drifted onto 79 would make that count 2.
+    expect(
+        LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+        '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
   });
 
   it('carries the commit day, and never precedes the lesson numbered before it', () => {
@@ -137,19 +149,19 @@ describe('the measurement-honesty half, which existed nowhere in main', () => {
 
   it('says what radiocarbon dates, and that it is a death and not a rock', () => {
     for (const k of ['adult', 'child', 'youth', 'teen', 'senior']) {
-      expect(/once-living|was alive|were alive/i.test(TEXTS[k]), `${k} never says what it dates`).toBe(true);
+    expect(/once-living|was alive|were alive/i.test(TEXTS[k]), `${k} never says what it dates`).toBe(true);
       // The senior band states the same fact in its own register — "elapsed
       // time since a once-living organism ceased carbon exchange" — so the
       // check accepts that phrasing rather than forcing the word "death" into
       // eldership prose. The regex was narrower than the lesson, not the
       // lesson narrower than the point.
-      expect(/death|died|dies|ceased carbon exchange/i.test(TEXTS[k]), `${k} never says it dates a death`).toBe(true);
+    expect(/death|died|dies|ceased carbon exchange/i.test(TEXTS[k]), `${k} never says it dates a death`).toBe(true);
     }
   });
 
   it('states the ceiling, in every band', () => {
     for (const k of ALL) {
-      expect(/fifty|50,000|50,?000/i.test(TEXTS[k]), `${k} drops the ceiling`).toBe(true);
+    expect(/fifty|50,000|50,?000/i.test(TEXTS[k]), `${k} drops the ceiling`).toBe(true);
     }
   });
 
@@ -157,14 +169,14 @@ describe('the measurement-honesty half, which existed nowhere in main', () => {
     // The whole point of the arm: the wrong-instrument error belongs to
     // whoever is holding it, and the gate is that both sentences appear.
     for (const k of ['adult', 'child', 'youth', 'teen', 'senior']) {
-      expect(/either direction|both directions|wrong tool|wrong instrument/i.test(TEXTS[k]), `${k} drops the symmetry`).toBe(true);
-      expect(/young|lands on nothing|never (claimed|said)/i.test(TEXTS[k]), `${k} never answers the young-earth misuse`).toBe(true);
+    expect(/either direction|both directions|wrong tool|wrong instrument/i.test(TEXTS[k]), `${k} drops the symmetry`).toBe(true);
+    expect(/young|lands on nothing|never (claimed|said)/i.test(TEXTS[k]), `${k} never answers the young-earth misuse`).toBe(true);
     }
   });
 
   it('keeps stratigraphy as ORDER and not as an age', () => {
     for (const k of ['adult', 'child', 'youth', 'teen', 'senior']) {
-      expect(/order/i.test(TEXTS[k]), `${k} drops order-not-age`).toBe(true);
+    expect(/order/i.test(TEXTS[k]), `${k} drops order-not-age`).toBe(true);
     }
   });
 });
@@ -172,7 +184,7 @@ describe('the measurement-honesty half, which existed nowhere in main', () => {
 describe('the timetable stays open, in every band', () => {
   it('says the house holds it open and adopts NEITHER reading', () => {
     for (const k of ALL) {
-      expect(/open/i.test(TEXTS[k]), `${k} never says it is held open`).toBe(true);
+    expect(/open/i.test(TEXTS[k]), `${k} never says it is held open`).toBe(true);
     }
   });
 
@@ -180,21 +192,21 @@ describe('the timetable stays open, in every band', () => {
     // A band that concluded the question would overwrite a recorded house
     // position through a video summary. This is the check that forbids it.
     for (const k of ALL) {
-      expect(/the days (were|are) (ordinary|literal|long ages|ages)\b(?!.{0,40}(or|and))/i.test(TEXTS[k]),
+    expect(/the days (were|are) (ordinary|literal|long ages|ages)\b(?!.{0,40}(or|and))/i.test(TEXTS[k]),
         `${k} appears to settle the days`).toBe(false);
     }
   });
 
   it('keeps both brothers inside the family, explicitly', () => {
     for (const k of ['adult', 'child', 'youth', 'teen', 'senior']) {
-      expect(/believers differ|both of them|sincere believers|one of them (is )?out|family/i.test(TEXTS[k]),
+    expect(/believers differ|both of them|sincere believers|one of them (is )?out|family/i.test(TEXTS[k]),
         `${k} never protects the other reading`).toBe(true);
     }
   });
 
   it('handles 2 Peter 3:8 as patience and not as a conversion factor', () => {
     for (const k of ['adult', 'youth', 'teen']) {
-      expect(/patience|forbearance|unrepentant|unsaved/i.test(TEXTS[k]), `${k} drops Peter's actual subject`).toBe(true);
+    expect(/patience|forbearance|unrepentant|unsaved/i.test(TEXTS[k]), `${k} drops Peter's actual subject`).toBe(true);
     }
   });
 });
@@ -202,35 +214,35 @@ describe('the timetable stays open, in every band', () => {
 describe('the three buckets, and the ordering that holds', () => {
   it('names all three in every band that can carry them', () => {
     for (const k of ['adult', 'youth', 'teen', 'senior']) {
-      expect(/STATES|states/.test(TEXTS[k]), `${k} drops bucket one`).toBe(true);
-      expect(/MEASURED|measured/.test(TEXTS[k]), `${k} drops bucket two`).toBe(true);
-      expect(/REASONED|reasoned/.test(TEXTS[k]), `${k} drops bucket three`).toBe(true);
+    expect(/STATES|states/.test(TEXTS[k]), `${k} drops bucket one`).toBe(true);
+    expect(/MEASURED|measured/.test(TEXTS[k]), `${k} drops bucket two`).toBe(true);
+    expect(/REASONED|reasoned/.test(TEXTS[k]), `${k} drops bucket three`).toBe(true);
     }
   });
 
   it('puts the image BEFORE the neuroanatomy, never after it', () => {
     for (const k of ['adult', 'child', 'youth', 'teen', 'senior']) {
-      expect(/would (not )?(move|shift|change)|not because of a parietal|survive its complete revision|not the foundation/i.test(TEXTS[k]),
+    expect(/would (not )?(move|shift|change)|not because of a parietal|survive its complete revision|not the foundation/i.test(TEXTS[k]),
         `${k} never states the dependency direction`).toBe(true);
     }
   });
 
   it('credits their method rather than sniffing at it', () => {
     for (const k of ['adult', 'youth', 'teen', 'senior']) {
-      expect(/cross-check|cross-verif|independent/i.test(TEXTS[k]), `${k} withholds the credit due`).toBe(true);
+    expect(/cross-check|cross-verif|independent/i.test(TEXTS[k]), `${k} withholds the credit due`).toBe(true);
     }
   });
 
   it('declines to repeat their specific figures as established', () => {
     for (const k of ['adult', 'youth', 'teen', 'senior']) {
-      expect(/not (repeated|verified)|have not (verified|checked)|not .{0,20}established/i.test(TEXTS[k]),
+    expect(/not (repeated|verified)|have not (verified|checked)|not .{0,20}established/i.test(TEXTS[k]),
         `${k} never marks the figures unverified`).toBe(true);
     }
   });
 
   it('carries BOTH guards, including the one aimed at us', () => {
     for (const k of ['adult', 'youth', 'teen', 'senior']) {
-      expect(/knowledge/i.test(TEXTS[k]), `${k} drops the 1 Timothy 6:20 correction`).toBe(true);
+    expect(/knowledge/i.test(TEXTS[k]), `${k} drops the 1 Timothy 6:20 correction`).toBe(true);
     }
   });
 });
@@ -278,7 +290,7 @@ describe('every quoted span is the verse', () => {
 
   it('uses the corpus apostrophe inside quotations (proven-to-catch, third lesson running)', () => {
     for (const s of spans) {
-      expect(/'/.test(s.quoted), `${s.path} carries a straight apostrophe inside a quotation`).toBe(false);
+    expect(/'/.test(s.quoted), `${s.path} carries a straight apostrophe inside a quotation`).toBe(false);
     }
     const p = verse('Proverbs', 16, 9);
     expect(p.includes('A man’s heart deviseth his way')).toBe(true);

@@ -20,8 +20,14 @@
 // purpose (2026-07-30 comprehensive review) because commitments lived there and
 // nothing read them. Measured: of 481 index-row commitments the extractor
 // finds, 38 are NOT echoes -- dates that exist only in a row, including three
-// rows citing DR-1104 and DR-1105, which have no record file on disk at all.
+// rows citing DR-1104 and DR-1105, which had no record file on disk at all.
 // Those are exactly what the widening was for, and they survive.
+//
+// THOSE TWO RECORDS ARE NOW ON DISK (main c10da2c9a): #2166 merged while this
+// branch waited, and it was carrying them. The orphan rows that justified the
+// widening have been paid off by the work -- which is why the case below
+// asserts that such a row is never DROPPED rather than asserting that any
+// exists. A guard written around a hole must not depend on the hole.
 //
 // A FINDING OF MINE THAT WAS WRONG FIRST, and is a case here because of it. I
 // reported that this instrument over-counted a SINGLE commitment six times,
@@ -142,12 +148,30 @@ describe('MEASURED on the real ledger, not a fixture', () => {
     expect(kept.length).toBeLessThan(rows.length / 4);
   });
 
-  it('the survivors include the rows whose record is not on disk', () => {
-    const beside = extractReReviews({ reviews: indexOnly(), decisions: decisions() }, NOW)
-      .filter((i) => i.sourceId === LEDGER_INDEX_ID);
+  it('every row whose record is not on disk survives — however many there are', () => {
+    // A PIN THAT EXPIRED WHILE THE BRANCH WAITED, and the second time this one
+    // file taught me the same lesson. I first asserted the orphan set exactly:
+    // ['DR-1104', 'DR-1104', 'DR-1105'] -- the three index rows citing records
+    // with no file on disk, which are the whole reason the index is read at all.
+    // Merging the base turned it red with `expected [] to deeply equal [...]`,
+    // and the cause is GOOD NEWS: #2166 merged, and the DR-1104 and DR-1105
+    // records it had been carrying on a held branch are now on disk at main
+    // c10da2c9a. The hole the pin described was filled by the work.
+    //
+    // So this asserts the PROPERTY, not the census: no index row citing an
+    // absent record may be dropped. It holds at three orphans and at zero. It
+    // cannot be satisfied by the suppression quietly eating them either -- the
+    // fixture case above ("KEPT when the row cites a record that does not
+    // exist") proves the mechanism on a row absent by construction, so this
+    // case reading zero is a statement about today's ledger, not about the code.
     const files = drFiles();
-    const orphans = beside.filter((i) => i.owner && !files.some((f) => f.startsWith(i.owner)));
-    expect(orphans.map((o) => o.owner).sort()).toEqual(['DR-1104', 'DR-1104', 'DR-1105']);
+    const onDisk = (owner) => files.some((f) => f.startsWith(owner));
+    const rows = extractReReviews({ reviews: indexOnly(), decisions: { items: [] } }, NOW)
+      .filter((i) => i.owner && !onDisk(i.owner));
+    const kept = extractReReviews({ reviews: indexOnly(), decisions: decisions() }, NOW)
+      .filter((i) => i.sourceId === LEDGER_INDEX_ID && i.owner && !onDisk(i.owner));
+    const lost = rows.filter((r) => !kept.some((k) => k.owner === r.owner && k.date === r.date));
+    expect(lost.map((l) => `${l.owner} ${l.date}`)).toEqual([]);
   });
 
   it('anti-theater: the walk reads a real ledger, so a stopped parse cannot read as success', () => {

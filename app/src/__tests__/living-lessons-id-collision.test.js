@@ -83,7 +83,13 @@ const numbered = (mods) => mods.map((m) => {
 // 236-238 took 238 rather than leave Living Lessons a hole for a numbering slip
 // (DR-0864). Closing a hole beats documenting one, and the second check below is
 // what makes a filled-but-still-recorded number impossible to leave behind.
-const KNOWN_MISSING = [79, 211, 212];
+// 79 WAS FILLED on 2026-10-14 (DR-1013) and its entry is deleted, which is the
+// second check below doing its job for the fourth time. "A Gospel With a Hole In
+// It — Why Justice and Righteousness Travel Together" was mined out of PR #1255,
+// whose own catalog held 81 modules against main's 238 so the file could never
+// be merged, rebuilt to the band floors in all four bands, and spliced between
+// ll78 and ll80. Closing a hole beats documenting one.
+const KNOWN_MISSING = [211, 212];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {
