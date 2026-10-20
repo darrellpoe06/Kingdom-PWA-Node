@@ -73,6 +73,27 @@ SERVERS = {
 }
 JELLYFIN_AUTH = 'MediaBrowser Client="PoeTech", Device="NAS", DeviceId="poetech-nas", Version="1.0"'
 
+# The shelves each server has mounted (infra/nas-libraries/docker-compose.yml),
+# declared as libraries by this loop so nobody has to click through a wizard
+# (DR-1121: "do everything so users can just use them"). Paths are the
+# CONTAINER side of each mount. Idempotent by name; a library a person has
+# made by hand under another name is left alone. Jellyfin's internet metadata
+# providers stay OFF (the register: "they stay off until that is weighed");
+# Audiobookshelf reads embedded tags and fetches nothing until a person
+# presses Match.
+LIBRARIES = {
+    "jellyfin": (
+        {"name": "Films", "path": "/media/video", "kind": "movies"},
+        {"name": "Sermons and worship", "path": "/media/harvest", "kind": "homevideos"},
+        {"name": "Spoken lessons", "path": "/media/lessons", "kind": "music"},
+    ),
+    "audiobookshelf": (
+        {"name": "Audiobooks", "path": "/audiobooks", "kind": "book"},
+        {"name": "Spoken lessons", "path": "/lessons", "kind": "book"},
+        {"name": "Sermons and worship", "path": "/harvest", "kind": "podcast"},
+    ),
+}
+
 
 def new_password(n=16):
     return _secrets.token_urlsafe(n)
@@ -141,6 +162,9 @@ class Immich:
             raise RuntimeError(f"immich user list answered {s}")
         return {str(u.get("email", "")).lower() for u in b}
 
+    def libraries(self):
+        return None  # Immich has no shelves to declare: its library is the upload folder
+
     def create(self, person, password):
         login = person["email"].lower()
         s, b = http("POST", self.base + "/api/admin/users", {
@@ -195,6 +219,20 @@ class Jellyfin:
             raise RuntimeError(f"jellyfin user list answered {s}")
         return {str(u.get("Name", "")).lower() for u in b}
 
+    def libraries(self):
+        s, b = http("GET", self.base + "/Library/VirtualFolders", headers=self._h())
+        if s != 200 or not isinstance(b, list):
+            raise RuntimeError(f"jellyfin library list answered {s}")
+        return {str(v.get("Name", "")) for v in b}
+
+    def declare(self, lib):
+        q = urllib.parse.urlencode({"name": lib["name"], "collectionType": lib["kind"], "refreshLibrary": "true"})
+        body = {"LibraryOptions": {"PathInfos": [{"Path": lib["path"]}], "EnableInternetProviders": False,
+                                   "EnableAutomaticSeriesGrouping": False, "SaveLocalMetadata": False}}
+        s, b = http("POST", self.base + "/Library/VirtualFolders?" + q, body, headers=self._h())
+        if s not in (200, 204):
+            raise RuntimeError(f"jellyfin declare {lib['name']} answered {s}: {str(b)[:120]}")
+
     def create(self, person, password):
         login = person["email"].split("@", 1)[0].lower()
         s, b = http("POST", self.base + "/Users/New", {"Name": login, "Password": password}, headers=self._h())
@@ -238,6 +276,18 @@ class Audiobookshelf:
         if s != 200 or not isinstance(b, dict):
             raise RuntimeError(f"audiobookshelf user list answered {s}")
         return {str(u.get("username", "")).lower() for u in (b.get("users") or [])}
+
+    def libraries(self):
+        s, b = http("GET", self.base + "/api/libraries", headers=self._h())
+        if s != 200 or not isinstance(b, dict):
+            raise RuntimeError(f"audiobookshelf library list answered {s}")
+        return {str(v.get("name", "")) for v in (b.get("libraries") or [])}
+
+    def declare(self, lib):
+        s, b = http("POST", self.base + "/api/libraries",
+                    {"name": lib["name"], "folders": [{"fullPath": lib["path"]}], "mediaType": lib["kind"]}, headers=self._h())
+        if s != 200:
+            raise RuntimeError(f"audiobookshelf declare {lib['name']} answered {s}: {str(b)[:120]}")
 
     def create(self, person, password):
         login = person["email"].split("@", 1)[0].lower()
@@ -328,6 +378,31 @@ def _budget_alarm(signum, frame):
 # ---------------------------------------------------------------------------
 # one pass
 # ---------------------------------------------------------------------------
+def ensure_libraries(srv, entry):
+    """Declares every mounted shelf the server does not yet list, by name.
+    Writes entry["libraries"] = {"have": [...], "declared": [...]} or
+    entry["library_error"]; never raises, so the accounts still get made."""
+    wanted = LIBRARIES.get(srv.name) or ()
+    if not wanted:
+        return
+    try:
+        have = srv.libraries()
+        if have is None:
+            return
+        declared = []
+        for lib in wanted:
+            if lib["name"] in have:
+                continue
+            srv.declare(lib)
+            have.add(lib["name"])
+            declared.append(lib["name"])
+        entry["libraries"] = {"have": sorted(have), "declared": declared}
+    except TimeoutError:
+        raise
+    except Exception as e:
+        entry["library_error"] = str(e)[:200]
+
+
 def run_once(db, servers, home_secrets_path, state_dir, bridge_token, max_creates=MAX_CREATES_PER_PASS, budget=BUDGET_SECONDS):
     """Returns the ledger of the pass. servers: list of server objects;
     bridge_token: this NAS's family key, which names the household."""
@@ -368,6 +443,7 @@ def run_once(db, servers, home_secrets_path, state_dir, bridge_token, max_create
                     save_secrets(home_secrets_path, secrets_doc)
                     creds = dict(probe)
                 srv.ensure_admin(creds)
+                ensure_libraries(srv, entry)
                 have = srv.logins()
                 entry["accounts"] = len(have)
                 meta = SERVERS[srv.name]
@@ -447,6 +523,7 @@ def _selftest():
             failures.append(what)
 
     world = {"immich_users": [], "immich_admin": None, "jf_users": [], "jf_wizard": False, "abs_users": [], "abs_root": None,
+             "jf_libs": [], "abs_libs": [{"name": "Grandpa's tapes", "kind": "book", "paths": ["/audiobooks/tapes"]}],
              "rows": [], "roster": [
                  {"user_id": "u1", "instance_id": "i1", "email": "Darrell@example.org", "display_name": "Darrell"},
                  {"user_id": "u2", "instance_id": "i1", "email": "kid@example.org", "display_name": "Kid"},
@@ -490,6 +567,10 @@ def _selftest():
                 if 'Token="jf-token"' not in auth:
                     return self._send(401, {})
                 return self._send(200, [{"Name": n} for n in world["jf_users"]])
+            if p == "/Library/VirtualFolders":
+                if 'Token="jf-token"' not in auth:
+                    return self._send(401, {})
+                return self._send(200, [{"Name": v["name"], "Locations": v["paths"], "CollectionType": v["kind"]} for v in world["jf_libs"]])
             # audiobookshelf
             if p == "/status":
                 return self._send(200, {"isInit": world["abs_root"] is not None, "serverVersion": "2.37.1"})
@@ -497,6 +578,10 @@ def _selftest():
                 if auth != "Bearer abs-token":
                     return self._send(401, {})
                 return self._send(200, {"users": [{"username": n} for n in world["abs_users"]]})
+            if p == "/api/libraries":
+                if auth != "Bearer abs-token":
+                    return self._send(401, {})
+                return self._send(200, {"libraries": [{"name": v["name"], "folders": [{"fullPath": f} for f in v["paths"]], "mediaType": v["kind"]} for v in world["abs_libs"]]})
             # postgrest
             if p == "/rest/v1/home_accounts":
                 if self.headers.get("apikey") != "service-key":
@@ -541,6 +626,15 @@ def _selftest():
                     return self._send(401, {})
                 world["jf_users"].append(b["Name"])
                 return self._send(200, {"Id": "y"})
+            if p == "/Library/VirtualFolders":
+                if 'Token="jf-token"' not in auth:
+                    return self._send(401, {})
+                q = dict(urllib.parse.parse_qsl(self.path.partition("?")[2]))
+                opts = (b.get("LibraryOptions") or {})
+                world["jf_libs"].append({"name": q.get("name"), "kind": q.get("collectionType"),
+                                         "paths": [x.get("Path") for x in opts.get("PathInfos") or []],
+                                         "internet": opts.get("EnableInternetProviders")})
+                return self._send(204, {})
             if p == "/init":
                 world["abs_root"] = b["newRoot"]
                 world["abs_users"].append(b["newRoot"]["username"])
@@ -555,6 +649,11 @@ def _selftest():
                     return self._send(401, {})
                 world["abs_users"].append(b["username"])
                 return self._send(200, {"user": {"id": "z"}})
+            if p == "/api/libraries":
+                if auth != "Bearer abs-token":
+                    return self._send(401, {})
+                world["abs_libs"].append({"name": b.get("name"), "kind": b.get("mediaType"), "paths": [f.get("fullPath") for f in b.get("folders") or []]})
+                return self._send(200, {"id": "L"})
             if p == "/rest/v1/rpc/home_accounts_roster":
                 world["roster_tokens"] = world.get("roster_tokens", []) + [b.get("p_bridge_token")]
                 return self._send(200, world["roster"] if b.get("p_bridge_token") == "family-key" else [])
@@ -598,6 +697,22 @@ def _selftest():
     jf = [r for r in rows if r["service"] == "jellyfin" and r["user_id"] == "u2"][0]
     check(jf["header_name"] is None and ":8096" in jf["server_url"], "Jellyfin's row names the tailnet port and no header")
     check(led["created"] == 6 and all(v["created"] == 2 for v in led["servers"].values()), "the ledger counts six created, two per server")
+    jl = {v["name"]: v for v in world["jf_libs"]}
+    check(set(jl) == {"Films", "Sermons and worship", "Spoken lessons"}
+          and jl["Sermons and worship"]["paths"] == ["/media/harvest"] and jl["Films"]["kind"] == "movies" and jl["Spoken lessons"]["paths"] == ["/media/lessons"],
+          "Jellyfin's three mounted shelves are declared as libraries by name, path and kind, with no wizard")
+    check(bool(world["jf_libs"]) and all(v["internet"] is False for v in world["jf_libs"]), "Jellyfin's internet metadata providers are OFF on every declared library (nothing leaves the network)")
+    al = {v["name"]: v for v in world["abs_libs"]}
+    check(set(al) == {"Grandpa's tapes", "Audiobooks", "Spoken lessons", "Sermons and worship"}
+          and al["Spoken lessons"]["paths"] == ["/lessons"] and al["Sermons and worship"]["kind"] == "podcast",
+          "Audiobookshelf's three shelves are declared beside the library a person made by hand, which is left alone")
+    check((led["servers"]["jellyfin"].get("libraries") or {}).get("declared") == ["Films", "Sermons and worship", "Spoken lessons"]
+          and sorted((led["servers"]["audiobookshelf"].get("libraries") or {}).get("have") or []) == ["Audiobooks", "Grandpa's tapes", "Sermons and worship", "Spoken lessons"]
+          and "libraries" not in led["servers"]["immich"],
+          "the ledger names what each server has and what this pass declared; Immich declares nothing")
+    acct_i = [i for i, c in enumerate(world["calls"]) if c == ("POST", "/Users/New")][0]
+    lib_i = ([i for i, c in enumerate(world["calls"]) if c == ("POST", "/Library/VirtualFolders")] or [10 ** 9])[0]
+    check(lib_i < acct_i, "the shelves are declared before the first account is made, so a new login opens on a full library")
 
     # second pass: nothing new
     n_calls = len(world["calls"])
@@ -605,6 +720,9 @@ def _selftest():
     check(led2["created"] == 0 and not led2["errors"] and len(world["rows"]) == 6 and len(world["immich_users"]) == 2,
           "a second pass creates nothing and writes no row (idempotent)")
     check(("POST", "/api/auth/admin-sign-up") not in world["calls"][n_calls:], "the admin is never made twice")
+    check(("POST", "/Library/VirtualFolders") not in world["calls"][n_calls:] and ("POST", "/api/libraries") not in world["calls"][n_calls:]
+          and len(world["jf_libs"]) == 3 and len(world["abs_libs"]) == 4 and (led2["servers"]["jellyfin"].get("libraries") or {}).get("declared") == [],
+          "a library is never declared twice (idempotent by name)")
     check(load_secrets(secrets_path) == doc, "the secrets file is left exactly as it was")
 
     # a new person joins: only their accounts are made
@@ -619,6 +737,17 @@ def _selftest():
     old = [r for r in world["rows"] if r["user_id"] == "u4" and r["service"] == "immich"]
     check(len(old) == 1 and old[0]["initial_password"] is None and led4["servers"]["immich"]["created"] == 0,
           "an account that already exists gets a row with no password and is never re-created")
+
+    # a shelf that will not declare: named in the ledger, the accounts still made
+    class StubbornJellyfin(Jellyfin):
+        def declare(self, lib):
+            raise RuntimeError("jellyfin declare answered 500: disk not mounted")
+    world["jf_libs"].clear()
+    world["roster"].append({"user_id": "u5", "instance_id": "i1", "email": "five@example.org", "display_name": "Five"})
+    led45 = run_once(db, [StubbornJellyfin(base)], secrets_path, state, "family-key", budget=0)
+    e45 = led45["servers"]["jellyfin"]
+    check("disk not mounted" in (e45.get("library_error") or "") and e45["created"] == 1 and not led45["errors"],
+          "CATCHES a shelf that will not declare: the why is in the ledger and the person's account is still made")
 
     # the cap per pass
     for i in range(20):

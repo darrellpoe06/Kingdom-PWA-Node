@@ -76,7 +76,7 @@ jobs:
               with open("/volume1/docker/home-accounts/last-pass.json") as fh:
                   led = json.load(fh)
               out["accounts"] = {k: led.get(k) for k in ("at", "skipped", "roster", "created", "errors")}
-              out["accounts"]["servers"] = {n: {k: v.get(k) for k in ("up", "accounts", "error")} for n, v in (led.get("servers") or {}).items()}
+              out["accounts"]["servers"] = {n: {k: v.get(k) for k in ("up", "accounts", "error", "libraries", "library_error")} for n, v in (led.get("servers") or {}).items()}
           except Exception as e:
               out["accounts"] = {"note": "no pass recorded yet: " + str(e)[:80]}
           print(json.dumps(out))

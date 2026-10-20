@@ -155,6 +155,18 @@ describe('the workflow is wired end to end', () => {
     expect(m).toMatch(/GRANT EXECUTE ON FUNCTION public\.home_accounts_roster\(text\) TO service_role/);
     expect(m).toMatch(/home_account_seen\(p_service text\)[\s\S]*initial_password = NULL[\s\S]*user_id = auth\.uid\(\)/);
   });
+  it('every shelf the compose mounts is declared as a library by the loop, by its container path, with Jellyfin’s internet providers off', () => {
+    const c = read('infra/nas-libraries/docker-compose.yml');
+    const l = read('infra/nas-home-accounts/home_accounts_sync.py');
+    const start = l.indexOf('LIBRARIES = {');
+    const libs = l.slice(start, l.indexOf('\n}\n', start));
+    const mounts = [...c.matchAll(/^\s+- \/volume1\/[^:]+:(\/[^:\s]+):ro$/gm)].map((m) => m[1]);
+    expect(mounts.length).toBe(6);
+    for (const inside of mounts) expect(libs, `no library declared for the mount ${inside}`).toContain(`"path": "${inside}"`);
+    expect(l).toMatch(/"EnableInternetProviders": False/);
+    expect(l).toMatch(/ensure_libraries\(srv, entry\)\n\s+have = srv\.logins\(\)/);
+  });
+
   it('the loop asks the roster with this NAS’s own key, never deletes, and its selftest gates merge', () => {
     const l = read('infra/nas-home-accounts/home_accounts_sync.py');
     expect(l).toMatch(/"p_bridge_token": bridge_token/);
