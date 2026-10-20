@@ -419,7 +419,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <MarketCard title="Single-parent small business owners" need="One platform vs juggling SaaS, lead tracking, tax preparation" have="Premium tier — replaces ~$125-180/mo of CRM, intake, and scheduling SaaS" />
           <MarketCard title="Small Black-owned contractors & service providers" need="Multi-entity tracking, fair contractor agreements, lead source attribution" have="Premium + Scope tool · From us, for us" />
           <MarketCard title="Independent farmers & small homesteaders" need="Property + equipment + seasonal calendar + multiple income streams" have="Household tier covers this almost completely" />
-          <MarketCard title="Small churches & ministries" need="Volunteer coordination, event tracking, member care, donation tracking" have="Calendar + Practice Operations workflow · Community Partner tier free" />
+          <MarketCard title="Small churches & ministries" need="Volunteer coordination, event tracking, member care, donation tracking" have="Church tier — from $200/mo flat, no contract, 0% of giving · free only when a sponsor covers it" />
           <MarketCard title="Disability advocate / IEP families" need="Document management, multi-provider coordination, school + therapist + insurance" have="Calendar + Practice Operations + scope · Premium tier" />
           <MarketCard title="Direct-care workers & gig economy" need="Multi-source income tracking, mileage, quarterly tax planning" have="Foundation (free) + Premium for full features" />
         </div>

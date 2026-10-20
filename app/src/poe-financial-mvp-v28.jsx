@@ -3719,6 +3719,11 @@ ${THEME_CSS}
                 <span className="text-[#5A5751]">·</span>
                 <span><span className="font-semibold">$249</span> Business</span>
               </div>
+              {/* DR-1128: a church's Supported tier, the floor price. */}
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1 text-[0.6875rem] text-[#1A1815]">
+                <span className="text-[#5A5751]">For churches:</span>
+                <span><span className="font-semibold">from $200</span> a month, no contract, 0% of giving</span>
+              </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[0.625rem] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
