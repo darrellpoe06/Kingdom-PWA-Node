@@ -247,40 +247,6 @@ describe('the connection is REAL, measured through the live search (DR-0076 §6)
     ).toBeLessThanOrEqual(CEILING);
   });
 
-  it('a course-level promise is reachable within N rows, N being the courses that declared the word, however many titles carry it (2026-10-20)', () => {
-    // MEASURED the day Sovereign A.I. week 43 landed with "work" in its title:
-    // 35 title hits sat above the plain tier, kingdom-economics was the sixth
-    // of seven declaring courses, and its first row fell to 41 - one past the
-    // product's window - from exactly 40 the day before. The finder now deals
-    // the first round of the plain tier (one row per declaring course) ahead of
-    // every title hit, so the promise holds whatever the catalog grows to.
-    const declaring = (w) => Object.keys(COURSE_PLAIN_WORDS).filter((k) => COURSE_PLAIN_WORDS[k].includes(w) && courses.some((c) => c.key === k));
-    for (const w of ['work', 'money', 'bible']) {
-      const n = declaring(w).length;
-      if (!n) continue;
-      const top = searchLessons(index, w, n).map((r) => r.courseKey);
-      for (const k of declaring(w)) expect(top, `${w}: ${k} is not within the first ${n} rows`).toContain(k);
-    }
-    // ...and the title tier still comes before the rest of the plain tier and
-    // every body hit: after the first round, the next rows for `work` are
-    // title hits, in catalog order.
-    const n = declaring('work').length;
-    const rows = searchLessons(index, 'work', n + 5);
-    const afterRound = rows.slice(n);
-    for (const e of afterRound) expect(e.hayTitle.includes('work'), `${e.id} sits in the title tier without the word in its title`).toBe(true);
-  });
-
-  it('PROVEN-TO-CATCH: the lift is what keeps the promise - without it the sixth declaring course falls out of the window', () => {
-    // Re-create the ordering the finder had before the lift: every row in the
-    // plain tier placed after every title hit. On the real catalog the sixth
-    // declaring course then sits past 40, which is the regression recorded.
-    const all = searchLessons(index, 'work', index.length);
-    const declaringCount = Object.keys(COURSE_PLAIN_WORDS).filter((k) => COURSE_PLAIN_WORDS[k].includes('work') && courses.some((c) => c.key === k)).length;
-    const titleRows = all.filter((e) => e.hayTitle.includes('work')).length;
-    expect(titleRows + declaringCount, 'the catalog no longer reproduces the measured overflow; re-measure before trusting this catch').toBeGreaterThan(40);
-    expect(finds('work', 'kingdom-economics', 40)).toBe(true);
-  });
-
   it('PROVEN-TO-CATCH: a word nobody declared finds nothing, so the search is not matching everything', () => {
     expect(searchLessons(index, 'zzqqxx', 40)).toEqual([]);
   });

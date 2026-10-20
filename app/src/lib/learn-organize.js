@@ -591,36 +591,61 @@ export function searchLessons(index, query, limit = 40) {
     }
   }
 
-  // AND THE FIRST ROUND OF THAT TIER IS DEALT AHEAD OF EVERY TITLE HIT
-  // (2026-10-20, DR-1129). The round-robin above made the promise hold INSIDE
-  // the plain tier, but the tier itself sits behind every title and
-  // anchor-reference hit in the catalog, and those grow without bound. Measured
-  // the day Sovereign A.I. week 43 landed with "work" in its title: `work` had
-  // 35 title hits, kingdom-economics was the sixth of seven courses declaring
-  // it, and its first row sat at 41 - one past the window the product passes -
-  // having sat at exactly 40 the day before. Nothing about the lesson's prose
-  // could have prevented it, and the ratchet in course-plain-words.test.js
-  // forbids the raised ceiling by name: the honest move is the finder. So the
-  // first round - ONE row per course that declared the word, courses in catalog
-  // order - is lifted to the top of the list. A declared word is a course's own
-  // door for an everyday word; the reader who types it sees each such door
-  // first, then every title that happens to carry the word, then the rest of
-  // the tier, then body matches. N rows, N being the number of declaring
-  // courses, whatever the catalog grows to - which is what the sentence above
-  // promised and could not keep. A verse reference is never a declared word,
-  // so a reference query is untouched; a multi-word query reaches the tier only
-  // when EVERY token is declared, so an incidental overlap is never promoted.
-  if (plain.length > 0) {
-    const firstRound = new Set();
-    const lifted = [];
-    for (const s of scored) {
-      if (s.rank === PLAIN_TIER && !firstRound.has(s.e.courseKey)) { firstRound.add(s.e.courseKey); lifted.push(s); }
+  // AND A DECLARED WORD KEEPS ITS SEAT INSIDE THE WINDOW (DR-1129).
+  // DR-1049's round-robin above is right about the TIER and wrong about the
+  // WINDOW, and its own note overclaims: "every course that declared the word
+  // is reachable within the first N rows, N being the number of such courses,
+  // whatever the catalog grows to". N counts from the TIER'S start, not from
+  // row 1 -- and the tier sits BELOW title (4) and anchor-reference (3), whose
+  // rows grow with the catalog like any others. So a course that declared the
+  // word is pushed out by courses that never declared it.
+  //
+  // MEASURED on the catalog of 2026-10-20: `work` is declared by 7 courses and
+  // `money` by 18, yet SEVENTEEN distinct courses precede kingdom-economics for
+  // BOTH -- the extra ones arriving on title matches above the tier.
+  // kingdom-economics lands at 27 for `money` (inside a 40 window, so the
+  // promise is kept by luck) and at 41 for `work` (outside it by ONE ROW, so
+  // the promise is broken). Growth decides which, which is exactly what the
+  // round-robin was meant to stop.
+  //
+  // THE FIX IS A SEAT, NOT A REORDER. Titles still win, anchor references still
+  // win, body hits still rank last -- nothing a reader sees moves except that
+  // each course which declared the query word is guaranteed ONE row inside the
+  // window, taking the place of the lowest-ranked row there (the last one,
+  // since `scored` is already in rank order). A declared word is a COURSE-level
+  // promise; this is what makes it true at any catalog size rather than at the
+  // sizes we have measured so far.
+  const out = scored.slice(0, limit);
+  if (plain.length && out.length >= limit) {
+    const present = new Set(out.map((s) => s.e.courseKey));
+    // Each declaring course's best plain row, in the dealt order above.
+    const owed = [];
+    const taken = new Set();
+    for (const s of plain) {
+      const k = s.e.courseKey;
+      if (present.has(k) || taken.has(k)) continue;
+      taken.add(k);
+      owed.push(s);
     }
-    const rest = scored.filter((s) => !lifted.includes(s));
-    return [...lifted, ...rest].slice(0, limit).map((s) => s.e);
+    // Seat them from the back, over the lowest-ranked rows, never over another
+    // declaring course's only row (which would just trade one broken promise
+    // for another).
+    let at = out.length - 1;
+    for (const s of owed) {
+      while (at >= 0) {
+        const k = out[at].e.courseKey;
+        const soleSeat = out[at].rank === PLAIN_TIER
+          && out.filter((o) => o.e.courseKey === k).length === 1;
+        if (!soleSeat) break;
+        at -= 1;
+      }
+      if (at < 0) break;
+      out[at] = s;
+      at -= 1;
+    }
   }
 
-  return scored.slice(0, limit).map((s) => s.e);
+  return out.map((s) => s.e);
 }
 
 // BROWSING NEEDS NO COURSE AND NO QUERY.

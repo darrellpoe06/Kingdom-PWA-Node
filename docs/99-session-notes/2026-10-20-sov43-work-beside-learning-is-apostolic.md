@@ -2,7 +2,7 @@
 
 **Module id:** `sov43-work-beside-learning-is-apostolic-and-the-release-that-carries-his-name`
 **Course:** Sovereign A.I. (`app/src/lib/sovereign-ai-class.js`), week 43
-**Decision record:** DR-1129
+**Decision record:** DR-1131
 **Captured by:** a spoken teaching into the app (CLAUDE.md "Spoken Teachings Are Build Input")
 
 ## Where the word came from
@@ -41,4 +41,4 @@ Week 43, in ten movements for the adult and four bands written for their readers
 
 ## What the lane's first run caught, and what it changed
 
-Two gates went red on the first CI run. The decision record lacked its Impact and Verification sections (the five-step chain, DR-0588 on); both were written. And `course-plain-words` found `kingdom-economics: work` out of reach at the product's window: this week's title carries "work", which made 35 title hits above the plain-word tier, and kingdom-economics, sixth of seven courses declaring the word, fell from row 40 to row 41. The ratchet forbids raising its ceiling by name, so the finder was fixed instead: the first round of the plain tier, one row per declaring course, is now dealt ahead of every title hit, so a course's everyday door is reachable within N rows however many titles carry the word. Measured after on `work`, `money` and `bible`; the finder's own tests still pass.
+Two gates went red on the first CI run. The decision record lacked its Impact and Verification sections (the five-step chain, DR-0588 on); both were written. And `course-plain-words` found `kingdom-economics: work` out of reach at the product's window: this week's title carries "work", which made 35 title hits above the plain-word tier, and kingdom-economics, sixth of seven courses declaring the word, fell from row 40 to row 41. The ratchet forbids raising its ceiling by name. This branch first lifted the tier's first round above every title hit; another session measured the same overflow the same hour and landed the better fix on `main` as DR-1129, a seat inside the window with titles still winning. At the merge the lift was dropped and the seat kept. Two merges of `main` in one afternoon also moved this record's number twice, DR-1122 to DR-1129 to DR-1131, because three sessions were writing records in the same hours; the id is a name, the file is the record.

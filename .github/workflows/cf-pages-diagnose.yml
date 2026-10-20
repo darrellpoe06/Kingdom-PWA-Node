@@ -48,30 +48,102 @@ jobs:
           echo '' >> /tmp/findings.md
           echo '```' >> /tmp/findings.md
 
-      - name: 1. What the LIVE site serves on a Function route
+      - name: 1. What the LIVE site serves on EVERY Function route (the truth table)
         run: |
           set -uo pipefail
           exec > >(tee -a /tmp/findings.md) 2>&1
+          # ONE ROAD IS NOT THE LAYER (2026-10-17). Until this run, every
+          # diagnosis of #2057 -- seven days of them -- probed exactly ONE path,
+          # /automation-status, and generalized from it: "EVERY NAS-backed road
+          # is dark at once: /sb sign-in, /n8n, /cams, /taxes, ...". That
+          # sentence was never measured. Meanwhile site-health's OWN /sb checks
+          # (status, content-type, and a real sign-in POST) were passing in the
+          # same minute, so the ledger's headline and the ledger's own evidence
+          # disagreed and nobody read them side by side.
+          #
+          # A claim about a LAYER needs more than one road. This asks each road
+          # separately and prints a tally, so "all of them" and "one of them"
+          # can never again look the same from outside. Only paths this
+          # repository already probes elsewhere are used -- no invented health
+          # routes, which would read as dark for the wrong reason.
+          #
+          # AND THE VERDICT IS READ, NOT INFERRED (DR-1092). The content type
+          # cannot answer "did a Function run" -- a proxy's job is to return
+          # somebody else's content type, and taking text/html for "the SPA
+          # shell" is precisely the misreading that kept #2057 open for eight
+          # days while every road was working. Each road now signs its answer
+          # `x-poetech-road` (pages-function from app/functions/_lib/funnel-
+          # proxy.js, worker from the zone Worker). Only code running at the
+          # edge can set a response header; a static fallback sets none. The
+          # content type is still printed, as a NOTE, because it is useful once
+          # the verdict is already settled.
+          #
+          # A 502 signed by our own proxy still counts as A FUNCTION ANSWERED:
+          # that is the Function running and correctly reporting the NAS
+          # unreachable. This step asks whether the Function RAN, never whether
+          # the NAS is well (cf-roads-worker's probe step asks that).
+          RAN=0; DARK=0
           probe() {
             label="$1"; url="$2"
-            body=$(mktemp)
-            code=$(curl -sS -o "$body" -w '%{http_code}' -A "$UA" --max-time 25 "$url" 2>/dev/null || echo 000)
-            ctype=$(curl -sSI -A "$UA" --max-time 25 "$url" 2>/dev/null | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}' | tail -1)
+            body=$(mktemp); hdr=$(mktemp)
+            code=$(curl -sS -o "$body" -D "$hdr" -w '%{http_code}' -A "$UA" --max-time 25 "$url" 2>/dev/null || echo 000)
+            tr -d '\r' < "$hdr" > "$hdr.clean"
+            road=$(awk -F': ' 'tolower($1)=="x-poetech-road"{print $2}' "$hdr.clean" | tail -1)
+            ctype=$(awk -F': ' 'tolower($1)=="content-type"{print $2}' "$hdr.clean" | tail -1)
             echo "--- $label"
             echo "    url          : $url"
             echo "    http         : $code"
-            echo "    content-type : ${ctype:-<none>}"
+            # OUR OWN SHELL, IDENTIFIED POSITIVELY. Vite writes every asset of
+            # this app under /poetech-app/assets/ -- eight times in
+            # dist/index.html, and in no page the NAS serves. "Is this OUR
+            # fallback?" is a question with an answer; "is this HTML?" is not.
+            if grep -q '/poetech-app/assets/' "$body" 2>/dev/null; then shell=yes; else shell=no; fi
+            echo "    signed by    : ${road:-<unsigned>}"
+            echo "    our SPA shell: ${shell}"
+            echo "    content-type : ${ctype:-<none>}   (a note, not the verdict)"
             echo "    first 160    : $(head -c 160 "$body" | tr '\n' ' ')"
-            case "${ctype:-}" in
-              application/json*) echo "    VERDICT      : A FUNCTION ANSWERED" ;;
-              text/html*)        echo "    VERDICT      : the SPA shell - no Function ran" ;;
-              *)                 echo "    VERDICT      : unexpected content type" ;;
+            case "${road:-}" in
+              pages-function|worker)
+                echo "    VERDICT      : A FUNCTION ANSWERED (signed ${road})"; RAN=$((RAN+1)) ;;
+              *)
+                if [ "$shell" = "yes" ]; then
+                  echo "    VERDICT      : DARK - unsigned AND our own SPA shell, so no Function ran"; DARK=$((DARK+1))
+                else
+                  # Both keys must agree before a road is called dark, so that a
+                  # build deployed before the signature existed is never
+                  # mistaken for an outage -- which is the original mistake in a
+                  # new costume, and the whole point of this record.
+                  echo "    VERDICT      : A FUNCTION ANSWERED (unsigned, but NOT our shell - a build older than DR-1092)"; RAN=$((RAN+1))
+                fi ;;
             esac
-            rm -f "$body"
+            rm -f "$body" "$hdr" "$hdr.clean"
           }
-          echo "=== /automation-status, the road the incident names ==="
-          probe "custom domain"   "https://poetech.us/automation-status"
-          probe "pages.dev alias" "https://poetech-app.pages.dev/automation-status"
+          # Every path here is one some other probe in this repository already
+          # calls, so a dark reading means the road is dark and not that the
+          # path was made up: /sb/auth/v1/health, /cams/health,
+          # /nas-photos/healthz and /property-history are site-health.yml's own.
+          ROADS="/automation-status /sb/auth/v1/health /cams/health /nas-photos/healthz /property-history?channel=diagnose"
+          for host in poetech.us poetech-app.pages.dev; do
+            echo "=== https://$host ==="
+            for road in $ROADS; do
+              probe "$host$road" "https://$host$road"
+            done
+          done
+          echo
+          echo "=== THE TALLY: $RAN road(s) ran a Function, $DARK served the shell ==="
+          if [ "$RAN" -gt 0 ] && [ "$DARK" -gt 0 ]; then
+            echo "MIXED. Functions ARE being invoked on this project, so the cause is"
+            echo "NOT 'every Pages Function stopped' and NOT account-wide. It is"
+            echo "per-route. The roads that ran and the roads that did not are listed"
+            echo "above; compare them against public/_routes.json include entries."
+          elif [ "$RAN" -eq 0 ]; then
+            echo "ALL DARK. No Function ran on any road on any host -- only now is the"
+            echo "project-wide claim on #2057 a measured statement rather than an"
+            echo "inference from one path."
+          else
+            echo "ALL LIT. Every road ran its Function. If sign-in is still failing,"
+            echo "the fault is past the transport -- ask the NAS, not Cloudflare."
+          fi
 
       - name: 2. Is _routes.json being served as a static asset?
         run: |
