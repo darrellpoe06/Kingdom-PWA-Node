@@ -56,6 +56,8 @@ const ON_THE_WAY = {
   mcp: { door: 'infra/nas-mcp/mcp_server.py', witness: 'mcp-health.yml' },
   // The sixth: the family's and the properties' pictures.
   'property-photos': { door: 'infra/nas-property-photos/photo_server.py', witness: 'property-photos-health.yml' },
+  // The seventh: the phone bell, whose door now probes ntfy and says why.
+  announce: { door: 'infra/nas-announce/announce_server.py', witness: 'announce-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -91,7 +93,6 @@ const BORN_BEFORE_THE_WAY = {
   'stream-length': { lacks: ['codeFollows', 'health', 'witness'] },
   'worship-song-harvest': { lacks: ['codeFollows', 'health', 'witness'] },
   ytzero: { lacks: ['codeFollows', 'health', 'witness'] },
-  announce: { lacks: ['codeFollows', 'witness'] },
   // Born the same day by another session (DR-1113), before this Way merged;
   // the gate caught it on the merge, which is exactly its job.
   'db-backup': { lacks: ['codeFollows', 'health', 'witness'] },
@@ -137,7 +138,7 @@ export function restartOnEveryPath(installText) {
 }
 
 /** A door answers with a reason in words, not only a code (DR-1000). */
-const answersWithReason = (doorText) => /"reason"/.test(doorText) && /\/health/.test(doorText);
+const answersWithReason = (doorText) => /["']reason["']/.test(doorText) && /\/health/.test(doorText);
 
 // ---- the gate ---------------------------------------------------------------
 describe('a service comes home by one Way (DR-1119)', () => {
@@ -220,9 +221,9 @@ describe('the gate catches each break (proven to catch)', () => {
     expect(answersWithReason('def health(): return 200')).toBe(false);
   });
   it('a stale ledger entry: a part that was built but not struck', () => {
-    // announce probes its /health and stamps nothing; a ledger row that struck
-    // codeFollows, or one that claimed a witness, would not match the files.
-    const s = SERVICES.find((x) => x.name === 'announce');
+    // voice-transport probes its /health and stamps nothing; a ledger row that
+    // struck codeFollows, or one that claimed a witness, would not match the files.
+    const s = SERVICES.find((x) => x.name === 'voice-transport');
     expect(lacksOf(s)).toEqual(['codeFollows', 'witness']);
     expect(lacksOf(s)).not.toEqual(['witness']);
     expect(lacksOf(s, 'camera-health.yml')).toEqual(['codeFollows']);

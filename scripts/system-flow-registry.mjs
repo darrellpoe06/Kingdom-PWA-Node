@@ -1188,6 +1188,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:nas-photos', token: '127.0.0.1:8099' }],
     writes: [{ res: 'gh:incident', token: 'property-photos-incident' }], seeds: ['ops-surface'],
   }),
+  wf('announce-health.yml', {
+    id: 'announce-health', name: 'Announce road witness (DR-1040, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads the phone bell relay’s /healthz (which probes ntfy and says why) and ntfy’s own health from the box, never ringing a phone; on a failure says where the install stands first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:announce', token: '127.0.0.1:8796' }],
+    writes: [{ res: 'gh:incident', token: 'announce-incident' }], seeds: ['ops-surface'],
+  }),
   wf('libraries-health.yml', {
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
@@ -1592,7 +1597,7 @@ const NODES = [
     id: 'announce-bell', name: 'The bell (sovereign ops-announce)',
     purpose: 'Pushes an incident to the family\u2019s phones through our own ntfy, with the topic pinned server-side so a leaked bearer can only ring the family\u2019s own bell; replaces the retired n8n wf-ops-announce (DR-0218).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'announce' }],
-    writes: [{ res: 'push:phone', token: 'TOPIC' }],
+    writes: [{ res: 'push:phone', token: 'TOPIC' }, { res: 'http:announce', token: 'healthz' }],
     seeds: [],
   }),
   rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
@@ -1900,6 +1905,7 @@ const RESOURCES = {
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
   'http:research': { label: 'the research road on the NAS (Vane + our own SearxNG)', route: '/research' },
   'http:photo-backup': { label: 'the photo-backup road on the NAS (Immich behind the family key)', route: '/photo-backup' },
+  'http:announce': { label: 'the phone bell relay’s door on the NAS (its /healthz probes ntfy)', route: '/announce' },
   'http:libraries': { label: 'the libraries road’s health door on the NAS (Jellyfin and Audiobookshelf live on the tailnet)', route: '/libraries' },
   'db:home_accounts': { label: 'a person’s own logins on the home servers, written by the NAS after the account exists (0303, DR-1121; owner reads only)' },
   'nas:home-accounts': { label: 'the home-accounts loop’s last-pass ledger on the NAS' },
