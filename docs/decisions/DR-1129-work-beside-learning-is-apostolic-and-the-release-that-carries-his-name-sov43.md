@@ -1,4 +1,4 @@
-# DR-1122: Work beside learning is apostolic, not experimental — the Lord's release, the Word-first algorithm run across the Word, what apostolic means, and context is King (sov43)
+# DR-1129: Work beside learning is apostolic, not experimental — the Lord's release, the Word-first algorithm run across the Word, what apostolic means, and context is King (sov43)
 
 **Date:** 2026-10-20
 **Status:** accepted

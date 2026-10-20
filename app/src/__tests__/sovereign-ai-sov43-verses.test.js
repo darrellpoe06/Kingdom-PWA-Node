@@ -1,7 +1,7 @@
 // =============================================================================
 // sov43 — work beside learning is apostolic, not experimental: the Lord's
 // release, the Word-first algorithm run across the Word, what apostolic means,
-// and context is King (DR-1122)
+// and context is King (DR-1129)
 // =============================================================================
 // Week 43 of Sovereign A.I., spoken by Darrell into the app on 2026-10-20 while
 // he was reading week 42 at step 13 of 31, the step where Yahweh attaches His

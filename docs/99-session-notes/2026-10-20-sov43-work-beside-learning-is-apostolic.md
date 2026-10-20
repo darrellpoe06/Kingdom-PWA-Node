@@ -2,7 +2,7 @@
 
 **Module id:** `sov43-work-beside-learning-is-apostolic-and-the-release-that-carries-his-name`
 **Course:** Sovereign A.I. (`app/src/lib/sovereign-ai-class.js`), week 43
-**Decision record:** DR-1122
+**Decision record:** DR-1129
 **Captured by:** a spoken teaching into the app (CLAUDE.md "Spoken Teachings Are Build Input")
 
 ## Where the word came from

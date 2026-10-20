@@ -510,7 +510,7 @@ export const WITNESS_SOURCES = [
         claim: 'You cannot avoid every toxin, and trying to is paralyzing — but small, consistent choices compound (swap plastic for glass, decline the thermal receipt, read a label). The cumulative effect of daily choices, over time, is the real lever; agency is an investment, not perfection.',
         cite: '2:12:36-2:15:58',
         refs: ['Luke 16:10', 'Zechariah 4:10'],
-        bridge: 'He that is FAITHFUL in that which is LEAST is faithful also in much. The Word does not ask for a toxin-free life it never promised; it honors faithfulness in the small, repeated thing — the one swap, the one label read today. And it forbids the despair that says a small step is pointless: "who hath DESPISED the day of small things?" (Zechariah 4:10). Little faithfulnesses, compounded, are how a temple is tended — never anxiety, never a law that condemns; a steady, hopeful stewardship.',
+        bridge: 'He that is FAITHFUL in that which is LEAST is faithful also in much. The Word does not ask for a toxin-free life it never promised; it honors faithfulness in the small, repeated thing — the one swap, the one label read today. And it forbids the despair that says a small step is pointless: "who hath despised the day of small things?" (Zechariah 4:10). Little faithfulnesses, compounded, are how a temple is tended — never anxiety, never a law that condemns; a steady, hopeful stewardship.',
       },
     ],
   },
