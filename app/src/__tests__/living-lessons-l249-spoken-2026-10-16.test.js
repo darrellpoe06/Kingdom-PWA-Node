@@ -116,7 +116,19 @@ describe('L249 exists, is numbered, and is dated the day it was spoken', () => {
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 249)).toHaveLength(1);
     expect(Math.max(...claimed)).toBeGreaterThanOrEqual(249);
-    for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    // 79 IS NO LONGER A HOLE. It was one when this check was written -- the
+    // comment on the original said so: "79 is #2166's held lesson". That
+    // lesson (DR-1025) is on this branch and fills it, so asserting 79 is
+    // UNCLAIMED now fails for a reason that has nothing to do with this
+    // lesson. The question the check actually means is still asked, and more
+    // strictly: 211 and 212 are still open holes nobody may fill by
+    // accident, and 79 is claimed EXACTLY ONCE, by the lesson whose number
+    // it is. A lesson that drifted onto 79 would make that count 2.
+    expect(
+        LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+        '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
   });
   it('carries the spoken day, on or after L248', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-16');
@@ -202,7 +214,7 @@ describe('L249 — every quoted span is the verse', () => {
   });
   it('leaves "God" exactly as the verses carry it', () => {
     for (const u of ['Wherefore God also hath highly exalted him', 'God resisteth the proud, but giveth grace unto the humble', 'the word of our God shall stand for ever']) {
-      expect(whole.includes(u), `drops: ${u}`).toBe(true);
+    expect(whole.includes(u), `drops: ${u}`).toBe(true);
     }
   });
   it('leaves the house on the rock to the inspections course, which claims Matthew 7:24-27 and Luke 6:46-49', () => {

@@ -17,8 +17,23 @@ export const WAYS_BRAIN_URL = '/ways/brain.json';
 
 // Normalize the parser's JSON into the shape the UI reads. Never throws; a
 // missing/garbled body yields { ok:false } so the caller falls back cleanly.
+//
+// A 200 IS NOT AN ANSWER, AND NEITHER IS "SOME JSON" (DR-1000's re-review,
+// 2026-10-19). This guard used to admit ANY object that did not say
+// `ok: false` — so a body that merely parsed as JSON and came from something
+// other than the parser (a proxy's own error shape, an edge page, a
+// misrouted answer from another road) was normalized to `live: true` with an
+// empty principles list, and the Ways card then printed "live" over the
+// build-time snapshot. So readiness now demands the shape the producer
+// actually writes, measured rather than assumed:
+// infra/nas-ways/ways_ingest.py:129-131 stamps `ok: True` and an ISO
+// `generated_at` on EVERY brain it writes. Anything without both is not the
+// parser speaking, and the caller keeps its snapshot — which is the truth.
 export function normalizeWaysBrain(json) {
-  if (!json || typeof json !== 'object' || json.ok === false) {
+  const fromTheParser = !!json && typeof json === 'object'
+    && json.ok === true
+    && typeof json.generated_at === 'string' && json.generated_at.trim() !== '';
+  if (!fromTheParser) {
     return { ok: false, live: false, generatedAt: null, principles: [], openReReviews: [], counts: { principles: 0, decisions: 0, open_re_reviews: 0 } };
   }
   const principles = (Array.isArray(json.principles) ? json.principles : [])

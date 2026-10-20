@@ -112,7 +112,19 @@ describe('L248 exists, is numbered, and is dated the morning it was spoken', () 
     // L248 was the highest number the morning it landed; L249 and L250 were
     // spoken later the same day (DR-1081, DR-1082), so it is no longer the top.
     expect(Math.max(...claimed)).toBeGreaterThanOrEqual(248);
-    for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    // 79 IS NO LONGER A HOLE. It was one when this check was written -- the
+    // comment on the original said so: "79 is #2166's held lesson". That
+    // lesson (DR-1025) is on this branch and fills it, so asserting 79 is
+    // UNCLAIMED now fails for a reason that has nothing to do with this
+    // lesson. The question the check actually means is still asked, and more
+    // strictly: 211 and 212 are still open holes nobody may fill by
+    // accident, and 79 is claimed EXACTLY ONCE, by the lesson whose number
+    // it is. A lesson that drifted onto 79 would make that count 2.
+    expect(
+        LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+        '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
   });
   it('carries the spoken day, after L247', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-16');
@@ -190,7 +202,7 @@ describe('L248 — every quoted span is the verse', () => {
   });
   it('leaves "God" and "satan" exactly as the verses carry them', () => {
     for (const u of ['the things which God hath prepared for them that love him', 'God left him, to try him', 'the messenger of satan to buffet me']) {
-      expect(whole.includes(u), `drops: ${u}`).toBe(true);
+    expect(whole.includes(u), `drops: ${u}`).toBe(true);
     }
   });
   it('leaves Isaiah 55:2 to the appraisal course, which claims it as its own (appraisal-course.test.js)', () => {
