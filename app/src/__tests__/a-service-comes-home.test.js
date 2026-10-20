@@ -52,6 +52,8 @@ const ON_THE_WAY = {
   scribe: { door: 'infra/nas-scribe/scribe_ingest_server.py', witness: 'scribe-health.yml' },
   // The fourth: real money's road; its witness was the site's, now its own.
   'tax-upload': { door: 'infra/nas-tax-ingest/tax_upload_server.py', witness: 'tax-upload-health.yml' },
+  // The fifth: the agent's own hand on the NAS gained an open door that says why.
+  mcp: { door: 'infra/nas-mcp/mcp_server.py', witness: 'mcp-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -78,7 +80,6 @@ const BORN_BEFORE_THE_WAY = {
   'ops-runner': { lacks: ['codeFollows', 'health', 'stands'] },
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   supabase: { lacks: ['codeFollows', 'witness'] },
-  mcp: { lacks: ['health', 'witness'] },
   'property-photos': { lacks: ['codeFollows', 'witness'] },
   'voice-transport': { lacks: ['codeFollows', 'witness'] },
   funnel: { lacks: ['codeFollows', 'health', 'witness'] },

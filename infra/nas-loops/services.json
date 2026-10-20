@@ -61,7 +61,7 @@
       "name": "mcp",
       "install": "infra/nas-mcp/install.sh",
       "enabled": true,
-      "description": "Sovereign MCP server (poetech-mcp.service on 127.0.0.1:8795, MCP 2026-07-28 stateless, READ-ONLY v1 over dispatch reel / task snapshot / Cage brake view) + token + venv + best-effort Caddy /mcp snippet. DR-0244."
+      "description": "Sovereign MCP server (poetech-mcp.service on 127.0.0.1:8795, MCP 2026-07-28 stateless, READ-ONLY v1 over dispatch reel / task snapshot / Cage brake view) + token + venv + best-effort Caddy /mcp snippet. DR-0244. Witness: mcp-health (its own, on the Way since 2026-10-20: the outside-in Funnel probe, then the open /health on loopback and one discover with the token; where the install stands on a failure)."
     },
     {
       "name": "scribe",

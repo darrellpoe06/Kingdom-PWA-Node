@@ -1484,8 +1484,8 @@ const NODES = [
     reads: [{ res: 'tailnet:nodes', token: 'tailscale' }], writes: [{ res: 'gh:incident', token: 'incident' }], seeds: ['ops-surface'],
   }),
   wf('mcp-health.yml', {
-    id: 'mcp-health', name: 'MCP server health', purpose: 'Proves the sovereign MCP server answers and enforces its token.',
-    reads: [{ res: 'http:mcp', token: '/mcp' }], writes: [], seeds: [],
+    id: 'mcp-health', name: 'MCP road witness (DR-0244, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: the outside-in Funnel probe, then over the tailnet the open /health on loopback and one discover with the token read on the box; on a failure says where the install stands first, and keeps a rolling mcp-incident issue.',
+    reads: [{ res: 'http:mcp', token: '/mcp' }], writes: [{ res: 'gh:incident', token: 'mcp-incident' }], seeds: ['ops-surface'],
   }),
   wf('history-voices-witness.yml', {
     id: 'history-voices-witness', name: 'History voices witness', purpose: 'Fetches each quoted historical record and proves the quoted words are in it.',
