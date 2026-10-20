@@ -17,7 +17,23 @@
 
 So the shape is a **sibling, not a widening** — the same precedent DR-0545 set for the second quotation gate, and for the same reason: the fixed question keeps its meaning and the free question gets its own road.
 
-**Measured 2026-10-20.** Before this change the road had exactly **one** non-test caller in the app (`ResearchTry.jsx:11`) plus its own suite — which is the second half of what DR-1126 reserved for `re-review: 2026-11-20` ("whether the research road has a second caller"). It now has a second, and it is a build-side one.
+## What was measured
+
+Measured 2026-10-20 on main `15141ac71`, each from the file named.
+
+| what | reading |
+|---|---|
+| the witness's question | hardcoded, `research-health.yml:98` — *"Where were the Dead Sea Scrolls found, and when?"*; it takes no input |
+| the forwarder's port | **8797**, `research_forwarder.py:627`'s own `--port` default |
+| what else listens on 8099, the port my first draft used | the **property-photo server**, `photo_server.py:1859` (`PHOTO_PORT`), and the `/nas-photos` road in `funnel_watchdog.py` — a live listener on the same box |
+| what that server does with a POST to `/ask` | **404**, `photo_server.py:1330-1331` (any POST but `/upload` and `/media-upload`) |
+| the road's query cap | `MAX_QUERY_CHARS = 500`, `research.js:20` |
+| what the road says about its own answers | `verified:false`, stated at `research.js:14` and set at `research.js:120` |
+| the road's callers in the app before this change | exactly **one** that is not a test — `ResearchTry.jsx:11` |
+
+That last row is the second half of what DR-1126 reserved for `re-review: 2026-11-20` ("whether the research road has a second caller"). It now has a second, and it is a build-side one.
+
+**And a measurement this record failed to make, caught by a gate rather than by me.** The first version of this record had no *What was measured* section at all — its readings were scattered through the prose. `decision-chain.test.js` failed the full suite with `expected [ 'DR-1127 missing evidence' ] to deeply equal []`, which is the ledger rule that every record from DR-0588 on answers all five steps: Context / What was measured / Impact / Decision / Verification. The table above is that fix. Worth recording because the record was *about* the difference between a lead and a measurement, and shipped without separating its own.
 
 ## Why this fits a build when DR-1126 says it does not fit a lesson
 
