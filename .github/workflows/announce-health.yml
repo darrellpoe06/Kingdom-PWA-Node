@@ -122,11 +122,37 @@ jobs:
         if: steps.gate.outputs.go == 'true' && inputs.ring == true
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          # The bearer site-health and the deploy ring with. Rung second, as
+          # they ring, so a dead alarm road is told apart from a dead relay.
+          REPO_BEARER: ${{ secrets.VITE_N8N_BEARER }}
         run: |
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
           TOK="$($SSH 'T=$(cat /volume1/PoeTech/secrets/announce-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/announce-token.txt 2>/dev/null); printf %s "$T" | tr -d "[:space:]"')"
+          # Second ring: exactly as site-health rings (its secret, untrimmed, a
+          # long message with the probe's own punctuation), so what it hears
+          # is what the alarms hear. Written before the first ring's early exit.
+          if [ -n "${REPO_BEARER:-}" ]; then
+            set +e
+            N8N_BEARER="$REPO_BEARER" RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              node scripts/ops-announce.mjs \
+                --title="announce-health: a test ring with the repository's bearer" \
+                --message="THE SAME SHAPE AS AN ALARM — a test ring through the Funnel with the bearer site-health and the deploy use; 'quotes', (parens), colons: and a long line of the kind the probe writes, so that what this ring hears is what the family's alarms hear. Nothing is wrong." \
+                --url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+                --priority=2 > /tmp/bell_repo.txt 2>&1
+            rb=$?
+            set -e
+            sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell_repo.txt
+            rreason=$(grep '^ops-announce: ' /tmp/bell_repo.txt | head -1 | cut -c15- | tr -d '"' | head -c 400)
+            if [ "$rb" = "0" ]; then
+              printf '{"rang": true, "dead": false, "reason": "%s"}\n' "$rreason" > /tmp/ring_repo.json
+            else
+              printf '{"rang": false, "dead": true, "reason": "%s"}\n' "$rreason" > /tmp/ring_repo.json
+            fi
+          else
+            echo '{"rang": false, "dead": false, "reason": "VITE_N8N_BEARER is not set in this repository, so the alarms have no bearer at all"}' > /tmp/ring_repo.json
+          fi
           if [ -z "$TOK" ]; then
             echo '{"rang": false, "dead": true, "reason": "no announce bearer could be read on the box, so no ring was attempted"}' > /tmp/ring.json
             cat /tmp/ring.json; exit 0
@@ -160,6 +186,11 @@ jobs:
               w["ring"] = r
               if not r.get("rang"):
                   problems.append(f"the bell rung from the outside (the Funnel road the alarms take) did NOT ring: {r.get('reason')}")
+          if os.path.exists("/tmp/ring_repo.json"):
+              r = json.load(open("/tmp/ring_repo.json"))
+              w["ring_with_repository_bearer"] = r
+              if not r.get("rang"):
+                  problems.append(f"the bell rung as site-health and the deploy ring it (the repository's VITE_N8N_BEARER) did NOT ring, so every alarm they raise reaches nobody: {r.get('reason')}")
           if not w.get("reachable"):
               problems.append("the NAS did not answer over SSH")
           elif w.get("health_code") != 200:
