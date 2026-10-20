@@ -69,6 +69,8 @@ $TSC funnel --bg --set-path /nas-photos http://127.0.0.1:8099
 
 ## Verification
 
+- **Measured 2026-10-20 (announce-health runs 39489289287 and 39490048742, `ring: true`, the family bell rung from a GitHub runner through the Funnel):** a lone ring with the bearer read on the box was accepted (HTTP 200). Rung as site-health rings, two faults showed at once. (1) The repository's `VITE_N8N_BEARER` is refused by the relay (HTTP 401): site-health and the deploy ring with a bearer the box does not hold, so every alarm they raised reached nobody; the secret must be set to the box's `announce-token.txt`, a value only Darrell's hand can carry into the repository. (2) The relay speaks HTTP/1.1 and answered a refused call without reading its body, so on the kept connection the next ring was parsed starting at the previous body and answered with Python's own 400 page (`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"`) — the exact 400 site-health recorded, whose probe POSTs keyless just before its ring. Fixed in the relay (`read_body` before any answer; a wrong path or bearer leaves the connection clean); the self-test rings twice over one kept connection and the old code fails it (proven-to-catch). The relay's reason now carries what it said (`ops-announce.mjs`).
+
 - **30 passing** across `a-dead-bell-says-so` (18), `n8n-is-gone` and `funnel-actuation-guard`. Lint clean. All 20 guards PASS.
 - **`announce_server.py --selftest`: 12 PASS / 0 failures**, unchanged — this record does not touch the server.
 - **`install.sh` is POSIX `sh -n` clean.** The remote shell is `sh`, not bash.

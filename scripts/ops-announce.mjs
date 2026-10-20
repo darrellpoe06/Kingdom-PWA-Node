@@ -130,7 +130,18 @@ export function classifyBellResponse({ code, body = '', transportError = null } 
   if (n === 0) {
     return { rang: false, dead: true, reason: 'the announce relay gave no answer at all.' };
   }
-  return { rang: false, dead: true, reason: `the announce relay answered HTTP ${n}, which is not an acceptance.` };
+  // What the relay SAID travels with the code (DR-1072: a measurement no
+  // steward can read is not a measurement). site-health run 39487383850
+  // recorded "answered HTTP 400, which is not an acceptance" and nothing
+  // else, so the one fact that would have named the cause was dropped on
+  // the floor. The relay's own 400 is {"error":"bad json"}; anything else
+  // in front of it (the Funnel, a proxy) says something different.
+  const said = text.replace(/\s+/g, ' ').trim().slice(0, 160);
+  return {
+    rang: false,
+    dead: true,
+    reason: `the announce relay answered HTTP ${n}, which is not an acceptance${said ? ` (it said: ${said})` : '.'}`,
+  };
 }
 
 /** One line for a ledger comment. Pure. */
