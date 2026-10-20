@@ -70,6 +70,12 @@ const LOOPS_ON_THE_WAY = {
   // Born before the Way; brought up to it 2026-10-20 (the audit). It stamps its
   // code, so it lacks only health, which a loop lacks by nature.
   'lesson-builder': { witness: 'lesson-builder-health.yml' },
+  // Two loops on the services-sync clock whose witnesses read the database
+  // the loop writes; each now says where the install stands before it records
+  // a stall (2026-10-20, the audit). Neither has a door or a code stamp: the
+  // loop IS the installer's run, and the witness reads its fruit.
+  'transcript-trickle': { witness: 'harvest-health.yml' },
+  'ops-runner': { witness: 'ops-queue-health.yml' },
 };
 
 /** Born before the Way (2026-10-19): what each still lacks, read from the files
@@ -81,12 +87,10 @@ const LOOPS_ON_THE_WAY = {
 // ceiling the build fails at, not the day the work starts.
 const AUDIT_BY = '2026-11-15';
 const BORN_BEFORE_THE_WAY = {
-  'transcript-trickle': { lacks: ['codeFollows', 'health', 'stands'] },
   'church-mail': { lacks: ['codeFollows', 'health', 'witness'] },
   'family-key': { lacks: ['codeFollows', 'health', 'witness'] },
   'lesson-voice': { lacks: ['codeFollows', 'health', 'witness'] },
   'lesson-parity': { lacks: ['codeFollows', 'health', 'witness'] },
-  'ops-runner': { lacks: ['codeFollows', 'health', 'stands'] },
   'agent-consumer': { lacks: ['codeFollows', 'health', 'witness'] },
   // 2026-10-20: lacks none of the readable parts (the stack stamps the code it
   // converged on; nas-health is its witness and says where the install stands).
