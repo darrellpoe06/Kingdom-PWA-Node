@@ -1231,6 +1231,20 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }],
     writes: [{ res: 'gh:incident', token: 'loops-incident' }], seeds: ['ops-surface'],
   }),
+  // DR-1140: the census of our own jobs. Reads the Actions API for every
+  // workflow's state and whether it has ever run, reads the enabled flags out
+  // of services.json, and files ONLY the genuinely broken class -- a clock set
+  // with nothing behind it -- on the rolling ledger the OpsBoard already reads.
+  wf('fleet-census.yml', {
+    id: 'fleet-census', name: 'Census of our own jobs (DR-1140)',
+    purpose: 'Weekly and on dispatch: counts every job in all three fleets, asks GitHub for each workflow’s state and exact run count, and keeps “never ran” apart from “nobody asked”. Files an incident only for a job nothing can fire, or a scheduled job with no run in retained history.',
+    reads: [
+      { res: 'gh:dispatch', token: 'workflow_dispatch' },
+      { res: 'gh:actions-fleet', token: 'actions/workflows' },
+    ],
+    writes: [{ res: 'gh:incident', token: 'fleet-census' }],
+    seeds: ['ops-surface'],
+  }),
   wf('funnel-health.yml', {
     id: 'funnel-health', name: 'Public Funnel witness (on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: asks each sovereign mount’s health path through the Funnel from outside and judges only on what comes back (JSON from our door, the Funnel’s own 404, or nothing); on a failure reads where the install stands over the tailnet: the box’s funnel status, the watchdog’s last lines, each door on loopback.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:funnel', token: 'poetech.tail5a2f35.ts.net' }],
@@ -1920,6 +1934,7 @@ const RESOURCES = {
   'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
   'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
   'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
+  'gh:actions-fleet': { label: 'every workflow GitHub knows, with its state and exact run count', source: 'Written by GitHub itself, never by us: the Actions API is the only place a workflow’s disabled_manually / disabled_inactivity state and its retained run count exist. A checkout cannot say whether a workflow has ever run, which is exactly why the census must ask (DR-1140).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },

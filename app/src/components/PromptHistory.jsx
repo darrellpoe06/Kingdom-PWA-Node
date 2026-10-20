@@ -17,6 +17,9 @@ import { confirmThen } from '../lib/confirm-action.js';
 // on the lesson rows (lib/lesson-inbox.js); this row now shows where they are.
 import { fetchMyLessons } from '../lib/lesson-inbox.js';
 import { wordsForPrompt, anySpokenLine } from '../lib/prompt-words.js';
+// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1142): the same control
+// Your lessons carries, on the row that made the promise.
+import MoveMyWords from './MoveMyWords.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -32,6 +35,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
   // The person's own lesson rows, read once per load and only when a row here
   // is a spoken-lesson line; every other prompt costs nothing.
   const [lessons, setLessons] = useState(NO_LESSONS);
+  const [lessonsKey, setLessonsKey] = useState(0);
   const [opened, setOpened] = useState({});
 
   const load = useCallback(() => { listPrompts(deps).then(setState); }, [deps]);
@@ -42,7 +46,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
     let live = true;
     Promise.resolve().then(read).then((r) => { if (live) setLessons(r && r.ok ? r : NO_LESSONS); }).catch(() => { if (live) setLessons(NO_LESSONS); });
     return () => { live = false; };
-  }, [state, deps]);
+  }, [state, deps, lessonsKey]);
 
   const shown = useMemo(() => {
     const sorted = sortPrompts(state.rows, by);
@@ -111,6 +115,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
             {(() => {
               const w = wordsForPrompt(p, lessons.items);
               if (!w) return null;
+              const mover = w.item ? <MoveMyWords item={w.item} words={w.words} deps={{ supabase: deps.supabase }} onChanged={() => setLessonsKey((k) => k + 1)} /> : null;
               if (w.state === 'written') {
                 return (
                   <div className="mt-1 border-l-2 border-[#5A6E3D] pl-2" data-testid="prompt-words" data-state="written">
@@ -123,14 +128,15 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
                       <button type="button" data-testid="prompt-words-use" onClick={() => { sendPromptToBox(w.words); setSaid('The words are in the box above. Choose where they go, then send.'); }} className={`${BTN} border-[#1A1815] text-[#1A1815]`}>Put the words in the box</button>
                       <button type="button" data-testid="prompt-words-add" onClick={() => { addToBox(w.words); setSaid('The words were added under what the box holds. Gather what belongs together, choose where it goes, then send.'); }} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>Add the words to the box</button>
                     </div>
+                    {mover}
                   </div>
                 );
               }
               if (w.state === 'failed') {
-                return <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} data-testid="prompt-words" data-state="failed">Whisper could not write this one{w.at ? ` (${dateText(w.at)})` : ''}{w.why ? `: ${w.why}` : '.'} The recording is kept on our own machine and is tried again when a Whisper computer answers.</p>;
+                return <><p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} data-testid="prompt-words" data-state="failed">Whisper could not write this one{w.at ? ` (${dateText(w.at)})` : ''}{w.why ? `: ${w.why}` : '.'} The recording is kept on our own machine and is tried again when a Whisper computer answers.</p>{mover}</>;
               }
               if (w.state === 'waiting') {
-                return <p className="text-[0.6875rem] text-[#8B6F47] mt-1" style={SERIF} data-testid="prompt-words" data-state="waiting">Still waiting for the words: the recording reached our own machine {dateText(w.at)}, and Whisper there has not written it yet. A long recording is worked through across several passes.</p>;
+                return <><p className="text-[0.6875rem] text-[#8B6F47] mt-1" style={SERIF} data-testid="prompt-words" data-state="waiting">Still waiting for the words: the recording reached our own machine {dateText(w.at)}, and Whisper there has not written it yet. A long recording is worked through across several passes.</p>{mover}</>;
               }
               return <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="prompt-words" data-state="unmatched">No recording of {w.clock} is on record for this line{lessons.ok ? '' : ' (your lessons could not be read; sign in, then reopen this page)'}. A line sent while signed out, or whose upload failed, has no words to come back.</p>;
             })()}

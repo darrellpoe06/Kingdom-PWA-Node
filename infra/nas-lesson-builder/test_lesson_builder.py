@@ -848,9 +848,22 @@ class Stages(unittest.TestCase):
                  (["lesson", "voice-failed"], OWNER, False), (["lesson"], "member", False),
                  (["lesson", "lesson-approved"], "member", True), (["lesson", "canary"], OWNER, False),
                  (["lesson", "awaiting-review"], OWNER, False),
+                 (["lesson", "withdrawn"], OWNER, False),
+                 (["lesson", "voice", "voice-transcript", "withdrawn"], OWNER, False),
                  (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z"], OWNER, False)]
         for tags, who, ok in cases:
             self.assertEqual(lb.eligibility(row("r", TEACHING, tags, who))[0], ok, tags)
+
+    def test_a_withdrawn_row_is_nobody_s_to_build_and_never_waits(self):
+        """DR-1142: its person took it back from the lesson door. The reason is
+        named, the bell does not count it as waiting, and the database reads
+        that select it (pending, waiting_tags) carry the same exclusion."""
+        import inspect
+        self.assertEqual(lb.eligibility(row("r", TEACHING, ["lesson", "withdrawn"], OWNER)), (False, "withdrawn by its person"))
+        self.assertTrue(lb.bell_waits(["lesson"]))
+        self.assertFalse(lb.bell_waits(["lesson", "withdrawn"]))
+        self.assertIn('withdrawn', inspect.getsource(lb.Db.pending))
+        self.assertIn("tags ? 'withdrawn'", inspect.getsource(lb.Db.waiting_tags))
 
     def test_one_teaching_groups_the_transcript_and_the_typed_copy(self):
         t = row("t", "Lesson. A spoken lesson, transcribed by Whisper. " + TEACHING, ["lesson", "voice-transcript", "of:orig"])
