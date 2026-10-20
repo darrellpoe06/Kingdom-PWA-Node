@@ -816,6 +816,12 @@ export function classifyDevicesResult({ status, body, networkError } = {}) {
   if (status === 401) return { kind: 'unauthorized', devices: [], message: 'The family key on this device was refused.' };
   if (status === 403) return { kind: 'no-actions', devices: [], message: 'This access does not include the doors.' };
   if (status === 404) return { kind: 'old-service', devices: [], message: 'The NAS is running an older camera service without the doors yet. It updates itself within 15 minutes of a merge.' };
+  if (status === 503 && err === 'rate-limited') {
+    // Wyze answered 429 and the NAS is waiting it out (DR-1097, twelfth read): say how long, never "did not answer".
+    const secs = Math.max(0, Math.round(Number(body && body.retry_in) || 0));
+    const when = secs >= 90 ? `about ${Math.round(secs / 60)} minutes` : secs > 0 ? `${secs} seconds` : 'a few minutes';
+    return { kind: 'rate-limited', devices: [], message: `Wyze asked the NAS to slow down. It asks Wyze again in ${when}.` };
+  }
   if (status === 502 || status === 503) return { kind: 'wyze-down', devices: [], message: `Wyze's cloud did not answer the NAS${err ? ` (${err})` : ''}.` };
   return { kind: 'error', devices: [], message: `The camera road answered HTTP ${status}${err ? ` (${err})` : ''}.` };
 }

@@ -150,6 +150,17 @@ jobs:
             if $SUDO "$CAND" ps >/dev/null 2>&1; then DOCKER="$SUDO $CAND"; break; fi
           done
           if [ -n "$DOCKER" ]; then $DOCKER logs --tail 80 poetech-go2rtc 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          # DR-1097 twelfth read: 78 of go2rtc's last 80 log lines were TURN clients failing to refresh
+          # (Amazon's 401 on expired credentials, broken pipes). A live session refreshes; a session
+          # nobody closed keeps failing. Count them, so the next read can tell a leak from a moment.
+          echo "=== TURN refresh failures in go2rtc's last 10 minutes (Kinesis relay sessions still trying) ==="
+          if [ -n "$DOCKER" ]; then $DOCKER logs --since 10m poetech-go2rtc 2>&1 | python3 -c '
+          import re,sys
+          lines=[l for l in sys.stdin if "Fail to refresh permissions" in l]
+          peers=set(re.findall(r"->([0-9.]+:[0-9]+)", "".join(lines)))
+          ids=set(re.findall(r"retransmissions failed for (\S+)", "".join(lines)))
+          print("failures: %d | 401 Unauthorized: %d | broken pipe: %d | distinct relay servers: %d | distinct permission ids: %d" % (len(lines), sum("401" in l for l in lines), sum("broken pipe" in l for l in lines), len(peers), len(ids)))
+          '; else echo "(docker not runnable by this user)"; fi
           echo "=== docker logs poetech-wyze-bridge (last 60 lines, scrubbed; DR-0809) ==="
           if [ -n "$DOCKER" ]; then $DOCKER logs --tail 60 poetech-wyze-bridge 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
           echo "=== the bridge's own word on each camera (connected / status / enabled; never a credential) ==="
@@ -207,7 +218,8 @@ jobs:
           try: d=json.load(sys.stdin)
           except Exception as e: print("(devices unreadable: %s)" % e); sys.exit(0)
           devs=d.get("devices") if isinstance(d,dict) else None
-          if not isinstance(devs,list): print("(no devices: %s)" % (d.get("error") if isinstance(d,dict) else "?")); sys.exit(0)
+          if not isinstance(devs,list): print("(no devices: %s%s%s)" % (d.get("error") if isinstance(d,dict) else "?", (" -- " + str(d.get("detail"))[:160]) if isinstance(d,dict) and d.get("detail") else "", (" -- asks again in %s s" % d.get("retry_in")) if isinstance(d,dict) and d.get("retry_in") else "")); sys.exit(0)
+          if isinstance(d,dict) and (d.get("age_s") is not None or d.get("wyze_wait_s")): print("(the Wyze list is %s s old%s)" % (d.get("age_s"), ("; the NAS waits %s s before asking Wyze again" % d.get("wyze_wait_s")) if d.get("wyze_wait_s") else ""))
           on=sum(1 for x in devs if x.get("online"))
           for x in sorted(devs, key=lambda x: (bool(x.get("online")), str(x.get("nickname")))):
               print("%-34s %-8s %-16s stream=%s" % (str(x.get("nickname"))[:34], "online" if x.get("online") else "OFFLINE", str(x.get("model"))[:16], x.get("stream")))

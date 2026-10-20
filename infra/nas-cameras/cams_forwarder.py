@@ -239,11 +239,13 @@ def wyze_error_response(e):
     status = {
         "no-credentials": 503, "sign-in-refused": 401, "unreachable": 502, "bad-json": 502,
         "too-soon": 429, "device-offline": 409, "unknown-action": 400, "unknown-device": 400,
-        "no-garage-controller": 400, "parameter-error": 502,
+        "no-garage-controller": 400, "parameter-error": 502, "rate-limited": 503,
     }.get(kind, 502)
     if kind.startswith("http-"):
         status = 502
     out = {"error": kind, "detail": detail}
+    if kind == "rate-limited":  # Wyze's 429, obeyed (DR-1097 twelfth read): the seconds until the NAS asks again
+        out["retry_in"] = int(getattr(e, "retry_after", None) or 0)
     if kind == "too-soon":
         m = re.match(r"^(\d+)", detail)
         out["retry_in"] = int(m.group(1)) if m else int(getattr(_wyze, "ACTION_MIN_SECONDS", 3))
@@ -3767,7 +3769,14 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     "stream": stream_name_for(d["nickname"], set()),
                     "actions": (["garage"] if d["garage"] else []) + ["siren_on", "siren_off"],
                 })
-            return self._json(200, {"devices": out, "count": len(out), "garages": sum(1 for d in out if d["garage"])})
+            body = {"devices": out, "count": len(out), "garages": sum(1 for d in out if d["garage"])}
+            age = client.devices_age() if hasattr(client, "devices_age") else None
+            if age is not None:
+                body["age_s"] = age  # how old Wyze's word is; past the cache TTL only while Wyze has us waiting
+            wait = client.cooling() if hasattr(client, "cooling") else 0
+            if wait:
+                body["wyze_wait_s"] = wait
+            return self._json(200, body)
 
         def _action(self, body, grant=None):
             mac = body.get("mac")
@@ -4358,12 +4367,21 @@ def _selftest():
     persisted = []
     heal = {"creds": None, "client": "fake"}
     actions = []
+    cloud_rl = {"wait": 0, "age": 7}
 
     class FakeCloud:
         def __init__(self):
             self.last = {}
 
+        def cooling(self, key=None):
+            return cloud_rl["wait"]
+
+        def devices_age(self):
+            return cloud_rl["age"]
+
         def devices(self):
+            if cloud_rl["wait"]:
+                raise WyzeError("rate-limited", "Wyze answered 429 to login; the NAS waits %d s before asking again" % cloud_rl["wait"], retry_after=cloud_rl["wait"])
             return [
                 {"mac": "GD1", "nickname": "Garage Doors", "model": "WYZE_CAKP2JFUS", "type": "Camera", "online": True, "garage": True, "dongle": "HL_CGDC", "firmware": "4.36.17.21"},
                 {"mac": "FY1", "nickname": "Front Yard", "model": "HL_CAM4", "type": "Camera", "online": True, "garage": False, "dongle": "", "firmware": ""},
@@ -4748,6 +4766,12 @@ def _selftest():
     check(gd["garage"] is True and gd["stream"] == "garage_doors" and "garage" in gd["actions"] and gd["online"] is True, "the garage camera is marked, paired with its go2rtc stream id by the same nickname rule the sign-in used")
     check(j["devices"][1]["garage"] is False and "garage" not in j["devices"][1]["actions"], "a camera without the controller offers no garage action")
     check(b"pw-secret" not in d and b"key-secret" not in d and b"access_token" not in d, "no credential or token leaves with the device list")
+    check(j.get("age_s") == 7 and "wyze_wait_s" not in j, "the list says how old Wyze's word is, and no wait is claimed when there is none (%r)" % {k: j.get(k) for k in ("age_s", "wyze_wait_s")})
+    cloud_rl["wait"] = 240
+    s, _h, d = call("GET", "/devices", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 503 and j.get("error") == "rate-limited" and j.get("retry_in") == 240 and "429" in j.get("detail", ""), "Wyze's 429 with no list to serve -> 503 rate-limited with the seconds until the NAS asks again (DR-1097 twelfth read) (%r)" % j)
+    cloud_rl["wait"] = 0
     s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "garage"}).encode())
     check(s == 401 and actions == [], "POST /action needs the bearer; nothing was triggered")
     s, _h, d = call("POST", "/action", json.dumps({"mac": "../x", "action": "garage"}).encode(), auth=B)
