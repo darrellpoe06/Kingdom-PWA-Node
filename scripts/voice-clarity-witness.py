@@ -158,13 +158,78 @@ def wav_seconds(path):
         return round(w.getnframes() / float(w.getframerate()), 2)
 
 
+WHISPER_RATE = 16000
+
+
+def wav_samples_16k(path, use_numpy=True):
+    """A WAV clip -> mono float samples at 16 kHz, Whisper's own input shape.
+
+    Read with the stdlib (wave + array), not with PyAV: the first real listen
+    (run 39487388380) spoke all 168 clips and then died in faster-whisper's own
+    decoder, which passes `metadata_errors` to av.open and PyAV 19 no longer
+    takes it. The clips are plain PCM WAV from Piper, so nothing but the stdlib
+    is needed to read them. numpy (always present beside faster-whisper) does
+    the resample quickly; the pure-Python path is the same arithmetic and is
+    what the self-test proves.
+    """
+    with wave.open(path) as w:
+        ch, width, rate, n = w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()
+        raw = w.readframes(n)
+    if width not in (1, 2, 4):
+        raise ValueError('unsupported sample width %d' % width)
+    import array
+    if width == 2:
+        pcm = array.array('h'); pcm.frombytes(raw); scale = 32768.0
+    elif width == 4:
+        pcm = array.array('i'); pcm.frombytes(raw); scale = 2147483648.0
+    else:
+        pcm = array.array('B'); pcm.frombytes(raw); scale = 128.0
+    if sys.byteorder == 'big' and width > 1:
+        pcm.byteswap()
+    np = None
+    if use_numpy:
+        try:
+            import numpy as np  # noqa: WPS433
+        except ImportError:
+            np = None
+    if np is not None:
+        x = np.asarray(pcm, dtype=np.float32)
+        x = (x - 128.0) / scale if width == 1 else x / scale
+        if ch > 1:
+            x = x[: (len(x) // ch) * ch].reshape(-1, ch).mean(axis=1)
+        if rate != WHISPER_RATE and len(x):
+            m = int(round(len(x) * WHISPER_RATE / float(rate)))
+            x = np.interp(np.arange(m) * (rate / float(WHISPER_RATE)), np.arange(len(x)), x).astype(np.float32)
+        return x
+    mono = [((v - 128.0) / scale if width == 1 else v / scale) for v in pcm]
+    if ch > 1:
+        mono = [sum(mono[i:i + ch]) / ch for i in range(0, (len(mono) // ch) * ch, ch)]
+    if rate == WHISPER_RATE or not mono:
+        return mono
+    m = int(round(len(mono) * WHISPER_RATE / float(rate)))
+    step = rate / float(WHISPER_RATE)
+    out = []
+    last = len(mono) - 1
+    for i in range(m):
+        t = i * step
+        j = int(t)
+        if j >= last:
+            out.append(mono[last])
+        else:
+            f = t - j
+            out.append(mono[j] * (1.0 - f) + mono[j + 1] * f)
+    return out
+
+
 def transcribe_all(paths, model_name):
     """path -> transcript. The model is loaded once; faster_whisper is imported here only."""
     from faster_whisper import WhisperModel  # noqa: WPS433 (deliberately late)
+    import numpy as np  # noqa: WPS433 (faster-whisper's own dependency)
     model = WhisperModel(model_name, device='cpu', compute_type='int8')
     out = {}
     for p in paths:
-        segments, _info = model.transcribe(p, language='en', beam_size=5, vad_filter=False, condition_on_previous_text=False)
+        audio = np.asarray(wav_samples_16k(p), dtype=np.float32)
+        segments, _info = model.transcribe(audio, language='en', beam_size=5, vad_filter=False, condition_on_previous_text=False)
         out[p] = ' '.join(s.text.strip() for s in segments).strip()
     return out
 
@@ -266,6 +331,25 @@ def selftest():
             {'id': 'b', 'group': 'g', 'pace': 1.0, 'longestSentenceWords': 30, 'wer': 0.6, 'seconds': 8.1, 'transcript': 'y | z'}]
     md = render(rows, [1.0], 0.5)
     check('| b | 30 | 0.60 |' in md and '1 of 2 over 0.5' in md and 'y / z' in md, 'the summary names the worst piece first and escapes the table')
+    # The clip decoder: a stereo 22050 Hz 16-bit WAV (Piper's shape, two channels
+    # on purpose) comes back mono at 16 kHz, in [-1, 1], by the stdlib alone.
+    import math, os, struct, tempfile
+    with tempfile.TemporaryDirectory() as td:
+        wp = os.path.join(td, 't.wav')
+        with wave.open(wp, 'wb') as w:
+            w.setnchannels(2); w.setsampwidth(2); w.setframerate(22050)
+            frames = b''.join(struct.pack('<hh', int(16000 * math.sin(2 * math.pi * 440 * i / 22050.0)), 0) for i in range(22050 // 2))
+            w.writeframes(frames)
+        pure = wav_samples_16k(wp, use_numpy=False)
+        check(len(pure) == 8000 and max(pure) <= 0.25 and min(pure) >= -0.25 and abs(max(pure) - 0.244) < 0.01,
+              'a stereo 22050 Hz clip decodes to 16 kHz mono in range, stdlib only (half-second -> 8000 samples, the silent channel halves the peak)')
+        try:
+            import numpy as np  # noqa: WPS433
+            fast = wav_samples_16k(wp, use_numpy=True)
+            check(len(fast) == 8000 and float(np.max(np.abs(np.asarray(fast) - np.asarray(pure, dtype=np.float32)))) < 1e-4,
+                  'the numpy path and the pure path agree sample for sample')
+        except ImportError:
+            check(True, 'the numpy path: numpy not installed here (the runner has it beside faster-whisper)')
     failed = [w for ok, w in checks if not ok]
     print(f'{len(checks) - len(failed)} of {len(checks)} checks passed')
     return 0 if not failed else 1
