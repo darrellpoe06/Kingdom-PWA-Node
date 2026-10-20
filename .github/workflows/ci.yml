@@ -276,6 +276,21 @@ jobs:
       - name: church mail reader files, refills and stays within its budget
         working-directory: infra/nas-church-mail
         run: python3 -m unittest test_church_mail -v
+      # The lesson mail reader (DR-1132): an emailed lesson becomes an
+      # agent_inbox row instead of a poke at a pull request, so the app's own
+      # machinery carries it and no Claude session has to be running.
+      # Proven-to-catch: fails if an unmapped sender is attributed by inventing
+      # a uuid (agent_inbox.created_by is NOT NULL and an email carries only an
+      # address), if an audio attachment is read as text instead of set aside
+      # for the voice lane, if the per-pass time budget is removed so a pass
+      # could outrun services-sync's 480 s installer ceiling, and — the case
+      # that caught a real one — if any name main() calls is not defined in
+      # the file. That last one went green while
+      # env_value() was missing entirely, because a selftest of the pure logic
+      # never touches the entry point.
+      - name: lesson mail reader attributes, refuses and stays within its budget
+        working-directory: infra/nas-lesson-mail
+        run: python3 lesson_mail.py --selftest
       # The NAS lesson builder proofs (DR-0669): the verse re-verification
       # (a one-word change fails the build), the identical prompt to every
       # writer (a writer that alters it is caught), the modes, the budget, the

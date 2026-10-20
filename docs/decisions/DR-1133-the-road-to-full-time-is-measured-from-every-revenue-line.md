@@ -1,4 +1,4 @@
-# DR-1129: The road to full time is measured from every revenue line — the family is paid first, and the next hire comes when the work needs it and the money pays for it
+# DR-1133: The road to full time is measured from every revenue line — the family is paid first, and the next hire comes when the work needs it and the money pays for it
 
 **Date:** 2026-10-20
 **Status:** accepted

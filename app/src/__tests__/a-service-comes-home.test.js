@@ -83,6 +83,13 @@ const LOOPS_ON_THE_WAY = {
   'lesson-voice': { witness: 'loops-health.yml' },
   'lesson-parity': { witness: 'loops-health.yml' },
   'church-mail': { witness: 'loops-health.yml' },
+  // Born BY the Way rather than brought up to it in an audit (DR-1132,
+  // 2026-10-20). This gate refused the services.json entry until loops-health
+  // actually READ the loop -- its own state file in its own home, its install
+  // path, its lines in the cron log, and whether the mailbox credential is
+  // there. A name listed beside a witness that never looks at it is the hollow
+  // version of walking the Way, which is what the refusal prevented.
+  'lesson-mail': { witness: 'loops-health.yml' },
   'family-key': { witness: 'loops-health.yml' },
   'agent-consumer': { witness: 'loops-health.yml' },
   'db-backup': { witness: 'loops-health.yml' },

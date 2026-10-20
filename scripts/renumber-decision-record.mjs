@@ -64,7 +64,14 @@ export const INDEX_REL = 'docs/decisions/INDEX.md';
 
 // Where a decision id can be cited. Kept in step with decision-citation-guard's
 // own scope, plus docs/ (which that guard does not read but this must rewrite).
-export const CITATION_DIRS = ['docs', 'app/src', 'scripts', 'infra', '.github'];
+//
+// app/functions WAS MISSING, found by using it (2026-10-17, DR-1092). Moving
+// that record off 1090 rewrote its INDEX row, its gate, and both workflows —
+// and left the stale id in app/functions/_lib/funnel-proxy.js, the factory the
+// record is ABOUT. Every same-origin NAS road lives in app/functions and none
+// of it is under app/src, so the one directory the change touched hardest was
+// the one directory the sweep could not see.
+export const CITATION_DIRS = ['docs', 'app/src', 'app/functions', 'scripts', 'infra', '.github'];
 const TEXT_EXT = /\.(md|mjs|js|jsx|ts|tsx|json|sql|sh|yml|yaml|py)$/;
 
 export const pad = (n) => String(n).padStart(4, '0');
@@ -265,15 +272,33 @@ export function renumberInTree(cwd, from, to, { force = false, file = null, log 
   return { ...plan, rewrote, ambiguous, ambiguousFiles };
 }
 
-const invokedDirectly = process.argv[1] && process.argv[1].endsWith('renumber-decision-record.mjs');
-if (invokedDirectly) {
-  const args = process.argv.slice(2);
+/**
+ * The command line, read. Exported because it was NOT, and the defect below
+ * lived in an `if (invokedDirectly)` block no test could reach: everything
+ * this file is careful about was proven, and the three lines that decide WHICH
+ * NUMBER MOVES were the only unproven ones in it.
+ *
+ * The bug, found by using it (2026-10-17, DR-1092): the filter skips the value
+ * belonging to `--file`, and with the flag absent `indexOf` returns -1, so
+ * `k !== fi + 1` skipped ARGUMENT ZERO — the source number. `renumber 1092
+ * 1094` read 1094 as the source and refused with "no decision file holds
+ * DR-1094", which blames the ledger for a parse. Not computing an index when
+ * there is no flag to skip is the whole fix.
+ */
+export function parseArgs(args) {
   const force = args.includes('--force');
   const fi = args.indexOf('--file');
   const file = fi === -1 ? null : args[fi + 1] || null;
-  const nums = args.filter((a, k) => /^\d{1,4}$/.test(a.replace(/^DR-/, '')) && k !== fi + 1)
+  const fileValueAt = fi === -1 ? -1 : fi + 1;
+  const nums = args.filter((a, k) => /^\d{1,4}$/.test(a.replace(/^DR-/, '')) && k !== fileValueAt)
     .map((a) => Number(a.replace(/^DR-/, '')));
-  if (!nums.length) {
+  return { from: nums[0] ?? null, to: nums[1] ?? null, file, force };
+}
+
+const invokedDirectly = process.argv[1] && process.argv[1].endsWith('renumber-decision-record.mjs');
+if (invokedDirectly) {
+  const { from, to, file, force } = parseArgs(process.argv.slice(2));
+  if (from === null) {
     console.error('usage: renumber-decision-record.mjs <from> [to] [--file NAME.md] [--force]');
     console.error('  <from>  the number a decision must move OFF');
     console.error('  [to]    the number to take; omitted, the lowest free one above <from>');
@@ -281,7 +306,7 @@ if (invokedDirectly) {
     process.exit(2);
   }
   try {
-    renumberInTree(join(HERE, '..'), nums[0], nums[1] ?? null, { force, file });
+    renumberInTree(join(HERE, '..'), from, to, { force, file });
   } catch (e) {
     console.error(String(e.message || e));
     process.exit(1);

@@ -1,6 +1,6 @@
 // =============================================================================
 // full-time-path — when the family can work full time inside PoeTech, and when
-// the next hire is both needed and paid for (DR-1129)
+// the next hire is both needed and paid for (DR-1133)
 // =============================================================================
 // Darrell, 2026-10-20: "The goal would be to have we able to work full-time
 // inside PoeTech.... based on workloads and revenue... and to be able to keep
@@ -24,7 +24,7 @@
 // is the "dead process" DR-1128 exists to prevent: the answer then is the
 // price or the pace, not a hope.
 //
-// Fitted to what is already decided (each one quoted in DR-1129):
+// Fitted to what is already decided (each one quoted in DR-1133):
 // - the three-ring market: the paid rings carry the free mission tier, so
 //   what the mission work costs (sponsored time not covered, gifted months
 //   per DR-1128 §6) comes out BEFORE anyone is paid.

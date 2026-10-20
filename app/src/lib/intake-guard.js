@@ -51,7 +51,27 @@ export const RESULT_HOLD_MS = 10 * 60 * 1000;
 /** Typing with no keystroke this long releases the hold (a field left open overnight is not intake). */
 export const TYPING_IDLE_MS = 2 * 60 * 1000;
 
-export const INTAKE_KINDS = Object.freeze(['recording', 'recording-kept', 'dictation', 'typing', 'reading', 'download']);
+/**
+ * USING THE APP with no tap, key or scroll this long releases the hold
+ * (DR-1130). Darrell 2026-10-20: "When using the app at times, the app flashes
+ * and undermines me using the app while building the app."
+ *
+ * WHY NOT QUIET_MS. Three seconds is right for words coming in — a Stop
+ * followed at once by a Send must not be cut in two. It is WRONG for a person
+ * reading a page: pauses longer than three seconds happen constantly while you
+ * read, so a three-second window would release mid-use and the reload would
+ * land exactly where it lands today.
+ *
+ * AND WHY NOT LONGER. A hold that never releases is the opposite failure — the
+ * person runs stale code for as long as the tab is open, so the fix they are
+ * waiting for never arrives. 45 s is long enough that reading a lesson or
+ * looking at a board does not release it, and short enough that putting the
+ * phone down lets the update land before the next look. The reload happens
+ * BETWEEN sessions of use, never during one.
+ */
+export const USE_IDLE_MS = 45 * 1000;
+
+export const INTAKE_KINDS = Object.freeze(['recording', 'recording-kept', 'dictation', 'typing', 'reading', 'download', 'use']);
 
 const KIND_WORDS = Object.freeze({
   recording: 'you are recording',
@@ -60,6 +80,7 @@ const KIND_WORDS = Object.freeze({
   typing: 'you are typing',
   reading: 'a reading is playing',
   download: 'a download is running',
+  use: 'you are using the app',
 });
 
 const holds = new Map();      // id -> { kind, since }
@@ -222,6 +243,53 @@ export function watchTypedIntake(doc, { idleMs = TYPING_IDLE_MS, setTimeout: set
     doc.removeEventListener('focusout', onFocusOut);
     doc.removeEventListener('input', onInput);
     doc.removeEventListener('keydown', onInput);
+    drop();
+  };
+}
+
+/**
+ * watchUse — hold the app still while a person is USING it (DR-1130).
+ *
+ * The sibling of watchTypedIntake above, and the gap it closes. Every kind this
+ * guard knew about — recording, dictation, typing, reading, download — protects
+ * WORDS COMING IN, which is what DR-0748 was built for after a multi-minute
+ * spoken message was lost. None of them protects a person simply reading a
+ * board, tapping between tabs or scrolling a lesson, so the update reload fires
+ * straight through ordinary use. That is the flash.
+ *
+ * A tap, key or scroll takes the `use` hold and re-arms an idle timer; USE_IDLE_MS
+ * of no interaction releases it. A hidden tab releases at once — nobody is using
+ * a tab they cannot see, and that is the best moment for the swap to happen.
+ *
+ * Passive listeners so scrolling is never slowed by the thing that watches it.
+ * Timers injectable, document injected, no React: the suite drives the whole
+ * lifecycle in plain Node.
+ */
+export function watchUse(doc, { idleMs = USE_IDLE_MS, setTimeout: setT, clearTimeout: clearT, win } = {}) {
+  if (!doc || typeof doc.addEventListener !== 'function') return () => {};
+  const schedule = setT || ((cb, ms) => setTimeout(cb, ms));
+  const unschedule = clearT || ((t) => clearTimeout(t));
+  let release = null;
+  let idle = null;
+  const drop = () => {
+    if (idle !== null) { try { unschedule(idle); } catch (_) { /* ignore */ } idle = null; }
+    if (release) { release(); release = null; }
+  };
+  const touch = () => {
+    // A hidden tab is not in use, whatever event arrived.
+    if (doc.visibilityState === 'hidden') { drop(); return; }
+    if (!release) release = holdIntake('use', win);
+    if (idle !== null) { try { unschedule(idle); } catch (_) { /* ignore */ } }
+    idle = schedule(() => { idle = null; drop(); }, idleMs);
+  };
+  const onVisibility = () => { if (doc.visibilityState === 'hidden') drop(); else touch(); };
+  const opts = { passive: true };
+  const EVENTS = ['pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'];
+  for (const e of EVENTS) doc.addEventListener(e, touch, opts);
+  doc.addEventListener('visibilitychange', onVisibility);
+  return () => {
+    for (const e of EVENTS) doc.removeEventListener(e, touch, opts);
+    doc.removeEventListener('visibilitychange', onVisibility);
     drop();
   };
 }

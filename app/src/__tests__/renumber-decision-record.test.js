@@ -23,7 +23,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   recordsOnDisk, firstFreeNumber, planRenumber, rewriteText, rewriteIndexRow,
-  ambiguousCitations, renumberInTree, idOf, pad,
+  ambiguousCitations, renumberInTree, idOf, pad, parseArgs, CITATION_DIRS,
 } from '../../../scripts/renumber-decision-record.mjs';
 
 const disk = (pairs) => new Map(pairs);
@@ -256,5 +256,77 @@ describe('a bare id is never rewritten when two records share the number', () =>
     expect(index).toContain('| [DR-1021](DR-1021-mine.md) | mine |');
     expect(index).toContain('| [DR-1020](DR-1020-theirs.md) | theirs |');
     expect(r.ambiguous, 'the bare citations it declined are reported').toBeGreaterThan(0);
+  });
+});
+
+// =============================================================================
+// THE COMMAND LINE ITSELF — the three lines nothing could reach
+// =============================================================================
+// Everything above proves the careful part: what the rename refuses, what it
+// leaves alone, what it declines to rewrite. None of it could reach the parse,
+// which sat inside `if (invokedDirectly)`, and that is exactly where the
+// defect was. Using the tool on 2026-10-17 to move three records off numbers
+// main had taken, the first call — `renumber 1092 1094` — answered "no
+// decision file holds DR-1094" and changed nothing. The ledger was fine; the
+// parse had dropped argument zero, because the filter that skips the value
+// after `--file` computed `-1 + 1 === 0` when the flag was absent.
+//
+// A refusal that names the WRONG number is worse than a crash: it reads as the
+// ledger being broken, on a tool whose whole job is the ledger.
+describe('the command line, now that it can be read', () => {
+  it('takes <from> <to> with no flags — the call that silently lost its source', () => {
+    expect(parseArgs(['1092', '1094'])).toMatchObject({ from: 1092, to: 1094, file: null, force: false });
+  });
+
+  it('takes a bare <from>, leaving the target to be computed', () => {
+    expect(parseArgs(['1090'])).toMatchObject({ from: 1090, to: null });
+  });
+
+  it('accepts the DR- prefix the error messages print', () => {
+    expect(parseArgs(['DR-1092', 'DR-1094'])).toMatchObject({ from: 1092, to: 1094 });
+  });
+
+  it('does not mistake --file\'s value for a number, wherever the flag sits', () => {
+    // The value is a file name, but one that STARTS with digits would be read
+    // as a number by the regex if the skip were dropped — which is the reason
+    // the skip exists and must keep working now that it is conditional.
+    expect(parseArgs(['1092', '1094', '--file', 'DR-1092-a.md']))
+      .toMatchObject({ from: 1092, to: 1094, file: 'DR-1092-a.md' });
+    expect(parseArgs(['--file', 'DR-1092-a.md', '1092', '1094']))
+      .toMatchObject({ from: 1092, to: 1094, file: 'DR-1092-a.md' });
+  });
+
+  it('reads --force, and reports no source when none was given', () => {
+    expect(parseArgs(['1092', '--force'])).toMatchObject({ from: 1092, force: true });
+    expect(parseArgs([])).toMatchObject({ from: null });
+    expect(parseArgs(['--file', 'DR-1092-a.md'])).toMatchObject({ from: null });
+  });
+});
+
+describe('the sweep reaches the Pages Functions, which are not under app/src', () => {
+  // ALSO FOUND BY USING IT, in the same run. Moving the road-signature record
+  // off 1090 rewrote its INDEX row, its own gate and both workflows, and left
+  // the stale id in app/functions/_lib/funnel-proxy.js — the factory the
+  // record is ABOUT. Every same-origin NAS road lives in app/functions and
+  // none of it is under app/src, so the directory the decision touched hardest
+  // was the one the sweep could not see.
+  it('lists app/functions among the places a citation can live', () => {
+    expect(CITATION_DIRS).toContain('app/functions');
+  });
+
+  it('rewrites a citation inside app/functions in a real tree', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dr-fn-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    mkdirSync(join(root, 'app/functions/_lib'), { recursive: true });
+    writeFileSync(join(root, 'docs/decisions/DR-1090-road.md'), '# DR-1090: the road signs itself\n');
+    writeFileSync(join(root, 'docs/decisions/INDEX.md'),
+      '**Next ID:** DR-1091.\n| [DR-1090](DR-1090-road.md) | road |\n');
+    writeFileSync(join(root, 'app/functions/_lib/funnel-proxy.js'),
+      '// EVERY ANSWER FROM HERE SIGNS ITSELF (DR-1090).\n');
+
+    renumberInTree(root, 1090, 1092, { force: true, log: () => {} });
+
+    expect(readFileSync(join(root, 'app/functions/_lib/funnel-proxy.js'), 'utf8'),
+      'the factory the record is about carries the new number').toContain('DR-1092');
   });
 });
