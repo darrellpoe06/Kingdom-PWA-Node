@@ -38,7 +38,14 @@ describe('curriculum shape', () => {
     // so the entry is DELETED in the merge that brought it in -- which is
     // exactly what this assertion forces: it fails the moment a held number is
     // no longer missing, so a hold cannot quietly become a permanent gap.
-    const HELD_IN_FLIGHT = [];
+    // 44 IS HELD here, recorded 2026-10-20, while Sovereign A.I. week 45 (no
+    // single witness: the office of the critic, DR-1138) was written on this
+    // branch and week 44 was written on a parallel branch at the same time.
+    // Whichever week merges second DELETES its own hold; if 45 lands first the
+    // entry below stays only until 44 arrives, and goes with it -- which is
+    // exactly what this assertion forces, because it fails the moment a held
+    // number is no longer missing.
+    const HELD_IN_FLIGHT = [44];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);

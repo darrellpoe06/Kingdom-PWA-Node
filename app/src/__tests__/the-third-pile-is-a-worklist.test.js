@@ -34,7 +34,26 @@ const REPO = join(HERE, '..', '..', '..');
 
 // Measured, not chosen. The gap may SHRINK as figures gain their sources; it
 // may never grow without a reader seeing this go red.
-const GAP = 9;
+//
+// 9 -> 10 on 2026-10-20 (DR-1138), and the reason is on the record rather than
+// in a wording change. sov45 (no single witness: the office of the critic) is
+// built from a Level Up Coding newsletter about Slack's multi-agent security
+// system, and the whole subject of the lesson is that a producer may not certify
+// its own work -- so the lesson could not quietly omit its own limit. It takes
+// the SECOND branch this test's own verdict offers ("say plainly why it cannot
+// be checked"): the figures are not checkable from here, because the build asked
+// for slack.engineering on 2026-10-20 and the agent proxy answered 403 to the
+// CONNECT by policy (recorded in the proxy's own recentRelayFailures). An
+// open-web search returned Slack's page title and the three role names, which is
+// corroboration at one remove and NOT a figure read back, so no source row was
+// written -- a 0-figure row would have made `checked()` count a lesson whose
+// figures nobody read, which is the anti-theatre rule in DR-0076 section 3. No
+// teaching in sov45 rests on either figure; the two numbers are carried as the
+// newsletter's claims and labelled as such on every adult surface.
+// re-review: 2026-11-20 -- if slack.engineering becomes reachable from a runner
+// with web access, read the two figures back, give sov45 a row in
+// lesson-sources.json, and lower this pin to 9.
+const GAP = 10;
 const CHECKED_LESSONS = 1;
 
 describe('both sides of the honesty gap are counted', () => {
