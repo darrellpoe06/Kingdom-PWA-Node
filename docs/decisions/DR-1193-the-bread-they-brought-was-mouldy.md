@@ -66,6 +66,8 @@ The wilderness is the other half. A one-day life imposed deliberately on provisi
 - **Talk-together measured per band:** `placesMissingDirections` returns empty — all three directions present in the lesson and in every one of the four bands, in the lesson's own words.
 - The catalog reads 48 weeks numbered 1 to 48, no duplicate and no gap, verified by importing the module rather than by grep.
 - `derive-lesson-dates --check ok`: 839 of 839 lessons dated, 0 undated. The clarity corpus was regenerated and is byte-identical, so no fixture moved.
+- **A `working-tree` date row is self-perpetuating, and `--check` does not say so.** The first derivation ran before the lesson was committed and wrote `["2026-10-21", "working-tree"]`. `derive-lesson-dates --check` passed on it, so it was committed — and then every re-derivation KEPT it, because `judgeEntry` accepts an existing row as valid and the derivation prefers a valid prior row over a fresh git trace (`lesson-dates-core.mjs` line 241). `lesson-dates.test.js` rejects it outright (`expected 'working-tree' to match /^[0-9a-f]{8}$/`) and reddened shard 1/4 on `6c5d63c20`. Fixed by DELETING the row and re-deriving, which gave the real SHA `8189cbaa`; 16 cases green and `--check ok` after.
+- **That is the third red today from the coverage of a check rather than from the work**, and the pattern is worth naming: `verify:gates` does not include `lesson-dates:check`, and `lesson-dates:check` does not catch what `lesson-dates.test.js` catches. Passing the narrower check is not evidence for the wider one. **`re-review: 2026-10-28`** — whether `--check` should reject a `working-tree` sha on a committed row, which would have caught this before the push.
 
 ## What this does not do
 
