@@ -55,7 +55,8 @@ Each figure above is a fixture in `properties-development.test.js`, and the engi
 ## Impact
 
 - New tables in the landlord instance; nothing existing changes. No price, gate or public copy changes.
-- The Development tab and the lesson are the next deliveries on this record; further Rehab Valuator videos (flip and ARV, rehab estimating, budget against actual, BRRRR, duplex financing) are being fetched through the same road and fold in as they land.
+- **The Development tab is mounted** (owner only; `DevelopmentTab.jsx` over `development-cloud.js`, registered in `system-flow-registry.mjs`): the project, the budget with its TI verdict, the bays, the change orders against the contingency, the phases with signed checks, the value and the investor deal, and the build-to-rent comparison. `properties-development-tab.test.jsx`, 8 cases on the screen with Kleyman's figures; proven to catch a project reference saved on every key. Deleting a budget line asks first. 0305 now re-runs the assistant and viewer overlays (as 0302), which the tenancy guard caught.
+- The lesson is the next delivery on this record; further Rehab Valuator videos (flip and ARV, rehab estimating, budget against actual, BRRRR, duplex financing) are being fetched through the same road and fold in as they land.
 - **Not ours to build without a decision:** Rehab Valuator's nationwide property, owner and comparable-sales lookups come from a paid data provider. That is a money decision (a vendor and a subscription) and is put to Darrell separately.
 
 ## Verification

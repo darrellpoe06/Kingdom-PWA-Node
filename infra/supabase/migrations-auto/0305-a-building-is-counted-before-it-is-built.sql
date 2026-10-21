@@ -219,3 +219,11 @@ END $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.dev_projects, public.dev_budget_lines,
   public.dev_change_orders, public.dev_bays, public.dev_checks, public.dev_capital TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- THE OVERLAYS, in 0232's order (as 0302). All six tables are instance-scoped.
+-- The viewer overlay is RESTRICTIVE, so re-running it only narrows: a viewer
+-- already reads nothing here and now cannot write either.
+-- ---------------------------------------------------------------------------
+SELECT public.apply_assistant_scope_overlay();
+SELECT public.apply_viewer_readonly_overlay();

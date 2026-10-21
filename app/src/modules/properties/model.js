@@ -137,6 +137,9 @@ export const MANAGER_TABS = [
   // THE LIFE WALL (DR-1010): what tenants and guests shared, waiting for the
   // family's yes; approved pictures on the public wall, picked ones in the listing.
   TAB('wall', 'Life wall', 'Pictures tenants and guests shared of life here: approve them for the public wall, pick some for the listing.'),
+  // BUILDING FROM THE GROUND UP (DR-1158): a project's budget, phases and
+  // checks, change orders, value and the deal for investors. The owner's.
+  TAB('development', 'Development', 'Build from the ground up: the budget, the phases and their checks, change orders, what it is worth, and the deal for investors.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
 ];
 
@@ -160,9 +163,14 @@ export const MANAGER_TABS = [
  *
  * Returns [] when this face sees the whole record.
  */
-export function unseenByThisFace(role, grants = []) {
+export function unseenByThisFace(role, grants = [], { since = null } = {}) {
   const held = new Set(grants);
   const out = [];
+  // A tenant's history begins when the tenancy became theirs (DR-1159).
+  if ((role === 'tenant' || role === 'household') && since) {
+    const day = String(since).slice(0, 10);
+    out.push(`Your history begins on ${day}, when this tenancy became yours. What happened at this door before that belongs to the landlord's record, not yours.`);
+  }
   // tenant_messages_read (0150:242): owner/admin/member, the tenant, their
   // household, a delegate with message.tenant, or a worker enabled on a job.
   if (role === 'manager' && !held.has('message.tenant')) {
@@ -394,6 +402,68 @@ export function changeSummary(e = {}, titleOf = new Map()) {
     case 'posted-to-books': return `${what} posted to the books`;
     default: return '';
   }
+}
+
+// ---------------------------------------------------------------------------
+// A TENANT SEES THEIR OWN TENANCY, FROM THE DAY IT BECAME THEIRS (DR-1159).
+// Darrell, 2026-10-21, looking at Apt 2 "seen as a tenant": "A new tenant
+// should only see their history... the landlord should see all historical
+// events" — and "all tabs should make sense".
+//
+// The door keeps everything: every tenant, the months between them, and the
+// landlord's own notes. A tenant's face is narrower. It reads this tenancy's
+// rows only (never a row filed on the door itself), and only from the moment
+// the tenancy had a person on it: `tenant_from`, which migration 0306 stamps
+// when a name, a contact or an account first lands on the row. Before that the
+// row was a vacant unit record, and what was written on it was the landlord's.
+//
+// The database enforces the same window for a signed-in tenant (0306's
+// restrictive policies); this is the same rule on the screen, so the
+// landlord's preview shows exactly what the tenant will get, not the owner's
+// whole record under a tenant's heading.
+// ---------------------------------------------------------------------------
+
+/** Whether a tenancy row has a person on it (a name, a contact or an account). */
+export function tenancyHasTenant(t) {
+  if (!t) return false;
+  return Boolean(t.tenant_user_id || String(t.tenant_name || '').trim()
+    || String(t.tenant_email || '').trim() || String(t.tenant_phone || '').trim());
+}
+
+/** The moment this tenancy's history begins for its tenant, or null. */
+export function tenantSightStart(t) {
+  if (!tenancyHasTenant(t)) return null;
+  return at(t.tenant_from, t.created_at);
+}
+
+/**
+ * The door record narrowed to what this tenancy's tenant sees. `vacant` is
+ * true when the row has nobody on it: a tenant's face then shows nothing,
+ * because nothing on a vacant door is any tenant's yet.
+ */
+export function forThisTenancy(record = {}, tenancy = null) {
+  const unreadable = record.unreadable || [];
+  const none = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], unreadable };
+  const start = tenantSightStart(tenancy);
+  if (!start) return { ...none, vacant: true, since: null };
+  const theirs = (row, ...stamps) => {
+    if (!row || row.tenancy_id !== tenancy.id) return false;
+    const s = at(...stamps.map((k) => row[k]));
+    return Boolean(s) && s.ms >= start.ms;
+  };
+  const requests = (record.requests || []).filter((r) => theirs(r, 'created_at'));
+  const kept = new Set(requests.map((r) => r.id));
+  return {
+    requests,
+    messages: (record.messages || []).filter((m) => theirs(m, 'sent_at')),
+    notes: (record.notes || []).filter((n) => theirs(n, 'created_at')),
+    docs: (record.docs || []).filter((d) => kept.has(d.request_id) && theirs(d, 'created_at')),
+    rent: (record.rent || []).filter((r) => theirs(r, 'reported_at', 'confirmed_at')),
+    notices: (record.notices || []).filter((n) => theirs(n, 'posted_at')),
+    unreadable,
+    vacant: false,
+    since: start.iso,
+  };
 }
 
 /** Oldest-first is the reading order (DR-0124). Newest-first for the inbox view. */
