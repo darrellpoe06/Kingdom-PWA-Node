@@ -127,7 +127,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   }, []);
 
   const tiles = useMemo(() => hubTiles(data, { unread }), [data, unread]);
-  // The doors THIS viewer may open, by the nav's own rule (DR-1192). The
+  // The doors THIS viewer may open, by the nav's own rule (DR-1196). The
   // registry comes in from the shell with the viewer: it is shell-only
   // (module-boundary-guard), so a component never imports it.
   const actions = useMemo(() => actionsFor(density, { viewer, surfaces }), [density, viewer, surfaces]);
@@ -346,7 +346,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
         </section>
 
         {/* QUICK ACTIONS — doors to the tabs the tiles do not open, none of them
-            twice (DR-1192): eight, twelve or sixteen by density, whole rows of
+            twice (DR-1196): eight, twelve or sixteen by density, whole rows of
             four. Every one lands somewhere real and open to this viewer; the
             two that have no destination scroll to the record on this page. */}
         <section aria-labelledby="hub-actions-h" className={CARD}>

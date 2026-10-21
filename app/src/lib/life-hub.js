@@ -98,7 +98,7 @@ export const HOST_VIEWS = ['overview', 'church', 'books', 'messages', 'rentals',
 // opened what a tile beside them already opened (Messages, Projects, Real
 // Estate, Money). Darrell, with the Hub on his phone: "Add notes and create to
 // the quick links", then: "Have more options, none that overlap, so we have
-// more options and advertise the other tabs." (DR-1192.) So:
+// more options and advertise the other tabs." (DR-1196.) So:
 //
 //   - the three RECORD actions stay (focus, goal, photo): they act on this
 //     page's own records, not on a tab;

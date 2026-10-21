@@ -373,7 +373,7 @@ describe('her three looks all ship, as density', () => {
   it('gives each density the number of Quick Actions her mockup showed', () => {
     expect(HUB_DENSITIES).toEqual(['airy', 'photo', 'compact']);
     // Her mockups' 4 / 8 / 6, doubled when the actions became doors to every
-    // other tab (DR-1192): whole rows of four.
+    // other tab (DR-1196): whole rows of four.
     expect(DENSITY_ACTIONS).toEqual({ airy: 8, photo: 16, compact: 12 });
     for (const d of HUB_DENSITIES) expect(actionsFor(d)).toHaveLength(DENSITY_ACTIONS[d]);
   });
@@ -415,7 +415,7 @@ describe('her three looks all ship, as density', () => {
     act(() => setHubDensity('airy'));
   });
 
-  it('no Quick Action opens what a tile or another action opens; every door names its surface and matches it (DR-1192)', () => {
+  it('no Quick Action opens what a tile or another action opens; every door names its surface and matches it (DR-1196)', () => {
     // Darrell, 2026-10-21: "Have more options, none that overlap, so we have
     // more options and advertise the other tabs."
     expect(overlappingActions(HUB_ACTIONS, HUB_TILES)).toEqual([]);
@@ -436,7 +436,7 @@ describe('her three looks all ship, as density', () => {
     }
   });
 
-  it('draws only the doors this viewer may open, by the nav\'s own rule (DR-1192; a shut door is never drawn, DR-0330)', () => {
+  it('draws only the doors this viewer may open, by the nav\'s own rule (DR-1196; a shut door is never drawn, DR-0330)', () => {
     const keys = (viewer) => actionsFor('photo', { viewer, surfaces: surfaceById }).map((a) => a.key);
     const visitor = keys({ signedIn: false });
     expect(visitor).not.toContain('vault');
@@ -461,7 +461,7 @@ describe('her three looks all ship, as density', () => {
     expect(reviewer).toContain('vault');
   });
 
-  it('shows Notes and Create at every density, and each opens its real view (DR-1192)', () => {
+  it('shows Notes and Create at every density, and each opens its real view (DR-1196)', () => {
     // Darrell, 2026-10-21, with the Hub on his phone: "Add notes and create to
     // the quick links." Notes is the Thinking Space; Create is the Creation
     // Workspace. Both must survive the airiest look, not only the densest.

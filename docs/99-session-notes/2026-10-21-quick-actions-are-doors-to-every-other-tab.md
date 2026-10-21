@@ -1,6 +1,6 @@
 # 2026-10-21 — The Quick Actions are doors to every other tab, none of them twice
 
-**Decision record:** DR-1192
+**Decision record:** DR-1196
 **Source:** Darrell, with the Hub on his phone: "Add notes and create to the quick links", then "Have more options, none that overlap, so we have more options and advertise the other tabs."
 
 ## What changed
