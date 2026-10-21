@@ -860,6 +860,13 @@ AND THE BALANCE THE TEACHER NAMES LAST. Anything other than this and you are doi
 ];
 
 export const RTO_BUSINESS_META = {
+  // THE UNIT IS A LESSON, NOT A WEEK (DR-1190). This course is registered
+  // self-paced with unitCap 'Lesson' (learn-catalog.js), but its meta declared
+  // no unit, so its cards read "Week 1 · ... date TBD". The gate that should
+  // have caught it was reading "Lesson 1" off the every-course shelf, which
+  // DR-1190 moved into its own area; the defect showed the moment the shelf
+  // stopped standing in for the course.
+  unit: { noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true, sessionLabel: 'How to work one lesson (alone or as a house)' },
   key: 'rent-to-own-business',
   title: 'Rent to Own — Business Operating Systems from the Store Floor',
   audience: 'anyone learning how a business actually runs - workers, owners, and young people about to hold their first real job',

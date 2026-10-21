@@ -101,7 +101,7 @@ const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', ad
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
-import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
+import { courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
 // THE CODE IN THE WORD (DR-0729): the verses a lesson quotes that say what a
 // command is for, shown on the lesson card (lib/word-codes.js).
 import { codesForLesson, codesSummary, CODE_FRAME } from '../lib/word-codes.js';
@@ -4041,6 +4041,24 @@ export default function ChurchLearn({
   // Picker order (DR-0121: derived groups, live counts), kept on this device (DR-0686).
   const [courseSort, setCourseSortState] = useState(() => rememberedCourseSort() || DEFAULT_COURSE_SORT);
   const setCourseSort = (k) => { setCourseSortState(k); rememberCourseSort(k); };
+  // THE AREAS OF LEARN ARE SUB-TABS, NOT A LONG SCROLL (DR-1190). Darrell
+  // 2026-10-21: "we need to be using subtabs not long scrolling except on the
+  // lessons we have an option and it defaults to scroll... All other locations
+  // we expect users to be using need to be able to be seen." One area is on
+  // screen at a time; the Lessons area (the default) is the one that scrolls.
+  // Navigation only -- the blocks keep their place in the page and their
+  // order, each gated by the area it belongs to, so nothing moved, it waits.
+  const [learnArea, setLearnAreaState] = useState('lessons');
+  const findFocusPending = React.useRef(false);
+  const setLearnArea = (id) => { setLearnAreaState(id); };
+  React.useEffect(() => {
+    if (learnArea !== 'find' || !findFocusPending.current || typeof document === 'undefined') return;
+    findFocusPending.current = false;
+    const box = document.getElementById('learn-lesson-find');
+    if (!box) return;
+    try { box.scrollIntoView({ block: 'center', behavior: motionBehavior() }); } catch (_) { /* older engines */ }
+    try { box.focus({ preventScroll: true }); } catch (_) { box.focus(); }
+  }, [learnArea]);
   // The lesson finder (Darrell 2026-08-18: "not obvious how to find a lesson
   // unless you already know the course it is in") — one search box over EVERY
   // mounted course's live schedule. Results jump through the SAME real path
@@ -4177,16 +4195,21 @@ export default function ChurchLearn({
   const departments = learnDepartments(courses);
   // A.I. UNDERSTANDING BUILT INTO THE CURRICULUM (DR-0448). Darrell 2026-09-16:
   // "Most people want Ai understanding built in their curriculum"; "can we use
-  // cross-referenced lessons that get credited either way." A department also
-  // gathers the lessons its subject is taught in ELSEWHERE — pointers into
-  // their home courses, so a lesson keeps one home and therefore one credit
-  // (lib/learn-crosslist.js). Built only for a department that declares any,
-  // and only while one is open.
+  // cross-referenced lessons that get credited either way." The declarations
+  // (lib/learn-crosslist.js) still hold, and the browse shelf on the Courses
+  // tab reaches every lesson of every course. What NO LONGER renders is a
+  // block of other courses' lessons on a department tab: Darrell 2026-10-21
+  // (DR-1182), "on those specific tabs... only have the course information in
+  // that one for that list... Do not put any other lessons out there other
+  // than that, period." A department tab shows its own courses and the chosen
+  // course's lessons; the Courses tab is where everything lives.
   const [deptId, setDeptId] = useState(() => initialDept || 'all');
   const dept = departments.find((d) => d.id === deptId) || null;
-  const gathered = (dept && crossListingsFor(dept.label).length)
-    ? resolveCrossListed(dept.label, buildLessonIndex(courses))
-    : [];
+  // THE ETERNAL ALGORITHMS STUDY STAYS WITH THE LESSONS on its department tab
+  // (DR-1190): the old Church route lands on that tab and finds the study
+  // above the course, and the course's progress bar survives on every
+  // department tab (course-duration pins it), so the study is not an area of
+  // its own.
   // AND THE SAME QUESTION ONE LEVEL UP (DR-0516). Darrell 2026-09-18, reading
   // this picker: "we only show one business course... each one could be
   // considered a business course as well as another because it is integration
@@ -4292,6 +4315,15 @@ export default function ChurchLearn({
   // chrome — catalog line, course picker/sort, resume banner — leaves the
   // screen so the space holds ONLY the lesson. Set by CourseView.
   const [lessonFocus, setLessonFocus] = useState(false);
+  // A LESSON OPENED FROM ANY AREA LANDS BACK ON THE LESSONS AREA WHEN IT
+  // CLOSES (DR-0880 / DR-1190): the reader leaves a lesson at the top of its
+  // course's list, never on the Find box or the Continue offer they came from.
+  React.useEffect(() => { if (lessonFocus) setLearnAreaState('lessons'); }, [lessonFocus]);
+  // ...and the REQUEST itself already does it, because the course view is the
+  // thing that reports a lesson open, and it is mounted only in Lessons: a row
+  // tapped in Latest or Find must land in the lessons, not wait for a report
+  // that can never come.
+  React.useEffect(() => { if (resumeLessonId || presentRequest) setLearnAreaState('lessons'); }, [resumeLessonId, presentRequest]);
 
   // THE LONG LIST IS THE DEFAULT; A SHELF IS A LENS THE READER PICKS (Darrell
   // 2026-09-24, shown Living Lessons folded into eight collapsed sections:
@@ -4469,7 +4501,7 @@ export default function ChurchLearn({
                 { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons · ${countWords(totalReadings)} readings counting every age version. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
                   id: d.id, label: d.label,
-                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${courseCrossListedCount(d.label) ? ` · ${courseCrossListedCount(d.label)} more courses serve it` : ''}${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more lessons taught across the curriculum` : ''}`,
+                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${courseCrossListedCount(d.label) ? ` · ${courseCrossListedCount(d.label)} more courses serve it` : ''}`,
                   render: () => null,
                 })),
               ]}
@@ -4617,7 +4649,7 @@ export default function ChurchLearn({
                 id="learn-course-sort"
                 value={sortNow}
                 data-testid="learn-course-sort"
-                onChange={(e) => setCourseSort(e.target.value)}
+                onChange={(e) => { setCourseSort(e.target.value); if (e.target.value === 'latest') setLearnArea('latest'); }}
                 className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
@@ -4635,7 +4667,37 @@ export default function ChurchLearn({
             what `organizeCourses` did, and why "Title A-Z" produced eleven
             little lists instead of one. Every row is one tap into that
             course. */}
-        {!courseOpen && !lessonFocus && (
+        {/* THE AREA STRIP (DR-1190): one row of sub-tabs under the picker. Only
+            the open area renders below it. Lessons is the default and the only
+            long scroll; Continue, Latest, Find, Record and Downloads are each one
+            tap, so what a reader needs is seen, never found by scrolling past
+            everything else. */}
+        {courses.length > 1 && !lessonFocus && (() => {
+          const continueCount = (dept ? inProgress.filter((it) => it.course.key === active.key) : inProgress).length;
+          const areaNoun = String((unitLabels(active.meta) || {}).noun || 'lesson');
+          const areas = [
+            { id: 'lessons', label: courseOpen ? `${areaNoun.charAt(0).toUpperCase()}${areaNoun.slice(1)}s` : 'Courses', explain: courseOpen ? `${active.meta.title}: its ${areaNoun}s, in order, on one scroll.` : 'Every course offered, one list, in the order the sort sets. Pick one to open it.', render: () => null },
+            { id: 'continue', label: continueCount ? `Continue · ${continueCount}` : 'Continue', explain: continueCount ? `${continueCount} ${continueCount === 1 ? 'lesson' : 'lessons'} begun and not finished${dept ? ' in this course' : ''}, newest first.` : `Nothing begun and left${dept ? ' in this course' : ''} yet.`, render: () => null },
+            { id: 'latest', label: 'Latest', explain: dept ? 'This course’s newest lessons, by the day each was added.' : 'The newest lessons of every course, by the day each was added.', render: () => null },
+            { id: 'find', label: 'Find', explain: dept ? 'Search this course by title, topic, or verse.' : 'Search every course by title, topic, or verse, or browse the whole shelf.', render: () => null },
+            { id: 'record', label: 'Record', explain: classRecordSummary, render: () => null },
+            { id: 'downloads', label: 'Downloads', explain: dept ? (courseOpen ? `Download ${active.meta.title}, every lesson at the levels chosen.` : 'Downloads of a chosen course.') : 'This course’s download, and every finished lesson in the PoeTech App, counted live, in one download.', render: () => null },
+          ];
+          return (
+            <div className="mb-3" data-testid="learn-areas">
+              <SectionTabs
+                variant="sub"
+                ariaLabel="Learn areas"
+                idBase="learn-area"
+                activeId={areas.some((a) => a.id === learnArea) ? learnArea : 'lessons'}
+                onActiveChange={setLearnArea}
+                sections={areas}
+              />
+            </div>
+          );
+        })()}
+
+        {!courseOpen && !lessonFocus && learnArea === 'lessons' && (
           <CourseChoiceList
             courses={visibleCourses}
             catalog={courses}
@@ -4658,18 +4720,22 @@ export default function ChurchLearn({
             lib/learn-resume.js). Hidden only while a lesson is open. */}
         {/* LATEST LESSONS, EVERY COURSE — shown when the reader picks it in
             the sort above (DR-0686; why here: components/LatestLessons.jsx). */}
-        {!lessonFocus && sortNow === 'latest' && (
+        {!lessonFocus && learnArea === 'latest' && (
           <LatestLessons
-            courses={courses}
+            courses={dept ? [active] : courses}
+            scope={dept ? 'this course' : 'every course'}
             onOpen={(courseKey, id) => {
               if (dept && !visibleCourses.some((c) => c.key === courseKey)) setDeptId('all');
               setActiveKey(courseKey); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1);
             }}
           />
         )}
-        {!lessonFocus && inProgress.length > 0 && (
+        {/* ONE COURSE ON A DEPARTMENT TAB (DR-1182): the places offered here are
+            the chosen course's own; every course's places wait on the Courses
+            tab, where everything lives. */}
+        {!lessonFocus && learnArea === 'continue' && (dept ? inProgress.filter((it) => it.course.key === active.key) : inProgress).length > 0 && (
           <ContinueOffer
-            items={inProgress}
+            items={dept ? inProgress.filter((it) => it.course.key === active.key) : inProgress}
             onContinue={continueAndRead}
             onRefresh={refreshFirst}
             onForget={startFresh}
@@ -4692,7 +4758,7 @@ export default function ChurchLearn({
 
             The courses that serve a department are already options INSIDE the
             picker (DR-0516), so the picker alone is enough to choose one. */}
-            {dept && dept.id === 'the-eternal-algorithms' && (
+            {learnArea === 'lessons' && dept && dept.id === 'the-eternal-algorithms' && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
                 <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
                   <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
@@ -4722,7 +4788,11 @@ export default function ChurchLearn({
             sit inside CourseView is removed so there is ONE list, not two.
             Held by learn-lesson-index-is-next.test.jsx, which asserts ORDER —
             picker, then this list, then search, then everything else. */}
-        {courses.length > 1 && !lessonFocus && (active.schedule || []).length > 4 && (() => {
+        {/* AND ONLY FOR A COURSE THAT IS OPEN (DR-1183 made nothing open until
+            chosen; DR-1182 unboxed this list, so an index of a course nobody
+            chose would now be a page-long title page under "Choose a course").
+            A department tab counts as a choice (DR-0432 / DR-0433). */}
+        {learnArea === 'lessons' && courseOpen && courses.length > 1 && !lessonFocus && (active.schedule || []).length > 4 && (() => {
           const schedule = active.schedule;
           const U = unitLabels(active.meta);
           const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
@@ -4923,7 +4993,11 @@ export default function ChurchLearn({
                   </button>
                 </div>
               )}
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
+              {/* ONE SCROLL (DR-1182). Darrell 2026-10-21: "I don't want 3 or 4
+                  different scroll bars in a space. I want all of the options in
+                  one scroll bar." The list rides the page; the month folds are
+                  how a long list is kept short, not an inner scrollbar. */}
+              <ol className="space-y-0.5" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
                 {rows.map((m) => (m.heading ? (
                   m.heading.lessons ? (
                     <li
@@ -5018,51 +5092,11 @@ export default function ChurchLearn({
           );
         })()}
 
-        {/* THE COURSE'S OWN LESSONS COME FIRST; THE GATHERED ONES FOLLOW (Darrell
-            2026-09-24, with a screenshot of History where the "also taught
-            across the curriculum" rows sat ABOVE the course's pick-a-lesson
-            list: "This should be at the top!"). This block used to render
-            inside the picker's row, so on any department that gathers lessons
-            it landed between the dropdown and the course's own lessons. It now
-            renders here, after the by-title index, and the order is pinned in
-            learn-crosslisted-in-the-picker.test.jsx (DR-0598). */}
-        {courses.length > 1 && !lessonFocus && (
-          <>
-        {dept && gathered.length > 0 && (
-          <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
-            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-              Also taught across the curriculum · {gathered.length}
-            </p>
-            <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-              These lessons live in their own courses and are taught there. Open one here and it
-              opens where it lives — so it counts once, whichever shelf you found it on.
-            </p>
-            <ul className="space-y-2">
-              {gathered.map((r) => (
-                <li key={`${r.courseKey}-${r.lessonId}`}>
-                  <button
-                    type="button"
-                    className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                    onClick={() => {
-                      setDeptId('all');
-                      setActiveKey(r.courseKey);
-                      setResumeOpenGuide(false);
-                      setResumeLessonId(r.lessonId);
-                    }}
-                  >
-                    <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
-                    <span className="block text-[0.625rem] text-[#5A5751]">
-                      {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
-                    </span>
-                    <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-          </>
-        )}
+        {/* The "also taught across the curriculum" rows that sat here (DR-0448,
+            DR-0598) no longer render on a department tab: Darrell 2026-10-21,
+            "Do not put any other lessons out there other than that, period."
+            (DR-1182). The declarations stay in lib/learn-crosslist.js; the
+            Courses tab's shelf reaches every lesson of every course. */}
 
         {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
             and review the available lessons... not obvious how to find a lesson
@@ -5071,11 +5105,14 @@ export default function ChurchLearn({
             reference all find their lesson, and one tap opens it through the
             same real path Resume drives. Index derives from the mounted
             catalog (lib/learn-organize.js, DR-0121). */}
-        {courses.length > 1 && !lessonFocus && (() => {
-          const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(visibleCourses), lessonQuery) : [];
+        {learnArea === 'find' && courses.length > 1 && !lessonFocus && (() => {
+          // ONE COURSE ON A DEPARTMENT TAB (DR-1182): search reaches the chosen
+          // course there, and every course on the Courses tab.
+          const searched = dept ? [active] : visibleCourses;
+          const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(searched), lessonQuery) : [];
           return (
             <div className="mb-4">
-              <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Or search by name — any course, by title, topic, or verse</label>
+              <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{dept ? 'Or search this course — by title, topic, or verse' : 'Or search by name — any course, by title, topic, or verse'}</label>
               <input
                 id="learn-lesson-find"
                 type="search"
@@ -5133,6 +5170,10 @@ export default function ChurchLearn({
                    shelf never buries the course below it, and the whole thing
                    derives from the mounted catalog (DR-0121). */
                 (() => {
+                  // On a department tab the chosen course's own index above IS
+                  // the list; a second copy of it here was "the same thing
+                  // every time" (DR-1182). The shelf is the Courses tab's.
+                  if (dept) return null;
                   const groups = browseLessons(buildLessonIndex(visibleCourses));
                   const total = browseCount(groups);
                   if (!total) return null;
@@ -5141,7 +5182,9 @@ export default function ChurchLearn({
                       <p className="px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4] border-b border-[#E8E4DC]">
                         Or just browse — all {total} lessons, every course
                       </p>
-                      <div className="max-h-[55vh] overflow-y-auto">
+                      {/* ONE SCROLL (DR-1182): the shelf rides the page's own
+                          scroll; it is not a box with a scrollbar of its own. */}
+                      <div>
                         {groups.map((g) => (
                           <section key={g.courseKey} aria-label={g.courseTitle}>
                             <h4 className="sticky top-0 px-3 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#1A1815] bg-[#FAF8F4] border-b border-[#E8E4DC] font-semibold">
@@ -5187,7 +5230,7 @@ export default function ChurchLearn({
         {/* The catalog line a school prints under a course title: its code,
             its department, and its level where the course declares one
             (meta.programLevel) — never invented for a course that did not. */}
-        {courseOpen && !lessonFocus && (() => {
+        {learnArea === 'lessons' && courseOpen && !lessonFocus && (() => {
           const coded = departments.flatMap((d) => d.courses).find((c) => c.key === active.key);
           if (!coded) return null;
           return (
@@ -5208,7 +5251,7 @@ export default function ChurchLearn({
             find this course in search (learn-organize.js buildLessonIndex), so
             the line a reader sees and the words that reach them are one thing,
             never two that drift. */}
-        {courseOpen && !lessonFocus && plainWordsFor(active.key).length > 0 && (
+        {learnArea === 'lessons' && courseOpen && !lessonFocus && plainWordsFor(active.key).length > 0 && (
           <p className="text-[0.75rem] text-[#5A6E3D] mb-3" data-testid="course-plain-words">
             <span className="uppercase tracking-wider text-[0.625rem] text-[#5A5751] mr-1.5">In plain words</span>
             {plainWordLine(active.key)}
@@ -5222,7 +5265,7 @@ export default function ChurchLearn({
             control belongs to whoever is READING the course, and burying it
             behind isGovernor is the exact mistake the time control made. The
             lesson count is counted from the live schedule, never typed. */}
-        {courseOpen && !lessonFocus && (
+        {learnArea === 'lessons' && courseOpen && !lessonFocus && (
           <div className="mb-3 flex items-center gap-2 flex-wrap">
             <ShareButton
               label="Share this course"
@@ -5233,7 +5276,12 @@ export default function ChurchLearn({
                 unitPlural: `${unitLabels(active.meta).noun}s`,
               })}
             />
-            {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen. */}
+          </div>
+        )}
+        {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen.
+            In the Downloads area beside the catalog's download (DR-1190). */}
+        {learnArea === 'downloads' && courseOpen && !lessonFocus && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap" data-testid="learn-download-course">
             <CourseDownloadButton course={active} signedIn={signedIn} />
           </div>
         )}
@@ -5242,13 +5290,13 @@ export default function ChurchLearn({
         {/* Derived catalog line — counted LIVE from the mounted courses (never a
             hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
             by learn-catalog-render.test.jsx. */}
-        {courses.length > 1 && !lessonFocus && (
+        {learnArea === 'downloads' && courses.length > 1 && !lessonFocus && !dept && (
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
             {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
           </p>
         )}
         {/* DOWNLOAD EVERY LESSON (DR-0722) — sized first, paused and resumed, skipping what is here. */}
-        {courses.length > 1 && !lessonFocus && (
+        {learnArea === 'downloads' && courses.length > 1 && !lessonFocus && !dept && (
           <div className="mb-3 flex items-center gap-2 flex-wrap" data-testid="learn-download-all">
             <AllDownloadButton courses={courses} signedIn={signedIn} />
           </div>
@@ -5303,9 +5351,14 @@ export default function ChurchLearn({
           <button
             type="button"
             onClick={() => {
+              // The finder lives in the Find area now (DR-1190): open it, and
+              // the effect above lands the focus on the box once it mounts.
+              findFocusPending.current = true;
+              setLearnArea('find');
               if (typeof document === 'undefined') return;
               const box = document.getElementById('learn-lesson-find');
               if (!box) return;
+              findFocusPending.current = false;
               try { box.scrollIntoView({ block: 'center', behavior: motionBehavior() }); } catch (_) { /* older engines */ }
               try { box.focus({ preventScroll: true }); } catch (_) { box.focus(); }
             }}
@@ -5321,7 +5374,9 @@ export default function ChurchLearn({
               list is one tap from the lesson they have in progress here. */}
           {courseOpen && <ContinueChip item={activeContinue} onContinue={continueAndRead} />}
           <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-            {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span>
+            {dept
+              ? <>{courseLessonCount(active)} lessons<span className="hidden sm:inline"> · this course</span></>
+              : <>{courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span></>}
           </span>
         </div>
       )}
@@ -5336,7 +5391,7 @@ export default function ChurchLearn({
           its opening Word; what waits while a lesson is open is the course's
           schedule furniture (the count of weeks, the cohort pill, the start
           date), which is in the course view below. */}
-      {courseOpen && (() => {
+      {learnArea === 'lessons' && courseOpen && (() => {
         const lead = wordFirstLead(active);
         if (!lead) return null;
         return (
@@ -5355,7 +5410,7 @@ export default function ChurchLearn({
           learner's for the Governor, with completion measured against each
           course's real lesson count. Folded, so it never pushes the lessons
           down the page; it carries its own live summary on the summary line. */}
-      {!lessonFocus && (
+      {learnArea === 'record' && !lessonFocus && (
         <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-class-record">
           <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
             Class record
@@ -5377,7 +5432,7 @@ export default function ChurchLearn({
 
       {/* THE LESSONS OF THE CHOSEN COURSE. Nothing is chosen on a first
           arrival, and until then the one list above is the page (DR-1183). */}
-      {courseOpen && (
+      {(learnArea === 'lessons' || lessonFocus) && courseOpen && (
       <CourseView
         key={active.key}
         course={active}

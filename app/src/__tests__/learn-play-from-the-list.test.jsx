@@ -38,14 +38,24 @@ afterEach(() => {
   clearRead();
 });
 
-const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
-  progress: {}, recordProgress: () => {}, quizState: {}, recordQuiz: () => {},
-  learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-  ...props,
-})));
+const mount = (props = {}) => {
+  act(() => root.render(React.createElement(ChurchLearn, {
+    progress: {}, recordProgress: () => {}, quizState: {}, recordQuiz: () => {},
+    learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
+    ...props,
+  })));
+  // LEARN OPENS ON THE ONE LIST (DR-1183), and the by-title index waits for a
+  // chosen course like the rest of the course's blocks (DR-1182). So the
+  // index these cases drive is reached the way a reader reaches it: one tap
+  // on the first course offered.
+  const row = container.querySelector('[data-testid="course-choice-list"] button[data-course]');
+  if (row) act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
 
 const index = () => container.querySelector('nav[aria-label*="by title"]');
-const rows = () => [...index().querySelectorAll('ol > li')];
+// Lesson rows only: a month heading (DR-0732) is a fold, not a title, and
+// carries no Play by design.
+const rows = () => [...index().querySelectorAll('ol > li[data-lesson-id]')];
 const playIn = (li) => [...li.querySelectorAll('button')].find((b) => /▶/.test(b.textContent));
 const titleIn = (li) => [...li.querySelectorAll('button')].find((b) => !/▶/.test(b.textContent));
 // The reader marks its own roots — the same flag the idle lock reads so it

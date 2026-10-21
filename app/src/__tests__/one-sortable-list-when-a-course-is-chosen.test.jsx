@@ -203,8 +203,8 @@ describe('Learn opens on the list, not on a course nobody chose', () => {
   it('the course’s own blocks wait for a chosen course', () => {
     // The catalog line, the plain-words line, Share this course, the sticky
     // bar that names the course, the Word-first lead and the schedule.
-    expect(src).toMatch(/\{courseOpen && !lessonFocus && \(\(\) => \{\n\s*const coded =/);
-    expect(src).toMatch(/\{courseOpen && !lessonFocus && plainWordsFor\(active\.key\)/);
+    expect(src).toMatch(/\{learnArea === 'lessons' && courseOpen && !lessonFocus && \(\(\) => \{\n\s*const coded =/);
+    expect(src).toMatch(/\{learnArea === 'lessons' && courseOpen && !lessonFocus && plainWordsFor\(active\.key\)/);
     // The sticky landmark bar is the EXCEPTION, and deliberately so: it exists
     // because a reader browses without choosing (Christina 2026-08-31), so it
     // renders either way and the three things in it that belong to a course
@@ -212,12 +212,12 @@ describe('Learn opens on the list, not on a course nobody chose', () => {
     expect(src).toMatch(/\{courseOpen \? `\$\{unitLabels\(active\.meta\)\.noun\}s` : 'lessons'\}/);
     expect(src).toMatch(/\{courseOpen \? active\.meta\.title : 'No course chosen yet'\}/);
     expect(src).toMatch(/\{courseOpen && <ContinueChip/);
-    expect(src).toMatch(/\{courseOpen && \(\(\) => \{\n\s*const lead = wordFirstLead\(active\)/);
-    expect(src).toMatch(/\{courseOpen && \(\n\s*<CourseView/);
+    expect(src).toMatch(/\{learnArea === 'lessons' && courseOpen && \(\(\) => \{\n\s*const lead = wordFirstLead\(active\)/);
+    expect(src).toMatch(/\{\(learnArea === 'lessons' \|\| lessonFocus\) && courseOpen && \(\n\s*<CourseView/);
   });
 
   it('the one list renders exactly when no course is chosen', () => {
-    expect(src).toMatch(/\{!courseOpen && !lessonFocus && \(\n\s*<CourseChoiceList/);
+    expect(src).toMatch(/\{!courseOpen && !lessonFocus && learnArea === 'lessons' && \(\n\s*<CourseChoiceList/);
     // It is handed the SAME sort the control sets, not its own order.
     expect(src).toMatch(/sortKey=\{sortNow\}/);
     expect(src).toMatch(/ctx=\{sortCtx\}/);

@@ -137,10 +137,18 @@ describe('▶ Continue after the screen went dark', () => {
 
 describe('the lesson space, on a touch device without a wake lock', () => {
   const extraCourses = buildCatalogCourseDescriptors();
-  const mountLearn = () => act(() => root.render(createElement(ChurchLearn, {
-    extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
-    learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-  })));
+  const mountLearn = () => {
+    act(() => root.render(createElement(ChurchLearn, {
+      extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
+      learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
+    })));
+    // LEARN OPENS ON THE ONE LIST (DR-1183) and the lesson titles wait for a
+    // chosen course (DR-1182 / DR-1190): one tap on Living Lessons, the way a
+    // reader reaches the lesson these cases open.
+    const row = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+      .find((b) => b.getAttribute('data-course') === 'living-lessons');
+    if (row) act(() => { row.click(); });
+  };
   const withPointer = (coarse) => { window.matchMedia = vi.fn((q) => ({ matches: coarse && /pointer: coarse/.test(q), media: q, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} })); };
   it('shows the honest hint under the lesson bar once a lesson is open, naming the phone setting', () => {
     removeWakeLock(); withPointer(true);

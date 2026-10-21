@@ -48,6 +48,16 @@ const mount = (props = {}) =>
     ...props,
   })));
 
+
+// THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
+// one tap away in its area (Continue, Latest, Find, Record, Downloads). These
+// helpers make the tap a reader makes before the lookup, so each case still
+// pins what it always pinned, reached the way it is reached.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
+const mountOnContinue = (props = {}) => { mount(props); openArea('continue'); };
 const click = (btn) => act(() => { btn.click(); });
 const buttonByText = (text) =>
   [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
@@ -58,7 +68,7 @@ const savedPlace = { courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-ch
 describe('Learn resume-your-place', () => {
   it('a saved place renders the banner with the real course + lesson, and Continue opens that lesson', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace));
-    mount();
+    mountOnContinue();
 
     expect(container.textContent).toContain('Pick up where you left off');
     expect(container.textContent).toContain('Living Lessons from the Word');
@@ -89,7 +99,7 @@ describe('Learn resume-your-place', () => {
     // confirmThen (lib/confirm-action.js) — declined, nothing is forgotten.
     const realConfirm = window.confirm;
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace));
-    mount();
+    mountOnContinue();
     window.confirm = () => false;
     click(buttonByText('Start fresh'));
     expect(getPlace()).toBeTruthy();
@@ -105,7 +115,7 @@ describe('Learn resume-your-place', () => {
   // does not exist, and the place stays at step 2.
   it('Refresh first backs the saved step up and then resumes — the refresher, not the frontier', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace)); // step 2
-    mount();
+    mountOnContinue();
     const btn = buttonByText('Refresh first');
     expect(btn).toBeTruthy();
     click(btn);
@@ -117,7 +127,7 @@ describe('Learn resume-your-place', () => {
 
   it('Refresh first is not offered at the first step — there is nothing behind it to replay', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify({ ...savedPlace, step: 0 }));
-    mount();
+    mountOnContinue();
     expect(buttonByText('Continue →')).toBeTruthy();
     expect(buttonByText('Refresh first')).toBeFalsy();
   });

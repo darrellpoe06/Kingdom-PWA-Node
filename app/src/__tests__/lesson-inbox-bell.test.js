@@ -277,7 +277,21 @@ describe("the builder's progress is printed on the NAS road (read-only)", () => 
     expect(w).toContain('bash scripts/lesson-builder-status.sh status --nas');
     expect(w).toContain('node scripts/lesson-inbox-bell.mjs --status');
     expect(w).not.toMatch(/INSERT|UPDATE|DELETE/);
-    expect(w).not.toMatch(/issues: write|pull-requests: write|contents: write/);
+    // It used to ban `issues: write` too, as a proxy for "this workflow
+    // mutates nothing". DR-1186 gave it a rolling run log -- the way six
+    // existing witnesses in this repository record themselves -- so the proxy
+    // is replaced by the thing it was standing in for, stated exactly. The
+    // guarantees that MATTER are unchanged and now pinned individually:
+    // nothing in the database, nothing in the repository, nothing on a PR.
+    expect(w).not.toMatch(/pull-requests: write|contents: write/);
+    expect(w).toMatch(/^ {2}contents: read$/m);
+    expect(w).toMatch(/^ {2}pull-requests: read$/m);
+    // And the ONE write it may now make is to its own log, by name. This is
+    // stricter than the old blanket ban, not looser: that ban said nothing
+    // about what a write would be if the permission were ever granted.
+    expect(w).not.toMatch(/\bgit push\b|\bgit commit\b|\bgh pr\b|\bgh release\b|--method\s+(PUT|POST|PATCH|DELETE)/);
+    const ghWrites = [...w.matchAll(/\bgh (issue|pr|api|release) (\w+)/g)].map((m) => `${m[1]} ${m[2]}`);
+    expect(new Set(ghWrites)).toEqual(new Set(['issue list', 'issue comment', 'issue create']));
   });
 });
 

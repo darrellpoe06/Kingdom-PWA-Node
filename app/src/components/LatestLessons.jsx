@@ -47,7 +47,7 @@ import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleIt
 /** The fold memory's key for this list: one list, every course. */
 export const LATEST_FOLD_KEY = 'latest:every-course';
 
-export default function LatestLessons({ courses, onOpen }) {
+export default function LatestLessons({ courses, onOpen, scope = 'every course' }) {
   const [folded, setFolded] = useState(() => rememberedFolds(LATEST_FOLD_KEY));
   const setFolds = (next) => { setFolded(next); rememberFolds(LATEST_FOLD_KEY, next); };
   const latest = latestLessons(courses);
@@ -60,9 +60,9 @@ export default function LatestLessons({ courses, onOpen }) {
   const shown = visibleItems(items, folded);
   const foldOffer = foldAllOffer(items, folded);
   return (
-    <nav aria-label="Latest lessons, every course" data-testid="learn-latest-lessons" className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+    <nav aria-label={`Latest lessons, ${scope}`} data-testid="learn-latest-lessons" className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
-        Latest lessons · every course · newest first · <span data-testid="learn-latest-count">{rows.length}</span>
+        Latest lessons · {scope} · newest first · <span data-testid="learn-latest-count">{rows.length}</span>
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         <span data-testid="learn-latest-line">{latestCountLine(latest, undatedReason)}</span>
@@ -84,7 +84,9 @@ export default function LatestLessons({ courses, onOpen }) {
           </button>
         </div>
       ) : null}
-      <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="learn-latest-list">
+      {/* ONE SCROLL (DR-1182): the list rides the page; the month headings stay
+          sticky against the page's own scroll, and the folds keep it short. */}
+      <ol className="space-y-0.5" data-testid="learn-latest-list">
         {shown.map((r) => (r.heading ? (
           /* THE MONTH STAYS AT THE TOP (DR-0732): sticky inside the scrolling
              list, the list's own background, so the next month pushes it off
