@@ -62,6 +62,7 @@ Each figure above is a fixture in `properties-development.test.js`, and the engi
     - **The most to pay for land**: the finished value, less the equity to create, the build and the soft costs. The formula is pinned. His spoken $122,000 does not reconcile with the captions' other figures, so it is not used as a fixture.
 
     `lotSplit`, `leverage`, `maxLandPrice`; the "land, the bank and the cash" card on the Development tab.
+- **The lesson already exists, and now it points at the system.** The property course's "The field before the house" (DR-0504 / DR-0528) already teaches Luke 14:28-30 and Proverbs 24:27 as counting the cost to finish, with the contingency as a number. A second lesson would have taught the same verses twice. Its practice now sends the reader to the Development tab: the contingency as its own line, each line marked done when paid, and the forecast to finish read.
 - **Transactions linked to lines** (his "once you upload a transaction, it automatically links to a line item") are not built yet: a line's cost is typed as one figure. Why: one source of truth per line, and the bank-import road for the books already exists to be reused rather than a second ledger. re-review: 2026-11-04.
 - Video 608WXaTG8Js and adpDZJtstTQ are Kleyman; ZmkZjUzeT6E is Brandon Lindsay of Rehab Valuator's Playbook, the same method on the same software. Further videos (duplex financing, ARV, rehab estimating, the 70% rule) are fetching in pairs on the NAS and fold in as they land.
 
