@@ -15,9 +15,10 @@
 // Activity. Both read records: Recent Messages hears the page's single DM
 // watcher (the unread count and the newest unread sender it already
 // broadcasts), Recent Activity is lib/home-activity.js over incidents,
-// projects, notes, photos, goals and finished focus items. Opt-in still: the
-// Current View is one tap away and the default is untouched (Tier C waits on
-// Darrell, DR-1046 §8).
+// projects, notes, photos, goals and finished focus items. Since Darrell's
+// approval (relayed by Christina 2026-10-15, DR-1046) THIS IS THE HOME: the
+// default in lib/home-view-prefs.js is 'lifehub'; a device that chose the
+// Current View keeps it, and the Current View stays one tap away up top.
 //
 // COLORS ARE CLASSES, NEVER INLINE. contrast-guard reads the theme CSS as the
 // single source of truth and an inline hex cannot be remapped per theme, which
