@@ -176,6 +176,6 @@ describe('the surfaces that carry it', () => {
     expect(src).toContain('data-testid="thread-unread"');
     // One module, mounted by BOTH apps — so PoeTech and the Poe Properties
     // door cannot tell different stories about the same door.
-    expect(src).toContain('unseenByThisFace(role, grants)');
+    expect(src).toContain('unseenByThisFace(role, grants, { since: seen.since })');
   });
 });

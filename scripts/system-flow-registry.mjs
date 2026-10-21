@@ -1427,6 +1427,29 @@ const NODES = [
       { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "rpc('property_energy_hourly'" },
     ],
   }),
+  // Building from the ground up (DR-1162): a development project, its budget
+  // lines, change orders, commercial bays, phase checks and capital, in the
+  // landlord instance; the Development tab counts them with development.js,
+  // and project_ref names the PoeTech project that holds the work and hours.
+  app('app/src/modules/properties/DevelopmentTab.jsx', {
+    id: 'development', name: 'Building from the ground up (Development tab)', purpose: 'The owner keeps a building project: the budget by category with the TI allowance and contingency, change orders and where their money comes from, the phases with dated and signed checks, what it is worth, and the deal for investors.',
+    writes: [
+      { res: 'db:dev_projects', file: 'app/src/modules/properties/development-cloud.js', token: "client.from('dev_projects')\n      .insert" },
+      { res: 'db:dev_budget_lines', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_budget_lines'" },
+      { res: 'db:dev_change_orders', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_change_orders'" },
+      { res: 'db:dev_bays', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_bays'" },
+      { res: 'db:dev_capital', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_capital'" },
+      { res: 'db:dev_checks', file: 'app/src/modules/properties/development-cloud.js', token: "from('dev_checks').upsert" },
+    ],
+    reads: [
+      { res: 'db:dev_projects', file: 'app/src/modules/properties/development-cloud.js', token: "from('dev_projects').select" },
+      { res: 'db:dev_budget_lines', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_change_orders', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_bays', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_checks', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_capital', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+    ],
+  }),
   // A door's cameras, asked for and given (DR-0938): the family offers names
   // on a door; anyone on it asks; the family gives (the NAS mints the grant),
   // gives a guest a link, and takes back; each move is on the clock.
