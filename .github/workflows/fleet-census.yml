@@ -117,6 +117,76 @@ jobs:
           PY
           python3 -c "import json; json.load(open('/tmp/runs.json')); print('runs.json parses')"
 
+      # ASK THE NAS HALF TOO (DR-1150). 28 of 118 jobs read blank because this
+      # census only ever asked GitHub, while loops-health.yml measured every NAS
+      # loop on the tailnet fifteen minutes apart. It publishes that witness onto
+      # a rolling `loops-report` issue; this step folds it in. No tailnet here --
+      # one road to one truth, and the census stays a reader.
+      #
+      # A missing or unreadable report leaves the NAS half exactly as it was:
+      # UNKNOWN. It is never silently treated as "no loops ran" (DR-0076).
+      - name: Fold in the loops witness for the NAS half
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request, urllib.error
+
+          REPO = os.environ["GITHUB_REPOSITORY"]
+          TOKEN = os.environ["GITHUB_TOKEN"]
+          doc = json.load(open("/tmp/runs.json"))
+
+          def api(path):
+              req = urllib.request.Request(
+                  f"https://api.github.com/{path}",
+                  headers={"Authorization": f"Bearer {TOKEN}",
+                           "Accept": "application/vnd.github+json",
+                           "User-Agent": "poetech-fleet-census"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+
+          try:
+              issues = api(f"repos/{REPO}/issues?labels=loops-report&state=all&per_page=1")
+          except (urllib.error.URLError, urllib.error.HTTPError) as e:
+              print(f"  !! could not read the loops report: {str(e)[:120]}")
+              print("     the NAS half stays UNKNOWN -- unknown is not a no")
+              raise SystemExit(0)
+
+          issues = [i for i in issues if not i.get("pull_request")]
+          if not issues:
+              print("no loops-report issue yet; the NAS half stays UNKNOWN")
+              raise SystemExit(0)
+
+          body = issues[0].get("body") or ""
+          m = re.search(r"```json\s*\n([\s\S]*?)\n```", body)
+          if not m:
+              print("the loops report carries no witness block; the NAS half stays UNKNOWN")
+              raise SystemExit(0)
+          try:
+              w = json.loads(m.group(1))
+          except ValueError as e:
+              print(f"the loops witness block does not parse ({e}); the NAS half stays UNKNOWN")
+              raise SystemExit(0)
+
+          svc = w.get("services")
+          if not isinstance(svc, dict):
+              print("the loops witness names no services; the NAS half stays UNKNOWN")
+              raise SystemExit(0)
+
+          # Only last_run_at and its provenance cross over. No run COUNT is
+          # carried, so a NAS loop can never be reported as "never".
+          doc["services"] = {
+              name: {"last_run_at": e.get("last_run_at"), "from": e.get("from")}
+              for name, e in svc.items() if isinstance(e, dict)
+          }
+          doc["window"] = (doc.get("window") or "") + \
+              f"; NAS loops from the loops witness read at {w.get('readAt')}"
+          json.dump(doc, open("/tmp/runs.json", "w"), indent=2)
+          dated = sum(1 for e in doc["services"].values() if e.get("last_run_at"))
+          print(f"folded {len(doc['services'])} NAS loop(s); {dated} carry a timestamp")
+          PY
+          python3 -c "import json; json.load(open('/tmp/runs.json')); print('runs.json still parses')"
+
       - name: The census, and the two questions
         run: |
           node scripts/fleet-census.mjs --runs /tmp/runs.json | tee /tmp/census.txt
