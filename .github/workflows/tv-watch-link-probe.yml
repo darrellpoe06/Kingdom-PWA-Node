@@ -1,0 +1,55 @@
+name: TV watch-link probe (DR-1164, temporary)
+
+# TEMPORARY MEASUREMENT WORKFLOW (DR-0076 §4: measure, never claim).
+#
+# The cloud sandbox has NO route to tubitv.com / pluto.tv / therokuchannel.roku.com
+# (CONNECT tunnel failed, response 403 on every one), so the only way to learn
+# whether a candidate "search this service for a title" URL is REAL is to ask a
+# GitHub runner, which does have a route. DR-0333 blocks runner IPs from YouTube
+# only; these hosts are reachable.
+#
+# This file is deleted in the same PR once its measurement is recorded in
+# DR-1164. It exists to stop us shipping a link pattern nobody checked.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe each candidate watch-search URL
+        run: |
+          set -u
+          probe() {
+            name="$1"; url="$2"
+            code=$(curl -sS -o /tmp/body.html -w '%{http_code}' -L --max-time 25 \
+              -A 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' \
+              "$url" 2>/dev/null || echo "ERR")
+            bytes=$(wc -c < /tmp/body.html 2>/dev/null || echo 0)
+            title=$(tr '\n' ' ' < /tmp/body.html | grep -o -i -m1 '<title[^>]*>[^<]*' | sed 's/<title[^>]*>//' | cut -c1-110)
+            printf '%-26s %-4s %8s bytes  title=%s\n' "$name" "$code" "$bytes" "${title:-(none)}"
+          }
+          echo "=== candidate SEARCH routes (query: the office) ==="
+          probe "tubi/search"        "https://tubitv.com/search/the%20office"
+          probe "tubi/search?q"      "https://tubitv.com/search?q=the%20office"
+          probe "pluto/search"       "https://pluto.tv/en/search/the%20office"
+          probe "pluto/search?q"     "https://pluto.tv/en/search?q=the%20office"
+          probe "roku/search"        "https://therokuchannel.roku.com/search/the%20office"
+          probe "roku/search?q"      "https://therokuchannel.roku.com/search?q=the%20office"
+          probe "plex/search"        "https://watch.plex.tv/search?query=the%20office"
+          probe "crackle/search"     "https://www.crackle.com/search/the%20office"
+          echo
+          echo "=== service home pages (does the service still exist at all?) ==="
+          probe "tubi/home"          "https://tubitv.com/"
+          probe "pluto/home"         "https://pluto.tv/"
+          probe "roku/home"          "https://therokuchannel.roku.com/"
+          probe "plex/home"          "https://watch.plex.tv/"
+          probe "crackle/home"       "https://www.crackle.com/"
+          probe "freevee/home"       "https://www.amazon.com/adlp/freevee"
+          echo
+          echo "=== the sovereign YouTube road: can a runner even see it? (DR-0333 says no) ==="
+          probe "youtube/rss"        "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ"
