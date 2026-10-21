@@ -27,7 +27,7 @@ Darrell, 2026-10-21, with a screenshot of the Life Hub and the empty space besid
 
 Then: *"Advertising the app... family operating system shows privileges other's potential users would like to be able to use..."* And: *"We already have a cameras tab... this would be great to have as another big picture location for advertising that surveillance is also available... make sense?"*
 
-## The reality trace (DR-0061)
+## What was measured — the reality trace (DR-0061)
 
 - **Real data.**
   - The credential is `cameraCredential({bridge: bridgeToken()})`: the family key, or a grant the owner gave this device.
@@ -57,12 +57,12 @@ Then: *"Advertising the app... family operating system shows privileges other's 
    - a key that opens no camera yet ("Connect one in the Cameras tab", with a Cameras button);
    - a road that did not answer. That is never shown as "no cameras" (DR-0076).
 
-## Not built, with the why
+## Impact — what this does not do, with the why
 
 - **No "Connect a camera" button for a device with no key.** The Cameras surface is `whenDenied: 'hide'` for anyone who is neither family nor holding a grant. A button from the home screen would open a door the registry hides, and the Life Hub does not know `isFamilyMember`: the shell is frozen and hands it nothing. The advert therefore says where cameras live and who gets them, rather than offering a press that might lead nowhere.
 - `re-review: 2026-10-28`: if the shell starts handing the viewer to Home (DR-0078 budget permitting), offer the button to the family.
 
-## Proven
+## Verification
 
 - `hub-camera.test.jsx`, 9 cases:
   - the lib's choice, small frames and states;
