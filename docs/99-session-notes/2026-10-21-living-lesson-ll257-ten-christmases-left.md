@@ -128,11 +128,17 @@ is named by its band.
   the authority for verse integrity is the per-span check that names the field, which is what the
   live mutation above confirms catches.
 - **The live build at Big Print** was not reviewed in this session.
-- **One blocker, named rather than worked around.** The full suite is red on exactly two
-  assertions in `app/src/__tests__/living-lessons-ll256-the-lords-release.test.js` — *"is in the
-  catalog exactly once, as the last lesson"* and `expect(Math.max(...claimed)).toBe(256)`. Nothing
-  about ll256's lesson is wrong (141 of its 143 cases pass); those two pin "no lesson comes after
-  me," which any next lesson breaks. ll255 and ll254 assert no such thing. The fix is two lines in
-  that file — assert ll256 sits *after* ll255, and make the max a floor — and it belongs to that
-  file's owner, because editing a sibling lesson's test is what this build's brief forbids. The same
-  defect was removed from ll257's own gate so it is not inherited.
+- **One blocker was reported before it was fixed, and then fixed on authorisation.** The full
+  suite first came back red on exactly two assertions in
+  `app/src/__tests__/living-lessons-ll256-the-lords-release.test.js` — *"is in the catalog exactly
+  once, as the last lesson"* (`:180`) and `expect(Math.max(...claimed)).toBe(256)` (`:188`),
+  confirmed independently by CI shard 3/4 at those line numbers. Nothing about ll256's lesson was
+  wrong; 141 of its 143 cases passed throughout. Those two pinned "no lesson comes after me," which
+  any next lesson breaks, and ll255 and ll254 assert no such thing. This build **stopped and
+  reported** rather than editing a sibling lesson's test, which is what its brief forbids. The
+  Governor verified the claim and authorised a minimal amendment in that file only: ll256 appears
+  once and sits **after ll255 by index**, and the max became a **floor**. The 211/212 check, the
+  "follows 255" check and all 141 other cases are untouched; the file reads **143/143**. The
+  amendment was then proven not to be a weakening — the two assertions, replicated in memory, pass
+  the live catalog and catch all four of ll256 moved before ll255, duplicated, removed, and
+  renumbered backwards. The same defect was removed from ll257's own gate so it is not inherited.
