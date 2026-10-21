@@ -1,4 +1,4 @@
-# DR-1159 — Ten Christmases Left: a street interview becomes a lesson without asserting one of its claims
+# DR-1160 — Ten Christmases Left: a street interview becomes a lesson without asserting one of its claims
 
 - **Status:** accepted
 - **Tier:** A (one new Living Lesson and its pinned gate; no data, no money, no new door, no shared instrument changed)
@@ -24,7 +24,7 @@ Measured on the real catalog and the real corpus on disk, 2026-10-21. The lesson
 
 | what | measured | basis |
 | --- | --- | --- |
-| numbers claimed free before a line was written | catalog max `ll256` (254 modules), `ll257` free; DR files reached DR-1151, DR-1159 free | `LIVING_LESSONS_MODULES` read, never grepped — the catalog stores ids in two shapes and a grep answers 244 with confidence; `scripts/dr-number-claims.mjs` |
+| numbers claimed free before a line was written | catalog max `ll256` (254 modules), `ll257` free; DR files reached DR-1151, DR-1160 free | `LIVING_LESSONS_MODULES` read, never grepped — the catalog stores ids in two shapes and a grep answers 244 with confidence; `scripts/dr-number-claims.mjs` |
 | referenced spans / faults | **354 spans, 0 faults** | every double-quoted span standing beside its reference, checked against `app/public/bible/kjv` |
 | distinct verses quoted | **76** | the generator's own token set |
 | `anchor.ref` verses | **76, both directions empty** — no verse taught and unanchored, no verse anchored and unquoted | derived by the generator from the same tokens that produced the quotations (DR-0734) |
