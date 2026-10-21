@@ -225,7 +225,7 @@ jobs:
           json.dump({"pass": not problems, "problems": problems, "witness": w}, open("/tmp/verdict.json", "w"))
           PY
 
-      # PUBLISH WHAT WAS MEASURED, so a sibling can read it (DR-1150).
+      # PUBLISH WHAT WAS MEASURED, so a sibling can read it (DR-1155).
       #
       # This witness already knows each loop's last run; the fleet census did
       # not, and printed 28 of 118 jobs blank because `readServices()` never

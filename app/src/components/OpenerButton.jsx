@@ -13,7 +13,9 @@
 //
 // THREE THINGS THIS COMPONENT REFUSES TO DO:
 //   * render for a device nobody registered (no row -> no button, DR-0061);
-//   * open on a tap (it is a HOLD; letting go early sends nothing);
+//   * open on a tap (it is a HOLD; letting go early sends nothing — and the
+//     hold refuses the phone's long-press menu and scroll-cancel, which on
+//     Android arrive at ~500 ms and used to end an 800 ms hold early);
 //   * say a door opened when nothing confirmed it (an unanswered press reads
 //     "did not answer", and tells him to look before he drives away).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -90,9 +92,13 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
     }
   }, [fetchImpl, lastPressAt, sentAt]);
 
+  const [hint, setHint] = useState('');
   const cancelHold = useCallback(() => {
+    if (!timer.current) return;
     clearTimer();
     setProgress(0);
+    setHint('Hold it down for a moment to press it.');
+    setTimeout(() => setHint(''), 2500);
   }, []);
 
   const beginHold = useCallback(() => {
@@ -134,7 +140,8 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
         onPointerDown={beginHold}
         onPointerUp={cancelHold}
         onPointerLeave={cancelHold}
-        onPointerCancel={cancelHold}
+        onContextMenu={(e) => e.preventDefault()}
+        style={{ touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beginHold(); } }}
         onKeyUp={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cancelHold(); } }}
         className="relative min-h-[44px] min-w-[44px] px-3 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 whitespace-nowrap"
@@ -167,7 +174,8 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
         </select>
       ) : null}
       {/* What actually happened, in words, for a driver who cannot read a color. */}
-      <span data-testid="opener-said" role="status" aria-live="polite" className="sr-only">{said}</span>
+      {(said || hint) ? <span data-testid="opener-said" role="status" aria-live="polite" className="px-2 text-[0.625rem] leading-tight text-[#5A5751]">{said || hint}</span>
+        : <span data-testid="opener-said" role="status" aria-live="polite" className="sr-only" />}
     </div>
   );
 }

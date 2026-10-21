@@ -240,6 +240,27 @@ export async function fetchLibrary({ month, limit = 24, offset = 0 } = {}) {
 }
 
 /**
+ * The library's YEARS (DR-1145): which years and months hold pictures and how
+ * many — the chapters of the family's story. Returns {years:[{year,count,
+ * months:[{month,count}]}]} newest year first; {years:null, legacy:true} when
+ * the server predates the route (404), so the caller can probe months the old
+ * way; null with no key or when the NAS cannot be reached. Never throws.
+ */
+export async function fetchLibraryYears() {
+  const token = bridgeToken();
+  if (!token) return null;
+  const resp = await nasFetch(`${NAS_PHOTO_BASE}/library/years`, { headers: { authorization: `Bearer ${token}` } }, { timeoutMs: 45000 });
+  if (!resp) return null;
+  if (resp.status === 404) return { years: null, legacy: true };
+  if (!resp.ok) return null;
+  try {
+    const json = await resp.json();
+    const years = Array.isArray(json?.years) ? json.years : null;
+    return years ? { years } : null;
+  } catch (_) { return null; }
+}
+
+/**
  * ONE library picture at listing size by its file name (DR-1002): the same
  * shape fetchListingPhoto returns. Never throws.
  */

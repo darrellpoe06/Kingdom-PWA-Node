@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; import OpenerButton from './components/OpenerButton.jsx'; import GarageHeaderButton from './components/GarageHeaderButton.jsx'; // every arrival counted (DR-0728); the openers in the header's own row (DR-1152)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import AppDoorControls from './components/AppDoorControls.jsx';
@@ -4198,8 +4198,6 @@ ${THEME_CSS}
                   to someone else -- the QR + link he asked for in the header
                   2026-10-15, the church's own door on a church surface (DR-1056). */}
               <AppDoorControls church={churchBrand} />
-              {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
-                  Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
                   tab and Ari explains THAT surface (what / how / why), plus the user
                   roadmap. Context-aware: it reads the live view/sub-view, so one
@@ -4214,6 +4212,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <GarageHeaderButton /><OpenerButton />
               <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.

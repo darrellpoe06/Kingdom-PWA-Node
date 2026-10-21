@@ -59,7 +59,7 @@ vi.mock('../modules/properties/cloud.js', async (importOriginal) => ({
   submitApplication: async (a) => { sent.push(a); return { ok: true }; },
 }));
 
-import PropertiesTab, { initialPane, PROPERTIES_PANE_KEY } from '../modules/properties/PropertiesTab.jsx';
+import PropertiesTab, { initialPane } from '../modules/properties/PropertiesTab.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
@@ -97,7 +97,7 @@ describe('the Properties tab: the front door, then Edit', () => {
     expect(el.querySelector('.pp-door style').textContent).toMatch(/\.pp-door\{/);
   });
 
-  it('Edit is the backend, with every prop the shell handed the tab, and the choice is kept on the device', async () => {
+  it('Edit is the backend, with every prop the shell handed the tab', async () => {
     const props = { surface: 'poetech', books: { postEntry() {} }, onFeedback() {} };
     const el = await mount(props);
     await click(el.querySelector('[data-testid="properties-pane-edit"]'));
@@ -106,17 +106,19 @@ describe('the Properties tab: the front door, then Edit', () => {
     expect(appProps.at(-1).surface).toBe('poetech');
     expect(appProps.at(-1).books).toBe(props.books);
     expect(appProps.at(-1).onFeedback).toBe(props.onFeedback);
-    expect(window.localStorage.getItem(PROPERTIES_PANE_KEY)).toBe('edit');
+    // And the choice is NOT kept on the device (Darrell 2026-10-21: "Default to
+    // the front door look in the properties tab"): a visit to Edit is a visit.
+    expect(window.localStorage.getItem('poetech.properties.pane.v1')).toBeNull();
   });
 
-  it('a deep link into the backend opens Edit; otherwise the last choice, else the front door', () => {
-    const mem = (v) => ({ getItem: () => v });
-    expect(initialPane({ address: { tab: 'doors', door: null }, storage: mem('front') })).toBe('edit');
-    expect(initialPane({ address: { tab: null, door: 'r1' }, storage: mem(null) })).toBe('edit');
-    expect(initialPane({ address: { tab: null, door: null }, storage: mem('edit') })).toBe('edit');
-    expect(initialPane({ address: { tab: null, door: null }, storage: mem('front') })).toBe('front');
-    expect(initialPane({ address: { tab: null, door: null }, storage: mem('junk') })).toBe('front');
-    expect(initialPane({ address: { tab: null, door: null }, storage: { getItem() { throw new Error('blocked'); } } })).toBe('front');
+  it('PROVEN TO CATCH: a deep link into the backend opens Edit; EVERYTHING else opens the front door, whatever was chosen last', () => {
+    expect(initialPane({ address: { tab: 'doors', door: null } })).toBe('edit');
+    expect(initialPane({ address: { tab: null, door: 'r1' } })).toBe('edit');
+    expect(initialPane({ address: { tab: null, door: null } })).toBe('front');
+    expect(initialPane()).toBe('front');
+    // The first version remembered 'edit' per device; that memory is gone.
+    try { window.localStorage.setItem('poetech.properties.pane.v1', 'edit'); } catch { /* blocked */ }
+    expect(initialPane({ address: { tab: null, door: null } })).toBe('front');
   });
 
   it('PROVEN TO CATCH: "I live here" never signs the owner in again, and opens the tenant\'s own signed-in screens over the owner\'s doors', async () => {

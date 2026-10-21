@@ -56,7 +56,33 @@ describe('the garage door rides the header', () => {
     expect(container.querySelector('[data-testid="garage-header-said"]').textContent).toMatch(/door was told to move/i);
   });
 
-  it('letting go before the hold is full sends nothing', async () => {
+  it('PROVEN TO CATCH: a phone\'s long-press (contextmenu, then pointercancel at ~500 ms) does not end the hold', async () => {
+    // Darrell 2026-10-21, on his Fold: "The garage tab doesn't work!!!". Android
+    // raises these two events on any touch held about half a second, and the
+    // first version cancelled the hold on pointercancel, so the 800 ms hold
+    // could never finish on a phone.
+    const calls = [];
+    await mount({ token: 'family-key', fetchImpl: fakeFetch(calls), storage: memStore() });
+    const btn = container.querySelector('[data-testid="garage-header-press"]');
+    expect(btn.style.touchAction).toBe('none');
+    vi.useFakeTimers();
+    await act(async () => { btn.dispatchEvent(new window.MouseEvent('pointerdown', { bubbles: true })); });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    const menu = new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    await act(async () => { btn.dispatchEvent(menu); });
+    expect(menu.defaultPrevented, 'the long-press menu must be refused').toBe(true);
+    await act(async () => { btn.dispatchEvent(new window.Event('pointercancel', { bubbles: true })); });
+    await act(async () => { vi.advanceTimersByTime(HOLD_MS); });
+    vi.useRealTimers();
+    await act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+    expect(presses(calls), 'the hold finished and the door was told').toHaveLength(1);
+    // and the answer is on screen, not only for a screen reader
+    const said = container.querySelector('[data-testid="garage-header-said"]');
+    expect(said.className).not.toContain('sr-only');
+    expect(said.textContent).toMatch(/door was told to move/i);
+  });
+
+  it('letting go before the hold is full sends nothing, and says to hold it', async () => {
     const calls = [];
     await mount({ token: 'family-key', fetchImpl: fakeFetch(calls), storage: memStore() });
     const btn = container.querySelector('[data-testid="garage-header-press"]');
@@ -64,6 +90,7 @@ describe('the garage door rides the header', () => {
     await act(async () => { btn.dispatchEvent(new window.MouseEvent('pointerdown', { bubbles: true })); });
     await act(async () => { vi.advanceTimersByTime(Math.floor(HOLD_MS / 2)); });
     await act(async () => { btn.dispatchEvent(new window.MouseEvent('pointerup', { bubbles: true })); });
+    expect(container.querySelector('[data-testid="garage-header-said"]').textContent).toMatch(/hold it down/i);
     await act(async () => { vi.advanceTimersByTime(HOLD_MS * 2); });
     vi.useRealTimers();
     expect(presses(calls)).toEqual([]);

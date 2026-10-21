@@ -13,8 +13,12 @@
 //                 is the same component, lazily loaded, so the two cannot drift.
 //   Edit       -- PropertiesApp, the backend this tab always was (Doors, Work
 //                 Board, Rent, ...), with every prop the shell hands it.
-// The pane is remembered per device. A deep link into the backend (?tab= or
-// ?door=, DR-0901) opens Edit, since that is where the link points.
+// THE TAB OPENS ON THE FRONT DOOR EVERY TIME (Darrell 2026-10-21, the same
+// day, from the tab sitting on Edit: "Default to the front door look in the
+// properties tab!!!!!!!"). The first version remembered the last pane on the
+// device, so one visit to Edit made Edit the door from then on; now only a deep
+// link into the backend (?tab= or ?door=, DR-0901) opens Edit, since that is
+// where the link points, and everything else opens the front door.
 // =============================================================================
 import React, { Suspense, lazy, useState } from 'react';
 import PropertiesApp, { PREVIEW_ROLES } from './PropertiesApp.jsx';
@@ -24,32 +28,22 @@ import { useThemePref } from '../../lib/theme-css.js';
 
 const FrontDoor = lazy(() => import('../../components/PropertiesDoor.jsx').then((m) => ({ default: m.SignedOutDoor })));
 
-export const PROPERTIES_PANE_KEY = 'poetech.properties.pane.v1';
 export const PROPERTIES_PANES = Object.freeze([
   Object.freeze({ id: 'front', label: 'Front door', hint: 'What tenants and applicants see' }),
   Object.freeze({ id: 'edit', label: 'Edit', hint: 'The backend: doors, work, rent' }),
 ]);
 
-/** The pane to open: a backend deep link wins, then this device's last choice, then the front door. */
-export function initialPane({ address = { tab: null, door: null }, storage = null } = {}) {
+/** The pane to open: a backend deep link opens Edit; everything else opens the front door. */
+export function initialPane({ address = { tab: null, door: null } } = {}) {
   if (address && (address.tab || address.door)) return 'edit';
-  try {
-    const v = (storage || globalThis.localStorage).getItem(PROPERTIES_PANE_KEY);
-    if (v === 'front' || v === 'edit') return v;
-  } catch { /* private mode: the default */ }
   return 'front';
-}
-
-function savePane(id) {
-  try { globalThis.localStorage.setItem(PROPERTIES_PANE_KEY, id); } catch { /* a per-device convenience only */ }
 }
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const SEEN_AS = Object.freeze({ tenant: 'a tenant', household: 'a household member', field_worker: 'a 1099 worker', manager: 'a manager' });
 
 export default function PropertiesTab(props) {
-  const [pane, setPaneRaw] = useState(() => initialPane({ address: addressNow() }));
-  const setPane = (id) => { savePane(id); setPaneRaw(id); };
+  const [pane, setPane] = useState(() => initialPane({ address: addressNow() }));
   const [theme] = useThemePref('cream');
   // "See what they see after signing in": the same workspace with that role's
   // face, over the doors this owner reads (PropertiesApp viewAs). Not kept on

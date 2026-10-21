@@ -194,8 +194,15 @@ describe('the switch passes the wiring through, not just the screen', () => {
 });
 
 describe('every tile opens something that exists in this app', () => {
-  it('names only real top-level views, checked against the host file', () => {
+  it('names only real top-level views, checked against the host file — or a panel the Hub itself renders', () => {
     for (const t of HUB_TILES) {
+      if (t.hub) {
+        // A `hub` destination is a panel inside the Hub (DR-1145), so there is
+        // no host route to check; the Hub must render that panel by name.
+        expect(t.view, `${t.key} names both a view and a hub panel`).toBeNull();
+        expect(codeOnly(HUB_SRC).includes(`panel === '${t.hub}'`), `the Hub renders no '${t.hub}' panel`).toBe(true);
+        continue;
+      }
       expect(HOST_VIEWS, `${t.key} names ${t.view}`).toContain(t.view);
       expect(HOST.includes(`view === '${t.view}'`), `the host has no route for ${t.view}`).toBe(true);
     }
@@ -222,7 +229,9 @@ describe('every tile opens something that exists in this app', () => {
     // the Books tab it goes to Church Learn..."
     const books = HUB_TILES.find((t) => t.key === 'books');
     expect(books, 'the Books tile is gone').toBeTruthy();
-    expect(books.label).toBe('Books');
+    // 'Money' since Darrell 2026-10-21 ("call the Books tab the Money tab"); the
+    // id stays 'books' so nothing that routes on it changes.
+    expect(books.label).toBe('Money');
     expect(books.view).toBe('books');
     expect(books.churchView).toBe(null);
     // A tile that opens nothing is a lie (DR-0330) — the host must route it.
@@ -385,7 +394,9 @@ describe('her three looks all ship, as density', () => {
 
   it('and every action either routes somewhere real or lands on a record here', () => {
     for (const a of actionsFor('photo')) {
-      if (a.view) {
+      if (a.hub) {
+        expect(codeOnly(HUB_SRC).includes(`panel === '${a.hub}'`), `${a.key} opens a panel the Hub does not render`).toBe(true);
+      } else if (a.view) {
         expect(HOST.includes(`view === '${a.view}'`), `${a.key} routes to a missing view`).toBe(true);
       } else {
         expect(['focus', 'goal']).toContain(a.key);
