@@ -12,6 +12,10 @@
 
 ---
 
+## Context
+
+DR-1084 taught the app that a document can stop being true and built the calendar proposals for it, on the Legal shelf. A door's papers (the lease, the policy, the inspection, the permit) are the documents whose lapse costs a landlord most, and they never met that engine: no expiry column, no calendar in reach from the Properties mount, and kinds the registry did not recognize.
+
 ## What was measured
 
 - DR-1084 built the registry (`EXPIRING_KINDS`), the state machine (`validityOf`) and the proposal surface (`DocumentRenewals`), and mounted them on the Books → Legal shelf with the shell's real `addEvent`. The door's papers (`property_documents`, 0154: `kind`, `title`, `effective_on`) never met them: the Properties mount handed the module `books` and `onFeedback` and no calendar add; a paper had no column for the day it stops being true; and the door shelf's kinds are exact tokens (`insurance`, `inspection`, `permit`) that the registry's phrase patterns do not match, so a filed policy read as "not watched".
@@ -22,6 +26,10 @@
 1. **The paper carries its own expiry** (0305, `expires_on date`, nullable). Null is "not read", never "does not expire". The family types it on the row from the paper; the row's validity sentence says which date it is judging by, the paper's or the kind's usual term.
 2. **The door shelf's kinds are watched by their exact token.** `insurance-door`, `inspection-door`, `permit-door` match the whole field between separators, so "Insurance claim dispute" (legal work) and "About the insurance" (correspondence) are still nothing, as DR-1084's own tests require.
 3. **The door's papers propose their renewals.** Inside PoeTech the shell's `addEvent` reaches the panel through `PropertiesApp`; the family sees "What the papers say is coming" over the door's own papers, edits each proposal and adds it; it becomes an ordinary calendar event with the kind's reminders. A tenant edits no date and is proposed nothing. Outside PoeTech (the standalone door) the dates are read and written and no proposal is offered, because there is no calendar there.
+
+## Impact
+
+Unresolved, a filed policy reads as "not watched", a lease's end is nowhere on the calendar, and the only expiry the app can ever show for a door's paper is a guessed term. With the column, the kinds and the proposals, the family reads the date off the paper once, the calendar carries the renewal with the kind's reminders, and the row says plainly which date it is judging by.
 
 ## What is deferred, and why
 
