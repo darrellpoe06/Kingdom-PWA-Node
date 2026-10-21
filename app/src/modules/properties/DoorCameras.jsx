@@ -8,14 +8,77 @@
 // Cameras surface the family uses, on that grant alone; without one it says
 // so. Nothing here is painted: the list is the NAS's, the grant is minted
 // there, the row is the database's.
-import React, { useEffect, useState } from 'react';
-import { fetchWithTimeout, authHeaders, listUrl, parseCameraList, createGrant, revokeGrant, saveGrantToken, grantLink, FETCH_TIMEOUT_MS } from '../../lib/cameras.js';
+import React, { useEffect, useRef, useState } from 'react';
+import { fetchWithTimeout, authHeaders, listUrl, parseCameraList, createGrant, revokeGrant, saveGrantToken, grantLink, FETCH_TIMEOUT_MS,
+  fetchGrants, grantState, grantLine, snapUrl, runLimited, SNAP_CONCURRENCY, FRAME_TIMEOUT_MS } from '../../lib/cameras.js';
 import { bridgeToken } from '../../lib/nas-photos.js';
-import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, whoSeesDoorCameras } from './door-cameras.js';
+import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, whoSeesDoorCameras,
+  doorCameraView, grantCameraIds, tenantFrameLine } from './door-cameras.js';
 import { CameraAccessDesk, AskForCameras } from './CameraAccess.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const btn = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40';
+
+// WHAT THE TENANT SEES (Darrell, 2026-10-21): each camera the door's grant
+// opens is asked for a frame WITH THAT GRANT, the way the tenant's phone asks,
+// so the owner sees the tenant's own answer: the picture, or the refusal and
+// why. Nothing is assumed from the ticks or the note.
+export function TenantEye({ cameras = [], grantToken = '', fetchImpl = globalThis.fetch }) {
+  const [frames, setFrames] = useState({});
+  const [round, setRound] = useState(0);
+  const urls = useRef([]);
+  const key = cameras.map((c) => c.id).join(',');
+  useEffect(() => {
+    let alive = true;
+    if (!grantToken || !key) return undefined;
+    setFrames({});
+    runLimited(key.split(','), SNAP_CONCURRENCY, async (id) => {
+      let out;
+      try {
+        const r = await fetchWithTimeout(snapUrl(id, { w: 320 }), { headers: authHeaders(grantToken) }, FRAME_TIMEOUT_MS, fetchImpl);
+        if (r.status === 200) {
+          const blob = await r.blob();
+          const src = typeof URL !== 'undefined' && URL.createObjectURL ? URL.createObjectURL(blob) : '';
+          if (src) urls.current.push(src);
+          out = { ...tenantFrameLine({ status: 200 }), src };
+        } else {
+          let body = null; try { body = await r.json(); } catch { body = null; }
+          out = tenantFrameLine({ status: r.status, body });
+        }
+      } catch { out = tenantFrameLine({ status: 0 }); }
+      if (alive) setFrames((f) => ({ ...f, [id]: out }));
+    });
+    return () => { alive = false; };
+  }, [grantToken, key, round, fetchImpl]);
+  useEffect(() => () => { for (const u of urls.current) { try { URL.revokeObjectURL(u); } catch { /* gone */ } } }, []);
+  const okN = cameras.filter((c) => frames[c.id] && frames[c.id].ok).length;
+  const done = cameras.filter((c) => frames[c.id]).length;
+  return (
+    <div className="mt-2" data-testid="door-cameras-tenant-eye">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-xs text-[#1A1815]" style={serif}><strong>What the tenant sees:</strong> {done < cameras.length ? `asking the NAS with the door's own grant (${done} of ${cameras.length})…` : `${okN} of ${cameras.length} answer the door's grant with a picture.`}</p>
+        <button type="button" onClick={() => setRound((n) => n + 1)} className={`${btn} bg-white border-[#2F5D50] text-[#2F5D50]`} data-testid="door-cameras-look-again">Look again</button>
+      </div>
+      <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+        {cameras.map((c) => {
+          const f = frames[c.id];
+          return (
+            <li key={c.id} className="border border-[#E8E4DC]" data-testid={`tenant-eye-${c.id}`} data-ok={f ? String(!!f.ok) : undefined}>
+              <div className="aspect-video bg-black flex items-center justify-center">
+                {f && f.src ? <img src={f.src} alt={`${c.name || c.id}, as the tenant sees it`} className="w-full h-full object-cover" />
+                  : <span className="text-[0.625rem] text-white/80 p-2 text-center">{f ? 'no picture' : 'asking…'}</span>}
+              </div>
+              <div className="p-1.5">
+                <div className="text-xs font-semibold text-[#1A1815] truncate" style={serif}>{c.name || c.id}</div>
+                <div className={`text-[0.625rem] ${f && f.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} data-testid={`tenant-eye-line-${c.id}`}>{f ? f.text : 'asking the NAS…'}</div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 // `place` is the property in hand when the unit has no tenancy row yet. A
 // vacant unit still has a porch, and its camera still needs sharing the day a
@@ -36,6 +99,10 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
   const [days, setDays] = useState(365);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // The door's grant as the NAS holds it: {status: 'none'|'loading'|'ready'|'missing'|'unknown', grant, why}.
+  const [grantRead, setGrantRead] = useState({ status: 'loading', grant: null, why: '' });
+  const [grantTick, setGrantTick] = useState(0);
+  const seeded = useRef(false);
   const shared = doorCameraState(door);
 
   useEffect(() => {
@@ -49,11 +116,40 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
         if (!alive) return;
         const cams = r.status === 200 ? parseCameraList(body) : [];
         setList({ status: r.status === 200 ? 'ready' : `http-${r.status}`, cameras: cams });
-        setPicked(suggestDoorCameras(cams, target));
       } catch { if (alive) setList({ status: 'unreachable', cameras: [] }); }
     })();
     return () => { alive = false; };
   }, [token, target]);
+
+  // The grant the door carries, read back from the NAS (its cameras, its expiry,
+  // whether it was taken back). The note on the row is only words.
+  const grantId = grantIdOf(shared.token);
+  useEffect(() => {
+    let alive = true;
+    if (!grantId) { setGrantRead({ status: 'none', grant: null, why: '' }); return undefined; }
+    if (!token) { setGrantRead({ status: 'unknown', grant: null, why: 'this device holds no family camera key' }); return undefined; }
+    setGrantRead((g) => ({ ...g, status: 'loading' }));
+    fetchGrants(token).then((r) => {
+      if (!alive) return;
+      if (!r.ok) { setGrantRead({ status: 'unknown', grant: null, why: r.message }); return; }
+      const g = r.grants.find((x) => x.id === grantId) || null;
+      setGrantRead(g ? { status: 'ready', grant: g, why: '' } : { status: 'missing', grant: null, why: '' });
+    });
+    return () => { alive = false; };
+  }, [grantId, token, grantTick]);
+
+  // The first ticks are what the door really shares; the address suggestions
+  // only when nothing is shared yet (the picker used to start from the
+  // suggestions even on a shared door, so it read "16 ticked" beside "10
+  // shared", 2026-10-21 screenshot).
+  useEffect(() => {
+    if (seeded.current || list.status !== 'ready' || grantRead.status === 'loading') return;
+    seeded.current = true;
+    const ids = grantRead.status === 'ready' ? grantCameraIds(grantRead.grant, list.cameras) : null;
+    setPicked(ids || suggestDoorCameras(list.cameras, target));
+  }, [list, grantRead, target]);
+  const liveGrant = grantRead.status === 'ready' && grantState(grantRead.grant) === 'live' ? grantRead.grant : null;
+  const view = doorCameraView({ cameras: list.cameras, grant: liveGrant, picked });
 
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const share = async () => {
@@ -63,40 +159,94 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
     if (!r || !r.ok || !r.token) { setBusy(false); setMsg(`Not shared: ${(r && (r.error || r.reason)) || 'the NAS did not mint a grant'}.`); return; }
     const note = grantNote(list.cameras, picked, { days });
     const w = await onChange({ token: r.token, note });
+    if (w && w.ok === false) {
+      await revokeGrant(grantIdOf(r.token), token);
+      setBusy(false);
+      setMsg(`Not shared: the door could not keep the new grant (${w.reason}); the old one stands.`);
+      return;
+    }
+    // The old grant is taken back once the new one is on the door, so a camera
+    // unticked here really stops opening (the old grant used to stay live).
+    if (grantId && grantId !== grantIdOf(r.token)) await revokeGrant(grantId, token);
+    seeded.current = true;
+    setGrantTick((n) => n + 1);
     setBusy(false);
-    setMsg(w && w.ok === false ? `The grant was minted but the door could not keep it: ${w.reason}.` : `Shared with this door: ${note}.`);
+    setMsg(`Shared with this door: ${note}.`);
   };
   const takeBack = async () => {
     setBusy(true); setMsg('Taking it back…');
     const id = grantIdOf(shared.token);
     if (id) await revokeGrant(id, token);
     const w = await onChange({ token: null, note: null });
+    setGrantTick((n) => n + 1);
     setBusy(false);
     setMsg(w && w.ok === false ? `Not taken back from the door: ${w.reason}.` : 'Taken back: the door no longer opens any camera.');
   };
+  const grantWords = grantRead.status === 'ready' ? grantLine(grantRead.grant)
+    : grantRead.status === 'missing' ? 'the NAS no longer holds this grant, so the tenant sees no camera'
+    : grantRead.status === 'unknown' ? `the NAS did not say (${grantRead.why})`
+    : grantRead.status === 'loading' ? 'reading it from the NAS…' : '';
+
 
   return (
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="door-cameras-landlord">
       <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Cameras this door&rsquo;s household may watch</h3>
+      {/* One page, no new tabs (Darrell, 2026-10-21: "start with the cameras"):
+          the cameras and what the tenant sees first, who has access under them. */}
+      {(() => { const access = (
+        <div className="mt-3 border-t border-[#E8E4DC] pt-2" data-testid="door-cameras-access">
+          <h4 className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold text-[#2F5D50]">Who has access</h4>
+          {shared.state === 'shared'
+            ? <p className="text-xs mt-2 text-[#1A1815]" style={serif} data-testid="door-cameras-grant-line"><strong>The door&rsquo;s grant:</strong> {grantWords}.</p>
+            : <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Nothing is shared with this door, so nobody on it sees a camera.</p>}
+          {target && (
+            <div className="mt-2 border-l-2 border-[#2F5D50] pl-2" data-testid="door-cameras-who">
+              <p className="text-xs text-[#1A1815]" style={serif}><strong>Who will see them:</strong> the tenant and their household when they sign into this door. A 1099 worker, a guest and an applicant never do.</p>
+              {viewers.length === 0 ? (
+                <p className="text-xs text-[#5A5751]" style={serif} data-testid="door-cameras-nobody">Nobody signs into this door yet, so nobody would see them. Invite the tenant or a household member in People first.</p>
+              ) : (
+                <ul className="text-xs text-[#1A1815] mt-0.5" style={serif}>
+                  {viewers.map((v) => (
+                    <li key={`${v.name}-${v.role}`} data-testid="door-cameras-viewer">{v.name} · {v.role} · {v.joined ? 'signed in' : 'has not signed in yet'}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {/* Asked for and given, per person (DR-0938): tenants, workers, guests. */}
+          {token && list.status === 'ready' && list.cameras.length > 0 && rentalId && instanceId && (
+            <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={list.cameras} token={token} />
+          )}
+          <p className="text-[0.625rem] mt-2 text-[#5A5751]" style={serif}>Every grant on every camera, with who last used it, is in PoeTech &rarr; Cameras &rarr; Who can see.</p>
+        </div>
+      ); return (<>
       {shared.state === 'shared' ? (
         <p className="text-xs mt-1 text-[#1A1815]" style={serif} data-testid="door-cameras-shared">Shared now: {shared.note || 'a grant with no note'}.
           <button type="button" onClick={takeBack} disabled={busy} className={`${btn} ml-2 bg-white border-[#B85838] text-[#B85838]`} data-testid="door-cameras-take-back">Take back</button>
         </p>
       ) : <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Nothing shared with this door yet.</p>}
-      {target && (
-        <div className="mt-2 border-l-2 border-[#2F5D50] pl-2" data-testid="door-cameras-who">
-          <p className="text-xs text-[#1A1815]" style={serif}><strong>Who will see them:</strong> the tenant and their household when they sign into this door. A 1099 worker, a guest and an applicant never do.</p>
-          {viewers.length === 0 ? (
-            <p className="text-xs text-[#5A5751]" style={serif} data-testid="door-cameras-nobody">Nobody signs into this door yet, so nobody would see them. Invite the tenant or a household member in People first.</p>
-          ) : (
-            <ul className="text-xs text-[#1A1815] mt-0.5" style={serif}>
-              {viewers.map((v) => (
-                <li key={`${v.name}-${v.role}`} data-testid="door-cameras-viewer">{v.name} · {v.role} · {v.joined ? 'signed in' : 'has not signed in yet'}</li>
-              ))}
-            </ul>
-          )}
+      {shared.state === 'shared' && grantRead.status !== 'ready' && grantWords ? (
+        <p className="text-xs mt-1 text-[#B85838]" style={serif} data-testid="door-cameras-grant-state">The door&rsquo;s grant: {grantWords}.</p>
+      ) : null}
+      {shared.state === 'shared' && grantRead.status === 'ready' && grantState(grantRead.grant) !== 'live' ? (
+        <p className="text-xs mt-1 text-[#B85838]" style={serif} data-testid="door-cameras-grant-state">The door&rsquo;s grant is {grantState(grantRead.grant)}: the tenant sees no camera until you share again.</p>
+      ) : null}
+      {target && viewers.length === 0 ? (
+        <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-nobody-yet">Nobody signs into this door yet; what is shared shows the day they do (Who has access, below).</p>
+      ) : null}
+      {liveGrant && view.seen.length > 0 ? <TenantEye cameras={view.seen} grantToken={shared.token} /> : null}
+      {liveGrant && list.status === 'ready' && view.notSeen.length > 0 ? (
+        <details className="mt-2" data-testid="door-cameras-not-seen">
+          <summary className="text-xs text-[#1A1815] cursor-pointer" style={serif}><strong>Not shared, so the tenant does not see these ({view.notSeen.length})</strong></summary>
+          <p className="text-xs text-[#5A5751] mt-1" style={serif}>{view.notSeen.map((c) => c.name || c.id).join(', ')}</p>
+        </details>
+      ) : null}
+      {list.status === 'ready' && (view.toAdd.length > 0 || (liveGrant && view.toRemove.length > 0)) ? (
+        <div className="mt-2 border-l-2 border-[#B85838] pl-2" data-testid="door-cameras-pending">
+          {view.toAdd.length > 0 ? <p className="text-xs text-[#1A1815]" style={serif}><strong>Ticked, not shared yet ({view.toAdd.length}):</strong> {view.toAdd.map((c) => c.name || c.id).join(', ')}. The tenant does not see these until you press Share.</p> : null}
+          {liveGrant && view.toRemove.length > 0 ? <p className="text-xs text-[#1A1815]" style={serif}><strong>Shared, unticked here ({view.toRemove.length}):</strong> {view.toRemove.map((c) => c.name || c.id).join(', ')}. The tenant still sees these until you press Share.</p> : null}
         </div>
-      )}
+      ) : null}
       {!door && !place ? (
         <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Pick a door above; the cameras are shared per door, never to the whole portfolio.</p>
       ) : !token ? (
@@ -132,10 +282,8 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
         </>
       )}
       {msg ? <p className="text-xs mt-2 text-[#2F5D50]" style={serif} role="status" data-testid="door-cameras-msg">{msg}</p> : null}
-      {/* Asked for and given, per person (DR-0938): tenants, workers, guests. */}
-      {token && list.status === 'ready' && list.cameras.length > 0 && rentalId && instanceId && (
-        <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={list.cameras} token={token} />
-      )}
+      {access}
+      </>); })()}
     </section>
   );
 }
