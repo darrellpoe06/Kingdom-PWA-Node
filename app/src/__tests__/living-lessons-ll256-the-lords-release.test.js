@@ -175,7 +175,7 @@ const anchoredRefs = (module) => {
 
 // (a) THE MODULE EXISTS ONCE, AT ITS NUMBER
 //
-// NOT "as the last lesson" (amended 2026-10-21, DR-1162). As first written this
+// NOT "as the last lesson" (amended 2026-10-21, DR-1165). As first written this
 // block pinned `LIVING_LESSONS_MODULES[length - 1].id === ID` and
 // `Math.max(...claimed) === 256` — a lesson's own gate pinning the SIZE of the
 // catalog. It cost within hours of landing: ll257 broke both, so a green gate

@@ -1,4 +1,4 @@
-# DR-1162 — Ten Christmases Left: a street interview becomes a lesson without asserting one of its claims
+# DR-1165 — Ten Christmases Left: a street interview becomes a lesson without asserting one of its claims
 
 - **Status:** accepted
 - **Tier:** A (one new Living Lesson and its pinned gate; no data, no money, no new door, no shared instrument changed)
@@ -25,7 +25,7 @@ Measured on the real catalog and the real corpus on disk, 2026-10-21. The lesson
 | what | measured | basis |
 | --- | --- | --- |
 | numbers claimed free before a line was written | catalog max `ll256` (254 modules), **`ll257` free and never once contested**; DR files reached DR-1151, so DR-1153 was taken for this record | `LIVING_LESSONS_MODULES` read, never grepped — the catalog stores ids in two shapes and a grep answers 244 with confidence; `scripts/dr-number-claims.mjs` |
-| **this record's number, three moves** | DR-1153 → **1159** (main merged `DR-1153-the-big-picture-is-the-familys-years-in-pictures` mid-build) → **1160** (PR #2340/#2344 claimed 1159 in files on its branch, so DR-1136 would have decided it by merge order) → **1162** (main merged `DR-1160-a-race-tells-both-sides` two minutes before the push, and #2338 had moved onto 1161) | each move by `renumber-decision-record.mjs` on a clean tree, pointer by `resolve-ledger-conflicts.mjs`, re-checked against main and against every open PR's added `docs/decisions/DR-*` files immediately before pushing |
+| **this record's number, FOUR moves, none of them this lesson's doing** | DR-1153 → **1159** (main merged `DR-1153-the-big-picture-is-the-familys-years-in-pictures` mid-build) → **1160** (PR #2344 claimed 1159 in a file on its branch, so DR-1136 would have decided it by merge order) → **1162** (main merged `DR-1160-a-race-tells-both-sides` minutes before the push, and #2338 had moved onto 1161) → **1165** (1162 was by then claimed by THREE open PRs — #2346, #2347, #2348 — with 1163, 1164 and 1166 claimed too; 1165 was the one gap nobody had taken) | each move by `renumber-decision-record.mjs` on a clean tree, pointer by `resolve-ledger-conflicts.mjs`, re-checked against main and against every open PR's added `docs/decisions/DR-*` files immediately before pushing |
 | referenced spans / faults | **354 spans, 0 faults** | every double-quoted span standing beside its reference, checked against `app/public/bible/kjv` |
 | distinct verses quoted | **76** | the generator's own token set |
 | `anchor.ref` verses | **76, both directions empty** — no verse taught and unanchored, no verse anchored and unquoted | derived by the generator from the same tokens that produced the quotations (DR-0734) |

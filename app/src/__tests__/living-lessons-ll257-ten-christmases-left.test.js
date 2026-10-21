@@ -2,7 +2,7 @@
 // =============================================================================
 // L257 — "Ten Christmases Left": the teaching the Word gives to a RECORDED
 // STREET INTERVIEW that Darrell captured inside the PoeTech app on 2026-10-21.
-// The words reached us as a Whisper transcript. DR-1162.
+// The words reached us as a Whisper transcript. DR-1165.
 // =============================================================================
 // WHAT THE SOURCE IS, and the honesty it demands:
 //
@@ -45,7 +45,7 @@
 // on TALK ABOUT IT TOGETHER missing from bands. Both are gated here.
 //
 // PROVEN TO CATCH (DR-0076 §3): the in-file mutation cases each assert their
-// anchor exists before mutating; DR-1162 records the live-file mutation run.
+// anchor exists before mutating; DR-1165 records the live-file mutation run.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
