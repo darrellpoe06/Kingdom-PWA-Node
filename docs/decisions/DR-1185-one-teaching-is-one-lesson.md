@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:docs/decisions/DR-1191-one-teaching-is-one-lesson.md
 # DR-1191: One teaching is one lesson — the duplicate he saw is folded, and a second one cannot ship
+========
+# DR-1185: One teaching is one lesson — the duplicate he saw is folded, and a second one cannot ship
+>>>>>>>> origin/main:docs/decisions/DR-1185-one-teaching-is-one-lesson.md
 
 **Date:** 2026-10-21
 **Status:** accepted

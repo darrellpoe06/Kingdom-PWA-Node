@@ -62,5 +62,5 @@ survives on every department tab", which caught the Study area hiding the course
 Algorithms tab; the study was folded back into Lessons and the six suites that touch it (course-duration,
 learn-is-a-school, feature-presence, learn-course-picker-is-first, one-sortable-list, learn-a-tab-is-navigation)
 re-ran green (86 cases). After the merge with main and the renumbers (DR-1185 -> 1189, DR-1186 -> 1190, and
-main's own DR-1184 collision resolved by moving one-teaching-is-one-lesson to DR-1191, merge order deciding),
+main's own DR-1184 collision resolved by moving one-teaching-is-one-lesson to DR-1185, merge order deciding),
 the ledger gates, the lesson gates and the Learn smoke ran green: 10 files, 308 cases. Lint 0.
