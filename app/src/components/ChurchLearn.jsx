@@ -130,6 +130,7 @@ import LatestLessons from './LatestLessons.jsx';
 import { withLessonDates } from '../lib/lesson-dates.js';
 import { courseCompleteness, completenessLine } from '../lib/lesson-completeness.js';
 import { withWordQuotes } from '../lib/lesson-word-quotes.js';
+import { withSideStories } from '../lib/lesson-side-stories.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -4147,7 +4148,8 @@ export default function ChurchLearn({
   // Every lesson carries the day it was created (DR-0687, lib/lesson-dates.js).
   // THE VERSES INSIDE THE LESSON (2026-10-21, lib/lesson-word-quotes.js): a
   // lesson that names its Scripture opens with it, quoted from the in-app KJV.
-  const courses = withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses])));
+  // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
+  const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default

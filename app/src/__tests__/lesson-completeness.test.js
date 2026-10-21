@@ -16,9 +16,10 @@ import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.
 import { catalogCompleteness, courseCompleteness, completenessLine, quotesTheWord, storyCount } from '../lib/lesson-completeness.js';
 import BASELINE from '../lib/lesson-completeness-baseline.json';
 import { withWordQuotes } from '../lib/lesson-word-quotes.js';
+import { withSideStories } from '../lib/lesson-side-stories.js';
 
-// The same pipeline the Learn tab runs (ChurchLearn: withWordQuotes over the mounted courses).
-const census = catalogCompleteness(withWordQuotes([...buildCatalogCourseDescriptors(), ...buildEternalProcessingCourses()]));
+// The same pipeline the Learn tab runs (ChurchLearn: withSideStories(withWordQuotes(...)) over the mounted courses).
+const census = catalogCompleteness(withSideStories(withWordQuotes([...buildCatalogCourseDescriptors(), ...buildEternalProcessingCourses()])));
 const allowed = (key, field) => new Set(((BASELINE[key] || {})[field]) || []);
 
 describe('no lesson falls short that was not already short', () => {
@@ -71,5 +72,17 @@ describe('the census measures what the reader meets', () => {
   });
   it('every Eternal pattern quotes its verses (the 2026-10-21 fix holds)', () => {
     for (const c of census.courses.filter((x) => String(x.key).startsWith('eternal-'))) expect(c.wordOutside, c.key).toEqual([]);
+  });
+});
+
+describe('the stories reach the lesson the reader opens', () => {
+  it('PROVEN TO CATCH: an Eternal Revelation pattern teaches its two stories in the lesson arc', async () => {
+    const { buildLessonArc } = await import('../lib/lesson-flow.js');
+    const rev = census.courses.find((c) => c.key === 'eternal-revelation');
+    expect(rev.withStories).toBe(rev.lessons);
+    const course = buildEternalProcessingCourses().find((c) => c.key === 'eternal-revelation');
+    const taught = (m) => buildLessonArc(m).segments.flatMap((seg) => (seg.audience && seg.audience.stories) || []);
+    expect(taught(course.schedule[0]).filter((s) => s.kind === 'parable')).toHaveLength(2);
+    expect(taught({ ...course.schedule[0], stories: [] })).toHaveLength(0);
   });
 });
