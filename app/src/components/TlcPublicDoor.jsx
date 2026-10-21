@@ -27,7 +27,10 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import HeaderAuthButton, { headerName } from './HeaderAuthButton.jsx';
 import { loadMyProfile } from '../lib/profiles-sync.js';
 import TlcHome from './TlcHome.jsx';
+import TlcWelcome from './TlcWelcome.jsx';
 import TlcDoorDock from './TlcDoorDock.jsx';
+import { readEntered, writeEntered, welcomeShows, firstHeaderCollapsed } from '../lib/tlc-welcome.js';
+import { isPhoneWidth } from '../lib/chrome-dock.js';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
@@ -200,12 +203,18 @@ export default function TlcPublicDoor() {
   // therapist · Learn (the client lessons, free to read; a shared lesson lands
   // here) · Join the team (the open positions). A link picks the tab.
   const [visitorTab, setVisitorTab] = useState(deepLink ? 'learn' : jobsLink.jobs ? 'jobs' : 'find');
+  // THE WELCOME SCREEN (DR-1197): a guest on a fresh open meets the brand
+  // alone with Sign in / Create an account / Continue, in FRONT of the door
+  // (lib/tlc-welcome.js says when). Going past it is remembered for the
+  // session; signing in lowers it too (welcomeShows reads signedIn).
+  const [entered, setEntered] = useState(() => readEntered());
+  const enter = () => { writeEntered(); setEntered(true); };
   const visitorSections = [
     // THE FIRST SECTION IS THE HOME (DR-1171): the welcome card, the quick
     // actions, then Match a Preferred Provider — the reference's first screen
     // over the door's first section, one tab, so every deep link and every
     // test that lands on 'find' still lands on the providers.
-    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn={false} tiles={visitorTiles} onSignIn={() => openAuth('signin')} onCreateAccount={() => openAuth('signup')} onBrowse={visitorTiles[0].onOpen} /><ClientDoor /></> },
+    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn={false} tiles={visitorTiles} /><ClientDoor /></> },
     // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
     { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest readAloud={false} onFindTherapist={() => setVisitorTab('find')} onCreateAccount={() => openAuth('signup')} /></div> },
     { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} interest={jobsLink.interest} /></div> },
@@ -246,7 +255,11 @@ export default function TlcPublicDoor() {
   // The header HIDEAWAY (the PoeTech shell's own control of the top space):
   // tucked away or shown per device, the same key the shell writes, so one
   // choice follows the reader between shells.
-  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed(undefined, false));
+  // ON A PHONE THE TOP SPACE STARTS TUCKED (DR-1197): the slim bar only, so
+  // the first screen is the reference's home and not the tagline, the blurb
+  // and a control row stacked above it; the chevron brings it all back and
+  // the choice persists. Wider screens keep it open, as the door's tests pin.
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed(undefined, firstHeaderCollapsed(isPhoneWidth())));
   const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
   const loginOpen = showLogin && !signedIn;
 
@@ -302,7 +315,7 @@ export default function TlcPublicDoor() {
   ) }] : []);
   // ONE slider, side by side, no second row (Darrell 2026-09-10).
   const sections = [
-    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn name={greetName} tiles={memberTiles} /><ClientDoor /></> },
+    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn name={greetName} photo={(profile && profile.photoThumb) || ''} tiles={memberTiles} /><ClientDoor /></> },
     ...officeSection('inquiries', 'Inquiries', 'phone', 'inquiries'),
     ...officeSection('growth', 'Client Growth', 'chart', 'growth'),
     ...officeSection('revenue', 'Revenue', 'coins', 'revenue'),
@@ -352,6 +365,13 @@ export default function TlcPublicDoor() {
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
+      {welcomeShows({ signedIn, entered, onboardToken, deepLink, jobs: jobsLink.jobs }) && (
+        <TlcWelcome
+          onSignIn={() => { enter(); openAuth('signin'); }}
+          onCreateAccount={() => { enter(); openAuth('signup'); }}
+          onContinue={enter}
+        />
+      )}
       {/* THE TOP SPACE, controlled like PoeTech's header (Darrell 2026-09-10:
           "want to have the control of the top space like PoeTech for the
           Header"). Two layers, both the platform's own primitives:
