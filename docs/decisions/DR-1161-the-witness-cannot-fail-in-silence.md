@@ -70,4 +70,6 @@ The witness's own ledger figures from the live body are unchanged by this and we
 
 Restored each time: **16 passed**. The ordering case matches the **import statement**, not any prose mention of the file — its first draft matched the new checkout comment and so proved nothing about step order, which it caught on itself.
 
+**A case from DR-1152 caught the mechanism moving, which is what it was for.** That record's own test asserted `continue-on-error: true` on the publish step — the first way the guarantee was built, and the exact flag that hid the failure. The merge turned it red. It now pins what must be true either way: the step runs after the verdict, it catches and warns, and it never calls `setFailed`. A test that pinned the *mechanism* rather than the *promise* had to move with it, and finding that out from a red suite rather than from a reviewer is the system working.
+
 Both workflows' YAML parses, the publish step's `github-script` body passes `node --check`, and the census fold's embedded Python compiles. `npm run lint` exit **0** · `npm run verify:gates` exit **0**, read without a pipe.
