@@ -24,7 +24,7 @@
 // the WHITE card, where it measures 4.68:1 — AA — rather than on the cream
 // base where the same token is a known sub-AA warning.
 //
-// Recorded as DR-1163.
+// Recorded as DR-1169.
 // =============================================================================
 import React from 'react';
 import { PaidBar } from './RentLedger.jsx';

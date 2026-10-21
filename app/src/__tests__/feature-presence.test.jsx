@@ -281,7 +281,7 @@ const WALKS = {
     look(remover);
   },
   'real-estate-door': async (look) => {
-    // The band the Real Estate tab opens on (DR-1163). Mounted standalone on
+    // The band the Real Estate tab opens on (DR-1169). Mounted standalone on
     // real-shaped rows: one door behind on rent, one standing empty, so both
     // bands are on screen, and focused so the way back out is too.
     const rentals = [

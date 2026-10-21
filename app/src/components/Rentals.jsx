@@ -1860,7 +1860,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const { portfolioRentals, doorCount, portfolioLabel, rentGap, collectionRate, portfolioCount } = portfolio;
   const rollup = portfolio;
 
-  // ── The door itself (DR-1163). Measured at 360px in a real Chromium, this
+  // ── The door itself (DR-1169). Measured at 360px in a real Chromium, this
   //    tab opened on a 10px grey "Properties · N" label and a stack of
   //    near-identical cards — every figure a landlord opens it for sat one tab
   //    over in Portfolio & payoff. doorState() is the pure derivation over the
@@ -1898,7 +1898,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       render: () => (
         <>
       <section>
-        {/* The door opens on the portfolio, not on a label (DR-1163). */}
+        {/* The door opens on the portfolio, not on a label (DR-1169). */}
         <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} />
 
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
@@ -2109,7 +2109,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           // all derive from one definition. Personal = the family's own homes.
           // A band tapped on the door above narrows this list to exactly the
           // doors that band counted — the same ids, never a second query
-          // (DR-1163). Nothing is focused by default.
+          // (DR-1169). Nothing is focused by default.
           const incomeProducing = focusedIds ? portfolioRentals.filter((r) => focusedIds.has(r.id)) : portfolioRentals;
           const personal = focusedIds ? [] : rentals.filter(isPersonalProp);
           const renderPropertyRow = (r, i, lastIdx) => {

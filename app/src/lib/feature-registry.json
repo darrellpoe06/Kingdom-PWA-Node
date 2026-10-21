@@ -1547,7 +1547,7 @@
       "find": {
         "testid": "re-door-focus-late"
       },
-      "note": "On the band the Real Estate tab opens on: the count of doors whose own status says late, and the tap that narrows the list below to exactly those doors (DR-1163)."
+      "note": "On the band the Real Estate tab opens on: the count of doors whose own status says late, and the tap that narrows the list below to exactly those doors (DR-1169)."
     },
     {
       "id": "re-door-focus-vacant",
@@ -1556,7 +1556,7 @@
       "find": {
         "testid": "re-door-focus-vacant"
       },
-      "note": "The same band for a door standing empty - vacant or unrented, both spellings the add form offers (DR-1163)."
+      "note": "The same band for a door standing empty - vacant or unrented, both spellings the add form offers (DR-1169)."
     },
     {
       "id": "re-door-show-all",
@@ -1565,7 +1565,7 @@
       "find": {
         "testid": "re-door-show-all"
       },
-      "note": "The way back out of a focused band, so narrowing the list is never a one-way door (DR-1163)."
+      "note": "The way back out of a focused band, so narrowing the list is never a one-way door (DR-1169)."
     }
   ],
   "removed": [],

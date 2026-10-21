@@ -1,4 +1,4 @@
-# DR-1163: The Real Estate door opens on the portfolio, not on a 10px label
+# DR-1169: The Real Estate door opens on the portfolio, not on a 10px label
 
 **Date:** 2026-10-21
 **Status:** accepted

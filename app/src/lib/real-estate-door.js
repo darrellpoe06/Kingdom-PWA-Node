@@ -36,7 +36,7 @@
 // paid." Unknown is never rendered as zero (DR-0076 §8).
 //
 // Pure in, pure out: no React, no I/O, no clock beyond what is handed in.
-// Recorded as DR-1163.
+// Recorded as DR-1169.
 // =============================================================================
 import { derivePortfolio, isPersonalProp } from './rental-portfolio.js';
 
