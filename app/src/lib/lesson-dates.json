@@ -82,7 +82,8 @@
    "sov44-the-thief-who-forgot-to-lock-his-own-door": ["2026-10-20", "f4979cc3"],
    "sov45-no-single-witness-and-the-office-of-the-critic": ["2026-10-20", "867c399c"],
    "sov46-the-helper-that-must-see-everything": ["2026-10-20", "9d05df19"],
-   "sov47-the-purse-opens-after-the-wall-falls": ["2026-10-21", "86349d03"]
+   "sov47-the-purse-opens-after-the-wall-falls": ["2026-10-21", "86349d03"],
+   "sov48-the-bread-they-brought-was-mouldy": ["2026-10-21", "working-tree"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],

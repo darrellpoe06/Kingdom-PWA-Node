@@ -109,7 +109,16 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(253); // 253 on 2026-10-21: 252 was sov46, and this is sov47 (the purse opens after the wall falls --
+    expect(baseline.allFour).toBe(254); // 254 on 2026-10-21: 253 was sov47, and this is sov48 (the bread they brought was mouldy --
+    // cache invalidation, the answer that was true when you stored it, and the bread that is new every morning, DR-1193), built from
+    // the ByteByteGo issue "LLM Prompt Caching Versus Semantic Caching" that Darrell forwarded at 17:12 UTC with one word on it --
+    // the SECOND of two forwards that day, the first being the IT Brew issue sov47 came from. It carries all four age bands from the
+    // first commit, so adultOnly did NOT move with it, and the sovereign-ai row reads {lessons: 48, allFour: 27}. Its ground was
+    // chosen by measurement and the measurement said most of the article was already taught: prompt caching is sov20's, embeddings
+    // and similarity are sov22's, the one critical word that flips a meaning is sov32's, the order of a prompt is sov39's. What was
+    // free, counted rather than guessed at, was INVALIDATION -- zero occurrences in forty-seven weeks -- so it stands on Joshua 9,
+    // Exodus 16:19-21, Lamentations 3:22-23, Matthew 6:11, John 6:49-51 and Haggai 1:5, all at zero in this course before it.
+    // 253 on 2026-10-21: 252 was sov46, and this is sov47 (the purse opens after the wall falls --
     // deferred maintenance, the alarm nobody answers, and the house that droppeth through, DR-1192), built from the IT Brew issue
     // "Downtime is money" that Darrell forwarded at 16:52 UTC with one word on it -- a DIFFERENT IT Brew issue from the one sov46
     // was built from, which is why the date alone does not identify it. It carries all four age bands from the first commit, so
