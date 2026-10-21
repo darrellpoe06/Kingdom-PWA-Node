@@ -85,7 +85,7 @@ export function TenantEye({ cameras = [], grantToken = '', fetchImpl = globalThi
 // tenant or a 1099 worker arrives — hiding the whole control behind a tenancy
 // is the DR-0870 root cause, met here for the fifth time. The door record is
 // created by the caller's ensureDoor() when the grant is actually made.
-// `role` is the face in hand: 'owner' or 'manager' (DR-1161). A manager is
+// `role` is the face in hand: 'owner' or 'manager' (DR-1164). A manager is
 // offered the cameras at the door's address and no others.
 export function DoorCamerasTab({ door, place = null, people = [], onChange, rentalId = null, instanceId = null, role = 'owner' }) {
   const token = bridgeToken();
@@ -151,7 +151,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
     setPicked(ids || suggestDoorCameras(list.cameras, target));
   }, [list, grantRead, target]);
   const liveGrant = grantRead.status === 'ready' && grantState(grantRead.grant) === 'live' ? grantRead.grant : null;
-  // WHOSE CAMERAS THIS FACE IS OFFERED (DR-1161): a manager, the door's own
+  // WHOSE CAMERAS THIS FACE IS OFFERED (DR-1164): a manager, the door's own
   // only; the owner, everything, the door's own first. Every list below (the
   // picker, what the tenant sees, what is not shared, what can be asked for)
   // reads `offered`, so a camera at another address or the family's home is
@@ -300,7 +300,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
             ))}
           </div>
           {role !== 'manager' && apart.length > 0 ? (
-            /* THE REST, SET APART (DR-1161). The owner alone sees and may tick
+            /* THE REST, SET APART (DR-1164). The owner alone sees and may tick
                these. The warning is the point: a camera here is at another
                address or in the family's own home, and sharing it to this door
                hands that place to this household. A camera with no address in

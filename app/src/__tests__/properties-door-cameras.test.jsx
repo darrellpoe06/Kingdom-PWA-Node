@@ -85,7 +85,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     H.list = CAMS;
     const changes = [];
     await mount(createElement(DoorCamerasTab, { door: DOOR, onChange: async (p) => { changes.push(p); return { ok: true }; } }));
-    // The door's own first, then the fold "Not at this address" (DR-1161): both grids, in order.
+    // The door's own first, then the fold "Not at this address" (DR-1164): both grids, in order.
     const boxes = Array.from(container.querySelectorAll('[data-testid="door-cameras-pick"] input, [data-testid="door-cameras-pick-apart"] input'));
     expect(boxes.map((b) => b.checked)).toEqual([true, true, false, false]);
     expect(container.querySelector('[data-testid="door-cameras-share"]').textContent).toBe('Share 2 with this door');
@@ -262,8 +262,8 @@ describe('the landlord shares and takes back; the household watches', () => {
 // cameras on the NAS, his home's among them: "my personal home cameras should
 // be an option only I can give... not a property manager... camera location
 // should be a significant issue... so they shouldn't be able to see my home
-// cameras unless I give them that... so far only 805..." (DR-1161).
-describe('a manager is offered the cameras at the door\'s address and no others; the family\'s own are the owner\'s to give (DR-1161)', () => {
+// cameras unless I give them that... so far only 805..." (DR-1164).
+describe('a manager is offered the cameras at the door\'s address and no others; the family\'s own are the owner\'s to give (DR-1164)', () => {
   const ELSEWHERE = { id: '1003_front', name: '1003 Front' };
   const ALL = [...CAMS, ELSEWHERE];
   let container; let root;

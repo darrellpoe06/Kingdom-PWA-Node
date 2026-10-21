@@ -1,4 +1,4 @@
-# DR-1161: A manager is offered the cameras at the door's address and no others — the family's own are the owner's to give
+# DR-1164: A manager is offered the cameras at the door's address and no others — the family's own are the owner's to give
 
 **Date:** 2026-10-21
 **Status:** accepted
