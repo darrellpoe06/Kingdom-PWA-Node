@@ -172,6 +172,28 @@ describe('on the real Learn tree', () => {
     expect(!!(sel.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
   });
 
+  // Darrell 2026-10-21: "what that course offers should be obvious". The
+  // course's promise, who it is for and the parts it covers come BEFORE its list.
+  it('PROVEN TO CATCH: what the course offers heads its list, and each part it covers is a tap that narrows the list', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    const nav = container.querySelector('[data-testid="course-lessons-first"]');
+    const offers = nav.querySelector('[data-testid="course-offers"]');
+    const list = nav.querySelector('[data-testid="course-lesson-list"]');
+    expect(offers, 'the course says what it offers').toBeTruthy();
+    expect(!!(offers.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING), 'before its list').toBe(true);
+    expect(offers.querySelector('h3').textContent).toMatch(/Living Lessons from the Word/);
+    expect(offers.textContent).toMatch(/For /);
+    const law = sectionLessons(LIVING_LESSONS_MODULES)[0];
+    const chip = offers.querySelector(`[data-testid="course-offers-part-${law.key}"]`);
+    expect(chip.textContent).toBe(`${law.label} · ${law.lessons.length}`);
+    act(() => { chip.click(); });
+    expect(rows(nav).length).toBe(law.lessons.length);
+    expect(chip.getAttribute('aria-pressed')).toBe('true');
+    act(() => { offers.querySelector('[data-testid="course-offers-part-all"]').click(); });
+    expect(rows(nav).length).toBe(LIVING_LESSONS_MODULES.length);
+  });
+
   it('picking a division narrows the SAME flat list to that shelf, and "all" brings the whole course back', () => {
     mount();
     pick(/Living Lessons from the Word/);

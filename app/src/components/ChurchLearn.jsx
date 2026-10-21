@@ -4716,6 +4716,36 @@ export default function ChurchLearn({
               data-testid="course-lessons-first"
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
+              {/* WHAT THIS COURSE OFFERS, BEFORE ITS LIST (Darrell 2026-10-21:
+                  "It's very confusing to find courses and lessons of those
+                  specific courses... I should just see a list I can sort under
+                  each chosen course... what that course offers should be
+                  obvious"). The course's own promise, who it is for, its
+                  format and the parts it covers used to sit BELOW this list,
+                  inside the course view, so the reader met forty-six titles
+                  before learning what the course was. Now they come first,
+                  and each part is a tap that narrows the list to it. */}
+              <div className="mb-3" data-testid="course-offers">
+                <h3 className="text-base sm:text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{active.meta.title}</h3>
+                {active.meta.tagline ? <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="course-offers-tagline">{active.meta.tagline}</p> : null}
+                <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {active.meta.audience ? `For ${active.meta.audience}. ` : ''}{active.meta.format ? `${active.meta.format}. ` : ''}{lessonCountLabel(schedule, U)}.
+                </p>
+                {sections && sections.length > 1 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2" role="group" aria-label="What this course covers; tap a part to show only its lessons" data-testid="course-offers-parts">
+                    {[{ key: 'all', label: `All ${U.noun}s`, n: schedule.length }, ...sections.map((sec) => ({ key: sec.key, label: sec.label, n: sec.lessons.length }))].map((part) => (
+                      <button
+                        key={part.key}
+                        type="button"
+                        aria-pressed={shelf === part.key}
+                        onClick={() => setLessonShelfPick({ courseKey: active.key, shelf: part.key })}
+                        data-testid={`course-offers-part-${part.key}`}
+                        className={`text-xs px-2.5 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${shelf === part.key ? 'bg-[#2F5D50] border-[#2F5D50] text-white' : 'bg-white border-[#E8E4DC] text-[#1A1815]'}`}
+                      >{part.label} · {part.n}</button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
                 {active.meta.title} · pick a {U.noun} by title · <span data-testid="course-lesson-count">{lessonCountLabel(schedule, U)}</span>
               </div>
@@ -4778,7 +4808,7 @@ export default function ChurchLearn({
                   {sections && (
                     <div className="min-w-0">
                       <label htmlFor="learn-lesson-shelf" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-                        Show
+                        Show part of this course
                       </label>
                       <select
                         id="learn-lesson-shelf"
@@ -4799,7 +4829,7 @@ export default function ChurchLearn({
                   {orders.length > 1 && (
                     <div className="min-w-0">
                       <label htmlFor="learn-lesson-order" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-                        Order
+                        Sort lessons
                       </label>
                       <select
                         id="learn-lesson-order"
