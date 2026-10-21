@@ -49,7 +49,7 @@ const mount = (props = {}) =>
   })));
 
 
-// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
 // one tap away in its area (Continue, Latest, Find, Record, Downloads). These
 // helpers make the tap a reader makes before the lookup, so each case still
 // pins what it always pinned, reached the way it is reached.

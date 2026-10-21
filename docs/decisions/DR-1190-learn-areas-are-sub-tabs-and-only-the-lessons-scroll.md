@@ -1,4 +1,4 @@
-# DR-1186: Learn's areas are sub-tabs, and only the lessons scroll
+# DR-1190: Learn's areas are sub-tabs, and only the lessons scroll
 
 **Date:** 2026-10-21
 **Status:** accepted

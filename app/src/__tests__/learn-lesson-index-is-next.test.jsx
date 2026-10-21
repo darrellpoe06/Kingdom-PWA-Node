@@ -79,7 +79,7 @@ describe('after the course comes the lesson index — nothing in between', () =>
     // The live screenshot: after picking a course, the next list on screen was
     // the finder's blank-state shelf — OTHER courses' lessons — with the chosen
     // course's own titles far below. This course's lessons must come first.
-    // Since DR-1186 the finder and the shelf are the Find AREA's: in the
+    // Since DR-1190 the finder and the shelf are the Find AREA's: in the
     // Lessons area nothing at all sits between the course and its lessons, and
     // the Find tab, one tap away, carries the finder with the shelf under it.
     mount();

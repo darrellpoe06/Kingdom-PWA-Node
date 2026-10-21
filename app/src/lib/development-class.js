@@ -893,11 +893,11 @@ SO THE WHOLE COURSE IN ONE LINE: build it on the rock, count the cost, look befo
 ];
 
 export const DEVELOPMENT_META = {
-  // THE UNIT IS A LESSON, NOT A WEEK (DR-1186). This course is registered
+  // THE UNIT IS A LESSON, NOT A WEEK (DR-1190). This course is registered
   // self-paced with unitCap 'Lesson' (learn-catalog.js), but its meta declared
   // no unit, so its cards read "Week 1 · ... date TBD". The gate that should
   // have caught it was reading "Lesson 1" off the every-course shelf, which
-  // DR-1186 moved into its own area; the defect showed the moment the shelf
+  // DR-1190 moved into its own area; the defect showed the moment the shelf
   // stopped standing in for the course.
   unit: { noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true, sessionLabel: 'How to work one lesson (alone or as a house)' },
   key: 'development',

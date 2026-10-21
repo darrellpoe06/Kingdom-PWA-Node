@@ -4041,7 +4041,7 @@ export default function ChurchLearn({
   // Picker order (DR-0121: derived groups, live counts), kept on this device (DR-0686).
   const [courseSort, setCourseSortState] = useState(() => rememberedCourseSort() || DEFAULT_COURSE_SORT);
   const setCourseSort = (k) => { setCourseSortState(k); rememberCourseSort(k); };
-  // THE AREAS OF LEARN ARE SUB-TABS, NOT A LONG SCROLL (DR-1186). Darrell
+  // THE AREAS OF LEARN ARE SUB-TABS, NOT A LONG SCROLL (DR-1190). Darrell
   // 2026-10-21: "we need to be using subtabs not long scrolling except on the
   // lessons we have an option and it defaults to scroll... All other locations
   // we expect users to be using need to be able to be seen." One area is on
@@ -4206,7 +4206,7 @@ export default function ChurchLearn({
   const [deptId, setDeptId] = useState(() => initialDept || 'all');
   const dept = departments.find((d) => d.id === deptId) || null;
   // THE ETERNAL ALGORITHMS STUDY STAYS WITH THE LESSONS on its department tab
-  // (DR-1186): the old Church route lands on that tab and finds the study
+  // (DR-1190): the old Church route lands on that tab and finds the study
   // above the course, and the course's progress bar survives on every
   // department tab (course-duration pins it), so the study is not an area of
   // its own.
@@ -4316,7 +4316,7 @@ export default function ChurchLearn({
   // screen so the space holds ONLY the lesson. Set by CourseView.
   const [lessonFocus, setLessonFocus] = useState(false);
   // A LESSON OPENED FROM ANY AREA LANDS BACK ON THE LESSONS AREA WHEN IT
-  // CLOSES (DR-0880 / DR-1186): the reader leaves a lesson at the top of its
+  // CLOSES (DR-0880 / DR-1190): the reader leaves a lesson at the top of its
   // course's list, never on the Find box or the Continue offer they came from.
   React.useEffect(() => { if (lessonFocus) setLearnAreaState('lessons'); }, [lessonFocus]);
   // ...and the REQUEST itself already does it, because the course view is the
@@ -4667,7 +4667,7 @@ export default function ChurchLearn({
             what `organizeCourses` did, and why "Title A-Z" produced eleven
             little lists instead of one. Every row is one tap into that
             course. */}
-        {/* THE AREA STRIP (DR-1186): one row of sub-tabs under the picker. Only
+        {/* THE AREA STRIP (DR-1190): one row of sub-tabs under the picker. Only
             the open area renders below it. Lessons is the default and the only
             long scroll; Continue, Latest, Find, Record and Downloads are each one
             tap, so what a reader needs is seen, never found by scrolling past
@@ -5279,7 +5279,7 @@ export default function ChurchLearn({
           </div>
         )}
         {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen.
-            In the Downloads area beside the catalog's download (DR-1186). */}
+            In the Downloads area beside the catalog's download (DR-1190). */}
         {learnArea === 'downloads' && courseOpen && !lessonFocus && (
           <div className="mb-3 flex items-center gap-2 flex-wrap" data-testid="learn-download-course">
             <CourseDownloadButton course={active} signedIn={signedIn} />
@@ -5351,7 +5351,7 @@ export default function ChurchLearn({
           <button
             type="button"
             onClick={() => {
-              // The finder lives in the Find area now (DR-1186): open it, and
+              // The finder lives in the Find area now (DR-1190): open it, and
               // the effect above lands the focus on the box once it mounts.
               findFocusPending.current = true;
               setLearnArea('find');

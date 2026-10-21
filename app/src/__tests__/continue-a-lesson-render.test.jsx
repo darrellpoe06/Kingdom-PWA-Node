@@ -55,7 +55,7 @@ const mount = () => act(() => root.render(createElement(ChurchLearn, {
 })));
 const click = (el) => act(() => { el.click(); });
 
-// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
 // one tap away in its area (Continue, Latest, Find, Record, Downloads). These
 // helpers make the tap a reader makes before the lookup, so each case still
 // pins what it always pinned, reached the way it is reached.
@@ -100,7 +100,7 @@ describe('every lesson begun is one tap away', () => {
     mount();
     const picker = container.querySelector('#learn-course-pick');
     const offer = byTestId('continue-offer');
-    // The offer is the Continue area's (DR-1186); the lesson list is the
+    // The offer is the Continue area's (DR-1190); the lesson list is the
     // Lessons area's, so the two are never on screen together. What stays
     // pinned: the picker precedes the offer, and the offer precedes the
     // landmark bar that stands above the lessons.

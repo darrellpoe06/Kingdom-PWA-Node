@@ -71,7 +71,7 @@ const isBefore = (a, b) =>
 
 const picker = () => container.querySelector('#learn-course-pick');
 
-// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
 // one tap away in its area (Continue, Latest, Find, Record, Downloads). These
 // helpers make the tap a reader makes before the lookup, so each case still
 // pins what it always pinned, reached the way it is reached.
@@ -125,7 +125,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('comes before the derived catalog line', () => {
     mount();
-    openArea('downloads'); // the catalog line is the Downloads area's (DR-1186)
+    openArea('downloads'); // the catalog line is the Downloads area's (DR-1190)
     const line = [...container.querySelectorAll('p')]
       .find((p) => /every finished lesson in the PoeTech App/i.test(p.textContent || ''));
     expect(line, 'the catalog line must exist').toBeTruthy();
@@ -139,7 +139,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
     // is seeded now, so the order is actually asserted.
     window.localStorage.setItem('poe-learn-place', JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mountWithCatalog();
-    openArea('continue'); // the offer is the Continue area's (DR-1186); its chip stays on the bar
+    openArea('continue'); // the offer is the Continue area's (DR-1190); its chip stays on the bar
     const resume = container.querySelector('[data-testid="continue-offer"]');
     expect(resume, 'a seeded place must render the offer').toBeTruthy();
     expect(resume.textContent).toMatch(/pick up where you left off/i);
@@ -191,7 +191,7 @@ describe('the obvious progression: pick one of N courses, or search by name, the
 
   it('STEP 2 — the search box sits directly BELOW the picker, before anything else', () => {
     mount();
-    openArea('find'); // the finder is the Find area's (DR-1186): one tap under the picker
+    openArea('find'); // the finder is the Find area's (DR-1190): one tap under the picker
     const find = container.querySelector('#learn-lesson-find');
     expect(find, 'the lesson finder must render').toBeTruthy();
     expect(isBefore(picker(), find), 'picker first').toBe(true);

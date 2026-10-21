@@ -1,6 +1,6 @@
 # 2026-10-21 — Church → Learn: the areas are sub-tabs, and only the lessons scroll
 
-**Decision record:** DR-1186
+**Decision record:** DR-1190
 **Source:** Darrell's word of 2026-10-21, sent while DR-1182 was being verified: "Visual needs to look nice and
 we need to be using subtabs not long scrolling except on the lessons we have an option and it defaults to
 scroll... All other locations we expect users to be using need to be able to be seen."

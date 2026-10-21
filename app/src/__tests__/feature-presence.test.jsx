@@ -139,7 +139,7 @@ const WALKS = {
     // state a person reaches -- and this walk's rule is that a control counts
     // as present if it is found in ANY state of its surface.
     look(host);
-    // THE AREAS ARE SUB-TABS (DR-1186): Continue, Latest, Find, Record and
+    // THE AREAS ARE SUB-TABS (DR-1190): Continue, Latest, Find, Record and
     // Downloads each render only when their tab is open. A control behind a
     // tab is still a control a person reaches, so the walk opens every area.
     const areas = () => [...host.querySelectorAll('[id^="learn-area-tab-"]')];

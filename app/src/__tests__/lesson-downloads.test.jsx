@@ -310,7 +310,7 @@ describe('downloading needs an account (DR-0698)', () => {
         sel.dispatchEvent(new Event('change', { bubbles: true }));
       });
     };
-    // Both download doors are the Downloads area's (DR-1186): one tap.
+    // Both download doors are the Downloads area's (DR-1190): one tap.
     const downloads = () => {
       const tab = container.querySelector('#learn-area-tab-downloads');
       if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
