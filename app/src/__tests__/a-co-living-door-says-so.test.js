@@ -79,14 +79,21 @@ describe('the client actually reads the column it needs', () => {
   //
   // So the query is found by a column only IT selects (`showcase_order`, the
   // landlord's arrangement), and the pin then asserts on that query alone.
+  //
+  // Since DR-1199 the door list's columns live in one named list,
+  // RENTAL_COLUMNS, which the read joins with its optional columns before it
+  // selects. The locator reads that list by its name AND confirms the door
+  // read still selects from it, so the pin stays anchored to the one query.
   const doorListSelect = async () => {
     const { readFileSync } = await import('node:fs');
     const { join, dirname } = await import('node:path');
     const { fileURLToPath } = await import('node:url');
     const here = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(join(here, '../modules/properties/cloud.js'), 'utf8');
-    const selects = src.match(/\.select\((['"`])[^'"`]*\1\)/g) || [];
-    return selects.filter((s) => s.includes('showcase_order'));
+    const literals = src.match(/\.select\((['"`])[^'"`]*\1\)/g) || [];
+    const named = src.match(/export const RENTAL_COLUMNS = (['"`])[^'"`]*\1/g) || [];
+    const readsTheList = /\[RENTAL_COLUMNS, \.\.\.optional\]/.test(src);
+    return [...literals, ...(readsTheList ? named : [])].filter((s) => s.includes('showcase_order'));
   };
 
   it('PROVEN-TO-CATCH: the door-list read selects rentable_level', async () => {
