@@ -49,7 +49,7 @@ function workerProbe() {
  * Run the probe's real lines with a stub `curl` that answers with the given
  * code and content-type, and report which branch fired.
  */
-function runProbe({ code, ctype }) {
+function runProbe({ code, ctype, fnRoad = '' }) {
   const dir = mkdtempSync(join(tmpdir(), 'edge-probe-'));
   const curl = join(dir, 'curl');
   // The probe asks for one -w format at a time; answer whichever it asked for.
@@ -68,6 +68,10 @@ function runProbe({ code, ctype }) {
     'fail_reasons=""',
     'add_fail() { fail_reasons="${fail_reasons}${fail_reasons:+; }$1"; }',
     'note() { printf "NOTE %s\\n" "$1"; }',
+    // What the Pages Function probe just above the Worker probe left behind:
+    // the signature it read on /automation-status (DR-1180 reads it to tell
+    // a parked second door from a dark one). Unset = that probe found nothing.
+    `FN_ROAD='${fnRoad}'`,
     codeOnly(workerProbe()),
     'printf "FAILS %s\\n" "$fail_reasons"',
   ].join('\n'));
@@ -77,8 +81,10 @@ function runProbe({ code, ctype }) {
     encoding: 'utf8',
     env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
   });
+  const notes = out.split('\n').filter((l) => l.startsWith('NOTE ')).map((l) => l.slice(5));
   return {
-    note: (out.match(/^NOTE (.*)$/m) || ['', ''])[1],
+    note: notes[0] || '',
+    notes,
     fails: (out.match(/^FAILS (.*)$/m) || ['', ''])[1],
   };
 }
@@ -89,6 +95,36 @@ describe('the Worker roads are probed, and classified by what only a live Worker
     expect(r.fails).toBe('');
     expect(r.note).toMatch(/edge\/whoami/);
     expect(r.note).toMatch(/401/);
+  });
+
+  // THE SECOND DOOR IS OPTIONAL WHILE THE FIRST IS OPEN (DR-1180). Measured
+  // 2026-10-21: with Pages Functions back since the 2026-10-09 fault, this
+  // probe failed every run and wrote a daily note on #2057 for a Worker that
+  // was never deployed and that nobody was locked out by; the Edge Guard it
+  // carries waits on a Cloudflare token only Darrell's dashboard can mint.
+  // When the Pages Function probe found its signature, an undeployed Worker is
+  // a reading. When it found nothing, both doors are dark and the family is
+  // locked out: the fault below stays loud, in the same words.
+  it('the SPA shell on /edge while the Pages Function road is SIGNED is a parked decision: a note, no failure', () => {
+    const r = runProbe({ code: '200', ctype: 'text/html; charset=utf-8', fnRoad: 'pages-function' });
+    expect(r.fails).toBe('');
+    const parked = r.notes.find((n) => /not deployed/.test(n));
+    expect(parked, 'the reading must be written to the notes, not dropped').toBeTruthy();
+    expect(parked).toMatch(/parked decision, not a fault/);
+    expect(parked).toMatch(/open through Pages/);
+    expect(parked).toMatch(/Workers Scripts:Edit/);
+    expect(parked).toMatch(/DR-1180/);
+    expect(parked).toMatch(/No daily note, no deadline/);
+  });
+
+  it('the same reading when the Worker itself signed the first door is also parked (a Worker can serve both roads)', () => {
+    expect(runProbe({ code: '404', ctype: 'text/html', fnRoad: 'worker' }).fails).toBe('');
+  });
+
+  it('PROVEN-TO-CATCH: the SPA shell on /edge with the Pages Function road UNSIGNED is both doors dark, and loud', () => {
+    const r = runProbe({ code: '200', ctype: 'text/html; charset=utf-8', fnRoad: '' });
+    expect(r.fails).toMatch(/THE WORKER ROADS ARE DARK TOO/);
+    expect(r.notes.some((n) => /parked decision/.test(n))).toBe(false);
   });
 
   it('PROVEN-TO-CATCH: the SPA shell on that road is the Worker DARK', () => {

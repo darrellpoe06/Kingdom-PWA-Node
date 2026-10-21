@@ -585,7 +585,25 @@ jobs:
                 # still cannot admit anybody. A reading, not a second outage.
                 : ;;
               *)
-                add_fail "THE WORKER ROADS ARE DARK TOO — GET poetech.us/edge/whoami answered ${EDGE_CODE} with '${EDGE_CT:-nothing}' instead of the JSON 401 edge.js returns to any unauthenticated caller. This is a DIFFERENT layer from the Pages Functions above: /edge/* is the poetech-roads Worker on a zone route, and it is the only road the Edge Guard and the Admin visitor count ride. If the Function probe above is failing too, the outage is wider than Pages and the wrangler zone route or the Worker's own deploy is the place to look" ;;
+                # NOT DEPLOYED IS NOT DARK WHILE THE FIRST DOOR IS OPEN (DR-1180).
+                # The Worker is the SECOND door, written round the 2026-10-09
+                # Pages fault (DR-1068). When the Pages Function road above is
+                # signed, every road the family uses is open through Pages and
+                # the Worker's absence is a PARKED DECISION, not an outage: the
+                # one thing only it carries, the Edge Guard, waits on a
+                # Cloudflare token that only Darrell's dashboard can mint, on
+                # his own day. Measured 2026-10-21: this arm failed every run
+                # and wrote a daily note on #2057 for eleven hours over a door
+                # nobody was locked out by, and the carve-out that quieted it
+                # had a death date. A reading, written to the notes, never a
+                # failure. BOTH doors dark is still the loud fault below, in
+                # the same words, because then the family IS locked out.
+                case "${FN_ROAD:-}" in
+                  pages-function|worker)
+                    note "- the poetech-roads WORKER is **not deployed** (\`/edge/whoami\` -> ${EDGE_CODE} \`${EDGE_CT:-nothing}\`), and that is a parked decision, not a fault: the Pages Function road above is signed, so every road the family uses is open through Pages. Only the Edge Guard (Admin -> Bots & blocks) waits, on a Cloudflare token with Workers Scripts:Edit, Workers Routes:Edit, Zone:Read, Analytics:Read, Firewall Services:Edit and Bot Management:Edit for poetech.us, which only the dashboard can mint (DR-1180). No daily note, no deadline." ;;
+                  *)
+                    add_fail "THE WORKER ROADS ARE DARK TOO — GET poetech.us/edge/whoami answered ${EDGE_CODE} with '${EDGE_CT:-nothing}' instead of the JSON 401 edge.js returns to any unauthenticated caller. This is a DIFFERENT layer from the Pages Functions above: /edge/* is the poetech-roads Worker on a zone route, and it is the only road the Edge Guard and the Admin visitor count ride. If the Function probe above is failing too, the outage is wider than Pages and the wrangler zone route or the Worker's own deploy is the place to look" ;;
+                esac ;;
             esac
 
             # WHICH SIGN-IN DOORS ARE ACTUALLY ON (DR-0900). 2026-10-10, Darrell
