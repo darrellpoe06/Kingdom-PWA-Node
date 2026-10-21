@@ -57,6 +57,21 @@ So the row is correctly `shipped`. `lesson-published` is written **only after th
 - **105 Python tests green** (`test_lesson_builder.py`), **28 JS tests green** (`lesson-inbox-bell.test.js`).
 - **Proven to catch, both sides, by breaking the fix** (DR-0076 §3): with `build-failed` back out of the `remove` tuple the Python case failed, printing the live row's exact tag set — `lesson-published` sitting beside `build-failed`; with the `lesson-id:` alternative dropped, 2 JS cases failed, printing the exact line that caused the chase. Restored to green each time.
 
+## The same principle one layer earlier: `npm run verify:catalog`
+
+The two reds the fold PR (#2365) took today were both edits to catalog prose that no local check covered, so each cost a full CI round-trip to learn:
+
+1. the DR-1131 voice-clarity fixture stopped regenerating (the catalog legitimately shrank from 39,526 pieces to 39,396), caught by shard 2/4;
+2. a doubled word — `"has has"`, legal English where *"what he has"* meets *"has already"* — caught by shard 4/4.
+
+**Measured:** exactly **one** of the repository's guard-shaped tests reads the lesson catalog (`doubled-word-guard.test.js`), and 243 test files touch `living-lessons-class.js` in all — so "run the catalog tests" is "run the whole suite", which is not a local option. But the narrow set that a *prose* edit can break is two files, and they run in **10.1 s**:
+
+```
+npm run verify:catalog   # from app/
+```
+
+Both of today's reds would have been caught by it before the push. This is the same move as the rest of this record — make the truth cheap to reach, so nobody spends eight minutes of CI, or six lookups, learning something a ten-second check already knows. It is a convenience script, added alongside the existing `verify` / `verify:gates` / `lesson-dates:check`; it replaces no gate and CI is unchanged.
+
 ## What this does not do
 
 - **The hosted mirror's copy of the tag is add-only.** `HostedRows.merge_tags` can add tags and not remove them, so a mirrored row may keep a stale `build-failed` in the cloud table. It is harmless where it lands — the app subordinates it, as measured above — so this ships without a mirror-side removal rather than growing a new write path for a cosmetic tag. **`re-review: 2026-11-04`**: if any surface is built that reads the mirror's tags without the app's ordering, the removal path comes with it.
