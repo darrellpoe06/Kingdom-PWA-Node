@@ -42,6 +42,13 @@ export const MATHEMATICS_MODULES = [
 ];
 
 export const MATHEMATICS_META = {
+  // THE UNIT IS A LESSON, NOT A WEEK (DR-1186). This course is registered
+  // self-paced with unitCap 'Lesson' (learn-catalog.js), but its meta declared
+  // no unit, so its cards read "Week 1 · ... date TBD". The gate that should
+  // have caught it was reading "Lesson 1" off the every-course shelf, which
+  // DR-1186 moved into its own area; the defect showed the moment the shelf
+  // stopped standing in for the course.
+  unit: { noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true, sessionLabel: 'How to work one lesson (alone or as a house)' },
   key: 'mathematics',
   title: 'Mathematics — Counting, Measure and Reason from the Word',
   audience: 'school-age learners, about 6 to 11, and anyone starting mathematics again',

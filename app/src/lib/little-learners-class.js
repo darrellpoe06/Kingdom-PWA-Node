@@ -160,6 +160,13 @@ export const LITTLE_LEARNERS_MODULES = [
 ];
 
 export const LITTLE_LEARNERS_META = {
+  // THE UNIT IS A LESSON, NOT A WEEK (DR-1186). This course is registered
+  // self-paced with unitCap 'Lesson' (learn-catalog.js), but its meta declared
+  // no unit, so its cards read "Week 1 · ... date TBD". The gate that should
+  // have caught it was reading "Lesson 1" off the every-course shelf, which
+  // DR-1186 moved into its own area; the defect showed the moment the shelf
+  // stopped standing in for the course.
+  unit: { noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true, sessionLabel: 'How to work one lesson (alone or as a house)' },
   key: 'little-learners',
   title: 'Little Learners — Reading and Counting from the Word',
   audience: 'the littlest learners, about 3 to 6 — before school and into it',

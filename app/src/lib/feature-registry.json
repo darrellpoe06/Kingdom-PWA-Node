@@ -85,6 +85,54 @@
       }
     },
     {
+      "id": "learn-area-lessons",
+      "name": "Learn area: Lessons (the one that scrolls)",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-lessons"
+      }
+    },
+    {
+      "id": "learn-area-continue",
+      "name": "Learn area: Continue (with its count)",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-continue"
+      }
+    },
+    {
+      "id": "learn-area-latest",
+      "name": "Learn area: Latest",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-latest"
+      }
+    },
+    {
+      "id": "learn-area-find",
+      "name": "Learn area: Find",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-find"
+      }
+    },
+    {
+      "id": "learn-area-record",
+      "name": "Learn area: Record",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-record"
+      }
+    },
+    {
+      "id": "learn-area-downloads",
+      "name": "Learn area: Downloads",
+      "surface": "learn-lists",
+      "find": {
+        "selector": "#learn-area-tab-downloads"
+      }
+    },
+    {
       "id": "learn-lesson-shelf",
       "name": "Lesson shelf (filter by part of the Word)",
       "surface": "learn-lists",
@@ -180,6 +228,14 @@
       "surface": "learn-lists",
       "find": {
         "selector": "#learn-living-lessons-tab-my-shares"
+      }
+    },
+    {
+      "id": "learn-download-course",
+      "name": "Download this course (in the Downloads area)",
+      "surface": "learn-lists",
+      "find": {
+        "testid": "learn-download-course"
       }
     },
     {

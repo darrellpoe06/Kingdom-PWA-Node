@@ -54,7 +54,22 @@ const mount = () => act(() => root.render(createElement(ChurchLearn, {
   setAgeBand: () => {},
 })));
 const click = (el) => act(() => { el.click(); });
-const byTestId = (id) => container.querySelector(`[data-testid="${id}"]`);
+
+// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// one tap away in its area (Continue, Latest, Find, Record, Downloads). These
+// helpers make the tap a reader makes before the lookup, so each case still
+// pins what it always pinned, reached the way it is reached.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
+const AREA_OF_TESTID = [['continue-', 'continue'], ['learn-latest', 'latest'], ['lesson-browse-all', 'find'], ['learn-class-record', 'record'], ['download-', 'downloads'], ['learn-download', 'downloads']];
+const areaFor = (id) => (AREA_OF_TESTID.find(([k]) => id.startsWith(k)) || [])[1];
+const byTestId = (id) => {
+  let el = container.querySelector(`[data-testid="${id}"]`);
+  if (!el && areaFor(id)) { openArea(areaFor(id)); el = container.querySelector(`[data-testid="${id}"]`); }
+  return el;
+};
 const isBefore = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 const OLDER = { courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ' };
@@ -85,9 +100,13 @@ describe('every lesson begun is one tap away', () => {
     mount();
     const picker = container.querySelector('#learn-course-pick');
     const offer = byTestId('continue-offer');
-    const list = byTestId('course-lessons-first');
+    // The offer is the Continue area's (DR-1186); the lesson list is the
+    // Lessons area's, so the two are never on screen together. What stays
+    // pinned: the picker precedes the offer, and the offer precedes the
+    // landmark bar that stands above the lessons.
+    const bar = byTestId('lessons-bar');
     expect(isBefore(picker, offer), 'the picker stays first (Darrell 2026-09-06)').toBe(true);
-    expect(isBefore(offer, list), 'the offer precedes the lesson list, not two screens below it').toBe(true);
+    expect(isBefore(offer, bar), 'the offer precedes the lessons bar, not two screens below it').toBe(true);
   });
 
   it('Continue on the OLDER lesson opens that lesson with its guide at ITS saved part', () => {

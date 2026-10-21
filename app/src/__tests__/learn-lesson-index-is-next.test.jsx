@@ -79,12 +79,19 @@ describe('after the course comes the lesson index — nothing in between', () =>
     // The live screenshot: after picking a course, the next list on screen was
     // the finder's blank-state shelf — OTHER courses' lessons — with the chosen
     // course's own titles far below. This course's lessons must come first.
+    // Since DR-1186 the finder and the shelf are the Find AREA's: in the
+    // Lessons area nothing at all sits between the course and its lessons, and
+    // the Find tab, one tap away, carries the finder with the shelf under it.
     mount();
+    expect(container.querySelector('#learn-lesson-find'), 'no finder between the course and its lessons').toBe(null);
+    expect(container.querySelector('[data-testid="lesson-browse-all"]'), 'no shelf between the course and its lessons').toBe(null);
+    const tab = container.querySelector('#learn-area-tab-find');
+    expect(tab, 'the Find area is offered').toBeTruthy();
+    act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const find = container.querySelector('#learn-lesson-find');
-    expect(find, 'the finder must render').toBeTruthy();
-    expect(isBefore(index(), find), 'this course\'s lessons must precede search').toBe(true);
-    const shelf = container.querySelector('[data-testid="lesson-browse-all"]');
-    if (shelf) expect(isBefore(index(), shelf), 'this course\'s lessons must precede the all-courses shelf').toBe(true);
+    expect(find, 'the finder must render in its area').toBeTruthy();
+    expect(isBefore(picker(), find), 'the picker precedes the finder').toBe(true);
+    expect(index(), 'the index is the Lessons area\'s, not the Find area\'s').toBe(null);
   });
 
   it('there is ONE list, not two — the CourseView copy is gone', () => {

@@ -71,6 +71,15 @@ const isBefore = (a, b) =>
 
 const picker = () => container.querySelector('#learn-course-pick');
 
+// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// one tap away in its area (Continue, Latest, Find, Record, Downloads). These
+// helpers make the tap a reader makes before the lookup, so each case still
+// pins what it always pinned, reached the way it is reached.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
+
 // LEARN OPENS ON THE ONE LIST NOW (DR-1183): no course is open until one is
 // chosen, so a test about a control that belongs to an open course opens one
 // first -- the same tap a reader makes.
@@ -116,6 +125,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('comes before the derived catalog line', () => {
     mount();
+    openArea('downloads'); // the catalog line is the Downloads area's (DR-1186)
     const line = [...container.querySelectorAll('p')]
       .find((p) => /every finished lesson in the PoeTech App/i.test(p.textContent || ''));
     expect(line, 'the catalog line must exist').toBeTruthy();
@@ -129,6 +139,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
     // is seeded now, so the order is actually asserted.
     window.localStorage.setItem('poe-learn-place', JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mountWithCatalog();
+    openArea('continue'); // the offer is the Continue area's (DR-1186); its chip stays on the bar
     const resume = container.querySelector('[data-testid="continue-offer"]');
     expect(resume, 'a seeded place must render the offer').toBeTruthy();
     expect(resume.textContent).toMatch(/pick up where you left off/i);
@@ -180,6 +191,7 @@ describe('the obvious progression: pick one of N courses, or search by name, the
 
   it('STEP 2 — the search box sits directly BELOW the picker, before anything else', () => {
     mount();
+    openArea('find'); // the finder is the Find area's (DR-1186): one tap under the picker
     const find = container.querySelector('#learn-lesson-find');
     expect(find, 'the lesson finder must render').toBeTruthy();
     expect(isBefore(picker(), find), 'picker first').toBe(true);
@@ -193,6 +205,7 @@ describe('the obvious progression: pick one of N courses, or search by name, the
 
   it('STEP 3 — the scroll (the lessons bar and the schedule) comes after both', () => {
     mount();
+    openArea('find');
     const find = container.querySelector('#learn-lesson-find');
     const bar = container.querySelector('[data-testid="lessons-bar"]');
     expect(isBefore(find, bar), 'search must precede the lessons bar').toBe(true);

@@ -47,7 +47,22 @@ const mount = (courses = extraCourses) => act(() => root.render(createElement(Ch
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
 const click = (el) => act(() => { el.click(); });
-const byTestId = (id) => container.querySelector(`[data-testid="${id}"]`);
+
+// THE AREAS ARE SUB-TABS (DR-1186): what used to sit under the picker now lives
+// one tap away in its area (Continue, Latest, Find, Record, Downloads). These
+// helpers make the tap a reader makes before the lookup, so each case still
+// pins what it always pinned, reached the way it is reached.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
+const AREA_OF_TESTID = [['continue-', 'continue'], ['learn-latest', 'latest'], ['lesson-browse-all', 'find'], ['learn-class-record', 'record'], ['download-', 'downloads'], ['learn-download', 'downloads']];
+const areaFor = (id) => (AREA_OF_TESTID.find(([k]) => id.startsWith(k)) || [])[1];
+const byTestId = (id) => {
+  let el = container.querySelector(`[data-testid="${id}"]`);
+  if (!el && areaFor(id)) { openArea(areaFor(id)); el = container.querySelector(`[data-testid="${id}"]`); }
+  return el;
+};
 const openedLessonId = () => {
   const card = [...container.querySelectorAll('[id^="learn-lesson-"]')].find((e) => e.id !== 'learn-lesson-find');
   return card ? card.id.replace('learn-lesson-', '') : null;
