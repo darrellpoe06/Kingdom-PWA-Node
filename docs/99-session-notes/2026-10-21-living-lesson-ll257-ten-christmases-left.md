@@ -1,6 +1,6 @@
 # 2026-10-21 — Living Lesson ll257, "Ten Christmases Left"
 
-**Module id:** `ll257`
+**Module id:** `ll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them` (`ll257`)
 **Decision record:** DR-1153
 **Source row:** `a6f86a58-684b-4d27-9550-0b5b7bbca4fb`
 
