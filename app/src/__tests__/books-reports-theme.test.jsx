@@ -106,7 +106,8 @@ describe('the Reports section: visible, one set of controls, theme tokens only',
     const parsed = parseThemes(THEME_CSS);
     const keys = THEMES.map((t) => t.key);
     // DR-1060 added three: the church's own red/white/black, and two options.
-    expect(keys).toEqual(['heritage', 'lovecorner', 'anchor', 'bedrock', 'cream', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
+    // DR-1156 added TLC's own ivory & forest, riding third as the church's rides second.
+    expect(keys).toEqual(['heritage', 'lovecorner', 'tlc', 'anchor', 'bedrock', 'cream', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
     for (const k of keys.filter((x) => x !== 'cream')) expect(parsed[k], `${k} parsed`).toBeTruthy();
   });
 });
@@ -130,7 +131,7 @@ describe('contrast on every theme (WCAG AA), measured by the guard', () => {
 
   it('the selected chip reads on every theme: AA label, and 3:1 apart from an unselected chip', () => {
     const { violations, rows } = scanSelectedState();
-    expect(rows.map((r) => r.theme).sort()).toEqual(['anchor', 'bedrock', 'cream', 'heritage', 'lovecorner', 'midnight', 'rose', 'sapphire', 'slate', 'white']);
+    expect(rows.map((r) => r.theme).sort()).toEqual(['anchor', 'bedrock', 'cream', 'heritage', 'lovecorner', 'midnight', 'rose', 'sapphire', 'slate', 'tlc', 'white']);
     expect(violations).toEqual([]);
   });
 

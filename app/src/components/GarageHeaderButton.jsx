@@ -12,6 +12,16 @@
 // drawn for a device that holds no camera key, or whose access has no doors.
 // Which doors exist is kept on the device (lib/garage-header.js) so the header
 // does not ask Wyze on every page.
+//
+// THE HOLD HAS TO SURVIVE A PHONE (Darrell 2026-10-21, on his Fold: "The garage
+// tab doesn't work!!!"). Android raises `contextmenu` and then `pointercancel`
+// on a touch held about 500 ms, and the hold here is 800 ms, so on a phone the
+// hold was cancelled by the browser before it could ever finish: the fill ran
+// to just past half and the door was never told. So the button refuses the
+// context menu, turns off touch-action and text selection (which is what
+// raises those two events), and no longer treats a cancel as a thumb lifting.
+// And the answer is said ON SCREEN, not only to a screen reader: a driver with
+// the phone in a cradle could not tell a refused press from a slow one.
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import UiIcon from './UiIcon.jsx';
@@ -67,9 +77,14 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
     }
   }, [door, busy, rest, token, fetchImpl]);
 
+  const [hint, setHint] = useState('');
   const cancelHold = useCallback(() => {
-    if (timer.current) { clearInterval(timer.current); timer.current = null; }
+    if (!timer.current) return;
+    clearInterval(timer.current); timer.current = null;
     setProgress(0);
+    // Letting go early sends nothing, and SAYS so, so a tap is not a mystery.
+    setHint('Hold it down for a moment to move the door.');
+    setTimeout(() => { if (alive.current) setHint(''); }, 2500);
   }, []);
   const beginHold = useCallback(() => {
     if (!door || busy || rest) return;
@@ -102,7 +117,8 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
         onPointerDown={beginHold}
         onPointerUp={cancelHold}
         onPointerLeave={cancelHold}
-        onPointerCancel={cancelHold}
+        onContextMenu={(e) => e.preventDefault()}
+        style={{ touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beginHold(); } }}
         onKeyUp={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cancelHold(); } }}
         className="relative min-h-[44px] min-w-[44px] px-3 flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 whitespace-nowrap"
@@ -110,7 +126,7 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
         <span aria-hidden="true" data-testid="garage-header-fill" className="absolute inset-y-0 left-0 bg-[#E8E4DC] pointer-events-none" style={{ width: `${Math.round(progress * 100)}%` }} />
         <span className="relative flex items-center gap-1.5">
           <UiIcon name="home" />
-          {busy ? 'Telling' : rest ? 'Sent' : garages.length > 1 ? door.nickname : 'Garage'}
+          {busy ? 'Telling' : rest ? 'Sent' : `Hold · ${garages.length > 1 ? door.nickname : 'Garage'}`}
         </span>
       </button>
       {garages.length > 1 ? (
@@ -124,7 +140,9 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
           {garages.map((g) => <option key={g.mac} value={g.mac}>{g.nickname}</option>)}
         </select>
       ) : null}
-      <span data-testid="garage-header-said" role="status" aria-live="polite" className="sr-only">{said}</span>
+      {/* The answer, in words, where a driver can read it. */}
+      {(said || hint) ? <span data-testid="garage-header-said" role="status" aria-live="polite" className="px-2 text-[0.625rem] leading-tight text-[#5A5751]">{said || hint}</span>
+        : <span data-testid="garage-header-said" role="status" aria-live="polite" className="sr-only" />}
     </div>
   );
 }

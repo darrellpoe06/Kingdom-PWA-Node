@@ -15,8 +15,9 @@
 // read, and the renderer shows nothing rather than a zero dressed as news.
 //
 // WHAT EACH TILE READS, traced to the record (measured 2026-09-17):
-//   Big Picture  — no count. It IS the overview; a number on it would be a
-//                  summary of a summary.
+//   Big Picture  — no count. It opens the family's years in pictures
+//                  (DR-1153); the chapter counts live on that screen, read
+//                  from the NAS library, not painted on a tile.
 //   Books        — no count. The ledger's honest number is a BALANCE, and a
 //                  balance is not a badge: a bare figure on the family's front
 //                  screen, with no account beside it and no sign of whether it
@@ -67,9 +68,19 @@ import { DENSITY_ACTIONS } from './home-view-prefs.js';
 // with `churchView === 'learn'` (poe-financial-mvp-v28.jsx:4561) — and
 // properties answer to both 'rentals' and 'properties'. So a destination is a
 // pair: the top-level view, and the church sub-view where one is needed.
+//
+// THE BIG PICTURE OPENS THE FAMILY'S YEARS IN PICTURES (DR-1153). Until
+// 2026-10-21 it pointed at `overview` — and since the Hub became the home
+// (DR-1046) `overview` IS the Hub, so the tile went nowhere. Darrell: "Clicking
+// Big Picture should show the family photos... over time or stories like
+// Google stories of pictures of family times over the years... Right now it
+// goes nowhere...." A `hub` destination is a panel the Hub itself renders
+// (FamilyStories over the NAS library), so `view` is null on purpose and the
+// host-route check skips it. "Add a photo" lands in the same place, because
+// that is where a new picture takes its place in the year.
 export const HUB_TILES = [
-  { key: 'bigPicture', label: 'Big Picture', sub: 'My Life Overview', view: 'overview', churchView: null },
-  { key: 'books', label: 'Books', sub: 'Accounts & Debts', view: 'books', churchView: null },
+  { key: 'bigPicture', label: 'Big Picture', sub: 'Our years in pictures', view: null, churchView: null, hub: 'stories' },
+  { key: 'books', label: 'Money', sub: 'Accounts & Debts', view: 'books', churchView: null },
   { key: 'messages', label: 'Messages', sub: 'Stay Connected', view: 'messages', churchView: null },
   { key: 'realEstate', label: 'Real Estate', sub: 'Properties', view: 'rentals', churchView: null },
   { key: 'projects', label: 'Projects', sub: 'Ideas to Reality', view: 'projects', churchView: null },
@@ -89,8 +100,8 @@ export const HUB_ACTIONS = [
   { key: 'lesson', label: 'Open a lesson', view: 'church', churchView: 'learn' },
   { key: 'addProject', label: 'Start a project', view: 'projects', churchView: null },
   { key: 'property', label: 'Check a property', view: 'rentals', churchView: null },
-  { key: 'money', label: 'Open the books', view: 'books', churchView: null },
-  { key: 'photo', label: 'Add a photo', view: 'overview', churchView: null },
+  { key: 'money', label: 'Open Money', view: 'books', churchView: null },
+  { key: 'photo', label: 'Add a photo', view: null, churchView: null, hub: 'stories' },
 ];
 
 /** Active projects, by the SAME definition the capacity layer uses. */

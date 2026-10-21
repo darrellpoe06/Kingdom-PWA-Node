@@ -42,7 +42,7 @@ export default function TlcFormPreview({ form = null, version = 0, compact = fal
   let n = 0;
   const total = sections.reduce((t, s) => t + s.fields.length, 0) + BANKING_FIELDS.length;
   return (
-    <div className={compact ? '' : 'bg-white border-2 border-[#1A1815] p-4 sm:p-5'} aria-label="Intake form preview">
+    <div className={compact ? '' : 'bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5'} aria-label="Intake form preview">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">The intake form, as a colleague sees it</div>
       <p className="text-xs text-[#5A5751] mb-3" style={SERIF}>{total} questions in {sections.length} sections · {version > 0 ? `version ${version}` : 'the original'}. A colleague opens it from an invite, or by signing in with the invited email; the office edits it under Onboarding · Form &amp; documents.</p>
       <ol className="space-y-3">

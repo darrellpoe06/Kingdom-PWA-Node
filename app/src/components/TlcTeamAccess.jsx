@@ -88,7 +88,7 @@ export default function TlcTeamAccess() {
   return (
     <div className="space-y-4">
       {/* 1. Grant */}
-      <div className="border border-[#1A1815] bg-white p-4">
+      <div className="border border-[#1A1815] bg-white rounded-2xl p-4">
         <div className="text-sm font-bold text-[#1A1815] mb-1">Give someone assistant rights</div>
         <p className="text-xs text-[#5A5751] leading-relaxed mb-3">
           They get <b>everything in this Assistant workspace</b> — the referral database, outreach,
@@ -120,7 +120,7 @@ export default function TlcTeamAccess() {
               after you confirm (two-party, so a forwarded link alone grants nothing).
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[0.6875rem] break-all bg-white border border-[#E8E4DC] p-2">{minted.link}</code>
+              <code className="flex-1 text-[0.6875rem] break-all bg-white border border-[#E8E4DC] rounded-2xl p-2">{minted.link}</code>
               <button type="button" onClick={copyLink}
                 className="px-2 py-2 text-xs font-semibold border border-[#1A1815] whitespace-nowrap hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                 {copied ? 'Copied' : 'Copy'}

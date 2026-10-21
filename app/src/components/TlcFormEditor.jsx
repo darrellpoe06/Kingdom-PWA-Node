@@ -21,11 +21,10 @@ import {
 import { readOfficeDocuments, saveOfficeDocument } from '../lib/tlc-office-forms-sync.js';
 import { formatDate } from '../lib/tlc-onboarding.js';
 import TlcFormPreview from './TlcFormPreview.jsx';
+import { TLC_INPUT as INPUT, TLC_BTN as BTN } from '../lib/tlc-ui.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
-const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const SMALL = 'w-full min-h-[36px] px-2 py-1 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_WARN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_RUST = 'min-h-[36px] px-4 py-2 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const CHIP = (on) => `text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'} focus:outline focus:outline-2 focus:outline-[#B85838]`;
@@ -108,7 +107,7 @@ function QuestionsEditor({ form, onChange }) {
   return (
     <div className="space-y-4">
       {form.sections.map((s, i) => (
-        <section key={s.id} className="border border-[#1A1815] bg-white p-3" aria-label={`Section: ${s.title}`}>
+        <section key={s.id} className="border border-[#1A1815] bg-white rounded-2xl p-3" aria-label={`Section: ${s.title}`}>
           <label htmlFor={`sec-${s.id}-title`} className="block text-xs text-[#5A5751]">Section title
             <input id={`sec-${s.id}-title`} value={s.title} onChange={(e) => setSection(i, { title: e.target.value })} className={`${INPUT} mt-0.5 font-semibold`} />
           </label>
@@ -240,7 +239,7 @@ export default function TlcFormEditor({ load = readOfficeDocuments, save = saveO
   };
 
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5" aria-label="The office forms">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5" aria-label="The office forms">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Office forms</div>
       <h2 className="text-xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>The intake form and the documents, yours to change</h2>
       <p className="text-xs text-[#5A5751] mb-3" style={SERIF}>Every save is a new version with a note; a colleague's signature pins the version they signed. The six answers the hire depends on and the three signatures stay required.</p>

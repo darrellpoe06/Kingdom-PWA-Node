@@ -68,7 +68,7 @@ export const HELP = {
     section: 'money',
   },
   books: {
-    title: 'Books',
+    title: 'Money',
     tag: 'The ledger: accounts, transactions, debts, and the calendar.',
     what: 'Books is the financial system of record — your entities, accounts, transactions, debts, subscriptions, 1099 contractors, and the money calendar all live here. Balances are derived from the real transaction ledger, not typed in by hand, so they stay honest.',
     how: [
@@ -783,7 +783,7 @@ export const ROADMAP = [
     blurb: 'See where you stand, keep an honest ledger, and look ahead. Each view reads from the one below it, so the numbers stay true top to bottom.',
     steps: [
       { label: 'Big Picture', to: { view: 'overview' }, why: 'The temperature of everything in one screen.' },
-      { label: 'Books', to: { view: 'books' }, why: 'The ledger of record — accounts, transactions, debts, calendar.' },
+      { label: 'Money', to: { view: 'books' }, why: 'The ledger of record — accounts, transactions, debts, calendar.' },
       { label: 'Forecast', to: { view: 'forecast' }, why: 'Where the money is headed, with what-if scenarios.' },
       { label: 'Markets', to: { view: 'markets' }, why: 'A simple watchlist for symbols you follow.' },
     ],

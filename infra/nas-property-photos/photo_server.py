@@ -755,6 +755,59 @@ def library_dirs(y, mo):
     return dirs
 
 
+def library_years():
+    """{years:[{year, count, months:[{month,count}]}]} for the whole library
+    (DR-1153): every year folder the dated roots and the phone backup hold,
+    counted picture by picture with the same rules the month listing uses
+    (picture extensions only, dot-files out, one count per name across the
+    folders). Newest year first, months in order. A root that does not exist
+    is simply absent. Read-only; serves no picture."""
+    counts = {}
+    pats = [t.format(y="20[0-9][0-9]", m="[01][0-9]") for t in roots()]
+    pats.append(os.path.join(media_root(), "*", "20[0-9][0-9]", "[01][0-9]"))
+    dirs = []
+    for pat in pats:
+        try:
+            dirs += glob.glob(pat)
+        except Exception:
+            continue
+    seen_dirs = set()
+    for d in sorted(dirs):
+        real = os.path.realpath(d)
+        if real in seen_dirs or not os.path.isdir(d):
+            continue
+        seen_dirs.add(real)
+        mo = os.path.basename(d.rstrip("/"))
+        y = os.path.basename(os.path.dirname(d.rstrip("/")))
+        if not SAFE_MONTH.match("%s-%s" % (y, mo)):
+            continue
+        key = "%s-%s" % (y, mo)
+        names = counts.setdefault(key, set())
+        try:
+            with os.scandir(d) as it:
+                for e in it:
+                    try:
+                        if e.name.startswith(".") or not e.is_file():
+                            continue
+                        if os.path.splitext(e.name)[1].lower() not in LIBRARY_EXTS:
+                            continue
+                        if SAFE_NAME.match(e.name):
+                            names.add(e.name)
+                    except OSError:
+                        pass
+        except OSError:
+            continue
+    by_year = {}
+    for key in sorted(counts):
+        n = len(counts[key])
+        if n == 0:
+            continue
+        yr = by_year.setdefault(key[:4], {"year": key[:4], "count": 0, "months": []})
+        yr["months"].append({"month": key, "count": n})
+        yr["count"] += n
+    return {"years": [by_year[y] for y in sorted(by_year, reverse=True)]}
+
+
 def library_month(month, limit, offset):
     """{photos:[{id,name,date,text,thumb}], total, month} for one month of the
     library, newest name first (camera names carry the date and time). None
@@ -1229,6 +1282,17 @@ def make_handler(args):
                 return
             # THE WHOLE LIBRARY BY MONTH (DR-1002): the dated photo roots and the
             # phone backup, read as folders -- no Synology Photos sign-in.
+            # THE LIBRARY'S YEARS (DR-1153): which years and months hold
+            # pictures, and how many -- the chapters of the family's story.
+            if path.endswith("/library/years") or path == "/library/years":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "years": []})
+                    return
+                try:
+                    self._send(200, library_years())
+                except Exception as err:
+                    self._send(500, {"error": "library years failed: %s" % type(err).__name__, "years": []})
+                return
             if path.endswith("/library") or path == "/library":
                 if not bearer_ok(self.headers.get("Authorization"), token):
                     self._send(401, {"error": "unauthorized", "photos": [], "count": 0})
@@ -1810,6 +1874,12 @@ def selftest():
         ok("http: an empty month is honest-empty, never an error", st == 200 and body["total"] == 0 and body["photos"] == [])
         st, _h, body = _get("/library?month=2024-13")
         ok("http: a month that is not a month is 400", st == 400)
+        # THE LIBRARY'S YEARS (DR-1153): the chapters, counted from the folders.
+        st, _h, body = _get("/library/years", bearer=False)
+        ok("http: /library/years without the bearer is 401", st == 401)
+        st, _h, body = _get("/library/years")
+        ok("http: /library/years names each year and month that holds pictures, with its count",
+           st == 200 and body["years"] == [{"year": "2024", "count": 1, "months": [{"month": "2024-01", "count": 1}]}])
         st, _h, body = _get("/library-photo?name=20240123_144917.jpg&max=1920")
         if _road != "none":
             ok("http: one library picture at listing size by its name (road: %s)" % _road,

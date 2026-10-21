@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; import OpenerButton from './components/OpenerButton.jsx'; import GarageHeaderButton from './components/GarageHeaderButton.jsx'; // every arrival counted (DR-0728); the openers in the header's own row (DR-1154)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import AppDoorControls from './components/AppDoorControls.jsx';
@@ -171,7 +171,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
-import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME } from './lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
@@ -1082,7 +1082,7 @@ export default function PoeFinancialSystem() {
   // not move it. useThemePref publishes from lib/theme-css.js and persists on
   // set, so the separate saveThemePref effect is no longer needed and every
   // setTheme(...) call site below is unchanged.
-  const [theme, setTheme] = useThemePref(churchDoorOnly ? CHURCH_DEFAULT_THEME : DEFAULT_THEME);
+  const [theme, setTheme] = useThemePref(churchDoorOnly ? CHURCH_DEFAULT_THEME : tlcDoorOnly ? TLC_DEFAULT_THEME : DEFAULT_THEME);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
@@ -4198,8 +4198,6 @@ ${THEME_CSS}
                   to someone else -- the QR + link he asked for in the header
                   2026-10-15, the church's own door on a church surface (DR-1056). */}
               <AppDoorControls church={churchBrand} />
-              {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
-                  Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
                   tab and Ari explains THAT surface (what / how / why), plus the user
                   roadmap. Context-aware: it reads the live view/sub-view, so one
@@ -4214,6 +4212,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <GarageHeaderButton /><OpenerButton />
               <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.

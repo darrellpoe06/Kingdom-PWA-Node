@@ -40,7 +40,11 @@ export function navItems({
 } = {}) {
   return [
     ['overview','Big Picture'],
-    ['books','Books'],
+    // BOOKS IS CALLED MONEY (Darrell 2026-10-21: "Can we call the Books tab the
+    // Money tab instead of the Books and not have issues with the apps?"). The
+    // WORD changes; the id `books` does not, so every deep link (?view=books),
+    // feedback area, surface gate and door keeps working unchanged.
+    ['books','Money'],
     ['inbound', <><UiIcon name="phone" /> Inbound</>],
     ['rentals','Real Estate'],
     ['properties','Properties'],
@@ -160,7 +164,7 @@ export function navItems({
 
 /** The plain words of a tab, for places that cannot render its JSX (aria, More). */
 export const NAV_WORDS = {
-  overview: 'Big Picture', books: 'Books', inbound: 'Inbound', rentals: 'Real Estate', properties: 'Properties',
+  overview: 'Big Picture', books: 'Money', inbound: 'Inbound', rentals: 'Real Estate', properties: 'Properties',
   projects: 'Projects', 'tlc-assistant': 'Assistant', tlc: 'TLC', practice: 'Practice', opportunities: 'Dev/Ops',
   about: 'About', messages: 'Messages', notes: 'Notes', create: 'Create', voice: 'Voice', scribe: 'Scribe',
   library: 'Library', recipes: "Chef's Corner", health: 'Road to 150', games: 'Games', tvtime: 'TV Time',
@@ -217,6 +221,6 @@ export function navGroups(items = []) {
 export const BOTTOM_NAV = [
   { key: 'home',       view: 'overview', home: 'lifehub', icon: 'home',  words: 'Home' },
   { key: 'bigpicture', view: 'overview', home: 'current', icon: 'chart', words: 'Big Picture' },
-  { key: 'books',      view: 'books',    home: null,      icon: 'coins', words: 'Books' },
+  { key: 'books',      view: 'books',    home: null,      icon: 'coins', words: 'Money' },
   { key: 'messages',   view: 'messages', home: null,      icon: 'chat',  words: 'Messages' },
 ];
