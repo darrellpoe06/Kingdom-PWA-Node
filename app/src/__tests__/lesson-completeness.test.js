@@ -86,3 +86,25 @@ describe('the stories reach the lesson the reader opens', () => {
     expect(taught({ ...course.schedule[0], stories: [] })).toHaveLength(0);
   });
 });
+
+describe('the side stories are real stories', () => {
+  it('every story in lesson-stories.json is a titled parable with a scene and a verse, on a lesson that exists', async () => {
+    const SIDE = (await import('../lib/lesson-stories.json')).default;
+    const words = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+    const bad = [];
+    const ids = new Map(census.courses.map((c) => [c.key, c]));
+    for (const [course, lessons] of Object.entries(SIDE)) {
+      if (!ids.has(course)) bad.push(`${course}: no such course`);
+      for (const [id, list] of Object.entries(lessons)) {
+        for (const [i, s] of list.entries()) {
+          if (s.kind !== 'parable') bad.push(`${course}/${id} [${i}] kind ${s.kind}`);
+          if (!String(s.title || '').trim()) bad.push(`${course}/${id} [${i}] no title`);
+          if (words(s.body) < 100) bad.push(`${course}/${id} [${i}] ${words(s.body)} words`);
+          if (!/\d+:\d+/.test(String(s.verse || ''))) bad.push(`${course}/${id} [${i}] verse ${s.verse}`);
+          if (/\b(Satan|Lucifer)\b/.test(s.body)) bad.push(`${course}/${id} [${i}] adversary capitalised`);
+        }
+      }
+    }
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+});

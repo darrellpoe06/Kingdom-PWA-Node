@@ -29,56 +29,6 @@
   ],
   "wordOutside": []
  },
- "sovereign-ai": {
-  "shortOfStories": [
-   "sov1-generator-in-the-garage",
-   "sov2-what-a-model-costs-to-run",
-   "sov3-model-tier-landscape",
-   "sov4-honest-ceiling",
-   "sov5-how-skos-runs-it",
-   "sov6-vendor-vs-local-tradeoffs",
-   "sov7-five-opportunities",
-   "sov8-build-sovereign-hand-it-on",
-   "sov9-verification-earns-trust",
-   "sov10-the-settled-word",
-   "sov11-the-sealed-trace",
-   "sov12-the-engineering-disaster",
-   "sov13-the-whole-stack",
-   "sov14-the-doom-that-did-not-come",
-   "sov15-watch-brake-and-the-city-without-walls",
-   "sov16-trust-the-counsel-you-can-actually-trust",
-   "sov17-the-judge-and-the-just-weight",
-   "sov19-the-servant-under-authority-who-keeps-the-guardrails",
-   "sov20-the-book-of-remembrance-and-the-tool-that-forgets",
-   "sov21-the-whole-system-and-the-stone-cut-without-hands",
-   "sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition",
-   "sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside",
-   "sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema",
-   "sov25-the-ten-day-test-and-the-one-hidden-in-the-ninety-and-nine",
-   "sov26-the-roll-the-king-burned-and-the-roll-written-again",
-   "sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next",
-   "sov28-holding-the-hand-of-the-process-until-it-is-finished",
-   "sov29-the-agent-that-went-past-the-bound",
-   "sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch",
-   "sov31-whose-errand-does-your-agent-carry",
-   "sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart",
-   "sov33-peace-peace-when-there-is-no-peace-and-the-faithful-witness",
-   "sov34-the-bounded-answer-count-the-cost-before-you-build-and-except-yahweh-build-the-house",
-   "sov35-the-new-players-open-weights-a-just-weight-and-who-setteth-up-another",
-   "sov36-the-pile-the-machine-made-and-the-labourers-who-must-prove-it",
-   "sov37-stop-paying-a-model-to-redecide-what-is-already-settled-a-just-weight-answers-the-same-every-time",
-   "sov38-ai-lowered-the-cost-of-building-not-the-cost-of-owning",
-   "sov39-order-carries-meaning-the-same-words-rearranged-say-another-thing",
-   "sov40-the-leaders-use-it-more-than-the-led-and-pretending-to-know-is-a-debt",
-   "sov41-the-agent-that-drowned-in-its-own-output",
-   "sov42-the-three-year-degree-and-the-work-that-teaches",
-   "sov43-work-beside-learning-is-apostolic-and-the-release-that-carries-his-name",
-   "sov44-the-thief-who-forgot-to-lock-his-own-door",
-   "sov45-no-single-witness-and-the-office-of-the-critic",
-   "sov46-the-helper-that-must-see-everything"
-  ],
-  "wordOutside": []
- },
  "ai-legal-blueprint": {
   "shortOfStories": [
    "aib1-the-one-rule",
@@ -220,56 +170,6 @@
   ],
   "wordOutside": []
  },
- "healthy-living": {
-  "shortOfStories": [
-   "hl-w3-setback-neuroscience",
-   "hl-w3-tre-circadian",
-   "hl-w3-therapeutic-fasting",
-   "hl-w3-fasting-brain",
-   "hl-w3-water-fasting-supervised",
-   "hl-w3-fasting-timeline",
-   "hl-w3-fasting-as-discipline",
-   "hl-w3-women-fueling-counter",
-   "hl-w3-sleep-memory",
-   "hl-w3-learning-mastery",
-   "hl-w-haver-midlife-fasting",
-   "hl-w3-women-midlife-strength"
-  ],
-  "wordOutside": []
- },
- "project-management": {
-  "shortOfStories": [
-   "pm1-count-the-cost",
-   "pm2-who-should-work",
-   "pm3-the-skill-is-given-and-named",
-   "pm4-what-we-do-not-need-to-do",
-   "pm5-timeline-and-milestones",
-   "pm6-the-counsellors-you-secure",
-   "pm7-the-watchman-and-the-risk",
-   "pm8-the-plumbline",
-   "pm9-the-change-you-put-down",
-   "pm10-the-record-that-outlives-it",
-   "pm11-how-the-organization-learns-prioritizes-and-decides",
-   "pm12-titles-and-fruits-capability-shown-in-outcomes",
-   "pm13-selected-designed-procured-built-and-steered"
-  ],
-  "wordOutside": []
- },
- "software-project-management": {
-  "shortOfStories": [
-   "spm1-requirements-are-a-vow",
-   "spm2-the-order-is-the-work",
-   "spm3-the-honest-unknown",
-   "spm4-incident-problem-change",
-   "spm5-no-silent-change",
-   "spm6-green-is-not-deployed",
-   "spm7-a-gate-that-always-passes",
-   "spm8-debt-named-and-dated",
-   "spm9-the-retrospective-that-is-not-a-blame-meeting",
-   "spm10-handover-and-the-runbook"
-  ],
-  "wordOutside": []
- },
  "world-issues": {
   "shortOfStories": [
    "wi-musk-creator-critique",
@@ -345,18 +245,6 @@
    "car4-for-the-multitude-and-the-giver",
    "car5-the-electric-car-came-early",
    "car6-who-is-driving"
-  ],
-  "wordOutside": []
- },
- "legacy-provisions": {
-  "shortOfStories": [
-   "legacy1-why-it-vanishes",
-   "legacy2-constitution",
-   "legacy3-spendthrift",
-   "legacy4-forced-production",
-   "legacy5-heir-under-governors",
-   "legacy7-how-we-got-here",
-   "legacy6-hand-it-forward"
   ],
   "wordOutside": []
  },
