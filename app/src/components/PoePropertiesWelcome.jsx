@@ -108,6 +108,22 @@ export const WELCOME_CSS = `
 .pp-photo::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 28%)}
 [data-theme="midnight"] .pp-photo::after{background:linear-gradient(105deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 28%)}
 .pp-photo-band{position:absolute;top:0;right:0;width:46%;height:calc(0.5 * var(--ts-fixed,1rem));background:linear-gradient(90deg,var(--pp-red) 0 55%,var(--pp-black) 55% 78%,var(--pp-gold) 78%);pointer-events:none}
+/* THE BIG PICTURE CAN BE THE PORCH (DR-1170). The live player TileLive draws
+   its own aspect-video box; inside this frame it is told to fill it instead,
+   so the hero is exactly the size it always was whether it holds the
+   photograph or the stream, and nothing on the page moves when it opens. */
+.pp-photo>div{position:absolute;inset:0;width:100%;height:100%}
+.pp-photo>div>video{width:100%;height:100%;object-fit:cover}
+.pp-cam-open{position:absolute;bottom:calc(0.6 * var(--ts-fixed,1rem));left:calc(0.6 * var(--ts-fixed,1rem));z-index:2;font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;padding:calc(0.5 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));min-height:calc(2.25 * var(--ts-fixed,1rem));border:1px solid var(--pp-red);border-radius:999px;background:var(--pp-card);color:var(--pp-red);cursor:pointer;box-shadow:var(--pp-shadow)}
+.pp-cam-open:hover{background:var(--pp-red-tint)}
+.pp-cam-open:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-cam-note{font-family:var(--pp-sans);font-size:.75rem;line-height:1.5;color:var(--pp-muted);margin:calc(0.4 * var(--ts-fixed,1rem)) 0 0}
+.pp-cam-story{background:var(--pp-card);border:1px solid var(--pp-line);border-radius:calc(1 * var(--ts-fixed,1rem));padding:calc(0.9 * var(--ts-fixed,1rem)) calc(1 * var(--ts-fixed,1rem));box-shadow:var(--pp-shadow)}
+.pp-cam-story-h{font-family:var(--pp-serif);font-weight:700;font-size:.9375rem;line-height:1.3;color:var(--pp-ink);margin:0}
+.pp-cam-story-list{margin:calc(0.5 * var(--ts-fixed,1rem)) 0 0}
+.pp-cam-story-row+.pp-cam-story-row{margin-top:calc(0.4 * var(--ts-fixed,1rem))}
+.pp-cam-story-who{font-size:.5625rem;letter-spacing:.2em;text-transform:uppercase;color:var(--pp-red);font-weight:600}
+.pp-cam-story-line{font-size:.8125rem;line-height:1.5;color:var(--pp-muted);margin:0}
 .pp-notice{display:flex;gap:calc(0.9 * var(--ts-fixed,1rem));align-items:flex-start;background:var(--pp-card);border:1px solid var(--pp-line);border-radius:calc(1 * var(--ts-fixed,1rem));padding:calc(1 * var(--ts-fixed,1rem)) calc(1.1 * var(--ts-fixed,1rem));box-shadow:var(--pp-shadow)}
 .pp-notice-disc{flex:none;width:calc(3.25 * var(--ts-fixed,1rem));height:calc(3.25 * var(--ts-fixed,1rem));border-radius:999px;background:var(--pp-red);color:#FFFFFF;display:flex;align-items:center;justify-content:center}
 .pp-notice-disc svg{width:calc(1.6 * var(--ts-fixed,1rem));height:calc(1.6 * var(--ts-fixed,1rem))}
@@ -312,7 +328,24 @@ export function SignedOutNotice({ onReturn }) {
 }
 
 /** The welcome heading, its two lines, and the photograph beside them. */
-export function WelcomeHero({ left = false, onReturn } = {}) {
+/**
+ * `bigPicture` is the OPTION to open the real porch in the big frame (DR-1170,
+ * Darrell 2026-10-21: "make the big image have the option to open with the
+ * porch Floodlight cam"). It is a render function, given the <img> this file
+ * has always drawn, so the photograph stays byte-for-byte this file's — and
+ * this file stays presentation only: it knows nothing about cameras, grants or
+ * the NAS, and with no `bigPicture` the hero is exactly what it was.
+ */
+export function WelcomeHero({ left = false, onReturn, bigPicture = null } = {}) {
+  const photo = (
+    <img
+      src={WELCOME_PHOTO_SRC}
+      width="530"
+      height="298"
+      alt="The lit front entry of a Poe Properties home at dusk"
+      decoding="async"
+    />
+  );
   return (
     <section className="pp-hero" aria-labelledby="pp-welcome-heading">
       <div className="pp-hero-copy">
@@ -326,16 +359,12 @@ export function WelcomeHero({ left = false, onReturn } = {}) {
       </div>
       <div className="pp-hero-side">
         {left && <SignedOutNotice onReturn={onReturn} />}
-        <div className="pp-photo">
-          <img
-            src={WELCOME_PHOTO_SRC}
-            width="530"
-            height="298"
-            alt="The lit front entry of a Poe Properties home at dusk"
-            decoding="async"
-          />
-          <span className="pp-photo-band" aria-hidden="true" />
-        </div>
+        {bigPicture ? bigPicture(photo) : (
+          <div className="pp-photo">
+            {photo}
+            <span className="pp-photo-band" aria-hidden="true" />
+          </div>
+        )}
       </div>
     </section>
   );

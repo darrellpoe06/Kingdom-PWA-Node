@@ -61,20 +61,66 @@ export function whoSeesDoorCameras({ door = null, people = [] } = {}) {
 }
 
 /**
+ * THE UNIT A NAME IS ABOUT, or '' when it is about no particular unit. A unit
+ * is read only where it is MARKED — "apt 2", "unit B", "#3", "suite 101" — so
+ * the house number in "805 porch floodlight" is never mistaken for a unit and a
+ * common-area camera stays common.
+ */
+export function unitOf(text) {
+  const t = str(text).toLowerCase();
+  const m = t.match(/\b(?:apt|apartment|unit|ste|suite|rm|room)\.?\s*#?\s*([a-z0-9]{1,4})\b/) || t.match(/#\s*([a-z0-9]{1,4})\b/);
+  return m ? m[1] : '';
+}
+
+/** The unit a DOOR is, from its own unit label ("Apt 4" -> "4", "B" -> "b"). */
+export function doorUnit(door = {}) {
+  const u = doorWords(door).unit;
+  if (!u) return '';
+  return unitOf(u) || (str(u).toLowerCase().match(/([a-z0-9]{1,4})\s*$/) || ['', ''])[1];
+}
+
+/**
  * The cameras a door most likely means, from the whole list: the ones whose
  * name or id carries a word of the door's address (the house number first:
- * "805" picks every "805 ..." camera). Nothing is picked when nothing matches.
+ * "805" picks every "805 ..." camera) — AND THEN, at a multi-unit address, the
+ * ones that are not plainly ANOTHER unit's.
+ *
+ * ANOTHER TENANT'S HALLWAY IS NOT THIS TENANT'S DOOR (DR-1171). Darrell asked
+ * it straight on 2026-10-21: "Tenants only get their door right?" By mechanism
+ * the answer was already yes — a grant names its cameras, the NAS returns only
+ * those on /list and answers 403 not-your-camera for any other
+ * (cams_forwarder.py:4061, proven in its own self-test at :5255-5260). By
+ * DEFAULT the answer was no: this function matched on the house number alone
+ * and never read the unit, so Apt 1's door and Apt 2's door arrived pre-ticked
+ * with the SAME set — the neighbour's hallway among them — and a landlord who
+ * pressed Share without unticking handed it over. Measured, not recalled: the
+ * suite pins that the two sets were identical and both held `805_apt2_hallway`.
+ *
+ * Now a camera marked for a DIFFERENT unit is left unticked. Common-area
+ * cameras — the porch, the back door, the lot, anything with no unit marked —
+ * are untouched and still suggested, because those are what a door's household
+ * is normally given. The landlord can still tick anything in the list by hand:
+ * this changes what is OFFERED by default, never what is ALLOWED, and the owner
+ * stays the one who decides (DR-0841).
  */
 export function suggestDoorCameras(cameras = [], door = {}) {
   const label = doorWords(door).label.toLowerCase();
   const words = label.split(/[^a-z0-9]+/).filter((w) => w.length >= 3 || /^\d{2,}$/.test(w));
   const number = (label.match(/^\d+/) || [])[0] || '';
+  const mine = doorUnit(door);
   const hit = (c) => {
     const hay = `${str(c.name)} ${str(c.id)}`.toLowerCase();
     if (number && hay.includes(number)) return true;
     return words.some((w) => w.length >= 4 && hay.includes(w));
   };
-  return (Array.isArray(cameras) ? cameras : []).filter((c) => c && c.id && hit(c)).map((c) => c.id);
+  // A door with no unit label is a whole house: there is nothing to narrow, and
+  // narrowing it would wrongly drop a camera that happens to carry a unit word.
+  const notAnothersUnit = (c) => {
+    if (!mine) return true;
+    const u = unitOf(`${str(c.name)} ${str(c.id)}`);
+    return !u || u === mine;
+  };
+  return (Array.isArray(cameras) ? cameras : []).filter((c) => c && c.id && hit(c) && notAnothersUnit(c)).map((c) => c.id);
 }
 
 /** The plain note the row carries beside the token. */

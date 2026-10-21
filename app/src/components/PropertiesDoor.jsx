@@ -19,6 +19,7 @@ import supabase, { resolveInitialSession, readPersistedSession, signOut } from '
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 import Cameras from './Cameras.jsx';
+import PorchHero from './PorchHero.jsx';
 import { POE_PROPERTIES, PROPERTIES_SHARE_URL } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
@@ -511,7 +512,22 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
             notice renders ONLY when `left` is true: "You're signed out on this
             device. Your PoeTech sign-in is still active -- this door only forgot you."
             with the "Come back in" action (PoePropertiesWelcome.jsx). */}
-        <WelcomeHero left={preview ? false : left} onReturn={onReturn} />
+        {/* THE BIG PICTURE CAN BE THE PORCH (DR-1170). Darrell, 2026-10-21:
+            "make the big image have the option to open with the porch
+            Floodlight cam... instead of the hero image make it a hero stream
+            of the porch", and then the reason — "The camera stream shows how
+            access works... If a potential tenant uses the app they will be
+            able to see the level of services that were provided by us...
+            tenants and 1099 workers... so it promotes." PorchHero offers the
+            live porch ONLY to a device whose own credential opens it, and
+            tells everyone else — the applicant above all — how camera access
+            works here and who gets it. Not in preview: the OpsBoard's
+            thumbnail of this door must not open a live camera. */}
+        <WelcomeHero
+          left={preview ? false : left}
+          onReturn={onReturn}
+          bigPicture={preview ? null : (photo) => <PorchHero photo={photo} />}
+        />
         {/* The six portals are WHO_OPTIONS, unchanged: same ids, same
             needsAccount, same handler (setWho). Only the look is new. */}
         <PortalCards options={WHO_OPTIONS} onPick={setWho} />
