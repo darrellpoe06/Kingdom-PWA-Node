@@ -1,4 +1,4 @@
-# DR-1192: The Quick Actions are doors to every other tab, none of them twice
+# DR-1196: The Quick Actions are doors to every other tab, none of them twice
 
 **Date:** 2026-10-21
 **Status:** accepted
