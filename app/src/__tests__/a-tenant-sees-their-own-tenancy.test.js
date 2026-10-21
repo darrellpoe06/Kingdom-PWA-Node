@@ -1,5 +1,5 @@
 // =============================================================================
-// A tenant sees their own tenancy, from the day it became theirs (DR-1163).
+// A tenant sees their own tenancy, from the day it became theirs (DR-1167).
 // Darrell, 2026-10-21, on 805 North Prospect Avenue Apt 2 "seen as a tenant":
 // "A new tenant should only see their history... the landlord should see all
 // historical events and data make sense?" and "all tabs should make sense".

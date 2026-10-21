@@ -1,7 +1,7 @@
 // =============================================================================
 // development — building a property from the ground up: the budget, the
 // phases and their checks, the contingency and its change orders, and what the
-// finished building is worth (DR-1162)
+// finished building is worth (DR-1166)
 // =============================================================================
 // Darrell, 2026-10-21, over Daniil Kleyman's walk-through of a 40-unit
 // mixed-use build in Richmond, Virginia (40 apartments over 8,000 square feet

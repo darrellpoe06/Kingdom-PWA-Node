@@ -1,9 +1,9 @@
 // =============================================================================
-// properties/development-cloud — the development project's records (DR-1162,
-// migration 0305): the project, its budget lines, change orders, commercial
+// properties/development-cloud — the development project's records (DR-1166,
+// migration 0307): the project, its budget lines, change orders, commercial
 // bays, phase checks and capital, in the landlord instance.
 // =============================================================================
-// RLS is the wall (0305: owner, admin and member read; owner or admin write);
+// RLS is the wall (0307: owner, admin and member read; owner or admin write);
 // these functions never widen it. Every call carries a timeout, so a dark
 // network ends in a reason instead of a spinner. Never throws: every function
 // returns { ok, ... } with an honest reason. Injectable client for tests.

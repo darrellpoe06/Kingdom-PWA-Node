@@ -1,13 +1,13 @@
-# DR-1162: A building is counted before it is built — Poe Properties develops from the ground up, from the developer's own published method
+# DR-1166: A building is counted before it is built — Poe Properties develops from the ground up, from the developer's own published method
 
 **Date:** 2026-10-21
 **Status:** accepted
-**Tier:** C (schema: migration 0305 with its walls, carried with its proof on a real PostgreSQL in CI, DR-0225)
+**Tier:** C (schema: migration 0307 with its walls, carried with its proof on a real PostgreSQL in CI, DR-0225)
 **Type:** product (capability) + way
 **Area:**
 - `app/src/modules/properties/development.js` (new, pure): the budget, the TI allowance, the phases and their checks by project kind, the contingency and change orders, valuation, build-to-rent, the investor deal
-- `infra/supabase/migrations-auto/0305-a-building-is-counted-before-it-is-built.sql` (new): `dev_projects`, `dev_budget_lines`, `dev_change_orders`, `dev_bays`, `dev_checks`, `dev_capital`
-- `infra/supabase/tests/0305-development-smoke.sql` (new), run twice-applied in `ci.yml`'s door-work leg and on the live database in `rls-isolation.yml`'s poe-properties leg
+- `infra/supabase/migrations-auto/0307-a-building-is-counted-before-it-is-built.sql` (new): `dev_projects`, `dev_budget_lines`, `dev_change_orders`, `dev_bays`, `dev_checks`, `dev_capital`
+- `infra/supabase/tests/0307-development-smoke.sql` (new), run twice-applied in `ci.yml`'s door-work leg and on the live database in `rls-isolation.yml`'s poe-properties leg
 - `app/src/__tests__/properties-development.test.js` (new, 27 cases); `properties-rehab-valuator-methods.test.js` (21 cases, Kleyman's and Lindsay's figures)
 - Sources: `docs/99-session-notes/sources/clayman-40-unit-mixed-use-richmond-development/` (video 608WXaTG8Js) and `docs/99-session-notes/sources/real-estate-workflows-adpdzjtsttq/` (video adpDZJtstTQ), fetched on the NAS by `source-transcript.yml`
 
@@ -54,7 +54,7 @@ Each figure above is a fixture in `properties-development.test.js`, and the engi
 
 ## Folded in from the further Rehab Valuator videos (2026-10-21)
 
-11. **Budget against actual** (Brandon Lindsay, Rehab Valuator's Playbook, video ZmkZjUzeT6E). Each budget line shows its budget, its budget a square foot, what it has cost, its variance, and whether it is done (`dev_budget_lines.done`, 0305). A done line is final at what it cost; an open line is forecast at its budget, or at what it has already cost if that is more, because spent money is never forecast back down. A line with no budget is named and left out of the forecast, never counted as zero. Two uses he names: pricing a pre-sale before the last dollar is spent, and carrying a finished line's real cost a square foot into the next build ("framing material has cost me about $25 per square foot and framing labor... about $7"). `trackBudget`.
+11. **Budget against actual** (Brandon Lindsay, Rehab Valuator's Playbook, video ZmkZjUzeT6E). Each budget line shows its budget, its budget a square foot, what it has cost, its variance, and whether it is done (`dev_budget_lines.done`, 0307). A done line is final at what it cost; an open line is forecast at its budget, or at what it has already cost if that is more, because spent money is never forecast back down. A line with no budget is named and left out of the forecast, never counted as zero. Two uses he names: pricing a pre-sale before the last dollar is spent, and carrying a finished line's real cost a square foot into the next build ("framing material has cost me about $25 per square foot and framing labor... about $7"). `trackBudget`.
 12. **Buy, rehab, rent, refinance, repeat** (Kleyman, video uVH8Xs5Y-wc). His worked deal reproduces figure for figure: $73,950 all in ("just under seventy four thousand"), NOI $670, payment $550, $4,450 pocketed, cash flow $120; with 8% management, $46 and coverage 1.08; rent $1,200, coverage 1.39 and over $200; a $5,000 rehab refinanced at 65%, coverage 1.33, $149, $5,050 pocketed; all cash at 65%, $8,800 left in earning 43%. His five rules are named checks: all-in below 80% of the after-repair value, coverage 1.3, cash flow $200 a month, rent at least 1.5% of the all-in cost, money left in earning 10%. The lender's stress test (a management fee and at least 8% vacancy even when you manage it yourself) is always shown, and so is the largest loan the rent carries at 1.3, because the bank sizes the loan by coverage. `brrrr`; the card on the Development tab.
 13. **The land, the bank and the cash** (Kleyman, videos HCa1XR4ev5M and 9zjeGb74TmU). Three tools:
     - **The lot split**: sell enough lots to get the money back and keep the rest free. In his case, $220,000 plus $3,000 to close plus about $12,000 of soft costs, two lots sold at $115,000, leaves "only $5,000 out of pocket" for a $115,000 lot. The captions hear "$112,000" of soft costs; his own arithmetic is $12,000, and the record follows the arithmetic.
@@ -78,7 +78,7 @@ Each figure above is a fixture in `properties-development.test.js`, and the engi
 ## Impact
 
 - New tables in the landlord instance; nothing existing changes. No price, gate or public copy changes.
-- **The Development tab is mounted** (owner only; `DevelopmentTab.jsx` over `development-cloud.js`, registered in `system-flow-registry.mjs`): the project, the budget with its TI verdict, the bays, the change orders against the contingency, the phases with signed checks, the value and the investor deal, and the build-to-rent comparison. `properties-development-tab.test.jsx`, 8 cases on the screen with Kleyman's figures; proven to catch a project reference saved on every key. Deleting a budget line asks first. 0305 now re-runs the assistant and viewer overlays (as 0302), which the tenancy guard caught.
+- **The Development tab is mounted** (owner only; `DevelopmentTab.jsx` over `development-cloud.js`, registered in `system-flow-registry.mjs`): the project, the budget with its TI verdict, the bays, the change orders against the contingency, the phases with signed checks, the value and the investor deal, and the build-to-rent comparison. `properties-development-tab.test.jsx`, 8 cases on the screen with Kleyman's figures; proven to catch a project reference saved on every key. Deleting a budget line asks first. 0307 now re-runs the assistant and viewer overlays (as 0302), which the tenancy guard caught.
 - The lesson is the next delivery on this record; further Rehab Valuator videos (flip and ARV, rehab estimating, budget against actual, BRRRR, duplex financing) are being fetched through the same road and fold in as they land.
 - **Not ours to build without a decision:** Rehab Valuator's nationwide property, owner and comparable-sales lookups come from a paid data provider. That is a money decision (a vendor and a subscription) and is put to Darrell separately.
 
@@ -92,7 +92,7 @@ Each figure above is a fixture in `properties-development.test.js`, and the engi
   - land not split across a duplex's units;
   - the loan not paid before the investors;
   - a home given a commercial shell.
-- `0305-development-smoke.sql` on a real PostgreSQL 16 (bootstrap, schema-v1/v1.1/v2.1, 0305 applied **twice**): **PASS.** Proven to catch, each by loosening the live function and re-running:
+- `0307-development-smoke.sql` on a real PostgreSQL 16 (bootstrap, schema-v1/v1.1/v2.1, 0307 applied **twice** (born 0305, renumbered after the race with 0305-a-doors-paper)): **PASS.** Proven to catch, each by loosening the live function and re-running:
   - a viewer allowed to read → FAIL "a viewer read 1 projects";
   - any project accepted → FAIL "a line was filed under another instance";
   - a member allowed to write → FAIL "a member wrote a budget line".
