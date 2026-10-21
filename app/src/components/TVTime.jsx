@@ -19,9 +19,11 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
-  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt, hydrateShow,
+  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt, hydrateShow, setWatchInfo,
 } from '../lib/tv-time.js';
-import { searchTitles, loadShow, resolvePoster, normalizeTitleQuery, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, resolvePoster, resolveWatch, normalizeTitleQuery, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { whereToWatch, watchCoverage } from '../lib/tv-where-to-watch.js';
+import TVChannels from './TVChannels.jsx';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
@@ -67,6 +69,91 @@ function Poster({ url, title, kind, resolve = false, className = 'w-12 h-16' }) 
   }
   return (
     <span ref={ref} className={`${className} shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center text-[0.5rem] uppercase tracking-wider text-[#5A5751] text-center p-0.5`}>{title.slice(0, 18)}</span>
+  );
+}
+
+// WHERE TO WATCH (DR-1168). Darrell 2026-10-21: "I want users to be able to
+// connect their streaming platforms and the free ones YouTube channels
+// explains... just an easy way to get it done through this tab."
+//
+// There is NO connect-an-account control here, and that is a deliberate design
+// decision rather than an omission. UNVERIFIED LEAD (not our measurement): that
+// Netflix, Hulu, Max, Disney+ and Prime Video publish no consumer API for
+// linking an account. We did not confirm that — this build has no network route
+// to those vendors — so it is not stated here as fact. What does not depend on
+// the lead: we ship no control whose working we cannot demonstrate, because that
+// is a surface that looks finished and is not (DR-0381). This panel answers the
+// question the connect button was only ever a means to.
+//
+// Two honest registers, and the difference between them is visible to the
+// reader: a REAL streaming service from a real provider field (TVmaze's
+// webChannel), or UNKNOWN — never "not available", because a title we have not
+// checked is not a title that is gone (DR-0076). Either way, every title gets
+// the free-service searches, so nothing dead-ends.
+function WhereToWatch({ show, meta, onResolve, busy }) {
+  const w = whereToWatch(meta || show);
+  const checking = busy === `w:${show.id}`;
+  return (
+    <div className="mt-2 border-t border-[#E8E4DC] pt-2" data-testid="tv-where-to-watch">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold inline-flex items-center gap-1">
+          <UiIcon name="monitor" /> Where to watch
+        </span>
+        {w.state === 'streaming' && w.free && (
+          // #5A6E3D, not #2F6B33. The contrast guard MEASURED the darker green
+          // as TEXT at 2.87:1 on midnight's #141414 — it carries no midnight
+          // remap and is only ever safe as a BACKGROUND behind white (which is
+          // how the rest of this file uses it). #5A6E3D is the themed
+          // accent-green TEXT token and is remapped to AA in every theme.
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5">Free with ads</span>
+        )}
+      </div>
+
+      {/* The answer, in words, straight from the transform — one place decides
+          what is claimed, so the copy cannot drift from the data. */}
+      <p className={`text-sm mt-1 ${w.state === 'streaming' ? 'text-[#1A1815]' : 'text-[#5A5751]'}`} style={serif} data-testid="tv-watch-answer">
+        {w.say}
+      </p>
+
+      {/* Un-asked titles (every pre-DR-1168 record, and every zip import) get a
+          real lookup instead of a shrug. One gesture, single-flight in the
+          catalog, and the answer is saved so it is not asked twice. */}
+      {w.resolvable && (
+        <button type="button" onClick={() => onResolve(show)} disabled={checking}
+          data-testid="tv-watch-check"
+          className={`${BTN} mt-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50`}>
+          {checking ? 'Checking…' : `Check ${TV_SOURCE.name}`}
+        </button>
+      )}
+
+      {/* The free ad-supported services. These are SEARCHES, labeled as
+          searches — "Look on Tubi" claims nothing about availability, so it
+          cannot lie, and on a phone the service's own app takes the tap. The
+          Tubi and Pluto TV routes were MEASURED from a GitHub runner, not
+          assumed (DR-1168); the sandbox has no route to either host. */}
+      {w.searches.length > 0 && (
+        <div className="mt-2">
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Free services — look for it</span>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {w.searches.map((s) => (
+              <a key={s.key} href={s.url} target="_blank" rel="noopener noreferrer"
+                data-testid={`tv-watch-free-${s.key}`}
+                title={s.kind === 'search' ? `Search ${s.name} for ${show.title}` : `Open ${s.name} and search there`}
+                className="text-[0.625rem] px-1.5 py-1 border border-[#C9BFA8] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1">
+                {/* The label tells the truth about what the tap does: a proven
+                    search route says "Look on", a service whose search route we
+                    could not verify says "Open" (DR-1168). Calling a browse link
+                    a search would be the small lie this whole panel avoids. */}
+                {s.kind === 'search' ? `Look on ${s.name}` : `Open ${s.name}`}
+              </a>
+            ))}
+          </div>
+          <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>
+            “Look on” searches that service for “{show.title}”; “Open” just opens the service, where you can search. Either way the service answers — we don&apos;t guess.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -162,8 +249,8 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy, onHydrate = null }) {
-  const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy, onHydrate = null, onResolveWatch = null, meta = null }) {
+  const [tab, setTab] = useState(null); // 'episodes' | 'talk' | 'watch' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
   // Opening the Episodes tab on a show with no season list is the gesture that
@@ -217,6 +304,15 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
               </>
             )}
             <button type="button" onClick={() => setTab(tab === 'talk' ? null : 'talk')} aria-expanded={tab === 'talk'} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Talk{comments.length ? ` (${comments.length})` : ''}</button>
+            {/* Where to watch — the control Darrell asked for, answering the
+                question a "connect your platform" button could never answer
+                (DR-1168). Movies get it too: "where is it on" is the same
+                question for a film. */}
+            {onResolveWatch && (
+              <button type="button" onClick={() => setTab(tab === 'watch' ? null : 'watch')} aria-expanded={tab === 'watch'}
+                data-testid="tv-watch-open"
+                className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>Where to watch</button>
+            )}
             <button type="button" onClick={() => onUntrack(show.id)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
           {/* Who sees this? — per-show visibility (family-sharing model). PRIVATE by
@@ -265,6 +361,10 @@ function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, on
           )}
         </div>
       </div>
+
+      {tab === 'watch' && onResolveWatch && (
+        <WhereToWatch show={show} meta={meta} onResolve={onResolveWatch} busy={busy} />
+      )}
 
       {!isMovie && tab === 'episodes' && (
         <EpisodeList show={show}
@@ -536,6 +636,30 @@ export default function TVTime({ email = null }) {
   // Runs on a USER GESTURE only (tile tap / Episodes tab), single-flight per show
   // per session, so a 100-show imported wall never bursts the free API. A failed
   // lookup releases the flight so a later open retries.
+  // WHERE DOES THIS STREAM? (DR-1168) Look the title up in the catalog and SAVE
+  // the answer, including when the answer is "TVmaze records no streaming
+  // service" — storing only the hits would leave a checked title forever
+  // indistinguishable from an unchecked one (DR-0076). Single-flight in
+  // tv-catalog (resolveWatch), gesture-driven only, so a 100-show wall never
+  // bursts the free API. A failed lookup leaves the record un-asked so the next
+  // open retries, rather than freezing a rate-limit in as a verdict.
+  const resolvingWatch = useRef(new Set());
+  const onResolveWatch = async (show) => {
+    const id = show && show.id;
+    if (!id || resolvingWatch.current.has(id)) return;
+    resolvingWatch.current.add(id);
+    setBusy(`w:${id}`);
+    try {
+      const got = await resolveWatch(show.title);
+      if (got && got.asked) persist(setWatchInfo(stateRef.current, id, { service: got.service, network: got.network }));
+      else resolvingWatch.current.delete(id); // no match / unreachable → retriable
+    } catch {
+      resolvingWatch.current.delete(id);      // fail-soft: never throws into render
+    } finally {
+      setBusy('');
+    }
+  };
+
   const hydrating = useRef(new Set());
   const needsHydration = (s) => !!s && s.kind !== 'movie' && !s.sourceId
     && (String(s.id).startsWith('tvt-') || !(s.seasons && s.seasons.length));
@@ -683,6 +807,26 @@ export default function TVTime({ email = null }) {
         )}
       </div>
 
+      {/* Where-to-watch coverage — a MEASURED count, not a painted one
+          (DR-1168 / DR-0076 §4). It says how many of your titles we have a real
+          streaming answer for and how many are still unknown, so the panel on
+          each card is never mistaken for complete knowledge. Only shown once
+          there is a list to count. */}
+      {(() => {
+        const metas = tracked.map((s) => state.custom[s.id] || s);
+        const c = watchCoverage(metas);
+        if (!c.total) return null;
+        return (
+          <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={serif} data-testid="tv-watch-coverage">
+            <span className="uppercase tracking-wider text-[#5A6E3D] font-semibold">Where to watch</span>
+            {' · '}
+            {c.known} of {c.total} {c.total === 1 ? 'title has' : 'titles have'} a known streaming service
+            {c.free ? `, ${c.free} of them free with ads` : ''}
+            {c.unknown ? ` · ${c.unknown} still unknown (open a card to check)` : ''}.
+          </p>
+        );
+      })()}
+
       {/* What's getting watched — dynamic, from real activity. PINNED above the
           section strip (the KPI-style summary stays always visible). */}
       <TrendingStrip items={trending} />
@@ -694,6 +838,10 @@ export default function TVTime({ email = null }) {
         // (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
         // the section is filtered out entirely (no empty panel, no dead tab).
         TV_SHARING_ENABLED ? { id: 'circle', label: 'Your circle', icon: 'users', render: renderCircle } : null,
+        // Free channels — the one platform a family genuinely CAN connect
+        // (DR-1168). Its own section because it is a different source from the
+        // show list: public YouTube feeds, read over our own edge, no account.
+        { id: 'channels', label: 'Free channels', icon: 'monitor', render: renderChannels },
       ]} ariaLabel="TV Time sections" idBase="tvtime" defaultId="shows" />
     </div>
   );
@@ -788,7 +936,8 @@ export default function TVTime({ email = null }) {
                             <ShowCard show={show} me={me} state={state}
                               onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                               onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                              onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
+                              onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate}
+                              onResolveWatch={onResolveWatch} meta={state.custom[show.id] || null} />
                           </div>
                         )}
                       </React.Fragment>
@@ -802,7 +951,8 @@ export default function TVTime({ email = null }) {
                   <ShowCard key={show.id} show={show} me={me} state={state}
                     onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                     onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
+                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate}
+                              onResolveWatch={onResolveWatch} meta={state.custom[show.id] || null} />
                 ))}
               </div>
             )}
@@ -844,6 +994,13 @@ export default function TVTime({ email = null }) {
   // main list isn't a long read-down past it. Its circle fetch runs when the
   // panel mounts (publishing is a deliberate button, never a mount side effect),
   // so nothing is lost by opening it on demand.
+  // Free channels — follow a free YouTube channel and see its new episodes
+  // (DR-1168). Its own section, mounted on demand: its feed reads happen when
+  // the panel opens, so a reader living in their show list fetches nothing.
+  function renderChannels() {
+    return <TVChannels email={email} />;
+  }
+
   function renderCircle() {
     return (
       <TVCircle state={state} email={me}

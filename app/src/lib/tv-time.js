@@ -168,6 +168,15 @@ export function normalize(parsed) {
     // hydration runs once, not on every open. Conditional (like updatedAt) so
     // un-hydrated entries keep their original shape.
     if (typeof raw.sourceId === 'string' && raw.sourceId) custom[id].sourceId = raw.sourceId;
+    // WHERE IT STREAMS (DR-1168). TVmaze's `webChannel` — the streaming service,
+    // which is NOT the same fact as `network` (the broadcaster). CONDITIONAL on
+    // purpose, and kept even when it is the EMPTY STRING: the presence of the
+    // key is how tv-where-to-watch tells "we asked TVmaze and it had no answer"
+    // apart from "we never asked", and those two must not collapse into one
+    // silence (DR-0076 — unknown is not a no, and un-asked is not a no either).
+    // Records written before DR-1168 have no key at all and so stay honestly
+    // un-asked until the surface looks it up.
+    if (typeof raw.webChannel === 'string') custom[id].webChannel = raw.webChannel;
   }
   const out = { version: STORE_VERSION, shows, custom };
   // Conditional: carried only when a blob was actually stamped (cross-device
@@ -326,6 +335,10 @@ export function addShowFromCatalog(state, show, status = 'watching') {
     network: typeof show.network === 'string' ? show.network : '',
     seasons: normalizeSeasons(show.seasons),
   };
+  // Where it streams, when the catalog brief carried it (DR-1168). Always set
+  // from a catalog add — showBrief answers the question for every show, even
+  // when the answer is "TVmaze records no streaming service".
+  if (typeof show.webChannel === 'string') meta.webChannel = show.webChannel;
   const custom = { ...base.custom, [id]: meta };
   const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   const st = STATUS_KEYS.has(status) ? status : cur.status;
@@ -355,7 +368,31 @@ export function hydrateShow(state, showId, full) {
     seasons: count(incoming) > count(cur.seasons || []) ? incoming : (cur.seasons || []),
     sourceId: cur.sourceId || (full.id != null ? String(full.id) : ''),
   };
+  // Hydration is also when the streaming question gets answered for an imported
+  // show (DR-1168): the full record carries webChannel, so a zip-imported title
+  // stops being un-asked the moment its seasons come in. An already-stored
+  // answer wins — we do not overwrite a known service with a blank.
+  if (typeof full.webChannel === 'string') meta.webChannel = cur.webChannel || full.webChannel;
   if (!meta.sourceId) delete meta.sourceId;
+  return { version: STORE_VERSION, shows: base.shows, custom: { ...base.custom, [showId]: meta } };
+}
+
+// Record the answer to "where does this stream?" on a tracked item (DR-1168).
+// `service` is TVmaze's webChannel (the streaming service) and `network` its
+// broadcaster. The key is written EVEN WHEN `service` IS EMPTY, because "we
+// asked and TVmaze had nothing" is a real, different answer from "we never
+// asked" — storing only the hits would make a checked title indistinguishable
+// from an unchecked one forever (DR-0076). A stored real network is not
+// overwritten with a blank. Pure; returns a NEW state.
+export function setWatchInfo(state, showId, { service = '', network = '' } = {}) {
+  const base = normalize(state);
+  const cur = base.custom[showId];
+  if (!cur) return base;
+  const meta = {
+    ...cur,
+    webChannel: typeof service === 'string' ? service : '',
+    network: cur.network || (typeof network === 'string' ? network : ''),
+  };
   return { version: STORE_VERSION, shows: base.shows, custom: { ...base.custom, [showId]: meta } };
 }
 

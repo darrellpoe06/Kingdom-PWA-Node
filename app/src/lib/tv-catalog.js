@@ -47,15 +47,33 @@ function plain(html) {
 }
 
 // One search result / show header -> our brief shape. Pure.
+//
+// `network` and `webChannel` ARE NOT THE SAME FACT, and until DR-1168 this
+// function collapsed them into one string with `||`. TVmaze's `network` is the
+// BROADCASTER a show aired on ("HBO", "NBC"); its `webChannel` is the STREAMING
+// SERVICE it streams on ("HBO Max", "Netflix", "Tubi"). Collapsed, there was no
+// way to tell a channel from a service, so the one fact that answers "where can
+// I watch this?" arrived in every payload and was unusable on every surface.
+// They are now separate fields with separate meanings, and `webChannel` is
+// ALWAYS PRESENT (set to '' when TVmaze records none) — its presence is how
+// tv-where-to-watch tells "we asked and TVmaze had no answer" apart from "we
+// never asked" (DR-0076: unknown is not a no, and un-asked is not a no either).
 export function showBrief(s) {
   if (!s || s.id == null || !s.name) return null;
   const img = s.image || {};
+  const broadcaster = (s.network && s.network.name) || '';
+  const streamer = (s.webChannel && s.webChannel.name) || '';
   return {
     id: String(s.id),
     kind: 'show',
     title: String(s.name),
     year: String(s.premiered || '').slice(0, 4),
-    network: (s.network && s.network.name) || (s.webChannel && s.webChannel.name) || '',
+    // Unchanged behaviour for every existing caller + stored record: the one
+    // metadata crumb a card prints. It still falls back to the streamer so a
+    // streaming-only show does not go blank in the `year · network · genre` line.
+    network: broadcaster || streamer,
+    // The streaming service, on its own, never conflated with the broadcaster.
+    webChannel: streamer,
     poster: img.medium || img.original || '',
     genre: (Array.isArray(s.genres) && s.genres[0]) || 'Show',
     summary: plain(s.summary),
@@ -241,3 +259,58 @@ export function resolvePoster(title, kind = 'show') {
 }
 // Test hook: clear the session cache between cases.
 export function __resetPosterCache() { _posterCache.clear(); }
+
+// --- "Where is this streaming?" — the one real, keyless answer (DR-1168) ------
+// The big services (Netflix, Hulu, Max, Disney+, Prime Video) publish NO
+// consumer API, so there is nothing to connect an account to and nothing to read
+// a watch history from. What IS real and keyless is TVmaze's own `webChannel`
+// field: the streaming service it records for a show. resolveWatch looks a title
+// up once and returns that service.
+//
+// Same posture as resolvePoster, deliberately: SINGLE-FLIGHT + cached per title,
+// so a 100-show imported wall asking at once shares ONE lookup per title and can
+// never burst the free API. Fail-soft — any error or no-match resolves to a
+// record whose `asked` is still true with an empty `service`, because "we asked
+// TVmaze and it had nothing" is a DIFFERENT and honest answer from "we never
+// asked", and the surface prints them differently (DR-0076: unknown is not a no).
+//
+// Returns { service, network, asked: true }. `asked` is always true on a settled
+// lookup; the caller persists it so the question is not re-asked every open.
+const _watchCache = new Map(); // lowerTitle -> Promise<{service,network,asked}>
+
+export function resolveWatch(title) {
+  const t = normalizeTitleQuery(title);
+  if (!t) return Promise.resolve({ service: '', network: '', asked: false });
+  const key = t.toLowerCase();
+  if (!_watchCache.has(key)) {
+    _watchCache.set(key, (async () => {
+      const results = await searchShows(t);
+      const exact = results.find((r) => normalizeTitleQuery(r.title).toLowerCase() === key);
+      const hit = exact || results[0];
+      if (!hit) {
+        // No match at all: drop the entry so a later open retries, exactly as
+        // resolvePoster does — a TVmaze 429 and a genuine no-match both surface
+        // as [], and permanently caching a rate-limit as "nothing" would freeze
+        // a wrong answer in for the whole session.
+        _watchCache.delete(key);
+        return { service: '', network: '', asked: false };
+      }
+      // A search brief already carries webChannel (showBrief sets it always), so
+      // the common case needs ONE call. Only a hit with neither field goes back
+      // for the full record, where TVmaze sometimes carries the channel.
+      if (hit.webChannel || hit.network) {
+        return { service: hit.webChannel || '', network: hit.network || '', asked: true };
+      }
+      const full = await loadShow(hit.id);
+      return {
+        service: (full && full.webChannel) || '',
+        network: (full && full.network) || '',
+        asked: true,
+      };
+    })());
+  }
+  return _watchCache.get(key);
+}
+
+// Test hook: clear the session cache between cases.
+export function __resetWatchCache() { _watchCache.clear(); }

@@ -11,6 +11,7 @@ import {
   searchShows, loadShow, __setCatalogFetcher, TV_SOURCE,
   movieBrief, parseMovieResults, searchMovies, searchTitles, MOVIE_SOURCE,
   resolvePoster, __resetPosterCache,
+  resolveWatch, __resetWatchCache,
 } from '../lib/tv-catalog.js';
 
 // A recorded, representative slice of TVmaze's real response shapes.
@@ -52,6 +53,26 @@ describe('parsers (pure) against the recorded TVmaze shape', () => {
     expect(b2.network).toBe('HBO Max');   // falls back to webChannel
     expect(b2.poster).toBe('');           // null image → empty
     expect(showBrief(null)).toBe(null);
+  });
+
+  // ------------------------------------------------------- DR-1168
+  it('keeps the BROADCASTER and the STREAMING SERVICE apart (they are not one fact)', () => {
+    // Until DR-1168 showBrief collapsed these with `||`, so "HBO" (a channel)
+    // and "HBO Max" (a service) were indistinguishable in the store and the one
+    // field that answers "where can I watch this?" was unusable.
+    const broadcast = showBrief(SEARCH_SAMPLE[0].show);   // network: HBO, no webChannel
+    expect(broadcast.network).toBe('HBO');
+    expect(broadcast.webChannel).toBe('');                // TVmaze records no streamer
+
+    const streaming = showBrief(SEARCH_SAMPLE[1].show);   // webChannel: HBO Max
+    expect(streaming.webChannel).toBe('HBO Max');
+
+    // webChannel is ALWAYS PRESENT, even when empty: its presence is how the
+    // where-to-watch panel tells "asked, no answer" from "never asked".
+    for (const row of parseSearchResults(SEARCH_SAMPLE)) {
+      expect(Object.prototype.hasOwnProperty.call(row, 'webChannel')).toBe(true);
+      expect(typeof row.webChannel).toBe('string');
+    }
   });
   it('parseSearchResults keeps valid rows, drops malformed', () => {
     const rows = parseSearchResults(SEARCH_SAMPLE);
@@ -186,5 +207,55 @@ describe('resolvePoster — lazy backfill for imported shows (poster:"")', () =>
     __setCatalogFetcher(async () => { calls++; return { ok: true, json: async () => [] }; });
     expect(await resolvePoster('Game of Thrones')).toBe('http://img/got-med.jpg');
     expect(calls).toBe(1);
+  });
+});
+
+describe('resolveWatch — the keyless "where does this stream?" lookup (DR-1168)', () => {
+  afterEach(() => __resetWatchCache());
+
+  it('returns the streaming service when TVmaze records one, marked asked', async () => {
+    __setCatalogFetcher(okFetch(SEARCH_SAMPLE));
+    // "Game of Thrones: The Last Watch" is the row carrying webChannel.
+    const got = await resolveWatch('Game of Thrones: The Last Watch');
+    expect(got.service).toBe('HBO Max');
+    expect(got.asked).toBe(true);
+  });
+
+  it('a show with only a broadcaster is ASKED with an EMPTY service, not a no', async () => {
+    __setCatalogFetcher(okFetch(SEARCH_SAMPLE));
+    const got = await resolveWatch('Game of Thrones');
+    expect(got.service).toBe('');        // TVmaze has no streamer for it
+    expect(got.network).toBe('HBO');     // but it does have the channel
+    expect(got.asked).toBe(true);        // and we DID ask — a real, storable fact
+  });
+
+  it('a no-match or an error stays UN-asked so a later open retries', async () => {
+    __setCatalogFetcher(okFetch([]));
+    expect(await resolveWatch('Nonexistent Show')).toEqual({ service: '', network: '', asked: false });
+    __setCatalogFetcher(async () => { throw new Error('offline'); });
+    expect((await resolveWatch('Anything At All')).asked).toBe(false);
+    expect(await resolveWatch('')).toEqual({ service: '', network: '', asked: false });
+  });
+
+  it('is single-flight: a 100-show wall asking at once shares ONE lookup', async () => {
+    let calls = 0;
+    __setCatalogFetcher(async () => { calls += 1; return { ok: true, json: async () => SEARCH_SAMPLE }; });
+    const all = await Promise.all([
+      resolveWatch('Game of Thrones'), resolveWatch('Game of Thrones'), resolveWatch('Game of Thrones'),
+    ]);
+    expect(all.every((r) => r.network === 'HBO')).toBe(true);
+    expect(calls).toBe(1);
+  });
+
+  it('never throws into the render, whatever comes back', async () => {
+    for (const f of [
+      async () => ({ ok: false, json: async () => null }),
+      async () => ({ ok: true, json: async () => null }),
+      async () => { throw new Error('boom'); },
+    ]) {
+      __resetWatchCache();
+      __setCatalogFetcher(f);
+      await expect(resolveWatch('Some Title')).resolves.toBeTruthy();
+    }
   });
 });
