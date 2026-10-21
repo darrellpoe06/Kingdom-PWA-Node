@@ -528,6 +528,44 @@ describe('Cameras surface', () => {
     }
   });
 
+  it('PROVEN TO CATCH (DR-1097, nineteenth read): a view that ends on its own is HUNG UP before the next try, so a reconnect never adds a stream', async () => {
+    // Darrell's 04:58 UTC screenshots: every NAS-road tile black and
+    // "reconnected 10x" while the NAS ledger held the same camera open four and
+    // five times over, 217 s to 391 s each, from one phone. Unmounting the
+    // <video> does not stop its download; pause + no source + load() does.
+    const { fetchImpl } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const hungUp = [];
+    const proto = window.HTMLMediaElement.prototype;
+    const origPause = proto.pause; const origLoad = proto.load;
+    proto.pause = function pause() { hungUp.push(['pause', this]); };
+    proto.load = function load() { hungUp.push(['load', this]); };
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      await click(buttons().find((b) => b.textContent === 'Big'));
+      const first = container.querySelector('video');
+      expect(first).toBeTruthy();
+      await act(async () => { first.dispatchEvent(new Event('loadeddata')); });
+      hungUp.length = 0;
+      // the stream breaks on its own
+      await act(async () => { first.dispatchEvent(new Event('error')); });
+      const onFirst = hungUp.filter(([, el]) => el === first).map(([k]) => k);
+      expect(onFirst, 'the broken element was not paused and reloaded without a source').toEqual(expect.arrayContaining(['pause', 'load']));
+      expect(first.hasAttribute('src'), 'the old source must be dropped so the download ends').toBe(false);
+      // and the reconnect opens a NEW element; the old one is not asked to play again
+      await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+      const second = container.querySelector('video');
+      expect(second).toBeTruthy();
+      expect(second).not.toBe(first);
+      expect(second.getAttribute('src')).toBeTruthy();
+    } finally {
+      proto.pause = origPause; proto.load = origLoad;
+      vi.useRealTimers();
+    }
+  });
+
   it('a live view with no picture by the first-frame deadline comes back by itself, no hand needed (DR-0833)', async () => {
     const { fetchImpl, calls } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
     vi.stubGlobal('fetch', fetchImpl);

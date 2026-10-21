@@ -82,6 +82,20 @@ function hasPicture(v) {
 function attachStream(el, stream) {
   if (el && stream && el.srcObject !== stream) { try { el.srcObject = stream; } catch { /* a device fact */ } }
 }
+
+// HANG UP A LIVE <video> NOW. A media element that leaves the DOM is not a
+// media element that stops downloading: the browser keeps the live MP4
+// flowing into a detached element until the page is closed or the element is
+// collected, which on a phone can be the whole visit. Pausing, dropping the
+// source and calling load() is the one documented way to abort the fetch.
+// Called before every reconnect and on every self-ended view (DR-1097).
+export function hangUp(el) {
+  if (!el) return;
+  try { el.pause(); } catch { /* fine */ }
+  try { el.removeAttribute('src'); } catch { /* fine */ }
+  try { if ('srcObject' in el && el.srcObject) el.srcObject = null; } catch { /* fine */ }
+  try { el.load(); } catch { /* fine */ }
+}
 const DIRECT_CHIP = "Straight from Wyze's WebRTC";
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -744,6 +758,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
     closeDirect(direct);
+    hangUp(timers.current.video); // nothing from the last try keeps downloading behind the new one (DR-1097, nineteenth read)
     setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', stream: null, firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0 }));
     try {
       const d = await tryDirectRoad({ id: camId, road: camRoad }, token, { onEnd: (why) => { if (alive.current && endedRef.current) endedRef.current(why); } });
@@ -817,6 +832,16 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
       // A direct try that brought no picture sends this camera to the NAS road for a while.
       if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); } else if (!opened) lastFailed.current = p.mode;
+      // THE OLD STREAM IS HUNG UP HERE, NOT LEFT TO THE GARBAGE COLLECTOR
+      // (DR-1097, nineteenth read; Darrell's 04:58 screenshots: every NAS-road
+      // tile black and "reconnected 10x" while the NAS ledger held the SAME
+      // camera open four and five times over, 217 s to 391 s each, all from
+      // one phone). Flipping `ended` unmounts the <video>, but a detached
+      // media element keeps its download running until the tab is closed, so
+      // every reconnect ADDED a stream: 33 live views for six tiles, the
+      // Funnel saturated, every picture froze, and the freeze was the next
+      // reconnect. Pause, drop the source and load() end the download now.
+      hangUp(timers.current.video);
       // NO CAP, NO RESUME (DR-0833): the next try is always armed. The wait
       // grows only while the camera gives no picture; a hidden page waits the
       // long step and looks again rather than asking the NAS for tickets
@@ -1084,6 +1109,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
     closeDirect(direct);
+    hangUp(timers.current.video); // nothing from the last try keeps downloading behind the new one (DR-1097, nineteenth read)
     setSt((p) => ({ ...p, ended: false, src: '', stream: null, firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0, error: '' }));
     try {
       const d = await tryDirectRoad({ id: camId, road: camRoad }, token, { onEnd: (why) => { if (alive.current && endRef.current) endRef.current(why); } });
@@ -1122,6 +1148,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       if (p.ended) return p;
       const opened = p.firstFrameMs != null;
       if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); }
+      hangUp(timers.current.video); // the old download ends before the next try (DR-1097, nineteenth read)
       const blank = opened ? 0 : (p.blank || 0) + 1;
       if (onFailed && blank === TILE_BLANK_TELL) setTimeout(() => onFailed(`live view has had no picture: ${reason}`), 0);
       const wait = reconnectDelayMs(blank);
