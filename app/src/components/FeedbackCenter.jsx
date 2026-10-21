@@ -172,6 +172,7 @@ export const FEEDBACK_AREAS = [
     ['vault', 'Vault \u00b7 your passwords, locked on your device and kept on your own server (create \u00b7 unlock \u00b7 import \u00b7 export \u00b7 generator \u00b7 audit)'],
     ['advocacy', 'Advocacy · the Case File (dated documentation of situations with institutions · evidence tiers · escalation ladder · context pack)'],
     ['databack', 'Your Data · bringing your photos, mail and files home from a company\u2019s cloud (guided steps \u00b7 the safety check before deleting \u00b7 progress across your devices)'],
+    ['research', 'Research \u00b7 a link or a question you send, kept as an item until something looks into it (what you sent \u00b7 what came back with its sources \u00b7 the unverified mark every answer carries)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "Darrell's Study · reflections / processing / cultural research (device-local)"],

@@ -101,6 +101,13 @@ export const SURFACES = [
   // Vault — a person's passwords, locked on their device, kept on their own
   // server (DR-0762). 'lock': anyone could legitimately want it; signing in opens it.
   { id: 'vault',        label: 'Vault',            nav: 'top', view: 'vault',        sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — the vault is theirs alone (0251 RLS, DR-0762)', load: () => import('./components/Vault.jsx') },
+  // Research — a link or a question he sends is kept as an item until something
+  // looks into it (DR-1172). Before this the research road's only surface was an
+  // ask box inside Church > Infra Plan, behind the church-staff gate.
+  // 'lock': the items are a person's OWN agent_inbox rows, so anyone signed in
+  // has real ones to see, and someone who should have access can tell "sign in"
+  // from "broken".
+  { id: 'research',     label: 'Research',         nav: 'top', view: 'research',     sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — the items are their own rows (DR-1172)', load: () => import('./components/ResearchSection.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
@@ -203,6 +210,7 @@ export const AdvocacyCases    = surfaceById['advocacy'].component;
 export const DataLiberation   = surfaceById['databack'].component;
 export const Cameras          = surfaceById['cameras'].component;
 export const Vault            = surfaceById['vault'].component;
+export const ResearchSection  = surfaceById['research'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
