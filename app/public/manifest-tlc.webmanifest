@@ -7,8 +7,8 @@
   "scope": "/tlc/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#FAF8F4",
-  "theme_color": "#1A1815",
+  "background_color": "#F4F2ED",
+  "theme_color": "#2E4A3C",
   "categories": [
     "health",
     "medical",

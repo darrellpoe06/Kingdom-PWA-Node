@@ -20,8 +20,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { INPUT, TextField, YesNo, MultiSelect, Availability } from './TlcFieldInputs.jsx';
 import { editableSections, keptForThePacket, cellDraft, cellsPatch, cellsFilled } from '../lib/tlc-record-cells.js';
 import UiIcon from './UiIcon.jsx';
+import { TLC_BTN as BTN } from '../lib/tlc-ui.js';
 
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_PRIMARY = 'min-h-[36px] px-4 py-2 text-sm font-semibold bg-[#B85838] text-white hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 /**

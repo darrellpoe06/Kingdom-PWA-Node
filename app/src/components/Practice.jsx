@@ -216,7 +216,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         </div>
 
         {showForm && (
-          <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
+          <div className="bg-white border border-[#B85838] rounded-2xl p-4 mb-3 space-y-3">
             <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New inquiry</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -323,7 +323,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         )}
 
         {visible.length === 0 ? (
-          <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+          <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 text-center">
             <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               {inquiries.length === 0 ? "No inquiries yet. Click '+ Log inquiry' to record the next one that comes in by phone, email, or referral." : `No inquiries in '${statusFilter}' status. Switch the filter above.`}
             </p>
@@ -402,10 +402,10 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
         <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2">
           {team.map(c => (
-            <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
+            <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] rounded-2xl p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
               {c.photo
-                ? <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
-                : <div aria-hidden="true" className="w-16 h-16 sm:w-20 sm:h-20 bg-[#E8E4DC] border border-[#E8E4DC] shrink-0" />}
+                ? <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border border-[#E8E4DC] shrink-0" />
+                : <div aria-hidden="true" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#E8E4DC] border border-[#E8E4DC] shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 mb-0.5">
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>
@@ -424,7 +424,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
         <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {TLC_SERVICES.map(s => (
-            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
+            <div key={s.name} className="bg-white border border-[#E8E4DC] rounded-2xl p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">
                 <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
                 <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
@@ -450,7 +450,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       label: 'Revenue & sources',
       render: () => (<div className="space-y-5">
       {/* Revenue projection — assumptions made explicit, replaces actual data once Acuity sync is built */}
-        <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
+        <section className="bg-white border-2 border-[#5A6E3D] rounded-2xl p-4 sm:p-5">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
           <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
             <div>
@@ -476,7 +476,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
       {/* Source breakdown */}
       {stats.bySource.length > 0 && (
-        <section className="bg-white border border-[#1A1815] p-4">
+        <section className="bg-white border border-[#1A1815] rounded-2xl p-4">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">By source</div>
           <div className="space-y-1.5">
             {stats.bySource.map(s => {
@@ -544,7 +544,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       {/* Pinned above the section strip: the TLC identity banner + the live
           inquiry KPIs — always visible, never a scroll (or a tab) away. */}
       {/* TLC Therapy Solutions integration banner */}
-      <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
+      <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div className="min-w-0">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
@@ -672,7 +672,7 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, qu
               <button type="button" onClick={() => setShowConvForm(!showConvForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
             </div>
             {showConvForm && (
-              <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
+              <div className="bg-white border border-[#B85838] rounded-2xl p-2 mb-2 space-y-1.5">
                 <div className="grid grid-cols-2 gap-1.5">
                   <input type="date" className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" value={convForm.date} onChange={e => setConvForm({ ...convForm, date: e.target.value })} />
                   <input className="p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Who: Christina / Maya / VM left" value={convForm.person} onChange={e => setConvForm({ ...convForm, person: e.target.value })} />

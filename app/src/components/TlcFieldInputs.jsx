@@ -11,9 +11,10 @@
 // (the form uses "f", the editor "c").
 import React from 'react';
 import { DAYS, AVAILABILITY_SLOTS, NO_CLIENTS, wordCount } from '../lib/tlc-onboarding.js';
+import { TLC_INPUT } from '../lib/tlc-ui.js';
 
-export const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-export const CHIP = (on) => `min-h-[36px] px-2.5 py-1 text-xs border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'}`;
+export const INPUT = TLC_INPUT;
+export const CHIP = (on) => `min-h-[36px] px-3 py-1 text-xs border rounded-full transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'}`;
 
 export function Label({ htmlFor, field, children }) {
   return (
