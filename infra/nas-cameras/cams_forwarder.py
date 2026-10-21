@@ -4193,7 +4193,20 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             if not live_gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_live": max_live})
             try:
-                kvs_viewed(upstream, cam)
+                kvs = kvs_viewed(upstream, cam)
+                # A TWIN WAITS FOR ITS CAMERA (DR-1097, fifteenth read). A grid tile
+                # asks the SD twin, which go2rtc reads off its own RTSP restream of
+                # the camera, and go2rtc's RTSP client gives a DESCRIBE answer 5 s
+                # (pkg/rtsp/conn.go: the package Timeout, which #timeout= does not
+                # reach). The answer waits on the Kinesis dial, 6-12 s, so the twin
+                # of a camera not yet flowing always timed out ("read tcp
+                # ->127.0.0.1:8554: i/o timeout", the wall in /why) while the
+                # camera's own stream and frame worked. The twin is asked of go2rtc
+                # only once the held session carries video, within the frame clock.
+                if kvs and is_twin(cam) and KVS_HOLD.holding(base_of(cam)):
+                    if KVS_HOLD.wait_flowing(base_of(cam), KVS_SNAP_TIMEOUT) <= 0:
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(KVS_SNAP_TIMEOUT),
+                                                "detail": "no video on Wyze's WebRTC road yet; the twin was not asked"})
                 req = urllib.request.Request(upstream + "/api/stream.mp4?src=" + urllib.parse.quote(cam))
                 try:
                     r = urllib.request.urlopen(req, timeout=LIVE_CONNECT_TIMEOUT)
@@ -6112,6 +6125,18 @@ def _selftest():
         cloud_rl["offline"] = set()
         s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
         check(s == 200 and touched == ["front_yard"], "back online in Wyze's list, the same camera is held and served again (%d)" % s)
+        cloud_rl["offline"] = set()
+        s, _h, tk = call("POST", "/ticket", b'{"camera":"front_yard_sd"}', auth=B)
+        tsd = json.loads(tk.decode("utf-8")).get("ticket", "") if s == 200 else ""
+        sd_asks = lambda: sum(1 for q in seen["queries"] if q.startswith("/api/stream.mp4?src=front_yard_sd"))  # noqa: E731
+        KVS_HOLD = StubHold(False)
+        a0 = sd_asks()
+        s, _h, d = call("GET", "/live/front_yard_sd.mp4?t=" + urllib.parse.quote(tsd))
+        check(s == 504 and b"the twin was not asked" in d and sd_asks() == a0,
+              "PROVEN TO CATCH: a grid tile's SD twin of a Kinesis camera not yet carrying video is a 504, and go2rtc (whose RTSP restream gives the dial 5 s) is not asked (%d %r)" % (s, d[:90]))
+        KVS_HOLD = StubHold(True)
+        s, _h, d = call("GET", "/live/front_yard_sd.mp4?t=" + urllib.parse.quote(tsd))
+        check(s == 200 and sd_asks() == a0 + 1, "once the camera's held session carries video, the twin is asked and served (%d, %d asks)" % (s, sd_asks() - a0))
     finally:
         cloud_rl["offline"] = set()
         KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7

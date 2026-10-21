@@ -526,3 +526,17 @@ Darrell, 19:35 CDT, sent a screenshot of 805 Porch - Floodlight Cam - East playi
 - PROVEN TO CATCH: taking out the indented-tail rule turns 3 checks red, and taking out the live gate turns its check red.
 
 `re-review: 2026-10-21`. Run cams-diag with this camera once #2322 is live, and read the phone's road. Whatever that road refuses is the next fix.
+
+**The phone's road, read the same night** (cams-diag 39523337060, run from this branch, 00:46-00:48 UTC):
+- **Through the Funnel, asked the way the tab asks:**
+  - frame `?w=640`: 200 in 0.99 s;
+  - ticket: issued;
+  - live `.mp4`: 200, first byte at 1.45 s, 3.99 MB in 25 s, `video/mp4; codecs="avc1.42E01F"` (H.264, which every phone plays);
+  - `access-control-allow-origin: https://poetech.us`.
+- So the camera's own stream reaches the phone over the Funnel. The Funnel and the NAS are not what fails.
+- **What fails is the grid.**
+  - A grid tile asks the camera's SD twin (`liveStreamId(..., { sd: true })`, Cameras.jsx). For a Kinesis camera the twin is go2rtc's own RTSP restream (`rtsp://127.0.0.1:8554/<id>`).
+  - go2rtc's RTSP client gives a DESCRIBE answer 5 s (`pkg/rtsp/conn.go`, the package `Timeout`, which `#timeout=` does not reach). That answer waits on the Kinesis dial, which takes 6 to 12 s.
+  - So the twin of a camera not already flowing timed out. These are the `read tcp ->127.0.0.1:8554: i/o timeout` lines that fill `/why`, while the camera's own stream and frame worked.
+- **Fixed:** a twin of a held Kinesis camera is asked of go2rtc only once the held session carries video, within the 20 s frame clock, the same rule `/snap` follows. Otherwise it answers 504 and names why.
+- **Proven:** selftest 480. PROVEN TO CATCH: with the wait taken out, its check fails.
