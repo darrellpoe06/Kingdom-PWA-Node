@@ -25,6 +25,8 @@ import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
 import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfolio.js';
+import { doorState } from '../lib/real-estate-door.js';
+import RealEstateDoor from './RealEstateDoor.jsx';
 import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
@@ -1858,6 +1860,30 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const { portfolioRentals, doorCount, portfolioLabel, rentGap, collectionRate, portfolioCount } = portfolio;
   const rollup = portfolio;
 
+  // ── The door itself (DR-1163). Measured at 360px in a real Chromium, this
+  //    tab opened on a 10px grey "Properties · N" label and a stack of
+  //    near-identical cards — every figure a landlord opens it for sat one tab
+  //    over in Portfolio & payoff. doorState() is the pure derivation over the
+  //    SAME real rows already in hand (the rentals table, the leases +
+  //    rent_payments ledger loaded above, the incident list), so the band is a
+  //    live view, never a painted one.
+  const door = useMemo(
+    () => doorState({ rentals, entities, paidRollup: paidPortfolio.rollup, incidents, snowball: rentalSnowball }),
+    [rentals, entities, paidPortfolio, incidents, rentalSnowball]
+  );
+  // Tapping a band on the door opens exactly those doors in the list below.
+  const [doorFocus, setDoorFocus] = useState(null);
+  const focusedIds = useMemo(() => {
+    if (!doorFocus) return null;
+    const band = door.attention.find((b) => b.key === doorFocus);
+    return band ? new Set(band.ids) : null;
+  }, [doorFocus, door]);
+  // A band that empties while it is focused (its last late door just paid)
+  // must not leave the list showing nothing — the focus clears itself.
+  useEffect(() => {
+    if (doorFocus && !door.attention.some((b) => b.key === doorFocus)) setDoorFocus(null);
+  }, [doorFocus, door]);
+
   // Sliding SectionTabs (Darrell 2026-07-04: "sliding tabs instead of a long
   // scroll on any tab"). PURE structural regroup of the existing sections — no
   // logic/state/handler changes. All hooks + edit state stay at this component's
@@ -1872,9 +1898,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       render: () => (
         <>
       <section>
-        <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+        {/* The door opens on the portfolio, not on a label (DR-1163). */}
+        <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} />
+
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
-          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[44px] px-1 focus:outline focus:outline-2 focus:outline-[#B85838]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
         {/* Round 7 — Top form is for ADD, and for FULL-EDIT when "Full editor ↗"
@@ -2078,8 +2107,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           // Income-producing = the portfolio set (non-personal), hoisted above as
           // portfolioRentals so the header door count, the rollup, and this list
           // all derive from one definition. Personal = the family's own homes.
-          const incomeProducing = portfolioRentals;
-          const personal = rentals.filter(isPersonalProp);
+          // A band tapped on the door above narrows this list to exactly the
+          // doors that band counted — the same ids, never a second query
+          // (DR-1163). Nothing is focused by default.
+          const incomeProducing = focusedIds ? portfolioRentals.filter((r) => focusedIds.has(r.id)) : portfolioRentals;
+          const personal = focusedIds ? [] : rentals.filter(isPersonalProp);
           const renderPropertyRow = (r, i, lastIdx) => {
             // Round 10 — Tenant-late surfacing. If status is 'late', show a
             // tenant-issue card with one-tap "Open as Change / Incident / Project"
@@ -2855,7 +2887,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 let gi = 0;
                 return (
                   <div>
-                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">
+                      {doorFocus
+                        ? <>Showing {incomeProducing.length} of {portfolioRentals.length} · {(door.attention.find((b) => b.key === doorFocus) || {}).label}</>
+                        : <>Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</>}
+                    </div>
                     <div className="space-y-3">
                       {entries.map((e) => e.type === 'building' ? (
                         <div key={`b-${e.key}`} className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">

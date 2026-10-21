@@ -45,6 +45,10 @@
     "property-photos": {
       "name": "Property photos (Real Estate)",
       "where": "Real Estate > a property card > PHOTOS, under the oldest-to-latest strip: Add photos to this address, and Remove on a photo this address owns (components/PropertyPhotoActions.jsx, mounted by PropertyGallery in components/Rentals.jsx)"
+    },
+    "real-estate-door": {
+      "name": "Real Estate door",
+      "where": "Real Estate > Properties, the band the tab opens on: this month's rent against the lease ledger, what the portfolio holds, and the bands that open exactly the doors wanting a person (components/RealEstateDoor.jsx, mounted by components/Rentals.jsx)"
     }
   },
   "features": [
@@ -1535,6 +1539,33 @@
         "testid": "property-photo-remove-button"
       },
       "note": "On each tile this address owns - a photo added here, or a chat-archive photo that can be taken off this address. Confirms by name first (DR-0758, DR-0691)."
+    },
+    {
+      "id": "re-door-focus-late",
+      "name": "Doors behind on rent",
+      "surface": "real-estate-door",
+      "find": {
+        "testid": "re-door-focus-late"
+      },
+      "note": "On the band the Real Estate tab opens on: the count of doors whose own status says late, and the tap that narrows the list below to exactly those doors (DR-1163)."
+    },
+    {
+      "id": "re-door-focus-vacant",
+      "name": "Empty doors",
+      "surface": "real-estate-door",
+      "find": {
+        "testid": "re-door-focus-vacant"
+      },
+      "note": "The same band for a door standing empty - vacant or unrented, both spellings the add form offers (DR-1163)."
+    },
+    {
+      "id": "re-door-show-all",
+      "name": "Show every door again",
+      "surface": "real-estate-door",
+      "find": {
+        "testid": "re-door-show-all"
+      },
+      "note": "The way back out of a focused band, so narrowing the list is never a one-way door (DR-1163)."
     }
   ],
   "removed": [],
