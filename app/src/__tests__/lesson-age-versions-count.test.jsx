@@ -152,7 +152,9 @@ describe('the Latest lessons month heading stays at the top of the scroll, carri
     expect(sep.className).toMatch(/\bsticky\b/);
     expect(sep.className).toMatch(/\btop-0\b/);
     expect(sep.className).toMatch(/bg-\[#FAF8F4\]/);
-    expect(container.querySelector('[data-testid="learn-latest-list"]').className).toMatch(/overflow-y-auto/);
+    // ONE SCROLL (DR-1182): the list is no longer a box with its own
+    // scrollbar; the month heading sticks against the page's scroll instead.
+    expect(container.querySelector('[data-testid="learn-latest-list"]').className).not.toMatch(/overflow-y-auto/);
     const btn = fold('month-2026-09');
     expect(btn.getAttribute('aria-expanded')).toBe('true');
     expect(btn.getAttribute('aria-label')).toBe('September 2026, 4 lessons, 10 readings — fold this month');

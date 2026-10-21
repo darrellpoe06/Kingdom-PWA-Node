@@ -211,44 +211,32 @@ describe('the obvious progression: pick one of N courses, or search by name, the
   // spot is why the same complaint came back thirteen days later, so it is
   // closed here rather than in a comment.
   // ---------------------------------------------------------------------------
-  it('comes before the cross-listed block on a DEPARTMENT tab, not after it', async () => {
+  it('on every DEPARTMENT tab the picker precedes the course index, and no other course\'s lessons are inserted at all (DR-1182)', async () => {
     mountWithCatalog();
     const tabs = deptTabs().filter((t) => (t.textContent || '').trim() !== 'Courses');
     expect(tabs.length, 'no department tabs rendered').toBeGreaterThan(0);
-    // Walk the tabs until one actually renders the shelf. Asserting only on
-    // Business would pass vacuously -- Business gathers cross-listed COURSES
-    // (which now live in the picker) but no cross-listed LESSONS, so its shelf
-    // never mounts and the check would prove nothing. A gate that cannot fire
-    // is not a gate (DR-0076 §3), so this fails outright if NO department
-    // renders the shelf.
     let checked = 0;
     for (const tab of tabs) {
       await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      const shelf = container.querySelector('[data-testid="learn-crosslisted"]');
-      if (!shelf) continue;
-      checked += 1;
-      // A department with ONE course of its own and none that serve it has no
-      // picker BY DESIGN (ChurchLearn: "the picker appears whenever there is
-      // somewhere else to go"). History became that case on 2026-09-23 when
-      // DR-0575 gave it a shelf of seventeen gathered lessons under its single
-      // course, and this loop, written when every shelved department had a
-      // picker, read the absence as a regression. It is not one: with no
-      // second course there is nothing for the control to offer, and the
-      // shelf sits directly under the tabs with nothing hidden above it.
-      // Asserted, not assumed: the department really is one course + none.
+      const label = tab.textContent.trim();
+      // The gathered-lessons block (DR-0448 / DR-0598) left every department
+      // tab on 2026-10-21: "Do not put any other lessons out there other than
+      // that, period." So does the every-course shelf.
+      expect(container.querySelector('[data-testid="learn-crosslisted"]'), `other courses' lessons on ${label}`).toBe(null);
+      expect(container.querySelector('[data-testid="lesson-browse-all"]'), `the every-course shelf on ${label}`).toBe(null);
+      const index = container.querySelector('[data-testid="course-lessons-first"]');
       if (!picker()) {
-        const label = tab.textContent.trim();
+        // A department with ONE course of its own and none that serve it has
+        // no picker BY DESIGN (nothing else to offer). Asserted, not assumed.
         const own = CATALOG.filter((c) => (c.meta.category || 'General Studies') === label).length;
         expect(own + courseCrossListedCount(label), `no course dropdown on ${label}`).toBe(1);
         continue;
       }
-      expect(
-        isBefore(picker(), shelf),
-        `on ${tab.textContent.trim()} the picker must precede the cross-listed block, never follow it`,
-      ).toBe(true);
+      checked += 1;
+      if (index) expect(isBefore(picker(), index), `on ${label} the picker must precede the course's lesson index`).toBe(true);
     }
-    expect(checked, 'no department rendered the cross-listed shelf — this check proved nothing').toBeGreaterThan(0);
-  });
+    expect(checked, 'no department rendered a picker — this check proved nothing').toBeGreaterThan(0);
+  }, 120000); // every department tab on the whole catalog, each a full re-render
 
   it('comes before the Eternal Algorithms study panel on its own tab', async () => {
     mountWithCatalog();
