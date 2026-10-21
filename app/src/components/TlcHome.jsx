@@ -80,7 +80,7 @@ export default function TlcHome({
           </div>
           <p className="text-3xl sm:text-4xl leading-tight mb-2" style={SERIF}>{TLC_BRAND.tagline}</p>
           <p className="text-sm sm:text-base opacity-90 mb-6">{TLC_BRAND.blurb}</p>
-          <div className="flex flex-col gap-2.5 max-w-xs">
+          <div className="flex flex-col gap-2.5">
             <button type="button" onClick={onSignIn} className={`inline-flex items-center justify-center min-h-[3rem] px-6 rounded-full bg-white text-[#1A1815] text-sm font-semibold hover:bg-[#E8E4DC] transition-colors ${FOCUS}`}>Sign in</button>
             <button type="button" onClick={onCreateAccount} className={`inline-flex items-center justify-center min-h-[3rem] px-6 rounded-full border border-white text-white text-sm font-semibold hover:bg-white hover:text-[#1A1815] transition-colors ${FOCUS}`}>Create an account</button>
             <button type="button" onClick={onBrowse} className={`text-center text-xs underline opacity-90 py-1 ${FOCUS}`}>Continue without an account</button>
