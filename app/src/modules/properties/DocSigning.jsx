@@ -19,7 +19,9 @@
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
 import { boundedRead } from '../../lib/bounded-read.js';
-import { loadDoorPapers, loadSignatures, requestSignatures, signDocument, addDocument } from './cloud.js';
+import { loadDoorPapers, loadSignatures, requestSignatures, signDocument, addDocument, patchDocument } from './cloud.js';
+import { validityOf, STATES } from '../../lib/document-validity.js';
+import DocumentRenewals from '../../components/DocumentRenewals.jsx';
 import { sha256Hex, signingState, canSign, dataUrlText, ESIGN_CONSENT, acknowledgmentAttestation } from './doc-signing.js';
 
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -219,7 +221,12 @@ function AddPaper({ instanceId, tenancyId, onDone }) {
  * The papers on a door. seat: 'landlord' (the family, every paper on the door
  * and its tenancies) or 'tenant' (this tenancy's papers).
  */
-export function PapersPanel({ seat, rentalId = null, tenancyIds = [], tenancyId = null, instanceId = null }) {
+// `addEvent` is the app's own calendar add (data.events, the list dueReminders
+// fires from), handed down from the shell when the panel is inside PoeTech;
+// with it, the door's papers propose their renewals to the calendar (DR-1163,
+// the DR-1084 surface on the door's own shelf). The family reads the expiry
+// off the paper and writes it on the row; a tenant never edits a date.
+export function PapersPanel({ seat, rentalId = null, tenancyIds = [], tenancyId = null, instanceId = null, addEvent = null, today = null }) {
   const [docs, setDocs] = useState(null);
   const [sigs, setSigs] = useState([]);
   const [openId, setOpenId] = useState(null);
@@ -239,6 +246,16 @@ export function PapersPanel({ seat, rentalId = null, tenancyIds = [], tenancyId 
   const done = (msg) => { setSaid(msg); setOpenId(null); setMode(''); load(); };
   const role = seat === 'tenant' ? 'tenant' : 'landlord';
   const list = docs || [];
+  const day = today || new Date().toISOString().slice(0, 10);
+  // THE DATE OFF THE PAPER (DR-1163). Typed by the family on the row; the
+  // registry's term is only a proposal until this is read (DR-1084 rule 3).
+  const setExpiry = async (d, value) => {
+    const expires_on = /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? value : null;
+    if ((d.expires_on || null) === expires_on) return;
+    const r = await patchDocument(d.id, { expires_on });
+    setSaid(r.ok ? (expires_on ? `Expiry written: ${d.title} stops being true on ${expires_on}.` : `Expiry cleared on ${d.title}.`) : `Not saved: ${r.reason}`);
+    load();
+  };
   const waiting = list.filter((d) => canSign(d, sigs, role));
   return (
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid={`papers-${seat}`}>
@@ -264,6 +281,21 @@ export function PapersPanel({ seat, rentalId = null, tenancyIds = [], tenancyId 
                 Signed by the {s.role} as “{s.signature}”, {stamp(s.at)}
               </div>
             ))}
+            {role === 'landlord' && (() => {
+              const v = validityOf(d, day);
+              const watched = v.state !== STATES.unknownKind;
+              return (
+                <div className="flex flex-wrap items-center gap-2 mt-1" data-testid="paper-expiry">
+                  <label className="text-[0.6875rem] text-[#5A5751]" style={serif}>Expires on
+                    <input type="date" className={`${field} ml-1 text-xs`} defaultValue={d.expires_on || ''} aria-label={`Expires on: ${d.title}`}
+                      onBlur={(e) => setExpiry(d, e.target.value)} />
+                  </label>
+                  <span className={`text-[0.6875rem] ${v.state === STATES.expired || v.state === STATES.expiringSoon ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={serif} data-testid="paper-validity">
+                    {watched ? v.why : 'Not a kind the app knows to expire; give it a date and it will be watched.'}
+                  </span>
+                </div>
+              );
+            })()}
             <div className="flex flex-wrap gap-1 mt-1">
               <Btn onClick={() => { setOpenId(openId === d.id && mode === 'view' ? null : d.id); setMode('view'); }}>Read it</Btn>
               {mine && <Btn tone="primary" onClick={() => { setOpenId(d.id); setMode('sign'); }}>Sign it</Btn>}
@@ -282,6 +314,16 @@ export function PapersPanel({ seat, rentalId = null, tenancyIds = [], tenancyId 
           </p>
           <AddPaper instanceId={instanceId} tenancyId={tenancyId} onDone={done} />
         </>
+      )}
+      {/* WHAT THE PAPERS SAY IS COMING (DR-1163): the DR-1084 surface over this
+          door's own papers. Each row is a proposal the person edits before it
+          goes on the calendar; a confirmed one is an ordinary event the
+          reminder engine fires from. Shown only where the calendar can be
+          reached (inside PoeTech) and only to the family. */}
+      {role === 'landlord' && typeof addEvent === 'function' && list.length > 0 && (
+        <div className="mt-3" data-testid="papers-renewals">
+          <DocumentRenewals documents={list} addEvent={addEvent} today={day} />
+        </div>
       )}
       {said && <p className="text-xs text-[#2F5D50] mt-2" role="status">{said}</p>}
     </section>
