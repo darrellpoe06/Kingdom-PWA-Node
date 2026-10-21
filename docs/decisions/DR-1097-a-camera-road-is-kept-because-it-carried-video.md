@@ -721,3 +721,26 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 `re-review: 2026-10-22`: from the Fold, open each of the five on the direct road ("Straight from Wyze's WebRTC").
 - If the direct road carries one that the NAS cannot, the NAS's offer is the difference, and that is the fix to build.
 - If neither road carries it, the camera is dark to Wyze too, and the app says so in words.
+
+## Twenty-first read (2026-10-21 23:33 UTC; cams-diag 39694175625): the orphan fix holds through the evening, and one camera reopened itself
+
+**What the evening showed.** The forwarder keeps its last 80 ends, and the diag prints the newest 40: 20:08:59 to 22:23:11 UTC.
+- All 80 were `viewer-left`. None was `superseded`, `source-ended`, `source-silent` or `clock`.
+- No camera had two of its own views open at once. The nineteenth read's orphans are gone.
+- TURN refresh failures: 0. Wyze's own list: 22 online, 11 offline, of 33.
+
+**Two shapes, and only one is a blink.**
+- **22:18 to 22:23 UTC: the grid opened and closed.** Thirteen `_sd` tiles ended within one second of each other, three times: 22:22:45 (0.1 to 4.0 s each), about 22:22:54 (0.1 to 0.5 s each), then single tiles at 22:23:01 and 22:23:11. Every camera ending at once is the whole grid unmounting (leaving the tab or switching away), not one tile blinking.
+- **20:08 to 20:12 UTC: one camera, opened again and again.** `805_floodlight_cam_-_west_sd` had five views in a row: 0.3, 7.1, 7.4, 14.1 and 44.8 s. Each started 1 to 3 s after the one before ended (18 s before the last). `805_porch_-_floodlight_cam_-_east` then ran 54.1 s and 56.7 s, 3 s apart. That is the blinking shape Darrell named: a view ends and the next one opens.
+
+**What this read could not say.** The tab hangs up every one of these, so each reads `viewer-left`. A person tapping, or the app's own freeze or lag rule (`LIVE_LAG_RECONNECT_S` 30), looks the same from the NAS. The gaps fit the app's reconnect wait (`LIVE_RECONNECT_DELAY_MS` 1500 ms, then doubling), but that is a fit, not a proof.
+
+**Built tonight: each end says who opened it again.**
+- The app already counted its reconnects into the live URL (`r=`, `liveUrl`), but only in the large view. The grid tile and the Hub (`TileLive`) now send the count too (`Cameras.jsx`).
+- The forwarder keeps that count on every end (`live_reconnect_of`, `live_end_note(..., reconnect=)`). It is bounded to 0 to 999, and anything else reads 0.
+- cams-diag prints `r=` on each end, and a line counting the ends the app reopened itself against tiles mounted fresh (`r=0`).
+- Proven to catch: the forwarder route dropping the count turns 1 selftest check red; `TileLive` dropping it turns `cameras-render` red at "tile try 2". Both restored: the selftest passes, 236 camera tests pass.
+
+`re-review: 2026-10-22`, with the direct-road question above. Read cams-diag after the family next uses Cameras:
+- Ends with `r` of 1 or more are the app reopening a tile on its own. Their durations name the rule: about 20 s is the first-frame bound, 30 s or more behind live is the lag rule. The fix goes there.
+- Runs that are all `r=0` are tiles mounted fresh: a tap, the tab left and opened again, or a remount. Those are read from the screen, not from the NAS.

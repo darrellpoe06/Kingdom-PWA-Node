@@ -1102,7 +1102,9 @@ export function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
       const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
-      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), stream: null, mode, startedAt: Date.now() }));
+      // The reconnect count rides the URL, as the window's does, so the NAS's record of
+      // each end says whether this tile reconnected on its own (DR-1097, twenty-first read).
+      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket, { nonce: reconnects }), stream: null, mode, startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
         setSt((p) => {
           if (p.firstFrameMs != null || p.ended || !p.src) return p;
