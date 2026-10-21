@@ -36,6 +36,7 @@ import { cameraCredential, listUrl, snapUrl, parseCameraList, authHeaders, fetch
 import { bridgeToken } from '../lib/nas-photos.js';
 import {
   loadHubCamera, saveHubCamera, pickHubCamera, hubThumbs, hubCameraState,
+  loadHubCameraHidden, saveHubCameraHidden,
   HUB_CAMERA_WORDS, HUB_THUMB_REFRESH_MS, HUB_THUMB_WIDTH,
 } from '../lib/hub-camera.js';
 
@@ -119,6 +120,11 @@ export default function HubCamera({ setView = null, credential = null, fetchImpl
   const cred = credential || cameraCredential({ bridge: bridgeToken() });
   const [list, setList] = useState({ status: cred.token ? 'loading' : 'no-credential', cameras: [] });
   const [chosenId, setChosenId] = useState(() => loadHubCamera(storage));
+  // CLOSED ON THIS DEVICE (DR-1191; Darrell 2026-10-21: "I need to be able to
+  // close the cameras on the front page"). Closed is remembered per device,
+  // the way back stays where the cameras were (never a dead end), and the
+  // chosen camera is kept for when they are shown again.
+  const [hidden, setHidden] = useState(() => loadHubCameraHidden(storage));
   const [now, setNow] = useState(() => Date.now());
 
   // WHICH CAMERAS THIS DEVICE'S CREDENTIAL OPENS, asked once with its own key.
@@ -140,17 +146,20 @@ export default function HubCamera({ setView = null, credential = null, fetchImpl
 
   const state = hubCameraState({ token: cred.token, status: list.status, cameras: list.cameras });
   const chosen = state === 'live' ? pickHubCamera(list.cameras, chosenId) : null;
-  const thumbs = useMemo(() => (state === 'live' ? hubThumbs(list.cameras, chosen) : []), [state, list.cameras, chosen]);
+  // EVERY other camera, small (DR-1191: "also choose any camera"), not the
+  // first four: the grid wraps, and the picker beneath names them all.
+  const thumbs = useMemo(() => (state === 'live' && !hidden ? hubThumbs(list.cameras, chosen, list.cameras.length) : []), [state, hidden, list.cameras, chosen]);
   const frames = useThumbFrames(thumbs, cred.token, fetchImpl);
 
   // TileLive's reconnect countdown reads a clock; it ticks only while a camera plays.
   useEffect(() => {
-    if (state !== 'live') return undefined;
+    if (state !== 'live' || hidden) return undefined;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [state]);
+  }, [state, hidden]);
 
   const choose = (cam) => { saveHubCamera(cam.id, storage); setChosenId(cam.id); };
+  const setClosed = (v) => { saveHubCameraHidden(v, storage); setHidden(v); };
   const openCameras = setView ? () => setView('cameras') : null;
   const W = HUB_CAMERA_WORDS;
 
@@ -167,15 +176,38 @@ export default function HubCamera({ setView = null, credential = null, fetchImpl
     );
   }
 
+  if (hidden) {
+    return (
+      <section data-testid="hub-camera" data-state="hidden" aria-label={W.title} className="rounded-2xl bg-[#1F3A2E] text-[#F6F1E7] p-2 flex items-center justify-between gap-2 flex-wrap">
+        <p data-testid="hub-camera-hidden" className="text-xs leading-snug px-1">{W.hidden}</p>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button type="button" onClick={() => setClosed(false)} data-testid="hub-camera-show" className={`min-h-[36px] px-2 text-[0.625rem] uppercase tracking-wider border border-[#F6F1E7]/50 rounded-full ${FOCUS_RING}`}>
+            {W.show}
+          </button>
+          {openCameras ? (
+            <button type="button" onClick={openCameras} data-testid="hub-camera-open" className={`min-h-[36px] px-2 text-[0.625rem] uppercase tracking-wider border border-[#F6F1E7]/50 rounded-full ${FOCUS_RING}`}>
+              Cameras
+            </button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section data-testid="hub-camera" data-state={state} aria-label={W.title} className="rounded-2xl bg-[#1F3A2E] text-[#F6F1E7] p-2 space-y-2">
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="text-sm font-semibold truncate" style={SERIF}>{chosen ? chosen.name : W.title}</div>
-        {openCameras ? (
-          <button type="button" onClick={openCameras} data-testid="hub-camera-open" className={`shrink-0 min-h-[36px] px-2 text-[0.625rem] uppercase tracking-wider border border-[#F6F1E7]/50 rounded-full ${FOCUS_RING}`}>
-            Cameras
+        <div className="flex items-center gap-1.5 shrink-0">
+          {openCameras ? (
+            <button type="button" onClick={openCameras} data-testid="hub-camera-open" className={`min-h-[36px] px-2 text-[0.625rem] uppercase tracking-wider border border-[#F6F1E7]/50 rounded-full ${FOCUS_RING}`}>
+              Cameras
+            </button>
+          ) : null}
+          <button type="button" onClick={() => setClosed(true)} data-testid="hub-camera-hide" aria-label={W.hide} title={W.hide} className={`min-h-[36px] min-w-[36px] px-2 text-sm leading-none border border-[#F6F1E7]/50 rounded-full ${FOCUS_RING}`}>
+            ×
           </button>
-        ) : null}
+        </div>
       </div>
       {state === 'live' && chosen ? (
         <div className="rounded-xl overflow-hidden" data-testid="hub-camera-live" data-camera={chosen.id}>
@@ -214,6 +246,20 @@ export default function HubCamera({ setView = null, credential = null, fetchImpl
           </div>
           <p className="px-1 mt-1 text-[0.625rem] opacity-90">{W.choose}</p>
         </div>
+      ) : null}
+      {state === 'live' && list.cameras.length > 1 ? (
+        <label className="block px-1 text-[0.625rem] uppercase tracking-wider opacity-90">
+          <span className="sr-only">{W.chooseAny}</span>
+          <select
+            data-testid="hub-camera-pick"
+            aria-label={W.chooseAny}
+            value={chosen ? chosen.id : ''}
+            onChange={(e) => { const cam = list.cameras.find((c) => c.id === e.target.value); if (cam) choose(cam); }}
+            className={`w-full min-h-[36px] px-2 py-1 rounded-md bg-[#16291F] text-[#F6F1E7] border border-[#F6F1E7]/40 text-xs normal-case tracking-normal ${FOCUS_RING}`}
+          >
+            {list.cameras.filter((c) => c && c.id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
       ) : null}
     </section>
   );
