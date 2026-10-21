@@ -45,7 +45,20 @@ const mount = () => act(() => root.render(createElement(ChurchLearn, {
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
 const button = (text) => [...box.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
-const openLesson = () => { mount(); act(() => { button('Start this week →').click(); }); return getReadTarget(); };
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course is
+// open until one is chosen, so opening a lesson takes the reader's own first
+// tap -- the course row in that one list.
+const chooseFirstCourse = () => {
+  const row = box.querySelector('[data-testid="course-choice-list"] button[data-course]');
+  if (!row) throw new Error('the one list offered no course to open');
+  act(() => { row.click(); });
+};
+const openLesson = () => {
+  mount();
+  chooseFirstCourse();
+  act(() => { button('Start this week →').click(); });
+  return getReadTarget();
+};
 const prepared = () => {
   const t = openLesson();
   act(() => { t.prepare(true); });

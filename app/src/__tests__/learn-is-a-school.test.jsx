@@ -77,9 +77,19 @@ describe('Learn is a school — departments derived from the catalog', () => {
     expect(container.querySelector('[data-testid="learn-departments"]').textContent).toMatch(/One program · \d+ departments · \d+ courses · \d+ lessons/);
   });
 
-  it('the default course is still Living Lessons, on the Courses tab, with every course in the picker', () => {
+  it('the Courses tab opens on the one list, with every course in the picker', () => {
+    // RE-POINTED 2026-10-21 (DR-1183). This pinned "the Courses tab's heading
+    // reads Living Lessons", which is exactly the title page Darrell named:
+    // nothing is open on the all-courses view until a course is chosen, so the
+    // heading names no course and the one list is the page. A DEPARTMENT tab is
+    // unchanged -- it is a narrowing the reader performed, and the cases below
+    // still pin it opening on its department's first course (DR-0432/0433).
     mount();
-    expect(heading()).toBe('Living Lessons from the Word');
+    expect(heading()).toBe('Choose a course');
+    const offered = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+      .map((b) => b.textContent || '');
+    expect(offered.length).toBeGreaterThanOrEqual(LEARN_CATALOG.length);
+    expect(offered.some((t) => /Living Lessons from the Word/.test(t))).toBe(true);
     const opts = pickerOptions();
     expect(opts.length).toBeGreaterThanOrEqual(LEARN_CATALOG.length);
     // every option carries a catalog code
@@ -102,10 +112,13 @@ describe('Learn is a school — departments derived from the catalog', () => {
     for (const o of own) expect(o).toMatch(/^(● )?KLS-\d{3} · /);
     expect(keys).toContain(heading());
     expect(container.querySelector('[data-testid="course-catalog-line"]').textContent).toMatch(/^KLS-\d{3} · Kingdom Life & Stewardship/);
-    // back to Courses: the whole catalog again, and the course chosen nowhere → Living Lessons
+    // back to Courses: the whole catalog again, and nothing chosen → the one
+    // list, not a course (DR-1183). The narrowing is undone, so the choice the
+    // department made for the reader is undone with it.
     clickTab('Courses');
     expect(pickerOptions().length).toBeGreaterThanOrEqual(LEARN_CATALOG.length);
-    expect(heading()).toBe('Living Lessons from the Word');
+    expect(heading()).toBe('Choose a course');
+    expect(container.querySelector('[data-testid="course-choice-list"]')).toBeTruthy();
   });
 
   it('Mathematics is a department tab whose one course opens with its lessons (DR-0433)', () => {
@@ -137,7 +150,12 @@ describe('Learn is a school — departments derived from the catalog', () => {
     mount({ initialDept: 'school-of-nothing' });
     const on = deptTabs().find((b) => b.getAttribute('aria-selected') === 'true');
     expect((on.textContent || '').trim()).toBe('Courses');
-    expect(heading()).toBe('Living Lessons from the Word');
+    // NEVER A DEAD DOOR, which is this case's whole promise: the stale link
+    // lands on the Courses tab, and that tab is the one list (DR-1183).
+    expect(heading()).toBe('Choose a course');
+    const list = container.querySelector('[data-testid="course-choice-list"]');
+    expect(list, 'a stale department must land on the one list, not a blank').toBeTruthy();
+    expect(list.querySelectorAll('button[data-course]').length).toBeGreaterThanOrEqual(LEARN_CATALOG.length);
   });
 
   it('the shell no longer carries a separate Eternal Algorithms chip; the route resolves into Learn', async () => {

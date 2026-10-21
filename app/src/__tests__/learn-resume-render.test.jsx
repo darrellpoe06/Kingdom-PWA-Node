@@ -125,10 +125,14 @@ describe('Learn resume-your-place', () => {
   it('opening a lesson guide records the place, so the NEXT visit can resume', () => {
     mount();
     expect(getPlace()).toBeNull();
-    // Learn opens on the DEFAULT course (Living Lessons since 2026-09-11);
-    // open its first lesson's guide. This test is about RESUME, so it asserts
-    // that the place recorded matches the course actually on screen rather than
-    // pinning whichever course happens to be the default.
+    // Learn's all-courses view opens on the ONE LIST now (DR-1183), so the
+    // course is CHOSEN here -- the same tap a reader makes. This test is about
+    // RESUME, so it asserts the place recorded matches the course actually on
+    // screen rather than pinning whichever course happens to be the default.
+    const row = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+      .find((b) => (b.textContent || '').includes('Living Lessons'));
+    expect(row, 'the one list must offer Living Lessons').toBeTruthy();
+    act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const openCourse = container.querySelector('#learn-h').textContent;
     expect(openCourse).toBe('Living Lessons from the Word');
     // Living Lessons counts in LESSONS, not weeks (its unit descriptor).

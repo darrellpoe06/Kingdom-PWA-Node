@@ -127,6 +127,10 @@ import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordP
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
+// THE ONE LIST YOU CHOOSE FROM (DR-1183) — shown instead of a course while no
+// course has been chosen, so Learn never opens as a title page for a course
+// nobody picked.
+import CourseChoiceList from './CourseChoiceList.jsx';
 import { withLessonDates } from '../lib/lesson-dates.js';
 import { courseCompleteness, completenessLine } from '../lib/lesson-completeness.js';
 import { withWordQuotes } from '../lib/lesson-word-quotes.js';
@@ -4231,6 +4235,18 @@ export default function ChurchLearn({
   const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
     ? chosenCourse
     : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
+  // A COURSE IS OPEN WHEN SOMEBODY CHOSE ONE -- OR WHEN A DEPARTMENT TAB IS
+  // (DR-1183). Darrell's complaint was about ARRIVING at Learn and meeting
+  // Living Lessons' title, catalog line, plain words, Share, Download, sticky
+  // bar, Word-first lead and whole schedule with nothing saying no choice had
+  // been made. A DEPARTMENT TAB is a narrowing the reader performed, and
+  // DR-0432 / DR-0433 pin that door opening on its department's first course
+  // with its lessons ("lessons depending on the courses as usual") -- including
+  // a one-course department like Mathematics, where a list of one would be a
+  // tap for nothing. So the one-list rule is scoped to the all-courses view,
+  // which is the surface he was looking at. Whether it should extend to a
+  // department tab is his call and is dated in DR-1183.
+  const courseOpen = courseChosen || !!dept;
   const totalLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
   // BOTH NUMBERS (DR-0715): one per lesson, and every age version those
   // lessons really carry (lib/learn-organize.js lessonVersions), so the scale
@@ -4609,6 +4625,26 @@ export default function ChurchLearn({
               </select>
             </div>
           </div>
+        )}
+
+        {/* ONE LIST, AND ONLY UNTIL A COURSE IS CHOSEN (DR-1183). Darrell
+            2026-10-21: "we need one list when choosing a course... with all
+            options to sort that one list... only have that sortable list when
+            it is chosen!!!!" The order is the SAME sort control above, applied
+            to the WHOLE list rather than inside each department -- which is
+            what `organizeCourses` did, and why "Title A-Z" produced eleven
+            little lists instead of one. Every row is one tap into that
+            course. */}
+        {!courseOpen && !lessonFocus && (
+          <CourseChoiceList
+            courses={visibleCourses}
+            catalog={courses}
+            sortKey={sortNow}
+            sortLabel={(courseSorts.find((o) => o.key === sortNow) || {}).label || ''}
+            ctx={sortCtx}
+            departmentLabel={dept ? dept.label : ''}
+            onChoose={(k) => { setActiveKey(k); setResumeOpenGuide(false); }}
+          />
         )}
 
         {/* PICK UP WHERE YOU LEFT OFF — directly under the course picker
@@ -5138,13 +5174,20 @@ export default function ChurchLearn({
           );
         })()}
 
+        {/* THE HEADING NAMES WHAT IS OPEN, AND NOTHING IS OPEN UNTIL IT IS
+            CHOSEN (DR-1183). Darrell 2026-10-21: "It's like a title page
+            saying your inside living lessons". It said a course's title
+            because `active` falls back to Living Lessons for the CONTENT
+            while `chosenCourse` is still null -- the file's own comment at
+            `activeKey` says exactly that. The <h2> stays (the section is
+            aria-labelledby it) and says the truth instead. */}
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
-          {active.meta.title}
+          {courseOpen ? active.meta.title : 'Choose a course'}
         </h2>
         {/* The catalog line a school prints under a course title: its code,
             its department, and its level where the course declares one
             (meta.programLevel) — never invented for a course that did not. */}
-        {!lessonFocus && (() => {
+        {courseOpen && !lessonFocus && (() => {
           const coded = departments.flatMap((d) => d.courses).find((c) => c.key === active.key);
           if (!coded) return null;
           return (
@@ -5165,7 +5208,7 @@ export default function ChurchLearn({
             find this course in search (learn-organize.js buildLessonIndex), so
             the line a reader sees and the words that reach them are one thing,
             never two that drift. */}
-        {!lessonFocus && plainWordsFor(active.key).length > 0 && (
+        {courseOpen && !lessonFocus && plainWordsFor(active.key).length > 0 && (
           <p className="text-[0.75rem] text-[#5A6E3D] mb-3" data-testid="course-plain-words">
             <span className="uppercase tracking-wider text-[0.625rem] text-[#5A5751] mr-1.5">In plain words</span>
             {plainWordLine(active.key)}
@@ -5179,7 +5222,7 @@ export default function ChurchLearn({
             control belongs to whoever is READING the course, and burying it
             behind isGovernor is the exact mistake the time control made. The
             lesson count is counted from the live schedule, never typed. */}
-        {!lessonFocus && (
+        {courseOpen && !lessonFocus && (
           <div className="mb-3 flex items-center gap-2 flex-wrap">
             <ShareButton
               label="Share this course"
@@ -5244,6 +5287,14 @@ export default function ChurchLearn({
           eight weeks are on screen is what makes the question answer itself: it
           says plainly there is more, and the button beside it says where. Both
           numbers derive from the mounted catalog, never typed (DR-0121). */}
+      {/* THE BAR STAYS, AND SAYS THE TRUE THING (DR-1183). It carried
+          `active.meta.title` and this course's Continue, both of which were
+          Living Lessons' while nobody had chosen -- so the first draft of
+          DR-1183 gated the whole bar, and that was wrong: this landmark exists
+          BECAUSE a reader browses without choosing (Christina 2026-08-31, "How
+          do I get to the rest of the lessons?"). So the bar renders either way
+          and the three things inside it that belong to a course wait for one:
+          the unit noun, the course's name, and its Continue. */}
       {courses.length > 1 && !lessonFocus && (
         <div
           className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-wrap"
@@ -5260,15 +5311,15 @@ export default function ChurchLearn({
             }}
             className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
-            <UiIcon name="bookOpen" /> All<span className="hidden sm:inline"> {unitLabels(active.meta).noun}s</span>
+            <UiIcon name="bookOpen" /> All<span className="hidden sm:inline"> {courseOpen ? `${unitLabels(active.meta).noun}s` : 'lessons'}</span>
           </button>
-          <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-            {active.meta.title}
+          <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} data-testid="lessons-bar-where">
+            {courseOpen ? active.meta.title : 'No course chosen yet'}
           </span>
           {/* THIS COURSE'S CONTINUE, WHERE IT NEVER SCROLLS AWAY (DR-0631).
               The bar is sticky, so a reader anywhere in the course's lesson
               list is one tap from the lesson they have in progress here. */}
-          <ContinueChip item={activeContinue} onContinue={continueAndRead} />
+          {courseOpen && <ContinueChip item={activeContinue} onContinue={continueAndRead} />}
           <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span>
           </span>
@@ -5285,7 +5336,7 @@ export default function ChurchLearn({
           its opening Word; what waits while a lesson is open is the course's
           schedule furniture (the count of weeks, the cohort pill, the start
           date), which is in the course view below. */}
-      {(() => {
+      {courseOpen && (() => {
         const lead = wordFirstLead(active);
         if (!lead) return null;
         return (
@@ -5324,6 +5375,9 @@ export default function ChurchLearn({
         </details>
       )}
 
+      {/* THE LESSONS OF THE CHOSEN COURSE. Nothing is chosen on a first
+          arrival, and until then the one list above is the page (DR-1183). */}
+      {courseOpen && (
       <CourseView
         key={active.key}
         course={active}
@@ -5351,6 +5405,7 @@ export default function ChurchLearn({
         onAllCourses={() => { setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); }}
         lessonOrder={lessonOrderPick[active.key] || null}
       />
+      )}
     </section>
   );
 }
