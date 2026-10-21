@@ -1,0 +1,153 @@
+# Transcript of YouTube video adpDZJtstTQ
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 2368 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+In this video, I'm going to solve the argument once and for all of whether you should build
+single-family homes or duplexes for rent. Hint, there's no question what the right answer is.
+Build to rent has become a very fashionable term and it's come to mainly be associated with
+single-family subdivisions and neighborhoods built specifically for rent. You see these
+predominantly in the Southeast, but also in other parts of the country where land and labor is
+cheap and the numbers pencil. And yes, these are very nice developments of usually cookie-cutter
+single-family homes with some shared amenities and they're quite popular with renters. Everyone
+loves single-family homes with a nice, albeit small, backyard. I'm not here to talk about this.
+I use the term build to rent when it comes to a much wider swath of our development business.
+Basically, anything that you build to rent out. And while these larger single-family home
+subdivisions are nice in most markets, including mine, the numbers simply don't work to buy the
+land at the right cost basis, spend a huge amount of money developing the raw land into
+buildable pads, and then build single-family homes to rent out. It just doesn't pencil. It
+doesn't make sense. So, what we focus on instead of what I think works much better in most
+markets is infill development. Infill development, in its simplest form, is where you find an
+existing buildable lot on an established block. Perhaps there was a house there before, perhaps
+not, but there already utilities in the street, there's already a road, so you don't have to
+deal with expensive site work. No building new roads or sidewalks, just apply for permits,
+connect to existing utilities in the street, and build. Or perhaps you're in in the more rural
+area and you can build with a well and septic, and that's okay, too. So, now you have have
+infill lot and zoning allows you to build a single family home or a duplex. What do you build if
+you can build either? And let's be clear, when I say duplex, I mean two units on one lot. One
+building lot two units. I'm not talking about two separate units on two separate buildable lots.
+Those are single family homes. One building lot, two units. That's what I call a duplex, whether
+they're side-by-side units, front and back, or up and down. So, what's better to build, a larger
+single family home or a duplex? Well, you know the saying, people lie, numbers don't. Let's do a
+simple case study and determine what's better to build. Now, I'm going to give you a quick
+warning. We're going to do some fairly simple math here, but I want you to follow along. So,
+take your calculator out or use your phone, and let's run through this really quick. And again,
+I'm going to pull numbers from my own market, right? The these numbers may be uh similar to
+where you live and where you do business. Maybe they're not, but these are numbers from my
+market, and we're kind of a middle-of-the-road, average, let's say, market. We're not too high,
+we're not too low, um middle-of-the-road. So, your single family home is going to be a 2,400
+square foot house, 1,200 square feet per floor, four bedrooms, four baths. It's got a large
+backyard, two off-street parking spaces. And it's going to cost you about $145 per foot to
+build. A nice, like, rental quality home. Not crazy finishes, super high-end, nice finishes,
+rental quality home. And you're going to go out and you're going to rent this for around $2,700
+a month. So, your land cost per unit is $60,000 because that's what the buildable lot cost you.
+It cost you $60,000. Your built cost per unit is going to be $348,000. And your rent is going to
+be a dollar and 12 cents per month. Gross yield, if you're not familiar with gross yield is this
+is how you calculate gross yield. You take your monthly rent times 12, your annual rent divided
+by your cost basis. And again, this is an oversimplified example because of my total cost basis
+we're not figuring in for cost of financing, holding costs, even though we holding costs you can
+bunch into your construction costs. So, a bit of an oversimplified example, but your gross yield
+here is just under 8%. Not bad. But what if you could take that same house and zoning allows you
+to break it up into two units? 1,200 square feet per floor. Again, the total house the total
+structure is four bedrooms, four baths. You have a large backyard that your tenants are going to
+share and each apartment is going to get one off-street parking space. Now, it's going to cost
+you a little bit more to build. Let's assume let's be conservative and say $160 a foot because
+now within that same 2,400 square feet you're building two kitchens, you have multiple water
+heaters, you have multiple sets of kitchen appliances, your electrical is going to cost you a
+little bit more, HVAC is going to cost you a little bit more. So, 160 a foot. But now you've got
+two apartments, two bedrooms, two baths each. And each apartment is getting $2,000 per month in
+rent. So, now that same building, that same 2,400 square foot building is getting $4,000 in rent
+rather than 2,700. Your land cost per unit gets halved, so it's It's $30,000. And your build
+cost per unit is only $192,000 because each unit is only 1,200 square feet. Your rent goes from
+$1.12 a month to $1.67 a month. And your gross yield is almost 11%. If you're building rental
+product, there is no argument that duplexes are better. So, what's like what's going on here?
+Well, there are a couple of things at play. The most important concept driving the numbers here
+is a diminishing dollar per foot in rent that you can command as the unit size goes up. You pay
+roughly the same dollar per foot to build, give or take. But, you get a lot more in rental
+income as you build smaller units. There's a very good reason why every new construction
+multi-family project you see going up around the country is filled with studios and one-bedroom
+apartments, a lot fewer twos, and almost no threes or fours. There's a reason why every one of
+these apartment buildings mostly has studios and ones, and then they sprinkle in two-bedroom
+apartments, and they build small. Smaller units pay more per square foot and work much better on
+the pro forma, making the project more financially feasible. I would argue that right now, if
+these buildings were built with two and three-bedroom apartments only, most of them cannot be
+built. The other consideration here is kind of qualitative rather than quantitative. I look, I
+can't speak to every market, but in most markets, including my own, if I build a four-bedroom,
+four-bath house and advertise it for $2,700, there's a very limited renter pool that will rent
+this house. There are very few families in our market that are looking to rent because the the
+schools in where I develop aren't great. And overall, very few households can afford to pay
+close to $3,000 a month for housing. I I may be able to find four roommates that I want to move
+in that want to move in together, but it'll end up being a party house. It'll turn over every
+year and still be challenging to lease. But there's a much wider rental pool that will rent a
+1,900 or a $2,000 two-bedroom apartment. Young professionals, two roommates, etc. So, whenever
+possible, you want to be building for a wider rental pool rather than a narrow rental pool. So,
+hopefully that solves that argument once and for all. If you can build a single-family rental or
+a duplex, I would always build duplexes. What if zoning only allows single-family homes to be
+built and you want to build rentals? Well, I would build smaller. Yeah, the the goal is the goal
+of this video is to teach you how to build a project that will actually pencil out and can be
+built, that will get financed, that will deliver a return on investment that makes the deal
+worthwhile. We still want to deliver great spaces to the market, great buildings, great
+apartments, great houses where people are happy and comfortable living that they stay in, but
+the deal has to pencil out. So, if you have to build single-family rentals, don't build a 2,400
+sq ft four-bedroom four-bath. Instead, build a smaller four-bedroom four-bath, 1,600 sq ft. You
+can still build a very efficient four-four inside the 1,600 sq ft house. It's still going to
+cost you about $145 a foot to build. Your land cost doesn't change. It's $60,000 per unit. But
+your build cost goes down tremendously. You're going to get a little bit less in rent because
+there's less space. $2,500 a month for comparable house. But, look what happens to your rent
+dollar per foot. It goes to 162 a month. And look at what happens to your gross yield. It goes
+from 8% to almost 11%. How much better is that? Efficient design. Paying attention to how well
+you design the house, how well the bedrooms are laid out, the circulation path is out to
+minimize hallway space, to minimize useless space in the house that adds to square footage, but
+it's not really livable square feet, square square foot. Square feet. Makes a big difference.
+Design the house efficiently. Maximize the space that people will actually use, minimize the
+waste. And you can generate massive cost savings and still deliver a great product to the
+market. You can also try the opposite. If zoning only allows single-family homes, you can try
+the opposite. Whether you can successfully up-zone a single-family lot to a duplex will depend
+heavily on your county. Some welcome it, some will never approve it. The more suburban your area
+is, the more it's likely it's strictly filled with single-family zoning districts. And the
+harder it will be to up-zone. If you're in the more urban market that already has a mix of
+housing types and zoning codes, then your chances of success then your chances of success here
+are significantly higher. And if you're not sure whether this will fly in your target market, go
+talk to the local planning department. Or find an experienced land use attorney. And go talk to
+them. All right, some additional considerations. Hopefully, you're finding this valuable. Will
+you have more liquidity down the road if you build a single-family home and want to sell it
+years later than a duplex? One can definitely make that argument. Single-family homes generally
+have a wider buyer appeal, though it depends on the market. It depends on where you are in the
+cycle. I mean, you can easily make the argument that duplexes are just as attractive to buyers
+as single family homes. They allow someone to live in one of the units and rent out the other to
+supplement their mortgage payments. Duplexes are also very popular with investors. So, down the
+road if you're selling your duplex, you'll have both homeowners and investors competing for your
+property. There are no financing hurdles I'm aware of that make duplexes any harder to finance
+for buyers than single family homes. Well, do duplexes devalue neighborhoods? So, I already knew
+the answer and I was going to pull up all kinds of statistics and market studies for you, but
+frankly, then I got lazy and just asked the Google. So, here's what it told me. No, extensive
+real estate research shows that duplexes do not devalue single family neighborhoods.
+Comprehensive market studies including data analyzed by American Enterprise Institute confirmed
+that introducing light touch density like duplexes has zero adverse impact on the price
+appreciation of adjacent single family detached homes. Etcetera, etcetera. So, no. So, if you're
+ready to build, make sure you check out some other videos on our YouTube channel and our website
+specifically on building duplexes. This is a great training how to build a duplex with zero
+cash. This is another one. This is another one. Just like all my other content, this is training
+that goes deep on the exact development process, zoning analysis, financial analysis, and much
+more. And as I said earlier, people lie, numbers don't. This is why having analytical tools that
+give you accurate data and financial analysis is key. This is why I built Rehab Valuator
+originally for our own deals and now it's used by thousands of investors and developers around
+the country. You can instantly pull up any property in the US, get owner contact info, all the
+property and land characteristics needed to make an offer. You can even see what other
+properties that seller owns. You can pull up nationwide comparable sales. You can pull up rental
+comps in any market. You can easily build construction budgets and schedules. You can fully
+manage your project start to finish. Plus, you get ability to create point-and-click lender
+proposals that get you funded for your flips or long-term development projects, including pro
+formas and everything else your lender wants to see. This is a tool that I designed myself
+because I got tired of messing around with the clunky spreadsheets, confusing models. And this
+is something that we're constantly pumping money back into in order to make it better and
+better. You can take it for a test drive for 2 weeks by going to rehabvaluator.com /trial. All
+right, that's all I got for you. If you're still here, congratulations. You've made it through
+the whole video. Make sure you leave me a comment below. Leave me your questions. Leave me your
+thoughts. I try to answer everybody. Make sure you subscribe to our YouTube channel. We're We're
+putting out a lot more content in the coming months, specifically on real estate development.
+All right, thank you.
