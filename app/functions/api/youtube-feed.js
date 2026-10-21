@@ -35,15 +35,21 @@
 // its text is returned as data for the app to render and nothing in it steers
 // this function.
 
+// The two guards below are EXPORTED so a vitest case can run them (a Pages
+// Function's handler cannot be invoked here -- there is no caches.default and no
+// edge runtime -- but its SAFETY DECISIONS can, and those are the part worth a
+// standing gate rather than a one-off check). Extra named exports are inert at
+// the edge: Cloudflare Pages calls onRequestGet and ignores the rest.
+
 const json = (obj, status) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
-const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+export const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
 const FEED_HOST = 'https://www.youtube.com/feeds/videos.xml?channel_id=';
 
 // Only a YouTube channel page may be resolved — the host allow-list is what
 // keeps this from becoming a general-purpose fetcher for anyone who finds it.
-function isYouTubePage(raw) {
+export function isYouTubePage(raw) {
   try {
     const u = new URL(raw);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
@@ -56,7 +62,7 @@ function isYouTubePage(raw) {
 // Ordered most-authoritative first: the page's own RSS <link>, then the canonical
 // /channel/UC… url, then the embedded JSON. Returns '' when none is present,
 // which is the honest answer — we never invent an id we cannot see.
-function channelIdFromPage(html) {
+export function channelIdFromPage(html) {
   const pats = [
     /channel_id=(UC[A-Za-z0-9_-]{22})/,
     /<link[^>]+rel=["']canonical["'][^>]+\/channel\/(UC[A-Za-z0-9_-]{22})/i,

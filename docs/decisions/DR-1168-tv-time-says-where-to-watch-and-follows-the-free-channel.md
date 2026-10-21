@@ -204,6 +204,17 @@ behind white. Changed to `#5A6E3D` and the guard passes every theme.
 - `feature-presence.test.jsx` — two new walks and **nine new registry entries**
   (DR-0726). Verified proven-to-catch by renaming one `data-testid`: the gate
   went red naming *"Missing: Where to watch (on a show card)"* and five siblings.
+- `youtube-feed-edge-guards.test.js` — 6 cases on the edge road's safety
+  decisions, which are the part of a Pages Function a test can actually run.
+  The host allow-list refuses a lookalike subdomain, a suffix lookalike, the
+  name appearing only in a query string, loopback v4 and v6, **the cloud
+  metadata address `169.254.169.254`**, `file://` and `javascript:`, a
+  scheme-relative url and a bare host. Proven-to-catch by widening the
+  allow-list from equality to `h.includes('youtube.com')`: the gate went red
+  naming `"https://youtube.com.evil.com/x" must be refused`, and the file was
+  restored **byte-identical, verified with `cmp`** (DR-1092 — `git diff --stat`
+  cannot tell a restored file from an edited one while real edits are
+  uncommitted).
 - `contrast-guard.mjs` — PASS, 11 themes, 60 bg + 57 text classes both
   directions in midnight.
 
