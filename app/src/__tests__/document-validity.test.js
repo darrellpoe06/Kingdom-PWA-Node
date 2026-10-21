@@ -229,6 +229,26 @@ describe('ON THE CALENDAR — proposed, with notice, and editable', () => {
   });
 });
 
+describe("the door's own shelf is watched by its exact kind token (DR-1163)", () => {
+  it('a door document filed as insurance, inspection or permit is a kind that expires', () => {
+    expect(kindOf({ kind: 'insurance', title: 'State Farm, 805 North Prospect' }).id).toBe('insurance-door');
+    expect(kindOf({ kind: 'inspection', title: 'City of Champaign, 2026' }).id).toBe('inspection-door');
+    expect(kindOf({ kind: 'permit', title: 'Rental permit' }).id).toBe('permit-door');
+    expect(kindOf({ kind: 'lease', title: 'Lease, Apt 2' }).id, 'the lease already matched by word').toBe('lease');
+  });
+  it('PROVEN TO CATCH: the token is the whole field, so legal work about insurance is still not a policy', () => {
+    expect(kindOf({ docType: 'Insurance claim dispute' })).toBeNull();
+    expect(kindOf({ kind: 'correspondence', title: 'About the insurance' })).toBeNull();
+    expect(kindOf({ kind: 'receipt', title: 'Permit fee receipt' })).toBeNull();
+  });
+  it('a date read off the paper beats the kind\'s term', () => {
+    const v = validityOf({ kind: 'insurance', title: 'Policy', effective_on: '2026-01-01', expires_on: '2026-11-15' }, '2026-10-21');
+    expect(v.expiresOn).toBe('2026-11-15');
+    expect(v.state).toBe(STATES.expiringSoon);
+    expect(v.why).toMatch(/the date on the document/);
+  });
+});
+
 describe('the registry itself is sane', () => {
   it('every kind has a term, a warning window and a usable pattern', () => {
     for (const k of EXPIRING_KINDS) {

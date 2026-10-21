@@ -18,7 +18,7 @@
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote, changeSummary,
+  resolveFace, buildHistory, newestFirst, forThisTenancy, tenancyHasTenant, buildJobDoc, buildTenancyNote, changeSummary,
   unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
   canPostToBooks, rentRecordToBookEntry, unpostedRent, coLivingTag } from './model.js';
@@ -43,6 +43,7 @@ import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab, FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
 import { EnergyTab } from './EnergyTab.jsx';
+import DevelopmentTab from './DevelopmentTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
 import { PapersPanel } from './DocSigning.jsx';
@@ -71,7 +72,7 @@ import {
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
-import { tenancyRowForDoor } from './staging.js';
+import { tenancyRowForDoor, tenancyForTenantInvite } from './staging.js';
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
@@ -287,7 +288,7 @@ const KIND_LABEL = {
 // reads. Only the FACE changes: anything sent from a preview is still recorded
 // as the person really signed in (realRole), never as the tenant.
 export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
@@ -635,12 +636,6 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return null;
   }, [activeDoor, activeRental]);
 
-  useEffect(() => {
-    if (!workDoor) { setRecord({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }); return; }
-    let live = true;
-    loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId }).then((r) => { if (live && r.ok) setRecord(r); });
-    return () => { live = false; };
-  }, [workDoor, reloadKey]);
 
   // EVERY CHANGE, TO THE INSTANT (DR-0899). The door_events of the rent
   // records and work orders on this door, read under the reader's own RLS.
@@ -701,6 +696,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [grants, household, activeDoor, surface, rentals, seat]);
   const previewing = Boolean(viewAs && PREVIEW_ROLES.includes(viewAs));
   const role = previewing ? viewAs : realRole;
+
+  // The landlord's faces read every tenancy this door has had (DR-1167); the
+  // ids join as one string key so a re-read happens only when the set moves.
+  const landlordSees = realRole === 'owner' || realRole === 'manager';
+  const doorTenancyKey = (doorData.tenancies || []).map((t) => t.id).filter(Boolean).sort().join(',');
+  const doorTenancyIds = useMemo(() => (doorTenancyKey ? doorTenancyKey.split(',') : []), [doorTenancyKey]);
+  useEffect(() => {
+    if (!workDoor) { setRecord({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }); return; }
+    let live = true;
+    loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId, earlierTenancyIds: landlordSees ? doorTenancyIds : [] })
+      .then((r) => { if (live && r.ok) setRecord(r); });
+    return () => { live = false; };
+  }, [workDoor, reloadKey, landlordSees, doorTenancyIds]);
 
   const face = useMemo(() => resolveFace(role, previewing ? (ROLE_CEILING[role] || []) : grants), [role, grants, previewing]);
 
@@ -779,13 +787,24 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Who said what, by name (DR-0871) — joined from the invite rows, which
   // hold both the name and the user id once the person has signed in.
   const speakerNames = useMemo(() => namesByUserId(invites), [invites]);
+  // A TENANT SEES THEIR OWN TENANCY (DR-1167). The tenant and household faces,
+  // real or previewed, read this tenancy's rows from the day it became theirs
+  // and never the landlord's own door notes; every other face reads the door.
+  const tenantFace = role === 'tenant' || role === 'household';
+  const seen = useMemo(() => (tenantFace ? forThisTenancy(record, activeDoor) : record), [tenantFace, record, activeDoor]);
+  const seenChanges = useMemo(() => {
+    if (!tenantFace) return changes;
+    const ids = new Set([...seen.requests, ...seen.rent].map((x) => x.id));
+    return changes.filter((e) => ids.has(e.subject_id));
+  }, [tenantFace, seen, changes]);
+  const doorNotes = useMemo(() => (role === 'owner' || role === 'manager' ? doorData.propertyNotes || [] : []), [role, doorData.propertyNotes]);
   const history = useMemo(
-    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], changes, names: speakerNames })),
-    [record, doorData.propertyNotes, changes, speakerNames],
+    () => newestFirst(buildHistory({ ...seen, propertyNotes: doorNotes, changes: seenChanges, names: speakerNames })),
+    [seen, doorNotes, seenChanges, speakerNames],
   );
   const openWork = useMemo(
-    () => (record.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
-    [record.requests]
+    () => (seen.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
+    [seen.requests]
   );
 
   const refresh = () => setReloadKey((k) => k + 1);
@@ -827,6 +846,24 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     setActiveId(res.row.id);
     return { ok: true, door: res.row, created: true };
   }, [activeDoor, activeRental]);
+
+  // A TENANT IS INVITED ONTO A TENANCY THAT IS THEIRS (DR-1167). Never onto
+  // an ended tenancy or someone else's: the new tenant's history starts with
+  // them (staging.js tenancyForTenantInvite says which row, this writes it).
+  const doorForTenant = async (invitee) => {
+    if (isOwnHome(activeRental)) return { ok: false, reason: 'own-home' };
+    const plan = tenancyForTenantInvite({ door: activeDoor, rental: activeRental, instanceId: activeRental?.instance_id || null, invitee });
+    if (!plan.ok) return plan;
+    if (plan.action === 'use') return { ok: true, door: plan.door };
+    if (plan.action === 'hold') {
+      const res = await updateTenancy(plan.door.id, plan.patch, { summary: `Unit record is now ${plan.patch.tenant_name || 'the invited tenant'}'s tenancy; their history starts here.`, instanceId: plan.door.instance_id });
+      return res.ok ? { ok: true, door: res.row || plan.door } : { ok: false, reason: res.reason };
+    }
+    const res = await createTenancy(plan.row);
+    if (!res.ok) return { ok: false, reason: res.reason };
+    setDoors((prev) => [...prev, res.row]);
+    return { ok: true, door: res.row };
+  };
 
   const WHY_NO_DOOR = {
     'no-instance': 'This property is not attached to an instance yet, so there is nowhere to file it.',
@@ -1292,13 +1329,22 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         />
       )}
 
+      {tenantFace && seen.vacant && (
+        // NOBODY LIVES HERE YET (DR-1167): on a door with no tenant on its
+        // record, the tenant's face is empty on every tab, and says why, so
+        // the landlord's preview never passes off his own record as theirs.
+        <div className="border-l-4 border-[#2F5D50] bg-white p-2 mb-3 text-xs text-[#1A1815]" role="status" data-testid="tenant-face-vacant" style={serif}>
+          <strong>Nobody lives at this door yet.</strong> A tenant who moves in starts here with their own lease, messages, payments and work orders, from the day the tenancy becomes theirs. Nothing from before them, and none of your own notes, is part of what they see.
+        </div>
+      )}
+
       {(() => {
         const current = face.tabs.find((t) => t.id === activeTab);
         if (current?.locked) {
           return <Card title={current.label}><Empty>{current.lockReason}</Empty></Card>;
         }
         switch (activeTab) {
-          case 'door': return <DoorCard door={activeDoor} />;
+          case 'door': return <DoorCard door={tenantFace && seen.vacant ? null : activeDoor} vacant={tenantFace && seen.vacant} since={tenantFace ? seen.since : null} />;
           // The readiness list is keyed by the rental's UUID where there is one
           // (a slug can be renamed; the row's id cannot), and its bedroom groups
           // are the door's REAL rooms — see readiness.js for the full trace.
@@ -1406,10 +1452,20 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 only their tenancy, so the door's tenancies are read too. */}
             {(role === 'owner' || role === 'manager') && (
               <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
-                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} />
+                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} addEvent={addEvent} />
             )}
             </>
           );
+          case 'development':
+            // BUILDING FROM THE GROUND UP (DR-1166). The projects live in the
+            // landlord instance behind the books' wall (0305): the owner's.
+            return role === 'owner'
+              ? <DevelopmentTab />
+              : (
+                <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
+                  <p className="text-[0.875rem] text-[#1A1815]">Development projects belong to the owner and are not shared with a delegated manager.</p>
+                </section>
+              );
           case 'energy':
             // THE METER (DR-1098). The owner's record only: a delegated manager
             // is not an instance member, so RLS would hand them an empty list
@@ -1497,7 +1553,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return (
               <>
               <WorkTab
-                door={workDoor} place={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
+                door={workDoor} place={workDoor} requests={seen.requests} open={openWork} docs={seen.docs} role={role}
                 mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
                 workers={workers}
                 canFile={role !== 'field_worker' || Boolean(workDoor && workDoor.rentalId)} canManage={role === 'owner' || role === 'manager'}
@@ -1526,15 +1582,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'dispatch':
             return <DispatchTab door={activeDoor} rental={activeRental} open={openWork} workers={workers} onDispatch={dispatchJob} />;
           case 'thread':
-            return <ThreadTab messages={record.messages} names={speakerNames} onSend={sendMessage}
+            return <ThreadTab messages={seen.messages} names={speakerNames} onSend={sendMessage}
               unread={unreadNote(record.unreadable)} />;
           case 'history':
             return <HistoryTab history={history} onNote={addNote}
-              unread={unreadNote(record.unreadable)} unseen={unseenByThisFace(role, grants)} />;
+              unread={unreadNote(record.unreadable)} unseen={unseenByThisFace(role, grants, { since: seen.since })} />;
           case 'rent':
             return (
               <RentTab
-                rent={record.rent} door={activeDoor} role={role} face={face} booksAvailable={!!books}
+                rent={seen.rent} door={activeDoor} role={role} face={face} booksAvailable={!!books}
                 changes={changes} instanceId={workDoor?.instanceId || null}
                 money={activeRental ? money.doors.get(activeRental.id) || doorMoneyNone : null}
                 doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || 'this door'}
@@ -1570,7 +1626,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'notices':
             return (
               <Card title="Notices">
-                {record.notices.length === 0 ? <Empty>Nothing posted.</Empty> : record.notices.map((n) => (
+                {seen.notices.length === 0 ? <Empty>Nothing posted.</Empty> : seen.notices.map((n) => (
                   <div key={n.id} className="border-b border-[#F0EDE6] py-2">
                     <div className="text-sm text-[#1A1815]" style={serif}>{n.title}</div>
                     {n.body && <div className="text-xs text-[#5A5751]" style={serif}>{n.body}</div>}
@@ -1582,7 +1638,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'documents':
             return <DocumentsTab door={activeDoor} tenancy={activeDoor} rentalId={rentalId} onFiled={(m) => { say(m); loadDoorData(); }} />;
           case 'papers':
-            return <PapersPanel seat="tenant" tenancyId={activeDoor?.id || null} instanceId={activeDoor?.instance_id || null} />;
+            return <PapersPanel seat="tenant" tenancyId={tenancyHasTenant(activeDoor) ? activeDoor.id : null} instanceId={activeDoor?.instance_id || null} />;
           case 'wall':
             // THE LIFE WALL (DR-1010): the family's desk for this door; for a
             // tenant or household member, the share form and what they shared
@@ -1598,7 +1654,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.
             return (role === 'owner' || role === 'manager')
-              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental}
+              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental} role={role}
                 people={peopleOnDoor(invites, { instanceId: (activeDoor || activeRental)?.instance_id || null, tenancyId: activeDoor?.id || null, scopeRef: activeDoor?.rental_ref || activeRental?.slug || null }).people}
                 rentalId={activeRental?.id || null} instanceId={(activeRental || activeDoor)?.instance_id || null}
                 onChange={async (patch) => {
@@ -1618,7 +1674,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onInvite={async (payload) => {
                 // A vacant unit can have a 1099 worker on it long before it has
                 // a tenant — make the unit record if it is missing (DR-0870).
-                const d = await ensureDoor();
+                const d = payload.roleLabel === 'tenant' ? await doorForTenant(payload) : await ensureDoor();
                 if (!d.ok) { say(WHY_NO_DOOR[d.reason] || `Not written: ${d.reason}`); return; }
                 const res = await inviteToProperties({
                   ...payload, instanceId: d.door.instance_id,
@@ -1781,10 +1837,12 @@ function SignInInvite({ onSignIn }) {
 }
 
 
-function DoorCard({ door }) {
+function DoorCard({ door, vacant = false, since = null }) {
+  if (vacant) return <Card title="My place"><Empty>No tenancy on this door yet, so there is no lease to show. The tenant who moves in sees their own lease dates, rent and papers here.</Empty></Card>;
   if (!door) return null;
   return (
     <Card title="My place">
+      {since && <Empty>{`Your tenancy's record begins ${String(since).slice(0, 10)}. Your lease and every paper filed to it are under Documents.`}</Empty>}
       <dl className="text-xs" style={serif}>
         <div className="flex justify-between border-b border-[#F0EDE6] py-1"><dt className="text-[#5A5751]">Address</dt><dd className="text-[#1A1815]">{[door.property_label, door.unit_label].filter(Boolean).join(' · ')}</dd></div>
         <div className="flex justify-between border-b border-[#F0EDE6] py-1"><dt className="text-[#5A5751]">Lease</dt><dd className="text-[#1A1815]">{door.lease_start || '—'} → {door.lease_end || '—'}</dd></div>

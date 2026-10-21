@@ -68,6 +68,8 @@ const { default: PropertyPhotoActions, PhotoRemoveButton } = await import('../co
 const { default: TVTime } = await import('../components/TVTime.jsx');
 const { default: TVChannels } = await import('../components/TVChannels.jsx');
 const { __setCatalogFetcher } = await import('../lib/tv-catalog.js');
+const { default: RealEstateDoor } = await import('../components/RealEstateDoor.jsx');
+const { doorState } = await import('../lib/real-estate-door.js');
 const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
 const { _resetScreenAwakeForTests } = await import('../lib/screen-awake.js');
 
@@ -281,6 +283,19 @@ const WALKS = {
     }));
     look(remover);
   },
+  'real-estate-door': async (look) => {
+    // The band the Real Estate tab opens on (DR-1169). Mounted standalone on
+    // real-shaped rows: one door behind on rent, one standing empty, so both
+    // bands are on screen, and focused so the way back out is too.
+    const rentals = [
+      { id: 'p1', name: '1402 Maple St', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.5, monthlyPI: 556, escrow: 180 } },
+      { id: 'p2', name: '1521 Oak Ave', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.5, monthlyPI: 695, escrow: 220 } },
+      { id: 'p3', name: '312 Willow Ln', rent: 950, actual: 0, status: 'vacant', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 506, escrow: 170 } },
+    ];
+    const state = doorState({ rentals, entities: [{ id: 'e-poeprops', name: 'Steward Real Estate LLC' }] });
+    const { host } = mount(createElement(RealEstateDoor, { state, focus: 'late', onFocus: () => {} }));
+    look(host);
+  },
   'feedback-queue': async (look) => {
     // A steward's focused note that carries a picture (DR-0742).
     const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -320,7 +335,7 @@ const WALKS = {
     };
     const base = { id: 's1', kind: 'show', title: 'Shelter Show', genre: 'Drama', poster: '', year: '2020', seasons: [] };
 
-    // State 1 — KNOWN: webChannel present, so the answer and the routes render.
+    // State 1 - KNOWN: webChannel present, so the answer and the routes render.
     seed('known@b.com', { ...base, network: '', webChannel: 'Tubi' });
     const known = mount(createElement(TVTime, { email: 'known@b.com' }));
     await settle();
@@ -328,7 +343,7 @@ const WALKS = {
     if (openKnown) { click(openKnown); await settle(); }
     look(known.host);
 
-    // State 2 — NEVER ASKED: no webChannel key at all (a pre-DR-1168 record or
+    // State 2 - NEVER ASKED: no webChannel key at all (a pre-DR-1168 record or
     // a zip import), so the "Check TVmaze" control renders.
     seed('fresh@b.com', { ...base, network: '' });
     const fresh = mount(createElement(TVTime, { email: 'fresh@b.com' }));

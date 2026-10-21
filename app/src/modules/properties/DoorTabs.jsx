@@ -1616,6 +1616,17 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
   const [state, setState] = useState({ status: 'idle', photos: [], total: 0, ms: 0, road: '' });
   const [busy, setBusy] = useState(null);
   const [note, setNote] = useState('');
+  // SOME OR ALL (DR-1162). Darrell, 2026-10-21, the worker's Pictures tab on
+  // 709 Commercial St reading "No pictures on this property yet" while this
+  // shelf held 121: "1099 worker won't see pictures of the property?... Yes
+  // it does on the other edit side... my point." The archive is behind the
+  // family key, which never leaves a family device, so a worker, a manager or
+  // a tenant sees only what is FILED to the door's record (0185 lets a
+  // delegated worker read it). The landlord chooses, some or all: tick the
+  // ones, or file the whole archive, page by page, filed once, with a bar
+  // that counts real writes (DR-0961) and one refresh at the end (DR-0947).
+  const [ticked, setTicked] = useState(() => new Set());
+  const [batch, setBatch] = useState(null); // {done, total, saved, failed, stop}
   const load = useCallback(async () => {
     setState((s) => ({ ...s, status: 'loading' }));
     const t0 = Date.now();
@@ -1632,14 +1643,15 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
     if (/source/i.test(String(reason || ''))) return 'the database is still being updated for this; try again in a minute';
     return String(reason || 'unknown');
   };
-  const file = async (p, kind) => {
+  // One picture, filed: the bytes from the NAS, the row with its source. The
+  // single buttons and the batch both come through here, so there is one way
+  // a NAS picture becomes a record. `quiet` keeps the per-picture refresh and
+  // note out of a batch (DR-0947: twelve bootstraps for twelve pictures).
+  const fileOne = async (p, kind, { quiet = false } = {}) => {
     const key = keyOf(p);
-    if (!key) { setNote('Not filed: this picture has no usable name.'); return; }
-    setBusy(p.id); setNote('');
+    if (!key) return { ok: false, reason: 'this picture has no usable name' };
     const got = shelf === 'archive' ? await fetchListingPhoto(archive, p.id) : await fetchLibraryPhoto(p.name || p.id);
-    if (!got.ok) { setBusy(null); setNote(`Not filed: ${reasonText(got.reason)}.`); return; }
-    // A thumbnail for the tile (DR-0955 keeps the full picture out of the
-    // list): the archive's own, or a small copy asked of the server.
+    if (!got.ok) return { ok: false, reason: reasonText(got.reason) };
     let thumb = p.thumb || '';
     if (!thumb && shelf === 'library') { const small = await fetchLibraryPhoto(p.name || p.id, { max: 480 }); if (small.ok) thumb = small.image; }
     const res = await onAdd?.({
@@ -1649,10 +1661,49 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
       taken_at: p.date ? `${p.date}T12:00:00Z` : null,
       source: key,
     });
-    setBusy(null);
-    if (res?.ok) { setNote(kind === 'listing' ? 'On the listing.' : `Kept as ${kind.replace(/-/g, ' ')}.`); onDone?.(); }
-    else setNote(`Not filed: ${reasonText(`${res?.reason || ''} ${res?.error || ''}`.trim())}.`);
+    if (res?.ok) { if (!quiet) onDone?.(); return { ok: true }; }
+    return { ok: false, reason: reasonText(`${res?.reason || ''} ${res?.error || ''}`.trim()) };
   };
+  const file = async (p, kind) => {
+    setBusy(p.id); setNote('');
+    const r = await fileOne(p, kind);
+    setBusy(null);
+    if (r.ok) setNote(kind === 'listing' ? 'On the listing.' : `Kept as ${kind.replace(/-/g, ' ')}.`);
+    else setNote(`Not filed: ${r.reason}.`);
+  };
+  // THE BATCH: the ticked pictures, or every unfiled picture on this door's
+  // archive (paged through the NAS, 24 at a time, at most 50 pages). Each is
+  // one real write; the bar counts them; a failure is counted and named, never
+  // hidden behind the ones that landed; the gallery refreshes once at the end.
+  const fileMany = async (list, kind) => {
+    const todo = list.filter((p) => !filed(p));
+    if (todo.length === 0) { setNote('Nothing to file: every picture here is on this door already.'); return; }
+    const b = { done: 0, total: todo.length, saved: 0, failed: 0, stop: false };
+    setBatch({ ...b }); setNote('');
+    for (const p of todo) {
+      if (b.stop) break;
+      const r = await fileOne(p, kind, { quiet: true });
+      b.done += 1; if (r.ok) b.saved += 1; else b.failed += 1;
+      setBatch({ ...b });
+    }
+    setBatch(null); setTicked(new Set());
+    setNote(`${b.saved} of ${b.total} filed as ${kind === 'listing' ? 'listing pictures' : kind.replace(/-/g, ' ')}${b.failed ? `; ${b.failed} did not land` : ''}.`);
+    onDone?.();
+  };
+  const fileAll = async (kind) => {
+    if (shelf !== 'archive' || !archive) return;
+    const all = []; const seen = new Set();
+    for (let page = 0; page < 50; page += 1) {
+      const r = await fetchChannelPhotos(archive, { limit: 24, offset: page * 24 });
+      if (!r) { setNote('Not filed: the NAS could not be reached by either road.'); return; }
+      let fresh = 0;
+      for (const p of r.photos || []) if (!seen.has(p.id)) { seen.add(p.id); all.push(p); fresh += 1; }
+      if (fresh === 0 || (r.photos || []).length < 24 || all.length >= (r.total || 0)) break;
+    }
+    await fileMany(all, kind);
+  };
+  const tick = (id) => setTicked((t) => { const n = new Set(t); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const tickedPhotos = state.photos.filter((p) => ticked.has(p.id));
   const filed = (p) => (nasFiled && keyOf(p) && nasFiled[keyOf(p)]) ? nasFiled[keyOf(p)] : null;
   const seconds = (state.ms / 1000).toFixed(1);
   return (
@@ -1683,11 +1734,47 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
             {state.total} picture{state.total === 1 ? '' : 's'}{state.total > state.photos.length ? ` (showing ${state.photos.length})` : ''} &middot; read in {seconds} s over the {state.road} road
           </p>
           {state.photos.length === 0 && <p className="text-sm text-[#5A5751]">Nothing on this shelf{shelf === 'library' ? ` for ${month}` : ''}.</p>}
+          {state.photos.some((p) => !filed(p)) && (
+            /* SOME OR ALL (DR-1162): the ticked ones, or the whole archive.
+               Filing is what lets a 1099 worker, a manager or the household
+               see a picture at all; the archive itself stays behind the
+               family key. The bar counts real writes (DR-0961). */
+            <div className="flex flex-wrap items-center gap-2 mb-2" data-testid="nas-batch">
+              <button type="button" className="min-h-[36px] px-3 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#2F5D50] text-[#2F5D50] disabled:opacity-40" disabled={!!batch || tickedPhotos.length === 0} data-testid="nas-file-ticked" onClick={() => fileMany(tickedPhotos, recordKind)}>
+                {`File ${tickedPhotos.length} ticked as records`}
+              </button>
+              <button type="button" className="min-h-[36px] px-3 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#E8E4DC] text-[#5A5751] disabled:opacity-40" disabled={!!batch || tickedPhotos.length === 0} data-testid="nas-use-ticked" onClick={() => fileMany(tickedPhotos, 'listing')}>
+                {`Use ${tickedPhotos.length} ticked on the listing`}
+              </button>
+              {shelf === 'archive' && archive && (
+                <button type="button" className="min-h-[36px] px-3 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#2F5D50] bg-[#2F5D50] text-white disabled:opacity-40" disabled={!!batch} data-testid="nas-file-all" onClick={() => fileAll(recordKind)}>
+                  {`File all ${state.total} on this door’s archive as records`}
+                </button>
+              )}
+              {tickedPhotos.length === 0 && !batch && (
+                <span className="text-[0.75rem] text-[#6B665E]">Tick pictures to file some; or file the whole archive. Each lands once; the record keeps them for everyone on this door.</span>
+              )}
+              {batch && (
+                <div className="w-full" data-testid="nas-batch-progress">
+                  <div className="h-2 w-full bg-[#E8E4DC]" role="progressbar" aria-valuenow={batch.done} aria-valuemin={0} aria-valuemax={batch.total} aria-label="Filing the pictures to this door">
+                    <div className="h-2 bg-[#2F5D50]" style={{ width: `${Math.round((batch.done / Math.max(batch.total, 1)) * 100)}%` }} />
+                  </div>
+                  <span className="text-[0.75rem] text-[#5A5751]">{`Filing ${batch.done} of ${batch.total}… don’t leave this screen.${batch.failed ? ` ${batch.failed} did not land.` : ''}`}</span>
+                </div>
+              )}
+            </div>
+          )}
           <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {state.photos.map((p) => {
               const already = filed(p);
               return (
                 <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`nas-tile-${p.id}`}>
+                  {!already && (
+                    <label className="flex items-center gap-1 text-[0.75rem] text-[#5A5751] mb-1 cursor-pointer">
+                      <input type="checkbox" checked={ticked.has(p.id)} onChange={() => tick(p.id)} disabled={!!batch} aria-label={`Tick ${p.text || p.name || p.id} to file it`} data-testid={`nas-tick-${p.id}`} />
+                      <span>Tick to file</span>
+                    </label>
+                  )}
                   {p.thumb
                     ? <img src={p.thumb} alt={p.text || p.name || 'a picture on the NAS'} className="w-full h-28 object-cover" loading="lazy" />
                     : <div className="w-full h-28 bg-[#E8E4DC] text-[0.6875rem] text-[#6B665E] flex items-center justify-center px-2 text-center">{p.name || p.id}</div>}
@@ -2507,7 +2594,18 @@ export function GalleryTab({
              his move-out set, which is the worst possible moment to be told
              the door is bare. The filtered case is already said above, once,
              and accurately. */
-          <Empty>No pictures on this property yet.</Empty>
+          /* AND IT SAYS WHAT KIND OF NONE (DR-1162). Darrell, 2026-10-21: the
+             worker's tab on 709 Commercial St read "No pictures on this
+             property yet" while the door's NAS archive held 121. Nothing is
+             filed to the RECORD; the archive is a different shelf, behind
+             the family key, and the sentence says so from the seat that can
+             do something about it. */
+          <Empty>
+            No pictures filed to this door&rsquo;s record yet.
+            {canAdd && hasBridgeToken() && archive
+              ? ' This door’s NAS archive is below: file some or all, and everyone on this door sees them.'
+              : archive ? ' The family keeps this door’s archive on the NAS; what they file shows here.' : ''}
+          </Empty>
         ) : shown.length === 0 ? null : (
           <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {shown.map((p, idx) => (

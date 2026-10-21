@@ -22,13 +22,14 @@ import { sha256Hex, signingState, canSign, dataUrlText, textDataUrl, kindForGene
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const H = vi.hoisted(() => ({ docs: [], sigs: [], signed: [], requested: [], added: [] }));
+const H = vi.hoisted(() => ({ docs: [], sigs: [], signed: [], requested: [], added: [], patched: [] }));
 vi.mock('../modules/properties/cloud.js', () => ({
   loadDoorPapers: async () => ({ ok: true, documents: H.docs }),
   loadSignatures: async () => ({ ok: true, signatures: H.sigs }),
   requestSignatures: async (id, signers, counsel) => { H.requested.push({ id, signers, counsel }); return { ok: true, version: 'v' }; },
   signDocument: async (row) => { H.signed.push(row); return { ok: true, state: 'awaiting' }; },
   addDocument: async (row) => { H.added.push(row); return { ok: true, document: { id: 'new', ...row } }; },
+  patchDocument: async (id, patch) => { H.patched.push([id, patch]); return { ok: true, document: { id, ...patch } }; },
 }));
 import { PapersPanel } from '../modules/properties/DocSigning.jsx';
 
@@ -37,7 +38,7 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  Object.assign(H, { docs: [], sigs: [], signed: [], requested: [], added: [] });
+  Object.assign(H, { docs: [], sigs: [], signed: [], requested: [], added: [], patched: [] });
 });
 async function mount(el) {
   container = document.createElement('div');
@@ -142,5 +143,53 @@ describe('the family\'s papers', () => {
     await act(async () => { send.click(); });
     for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
     expect(H.requested).toEqual([{ id: 'd1', signers: ['tenant', 'landlord'], counsel: true }]);
+  });
+});
+
+// Darrell, 2026-10-21: "Also... documents and renewal dates on a calendar with
+// reminders etc..." (DR-1163). The DR-1084 surface meets the door's own papers.
+describe("a door's paper says when it stops being true, and proposes itself to the calendar", () => {
+  const POLICY = { id: 'p1', title: 'State Farm, 805 North Prospect', kind: 'insurance', tenancy_id: null, rental_ref: 'r1', source: 'upload', storage_path: LEASE_BODY, effective_on: '2026-01-01', expires_on: null, uploaded_at: '2026-01-02T12:00:00Z' };
+  const TODAY = '2026-10-21';
+
+  it('the family reads the expiry off the paper and writes it on the row; the kind is watched', async () => {
+    H.docs = [POLICY];
+    await mount(createElement(PapersPanel, { seat: 'landlord', rentalId: 'r1', tenancyIds: [], instanceId: 'i1', today: TODAY }));
+    expect(container.querySelector('[data-testid="paper-validity"]').textContent, 'the usual term is a proposal, said as one').toMatch(/12 months from 2026-01-01, which is this kind.s usual term/);
+    const input = container.querySelector('input[aria-label="Expires on: State Farm, 805 North Prospect"]');
+    expect(input).toBeTruthy();
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    await act(async () => { setter.call(input, '2026-11-15'); input.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    for (let i = 0; i < 8; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.patched).toEqual([['p1', { expires_on: '2026-11-15' }]]);
+    expect(text()).toMatch(/Expiry written: State Farm, 805 North Prospect stops being true on 2026-11-15/);
+  });
+
+  it('with the calendar in reach, the papers propose their renewals and a confirmed one is added as an event with reminders', async () => {
+    H.docs = [{ ...POLICY, expires_on: '2026-11-15' }];
+    const events = [];
+    await mount(createElement(PapersPanel, { seat: 'landlord', rentalId: 'r1', tenancyIds: [], instanceId: 'i1', today: TODAY, addEvent: (e) => events.push(e) }));
+    const section = container.querySelector('[data-testid="papers-renewals"]');
+    expect(section, 'the DR-1084 surface over the door\'s own papers').toBeTruthy();
+    expect(section.textContent).toMatch(/What the papers say is coming/);
+    expect(section.querySelector('[data-testid="renewal-state"]').textContent).toMatch(/Runs out soon · 2026-11-15/);
+    await act(async () => { section.querySelector('[data-testid="renewal-open"]').click(); });
+    await act(async () => { section.querySelector('[data-testid="renewal-confirm"]').click(); });
+    expect(events).toHaveLength(1);
+    expect(events[0].date).toBe('2026-11-15');
+    expect(events[0].reminders.length).toBeGreaterThan(0);
+    expect(events[0].title).toMatch(/State Farm/);
+  });
+
+  it('PROVEN TO CATCH: a tenant never edits a date and is proposed nothing; without the calendar the family sees the dates but no proposals', async () => {
+    H.docs = [{ ...POLICY, tenancy_id: 't1' }];
+    await mount(createElement(PapersPanel, { seat: 'tenant', tenancyId: 't1', instanceId: 'i1', today: TODAY, addEvent: () => {} }));
+    expect(container.querySelector('[data-testid="paper-expiry"]')).toBeNull();
+    expect(container.querySelector('[data-testid="papers-renewals"]')).toBeNull();
+    await act(async () => root.unmount()); root = null; container.remove();
+    H.docs = [POLICY];
+    await mount(createElement(PapersPanel, { seat: 'landlord', rentalId: 'r1', tenancyIds: [], instanceId: 'i1', today: TODAY }));
+    expect(container.querySelector('[data-testid="paper-expiry"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="papers-renewals"]')).toBeNull();
   });
 });

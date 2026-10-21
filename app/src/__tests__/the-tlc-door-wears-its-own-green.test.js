@@ -20,7 +20,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { THEMES, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME } from '../lib/theme-css.js';
+import { THEMES, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME, readThemePref, saveThemePref, setThemeScope, getThemeScope } from '../lib/theme-css.js';
+import { enterTlcDoorContext, isTlcDoorContext } from '../lib/tlc-door.js';
 import * as UI from '../lib/tlc-ui.js';
 import { scanContrast, checkContrastDetailed, contrastRatio } from '../../../scripts/contrast-guard.mjs';
 
@@ -151,5 +152,77 @@ describe('one vocabulary, every TLC screen (nothing a guard does not already mea
     expect(DOOR).toContain('TLC_BTN_PRIMARY');
     // and the public facts still come from the one source, never restated
     expect(DOOR).toContain("from '../lib/tlc-practice.js'");
+  });
+});
+
+describe('a device that chose a palette in the family app still opens the TLC door in TLC’s colors (DR-1170)', () => {
+  // Darrell, 2026-10-21, DR-1156 deployed, the door open on his phone:
+  // "Nothing changed. Why does it still look the same". His phone had chosen a
+  // palette months ago; the one shared key won over the door's fallback.
+  const store = new Map();
+  const fakeStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
+  };
+  const withStorage = (fn) => {
+    const prev = globalThis.localStorage;
+    Object.defineProperty(globalThis, 'localStorage', { value: fakeStorage, configurable: true, writable: true });
+    try { return fn(); } finally {
+      Object.defineProperty(globalThis, 'localStorage', { value: prev, configurable: true, writable: true });
+      setThemeScope('');
+      store.clear();
+    }
+  };
+
+  it('PROVEN-TO-CATCH: without a scope, the family’s saved choice dresses the door — the bug as shipped', () => {
+    withStorage(() => {
+      store.set('poe-theme-pref', 'heritage');
+      expect(readThemePref(TLC_DEFAULT_THEME)).toBe('heritage');
+    });
+  });
+
+  it('entering the door scopes the store: TLC opens in tlc, whatever the family app chose', () => {
+    withStorage(() => {
+      store.set('poe-theme-pref', 'heritage');
+      expect(enterTlcDoorContext('?tlc=1')).toBe(true);
+      expect(getThemeScope()).toBe('tlc');
+      // the door's default, not the family's choice, and not the caller's
+      // fallback either — every picker in the door agrees on tlc
+      expect(readThemePref(DEFAULT_THEME)).toBe('tlc');
+      expect(readThemePref('cream')).toBe('tlc');
+    });
+  });
+
+  it('a choice made inside the door is the door’s alone; the family app keeps its own', () => {
+    withStorage(() => {
+      store.set('poe-theme-pref', 'heritage');
+      enterTlcDoorContext('?tlc=1');
+      saveThemePref('midnight');
+      expect(readThemePref()).toBe('midnight');
+      expect(store.get('poe-theme-pref:tlc')).toBe('midnight');
+      expect(store.get('poe-theme-pref')).toBe('heritage');
+      // back in the family app (no scope), Heritage is untouched
+      setThemeScope('');
+      expect(readThemePref()).toBe('heritage');
+    });
+  });
+
+  it('the operator tab (?view=tlc) and the family app never enter the scope', () => {
+    withStorage(() => {
+      expect(enterTlcDoorContext('?view=tlc')).toBe(false);
+      expect(enterTlcDoorContext('')).toBe(false);
+      expect(getThemeScope()).toBe('');
+      expect(enterTlcDoorContext('?tlc=1')).toBe(isTlcDoorContext('?tlc=1'));
+    });
+  });
+
+  it('the shell enters the door through the scoping call, before its first theme read', () => {
+    const shell = read('poe-financial-mvp-v28.jsx');
+    expect(shell).toContain('useState(() => enterTlcDoorContext())');
+    expect(shell).not.toContain('useState(() => isTlcDoorContext())');
+    // the door-context state is declared ABOVE the theme hook, so the scope is
+    // set when the preference is first read
+    expect(shell.indexOf('enterTlcDoorContext()')).toBeLessThan(shell.indexOf('useThemePref(churchDoorOnly'));
   });
 });
