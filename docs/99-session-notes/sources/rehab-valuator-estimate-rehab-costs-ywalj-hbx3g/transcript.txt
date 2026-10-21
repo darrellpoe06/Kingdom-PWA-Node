@@ -1,0 +1,130 @@
+# Transcript of YouTube video yWaLJ_hbx3g
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 1994 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+Hey everyone, this is Stan Gland with Real Estate Skills. In this video, I'm going to teach you
+the three ways to estimate rehab costs and three common mistakes investors make when estimating
+rehab budgets. And by avoiding those mistakes, it can save you tens of thousands or even
+hundreds of thousands of dollars. And if you like what you see in this video, like, subscribe,
+hit the notification bell for more great real estate content. So, let's go over the three ways
+to estimate rehab costs. Number one, using general contractors. Number two, estimating the
+renovation cost using the square footage method. And number three, using the line item by line
+item approach. Strategy number one to estimating rehab costs is working with general
+contractors. General contractors are licensed professionals who can manage or have a crew to
+renovate the entire fix and flip project as opposed to subcontractors who specialize in one type
+of trade such as electrical or doing roofs. A great reason to use general contractors to get
+renovation quotes is because you're working with a licensed professional who estimates rehab
+costs for a living. They should be familiar with putting together a detailed quote you can use
+to negotiate a contract on a potential deal. Also, having a quote from a professional licensed
+contractor will add credibility when it comes time to ask for a price reduction on homes you
+might be negotiating as opposed to you telling an agent or seller what you think it's going to
+cost. It makes it hard for someone to dispute the cost of renovations when it's coming from a
+licensed contractor as opposed to a biased investor who of course wants to show the highest
+possible renovation cost. This method should be used by new investors as well as investors who
+have long-standing relationships with contractors you can rely on and offload the timeconsuming
+work of putting together a quote onto somebody else. When I first moved to South Carolina, I
+picked a specific neighborhood I was going to live in and renovate. And to get my contractor
+database built up, I walked around on other projects in my neighborhood and met my first group
+of contractors that way. And that's how I was able to start on renovations so quickly after
+moving to a whole new state because this is an easy method to find and hire contractors. I was
+driving around and meeting subcontractors and asking them if they can introduce me to the
+general contractors that hired them for that job. And here are three ways to find general
+contractors to work with. Number one, go to your local real estate group where there are
+contractors at the group or ask other investors there for referrals. Number two, drive in
+neighborhoods where you want to do fix and flip projects and stop at active renovations to meet
+contractors working there. And number three, join Facebook investment groups specific to your
+area and ask for referrals. Now, let's talk about the steps on how to work with a general
+contractor to estimate rehab costs. Step number one, meet the general contractor at your project
+and tell them exactly what you want done. Step number two, usually within a day to a week, they
+will give you a detailed estimate, including material and labor, and what it's going to cost to
+complete that project. Step number three, take your detailed quote and use it to negotiate a
+good deal with the seller or agent you're working with. And step number four, once you got the
+project and it's ready to go, line up a construction schedule to map out when to start and how
+you expect the work to be done. Now, let's talk about strategy number two, estimating
+renovations using square footage. You can use the square footage of the home you're looking to
+renovate to find out how much it will cost to renovate that home. Now, this is an average based
+on the condition of the home. Overall homes in good shape that just need a little bit of
+flooring and paint can be an average of $10 a square foot. If the home is in overall good shape,
+but is really outdated, then we can estimate our average level of renovation, which comes out to
+about $30 a square foot. And finally, if the home is in horrible shape and everything needs to
+be done, as a quick guide, the cost will be about $60 per square foot. as our total renovation
+budget. You do not have to spend hours analyzing a property. You can spend seconds or minutes.
+This method should be used by everybody, especially wholesalers and fix and flippers. Whether
+you are a beginner just getting started or an experienced wholesaler trying to get out more
+offers. As a new investor, it allows you to avoid a common beginner mistake, paralysis by
+analysis, which is spending too much time analyzing deals without actually submitting any
+offers. As the great Wayne Gretzky said, you miss a 100% of the shots you don't take. This
+method allows you to make lots of offers quickly, increasing your chances of success. When I was
+growing my business and doing a lot of fix and flip deals, I looked at how much we were spending
+on average renovations. I used the price per square foot method to analyze more deals and submit
+offers in a shorter period of time. Let me caution you though. You need to double and triple
+check your numbers with this method once your offer does get accepted because this method is a
+way to estimate a ballpark of what the cost should be. But ultimately, until you look at the
+house, this method should be used just to make your initial offer. Now, let's go over the four
+steps on how to use the square footage method to estimate rehab costs. Step number one,
+determine the property square footage. You can do this by asking your real estate agent,
+checking on Redf Fin or Zillow to see how many square foot the house is. But be careful because
+it's not always accurate. Or you can check on county tax records, which are going to be your
+most accurate resource. Step two, go to the property or look at pictures of the property online
+to see what condition it's in. Step number three, you would then apply your multiplier based on
+it needing a light, medium, or heavy renovation to the property square footage to get your
+estimate. And finally, step number four, submit your offer based on your renovation estimate and
+start negotiating. And strategy number three for estimating renovation costs is using the
+detailed line item by line item approach. This approach is when you go through your scope of
+work, which details exactly what needs to be done to the house, and you put a cost to each and
+every one of those items to come up with a total renovation cost. You can do this by calling
+general contractors and subcontractors and ask what they would charge to do every part of your
+scope of work. Unlike relying on a single contractor to give you a quote, with this method, you
+can call different subcontractors for each line item and get quotes for each of them. This
+method is best used for experienced professionals who have established relationships with many
+contractors. That way, you can call different contractors for each part of your scope of work to
+get the best pricing. Or you already know from having existing relationships what each one of
+them charges for each part of your scope of work. For example, whenever I am buying a renovation
+and coming up with a budget for that project, I can call multiple electricians if the entire
+house needs to be rewired and let them compete against each other through bidding on that part
+of the project. Let's go through the four steps of how to do the line item by line item
+approach. Step number one, write a detailed scope of work, which again is a list of everything
+you want done at the house. Step number two, if you're new, you have to build a list of multiple
+contractors if you don't already have one for each one of those line items, such as three
+electricians to give you electrical rewiring quotes. Step number three, either meet different
+contractors at the home to show them what you want done, or if possible, send them a detailed
+description and ask them if they can give you an estimate based on pictures and a detailed scope
+of work. And finally, step four, put your individual quotes into your scope of work to come up
+with a total renovation budget. Now that we talked about three ways of estimating your rehab
+cost, let's go over three common mistakes investors make when creating their renovation budget.
+Mistake number one, when you're estimating rehab cost, you underestimate your renovation budget.
+This mistake happens when investors purposely lower their total budget to try to make the deal
+work and expect their contractors and project managers to figure out how to make that number
+work. And because project managers and contractors rarely know how to make that type of magic
+happen, it's better to use the renovation budget that a contractor gives you and that you come
+up with using the detailed line item by line item process. Our second mistake that beginners
+make when estimating the rehabs is overlooking hidden issues. This mistake happens when
+investors do a simple walkthrough by themselves or with a contractor to come up with a scope of
+work and do not look in the attic, under the house, and all the other nooks and crannies where
+all the hidden issues could be hiding. Besides walking through the house with an experienced
+professional who knows what they're looking at, make sure to do a full home inspection, a
+termite inspection, and if you live in some parts of the country, do a radon inspection during
+your due diligence or before you buy the house. Because project managers and contractors rarely
+know how to make that type of magic happen. To avoid this mistake, it's better to use the
+renovation budget that a contractor gives you or that you came up with using the detailed line
+item by line item process. Mistake number three when estimating rehab costs is having a lack of
+contingency funds. This is a mistake that investors make when they come up with a cost to do
+their project that doesn't take into account extra money to cover unforeseen or unexpected
+issues during the renovation process. No matter how detailed of an inspection you do, there is
+no way to avoid extra costs that might come up from such things such as theft, maybe a
+contractor dropping expensive material and breaking it or issues coming up behind closed walls.
+You would never know unless you rip the walls open, which of course you can't do unless you own
+the home. And to avoid this mistake, depending on the size of the project, you should always
+build in a minimum of 10% of contingency budget if it's a small renovation. and up to 25% if
+it's a major rip it apart down to the studs and start over renovation. To recap, let's go over
+the three ways to estimate your rehab costs. Number one, estimating rehab costs using a general
+contractor. Number two, estimating rehab costs using the square footage method. And number
+three, using the line item by line item approach. By using these strategies while avoiding the
+common mistakes I mentioned, you'll be able to negotiate the best price for your project. And if
+you like what you see in the video, like, subscribe, and hit that notification bell for more
+great real estate content.
