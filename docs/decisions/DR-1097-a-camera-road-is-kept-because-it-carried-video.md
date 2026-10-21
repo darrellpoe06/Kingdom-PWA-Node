@@ -612,3 +612,28 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 - Camera vitest: 114 + 39 + 15 passing. PROVEN TO CATCH, each break turning checks red: position-only life (3 checks), a 12 s lag limit (1), and the re-arm guard (forwarder selftest, 500 passing).
 
 `re-review: 2026-10-21`. Once live, the tiles' "last:" line and `/streams/health` live_ends name every hang-up that is left, and who made it.
+
+## Eighteenth read (2026-10-21 03:38-03:53 UTC; cams-diag 39539674831, 39540521203 with `camera=805_north_sd`): the seventeenth read's fixes are live, and the road still flows
+
+**What is live, measured, not assumed:**
+- **The app.** #2324 merged as 98a600b15 at 03:15:55 UTC. Deploy 39537621749 was dispatched 2 s later and finished green at 03:18.
+- **The NAS.** The forwarder restarted at 03:31:17 UTC (its journal). `/health` reads `forwarder` = `on_disk` = `2500b3b0e2d7a7f8`, the sha256 of main's `infra/nas-cameras/cams_forwarder.py`. The freeze/stall/lag rules and the re-arm guard are what is running.
+
+**The phone's road, after the fixes (805_north_sd, 90 s each, a ticket, Origin poetech.us):**
+
+| road | first byte | bytes | longest silence | media clock vs wall | at 90 s |
+|---|---|---|---|---|---|
+| loopback 127.0.0.1:8773 | 1.85 s | 8.43 MB | 1.8 s | 1.001x, lead +0.1 s | still flowing (curl 28) |
+| the Funnel `/cams` | 1.51 s | 8.53 MB | 1.5 s | 1.004x, lead +0.3 s | still flowing (curl 28) |
+
+- Every 5 s window carried 244-562 KB; no window was empty.
+- The fragments were 0.00-0.15 s each, H.264 (`avc1.42E01F`).
+- Frames answered 200, about 23-25 KB, with `Access-Control-Allow-Origin: https://poetech.us` on both roads.
+
+**What this read could not say, plainly.** `/streams/health` live_ends read "none yet". The forwarder had restarted at 03:31 and no family tile had opened a live view since. The probe opened two, but the diag printed the ends BEFORE the probes ran, so its own 90 s views could never appear in this read. That is a hole in the witness, not in the road.
+
+**Fixed in this read (`.github/workflows/cams-diag.yml`):**
+- The ends are read twice: before the probes, for how the family's own views ended, and again after them, where the probe's views must appear. If they do not, the record is not catching what it claims to.
+- The frame probe no longer prints `strings: command not found` on a box without binutils.
+
+**Not proven yet: the blinking itself.** That takes the family's own tiles. `re-review: 2026-10-21`: the next time Cameras is open on the Fold, the tiles' "last:" line and the after-probe live ends name each hang-up that is left, and who made it (`source-ended` / `source-silent` / `viewer-left` / `clock`).
