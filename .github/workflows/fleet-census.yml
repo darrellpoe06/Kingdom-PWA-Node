@@ -184,6 +184,33 @@ jobs:
           json.dump(doc, open("/tmp/runs.json", "w"), indent=2)
           dated = sum(1 for e in doc["services"].values() if e.get("last_run_at"))
           print(f"folded {len(doc['services'])} NAS loop(s); {dated} carry a timestamp")
+
+          # A WITNESS THAT HAS STOPPED PUBLISHING LOOKS EXACTLY LIKE A HEALTHY
+          # ONE FROM HERE (DR-1161). It did stop, for two hours, because the
+          # publish step threw and `continue-on-error` reported success: the
+          # report issue simply kept its old body and this fold kept folding it
+          # with full confidence. So the AGE of what we just read is checked and
+          # said. The loops witness runs every 15 minutes, so two hours is many
+          # missed passes, not a slow night.
+          from datetime import datetime, timezone
+          read_at = w.get("readAt")
+          age_s = None
+          if read_at:
+              try:
+                  t = datetime.fromisoformat(str(read_at).replace("Z", "+00:00"))
+                  age_s = int((datetime.now(timezone.utc) - t).total_seconds())
+              except ValueError:
+                  pass
+          if age_s is None:
+              print("::warning::the loops witness carries no readable readAt; its age is UNKNOWN, "
+                    "so the NAS half below may be any age at all")
+          elif age_s > 2 * 60 * 60:
+              print(f"::warning::the loops witness last published {age_s // 60} minutes ago "
+                    f"({read_at}); it runs every 15 minutes, so it has stopped publishing. "
+                    "The NAS half below is STALE, not wrong -- nothing about the loops "
+                    "themselves is implied.")
+          else:
+              print(f"the loops witness is {age_s // 60} minute(s) old")
           PY
           python3 -c "import json; json.load(open('/tmp/runs.json')); print('runs.json still parses')"
 

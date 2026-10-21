@@ -167,3 +167,69 @@ describe('the workflow calls this file rather than keeping its own copy', () => 
     expect(LOOPS).not.toMatch(/its own ledger, \$\{age\}s old/);
   });
 });
+
+// =============================================================================
+// AND THE WITNESS CANNOT FAIL IN SILENCE (DR-1161)
+// =============================================================================
+// DR-1152 moved the rule into `scripts/loops-witness-services.mjs` so a test
+// could RUN it. The first real run of that change threw:
+//
+//   ERR_MODULE_NOT_FOUND: Cannot find module
+//     '/home/runner/work/Kingdom-PWA-Node/Kingdom-PWA-Node/scripts/loops-witness-services.mjs'
+//
+// because `loops-health.yml` is a tailnet-and-API job that has never had an
+// `actions/checkout` — so the file it was told to import was not in its
+// workspace. And the step carried `continue-on-error: true`, added so a
+// publishing fault could never turn a healthy witness red, which meant GitHub
+// reported its CONCLUSION as **success**. The witness stopped publishing and
+// nothing anywhere said so; the census kept folding a two-hour-old body with
+// full confidence.
+//
+// A brake that turns a failure into a green is the disarmed-check shape, no
+// matter what it was protecting. Three things are pinned here.
+describe('the witness can read its own repository, and says so when it cannot', () => {
+  const LOOPS = readFileSync(join(REPO, '.github/workflows/loops-health.yml'), 'utf8');
+  const CENSUS = readFileSync(join(REPO, '.github/workflows/fleet-census.yml'), 'utf8');
+
+  it('it checks out the repository BEFORE the step that imports from it', () => {
+    // Match the IMPORT STATEMENT, not any prose mention of the file: the first
+    // mention is the checkout step's own comment, and an index-based check that
+    // matches a comment proves nothing about the step order.
+    const checkout = LOOPS.indexOf('- uses: actions/checkout@v4');
+    const imp = LOOPS.indexOf('await import(');
+    expect(checkout, 'loops-health must check out the repo it imports from').toBeGreaterThan(0);
+    expect(imp, 'the import must come after the checkout').toBeGreaterThan(checkout);
+  });
+
+  it('the publish step no longer converts its own failure into a success', () => {
+    // `continue-on-error: true` on this step is what made the first failure
+    // invisible. It is gone, and the script catches instead.
+    const pub = LOOPS.indexOf('Report: publish the per-loop witness');
+    const nextStep = LOOPS.indexOf('Diagnose the dark loops', pub);
+    const step = LOOPS.slice(pub, nextStep);
+    expect(step).not.toMatch(/continue-on-error/);
+    expect(step).toMatch(/catch \(e\)/);
+    expect(step).toMatch(/core\.warning\(`loops witness did NOT publish/);
+    expect(step).toMatch(/core\.summary/);
+  });
+
+  it('a publishing fault still never becomes a verdict about the loops', () => {
+    // The catch must not call setFailed: the verdict above is this workflow's
+    // job, and a failed issue write says nothing about whether a loop ran.
+    const pub = LOOPS.indexOf('Report: publish the per-loop witness');
+    const nextStep = LOOPS.indexOf('Diagnose the dark loops', pub);
+    const step = LOOPS.slice(pub, nextStep);
+    expect(step).not.toMatch(/setFailed/);
+  });
+
+  it('the census says how old the witness it just read is', () => {
+    // From the census's side a witness that stopped publishing looks exactly
+    // like a healthy one — which is how two hours of staleness went unnoticed.
+    const fold = CENSUS.indexOf('Fold in the loops witness');
+    const step = CENSUS.slice(fold, CENSUS.indexOf('The census, and the two questions'));
+    expect(step).toMatch(/it has stopped publishing/);
+    expect(step).toMatch(/STALE, not wrong/);
+    // Unknown age is warned about too, never passed over as fresh (DR-0076).
+    expect(step).toMatch(/its age is UNKNOWN/);
+  });
+});
