@@ -128,3 +128,11 @@ is named by its band.
   the authority for verse integrity is the per-span check that names the field, which is what the
   live mutation above confirms catches.
 - **The live build at Big Print** was not reviewed in this session.
+- **One blocker, named rather than worked around.** The full suite is red on exactly two
+  assertions in `app/src/__tests__/living-lessons-ll256-the-lords-release.test.js` — *"is in the
+  catalog exactly once, as the last lesson"* and `expect(Math.max(...claimed)).toBe(256)`. Nothing
+  about ll256's lesson is wrong (141 of its 143 cases pass); those two pin "no lesson comes after
+  me," which any next lesson breaks. ll255 and ll254 assert no such thing. The fix is two lines in
+  that file — assert ll256 sits *after* ll255, and make the max a floor — and it belongs to that
+  file's owner, because editing a sibling lesson's test is what this build's brief forbids. The same
+  defect was removed from ll257's own gate so it is not inherited.

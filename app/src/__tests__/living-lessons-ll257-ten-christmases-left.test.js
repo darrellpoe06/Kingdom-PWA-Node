@@ -247,9 +247,18 @@ const anchoredRefs = (module) => {
 
 // (a) THE MODULE EXISTS ONCE, AT ITS NUMBER
 describe('L257 exists exactly once, at its own number, dated the day it was captured', () => {
-  it('is in the catalog exactly once, as the last lesson, with all four bands', () => {
+  // DELIBERATELY NOT "is the last lesson". L256's gate asserted exactly that,
+  // and `Math.max(...claimed)).toBe(256)` with it, so the next lesson written
+  // broke a passing gate that had nothing wrong with the lesson it guards. A
+  // pin on "nothing comes after me" is a pin on the catalog never growing,
+  // which is the one thing it is certain to do. So this asserts the two things
+  // that stay true for good: ll257 appears once, and it sits after ll256.
+  it('is in the catalog exactly once, after L256, with all four bands', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    const at = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
+    const prev = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll256-'));
+    expect(prev, 'L256 is in the catalog').toBeGreaterThan(-1);
+    expect(at, 'L257 follows L256 in reading order').toBeGreaterThan(prev);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 
@@ -257,7 +266,9 @@ describe('L257 exists exactly once, at its own number, dated the day it was capt
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 257)).toHaveLength(1);
     expect(claimed.includes(256), '257 follows 256 — no number was jumped').toBe(true);
-    expect(Math.max(...claimed)).toBe(257);
+    // a floor, not an equality: a later lesson raises the max and must not fail this
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(257);
+    expect(claimed.includes(258), '258 is not this lesson’s to claim').toBe(false);
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
   });
 
