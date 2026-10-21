@@ -126,11 +126,13 @@ function WhereToWatch({ show, meta, onResolve, busy }) {
         </button>
       )}
 
-      {/* The free ad-supported services. These are SEARCHES, labeled as
-          searches — "Look on Tubi" claims nothing about availability, so it
-          cannot lie, and on a phone the service's own app takes the tap. The
-          Tubi and Pluto TV routes were MEASURED from a GitHub runner, not
-          assumed (DR-1168); the sandbox has no route to either host. */}
+      {/* The free ad-supported services. Each row is a SEARCH or a BROWSE and
+          is labelled as whichever it is — neither claims anything about
+          availability, so neither can lie, and on a phone the service's own app
+          takes the tap. Tubi and Pluto TV are proven search routes; The Roku
+          Channel ships no /search route we could verify, so it opens the
+          service instead. All MEASURED from a GitHub runner, never assumed
+          (DR-1168) — the sandbox has no route to any of these hosts. */}
       {w.searches.length > 0 && (
         <div className="mt-2">
           <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Free services — look for it</span>
