@@ -1598,7 +1598,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.
             return (role === 'owner' || role === 'manager')
-              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental}
+              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental} role={role}
                 people={peopleOnDoor(invites, { instanceId: (activeDoor || activeRental)?.instance_id || null, tenancyId: activeDoor?.id || null, scopeRef: activeDoor?.rental_ref || activeRental?.slug || null }).people}
                 rentalId={activeRental?.id || null} instanceId={(activeRental || activeDoor)?.instance_id || null}
                 onChange={async (patch) => {
