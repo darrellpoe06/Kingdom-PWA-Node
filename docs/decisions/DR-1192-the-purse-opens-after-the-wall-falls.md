@@ -9,7 +9,7 @@
 - `app/src/__tests__/sovereign-ai-sov47-verses.test.js` (8 cases, 3 proven to catch)
 - `app/src/lib/course-band-coverage-baseline.json` and `app/src/__tests__/course-band-coverage.test.js` (the debt pin moves 252 → 253)
 
-**Grounds:** Darrell forwarded IT Brew's "Downtime is money" into the app on 2026-10-21 at 16:52 UTC with one word above it: "Lesson." The standing Way for a forwarded newsletter (DR-0312) is to build it, Word-first, or to report a comparison if the teaching already exists.
+**Grounds:** Darrell forwarded IT Brew's "Downtime is money" into the app on 2026-10-21 at 16:52 UTC with one word above it: "Lesson" (Gmail thread `1a15f615725825be`). The standing Way for a forwarded newsletter (DR-0312) is to build it, Word-first, or to report a comparison if the teaching already exists. The thread id is recorded here so this record is a second witness to the capture if the `Lesson-Captured` label is ever missed — the search is a hint, the label is the lock, and the ledger is the witness to both.
 **Principles:** DR-0610 / DR-1185 (one teaching, one lesson — checked before writing, not after); DR-0076 §4 (measure, never claim); DR-0100 (three tiers — state established fact plainly, flag only what is genuinely open); DR-0210 and DR-0076 (Yahweh in our voice, quoted Scripture untouched); DR-0331 (a third party's words rendered as they stand)
 
 ## Context
