@@ -68,7 +68,7 @@ const TAB = (id, label, why, needs = null) => ({ id, label, why, needs });
 
 export const TENANT_TABS = [
   TAB('door', 'My place', 'The unit, the lease dates, who to reach.'),
-  // THE PICTURES OF THIS PLACE (DR-1197): the listing pictures the landlord
+  // THE PICTURES OF THIS PLACE (DR-1199): the listing pictures the landlord
   // shares of the door they live in (0309's switch, on by default) and the
   // pictures filed to their own tenancy, room by room. Read-only.
   TAB('pictures', 'Pictures', 'The pictures your landlord shares of this place, room by room.'),

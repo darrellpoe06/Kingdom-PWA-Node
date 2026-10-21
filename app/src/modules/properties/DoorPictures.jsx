@@ -1,5 +1,5 @@
 // =============================================================================
-// DoorPictures — the pictures of the place a person lives in (DR-1197)
+// DoorPictures — the pictures of the place a person lives in (DR-1199)
 // =============================================================================
 // Darrell, 2026-10-21: "We have images on multiple doors, and those images
 // should be able to be seen by the people we are adding to the system, or if
@@ -54,7 +54,7 @@ export function countLine(n, roomName = '') {
   return roomName ? `${n} ${noun} · ${roomName}` : `${n} ${noun}`;
 }
 
-// `allow` is the preview's wall (DR-1197, preview.js): the owner reads every
+// `allow` is the preview's wall (DR-1199, preview.js): the owner reads every
 // picture of the door, and a "seen as" view keeps only what that role would.
 export default function DoorPictures({ rentalId = null, loadThumb = null, loadImage = null, allow = null }) {
   const [state, setState] = useState({ phase: rentalId ? 'reading' : 'no-door', photos: [], rooms: [], unread: [] });

@@ -345,7 +345,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // instead of guessing at it.
   const [unreachedWhy, setUnreachedWhy] = useState([]);
 
-  // THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1197). `viewAs`
+  // THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1199). `viewAs`
   // renders a role's face over the owner's doors; until 2026-10-21 only the
   // face changed and the data stayed the owner's — every door, every picture.
   // Now the preview stands on ONE door (chosen in the bar, else the first
@@ -704,7 +704,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    the fact that they can see doors with no delegated grant at all.
   const realRole = useMemo(() => {
     // THE RAW LISTS, ON PURPOSE: who is really signed in never changes with a
-    // preview (DR-1197); a work order filed from the tenant's view is still
+    // preview (DR-1199); a work order filed from the tenant's view is still
     // the landlord's.
     if (rawHousehold.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
     if (rawGrants.includes('request.manage') || rawGrants.includes('rentroll.view')) return 'manager';
@@ -1212,7 +1212,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               happening this needs looking at from the server side.
             </p>
           )}
-          {/* THE DEVICE ITSELF MAY BE THE REASON (DR-1197). On 2026-10-21 the
+          {/* THE DEVICE ITSELF MAY BE THE REASON (DR-1199). On 2026-10-21 the
               TV showed this card with every read 'not-reached' while the
               footer read OFFLINE: the app had loaded from its cache and the
               device had no road to the database. Saying so here keeps a
@@ -1250,7 +1250,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             It listed TENANCIES, and only two of the twelve doors have one. Whoever
             can read the doors picks from all of them, in the board's order; a
             tenant (who reads no doors) still picks among their own tenancies. */}
-        {/* THEIR DOOR (DR-1197): which of the owner's doors the preview stands
+        {/* THEIR DOOR (DR-1199): which of the owner's doors the preview stands
             on. The picker below then shows what that person would see — one
             door, or their one tenancy — never the owner's whole board. */}
         {preview && rawRentals.length > 1 && (
@@ -1402,7 +1402,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={tenantFace && seen.vacant ? null : activeDoor} vacant={tenantFace && seen.vacant} since={tenantFace ? seen.since : null} />;
-          // THE PICTURES OF THIS PLACE (DR-1197). The tenant reads no rentals
+          // THE PICTURES OF THIS PLACE (DR-1199). The tenant reads no rentals
           // row, so the door's id comes from door_of_my_tenancy (askDoorId),
           // the same lookup the cameras and the wall use; the pictures and
           // rooms are then exactly what 0309 lets this person read.

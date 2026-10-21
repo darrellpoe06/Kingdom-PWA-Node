@@ -93,7 +93,7 @@ export const APPLICATION_SECTIONS = Object.freeze([
       F('dateIn', 'Date in', 'date'),
       F('dateOut', 'Date out', 'date'),
       // WHO THEY RENT FROM, AND WHAT THEY PAY — MANDATORY (Darrell, 2026-10-21,
-      // DR-1197: "we do need their last landlord's name and phone number
+      // DR-1199: "we do need their last landlord's name and phone number
       // directly from them so we can at least have someone telling us who they
       // rented from... and their monthly rent that they paid should be
       // mandatory as well... to guarantee that we have the information to

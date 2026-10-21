@@ -1,6 +1,6 @@
 # 2026-10-21 — The Properties tab reviewed end to end for its tenant, household and 1099 worker
 
-**Decision record:** DR-1197
+**Decision record:** DR-1199
 **Source:** Darrell, from the Properties tab on the TV: the pictures did not align with a tenant's or worker's perspective; the properties could not be pulled up; "Available now" was not publishing well; the screening must require the previous landlord, previous address and rent; images on the doors should be seen by the people added to the system, or when the family decides.
 
 ## What was found (ARE)

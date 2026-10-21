@@ -136,7 +136,7 @@ describe('a boot on a throttled road', () => {
     ).toBe(false);
   });
 
-  it('PROVEN-TO-CATCH: a dead road on a device that says it is offline names the device, not the server (DR-1197)', async () => {
+  it('PROVEN-TO-CATCH: a dead road on a device that says it is offline names the device, not the server (DR-1199)', async () => {
     // The TV on 2026-10-21: the app loaded from its cache, the footer read
     // OFFLINE, and the card showed every read 'not-reached'. The card now says
     // the device is offline — and says nothing of the kind when it is online.

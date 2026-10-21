@@ -1,4 +1,4 @@
-# DR-1197: A door shows its pictures to its people — the Properties tab reviewed end to end for its tenant, household and 1099 worker
+# DR-1199: A door shows its pictures to its people — the Properties tab reviewed end to end for its tenant, household and 1099 worker
 
 **Date:** 2026-10-21
 **Status:** accepted

@@ -67,7 +67,7 @@ describe('the module knows what pages it has', () => {
     // Life wall share one id, DR-1010).
     // 25 with 'energy' (what the door's meter recorded, DR-1098).
     // 26 with 'development' (building from the ground up, DR-1166).
-    // 27 with 'pictures' (the tenant's pictures of the place they live in, DR-1197).
+    // 27 with 'pictures' (the tenant's pictures of the place they live in, DR-1199).
     expect(ids).toHaveLength(27);
   });
 
@@ -114,7 +114,7 @@ describe('every page is selectable in the feedback form', () => {
   it('they are grouped under their own heading, not buried in Real Estate', () => {
     const g = FEEDBACK_AREAS.find((x) => x.group === 'Poe Properties');
     expect(g).toBeTruthy();
-    // 27 pages (21, plus stays and papers from #2096, wall from DR-1010, energy from DR-1098, development from DR-1166, pictures from DR-1197) + the general entry.
+    // 27 pages (21, plus stays and papers from #2096, wall from DR-1010, energy from DR-1098, development from DR-1166, pictures from DR-1199) + the general entry.
     expect(g.items).toHaveLength(28);
   });
 

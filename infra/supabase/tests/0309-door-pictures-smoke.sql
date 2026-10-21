@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0309 SMOKE — a door shows its pictures to its people (DR-1197)
+-- 0309 SMOKE — a door shows its pictures to its people (DR-1199)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

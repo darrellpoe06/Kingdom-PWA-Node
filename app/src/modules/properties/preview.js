@@ -12,7 +12,7 @@
 // door, the rest of the apartment. A real tenant reads one tenancy and no
 // rentals row; a real worker reads the doors they are delegated on. So the
 // preview is now a view of ONE chosen door, cut to what that role would read
-// there, by the same rules the database applies (DR-1197):
+// there, by the same rules the database applies (DR-1199):
 //
 //   tenant / household   their tenancy on that door (0150), the door's listing
 //                        pictures while the landlord's switch is on (0309), the

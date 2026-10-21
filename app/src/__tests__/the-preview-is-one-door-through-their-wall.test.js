@@ -1,5 +1,5 @@
 // =============================================================================
-// The preview is one door, through that person's wall (DR-1197)
+// The preview is one door, through that person's wall (DR-1199)
 // =============================================================================
 // preview.js mirrors the read policies for a "seen as" view, the way model.js
 // mirrors 0150. These cases are the 0309 smoke's scenario in JavaScript: the

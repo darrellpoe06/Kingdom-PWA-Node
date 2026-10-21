@@ -628,7 +628,7 @@ export function DoorsBoard({
       ownHome: isOwnHome(r),
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
-      // WHAT A VISITOR WOULD SEE ON THE CARD (DR-1197): only 'listing' shots
+      // WHAT A VISITOR WOULD SEE ON THE CARD (DR-1199): only 'listing' shots
       // reach the public shelf (public_vacancy_photos). An advertised door
       // with none is advertised with a blank card, and the board says so.
       listingShots: photos.filter((p) => p.rental_ref === r.id && !p.archived_at && p.kind === 'listing').length,
@@ -1127,7 +1127,7 @@ export const OFFERINGS = Object.freeze([
 // editor could change it or say it on a whole unit. Three words, three states.
 export const UTILITIES_WORDS = Object.freeze({ paid: 'all paid', tenant: 'tenant pays' });
 export function utilitiesWord(v) { return v === true ? UTILITIES_WORDS.paid : v === false ? UTILITIES_WORDS.tenant : ''; }
-// WHO SEES THIS DOOR'S LISTING PICTURES (DR-1197, 0309). A word on the form,
+// WHO SEES THIS DOOR'S LISTING PICTURES (DR-1199, 0309). A word on the form,
 // a boolean on the row; ON unless the family holds them. The database decides
 // what a tenant reads — this is only the family's hand on the switch.
 export const PICTURES_WORDS = Object.freeze({ shared: 'Its tenant and household see them', held: 'Only the family sees them' });
@@ -1306,7 +1306,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
           </span>
         </label>
         <AreaEditor rental={rental} onSave={onSave} busy={busy} />
-        {/* WHO SEES THIS DOOR'S LISTING PICTURES (DR-1197). Darrell: "those
+        {/* WHO SEES THIS DOOR'S LISTING PICTURES (DR-1199). Darrell: "those
             images should be able to be seen by the people we are adding to
             the system, or if we decide we want them to." The sentence under
             the choice says what the database will do. */}

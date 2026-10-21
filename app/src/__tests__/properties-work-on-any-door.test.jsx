@@ -28,7 +28,7 @@ const H = vi.hoisted(() => ({
   rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null,
   assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [],
   // The pictures of a door and its rooms, and the door a tenancy resolves to
-  // (door_of_my_tenancy) — what 0309 lets a tenant read (DR-1197).
+  // (door_of_my_tenancy) — what 0309 lets a tenant read (DR-1199).
   doorPhotos: [], rooms: [], askDoor: null,
 }));
 
@@ -351,7 +351,7 @@ describe('the owner sees a door the way its tenant does', () => {
   });
 });
 
-// THE PICTURES OF THE PLACE THEY LIVE IN (DR-1197). Darrell, 2026-10-21: "We
+// THE PICTURES OF THE PLACE THEY LIVE IN (DR-1199). Darrell, 2026-10-21: "We
 // have images on multiple doors, and those images should be able to be seen by
 // the people we are adding to the system." The tenant's face has a Pictures
 // tab; it reads the door 0309 opens (door_of_my_tenancy), draws its listing
@@ -412,7 +412,7 @@ describe('a tenant sees the pictures of the place they live in', () => {
   });
 });
 
-// THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1197). Darrell,
+// THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1199). Darrell,
 // 2026-10-21: "the photos don't align with that person's perspective... the
 // drop down needs to work effectively within that specific apartment."
 describe('a "seen as" preview stands on one door and reads what that person would', () => {
@@ -478,7 +478,7 @@ describe('a "seen as" preview stands on one door and reads what that person woul
   });
 });
 
-// AN ADVERTISED DOOR WITH NO LISTING PICTURES SAYS SO ON THE BOARD (DR-1197).
+// AN ADVERTISED DOOR WITH NO LISTING PICTURES SAYS SO ON THE BOARD (DR-1199).
 // Darrell, 2026-10-21: the "Available now" shelf "is not publishing well". The
 // public card draws only 'listing' shots (public_vacancy_photos), so a door
 // advertised with none is advertised with a blank card — and the board must
