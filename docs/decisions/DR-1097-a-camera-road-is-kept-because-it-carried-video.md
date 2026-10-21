@@ -692,3 +692,32 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 - The NAS forwarder restarted at 05:43:23 UTC (its journal), after nas-bootstrap 39551003507 ran services-sync. cams-diag 39551265002 reads `forwarder` = `on_disk` = `c421f67a4529bae4`, the sha256 of main's `cams_forwarder.py`, so the per-camera cap is running.
 - cams-diag 39550896037 ran after the app deploy but before the forwarder restart. It still saw the old app's pattern: views that ended around 05:28 UTC included four of 805_floodlight_cam_-_west_sd and three of the east porch floodlight open together. That tab had loaded before the deploy.
 - The family's own proof is the re-review above.
+
+## Twentieth read (2026-10-21 13:49-14:20 UTC; cams-diag 39609030877, 39613813084 with `camera=front_cam`; camera-health 39612037321 probe_all): the 05:43 fix holds, and five online cameras go dark on and off
+
+**The nineteenth read's fix, again.**
+- The forwarder is still `c421f67a4529bae4`.
+- No camera had two of its own views open at once. No view ended `superseded`.
+- The only family use since 06:01 UTC was under a minute, at 06:53 UTC and 07:04 UTC. That is not enough to judge blinking, so a check-in at 23:31 UTC carries it.
+
+**What the thirteenth read left open.**
+- TURN refresh failures: 0 at 06:51 and 0 at 13:49 UTC. No relay session is being left open.
+- No 429 appears in either diag.
+- "Kinesis offers Wyze never answered" rose from 29 to 47 in seven hours. These are offers Amazon closes after 10 minutes, not sessions held open. They come from the cameras below.
+
+**Every camera (camera-health 39612037321, no regression):**
+- 17 of 33 give a frame, 15 of them on the first ask.
+- 11 of the 16 dark cameras are the ones Wyze's own list calls OFFLINE. The app cannot fix those.
+- The other 5 are online by Wyze's list and dark on both roads: front_cam, garage_doors, outside_7, back_yard_south, front.
+
+**front_cam, read by the NAS (`/why`).**
+- go2rtc's producer is connected to Amazon's signaling. Its media path is a host candidate on the LAN (`192.168.1.16`): 3 medias, 2 receivers.
+- No video arrives. Kinesis closes with `1001 going away`, and the 35 s probe and the frame probe both got 0 bytes.
+- The same camera carried video earlier: front_cam_sd 729 KB in 21 s, and garage_doors_sd 3.8 MB in 41 s, both about 06:53 UTC.
+- So the camera goes dark intermittently, and the KvsHold re-arm already asks it for a fresh offer when it does.
+
+**Not built, and why.** The cause is not yet isolated. A connected session with no video from a camera that streamed hours earlier sits on the camera's or Wyze's side of the offer. Building against a guess would break DR-0076.
+
+`re-review: 2026-10-22`: from the Fold, open each of the five on the direct road ("Straight from Wyze's WebRTC").
+- If the direct road carries one that the NAS cannot, the NAS's offer is the difference, and that is the fix to build.
+- If neither road carries it, the camera is dark to Wyze too, and the app says so in words.
