@@ -1,4 +1,4 @@
-# DR-1180: The house is one size everywhere — a fact repeated eleven times, checked nowhere
+# DR-1185: The house is one size everywhere — a fact repeated eleven times, checked nowhere
 
 **Date:** 2026-10-21
 **Status:** accepted
