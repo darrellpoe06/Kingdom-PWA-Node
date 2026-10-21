@@ -31,10 +31,9 @@ import {
   listPublicJobs, applyToJob, listJobs, saveJob, deleteJob, listApplications, reviewApplication, hireApplicant, markTelehealth,
   recordJobView, hiringReport,
 } from '../lib/tlc-hiring-sync.js';
+import { TLC_INPUT as INPUT, TLC_BTN as BTN, TLC_BTN_SMALL } from '../lib/tlc-ui.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
-const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_GOOD = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#5A6E3D] text-[#3F5226] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_WARN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_RUST = 'min-h-[36px] px-4 py-2 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
@@ -50,8 +49,8 @@ function CopyText({ text, label = 'Copy' }) {
   };
   return (
     <div className="flex items-start gap-2">
-      <pre className="flex-1 whitespace-pre-wrap text-[0.6875rem] break-words bg-white border border-[#E8E4DC] p-2" style={SERIF}>{text}</pre>
-      <button type="button" onClick={copy} className="min-h-[36px] px-2 text-xs font-semibold border border-[#1A1815] whitespace-nowrap hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">{copied ? 'Copied' : label}</button>
+      <pre className="flex-1 whitespace-pre-wrap text-[0.6875rem] break-words bg-white border border-[#E8E4DC] rounded-2xl p-2" style={SERIF}>{text}</pre>
+      <button type="button" onClick={copy} className={TLC_BTN_SMALL}>{copied ? 'Copied' : label}</button>
     </div>
   );
 }
@@ -257,7 +256,7 @@ function JobEditor({ job, instanceId, onSaved, onCancel }) {
     onSaved(res.job);
   };
   return (
-    <div className="border border-[#1A1815] bg-white p-4 space-y-2" aria-label={job && job.id ? 'Edit the posting' : 'Post a job'}>
+    <div className="border border-[#1A1815] bg-white rounded-2xl p-4 space-y-2" aria-label={job && job.id ? 'Edit the posting' : 'Post a job'}>
       <div className="text-sm font-bold text-[#1A1815]">{job && job.id ? 'Edit the posting' : 'Post a job'}</div>
       <label className="block text-xs text-[#5A5751]">Start from a role (fills the posting; edit anything after)
         <select onChange={fromSeat} defaultValue="" aria-label="Start from a seat" className={`${INPUT} mt-1`}>
@@ -307,7 +306,7 @@ function JobsArea({ instanceId }) {
       {editing ? (
         <JobEditor job={editing.id ? editing : null} instanceId={instanceId} onSaved={() => { setEditing(null); refresh(); }} onCancel={() => setEditing(null)} />
       ) : (
-        <div className="border border-[#1A1815] bg-white p-4">
+        <div className="border border-[#1A1815] bg-white rounded-2xl p-4">
           <div className="text-sm font-bold text-[#1A1815] mb-1">Post a job</div>
           <p className="text-xs text-[#5A5751] leading-relaxed mb-3" style={SERIF}>An open posting shows on the door under Join the team and on the website that links it. Applications arrive under Applicants; a hire opens the onboarding packet from the same app.</p>
           <div className="flex flex-wrap gap-2 items-center">
@@ -489,7 +488,7 @@ function ReportArea({ load = hiringReport }) {
   const rows = reportRows(state.report);
   const roles = reportRoles(state.report);
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5" aria-label="Hiring report">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5" aria-label="Hiring report">
       <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
         <div>
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Hiring report</div>

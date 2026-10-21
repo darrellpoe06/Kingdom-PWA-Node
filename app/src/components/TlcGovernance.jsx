@@ -14,8 +14,8 @@ import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, re
 import UiIcon from './UiIcon.jsx';
 import { useProfiles } from '../lib/use-profiles.js';
 import { ProfileAvatar } from './ProfileCard.jsx';
+import { TLC_BTN as BTN } from '../lib/tlc-ui.js';
 
-const BTN = 'min-h-[36px] px-3 py-2 text-xs font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
 const WARN = 'min-h-[36px] px-3 py-2 text-xs font-semibold border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
 const FIELD = 'min-h-[36px] px-2 py-1.5 text-sm border border-[#E8E4DC] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 
@@ -92,18 +92,18 @@ export default function TlcGovernance({ instanceId, myRole, myUserId = null }) {
 
   return (
     <div className="space-y-4">
-      <section className="bg-white border border-[#E8E4DC] p-3">
+      <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">The office, top down</div>
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">{GOVERNANCE_NOTE}</p>
         <Chart />
       </section>
 
-      <section className="bg-white border border-[#E8E4DC] p-3">
+      <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Who reaches what</div>
         <Matrix />
       </section>
 
-      <section className="bg-white border border-[#1A1815] p-3">
+      <section className="bg-white border border-[#1A1815] rounded-2xl p-3">
         <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Members of the office · live</div>
           <button type="button" onClick={load} className={`${BTN}`}>Refresh</button>
@@ -145,7 +145,7 @@ export default function TlcGovernance({ instanceId, myRole, myUserId = null }) {
         )}
       </section>
 
-      <section className="bg-white border border-[#E8E4DC] p-3">
+      <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Admit someone to the office</div>
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">A one-time link with a seat. They open it signed in; the claim waits for your confirmation before anything is granted (the DR-0187 handshake). A therapist joins through Onboarding’s intake; this is for an assistant, a reviewer, or a manager.</p>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">

@@ -33,11 +33,21 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(HERE, '..', 'components', f), 'utf8');
 
-// Every surface that paints `data-theme` from the shared preference.
-const DOORS = ['PropertiesDoor.jsx', 'TlcPublicDoor.jsx', 'MooreDoor.jsx'];
+// Every surface that paints `data-theme` from the shared preference, with the
+// fallback each one asks for. RETARGETED, NOT RELAXED (DR-1156, the same move
+// DR-1060 made for the shell below): the TLC door now opens in TLC's own
+// ivory & forest by its own fallback, so the exact string this pinned
+// (`useThemePref('cream')`) moved for that one door. The guarantee this case
+// holds — every door reads the preference THROUGH useThemePref and keeps no
+// private copy — is unchanged; the fallback is simply named per door.
+const DOORS = [
+  ['PropertiesDoor.jsx', "useThemePref('cream')"],
+  ['TlcPublicDoor.jsx', 'useThemePref(TLC_DEFAULT_THEME)'],
+  ['MooreDoor.jsx', "useThemePref('cream')"],
+];
 
 describe('every door hears the shared theme, not a copy of it', () => {
-  for (const f of DOORS) {
+  for (const [f, fallback] of DOORS) {
     it(`PROVEN-TO-CATCH: ${f} subscribes instead of reading once`, () => {
       const src = read(f);
       // The exact shape that could not hear a change. Its presence is the bug.
@@ -45,7 +55,7 @@ describe('every door hears the shared theme, not a copy of it', () => {
         src,
         `${f} holds a private theme copy; the reader's picker cannot reach it`,
       ).not.toMatch(/useState\(\(\)\s*=>\s*readThemePref\(/);
-      expect(src).toContain("useThemePref('cream')");
+      expect(src).toContain(fallback);
     });
 
     it(`${f} no longer saves the theme by hand — useThemePref does it`, () => {

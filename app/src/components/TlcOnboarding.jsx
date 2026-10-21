@@ -26,16 +26,17 @@ import TlcFormEditor from './TlcFormEditor.jsx';
 import TlcRecordEditor from './TlcRecordEditor.jsx';
 import { liveSections } from '../lib/tlc-office-forms.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
+import { TLC_INPUT as INPUT, TLC_BTN as BTN, TLC_BTN_SMALL } from '../lib/tlc-ui.js';
 
 // The public card, drawn the way the door draws it — so what Christina sees
 // here is what a client will see on "Match a Preferred Provider".
 function RosterCardPreview({ card }) {
   if (!card) return null;
   return (
-    <div className="bg-white border border-[#E8E4DC] p-3 flex items-start gap-3 sm:w-96">
+    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-3 flex items-start gap-3 sm:w-96">
       {card.photo
-        ? <img src={card.photo} alt="" width="72" height="72" className="w-[72px] h-[72px] object-cover bg-[#E8E4DC] shrink-0" />
-        : <div aria-hidden="true" className="w-[72px] h-[72px] bg-[#E8E4DC] shrink-0" />}
+        ? <img src={card.photo} alt="" width="72" height="72" className="w-[72px] h-[72px] rounded-full object-cover bg-[#E8E4DC] shrink-0" />
+        : <div aria-hidden="true" className="w-[72px] h-[72px] rounded-full bg-[#E8E4DC] shrink-0" />}
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-sm font-semibold min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif' }}>{card.name || 'Name'}</span>
@@ -117,8 +118,6 @@ function RosterPanel() {
   );
 }
 
-const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_GOOD = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#5A6E3D] text-[#3F5226] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_WARN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 
@@ -136,8 +135,8 @@ function CopyLink({ link }) {
   };
   return (
     <div className="flex items-center gap-2">
-      <code className="flex-1 text-[0.6875rem] break-all bg-white border border-[#E8E4DC] p-2">{link}</code>
-      <button type="button" onClick={copy} className="min-h-[36px] px-2 text-xs font-semibold border border-[#1A1815] whitespace-nowrap hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">{copied ? 'Copied' : 'Copy'}</button>
+      <code className="flex-1 text-[0.6875rem] break-all bg-white border border-[#E8E4DC] rounded-2xl p-2">{link}</code>
+      <button type="button" onClick={copy} className={TLC_BTN_SMALL}>{copied ? 'Copied' : 'Copy'}</button>
     </div>
   );
 }
@@ -197,7 +196,7 @@ function PacketDetail({ row, onChanged, onClose }) {
   };
 
   return (
-    <div className="border border-[#1A1815] bg-white p-3 space-y-3">
+    <div className="border border-[#1A1815] bg-white rounded-2xl p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-bold text-[#1A1815]">{row.applicant_name || row.email || 'Packet'} <StatusChip status={(view && view.status) || row.status} /></div>
         <button type="button" onClick={onClose} className={`${BTN}`}>Back to list</button>
@@ -272,7 +271,7 @@ function InviteDetail({ row, onChanged, onClose }) {
     return () => { alive = false; };
   }, [row.id]);
   return (
-    <div className="border border-[#1A1815] bg-white p-3 space-y-3">
+    <div className="border border-[#1A1815] bg-white rounded-2xl p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-bold text-[#1A1815]">{row.applicant_name || row.email} <span className="inline-block text-[0.6875rem] px-2 py-0.5 border border-[#E8E4DC] text-[#5A5751] bg-white">Invited · not yet opened</span></div>
         <button type="button" onClick={onClose} className={`${BTN}`}>Back to list</button>
@@ -340,7 +339,7 @@ export default function TlcOnboarding() {
   const areas = [
     { id: 'invite', label: 'Invite', icon: 'mail', render: () => (
       <div className="space-y-4">
-      <div className="border border-[#1A1815] bg-white p-4">
+      <div className="border border-[#1A1815] bg-white rounded-2xl p-4">
         <div className="text-sm font-bold text-[#1A1815] mb-1">Invite a new colleague</div>
         <p className="text-xs text-[#5A5751] leading-relaxed mb-3">
           Enter their email to mint a one-time link. They open it in the TLC app, sign in (or create a login), and fill in the same intake the office has always used — license, insurance, paperwork, direct deposit, availability, clinical profile, and the three signed agreements. Their packet shows up under Packets as they go.

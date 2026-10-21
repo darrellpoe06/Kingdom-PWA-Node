@@ -258,7 +258,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
   // its map, the pathways, the record (certificates / hours / CE), the
   // office's catalog. Nulls drop; SectionTabs filters them.
   const outcomesArea = (
-    <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
+    <section className="bg-white border-2 border-[#5A6E3D] rounded-2xl p-4 sm:p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
       <p className="text-sm text-[#1A1815] mb-3 max-w-prose" style={SERIF}><strong>Understand:</strong> {outcomes.understand}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -279,7 +279,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
     </section>
   );
   const readingSupport = (
-    <section className="bg-white border border-[#E8E4DC] p-4">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Reading support</div>
       <div className="flex flex-wrap items-center gap-4">
         <TextSizeControl variant="panel" />
@@ -504,7 +504,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
             {/* 24/7 (Darrell 2026-09-10: "We want clients to have information
                 about subjects available 24/7"): the client lessons, signed out,
                 any hour, and a subject finder over every one of them. */}
-            <div className="bg-white border border-[#E8E4DC] p-3 space-y-2">
+            <div className="bg-white border border-[#E8E4DC] rounded-2xl p-3 space-y-2">
               {/* Darrell 2026-09-10, on why a client needs this at any hour:
                   "understanding is the principle thing." Rendered for meaning
                   (DR-0331); the verse itself is read from the corpus on tap. */}
@@ -553,7 +553,7 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
   const published = isTrackPublishable(track);
 
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <h3 className="text-lg" style={{ ...SERIF, fontWeight: 600 }}>{track.title}</h3>
         <span className="flex items-center gap-2 flex-wrap">
@@ -826,7 +826,7 @@ function ForYouPanel({ rows, onOpen, onReviewed, message }) {
     </li>
   );
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5">
       <SectionTitle eyebrow="From your therapist">For you · lessons to review before your next session</SectionTitle>
       {message && <p className="text-xs text-[#B85838]" role="status">{message}</p>}
       {rows.length === 0 ? (
@@ -845,7 +845,7 @@ function ForYouPanel({ rows, onOpen, onReviewed, message }) {
 // The therapist's list of what they have scheduled, with the client's review state.
 function AssignedPanel({ rows, forMe, onOpen, onRemove, message }) {
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <SectionTitle eyebrow="Scheduled for clients">Assigned lessons</SectionTitle>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>Open any lesson under Lessons or Course library and tap “Assign to a client”; the client sees it under For you, and their “Mark reviewed” shows here.</p>
       {message && <p className="text-xs text-[#B85838]" role="status">{message}</p>}
@@ -962,7 +962,7 @@ function EarnedCertificates({ certs, onRemove }) {
         {certs.map((c) => {
           const expired = certExpired(c, now);
           return (
-            <div key={c.id} className="bg-white border-2 border-[#5A6E3D] p-4">
+            <div key={c.id} className="bg-white border-2 border-[#5A6E3D] rounded-2xl p-4">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{c.title}</span>
                 <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">Completed</span>
@@ -1005,7 +1005,7 @@ function HoursLedger({ entries, onLog, onRemove }) {
   };
 
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow="Training hours · IL MSW → LCSW">Supervised hours ledger</SectionTitle>
         <button type="button" onClick={() => setShow(!show)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log hours'}</button>
@@ -1117,7 +1117,7 @@ function CeuTracker({ entries, cfg, setCfg, onLog, onRemove }) {
   };
 
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow={`Continuing education · renewal · ${ruleset.stateName}`}>CEU renewal tracker</SectionTitle>
         <button type="button" onClick={() => setShow(!show)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{show ? '× Cancel' : '+ Log CE activity'}</button>
@@ -1262,7 +1262,7 @@ function CeuTracker({ entries, cfg, setCfg, onLog, onRemove }) {
 function CertCatalogPanel({ catalog, setCatalog }) {
   const update = (id, patch) => setCatalog((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <SectionTitle eyebrow="Staff · certificates">Certificate catalog</SectionTitle>
       <p className="text-xs text-[#5A5751] mb-3 max-w-prose" style={SERIF}>
         Certificates affirm completion and the training hours earned. CE-provider fields are optional — fill them only when a course carries continuing-education-provider info.
@@ -1310,7 +1310,7 @@ function RequiredTrainings({ reqs, completions, setCompletions }) {
     never: { label: 'Not logged', color: 'text-[#5A5751]' },
   };
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <SectionTitle eyebrow="Staff · keeping current">Required trainings</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-3">
         <MetricCell label="Current" value={`${summary.current}`} small accent="green" />
@@ -1360,7 +1360,7 @@ function CourseLibrary({
   libLogged, openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, onDecide, onRecordTest, onComplete,
 }) {
   return (
-    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+    <section className="bg-white border-2 border-[#1A1815] rounded-2xl p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow="Training · the ten clinical fields">Course library</SectionTitle>
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{totals.courseCount} courses · {totals.totalHours} training hours</span>
@@ -1664,7 +1664,7 @@ function TrainingPlanPanel({ plan }) {
   const s = plan.summary;
   const months = showAll ? plan.plan : plan.plan.slice(0, 6);
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow={`${plan.window.state} ${plan.window.credential} window · ${plan.months} months minimum · ${plan.weeks} weeks`}>Training map</SectionTitle>
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Illinois rules as of {ILLINOIS_POLICY_AS_OF}{plan.window.confirmed ? '' : ' · window confirmed by Christina (LCSW)'}</span>
@@ -1754,7 +1754,7 @@ function TracksPanel({ libraryHours }) {
   const rows = useMemo(() => tracksSummary({ libraryHours, hoursPerMonth: 24 }), [libraryHours]);
   const confirmed = allTracksConfirmed();
   return (
-    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
       <SectionTitle eyebrow="One backbone · many audiences">Who this serves — tracks &amp; hours</SectionTitle>
       <p className="text-[0.6875rem] text-[#5A5751] mb-3 max-w-prose" style={SERIF}>
         The course library, certificate catalog, and hours ledger serve several audiences, each on its own track. Hour requirements below are grounded in the cited standards and are {confirmed ? 'confirmed' : 'pending Christina (LCSW) confirmation'} — never guessed.

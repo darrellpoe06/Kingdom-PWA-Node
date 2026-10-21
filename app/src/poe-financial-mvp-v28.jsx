@@ -171,7 +171,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
-import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME } from './lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
@@ -1082,7 +1082,7 @@ export default function PoeFinancialSystem() {
   // not move it. useThemePref publishes from lib/theme-css.js and persists on
   // set, so the separate saveThemePref effect is no longer needed and every
   // setTheme(...) call site below is unchanged.
-  const [theme, setTheme] = useThemePref(churchDoorOnly ? CHURCH_DEFAULT_THEME : DEFAULT_THEME);
+  const [theme, setTheme] = useThemePref(churchDoorOnly ? CHURCH_DEFAULT_THEME : tlcDoorOnly ? TLC_DEFAULT_THEME : DEFAULT_THEME);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
