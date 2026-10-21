@@ -130,10 +130,25 @@ export function doorState({ rentals = [], entities = [], paidRollup = null, inci
   // are missing one, the sub-line says how many are counted rather than
   // letting a blank pass as a zero.
   const counted = (missing) => (missing > 0 ? `${p.portfolioCount - missing} of ${p.portfolioCount} entered` : null);
+  // TWO CELLS WERE SAYING NOTHING (DR-1178). Measured on Darrell's own live
+  // portfolio, 2026-10-21: the door drew "Rent a month $11,700 · 11 of 12
+  // entered" and "Still owed $0 · 0 of 12 entered" — both honest — beside
+  // "Mortgage a month $950" and "Left after the note $10,750" with NO sub-line
+  // at all, on a P&I column carrying one figure in twelve. Both numbers were
+  // arithmetically correct and both read as complete, which is the under-claim
+  // half of DR-0076 in reverse: a partial sum wearing a full sum's clothes.
+  //
+  // So the note column is counted like the other two, and the DERIVED cell
+  // inherits the weaker of the two columns it subtracts — because a difference
+  // is only as complete as its least complete side. When either side is
+  // partial it says which, in words, rather than implying a surplus the rows
+  // do not support.
+  const net = p.monthlyRent - p.monthlyPI;
+  const netMissing = Math.max(Number(p.missingRent) || 0, Number(p.missingPI) || 0);
   const holds = [
     { key: 'rent', label: 'Rent a month', value: p.monthlyRent, sub: counted(p.missingRent), tone: 'green' },
-    { key: 'pi', label: 'Mortgage a month', value: p.monthlyPI, sub: null, tone: 'ink' },
-    { key: 'net', label: 'Left after the note', value: p.monthlyRent - p.monthlyPI, sub: null, tone: (p.monthlyRent - p.monthlyPI) < 0 ? 'rust' : 'green' },
+    { key: 'pi', label: 'Mortgage a month', value: p.monthlyPI, sub: counted(p.missingPI), tone: 'ink' },
+    { key: 'net', label: 'Left after the note', value: net, sub: netMissing > 0 ? `rent and notes are not all entered — ${p.portfolioCount - netMissing} of ${p.portfolioCount} carry both` : null, tone: net < 0 ? 'rust' : 'green' },
     { key: 'debt', label: 'Still owed', value: p.mortgageDebt, sub: counted(p.missingDebt), tone: 'rust' },
   ];
 

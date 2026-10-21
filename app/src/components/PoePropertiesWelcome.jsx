@@ -238,6 +238,48 @@ export const WELCOME_CSS = `
 .pp-re-back{margin:calc(0.6 * var(--ts-fixed,1rem)) 0 0}
 .pp-verse{font-size:.875rem;line-height:1.55;font-style:italic;color:var(--pp-muted);margin:calc(0.5 * var(--ts-fixed,1rem)) 0 0}
 .pp-verse-ref{font-style:normal;font-size:.625rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+
+/* ---------------------------------------------------------------------------
+   THE LIST WEARS THE DOOR TOO (DR-1178). Darrell, 2026-10-21, with two
+   screenshots of the Real Estate tab: "This isn't like the other tab enough...
+   it only changed or added things to the top... why... we need the look of the
+   Properties tab all the way and the colors can change with the color choices
+   like the other tab."
+   He was right, and the screenshots show it exactly: DR-1169 put a styled band
+   at the top and everything beneath it stayed in the old shape -- a 10px grey
+   "PROPERTIES - 13", a 10px grey "INCOME-PRODUCING - 12", and cards whose
+   titles are Fraunces and whose actions are bare text links. The COLORS were
+   already following the theme (both his screenshots are midnight, and the band
+   AND the cards are dark) -- what did not follow was the SHAPE: the serif
+   heading, the gold rule, the panel radius, the red pill.
+   These classes carry that shape down the whole list. They are tokens only --
+   not one literal color -- so every one of them remaps with the theme exactly
+   the way the band above them does.
+   --------------------------------------------------------------------------- */
+.pp-list-head{display:flex;align-items:flex-end;justify-content:space-between;gap:calc(0.75 * var(--ts-fixed,1rem));flex-wrap:wrap;margin-bottom:calc(0.75 * var(--ts-fixed,1rem))}
+.pp-list-title{font-family:var(--pp-serif);font-weight:700;font-size:1.375rem;line-height:1.2;letter-spacing:-.01em;color:var(--pp-ink);margin:0}
+.pp-list-count{font-family:var(--pp-sans);font-size:.625rem;letter-spacing:.25em;text-transform:uppercase;color:var(--pp-muted);font-weight:600}
+/* The red pill the front door uses for its primary action, so "+ Add property"
+   reads as a button instead of a 10px grey word. */
+.pp-pill{font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:calc(0.55 * var(--ts-fixed,1rem)) calc(1 * var(--ts-fixed,1rem));min-height:calc(2.75 * var(--ts-fixed,1rem));border:1px solid var(--pp-red);border-radius:999px;background:var(--pp-red);color:#FFFFFF;cursor:pointer}
+.pp-pill:hover{background:var(--pp-red-deep);border-color:var(--pp-red-deep)}
+.pp-pill:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-pill-quiet{background:var(--pp-card);color:var(--pp-red)}
+.pp-pill-quiet:hover{background:var(--pp-red-tint);color:var(--pp-red)}
+/* A property is a panel, with the door's own radius, line and shadow. */
+.pp-row-card{background:var(--pp-card);border:1px solid var(--pp-line);border-radius:calc(1 * var(--ts-fixed,1rem));box-shadow:var(--pp-shadow);overflow:hidden;color:var(--pp-ink)}
+.pp-row-head{background:var(--pp-paper);border-bottom:1px solid var(--pp-line);padding:calc(0.6 * var(--ts-fixed,1rem)) calc(0.9 * var(--ts-fixed,1rem));display:flex;align-items:baseline;justify-content:space-between;gap:calc(0.5 * var(--ts-fixed,1rem));flex-wrap:wrap}
+.pp-row-title{font-family:var(--pp-serif);font-weight:700;font-size:1.0625rem;line-height:1.3;color:var(--pp-ink)}
+.pp-row-rent{font-family:var(--pp-serif);font-weight:700;font-size:1.0625rem;color:var(--pp-ink)}
+/* The action row: pills with a quiet rest state, so Edit / Records / Split /
+   Delete read as one family of control rather than four sizes of text link. */
+.pp-act{font-family:var(--pp-sans);font-size:.625rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:calc(0.45 * var(--ts-fixed,1rem)) calc(0.8 * var(--ts-fixed,1rem));min-height:calc(2.25 * var(--ts-fixed,1rem));border:1px solid var(--pp-line);border-radius:999px;background:var(--pp-card);color:var(--pp-muted);cursor:pointer}
+.pp-act:hover{border-color:var(--pp-ink);color:var(--pp-ink)}
+.pp-act:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-act-red{color:var(--pp-red);border-color:var(--pp-red)}
+.pp-act-red:hover{background:var(--pp-red-tint);color:var(--pp-red);border-color:var(--pp-red)}
+.pp-act-good{color:var(--pp-good);border-color:var(--pp-good)}
+.pp-act-good:hover{color:var(--pp-good);border-color:var(--pp-good)}
 `;
 
 /**
