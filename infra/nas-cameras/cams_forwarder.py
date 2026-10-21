@@ -434,6 +434,58 @@ def live_end_note(cam, seconds, nbytes, why, now=None):
         del LIVE_ENDS[:-LIVE_ENDS_KEEP]
 
 
+# ONE CAMERA, A FEW VIEWS (DR-1097, nineteenth read). cams-diag 39547175167 read
+# 32 live views end in one second when one phone's tab closed at 23:59:32:
+# every slot MAX_LIVE has, five of 805_north_sd at once, each 90-404 s old and
+# still carrying video. The tab had replaced each reconnecting <video> without
+# hanging up the old one (fixed in the app, lib/camera-video.js), and nothing
+# here stopped it: the orphans held every slot ("busy") and filled the phone's
+# road, so the views really watched froze. A camera now holds at most
+# LIVE_PER_CAMERA live views; one more tells the OLDEST to end ("superseded"),
+# so a view nobody watches can never keep the slot from one somebody does.
+# Brakes (deterministic class, DR-0248): the count is the budget, one lock,
+# stop-path CAMS_LIVE_PER_CAMERA=0.
+LIVE_PER_CAMERA = max(0, int(os.environ.get("CAMS_LIVE_PER_CAMERA", "3")))
+LIVE_VIEWS = {}
+LIVE_VIEWS_LOCK = threading.Lock()
+
+
+def live_view_join(cam, sock=None, cap=None, views=None, clock=time.monotonic):
+    """A live view of `cam` opened: register it and tell the oldest beyond `cap` to end.
+    Answers the view's handle {started, stop, sock}."""
+    cap = LIVE_PER_CAMERA if cap is None else int(cap)
+    views = LIVE_VIEWS if views is None else views
+    view = {"started": clock(), "stop": threading.Event(), "sock": sock}
+    ended = []
+    with LIVE_VIEWS_LOCK:
+        rows = views.setdefault(cam, [])
+        rows.append(view)
+        if cap > 0:
+            live = [v for v in rows if not v["stop"].is_set()]
+            for old in live[:max(0, len(live) - cap)]:
+                old["stop"].set()
+                ended.append(old)
+    for old in ended:
+        # A view whose reader stopped reading is stuck in a write: the socket is
+        # shut so the write fails now rather than when the tab finally closes.
+        try:
+            if old["sock"] is not None:
+                old["sock"].shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+    return view
+
+
+def live_view_leave(cam, view, views=None):
+    views = LIVE_VIEWS if views is None else views
+    with LIVE_VIEWS_LOCK:
+        rows = [v for v in views.get(cam, []) if v is not view]
+        if rows:
+            views[cam] = rows
+        else:
+            views.pop(cam, None)
+
+
 def live_ends_summary(allow=None):
     """{ends: newest first, by_why: {why: count}} for the cameras `allow` admits."""
     with LIVE_ENDS_LOCK:
@@ -4378,6 +4430,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     self.close_connection = True
                     started = time.monotonic()
                     sent, why = 0, "viewer-left"
+                    view = live_view_join(cam, sock=self.connection)
                     # read1(): hand on whatever bytes have ARRIVED instead of
                     # blocking until 64 KB fill -- a slow camera at 11 bytes per
                     # 10 ms would otherwise hold the brake check hostage until the
@@ -4386,6 +4439,9 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     read = getattr(r, "read1", None) or r.read
                     try:
                         while True:
+                            if view["stop"].is_set():
+                                why = "superseded"
+                                break  # a newer view of this camera took the place (ONE CAMERA, A FEW VIEWS)
                             if live_max_seconds > 0 and time.monotonic() - started >= live_max_seconds:
                                 why = "clock"
                                 break  # the optional clock: a live view ends itself; the app re-opens
@@ -4402,8 +4458,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                             LIVE_LAST_BYTES[base_of(cam)] = time.monotonic()
                             live_note(len(chunk))
                     except (BrokenPipeError, ConnectionResetError, OSError):
-                        why = "viewer-left"  # the write failed: the tab hung up
+                        # the write failed: the tab hung up, or its socket was shut for a newer view
+                        why = "superseded" if view["stop"].is_set() else "viewer-left"
                     finally:
+                        live_view_leave(cam, view)
                         live_note(0, delta_open=-1)
                         live_end_note(cam, time.monotonic() - started, sent, why)
             finally:
@@ -4770,6 +4828,51 @@ def _selftest():
     time.sleep(0.1)
     s, _h, _d = call("GET", "/live/front_yard.mp4?t=" + tk, read=False)
     check(s == 200, "after the brake fired the slot is free again")
+
+    # ONE CAMERA, A FEW VIEWS (DR-1097, nineteenth read): cams-diag 39547175167
+    # read 32 views (every slot) held by one tab, five of one camera at once.
+    class _Sock:
+        def __init__(self):
+            self.shut = 0
+
+        def shutdown(self, how):
+            self.shut += 1
+    vv, socks = {}, [_Sock() for _ in range(4)]
+    va = live_view_join("cam", sock=socks[0], cap=2, views=vv)
+    vb = live_view_join("cam", sock=socks[1], cap=2, views=vv)
+    vo = live_view_join("other", cap=2, views=vv)
+    check(not va["stop"].is_set() and not vb["stop"].is_set() and not vo["stop"].is_set(), "views up to the cap all play, and another camera's view is its own count")
+    vc = live_view_join("cam", sock=socks[2], cap=2, views=vv)
+    check(va["stop"].is_set() and socks[0].shut == 1 and not vb["stop"].is_set() and not vc["stop"].is_set() and socks[1].shut == 0,
+          "PROVEN TO CATCH: one view past the cap ends the OLDEST of that camera (its socket shut so a stuck write fails now), never the newest")
+    live_view_leave("cam", va, views=vv)
+    vd = live_view_join("cam", sock=socks[3], cap=2, views=vv)
+    check(vb["stop"].is_set() and not vc["stop"].is_set() and not vd["stop"].is_set() and len(vv["cam"]) == 3, "the next view past the cap ends the next oldest; a view that left is not counted")
+    for x in (vb, vc, vd):
+        live_view_leave("cam", x, views=vv)
+    live_view_leave("other", vo, views=vv)
+    check(vv == {}, "every view that leaves is forgotten (%r)" % vv)
+    v0 = [live_view_join("cam", cap=0, views=vv) for _ in range(5)]
+    check(not any(v["stop"].is_set() for v in v0), "stop-path: CAMS_LIVE_PER_CAMERA=0 ends no view")
+    check(LIVE_PER_CAMERA == 3, "the shipped cap is 3 views of one camera (two family members and a hand-over, never an orphan's fifth)")
+    saved_cap, saved_ends6 = LIVE_PER_CAMERA, list(LIVE_ENDS)
+    time.sleep(1.2)  # the unread view above ends at its own 1 s clock first
+    globals()["LIVE_PER_CAMERA"] = 1
+    try:
+        results.clear()
+        ta = threading.Thread(target=stream_one, args=("a",)); ta.start(); time.sleep(0.3)
+        tb = threading.Thread(target=stream_one, args=("b",)); tb.start()
+        ta.join(); tb.join()
+    finally:
+        globals()["LIVE_PER_CAMERA"] = saved_cap
+    sa, ga, ela, _ha = results["a"]
+    sb, gb, elb, _hb = results["b"]
+    ends_fy = [e for e in LIVE_ENDS if e["camera"] == "front_yard"]
+    check(sa == 200 and sb == 200 and ga.startswith(b"MP4CHUNK000") and ela < 0.75 and elb >= 0.8,
+          "PROVEN TO CATCH end to end: a second view of the camera ends the first at once (%.2fs, before its 1 s clock) and the second plays on to its clock (%.2fs)" % (ela, elb))
+    check(any(e["why"] == "superseded" for e in ends_fy[-2:]), "the first view's end is kept as superseded, so the diag says which side hung up (%r)" % ends_fy[-2:])
+    check(LIVE_VIEWS == {}, "both views left the register (%r)" % LIVE_VIEWS)
+    LIVE_ENDS[:] = saved_ends6  # the ends section below counts its own
 
     print("=== 7. HLS: the ticket rides every line; paths stay relative to where the client is ===")
     s, h, d = call("GET", "/live/front_yard/index.m3u8?t=" + tk)
@@ -5443,7 +5546,7 @@ def _selftest():
     s, _h, d = call("GET", "/streams/health", auth=B)
     j = json.loads(d.decode("utf-8"))
     le = j.get("live_ends") or {}
-    check(le.get("by_why", {}).get("clock") == 2 and all(e["why"] in ("clock", "source-ended", "source-silent", "viewer-left") and e["camera"] for e in le.get("ends", [])),
+    check(le.get("by_why", {}).get("clock") == 2 and all(e["why"] in ("clock", "source-ended", "source-silent", "viewer-left", "superseded") and e["camera"] for e in le.get("ends", [])),
           "PROVEN TO CATCH: every live view's end is kept with who ended it (the 1 s clock ended two of them here) -- a blinking tile says which side hung up (%r)" % (le.get("by_why"),))
     saved_ends = list(LIVE_ENDS)
     del LIVE_ENDS[:]

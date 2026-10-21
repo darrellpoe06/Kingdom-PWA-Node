@@ -2,7 +2,8 @@
 // The Life Hub is OPT-IN, wired to real records, and reversible
 // =============================================================================
 // Darrell 2026-09-17, relaying three home-view mockups from his wife Christina
-// with three decisions: the CURRENT VIEW STAYS THE DEFAULT front door, the two
+// with three decisions: the Current View stayed the default front door (until
+// DR-1046 made the Hub the home on 2026-10-15; the test below pins THAT), the two
 // tiles with no record behind them get real records, and the phone nav folds.
 //
 // FIVE PLACES THIS COULD HAVE GONE WRONG, and every one is a checked property
