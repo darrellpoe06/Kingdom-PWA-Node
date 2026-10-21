@@ -52,10 +52,23 @@ afterEach(() => {
   window.IntersectionObserver = realIO;
   window.localStorage.clear();
 });
-const mount = () => act(() => root.render(createElement(ChurchLearn, {
-  extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
-  learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-})));
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course is
+// open until one is chosen. Every case here is about the LESSON LIST inside a
+// course, so `mount` chooses Living Lessons -- what the default used to open --
+// through the picker, which is unchanged.
+const mount = () => {
+  act(() => root.render(createElement(ChurchLearn, {
+    extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
+    learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
+  })));
+  const sel = container.querySelector('#learn-course-pick');
+  if (sel) {
+    act(() => {
+      Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, 'living-lessons');
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+};
 const cards = () => [...container.querySelectorAll('ol > li[id^="learn-lesson-"]')];
 const printCopy = () => container.querySelector('.hidden.print\\:block');
 
