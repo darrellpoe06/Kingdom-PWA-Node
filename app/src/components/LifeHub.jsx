@@ -47,6 +47,7 @@ import {
 import { recentActivity, agoLabel } from '../lib/home-activity.js';
 import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
+import HubCamera from './HubCamera.jsx';
 import UiIcon from './UiIcon.jsx';
 
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4';
@@ -139,7 +140,11 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
+      {/* The live camera, or a painted home that says what the space is for, in
+          the space beside the title (Darrell, 2026-10-21; HubCamera.jsx). Beside
+          the title from md up; under it on a phone. */}
+      <header className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] items-start">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Life Hub</h2>
           <p className={`text-xs ${MUTED}`}>Everything in one place. Your own view — the Current View is still there.</p>
@@ -167,6 +172,8 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             Current View
           </button>
         </div>
+      </div>
+      <HubCamera setView={setView} />
       </header>
 
       {panel === 'stories' && <FamilyStories onClose={() => setPanel(null)} />}
