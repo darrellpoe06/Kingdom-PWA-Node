@@ -347,7 +347,7 @@ export default function TlcPublicDoor() {
           header states). Collapsed above Normal, TextSizeEscapeHatch keeps the
           way out on screen exactly as the PoeTech shell does. */}
       <header
-        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b border-[#E8E4DC] transition-transform duration-300 will-change-transform ${headerHidden && !loginOpen ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`ts-safe-sticky sticky top-0 z-40 rounded-none bg-white border-b border-[#E8E4DC] transition-transform duration-300 will-change-transform ${headerHidden && !loginOpen ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           {/* 1 · the compact bar */}
@@ -358,8 +358,8 @@ export default function TlcPublicDoor() {
             <div className="min-w-0 ts-chrome-region flex items-center gap-2.5">
               {/* The mark: a heart in the forest well — the brand's own sign,
                   painted by the theme so it reads in every palette. */}
-              <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#1A1815] text-white" aria-hidden="true"><UiIcon name="heart" /></span>
-              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.name}</h1>
+              <span className="hidden sm:inline-flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-[#1A1815] text-white" aria-hidden="true"><UiIcon name="heart" /></span>
+              <h1 className="text-base sm:text-xl leading-none whitespace-nowrap truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.name}</h1>
             </div>
             <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
               {/* Book stays in the bar: for a client it is THE action, reachable

@@ -82,6 +82,8 @@ describe('the TLC door opens in TLC’s colors, and no other door moved', () => 
     expect(TLC_DEFAULT_THEME).toBe('tlc');
     expect(THEMES.some((t) => t.key === 'tlc')).toBe(true);
     expect(DOOR).toContain('useThemePref(TLC_DEFAULT_THEME)');
+    // ...and the shell, whose hook paints the bars last, asks for it by the DOOR too.
+    expect(read('poe-financial-mvp-v28.jsx')).toContain('tlcDoorOnly ? TLC_DEFAULT_THEME : DEFAULT_THEME');
   });
 
   it('DR-1046 and DR-1060 stand: the family app opens in Heritage, the church in its red', () => {

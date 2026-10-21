@@ -335,7 +335,13 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="tlc"]{--form-surface:#FFFFFF;--form-ink:#2A2B27;--form-line:#CFCBC0;--form-hint:#6B6F67;color-scheme:light}
 [data-theme="tlc"]{background-color:#F4F2ED;color:#2A2B27;letter-spacing:0}
 [data-theme="tlc"] .bg-\\[\\#FAF8F4\\]{background-color:#F4F2ED!important}
-[data-theme="tlc"] .bg-white{background-color:#FFFFFF!important;border-radius:16px;box-shadow:0 1px 2px rgba(42,43,39,0.04),0 8px 24px rgba(42,43,39,0.06)}
+[data-theme="tlc"] .bg-white{background-color:#FFFFFF!important;box-shadow:0 1px 2px rgba(42,43,39,0.04),0 8px 24px rgba(42,43,39,0.06)}
+/* RADIUS ONLY WHERE THE COMPONENT SAID NOTHING. A rule on the token outranks a
+   utility (0,2,0 over 0,1,0), so written plainly it flattened every rounded-full
+   pill to 12px and rounded the sticky header — seen on the live door, not in
+   the code. :not([class*="rounded"]) hands the shape back to any element that
+   chose its own (rounded-none included). */
+[data-theme="tlc"] .bg-white:not([class*="rounded"]){border-radius:16px}
 [data-theme="tlc"] .bg-\\[\\#E8E4DC\\]{background-color:#E6EBE3!important}
 [data-theme="tlc"] .bg-\\[\\#F0EDE6\\]{background-color:#EDEBE4!important}
 [data-theme="tlc"] .bg-\\[\\#F2EFE9\\]{background-color:#EDEBE4!important}
@@ -348,7 +354,8 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="tlc"] .border-\\[\\#E6E0D6\\]{border-color:#E4E1D9!important}
 /* the strong ink line reads as a sage-forest outline: an input, an outlined
    button and a strong card all keep their edge, none shout */
-[data-theme="tlc"] .border-\\[\\#1A1815\\]{border-color:#8E9F93!important;border-radius:14px}
+[data-theme="tlc"] .border-\\[\\#1A1815\\]{border-color:#8E9F93!important}
+[data-theme="tlc"] .border-\\[\\#1A1815\\]:not([class*="rounded"]){border-radius:14px}
 [data-theme="tlc"] .border-2{border-radius:16px}
 [data-theme="tlc"] .text-\\[\\#1A1815\\]{color:#2A2B27!important}
 [data-theme="tlc"] .text-\\[\\#FAF8F4\\]{color:#F4F2ED!important}
@@ -358,7 +365,8 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="tlc"] .text-\\[\\#3F5226\\]{color:#2E5A47!important}
 [data-theme="tlc"] .text-\\[\\#2F5D50\\]{color:#2F5D4A!important}
 /* the dark fill is the forest — the primary button of the reference */
-[data-theme="tlc"] .bg-\\[\\#1A1815\\]{background-color:#2E4A3C!important;border-radius:12px}
+[data-theme="tlc"] .bg-\\[\\#1A1815\\]{background-color:#2E4A3C!important}
+[data-theme="tlc"] .bg-\\[\\#1A1815\\]:not([class*="rounded"]){border-radius:12px}
 [data-theme="tlc"] .bg-\\[\\#5A5751\\]{background-color:#5F635B!important}
 [data-theme="tlc"] .border-\\[\\#5A5751\\]{border-color:#5F635B!important}
 [data-theme="tlc"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#243B30!important;color:#FFFFFF!important}
@@ -367,7 +375,8 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 /* the house rust -> forest accent (links, eyebrows, the Book pill) */
 [data-theme="tlc"] .text-\\[\\#B85838\\]{color:#2F5D4A!important}
 [data-theme="tlc"] .border-\\[\\#B85838\\]{border-color:#2E4A3C!important}
-[data-theme="tlc"] .bg-\\[\\#B85838\\]{background-color:#2E4A3C!important;border-radius:12px}
+[data-theme="tlc"] .bg-\\[\\#B85838\\]{background-color:#2E4A3C!important}
+[data-theme="tlc"] .bg-\\[\\#B85838\\]:not([class*="rounded"]){border-radius:12px}
 [data-theme="tlc"] .hover\\:bg-\\[\\#B85838\\]:hover{background-color:#243B30!important}
 [data-theme="tlc"] .hover\\:text-\\[\\#B85838\\]:hover{color:#2E4A3C!important}
 [data-theme="tlc"] .hover\\:border-\\[\\#B85838\\]:hover{border-color:#2E4A3C!important}
@@ -654,6 +663,12 @@ export const CHURCH_DEFAULT_THEME = 'lovecorner';
 // the church's is: the family app keeps Heritage (DR-1046), every palette
 // stays one tap away on the door, and a device that chose keeps its choice
 // (DR-0524).
+//
+// THE SHELL ASKS FOR IT BY THE DOOR TOO (`tlcDoorOnly ? TLC_DEFAULT_THEME`),
+// not only TlcPublicDoor: the shell's own useThemePref paints the phone's bars
+// on mount AFTER the door's (a parent's effect runs last), so with the door
+// alone the TLC status bar wore Heritage's ivory — seen on the live door, not
+// in the code. The comment lives here and not in the shell by DR-0291's trim.
 export const TLC_DEFAULT_THEME = 'tlc';
 
 // THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
