@@ -1,4 +1,4 @@
-# DR-1184: Prudence engineering — a jobs ledger that says what ran, docs and links that move with the system, and workflows built to be reused
+# DR-1185: Prudence engineering — a jobs ledger that says what ran, docs and links that move with the system, and workflows built to be reused
 
 **Date:** 2026-10-21 (notes dated 10.20.26 9:21 PM and 10.21.26 by Darrell)
 **Status:** accepted
