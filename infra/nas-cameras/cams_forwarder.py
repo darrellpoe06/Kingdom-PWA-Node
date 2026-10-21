@@ -408,6 +408,20 @@ def live_note(nbytes, delta_open=0, now=None):
 # ("source-silent"), the viewer's own tab ("viewer-left": the app hung up, e.g.
 # its freeze or lag rule), or the optional clock. The last LIVE_ENDS_KEEP ends
 # are kept in memory with the camera, seconds, bytes and why; nothing else.
+# The last time a live viewer of each camera (its twins counted as the camera)
+# was handed bytes, on the monotonic clock. A re-arm puts the camera's line
+# again in go2rtc, which ends every consumer: it is never done to a camera a
+# viewer is watching with video still arriving (DR-1097, sixteenth read: the
+# hold re-armed 805_north at 20:02:08 with Darrell's window open on it).
+LIVE_LAST_BYTES = {}
+VIEWER_FRESH_SECONDS = 5.0
+
+
+def viewer_flowing(sid, now=None):
+    t = LIVE_LAST_BYTES.get(base_of(sid))
+    return t is not None and (now if now is not None else time.monotonic()) - t <= VIEWER_FRESH_SECONDS
+
+
 LIVE_ENDS_KEEP = 80
 LIVE_ENDS = []
 LIVE_ENDS_LOCK = threading.Lock()
@@ -2615,8 +2629,10 @@ class KvsHold:
     injectable, so it is proven in plain Python."""
 
     def __init__(self, clock=time.time, opener=None, rearm=None, spawn=None, sleep=None, log=print,
-                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None):
+                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None,
+                 watched=None):
         self.clock = clock
+        self.watched = watched or viewer_flowing
         self.opener = opener or urllib.request.urlopen
         self.rearm = rearm or kvs_rearm
         self.spawn = spawn or (lambda fn, name: threading.Thread(target=fn, name=name, daemon=True).start())
@@ -2680,7 +2696,12 @@ class KvsHold:
                     # next viewer gets a fresh offer, never the hung one.
                     self._note(sid, state="unanswered")
                     now = self.clock()
-                    if now - self.last_rearm.get(sid, -1e18) >= self.gap:
+                    if self.watched(sid):
+                        # A viewer is getting video from this camera right now:
+                        # the hold's own dial is what failed, not the camera.
+                        with self.lock:
+                            self.counts["spared"] = self.counts.get("spared", 0) + 1
+                    elif now - self.last_rearm.get(sid, -1e18) >= self.gap:
                         self.last_rearm[sid] = now
                         if self.rearm(upstream, sid, config_path):
                             with self.lock:
@@ -4378,6 +4399,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                                 break
                             self.wfile.write(chunk)
                             sent += len(chunk)
+                            LIVE_LAST_BYTES[base_of(cam)] = time.monotonic()
                             live_note(len(chunk))
                     except (BrokenPipeError, ConnectionResetError, OSError):
                         why = "viewer-left"  # the write failed: the tab hung up
@@ -6040,6 +6062,21 @@ def _selftest():
     script[:] = ["hang", "hang", "hang"]
     pending[1]()
     check(rearmed == ["a_cam", "b_cam", "b_cam"] and not script, "three unanswered offers in 60 s re-arm twice, never closer than KVS_REARM_GAP (%r)" % rearmed)
+    # DR-1097 sixteenth read: the hold re-armed 805_north at 20:02:08 while a window was watching it.
+    pend_w = []
+    spare = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda up, s_, cp: (rearmed.append(s_), True)[1],
+                    spawn=lambda fn, name: pend_w.append(fn), sleep=lambda w: clk.__setitem__(0, clk[0] + w),
+                    log=quiet, max_holds=2, hold=60, life=600, dial=20, gap=30, redial=5, watched=lambda sid: sid == "w_cam")
+    n_re = len(rearmed)
+    spare.touch(kup, "w_cam")
+    script[:] = ["hang", "hang"]
+    pend_w[0]()
+    check(len(rearmed) == n_re and spare.counts.get("spared", 0) >= 2,
+          "PROVEN TO CATCH: a camera a viewer is getting video from is never re-armed when the hold's own dial comes back empty (the re-arm ends every viewer) (%r)" % (spare.counts,))
+    LIVE_LAST_BYTES["fresh_cam"] = time.monotonic()
+    check(viewer_flowing("fresh_cam_sd") and not viewer_flowing("other_cam") and not viewer_flowing("fresh_cam", now=time.monotonic() + VIEWER_FRESH_SECONDS + 1),
+          "a twin's viewer counts for its camera; a viewer silent past VIEWER_FRESH_SECONDS does not")
+    LIVE_LAST_BYTES.pop("fresh_cam", None)
     slept[:] = []
     reads["n"] = 0
     pending[:] = []

@@ -72,6 +72,12 @@ import { tryDirectRoad, noteDirectFailure } from '../lib/camera-direct.js';
 function closeDirect(ref) {
   if (ref.current) { try { ref.current.close(); } catch { /* gone */ } ref.current = null; }
 }
+// A <video> holding a frame: data for the current position (HAVE_CURRENT_DATA)
+// or a position that has moved. The answer to "is there a picture", from the
+// element itself.
+function hasPicture(v) {
+  try { return !!v && (Number(v.readyState) >= 2 || Number(v.currentTime) > 0); } catch { return false; }
+}
 function attachStream(el, stream) {
   if (el && stream && el.srcObject !== stream) { try { el.srcObject = stream; } catch { /* a device fact */ } }
 }
@@ -803,6 +809,10 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       if (p.ended) return p;
       const opened = p.firstFrameMs != null;
       if (onlyIfBlank && opened) return p;
+      // The first-picture clock never hangs up a picture already on screen: a
+      // device whose element never said loadeddata still holds frames (DR-1097,
+      // sixteenth read). That is an opened stream, recorded as one.
+      if (onlyIfBlank && hasPicture(timers.current.video)) return { ...p, firstFrameMs: Date.now() - p.startedAt };
       recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
       // A direct try that brought no picture sends this camera to the NAS road for a while.
       if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); } else if (!opened) lastFailed.current = p.mode;
@@ -1090,7 +1100,10 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
       setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), stream: null, mode, startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
-        setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
+        setSt((p) => {
+          if (p.firstFrameMs != null || p.ended || !p.src) return p;
+          return hasPicture(timers.current.video) ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : { ...p, error: 'no picture' };
+        });
       }, LIVE_FIRST_FRAME_TIMEOUT_MS);
     } catch (e) {
       if (!alive.current) return;

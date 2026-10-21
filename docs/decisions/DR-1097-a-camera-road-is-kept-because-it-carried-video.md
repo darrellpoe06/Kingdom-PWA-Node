@@ -589,3 +589,26 @@ Darrell, 2026-10-21: "Do we have to have the tellscale or nas way... why not ano
 **Not known yet:** whether Amazon answers a second viewer while go2rtc's held session is open on the same camera. If it refuses, the tile falls back to the NAS road, which is today's behavior.
 
 `re-review: 2026-10-21`. Once this is live, open Cameras on the Fold. A Kinesis tile reads "Straight from Wyze's WebRTC" when the direct road carried it, and the NAS's live count drops by one for each such tile.
+
+## Seventeenth read (2026-10-21 01:07-01:20 UTC; cams-diag 39525490979, 39526244413): the tab was hanging up streams that were still flowing
+
+Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's camera clock showing. The pictures held for 15-25 s, then went black, and the reconnect count rose. "Cameras constantly blinking... the disconnecting logic is horrible!!!!"
+
+**Measured over the phone's own road (the Funnel, Origin poetech.us, a ticket), 90 s per camera:**
+- 805_north_sd: 8.6 MB, the longest gap between chunks 1.5 s, still flowing at 90 s (curl exit 28).
+- 805_north_east_sd: the media clock ran at 1.019× the wall clock over 89 s. The fragments were 0.0-0.3 s each. The longest gap was 1.4 s, and it was still flowing at 90 s.
+- So the NAS and the Funnel did not end these streams. The tab did.
+- Its rules hung up on proxies: a play position that had not moved for 6 s, a lag past 12 s, and a 20 s first-picture clock.
+- One NAS cut showed in the forwarder journal too: kvs-hold re-armed 805_north at 20:02:08 while the window watched it. A re-arm ends every consumer.
+
+**Fixed (`lib/cameras.js` tendLiveVideo, Cameras.jsx, cams_forwarder.py KvsHold):**
+- **Frozen** now means nothing moves for 10 s: not the position, not the arriving data, not the decoded frames.
+- **A stuck position with data still arriving is a stall.** The element is asked to play on, or a gap in what has arrived is stepped over, inside data already here. It never jumps to the edge (DR-0808). It is given up only after 20 s.
+- **Lag:** it is run down at 1.5×, and the stream is opened fresh only past 30 s behind.
+- **The first-picture clock** never hangs up an element that already holds a frame.
+- **The hold never re-arms a camera** whose live viewer got bytes in the last 5 s (`viewer_flowing`, counted as `spared`).
+
+**Proven:**
+- Camera vitest: 114 + 39 + 15 passing. PROVEN TO CATCH, each break turning checks red: position-only life (3 checks), a 12 s lag limit (1), and the re-arm guard (forwarder selftest, 500 passing).
+
+`re-review: 2026-10-21`. Once live, the tiles' "last:" line and `/streams/health` live_ends name every hang-up that is left, and who made it.

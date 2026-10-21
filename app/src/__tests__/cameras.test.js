@@ -27,7 +27,7 @@ import {
   toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, recClipSizesUrl, recClipDownloadUrl, clipDownloadName, clipTierLine, fetchClipSizes, waitForClipSize,
   streamHealthUrl, fetchStreamHealth, deviceCanPlayHevc, liveStreamId, twinOf, streamHealthLine, dropKindText, dropLines,
-  sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_CATCHUP_RATE_FAST, LIVE_LAG_RECONNECT_S, LIVE_EDGE_MARGIN_S,
+  sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, STALL_NUDGE_S, STALL_GIVE_UP_S, nextRangeStart, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_CATCHUP_RATE_FAST, LIVE_LAG_RECONNECT_S, LIVE_EDGE_MARGIN_S,
   recClipPlayUrl, humanizeFetchError, clipTicket, CLIP_TICKET_TIMEOUT_MS,
   ADD_KINDS, GOOGLE_SIGN_IN_NOTE, streamIdFrom, buildSourceUrl, sourceProblem, maskSource, probeLine, addStream, testStream, removeStream, setupRing, streamsUrl, streamTestUrl, streamRemoveUrl, ringSetupUrl,
 } from '../lib/cameras.js';
@@ -1030,6 +1030,51 @@ describe('a live tile stays live (DR-0799)', () => {
     expect(liveEdgeDecision({ currentTime: 10, edge: 10.4, playbackRate: 1 })).toEqual({ action: 'none', lag: expect.closeTo(0.4, 5) });
     expect(liveEdgeDecision({ currentTime: 10, edge: null })).toEqual({ action: 'none', lag: null });
     expect(liveEdgeDecision({ currentTime: 12, edge: 10 }).lag).toBe(0);
+  });
+  // DR-1097 sixteenth read: the NAS carried the stream 90 s without a break while
+  // the tiles blinked every 15-25 s. A tile hangs up only on a stream that stopped.
+  describe('a tile never hangs up a stream that is still bringing pictures', () => {
+    const el = (o = {}) => ({ currentTime: 10, paused: false, ended: false, readyState: 4, playbackRate: 1, buffered: ranges([0, 10.5]), seekable: ranges(), plays: 0, play() { this.plays += 1; return Promise.resolve(); }, ...o });
+    it('PROVEN TO CATCH: the position stuck while data keeps arriving is a stall: nudged, never a reconnect before STALL_GIVE_UP_S', () => {
+      const v = el();
+      let r = tendLiveVideo(v, null, { nowMs: 0 });
+      for (let t = 2000; t < STALL_GIVE_UP_S * 1000; t += 2000) {
+        v.buffered = ranges([0, 10.5 + t / 1000]);   // bytes keep coming
+        r = tendLiveVideo(v, r.memo, { nowMs: t });
+        expect(r.frozen, `at ${t} ms`).toBe(false);
+      }
+      expect(v.plays).toBeGreaterThan(0);
+      v.buffered = ranges([0, 40]);
+      r = tendLiveVideo(v, r.memo, { nowMs: STALL_GIVE_UP_S * 1000 });
+      expect(r.frozen).toBe(true);   // data, but never a picture, for STALL_GIVE_UP_S: open it fresh
+    });
+    it('PROVEN TO CATCH: a gap in what has arrived is stepped over, inside data already here', () => {
+      const v = el({ buffered: ranges([0, 10.2], [11.6, 14]) });
+      let r = tendLiveVideo(v, null, { nowMs: 0 });
+      v.buffered = ranges([0, 10.2], [11.6, 15]);
+      r = tendLiveVideo(v, r.memo, { nowMs: STALL_NUDGE_S * 1000 });
+      expect(r.action).toBe('gap-step');
+      expect(v.currentTime).toBeCloseTo(11.65, 5);
+      expect(nextRangeStart(ranges([0, 5], [6, 9]), 5)).toBe(6);
+      expect(nextRangeStart(ranges([0, 5]), 5)).toBe(null);
+    });
+    it('frames still being decoded are life too; nothing moving at all for FREEZE_SECONDS is a freeze', () => {
+      let n = 100;
+      const v = el({ getVideoPlaybackQuality: () => ({ totalVideoFrames: n }) });
+      let r = tendLiveVideo(v, null, { nowMs: 0 });
+      n = 130; r = tendLiveVideo(v, r.memo, { nowMs: (FREEZE_SECONDS - 1) * 1000 });
+      n = 160; r = tendLiveVideo(v, r.memo, { nowMs: (FREEZE_SECONDS + 1) * 1000 });
+      expect(r.frozen).toBe(false);
+      const dead = el();
+      let d = tendLiveVideo(dead, null, { nowMs: 0 });
+      d = tendLiveVideo(dead, d.memo, { nowMs: FREEZE_SECONDS * 1000 });
+      expect(d.frozen).toBe(true);
+    });
+    it('PROVEN TO CATCH: 20 s behind is run down fast, not reopened; only past LIVE_LAG_RECONNECT_S is it opened fresh', () => {
+      expect(LIVE_LAG_RECONNECT_S).toBeGreaterThanOrEqual(30);
+      expect(liveEdgeDecision({ currentTime: 10, edge: 30 })).toEqual({ action: 'rate', rate: LIVE_CATCHUP_RATE_FAST, lag: 20 });
+      expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_RECONNECT_S + 1 }).action).toBe('reconnect');
+    });
   });
   it('the freeze watch counts the seconds a position has not moved; moving, pausing or ending resets it', () => {
     let m = freezeStep(null, { currentTime: 1 }, 0);

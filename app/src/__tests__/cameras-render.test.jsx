@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, reconnectDelayMs, LIVE_RECONNECT_DELAY_MS, LIVE_RECONNECT_DELAY_MAX_MS, LIVE_FIRST_FRAME_TIMEOUT_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
+import { FREEZE_SECONDS, WYZE_DRAFT_KEY, WALL_KEY, reconnectDelayMs, LIVE_RECONNECT_DELAY_MS, LIVE_RECONNECT_DELAY_MAX_MS, LIVE_FIRST_FRAME_TIMEOUT_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
 import { CAMS_TAB_KEY } from '../components/Cameras.jsx';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 import { resetDirectState, encodePayload } from '../lib/camera-direct.js';
@@ -95,6 +95,7 @@ describe('Cameras surface', () => {
     // real element, so give them quiet no-ops instead of "Not implemented" noise.
     HTMLMediaElement.prototype.pause = () => {};
     HTMLMediaElement.prototype.load = () => {};
+    HTMLMediaElement.prototype.play = () => Promise.resolve();
   });
   afterEach(() => {
     act(() => root.unmount()); container.remove();
@@ -835,7 +836,7 @@ describe('Cameras surface', () => {
     }
   });
 
-  it('a live tile stays live (DR-0799): a grid asks for the SD twin and the one made largest asks for HD; a frozen picture reconnects after 6 s', async () => {
+  it('a live tile stays live (DR-0799): a grid asks for the SD twin and the one made largest asks for HD; a dead picture reconnects after FREEZE_SECONDS, a stuck one still bringing data does not', async () => {
     try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
     const { fetchImpl, calls } = makeFetch({
       list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze', sd: true }, { id: 'garage', name: 'garage', kind: 'wyze', sd: true }], count: 2 },
@@ -868,21 +869,25 @@ describe('Cameras surface', () => {
       await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
       expect(win().querySelector('[data-testid="window-front_yard"] video').getAttribute('src')).toMatch(/\/cams\/live\/front_yard_sd/);
       expect(win().querySelector('[data-testid="window-garage"] video').getAttribute('src')).toMatch(/\/cams\/live\/garage_sd/);
-      // a frozen picture: currentTime stops moving for 6 s -> the tile reconnects with a new ticket and says why
+      // a dead picture: nothing moves (no position, no data arriving, no frames) for
+      // FREEZE_SECONDS -> the tile reconnects with a new ticket and says why
       const v = win().querySelector('[data-testid="window-garage"] video');
       Object.defineProperty(v, 'currentTime', { configurable: true, writable: true, value: 10 });
       Object.defineProperty(v, 'paused', { configurable: true, get: () => false });
       Object.defineProperty(v, 'readyState', { configurable: true, get: () => 4 });
       const ticketsBeforeFreeze = calls.filter((c) => c.url === '/cams/ticket').length;
-      await act(async () => { vi.advanceTimersByTime(2100); });
-      await act(async () => { vi.advanceTimersByTime(2100); });
-      await act(async () => { vi.advanceTimersByTime(2100); });
-      await act(async () => { vi.advanceTimersByTime(2100); });
+      // still alive while data keeps arriving, even with the position stuck (DR-1097 sixteenth read)
+      let edge = 10.5;
+      Object.defineProperty(v, 'buffered', { configurable: true, get: () => ({ length: 1, start: () => 0, end: () => edge }) });
+      for (let i = 0; i < 5; i += 1) { edge += 2; await act(async () => { vi.advanceTimersByTime(2100); }); }
+      expect(calls.filter((c) => c.url === '/cams/ticket').length, 'a stuck position with bytes still arriving is not hung up').toBe(ticketsBeforeFreeze);
+      for (let i = 0; i * 2100 <= FREEZE_SECONDS * 1000 + 2100; i += 1) { await act(async () => { vi.advanceTimersByTime(2100); }); }
       await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
       await act(async () => { vi.advanceTimersByTime(LIVE_RECONNECT_DELAY_MS + 50); });
       await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
       const after = calls.filter((c) => c.url === '/cams/ticket').slice(ticketsBeforeFreeze).map((c) => JSON.parse(c.opts.body).camera);
-      expect(after, 'the frozen tile asked for a new ticket').toEqual(['garage_sd']);
+      expect(after, 'the frozen tile asked for a new ticket').toContain('garage_sd');
+      expect(after.filter((x) => x === 'garage_sd')).toHaveLength(1);
       expect(win().querySelector('[data-testid="window-garage"]').textContent).toMatch(/reconnected 1×/);
       await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
     } finally {
