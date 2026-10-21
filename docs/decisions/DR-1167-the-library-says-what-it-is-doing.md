@@ -1,4 +1,4 @@
-# DR-1162: The library says what it is doing — a wait with no words and no ceiling is the same lie as a green that means nothing
+# DR-1167: The library says what it is doing — a wait with no words and no ceiling is the same lie as a green that means nothing
 
 **Date:** 2026-10-21
 **Status:** accepted
