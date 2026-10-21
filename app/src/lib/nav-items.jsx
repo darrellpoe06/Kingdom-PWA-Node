@@ -77,6 +77,11 @@ export function navItems({
     ['voice', <><UiIcon name="volume" /> Voice</>],
     // Scribe — record workflows on screen + meetings (2026-07-27 review); steward-only Phase 1, no-leak spread.
     ...(isFamilyMember ? [['scribe', <><UiIcon name="monitor" /> Scribe</>]] : []),
+    // Research — a link or a question he sends is kept as an item until
+    // something looks into it (DR-1169). Spread so the entry is absent from
+    // the DOM for a visitor: an item is kept against a person's own account
+    // and nobody else sees it, so there is nothing there until a sign-in.
+    ...(authSession?.user ? [['research', <><UiIcon name="link" /> Research</>]] : []),
     // Library — books assembled from the house's own corpus, with an
     // in-app reader whose chapters deep-link back into the live app
     // (the books<->app flywheel). Reading is open to every signed-in
@@ -103,11 +108,6 @@ export function navItems({
     ['databack', <><UiIcon name="landmark" /> Your Data</>],
     ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
     ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
-    // Research — a link or a question he sends is kept as an item until
-    // something looks into it (DR-1169). Spread so the entry is absent from
-    // the DOM for a visitor: an item is kept against a person's own account
-    // and nobody else sees it, so there is nothing there until a sign-in.
-    ...(authSession?.user ? [['research', <><UiIcon name="link" /> Research</>]] : []),
     // Darrell's Study — private to the circle (Darrell/Christina/BG).
     // Spread so the entry is absent from the DOM entirely for everyone
     // else (no-leak); the feedback-area-guard still sees the literal

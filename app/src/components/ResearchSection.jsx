@@ -18,7 +18,7 @@
 //   READS   /research/health, live, for whether the road can answer at all —
 //           never a painted status (lib/research.js).
 //
-// EVERY ITEM SAYS IT IS UNVERIFIED, IN WORDS. Not a badge, not a colour: the
+// EVERY ITEM SAYS IT IS UNVERIFIED, IN WORDS. Not a badge, not a color: the
 // sentence is printed on every answered item and the item's `verified` is a
 // constant false in research-items.js, so no row and no later edit can present
 // a research answer as established fact (DR-0076, DR-1101).
@@ -44,7 +44,7 @@ const serif = { fontFamily: '"Fraunces", serif' };
 // themed card backgrounds (heritage/cream #FAF8F4, apple white, slate,
 // sapphire, rose) -- below AA for normal text, which is why contrast-guard
 // carries it as a dated allowlist entry rather than a pass. The most important
-// sentence on this surface must not ride a sub-AA colour, so it is ink
+// sentence on this surface must not ride a sub-AA color, so it is ink
 // (#1A1815: 15.88-17.72 on those same backgrounds) and the rust earns its
 // prominence as a left RULE instead. The same move the TLC palette made with
 // champagne: a rule and a fill, never text.
@@ -52,7 +52,7 @@ const serif = { fontFamily: '"Fraunces", serif' };
 // red, and nothing here is marked sacred.)
 const noteCls = 'border-l-2 border-[#B85838] pl-2 text-[0.6875rem] text-[#1A1815]';
 
-// The state words carry a colour, and none of them is true red.
+// The state words carry a color, and none of them is true red.
 const STATE_COLOR = Object.freeze({
   waiting: 'text-[#5A5751]',
   working: 'text-[#1A1815]',
@@ -145,7 +145,7 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
   const answered = items.filter((i) => i.state === 'answered').length;
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="space-y-4">
       <section className={card} aria-labelledby="research-section-title">
         <h2 id="research-section-title" className="text-lg sm:text-xl text-[#1A1815]" style={serif}>Research</h2>
         <p className="mt-1 text-sm text-[#5A5751]">
