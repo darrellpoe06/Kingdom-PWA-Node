@@ -1,0 +1,181 @@
+# Transcript of YouTube video yeWbO6x-SSE
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 3173 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+hey it's mark ferguson with investor more and welcome to another one of our real estate
+investing videos today we're talking about the 70 rule when analyzing house flips i have done
+211 house flips up to this point and that's 211 houses that we bought rehabbed and sold now we
+currently have about 10 house flips we're working on as well to add to that number but over the
+years we've learned how to analyze flips how to look at the numbers how to decide if it's a good
+deal or not and how much to offer on house flips as well now along with that analyzation and
+being in the industry i also have my blog youtube social media where we talk to a lot of other
+investors who talk about how they value house slips as well and one of the really big
+reoccurring rules you will see is the 70 rule and we'll go through this real quick and a lot of
+people use the 70 rule to analyze house flips so we're going to talk about that rule what it is
+how it works give some real life examples of it and tell you how i feel about the rule and then
+i'll show you another way to analyze house flips as well now of course check out
+investormore.com that's my blog with hundreds of free articles a free book all kinds of great
+stuff on there we have tons of other videos here on youtube we looked at our real estate advice
+playlist you can see all our actual flips we're doing on the before and after playlist as well
+and we have nine bucks on amazon if you want even more in-depth information so real quick we'll
+start with how does a 70 rule work it's actually really simple so we're saying a house is worth
+two hundred thousand dollars after you fix it up and often you hear people say arv and i like to
+call that after repaired value after remodeled value that's the value it's worth once it's
+repaired you put on the market you sell it so this house is worth two hundred thousand dollars
+now the seventy percent rule says you multiply the arv times seventy percent or point seven if
+you do that you get a hundred and forty thousand dollars now you're not done yet then the rule
+states you subtract whatever repairs are needed so we're assuming this house needs thirty
+thousand dollars in repairs in today's market that means it's a pretty cosmetic flip because
+things are so expensive to repair so two hundred thousand times seventy percent minus repairs
+gives you the price that you should pay for this house flip to make it a good flip which is a
+hundred and ten thousand dollars so according to the 70 rule that's what you pay for this house
+and all you need to know is the repair cost in the arv cost so we'll talk about this a lot more
+in depth here and show you some examples of houses we've flipped and if it works or doesn't work
+but if you really want a calculator for this to figure it out i have one on my site on
+investormore.com we have a really long article as well that goes into everything we're going to
+say here too that i'll link to below but let's look at why this works sometimes and why doesn't
+work very well other times all right first we're going to look at a property we sold a couple of
+months ago this is a house that we thought would be worth 285 thousand dollars when we were
+buying it i have a full complete before and after video on this as well we'll link to below it
+shows all the numbers everything we spent go through the whole remodel process before and after
+as well now according to 70 rule you multiply 285 by 70 you should pay 199 500 minus repairs
+this was a super super easy one we spent about twenty thousand dollars on repairs so seventy
+percent rule says we should have bought it for a hundred and seventy nine thousand five hundred
+dollars for it to be a good flip what did we pay for it we paid 200 000 for it it's actually one
+of our best flips we've done in a while now we got lucky because the market went up but it still
+would have been a really good flip even if the market hadn't gone up and we'll show you here why
+so what ended up happening with this property did we lose money because we didn't follow the 70
+rule well let's look at the numbers this is assuming it would sell for 285 000 it didn't though
+our repairs ended up being 22 000 so a little more than we expected and we always account for
+that we always know they'll be more than we think they'll be the selling costs were eleven
+thousand eight ninety again i go over these in detail in that other video but that's paying a
+real estate agent closing costs title costs some other fees that are in there our financing
+costs were eleven thousand dollars we used private money to finance this property we sold it
+very quickly just in a few months so that helped the profit numbers and our carrying costs we
+pay for homeowners insurance property taxes utilities maintenance while we own the home that's
+what those wear as well so if you take our 285 000 sales price and subtract all of our costs we
+come up with a 237 910 dollar figure that means the difference between that and what we paid for
+it is our profit we would have made almost 38 thousand dollars with a very small investment
+because this is a hundred percent financing we paid the repairs we paid them some financing
+costs some carrying costs selling costs come out of your proceeds you don't pay those upfront so
+we had about thirty five thousand dollars thirty six thousand dollars of money we invested into
+this property over a few months and we made thirty eight thousand dollars on it that sounds like
+a pretty good flip to me that's why i don't like the seventy percent rule because it can
+eliminate some really good deals now what actually happened because the market improved we sold
+it for three hundred and thirteen thousand dollars we made close to sixty um something i forgot
+exactly how much it was dollars on this flip in the 70 rule said we never should have bought it
+so even if the market didn't go up even if the market went down some we still would have made
+money so it would have been a great flip for the amount of time and money we put into it okay
+we're gonna look at another example this is a made up example because we have a very low sales
+price which don't exist in our market in colorado long long time ago that hit so the arv is a
+hundred thousand so we take that arv multiply it by seventy seventy thousand we have thirty
+thousand repairs so arv times seventy percent minus repairs this formula the seventy percent
+rule says we should pay 40 000 for this flip to make it a good deal so is that a good deal all
+right so let's look at what the real numbers might be and we're kind of mirroring it after that
+other deal it's a really quick pretty easy flip we had our repairs a little higher but hundred
+thousand rv we're paying thirty thousand for repairs you're selling costs for five thousand
+because they're lower because you have a lower sales price but your other title fees and other
+stuff it's not all relative um you'll still have probably won't be exactly a third of what that
+other arv was it'd be a little more financing costs carrying costs again your carrying costs
+won't be exactly a third because you'll still have utilities other costs that will still be a
+fair amount so what you end up with is 500 is kind of the difference of your arv minus all of
+these costs so if you're paying 40 000 for this flip that means you're gonna make 19 000 five
+hundred assuming everything goes right so the other one right it was telling us we should buy a
+much lower price than what we ended up doing it still ended up being a really good deal this one
+is telling us that if we pay 40 000 we're only going to make 19 500 and yes all these are lower
+you might have a little bit less exposure but we're still financing it we still have these other
+costs you still have risks involved in selling this property and in this price point it might be
+tougher to sell you know there's a lot of different variables here that's not a very big number
+to make based on the work and risk you have involved in this property so you have to decide is
+that worth it you know the other one told us not to buy it this one's telling us we should buy
+it but maybe we shouldn't that's why i don't like the 70 rule and there's some other reasons why
+i don't like this rule while a lot of other people just blindly accept it as that's what you
+have to pay so the only thing the 70 rule really needs as inputs is the arv and the repairs
+that's it so why does that lead to errors and problems all of these are different on every
+single deal and they are not accounted for in that rule selling costs are different for everyone
+i'm a real estate agent i can list the home myself i also make a commission when i buy a house
+sometimes from the mls this is so much different for me as a licensed agent versus someone else
+who's not in the ar in the 70 rule does not account for it carrying costs are different for
+everybody depends on where you live if it's winter if it's summer um if there's lawn maintenance
+if there's snow removal um what the property taxes are what the insurance rates are vary greatly
+everywhere you go seventy percent rule doesn't account for it doesn't account for it financing
+costs you could pay cash for a flip you could use a bank loan at five percent you could use hard
+money at ten percent you could use private money at fifteen percent you could do seventy percent
+down you could do twenty percent down you could do zero down right seventy percent rule does not
+account for it time to sell the longer it takes you to sell a house the more your carrying costs
+are the more your financing costs are sometimes the more your selling costs are the 70 rule does
+not account for that and then the difficulty of the repairs right if you have a hundred thousand
+dollar repair there's a good chance it's gonna have a lot of problems take a really long time
+it's much much much more risky than a lower price to repair a 30 000 repair the 70 rule does not
+account for the difficulty of the repairs the time it takes and the problems that can arise with
+those repairs so the 70 rule can make really good flips they're easy and simple look like bad
+deals you shouldn't do and it can make really horrible flips it'll take a ton of money a ton of
+time a ton of effort have massive amounts of risk look like really good deals so that is why i
+do not like the 70 rule so what do i do instead we'll show you here really quick the first thing
+you can do is make your own rule right you figure out what costs are typically in your area if
+you're a real estate agent your selling costs are what your carrying costs are what your
+financing costs are you get all those together you look at your typical deals and you look and
+say hey historically this is about what i've paid and made money so you can make your own rule
+that could be 65 70 75 80 who knows where it is it depends on so many different factors and you
+can kind of have your own rule that gives you an idea if a flip is worth doing however like we
+saw in the examples before the price points can make these rules not work right even for one
+person in one market you know a two hundred thousand dollar arv might not work with a certain
+rule if it's 75 percent where an 800 000 arv it might work at 80 it just depends on the repairs
+the ease the market so many different things so you can make your own rule but even then i don't
+think that's the best way to do it this is how i figure out if a flip is worth doing or not it's
+kind of old school nothing fancy i take the arv what i think it's worth i have a video on that
+too that can be one of the toughest parts of flipping is knowing what the house will be worth
+when you're done so make sure you know that we can't go over that in this video my repairs again
+i have a video on that too that can be a lot of work and take a lot of time to figure out what
+the repairs might be you're estimating the repairs and you're always overestimating what you
+think they will be because they'll always be more than you think your financing costs your
+estimate what your financing costs are based on how long you're going to hold the property lots
+of math involved but you need to know math if you're doing flips again you kind of overestimate
+what it might be you don't assume you're going to sell this house in two months and everything's
+going to go perfect you assume it takes six months or eight months and then you even assume what
+happens if it doesn't go perfect what those costs will be then carrying costs same thing we just
+talked about financing costs you assume will take you longer than you think it will selling
+costs how much does it cost you to sell the property at this paying agents paying title costs
+closing fees all of that and you take these numbers right and you kind of subtract them from
+your arv sort of like what we did before but we're actually writing out the numbers because
+they're all going to be so different even on each deal and we come up to these out up to 55 145
+000 is your break even point now what you probably want to do from here is add on another five
+or ten thousand for contingencies for hey we run to repairs we don't know about it takes us
+longer than we think um it almost always costs more than you think it's gonna cost no matter how
+conservative you are with these numbers so then you're like okay we're gonna say our break even
+is a hundred and forty thousand right what profit do you need to make this worth what you're
+financing is you're not using a ton of your own cash but you have some risk involved it's gonna
+take some time we're using contractors to do all our work so we're not doing spending our time
+doing the work but you're spending time managing them doing all this and then what if things go
+down a little bit what's this worth it to you for me i always like to say i've got to make
+thirty thousand on every deal it doesn't really matter how cheap the property is my profit
+margin has to be thirty thousand or it's just not worth it for me and so then we have a hundred
+and ten thousand dollars as the price we're willing to pay for the property now a little thing
+you can throw in there and say oh this is listed on the mls well since i'm an agent i'm gonna
+make three percent commission when i buy it so if i pay 110 that's over three thousand dollars
+i'm going to get back well i could actually pay a hundred and thirteen thousand then and still
+make the same amount of money what's funny about this and i didn't mean to do that in the
+beginning of this but i realized it was writing it out the 70 rule we'll erase this right here
+200 times 0.7 equals 140 minus 30 000 or repairs is 110 000. it's the same so in this particular
+example the 70 rule worked and it can work just not all the time that's why i don't like a rule
+i don't want to use a rule it doesn't work all the time because that doesn't help me out if
+sometimes it works sometimes it doesn't i want a rule that works all the time every time and
+that's why i don't like rules i like to write them out i like to be specific for each scenario
+and get all the costs down because general rules almost never work rental property rules
+flipping rules agent rules like i just don't like rules i like to look at each individual
+scenario together so yes it can work but many times it will make you buy deals that aren't good
+deals and pass up deals that are good deals all right thank you guys for watching i hope you
+appreciate these videos like i said i have a very long article that goes over all of this on
+investmentmore.com as well we'll link to that below lots of other resources in our real estate
+advice playlist videos like this go over the numbers how to do it our complete before and after
+flip playlist also has specific case studies using properties we have bought and sold that go
+over all these actual numbers and what they were and show you the before and after videos for
+the work that we did on them two and on amazon we have nine books including fixing away fix and
+flip your way to financial freedom which is my house flipping book that goes over all these
+techniques too all right thank you so much for watching hope you guys enjoy enjoy it love the
+likes love the comments love the shares keep those coming and we'll be back with much more soon
