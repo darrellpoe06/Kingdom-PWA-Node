@@ -33,7 +33,7 @@ import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, 
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
-import { isTlcDoorContext } from './lib/tlc-door.js';
+import { enterTlcDoorContext } from './lib/tlc-door.js';
 import TlcPublicDoor from './components/TlcPublicDoor.jsx';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
@@ -1032,7 +1032,7 @@ export default function PoeFinancialSystem() {
   // "Find your therapist" (provider match + services + insurance + Book) and
   // nothing else. NOT the operator TLC tab (?view=tlc). Captured ONCE at first
   // render, before nav-history rewrites the URL. Pure signal in lib/tlc-door.js.
-  const [tlcDoorOnly] = useState(() => isTlcDoorContext());
+  const [tlcDoorOnly] = useState(() => enterTlcDoorContext());
   // Measure how the app is used, to make it better (Darrell 2026-07-04). One
   // place captures every tab open (URL-driven + every nav button). Sovereign,
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
