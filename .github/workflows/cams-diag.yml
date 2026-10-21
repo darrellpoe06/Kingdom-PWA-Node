@@ -225,7 +225,10 @@ jobs:
               print("%-34s %-8s %-16s stream=%s" % (str(x.get("nickname"))[:34], "online" if x.get("online") else "OFFLINE", str(x.get("model"))[:16], x.get("stream")))
           print("Wyze says: %d online, %d offline, of %d cameras" % (on, len(devs)-on, len(devs)))
           ' 2>&1 | scrub; else echo "(token file unreadable by this user)"; fi
-          echo "=== how each live view ended, newest first (DR-1097 sixteenth read: who hangs up a blinking tile) ==="
+          # The live ends are read twice (DR-1097, eighteenth read): before the probes
+          # they say how the family's own views ended; after them they must hold
+          # the probe's own end, or the record is not catching what it claims to.
+          live_ends() {
           if [ -n "$WTOK" ]; then curl -s -m 25 -H "Authorization: Bearer $WTOK" http://127.0.0.1:8773/streams/health | python3 -c '
           import json,sys,time
           try: d=json.load(sys.stdin)
@@ -237,6 +240,9 @@ jobs:
           for e in le.get("ends",[])[:40]:
               print("  %5ds ago  %-34s %6.1f s %7d KB  %s" % (now-e.get("at",now), str(e.get("camera"))[:34], e.get("s",0), e.get("kb",0), e.get("why")))
           ' 2>&1 | scrub; fi
+          }
+          echo "=== how each live view ended, newest first (DR-1097 sixteenth read: who hangs up a blinking tile) ==="
+          live_ends
           echo "=== Kinesis offers Wyze never answered (go2rtc gives up when Amazon closes the idle socket, 10 min later) ==="
           curl -s -m 10 "http://127.0.0.1:1984/api/log" | grep -c 'close 1001 (going away)' || true
           echo "=== forwarder journal (last 40 lines) ==="
@@ -246,7 +252,7 @@ jobs:
           if [ -n "$CAMERA" ]; then
             echo "=== one timed frame probe: $CAMERA ==="
             curl -s -m 20 -o /tmp/probe.jpg -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/frame.jpeg?src=$CAMERA" || echo "probe failed/timed out"
-            head -c 300 /tmp/probe.jpg 2>/dev/null | scrub | strings | head -5; rm -f /tmp/probe.jpg
+            if command -v strings >/dev/null 2>&1; then head -c 300 /tmp/probe.jpg 2>/dev/null | scrub | strings | head -5; fi; rm -f /tmp/probe.jpg
             echo "=== forwarder /why/$CAMERA (bearer from the box's own secret file) ==="
             TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || $SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
             if [ -n "$TOK" ]; then curl -s -m 25 -H "Authorization: Bearer $TOK" "http://127.0.0.1:8773/why/$CAMERA" | scrub; echo; else echo "(token file unreadable by this user)"; fi
@@ -360,5 +366,7 @@ jobs:
             echo "=== docker logs poetech-wyze-bridge AFTER the probes (last 30 lines, scrubbed): the bridge's reaction to $CAMERA ==="
             if [ -n "$DOCKER" ]; then $DOCKER logs --tail 30 poetech-wyze-bridge 2>&1 | scrub; fi
           fi
+          echo "=== how each live view ended, AFTER the probes (the probe's own 90 s views must appear here) ==="
+          live_ends
           echo "=== done ==="
           EOS
