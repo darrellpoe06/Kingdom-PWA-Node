@@ -13,6 +13,12 @@
 **Grounds:** found while reading the hourly intake queue for the first time today, through DR-1186's road. The queue was clear — and the one row in the last day said two things that cannot both be true.
 **Principles:** DR-0076 §8 (unknown is not nothing — and a contradiction is not a status); DR-1161 (a brake must make the failure visible, which means it must also stop claiming one that is over); DR-0725 (one definition of "waiting"); DR-0621 (a flag is where the work starts); DR-0075 (the friction that recurs becomes a fix)
 
+## Context
+
+Darrell's hourly in-app lesson intake is the PRIORITY lane — *"voice all day and night... priority lane actually!"* — and its first instruction is to read what is waiting. Until DR-1186 opened that road, the read could not be reached from a cloud session at all, so the lane had fired twice with nobody able to say whether a teaching he spoke had arrived.
+
+With the road open the queue was read, and it was clear. The trouble was the one row beside it: on a single line it reported both that it had **shipped** and that its build had **failed**. The first thing a reader does with that is reach for the worse meaning — that a teaching Darrell spoke at 03:07 this morning was lost — which under the spoken-teachings covenant in `CLAUDE.md` is the most serious thing a line in this system can say. Establishing that it was false took six lookups. This record is what that line should have said instead.
+
 ## What was measured
 
 The hourly lesson-intake routine was read end to end for the first time on 2026-10-21 at 15:56 (run 39630148116). **The queue was genuinely clear: `waiting lesson rows: 0`, `rows in flight: 0`, the NAS builder `ready` with its primary writer signed in.** One row existed from the last day, and it printed this:
