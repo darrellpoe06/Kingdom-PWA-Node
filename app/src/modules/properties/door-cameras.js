@@ -78,7 +78,7 @@ export function suggestDoorCameras(cameras = [], door = {}) {
 }
 
 /**
- * WHERE A CAMERA IS, AND WHO IS OFFERED IT (DR-1161). Darrell, 2026-10-21, on
+ * WHERE A CAMERA IS, AND WHO IS OFFERED IT (DR-1164). Darrell, 2026-10-21, on
  * the manager's Cameras tab listing all 33 cameras on the NAS, his home's among
  * them: "my personal home cameras should be an option only I can give... not a
  * property manager... camera location should be a significant issue... so
