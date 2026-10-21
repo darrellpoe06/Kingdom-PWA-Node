@@ -38,32 +38,51 @@ describe('curriculum shape', () => {
     // so the entry is DELETED in the merge that brought it in -- which is
     // exactly what this assertion forces: it fails the moment a held number is
     // no longer missing, so a hold cannot quietly become a permanent gap.
-    // 44 AND 45 ARE HELD here, recorded 2026-10-20, while Sovereign A.I. week
-    // 46 (the helper that must see everything) was written on this branch and
-    // weeks 44 and 45 were written on two parallel branches in the same hour.
-    // Each entry is DELETED in the merge that brings its week in -- which is
-    // exactly what this assertion forces: it fails the moment a held number is
-    // no longer missing, so a hold cannot quietly become a permanent gap. If
-    // either week is abandoned rather than merged, its number is taken by the
-    // next lesson written and the entry goes out with it.
+    // THIS LIST IS RECOMPUTED, NEVER CARRIED. It is not a record of what was
+    // once in flight; it is the set of week numbers BELOW the highest week that
+    // are missing from THIS tree, so it is only ever correct from the vantage
+    // point of the tree it sits in. Three branches wrote weeks 44, 45 and 46 at
+    // the same time on 2026-10-20, and the right value differs on each one: on
+    // the week-44 branch `[]` (max 44, nothing missing below it), on the
+    // week-45 branch `[44]`, on the week-46 branch `[44, 45]`. Once all three
+    // are on main there are no holes at all and the right value is `[]`.
     //
-    // THIS LIST IS RECOMPUTED ON EVERY MERGE, NEVER CARRIED ACROSS ONE -- and
-    // 2026-10-20 is the first time THREE branches edited this one line at once,
-    // which is what makes the rule worth writing down. The list is a claim
-    // about the MERGED tree, not about the branch you are standing on, and from
-    // each branch's own vantage point a different value is correct: week 44's
-    // branch has no hole below its top and reads [], week 45's reads [44], and
-    // this one reads [44, 45]. All three are right locally and two of them are
-    // wrong the moment another lands. So when this file conflicts in a merge,
-    // DO NOT take either side wholesale: read which sov weeks actually exist in
-    // the merged tree and set this to the holes that REMAIN -- [] once all
-    // three are in. A number left here after its week exists is a DISARMED
-    // check: it tells the gate to ignore a gap that has already closed, which
-    // is the expiring-evidence defect DR-1025 recorded when filling L79
-    // disarmed three checks keyed on a gap that had closed. The assertion below
-    // fails in BOTH directions, so a stale entry cannot pass quietly -- but it
-    // fails after the fact, and recomputing at the merge is the discipline.
-    const HELD_IN_FLIGHT = [44, 45];
+    // SO WHEN THIS FILE CONFLICTS IN A MERGE, DO NOT TAKE EITHER SIDE. Read
+    // which sov weeks actually exist in the merged tree and set this to the
+    // numbers still missing below the highest one. An entry left behind after
+    // its week exists is a DISARMED CHECK -- it tells the gate to ignore a
+    // number that is no longer missing, which is the expiring-evidence defect
+    // DR-1025 found when filling L79 disarmed three checks keyed on a gap that
+    // had already closed. The assertion below is `toEqual`, so a stale entry
+    // fails loudly rather than passing silently; that is the safety net, not
+    // the plan.
+    //
+    // 44 WAS HELD here, recorded 2026-10-20 while Sovereign A.I. week 45 (no
+    // single witness: the office of the critic, DR-1146) was written on one
+    // branch and week 44 on another at the same time. Week 44 merged first, so
+    // THE ENTRY IS DELETED IN THE MERGE THAT BROUGHT ITS WEEK IN -- the same
+    // discharge the 33 and 35 entries above record, and exactly what this
+    // assertion forces, since `[44]` would now fail toEqual against a tree
+    // that has no holes.
+    //
+    // RECOMPUTED on the merged tree, not assumed: 46 modules, weeks 1..46
+    // ascending, max 46, nothing missing below it -- so `[]`. Week 46 (the
+    // helper that must see everything, DR-1139) is the third of the three and
+    // the last to merge, so ITS entries are the ones discharged here: this
+    // branch read `[44, 45]` until the merge, which was correct locally and
+    // wrong the instant both landed. Measured off the mounted modules, 46 of
+    // them, no holes.
+    //
+    // AND MEASURED OFF THE MOUNTED MODULE LIST RATHER THAN BY GREPPING THE
+    // FILE, which matters more than the value. The catalog holds modules in TWO
+    // shapes: `id: 'sov1-...'` for the older literals and `"id": "sov45-..."`
+    // for the JSON-spliced ones. A `/"sov(\d+)-/` pattern sees only the second
+    // kind, and on this very tree it answered "13 weeks, 32 holes" with
+    // complete confidence -- a wrong answer that looks exactly like a right
+    // one. Read SOVEREIGN_AI_MODULES, the same thing the assertion below
+    // reads. `scripts/unchecked-claims.mjs` records the identical defect
+    // against the identical file in its own header; this is its third sighting.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);

@@ -19,11 +19,37 @@ export const AUTO_REMEMBERED = Object.freeze(['lesson', 'poetech']);
 
 export const SORTS = Object.freeze([
   { key: 'recent', label: 'Most recent' },
+  { key: 'type', label: 'By type' },
   { key: 'oldest', label: 'Oldest first' },
   { key: 'used', label: 'Most used' },
   { key: 'kept', label: 'Kept first' },
   { key: 'az', label: 'A to Z' },
 ]);
+
+// THE TYPE OF A PROMPT IS WHERE IT WAS SENT (DR-1141; Darrell 2026-10-20:
+// "Can we sort based on type and use our standard subtab standard?"). A row
+// remembered by a send carries its destination (lesson, poetech, prayer…);
+// a row kept by "Save as prompt" carries none and is its own type, "saved".
+export const SAVED_TYPE = 'saved';
+const TYPE_LABELS = Object.freeze({ poetech: 'PoeTech', saved: 'Saved', lesson: 'Lesson', prayer: 'Prayer', pastor: 'Pastor', serve: 'Serve', work: 'Work', counseling: 'Counseling', private: 'Private' });
+/** The type key of one row: its destination, else "saved". */
+export function promptType(row) {
+  const d = String((row && row.destination) || '').trim().toLowerCase();
+  return d || SAVED_TYPE;
+}
+/** A type's label for a tab. */
+export function promptTypeLabel(type) {
+  const k = String(type || SAVED_TYPE);
+  return TYPE_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+}
+/** The types present in a list, most rows first, each with its count. Pure. */
+export function promptTypes(list) {
+  const counts = new Map();
+  for (const r of list || []) { const k = promptType(r); counts.set(k, (counts.get(k) || 0) + 1); }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([key, count]) => ({ key, label: promptTypeLabel(key), count }));
+}
 
 const STOP = new Set('the a an and or of to in on for with is are was be it this that i you we my your our at as by from what how why who when'.split(' '));
 
@@ -40,6 +66,7 @@ export function sortPrompts(list, by = 'recent') {
     case 'oldest': return arr.sort((a, b) => t(a.created_at) - t(b.created_at));
     case 'used': return arr.sort((a, b) => (b.use_count || 0) - (a.use_count || 0) || recent(a, b));
     case 'kept': return arr.sort((a, b) => (b.kept ? 1 : 0) - (a.kept ? 1 : 0) || recent(a, b));
+    case 'type': return arr.sort((a, b) => promptType(a).localeCompare(promptType(b)) || recent(a, b));
     case 'az': return arr.sort((a, b) => String(a.title || a.body || '').localeCompare(String(b.title || b.body || ''), undefined, { sensitivity: 'base' }));
     default: return arr.sort(recent);
   }
@@ -115,8 +142,31 @@ export async function deletePrompt({ supabase, id }) {
 // Reuse: the history hands a prompt back to the box through one window event,
 // so the box needs no knowledge of the history and the history none of the box.
 export const USE_PROMPT_EVENT = 'poetech:use-prompt';
-export function sendPromptToBox(body, target = typeof window !== 'undefined' ? window : null) {
+// THE WORDS GO ANYWHERE, ONE OR SEVERAL (DR-1141; Darrell 2026-10-20: "Do we
+// have the ability to send our words anywhere after collected???! We need that
+// in case it goes to the wrong location or we may want to create a lesson from
+// a situation or few"). One row's words could always come back to the box and
+// be sent to any destination; several could not be gathered, because the box
+// only ever REPLACED what it held. `mode: 'append'` adds the words under what
+// is already in the box, a blank line between, so a lesson can be made from a
+// situation, or a few.
+export function sendPromptToBox(body, target = typeof window !== 'undefined' ? window : null, { mode = 'replace', route = '' } = {}) {
   if (!target || typeof target.dispatchEvent !== 'function') return false;
-  target.dispatchEvent(new CustomEvent(USE_PROMPT_EVENT, { detail: { body: String(body || '') } }));
+  // `route` (DR-1142): the door already chosen for these words; the box sets
+  // its chip to it and the person presses Send. Absent, the box suggests one.
+  const detail = { body: String(body || ''), mode: mode === 'append' ? 'append' : 'replace' };
+  if (route) detail.route = String(route);
+  target.dispatchEvent(new CustomEvent(USE_PROMPT_EVENT, { detail }));
   return true;
+}
+/** Add these words UNDER what the box already holds (the gathering move). */
+export function addToBox(body, target = typeof window !== 'undefined' ? window : null) {
+  return sendPromptToBox(body, target, { mode: 'append' });
+}
+/** What the box holds after an event: replaced, or appended under a blank line. Pure. */
+export function boxAfter(current, body, mode = 'replace') {
+  const add = String(body || '').trim();
+  const have = String(current || '').replace(/\s+$/, '');
+  if (mode !== 'append' || !have) return add;
+  return add ? `${have}\n\n${add}` : have;
 }

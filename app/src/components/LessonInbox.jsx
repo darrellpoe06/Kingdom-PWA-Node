@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { fetchMyLessons, transcriptWords, speakerLines, transcriptSpeakers } from '../lib/lesson-inbox.js';
 // The words go back to the box on the same road Your prompts uses
 // (USE_PROMPT_EVENT), to edit or send again: the loop closes (DR-0636).
-import { sendPromptToBox } from '../lib/saved-prompts.js';
+import { sendPromptToBox, addToBox } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import { lessonsForSituation } from '../lib/lessons-for-situation.js';
@@ -25,6 +25,8 @@ import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
 import AddMyVoiceLink from './AddMyVoiceLink.jsx';
+// WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1142).
+import MoveMyWords from './MoveMyWords.jsx';
 // DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
 // published) is marked seen here, so the icon and the bell drop their number.
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
@@ -176,8 +178,10 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                   </button>
                   {open[it.id] !== false && <TranscriptWords words={words} speakers={transcriptSpeakers(it.words)} />}
                   <button type="button" data-testid="lesson-words-to-box" onClick={() => sendPromptToBox(words)} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] mt-1 ml-1 focus:outline focus:outline-2 focus:outline-[#B85838]">Put these words in the box</button>
+                  <button type="button" data-testid="lesson-words-add-to-box" onClick={() => addToBox(words)} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] mt-1 ml-1 focus:outline focus:outline-2 focus:outline-[#B85838]">Add these words to the box</button>
                 </>
               )}
+              <MoveMyWords item={it} words={it.spoken ? words : it.body.replace(/^Lesson\.\s*/, '')} deps={{ supabase: deps.supabase }} onChanged={load} />
             </li>
           );
         })}

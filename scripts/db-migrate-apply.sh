@@ -51,15 +51,64 @@ shopt -s nullglob
 files=("$DIR"/*.sql)
 if [ ${#files[@]} -eq 0 ]; then echo "no migrations"; exit 0; fi
 
+# THE LEDGER IS READ BEFORE IT IS GUESSED (2026-10-20, DR-1143).
+#
+# db-migrate run 39501068881 re-applied 0203 -- a file that had not changed and
+# whose ledger row was fine -- because the checksum SELECT below FAILED once
+# (its stderr went to /dev/null and `|| echo ""` turned the failure into an
+# empty answer), and an empty answer had always meant "never applied". 0203
+# defines obligation_set_lines in its 2026-07 shape; 0205 had replaced it with
+# the sum rule. Re-applying 0203 alone put the OLDER body back on the live
+# database, and the live-definition witness in the same job caught it:
+# "obligation_set_lines -- live definition is older than 0205". Two faults, both
+# closed here:
+#   1. A failed read is not an empty read. ledger_checksum() retries a failed
+#      SELECT (three tries, growing pause) and, if the ledger still cannot be
+#      read, the run STOPS before applying anything on a guess. "no row" is
+#      psql exit 0 with no output; "could not read" is a non-zero exit.
+#   2. The newest definition wins. When a file applies (new, changed, or
+#      re-applied) and a LATER file defines one of the same functions, that later
+#      file is applied again too, in order, so a chain re-entered in the middle
+#      ends on the definition the repo ships -- the same rule the isolation
+#      matrix follows (newest-definition-replay-guard), now inside the runner.
+# Both are proven by app/src/__tests__/the-ledger-is-read-before-it-is-guessed.test.js
+# against the real script with a stub psql.
+ledger_checksum() {  # $1 = filename; prints the applied checksum or nothing; returns 1 when the ledger could not be read
+  local base="$1" out rc attempt
+  for attempt in 1 2 3; do
+    out=$(psql "$DBURL" -Atc "SELECT checksum FROM public._schema_migrations WHERE filename='$base' AND status='applied'" 2>&1); rc=$?
+    if [ "$rc" -eq 0 ]; then printf '%s' "$out"; return 0; fi
+    echo "::warning::ledger read failed for $base (try $attempt of 3): $(printf '%s' "$out" | tr -d '\r' | tail -c 200)" >&2
+    [ "$attempt" -lt 3 ] && sleep $((attempt * 2))
+  done
+  return 1
+}
+functions_defined_by() {  # $1 = path; one function name per line
+  grep -oiE 'CREATE (OR REPLACE )?FUNCTION public\.[a-z_0-9]+' "$1" | sed -E 's/.*public\.//' | tr 'A-Z' 'a-z' | sort -u
+}
+declare -A REDEFINED=()   # function name -> the file applied this run that defined it
+
 FAILED=0; applied=0; skipped=0; failedn=0
 for f in $(printf '%s\n' "${files[@]}" | sort); do
   base=$(basename "$f")
   sum=$(sha256sum "$f" | cut -d' ' -f1)
-  prev=$(psql "$DBURL" -Atc "SELECT checksum FROM public._schema_migrations WHERE filename='$base' AND status='applied'" 2>/dev/null || echo "")
-  if [ "$prev" = "$sum" ]; then
-    echo "skip (unchanged) $base"; skipped=$((skipped+1)); continue
+  if ! prev=$(ledger_checksum "$base"); then
+    echo "::error::the migration ledger could not be read for $base after three tries. A file whose receipt cannot be read is NOT re-applied on a guess (re-applying an old file puts an older function body back; run 39501068881). Nothing further was applied this run; fix the connection and dispatch db-migrate again."
+    echo "--- summary: applied=$applied  skipped=$skipped  failed=$failedn  stopped-at=$base ---"
+    exit 1
   fi
-  echo "=== applying $base ==="
+  replay_reason=""
+  if [ "$prev" = "$sum" ]; then
+    for n in $(functions_defined_by "$f"); do
+      if [ -n "${REDEFINED[$n]:-}" ]; then replay_reason="$n, redefined by ${REDEFINED[$n]} earlier this run"; break; fi
+    done
+    if [ -z "$replay_reason" ]; then
+      echo "skip (unchanged) $base"; skipped=$((skipped+1)); continue
+    fi
+    echo "=== re-applying $base: it holds the newer definition of $replay_reason ==="
+  else
+    echo "=== applying $base ==="
+  fi
   if out=$(psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "$f" 2>&1); then
     echo "$out"
     # THE LEDGER WRITE IS PART OF THE MIGRATION, NOT A FORMALITY (2026-09-06).
@@ -85,6 +134,7 @@ for f in $(printf '%s\n' "${files[@]}" | sort); do
     if ledger_out=$(psql "$DBURL" -v ON_ERROR_STOP=1 -c \
       "INSERT INTO public._schema_migrations(filename,checksum,status,last_error,applied_at) VALUES ('$base','$sum','applied',NULL,now()) ON CONFLICT (filename) DO UPDATE SET checksum=EXCLUDED.checksum, status='applied', last_error=NULL, applied_at=now();" 2>&1); then
       applied=$((applied+1))
+      for n in $(functions_defined_by "$f"); do REDEFINED[$n]="$base"; done
     else
       echo "$ledger_out"
       echo "::error::migration $base APPLIED but its LEDGER ROW WAS REJECTED. The schema changed and nothing recorded it, so this file will re-apply on every run and DB Health will misreport. Almost always a duplicate ordinal: rename the file to the next free number (see 0169's and 0171's headers for the two worked examples)."

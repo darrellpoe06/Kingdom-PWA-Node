@@ -29,6 +29,12 @@
 -- trigger STAYS as the backstop for any other path into the table — belt and
 -- braces, with the belt now doing the work at the moment of the write.
 -- =============================================================================
+-- RE-APPLIED ON PURPOSE, 2026-10-20 (DR-1143). db-migrate run 39501068881 re-applied
+-- 0203 after one failed ledger read, and 0203 alone put the pre-sum-rule body of
+-- obligation_set_lines back on the live database (the live-definition witness
+-- caught it). This comment changes the file's checksum so the lane applies this
+-- file once more and the sum rule is live again; the runner now replays the newest
+-- definition itself, so this is the last time a note like this is needed.
 
 CREATE OR REPLACE FUNCTION public.obligation_set_lines(
   obligation_id_in uuid,

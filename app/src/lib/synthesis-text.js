@@ -131,11 +131,21 @@ export function synthesisSentences(text) {
     for (const part of cutLong(t).split(SENTENCE_SPLIT)) {
       const p = part.trim();
       // a part with no word in it (a quotation mark an aside left behind) is not spoken
-      if (p && hasWords(p)) out.push(closed(p));
+      if (p && hasWords(p)) out.push(spokenStart(closed(p)));
     }
   }
   return out;
 }
+
+// EVERY SENTENCE THE VOICE IS HANDED STARTS WITH A CAPITAL (DR-1131, measured
+// 2026-10-20, runs 39491668237 / 39492075479 / 39493087468). A cut leaves the
+// tail of a sentence starting lowercase ("…one should be. and names plainly…"),
+// and Piper's phonemizer does not take a period followed by a lowercase word
+// as a sentence end: on "…before each reading. not to say I got you…" it made
+// five seconds of babble ("CHaaNdIYeRvY") where the same words with "Not"
+// read back at WER 0.00 in 8.5 s. The eight-way bisect found that junction
+// and only that junction. A leading quotation mark or bracket is kept.
+const spokenStart = (s) => s.replace(/^(["'“‘([]*)([a-z])/, (_, lead, ch) => lead + ch.toUpperCase());
 
 /** The text a VITS voice is handed for one piece. */
 export function forSynthesis(text) {

@@ -5,6 +5,7 @@
 // retire entity" workflow that handles the references explicitly).
 import React, { useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
+import BusinessRoad from './BusinessRoad.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -96,6 +97,8 @@ export function BooksEntities({ entityRollups, entityFilter, setEntityFilter, da
             <MetricCell label="Debt total" value={fmt(r.debtBalance)} small accent={r.debtBalance > 0 ? 'rust' : null} sub="from Debts tab" />
             <MetricCell label="Accounts" value={`${r.accounts.length}`} small sub="all types" />
           </div>
+          {/* DR-1138: each business's own road to full time, from its own records. */}
+          {['business', 'nonprofit'].includes(r.entity.type) && <BusinessRoad entity={r.entity} data={data} />}
         </section>
       ))}
     </div>

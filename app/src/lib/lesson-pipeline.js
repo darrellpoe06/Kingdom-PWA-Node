@@ -188,7 +188,11 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
   const latest = BUILD_STAGES.filter((k) => times[k]).sort((a, b) => (times[a] < times[b] ? 1 : -1))[0] || null;
   const review = it.review || null;
   let buildDone = false;
-  if (!wordsDone) {
+  if (it.withdrawn && !captured && !pushedAt) {
+    // DR-1142: the person took it back from the lesson door. Nothing is built
+    // from it; its words are theirs to send where they belong.
+    stages.push(stage('building', 'stopped', it.withdrawnAt || null, 'Withdrawn by you: nothing is built from it. Its words are yours to send where they belong.'));
+  } else if (!wordsDone) {
     stages.push(stage('building', failed ? 'stopped' : 'waiting', null, failed ? 'Nothing to build until the words are written.' : 'Starts once the words arrive.'));
   } else if (captured || pushedAt) {
     buildDone = true;
