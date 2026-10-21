@@ -23,8 +23,7 @@
 // as zero episodes) and REQUIRES each assertion to fail.
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  isChannelId, channelIdFrom, feedUrlFor, watchUrlFor, unescapeXml,
-  parseEntry, parseFeed,
+  isChannelId, channelIdFrom, feedUrlFor, watchUrlFor, parseFeed,
   emptyChannels, normalizeChannels, channelsKey,
   followChannel, unfollowChannel, followedChannels, isFollowing, mergeEpisodes,
 } from '../lib/youtube-follow.js';
@@ -77,8 +76,13 @@ const REAL_FEED = `<?xml version="1.0" encoding="UTF-8"?>
   </media:group>
  </entry>
  <entry>
-  <id>yt:video:broken</id>
-  <title>An entry with no video id</title>
+  <id>yt:channel:not-a-video</id>
+  <title>An entry with no video id at all</title>
+ </entry>
+ <entry>
+  <id>yt:video:fallbackVid</id>
+  <title>An entry whose id is only in &lt;id&gt;</title>
+  <published>2026-10-01T10:00:00+00:00</published>
  </entry>
 </feed>`;
 
@@ -128,19 +132,34 @@ describe('parsing the REAL feed document', () => {
     expect(isChannelId(parseFeed(REAL_FEED).channelId)).toBe(true);
   });
 
-  it('reads every usable entry and DROPS the malformed one', () => {
+  it('reads every usable entry and DROPS the one with no id at all', () => {
     const { episodes } = parseFeed(REAL_FEED);
-    expect(episodes.map((e) => e.videoId)).toEqual(['vfbNzpd6cIw', 'scwlR0QHGOk']);
-    expect(episodes.length).toBe(2); // the third entry has no yt:videoId
+    expect(episodes.map((e) => e.videoId)).toEqual(['vfbNzpd6cIw', 'scwlR0QHGOk', 'fallbackVid']);
+    // The entry carrying only <id>yt:channel:...</id> names no video and is gone.
+    expect(episodes.length).toBe(3);
   });
 
-  it('maps an entry to title / published / url / thumbnail / description', () => {
+  it('accepts an entry whose id is ONLY in <id>yt:video:...> (the shared parser\u2019s fallback)', () => {
+    // A difference worth recording: my own first parser required <yt:videoId>
+    // and would have dropped this row. The shared parser falls back to the
+    // <id> element, which is the more forgiving and correct reading -- found
+    // only by collapsing onto it, because my sample's "malformed" entry turned
+    // out to be perfectly readable.
+    const ep = parseFeed(REAL_FEED).episodes.find((e) => e.videoId === 'fallbackVid');
+    expect(ep).toBeTruthy();
+    expect(ep.url).toBe('https://www.youtube.com/watch?v=fallbackVid');
+  });
+
+  it('maps an entry to title / published / url / thumbnail via the SHARED parser', () => {
+    // Entries come from lib/youtube-feed.js parseYoutubeFeed, which the Church
+    // tab has used since 2026-07-19 -- there is ONE entry parser in the repo.
+    // Its thumbnail is derived from the video id rather than read from
+    // media:thumbnail, which is the more robust of the two.
     const [first] = parseFeed(REAL_FEED).episodes;
     expect(first.title).toBe('What Makes a Good Game? | Eric Zimmerman | TED');
     expect(first.published).toBe('2026-10-20T15:00:04+00:00');
     expect(first.url).toBe('https://www.youtube.com/watch?v=vfbNzpd6cIw');
-    expect(first.thumbnail).toBe('https://i3.ytimg.com/vi/vfbNzpd6cIw/hqdefault.jpg');
-    expect(first.description).toMatch(/best way to make a project more playful/);
+    expect(first.thumbnail).toBe('https://i.ytimg.com/vi/vfbNzpd6cIw/mqdefault.jpg');
   });
 
   it('takes the entry <title>, never the media:group <media:title>', () => {
@@ -151,22 +170,14 @@ describe('parsing the REAL feed document', () => {
     expect(first.title.split('What Makes').length).toBe(2); // read once, not twice
   });
 
-  it('decodes the entities a real feed uses (numeric and named)', () => {
-    expect(unescapeXml('What&#8217;s')).toBe('What’s');
-    expect(unescapeXml('a &amp; b')).toBe('a & b');
-    expect(unescapeXml('&lt;tag&gt;')).toBe('<tag>');
-    const [, second] = parseFeed(REAL_FEED).episodes;
-    expect(second.description).toContain("doesn");
-  });
 
   it('is fail-soft on junk: empty lists, never a throw', () => {
     for (const bad of ['', null, undefined, '<notxml', '{}', '<feed></feed>']) {
       const r = parseFeed(bad);
       expect(Array.isArray(r.episodes)).toBe(true);
       expect(r.episodes.length).toBe(0);
+      expect(r.channelId).toBe('');
     }
-    expect(parseEntry('<entry><title>no id</title></entry>')).toBe(null);
-    expect(parseEntry('')).toBe(null);
   });
 });
 
@@ -223,7 +234,7 @@ describe('mergeEpisodes — an UN-READ feed is not an EMPTY one (DR-0076)', () =
     };
     const { episodes } = mergeEpisodes(followed, feeds);
     expect(episodes.map((e) => e.published)).toEqual([
-      '2026-10-20T15:00:04+00:00', '2026-10-18T14:00:00+00:00',
+      '2026-10-20T15:00:04+00:00', '2026-10-18T14:00:00+00:00', '2026-10-01T10:00:00+00:00',
     ]);
     expect(episodes.every((e) => e.channelTitle === 'TED')).toBe(true);
   });
@@ -265,6 +276,7 @@ describe('mergeEpisodes — an UN-READ feed is not an EMPTY one (DR-0076)', () =
   it('honours the limit and never throws on junk', () => {
     const feeds = { [TED]: { channelTitle: 'TED', episodes: parseFeed(REAL_FEED).episodes } };
     expect(mergeEpisodes(followed, feeds, 1).episodes.length).toBe(1);
+    expect(mergeEpisodes(followed, feeds, 2).episodes.length).toBe(2);
     expect(mergeEpisodes(followed, null).episodes).toEqual([]);
     expect(mergeEpisodes(null, feeds).episodes).toEqual([]);
   });

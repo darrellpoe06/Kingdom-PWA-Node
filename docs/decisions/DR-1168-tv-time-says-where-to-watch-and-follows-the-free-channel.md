@@ -148,16 +148,40 @@ proven search route reads "Look on Tubi"; an unverified one reads "Open The Roku
 Channel" and carries no query. Neither makes an availability claim, so neither
 can lie, and every title gets them — nothing dead-ends.
 
-**4. The one platform that really connects is the free one.** A YouTube channel's
-Atom feed needs no key, no OAuth and no account. It is fetched by
-`app/functions/api/youtube-feed.js`, our same-origin Pages Function, following
-the `api/link-title.js` pattern (`onRequestGet` + Cache API + an 8s timeout + a
-512KB capped read). The host is **pinned**: `channel_id` must match
-`/^UC[A-Za-z0-9_-]{22}$/` and the feed url is built by us, never taken from the
-caller, so this cannot become an open proxy; the `url` form accepts only a
-youtube.com/youtu.be channel page and is used solely to read a `UC` id out of it.
-Resolving at our edge is also the **privacy** property: the family member's
-device never talks to Google, so what they follow does not leave it.
+**4. The one platform that really connects is the free one — over the road the
+house already had.** A YouTube channel's Atom feed needs no key, no OAuth and no
+account.
+
+**I built that road a second time and had to take it back out.** The first draft
+of this change shipped `app/functions/api/youtube-feed.js` plus its own entry
+parser. Both already existed: `/api/church-recent?channel=UC…` has proxied this
+exact feed since 2026-07-19 for the Church tab's livestream strip — same `UC`+22
+SSRF guard, same server-built feed url, same ~10-minute Cache API, same
+User-Agent — and `lib/youtube-feed.js parseYoutubeFeed` has parsed its entries
+since the same day. I did not find them until **main merged under this branch and
+dropped both files into the tree beside mine**. Two roads to one truth drift, and
+this house has now paid for that lesson three times (DR-0621; DR-1151; DR-1152).
+So: the duplicate proxy and the duplicate parser are **deleted**, `parseFeed`
+delegates every entry to `parseYoutubeFeed`, and the surface fetches through
+`church-recent`. A case asserts `functions/api/youtube-feed.js` does not exist,
+so the second road cannot come back quietly.
+
+**What is genuinely new, and all that is left:**
+`app/functions/api/youtube-channel-id.js` — `church-recent` takes a channel ID,
+and a person does not have one; they have `youtube.com/@SomeChannel`, whose page
+carries no id a browser can read cross-site. This reads that page server-side and
+returns **only the id**. Host **pinned** by equality (youtube.com / m.youtube.com
+/ youtu.be, http(s) only, length-capped), read byte-capped and time-bounded, and
+it returns a string rather than the page, so a reachable page cannot be used to
+pull content through it. Resolving at our edge is also the **privacy** property:
+the family member's device never talks to Google, so what they follow does not
+leave it.
+
+**One thing collapsing onto the shared parser taught me:** my own version
+required `<yt:videoId>` and would have dropped an entry carrying its id only in
+`<id>yt:video:…>`. The shared parser falls back to that element, which is the
+more forgiving and correct reading — and my "malformed entry" test fixture turned
+out to be perfectly readable to it. The fallback is now pinned by its own case.
 
 **5. An un-read feed is not an empty channel.** `mergeEpisodes` returns
 `missing` for every followed channel whose feed was not read, and the surface
@@ -210,7 +234,7 @@ provider URL (DR-0076 §4).
 - `feature-presence.test.jsx` — two new walks and **nine new registry entries**
   (DR-0726). Verified proven-to-catch by renaming one `data-testid`: the gate
   went red naming *"Missing: Where to watch (on a show card)"* and five siblings.
-- `youtube-feed-edge-guards.test.js` — 6 cases on the edge road's safety
+- `youtube-channel-id.test.js` — 10 cases on the one new road's safety
   decisions, which are the part of a Pages Function a test can actually run.
   The host allow-list refuses a lookalike subdomain, a suffix lookalike, the
   name appearing only in a query string, loopback v4 and v6, **the cloud
@@ -220,7 +244,9 @@ provider URL (DR-0076 §4).
   naming `"https://youtube.com.evil.com/x" must be refused`, and the file was
   restored **byte-identical, verified with `cmp`** (DR-1092 — `git diff --stat`
   cannot tell a restored file from an edited one while real edits are
-  uncommitted).
+  uncommitted). A further case asserts the deleted duplicate proxy
+  (`functions/api/youtube-feed.js`) is absent while `church-recent.js` is
+  present, so the second road cannot return without turning a test red.
 - `contrast-guard.mjs` — PASS, 11 themes, 60 bg + 57 text classes both
   directions in midnight.
 

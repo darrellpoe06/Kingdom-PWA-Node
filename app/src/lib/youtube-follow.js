@@ -11,19 +11,32 @@
 // family can genuinely "connect a platform" is the free one, and it costs us
 // nothing but a parser.
 //
-// THE ROAD. YouTube's feed sends no CORS header, so the reader's browser cannot
-// fetch it; and this repo's cloud sandbox has no route to youtube.com at all
-// (CONNECT tunnel failed, response 403). The feed is therefore fetched by OUR
-// OWN EDGE — the same-origin Pages Function app/functions/api/youtube-feed.js —
-// which follows the link-title.js pattern (server-side fetch, timeout, capped
-// read, Cache API). Same-origin, keyless, read-only, and the reader's browser
-// never talks to Google: what a family member follows does not leak from their
-// device, which is the DATA-AS-EMPOWERMENT-NOT-EXTRACTION posture the rest of
-// TV Time already holds.
+// THE ROAD ALREADY EXISTED, AND THIS USES IT RATHER THAN BUILDING A SECOND ONE.
+// YouTube's feed sends no CORS header, so a browser cannot fetch it, and this
+// repo has had a same-origin proxy for exactly that since 2026-07-19: the Church
+// tab's `/api/church-recent?channel=UC…` (functions/api/church-recent.js), which
+// validates the channel id, builds the feed url server-side, caches it ~10
+// minutes and returns the raw XML. Its per-entry parser is `parseYoutubeFeed`
+// in lib/youtube-feed.js.
 //
-// THE PARSER IS VERIFIED AGAINST A REAL FEED, not a shape recalled from memory:
-// a one-shot GitHub-runner probe fetched two live feeds and the recorded sample
-// in youtube-follow.test.js is a slice of that actual document (DR-0076 §4).
+// I FIRST BUILT BOTH AGAIN — a second proxy and a second entry parser — and only
+// found the originals when main merged under this branch. Two roads to one truth
+// drift (DR-0621; DR-1151 and DR-1152 are the same lesson paid for twice), so the
+// duplicates are gone: this module now DELEGATES every entry to parseYoutubeFeed
+// and the surface fetches through /api/church-recent.
+//
+// WHAT IS GENUINELY NEW here, and the only reason this file exists at all:
+//   • the CHANNEL-LEVEL facts parseYoutubeFeed does not read — which channel the
+//     feed belongs to and what it is called — including the "UC" trap below;
+//   • a device-local FOLLOW LIST, per signed-in identity;
+//   • merging several channels into one newest-first list, where a feed we could
+//     not read is reported as un-read and never as empty.
+// Resolving a pasted @handle to a channel id is the other new piece and lives in
+// functions/api/youtube-channel-id.js, because nothing on main could do it.
+//
+// THE CHANNEL FACTS ARE VERIFIED AGAINST A REAL FEED, not a shape recalled from
+// memory: a one-shot GitHub-runner probe fetched two live feeds and the recorded
+// sample in youtube-follow.test.js is a slice of that actual document (DR-0076 §4).
 //
 // SOVEREIGN + PRIVATE + FAIL-SOFT, exactly like tv-time.js: the follow list is
 // DEVICE-LOCAL (localStorage), keyed to the signed-in identity, and a throwing
@@ -34,6 +47,8 @@
 // descriptions arriving from a channel are third-party text: they are escaped
 // and rendered as content, and nothing in a feed steers this app's behaviour.
 // =============================================================================
+
+import { parseYoutubeFeed } from './youtube-feed.js';
 
 const STORE_VERSION = 1;
 const KEY_PREFIX = 'poetech.tvchannels.v1';
@@ -74,66 +89,30 @@ export function watchUrlFor(videoId) {
   return /^[A-Za-z0-9_-]{6,20}$/.test(v) ? `https://www.youtube.com/watch?v=${v}` : '';
 }
 
-// --- Parsing the real Atom document -----------------------------------------
-// The live feed (measured, not remembered) is an <feed> of <entry> elements,
-// each carrying <yt:videoId>, <title>, <published>, <link rel="alternate"
-// href>, and a <media:group> with <media:thumbnail url> and <media:description>.
-// The channel's own name is the feed-level <title>; <yt:channelId> names it.
+// --- Reading the feed: channel facts here, entries from the existing parser ---
+// The live feed (measured, not remembered) is a <feed> of <entry> elements. The
+// ENTRIES are parsed by lib/youtube-feed.js parseYoutubeFeed, which the Church
+// tab has used since 2026-07-19 and which already yields exactly what this
+// surface renders: videoId, title, published, url and a thumbnail. What it does
+// not read is which channel the feed belongs to, and that is what is here.
 
-const UNESCAPE = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
-
-/** Pure. Decode the handful of XML entities a feed actually uses. */
-export function unescapeXml(text) {
-  return String(text || '')
-    .replace(/&(amp|lt|gt|quot|apos|#39);/g, (_, k) => UNESCAPE[k] ?? _)
-    .replace(/&#(\d+);/g, (_, n) => {
-      const code = Number(n);
-      return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : _;
-    });
-}
-
-// First text child of <tag> inside a chunk. Tolerates attributes and namespaces.
+// First text child of <tag> in a chunk. Tolerates attributes and namespaces.
 function tagText(chunk, tag) {
   const re = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'i');
   const m = re.exec(chunk);
-  return m ? unescapeXml(m[1]).replace(/\s+/g, ' ').trim() : '';
-}
-
-// An attribute off the first matching self-closing/open tag.
-function tagAttr(chunk, tag, attr) {
-  const re = new RegExp(`<${tag}(?:\\s[^>]*)?\\s${attr}=["']([^"']+)["']`, 'i');
-  const m = re.exec(chunk);
-  return m ? unescapeXml(m[1]) : '';
+  return m ? m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, ' ').trim() : '';
 }
 
 /**
- * Pure. Parse one <entry> chunk into an episode. Returns null when the entry
- * carries no usable video id — a malformed entry is DROPPED, never rendered as
- * a broken row (the same posture tv-time.js normalize() takes).
- */
-export function parseEntry(chunk) {
-  const id = tagText(chunk, 'yt:videoId') || tagText(chunk, 'videoId');
-  const videoId = /^[A-Za-z0-9_-]{6,20}$/.test(id) ? id : '';
-  if (!videoId) return null;
-  const title = tagText(chunk, 'title');
-  if (!title) return null;
-  return {
-    videoId,
-    title,
-    published: tagText(chunk, 'published') || '',
-    url: watchUrlFor(videoId),
-    thumbnail: tagAttr(chunk, 'media:thumbnail', 'url') || '',
-    description: tagText(chunk, 'media:description').slice(0, 400),
-  };
-}
-
-/**
- * Pure. Parse a whole feed document into { channelId, channelTitle, episodes }.
+ * Pure. Parse a feed document into { channelId, channelTitle, episodes }.
  * Fail-soft by construction: junk in yields empty lists out, never a throw.
- * Episodes stay in the feed's own order — YouTube publishes newest first.
+ * Episodes keep the feed's own order — YouTube publishes newest first — and come
+ * from parseYoutubeFeed, so there is ONE entry parser in the repository.
  *
- * THE TRAP THE LIVE DOCUMENT EXPOSED (measured, run 39558498265). The feed's
- * OWN header element drops the "UC" prefix from the channel id:
+ * THE TRAP THE LIVE DOCUMENT EXPOSED (measured, run 39558498265). The feed's own
+ * header element DROPS the "UC" prefix from the channel id:
  *
  *     <id>yt:channel:AuUUnT6oDeKwE6v1NGQxug</id>
  *     <yt:channelId>AuUUnT6oDeKwE6v1NGQxug</yt:channelId>     <-- no "UC"
@@ -141,27 +120,20 @@ export function parseEntry(chunk) {
  *     <link rel="alternate" href=".../channel/UCAuUUnT6oDeKwE6v1NGQxug"/>
  *
  * while the SAME element inside an <entry> keeps it. Reading yt:channelId alone
- * therefore yields a 22-char string that is not a channel id, which would have
- * silently produced an un-followable row. So the id is taken from the header's
- * urls — where YouTube writes it in full — and yt:channelId is accepted only
- * when it really is a well-formed id. A parser written from a remembered shape
- * would have shipped this bug; the live document is why it does not (DR-0076 §4).
+ * therefore yields a 22-char string that is NOT a channel id, which would have
+ * produced a silently un-followable row. So the id is taken from the header's
+ * urls — where YouTube writes it in full — and yt:channelId is accepted only when
+ * it really is well formed. A parser written from a remembered shape ships this
+ * bug; the live document is why this one does not (DR-0076 §4).
  */
-export function parseFeed(xml) {
+export function parseFeed(xml, limit = 24) {
   const text = String(xml || '');
-  const head = text.slice(0, text.indexOf('<entry') >= 0 ? text.indexOf('<entry') : 4000);
-  // The header urls first (they carry the full id), then the bare element, then
-  // anywhere in the head. isChannelId gates every candidate.
-  const channelId = channelIdFrom(head) || channelIdFrom(tagText(head, 'yt:channelId'));
-  const episodes = [];
-  for (const m of text.matchAll(/<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/gi)) {
-    const ep = parseEntry(m[1]);
-    if (ep) episodes.push(ep);
-  }
+  const cut = text.indexOf('<entry');
+  const head = text.slice(0, cut >= 0 ? cut : 4000);
   return {
-    channelId,
+    channelId: channelIdFrom(head) || channelIdFrom(tagText(head, 'yt:channelId')),
     channelTitle: tagText(head, 'title') || '',
-    episodes,
+    episodes: parseYoutubeFeed(text, limit),
   };
 }
 

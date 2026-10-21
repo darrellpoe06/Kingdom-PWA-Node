@@ -12,9 +12,17 @@
 // key, no OAuth, no account. So the one platform a family really can connect is
 // the free one — and following a channel here costs nothing and leaks nothing.
 //
-// OVER OUR OWN ROAD. The feed is fetched by /api/youtube-feed, our same-origin
-// Pages Function, never from the reader's browser: YouTube sends no CORS header,
-// and more to the point, resolving it at our edge means the family member's
+// OVER THE ROAD THE HOUSE ALREADY HAD. The feed comes through
+// `/api/church-recent?channel=UC…` — the Church tab's same-origin proxy, live
+// since 2026-07-19, which validates the id, builds the feed url server-side,
+// caches it ~10 minutes and returns raw XML. An earlier draft of DR-1168 shipped
+// a SECOND proxy doing the identical job; that is the two-roads-to-one-truth
+// defect (DR-0621 / DR-1151 / DR-1152) and it is deleted. The only new road is
+// `/api/youtube-channel-id`, which turns a pasted @handle into an id because
+// church-recent needs one and a person does not have one.
+//
+// Either way the fetch is OURS, not the reader's browser: YouTube sends no CORS
+// header, and more to the point, resolving at our edge means the family member's
 // device never talks to Google and their viewing interests never leave it. Same
 // posture as the rest of TV Time (device-local, private, fail-soft).
 //
@@ -39,8 +47,9 @@ const serif = { fontFamily: '"Fraunces", serif' };
 
 const BTN = 'text-[0.6875rem] uppercase tracking-wider px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-// Our own edge road to the public feed. Same-origin on purpose (see header).
-const FEED_ROUTE = '/api/youtube-feed';
+// The feed road the Church tab already uses, and the one new route beside it.
+const FEED_ROUTE = '/api/church-recent';          // ?channel=UC... -> raw Atom XML
+const RESOLVE_ROUTE = '/api/youtube-channel-id';  // ?url=... -> { channelId }
 
 // A friendly, honest word for each failure the edge function can report. Every
 // one of these says WHAT happened; none of them says "no episodes", because a
@@ -52,6 +61,9 @@ const TROUBLE = {
   'no-channel-id-on-page': 'That page loaded, but it does not name a channel id — try the channel’s own page.',
   'channel-not-found': 'YouTube does not have a channel at that link.',
   'channel-unreachable': 'Could not reach that channel page just now.',
+  'bad-channel': 'That channel id is not in YouTube\u2019s format.',
+  'youtube-unreachable': 'Could not reach YouTube just now \u2014 your follows are safe; try again.',
+  'need-url': 'Paste a channel link or a channel id.',
   'feed-unavailable': 'YouTube does not publish a feed for that channel id.',
   'feed-unreachable': 'Could not reach YouTube just now — your follows are safe; try again.',
   'feed-empty': 'YouTube returned an empty feed for that channel.',
@@ -100,14 +112,18 @@ export default function TVChannels({ email = null }) {
   // reported as un-read rather than as having no episodes.
   const readFeed = useCallback(async (channelId) => {
     try {
-      const res = await fetch(`${FEED_ROUTE}?channel_id=${encodeURIComponent(channelId)}`, {
-        headers: { Accept: 'application/json' },
+      // church-recent hands back the raw Atom document (it is a thin proxy on
+      // purpose), so this reads TEXT. A non-200 carries a JSON error instead.
+      const res = await fetch(`${FEED_ROUTE}?channel=${encodeURIComponent(channelId)}`, {
+        headers: { Accept: 'application/atom+xml, application/xml, application/json' },
       });
-      const body = await res.json().catch(() => null);
-      if (!res.ok || !body || !body.xml) {
-        return { ok: false, error: (body && body.error) || 'feed-unreachable' };
+      if (!res.ok) {
+        const why = await res.json().catch(() => null);
+        return { ok: false, error: (why && why.error) || 'feed-unreachable' };
       }
-      const parsed = parseFeed(body.xml);
+      const xml = await res.text();
+      if (!xml) return { ok: false, error: 'feed-empty' };
+      const parsed = parseFeed(xml);
       return { ok: true, channelTitle: parsed.channelTitle, episodes: parsed.episodes };
     } catch {
       return { ok: false, error: 'feed-unreachable' };
@@ -146,22 +162,32 @@ export default function TVChannels({ email = null }) {
     const raw = draft.trim();
     if (!raw) return;
     setAdding(true); setMsg('');
-    const direct = channelIdFrom(raw);
-    const qs = direct ? `channel_id=${encodeURIComponent(direct)}` : `url=${encodeURIComponent(raw)}`;
     try {
-      const res = await fetch(`${FEED_ROUTE}?${qs}`, { headers: { Accept: 'application/json' } });
-      const body = await res.json().catch(() => null);
-      if (!res.ok || !body || !body.xml || !isChannelId(body.channelId || '')) {
-        if (alive.current) setMsg(trouble(body && body.error));
+      // Step 1 - settle on an id. A bare UC id or a /channel/UC... link needs no
+      // network at all; a @handle page carries none in its text, so the edge
+      // resolver reads the page and tells us.
+      let id = channelIdFrom(raw);
+      if (!id) {
+        const r = await fetch(`${RESOLVE_ROUTE}?url=${encodeURIComponent(raw)}`, { headers: { Accept: 'application/json' } });
+        const body = await r.json().catch(() => null);
+        if (!r.ok || !body || !isChannelId(body.channelId || '')) {
+          if (alive.current) setMsg(trouble(body && body.error));
+          return;
+        }
+        id = body.channelId;
+      }
+      // Step 2 - prove the channel really exists by reading its feed BEFORE the
+      // follow is stored, so a typo can never become a permanent dead row.
+      const got = await readFeed(id);
+      if (!got.ok) {
+        if (alive.current) setMsg(trouble(got.error));
         return;
       }
-      const parsed = parseFeed(body.xml);
-      const id = body.channelId;
-      const next = followChannel(stateRef.current, { id, title: parsed.channelTitle || id }, new Date().toISOString());
-      persist(next);
-      setFeeds((f) => ({ ...f, [id]: { channelTitle: parsed.channelTitle, episodes: parsed.episodes } }));
+      const title = got.channelTitle || id;
+      persist(followChannel(stateRef.current, { id, title }, new Date().toISOString()));
+      setFeeds((f) => ({ ...f, [id]: { channelTitle: got.channelTitle, episodes: got.episodes } }));
       setDraft('');
-      setMsg(`Following ${parsed.channelTitle || id} — ${parsed.episodes.length} episode${parsed.episodes.length === 1 ? '' : 's'} in its feed.`);
+      setMsg(`Following ${title} — ${got.episodes.length} episode${got.episodes.length === 1 ? '' : 's'} in its feed.`);
     } catch {
       if (alive.current) setMsg(trouble('feed-unreachable'));
     } finally {

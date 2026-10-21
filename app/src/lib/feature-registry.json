@@ -56,7 +56,7 @@
     },
     "tvtime-channels": {
       "name": "TV Time — Free channels",
-      "where": "PoeTech TV Time > Free channels: follow a free YouTube channel over our own edge and see its new episodes (components/TVChannels.jsx, lib/youtube-follow.js; DR-1168)"
+      "where": "PoeTech TV Time > Free channels: follow a free YouTube channel and see its new episodes, read through the Church tab's existing /api/church-recent proxy with /api/youtube-channel-id resolving a pasted handle (components/TVChannels.jsx, lib/youtube-follow.js; DR-1168)"
     }
   },
   "features": [

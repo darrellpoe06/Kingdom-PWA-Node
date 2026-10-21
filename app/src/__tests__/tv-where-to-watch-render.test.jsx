@@ -218,9 +218,16 @@ describe('Free channels — following a free YouTube channel over our own edge',
   const stubEdge = (impl) => vi.stubGlobal('fetch', vi.fn(impl));
 
   it('follows a channel, shows its episodes, and persists the follow', async () => {
+    // Two same-origin roads, each with its own job: the handle resolver returns
+    // JSON, and the FEED comes from the Church tab's existing church-recent
+    // proxy as raw Atom XML (DR-1168 collapsed a duplicate proxy onto it).
+    const seen = [];
     stubEdge(async (url) => {
-      expect(String(url)).toMatch(/^\/api\/youtube-feed\?/);       // same-origin, our road
-      return { ok: true, json: async () => ({ channelId: TED, xml: FEED_XML }) };
+      const u = String(url);
+      seen.push(u);
+      if (u.startsWith('/api/youtube-channel-id?')) return { ok: true, json: async () => ({ channelId: TED }) };
+      if (u.startsWith('/api/church-recent?channel=')) return { ok: true, text: async () => FEED_XML };
+      throw new Error(`unexpected road: ${u}`);
     });
 
     const host = await mount(TVChannels, { email: 'a@b.com' });
@@ -235,6 +242,11 @@ describe('Free channels — following a free YouTube channel over our own edge',
 
     // The follow is stored per identity, device-local.
     expect(Object.keys(loadChannels('a@b.com').channels)).toEqual([TED]);
+    // And it really went down BOTH of the intended roads, in order, with no
+    // second feed proxy involved.
+    expect(seen.some((u) => u.startsWith('/api/youtube-channel-id?'))).toBe(true);
+    expect(seen.some((u) => u.startsWith('/api/church-recent?channel='))).toBe(true);
+    expect(seen.some((u) => u.includes('/api/youtube-feed'))).toBe(false);
 
     // And it can be undone.
     const unfollow = [...host.querySelectorAll('button')].find((b) => /Unfollow/.test(b.textContent));
@@ -244,7 +256,7 @@ describe('Free channels — following a free YouTube channel over our own edge',
   });
 
   it('a bad link is reported plainly and nothing is stored', async () => {
-    stubEdge(async () => ({ ok: false, json: async () => ({ error: 'not-a-youtube-channel-url' }) }));
+    stubEdge(async () => ({ ok: false, json: async () => ({ error: 'not-a-youtube-channel-url' }), text: async () => '' }));
     const host = await mount(TVChannels, { email: 'a@b.com' });
     await type(byTestId(host, 'tv-channel-input'), 'https://example.com/nope');
     click(byTestId(host, 'tv-channel-follow'));
@@ -258,7 +270,7 @@ describe('Free channels — following a free YouTube channel over our own edge',
     localStorage.setItem('poetech.tvchannels.v1:a@b.com', JSON.stringify({
       version: 1, channels: { [TED]: { id: TED, title: 'TED', addedAt: '2026-01-01T00:00:00Z' } },
     }));
-    stubEdge(async () => ({ ok: false, json: async () => ({ error: 'feed-unreachable' }) }));
+    stubEdge(async () => ({ ok: false, json: async () => ({ error: 'youtube-unreachable' }), text: async () => '' }));
 
     const host = await mount(TVChannels, { email: 'a@b.com' });
     await settle(60);
@@ -272,7 +284,7 @@ describe('Free channels — following a free YouTube channel over our own edge',
   });
 
   it('an empty follow list invites, and fetches nothing', async () => {
-    const f = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    const f = vi.fn(async () => ({ ok: true, json: async () => ({}), text: async () => '' }));
     stubEdge(f);
     const host = await mount(TVChannels, { email: 'a@b.com' });
     await settle(30);
