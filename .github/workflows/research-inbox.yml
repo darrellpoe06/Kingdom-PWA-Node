@@ -1,0 +1,249 @@
+# research-inbox -- a link or a question he sent is looked into, by itself (DR-1172)
+#
+# WHY. Darrell sent a video link on 2026-10-21 with "Link to the research for
+# our tvtyme". The agent said it would read it in a sandbox, and he answered
+# "Research section of the app?!!!!!!" and "Make that automation from my
+# prompts...". This is the pick-up half of DR-1172 -- the Research section is the
+# other half. A lane he has to start by asking is not an automation; it is a
+# chore with extra steps, so this one starts itself (DR-0247).
+#
+# NOTHING HERE FETCHES ANYTHING NEW. Both roads already existed and the house
+# already measured them; building a third would be the exact error Darrell
+# stopped with "Already worked !!!!!!":
+#   * A LINK  -> infra/nas-sme-pipeline/youtube-captions.py --ids <id> --max 1,
+#     run ON THE NAS from its residential IP, which is the only address of ours
+#     that video sites answer (DR-0723). The same call source-transcript-nas.yml
+#     makes. Captions, never audio: no GPU and no transcript-trickle budget is
+#     spent. Falling back to transcription would spend the tower's GPU and is a
+#     VISIBLE decision, so this road does not take it -- it records "no captions"
+#     and stops.
+#   * A QUESTION -> POST /research/ask on the NAS behind the family key, the road
+#     DR-1101 brought home, the same door research-health.yml asks through.
+#
+# THE LOCK IS THE TAG. The row is claimed (`research-claimed`) BEFORE the road is
+# spent, and the waiting query excludes a claimed row, so one prompt is never
+# answered twice. On 2026-10-06 a row that could not say "taken" was claimed,
+# failed and re-claimed six times in an hour (DR-0768); this is that lesson.
+#
+# AN ANSWER IS A LEAD, NOT A FACT. The answer row is written with the unverified
+# sentence as its FIRST LINE, and lib/research-items.js re-asserts verified:false
+# as a constant besides, so neither a row nor a later edit can present a research
+# answer as established fact (DR-0076, DR-1101).
+#
+# WHAT COMES BACK IS MATERIAL TO STUDY, NEVER INSTRUCTIONS TO OBEY. A transcript
+# or a page that tells its reader to do something is a string in a document. This
+# road stores it and never acts on it.
+#
+# NO BODIES, NO KEYS, IN THE LOG. The body and the answer travel base64 through
+# variables and are never echoed; the step summary carries ids, kinds, counts and
+# verdicts only. The family key is read on the NAS and never leaves it.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock).
+#   Budget -- ONE row per run, one road call, a 20000-character cap on the answer
+#            body, and a 15-minute job ceiling. It cannot drain a backlog and it
+#            cannot walk a channel.
+#   Lock   -- concurrency group `research-inbox` (a second fire queues), and the
+#            `research-claimed` tag above, which is the real single-reader lock
+#            across runs. A crashed pass leaves the row claimed and names it in
+#            the summary rather than silently retrying for ever.
+
+name: research-inbox
+
+on:
+  schedule:
+    # Every 15 minutes, on a jittered minute so it does not land with the fleet
+    # that fires on :00. A research item he sent should not sit for an hour.
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: research-inbox
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the remote-hands channel is configured
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: this lane needs TS_AUTHKEY and NAS_SSH_KEY, the same"
+            echo "secrets inbox-lessons-waiting.yml already uses. Nothing new is required."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (to reach the live database and the NAS)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Which item waits (one row; its body never printed)
+        if: steps.gate.outputs.go == 'true'
+        id: waiting
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          row=$(bash scripts/live-sql.sh '|' < scripts/research-inbox-waiting.sql) || {
+            # A read that FAILED is not an empty queue (DR-0076: unknown is not a no).
+            echo "::error::could not read the live database -- this is NOT 'no items waiting'"; exit 1; }
+          if [ -z "$row" ]; then
+            echo "no research item is waiting"
+            echo "### research-inbox: nothing waiting" >> "$GITHUB_STEP_SUMMARY"
+            echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          ID=$(printf '%s' "$row" | cut -d'|' -f1)
+          AT=$(printf '%s' "$row" | cut -d'|' -f2)
+          BY=$(printf '%s' "$row" | cut -d'|' -f3)
+          INST=$(printf '%s' "$row" | cut -d'|' -f4)
+          LEN=$(printf '%s' "$row" | cut -d'|' -f5)
+          B64=$(printf '%s' "$row" | cut -d'|' -f6)
+          [[ "$ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row id is not a uuid"; exit 1; }
+          # The body is decoded into a FILE, never echoed. Only its shape is logged.
+          printf '%s' "$B64" | base64 -d > /tmp/item.txt
+          LINK=$(grep -oE 'https?://[^[:space:]<>"]+' /tmp/item.txt | head -1 || true)
+          VID=$(printf '%s' "$LINK" | sed -nE 's#.*(youtu\.be/|[?&]v=|/shorts/|/live/|/embed/)([A-Za-z0-9_-]{11}).*#\2#p' | head -1)
+          if [ -n "$LINK" ]; then KIND=link; else KIND=question; fi
+          echo "item $ID · kind $KIND · ${LEN} characters · sent $AT · youtube id ${VID:-none}"
+          { echo "found=true"; echo "id=$ID"; echo "by=$BY"; echo "inst=$INST"; echo "kind=$KIND"; echo "vid=$VID"; } >> "$GITHUB_OUTPUT"
+          { echo "### research-inbox: item \`$ID\`"; echo "- kind: $KIND"; echo "- characters: $LEN"; echo "- sent: $AT"; } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE LOCK, taken BEFORE the road is spent. If the steps below die, the row
+      # stays claimed and is named in the summary, rather than being picked up
+      # again every 15 minutes for ever.
+      - name: Claim the row (one reader, so no prompt is answered twice)
+        if: steps.gate.outputs.go == 'true' && steps.waiting.outputs.found == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ROW: ${{ steps.waiting.outputs.id }}
+        run: |
+          set -uo pipefail
+          SQL="UPDATE public.agent_inbox SET tags = tags || '[\"research-claimed\"]'::jsonb WHERE id = '$ROW' AND NOT (tags ? 'research-claimed'); SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW';"
+          after=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not claim the row"; exit 1; }
+          echo "claimed: $after"
+
+      - name: Get the words, on the road that already reaches them
+        if: steps.gate.outputs.go == 'true' && steps.waiting.outputs.found == 'true'
+        id: look
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          KIND: ${{ steps.waiting.outputs.kind }}
+          VID: ${{ steps.waiting.outputs.vid }}
+        run: |
+          set -uo pipefail
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          chmod 600 /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          : > /tmp/answer.txt
+          VERDICT=failed
+          WHY="the road did not run"
+
+          if [ "$KIND" = link ] && [ -n "$VID" ]; then
+            # EXACTLY the call source-transcript-nas.yml makes. No new fetcher.
+            VENDOR="$REPO/infra/nas-sme-pipeline/.vendor"
+            USER_SITE="/var/services/homes/dpoe/.local/lib/python3.8/site-packages"
+            OUT="/tmp/research-$VID.json"
+            $SSH "cd '$REPO/infra/nas-sme-pipeline' && PYTHONPATH='$VENDOR:$USER_SITE' python3 youtube-captions.py --ids '$VID' --max 1 --refetch --out '$OUT'" > /tmp/fetch.log 2>&1 || true
+            if $SSH "test -s '$OUT'"; then
+              $SSH "cat '$OUT'" > /tmp/captions.json
+              $SSH "rm -f '$OUT'" || true
+              node scripts/captions-json-to-text.mjs /tmp/captions.json "$VID" > /tmp/answer.txt || true
+              if [ "$(wc -c < /tmp/answer.txt)" -gt 500 ]; then
+                VERDICT=answered
+              else
+                WHY="the captions came back but rendered under 500 characters, so nothing usable was written"
+              fi
+            else
+              # NOT a quiet fall back to audio: that spends the tower's GPU and is
+              # a decision someone should make on purpose, never quietly.
+              WHY="no captions came back for this video from the NAS. Either it publishes none, or the residential IP hit its measured daily ceiling. Audio transcription was NOT attempted: that spends the GPU and is a decision to take on purpose, not quietly."
+            fi
+          elif [ "$KIND" = question ]; then
+            # The /ask door DR-1101 brought home. The key is read ON the NAS.
+            # The question text is carried there as a FILE, not on a command
+            # line, so it cannot appear in a process list or a log.
+            scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/item.txt dpoe@poetech.tail5a2f35.ts.net:/tmp/q.txt >/dev/null 2>&1 || true
+            $SSH 'sh -s' > /tmp/ask.json 2>/dev/null <<'EOS' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          export TOK
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.request
+          q = open('/tmp/q.txt').read().strip() if os.path.exists('/tmp/q.txt') else ''
+          req = urllib.request.Request('http://127.0.0.1:8797/ask', method='POST',
+                                        data=json.dumps({'query': q, 'mode': 'speed', 'sources': ['web']}).encode())
+          req.add_header('Content-Type', 'application/json')
+          req.add_header('Authorization', 'Bearer ' + os.environ.get('TOK', ''))
+          try:
+              with urllib.request.urlopen(req, timeout=200) as r:
+                  print(json.dumps({'code': r.status, **json.loads(r.read().decode() or '{}')}))
+          except urllib.error.HTTPError as e:
+              print(json.dumps({'code': e.code}))
+          except Exception as e:
+              print(json.dumps({'code': 0, 'error': str(e)[:200]}))
+          PY
+          EOS
+            $SSH 'rm -f /tmp/q.txt' || true
+            node scripts/research-answer-text.mjs /tmp/ask.json > /tmp/answer.txt 2>/tmp/ask.err || true
+            if [ "$(wc -c < /tmp/answer.txt)" -gt 20 ]; then
+              VERDICT=answered
+            else
+              WHY="the research road did not answer: $(head -c 200 /tmp/ask.err || true)"
+            fi
+          else
+            WHY="the item held a link that is not one this road can reach (only a video id can be read from it)"
+          fi
+
+          # Budget: an answer is capped, so one item cannot write an unbounded row.
+          head -c 20000 /tmp/answer.txt > /tmp/answer.capped.txt || true
+          mv /tmp/answer.capped.txt /tmp/answer.txt
+          echo "verdict: $VERDICT · answer characters: $(wc -c < /tmp/answer.txt)"
+          { echo "verdict=$VERDICT"; echo "why=$WHY"; } >> "$GITHUB_OUTPUT"
+          { echo "- verdict: $VERDICT"; [ "$VERDICT" = answered ] && echo "- answer characters: $(wc -c < /tmp/answer.txt)" || echo "- why: $WHY"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write the answer where the Research section reads it
+        if: steps.gate.outputs.go == 'true' && steps.waiting.outputs.found == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ROW: ${{ steps.waiting.outputs.id }}
+          BY: ${{ steps.waiting.outputs.by }}
+          INST: ${{ steps.waiting.outputs.inst }}
+          VERDICT: ${{ steps.look.outputs.verdict }}
+          WHY: ${{ steps.look.outputs.why }}
+        run: |
+          set -uo pipefail
+          # The child row is created_by the SENDER, so RLS gives it back to the
+          # person who sent the item and to nobody else (DR-0060).
+          if [ "$VERDICT" = answered ]; then
+            TAG=research-answer
+            # The unverified sentence is the answer's FIRST LINE, so the words
+            # cannot travel anywhere without it (DR-0076).
+            { echo "Unverified: this came from a web search and our own model. Read the source before relying on a sentence."; echo; cat /tmp/answer.txt; } > /tmp/body.txt
+          else
+            TAG=research-failed
+            printf '%s\n' "$WHY" > /tmp/body.txt
+          fi
+          B64=$(base64 -w0 < /tmp/body.txt)
+          SQL="INSERT INTO public.agent_inbox (instance_id, body, tags, source, created_by) VALUES ('$INST', convert_from(decode('$B64','base64'),'UTF8'), '[\"$TAG\",\"of:$ROW\"]'::jsonb, 'research-inbox', '$BY'); UPDATE public.agent_inbox SET tags = tags || '[\"research-answered\"]'::jsonb WHERE id = '$ROW' AND NOT (tags ? 'research-answered'); SELECT id::text FROM public.agent_inbox WHERE tags @> '[\"of:$ROW\"]'::jsonb;"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not write the answer row -- the item stays claimed and is named above"; exit 1; }
+          echo "child row(s) for $ROW: $out"
+          { echo "- child row: \`$(printf '%s' "$out" | head -1)\` (\`$TAG\`)";
+            echo "- the item now reads \`research-answered\`, so it is never looked into twice"; } >> "$GITHUB_STEP_SUMMARY"
+          # A failed look is a real finding, not a pass: the run goes red so it is
+          # seen, while the row is already marked so it does not loop (DR-0768).
+          [ "$VERDICT" = answered ] || { echo "::error::the item could not be looked into: $WHY"; exit 1; }

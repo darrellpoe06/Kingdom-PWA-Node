@@ -1,0 +1,72 @@
+# Transcript of YouTube video aQgXzVSjwWg
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 1083 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+Sony recently announced that they'll be deleting movies from their PlayStation Store even if
+users previously purchased it. That's the moment I realized I don't actually own anything that
+I'm paying for. So, I spent a week replacing the $1,000 I spend a year on subscriptions with
+things actually in my control. You could do this too for less than the cost of 1 month you're
+already paying in subscriptions to watch Friends for the 50th time in a row. And the secret is
+this little baby right here. This is a Raspberry Pi. Now, don't be intimidated. I know it looks
+a little scary, but this is basically just a mini computer that's super low power and perfect
+for running your own home server. So, you could either buy a Raspberry Pi or if you're cheap
+like me, don't want to fork any moolah over, any old laptop you have sitting at the bottom of
+your closet will work, too. Don't worry about the specs unless you have one running off a
+hamster wheel, you'll be good. And the cost after that is basically only pennies of electricity
+to power it. Now, let me ask if you've ever been in the same position as me. You're watching a
+show, it's your nightly comfort, you can't wait to watch the next episode every night, and poof,
+it's gone from Netflix. It's on Pluto TV or Blingo or some other streaming service you've never
+heard of. Are you really going to fork over another 15, 20 bucks a month to continue watching a
+show? Hell no. We're done with that. You can buy one of these Pies like I have right here, or
+with just a little configuration to your old laptop, you can run your own personal Netflix
+completely for free and completely open source with this program called Jellyfin. And open
+source just means that the code of the program is completely public and maintained by the public
+rather than one tech company. But anyways, this app Jellyfin is a lifesaver. It lets you host
+your own TV shows and movies and watch them anywhere completely for free with a great interface,
+super interactive, just like Netflix. It pulls Rotten Tomato ratings, it pulls the full IMDb
+page so you can see the actors/actresses that are in the content you're watching. This isn't
+just a dinky little service that just lets you stream files. This is a full end-to-end
+experience that honestly rivals Netflix and HBO and your other streaming services completely for
+free. But Tucker, what if I don't have any movies? What What if I don't have any shows? What am
+I going to do? Buddy, it's 2026. There's so many ways around this. I got you. Don't worry. If
+you want to be a good little citizen, thrift stores have thousands of DVDs for only a dollar or
+two each. It's trivial to burn these on your computer and upload the files. But, something I've
+heard about that I would never never ever do myself, there's many websites out there where you
+can acquire free movies, free TV shows, legally of course, and all above board. So, now you got
+your movies, now you got your shows, but that is just the tip of the iceberg. These tech
+companies, their whole business model is to get you hooked for life on subscriptions. They want
+you to never cancel. And are you tired of letting Google host all your photos? These photos live
+on a server who knows where and are at the mercy of Google. There's stories of people getting
+banned for seemingly no reason. There goes all their documents, there goes their photos of their
+gam-gam's 90th birthday, everything. Are you really going to depend on a company who truly could
+not give two shits about you and the only reason they support you is because they want to sell
+you ads? Are we really going to depend on them to keep our data safe? Well, I've got another
+solution for you. There's a software out there, another open-source software called Image. This
+is a local Google Drive. This backs up your photos and videos automatically. It has facial
+recognition and location tagging just like Google Photos, but it is completely for free and
+hosted on your own local network. So, no company ever has access to your own personal videos and
+photos. Who knows what they're doing with that freaky video of you and that cucumber? And it
+goes even deeper. One of my personal favorite things that I love to use is audio bookshelf,
+which is another open-source software that lets you stream your own audiobooks to your phone. It
+has all the same services as Audible. And don't get me started about Audible. This was literally
+one of the reasons I started this because I hate that service so much. So, these are just the
+start. I'm just giving you these couple examples to show you that there's a free and open-source
+version of everything that you already pay for. I know it's intimidating a little bit, and I am
+by no means an expert in home servers or setting up any of this, but I am one thing, cheap as
+hell and determined. When I did the math and I figured out how much I was spending on
+subscriptions, I knew there had to be better alternatives out there. And now even my home
+cameras are running fully locally, so these feeds are not going out in the cloud at all. And I
+can access them from anywhere. The good news is there is so much information out there to help
+you set this up, especially with AI and all the resources that brings. This could honestly take
+you 1 day to set up once you have all the required equipment, which you probably do. I know you
+have an old laptop sitting around. So please, please, please, if you take away anything from
+this video, I just implore you to start taking ownership of your own digital life. It will not
+only let you have more of your own content, but it will also keep your sensitive information
+safe. But I know what tracks in this day and age, and it is cheddar. So start today, and I
+promise you a year from now your bank account will thank you when you've got extra money saved
+up from this. Thank you for watching.
