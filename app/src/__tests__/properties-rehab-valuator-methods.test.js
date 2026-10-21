@@ -10,7 +10,7 @@
 // figures are attributed to the speaker, not to a minute mark).
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { brrrr, trackBudget, BRRRR_RULES, leverage, lotSplit, maxLandPrice } from '../modules/properties/development.js';
+import { brrrr, trackBudget, BRRRR_RULES, leverage, lotSplit, maxLandPrice, arvFromComps } from '../modules/properties/development.js';
 
 // "$50,000 ... fifteen hundred bucks in closing costs ... 20 thousand dollars of
 // renovations ... another thousand dollars worth of holding costs ... 8%
@@ -157,5 +157,33 @@ describe('the land, the bank and the cash (Kleyman\'s duplex videos, HCa1XR4ev5M
   it('nothing is computed without its inputs', () => {
     expect(leverage({}).complete).toBe(false);
     expect(lotSplit({}).missing).toEqual(['purchaseCents', 'lotValueCents', 'lotsSold']);
+  });
+});
+
+describe('what it will be worth, from comparable sales (Kleyman, 9zjeGb74TmU)', () => {
+  // Constructed comps averaging $231 a foot after the $100-a-foot outlier is
+  // struck, as on his screen; the subject is his 2,400 sq ft duplex.
+  const COMPS = [
+    { label: 'Renovated duplex A', priceCents: 50820000, sqFt: 2200 },   // $231
+    { label: 'Renovated duplex B', priceCents: 57750000, sqFt: 2500 },   // $231
+    { label: 'Renovated triplex', priceCents: 60060000, sqFt: 2600 },    // $231
+    { label: 'Unrenovated duplex', priceCents: 24000000, sqFt: 2400 },   // $100, the outlier
+  ];
+  it('"average comp is $231 a foot, which puts my duplex at 553" once the $100-a-foot outlier is out', () => {
+    const a = arvFromComps({ comps: COMPS, subjectSqFt: 2400, floorPerSqFtCents: 15000 });
+    expect(a.usedCount).toBe(3);
+    expect(a.averagePerSqFtCents).toBe(23100);
+    expect(a.arvCents).toBe(55440000);
+    expect(a.rows[3]).toMatchObject({ used: false, why: 'under the floor a foot', perSqFtCents: 10000 });
+  });
+  it('PROVEN TO CATCH: leaving the outlier in drags the value down', () => {
+    expect(arvFromComps({ comps: COMPS, subjectSqFt: 2400 }).arvCents).toBeLessThan(50000000);
+    const struck = arvFromComps({ comps: COMPS.map((c, i) => (i === 3 ? { ...c, excluded: true } : c)), subjectSqFt: 2400 });
+    expect(struck.arvCents).toBe(55440000);
+    expect(struck.rows[3].why).toBe('struck as an outlier');
+  });
+  it('no comps, or no subject size, gives no number', () => {
+    expect(arvFromComps({ comps: [], subjectSqFt: 2400 })).toMatchObject({ complete: false, missing: ['at least one comparable sale'] });
+    expect(arvFromComps({ comps: COMPS }).missing).toEqual(['the square feet of the subject']);
   });
 });

@@ -181,4 +181,21 @@ describe('the Development tab (DR-1158)', () => {
     await setValue(byId('lab-amort'), '25');
     expect(byTest('lab-bank').textContent).toMatch(/debt coverage 1\.28\. The bank can fund all of it\./);
   });
+
+  it('the comps card strikes the outlier and values the duplex by the dollar a foot', async () => {
+    await mount(fakeApi());
+    const comps = [['A', '508200', '2200'], ['B', '577500', '2500'], ['Unrenovated', '240000', '2400']];
+    for (const [i, [l, p, f]] of comps.entries()) {
+      await setValue(byId(`comp-label-${i}`), l); await setValue(byId(`comp-price-${i}`), p); await setValue(byId(`comp-sqft-${i}`), f);
+    }
+    await setValue(byId('comp-subject'), '2400');
+    expect(byTest('comps-result').textContent).toMatch(/3 comparables/);
+    const strike = host.querySelectorAll('[data-testid="development-tab"] input[type="checkbox"]');
+    const box = [...strike].find((b) => b.closest('div').querySelector('#comp-label-2'));
+    await act(async () => { box.click(); });
+    await settle();
+    const r = byTest('comps-result').textContent;
+    expect(r).toMatch(/2 comparables at an average \$231\.00 a foot: worth about \$554,400\.00/);
+    expect(r).toMatch(/Left out: Unrenovated, struck as an outlier/);
+  });
 });

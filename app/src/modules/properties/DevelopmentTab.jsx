@@ -18,7 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LINE_KINDS, CHANGE_SOURCES, PROJECT_KINDS, CAPITAL_KINDS, budgetSummary, tiCheck, phaseProgress,
-  valuation, dealReturns, compareBuildToRent, trackBudget, brrrr, leverage, lotSplit, maxLandPrice,
+  valuation, dealReturns, compareBuildToRent, trackBudget, brrrr, leverage, lotSplit, maxLandPrice, arvFromComps,
 } from './development.js';
 import {
   developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow,
@@ -527,6 +527,43 @@ export function LandAndBank() {
   );
 }
 
+/** What it will be worth: comparable sales by the dollar a foot, the outliers struck. */
+export function Comps() {
+  const blank = { label: '', price: '', sqft: '', struck: false };
+  const [rows, setRows] = useState([{ ...blank }, { ...blank }, { ...blank }]);
+  const [subject, setSubject] = useState('');
+  const [floor, setFloor] = useState('');
+  const set = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const a = arvFromComps({
+    comps: rows.filter((r) => r.price !== '' || r.sqft !== '').map((r, i) => ({ id: i, label: r.label || `Comp ${i + 1}`, priceCents: centsOrNull(r.price), sqFt: Number(r.sqft) || null, excluded: r.struck })),
+    subjectSqFt: Number(subject) || null, floorPerSqFtCents: floor === '' ? null : centsOrNull(floor),
+  });
+  return (
+    <Card title="What it will be worth, from comparable sales">
+      <p className="text-[0.75rem] text-[#6B665E] mb-2">Same kind of building, the same bedrooms, roughly the same size, sold recently. Strike the outliers (an unrenovated sale at half the price a foot is not your finished building), and the average price a foot of the rest, times your square feet, is the value.</p>
+      {rows.map((r, i) => (
+        <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
+          <Field id={`comp-label-${i}`} label="Comparable" value={r.label} onChange={(v) => set(i, 'label', v)} />
+          <Field id={`comp-price-${i}`} label="Sold for ($)" value={r.price} onChange={(v) => set(i, 'price', v)} />
+          <Field id={`comp-sqft-${i}`} label="Sq ft" value={r.sqft} onChange={(v) => set(i, 'sqft', v)} />
+          <label className="flex items-center gap-2 text-[0.8125rem] self-end"><input type="checkbox" checked={r.struck} onChange={(e) => set(i, 'struck', e.target.checked)} /> Strike as an outlier</label>
+        </div>
+      ))}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
+        <Field id="comp-subject" label="Your square feet" value={subject} onChange={setSubject} />
+        <Field id="comp-floor" label="Leave out under ($ a foot)" value={floor} onChange={setFloor} />
+        <div className="self-end"><Btn onClick={() => setRows([...rows, { ...blank }])}>Add a comparable</Btn></div>
+      </div>
+      <div data-testid="comps-result" className="text-[0.8125rem]">
+        {a.complete
+          ? <p>{a.usedCount} comparable{a.usedCount === 1 ? '' : 's'} at an average {money(a.averagePerSqFtCents)} a foot: worth about {money(a.arvCents)} (range {money(a.lowCents)} to {money(a.highCents)}).</p>
+          : <p className="text-[#6B665E]">Enter {a.missing.join(' and ')}.</p>}
+        {a.rows.filter((r) => !r.used).map((r) => <p key={r.id} className="text-[#6B665E]">Left out: {r.label}, {r.why}{r.perSqFtCents !== null ? ` (${money(r.perSqFtCents)} a foot)` : ''}.</p>)}
+      </div>
+    </Card>
+  );
+}
+
 export function DevelopmentTab({ api = DEFAULT_API }) {
   const [instanceId, setInstanceId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -598,6 +635,7 @@ export function DevelopmentTab({ api = DEFAULT_API }) {
         </>
       )}
       <BuildToRent />
+      <Comps />
       <Brrrr />
       <LandAndBank />
     </div>

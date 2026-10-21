@@ -742,3 +742,44 @@ export function maxLandPrice({ asBuiltCents, sweatEquityPct, buildCents, softCen
     maxLandCents: cents(asBuiltCents) - equity - cents(buildCents) - (isCents(softCents) ? cents(softCents) : 0),
   };
 }
+
+// =============================================================================
+// WHAT IT WILL BE WORTH, FROM COMPARABLE SALES (Kleyman, the build-to-rent
+// duplex, 9zjeGb74TmU): filter to the same kind of building, bedrooms and
+// roughly the same size; "sort these by dollar per foot ... unselect the
+// outliers, the lowest one, because anything that trades for $100 per foot is
+// not going to be new construction"; the average dollar a foot of the rest,
+// times the subject's square feet ("average comp is $231 a foot, which puts
+// my duplex at 553 ... I'm going to round this off to 550"). The same step
+// prices rent from rental comps by the dollar a foot.
+//
+// A comp the user strikes, or one under the floor, is kept on the list and
+// says why it was left out; an estimate is never given from no comps.
+// =============================================================================
+export function arvFromComps({ comps = [], subjectSqFt, floorPerSqFtCents = null } = {}) {
+  const rows = comps.map((c, i) => {
+    const price = isCents(c.priceCents) ? cents(c.priceCents) : null;
+    const sqFt = Number(c.sqFt) > 0 ? Number(c.sqFt) : null;
+    const perSqFt = price !== null && sqFt !== null ? price / sqFt : null;
+    const why = perSqFt === null ? 'no price or size'
+      : c.excluded ? 'struck as an outlier'
+        : isCents(floorPerSqFtCents) && perSqFt < Number(floorPerSqFtCents) ? 'under the floor a foot'
+          : null;
+    return { id: c.id ?? i, label: c.label || c.address || `Comp ${i + 1}`, priceCents: price, sqFt, perSqFtCents: perSqFt === null ? null : Math.round(perSqFt), used: why === null, why };
+  });
+  const used = rows.filter((r) => r.used);
+  if (!used.length || !(Number(subjectSqFt) > 0)) {
+    return { complete: false, rows, missing: [!used.length && 'at least one comparable sale', !(Number(subjectSqFt) > 0) && 'the square feet of the subject'].filter(Boolean) };
+  }
+  const avg = sum(used.map((r) => r.priceCents / r.sqFt)) / used.length;
+  const per = used.map((r) => r.perSqFtCents);
+  return {
+    complete: true,
+    rows,
+    usedCount: used.length,
+    averagePerSqFtCents: Math.round(avg),
+    arvCents: Math.round(avg * Number(subjectSqFt)),
+    lowCents: Math.round(Math.min(...per) * Number(subjectSqFt)),
+    highCents: Math.round(Math.max(...per) * Number(subjectSqFt)),
+  };
+}
