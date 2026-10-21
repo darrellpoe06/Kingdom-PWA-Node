@@ -68,4 +68,4 @@ A research item is done when **it is in the app**, carrying its words, its sourc
 - The words: `infra/nas-sme-pipeline/load-transcripts.py` — `--ids`, `--dry-run`, on the NAS.
 - The pattern for "something he sent becomes a thing in the app": the lesson lane, DR-0669.
 
-**Recorded as DR-1166.** Pairs with: *Spoken Teachings Are Build Input* (Layer 0 — the same covenant for his voice), DR-0065 (the app is the primary artifact), DR-0108 (account for the whole team's reach), DR-0076 (unknown is not a no; never fabricate), DR-1127 (unverified lead plus cheap local proof), DR-0621 (hold the hand of the process).
+**Recorded as DR-1174.** Pairs with: *Spoken Teachings Are Build Input* (Layer 0 — the same covenant for his voice), DR-0065 (the app is the primary artifact), DR-0108 (account for the whole team's reach), DR-0076 (unknown is not a no; never fabricate), DR-1127 (unverified lead plus cheap local proof), DR-0621 (hold the hand of the process).

@@ -1,4 +1,4 @@
-# DR-1166: The research lane is a Way — because he had to explain it again
+# DR-1174: The research lane is a Way — because he had to explain it again
 
 **Date:** 2026-10-21
 **Status:** accepted
