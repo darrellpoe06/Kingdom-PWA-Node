@@ -48,3 +48,7 @@ Not in this app (the reference shows them; the brief says "wherever those featur
 - The TLC icon still wears ink and rust (a brand asset, not a theme; awaits Christina's logo). `re-review: 2026-11-04`.
 - `PracticeLearn.jsx` and `OfficeAssistant.jsx` inherit the theme and the card sweep but were not hand-redrawn surface by surface. `re-review: 2026-11-04` on the live review pass (DR-0104).
 - The reference's appointments / messages / progress / billing / account screens: not features of this app; each is its own decision if wanted.
+
+## Addendum, later the same day — "Nothing changed. Why does it still look the same" (DR-1170)
+
+The finish reached main and deployed (run 1838 green for 394ab43e) and Darrell's phone showed the old look. Cause: the door opened in TLC's colors only by a fallback, and the device's one shared preference key already held the family app's palette. Fix: a per-door theme scope (`setThemeScope`); the TLC door enters it at boot (`enterTlcDoorContext`), reads and writes its own key with its own default, and the family key is untouched. Five new cases, the shipped bug proven to catch. The church door carries the same gap by construction; dated 2026-10-28.
