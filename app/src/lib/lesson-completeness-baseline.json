@@ -12,10 +12,7 @@
    "bc8-pov-sops",
    "bc9-excellence-as-worship"
   ],
-  "wordOutside": [
-   "bc1-the-whole-chain",
-   "bc6-bandwidth-network"
-  ]
+  "wordOutside": []
  },
  "infrastructure": {
   "shortOfStories": [
@@ -30,9 +27,7 @@
    "inf9-keeping-it-alive",
    "inf10-build-right-raise-builders"
   ],
-  "wordOutside": [
-   "inf2-the-nas"
-  ]
+  "wordOutside": []
  },
  "sovereign-ai": {
   "shortOfStories": [
@@ -93,14 +88,7 @@
    "aib5-real-world-scenarios",
    "aib6-safe-use-blueprint-sovereign"
   ],
-  "wordOutside": [
-   "aib1-the-one-rule",
-   "aib2-do-not-share-list",
-   "aib3-how-the-machine-remembers",
-   "aib4-the-law-plain",
-   "aib5-real-world-scenarios",
-   "aib6-safe-use-blueprint-sovereign"
-  ]
+  "wordOutside": []
  },
  "living-lessons": {
   "shortOfStories": [],
@@ -215,12 +203,7 @@
    "snd7-before-during-after",
    "snd8-our-digital-console-yamaha-ql"
   ],
-  "wordOutside": [
-   "snd1-the-board-and-the-signal-chain",
-   "snd2-gain-staging",
-   "snd5-monitors-vs-the-house",
-   "snd6-mixing-the-worship-team-and-choir"
-  ]
+  "wordOutside": []
  },
  "church-offices": {
   "shortOfStories": [
@@ -232,13 +215,7 @@
    "co6-fivefold-and-body",
    "co7-our-house-now"
   ],
-  "wordOutside": [
-   "co1-names-and-numbers",
-   "co2-deacon",
-   "co4-bishop-overseer",
-   "co6-fivefold-and-body",
-   "co7-our-house-now"
-  ]
+  "wordOutside": []
  },
  "word-out": {
   "shortOfStories": [
@@ -248,13 +225,7 @@
    "wo4-when-it-looks-stale",
    "wo5-ask-for-what-you-want"
   ],
-  "wordOutside": [
-   "wo1-one-upload-everywhere",
-   "wo2-find-and-share",
-   "wo3-retire-the-old-site",
-   "wo4-when-it-looks-stale",
-   "wo5-ask-for-what-you-want"
-  ]
+  "wordOutside": []
  },
  "healthy-living": {
   "shortOfStories": [
@@ -289,10 +260,7 @@
    "pm12-titles-and-fruits-capability-shown-in-outcomes",
    "pm13-selected-designed-procured-built-and-steered"
   ],
-  "wordOutside": [
-   "pm5-timeline-and-milestones",
-   "pm8-the-plumbline"
-  ]
+  "wordOutside": []
  },
  "software-project-management": {
   "shortOfStories": [
@@ -351,21 +319,7 @@
    "dsi13-roles-and-permissions",
    "dsi14-your-onboarding-path"
   ],
-  "wordOutside": [
-   "dsi1-what-poetech-is",
-   "dsi2-the-shared-data-layer",
-   "dsi3-the-loops",
-   "dsi5-meet-ari",
-   "dsi6-the-nas",
-   "dsi7-the-gpu-node",
-   "dsi8-the-led-wall",
-   "dsi9-sunday-and-wednesday",
-   "dsi10-running-a-service",
-   "dsi11-adding-content-no-json",
-   "dsi12-voice-and-help",
-   "dsi13-roles-and-permissions",
-   "dsi14-your-onboarding-path"
-  ]
+  "wordOutside": []
  },
  "handed-forward": {
   "shortOfStories": [

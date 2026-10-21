@@ -15,8 +15,10 @@ import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.js';
 import { catalogCompleteness, courseCompleteness, completenessLine, quotesTheWord, storyCount } from '../lib/lesson-completeness.js';
 import BASELINE from '../lib/lesson-completeness-baseline.json';
+import { withWordQuotes } from '../lib/lesson-word-quotes.js';
 
-const census = catalogCompleteness([...buildCatalogCourseDescriptors(), ...buildEternalProcessingCourses()]);
+// The same pipeline the Learn tab runs (ChurchLearn: withWordQuotes over the mounted courses).
+const census = catalogCompleteness(withWordQuotes([...buildCatalogCourseDescriptors(), ...buildEternalProcessingCourses()]));
 const allowed = (key, field) => new Set(((BASELINE[key] || {})[field]) || []);
 
 describe('no lesson falls short that was not already short', () => {
