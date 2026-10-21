@@ -23,10 +23,24 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); try { window.localStorage.clear(); } catch (_) { /* private window */ } });
 
 const mount = (props = {}) =>
   act(() => root.render(createElement(ChurchLearn, props)));
+
+// LEARN OPENS ON THE ONE LIST NOW (DR-1183). Darrell 2026-10-21: "It's like a
+// title page saying your inside living lessons... only have that sortable list
+// when it is chosen". No course is open until one is chosen, so a test about
+// what is INSIDE a course opens one first -- the same tap a reader makes.
+// (It also removes this file's old dependence on whatever course happened to
+// be remembered in this worker's localStorage.)
+const openCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) throw new Error('the one list offered no course to open');
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
 
 // Click a tab/chip in the SectionTabs strip by its visible label — only the
 // active panel is mounted (same proven helper as church-home-render.test.jsx).
@@ -39,6 +53,7 @@ const clickTab = (label) => {
 describe('ChurchLearn — the course body behind section chips', () => {
   it('defaults to the curriculum (Weeks) with the tagline pinned above the strip', () => {
     mount();
+    openCourse();
     expect(container.querySelector('[role="tablist"]')).toBeTruthy();
     // Week 1 of the youth A.I. class is on the DEFAULT panel — no click needed.
     expect(container.textContent).toMatch(/Week 1 ·/);
@@ -48,6 +63,7 @@ describe('ChurchLearn — the course body behind section chips', () => {
 
   it('pins Your progress (the KPI strip) above the chips when a progress record exists', () => {
     mount({ toggleModule: () => {}, progress: {} });
+    openCourse();
     // Visible without clicking any chip — always-on KPI per the 2026-07-07 rule.
     expect(container.textContent).toMatch(/Your progress/);
     expect(container.querySelector('[role="progressbar"]')).toBeTruthy();
@@ -55,12 +71,14 @@ describe('ChurchLearn — the course body behind section chips', () => {
 
   it('the Join chip reveals the real interest CTA', () => {
     mount();
+    openCourse();
     clickTab('Join');
     expect(container.textContent).toMatch(/I want to join/);
   });
 
   it('the Paper & print chip reveals the export controls', () => {
     mount();
+    openCourse();
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Copy markdown/);
     expect(container.textContent).toMatch(/Download \.md/);
@@ -68,12 +86,18 @@ describe('ChurchLearn — the course body behind section chips', () => {
 
   it('Pace & depth only exists when the host wires pacing (no empty dead-end panel)', () => {
     mount();
+    openCourse();
     const labels = [...container.querySelectorAll('[role="tab"]')].map((b) => b.textContent || '');
     expect(labels.some((l) => l.includes('Pace & depth'))).toBe(false);
     // Re-mount WITH the age-band control — the chip appears and carries content.
     act(() => root.unmount());
     root = createRoot(container);
     mount({ setAgeBand: () => {}, ageBand: 'adult' });
+    // No openCourse() here on purpose: the first one above remembered the
+    // choice on this device (rememberCourseKey), so the re-mount opens
+    // straight into that course. That is the behaviour, and it means a reader
+    // meets the one list once, not on every visit.
+    expect(container.querySelector('[data-testid="course-choice-list"]')).toBe(null);
     clickTab('Pace & depth');
     expect(container.textContent).toMatch(/Who’s learning\?/);
   });

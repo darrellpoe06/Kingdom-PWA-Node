@@ -67,6 +67,18 @@ const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
   course: AI, extraCourses: [LIVING], ...props,
 })));
 
+// LEARN OPENS ON THE ONE LIST NOW (DR-1183). Darrell 2026-10-21: "It's like a
+// title page saying your inside living lessons... only have that sortable list
+// when it is chosen". No course is open until one is chosen, so a test about
+// what is INSIDE a course opens one first -- the same tap a reader makes.
+const openCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) throw new Error('the one list offered no course to open');
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+
 const buttons = () => Array.from(container.querySelectorAll('button'));
 // The per-lesson control is exactly "▶ Play"; the series control reads
 // "▶ Play the whole course overview …". Matched separately so a test about one can never be
@@ -82,11 +94,13 @@ describe('▶ Play is there for a member — not only the Governor', () => {
 
   it('plays the OVERVIEW too, not only single lessons', () => {
     mount();
+    openCourse('Living Lessons');
     expect(overviewButton(), 'the series overview needs its own play control').toBeTruthy();
   });
 
   it('says what play actually does — big type, or read to you', () => {
     mount();
+    openCourse('Living Lessons');
     expect(container.textContent).toMatch(/big full-screen view/i);
     expect(container.textContent).toMatch(/read it to you|Read aloud/i);
   });
@@ -115,6 +129,7 @@ describe('▶ Play is there for a member — not only the Governor', () => {
 
   it('is ALSO there for the Governor — ungating took nothing away', () => {
     mount({ isGovernor: true });
+    openCourse('Living Lessons');
     expect(playButtons().length).toBeGreaterThan(0);
     expect(overviewButton()).toBeTruthy();
   });
@@ -133,6 +148,10 @@ describe('which course am I in, and are there others', () => {
     // not the picker (a select showing the open course reads as a title for the
     // lessons under it, which is what hid the other courses in the first place).
     mount();
+    // The heading names what is OPEN, and nothing is open until it is chosen
+    // (DR-1183) -- so it says what the page is for until a course is picked.
+    expect(container.querySelector('#learn-h').textContent).toBe('Choose a course');
+    openCourse('Living Lessons');
     const heading = container.querySelector('#learn-h');
     expect(heading).toBeTruthy();
     expect(heading.textContent).toBe('Living Lessons from the Word');
@@ -177,13 +196,29 @@ describe('proven-to-catch (anti-theater)', () => {
     // This is the whole regression: if ▶ Play is ever re-wrapped in isGovernor,
     // this mount (no isGovernor prop) finds zero play buttons and fails.
     mount({ isGovernor: false });
+    openCourse('Living Lessons');
     expect(playButtons().length).toBeGreaterThan(0);
   });
 
-  it('CATCHES a default that quietly reverts to the A.I. course', () => {
+  it('CATCHES the A.I. course being presented as open on arrival', () => {
+    // RE-POINTED 2026-10-21 (DR-1183), and the reason is the feature moving,
+    // not the assertion being relaxed. This pinned "the heading on arrival
+    // reads Living Lessons, not Learning A.I." -- which was DR-0121-era right
+    // and is now the exact thing Darrell called a title page: nothing is open
+    // on arrival, so the heading names no course at all. What this still
+    // catches is the real regression underneath: a course rendering as THE
+    // OPEN ONE before anybody chose it. Both halves are asserted.
     mount();
     const heading = container.querySelector('#learn-h').textContent;
-    expect(heading).toMatch(/Living Lessons/);
+    expect(heading).toBe('Choose a course');
     expect(heading).not.toMatch(/Learning A\.I\./);
+    // And the list offers both as choices -- A.I. is a row, never the title.
+    const offered = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+      .map((b) => b.textContent || '');
+    expect(offered.some((t) => /Living Lessons/.test(t))).toBe(true);
+    expect(offered.some((t) => /Learning A\.I\./.test(t))).toBe(true);
+    // `defaultCourse` still decides the fallback when a DEPARTMENT tab opens
+    // with no chosen course; that path has no assertion here and is dated in
+    // DR-1183 (re-review 2026-10-28).
   });
 });

@@ -70,6 +70,17 @@ const isBefore = (a, b) =>
   !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 const picker = () => container.querySelector('#learn-course-pick');
+
+// LEARN OPENS ON THE ONE LIST NOW (DR-1183): no course is open until one is
+// chosen, so a test about a control that belongs to an open course opens one
+// first -- the same tap a reader makes.
+const openCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) throw new Error('the one list offered no course to open');
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
 // The department tabs are role="tab" nodes, not plain buttons -- selecting them
 // by tagName finds nothing and the assertion passes vacuously, which is how a
 // gate becomes theatre. Same selector the crosslisted-in-the-picker suite uses.
@@ -92,6 +103,11 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('comes before SHARE THIS COURSE (Darrell: "Share course is at the top not the course drop down")', () => {
     mount();
+    // Share this course belongs to an OPEN course, and nothing is open until
+    // one is chosen (DR-1183), so this opens one first -- the order it pins is
+    // between the picker and that control, not whether the control exists on
+    // arrival.
+    openCourse();
     const share = [...container.querySelectorAll('button')]
       .find((b) => /share this course/i.test(b.textContent || ''));
     expect(share, 'the share-course control must exist').toBeTruthy();

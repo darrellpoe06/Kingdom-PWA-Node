@@ -35,11 +35,28 @@ afterEach(() => {
   container.remove();
 });
 
-const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
+const render = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {}, recordProgress: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
   ...props,
 })));
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
+// 2026-10-21: "It's like a title page saying your inside living lessons...
+// only have that sortable list when it is chosen". Nothing is open on that
+// view until a course is chosen, and every case in this file is about what is
+// INSIDE an open course -- so `mount` makes the same tap a reader makes. A
+// DEPARTMENT tab still opens on its own first course (DR-0432/0433), so
+// clicking one after this behaves exactly as it did.
+const openFirstCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) return; // a department tab, or a course already remembered
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+// This file mounts without `extraCourses`, so the catalog is the host's own
+// courses; the first row of the one list is the course these cases are about.
+const mount = (props = {}) => { render(props); openFirstCourse(); };
 
 const isBefore = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 const picker = () => container.querySelector('#learn-course-pick');
