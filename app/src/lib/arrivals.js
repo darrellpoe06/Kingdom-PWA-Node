@@ -28,6 +28,12 @@
 //   review-queue     a member's lesson waits for the Governor (his queue only)
 //   feedback         a steward answered a note you sent: its triage status left
 //                    'new' (DR-0616)
+//   lesson-new       a lesson landed in the catalog (lesson-dates.json, which CI
+//                    re-derives from git on every merge). Darrell 2026-10-21: "The
+//                    arrivals popup for latest lessons don't keep up with the
+//                    lessons" -- every kind above needs a row of the person's own,
+//                    and the lessons built from his emailed requests (sov41-46,
+//                    pm13, car1-6) never had one, so they never rang.
 //
 // THE SEEN MARK is a set of arrival ids per account, kept in localStorage on
 // THIS DEVICE (said plainly: per device for this first cut; the Messages kind
@@ -38,15 +44,64 @@
 import { arrivalText } from './notify-readiness.js';
 import { buildStageTimes } from './lesson-pipeline.js';
 import { currentDoor, messageLandingHere } from './app-doors.js';
+import { lessonQuery } from './lesson-links.js';
 
-export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback']);
+export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
 
 /** The kinds a screen marks seen when it opens. One source for every screen. */
 export const SCREEN_KINDS = Object.freeze({
   'your-lessons': ['lesson-ready', 'lesson-review', 'lesson-published'],
   decide: ['review-queue'],
   feedback: ['feedback'],
+  learn: ['lesson-new'],
 });
+
+// ── new in the catalog ───────────────────────────────────────────────────────
+
+/** How far back a new device or account starts listing catalog lessons. */
+export const CATALOG_LOOKBACK_DAYS = 7;
+/** At most this many catalog lessons are listed at once, newest first. */
+export const CATALOG_MAX = 20;
+export const CATALOG_SINCE_PREFIX = 'poetech:arrivals-catalog-since:';
+
+const words = (slug) => String(slug || '').replace(/^[a-z]+\d+-/i, '').replace(/-/g, ' ').replace(/\bai\b/gi, 'A.I.').trim();
+const titleCase = (s) => s.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
+/**
+ * The day this account starts listing catalog lessons from, kept on this
+ * device: set once, CATALOG_LOOKBACK_DAYS before the first look, so a first
+ * open lists the last week rather than every lesson ever written.
+ */
+export function catalogSince(storage, uid, today = new Date()) {
+  const fallback = new Date(today.getTime() - CATALOG_LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
+  if (!storage || !uid) return fallback;
+  try {
+    const v = storage.getItem(`${CATALOG_SINCE_PREFIX}${uid}`);
+    if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    storage.setItem(`${CATALOG_SINCE_PREFIX}${uid}`, fallback);
+  } catch { /* a blocked store lists the last week every time */ }
+  return fallback;
+}
+
+/** One arrival per catalog lesson added on or after `since`, newest first, at most CATALOG_MAX. */
+export function catalogArrivals(lessons, { since = '' } = {}) {
+  const out = [];
+  for (const l of Array.isArray(lessons) ? lessons : []) {
+    if (!l || !l.courseKey || !l.lessonId || !l.day || (since && l.day < since)) continue;
+    out.push({
+      kind: 'lesson-new',
+      id: `lesson-new:${l.courseKey}/${l.lessonId}`,
+      at: `${l.day}T12:00:00.000Z`,
+      title: `New lesson: ${titleCase(words(l.lessonId))}`,
+      detail: titleCase(String(l.courseKey).replace(/-/g, ' ').replace(/\bai\b/gi, 'A.I.')),
+      screen: 'learn',
+      courseKey: l.courseKey,
+      lessonId: l.lessonId,
+    });
+    if (out.length >= CATALOG_MAX) break;
+  }
+  return out;
+}
 
 /** The in-page event the watcher raises on every change: { count, items, all }. */
 export const ARRIVALS_EVENT = 'poetech:arrivals';
@@ -162,8 +217,8 @@ export function messageArrival({ count = 0, newest = null } = {}) {
 }
 
 /** Every arrival, newest first. An item with no time sorts last, never first. */
-export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [] } = {}) {
-  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback];
+export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [], catalog = [] } = {}) {
+  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback, ...catalog];
   return all.sort((a, b) => {
     if (a.at && b.at) return a.at < b.at ? 1 : a.at > b.at ? -1 : 0;
     if (a.at) return -1;
@@ -253,6 +308,7 @@ export function arrivalLanding({ pathname = '', search = '', item } = {}) {
   const door = currentDoor(pathname, search).path;
   if (item.screen === 'your-lessons') return `${door}?view=create&panel=your-lessons`;
   if (item.screen === 'decide') return `${door}?view=create&panel=decide`;
+  if (item.screen === 'learn' && item.courseKey) return `${door}${lessonQuery({ courseKey: item.courseKey, lessonId: item.lessonId })}`;
   return null;
 }
 

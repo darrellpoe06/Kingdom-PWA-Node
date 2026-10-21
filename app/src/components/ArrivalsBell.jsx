@@ -46,6 +46,7 @@ export const KIND_WORDS = Object.freeze({
   'lesson-published': 'Lesson',
   'review-queue': 'To review',
   feedback: 'Feedback',
+  'lesson-new': 'New lesson',
 });
 
 /** The plural of each kind's word, for the breakdown. */
@@ -54,6 +55,7 @@ const KIND_PLURAL = Object.freeze({
   Lesson: 'lessons',
   'To review': 'to review',
   Feedback: 'feedback',
+  'New lesson': 'new lessons',
 });
 
 /** Once per app launch the dock instance opens the list on its own (DR-0741). */

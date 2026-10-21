@@ -341,4 +341,9 @@ export const LIVING_LESSONS_ADDED = {
   // spoken day, 2026-10-17, is carried in each lesson's prose and its record.
   'll254-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-18',
   'll255-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-18',
+  // L256 (DR-1150): Darrell's teaching of 2026-10-21 on the LORD's release,
+  // the neighbor, and the mixed multitude, carried the same session. Its id
+  // first lands in a commit of that day, so the commit day and the spoken day
+  // agree.
+  'll256-the-lords-release-is-for-a-neighbor-loving-a-mixed-multitude-the-way-he-means': '2026-10-21',
 };

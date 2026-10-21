@@ -401,6 +401,49 @@ def live_note(nbytes, delta_open=0, now=None):
         LIVE_STATS["samples"] = [(t, n) for (t, n) in LIVE_STATS["samples"] if t >= cutoff]
 
 
+# HOW EACH LIVE VIEW ENDED (DR-1097, sixteenth read; Darrell 2026-10-21:
+# "Cameras constantly blinking... only stream for a few to 20 seconds"). A tile
+# that blinks is a live view that ended and was opened again. Who ended it is the
+# whole question: go2rtc ("source-ended"), a source silent past the read timeout
+# ("source-silent"), the viewer's own tab ("viewer-left": the app hung up, e.g.
+# its freeze or lag rule), or the optional clock. The last LIVE_ENDS_KEEP ends
+# are kept in memory with the camera, seconds, bytes and why; nothing else.
+# The last time a live viewer of each camera (its twins counted as the camera)
+# was handed bytes, on the monotonic clock. A re-arm puts the camera's line
+# again in go2rtc, which ends every consumer: it is never done to a camera a
+# viewer is watching with video still arriving (DR-1097, sixteenth read: the
+# hold re-armed 805_north at 20:02:08 with Darrell's window open on it).
+LIVE_LAST_BYTES = {}
+VIEWER_FRESH_SECONDS = 5.0
+
+
+def viewer_flowing(sid, now=None):
+    t = LIVE_LAST_BYTES.get(base_of(sid))
+    return t is not None and (now if now is not None else time.monotonic()) - t <= VIEWER_FRESH_SECONDS
+
+
+LIVE_ENDS_KEEP = 80
+LIVE_ENDS = []
+LIVE_ENDS_LOCK = threading.Lock()
+
+
+def live_end_note(cam, seconds, nbytes, why, now=None):
+    with LIVE_ENDS_LOCK:
+        LIVE_ENDS.append({"camera": cam, "s": round(float(seconds), 1), "kb": int(nbytes) // 1024, "why": why,
+                          "at": int(now if now is not None else time.time())})
+        del LIVE_ENDS[:-LIVE_ENDS_KEEP]
+
+
+def live_ends_summary(allow=None):
+    """{ends: newest first, by_why: {why: count}} for the cameras `allow` admits."""
+    with LIVE_ENDS_LOCK:
+        rows = [dict(e) for e in LIVE_ENDS if allow is None or allow(e["camera"])]
+    by = {}
+    for e in rows:
+        by[e["why"]] = by.get(e["why"], 0) + 1
+    return {"ends": rows[::-1], "by_why": by}
+
+
 def live_snapshot(now=None):
     now = now if now is not None else time.monotonic()
     with LIVE_STATS_LOCK:
@@ -1600,6 +1643,78 @@ def bridge_kvs_signal(uri, api=None, auth=None, timeout=15.0):
     return {"result": scrub_text(doc.get("result") or "no result", 160)}
 
 
+# THE DIRECT ROAD (DR-1097, fifteenth read; Darrell 2026-10-21: "Do we have to
+# have the tellscale or nas way... why not another more permanent way"). The Wyze
+# app shows these cameras by opening Wyze's own WebRTC (Amazon Kinesis) session
+# from the phone: the video never crosses a NAS or a tunnel. The app can do the
+# same. The NAS keeps the Wyze account (email, password, API key) and asks the
+# bridge for ONE session's signaling, the same answer go2rtc's wyzeClient reads
+# (internal/webrtc/kinesis.go: ClientId, servers, signalingUrl), and hands the
+# signed-in viewer only that: a presigned wss:// URL to Amazon's signaling
+# service and the session's TURN servers, both short-lived and good for that
+# camera alone. The browser then does what kinesisClient does. The NAS road
+# stays for every camera not on Wyze's WebRTC road, for recordings, and as the
+# road a tile falls back to. Brakes: one offer per camera per DIRECT_MIN_SECONDS
+# (each is a Wyze API call through the bridge); stop-path CAMS_DIRECT=0.
+DIRECT_ON = os.environ.get("CAMS_DIRECT", "1") != "0"
+DIRECT_MIN_SECONDS = float(os.environ.get("CAMS_DIRECT_MIN_SECONDS", "3"))
+DIRECT_LAST = {}
+DIRECT_LOCK = threading.Lock()
+KVS_SIGNALING_HOST = re.compile(r"^[a-z0-9.-]+\.amazonaws\.com(\.cn)?$")
+
+
+def kvs_direct_session(uri, api=None, auth=None, timeout=15.0, opener=None):
+    """One Wyze WebRTC session's signaling for the browser -> (status, body).
+    Only an Amazon wss:// signaling URL and stun:/turn: servers are ever handed on;
+    the bridge's own sign-in and the Wyze account stay on the NAS."""
+    api = (api or BRIDGE_API).rstrip("/")
+    user, pw = auth if auth is not None else bridge_web_auth()
+    if not (user and pw):
+        return 503, {"error": "no-web-sign-in", "detail": "the bridge has no web sign-in kept"}
+    req = urllib.request.Request(api + "/signaling/%s?kvs" % urllib.parse.quote(str(uri), safe=""),
+                                 headers={"Authorization": "Basic " + base64.b64encode(("%s:%s" % (user, pw)).encode("utf-8")).decode("ascii")})
+    try:
+        with (opener or urllib.request.urlopen)(req, timeout=timeout) as r:
+            doc = json.loads(r.read(256 * 1024).decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return 502, {"error": "bridge-refused", "detail": "the bridge answered HTTP %d" % e.code}
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return 502, {"error": "bridge-unreachable", "detail": scrub_text(getattr(e, "reason", e), 120)}
+    if not isinstance(doc, dict) or doc.get("result") != "ok":
+        word = scrub_text((doc.get("result") if isinstance(doc, dict) else None) or "no result", 160)
+        return 502, {"error": "wyze-refused", "detail": "Wyze offered no WebRTC session: %s" % word}
+    url = doc.get("signalingUrl")
+    try:
+        u = urllib.parse.urlsplit(url if isinstance(url, str) else "")
+    except ValueError:
+        u = None
+    if not u or u.scheme != "wss" or not KVS_SIGNALING_HOST.match((u.hostname or "").lower()):
+        return 502, {"error": "bad-signaling", "detail": "the session named no Amazon signaling address"}
+    servers = []
+    raw = doc.get("servers")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            raw = None
+    for sv in raw if isinstance(raw, list) else []:
+        if not isinstance(sv, dict):
+            continue
+        urls = sv.get("urls") if sv.get("urls") is not None else sv.get("url")
+        urls = [urls] if isinstance(urls, str) else [x for x in (urls or []) if isinstance(x, str)]
+        urls = [x for x in urls if re.match(r"^(stun|turns?):", x)]
+        if not urls:
+            continue
+        one = {"urls": urls}
+        if isinstance(sv.get("username"), str):
+            one["username"] = sv["username"]
+        if isinstance(sv.get("credential"), str):
+            one["credential"] = sv["credential"]
+        servers.append(one)
+    client = doc.get("ClientId")
+    return 200, {"signaling_url": url, "ice_servers": servers, "client_id": client if isinstance(client, str) else ""}
+
+
 KVS_PROBE_SECONDS = float(os.environ.get("CAMS_KVS_PROBE_SECONDS", "30"))
 KVS_PROBE_BYTES = int(os.environ.get("CAMS_KVS_PROBE_BYTES", "16384"))
 
@@ -2514,8 +2629,10 @@ class KvsHold:
     injectable, so it is proven in plain Python."""
 
     def __init__(self, clock=time.time, opener=None, rearm=None, spawn=None, sleep=None, log=print,
-                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None):
+                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None, held_min=None, fresh=None,
+                 watched=None):
         self.clock = clock
+        self.watched = watched or viewer_flowing
         self.opener = opener or urllib.request.urlopen
         self.rearm = rearm or kvs_rearm
         self.spawn = spawn or (lambda fn, name: threading.Thread(target=fn, name=name, daemon=True).start())
@@ -2579,7 +2696,12 @@ class KvsHold:
                     # next viewer gets a fresh offer, never the hung one.
                     self._note(sid, state="unanswered")
                     now = self.clock()
-                    if now - self.last_rearm.get(sid, -1e18) >= self.gap:
+                    if self.watched(sid):
+                        # A viewer is getting video from this camera right now:
+                        # the hold's own dial is what failed, not the camera.
+                        with self.lock:
+                            self.counts["spared"] = self.counts.get("spared", 0) + 1
+                    elif now - self.last_rearm.get(sid, -1e18) >= self.gap:
                         self.last_rearm[sid] = now
                         if self.rearm(upstream, sid, config_path):
                             with self.lock:
@@ -3417,12 +3539,12 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if rec is None:
                     return self._json(404, {"error": "not-found"})
                 return self._json(200, {"ok": True, "grant": grant_public(gm.group(1), rec)})
-            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants", "/streams", "/setup/ring") and not re.match(r"^/streams/[^/]+/road$", path):
+            if path not in ("/ticket", "/direct", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants", "/streams", "/setup/ring") and not re.match(r"^/streams/[^/]+/road$", path):
                 return self._json(404, {"error": "not-found"})
             # The owner's roads (the family bearer) and the roads a grant may
             # also take (/ticket for its cameras, /action when it includes the
             # doors). Everything that changes the NAS stays the owner's.
-            if path in ("/ticket", "/action"):
+            if path in ("/ticket", "/action", "/direct"):
                 if not self._viewer():
                     return self._json(401, {"error": "unauthorized"})
             elif not self._authed():
@@ -3461,6 +3583,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._json(400, {"error": "bad-camera-id"})
             if not self._may_see(cam):
                 return self._json(403, {"error": "not-your-camera"})
+            if path == "/direct":
+                return self._direct(cam)
             # A recorded clip plays for minutes and the player fetches it in
             # Range pieces, each checked against the ticket: a 90 s ticket
             # would cut playback off. `ttl` may ask for up to TICKET_TTL_MAX.
@@ -4015,6 +4139,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             if not who:
                 return self._json(401, {"error": "unauthorized"})
             out = stream_health.summary()
+            out["live_ends"] = live_ends_summary(None if who[0] != "grant" else (lambda c, g=who[1]: grant_allows(g, c)))
             if who[0] == "grant":
                 g = who[1]
                 out["cameras"] = dict((k, v) for k, v in out["cameras"].items() if grant_allows(g, k))
@@ -4187,6 +4312,34 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             (DR-1097, thirteenth and fifteenth reads)."""
             return base_of(cam) in kvs_road_ids() and base_of(cam) in (wyze_offline_streams(fetch=False, factory=wyze_factory) or ())
 
+        def _direct(self, cam):
+            """POST /direct {camera}: one Wyze WebRTC session for this viewer's
+            browser (THE DIRECT ROAD above). 404 no-direct for a camera that is
+            not on Wyze's WebRTC road: the tile keeps the NAS road for it."""
+            base = base_of(cam)
+            if not DIRECT_ON:
+                return self._json(404, {"error": "no-direct", "detail": "the direct road is switched off on the NAS"})
+            if base not in kvs_road_ids():
+                return self._json(404, {"error": "no-direct", "detail": "this camera is not on Wyze's WebRTC road"})
+            if self._wyze_offline_kvs(base):
+                return self._json(503, WYZE_OFFLINE_ANSWER)
+            rec = roads_load().get(base)
+            uri = main_uri(rec.get("uri")) if isinstance(rec, dict) and rec.get("uri") else ""
+            if not uri:
+                cur = current_source(upstream, base)
+                uri = main_uri(kvs_uri_of(cur)) if cur and is_kvs_source(cur) else ""
+            if not uri:
+                return self._json(404, {"error": "no-direct", "detail": "the bridge's name for this camera is not known"})
+            with DIRECT_LOCK:
+                since = time.monotonic() - DIRECT_LAST.get(base, -1e9)
+                if since < DIRECT_MIN_SECONDS:
+                    return self._json(429, {"error": "too-soon", "retry_in": int(DIRECT_MIN_SECONDS - since) + 1})
+                DIRECT_LAST[base] = time.monotonic()
+            status, body = kvs_direct_session(uri)
+            if status == 200:
+                body["camera"] = base
+            return self._json(status, body)
+
         def _live_mp4(self, cam):
             if self._wyze_offline_kvs(cam):
                 return self._json(503, WYZE_OFFLINE_ANSWER)
@@ -4224,6 +4377,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     self.end_headers()
                     self.close_connection = True
                     started = time.monotonic()
+                    sent, why = 0, "viewer-left"
                     # read1(): hand on whatever bytes have ARRIVED instead of
                     # blocking until 64 KB fill -- a slow camera at 11 bytes per
                     # 10 ms would otherwise hold the brake check hostage until the
@@ -4233,16 +4387,25 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     try:
                         while True:
                             if live_max_seconds > 0 and time.monotonic() - started >= live_max_seconds:
+                                why = "clock"
                                 break  # the optional clock: a live view ends itself; the app re-opens
-                            chunk = read(CHUNK)
+                            try:
+                                chunk = read(CHUNK)
+                            except (socket.timeout, OSError):
+                                why = "source-silent"
+                                break
                             if not chunk:
+                                why = "source-ended"
                                 break
                             self.wfile.write(chunk)
+                            sent += len(chunk)
+                            LIVE_LAST_BYTES[base_of(cam)] = time.monotonic()
                             live_note(len(chunk))
                     except (BrokenPipeError, ConnectionResetError, OSError):
-                        pass  # the viewer left, or the source went silent past the timeout
+                        why = "viewer-left"  # the write failed: the tab hung up
                     finally:
                         live_note(0, delta_open=-1)
+                        live_end_note(cam, time.monotonic() - started, sent, why)
             finally:
                 live_gate.release()
 
@@ -5279,6 +5442,17 @@ def _selftest():
     health_log.observe({"front_yard": cam(1000, 1), "garage": cam(10, 0, medias=("video, recvonly, H264",))}, t=clock["now"] + 15)
     s, _h, d = call("GET", "/streams/health", auth=B)
     j = json.loads(d.decode("utf-8"))
+    le = j.get("live_ends") or {}
+    check(le.get("by_why", {}).get("clock") == 2 and all(e["why"] in ("clock", "source-ended", "source-silent", "viewer-left") and e["camera"] for e in le.get("ends", [])),
+          "PROVEN TO CATCH: every live view's end is kept with who ended it (the 1 s clock ended two of them here) -- a blinking tile says which side hung up (%r)" % (le.get("by_why"),))
+    saved_ends = list(LIVE_ENDS)
+    del LIVE_ENDS[:]
+    for k in range(LIVE_ENDS_KEEP + 5):
+        live_end_note("cam_%d" % k, 12.34, 4096, "source-ended", now=1000 + k)
+    sm = live_ends_summary(allow=lambda c: c != "cam_84")
+    check(len(LIVE_ENDS) == LIVE_ENDS_KEEP and sm["ends"][0]["camera"] == "cam_83" and sm["ends"][0]["s"] == 12.3 and sm["ends"][0]["kb"] == 4 and sm["by_why"] == {"source-ended": LIVE_ENDS_KEEP - 1},
+          "only the last %d ends are kept, newest first, and a grant sees only its own cameras" % LIVE_ENDS_KEEP)
+    LIVE_ENDS[:] = saved_ends
     check(s == 200 and j["cameras"]["front_yard"]["drops_1h"] == 1 and j["cameras"]["front_yard"]["hevc_only"] is True and j["cameras"]["garage"]["drops_1h"] == 0 and j["events"][0]["camera"] == "front_yard" and j["interval_s"] == 15, "GET /streams/health: every camera's log and the drop events, from the sampler the handler holds")
     seen["with_twin"] = True
     s, _h, d = call("GET", "/list", auth=B)
@@ -5318,7 +5492,7 @@ def _selftest():
 
 
     print("=== 8n. the Wyze bridge road (DR-0809): a camera the NAS cannot reach, or without DTLS, rides the bridge; the owner can force a road ===")
-    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON, KVS_HOLD
+    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE, ADD_MISSING_ON, KVS_HOLD, DIRECT_ON, kvs_direct_session
     br_tmp = tempfile.mkdtemp(prefix="cams-bridge-")
     br_wyze_env = os.path.join(br_tmp, "wyze.env")
     br_env = os.path.join(br_tmp, "wyze-bridge.env")
@@ -5888,6 +6062,21 @@ def _selftest():
     script[:] = ["hang", "hang", "hang"]
     pending[1]()
     check(rearmed == ["a_cam", "b_cam", "b_cam"] and not script, "three unanswered offers in 60 s re-arm twice, never closer than KVS_REARM_GAP (%r)" % rearmed)
+    # DR-1097 sixteenth read: the hold re-armed 805_north at 20:02:08 while a window was watching it.
+    pend_w = []
+    spare = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda up, s_, cp: (rearmed.append(s_), True)[1],
+                    spawn=lambda fn, name: pend_w.append(fn), sleep=lambda w: clk.__setitem__(0, clk[0] + w),
+                    log=quiet, max_holds=2, hold=60, life=600, dial=20, gap=30, redial=5, watched=lambda sid: sid == "w_cam")
+    n_re = len(rearmed)
+    spare.touch(kup, "w_cam")
+    script[:] = ["hang", "hang"]
+    pend_w[0]()
+    check(len(rearmed) == n_re and spare.counts.get("spared", 0) >= 2,
+          "PROVEN TO CATCH: a camera a viewer is getting video from is never re-armed when the hold's own dial comes back empty (the re-arm ends every viewer) (%r)" % (spare.counts,))
+    LIVE_LAST_BYTES["fresh_cam"] = time.monotonic()
+    check(viewer_flowing("fresh_cam_sd") and not viewer_flowing("other_cam") and not viewer_flowing("fresh_cam", now=time.monotonic() + VIEWER_FRESH_SECONDS + 1),
+          "a twin's viewer counts for its camera; a viewer silent past VIEWER_FRESH_SECONDS does not")
+    LIVE_LAST_BYTES.pop("fresh_cam", None)
     slept[:] = []
     reads["n"] = 0
     pending[:] = []
@@ -6137,6 +6326,38 @@ def _selftest():
         KVS_HOLD = StubHold(True)
         s, _h, d = call("GET", "/live/front_yard_sd.mp4?t=" + urllib.parse.quote(tsd))
         check(s == 200 and sd_asks() == a0 + 1, "once the camera's held session carries video, the twin is asked and served (%d, %d asks)" % (s, sd_asks() - a0))
+        # THE DIRECT ROAD (DR-1097, sixteenth read): the viewer's browser is handed one
+        # Wyze WebRTC session's signaling; the Wyze account never leaves the NAS.
+        saved_direct = kvs_direct_session
+        asked_direct = []
+        kvs_direct_session = lambda uri, **kw: (asked_direct.append(uri), (200, {"signaling_url": "wss://v-1.kinesisvideo.us-west-2.amazonaws.com/?X-Amz-Signature=s", "ice_servers": [], "client_id": "c1"}))[1]  # noqa: E731
+        try:
+            DIRECT_LAST.clear()
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}', auth=B)
+            check(s == 404 and b"no-direct" in d and asked_direct == [], "a Kinesis camera whose bridge name the NAS does not know is 404 no-direct: the tile keeps the NAS road (%d %r)" % (s, d[:90]))
+            roads_save({"front_yard": {"road": "kvs", "uri": "front-yard-sub"}}, roads7)
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}', auth=B)
+            j = json.loads(d.decode("utf-8")) if s == 200 else {}
+            check(s == 200 and asked_direct == ["front-yard"] and j.get("camera") == "front_yard" and j.get("signaling_url", "").startswith("wss://") and j.get("client_id") == "c1",
+                  "PROVEN TO CATCH: POST /direct for a Kinesis camera hands the viewer one session's signaling, asked of the bridge by the camera's MAIN name (%d %r %r)" % (s, asked_direct, d[:80]))
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}', auth=B)
+            check(s == 429 and b"too-soon" in d and asked_direct == ["front-yard"], "a second ask for the same camera inside DIRECT_MIN_SECONDS is 429 too-soon and costs Wyze nothing (%d)" % s)
+            DIRECT_LAST.clear()
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}')
+            check(s == 401 and len(asked_direct) == 1, "no key, no session (%d)" % s)
+            s, _h, d = call("POST", "/direct", b'{"camera":"garage"}', auth=B)
+            check(s == 404 and b"not on Wyze" in d and len(asked_direct) == 1, "a camera not on Wyze's WebRTC road is 404 no-direct (%d %r)" % (s, d[:80]))
+            cloud_rl["offline"] = {"FY1"}
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}', auth=B)
+            check(s == 503 and b"wyze-offline" in d and len(asked_direct) == 1, "PROVEN TO CATCH: a camera Wyze calls offline gets no session: no Wyze call is spent on it (%d)" % s)
+            cloud_rl["offline"] = set()
+            DIRECT_ON = False
+            s, _h, d = call("POST", "/direct", b'{"camera":"front_yard"}', auth=B)
+            check(s == 404 and b"switched off" in d and len(asked_direct) == 1, "CAMS_DIRECT=0 is the stop-path: every camera keeps the NAS road (%d)" % s)
+        finally:
+            DIRECT_ON = True
+            kvs_direct_session = saved_direct
+            DIRECT_LAST.clear()
     finally:
         cloud_rl["offline"] = set()
         KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
@@ -6220,6 +6441,38 @@ def _selftest():
     check(judge_candidates(jt_streams, {}, health=NoHealth(), now=1e9, offline={"off_cam"}) == ["on_cam"],
           "PROVEN TO CATCH: the road judge never dials a camera Wyze's own list calls offline (each such dial was an offer nobody could answer)")
     check(sorted(judge_candidates(jt_streams, {}, health=NoHealth(), now=1e9, offline=None)) == ["off_cam", "on_cam"], "with no Wyze list, nothing is skipped (unknown is not offline)")
+
+    print("=== 8v. the direct road hands the browser only a session's signaling (DR-1097, sixteenth read) ===")
+    import io as _io8v
+
+    class SigOpener:
+        def __init__(self, doc=None, code=200):
+            self.doc, self.code, self.reqs = doc, code, []
+
+        def __call__(self, req, timeout=None):
+            self.reqs.append(req)
+            if self.code != 200:
+                raise urllib.error.HTTPError(req.full_url, self.code, "no", {}, _io8v.BytesIO(b""))
+            return _io8v.BytesIO(json.dumps(self.doc).encode("utf-8"))
+    sig_ok = {"result": "ok", "cam": "porch-east", "ClientId": "viewer-7", "signalingUrl": "wss://v-1a2b.kinesisvideo.us-east-1.amazonaws.com/?X-Amz-ChannelARN=x&X-Amz-Signature=sig",
+              "servers": [{"urls": ["turn:1.2.3.4:443?transport=udp", "javascript:alert(1)"], "username": "u1", "credential": "c1"}, {"urls": "stun:stun.kinesisvideo.us-east-1.amazonaws.com:443"}, {"urls": ["http://x"]}, "junk"]}
+    op = SigOpener(sig_ok)
+    st_, body = kvs_direct_session("porch-east", api="http://127.0.0.1:8597", auth=("poetech", "pw"), opener=op)
+    check(st_ == 200 and body["signaling_url"] == sig_ok["signalingUrl"] and body["client_id"] == "viewer-7"
+          and body["ice_servers"] == [{"urls": ["turn:1.2.3.4:443?transport=udp"], "username": "u1", "credential": "c1"}, {"urls": ["stun:stun.kinesisvideo.us-east-1.amazonaws.com:443"]}]
+          and op.reqs[0].full_url == "http://127.0.0.1:8597/signaling/porch-east?kvs" and set(body) == {"signaling_url", "ice_servers", "client_id"},
+          "PROVEN TO CATCH: one session's Amazon wss URL, its stun:/turn: servers and its client id, nothing else (no other scheme, no bridge field) (%r)" % (body,))
+    check("pw" not in json.dumps(body) and "poetech" not in json.dumps(body), "the bridge's own sign-in never rides the answer")
+    bad = dict(sig_ok, signalingUrl="wss://evil.example.com/?X-Amz-Signature=sig")
+    check(kvs_direct_session("porch-east", api="http://b", auth=("u", "p"), opener=SigOpener(bad))[1].get("error") == "bad-signaling",
+          "PROVEN TO CATCH: a signaling address not on amazonaws.com is never handed to a browser")
+    check(kvs_direct_session("porch-east", api="http://b", auth=("u", "p"), opener=SigOpener(dict(sig_ok, signalingUrl="https://v.kinesisvideo.us-east-1.amazonaws.com/")))[1].get("error") == "bad-signaling", "...nor one that is not wss://")
+    st_, body = kvs_direct_session("porch-east", api="http://b", auth=("u", "p"), opener=SigOpener({"result": "cam not found"}))
+    check(st_ == 502 and body["error"] == "wyze-refused" and "cam not found" in body["detail"], "Wyze's own refusal is passed on in its words (%r)" % (body,))
+    check(kvs_direct_session("porch-east", api="http://b", auth=("u", "p"), opener=SigOpener(code=401)) == (502, {"error": "bridge-refused", "detail": "the bridge answered HTTP 401"}), "a bridge that refuses its sign-in is 502 bridge-refused")
+    check(kvs_direct_session("porch-east", api="http://b", auth=("", ""), opener=SigOpener(sig_ok))[0] == 503, "no kept web sign-in -> 503, nothing asked")
+    st_, body = kvs_direct_session("porch-east", api="http://b", auth=("u", "p"), opener=SigOpener(dict(sig_ok, servers=json.dumps(sig_ok["servers"][:2]))))
+    check(st_ == 200 and len(body["ice_servers"]) == 2, "servers the bridge hands as a JSON string are read the same")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

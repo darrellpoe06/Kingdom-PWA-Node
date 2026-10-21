@@ -32,6 +32,7 @@ import { TabScroll, NavControls } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import { BrandLockup } from './TextSizeControl.jsx';
 import OpenerButton from './OpenerButton.jsx';
+import GarageHeaderButton from './GarageHeaderButton.jsx';
 
 // The one tab, when the list holds exactly one (separators excluded); else null.
 export function loneTab(children) {
@@ -108,6 +109,11 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
                 client-side check to be kept out. The shell is frozen
                 (DR-0078), so the row mounts it rather than being handed it. */}
             <OpenerButton />
+            {/* THE WYZE GARAGE, TOO (Darrell 2026-10-21: "Garage door openers are
+                supposed to be on the main page in the header... without needing
+                to open the cameras tab"). The door the Cameras tab moves, held
+                here; nothing is drawn without a camera key and a door. */}
+            <GarageHeaderButton />
             {chevron}
           </div>
         </nav>
@@ -148,6 +154,7 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
           </a>
         ) : null}
         <OpenerButton />
+        <GarageHeaderButton />
         {chevron}
       </div>
     </nav>

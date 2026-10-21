@@ -9,6 +9,8 @@
 // See README.md for the layout and the honest status.
 // =============================================================================
 export { default as PropertiesApp } from './PropertiesApp.jsx';
+// PoeTech's Properties tab: the tenants' front door, then the backend (Edit).
+export { default as PropertiesTab } from './PropertiesTab.jsx';
 export {
   PROPERTY_ROLES, ROLE_CEILING, ALL_CAPABILITIES, CAPABILITY_LABELS, FACE_LABELS,
   DOC_OUTCOMES, DOC_FOLLOWUPS, FOLLOWUP_LABELS,

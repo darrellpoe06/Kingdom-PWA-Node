@@ -32,7 +32,7 @@ concurrency:
 jobs:
   diag:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check secrets (no-op with instructions when absent)
         id: gate
@@ -225,6 +225,18 @@ jobs:
               print("%-34s %-8s %-16s stream=%s" % (str(x.get("nickname"))[:34], "online" if x.get("online") else "OFFLINE", str(x.get("model"))[:16], x.get("stream")))
           print("Wyze says: %d online, %d offline, of %d cameras" % (on, len(devs)-on, len(devs)))
           ' 2>&1 | scrub; else echo "(token file unreadable by this user)"; fi
+          echo "=== how each live view ended, newest first (DR-1097 sixteenth read: who hangs up a blinking tile) ==="
+          if [ -n "$WTOK" ]; then curl -s -m 25 -H "Authorization: Bearer $WTOK" http://127.0.0.1:8773/streams/health | python3 -c '
+          import json,sys,time
+          try: d=json.load(sys.stdin)
+          except Exception as e: print("(stream health unreadable: %s)" % e); sys.exit(0)
+          le=d.get("live_ends") if isinstance(d,dict) else None
+          if not isinstance(le,dict): print("(this forwarder does not keep live ends yet)"); sys.exit(0)
+          print("by who ended it: %s" % (", ".join("%s=%d" % kv for kv in sorted(le.get("by_why",{}).items())) or "none yet"))
+          now=time.time()
+          for e in le.get("ends",[])[:40]:
+              print("  %5ds ago  %-34s %6.1f s %7d KB  %s" % (now-e.get("at",now), str(e.get("camera"))[:34], e.get("s",0), e.get("kb",0), e.get("why")))
+          ' 2>&1 | scrub; fi
           echo "=== Kinesis offers Wyze never answered (go2rtc gives up when Amazon closes the idle socket, 10 min later) ==="
           curl -s -m 10 "http://127.0.0.1:1984/api/log" | grep -c 'close 1001 (going away)' || true
           echo "=== forwarder journal (last 40 lines) ==="
@@ -259,16 +271,90 @@ jobs:
           except Exception: print("")')"
                 if [ -z "$TK" ]; then echo "  ticket: none issued"; continue; fi
                 echo "  ticket: issued (never printed)"
-                curl -s -m 25 -o /tmp/tab.mp4 -D /tmp/tab.mh -w '  live .mp4 for 25 s: HTTP %{http_code}, first byte at %{time_starttransfer}s, %{size_download} bytes\n' \
-                  -H 'Origin: https://poetech.us' "$ROAD/live/$CAMERA.mp4?t=$TK" || true
-                grep -i -E '^(content-type|access-control-allow-origin):' /tmp/tab.mh 2>/dev/null | sed 's/^/    /' | tr -d '\r'
-                python3 - /tmp/tab.mp4 <<'PYC'
-          import sys
-          b = open(sys.argv[1], "rb").read(512 * 1024) if sys.argv[1] else b""
-          boxes = [k for k in (b"ftyp", b"moov", b"moof", b"mdat", b"avc1", b"avc3", b"hvc1", b"hev1", b"mp4a", b"opus") if k in b]
-          print("    codec boxes in the first %d bytes: %s" % (len(b), ", ".join(x.decode() for x in boxes) or "none"))
-          PYC
-                rm -f /tmp/tab.jpg /tmp/tab.h /tmp/tab.mp4 /tmp/tab.mh
+                # DR-1097 sixteenth read (Darrell: "only stream for a few to 20
+                # seconds and blinks"): 90 s of the live MP4 with a timeline, so a
+                # stream the NAS ends is told apart from one the tab hangs up.
+                # Bytes per 5 s, the longest silence between chunks, and when and
+                # how the stream ended. Nothing but sizes and times is printed.
+                { curl -sN -m 90 -D /tmp/tab.mh -H 'Origin: https://poetech.us' "$ROAD/live/$CAMERA.mp4?t=$TK"; echo "$?" > /tmp/tab.rc; } | python3 -c '
+          import sys, time
+          t0 = time.time(); first = None; last = t0; gap = 0.0; gap_at = 0.0; total = 0; buckets = {}; head = b""
+          buf = b""; scale = 0; frags = []
+          def walk(b, path):
+              i = 0
+              while i + 8 <= len(b):
+                  n = int.from_bytes(b[i:i+4], "big"); k = b[i+4:i+8]
+                  if n < 8:
+                      return None
+                  if k == path[0]:
+                      return b[i+8:i+n] if len(path) == 1 else walk(b[i+8:i+n], path[1:])
+                  i += n
+              return None
+          def mdhd_scale(moov):
+              m = walk(moov, [b"trak", b"mdia", b"mdhd"])
+              if not m:
+                  return 0
+              return int.from_bytes(m[20:24] if m[0] == 1 else m[12:16], "big")
+          def tfdt_of(moof):
+              t = walk(moof, [b"traf", b"tfdt"])
+              if not t:
+                  return None
+              return int.from_bytes(t[4:12] if t[0] == 1 else t[4:8], "big")
+          def sync_of(moof):
+              t = walk(moof, [b"traf", b"trun"])
+              return t is not None
+          src = sys.stdin.buffer
+          while True:
+              c = src.read1(65536)
+              now = time.time()
+              if not c:
+                  break
+              if first is None:
+                  first = now - t0
+              if now - last > gap:
+                  gap, gap_at = now - last, last - t0
+              last = now; total += len(c)
+              k = int((now - t0) // 5) * 5
+              buckets[k] = buckets.get(k, 0) + len(c)
+              if len(head) < 512 * 1024:
+                  head += c[: 512 * 1024 - len(head)]
+              buf += c
+              while len(buf) >= 8:
+                  n = int.from_bytes(buf[0:4], "big"); kind = buf[4:8]
+                  if n < 8 or len(buf) < n:
+                      break
+                  box = buf[8:n]; buf = buf[n:]
+                  if kind == b"moov":
+                      scale = mdhd_scale(box) or scale
+                  elif kind == b"moof":
+                      d = tfdt_of(box)
+                      if d is not None and scale:
+                          frags.append((now - t0, d / float(scale), sync_of(box)))
+          end = time.time() - t0
+          print("  live .mp4 for up to 90 s: first byte at %s, %d bytes, ended at %.1f s" % ("%.2f s" % first if first is not None else "never", total, end))
+          print("    bytes per 5 s: " + " ".join("%d:%dK" % (k, v // 1024) for k, v in sorted(buckets.items())))
+          print("    longest silence between chunks: %.1f s, starting at %.1f s" % (gap, gap_at))
+          # The stream own clock against the wall: a media clock that runs ahead
+          # of or behind the real one makes the tab lag and freeze rules hang up a
+          # stream that is still flowing (DR-1097 sixteenth read).
+          if len(frags) >= 2:
+              w0, m0, _x = frags[0]
+              marks = [f for f in frags if f[0] - w0 >= 0]
+              step = max(1, len(marks) // 9)
+              print("    fragments: %d; wall s -> media s (from the first fragment): %s" % (len(frags), " ".join("%.0f->%.1f" % (w - w0, m - m0) for (w, m, _x) in marks[::step])))
+              wl, ml, _x = frags[-1]
+              if wl - w0 > 0:
+                  print("    media clock runs at %.3f x the wall clock over %.0f s (1.000 = real time); lead at the end %+.1f s" % ((ml - m0) / (wl - w0), wl - w0, (ml - m0) - (wl - w0)))
+              durs = [b[1] - a[1] for a, b in zip(frags, frags[1:])]
+              print("    fragment media length: min %.2f s, max %.2f s" % (min(durs), max(durs)))
+          else:
+              print("    fragments: %d (no media clock read)" % len(frags))
+          boxes = [k for k in (b"ftyp", b"moov", b"moof", b"mdat", b"avc1", b"avc3", b"hvc1", b"hev1", b"mp4a", b"opus") if k in head]
+          print("    codec boxes in the first %d bytes: %s" % (len(head), ", ".join(x.decode() for x in boxes) or "none"))
+          '
+                echo "    curl exit $(cat /tmp/tab.rc 2>/dev/null) (0 = the NAS ended the stream; 28 = still flowing at 90 s)"
+                grep -i -E '^(HTTP/|content-type|access-control-allow-origin|x-live-max-seconds):' /tmp/tab.mh 2>/dev/null | sed 's/^/    /' | tr -d '\r'
+                rm -f /tmp/tab.jpg /tmp/tab.h /tmp/tab.mh /tmp/tab.rc
               done
             fi
             echo "=== docker logs poetech-wyze-bridge AFTER the probes (last 30 lines, scrubbed): the bridge's reaction to $CAMERA ==="

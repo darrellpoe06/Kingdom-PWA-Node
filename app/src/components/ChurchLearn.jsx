@@ -65,6 +65,7 @@ import { usePrinting } from '../lib/use-printing.js';
 import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 // DR-0698: every share carries a token, and the record says whether the link worked.
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
@@ -127,6 +128,9 @@ import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
 import { withLessonDates } from '../lib/lesson-dates.js';
+import { courseCompleteness, completenessLine } from '../lib/lesson-completeness.js';
+import { withWordQuotes } from '../lib/lesson-word-quotes.js';
+import { withSideStories } from '../lib/lesson-side-stories.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -4010,6 +4014,9 @@ export default function ChurchLearn({
   const deepLink = useState(() => parseLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   ))[0];
+  // Opening Learn is looking at what is new in the catalog: the bell's
+  // "New lesson" arrivals are seen (lib/arrivals.js lesson-new, 2026-10-21).
+  React.useEffect(() => { markArrivalsSeen(SCREEN_KINDS.learn); }, []);
   // WHICH COURSE — a CHOICE, remembered, never a heading. Darrell 2026-09-06,
   // on the picker reading like a titled section over one course's lessons:
   // "have the default say Select a Course of 23? Then leave it on the last
@@ -4139,7 +4146,10 @@ export default function ChurchLearn({
   // Darrell and the Governor, or, in the 'nas' mode, a newer public copy). A
   // NAS that is down changes nothing on screen (DR-0107).
   // Every lesson carries the day it was created (DR-0687, lib/lesson-dates.js).
-  const courses = withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]));
+  // THE VERSES INSIDE THE LESSON (2026-10-21, lib/lesson-word-quotes.js): a
+  // lesson that names its Scripture opens with it, quoted from the in-app KJV.
+  // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
+  const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
@@ -4712,6 +4722,43 @@ export default function ChurchLearn({
               data-testid="course-lessons-first"
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
+              {/* WHAT THIS COURSE OFFERS, BEFORE ITS LIST (Darrell 2026-10-21:
+                  "It's very confusing to find courses and lessons of those
+                  specific courses... I should just see a list I can sort under
+                  each chosen course... what that course offers should be
+                  obvious"). The course's own promise, who it is for, its
+                  format and the parts it covers used to sit BELOW this list,
+                  inside the course view, so the reader met forty-six titles
+                  before learning what the course was. Now they come first,
+                  and each part is a tap that narrows the list to it. */}
+              <div className="mb-3" data-testid="course-offers">
+                <h3 className="text-base sm:text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{active.meta.title}</h3>
+                {active.meta.tagline ? <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="course-offers-tagline">{active.meta.tagline}</p> : null}
+                <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {active.meta.audience ? `For ${active.meta.audience}. ` : ''}{active.meta.format ? `${active.meta.format}. ` : ''}{lessonCountLabel(schedule, U)}.
+                </p>
+                {/* IS EVERY LESSON WHAT IT SHOULD BE, COUNTED HERE (Darrell
+                    2026-10-21: "make sure all lessons are what they should be...
+                    Inside each lesson"). Two stories and the verses quoted
+                    inside, measured from this course's own lessons
+                    (lib/lesson-completeness.js), so a gap shows where it is
+                    read and closes as it is filled. */}
+                {(() => { const line = completenessLine(courseCompleteness({ key: active.key, meta: active.meta, schedule })); return line ? <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" data-testid="course-offers-completeness">{line}</p> : null; })()}
+                {sections && sections.length > 1 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2" role="group" aria-label="What this course covers; tap a part to show only its lessons" data-testid="course-offers-parts">
+                    {[{ key: 'all', label: `All ${U.noun}s`, n: schedule.length }, ...sections.map((sec) => ({ key: sec.key, label: sec.label, n: sec.lessons.length }))].map((part) => (
+                      <button
+                        key={part.key}
+                        type="button"
+                        aria-pressed={shelf === part.key}
+                        onClick={() => setLessonShelfPick({ courseKey: active.key, shelf: part.key })}
+                        data-testid={`course-offers-part-${part.key}`}
+                        className={`text-xs px-2.5 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${shelf === part.key ? 'bg-[#2F5D50] border-[#2F5D50] text-white' : 'bg-white border-[#E8E4DC] text-[#1A1815]'}`}
+                      >{part.label} · {part.n}</button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
                 {active.meta.title} · pick a {U.noun} by title · <span data-testid="course-lesson-count">{lessonCountLabel(schedule, U)}</span>
               </div>
@@ -4774,7 +4821,7 @@ export default function ChurchLearn({
                   {sections && (
                     <div className="min-w-0">
                       <label htmlFor="learn-lesson-shelf" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-                        Show
+                        Show part of this course
                       </label>
                       <select
                         id="learn-lesson-shelf"
@@ -4795,7 +4842,7 @@ export default function ChurchLearn({
                   {orders.length > 1 && (
                     <div className="min-w-0">
                       <label htmlFor="learn-lesson-order" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-                        Order
+                        Sort lessons
                       </label>
                       <select
                         id="learn-lesson-order"

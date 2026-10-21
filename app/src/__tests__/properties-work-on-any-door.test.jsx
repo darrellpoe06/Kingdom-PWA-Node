@@ -313,3 +313,37 @@ describe('a message on an empty unit stays (2026-10-10: "Didn\'t stay" / "Messag
     expect(text()).not.toContain('Rented');
   });
 });
+
+// THE OWNER WALKS THE TENANT'S DOOR (Darrell, 2026-10-21: "I want the landlords
+// to get the same or almost the same experience as tenants... Because then
+// they will already know their tenants experience before they send them into
+// the Poe Properties App"). viewAs renders the tenant's face over the owner's
+// doors; what is sent from it is still recorded as the owner.
+describe('the owner sees a door the way its tenant does', () => {
+  it('PROVEN TO CATCH: viewAs="tenant" shows the tenant\'s tabs, not the landlord\'s, over the owner\'s own door', async () => {
+    H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
+    await mount({ surface: 'poetech', viewAs: 'tenant' });
+    const labels = buttons().map((b) => (b.textContent || '').trim());
+    expect(labels).toContain('My place');
+    expect(labels).toContain('Work orders');
+    expect(labels).toContain('Payments');
+    expect(labels).not.toContain('Work board');
+    expect(labels).not.toContain('Dispatch');
+  });
+
+  it('PROVEN TO CATCH: a work order filed from the tenant\'s view is recorded as the landlord, never as the tenant', async () => {
+    H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
+    await mount({ surface: 'poetech', viewAs: 'tenant' });
+    await tap(/^Work orders$/);
+    await typeJob('Leaking kitchen faucet');
+    await tap(/^File it$/i);
+    expect(H.filed).toHaveLength(1);
+    expect(H.filed[0]).toMatchObject({ tenancy_id: 't1', created_by_role: 'landlord' });
+  });
+
+  it('without viewAs the owner keeps the landlord\'s face', async () => {
+    H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
+    await mount({ surface: 'poetech' });
+    expect(buttons().map((b) => (b.textContent || '').trim())).toContain('Work board');
+  });
+});

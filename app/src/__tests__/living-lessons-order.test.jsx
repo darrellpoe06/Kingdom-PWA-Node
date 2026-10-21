@@ -138,7 +138,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // more times as main took each number from under them while this branch
     // was held. Dating them by the day their ids landed is what keeps THIS
     // check true, so "By number, oldest first" stays one order and not two.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-18'); // L255
+    //
+    // The highest number is now L256 (DR-1150, "The LORD's Release Is for a
+    // Neighbor"), spoken and built on 2026-10-21.
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-21'); // L256
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

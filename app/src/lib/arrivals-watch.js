@@ -27,7 +27,7 @@ import { DM_UNREAD_EVENT } from './notify-readiness.js';
 import {
   ARRIVALS_EVENT, ARRIVALS_SEEN_EVENT, lessonArrivals, queueArrivals, feedbackArrivals, messageArrival,
   combineArrivals, loadSeen, saveSeen, markSeen, unseenArrivals, arrivalCount, badgeText, ringableIds, newSince,
-  arrivalNotification, arrivalLanding,
+  arrivalNotification, arrivalLanding, catalogArrivals, catalogSince,
 } from './arrivals.js';
 
 export const ARRIVALS_HEARTBEAT_MS = 60000;
@@ -68,6 +68,9 @@ const defaultLoaders = {
   lessons: async () => (await import('./lesson-inbox.js')).fetchMyLessons,
   queue: async () => (await import('./member-lesson-review.js')).fetchMemberLessonQueue,
   feedback: async () => (await import('./feedback-sync.js')).fetchMyFeedback,
+  // The catalog of every lesson and the day it landed (lesson-dates.json, CI
+  // re-derived from git): new lessons ring whether or not a row names them.
+  catalog: async () => (await import('./lesson-dates.js')).datedLessons,
 };
 
 /**
@@ -111,7 +114,8 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
     const state = {
       uid,
       seen: loadSeen(win.localStorage, uid),
-      parts: { message: null, lessons: [], queue: [], feedback: [] },
+      parts: { message: null, lessons: [], queue: [], feedback: [], catalog: [] },
+      since: catalogSince(win.localStorage, uid),
       known: [],
       primed: false,
       owner: false,
@@ -135,6 +139,12 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
     win.addEventListener(ARRIVALS_SEEN_EVENT, onSeen);
 
     const refresh = async () => {
+      // The catalog first, on its own: no network, so a failed row read below
+      // never hides a new lesson.
+      try {
+        const datedLessons = await loaders.catalog();
+        if (!cancelled) state.parts.catalog = catalogArrivals(datedLessons(), { since: state.since });
+      } catch { /* the last catalog picture stands */ }
       try {
         const fetchMyLessons = await loaders.lessons();
         const res = await fetchMyLessons({ supabase: client });
