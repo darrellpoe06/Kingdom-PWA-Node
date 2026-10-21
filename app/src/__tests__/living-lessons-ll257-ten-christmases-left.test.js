@@ -275,7 +275,13 @@ describe('L257 exists exactly once, at its own number, dated the day it was capt
     expect(claimed.includes(256), '257 follows 256 — no number was jumped').toBe(true);
     // a floor, not an equality: a later lesson raises the max and must not fail this
     expect(Math.max(...claimed)).toBeGreaterThanOrEqual(257);
-    expect(claimed.includes(258), '258 is not this lesson’s to claim').toBe(false);
+    // 2026-10-21, amended the same day: ll258 ("He Gave Us Everything We
+    // Need", DR-1181) now claims 258, so "258 is absent" would have failed a
+    // gate that had nothing wrong with the lesson it guards -- the exact pin
+    // the comment above warns against. What stays true: 257 is claimed once,
+    // and 258, if present, sits AFTER 257 in reading order.
+    const at258 = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll258-'));
+    if (at258 >= 0) expect(at258, 'll258 follows ll257').toBeGreaterThan(LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID));
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
   });
 

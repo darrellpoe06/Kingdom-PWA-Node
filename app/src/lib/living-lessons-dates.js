@@ -348,5 +348,9 @@ export const LIVING_LESSONS_ADDED = {
   // L257 (DR-1165): a recorded street interview captured inside the app on
   // 2026-10-21 and built the same day. The speakers are not identified; every
   // figure in the clip is the speaker's own claim and this catalog asserts none.
-  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',
+  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',  // L258 (DR-1181): Darrell's spoken teaching of 2026-10-21 -- He gave us
+  // everything we need to fulfill what He wants; until we want what He wants
+  // our desires do not change; till we get Him right we do not get right.
+  // Built the same session, so the spoken day and the commit day agree.
+  'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
 };
