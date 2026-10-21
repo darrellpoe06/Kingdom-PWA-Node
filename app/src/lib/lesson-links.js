@@ -60,7 +60,34 @@ export function lessonUrl({ courseKey, lessonId, origin, path } = {}) {
   return `${o || ''}${p || '/'}${q}`;
 }
 
-/** Read a lesson deep-link back out of a query string. Tolerant; never throws. */
+/**
+ * A LESSON THAT WAS FOLDED INTO ANOTHER STILL ANSWERS ITS OWN LINK (DR-1184).
+ *
+ * When one teaching turns out to have been built twice, the duplicate is folded
+ * into the lesson that keeps it and removed from the catalog. Every link already
+ * shared to the removed id would then land on the COURSE rather than on the
+ * teaching -- not a dead screen, but not what the person was sent either. So a
+ * retired id resolves to the lesson that now carries its words.
+ *
+ * EXACT IDS ONLY. No prefix matching and no guessing: a mapping is written here
+ * when a fold happens, or the link does not redirect. `why` is the sentence a
+ * surface shows the reader, because being handed a different lesson than the one
+ * you tapped is something to be TOLD, never done quietly (DR-0076 section 8).
+ */
+export const RETIRED_LESSONS = Object.freeze({
+  'll235-ten-christmases-left-and-every-knee-shall-bow': Object.freeze({
+    courseKey: 'living-lessons',
+    lessonId: 'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them',
+    why: 'This teaching was built twice. The two lessons are now one, and it carries everything both of them had.',
+  }),
+});
+
+/**
+ * Read a lesson deep-link back out of a query string. Tolerant; never throws.
+ * A link to a retired lesson comes back pointing at the lesson that absorbed
+ * it, carrying `redirectedFrom` so the surface can say so. The key is absent
+ * on every ordinary link, so nothing else sees a change.
+ */
 export function parseLessonLink(search) {
   const out = { courseKey: null, lessonId: null };
   try {
@@ -69,6 +96,13 @@ export function parseLessonLink(search) {
     const l = (sp.get(LEARN_LINK_PARAMS.lesson) || '').trim();
     if (c) out.courseKey = c;
     if (l) out.lessonId = l;
+    const moved = out.lessonId ? RETIRED_LESSONS[out.lessonId] : null;
+    if (moved) {
+      out.redirectedFrom = { lessonId: out.lessonId, courseKey: out.courseKey, why: moved.why };
+      out.lessonId = moved.lessonId;
+      // The course moves too, in case a fold ever crosses courses.
+      out.courseKey = moved.courseKey;
+    }
   } catch (_) { /* malformed query -> nothing deep-linked */ }
   return out;
 }
