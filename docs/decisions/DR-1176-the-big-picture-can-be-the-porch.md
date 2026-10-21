@@ -25,7 +25,7 @@ And:
 
 So the big picture on the Poe Properties front door has two jobs, and the second one is the bigger. For a person whose device already holds a camera credential it can **be their porch, live**. For the applicant — who holds nothing — it has to say **what Poe Properties actually provides**, because that is the level of service being promoted, and a photograph alone says nothing about it.
 
-## The reality trace (DR-0061), before a line was written
+## What was measured — the reality trace (DR-0061), before a line was written
 
 | | |
 |---|---|
