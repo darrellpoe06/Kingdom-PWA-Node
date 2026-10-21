@@ -1,4 +1,4 @@
-# DR-1158: A building is counted before it is built — Poe Properties develops from the ground up, from the developer's own published method
+# DR-1162: A building is counted before it is built — Poe Properties develops from the ground up, from the developer's own published method
 
 **Date:** 2026-10-21
 **Status:** accepted

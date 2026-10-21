@@ -137,7 +137,7 @@ export const MANAGER_TABS = [
   // THE LIFE WALL (DR-1010): what tenants and guests shared, waiting for the
   // family's yes; approved pictures on the public wall, picked ones in the listing.
   TAB('wall', 'Life wall', 'Pictures tenants and guests shared of life here: approve them for the public wall, pick some for the listing.'),
-  // BUILDING FROM THE GROUND UP (DR-1158): a project's budget, phases and
+  // BUILDING FROM THE GROUND UP (DR-1162): a project's budget, phases and
   // checks, change orders, value and the deal for investors. The owner's.
   TAB('development', 'Development', 'Build from the ground up: the budget, the phases and their checks, change orders, what it is worth, and the deal for investors.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),

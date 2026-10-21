@@ -1,5 +1,5 @@
 // =============================================================================
-// The Development tab (DR-1158) on the screen, over a fake api: the owner picks
+// The Development tab (DR-1162) on the screen, over a fake api: the owner picks
 // a project and sees the engine's verdicts in words — the TI allowance, the
 // contingency, the phases, the value and the deal — from Daniil Kleyman's own
 // Richmond figures. The arithmetic is proven in properties-development.test.js;
@@ -67,7 +67,7 @@ const fakeApi = (over = {}) => ({
   ...over,
 });
 
-describe('the Development tab (DR-1158)', () => {
+describe('the Development tab (DR-1162)', () => {
   it('is an owner tab in Poe Properties, never a tenant\'s or a worker\'s', () => {
     expect(MANAGER_TABS.map((t) => t.id)).toContain('development');
     expect(TENANT_TABS.map((t) => t.id)).not.toContain('development');

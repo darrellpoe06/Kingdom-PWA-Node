@@ -1457,7 +1457,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             </>
           );
           case 'development':
-            // BUILDING FROM THE GROUND UP (DR-1158). The projects live in the
+            // BUILDING FROM THE GROUND UP (DR-1162). The projects live in the
             // landlord instance behind the books' wall (0305): the owner's.
             return role === 'owner'
               ? <DevelopmentTab />

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0305 DEVELOPMENT SMOKE — a building is counted before it is built (0305,
--- DR-1158). Runs in a transaction and ROLLS BACK.
+-- DR-1162). Runs in a transaction and ROLLS BACK.
 -- PASS prints 'DEVELOPMENT SMOKE: PASS'; any wrong grant RAISES.
 --
 -- Scenario: landlord instance F — owner O, admin D, member M, VIEWER C (the rule is an allow-list of owner, admin and member, so a viewer stands for every other role: child, assistant, viewer).

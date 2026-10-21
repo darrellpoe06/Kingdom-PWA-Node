@@ -1406,7 +1406,7 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0302-a-door-keeps-what-its-meter-said.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0302-door-meter-smoke.sql 2>&1 | tee "$RUNNER_TEMP/door-meter.txt"
           grep -q 'DOOR METER SMOKE: PASS' "$RUNNER_TEMP/door-meter.txt"
-          # 0305 (DR-1158): a building is counted before it is built. The owner
+          # 0305 (DR-1162): a building is counted before it is built. The owner
           # keeps a development project and every record under it (budget
           # lines, change orders, commercial bays, phase checks, the capital
           # stack); an admin writes; a member reads but does not write; a
