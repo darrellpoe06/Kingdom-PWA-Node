@@ -13,6 +13,9 @@ name: TV watch-link probe (DR-1164, temporary)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/tv-time-knows-where-to-watch]
+    paths: ['.github/workflows/tv-watch-link-probe.yml']
 
 permissions:
   contents: read
