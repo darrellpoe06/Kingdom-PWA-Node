@@ -37,7 +37,7 @@ Then the answer landed in a **step summary**, an **artifact**, and an **incident
 
 | population | what it means | the decision |
 |---|---|---|
-| **nothing fires it** | on-demand only — no clock, no event | correct and healthy; **40 of our own 117 jobs** are this |
+| **nothing fires it** | on-demand only — no clock, no event | correct and healthy; **5 of our own 118 jobs** are in this bucket (the on-demand-only population is 40; the other 35 have run) — *corrected 2026-10-21 on the first live run, DR-1149* |
 | **on a clock, asked, empty** | something fires it on a schedule, the history was asked, there is no run | retire it, or fix what should have been firing it |
 | **nobody asked** | the history was never queried | a gap in the **report**, not a fault in the job |
 
@@ -54,6 +54,10 @@ Merging them is exactly how a census becomes a confident wrong answer — which 
 **The report step runs BEFORE the step that can fail the job** — pinned by test. Had it come after, the board would have gone dark exactly when there was something worth showing.
 
 **What it does not do.** The strip shows the **GitHub** fleet's last-run data, because that is the only fleet whose history the census can currently ask. The NAS loops' ledgers and the scheduled-task store are counted in `total` (the shape is read from the files) but their last-run is `unknown`, so they land in the third population rather than the second. Folding those two histories in is data, not code, and remains DR-1140's dated item: **`re-review: 2026-11-20`**.
+
+## Corrected on the first live run (DR-1149)
+
+**Two figures in this record were wrong and are corrected above.** The first live census (issue #2325, read 2026-10-21T01:13:58Z) showed that the table's "40 of our own 117" measured the on-demand-only POPULATION, not the part of it sitting in the no-run bucket — 5 — and the fleet is now 118. The same run exposed two defects in the code this record shipped: the three columns never filtered the DISABLED out (so `openers` was reported as a gap in the report rather than as the answer to the first question), and the headline counted the raw unknowns while the columns counted the enabled ones, so the strip read "29 of 118" above columns adding to 28. Both are fixed in **DR-1149**, with the fix proven to catch by reverting it. Nothing here is rewritten to hide it: a wrong measurement left standing in the ledger is worse than no measurement, because the next reader takes it as fact (DR-0076).
 
 ## Verification
 
