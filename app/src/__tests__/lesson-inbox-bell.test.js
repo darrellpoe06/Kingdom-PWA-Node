@@ -199,6 +199,39 @@ describe('the bell reports progress, milestone by milestone (DR-0725: "how long?
     const sql = read('scripts/lesson-inbox-recent.sql').replace(/^--.*$/gm, '');
     expect(sql.replace(/length\(coalesce\(body,''\)\)/, '')).not.toMatch(/\bbody\b/);
   });
+
+  it('a shipped row names the lesson it became, on the line (DR-1187)', () => {
+    // The real row a6f86a58 on 2026-10-21 printed `shipped ... [build-failed]`
+    // and said nothing about what it became. It had shipped -- as ll257, at
+    // 08:08 -- but answering that took six lookups, because `lesson-id:<id>`
+    // is the one tag the mark filter dropped: its `$` anchor could not match
+    // an id behind a colon. The id belongs on the line that raises the doubt.
+    const shipped = parseWaiting(line(B, ['lesson', 'lesson-captured', 'lesson-published',
+      'lesson-id:ll257-ten-christmases-left', 'build-failed', 'mirrored',
+      'build:failed@2026-10-21T03:39:34Z', 'build-reason:the first attempt stopped']));
+    const out = formatStatus([], { now: NOW, recent: shipped }, null);
+    expect(out).toContain('lesson-id:ll257-ten-christmases-left');
+    // It still reads as shipped, because it is: lesson-published is only ever
+    // written after the push succeeds (lesson_builder.py).
+    expect(out).toContain(`${B}  made 2026-09-30 12:00:00+00  shipped`);
+    // Never a body, and never the reason text -- unchanged by this.
+    expect(out).not.toMatch(/the first attempt stopped/);
+  });
+
+  it('PROVEN TO CATCH: the lesson id is not swallowed by the plainer lesson- rule', () => {
+    // `lesson-[a-z-]+$` cannot match `lesson-id:ll257...`, so if the new
+    // alternative were dropped the id would silently vanish again -- the
+    // failure is an ABSENCE, which is the kind a test has to assert for.
+    const marks = (tags) => {
+      const out = formatStatus([], { now: NOW, recent: parseWaiting(line(B, tags)) }, null);
+      const m = out.match(/\[([^\]]*)\]/);
+      return (m ? m[1] : '').split(', ').filter(Boolean);
+    };
+    expect(marks(['lesson', 'lesson-published', 'lesson-id:ll257-x'])).toContain('lesson-id:ll257-x');
+    // A malformed id is still not printed: the filter stays a whitelist.
+    expect(marks(['lesson', 'lesson-published', 'lesson-id:has a space'])).not.toContain('lesson-id:has a space');
+    expect(marks(['lesson', 'lesson-published'])).toEqual(['lesson-published']);
+  });
 });
 
 describe('the bell workflow: triggers and brakes', () => {
