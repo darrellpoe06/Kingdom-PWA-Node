@@ -68,20 +68,25 @@ It also does not run on PRs that touch no decision record, by `paths` — so the
 
 ## Verification
 
-**16 cases**, and the three that matter are **proven by running the script**, not by reading it:
+**17 cases**, and the four that matter are **proven by running the script**, not by reading it:
 
 | what was broken | what went red |
 | --- | --- |
 | the introduced-numbers filter reverted to `!(n in mainClaims)` — my own first draft's defect | **1** — *"expected [] to include '1143'"* |
 | a contested race made to FAIL the build | **1** — *"a race nobody has lost must not fail a PR: expected 1 to be +0"* |
 | the renumber command removed from the output | **1** |
+| the claims loader reverted to returning `{}` for a file it was told to read and could not | **1** — *"a claims file that does not exist must stop the run: expected +0 to be 2"* |
+
+**A fourth defect of the same family, found on the merged tree.** Re-running the reader live against main's **1,048** records (DR-1147 free, exit 0) started with `--pr-claims /dev/null`, which crashed on a raw `SyntaxError`; a path that did not exist at all was worse — it returned `{}` **in silence**. Either way a claims-gathering step that wrote nothing, or wrote half a file and died, would make this gate report **every number free**. That is the exact disarmed-check shape this record argues against, sitting inside the record's own tool. A named claims file must now parse or the run **stops with exit 2** naming the file and the reason; only an **omitted** flag means "no claims given". The 17th case pins all three behaviours.
 
 `--selftest` 15/15 · the workflow's YAML parses, all four shell steps pass `bash -n`, its embedded Python compiles and its `github-script` body passes `node --check` · `npm run lint` exit 0 · `npm run verify:gates` exit 0, read **without a pipe**.
 
-**Three errors of my own inside this one piece of work, all the day's shape:**
+**Four errors of my own inside this one piece of work, all the day's shape:**
 
 1. **My first `introducedBy` filtered out every number main holds** — which is to say it filtered out the collision itself and would have reported "free" on all six of today's cases. A green that means *did not look*. It is now the first proven-to-catch case.
 2. **My first live run reported sov45's branch as free** when that branch demonstrably holds the collided DR-1144. The script resolves its decisions directory from **its own file location**, so running it from another worktree read the wrong ledger. `--decisions` exists because of that, and the comment in the code says why.
 3. **My first version of the "fails only on taken-on-main" case asserted on source text** — `if (taken.length) { … exit(1) }` — and that text **survived** the break: widening the filter to `verdict !== 'free'` makes a race fail the build while the assertion stays green. The case now executes the CLI in both situations and asserts the exit codes. A test that reads the shape of a guard instead of its behaviour is the hollow kind this record exists to argue against.
+
+4. **My claims loader read a file it could not open as "nobody claims anything"** — see above. Three defects in one file, all the same error: a step that *did not look* reporting the same thing as a step that looked and found nothing.
 
 **And the exit code had to be read without a pipe, again** — the fourth time today. `node … --selftest 2>&1 | tail -20` printed `EXIT=0` for a run that crashed with a `TypeError`; the pipeline's status is not the command's.

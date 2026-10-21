@@ -200,4 +200,34 @@ describe('the asking half, and the line it must not cross', () => {
     expect(taken.stdout).toMatch(/renumber-decision-record\.mjs 1139 \d+ --file DR-1139-mine\.md/);
     expect(taken.stdout).toMatch(/CLEAN tree/);
   });
+
+  it('a claims file it was told to read and cannot is a stop, never an empty claim set', () => {
+    // FOUND BY RUNNING IT on the merged tree: `--pr-claims /dev/null` crashed
+    // with a raw SyntaxError, and a MISSING path returned {} in silence. Both
+    // are the disarmed-check shape — a gathering step that wrote nothing, or
+    // wrote half a file and died, would make this gate report every number
+    // free, which is a green that means "did not look" (DR-0076).
+    const script = join(REPO, 'scripts/dr-number-claims.mjs');
+    const decisions = mkdtempSync(join(tmpdir(), 'dr-claims-unread-'));
+    writeFileSync(join(decisions, 'DR-1139-mine.md'), '# x\n');
+
+    const missing = join(decisions, 'never-written.json');
+    const gone = spawnSync('node', [script, '--main-claims', missing,
+      '--decisions', decisions], { encoding: 'utf8' });
+    expect(gone.status, 'a claims file that does not exist must stop the run').toBe(2);
+    expect(gone.stderr).toMatch(/does not exist/);
+    expect(gone.stderr).toMatch(/NOT "nobody claims anything"/);
+
+    const half = join(decisions, 'half-written.json');
+    writeFileSync(half, '{"1139": "DR-1139-theirs.md"');
+    const torn = spawnSync('node', [script, '--main-claims', half,
+      '--decisions', decisions], { encoding: 'utf8' });
+    expect(torn.status, 'an unparseable claims file must stop the run').toBe(2);
+    expect(torn.stderr).toMatch(/could not parse/);
+
+    // An OMITTED flag still means "no claims given", and still works.
+    const none = spawnSync('node', [script, '--decisions', decisions], { encoding: 'utf8' });
+    expect(none.status).toBe(0);
+    expect(none.stdout).toMatch(/No introduced number is claimed/);
+  });
 });

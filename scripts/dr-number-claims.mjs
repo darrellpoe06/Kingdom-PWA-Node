@@ -231,7 +231,30 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const i = process.argv.indexOf(k);
     return i > -1 ? process.argv[i + 1] : null;
   };
-  const load = (p) => (p && existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : {});
+  // A path that was ASKED FOR and cannot be read is not an empty claim set.
+  // The first version returned {} for a missing file and threw a raw
+  // SyntaxError on an unparseable one, which means a claims-gathering step
+  // that wrote nothing -- or wrote half a file and died -- makes this gate
+  // report every number free. That is the disarmed-check shape this record
+  // argues against (DR-0076: unknown is not a no). Only an OMITTED flag means
+  // "no claims given"; a named file must parse, or the run stops and says
+  // which file and why.
+  const load = (p) => {
+    if (!p) return {};
+    if (!existsSync(p)) {
+      console.error(`dr-number-claims: claims file does not exist: ${p}`);
+      console.error('A claims file that was never written is NOT "nobody claims anything".');
+      process.exit(2);
+    }
+    try {
+      return JSON.parse(readFileSync(p, 'utf8'));
+    } catch (e) {
+      console.error(`dr-number-claims: could not parse ${p}: ${e.message}`);
+      console.error('Refusing to read an unparseable claims file as an empty one.');
+      process.exit(2);
+    }
+    return {};
+  };
   const mainClaims = load(arg('--main-claims'));
   const prClaims = load(arg('--pr-claims'));
   // --decisions exists because of a false green in this script's own first
