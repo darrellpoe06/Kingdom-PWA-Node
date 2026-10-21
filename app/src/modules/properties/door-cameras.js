@@ -61,6 +61,121 @@ export function whoSeesDoorCameras({ door = null, people = [] } = {}) {
 }
 
 /**
+ * WHO CAN ACTUALLY OPEN THIS DOOR'S CAMERAS (DR-1179).
+ *
+ * Darrell, 2026-10-21: *"Also I gave apt 2 and 1 camera access in way that
+ * allowed me too... they didn't get it... why not.... fix it!!!!!"*
+ *
+ * WHY THEY DID NOT GET IT, traced rather than guessed. The grant was minted
+ * correctly on the NAS and written correctly onto the tenancy row. The tenant
+ * never reached it because they could not read the ROW. `loadMyDoors`
+ * (cloud.js:154) selects `camera_grant` and leans entirely on RLS, and the
+ * policy — `rental_tenancies_read`, migration 0150 — admits a tenant through
+ * exactly two arms:
+ *
+ *     tenant_user_id = auth.uid()          -- a claimed invite
+ *     user_is_tenancy_household(id)        -- a row in tenancy_household,
+ *                                             member_user_id = auth.uid(),
+ *                                             active = true
+ *
+ * A tenant who exists only as a NAME on the row — never invited, never claimed
+ * — satisfies neither. `loadMyDoors` returns them no row at all, so there is no
+ * door to carry the grant, and the Cameras tab truthfully reports that nothing
+ * is shared. Minting a grant for a door nobody has joined can never deliver.
+ *
+ * AND THE TAB SAID SO IN THE WRONG PLACE, which is the defect this closes. The
+ * notice that would have caught it tested `viewers.length === 0` — but
+ * whoSeesDoorCameras COUNTS a lease name as a viewer (`joined: false`), so a
+ * door with a tenant_name and no tenant_user_id has one viewer, the notice
+ * never rendered, and the only hint was the words "has not signed in yet"
+ * appended to a name inside the lower, collapsed "Who has access" region —
+ * underneath a cheerful "Shared with this door: 2 cameras". Success at the top,
+ * the blocking fact buried.
+ *
+ * The right test is not how many names are on the door. It is whether ANYONE on
+ * it has actually joined.
+ */
+export function whoCanOpen({ door = null, people = [] } = {}) {
+  const viewers = whoSeesDoorCameras({ door, people });
+  const joined = viewers.filter((v) => v.joined);
+  const waiting = viewers.filter((v) => !v.joined);
+  if (joined.length > 0) {
+    return { canOpen: true, joined, waiting, words: `${joined.map((v) => v.name).join(', ')} ${joined.length === 1 ? 'is' : 'are'} signed into this door and will see them.` };
+  }
+  if (waiting.length > 0) {
+    const names = waiting.map((v) => v.name).join(', ');
+    return {
+      canOpen: false,
+      joined,
+      waiting,
+      words: `${names} ${waiting.length === 1 ? 'is' : 'are'} on this door's record but ${waiting.length === 1 ? 'has' : 'have'} not signed in, so ${waiting.length === 1 ? 'they' : 'they'} cannot open a camera yet — the cameras only reach a signed-in account. Invite ${waiting.length === 1 ? 'them' : 'them'} in People; what is shared appears the moment they accept.`,
+    };
+  }
+  return { canOpen: false, joined, waiting, words: 'Nobody is on this door yet, so nothing shared here can be opened. Add the tenant or a household member in People first.' };
+}
+
+/**
+ * WHO THE ASK MENU ACTUALLY REACHES (DR-1179).
+ *
+ * Darrell, 2026-10-21: *"I checked the anyone can see section for apt 2 cameras
+ * including short stays... did it work?!!!!!!!!!!!!!!!!!!!!!"*
+ *
+ * It did what it does, which is NOT grant access — and that is the trap.
+ * "Cameras people can ask for at this door" plus "Save what can be asked for"
+ * publishes a MENU (`saveCameraMenu`). Nobody receives a camera from it. A
+ * person on the door then has to ASK, and the owner has to press Give it.
+ *
+ * AND FOR A SHORT-STAY GUEST IT DOES NOTHING AT ALL. Ticking a guest's name in
+ * that list cannot reach a guest, because a guest never signs into the door:
+ * `resolveFace` gives the `cameras` tab to TENANT_TABS only (tenant and
+ * household), a 1099 worker's WORKER_TABS has no cameras tab, and a short-stay
+ * guest is not a door role at all. A guest is reached by **Give access to
+ * anyone**, which mints their grant and hands back a link to text — the only
+ * control on this tab that actually delivers a camera to someone with no
+ * account.
+ *
+ * So the menu now says, in words, what saving it does and does not do, and
+ * points a short-stay at the control that works. Returns the sentence; the
+ * surface decides where to put it.
+ */
+export function menuReach({ saved = 0 } = {}) {
+  return {
+    grants: false,
+    words: saved > 0
+      ? `Saved. This is a MENU, not access: the ${saved} camera${saved === 1 ? '' : 's'} named here can be ASKED for by the tenant and their household signed into this door, and they see nothing until you press Give it on their ask. A 1099 worker and a short-stay guest never see this list at all — reach them with “Give access to anyone” below, which mints their access and hands you a link to text.`
+      : 'This is a MENU, not access. Naming a camera here lets the tenant and their household ask for it; they see nothing until you press Give it. A 1099 worker or a short-stay guest cannot see this list — use “Give access to anyone” below for them.',
+  };
+}
+
+/**
+ * WHETHER A PERSON IN THIS ROLE CAN OPEN A CAMERA AT ALL, and by what means
+ * (DR-1179). Darrell, 2026-10-21: *"What about the landlords and owners...
+ * etc..."* — whoCanOpen answers for the HOUSEHOLD, which is only one of the
+ * faces at a door. The rest answer differently, and the differences are real:
+ *
+ *   owner / admin / member — by the FAMILY KEY their own device holds
+ *     (`bridgeToken()`), never by a grant. They are not in whoCanOpen's count
+ *     and they do not need to be; nothing has to be shared with them.
+ *   tenant / household — by the DOOR'S grant on the tenancy row, and only once
+ *     they have signed in (the RLS arms in migration 0150).
+ *   1099 worker / short-stay guest / anyone else — by a grant of THEIR OWN,
+ *     per person (DR-0938), delivered as a link. Never by the door's grant,
+ *     and never by the ask menu, which they cannot see.
+ */
+export const CAMERA_REACH = Object.freeze({
+  owner: { by: 'family key', words: 'Your own device holds the family camera key, so you see every camera without anything being shared with you.' },
+  admin: { by: 'family key', words: 'An admin on this instance reads the cameras with the family key, not with a grant.' },
+  member: { by: 'family key', words: 'A member on this instance reads the cameras with the family key, not with a grant.' },
+  tenant: { by: 'door grant', words: 'The tenant sees what is shared with this door, once they have signed in.' },
+  household: { by: 'door grant', words: 'A household member sees what is shared with this door, once they have signed in.' },
+  worker: { by: 'own grant', words: 'A 1099 worker is given cameras one person at a time — not by the door and not by the ask menu, which they cannot see.' },
+  guest: { by: 'own grant', words: 'A short-stay guest never signs into the door. Give them access by name and send the link; that is the only way a camera reaches them.' },
+});
+export function cameraReach(role) {
+  return CAMERA_REACH[role] || { by: 'own grant', words: 'Anyone who is not on this door and not on the family key is given cameras by name, with a link.' };
+}
+
+/**
  * The cameras a door most likely means, from the whole list: the ones whose
  * name or id carries a word of the door's address (the house number first:
  * "805" picks every "805 ..." camera). Nothing is picked when nothing matches.
