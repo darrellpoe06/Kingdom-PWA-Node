@@ -66,6 +66,7 @@ import {
   LIVE_ROADS, roadLabel, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, chooseLiveRoad, roadLine,
 } from '../lib/cameras.js';
 import { tryDirectRoad, noteDirectFailure } from '../lib/camera-direct.js';
+import { holdVideo, dropVideo } from '../lib/camera-video.js';
 
 // THE DIRECT ROAD (DR-1097, sixteenth read): a camera on Wyze's WebRTC road is
 // opened straight from this device, the way the Wyze app opens it; the NAS
@@ -78,9 +79,6 @@ function closeDirect(ref) {
 // element itself.
 function hasPicture(v) {
   try { return !!v && (Number(v.readyState) >= 2 || Number(v.currentTime) > 0); } catch { return false; }
-}
-function attachStream(el, stream) {
-  if (el && stream && el.srcObject !== stream) { try { el.srcObject = stream; } catch { /* a device fact */ } }
 }
 const DIRECT_CHIP = "Straight from Wyze's WebRTC";
 
@@ -787,8 +785,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     if (released) {
       clearTimeout(t.first); clearTimeout(t.reopen);
       closeDirect(direct);
-      const v = t.video;
-      if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
+      dropVideo(t);
       setSt((p) => ({ ...p, src: '', opening: false, ended: false, error: '', reconnecting: false }));
       return () => { alive.current = false; };
     }
@@ -797,8 +794,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       alive.current = false;
       clearTimeout(t.first); clearTimeout(t.reopen);
       closeDirect(direct);
-      const v = t.video;
-      if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
+      dropVideo(t);
     };
   }, [open, released]);
 
@@ -815,6 +811,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       // sixteenth read). That is an opened stream, recorded as one.
       if (onlyIfBlank && hasPicture(timers.current.video)) return { ...p, firstFrameMs: Date.now() - p.startedAt };
       recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
+      dropVideo(timers.current); // the ended view gives its stream back before the next one opens
       // A direct try that brought no picture sends this camera to the NAS road for a while.
       if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); } else if (!opened) lastFailed.current = p.mode;
       // NO CAP, NO RESUME (DR-0833): the next try is always armed. The wait
@@ -886,7 +883,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     return (
       <div className={`relative bg-black w-full h-full overflow-hidden ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={testId} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
-          <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-contain"
+          <video ref={(el) => holdVideo(timers.current, el, st.stream)} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-contain"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
@@ -918,7 +915,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       </div>
       <div className={`mt-2 bg-black aspect-video w-full flex items-center justify-center ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={`${testId}-picture`} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
-          <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline controls={!compact} className="w-full h-full"
+          <video ref={(el) => holdVideo(timers.current, el, st.stream)} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline controls={!compact} className="w-full h-full"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
         ) : (
           <div className="text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
@@ -1115,12 +1112,13 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
     alive.current = true;
     open(0);
     const t = timers.current;
-    return () => { alive.current = false; clearTimeout(t.first); clearTimeout(t.reopen); closeDirect(direct); const v = t.video; if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } } };
+    return () => { alive.current = false; clearTimeout(t.first); clearTimeout(t.reopen); closeDirect(direct); dropVideo(t); };
   }, [open]);
   const endedOnItsOwn = useCallback((reason) => {
     setSt((p) => {
       if (p.ended) return p;
       const opened = p.firstFrameMs != null;
+      dropVideo(timers.current); // the ended view gives its stream back before the next one opens
       if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); }
       const blank = opened ? 0 : (p.blank || 0) + 1;
       if (onFailed && blank === TILE_BLANK_TELL) setTimeout(() => onFailed(`live view has had no picture: ${reason}`), 0);
@@ -1159,7 +1157,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   return (
     <div className="aspect-video bg-black relative" data-testid={`tile-live-${cam.id}`}>
       {st.src && !st.ended ? (
-        <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-cover"
+        <video ref={(el) => holdVideo(timers.current, el, st.stream)} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-cover"
           onLoadedData={() => setSt((p) => (p.firstFrameMs == null ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : p))}
           onEnded={() => endedOnItsOwn(liveMax > 0 && elapsed >= liveMax - 2 ? 'the NAS clock' : 'stream ended')}
           onError={() => endedOnItsOwn(st.firstFrameMs == null ? 'could not open' : 'stream broke')} />
