@@ -45,6 +45,7 @@ import {
 } from '../lib/daily-focus.js';
 import { recentActivity, agoLabel } from '../lib/home-activity.js';
 import HomeHero from './shell/HomeHero.jsx';
+import FamilyStories from './FamilyStories.jsx';
 import UiIcon from './UiIcon.jsx';
 
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4';
@@ -87,6 +88,9 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   const [focusText, setFocusText] = useState('');
   const [goalText, setGoalText] = useState('');
   const [goalBy, setGoalBy] = useState('');
+  // A panel the Hub renders itself (DR-1153): 'stories' is the family's years
+  // in pictures, opened by the Big Picture tile and the Add a photo action.
+  const [panel, setPanel] = useState(null);
 
   // The page's single DM watcher tells every surface that needs to know.
   useEffect(() => {
@@ -109,7 +113,8 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   const goals = data.goals || [];
 
   const write = (key, fn) => { if (setData) setData((d) => ({ ...d, [key]: fn(d[key] || []) })); };
-  const go = (view, churchView) => {
+  const go = (view, churchView, hub = null) => {
+    if (hub) { setPanel(hub); return; }
     if (!view || !setView) return;
     setView(view);
     if (churchView && setChurchView) setChurchView(churchView);
@@ -163,6 +168,9 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
         </div>
       </header>
 
+      {panel === 'stories' && <FamilyStories onClose={() => setPanel(null)} />}
+
+      {panel === null && (<>
       <HomeHero name={welcomeName} />
 
       {/* THE SIX TILES. Two columns at 360px, three from sm up, six from lg —
@@ -174,7 +182,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             <button
               key={t.key}
               type="button"
-              onClick={() => go(t.view, t.churchView)}
+              onClick={() => go(t.view, t.churchView, t.hub)}
               className={`relative rounded-2xl ${st.fill} text-white p-3 min-h-[6.25rem] flex flex-col items-center justify-center text-center gap-1 shadow-sm hover:opacity-95 ${FOCUS_RING}`}
             >
               <span aria-hidden="true" className="text-[1.5rem] leading-none mb-1"><UiIcon name={st.icon} /></span>
@@ -319,7 +327,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
                   key={a.key}
                   type="button"
                   onClick={() => {
-                    if (a.view) return go(a.view, a.churchView);
+                    if (a.view || a.hub) return go(a.view, a.churchView, a.hub);
                     const id = a.key === 'focus' ? 'hub-focus-new' : 'hub-goal-new';
                     try { document.getElementById(id)?.focus(); } catch { /* non-browser */ }
                     return undefined;
@@ -353,6 +361,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
           </ul>
         </section>
       </div>
+      </>)}
     </div>
   );
 }

@@ -429,7 +429,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                   const fullDescription = sourceItem ? (sourceItem.description || '') : '';
                   const expanded = expandedItemId === q.id;
                   // Human-friendly destination tab labels for the "Open in X tab" link.
-                  const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
+                  const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Money', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
                   const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
                   return (
                     <div key={q.id} className={`rounded-xl border border-[#E8E4DC] border-l-4 bg-white overflow-hidden ${q.overdue ? 'border-l-[#B85838]' : (q.kind === 'incident' ? 'border-l-[#8A6E1F]' : 'border-l-[#2A5A8E]')}`}>

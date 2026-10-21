@@ -229,19 +229,45 @@ describe('the header is wired to it', () => {
     expect(SRC).toMatch(/if \(!offer\) return null;/);
   });
 
-  it('the header row mounts it in BOTH of its shapes', () => {
-    expect(NAV).toContain("import OpenerButton from './OpenerButton.jsx'");
-    // Both branches: the many-tab row and the one-tab brand row.
-    expect(NAV.match(/<OpenerButton \/>/g) || []).toHaveLength(2);
+  it('the header\'s OWN row mounts it, beside the bell, and the tab row no longer does (DR-1154)', () => {
+    // Darrell 2026-10-21: "The Garage Door will get pressed accidentally move
+    // it to the open space in the header". Until then the two openers sat in
+    // the tab row in both of its shapes, where a thumb scrolling the tabs
+    // landed on them.
+    expect(NAV).not.toContain("import OpenerButton from './OpenerButton.jsx'");
+    expect(NAV.match(/<OpenerButton \/>/g) || []).toHaveLength(0);
+    expect(NAV.match(/<GarageHeaderButton \/>/g) || []).toHaveLength(0);
+    expect(SHELL.match(/<OpenerButton \/>/g) || []).toHaveLength(1);
+    expect(SHELL.match(/<GarageHeaderButton \/>/g) || []).toHaveLength(1);
+    const mount = SHELL.indexOf('<GarageHeaderButton /><OpenerButton />');
+    const bell = SHELL.indexOf('<ArrivalsBell />');
+    expect(mount, 'the openers are mounted once, on one line').toBeGreaterThan(0);
+    expect(bell - mount, 'the openers sit right before the bell, in the header row').toBeGreaterThan(0);
+    expect(bell - mount).toBeLessThan(80);
   });
 
-  it('the FROZEN shell is untouched by this feature (DR-0078)', () => {
+  it('the FROZEN shell carries only the mount (DR-0078)', () => {
     // The monolith budget guard caught the first version of this, which added
-    // 21 lines to the shell for a new feature. The control owns its own read
-    // and the row mounts it, so the shell changed by zero lines.
-    expect(SHELL, 'no opener code belongs in the frozen shell').not.toMatch(/OpenerButton|OpenersPanel|subscribeOpeners/);
+    // 21 lines to the shell for a new feature. The control owns its own read;
+    // the shell holds one import (riding an existing line) and one mount line,
+    // and nothing else of the feature.
+    expect(SHELL).not.toMatch(/OpenersPanel|subscribeOpeners|holdComplete|runDeviceAction/);
     const panel = readFileSync(join(process.cwd(), 'src/components/DevOps.jsx'), 'utf8');
     expect(panel, 'the panel lives in a feature module').toContain('OpenersPanel');
+  });
+
+  it('the hold survives a phone: the long-press menu is refused and touch-action is off', () => {
+    // Android raises contextmenu + pointercancel at ~500 ms of a touch; the
+    // hold is 800 ms, so without these the hold could never finish on a phone
+    // (Darrell 2026-10-21: "The garage tab doesn't work!!!").
+    for (const file of ['src/components/OpenerButton.jsx', 'src/components/GarageHeaderButton.jsx']) {
+      const src = readFileSync(join(process.cwd(), file), 'utf8');
+      expect(src, `${file} must refuse the context menu`).toContain('onContextMenu={(e) => e.preventDefault()}');
+      expect(src, `${file} must turn touch-action off`).toContain("touchAction: 'none'");
+      expect(src, `${file} must not cancel the hold on pointercancel`).not.toContain('onPointerCancel');
+      // and the answer is on screen, not only for a screen reader
+      expect(src).toMatch(/\(said \|\| hint\) \? <span/);
+    }
   });
 
   it('it asks the household record itself, and RLS is the gate (DR-0060)', () => {
