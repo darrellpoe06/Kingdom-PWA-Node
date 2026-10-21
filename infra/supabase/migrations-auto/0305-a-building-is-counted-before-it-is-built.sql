@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS public.dev_budget_lines (
   label         text NOT NULL,
   budget_cents  bigint,
   actual_cents  bigint,
+  done          boolean NOT NULL DEFAULT false,
   sort          integer NOT NULL DEFAULT 0,
   created_at    timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT dev_budget_lines_kind_chk CHECK (kind IN ('land','soft','hard','ti','financing','contingency')),
@@ -82,6 +83,9 @@ CREATE TABLE IF NOT EXISTS public.dev_budget_lines (
   CONSTRAINT dev_budget_lines_budget_chk CHECK (budget_cents IS NULL OR budget_cents >= 0),
   CONSTRAINT dev_budget_lines_actual_chk CHECK (actual_cents IS NULL OR actual_cents >= 0)
 );
+-- A line marked done is final at what it cost (Rehab Valuator's tracking: the
+-- finished line's real cost a square foot seeds the next budget).
+ALTER TABLE public.dev_budget_lines ADD COLUMN IF NOT EXISTS done boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS dev_budget_lines_project_idx ON public.dev_budget_lines(project_id, kind, sort);
 
 CREATE TABLE IF NOT EXISTS public.dev_change_orders (

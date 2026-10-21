@@ -137,11 +137,12 @@ export function projectForEngine(project, { lines = [], changeOrders = [], bays 
   return {
     kind: project.kind,
     hasElevator: !!project.has_elevator,
-    lines: lines.map((l) => ({ id: l.id, kind: l.kind, group: l.grp, label: l.label, budgetCents: l.budget_cents, actualCents: l.actual_cents })),
+    lines: lines.map((l) => ({ id: l.id, kind: l.kind, group: l.grp, label: l.label, budgetCents: l.budget_cents, actualCents: l.actual_cents, done: !!l.done })),
     changeOrders: changeOrders.map((c) => ({ id: c.id, label: c.label, amountCents: c.amount_cents, source: c.source, status: c.status, decidedOn: c.decided_on })),
     bays: bays.map((b) => ({ id: b.id, name: b.name, sqFt: b.sq_ft, tenant: b.tenant, tiCents: b.ti_cents, tiDrawnCents: b.ti_drawn_cents })),
     results,
     capital: capital.map((c) => ({ id: c.id, kind: c.kind, name: c.name, amountCents: c.amount_cents, rateBp: c.rate_bp, shareBp: c.share_bp })),
+    grossSqFt: project.gross_sq_ft,
     valuationInput: {
       units: project.units,
       grossSqFt: project.gross_sq_ft,

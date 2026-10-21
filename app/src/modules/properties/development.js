@@ -488,3 +488,163 @@ export function monthsBetween(start, end) {
   if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
   return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
 }
+
+// =============================================================================
+// WHERE THE BUDGET STANDS (Rehab Valuator, Brandon Lindsay's walk-through).
+// "Once you upload a transaction, it automatically links to a line item that
+// you've already added to your budget", and the tracking sheet shows each
+// line's budget, its budget a square foot, what was actually spent, and the
+// variance. Two uses he names: pricing a pre-sale before the last dollar is
+// spent (the forecast), and carrying a finished line's real cost a square
+// foot into the next build ("framing material has cost me about $25 per
+// square foot").
+//
+// A line marked done is final at what it cost. A line still open is forecast
+// at its budget, or at what it has already cost if that is more: money spent
+// is never forecast back down. An open line with no budget is unknown and
+// named; the forecast says it is incomplete rather than counting it as zero.
+// =============================================================================
+const perFoot = (c, sqFt) => (Number(sqFt) > 0 ? Math.round(c / Number(sqFt)) : null);
+
+export function trackBudget({ lines = [], grossSqFt = null } = {}) {
+  const rows = lines.map((l) => {
+    const budget = isCents(l.budgetCents) ? cents(l.budgetCents) : null;
+    const actual = isCents(l.actualCents) ? cents(l.actualCents) : null;
+    const done = Boolean(l.done);
+    let forecast = null;
+    if (done) forecast = actual ?? budget;
+    else if (budget !== null) forecast = Math.max(budget, actual ?? 0);
+    else if (actual !== null) forecast = actual;
+    const variance = budget !== null && forecast !== null ? budget - forecast : null;
+    return {
+      id: l.id, label: l.label, kind: l.kind, group: l.group || null, done,
+      budgetCents: budget, actualCents: actual, forecastCents: forecast,
+      budgetPerSqFtCents: budget !== null ? perFoot(budget, grossSqFt) : null,
+      actualPerSqFtCents: done && actual !== null ? perFoot(actual, grossSqFt) : null,
+      varianceCents: variance,
+      status: forecast === null ? 'unknown'
+        : variance === null ? 'unbudgeted'
+          : variance < 0 ? (done ? 'over' : 'running-over')
+            : variance > 0 && done ? 'under'
+              : done ? 'on' : 'open',
+    };
+  });
+  const unknown = rows.filter((r) => r.status === 'unknown');
+  const budgetCents = sum(rows.map((r) => r.budgetCents ?? 0));
+  const forecastCents = sum(rows.map((r) => r.forecastCents ?? 0));
+  return {
+    rows,
+    budgetCents,
+    spentCents: sum(rows.map((r) => r.actualCents ?? 0)),
+    forecastCents,
+    forecastVarianceCents: budgetCents - forecastCents,
+    forecastComplete: unknown.length === 0,
+    unknown: unknown.map((r) => r.label),
+    doneCount: rows.filter((r) => r.done).length,
+    // The real cost a square foot of each finished line, for the next budget.
+    unitCosts: rows.filter((r) => r.done && r.actualPerSqFtCents !== null)
+      .map((r) => ({ label: r.label, perSqFtCents: r.actualPerSqFtCents })),
+  };
+}
+
+// =============================================================================
+// BUY, REHAB, RENT, REFINANCE, REPEAT (Daniil Kleyman, "how to analyze your
+// BRRRR deals"). The short-term lender funds the purchase and the work; the
+// tenant is in when the work ends; a local bank refinances on the NEW value;
+// the refinance pays the short-term lender back, and the same money goes into
+// the next deal. His worked deal is the test fixture: $50,000 purchase, $1,500
+// closing, $20,000 rehab, $1,000 holding, 100% financed at 8% deferred for
+// three months, a $100,000 appraisal, $1,000 rent at 8% vacancy, insurance
+// $600 a year, taxes $1,200 a year, repairs $100 a month, refinanced at 80%,
+// 5.5%, 20-year amortization and two points.
+//
+// His rules, each a named check:
+//   * all-in cost below 80% of the after-repair value;
+//   * debt coverage 1.3 or better ("local banks will look for at least 1.25
+//     to 1.3");
+//   * cash flow of at least $200 a month ("anywhere below $200 I wouldn't do
+//     this deal");
+//   * rent of at least 1.5% of the all-in cost a month ("rent to cost
+//     multiples of one and a half times");
+//   * money left in the deal earning at least 10% cash on cash.
+// And the stress test he insists on: a lender models a management fee and
+// vacancy even when you manage it yourself, so `stressed` re-runs the deal
+// with 8% management (unless one was given) and at least 8% vacancy. The bank
+// sizes the loan by coverage, not by appraisal alone: `loanAtDcrCents` is the
+// largest loan this income carries at 1.3.
+// =============================================================================
+export const BRRRR_RULES = Object.freeze({ maxCostPctOfArv: 80, minDcr: 1.3, minCashFlowCents: 20000, minRentToCostPct: 1.5, minCashOnCashPct: 10 });
+
+const payment = (loan, ratePct, years) => {
+  const n = Math.round(Number(years) * 12);
+  const r = Number(ratePct) / 100 / 12;
+  if (!(loan > 0) || !(n > 0)) return 0;
+  return r === 0 ? loan / n : (loan * r) / (1 - (1 + r) ** -n);
+};
+const loanFor = (pay, ratePct, years) => {
+  const n = Math.round(Number(years) * 12);
+  const r = Number(ratePct) / 100 / 12;
+  if (!(pay > 0) || !(n > 0)) return 0;
+  return r === 0 ? pay * n : (pay * (1 - (1 + r) ** -n)) / r;
+};
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export function brrrr(input = {}) {
+  const need = ['purchaseCents', 'rehabCents', 'arvCents', 'rentMonthlyCents', 'refiLtvPct', 'refiRatePct', 'amortYears'];
+  const missing = need.filter((k) => !isCents(input[k]));
+  if (missing.length) return { complete: false, missing };
+  const n = (k, d = 0) => (isCents(input[k]) ? Number(input[k]) : d);
+  const run = (mgmtPct, vacancyPct) => {
+    const base = n('purchaseCents') + n('closingCents') + n('rehabCents') + n('holdingCents');
+    const financed = base * (n('shortFinancedPct', 100) / 100);
+    const points = financed * (n('shortPointsPct') / 100);
+    const interest = financed * (n('shortRatePct') / 100 / 12) * n('shortMonths');
+    const costBasis = base + points + interest;
+    const egi = n('rentMonthlyCents') * (1 - vacancyPct / 100);
+    const expenses = egi * (mgmtPct / 100) + n('insuranceYearCents') / 12 + n('taxesYearCents') / 12
+      + n('repairsMonthlyCents') + n('otherMonthlyCents');
+    const noi = egi - expenses;
+    const loan = n('arvCents') * (n('refiLtvPct') / 100);
+    const pay = payment(loan, n('refiRatePct'), n('amortYears'));
+    const proceeds = loan * (1 - n('refiCostPct') / 100);
+    const cashOut = proceeds - costBasis;
+    const left = Math.max(0, -cashOut);
+    const cashFlow = noi - pay;
+    return {
+      costBasisCents: Math.round(costBasis),
+      interestCents: Math.round(interest),
+      cashToCloseCents: Math.round(base - financed + points),
+      noiMonthlyCents: Math.round(noi),
+      loanCents: Math.round(loan),
+      paymentCents: Math.round(pay),
+      proceedsCents: Math.round(proceeds),
+      cashOutCents: Math.round(cashOut),
+      leftInDealCents: Math.round(left),
+      cashFlowMonthlyCents: Math.round(cashFlow),
+      dcr: pay > 0 ? r2(noi / pay) : null,
+      equityCents: Math.round(n('arvCents') - loan),
+      costPctOfArv: r2((costBasis / n('arvCents')) * 100),
+      capOnCostPct: r2(((noi * 12) / costBasis) * 100),
+      capOnArvPct: r2(((noi * 12) / n('arvCents')) * 100),
+      rentToCostPct: r2((n('rentMonthlyCents') / costBasis) * 100),
+      cashOnCashPct: left > 0 ? r2(((cashFlow * 12) / left) * 100) : null,
+      loanAtDcrCents: Math.round(loanFor(noi / BRRRR_RULES.minDcr, n('refiRatePct'), n('amortYears'))),
+    };
+  };
+  const at = run(n('managementPct'), n('vacancyPct'));
+  const R = BRRRR_RULES;
+  const checks = [
+    { key: 'cost', ok: at.costPctOfArv < R.maxCostPctOfArv, says: `All-in cost is ${at.costPctOfArv}% of the after-repair value (below ${R.maxCostPctOfArv}%).` },
+    { key: 'dcr', ok: at.dcr !== null && at.dcr >= R.minDcr, says: `Debt coverage ${at.dcr} (the bank looks for ${R.minDcr}).` },
+    { key: 'cashflow', ok: at.cashFlowMonthlyCents >= R.minCashFlowCents, says: `Cash flow ${at.cashFlowMonthlyCents / 100} a month (at least ${R.minCashFlowCents / 100}).` },
+    { key: 'rent', ok: at.rentToCostPct >= R.minRentToCostPct, says: `Rent is ${at.rentToCostPct}% of the all-in cost a month (at least ${R.minRentToCostPct}%).` },
+    { key: 'left', ok: at.leftInDealCents === 0 || (at.cashOnCashPct !== null && at.cashOnCashPct >= R.minCashOnCashPct), says: at.leftInDealCents === 0 ? 'Every dollar comes back out at the refinance.' : `Money left in the deal earns ${at.cashOnCashPct}% cash on cash (at least ${R.minCashOnCashPct}%).` },
+  ];
+  return {
+    complete: true,
+    ...at,
+    checks,
+    works: checks.every((c) => c.ok),
+    stressed: run(n('managementPct') > 0 ? n('managementPct') : 8, Math.max(n('vacancyPct'), 8)),
+  };
+}

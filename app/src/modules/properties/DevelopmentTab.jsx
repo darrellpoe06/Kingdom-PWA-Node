@@ -18,7 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LINE_KINDS, CHANGE_SOURCES, PROJECT_KINDS, CAPITAL_KINDS, budgetSummary, tiCheck, phaseProgress,
-  valuation, dealReturns, compareBuildToRent,
+  valuation, dealReturns, compareBuildToRent, trackBudget, brrrr,
 } from './development.js';
 import {
   developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow,
@@ -116,6 +116,7 @@ function Budget({ project, data, api, reload }) {
   const [form, setForm] = useState({ kind: 'hard', label: '', budget: '', actual: '' });
   const [msg, setMsg] = useState('');
   const b = budgetSummary({ lines: data.lines, changeOrders: data.changeOrders });
+  const t = trackBudget({ lines: data.lines, grossSqFt: data.grossSqFt });
   const add = async () => {
     const r = await api.addRow('dev_budget_lines', project, {
       kind: form.kind, label: form.label.trim(), budget_cents: centsOrNull(form.budget), actual_cents: centsOrNull(form.actual),
@@ -138,15 +139,40 @@ function Budget({ project, data, api, reload }) {
           ))}
         </tbody>
       </table>
-      <ul className="text-[0.8125rem] mb-2">
-        {data.lines.map((l) => (
-          <li key={l.id} className="flex justify-between gap-2 border-t border-[#F0ECE4] py-1">
-            <span>{l.label} <span className="text-[#6B665E]">· {LINE_KINDS.find((k) => k.key === l.kind)?.label}</span></span>
-            <span className="tabular-nums">{l.budgetCents == null ? 'not priced' : money(l.budgetCents)}
-              <button type="button" className="ml-2 text-[#B85838] underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={confirmThen(`Remove the budget line "${l.label}"?`, async () => { await api.deleteRow('dev_budget_lines', l.id); reload(); })}>remove</button></span>
-          </li>
-        ))}
-      </ul>
+      <table className="w-full text-[0.8125rem] mb-1" data-testid="dev-tracking">
+        <caption className="sr-only">Each line: budget, budget a square foot, spent, the variance, and whether it is done</caption>
+        <thead><tr className="text-[#6B665E]">
+          <th scope="col" className="text-left font-normal">Line</th>
+          <th scope="col" className="text-right font-normal">Budget</th>
+          <th scope="col" className="text-right font-normal">A sq ft</th>
+          <th scope="col" className="text-right font-normal">Spent</th>
+          <th scope="col" className="text-right font-normal">Variance</th>
+          <th scope="col" className="text-right font-normal">Done</th>
+        </tr></thead>
+        <tbody>
+          {t.rows.map((r) => (
+            <tr key={r.id} className="border-t border-[#F0ECE4]">
+              <td className="py-1">{r.label} <span className="text-[#6B665E]">· {LINE_KINDS.find((k) => k.key === r.kind)?.label}</span>
+                <button type="button" className="ml-2 text-[#B85838] underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={confirmThen(`Remove the budget line "${r.label}"?`, async () => { await api.deleteRow('dev_budget_lines', r.id); reload(); })}>remove</button></td>
+              <td className="text-right tabular-nums">{r.budgetCents === null ? 'not priced' : money(r.budgetCents)}</td>
+              <td className="text-right tabular-nums">{r.actualPerSqFtCents !== null ? money(r.actualPerSqFtCents) : r.budgetPerSqFtCents !== null ? money(r.budgetPerSqFtCents) : '—'}</td>
+              <td className="text-right"><Spent key={`${r.id}-${r.actualCents}`} id={`dev-spent-${r.id}`} label={`Spent on ${r.label}`} cents={r.actualCents}
+                onSave={async (c) => { await api.patchRow('dev_budget_lines', r.id, { actual_cents: c }); reload(); }} /></td>
+              <td className={`text-right tabular-nums ${r.varianceCents !== null && r.varianceCents < 0 ? 'text-[#B85838] font-semibold' : 'text-[#2F5D50]'}`}>
+                {r.varianceCents === null ? '—' : `${r.varianceCents < 0 ? 'over ' : 'under '}${money(Math.abs(r.varianceCents))}`}{r.done ? '' : r.status === 'running-over' ? ' so far' : ''}</td>
+              <td className="text-right"><input type="checkbox" aria-label={`${r.label} is done`} checked={r.done}
+                onChange={async (e) => { await api.patchRow('dev_budget_lines', r.id, { done: e.target.checked }); reload(); }} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p role="status" data-testid="dev-forecast" className="text-[0.8125rem] mb-1">
+        {t.rows.length === 0 ? 'No lines yet.' : `Forecast to finish: ${money(t.forecastCents)}, ${t.forecastVarianceCents < 0 ? `${money(-t.forecastVarianceCents)} over` : `${money(t.forecastVarianceCents)} under`} the budget. ${t.doneCount} of ${t.rows.length} lines done; an open line counts at its budget, or at what it has already cost if that is more.`}
+        {t.forecastComplete ? '' : ` Not counted, because they have no budget yet: ${t.unknown.join(', ')}.`}
+      </p>
+      {t.unitCosts.length > 0 && (
+        <p data-testid="dev-unit-costs" className="text-[0.75rem] text-[#6B665E] mb-2">What finished lines really cost a square foot, for the next budget: {t.unitCosts.map((u) => `${u.label} ${money(u.perSqFtCents)}`).join(' · ')}.</p>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Select id="dev-line-kind" label="Category" value={form.kind} onChange={(v) => setForm({ ...form, kind: v })} options={LINE_KINDS} />
         <Field id="dev-line-label" label="Line" value={form.label} onChange={(v) => setForm({ ...form, label: v })} />
@@ -339,6 +365,19 @@ function Value({ project, engine, data, api, reload }) {
   );
 }
 
+/** What a line has cost, typed and saved when the field is left (a blank is not zero). */
+function Spent({ id, label, cents, onSave }) {
+  const [v, setV] = useState(cents === null || cents === undefined ? '' : String(cents / 100));
+  return (
+    <>
+      <label htmlFor={id} className="sr-only">{label}</label>
+      <input id={id} inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} placeholder="not entered"
+        onBlur={() => { const c = centsOrNull(v); if (c !== (cents ?? null)) onSave(c); }}
+        className="w-24 border border-[#E8E4DC] px-1 py-0.5 text-right tabular-nums bg-white" />
+    </>
+  );
+}
+
 /** The PoeTech project that holds this building's work and hours, saved when the field is left. */
 function ProjectRef({ value, onSave }) {
   const [v, setV] = useState(value);
@@ -384,6 +423,48 @@ export function BuildToRent() {
           </li>
         ))}
       </ol>
+    </Card>
+  );
+}
+
+/** Buy, rehab, rent, refinance, repeat: Kleyman's deal analysis, before an offer is made. */
+const BRRRR_FIELDS = [
+  ['purchase', 'Purchase ($)', 'purchaseCents', 'money'], ['closing', 'Closing ($)', 'closingCents', 'money'],
+  ['rehab', 'Rehab ($)', 'rehabCents', 'money'], ['holding', 'Holding ($)', 'holdingCents', 'money'],
+  ['shortRate', 'Short-term rate (%)', 'shortRatePct', 'num'], ['shortMonths', 'Months until the refinance', 'shortMonths', 'num'],
+  ['financed', 'Short-term financed (%)', 'shortFinancedPct', 'num'], ['arv', 'After-repair value ($)', 'arvCents', 'money'],
+  ['rent', 'Rent a month ($)', 'rentMonthlyCents', 'money'], ['vacancy', 'Vacancy (%)', 'vacancyPct', 'num'],
+  ['mgmt', 'Management (%)', 'managementPct', 'num'], ['insurance', 'Insurance a year ($)', 'insuranceYearCents', 'money'],
+  ['taxes', 'Taxes a year ($)', 'taxesYearCents', 'money'], ['repairs', 'Repairs a month ($)', 'repairsMonthlyCents', 'money'],
+  ['ltv', 'Refinance (% of value)', 'refiLtvPct', 'num'], ['refiRate', 'Refinance rate (%)', 'refiRatePct', 'num'],
+  ['amort', 'Amortization (years)', 'amortYears', 'num'], ['refiCost', 'Refinance costs (% of loan)', 'refiCostPct', 'num'],
+];
+export function Brrrr() {
+  const [f, setF] = useState({ financed: '100', vacancy: '8', ltv: '80', amort: '20', refiCost: '2' });
+  const input = Object.fromEntries(BRRRR_FIELDS.map(([k, , key, kind]) => {
+    const v = f[k];
+    if (v === undefined || v === '') return [key, null];
+    return [key, kind === 'money' ? centsOrNull(v) : (Number.isFinite(Number(v)) ? Number(v) : null)];
+  }));
+  const d = brrrr(input);
+  const label = Object.fromEntries(BRRRR_FIELDS.map(([, l, key]) => [key, l]));
+  return (
+    <Card title="Buy, rehab, rent, refinance, repeat">
+      <p className="text-[0.75rem] text-[#6B665E] mb-2">Run the deal before the offer. A short-term lender funds the purchase and the work, the tenant is in when the work ends, and a local bank refinances on the new value and pays the lender back. The bank sizes the loan by what the rent covers, so the checks below are the bank{'’'}s questions.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-2">
+        {BRRRR_FIELDS.map(([k, l]) => <Field key={k} id={`brrrr-${k}`} label={l} value={f[k] ?? ''} onChange={(v) => setF({ ...f, [k]: v })} />)}
+      </div>
+      <div data-testid="brrrr-result" className="text-[0.8125rem]">
+        {!d.complete ? <p className="text-[#6B665E]">Enter {d.missing.map((k) => label[k]).join(', ')}.</p> : (
+          <>
+            <p>All in {money(d.costBasisCents)} ({d.costPctOfArv}% of value) · loan {money(d.loanCents)} at {money(d.paymentCents)} a month · {d.cashOutCents >= 0 ? `${money(d.cashOutCents)} back in your pocket at the refinance` : `${money(d.leftInDealCents)} left in the deal`} · cash flow {money(d.cashFlowMonthlyCents)} a month · debt coverage {d.dcr} · {money(d.equityCents)} equity.</p>
+            <ul className="mt-1">
+              {d.checks.map((c) => <li key={c.key} className={c.ok ? 'text-[#2F5D50]' : 'text-[#B85838] font-semibold'}>{c.ok ? 'Holds: ' : 'Fails: '}{c.says}</li>)}
+            </ul>
+            <p className="mt-1 text-[#6B665E]">The lender{'’'}s stress test (management fee and at least 8% vacancy even if you manage it yourself): cash flow {money(d.stressed.cashFlowMonthlyCents)} a month, debt coverage {d.stressed.dcr}. At 1.3 this rent carries a loan of {money(d.loanAtDcrCents)}.</p>
+          </>
+        )}
+      </div>
     </Card>
   );
 }
@@ -459,6 +540,7 @@ export function DevelopmentTab({ api = DEFAULT_API }) {
         </>
       )}
       <BuildToRent />
+      <Brrrr />
     </div>
   );
 }

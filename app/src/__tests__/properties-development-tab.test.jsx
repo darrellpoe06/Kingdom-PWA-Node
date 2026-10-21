@@ -127,4 +127,47 @@ describe('the Development tab (DR-1158)', () => {
     expect(items[0].textContent).toMatch(/^Option B: 10\.81% gross yield/);
     expect(items[1].textContent).toMatch(/^Option A: 7\.94% gross yield/);
   });
+
+  it('each line says its budget, what it cost and its variance; the forecast never counts spent money back down', async () => {
+    const lines = [
+      { id: 'f1', kind: 'hard', grp: null, label: 'Framing material', budget_cents: 108000000, actual_cents: 112500000, done: true },
+      { id: 'f2', kind: 'hard', grp: null, label: 'Roof', budget_cents: 20000000, actual_cents: 25000000, done: false },
+      { id: 'f3', kind: 'hard', grp: null, label: 'Landscaping', budget_cents: null, actual_cents: null, done: false },
+    ];
+    await pickProject(fakeApi({ loadProject: vi.fn(async () => ({ ok: true, ...DATA, lines })) }));
+    const f = byTest('dev-forecast').textContent;
+    expect(f).toMatch(/Forecast to finish: \$1,375,000\.00, \$95,000\.00 over the budget/);
+    expect(f).toMatch(/Not counted, because they have no budget yet: Landscaping/);
+    expect(byTest('dev-unit-costs').textContent).toMatch(/Framing material \$25/);
+    expect(byTest('dev-tracking').textContent).toMatch(/over \$50,000\.00 so far/);
+  });
+
+  it('marking a line done and typing what it cost each save once, to that line', async () => {
+    const api = fakeApi({ loadProject: vi.fn(async () => ({ ok: true, ...DATA })) });
+    await pickProject(api);
+    const box = host.querySelector('input[aria-label="Construction is done"]');
+    await act(async () => { box.click(); });
+    await settle();
+    expect(api.patchRow).toHaveBeenCalledWith('dev_budget_lines', 'l2', { done: true });
+    const spent = byId('dev-spent-l2');
+    await setValue(spent, '8100000');
+    expect(api.patchRow).toHaveBeenCalledTimes(1);
+    await act(async () => { spent.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    await settle();
+    expect(api.patchRow).toHaveBeenLastCalledWith('dev_budget_lines', 'l2', { actual_cents: 810000000 });
+  });
+
+  it('the BRRRR card runs Kleyman\'s deal and names which of his rules fail', async () => {
+    await mount(fakeApi());
+    expect(byTest('brrrr-result').textContent).toMatch(/^Enter Purchase/);
+    const deal = { purchase: '50000', closing: '1500', rehab: '20000', holding: '1000', shortRate: '8', shortMonths: '3',
+      arv: '100000', rent: '1000', insurance: '600', taxes: '1200', repairs: '100', refiRate: '5.5', mgmt: '8' };
+    for (const [k, v] of Object.entries(deal)) await setValue(byId(`brrrr-${k}`), v);
+    const r = byTest('brrrr-result').textContent;
+    expect(r).toMatch(/All in \$73,950/);
+    expect(r).toMatch(/debt coverage 1\.08/);
+    expect(r).toMatch(/Fails: Debt coverage 1\.08/);
+    await setValue(byId('brrrr-rent'), '1200');
+    expect(byTest('brrrr-result').textContent).not.toMatch(/Fails:/);
+  });
 });
