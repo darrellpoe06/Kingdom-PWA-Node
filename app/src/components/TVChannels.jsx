@@ -86,7 +86,13 @@ export default function TVChannels({ email = null }) {
   // same per-identity keying tv-time.js uses.
   useEffect(() => { setState(loadChannels(email)); setFeeds({}); }, [email]);
 
-  const persist = (next) => { saveChannels(email, next); setState(next); };
+  // The LATEST state, for the handlers. `add` and `drop` both derive a new list
+  // from the current one, and reading `state` out of the render closure means two
+  // quick taps can both start from the same snapshot and silently drop one of the
+  // changes. The ref is the same cure TVTime.jsx uses for its own writes.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const persist = (next) => { saveChannels(email, next); stateRef.current = next; setState(next); };
   const follows = useMemo(() => followedChannels(state), [state]);
 
   // Read one channel's feed over our own edge. Fail-soft and SPECIFIC: a failure
@@ -151,7 +157,7 @@ export default function TVChannels({ email = null }) {
       }
       const parsed = parseFeed(body.xml);
       const id = body.channelId;
-      const next = followChannel(state, { id, title: parsed.channelTitle || id }, new Date().toISOString());
+      const next = followChannel(stateRef.current, { id, title: parsed.channelTitle || id }, new Date().toISOString());
       persist(next);
       setFeeds((f) => ({ ...f, [id]: { channelTitle: parsed.channelTitle, episodes: parsed.episodes } }));
       setDraft('');
@@ -164,7 +170,7 @@ export default function TVChannels({ email = null }) {
   };
 
   const drop = (id) => {
-    persist(unfollowChannel(state, id));
+    persist(unfollowChannel(stateRef.current, id));
     setFeeds((f) => { const n = { ...f }; delete n[id]; return n; });
     setMsg('');
   };
