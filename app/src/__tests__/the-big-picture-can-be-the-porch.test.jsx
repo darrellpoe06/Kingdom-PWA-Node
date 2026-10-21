@@ -217,7 +217,7 @@ describe('a tenant gets their own door, and only their own door', () => {
     expect(picked).not.toContain('1313_porch');
   });
 
-  // WHAT WAS MEASURED BEFORE THE FIX (DR-1171), recorded so the gap is not
+  // WHAT WAS MEASURED BEFORE THE FIX (DR-1177), recorded so the gap is not
   // just asserted away: with suggestDoorCameras matching on the house number
   // alone and never reading doorWords().unit, this same suite ran green on
   // `expect(apt1).toEqual(apt2)` and `expect(apt1).toContain('805_apt2_hallway')`.

@@ -3,7 +3,7 @@
 **Date:** 2026-10-21
 **Asked for by Darrell:** *"So those work together like they currently should... review for end to end comprehensive understanding and implementation of the process and effectiveness of the process and workflows"*
 **Standard run:** `COMPREHENSIVE-REVIEW-STANDARD.md` (DR-0239), procedure `SHOULD → ARE → GAPS → CLOSE` (DR-0219).
-**Records that came out of it:** DR-1176 (the hero), DR-1171 (the pre-ticked suggestion).
+**Records that came out of it:** DR-1176 (the hero), DR-1177 (the pre-ticked suggestion).
 
 ---
 
@@ -43,15 +43,15 @@
 
 **GAP 4 — the hero has no door context.** It renders on the signed-out portal picker, before anyone says who they are, so it uses whatever single credential the device holds. Correct by the NAS, but it shows *a* porch, not provably *your* porch. Stated in DR-1176 rather than implied.
 
-**GAP 5 — two independent lists for "which cameras does this door involve".** The door grant's pre-ticks come from `suggestDoorCameras`; the ask menu comes from whatever was saved, seeded from nothing. After DR-1171 the first is narrowed by unit and the second is not, so an owner setting the ask menu by hand gets no such protection.
+**GAP 5 — two independent lists for "which cameras does this door involve".** The door grant's pre-ticks come from `suggestDoorCameras`; the ask menu comes from whatever was saved, seeded from nothing. After DR-1177 the first is narrowed by unit and the second is not, so an owner setting the ask menu by hand gets no such protection.
 
-**GAP 6 (closed tonight, recorded for the chain) — the pre-ticked suggestion offered the whole building.** Measured green on `expect(apt1).toEqual(apt2)` before the fix. DR-1171.
+**GAP 6 (closed tonight, recorded for the chain) — the pre-ticked suggestion offered the whole building.** Measured green on `expect(apt1).toEqual(apt2)` before the fix. DR-1177.
 
 ## 4. CLOSE — what was fixed, and the date on the rest
 
 | gap | disposition |
 |---|---|
-| **6** | **Fixed** — DR-1171, with the old behaviour proven-to-catch. |
+| **6** | **Fixed** — DR-1177, with the old behaviour proven-to-catch. |
 | **4** | **Stated, not fixed** — DR-1176 records it; the hero is honest about naming the camera it opens. `re-review: 2026-10-28`. |
 | **1, 2** | **Not fixed tonight, deliberately.** The real fix is a multi-grant credential store — keep several grants on a device and choose among them — which changes `cameras.js`, the file every camera surface on the platform depends on, including the wall Darrell was watching tonight. That is a change to make with its proof and with someone awake, not at 07:20 after a one-line read. **`re-review: 2026-10-22`**, as its own PR. |
 | **3** | **Not fixed tonight.** Clearing the slot on a `401`/`403` is small, but it belongs with 1 and 2 in the same credential-store change rather than as a third patch to the same object. **`re-review: 2026-10-22`**. |

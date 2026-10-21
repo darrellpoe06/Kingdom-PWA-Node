@@ -1,4 +1,4 @@
-# DR-1171: Another tenant's hallway is not this tenant's door — the pre-ticked suggestion stops offering the whole building
+# DR-1177: Another tenant's hallway is not this tenant's door — the pre-ticked suggestion stops offering the whole building
 
 **Date:** 2026-10-21
 **Status:** accepted

@@ -85,7 +85,7 @@ export function doorUnit(door = {}) {
  * "805" picks every "805 ..." camera) — AND THEN, at a multi-unit address, the
  * ones that are not plainly ANOTHER unit's.
  *
- * ANOTHER TENANT'S HALLWAY IS NOT THIS TENANT'S DOOR (DR-1171). Darrell asked
+ * ANOTHER TENANT'S HALLWAY IS NOT THIS TENANT'S DOOR (DR-1177). Darrell asked
  * it straight on 2026-10-21: "Tenants only get their door right?" By mechanism
  * the answer was already yes — a grant names its cameras, the NAS returns only
  * those on /list and answers 403 not-your-camera for any other
