@@ -279,6 +279,30 @@ jobs:
                 { curl -sN -m 90 -D /tmp/tab.mh -H 'Origin: https://poetech.us' "$ROAD/live/$CAMERA.mp4?t=$TK"; echo "$?" > /tmp/tab.rc; } | python3 -c '
           import sys, time
           t0 = time.time(); first = None; last = t0; gap = 0.0; gap_at = 0.0; total = 0; buckets = {}; head = b""
+          buf = b""; scale = 0; frags = []
+          def walk(b, path):
+              i = 0
+              while i + 8 <= len(b):
+                  n = int.from_bytes(b[i:i+4], "big"); k = b[i+4:i+8]
+                  if n < 8:
+                      return None
+                  if k == path[0]:
+                      return b[i+8:i+n] if len(path) == 1 else walk(b[i+8:i+n], path[1:])
+                  i += n
+              return None
+          def mdhd_scale(moov):
+              m = walk(moov, [b"trak", b"mdia", b"mdhd"])
+              if not m:
+                  return 0
+              return int.from_bytes(m[20:24] if m[0] == 1 else m[12:16], "big")
+          def tfdt_of(moof):
+              t = walk(moof, [b"traf", b"tfdt"])
+              if not t:
+                  return None
+              return int.from_bytes(t[4:12] if t[0] == 1 else t[4:8], "big")
+          def sync_of(moof):
+              t = walk(moof, [b"traf", b"trun"])
+              return t is not None
           src = sys.stdin.buffer
           while True:
               c = src.read1(65536)
@@ -294,10 +318,37 @@ jobs:
               buckets[k] = buckets.get(k, 0) + len(c)
               if len(head) < 512 * 1024:
                   head += c[: 512 * 1024 - len(head)]
+              buf += c
+              while len(buf) >= 8:
+                  n = int.from_bytes(buf[0:4], "big"); kind = buf[4:8]
+                  if n < 8 or len(buf) < n:
+                      break
+                  box = buf[8:n]; buf = buf[n:]
+                  if kind == b"moov":
+                      scale = mdhd_scale(box) or scale
+                  elif kind == b"moof":
+                      d = tfdt_of(box)
+                      if d is not None and scale:
+                          frags.append((now - t0, d / float(scale), sync_of(box)))
           end = time.time() - t0
           print("  live .mp4 for up to 90 s: first byte at %s, %d bytes, ended at %.1f s" % ("%.2f s" % first if first is not None else "never", total, end))
           print("    bytes per 5 s: " + " ".join("%d:%dK" % (k, v // 1024) for k, v in sorted(buckets.items())))
           print("    longest silence between chunks: %.1f s, starting at %.1f s" % (gap, gap_at))
+          # The stream own clock against the wall: a media clock that runs ahead
+          # of or behind the real one makes the tab lag and freeze rules hang up a
+          # stream that is still flowing (DR-1097 sixteenth read).
+          if len(frags) >= 2:
+              w0, m0, _x = frags[0]
+              marks = [f for f in frags if f[0] - w0 >= 0]
+              step = max(1, len(marks) // 9)
+              print("    fragments: %d; wall s -> media s (from the first fragment): %s" % (len(frags), " ".join("%.0f->%.1f" % (w - w0, m - m0) for (w, m, _x) in marks[::step])))
+              wl, ml, _x = frags[-1]
+              if wl - w0 > 0:
+                  print("    media clock runs at %.3f x the wall clock over %.0f s (1.000 = real time); lead at the end %+.1f s" % ((ml - m0) / (wl - w0), wl - w0, (ml - m0) - (wl - w0)))
+              durs = [b[1] - a[1] for a, b in zip(frags, frags[1:])]
+              print("    fragment media length: min %.2f s, max %.2f s" % (min(durs), max(durs)))
+          else:
+              print("    fragments: %d (no media clock read)" % len(frags))
           boxes = [k for k in (b"ftyp", b"moov", b"moof", b"mdat", b"avc1", b"avc3", b"hvc1", b"hev1", b"mp4a", b"opus") if k in head]
           print("    codec boxes in the first %d bytes: %s" % (len(head), ", ".join(x.decode() for x in boxes) or "none"))
           '
