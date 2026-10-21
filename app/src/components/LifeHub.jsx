@@ -49,7 +49,6 @@ import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
 import HubCamera from './HubCamera.jsx';
 import UiIcon from './UiIcon.jsx';
-import { surfaceById } from '../surfaces.js';
 
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4';
 const MUTED = 'text-[#5A5751]';
@@ -104,7 +103,7 @@ const ACTION_STYLE = {
 };
 const ACTIVITY_ICON = { incident: 'alert', project: 'folder', note: 'dove', photo: 'eye', goal: 'pin', focus: 'check' };
 
-export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '', viewer = null }) {
+export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '', viewer = null, surfaces = null }) {
   const { density } = useHomePrefs();
   const [unread, setUnread] = useState(0);
   const [newest, setNewest] = useState(null);
@@ -128,8 +127,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   }, []);
 
   const tiles = useMemo(() => hubTiles(data, { unread }), [data, unread]);
-  // The doors THIS viewer may open, by the nav's own rule (DR-1192).
-  const actions = useMemo(() => actionsFor(density, { viewer, surfaces: surfaceById }), [density, viewer]);
+  // The doors THIS viewer may open, by the nav's own rule (DR-1192). The
+  // registry comes in from the shell with the viewer: it is shell-only
+  // (module-boundary-guard), so a component never imports it.
+  const actions = useMemo(() => actionsFor(density, { viewer, surfaces }), [density, viewer, surfaces]);
   const activity = useMemo(() => recentActivity(data, { limit: 5 }), [data]);
   const focusList = data.dailyFocus || [];
   const todays = focusForDay(focusList);

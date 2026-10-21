@@ -7,9 +7,9 @@
 **Area:**
 - `app/src/lib/life-hub.js` (`HUB_ACTIONS` as doors with a `surface` each, `destinationOf`, `overlappingActions`, `actionsFor(density, { viewer, surfaces })`, `HOST_VIEWS`)
 - `app/src/lib/home-view-prefs.js` (`DENSITY_ACTIONS` 8 / 16 / 12)
-- `app/src/components/LifeHub.jsx` (one fill and one glyph per action; the viewer prop; actions read through `surfaceById`)
+- `app/src/components/LifeHub.jsx` (one fill and one glyph per action; the `viewer` and `surfaces` props, both handed in by the shell: the registry is shell-only, so the Hub never imports it)
 - `app/src/components/BigPictureDashboard.jsx` (`Home` passes the viewer through)
-- `app/src/poe-financial-mvp-v28.jsx` (one existing mount line gains `viewer={surfaceViewer}`)
+- `app/src/poe-financial-mvp-v28.jsx` (one existing mount line gains `viewer={surfaceViewer} surfaces={surfaceById}`)
 - `app/src/lib/theme-css.js` (the midnight twin of the one new fill)
 - `app/src/__tests__/life-hub.test.jsx` (the overlap gate, proven to catch; the viewer cases; the counts)
 

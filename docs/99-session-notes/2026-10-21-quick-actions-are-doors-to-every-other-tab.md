@@ -9,8 +9,8 @@
 |---|---|---|
 | the doors | `app/src/lib/life-hub.js` | 24 actions: three records on this page (focus, goal, photo) and 21 doors, each to one tab, each naming its surface in `surfaces.js`; `destinationOf` and `overlappingActions` are the overlap gate; `actionsFor(density, { viewer, surfaces })` keeps only the doors this viewer may open, by the nav's own `surfaceAccess` |
 | the counts | `app/src/lib/home-view-prefs.js` | 8 / 12 / 16 by density (airy / compact / photo), whole rows of four; her mockups' 4 / 6 / 8 doubled |
-| the tiles | `app/src/components/LifeHub.jsx` | one fill and one glyph per action; the `viewer` prop; actions read through `surfaceById` |
-| the viewer | `BigPictureDashboard.jsx`, `poe-financial-mvp-v28.jsx` | the host's `surfaceViewer` rides one existing mount line through `Home` into the Hub |
+| the tiles | `app/src/components/LifeHub.jsx` | one fill and one glyph per action; the `viewer` and `surfaces` props, both from the shell (the registry is shell-only; the Hub never imports it) |
+| the viewer | `BigPictureDashboard.jsx`, `poe-financial-mvp-v28.jsx` | the host's `surfaceViewer` and `surfaceById` ride one existing mount line through `Home` into the Hub |
 | one fill | `app/src/lib/theme-css.js` | `#3A2A4A` (Notes, TV Time, Your Data) gets its midnight twin; every other fill is a token that already had one |
 
 ## What was measured

@@ -78,6 +78,7 @@ export function Home(props) {
         setChurchView={props.setChurchView}
         setBooksView={props.setBooksView}
         viewer={props.viewer || null}
+        surfaces={props.surfaces || null}
       />
     );
   }

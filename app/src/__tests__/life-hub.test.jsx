@@ -85,7 +85,9 @@ const world = {
   projects: [{ id: 'p1', status: 'active' }, { id: 'p2', status: 'planning' }, { id: 'p3', status: 'complete' }, { id: 'p4', status: 'on-hold' }],
   dailyFocus: [], goals: [],
 };
-const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, setChurchView: noop, setBooksView: noop, ...over });
+// The registry rides in from the shell, as it does in the app (the Hub never
+// imports it: module-boundary-guard). No viewer reads as a visitor.
+const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, setChurchView: noop, setBooksView: noop, surfaces: surfaceById, ...over });
 const render = (el) => { act(() => root.render(el)); };
 const text = () => container.textContent || '';
 
@@ -392,6 +394,8 @@ describe('her three looks all ship, as density', () => {
     };
     // No viewer handed in reads as a visitor: the signed-in and family doors
     // are not drawn, so photo density shows the 14 open to anyone, not 16.
+    // (Without the registry every door would read as open; the shell always
+    // hands it in, and hubProps does the same.)
     expect(count()).toBe(8);
     act(() => setHubDensity('photo'));
     expect(count()).toBe(14);
