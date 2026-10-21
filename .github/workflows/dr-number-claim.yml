@@ -91,7 +91,9 @@ jobs:
           for line in tree.splitlines():
               m = REC.match(line.split("/")[-1])
               if m:
-                  main_claims.setdefault(str(int(m.group(1))), line.split("/")[-1])
+                  # EVERY record on the number: a red main can hold two, and
+                  # the PR repairing it keeps one of them (dr-number-claims.mjs).
+                  main_claims.setdefault(str(int(m.group(1))), []).append(line.split("/")[-1])
           print(f"{BASE} holds {len(main_claims)} decision records")
 
           # Every OTHER open PR's introduced records, from the files it changes.

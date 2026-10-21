@@ -404,7 +404,7 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 ## Review Our Ways — Mandatory (DR-0108)
 
-**We review our WAYS — methods, tools, access paths, assumptions — as a standing, mandatory, documented practice** (an `orchestration`-type REV record; a new DR when a way changes). The agent accounts for the WHOLE TEAM's capabilities — Darrell has ConnectBot SSH to the NAS from his phone; the NAS self-deploys repo services via the services-sync manifest — never only its own reach; a stated "can't / must-be-by-hand" is an unverified premise to challenge, not a place to stop. The five standing questions + convention: **DR-0108**.
+**We review our WAYS — methods, tools, access paths, assumptions — as a standing, mandatory, documented practice** (an `orchestration` REV; a new DR when a way changes). The agent scopes to the WHOLE TEAM's reach, never its own: a stated "can't / must-be-by-hand" is an unverified premise to challenge, not a place to stop. **The order of roads to a value the NAS holds is mandatory (DR-1159, Darrell 2026-10-21: *"One move and why can't you use cli... or ssh?!"*):** (1) a GitHub runner over the tailnet (`TS_AUTHKEY` + `NAS_SSH_KEY`, the road the deploy and `announce-bearer-sync.yml` walk), masked, never printed; (2) ConnectBot, his SSH from the phone, a self-contained paste; (3) a hand, only for a value only Darrell can mint, with the reason. A paste handed for a NAS-held value is a Ways finding, not a delivery. The five standing questions: **DR-0108**.
 
 ## Do the Work — Don't Re-Ask What's Already Decided (added 2026-07-06, declared by Darrell)
 

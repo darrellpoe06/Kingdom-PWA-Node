@@ -191,6 +191,53 @@ export const WELCOME_CSS = `
   .pp-footer-line::before,.pp-footer-line::after{display:none}
 }
 .pp-footer-gold{color:var(--pp-gold)}
+/* ===========================================================================
+   THE REAL ESTATE DOOR, IN THIS SAME FACE (DR-1169)
+   ===========================================================================
+   Darrell 2026-10-21: "Real Estate can also look like Properties... and have
+   the new features we discussed earlier." So the Real Estate tab's opening
+   band (components/RealEstateDoor.jsx) mounts a scoped .pp-door island and
+   reuses everything above — the Playfair headings, the gold rule, the white
+   panel, the auto-fit card grid, the kicker. Only what the front page has no
+   equivalent for is added here, and every color is a --pp-* token with its
+   midnight remap, never an inline hex (an inline color cannot be remapped and
+   goes dark-on-dark, which lib/legibility-health.json's guard refuses).
+   --pp-good / --pp-watch are the two non-brand accents a portfolio needs:
+   paid-and-clear, and look-at-this-but-it-is-not-urgent. True red stays what
+   it already is on this door — brand chrome — and never marks the Scripture,
+   which is set in --pp-muted (DR-0099). */
+.pp-door{--pp-good:#2F6B3A;--pp-watch:#1F4D82}
+[data-theme="midnight"].pp-door{--pp-good:#7FD69A;--pp-watch:#8FC2FF}
+.pp-good{color:var(--pp-good)}
+.pp-watch{color:var(--pp-watch)}
+.pp-mute{color:var(--pp-muted)}
+.pp-re-door{border-radius:calc(1 * var(--ts-fixed,1rem));overflow:hidden;margin-bottom:calc(1 * var(--ts-fixed,1rem));padding:calc(1 * var(--ts-fixed,1rem))}
+.pp-re>*+*{margin-top:calc(1 * var(--ts-fixed,1rem))}
+.pp-re-head .pp-rule{margin:calc(0.6 * var(--ts-fixed,1rem)) 0 calc(0.6 * var(--ts-fixed,1rem))}
+.pp-re-head .pp-eyebrow{margin:calc(1 * var(--ts-fixed,1rem)) 0 calc(0.5 * var(--ts-fixed,1rem))}
+.pp-re-line{font-size:.9375rem;line-height:1.45;color:var(--pp-ink);margin:calc(0.45 * var(--ts-fixed,1rem)) 0 0}
+.pp-re-note{font-size:.875rem;line-height:1.5;color:var(--pp-muted);margin:calc(0.35 * var(--ts-fixed,1rem)) 0 0}
+.pp-meter{display:block;height:calc(0.55 * var(--ts-fixed,1rem));border-radius:999px;background:var(--pp-gray-disc);overflow:hidden}
+.pp-meter-fill{display:block;height:100%;background:var(--pp-red);border-radius:999px}
+/* The four figures ride the front page's auto-fit grid, but at ITS 21rem
+   minimum a 360px phone fits one per row and the band grew to 3,025px of
+   scroll (measured). A narrower minimum puts two across on a phone and all
+   four across from a tablet, which is what the measurement asked for. */
+.pp-re-stats{margin-top:calc(1 * var(--ts-fixed,1rem));grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(7 * var(--ts-fixed,1rem))),1fr));gap:calc(0.6 * var(--ts-fixed,1rem))}
+.pp-stat{display:flex;flex-direction:column;gap:calc(0.15 * var(--ts-fixed,1rem));padding:calc(0.9 * var(--ts-fixed,1rem)) calc(1 * var(--ts-fixed,1rem))}
+.pp-stat-label{font-size:.625rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--pp-muted)}
+.pp-stat-value{font-family:var(--pp-serif);font-weight:700;font-size:1.5rem;line-height:1.1;letter-spacing:-.015em;color:var(--pp-ink)}
+.pp-stat-sub{font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--pp-muted)}
+.pp-re-bands{display:flex;flex-wrap:wrap;gap:calc(0.5 * var(--ts-fixed,1rem));margin-top:calc(0.6 * var(--ts-fixed,1rem))}
+.pp-band{display:flex;align-items:baseline;gap:calc(0.4 * var(--ts-fixed,1rem));min-height:calc(2.75 * var(--ts-fixed,1rem));padding:calc(0.4 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));text-align:left;background:var(--pp-card);border:1px solid var(--pp-line);border-radius:999px;color:var(--pp-ink);cursor:pointer}
+.pp-band:hover{border-color:var(--pp-red)}
+.pp-band.is-on{border-color:var(--pp-ink);box-shadow:inset 0 0 0 1px var(--pp-ink)}
+.pp-band:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-band-n{font-family:var(--pp-serif);font-weight:700;font-size:1.125rem;line-height:1}
+.pp-band-w{font-size:.8125rem;line-height:1.2;color:var(--pp-ink)}
+.pp-re-back{margin:calc(0.6 * var(--ts-fixed,1rem)) 0 0}
+.pp-verse{font-size:.875rem;line-height:1.55;font-style:italic;color:var(--pp-muted);margin:calc(0.5 * var(--ts-fixed,1rem)) 0 0}
+.pp-verse-ref{font-style:normal;font-size:.625rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
 `;
 
 /**

@@ -943,7 +943,9 @@ const NODES = [
   wf('site-health.yml', {
     id: 'site-health', name: 'Site health witness',
     purpose: 'Proves poetech.us is up, whole and fresh, from outside; heals a stale build.',
-    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'gh:secret', token: 'VITE_N8N_BEARER' }, // the bell's bearer (DR-1159)
+    ],
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['ops-surface', 'deploy'],
   }),
@@ -1321,6 +1323,18 @@ const NODES = [
     id: 'push-sender-credentials', name: 'Push sender credentials', purpose: 'Installs the database credentials the push sender needs.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'cf:push-env', token: 'SUPABASE_SERVICE_KEY' }], seeds: ['push-send'],
   }),
+  // THE BELL'S BEARER (DR-1159). The witness rings through ops-announce with
+  // the repository secret; the relay reads the same bearer from its own file
+  // on the NAS. When they drift, this runner walks the tailnet, reads the
+  // file, installs the secret with the NAS's own GitHub token, reads it back
+  // by date and rings once: the Way a NAS-held value comes to the lane.
+  wf('announce-bearer-sync.yml', {
+    id: 'announce-bearer-sync', name: "The bell's bearer comes to the lane by the runner (DR-1159)",
+    purpose: "Reads the announce bearer and the NAS's own GitHub token from the NAS over the tailnet, installs the bearer as the repository secret the witness rings with, reads it back by date, and rings once as proof.",
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:storage', token: 'announce-token.txt' }],
+    writes: [{ res: 'gh:secret', token: 'VITE_N8N_BEARER' }, { res: 'http:announce', token: 'ops-announce' }],
+    seeds: ['site-health'],
+  }),
   app('app/functions/api/push-send.js', {
     id: 'push-send', name: 'Push sender (buzzes a phone)', purpose: 'Sends a notification to the devices that asked for it.',
     reads: [{ res: 'cf:push-env', token: 'VAPID_PUBLIC_KEY' }, { res: 'db:push_subscriptions', token: 'push_subscriptions' }, { res: 'http:push-send', token: 'fault' }],
@@ -1411,6 +1425,29 @@ const NODES = [
     reads: [
       { res: 'db:property_energy_imports', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_imports').select" },
       { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "rpc('property_energy_hourly'" },
+    ],
+  }),
+  // Building from the ground up (DR-1166): a development project, its budget
+  // lines, change orders, commercial bays, phase checks and capital, in the
+  // landlord instance; the Development tab counts them with development.js,
+  // and project_ref names the PoeTech project that holds the work and hours.
+  app('app/src/modules/properties/DevelopmentTab.jsx', {
+    id: 'development', name: 'Building from the ground up (Development tab)', purpose: 'The owner keeps a building project: the budget by category with the TI allowance and contingency, change orders and where their money comes from, the phases with dated and signed checks, what it is worth, and the deal for investors.',
+    writes: [
+      { res: 'db:dev_projects', file: 'app/src/modules/properties/development-cloud.js', token: "client.from('dev_projects')\n      .insert" },
+      { res: 'db:dev_budget_lines', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_budget_lines'" },
+      { res: 'db:dev_change_orders', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_change_orders'" },
+      { res: 'db:dev_bays', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_bays'" },
+      { res: 'db:dev_capital', file: 'app/src/modules/properties/development-cloud.js', token: "'dev_capital'" },
+      { res: 'db:dev_checks', file: 'app/src/modules/properties/development-cloud.js', token: "from('dev_checks').upsert" },
+    ],
+    reads: [
+      { res: 'db:dev_projects', file: 'app/src/modules/properties/development-cloud.js', token: "from('dev_projects').select" },
+      { res: 'db:dev_budget_lines', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_change_orders', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_bays', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_checks', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
+      { res: 'db:dev_capital', file: 'app/src/modules/properties/development-cloud.js', token: 'CHILD_TABLES.map((t) => withTimeout(client.from(t).select' },
     ],
   }),
   // A door's cameras, asked for and given (DR-0938): the family offers names
@@ -1967,6 +2004,8 @@ const RESOURCES = {
   'gh:pr-advice': { label: 'the "owner, merge main" comment on a PR', sink: 'The owner of the PR reads it and merges main (DR-0644); nothing else reads it.' },
   'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
+  // Written by announce-bearer-sync (DR-1159): a value installed on the repository for its workflows to read, masked on the way in and never printed; it arrives by the runner over the tailnet, never by a hand.
+  'gh:secret': { label: 'a repository secret' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
   'gh:lesson-bell': { label: 'the lesson inbox bell PR (#1879)' },
   'gh:pr': { label: 'pull requests' },

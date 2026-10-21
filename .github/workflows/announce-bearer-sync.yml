@@ -1,0 +1,174 @@
+# =============================================================================
+# The bell's bearer comes to the lane by the runner, never by a hand (DR-1159)
+# =============================================================================
+# Darrell, 2026-10-21, on being handed a PowerShell block to paste the announce
+# token into a repository secret: "One move and why can't you use cli... or
+# ssh?!!!!!" and then "Make that mandatory... add to the Ways and documentation".
+#
+# THE MEASURED FAULT. site-health.yml rings the family's phones through
+# scripts/ops-announce.mjs with the repository secret VITE_N8N_BEARER. Since
+# 2026-10-20T22:20Z every ring has been refused: "the announce relay refused
+# the token (HTTP 401) -- the bearer is wrong, expired or revoked" (#2057,
+# comments 6303067042, 6303819236, 6305787364, 6309027975). The relay reads
+# its bearer from /volume1/PoeTech/secrets/announce-token.txt on the NAS
+# (infra/nas-announce/announce_server.py TOKEN_FILE); the secret and the file
+# drifted apart.
+#
+# THE WAY (DR-0108, DR-1159). A value the NAS holds reaches this repository by
+# a runner on the team's tailnet with the NAS SSH key -- exactly how
+# deploy-cloudflare-pages.yml, push-sender-credentials.yml and
+# cf-roads-worker.yml already read the sovereign keys -- never by a person
+# reading a token on one screen and typing it on another. The NAS also holds
+# the GitHub token the build loop pushes with (DR-0085,
+# /volume1/PoeTech/secrets/github-token.txt, repo + workflow), which is what
+# writes the secret here. NO VALUE IS PRINTED: both are masked the moment they
+# are read and leave the runner only as a request header or a secret body.
+#
+# PROOF, NOT A CLAIM (DR-0076, DR-0970). The secret is read back by name and
+# date, and then the bell is rung ONCE, at the lowest priority, with the fresh
+# bearer, through the very script the witness uses; a refusal fails this run.
+#
+# BRAKES: dispatch-only, no clock, one run at a time; idempotent (setting the
+# same value again changes nothing). Stop-path: do not dispatch it.
+name: announce-bearer-sync (the bell's bearer comes to the lane by the runner)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ring:
+        description: 'Ring the family phones once at the lowest priority with the fresh bearer, as the proof? (no = install and read back only)'
+        type: choice
+        options: ['yes', 'no']
+        default: 'yes'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: announce-bearer-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: read the bearer from the NAS, install it, prove the bell
+    runs-on: ubuntu-latest
+    env:
+      SECRET_NAME: VITE_N8N_BEARER
+      NAS: dpoe@poetech.tail5a2f35.ts.net
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: The road's own keys must exist (the same two every NAS read uses)
+        env:
+          TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          MISSING=""
+          [ -n "$TS_AUTHKEY" ] || MISSING="$MISSING TS_AUTHKEY"
+          [ -n "$NAS_SSH_KEY" ] || MISSING="$MISSING NAS_SSH_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Repository secrets missing:$MISSING -- the same ones deploy-cloudflare-pages.yml reads the NAS with. Nothing was changed."
+            exit 1
+          fi
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Read the bearer and the NAS's GitHub token from the NAS itself (never displayed)
+        id: nas
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          # Each file is read as the service that owns it would read it: the
+          # announce server runs under the dpoe user's sudo (install.sh), the
+          # build loop reads github-token.txt as dpoe (DR-0085). Try plain
+          # first, sudo -n second; print each on its own labelled line.
+          OUT=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "$NAS" '
+            r() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+            printf "ANNOUNCE=%s\n" "$(r /volume1/PoeTech/secrets/announce-token.txt | tr -d "[:space:]")"
+            printf "GHTOKEN=%s\n" "$(r /volume1/PoeTech/secrets/github-token.txt | tr -d "[:space:]")"
+          ')
+          rm -f /tmp/nas_key
+          ANNOUNCE=$(printf '%s\n' "$OUT" | sed -n 's/^ANNOUNCE=//p' | head -1)
+          GHTOKEN=$(printf '%s\n' "$OUT" | sed -n 's/^GHTOKEN=//p' | head -1)
+          if [ "${#ANNOUNCE}" -lt 16 ]; then
+            echo "::error::announce-token.txt read from the NAS is ${#ANNOUNCE} bytes; the relay fails closed on an empty token (announce_server.py), so there is nothing true to install. Nothing was changed."
+            exit 1
+          fi
+          case "$GHTOKEN" in
+            ghp_*|github_pat_*|gho_*) : ;;
+            *) echo "::error::github-token.txt read from the NAS is ${#GHTOKEN} bytes and not a GitHub token shape; DR-0085 recorded a repo+workflow token at that path. Nothing was changed."; exit 1 ;;
+          esac
+          echo "::add-mask::$ANNOUNCE"
+          echo "::add-mask::$GHTOKEN"
+          echo "announce=$ANNOUNCE" >> "$GITHUB_OUTPUT"
+          echo "ghtoken=$GHTOKEN" >> "$GITHUB_OUTPUT"
+          echo "read both values from the NAS (masked): bearer ${#ANNOUNCE} bytes, token ${#GHTOKEN} bytes"
+
+      - name: Install the bearer as the repository secret (the NAS's own GitHub token writes it)
+        env:
+          GH_TOKEN: ${{ steps.nas.outputs.ghtoken }}
+          ANNOUNCE: ${{ steps.nas.outputs.announce }}
+        run: |
+          set -o pipefail
+          if ! printf '%s' "$ANNOUNCE" | gh secret set "$SECRET_NAME" --repo "$GITHUB_REPOSITORY" 2> /tmp/set.err; then
+            echo "::error::gh secret set $SECRET_NAME was refused: $(head -c 300 /tmp/set.err). The NAS's GitHub token (DR-0085) cannot write Actions secrets on this repository; a classic token needs the repo scope held by the repository's admin, a fine-grained one needs Secrets: read and write. Nothing was changed."
+            exit 1
+          fi
+          echo "$SECRET_NAME set on $GITHUB_REPOSITORY"
+
+      - name: Read it back by name and date (values are never returned)
+        env:
+          GH_TOKEN: ${{ steps.nas.outputs.ghtoken }}
+        run: |
+          TODAY=$(date -u +%F)
+          gh secret list --repo "$GITHUB_REPOSITORY" --json name,updatedAt > /tmp/secrets.json
+          WHEN=$(node -e 'const l=JSON.parse(require("fs").readFileSync("/tmp/secrets.json","utf8"));const s=l.find(x=>x.name===process.argv[1]);process.stdout.write(s?String(s.updatedAt).slice(0,10):"")' "$SECRET_NAME")
+          rm -f /tmp/secrets.json
+          if [ "$WHEN" != "$TODAY" ]; then
+            echo "::error::$SECRET_NAME reads back with updatedAt '${WHEN:-absent}', not today ($TODAY) -- the write did not land."
+            exit 1
+          fi
+          echo "$SECRET_NAME updated $WHEN (read back from GitHub)"
+          {
+            echo "### The bell's bearer"
+            echo ""
+            echo "\`$SECRET_NAME\` renewed from the NAS's own \`announce-token.txt\` and read back: updated **$WHEN**."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE PROOF IS A RING (DR-0970: check that the bell actually rang). One
+      # push at the lowest priority through the same script the witness uses;
+      # exit 3 is the relay saying no, which fails this run with the words.
+      - name: Ring once with the fresh bearer, through the witness's own script
+        if: ${{ github.event.inputs.ring != 'no' }}
+        env:
+          N8N_BEARER: ${{ steps.nas.outputs.announce }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set +e
+          node scripts/ops-announce.mjs \
+            --title="The phone alarm is back" \
+            --message="Its bearer was renewed from the NAS by the lane, not by a hand. site-health rings again on the next fault." \
+            --url="$RUN_URL" \
+            --priority=1 > /tmp/bell.txt 2>&1
+          bell=$?
+          set -e
+          sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+          rm -f /tmp/bell.txt
+          if [ "$bell" != "0" ]; then
+            echo "::error::the bell did not ring with the bearer the NAS holds (exit $bell): the relay and its token file disagree, or the road is down. The secret now equals the NAS file; the fault is on the NAS side (poetech-announce.service, announce-token.txt)."
+            exit 1
+          fi
+          echo "**The bell rang** with the renewed bearer (priority 1, one push)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Leave no key behind
+        if: ${{ always() }}
+        run: rm -f /tmp/nas_key /tmp/set.err /tmp/secrets.json /tmp/bell.txt
