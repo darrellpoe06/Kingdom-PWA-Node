@@ -1,5 +1,5 @@
 // =============================================================================
-// ResearchSection — the Research section of the app (DR-1169)
+// ResearchSection — the Research section of the app (DR-1172)
 // =============================================================================
 // Darrell sent a video link on 2026-10-21 and I said I would read it in a
 // sandbox. He answered: "Research section of the app?!!!!!!" and "Make that

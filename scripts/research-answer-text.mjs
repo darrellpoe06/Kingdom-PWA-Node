@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // =============================================================================
 // research-answer-text.mjs -- the research road's JSON answer, as the text a row
-// carries (DR-1169)
+// carries (DR-1172)
 // =============================================================================
 // .github/workflows/research-inbox.yml asks POST /ask on the NAS and gets back
 // the forwarder's JSON. This renders it to the plain text the agent_inbox answer

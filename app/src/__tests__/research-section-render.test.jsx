@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// The Research section as a person meets it (DR-1169)
+// The Research section as a person meets it (DR-1172)
 // =============================================================================
 // Copy and behaviour tested together (DR-0691). What this pins:
 //   * the section is a REAL top-level surface, registered in surfaces.js, not an
@@ -63,7 +63,7 @@ describe('the Research section is a surface of its own', () => {
   // supabase mock there would reach the other eleven surfaces it guards. So the
   // mount is pinned HERE, where both seams are already mocked, with the same
   // effect: remove the Research view from the shell and this fails by name.
-  // Why not the registry: see DR-1169. re-review: 2026-11-04.
+  // Why not the registry: see DR-1172. re-review: 2026-11-04.
   it('the shell mounts the Research view', () => {
     const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(shell).toContain('<ResearchSection /');

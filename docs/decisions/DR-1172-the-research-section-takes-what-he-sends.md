@@ -1,4 +1,4 @@
-# DR-1169: The Research section takes what he sends, and a link or a question he sends is looked into without him asking twice
+# DR-1172: The Research section takes what he sends, and a link or a question he sends is looked into without him asking twice
 
 **Date:** 2026-10-21
 **Status:** accepted
@@ -28,7 +28,7 @@
 
 I dispatched that existing workflow rather than building anything. Run **39557721839**: the runner probe was bot-challenged in one second exactly as its own header predicts, the NAS job then fetched the captions, and the words landed. **No new fetch path was written for this record**, and the pick-up lane below calls that same loader. This is DR-0108's rule earning itself again: *a stated "we can't" is an unverified premise to challenge, not a place to stop.*
 
-(Two smaller premise corrections for the next reader: `research-ask.yml` and DR-1127 **do** exist on `main` — my first check read a stale working tree. And the number moved **twice**, which is DR-1160's measured problem happening to this record in real time: DR-1165, the number I was given, was taken by `claude/ll257-count-our-days`, with 1166 and 1167 in flight, so I took 1168 — and PR **#2349** had moved onto 1168 at 06:50, before my push. By DR-1136 the second claimant moves and that was me, so this is **DR-1169**, done with `renumber-decision-record.mjs` on a clean tree and the pointer set by `resolve-ledger-conflicts.mjs`, which is the order DR-1021 prescribes. Three numbers for one record in one hour.)
+(Two smaller premise corrections for the next reader: `research-ask.yml` and DR-1127 **do** exist on `main` — my first check read a stale working tree. And the number moved **three times**, which is DR-1160's measured problem happening to this one record in real time: DR-1165, the number I was given, was taken by `claude/ll257-count-our-days` with 1166-1167 in flight, so I took 1168 — PR **#2349** had moved onto 1168 at 06:50, minutes before my push, so I moved to 1169 — and while the full suite was running, **main merged its own DR-1169** (the Real Estate door), so I moved again. **Four numbers for one record inside three hours.** Each move used `renumber-decision-record.mjs` on a clean tree with the pointer left to `resolve-ledger-conflicts.mjs`, in the order DR-1021 prescribes, and the last one was caught by that resolver REFUSING the merge by name rather than folding two decisions into one number — DR-0644's refusal doing exactly its job, since folding would have deleted a real decision. Every one of the four was the same conflict in the same file, `INDEX.md`, which is the evidence for the claim-time reservation DR-1021 left as the Governor's call rather than a tooling change.)
 
 **Legibility, measured after the renumber:** the regenerated `legibility-health.json` goes 362 → 363 pages and 349 → **350 passing**, with `trackedDebtPages` unchanged at 13 and 0 regressions — so the new page passes on its own and adds no debt.
 

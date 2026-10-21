@@ -78,7 +78,7 @@ export function navItems({
     // Scribe — record workflows on screen + meetings (2026-07-27 review); steward-only Phase 1, no-leak spread.
     ...(isFamilyMember ? [['scribe', <><UiIcon name="monitor" /> Scribe</>]] : []),
     // Research — a link or a question he sends is kept as an item until
-    // something looks into it (DR-1169). Spread so the entry is absent from
+    // something looks into it (DR-1172). Spread so the entry is absent from
     // the DOM for a visitor: an item is kept against a person's own account
     // and nobody else sees it, so there is nothing there until a sign-in.
     ...(authSession?.user ? [['research', <><UiIcon name="link" /> Research</>]] : []),

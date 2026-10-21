@@ -1,9 +1,9 @@
-# research-inbox -- a link or a question he sent is looked into, by itself (DR-1169)
+# research-inbox -- a link or a question he sent is looked into, by itself (DR-1172)
 #
 # WHY. Darrell sent a video link on 2026-10-21 with "Link to the research for
 # our tvtyme". The agent said it would read it in a sandbox, and he answered
 # "Research section of the app?!!!!!!" and "Make that automation from my
-# prompts...". This is the pick-up half of DR-1169 -- the Research section is the
+# prompts...". This is the pick-up half of DR-1172 -- the Research section is the
 # other half. A lane he has to start by asking is not an automation; it is a
 # chore with extra steps, so this one starts itself (DR-0247).
 #

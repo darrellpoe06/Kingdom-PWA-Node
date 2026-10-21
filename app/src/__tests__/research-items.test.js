@@ -1,6 +1,6 @@
 // =============================================================================
 // research-items — an unanswered item never looks done, and verified:false
-// cannot disappear (DR-1169)
+// cannot disappear (DR-1172)
 // =============================================================================
 // The two behaviours worth a gate, both named in the brief:
 //   1. A row nobody has looked into reads WAITING, not working and not answered.

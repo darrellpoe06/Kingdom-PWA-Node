@@ -1,4 +1,4 @@
--- research-inbox-waiting.sql -- which research items still wait (DR-1169)
+-- research-inbox-waiting.sql -- which research items still wait (DR-1172)
 -- Read by .github/workflows/research-inbox.yml. ONE definition of "waiting",
 -- the same shape scripts/lesson-inbox-waiting.sql holds for the lessons.
 --

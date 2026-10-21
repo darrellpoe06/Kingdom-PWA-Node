@@ -654,12 +654,12 @@ const NODES = [
     // Not `seeds: ['research-section']`: this module produces no row the section
     // reads back — the section imports it as a library for the road's /health
     // and the ask box. The real edge into the section is the ANSWER ROW
-    // research-inbox writes, which is declared there (DR-1169).
+    // research-inbox writes, which is declared there (DR-1172).
     seeds: [],
   }),
   app('app/src/lib/research-items.js', {
     id: 'research-section', name: 'Research section (what he sent, and what came back)',
-    purpose: 'The Research tab (DR-1169): a link or a question he sends is written to agent_inbox tagged research by the same writer the lessons use, and every item he has sent is read back with its state from the row’s own tags — waiting until something has actually looked into it, never a queue that reads as finished. Every item carries verified:false and says so in words, as a constant this module re-asserts rather than a field a row could claim. A read that failed says so and is never drawn as an empty list.',
+    purpose: 'The Research tab (DR-1172): a link or a question he sends is written to agent_inbox tagged research by the same writer the lessons use, and every item he has sent is read back with its state from the row’s own tags — waiting until something has actually looked into it, never a queue that reads as finished. Every item carries verified:false and says so in words, as a constant this module re-asserts rather than a field a row could claim. A read that failed says so and is never drawn as an empty list.',
     reads: [
       { res: 'db:agent_inbox#research', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#research-answer', token: 'ANSWER_TAG' },
@@ -1204,7 +1204,7 @@ const NODES = [
     writes: [{ res: 'gh:research-lead', token: 'LEAD, not a finding' }], seeds: [],
   }),
   wf('research-inbox.yml', {
-    id: 'research-inbox', name: 'A research item he sent is looked into (DR-1169)',
+    id: 'research-inbox', name: 'A research item he sent is looked into (DR-1172)',
     purpose: 'Every 15 minutes and on dispatch: takes the OLDEST waiting agent_inbox row tagged research off the live database the app reads, CLAIMS it with research-claimed before spending anything (so one prompt is never answered twice), then gets its words on a road that already exists — a link through youtube-captions.py on the NAS’s residential address, a question through /ask behind the family key — and writes the answer back as a child row the Research section reads, with the unverified sentence as its first line. A link never falls back to audio transcription: that spends the tower’s GPU and is a decision to take on purpose. No body and nothing key-shaped reaches the log.',
     reads: [
       { res: 'gh:dispatch', token: 'workflow_dispatch' },
@@ -1956,7 +1956,7 @@ const RESOURCES = {
   'db:ops_commands#finished': { label: 'operations finished by the NAS', proof: { ts: 'finished_at', fresh: 30, where: 'finished_at IS NOT NULL' } },
   'db:agent_inbox#lesson': { label: 'lessons sent from the app', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson' AND NOT tags ? 'voice' AND NOT tags ? 'voice-transcript' AND NOT tags ? 'voice-failed'", consumed: "tags ? 'mirrored'" } },
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
-  // DR-1169. `consumed` is research-answered, written on the item only once its
+  // DR-1172. `consumed` is research-answered, written on the item only once its
   // answer row exists — so an item that nothing has looked into reads as still
   // waiting here exactly as it does on the screen, and a claimed-but-unanswered
   // row is NOT counted as done.
