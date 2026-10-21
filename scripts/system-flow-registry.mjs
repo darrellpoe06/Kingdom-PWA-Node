@@ -651,7 +651,22 @@ const NODES = [
     id: 'research', name: 'Research (Vane: an answer with its sources)',
     purpose: 'Asks one question of the research road on the NAS: Vane searches the web through our own SearxNG, answers on our own model, and returns the sources, marked unverified (DR-1101; the first tool DR-1099 brought home).',
     reads: [{ res: 'device:family-key', file: 'app/src/components/ResearchTry.jsx', token: 'bridgeToken' }, { res: 'http:research', token: '/research' }],
+    // Not `seeds: ['research-section']`: this module produces no row the section
+    // reads back — the section imports it as a library for the road's /health
+    // and the ask box. The real edge into the section is the ANSWER ROW
+    // research-inbox writes, which is declared there (DR-1169).
     seeds: [],
+  }),
+  app('app/src/lib/research-items.js', {
+    id: 'research-section', name: 'Research section (what he sent, and what came back)',
+    purpose: 'The Research tab (DR-1169): a link or a question he sends is written to agent_inbox tagged research by the same writer the lessons use, and every item he has sent is read back with its state from the row’s own tags — waiting until something has actually looked into it, never a queue that reads as finished. Every item carries verified:false and says so in words, as a constant this module re-asserts rather than a field a row could claim. A read that failed says so and is never drawn as an empty list.',
+    reads: [
+      { res: 'db:agent_inbox#research', token: "from('agent_inbox')" },
+      { res: 'db:agent_inbox#research-answer', token: 'ANSWER_TAG' },
+      { res: 'http:research', file: 'app/src/components/ResearchSection.jsx', token: 'researchHealth' },
+    ],
+    writes: [{ res: 'db:agent_inbox#research', file: 'app/src/components/ResearchSection.jsx', token: "tags: ['research']" }],
+    seeds: ['research-inbox'],
   }),
   app('app/src/lib/photo-backup.js', {
     id: 'photo-backup', name: 'Photo backup (Immich: the phones’ photos, backed up at home)',
@@ -1185,6 +1200,18 @@ const NODES = [
     id: 'research-ask', name: 'The research road as a build tool (DR-1127)', purpose: 'On dispatch only: asks the research road ONE question supplied by the caller (the witness’s question stays nailed down so its green keeps meaning), over the tailnet with the family key read on the NAS; prints the answer and its http(s) sources labelled a LEAD, never a finding, since the road marks every answer unverified.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:research', token: '127.0.0.1:8797' }],
     writes: [{ res: 'gh:research-lead', token: 'LEAD, not a finding' }], seeds: [],
+  }),
+  wf('research-inbox.yml', {
+    id: 'research-inbox', name: 'A research item he sent is looked into (DR-1169)',
+    purpose: 'Every 15 minutes and on dispatch: takes the OLDEST waiting agent_inbox row tagged research off the live database the app reads, CLAIMS it with research-claimed before spending anything (so one prompt is never answered twice), then gets its words on a road that already exists — a link through youtube-captions.py on the NAS’s residential address, a question through /ask behind the family key — and writes the answer back as a child row the Research section reads, with the unverified sentence as its first line. A link never falls back to audio transcription: that spends the tower’s GPU and is a decision to take on purpose. No body and nothing key-shaped reaches the log.',
+    reads: [
+      { res: 'gh:dispatch', token: 'workflow_dispatch' },
+      { res: 'db:agent_inbox#research', file: 'scripts/research-inbox-waiting.sql', token: 'FROM public.agent_inbox' },
+      { res: 'yt:channel', token: 'youtube-captions.py' },
+      { res: 'http:research', token: '127.0.0.1:8797' },
+    ],
+    writes: [{ res: 'db:agent_inbox#research-answer', token: 'research-answer' }],
+    seeds: ['research-section'],
   }),
   wf('immich-health.yml', {
     id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
@@ -1915,6 +1942,12 @@ const RESOURCES = {
   'db:ops_commands#finished': { label: 'operations finished by the NAS', proof: { ts: 'finished_at', fresh: 30, where: 'finished_at IS NOT NULL' } },
   'db:agent_inbox#lesson': { label: 'lessons sent from the app', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson' AND NOT tags ? 'voice' AND NOT tags ? 'voice-transcript' AND NOT tags ? 'voice-failed'", consumed: "tags ? 'mirrored'" } },
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
+  // DR-1169. `consumed` is research-answered, written on the item only once its
+  // answer row exists — so an item that nothing has looked into reads as still
+  // waiting here exactly as it does on the screen, and a claimed-but-unanswered
+  // row is NOT counted as done.
+  'db:agent_inbox#research': { label: 'links and questions he sent to look into', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'research' AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(tags) t WHERE t LIKE 'of:%')", consumed: "tags ? 'research-answered'" } },
+  'db:agent_inbox#research-answer': { label: 'what came back about a link or a question he sent, marked unverified', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'research-answer' OR tags ? 'research-failed'", consumed: "tags ? 'research-answered'" } },
   'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },

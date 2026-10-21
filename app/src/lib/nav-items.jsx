@@ -103,6 +103,11 @@ export function navItems({
     ['databack', <><UiIcon name="landmark" /> Your Data</>],
     ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
     ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
+    // Research — a link or a question he sends is kept as an item until
+    // something looks into it (DR-1169). Spread so the entry is absent from
+    // the DOM for a visitor: an item is kept against a person's own account
+    // and nobody else sees it, so there is nothing there until a sign-in.
+    ...(authSession?.user ? [['research', <><UiIcon name="link" /> Research</>]] : []),
     // Darrell's Study — private to the circle (Darrell/Christina/BG).
     // Spread so the entry is absent from the DOM entirely for everyone
     // else (no-leak); the feedback-area-guard still sees the literal
@@ -168,7 +173,7 @@ export const NAV_WORDS = {
   projects: 'Projects', 'tlc-assistant': 'Assistant', tlc: 'TLC', practice: 'Practice', opportunities: 'Dev/Ops',
   about: 'About', messages: 'Messages', notes: 'Notes', create: 'Create', voice: 'Voice', scribe: 'Scribe',
   library: 'Library', recipes: "Chef's Corner", health: 'Road to 150', games: 'Games', tvtime: 'TV Time',
-  advocacy: 'Advocacy', databack: 'Your Data', cameras: 'Cameras', vault: 'Vault', study: 'Study', church: 'Church',
+  advocacy: 'Advocacy', databack: 'Your Data', cameras: 'Cameras', vault: 'Vault', research: 'Research', study: 'Study', church: 'Church',
   markets: 'Markets', center: 'Center', crm: 'CRM', relationships: 'Relationships', inventory: 'Inventory',
   moore: 'Moore Divahs', forecast: 'Forecast', cohorts: 'Academy', admin: 'Admin',
 };
@@ -179,7 +184,7 @@ export const NAV_ICONS = {
   'tlc-assistant': 'heart', tlc: 'heart', practice: 'heart', opportunities: 'tools', about: 'globe',
   messages: 'chat', notes: 'dove', create: 'palette', voice: 'volume', scribe: 'monitor', library: 'bookOpen',
   recipes: 'chefHat', health: 'chart', games: 'dice', tvtime: 'monitor', advocacy: 'landmark', databack: 'landmark',
-  cameras: 'eye', vault: 'lock', study: 'book', church: 'cross', markets: 'chart', center: 'sliders', crm: 'users',
+  cameras: 'eye', vault: 'lock', research: 'link', study: 'book', church: 'cross', markets: 'chart', center: 'sliders', crm: 'users',
   relationships: 'users', inventory: 'tools', moore: 'palette', forecast: 'chart', cohorts: 'bookOpen', admin: 'lock',
 };
 
@@ -191,7 +196,7 @@ export const NAV_ICONS = {
 export const NAV_GROUPS = [
   { key: 'family',   label: '',         ids: ['overview', 'books', 'messages', 'rentals', 'properties', 'projects', 'tlc', 'practice', 'tlc-assistant'] },
   { key: 'soul',     label: 'Soul',     ids: ['church', 'study', 'library', 'cohorts'] },
-  { key: 'create',   label: 'Create',   ids: ['notes', 'create', 'voice', 'scribe'] },
+  { key: 'create',   label: 'Create',   ids: ['notes', 'create', 'voice', 'scribe', 'research'] },
   { key: 'life',     label: 'Life',     ids: ['recipes', 'health', 'games', 'tvtime', 'advocacy', 'databack', 'vault', 'cameras'] },
   { key: 'business', label: 'Business', ids: ['inbound', 'crm', 'relationships', 'inventory', 'moore', 'forecast', 'markets', 'opportunities'] },
   { key: 'system',   label: 'System',   ids: ['center', 'admin', 'about'] },

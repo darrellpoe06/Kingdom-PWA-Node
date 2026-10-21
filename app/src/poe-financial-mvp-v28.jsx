@@ -164,7 +164,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchMinistriesTab,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault,
+  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection,
   surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -935,7 +935,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health','cameras','vault'];
+    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health','cameras','vault','research'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4741,6 +4741,7 @@ ${THEME_CSS}
         )}
         {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
         {view === 'vault' && <SectionBoundary name="Vault"><Vault /></SectionBoundary>}
+        {view === 'research' && <SectionBoundary name="Research"><ResearchSection /></SectionBoundary>}
         {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
             students and families document situations as they happen so the data
             supporting their perspective is in hand when they ask for help.
