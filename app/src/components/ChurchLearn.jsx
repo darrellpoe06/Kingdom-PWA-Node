@@ -128,6 +128,7 @@ import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
 import { withLessonDates } from '../lib/lesson-dates.js';
+import { courseCompleteness, completenessLine } from '../lib/lesson-completeness.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -4731,6 +4732,13 @@ export default function ChurchLearn({
                 <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   {active.meta.audience ? `For ${active.meta.audience}. ` : ''}{active.meta.format ? `${active.meta.format}. ` : ''}{lessonCountLabel(schedule, U)}.
                 </p>
+                {/* IS EVERY LESSON WHAT IT SHOULD BE, COUNTED HERE (Darrell
+                    2026-10-21: "make sure all lessons are what they should be...
+                    Inside each lesson"). Two stories and the verses quoted
+                    inside, measured from this course's own lessons
+                    (lib/lesson-completeness.js), so a gap shows where it is
+                    read and closes as it is filled. */}
+                {(() => { const line = completenessLine(courseCompleteness({ key: active.key, meta: active.meta, schedule })); return line ? <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" data-testid="course-offers-completeness">{line}</p> : null; })()}
                 {sections && sections.length > 1 ? (
                   <div className="flex flex-wrap gap-1.5 mt-2" role="group" aria-label="What this course covers; tap a part to show only its lessons" data-testid="course-offers-parts">
                     {[{ key: 'all', label: `All ${U.noun}s`, n: schedule.length }, ...sections.map((sec) => ({ key: sec.key, label: sec.label, n: sec.lessons.length }))].map((part) => (

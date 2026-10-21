@@ -184,6 +184,9 @@ describe('on the real Learn tree', () => {
     expect(!!(offers.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING), 'before its list').toBe(true);
     expect(offers.querySelector('h3').textContent).toMatch(/Living Lessons from the Word/);
     expect(offers.textContent).toMatch(/For /);
+    // the course's own completeness, counted from its lessons (lib/lesson-completeness.js)
+    expect(offers.querySelector('[data-testid="course-offers-completeness"]').textContent)
+      .toMatch(new RegExp(`^Two stories in all ${LIVING_LESSONS_MODULES.length} lessons · the verses quoted inside \\d+ of ${LIVING_LESSONS_MODULES.length}$`));
     const law = sectionLessons(LIVING_LESSONS_MODULES)[0];
     const chip = offers.querySelector(`[data-testid="course-offers-part-${law.key}"]`);
     expect(chip.textContent).toBe(`${law.label} · ${law.lessons.length}`);
