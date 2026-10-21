@@ -203,7 +203,7 @@ export default function TlcPublicDoor() {
   // therapist · Learn (the client lessons, free to read; a shared lesson lands
   // here) · Join the team (the open positions). A link picks the tab.
   const [visitorTab, setVisitorTab] = useState(deepLink ? 'learn' : jobsLink.jobs ? 'jobs' : 'find');
-  // THE WELCOME SCREEN (DR-1180): a guest on a fresh open meets the brand
+  // THE WELCOME SCREEN (DR-1197): a guest on a fresh open meets the brand
   // alone with Sign in / Create an account / Continue, in FRONT of the door
   // (lib/tlc-welcome.js says when). Going past it is remembered for the
   // session; signing in lowers it too (welcomeShows reads signedIn).
@@ -255,7 +255,7 @@ export default function TlcPublicDoor() {
   // The header HIDEAWAY (the PoeTech shell's own control of the top space):
   // tucked away or shown per device, the same key the shell writes, so one
   // choice follows the reader between shells.
-  // ON A PHONE THE TOP SPACE STARTS TUCKED (DR-1180): the slim bar only, so
+  // ON A PHONE THE TOP SPACE STARTS TUCKED (DR-1197): the slim bar only, so
   // the first screen is the reference's home and not the tagline, the blurb
   // and a control row stacked above it; the chevron brings it all back and
   // the choice persists. Wider screens keep it open, as the door's tests pin.

@@ -1,5 +1,5 @@
 // =============================================================================
-// TlcHome — the home of the TLC app, drawn the reference's way (DR-1171, DR-1180)
+// TlcHome — the home of the TLC app, drawn the reference's way (DR-1171, DR-1197)
 // =============================================================================
 // Darrell, 2026-10-21, with DR-1156 and DR-1170 live on his phone: "It's better
 // but it does not look like this at all" — and, with DR-1171 live: "Still does

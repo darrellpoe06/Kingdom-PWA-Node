@@ -1,4 +1,4 @@
-# DR-1180: The TLC door opens on its welcome screen — the brand alone, Sign in, Create an account; the door waits behind it
+# DR-1197: The TLC door opens on its welcome screen — the brand alone, Sign in, Create an account; the door waits behind it
 
 **Date:** 2026-10-21
 **Status:** accepted

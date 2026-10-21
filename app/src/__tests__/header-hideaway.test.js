@@ -57,7 +57,7 @@ describe('readHeaderCollapsed', () => {
     expect(readHeaderCollapsed(s, false)).toBe(true);
     const props = readFileSync(join(HERE, '..', 'components', 'PropertiesDoor.jsx'), 'utf8');
     expect(props, 'PropertiesDoor opens with the header shown').toContain('readHeaderCollapsed(undefined, false)');
-    // The TLC door (DR-1180): shown on a wide screen, TUCKED on a phone, so
+    // The TLC door (DR-1197): shown on a wide screen, TUCKED on a phone, so
     // the first phone screen is the reference's home and not a control row;
     // a saved choice still wins (the fallback only names what ABSENT means).
     const tlc = readFileSync(join(HERE, '..', 'components', 'TlcPublicDoor.jsx'), 'utf8');
