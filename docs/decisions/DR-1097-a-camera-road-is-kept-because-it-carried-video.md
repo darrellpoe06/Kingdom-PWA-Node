@@ -686,3 +686,9 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 `re-review: 2026-10-22`. Once this is live, open Cameras on the Fold, leave it for 10 minutes, then run cams-diag.
 - **Success looks like:** live views of any one camera never number more than the open tiles and views showing it; no burst of 32 `viewer-left` ends; few or no `superseded` ends.
 - **If `superseded` ends are many:** a device is still leaving orphans, and the forwarder's record names the camera.
+
+**Live, measured (2026-10-21 05:34-05:45 UTC):**
+- #2336 merged as 1798c64fa. Deploy 39550333860 finished green, so the app's release of a replaced player is what poetech.us serves.
+- The NAS forwarder restarted at 05:43:23 UTC (its journal), after nas-bootstrap 39551003507 ran services-sync. cams-diag 39551265002 reads `forwarder` = `on_disk` = `c421f67a4529bae4`, the sha256 of main's `cams_forwarder.py`, so the per-camera cap is running.
+- cams-diag 39550896037 ran after the app deploy but before the forwarder restart. It still saw the old app's pattern: views that ended around 05:28 UTC included four of 805_floodlight_cam_-_west_sd and three of the east porch floodlight open together. That tab had loaded before the deploy.
+- The family's own proof is the re-review above.
