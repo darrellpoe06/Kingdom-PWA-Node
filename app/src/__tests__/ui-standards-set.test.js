@@ -80,6 +80,31 @@ describe('each check finds the thing it is named for', () => {
     expect(scanFocusRing(bare, 'x.jsx')).toHaveLength(1);
   });
 
+  it('sees a focus ring carried by an IMPORTED design-system constant (DR-1152) — and never by an unread one', () => {
+    // The TLC screens draw their button from lib/tlc-ui.js, whose strings carry
+    // the ring through an interpolated FOCUS constant. The first CI run of
+    // DR-1152 flagged 12 such buttons as gaps that were never owed: the ring
+    // was one file away. The module is handed in, so the case needs no disk.
+    const designSystem = [
+      "const FOCUS = 'focus:outline focus:outline-2 focus:outline-[#B85838]';",
+      'export const TLC_BTN = `px-3 rounded-full ${FOCUS}`;',
+      "export const TLC_PLAIN = 'px-3 rounded-full';",
+    ].join('\n');
+    const read = (rel) => (rel === 'lib/ds.js' ? designSystem : null);
+    const src = [
+      "import { TLC_BTN as BTN, TLC_PLAIN } from '../lib/ds.js';",
+      '<button className={`${BTN}`}>Save</button>',
+      '<button className={BTN}>Go</button>',
+      '<button className={TLC_PLAIN}>Bare</button>',
+    ].join('\n');
+    const v = scanFocusRing(src, 'components/X.jsx', read);
+    expect(v).toHaveLength(1);
+    expect(v[0].detail).toContain('TLC_PLAIN');
+    // PROVEN-TO-CATCH: the same import with a module that cannot be read is
+    // not assumed to carry a ring — both BTN buttons are flagged again.
+    expect(scanFocusRing(src, 'components/X.jsx', () => null)).toHaveLength(3);
+  });
+
   it('flags a destroying button in a file with no confirm anywhere', () => {
     const v = scanDestructiveConfirm('<button onClick={() => deleteThing(id)}>Delete</button>', 'x.jsx');
     expect(v).toHaveLength(1);
