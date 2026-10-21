@@ -9,7 +9,7 @@
 
 **Principles:** DR-0076 §3 (proven-to-catch), §4 (measure, never claim), §8 (provenance + honest uncertainty); DR-1053 (unknown is never a no); DR-0381 (not hollow); DR-0061 (reality-trace first); DR-0726 (a control keeps its registry entry); DR-0099 (true red is reserved); DR-0210 (our voice); DR-1136 (two records cannot share one number).
 
-## What Darrell asked
+## Context — what Darrell asked
 
 2026-10-21, on the **PoeTech TV Time** tab:
 
@@ -224,7 +224,7 @@ provider URL (DR-0076 §4).
 - `contrast-guard.mjs` — PASS, 11 themes, 60 bg + 57 text classes both
   directions in midnight.
 
-## Honest uncertainty (DR-0076 §8)
+## Honest limits — what is NOT verified (DR-0076 §8)
 
 - **I could not run the layout sweep in this sandbox.** `playwright-core`
   installs but the Chromium CDN (`playwright*.azureedge.net`) is refused by the
