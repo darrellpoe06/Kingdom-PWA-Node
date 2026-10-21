@@ -65,6 +65,7 @@ import { usePrinting } from '../lib/use-printing.js';
 import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 // DR-0698: every share carries a token, and the record says whether the link worked.
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
@@ -4010,6 +4011,9 @@ export default function ChurchLearn({
   const deepLink = useState(() => parseLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   ))[0];
+  // Opening Learn is looking at what is new in the catalog: the bell's
+  // "New lesson" arrivals are seen (lib/arrivals.js lesson-new, 2026-10-21).
+  React.useEffect(() => { markArrivalsSeen(SCREEN_KINDS.learn); }, []);
   // WHICH COURSE — a CHOICE, remembered, never a heading. Darrell 2026-09-06,
   // on the picker reading like a titled section over one course's lessons:
   // "have the default say Select a Course of 23? Then leave it on the last
