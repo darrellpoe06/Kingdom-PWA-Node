@@ -157,6 +157,9 @@ describe('the landlord shares and takes back; the household watches', () => {
   const OLD = 'g.aaaaaaaaaaaa.' + '2'.repeat(32);
   const SHARED_DOOR = { ...DOOR, camera_grant: OLD, camera_grant_note: '2 cameras: 805 Porch Cam, 805 Back Door' };
   const settle = async () => { for (let i = 0; i < 12; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+  // On a loaded runner the grant read can land after a fixed number of ticks
+  // (CI on 0ff33fb128): wait for what the step is about, up to 5 s, never for a failure.
+  const until = async (ok) => { for (let i = 0; i < 250 && !ok(); i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 20)); }); };
 
   it('PROVEN TO CATCH: the picker starts from what the NAS grant really opens, never from the address guess', async () => {
     H.list = CAMS;
@@ -164,6 +167,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     H.snap = () => 200;
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async () => ({ ok: true }) }));
     await settle();
+    await until(() => /1 ticked/.test(container.querySelector('[data-testid="door-cameras-count"]')?.textContent || ''));
     const boxes = Array.from(container.querySelectorAll('[data-testid="door-cameras-pick"] input'));
     // sorted by name: 805 Back Door, 805 Porch Cam, front yard, Kitchen 2 -- only the porch is in the grant
     expect(boxes.map((b) => b.checked)).toEqual([false, true, false, false]);
@@ -179,6 +183,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     if (!URL.revokeObjectURL) URL.revokeObjectURL = () => {};
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async () => ({ ok: true }) }));
     await settle();
+    await until(() => H.snapAsks.length >= 2 && !!container.querySelector('[data-testid="tenant-eye-805_porch_cam"] img') && !!container.querySelector('[data-testid="door-cameras-not-seen"]'));
     expect(H.snapAsks.map((a) => a[1])).toEqual([`Bearer ${OLD}`, `Bearer ${OLD}`]);
     expect(container.querySelector('[data-testid="tenant-eye-line-805_porch_cam"]').textContent).toBe('The tenant sees this, live');
     expect(container.querySelector('[data-testid="tenant-eye-805_porch_cam"] img')).toBeTruthy();
@@ -194,6 +199,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     const changes = [];
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async (p) => { changes.push(p); return { ok: true }; } }));
     await settle();
+    await until(() => /1 ticked/.test(container.querySelector('[data-testid="door-cameras-count"]')?.textContent || ''));
     const box = (i) => Array.from(container.querySelectorAll('[data-testid="door-cameras-pick"] input'))[i];
     await act(async () => { box(0).click(); });   // tick 805 Back Door
     await act(async () => { box(1).click(); });   // untick 805 Porch Cam
@@ -202,6 +208,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     expect(pending).toMatch(/Shared, unticked here \(1\): 805 Porch Cam\. The tenant still sees these/);
     await act(async () => { container.querySelector('[data-testid="door-cameras-share"]').click(); });
     await settle();
+    await until(() => changes.length > 0 && H.revoked.length > 0);
     expect(changes[0].token).toBe(TOKEN);
     expect(H.revoked).toEqual([['aaaaaaaaaaaa', 'fam-key']]);
   });
@@ -211,12 +218,14 @@ describe('the landlord shares and takes back; the household watches', () => {
     H.nasGrants = [];
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async () => ({ ok: true }) }));
     await settle();
+    await until(() => !!container.querySelector('[data-testid="door-cameras-grant-state"]'));
     expect(container.querySelector('[data-testid="door-cameras-grant-state"]').textContent).toMatch(/no longer holds this grant, so the tenant sees no camera/);
     expect(container.querySelector('[data-testid="door-cameras-tenant-eye"]')).toBeNull();
     await act(async () => root.unmount()); root = null; container.remove();
     H.nasGrants = [{ id: 'aaaaaaaaaaaa', name: 'door', cameras: ['805_porch_cam'], created: 1, expires: 1000, revoked: 0 }];
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async () => ({ ok: true }) }));
     await settle();
+    await until(() => /expired/.test(container.querySelector('[data-testid="door-cameras-grant-state"]')?.textContent || ''));
     expect(container.querySelector('[data-testid="door-cameras-grant-state"]').textContent).toMatch(/is expired: the tenant sees no camera/);
     expect(container.querySelector('[data-testid="door-cameras-grant-line"]').textContent).toMatch(/expired/);
   });

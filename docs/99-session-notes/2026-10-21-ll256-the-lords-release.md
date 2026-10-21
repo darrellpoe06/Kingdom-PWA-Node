@@ -51,7 +51,7 @@ Child under the 5.0 new-lesson ceiling; the ladder ascends with more than a grad
 ## Proven to catch (DR-0076 §3)
 
 - In-file: one band's friend line stripped (names **youth** while the pooled check still reads green — the DR-0795 hazard); Matthew 5:44 removed from one band (names **teen**); 2 Timothy 3:12 removed from one band (names **senior**); the youth band truncated (named short).
-- Live file: one word altered inside a quoted verse in `living-lessons-class.js`, the verse-verbatim case failed naming the path and reference, file restored byte-identical and verified with `cmp`.
+- Live file: Romans 12:17 "evil for evil" → "evil with evil" inside the senior band's quotation in `living-lessons-class.js` — the verse-verbatim case failed naming `levels.senior :: Romans 12:17` (1 failed / 142 passed); file restored byte-identical, verified with `cmp`, and re-run 143 green.
 
 ## Files
 

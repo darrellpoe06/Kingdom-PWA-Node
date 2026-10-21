@@ -59,7 +59,7 @@ Ship `ll256-the-lords-release-is-for-a-neighbor-loving-a-mixed-multitude-the-way
 - **143 cases green** in `app/src/__tests__/living-lessons-ll256-the-lords-release.test.js`.
 - `living-lessons-order.test.jsx` green with the refreshed newest-lesson pin.
 - **PROVEN TO CATCH (DR-0076 §3), in-file mutations**, each asserting its anchor is present before mutating: one band's friend line stripped (names **youth** while the pooled `hasAllThree` still reads green — the DR-0795 hazard); Matthew 5:44 removed from one band (names **teen**); 2 Timothy 3:12 removed from one band (names **senior**); the youth band truncated (named short).
-- **Live-file mutation**, run against `living-lessons-class.js` itself and restored byte-identical (verified with `cmp`): one word altered inside a quoted verse in the senior band → the verse-verbatim case failed, naming the path and the reference.
+- **Live-file mutation**, run against `living-lessons-class.js` itself and restored byte-identical (verified with `cmp`): Romans 12:17 "evil for evil" → "evil with evil" inside the senior band's quotation → *every referenced span anywhere in the module is verbatim in the verse it cites* failed, naming `levels.senior :: Romans 12:17`; 1 failed / 142 passed; restored and re-run, 143 green.
 
 ## What this does not do
 
