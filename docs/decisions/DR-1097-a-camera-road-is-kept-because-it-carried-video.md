@@ -637,3 +637,58 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 - The frame probe no longer prints `strings: command not found` on a box without binutils.
 
 **Not proven yet: the blinking itself.** That takes the family's own tiles. `re-review: 2026-10-21`: the next time Cameras is open on the Fold, the tiles' "last:" line and the after-probe live ends name each hang-up that is left, and who made it (`source-ended` / `source-silent` / `viewer-left` / `clock`).
+
+## Nineteenth read (2026-10-21 04:58-05:05 UTC; cams-diag 39547175167 with `camera=805_north_sd`): the tab was leaving every old stream open
+
+**What Darrell saw** (Fold, 23:58-23:59 CDT). Only one tile had a picture: "805 upper hallway south west · Wyze WebRTC", the direct road. Every NAS tile was black:
+- "reconnected 10× last: the picture froze for 10 s"
+- "reconnected 8× last: no picture after 20 s"
+- the large view read "Reconnecting in 24 s (the browser could not open this stream)"
+
+**What the NAS saw, measured.**
+- At 23:59:32 CDT (the forwarder journal's connection resets), **32 live views ended in the same second, all `viewer-left`**. 32 is `MAX_LIVE`, every slot the NAS has.
+- Several were the same camera, open at the same time:
+  - 805_north_sd: five views (217, 243, 285, 355 and 391 s old)
+  - 805_porch_-_floodlight_cam_-_east_sd: five
+  - 805_back_door_sd: four
+  - 805_north_east_sd: four
+  - 805_hallway_-_north_east_sd: three
+- Every one of them was still carrying video when it ended: 6.7 to 54 MB each.
+- The road itself was fine. Probes of 805_north_sd a minute later each ran a full 90 s: 8.51 MB on loopback and 8.36 MB through the Funnel, longest silence 1.8 s, media clock 1.000x and 1.003x of the wall.
+- The eighteenth read's witness gap is closed: the after-probe ends list the probe's own view (805_north_sd, 88.2 s, 8310 KB).
+
+**Root cause, in the tab** (`TileLive` and `LiveVideo`, app/src/components/Cameras.jsx).
+- A reconnect renders a new `<video>` keyed by its src. React calls the old element's ref with `null`, and the ref wrote that `null` into `timers.current.video`, the only handle the release code had.
+- So nothing ever paused the old element, cleared its src or called `load()`. Unmount found `null` too.
+- A `<video>` taken out of the page keeps its live MP4 open. Every reconnect left one stream running unseen.
+- Those orphans held the NAS's slots, so a new view got 503 busy ("could not open"). They also crowded the phone's road, so the views actually being watched starved ("froze", "no picture"). Each starved view reconnected and left another orphan.
+- The direct road was untouched because its WebRTC session is closed explicitly (`closeDirect`).
+- Likely why it got worse after #2324 (inferred, not measured): the old KvsHold re-arm cut every viewer of a camera now and then, orphans included. The seventeenth read's guard rightly stopped re-arming a camera whose viewer is getting bytes, and an orphan always is. So nothing reaped them any more.
+
+**Fixed:**
+- **In the app** (`app/src/lib/camera-video.js`, used by all three live players):
+  - `holdVideo` ignores React's `ref(null)`, so the handle is never lost.
+  - A replaced element is released at once: pause, `srcObject = null`, remove src, `load()`.
+  - The view's end releases its element before the next one opens (`dropVideo`), and so do unmount and "released".
+- **On the NAS** (`cams_forwarder.py`, ONE CAMERA, A FEW VIEWS): a camera holds at most `LIVE_PER_CAMERA` (3) live views.
+  - One more tells the OLDEST to end and shuts its socket, so a stuck write fails now. The end is recorded as `superseded`.
+  - An orphan from any device, or any future bug, can never again keep a slot from a viewer who is really watching.
+  - Brakes (deterministic class, DR-0248): the count is the budget, one lock, stop-path `CAMS_LIVE_PER_CAMERA=0`.
+
+**Proven:**
+- A new render case reconnects a grid tile three times and the large view twice. Every element held before has no src, the one on screen does, and Close releases the last.
+- PROVEN TO CATCH:
+  - Without the release on end, or without the release on replace, the case is red ("tile try 1 released on end").
+  - Without the forwarder's cap, 3 selftest checks are red.
+- End to end in the selftest: with the cap at 1, a second view ends the first at 0.30 s, before its 1 s clock, recorded `superseded`; the second view plays on to its clock.
+- Camera vitest 186 passing (5 files); forwarder selftest ALL PASSED; `verify:gates` 0.
+
+`re-review: 2026-10-22`. Once this is live, open Cameras on the Fold, leave it for 10 minutes, then run cams-diag.
+- **Success looks like:** live views of any one camera never number more than the open tiles and views showing it; no burst of 32 `viewer-left` ends; few or no `superseded` ends.
+- **If `superseded` ends are many:** a device is still leaving orphans, and the forwarder's record names the camera.
+
+**Live, measured (2026-10-21 05:34-05:45 UTC):**
+- #2336 merged as 1798c64fa. Deploy 39550333860 finished green, so the app's release of a replaced player is what poetech.us serves.
+- The NAS forwarder restarted at 05:43:23 UTC (its journal), after nas-bootstrap 39551003507 ran services-sync. cams-diag 39551265002 reads `forwarder` = `on_disk` = `c421f67a4529bae4`, the sha256 of main's `cams_forwarder.py`, so the per-camera cap is running.
+- cams-diag 39550896037 ran after the app deploy but before the forwarder restart. It still saw the old app's pattern: views that ended around 05:28 UTC included four of 805_floodlight_cam_-_west_sd and three of the east porch floodlight open together. That tab had loaded before the deploy.
+- The family's own proof is the re-review above.
