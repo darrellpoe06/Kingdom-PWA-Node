@@ -1069,7 +1069,7 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
 // frames record carries the reason and Why? can show it; the tile itself
 // keeps trying, the wait growing while the camera stays blank.
 const TILE_BLANK_TELL = 3;
-// Exported for the Poe Properties front door's big picture (DR-1170). That
+// Exported for the Poe Properties front door's big picture (DR-1176). That
 // hero reuses THIS player rather than growing a third one, so it inherits
 // every lesson already paid for here: the direct road first, the ticket, the
 // chosen mode, the first-frame bound, the freeze and lag tending (DR-0799) and

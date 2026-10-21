@@ -1,4 +1,4 @@
-# DR-1170: The front door's big picture can be the real porch — and for everyone else it says how access works
+# DR-1176: The front door's big picture can be the real porch — and for everyone else it says how access works
 
 **Date:** 2026-10-21
 **Status:** accepted

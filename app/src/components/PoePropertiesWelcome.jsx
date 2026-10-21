@@ -108,7 +108,7 @@ export const WELCOME_CSS = `
 .pp-photo::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 28%)}
 [data-theme="midnight"] .pp-photo::after{background:linear-gradient(105deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 28%)}
 .pp-photo-band{position:absolute;top:0;right:0;width:46%;height:calc(0.5 * var(--ts-fixed,1rem));background:linear-gradient(90deg,var(--pp-red) 0 55%,var(--pp-black) 55% 78%,var(--pp-gold) 78%);pointer-events:none}
-/* THE BIG PICTURE CAN BE THE PORCH (DR-1170). The live player TileLive draws
+/* THE BIG PICTURE CAN BE THE PORCH (DR-1176). The live player TileLive draws
    its own aspect-video box; inside this frame it is told to fill it instead,
    so the hero is exactly the size it always was whether it holds the
    photograph or the stream, and nothing on the page moves when it opens. */
@@ -329,7 +329,7 @@ export function SignedOutNotice({ onReturn }) {
 
 /** The welcome heading, its two lines, and the photograph beside them. */
 /**
- * `bigPicture` is the OPTION to open the real porch in the big frame (DR-1170,
+ * `bigPicture` is the OPTION to open the real porch in the big frame (DR-1176,
  * Darrell 2026-10-21: "make the big image have the option to open with the
  * porch Floodlight cam"). It is a render function, given the <img> this file
  * has always drawn, so the photograph stays byte-for-byte this file's — and

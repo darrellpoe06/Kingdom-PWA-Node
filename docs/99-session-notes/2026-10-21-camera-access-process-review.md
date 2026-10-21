@@ -3,7 +3,7 @@
 **Date:** 2026-10-21
 **Asked for by Darrell:** *"So those work together like they currently should... review for end to end comprehensive understanding and implementation of the process and effectiveness of the process and workflows"*
 **Standard run:** `COMPREHENSIVE-REVIEW-STANDARD.md` (DR-0239), procedure `SHOULD → ARE → GAPS → CLOSE` (DR-0219).
-**Records that came out of it:** DR-1170 (the hero), DR-1171 (the pre-ticked suggestion).
+**Records that came out of it:** DR-1176 (the hero), DR-1171 (the pre-ticked suggestion).
 
 ---
 
@@ -16,7 +16,7 @@
 | A camera can be **asked for and given per person** — a tenant, a household member, a 1099 worker, a short-stay guest — with the ask, the decision and the expiry on the record | DR-0938, `CameraAccess.jsx:1-21` |
 | A door's cameras are shared **per door, never to the whole portfolio** | `DoorCameras.jsx:251` |
 | One player holds one stream and **lets go** when replaced or ended; the NAS allows **3 live views of one camera** and ends the oldest beyond that | DR-1097, `camera-video.js`, `cams_forwarder.py:448` |
-| The front door's big picture should **promote the service** — "the camera stream shows how access works... a potential tenant... will be able to see the level of services that were provided by us... tenants and 1099 workers... so it promotes" | Darrell, 2026-10-21 → DR-1170 |
+| The front door's big picture should **promote the service** — "the camera stream shows how access works... a potential tenant... will be able to see the level of services that were provided by us... tenants and 1099 workers... so it promotes" | Darrell, 2026-10-21 → DR-1176 |
 | **Undocumented intent is itself a finding** (DR-0219): nothing stated anywhere which of the two grant paths wins on a device that holds both. See GAP 1. | — |
 
 ## 2. ARE — the real implementation, traced end to end
@@ -29,7 +29,7 @@
 
 **The enforcement, measured.** `cams_forwarder.py:4061` filters `/list` by `grant_allows`; `/ticket` for anything else is `403 not-your-camera`. The service's own self-test asserts both at `:5255-5260`. Revocation is a real NAS action (`revokeGrant`), not only a row update, and both paths roll back the mint if the row write fails (`CameraAccess.jsx:93,127`; `DoorCameras.jsx:163`).
 
-**The new front-door surface (DR-1170).** `PorchHero` reads `cameraCredential({bridge: bridgeToken()})` — **the single device slot** — asks `/list` with it, picks a front-of-house camera from the answer, and offers one press. Everyone, credential or not, gets the three-line access story.
+**The new front-door surface (DR-1176).** `PorchHero` reads `cameraCredential({bridge: bridgeToken()})` — **the single device slot** — asks `/list` with it, picks a front-of-house camera from the answer, and offers one press. Everyone, credential or not, gets the three-line access story.
 
 **Verdict on "do those work together like they currently should":** the two paths **do** work, each is enforced by the NAS rather than by the tab, and both roll back cleanly on a failed write. They are **not** wired to each other, and three of the gaps below come from exactly that.
 
@@ -41,7 +41,7 @@
 
 **GAP 3 — a revoked grant is not cleared from the viewer's device.** `takeBack` revokes on the NAS and updates the row; the stale token stays in `localStorage`. Not a security hole — the NAS refuses it — but the words the viewer then reads are *"the camera road did not answer"* rather than *"your access was taken back"*, which is the honesty failure DR-0076 exists to prevent, in miniature.
 
-**GAP 4 — the hero has no door context.** It renders on the signed-out portal picker, before anyone says who they are, so it uses whatever single credential the device holds. Correct by the NAS, but it shows *a* porch, not provably *your* porch. Stated in DR-1170 rather than implied.
+**GAP 4 — the hero has no door context.** It renders on the signed-out portal picker, before anyone says who they are, so it uses whatever single credential the device holds. Correct by the NAS, but it shows *a* porch, not provably *your* porch. Stated in DR-1176 rather than implied.
 
 **GAP 5 — two independent lists for "which cameras does this door involve".** The door grant's pre-ticks come from `suggestDoorCameras`; the ask menu comes from whatever was saved, seeded from nothing. After DR-1171 the first is narrowed by unit and the second is not, so an owner setting the ask menu by hand gets no such protection.
 
@@ -52,7 +52,7 @@
 | gap | disposition |
 |---|---|
 | **6** | **Fixed** — DR-1171, with the old behaviour proven-to-catch. |
-| **4** | **Stated, not fixed** — DR-1170 records it; the hero is honest about naming the camera it opens. `re-review: 2026-10-28`. |
+| **4** | **Stated, not fixed** — DR-1176 records it; the hero is honest about naming the camera it opens. `re-review: 2026-10-28`. |
 | **1, 2** | **Not fixed tonight, deliberately.** The real fix is a multi-grant credential store — keep several grants on a device and choose among them — which changes `cameras.js`, the file every camera surface on the platform depends on, including the wall Darrell was watching tonight. That is a change to make with its proof and with someone awake, not at 07:20 after a one-line read. **`re-review: 2026-10-22`**, as its own PR. |
 | **3** | **Not fixed tonight.** Clearing the slot on a `401`/`403` is small, but it belongs with 1 and 2 in the same credential-store change rather than as a third patch to the same object. **`re-review: 2026-10-22`**. |
 | **5** | **Open question, not a defect.** Two independent lists may be right — what a door *shares by default* and what a person *may ask for* are not the same question. **`re-review: 2026-10-28`**: seed the ask menu from `suggestDoorCameras`, or write down why two lists is correct. |

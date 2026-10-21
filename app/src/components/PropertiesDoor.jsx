@@ -512,7 +512,7 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
             notice renders ONLY when `left` is true: "You're signed out on this
             device. Your PoeTech sign-in is still active -- this door only forgot you."
             with the "Come back in" action (PoePropertiesWelcome.jsx). */}
-        {/* THE BIG PICTURE CAN BE THE PORCH (DR-1170). Darrell, 2026-10-21:
+        {/* THE BIG PICTURE CAN BE THE PORCH (DR-1176). Darrell, 2026-10-21:
             "make the big image have the option to open with the porch
             Floodlight cam... instead of the hero image make it a hero stream
             of the porch", and then the reason — "The camera stream shows how
