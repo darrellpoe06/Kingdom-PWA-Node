@@ -1069,7 +1069,13 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
 // frames record carries the reason and Why? can show it; the tile itself
 // keeps trying, the wait growing while the camera stays blank.
 const TILE_BLANK_TELL = 3;
-function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
+// Exported for the Poe Properties front door's big picture (DR-1176). That
+// hero reuses THIS player rather than growing a third one, so it inherits
+// every lesson already paid for here: the direct road first, the ticket, the
+// chosen mode, the first-frame bound, the freeze and lag tending (DR-0799) and
+// the release discipline that stops orphaning the NAS's live slots (DR-1097).
+// Nothing about the camera wall changes; only the word `export` is new.
+export function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, blank: 0, nextAt: 0, error: '', mode: '' });
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
