@@ -183,7 +183,7 @@ behind white. Changed to `#5A6E3D` and the guard passes every theme.
 
 ## Verification
 
-- `tv-where-to-watch.test.js` — 23 cases: the measured routes, the dead service,
+- `tv-where-to-watch.test.js` — 20 cases: the measured routes, the dead service,
   unknown-is-not-a-no across every state, asked-vs-never-asked, and that no
   connect-an-account control or "coming soon" copy exists in the module.
 - `youtube-follow.test.js` — 20 cases against a **verbatim slice of the live
@@ -198,9 +198,15 @@ behind white. Changed to `#5A6E3D` and the guard passes every theme.
   the measured coverage line, and a real **Check → answer → persisted** round
   trip; plus following a channel over a stubbed edge, a bad link reported
   plainly, an unreadable feed named, and an empty list fetching nothing.
-- `tv-catalog.test.js` — extended: broadcaster/streamer kept apart,
+- `tv-catalog.test.js` — **18 -> 24** cases: broadcaster/streamer kept apart,
   `webChannel` always present, and `resolveWatch`'s asked / un-asked /
   single-flight / never-throws behaviour.
+
+**Counted, not estimated** (this record first said "53 new cases plus 5
+extended", which was neither — measured per file): **61 new cases** across the
+five new suites (20 + 20 + 5 + 10 + 6) and **+6 extended** in `tv-catalog`,
+**67 in all**. Correcting my own arithmetic is the same rule as correcting a
+provider URL (DR-0076 §4).
 - `feature-presence.test.jsx` — two new walks and **nine new registry entries**
   (DR-0726). Verified proven-to-catch by renaming one `data-testid`: the gate
   went red naming *"Missing: Where to watch (on a show card)"* and five siblings.
