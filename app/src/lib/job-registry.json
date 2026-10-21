@@ -1,0 +1,273 @@
+{
+  "derivedFrom": ".github/workflows",
+  "derivedBy": "scripts/derive-job-registry.mjs",
+  "scheduled": 38,
+  "jobs": [
+    {
+      "file": "announce-health.yml",
+      "name": "announce-health",
+      "crons": [
+        "13 14 * * *"
+      ]
+    },
+    {
+      "file": "camera-health.yml",
+      "name": "camera-health",
+      "crons": [
+        "7,37 * * * *"
+      ]
+    },
+    {
+      "file": "corpus-reconcile.yml",
+      "name": "corpus-reconcile",
+      "crons": [
+        "0 16 * * 1,4"
+      ]
+    },
+    {
+      "file": "daily-review.yml",
+      "name": "daily-review",
+      "crons": [
+        "0 12 * * *"
+      ]
+    },
+    {
+      "file": "deploy-freshness.yml",
+      "name": "Deploy freshness (heal a missed deploy)",
+      "crons": [
+        "*/5 * * * *"
+      ]
+    },
+    {
+      "file": "feedback-fixed.yml",
+      "name": "feedback-fixed",
+      "crons": [
+        "7 * * * *"
+      ]
+    },
+    {
+      "file": "fleet-census.yml",
+      "name": "fleet-census",
+      "crons": [
+        "38 13 * * 1"
+      ]
+    },
+    {
+      "file": "funnel-health.yml",
+      "name": "funnel-health",
+      "crons": [
+        "33 14 * * *"
+      ]
+    },
+    {
+      "file": "harvest-health.yml",
+      "name": "harvest-health",
+      "crons": [
+        "17 */6 * * *"
+      ]
+    },
+    {
+      "file": "immich-health.yml",
+      "name": "immich-health",
+      "crons": [
+        "53 13 * * *"
+      ]
+    },
+    {
+      "file": "intake-autofix.yml",
+      "name": "intake-autofix",
+      "crons": [
+        "23 * * * *"
+      ]
+    },
+    {
+      "file": "keep-prs-current.yml",
+      "name": "Keep PRs current",
+      "crons": [
+        "7,37 * * * *"
+      ]
+    },
+    {
+      "file": "lesson-builder-health.yml",
+      "name": "lesson-builder-health",
+      "crons": [
+        "3 14 * * *"
+      ]
+    },
+    {
+      "file": "lesson-mail-watch.yml",
+      "name": "Lesson mail watch (event-driven intake)",
+      "crons": [
+        "*/5 * * * *"
+      ]
+    },
+    {
+      "file": "level-witness.yml",
+      "name": "Level witness (does picking a band change the lesson body?)",
+      "crons": [
+        "41 12 * * *"
+      ]
+    },
+    {
+      "file": "libraries-health.yml",
+      "name": "libraries-health",
+      "crons": [
+        "7 14 * * *"
+      ]
+    },
+    {
+      "file": "live-link-probe.yml",
+      "name": "Live link probe (a browser opens a shared lesson link)",
+      "crons": [
+        "17 13 * * *"
+      ]
+    },
+    {
+      "file": "loops-health.yml",
+      "name": "loops-health",
+      "crons": [
+        "27 14 * * *"
+      ]
+    },
+    {
+      "file": "mcp-health.yml",
+      "name": "mcp-health",
+      "crons": [
+        "57 13 * * *"
+      ]
+    },
+    {
+      "file": "migrate-freshness.yml",
+      "name": "Migration freshness (heal an unapplied migration)",
+      "crons": [
+        "*/5 * * * *"
+      ]
+    },
+    {
+      "file": "nas-health.yml",
+      "name": "nas-health",
+      "crons": [
+        "23 */6 * * *"
+      ]
+    },
+    {
+      "file": "node-availability.yml",
+      "name": "Pipeline device availability",
+      "crons": [
+        "0 */6 * * *"
+      ]
+    },
+    {
+      "file": "openclaw-tower.yml",
+      "name": "OpenClaw tower",
+      "crons": [
+        "17 */6 * * *"
+      ]
+    },
+    {
+      "file": "ops-queue-health.yml",
+      "name": "ops-queue-health",
+      "crons": [
+        "23 */2 * * *"
+      ]
+    },
+    {
+      "file": "property-photos-health.yml",
+      "name": "property-photos-health",
+      "crons": [
+        "9 14 * * *"
+      ]
+    },
+    {
+      "file": "public-shelf-witness.yml",
+      "name": "Public shelf witness",
+      "crons": [
+        "41 14 * * *"
+      ]
+    },
+    {
+      "file": "push-outbox-drain.yml",
+      "name": "push-outbox drain (office fault pushes) — inactive until armed",
+      "crons": [
+        "*/15 * * * *"
+      ]
+    },
+    {
+      "file": "research-health.yml",
+      "name": "research-health",
+      "crons": [
+        "41 13 * * *"
+      ]
+    },
+    {
+      "file": "research-inbox.yml",
+      "name": "research-inbox",
+      "crons": [
+        "7,22,37,52 * * * *"
+      ]
+    },
+    {
+      "file": "review-watcher.yml",
+      "name": "review-watcher",
+      "crons": [
+        "23 11 * * *"
+      ]
+    },
+    {
+      "file": "scribe-health.yml",
+      "name": "scribe-health",
+      "crons": [
+        "47 13 * * *"
+      ]
+    },
+    {
+      "file": "site-health.yml",
+      "name": "Site health (up + fresh, outside-in)",
+      "crons": [
+        "*/10 * * * *"
+      ]
+    },
+    {
+      "file": "sovereign-content-sync.yml",
+      "name": "Sovereign content sync (hosted -> sovereign)",
+      "crons": [
+        "20 6 * * *"
+      ]
+    },
+    {
+      "file": "system-flow-proof.yml",
+      "name": "system-flow-proof",
+      "crons": [
+        "41 */6 * * *"
+      ]
+    },
+    {
+      "file": "tax-upload-health.yml",
+      "name": "tax-upload-health",
+      "crons": [
+        "51 13 * * *"
+      ]
+    },
+    {
+      "file": "video-stats.yml",
+      "name": "video-stats",
+      "crons": [
+        "53 */6 * * *"
+      ]
+    },
+    {
+      "file": "voice-health.yml",
+      "name": "voice-health",
+      "crons": [
+        "17 14 * * *"
+      ]
+    },
+    {
+      "file": "voice-lite-health.yml",
+      "name": "voice-lite-health",
+      "crons": [
+        "41 13 * * *"
+      ]
+    }
+  ]
+}

@@ -18,6 +18,10 @@ import { fetchSiteHealth } from '../lib/site-health.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
 import { fetchFleetCensus } from '../lib/fleet-census-live.js';
+// THE JOBS, BY NAME (DR-1189): every clocked workflow, last ran, never ran in
+// the window, sequence, logs, and the missed-cycle reminder.
+import { fetchJobsLedger } from '../lib/jobs-ledger.js';
+import JobsLedgerStrip from './JobsLedgerStrip.jsx';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
 import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
@@ -253,21 +257,24 @@ export default function OpsBoard() {
   const [harvest, setHarvest] = useState(null);
   const [tower, setTower] = useState(null);
   const [fleet, setFleet] = useState(null);
+  const [jobs, setJobs] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh, hh, oc, fc] = await Promise.all([
+    const [data, sh, hh, oc, fc, jl] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
       fetchHarvestHealth().catch(() => null),
       fetchOpenclawTower().catch(() => null),
       fetchFleetCensus().catch(() => null),
+      fetchJobsLedger().catch(() => null),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
     setHarvest(hh);
     setTower(oc);
     setFleet(fc);
+    setJobs(jl);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -330,6 +337,8 @@ export default function OpsBoard() {
       <OpenclawTowerStrip tower={tower} />
       {/* The fleet's own line — jobs, enabled, and how many have ever run (DR-1148). */}
       <FleetCensusStrip fleet={fleet} />
+      {/* The jobs by their actual names — last ran, never ran in the window, sequence, logs, missed-cycle reminder (DR-1189). */}
+      <JobsLedgerStrip jobs={jobs} />
 
       {/* Data-integrity standard report — how much of the app is verified
           live-data vs painted, and the trend over time (DR-0196; Darrell

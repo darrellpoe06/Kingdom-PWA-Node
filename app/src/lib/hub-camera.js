@@ -24,6 +24,8 @@
 // =============================================================================
 
 export const HUB_CAMERA_KEY = 'poetech.hub.camera.v1';
+/** Whether this device closed the cameras on the Life Hub (DR-1191). */
+export const HUB_CAMERA_HIDDEN_KEY = 'poetech.hub.camera.hidden.v1';
 /** Small frames under the live picture: the rest of the cameras, at most this many. */
 export const HUB_THUMBS_MAX = 4;
 /** How often a small frame is asked again while the Hub is open and visible. */
@@ -46,6 +48,20 @@ export function loadHubCamera(storage = null) {
 /** Keep the choice on this device (a convenience: a lost choice falls back to the first camera). */
 export function saveHubCamera(id, storage = null) {
   try { if (id && store(storage)) store(storage).setItem(HUB_CAMERA_KEY, String(id)); } catch { /* per device */ }
+}
+
+/** True when this device closed the cameras on the Hub (DR-1191; Darrell: "I need to be able to close the cameras on the front page"). */
+export function loadHubCameraHidden(storage = null) {
+  try { return !!(store(storage) && store(storage).getItem(HUB_CAMERA_HIDDEN_KEY) === '1'); } catch { return false; }
+}
+
+/** Close or reopen the cameras on this device; the choice of camera is untouched either way. */
+export function saveHubCameraHidden(hidden, storage = null) {
+  try {
+    const st = store(storage);
+    if (!st) return;
+    if (hidden) st.setItem(HUB_CAMERA_HIDDEN_KEY, '1'); else st.removeItem(HUB_CAMERA_HIDDEN_KEY);
+  } catch { /* per device */ }
 }
 
 /**
@@ -96,5 +112,9 @@ export const HUB_CAMERA_WORDS = Object.freeze({
   connect: 'Your camera key is on this device, but it opens no camera yet. Connect one in the Cameras tab and it plays here.',
   noAnswer: 'The camera road did not answer just now, so nothing is playing. The Cameras tab says why.',
   reading: 'Asking which cameras this device may see…',
-  choose: 'Tap a camera to keep it here.',
+  choose: 'Tap a camera to keep it here, or choose any camera by name.',
+  chooseAny: 'Choose any camera',
+  hide: 'Close the cameras on the Life Hub',
+  hidden: 'Cameras closed on this device. The Cameras tab still has every camera.',
+  show: 'Show cameras',
 });
