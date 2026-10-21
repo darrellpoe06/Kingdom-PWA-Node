@@ -528,6 +528,59 @@ describe('Cameras surface', () => {
     }
   });
 
+  it('a reconnect gives the old stream back (DR-1097, nineteenth read): every element a tile or the large view held, but the one on screen, has no src', async () => {
+    // cams-diag 39547175167: 32 live views (every NAS slot) were held open by
+    // one tab, five of one camera at once, because a replaced <video> kept its
+    // live MP4 after React's ref(null) dropped the handle on it.
+    try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    const { fetchImpl } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      const seen = new Set();
+      const tileVideo = () => container.querySelector('[data-testid="tile-live-front_yard"] video');
+      for (let i = 1; i <= 3; i += 1) {
+        const v = tileVideo();
+        expect(v, `tile try ${i}`).toBeTruthy();
+        expect(v.getAttribute('src')).toMatch(/\/cams\/live\/front_yard/);
+        seen.add(v);
+        await act(async () => { v.dispatchEvent(new Event('loadeddata')); });
+        await act(async () => { v.dispatchEvent(new Event('error')); });
+        // the ended view let go at once, before the next one opens
+        expect(v.hasAttribute('src'), `tile try ${i} released on end`).toBe(false);
+        await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+      }
+      expect(seen.size).toBe(3);
+      const onScreen = tileVideo();
+      expect(seen.has(onScreen)).toBe(false);
+      expect(onScreen.getAttribute('src')).toMatch(/\/cams\/live\/front_yard/);
+      for (const v of seen) expect(v.hasAttribute('src')).toBe(false);
+      // the large view: the same rule
+      await click(buttons().find((b) => b.textContent === 'Big'));
+      const big = () => container.querySelector('[data-testid="live-view"] video');
+      const bigSeen = [];
+      for (let i = 1; i <= 2; i += 1) {
+        const v = big();
+        expect(v, `big try ${i}`).toBeTruthy();
+        bigSeen.push(v);
+        await act(async () => { v.dispatchEvent(new Event('loadeddata')); });
+        await act(async () => { v.dispatchEvent(new Event('error')); });
+        expect(v.hasAttribute('src'), `big try ${i} released on end`).toBe(false);
+        await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+      }
+      expect(big()).toBeTruthy();
+      expect(bigSeen.includes(big())).toBe(false);
+      // Close: the large view's element gives its stream back too
+      const last = big();
+      await click(buttons().find((b) => b.textContent === 'Close'));
+      expect(last.hasAttribute('src')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a live view with no picture by the first-frame deadline comes back by itself, no hand needed (DR-0833)', async () => {
     const { fetchImpl, calls } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
     vi.stubGlobal('fetch', fetchImpl);
