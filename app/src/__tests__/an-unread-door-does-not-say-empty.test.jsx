@@ -165,7 +165,7 @@ describe('a door whose pictures could not be read', () => {
 
     // The sentence that sent him looking for lost evidence must not appear.
     expect(
-      /No pictures on this property yet/i.test(text),
+      /No pictures filed to this door.s record yet/i.test(text),
       'the app told him the door has no pictures when it had simply failed to read them',
     ).toBe(false);
   });
@@ -186,7 +186,7 @@ describe('a door whose pictures could not be read', () => {
     H.photosRead = 'ok';
     const text = await openThePictures();
     expect(container.querySelector('[data-testid="gallery-unread"]')).toBeFalsy();
-    expect(/No pictures on this property yet/i.test(text)).toBe(true);
+    expect(/No pictures filed to this door.s record yet/i.test(text)).toBe(true);
   });
 });
 
@@ -234,7 +234,7 @@ describe('a door with ten listing shots, filtered to a kind it has none of', () 
     const text = container.textContent || '';
 
     expect(
-      /No pictures on this property yet/i.test(text),
+      /No pictures filed to this door.s record yet/i.test(text),
       'the door holds ten pictures and the screen said it holds none',
     ).toBe(false);
     // The accurate sentence is still there, exactly once.
@@ -244,7 +244,7 @@ describe('a door with ten listing shots, filtered to a kind it has none of', () 
 
   it('still says it plainly when the door genuinely holds nothing', async () => {
     await mountGallery({ photos: [] });
-    expect(/No pictures on this property yet/i.test(container.textContent || '')).toBe(true);
+    expect(/No pictures filed to this door.s record yet/i.test(container.textContent || '')).toBe(true);
   });
 });
 

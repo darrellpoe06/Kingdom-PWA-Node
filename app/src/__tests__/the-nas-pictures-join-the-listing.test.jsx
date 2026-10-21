@@ -112,3 +112,56 @@ describe('the From the NAS shelf', () => {
     expect(container.querySelector('[data-testid="nas-shelf-note"]').textContent).toContain('the database is still being updated');
   });
 });
+
+// Darrell, 2026-10-21, the worker's Pictures tab on 709 Commercial St reading
+// "No pictures on this property yet" while this shelf held 121: "1099 worker
+// won't see pictures of the property?... Yes it does on the other edit side...
+// my point." Then: "Landlord chooses what to show some or all?" (DR-1162).
+describe('the landlord files some or all of the archive to the door\'s record', () => {
+  const THREE = [
+    { id: '9001', name: 'a.jpg', date: '2024-11-04', text: 'front room', thumb: 'data:image/jpeg;base64,T1' },
+    { id: '9002', name: 'b.jpg', date: '2024-11-04', text: 'hall', thumb: 'data:image/jpeg;base64,T2' },
+    { id: '9003', name: 'c.jpg', date: '2024-11-04', text: 'kitchen', thumb: 'data:image/jpeg;base64,T3' },
+  ];
+  it('ticked pictures are filed as records in one move, each once, the gallery refreshed once', async () => {
+    H.archivePhotos = THREE;
+    const adds = []; let done = 0;
+    await mount({ door, archive: '709CommercialSt', nasFiled: {}, recordKind: 'move-in-condition', onAdd: async (row) => { adds.push(row); return { ok: true }; }, onDone: () => { done += 1; } });
+    expect(container.querySelector('[data-testid="nas-file-ticked"]').textContent).toBe('File 0 ticked as records');
+    expect(container.querySelector('[data-testid="nas-file-ticked"]').disabled).toBe(true);
+    await tap(container.querySelector('[data-testid="nas-tick-9001"]'));
+    await tap(container.querySelector('[data-testid="nas-tick-9003"]'));
+    expect(container.querySelector('[data-testid="nas-file-ticked"]').textContent).toBe('File 2 ticked as records');
+    await tap(container.querySelector('[data-testid="nas-file-ticked"]'));
+    for (let i = 0; i < 12; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(adds.map((a) => a.source)).toEqual(['nas:709CommercialSt:9001', 'nas:709CommercialSt:9003']);
+    expect(adds.every((a) => a.kind === 'move-in-condition')).toBe(true);
+    expect(container.querySelector('[data-testid="nas-shelf-note"]').textContent).toBe('2 of 2 filed as move in condition.');
+    expect(done, 'PROVEN TO CATCH: one refresh for the batch, never one per picture (DR-0947)').toBe(1);
+    H.archivePhotos = [{ id: '9001', name: '20240123_144917.jpg', date: '2024-01-22', text: 'the porch, winter', thumb: 'data:image/jpeg;base64,THUMB' }];
+  });
+
+  it('FILE ALL walks the whole archive, skips what is on the door already, counts what landed and what did not', async () => {
+    H.archivePhotos = THREE;
+    const adds = []; let done = 0;
+    const onAdd = async (row) => { adds.push(row); return row.source.endsWith('9003') ? { ok: false, reason: 'insert-failed', error: 'duplicate' } : { ok: true }; };
+    await mount({ door, archive: '709CommercialSt', nasFiled: { 'nas:709CommercialSt:9002': 'already' }, recordKind: 'work-order-before', onAdd, onDone: () => { done += 1; } });
+    const all = container.querySelector('[data-testid="nas-file-all"]');
+    expect(all.textContent).toBe('File all 3 on this door’s archive as records');
+    await tap(all);
+    for (let i = 0; i < 16; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.calls.filter((c) => c[0] === 'archive').length, 'the archive is paged from the NAS for the whole, not the 24 on screen').toBeGreaterThanOrEqual(2);
+    expect(adds.map((a) => a.source), 'the picture already on the door is not sent twice').toEqual(['nas:709CommercialSt:9001', 'nas:709CommercialSt:9003']);
+    expect(container.querySelector('[data-testid="nas-shelf-note"]').textContent).toBe('1 of 2 filed as work order before; 1 did not land.');
+    expect(done).toBe(1);
+    H.archivePhotos = [{ id: '9001', name: '20240123_144917.jpg', date: '2024-01-22', text: 'the porch, winter', thumb: 'data:image/jpeg;base64,THUMB' }];
+  });
+
+  it('a tile already on the door offers no tick, and nothing to file says so instead of a dead button', async () => {
+    H.archivePhotos = THREE;
+    await mount({ door, archive: '709CommercialSt', nasFiled: { 'nas:709CommercialSt:9001': 'a', 'nas:709CommercialSt:9002': 'b', 'nas:709CommercialSt:9003': 'c' }, recordKind: 'move-in-condition', onAdd: async () => ({ ok: true }) });
+    expect(container.querySelector('[data-testid="nas-tick-9001"]')).toBeNull();
+    expect(container.querySelector('[data-testid="nas-batch"]'), 'every picture is filed, so there is no batch to offer').toBeNull();
+    H.archivePhotos = [{ id: '9001', name: '20240123_144917.jpg', date: '2024-01-22', text: 'the porch, winter', thumb: 'data:image/jpeg;base64,THUMB' }];
+  });
+});
