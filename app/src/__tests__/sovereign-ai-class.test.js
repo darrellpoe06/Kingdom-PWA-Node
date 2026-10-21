@@ -65,8 +65,13 @@ describe('curriculum shape', () => {
     // assertion forces, since `[44]` would now fail toEqual against a tree
     // that has no holes.
     //
-    // RECOMPUTED on the merged tree, not assumed: 45 modules, weeks 1..45
-    // ascending, max 45, nothing missing below it -- so `[]`.
+    // RECOMPUTED on the merged tree, not assumed: 46 modules, weeks 1..46
+    // ascending, max 46, nothing missing below it -- so `[]`. Week 46 (the
+    // helper that must see everything, DR-1139) is the third of the three and
+    // the last to merge, so ITS entries are the ones discharged here: this
+    // branch read `[44, 45]` until the merge, which was correct locally and
+    // wrong the instant both landed. Measured off the mounted modules, 46 of
+    // them, no holes.
     //
     // AND MEASURED OFF THE MOUNTED MODULE LIST RATHER THAN BY GREPPING THE
     // FILE, which matters more than the value. The catalog holds modules in TWO
@@ -84,7 +89,12 @@ describe('curriculum shape', () => {
     // Every number from 1 to the highest week is present, apart from the holds.
     const missing = [];
     for (let n = 1; n <= weeks[weeks.length - 1]; n += 1) if (!weeks.includes(n)) missing.push(n);
-    expect(missing, 'a missing week number that is not recorded as held in flight').toEqual(HELD_IN_FLIGHT);
+    // The message names BOTH directions and the remedy, because the two fail
+    // for opposite reasons and want opposite fixes: a gap nobody recorded is a
+    // dropped or misfiled week, while a recorded number that is no longer
+    // missing is a HOLD THAT OUTLIVED ITS WEEK -- a disarmed check, cleared by
+    // deleting that entry, never by widening the list to match.
+    expect(missing, `week gaps on disk are [${missing.join(',')}] and HELD_IN_FLIGHT records [${HELD_IN_FLIGHT.join(',')}]: a gap that is not recorded is a dropped or misfiled week; a recorded number that is NOT missing any more is a hold that outlived its week, so DELETE that entry (recompute the list from the merged tree) rather than widen it`).toEqual(HELD_IN_FLIGHT);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
