@@ -43,7 +43,7 @@ export async function edgeCall(path, { method = 'GET', body } = {}, fetchImpl = 
     }
     const ctype = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
     if (/text\/html/i.test(ctype)) {
-      return { ok: false, reason: 'no-road', message: 'The Edge Guard road is not open on this site yet: the poetech-roads Worker has not been deployed, so this path answers the app shell. Dispatch cf-roads-worker.yml with deploy=yes.' };
+      return { ok: false, reason: 'no-road', message: 'The Edge Guard road is not open on this site yet: the poetech-roads Worker is not deployed, so this path answers the app shell. The site itself is fine; every road the family uses is open through Pages. Bots, traffic and blocks wait on a Cloudflare token with Workers Scripts:Edit, Workers Routes:Edit, Zone:Read, Analytics:Read, Firewall Services:Edit and Bot Management:Edit for poetech.us, which only the Cloudflare dashboard can mint; once it is the CLOUDFLARE_API_TOKEN secret, cf-roads-worker.yml with deploy=yes opens this road (DR-1180).' };
     }
     let data;
     try { data = await res.json(); } catch { data = null; }
