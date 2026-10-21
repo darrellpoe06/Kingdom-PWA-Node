@@ -18,7 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LINE_KINDS, CHANGE_SOURCES, PROJECT_KINDS, CAPITAL_KINDS, budgetSummary, tiCheck, phaseProgress,
-  valuation, dealReturns, compareBuildToRent, trackBudget, brrrr,
+  valuation, dealReturns, compareBuildToRent, trackBudget, brrrr, leverage, lotSplit, maxLandPrice,
 } from './development.js';
 import {
   developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow,
@@ -469,6 +469,64 @@ export function Brrrr() {
   );
 }
 
+/** The land, the bank and the cash: split the lot, then what the bank will lend and what is left to bring. */
+export function LandAndBank() {
+  const [f, setF] = useState({ ltv: '70', ltc: '80', dcr: '1.25', amort: '25', sweat: '20' });
+  const set = (k) => (v) => setF({ ...f, [k]: v });
+  const m = (k) => (f[k] === undefined || f[k] === '' ? null : centsOrNull(f[k]));
+  const num = (k) => (f[k] === undefined || f[k] === '' || !Number.isFinite(Number(f[k])) ? null : Number(f[k]));
+  const split = lotSplit({ purchaseCents: m('landPaid'), closingCents: m('landClose'), softCostsCents: m('landSoft'), lotValueCents: m('lotValue'), lotsSold: num('lotsSold'), lotsKept: num('lotsKept') ?? 1 });
+  const landValue = m('lotValue');
+  const build = m('build');
+  const total = landValue !== null && build !== null ? landValue + build : null;
+  const rent = m('rent');
+  const exp = m('expenses');
+  const lev = leverage({
+    asBuiltCents: m('asBuilt'), totalCostCents: total, noiMonthlyCents: rent !== null && exp !== null ? rent - exp : null,
+    ratePct: num('rate'), amortYears: num('amort'), maxLtvPct: num('ltv') ?? 70, maxLtcPct: num('ltc') ?? 80, minDcr: num('dcr') ?? 1.25,
+    landEquityCents: landValue ?? 0, requestedLoanCents: build,
+  });
+  const land = maxLandPrice({ asBuiltCents: m('asBuilt'), sweatEquityPct: num('sweat'), buildCents: build, softCents: m('landSoft') });
+  const BOUND = { coverage: 'what the rent carries at the bank’s debt coverage', value: 'the bank’s share of the finished value', cost: 'the bank’s share of the cost' };
+  return (
+    <Card title="The land, the bank and the cash">
+      <p className="text-[0.75rem] text-[#6B665E] mb-2">Split the lot and sell enough to get your money back, so the lot you keep is free. Then the land comes to the bank at what it is worth, as your equity, and the bank lends the lowest of three: its share of the finished value, its share of the cost, and what the rent carries.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-2">
+        <Field id="lab-paid" label="Paid for the land ($)" value={f.landPaid ?? ''} onChange={set('landPaid')} />
+        <Field id="lab-close" label="Closing ($)" value={f.landClose ?? ''} onChange={set('landClose')} />
+        <Field id="lab-soft" label="Survey, attorney, plans ($)" value={f.landSoft ?? ''} onChange={set('landSoft')} />
+        <Field id="lab-lot" label="Each lot is worth ($)" value={f.lotValue ?? ''} onChange={set('lotValue')} />
+        <Field id="lab-sold" label="Lots sold" value={f.lotsSold ?? ''} onChange={set('lotsSold')} />
+        <Field id="lab-kept" label="Lots kept" value={f.lotsKept ?? ''} onChange={set('lotsKept')} />
+      </div>
+      <p data-testid="lab-split" className="text-[0.8125rem] mb-2">{split.complete
+        ? `Put in ${money(split.putInCents)}, sold for ${money(split.soldCents)}: ${split.outOfPocketCents ? `${money(split.outOfPocketCents)} still out of pocket` : 'all of it back'}${split.surplusCents ? `, ${money(split.surplusCents)} over` : ''}. You keep land worth ${money(split.keptValueCents)}${split.keptBasisCents ? ` for ${money(split.keptBasisCents)}` : ' free'}.`
+        : 'Enter what you paid, what each lot is worth and how many you sell.'}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-2">
+        <Field id="lab-build" label="Build cost ($)" value={f.build ?? ''} onChange={set('build')} />
+        <Field id="lab-asbuilt" label="Worth when built ($)" value={f.asBuilt ?? ''} onChange={set('asBuilt')} />
+        <Field id="lab-rent" label="Rent a month, all units ($)" value={f.rent ?? ''} onChange={set('rent')} />
+        <Field id="lab-exp" label="Expenses a month ($)" value={f.expenses ?? ''} onChange={set('expenses')} />
+        <Field id="lab-rate" label="Rate (%)" value={f.rate ?? ''} onChange={set('rate')} />
+        <Field id="lab-amort" label="Amortization (years)" value={f.amort ?? ''} onChange={set('amort')} />
+        <Field id="lab-ltv" label="Bank max of value (%)" value={f.ltv ?? ''} onChange={set('ltv')} />
+        <Field id="lab-ltc" label="Bank max of cost (%)" value={f.ltc ?? ''} onChange={set('ltc')} />
+        <Field id="lab-dcr" label="Debt coverage" value={f.dcr ?? ''} onChange={set('dcr')} />
+        <Field id="lab-sweat" label="Equity to create (%)" value={f.sweat ?? ''} onChange={set('sweat')} />
+      </div>
+      <div data-testid="lab-bank" className="text-[0.8125rem]">
+        {!lev.complete ? <p className="text-[#6B665E]">Enter each lot{'’'}s worth, the build cost, what it is worth built, the rent and expenses, and the rate.</p> : (
+          <>
+            <p>The bank lends at most {money(lev.maxLoanCents)}, limited by {BOUND[lev.binding]} (value {money(lev.byValueCents)} · cost {money(lev.byCostCents)} · coverage {money(lev.byCoverageCents)}).</p>
+            <p className={lev.requested.fits ? 'text-[#2F5D50]' : 'text-[#B85838] font-semibold'}>Borrowing the whole build, {money(lev.requested.loanCents)}: {lev.requested.ltvPct}% of value, {lev.requested.ltcPct}% of cost, debt coverage {lev.requested.dcr}. {lev.requested.fits ? 'The bank can fund all of it.' : `Cash to bring: ${money(lev.cashNeededCents)}.`}</p>
+          </>
+        )}
+        {land.complete && <p className="text-[#6B665E] mt-1">To create {f.sweat}% equity, the most to pay for the land is {money(land.maxLandCents)}.</p>}
+      </div>
+    </Card>
+  );
+}
+
 export function DevelopmentTab({ api = DEFAULT_API }) {
   const [instanceId, setInstanceId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -541,6 +599,7 @@ export function DevelopmentTab({ api = DEFAULT_API }) {
       )}
       <BuildToRent />
       <Brrrr />
+      <LandAndBank />
     </div>
   );
 }

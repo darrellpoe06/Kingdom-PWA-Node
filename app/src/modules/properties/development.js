@@ -648,3 +648,97 @@ export function brrrr(input = {}) {
     stressed: run(n('managementPct') > 0 ? n('managementPct') : 8, Math.max(n('vacancyPct'), 8)),
   };
 }
+
+// =============================================================================
+// THE LAND, THE BANK AND THE CASH (Kleyman: "build a duplex with zero cash
+// tied up", video HCa1XR4ev5M, and the build-to-rent duplex, 9zjeGb74TmU).
+//
+// Three of his tools, each pure arithmetic:
+//
+// 1. SPLIT THE LOT, SELL ENOUGH TO GET YOUR MONEY BACK, KEEP THE REST FREE.
+//    His case: $220,000 for land he upzoned into three lots, $3,000 to close,
+//    about $12,000 of surveying, application, land-use attorney and
+//    architect (the captions hear "$112,000"; the arithmetic he gives —
+//    "recouping roughly 10,000 of that" and "only $5,000 out of pocket" —
+//    is $12,000), two lots sold at $115,000: he owns the third for $5,000.
+// 2. THE MOST THE BANK WILL LEND IS THE LOWEST OF THREE: a share of the
+//    finished value, a share of the cost, and the loan the rent carries at
+//    the bank's debt coverage. "When rates were low debt coverage was not the
+//    limiting constraint ... watch what happens here." Land you own free
+//    comes in at full market value as your equity: "it doesn't matter what
+//    you pay for the land, what matters is what is the land worth."
+// 3. THE MOST YOU CAN PAY FOR LAND is the finished value, less the equity you
+//    mean to create, less the build and the soft costs.
+// =============================================================================
+export function lotSplit({ purchaseCents, closingCents = 0, softCostsCents = 0, lotValueCents, lotsSold, lotsKept = 1 } = {}) {
+  const need = { purchaseCents, lotValueCents, lotsSold };
+  const missing = Object.keys(need).filter((k) => !isCents(need[k]));
+  if (missing.length) return { complete: false, missing };
+  const inCents = cents(purchaseCents) + (isCents(closingCents) ? cents(closingCents) : 0) + (isCents(softCostsCents) ? cents(softCostsCents) : 0);
+  const soldCents = cents(lotValueCents) * Number(lotsSold);
+  const out = inCents - soldCents;
+  return {
+    complete: true,
+    putInCents: inCents,
+    soldCents,
+    outOfPocketCents: Math.max(0, out),
+    surplusCents: Math.max(0, -out),
+    keptValueCents: cents(lotValueCents) * Number(lotsKept),
+    // What the kept lots stand you in: what is still out of pocket.
+    keptBasisCents: Math.max(0, out),
+  };
+}
+
+export function leverage({
+  asBuiltCents, totalCostCents, noiMonthlyCents, ratePct, amortYears,
+  maxLtvPct = 80, maxLtcPct = 85, minDcr = 1.25, landEquityCents = 0, requestedLoanCents = null,
+} = {}) {
+  const need = { asBuiltCents, totalCostCents, noiMonthlyCents, ratePct, amortYears };
+  const missing = Object.keys(need).filter((k) => !isCents(need[k]));
+  if (missing.length) return { complete: false, missing };
+  const byValue = Math.round(Number(asBuiltCents) * (Number(maxLtvPct) / 100));
+  const byCost = Math.round(Number(totalCostCents) * (Number(maxLtcPct) / 100));
+  const maxPayment = Number(noiMonthlyCents) / Number(minDcr);
+  const byCoverage = Math.round(loanFor(maxPayment, ratePct, amortYears));
+  const maxLoan = Math.min(byValue, byCost, byCoverage);
+  const binding = maxLoan === byCoverage ? 'coverage' : maxLoan === byValue ? 'value' : 'cost';
+  const equity = isCents(landEquityCents) ? cents(landEquityCents) : 0;
+  const pay = payment(maxLoan, ratePct, amortYears);
+  const cash = Math.max(0, cents(totalCostCents) - maxLoan - equity);
+  const cashFlow = Number(noiMonthlyCents) - pay;
+  const req = isCents(requestedLoanCents) ? cents(requestedLoanCents) : null;
+  const reqPay = req !== null ? payment(req, ratePct, amortYears) : null;
+  return {
+    complete: true,
+    byValueCents: byValue,
+    byCostCents: byCost,
+    byCoverageCents: byCoverage,
+    maxPaymentCents: Math.round(maxPayment),
+    maxLoanCents: maxLoan,
+    binding,
+    paymentCents: Math.round(pay),
+    cashNeededCents: cash,
+    cashFlowMonthlyCents: Math.round(cashFlow),
+    cashOnCashPct: cash > 0 ? r2(((cashFlow * 12) / cash) * 100) : null,
+    // The loan you asked for, measured the bank's three ways.
+    requested: req === null ? null : {
+      loanCents: req,
+      ltvPct: r2((req / Number(asBuiltCents)) * 100),
+      ltcPct: r2((req / Number(totalCostCents)) * 100),
+      dcr: reqPay > 0 ? r2(Number(noiMonthlyCents) / reqPay) : null,
+      fits: req <= maxLoan,
+    },
+  };
+}
+
+export function maxLandPrice({ asBuiltCents, sweatEquityPct, buildCents, softCents = 0 } = {}) {
+  const need = { asBuiltCents, sweatEquityPct, buildCents };
+  const missing = Object.keys(need).filter((k) => !isCents(need[k]));
+  if (missing.length) return { complete: false, missing };
+  const equity = Math.round(Number(asBuiltCents) * (Number(sweatEquityPct) / 100));
+  return {
+    complete: true,
+    sweatEquityCents: equity,
+    maxLandCents: cents(asBuiltCents) - equity - cents(buildCents) - (isCents(softCents) ? cents(softCents) : 0),
+  };
+}

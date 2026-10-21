@@ -170,4 +170,15 @@ describe('the Development tab (DR-1158)', () => {
     await setValue(byId('brrrr-rent'), '1200');
     expect(byTest('brrrr-result').textContent).not.toMatch(/Fails:/);
   });
+
+  it('the land card splits the lot and tells how much cash the bank leaves to bring, from Kleyman\'s duplex', async () => {
+    await mount(fakeApi());
+    for (const [k, v] of Object.entries({ paid: '220000', close: '3000', soft: '12000', lot: '115000', sold: '2', kept: '1' })) await setValue(byId(`lab-${k}`), v);
+    expect(byTest('lab-split').textContent).toMatch(/\$5,000\.00 still out of pocket/);
+    await setValue(byId('lab-lot'), '100000');
+    for (const [k, v] of Object.entries({ build: '325000', asbuilt: '550000', rent: '4000', exp: '1200', rate: '6.5', amort: '20' })) await setValue(byId(`lab-${k}`), v);
+    expect(byTest('lab-bank').textContent).toMatch(/debt coverage 1\.16\. Cash to bring:/);
+    await setValue(byId('lab-amort'), '25');
+    expect(byTest('lab-bank').textContent).toMatch(/debt coverage 1\.28\. The bank can fund all of it\./);
+  });
 });
