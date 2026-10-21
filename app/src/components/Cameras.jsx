@@ -33,6 +33,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { bridgeToken } from '../lib/nas-photos.js';
+import { saveGarages } from '../lib/garage-header.js';
 import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1700,6 +1701,8 @@ export default function Cameras() {
   const byId = useMemo(() => Object.fromEntries(list.cameras.map((c) => [c.id, c])), [list.cameras]);
   const wallCams = wall.map((id) => byId[id]).filter(Boolean);
   const garages = useMemo(() => garagesFor(devicesState && devicesState.devices, list.cameras), [devicesState, list.cameras]);
+  // The header's garage button reads this device's record of the doors (lib/garage-header.js); a real reading here refreshes it.
+  useEffect(() => { if (devicesState && devicesState.kind === 'ok') saveGarages(garages); }, [devicesState, garages]);
   const garageByCamera = useMemo(() => Object.fromEntries(garages.filter((g) => g.cameraId).map((g) => [g.cameraId, g])), [garages]);
 
   const roadChip = health == null ? <span className={chip.muted}>checking the road</span>
