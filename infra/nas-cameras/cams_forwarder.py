@@ -427,10 +427,27 @@ LIVE_ENDS = []
 LIVE_ENDS_LOCK = threading.Lock()
 
 
-def live_end_note(cam, seconds, nbytes, why, now=None):
+# WHO OPENED IT AGAIN (DR-1097, twenty-first read). Every hang-up the tab makes
+# reads "viewer-left", whether a person left or the app's own freeze or lag rule
+# reconnected, so a blinking run on one camera could not say which. The app
+# already counts its reconnects into the live URL (r=, Cameras.jsx liveUrl), and
+# a tap that remounts a tile starts again at 0; each end now keeps that count.
+LIVE_RECONNECT_MAX = 999
+
+
+def live_reconnect_of(query):
+    """The app's reconnect count from a live URL's query (r=), 0 when absent or not a count."""
+    try:
+        v = int(urllib.parse.parse_qs(query or "").get("r", ["0"])[0])
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(LIVE_RECONNECT_MAX, v))
+
+
+def live_end_note(cam, seconds, nbytes, why, now=None, reconnect=0):
     with LIVE_ENDS_LOCK:
         LIVE_ENDS.append({"camera": cam, "s": round(float(seconds), 1), "kb": int(nbytes) // 1024, "why": why,
-                          "at": int(now if now is not None else time.time())})
+                          "r": int(reconnect), "at": int(now if now is not None else time.time())})
         del LIVE_ENDS[:-LIVE_ENDS_KEEP]
 
 
@@ -3495,7 +3512,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(400, {"error": "bad-camera-id"})
                 if not self._ticketed(cam, query):
                     return self._json(401, {"error": "unauthorized"})
-                return self._live_mp4(cam)
+                return self._live_mp4(cam, reconnect=live_reconnect_of(query))
 
             m = re.match(r"^/live/([^/]+)/index\.m3u8$", path)
             if m:
@@ -4392,7 +4409,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 body["camera"] = base
             return self._json(status, body)
 
-        def _live_mp4(self, cam):
+        def _live_mp4(self, cam, reconnect=0):
             if self._wyze_offline_kvs(cam):
                 return self._json(503, WYZE_OFFLINE_ANSWER)
             if not live_gate.acquire(blocking=False):
@@ -4463,7 +4480,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     finally:
                         live_view_leave(cam, view)
                         live_note(0, delta_open=-1)
-                        live_end_note(cam, time.monotonic() - started, sent, why)
+                        live_end_note(cam, time.monotonic() - started, sent, why, reconnect=reconnect)
             finally:
                 live_gate.release()
 
@@ -4802,9 +4819,9 @@ def _selftest():
     check(s == 401, "another camera's ticket -> 401")
     results = {}
 
-    def stream_one(k):
+    def stream_one(k, r=""):
         c = HTTPConnection("127.0.0.1", port, timeout=10)
-        c.request("GET", "/live/front_yard.mp4?t=" + tk)
+        c.request("GET", "/live/front_yard.mp4?t=" + tk + (("&r=" + r) if r else ""))
         r = c.getresponse()
         t0 = time.monotonic()
         got = b""
@@ -4861,7 +4878,7 @@ def _selftest():
     try:
         results.clear()
         ta = threading.Thread(target=stream_one, args=("a",)); ta.start(); time.sleep(0.3)
-        tb = threading.Thread(target=stream_one, args=("b",)); tb.start()
+        tb = threading.Thread(target=stream_one, args=("b", "2")); tb.start()
         ta.join(); tb.join()
     finally:
         globals()["LIVE_PER_CAMERA"] = saved_cap
@@ -4871,6 +4888,10 @@ def _selftest():
     check(sa == 200 and sb == 200 and ga.startswith(b"MP4CHUNK000") and ela < 0.75 and elb >= 0.8,
           "PROVEN TO CATCH end to end: a second view of the camera ends the first at once (%.2fs, before its 1 s clock) and the second plays on to its clock (%.2fs)" % (ela, elb))
     check(any(e["why"] == "superseded" for e in ends_fy[-2:]), "the first view's end is kept as superseded, so the diag says which side hung up (%r)" % ends_fy[-2:])
+    check([e.get("r") for e in ends_fy[-2:]] == [0, 2],
+          "PROVEN TO CATCH: each end keeps the app's reconnect count from its URL (a fresh open 0, the app's second reconnect 2), so a blinking run says whether the app or a person opened it again (%r)" % ends_fy[-2:])
+    check(live_reconnect_of("t=x&r=7") == 7 and live_reconnect_of("t=x") == 0 and live_reconnect_of("r=-3") == 0 and live_reconnect_of("r=abc") == 0 and live_reconnect_of("r=100000") == LIVE_RECONNECT_MAX,
+          "the reconnect count is a bounded count: absent, negative or not a number reads 0")
     check(LIVE_VIEWS == {}, "both views left the register (%r)" % LIVE_VIEWS)
     LIVE_ENDS[:] = saved_ends6  # the ends section below counts its own
 

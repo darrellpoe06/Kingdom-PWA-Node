@@ -545,6 +545,10 @@ describe('Cameras surface', () => {
         const v = tileVideo();
         expect(v, `tile try ${i}`).toBeTruthy();
         expect(v.getAttribute('src')).toMatch(/\/cams\/live\/front_yard/);
+        // the tile's own reconnect count rides its URL, so the NAS's record of each
+        // end says the tile reopened itself (DR-1097, twenty-first read)
+        if (i === 1) expect(v.getAttribute('src'), 'a fresh tile carries no count').not.toMatch(/[?&]r=/);
+        else expect(v.getAttribute('src'), `tile try ${i}`).toMatch(new RegExp(`[?&]r=${i - 1}(&|$)`));
         seen.add(v);
         await act(async () => { v.dispatchEvent(new Event('loadeddata')); });
         await act(async () => { v.dispatchEvent(new Event('error')); });

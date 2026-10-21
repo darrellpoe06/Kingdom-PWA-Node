@@ -237,8 +237,15 @@ jobs:
           if not isinstance(le,dict): print("(this forwarder does not keep live ends yet)"); sys.exit(0)
           print("by who ended it: %s" % (", ".join("%s=%d" % kv for kv in sorted(le.get("by_why",{}).items())) or "none yet"))
           now=time.time()
-          for e in le.get("ends",[])[:40]:
-              print("  %5ds ago  %-34s %6.1f s %7d KB  %s" % (now-e.get("at",now), str(e.get("camera"))[:34], e.get("s",0), e.get("kb",0), e.get("why")))
+          ends=le.get("ends",[])
+          # DR-1097 twenty-first read: r is the app's own reconnect count on the URL
+          # (0 = a tile mounted fresh: opened, tapped or navigated to); "-" = an older forwarder
+          if ends and "r" in ends[0]:
+              re_=sum(1 for e in ends if (e.get("r") or 0) > 0)
+              print("opened by the app's own reconnect: %d of %d (a tile mounted fresh, r=0: %d)" % (re_, len(ends), len(ends)-re_))
+          for e in ends[:40]:
+              r=e.get("r")
+              print("  %5ds ago  %-34s %6.1f s %7d KB  r=%-3s %s" % (now-e.get("at",now), str(e.get("camera"))[:34], e.get("s",0), e.get("kb",0), "-" if r is None else r, e.get("why")))
           ' 2>&1 | scrub; fi
           }
           echo "=== how each live view ended, newest first (DR-1097 sixteenth read: who hangs up a blinking tile) ==="
