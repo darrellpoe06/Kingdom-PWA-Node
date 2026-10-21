@@ -40,7 +40,7 @@ Not in this app (the reference shows them; the brief says "wherever those featur
 
 - lint: 0 warnings. contrast-guard: PASS (11 themes). legibility-guard: PASS. Every other gate green; `business-systems-guard` is red on `main` already (DR-1150 twice in INDEX; #2330 fixes it).
 - 18 TLC / theme / door suites: 220 green (+ the one right failure, retargeted). New suite 17 green, two proven to catch.
-- Live review on the built door (Chromium, 390px and 1280px, `?tlc=1`): four finds, all fixed — token-radius rules flattening the pills (now scoped with `:not([class*="rounded"])`), the sticky header rounding (now `rounded-none`), the phone bar truncating the wordmark (mark hides below `sm`), and the status bar wearing Heritage because the shell's hook paints last (the shell asks for `TLC_DEFAULT_THEME` by the door, +0 lines). After: `data-theme="tlc"`, primary pill `rgb(46,74,60)` at `9999px`, `theme-color` `#F4F2ED`, zero page errors.
+- Live review on the built door (Chromium, 390px and 1280px, `?tlc=1`): four finds, all fixed — token-radius rules flattening the pills (now scoped with `:not([class*="rounded"])`), the sticky header rounding (now `rounded-none`), the phone bar truncating the wordmark (mark hides below `sm`), and the status bar wearing Heritage because the shell's hook paints last (the shell asks for `TLC_DEFAULT_THEME` by the door, +0 lines), plus the focus ring and the swatch ring still rust on the second pass (remapped). Also observed: the Mental skills tab, the Join the team tab and the sign-in card, all cohesive. After: `data-theme="tlc"`, primary pill `rgb(46,74,60)` at `9999px`, `theme-color` `#F4F2ED`, zero page errors.
 - Production build green. Full suite: recorded in the PR.
 
 ## Not done, with a why and a date

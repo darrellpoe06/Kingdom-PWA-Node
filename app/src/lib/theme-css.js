@@ -399,6 +399,10 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *):hover{border-color:#C7B27A!important}
 [data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn-on:not(.poe-dock-menu *){background-color:#C7B27A!important;border-color:#C7B27A!important;color:#2A2B27!important}
 [data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *) .poe-dock-accent{color:#E9DDB8!important}
+/* the focus ring and the picker's selected ring wear the forest too — seen on
+   the live door as the one rust-orange left on an otherwise forest page */
+[data-theme="tlc"] .focus\\:outline-\\[\\#B85838\\]:focus{outline-color:#2E4A3C!important}
+[data-theme="tlc"] .ring-\\[\\#B85838\\]{--tw-ring-color:#2E4A3C!important}
 /* soft corners on every control, roomy prose — the reference's feel */
 [data-theme="tlc"] button{border-radius:12px}
 [data-theme="tlc"] input,[data-theme="tlc"] select,[data-theme="tlc"] textarea{border-radius:10px}
