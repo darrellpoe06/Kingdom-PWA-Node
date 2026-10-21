@@ -27,6 +27,9 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const H = vi.hoisted(() => ({
   rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null,
   assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [],
+  // The pictures of a door and its rooms, and the door a tenancy resolves to
+  // (door_of_my_tenancy) — what 0309 lets a tenant read (DR-1197).
+  doorPhotos: [], rooms: [], askDoor: null,
 }));
 
 vi.mock('../modules/properties/cloud.js', () => {
@@ -43,11 +46,11 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadInvites: async () => ({ ok: true, invites: H.invites }),
     loadPublicVacancies: async () => ({ ok: true, vacancies: [] }),
     loadVacancyPhotos: async () => ({ ok: true, photos: [] }),
-    loadAllPhotos: async () => ({ ok: true, photos: [] }),
+    loadAllPhotos: async () => ({ ok: true, photos: H.doorPhotos }),
     loadPhotoImages: async () => ({ ok: true, images: {} }),
     hydrateLegacyImages: async (photos) => photos,
     loadDoorRecord: async (tenancyId, opts) => { H.recordCalls.push([tenancyId, opts]); return ({ ok: true, requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], ...(H.record || {}) }); },
-    loadRooms: async () => ({ ok: true, rooms: [] }),
+    loadRooms: async () => ({ ok: true, rooms: H.rooms }),
     // The rest of the apartment (DR-0963). Stubbed empty: these suites are
     // about a single door, and a door with no siblings is the ordinary case.
     loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
@@ -55,7 +58,7 @@ vi.mock('../modules/properties/cloud.js', () => {
   loadDoorAreas: async () => ({ ok: false }), saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
   loadDoorArchives: async () => ({ ok: true, channels: {}, heldAt: {} }),
   loadDoorPhotoSources: async () => ({ ok: true, sources: {} }),
-    loadDoorPhotos: async () => ({ ok: true, photos: [] }),
+    loadDoorPhotos: async (ref) => (ref ? { ok: true, photos: H.doorPhotos } : { ok: true, photos: [] }),
     loadDoorTenancies: async () => ({ ok: true, tenancies: [] }),
     loadDocuments: async () => ({ ok: true, documents: [] }),
     loadSystems: async () => ({ ok: true, systems: [] }),
@@ -68,7 +71,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadRecordEvents: async () => ({ ok: true, events: [] }), loadDoorMoney: async () => ({ ok: true, months: [] }),
     loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
     requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
-    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    doorOfMyTenancy: async () => ({ ok: true, rentalId: H.askDoor }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
     saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
     loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row: { id: 'req-new', ...row } }; },
@@ -108,7 +111,7 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] });
+  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] , doorPhotos: [], rooms: [], askDoor: null });
 });
 
 async function mount(props = {}) {
@@ -345,5 +348,158 @@ describe('the owner sees a door the way its tenant does', () => {
     H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
     await mount({ surface: 'poetech' });
     expect(buttons().map((b) => (b.textContent || '').trim())).toContain('Work board');
+  });
+});
+
+// THE PICTURES OF THE PLACE THEY LIVE IN (DR-1197). Darrell, 2026-10-21: "We
+// have images on multiple doors, and those images should be able to be seen by
+// the people we are adding to the system." The tenant's face has a Pictures
+// tab; it reads the door 0309 opens (door_of_my_tenancy), draws its listing
+// pictures room by room, and says the honest thing when the door is not known
+// or the read failed.
+describe('a tenant sees the pictures of the place they live in', () => {
+  const KITCHEN = { id: 'rm-k', rental_ref: 'r-koehn', name: 'Kitchen', kind: 'kitchen', sort_order: 1 };
+  const SHOTS = [
+    { id: 'p-front', rental_ref: 'r-koehn', tenancy_id: null, kind: 'listing', caption: 'The front', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+    { id: 'p-kitchen', rental_ref: 'r-koehn', tenancy_id: null, kind: 'listing', caption: 'Kitchen', room_id: 'rm-k', thumb_path: 'data:image/jpeg;base64,AAAA' },
+    { id: 'p-mine', rental_ref: 'r-koehn', tenancy_id: 't1', kind: 'move-in-condition', caption: 'My move-in', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+  ];
+
+  it('PROVEN TO CATCH: the Pictures tab is on the tenant\'s face and shows every shared picture, then only the chosen room\'s', async () => {
+    H.doors = [KOEHN_TENANCY]; H.rentals = []; H.askDoor = 'r-koehn'; H.rooms = [KITCHEN]; H.doorPhotos = SHOTS;
+    await mount({ surface: 'door' });
+    await tap(/^Pictures$/);
+    const section = container.querySelector('[data-testid="door-pictures"]');
+    expect(section, 'no Pictures section rendered').toBeTruthy();
+    expect(section.getAttribute('data-phase')).toBe('ready');
+    expect(container.querySelector('[data-testid="door-pictures-count"]').textContent).toBe('3 pictures');
+    expect(container.querySelectorAll('[data-testid="door-pictures-grid"] li')).toHaveLength(3);
+    // The room dropdown names THIS apartment's rooms, and the grid follows it.
+    const pick = container.querySelector('[data-testid="door-pictures-room"]');
+    expect([...pick.options].map((o) => o.textContent)).toEqual(['Every room', 'Kitchen', 'Not a specific room']);
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    await act(async () => { setter.call(pick, 'rm-k'); pick.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(container.querySelectorAll('[data-testid="door-pictures-grid"] li')).toHaveLength(1);
+    expect(container.querySelector('[data-testid="door-pictures-count"]').textContent).toBe('1 picture · Kitchen');
+    // A tapped picture opens in place, and closes on the second tap (the
+    // button is a glyph: its name is its aria-label, UX-PATTERNS 2g.3).
+    const tile = container.querySelector('[data-testid="door-picture-p-kitchen"]');
+    expect(tile.getAttribute('aria-label')).toBe('Open Kitchen');
+    await act(async () => { tile.click(); });
+    expect(container.querySelector('[data-testid="door-pictures-open"]')).toBeTruthy();
+    expect(tile.getAttribute('aria-label')).toBe('Close Kitchen');
+    await act(async () => { tile.click(); });
+    expect(container.querySelector('[data-testid="door-pictures-open"]')).toBe(null);
+  });
+
+  it('says plainly when the landlord has shared nothing, and when the door is not known', async () => {
+    H.doors = [KOEHN_TENANCY]; H.rentals = []; H.askDoor = 'r-koehn'; H.rooms = []; H.doorPhotos = [];
+    await mount({ surface: 'door' });
+    await tap(/^Pictures$/);
+    expect(container.querySelector('[data-testid="door-pictures-none"]').textContent).toMatch(/has not shared pictures of this place yet/);
+    act(() => root.unmount()); container.remove(); root = container = null;
+    H.askDoor = null;
+    await mount({ surface: 'door' });
+    await tap(/^Pictures$/);
+    expect(container.querySelector('[data-testid="door-pictures-no-door"]').textContent).toMatch(/not known on this device yet/);
+    expect(container.querySelector('[data-testid="door-pictures-grid"]')).toBe(null);
+  });
+
+  it('the landlord\'s face has no tenant Pictures tab; its pictures stay on the Pictures (gallery) desk', async () => {
+    H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
+    await mount({ surface: 'poetech' });
+    expect(container.querySelector('[data-testid="door-pictures"]')).toBe(null);
+  });
+});
+
+// THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1197). Darrell,
+// 2026-10-21: "the photos don't align with that person's perspective... the
+// drop down needs to work effectively within that specific apartment."
+describe('a "seen as" preview stands on one door and reads what that person would', () => {
+  const T_APT2 = { id: 't-apt2', instance_id: 'i1', rental_ref: 'r-805-apt2', property_label: '805 North Prospect Avenue', unit_label: 'Apt 2', tenant_name: 'B. Tenant', status: 'active', lease_start: '2026-02-01', monthly_rent: 900 };
+  const PHOTOS = [
+    { id: 'k-listing', rental_ref: 'r-koehn', tenancy_id: null, kind: 'listing', caption: 'Koehn kitchen', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+    { id: 'k-turn', rental_ref: 'r-koehn', tenancy_id: null, kind: 'turn', caption: 'Koehn turn', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+    { id: 'k-mine', rental_ref: 'r-koehn', tenancy_id: 't1', kind: 'move-in-condition', caption: 'Koehn move-in', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+    { id: 'a2-listing', rental_ref: 'r-apt2', tenancy_id: null, kind: 'listing', caption: 'Apt 2 kitchen', room_id: null, thumb_path: 'data:image/jpeg;base64,AAAA' },
+  ];
+
+  it('PROVEN TO CATCH: as a tenant, the owner sees ONE tenancy, no door picker over the whole board, and only that door\'s listing shot and the tenancy\'s own picture', async () => {
+    H.rentals = [KOEHN, APT2]; H.doors = [KOEHN_TENANCY, T_APT2]; H.askDoor = 'r-koehn'; H.doorPhotos = PHOTOS;
+    await mount({ surface: 'poetech', viewAs: 'tenant' });
+    // The preview chooser names both doors; the ordinary picker (whole board) is gone.
+    const chooser = container.querySelector('[data-testid="preview-door"]');
+    expect(chooser, 'no Their-door chooser').toBeTruthy();
+    expect(chooser.options.length).toBe(2);
+    expect(container.querySelector('[data-testid="door-picker"]')).toBe(null);
+    // Its Pictures tab: the listing shot and the tenancy's own, never the turn shot, never Apt 2.
+    await tap(/^Pictures$/);
+    const grid = container.querySelector('[data-testid="door-pictures-grid"]');
+    expect(grid, 'no pictures grid').toBeTruthy();
+    const alts = [...grid.querySelectorAll('img')].map((i) => i.getAttribute('alt'));
+    expect(alts).toContain('Koehn kitchen');
+    expect(alts).toContain('Koehn move-in');
+    expect(alts).not.toContain('Koehn turn');
+    expect(alts).not.toContain('Apt 2 kitchen');
+  });
+
+  it('choosing the other door moves the preview there, tenancy and all', async () => {
+    H.rentals = [KOEHN, APT2]; H.doors = [KOEHN_TENANCY, T_APT2]; H.askDoor = 'r-apt2'; H.doorPhotos = PHOTOS;
+    await mount({ surface: 'poetech', viewAs: 'tenant' });
+    const chooser = container.querySelector('[data-testid="preview-door"]');
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    await act(async () => { setter.call(chooser, 'r-apt2'); chooser.dispatchEvent(new Event('change', { bubbles: true })); });
+    for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(text()).toContain('B. Tenant');
+    expect(text()).not.toContain('A. Tenant');
+  });
+
+  it('as a 1099 worker, My doors shows the one door they are sent to, with its pictures, and nothing of the other', async () => {
+    H.rentals = [KOEHN, APT2]; H.doors = [KOEHN_TENANCY]; H.doorPhotos = PHOTOS;
+    await mount({ surface: 'poetech', viewAs: 'field_worker' });
+    const chooser = container.querySelector('[data-testid="preview-door"]');
+    expect(chooser).toBeTruthy();
+    expect(container.querySelector('[data-testid="door-picker"]')).toBe(null);
+    // The chooser itself names both doors (it is the owner's hand); the board
+    // beneath it names only the one the worker is sent to.
+    const body = text().replace(chooser.textContent, '');
+    expect(body).toContain('1003 Koehn Dr');
+    expect(body).not.toContain('805 North Prospect Avenue');
+  });
+
+  it('a work order filed from the one-door tenant preview is still the landlord\'s', async () => {
+    H.rentals = [KOEHN, APT2]; H.doors = [KOEHN_TENANCY, T_APT2];
+    await mount({ surface: 'poetech', viewAs: 'tenant' });
+    await tap(/^Work orders$/);
+    await typeJob('Porch light out');
+    await tap(/^File it$/i);
+    expect(H.filed).toHaveLength(1);
+    expect(H.filed[0]).toMatchObject({ tenancy_id: 't1', created_by_role: 'landlord' });
+  });
+});
+
+// AN ADVERTISED DOOR WITH NO LISTING PICTURES SAYS SO ON THE BOARD (DR-1197).
+// Darrell, 2026-10-21: the "Available now" shelf "is not publishing well". The
+// public card draws only 'listing' shots (public_vacancy_photos), so a door
+// advertised with none is advertised with a blank card — and the board must
+// say that where the Advertise button is, not leave it to the visitor.
+describe('the board says when an advertised door has no listing pictures', () => {
+  const LISTED = { ...APT2, listed_at: '2026-10-20T00:00:00Z', listed_rent: 900 };
+  it('PROVEN TO CATCH: advertised + only a turn shot → the notice; a listing shot → no notice', async () => {
+    H.rentals = [LISTED]; H.doors = [];
+    H.doorPhotos = [{ id: 'turn', rental_ref: 'r-apt2', tenancy_id: null, kind: 'turn', caption: 'Turn', thumb_path: 'data:image/jpeg;base64,AAAA' }];
+    await mount({ surface: 'poetech' });
+    const notice = container.querySelector('[data-testid="listing-no-pictures"]');
+    expect(notice, 'no notice on an advertised door with no listing shot').toBeTruthy();
+    expect(notice.textContent).toMatch(/Advertised with no listing pictures/);
+    act(() => root.unmount()); container.remove(); root = container = null;
+    H.doorPhotos = [{ id: 'shot', rental_ref: 'r-apt2', tenancy_id: null, kind: 'listing', caption: 'Front', thumb_path: 'data:image/jpeg;base64,AAAA' }];
+    await mount({ surface: 'poetech' });
+    expect(container.querySelector('[data-testid="listing-no-pictures"]')).toBe(null);
+  });
+  it('a door that is not advertised carries no such notice', async () => {
+    H.rentals = [APT2]; H.doors = []; H.doorPhotos = [];
+    await mount({ surface: 'poetech' });
+    expect(container.querySelector('[data-testid="listing-no-pictures"]')).toBe(null);
   });
 });

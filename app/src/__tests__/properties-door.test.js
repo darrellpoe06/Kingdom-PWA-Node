@@ -263,7 +263,7 @@ describe('the faces people actually meet', () => {
     const face = resolveFace('tenant', []);
     // ...and, since DR-0841, the cameras their landlord shares with the door,
     // and, since DR-1010, Life here: a picture of life at the property, signed over.
-    expect(face.tabs.map((t) => t.id)).toEqual(['door', 'work', 'thread', 'history', 'rent', 'notices', 'papers', 'cameras', 'wall']);
+    expect(face.tabs.map((t) => t.id)).toEqual(['door', 'pictures', 'work', 'thread', 'history', 'rent', 'notices', 'papers', 'cameras', 'wall']);
     // The rollout/plan view is management's, not the tenant's.
     expect(face.tabs.some((t) => t.id === 'plan')).toBe(false);
     expect(face.tabs.some((t) => t.locked)).toBe(false);

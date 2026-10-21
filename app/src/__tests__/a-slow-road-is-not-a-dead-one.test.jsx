@@ -28,9 +28,11 @@ const RENTAL = {
 };
 
 // How many times each spine read has been asked, and how slow the road is.
-const H = { calls: 0, slowFirstRound: false };
+const H = { calls: 0, slowFirstRound: false, dead: false };
 const spine = async (payload) => {
   H.calls += 1;
+  // A dead road: nothing ever answers (the TV with no network, 2026-10-21).
+  if (H.dead) return new Promise(() => {});
   // The throttled road: the first round never answers inside its ceiling.
   if (H.slowFirstRound && H.calls <= 4) return new Promise(() => {});
   return payload;
@@ -99,7 +101,7 @@ vi.mock('../lib/supabase.js', () => ({
 const { default: PropertiesApp } = await import('../modules/properties/PropertiesApp.jsx');
 
 let container; let root;
-beforeEach(() => { H.calls = 0; H.slowFirstRound = false; vi.useFakeTimers({ shouldAdvanceTime: true }); });
+beforeEach(() => { H.calls = 0; H.slowFirstRound = false; H.dead = false; vi.useFakeTimers({ shouldAdvanceTime: true }); });
 afterEach(() => {
   vi.useRealTimers();
   if (root) act(() => root.unmount());
@@ -132,6 +134,29 @@ describe('a boot on a throttled road', () => {
       /could not be reached/i.test(container.textContent || ''),
       'the page still declared itself unreachable after the road answered',
     ).toBe(false);
+  });
+
+  it('PROVEN-TO-CATCH: a dead road on a device that says it is offline names the device, not the server (DR-1197)', async () => {
+    // The TV on 2026-10-21: the app loaded from its cache, the footer read
+    // OFFLINE, and the card showed every read 'not-reached'. The card now says
+    // the device is offline — and says nothing of the kind when it is online.
+    H.dead = true;
+    const desc = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    try {
+      await boot();
+      expect(/could not be reached/i.test(container.textContent || '')).toBe(true);
+      const line = container.querySelector('[data-testid="properties-offline"]');
+      expect(line, 'the offline line did not render').toBeTruthy();
+      expect(line.textContent).toMatch(/This device says it is offline/);
+    } finally {
+      if (desc) Object.defineProperty(navigator, 'onLine', desc); else delete navigator.onLine;
+    }
+    act(() => root.unmount()); container.remove(); root = container = null;
+    H.calls = 0;
+    await boot();
+    expect(/could not be reached/i.test(container.textContent || '')).toBe(true);
+    expect(container.querySelector('[data-testid="properties-offline"]')).toBe(null);
   });
 
   it('a healthy road is never retried — the second round costs nothing', async () => {

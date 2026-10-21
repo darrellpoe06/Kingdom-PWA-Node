@@ -92,24 +92,34 @@ export const APPLICATION_SECTIONS = Object.freeze([
       F('zip', 'ZIP', 'text', { required: true }),
       F('dateIn', 'Date in', 'date'),
       F('dateOut', 'Date out', 'date'),
-      F('landlordName', 'Landlord name', 'text'),
-      F('landlordPhone', 'Landlord phone', 'tel'),
-      F('monthlyRent', 'Monthly rent', 'money'),
+      // WHO THEY RENT FROM, AND WHAT THEY PAY — MANDATORY (Darrell, 2026-10-21,
+      // DR-1197: "we do need their last landlord's name and phone number
+      // directly from them so we can at least have someone telling us who they
+      // rented from... and their monthly rent that they paid should be
+      // mandatory as well... to guarantee that we have the information to
+      // validate the people who are applying"). The validator refuses the
+      // application without them; the form marks them with the asterisk.
+      F('landlordName', 'Landlord name', 'text', { required: true }),
+      F('landlordPhone', 'Landlord phone', 'tel', { required: true }),
+      F('monthlyRent', 'Monthly rent', 'money', { required: true }),
       F('reasonForLeaving', 'Reason for leaving', 'text'),
     ],
   }),
   Object.freeze({
     id: 'previousAddress', title: 'Previous address',
+    // THE PREVIOUS ADDRESS IS MANDATORY TOO (same directive): the address, who
+    // they rented from there, how to reach them, and what they paid. A first
+    // home still has a previous address — the one before it.
     fields: [
-      F('street', 'Street address', 'text'),
-      F('city', 'City', 'text'),
-      F('state', 'State', 'text'),
-      F('zip', 'ZIP', 'text'),
+      F('street', 'Street address', 'text', { required: true }),
+      F('city', 'City', 'text', { required: true }),
+      F('state', 'State', 'text', { required: true }),
+      F('zip', 'ZIP', 'text', { required: true }),
       F('dateIn', 'Date in', 'date'),
       F('dateOut', 'Date out', 'date'),
-      F('landlordName', 'Landlord name', 'text'),
-      F('landlordPhone', 'Landlord phone', 'tel'),
-      F('monthlyRent', 'Monthly rent', 'money'),
+      F('landlordName', 'Landlord name', 'text', { required: true }),
+      F('landlordPhone', 'Landlord phone', 'tel', { required: true }),
+      F('monthlyRent', 'Monthly rent', 'money', { required: true }),
       F('reasonForLeaving', 'Reason for leaving', 'text'),
     ],
   }),
