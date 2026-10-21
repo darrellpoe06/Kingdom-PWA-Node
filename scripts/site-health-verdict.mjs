@@ -91,6 +91,34 @@ export const KNOWN_OUTAGES = [
     what: 'every Cloudflare Pages Function stopped being invoked',
     reach: 'Cloudflare-side — no code change in this repository reaches it',
   },
+  {
+    // THE WORKER ROADS (DR-1158). #2285 taught the witness to look for the
+    // poetech-roads Worker on its zone route (DR-1124), and the first look,
+    // run 39507209827 at 2026-10-20T22:20Z, found the SPA shell where the
+    // Worker's JSON 401 belongs: the Worker has never been deployed. Measured
+    // why on the same night (cf-roads-worker run 39508087503, read-only
+    // probe): the repository's Cloudflare token verifies "active" and sees
+    // ZERO zones and ZERO Workers scripts — a Pages-only token. The deploy
+    // needs Account > Workers Scripts:Edit and Zone > Workers Routes:Edit
+    // for poetech.us, a token only Darrell can mint in his dashboard.
+    //
+    // Without this entry the same unchanged reading was written to #2057 as
+    // "A FAULT NOT ALREADY ON RECORD" four times in eight hours (22:20,
+    // 23:08, 01:32, 05:45) — the 29-comments-in-65-hours shape DR-0975 was
+    // written to end. The run STILL FAILS; only the repetition stops.
+    id: 'cf-roads-worker',
+    issue: 2057,
+    // The stable head and tail of the add_fail in site-health.yml (the
+    // middle interpolates the measured code and content-type).
+    signature: 'THE WORKER ROADS ARE DARK TOO',
+    tail: "the wrangler zone route or the Worker's own deploy is the place to look",
+    since: '2026-10-20T22:20:24Z',
+    // Sized to the hand step: a week for the token to land. Past this the
+    // reading is loud again, which is the only safe direction (note 1).
+    until: '2026-10-28',
+    what: 'the poetech-roads Worker is not deployed on its zone route (/edge/* answers the SPA shell)',
+    reach: 'needs a Cloudflare token with Workers Scripts:Edit and Workers Routes:Edit for poetech.us, which only Darrell can mint; the repository token sees zero zones and zero scripts (cf-roads-worker run 39508087503)',
+  },
 ];
 
 /** Whole days between two instants, floored. Pure. */

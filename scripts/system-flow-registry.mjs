@@ -943,7 +943,9 @@ const NODES = [
   wf('site-health.yml', {
     id: 'site-health', name: 'Site health witness',
     purpose: 'Proves poetech.us is up, whole and fresh, from outside; heals a stale build.',
-    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'gh:secret', token: 'VITE_N8N_BEARER' }, // the bell's bearer (DR-1159)
+    ],
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['ops-surface', 'deploy'],
   }),
@@ -1320,6 +1322,18 @@ const NODES = [
   wf('push-sender-credentials.yml', {
     id: 'push-sender-credentials', name: 'Push sender credentials', purpose: 'Installs the database credentials the push sender needs.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'cf:push-env', token: 'SUPABASE_SERVICE_KEY' }], seeds: ['push-send'],
+  }),
+  // THE BELL'S BEARER (DR-1159). The witness rings through ops-announce with
+  // the repository secret; the relay reads the same bearer from its own file
+  // on the NAS. When they drift, this runner walks the tailnet, reads the
+  // file, installs the secret with the NAS's own GitHub token, reads it back
+  // by date and rings once: the Way a NAS-held value comes to the lane.
+  wf('announce-bearer-sync.yml', {
+    id: 'announce-bearer-sync', name: "The bell's bearer comes to the lane by the runner (DR-1159)",
+    purpose: "Reads the announce bearer and the NAS's own GitHub token from the NAS over the tailnet, installs the bearer as the repository secret the witness rings with, reads it back by date, and rings once as proof.",
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:storage', token: 'announce-token.txt' }],
+    writes: [{ res: 'gh:secret', token: 'VITE_N8N_BEARER' }, { res: 'http:announce', token: 'ops-announce' }],
+    seeds: ['site-health'],
   }),
   app('app/functions/api/push-send.js', {
     id: 'push-send', name: 'Push sender (buzzes a phone)', purpose: 'Sends a notification to the devices that asked for it.',
@@ -1990,6 +2004,8 @@ const RESOURCES = {
   'gh:pr-advice': { label: 'the "owner, merge main" comment on a PR', sink: 'The owner of the PR reads it and merges main (DR-0644); nothing else reads it.' },
   'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
+  // Written by announce-bearer-sync (DR-1159): a value installed on the repository for its workflows to read, masked on the way in and never printed; it arrives by the runner over the tailnet, never by a hand.
+  'gh:secret': { label: 'a repository secret' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
   'gh:lesson-bell': { label: 'the lesson inbox bell PR (#1879)' },
   'gh:pr': { label: 'pull requests' },
