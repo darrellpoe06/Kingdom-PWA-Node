@@ -135,7 +135,7 @@ export function duplicatePairs(courses, opts = {}) {
 
 /**
  * NO RECORDED PAIR. There was exactly one, and it was FOLDED rather than
- * recorded (DR-1184): ll235 and ll257 were one teaching built twice, so the
+ * recorded (DR-1185): ll235 and ll257 were one teaching built twice, so the
  * four verses and two parables only ll235 carried were moved into ll257 and
  * ll235 was removed from the catalog. Nothing was deleted that was not first
  * carried across, and the catalog now holds no pair this rule finds.
