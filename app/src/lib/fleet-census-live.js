@@ -86,22 +86,38 @@ export function parseCensusBody(body) {
 // answer with full confidence:
 //
 //   nothingFiresIt  — on-demand only. No clock, no event. Correct and healthy:
-//                     it runs when somebody asks. 40 of our own jobs are this.
+//                     it runs when somebody asks.
 //   askedAndEmpty   — something fires it on a clock, the history was asked,
 //                     and there is no run. That is a retire-or-fix candidate.
 //   nobodyAsked     — the history was never asked. A gap in the REPORT, not a
 //                     fault in the job (DR-0076), and it must never be counted
 //                     with either of the two above.
+//
+// THE BUCKET IS "ENABLED with no last run date", AND THE FIRST WORD IS A FILTER
+// (corrected 2026-10-21, DR-1149). The first version partitioned every job with
+// no run, enabled or not, so our one disabled job (`openers`,
+// `state: disabled_manually`) landed in `nobodyAsked` — reported as a gap in
+// the report when it is in fact the answer to Darrell's FIRST question, which
+// has its own count on the strip. Found by reading the live report issue rather
+// than by any test: no fixture had a disabled row in it, so nothing could fail.
+// `disabled` is returned as its own bucket so the two questions never share a
+// number.
 // ---------------------------------------------------------------------------
+const isDisabled = (j) => /disabled/.test(String((j && j.state) || ''));
+
 export function theThreeWayAnswer(census) {
   const jobs = (census && Array.isArray(census.jobs)) ? census.jobs : [];
   const noRun = jobs.filter((j) => j && j.lastRunClass !== 'ran');
+  const enabledNoRun = noRun.filter((j) => !isDisabled(j));
   return {
-    nothingFiresIt: noRun.filter((j) => j.onDemandOnly || j.kind === 'on-demand'),
-    askedAndEmpty: noRun.filter((j) => !j.onDemandOnly && j.kind !== 'on-demand'
+    nothingFiresIt: enabledNoRun.filter((j) => j.onDemandOnly || j.kind === 'on-demand'),
+    askedAndEmpty: enabledNoRun.filter((j) => !j.onDemandOnly && j.kind !== 'on-demand'
       && j.lastRunClass === 'never'),
-    nobodyAsked: noRun.filter((j) => !j.onDemandOnly && j.kind !== 'on-demand'
+    nobodyAsked: enabledNoRun.filter((j) => !j.onDemandOnly && j.kind !== 'on-demand'
       && j.lastRunClass === 'unknown'),
+    // Darrell's FIRST question, kept apart: "do the disabled jobs need to be
+    // migrated? Are these maybe jobs that are only used at certain times?"
+    disabled: jobs.filter((j) => j && isDisabled(j)),
     inert: jobs.filter((j) => j && j.kind === 'inert'),
   };
 }
@@ -154,10 +170,33 @@ export function censusVerdict(census, answer) {
       line: `${a.askedAndEmpty.length} job(s) on a clock with no run in retained history`,
     };
   }
-  if (census.unknownLastRun) {
+  // The gap is counted over the ENABLED fleet, so this sentence and the
+  // strip's three columns are the same arithmetic (DR-1149). The first version
+  // used the census's raw `unknownLastRun`, which includes jobs that are
+  // deliberately turned off: the headline then read 29 while the columns below
+  // it added to 28, and two numbers that disagree on one screen is how a
+  // surface stops being believed.
+  //
+  // WITHOUT job rows it falls back to the raw count, deliberately. Deriving
+  // from an empty `jobs` array would compute 0 and let a census that reports
+  // unknowns read GOOD — trading an inconsistency for a false green, which is
+  // the worse of the two failures and is pinned by its own case below.
+  const rows = Array.isArray(census.jobs) ? census.jobs : [];
+  const rawUnknown = typeof census.unknownLastRun === 'number' ? census.unknownLastRun : 0;
+  if (rows.length) {
+    const enabledUnknown = rows
+      .filter((j) => j && !isDisabled(j) && j.lastRunClass === 'unknown').length;
+    if (enabledUnknown) {
+      const enabled = typeof census.enabled === 'number' ? census.enabled : census.total;
+      return {
+        tone: 'unknown',
+        line: `${enabledUnknown} of ${enabled} enabled job(s) have no last-run answer yet`,
+      };
+    }
+  } else if (rawUnknown) {
     return {
       tone: 'unknown',
-      line: `${census.unknownLastRun} of ${census.total} job(s) have no last-run answer yet`,
+      line: `${rawUnknown} of ${census.total} job(s) have no last-run answer yet`,
     };
   }
   return {

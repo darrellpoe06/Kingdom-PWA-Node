@@ -47,11 +47,17 @@ const CENSUS = {
   withALastRun: 1, neverRun: 1, unknownLastRun: 2,
   byKind: { scheduled: 3, 'on-demand': 1, 'event-driven': 1 },
   jobs: [
-    { name: 'ci.yml', kind: 'event-driven', onDemandOnly: false, lastRunClass: 'ran', lastRun: '2026-10-20T23:00:00Z' },
-    { name: 'android-package.yml', kind: 'on-demand', onDemandOnly: true, lastRunClass: 'unknown', lastRun: null },
-    { name: 'a-clock-with-nothing-behind-it.yml', kind: 'scheduled', onDemandOnly: false, lastRunClass: 'never', lastRun: null },
-    { name: 'nobody-asked.yml', kind: 'scheduled', onDemandOnly: false, lastRunClass: 'unknown', lastRun: null },
-    { name: 'disabled-one.yml', kind: 'scheduled', onDemandOnly: false, lastRunClass: 'ran', lastRun: '2026-10-01T00:00:00Z' },
+    { name: 'ci.yml', kind: 'event-driven', state: 'active', onDemandOnly: false, lastRunClass: 'ran', lastRun: '2026-10-20T23:00:00Z' },
+    { name: 'android-package.yml', kind: 'on-demand', state: 'active', onDemandOnly: true, lastRunClass: 'unknown', lastRun: null },
+    { name: 'a-clock-with-nothing-behind-it.yml', kind: 'scheduled', state: 'active', onDemandOnly: false, lastRunClass: 'never', lastRun: null },
+    { name: 'nobody-asked.yml', kind: 'scheduled', state: 'active', onDemandOnly: false, lastRunClass: 'unknown', lastRun: null },
+    // THE ROW NO FIXTURE HAD, which is exactly why the defect shipped: a
+    // DISABLED job with no run. The first version partitioned every no-run job
+    // regardless of state, so our real `openers` landed in `nobodyAsked` --
+    // reported as a gap in the REPORT when it is the answer to Darrell's FIRST
+    // question (DR-1149). Found by reading the live report issue, not by any
+    // test, because no fixture carried a disabled row to fail on.
+    { name: 'openers', kind: 'scheduled', state: 'disabled_manually', onDemandOnly: false, lastRunClass: 'unknown', lastRun: null },
   ],
 };
 
@@ -110,6 +116,35 @@ describe('the answer to the question Darrell actually asked', () => {
     expect(new Set(all).size).toBe(all.length);
   });
 
+  it('a DISABLED job is the FIRST question, never counted among the unasked', () => {
+    // THE DEFECT THAT SHIPPED, and the case that would have stopped it. The
+    // bucket is "ENABLED with no last run date" and the first word is a
+    // filter. Measured live on 2026-10-21: the real report put `openers`
+    // (state disabled_manually) in `nobodyAsked`, making the strip say 29
+    // histories were never asked when the honest figure is 28 plus one job
+    // that is deliberately turned off. On/off is a DECISION; unknown is a GAP;
+    // reporting one as the other answers the wrong question.
+    const a = theThreeWayAnswer(parseCensusBody(bodyWith(CENSUS)));
+    expect(a.nobodyAsked.map((j) => j.name)).not.toContain('openers');
+    expect(a.nothingFiresIt.map((j) => j.name)).not.toContain('openers');
+    expect(a.askedAndEmpty.map((j) => j.name)).not.toContain('openers');
+    expect(a.disabled.map((j) => j.name)).toEqual(['openers']);
+  });
+
+  it('every job with no run lands in exactly one column, and none is dropped', () => {
+    // A filter that DROPS a row is as wrong as one that double-counts it: the
+    // reader is owed every unaccounted job in exactly one column. (`disabled`
+    // is reported for every state, run or not, so this partitions the no-run
+    // set, which is the set the question is about.)
+    const c = parseCensusBody(bodyWith(CENSUS));
+    const a = theThreeWayAnswer(c);
+    const noRun = c.jobs.filter((j) => j.lastRunClass !== 'ran').map((j) => j.name);
+    const placed = [...a.nothingFiresIt, ...a.askedAndEmpty, ...a.nobodyAsked,
+      ...a.disabled.filter((j) => j.lastRunClass !== 'ran')].map((j) => j.name);
+    expect(placed.sort()).toEqual(noRun.sort());
+    expect(new Set(placed).size).toBe(placed.length);
+  });
+
   it('a job nobody asked about is never counted as a job that never ran', () => {
     const a = theThreeWayAnswer(parseCensusBody(bodyWith(CENSUS)));
     expect(a.askedAndEmpty.some((j) => j.lastRunClass === 'unknown')).toBe(false);
@@ -124,11 +159,52 @@ describe('the answer to the question Darrell actually asked', () => {
   });
 
   it('an unanswered census is "unknown", never a clean bill of health', () => {
+    // AND WITH NO JOB ROWS AT ALL, which is the trap the DR-1149 fix nearly
+    // walked into: deriving the gap from an empty `jobs` array computes 0 and
+    // reads GOOD, trading an inconsistency for a FALSE GREEN. The fallback to
+    // the census's own raw count exists for exactly this body.
     const quiet = { ...CENSUS, jobs: [], neverRun: 0, unknownLastRun: 3, withALastRun: 0 };
     const c = parseCensusBody(bodyWith(quiet));
     const v = censusVerdict(c, theThreeWayAnswer(c));
     expect(v.tone).toBe('unknown');
-    expect(v.line).toMatch(/no last-run answer yet/);
+    expect(v.line).toMatch(/3 of 5 job\(s\) have no last-run answer yet/);
+  });
+
+  it('the headline counts the ENABLED gap, so it agrees with the columns below it', () => {
+    // MEASURED LIVE 2026-10-21: the headline read "29 of 118" while the three
+    // columns under it added to 28, because the headline used the census's raw
+    // unknown count and the columns excluded the disabled job. Two numbers
+    // disagreeing on one screen is how a surface stops being believed.
+    // Without the clock-with-nothing-behind-it row, since that one is a `bad`
+    // verdict and is named ahead of the gap by design.
+    const noClock = {
+      ...CENSUS, total: 4, enabled: 3, neverRun: 0,
+      jobs: CENSUS.jobs.filter((j) => j.lastRunClass !== 'never'),
+    };
+    const c = parseCensusBody(bodyWith(noClock));
+    const a = theThreeWayAnswer(c);
+    const v = censusVerdict(c, a);
+    expect(v.tone).toBe('unknown');
+    // One enabled unknown that nothing fires on a clock (`nobody-asked.yml`)
+    // plus the on-demand one; `openers` is turned off and is NOT in the gap.
+    expect(v.line).toBe('2 of 3 enabled job(s) have no last-run answer yet');
+    expect(a.nobodyAsked).toHaveLength(1);
+    expect(a.disabled.map((j) => j.name)).toEqual(['openers']);
+  });
+
+  it('a census whose only unknowns are turned off is not reported as a gap', () => {
+    // On/off is a decision, so once every unknown is a disabled job there is
+    // nothing left for anybody to chase.
+    const offOnly = {
+      ...CENSUS, total: 2, enabled: 1, disabled: 1, withALastRun: 1,
+      neverRun: 0, unknownLastRun: 1,
+      jobs: [
+        { name: 'ci.yml', kind: 'event-driven', state: 'active', onDemandOnly: false, lastRunClass: 'ran' },
+        { name: 'openers', kind: 'scheduled', state: 'disabled_manually', onDemandOnly: false, lastRunClass: 'unknown' },
+      ],
+    };
+    const c = parseCensusBody(bodyWith(offOnly));
+    expect(censusVerdict(c, theThreeWayAnswer(c)).tone).toBe('good');
   });
 
   it('and a fleet with every job accounted for is allowed to read good', () => {

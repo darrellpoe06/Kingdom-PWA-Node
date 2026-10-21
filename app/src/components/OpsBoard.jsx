@@ -219,11 +219,22 @@ export function FleetCensusStrip({ fleet }) {
         {c.withALastRun} with a last run.{' '}
         {a ? (
           <>
-            Of those with none: <span className="font-semibold">{a.nothingFiresIt.length}</span> nothing
+            Of the <span className="font-semibold">enabled</span> ones with none:{' '}
+            <span className="font-semibold">{a.nothingFiresIt.length}</span> nothing
             fires on a clock (on-demand — correct),{' '}
             <span className="font-semibold">{a.askedAndEmpty.length}</span> on a clock with the history
             asked and empty,{' '}
             <span className="font-semibold">{a.nobodyAsked.length}</span> the history was never asked.{' '}
+            {/* Darrell's FIRST question, kept in its own column (DR-1149): a
+                disabled job is not an unasked one, and counting it with the
+                unasked answers the wrong question. */}
+            {a.disabled.length ? (
+              <>
+                Separately, <span className="font-semibold">{a.disabled.length}</span> turned off:{' '}
+                <span className="font-mono">{a.disabled.map((j) => j.name).join(', ')}</span> — on or
+                off is a decision, not a gap.{' '}
+              </>
+            ) : null}
           </>
         ) : null}
         &quot;Never, in retained history&quot; is not &quot;never once fired&quot;, and unknown is never
