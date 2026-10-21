@@ -76,13 +76,15 @@ export function useReaderLive(el) {
 /** The phone breakpoint the bar folds at: below Tailwind's sm (640px). */
 export const PHONE_QUERY = '(max-width: 639.98px)';
 
+/** One synchronous read: true on a phone-width screen right now; false where matchMedia is missing. */
+export function isPhoneWidth() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  try { return !!window.matchMedia(PHONE_QUERY).matches; } catch (_) { return false; }
+}
+
 /** React hook: true on a phone-width screen; false where matchMedia is missing. */
 export function usePhoneWidth() {
-  const get = () => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    try { return !!window.matchMedia(PHONE_QUERY).matches; } catch (_) { return false; }
-  };
-  const [phone, setPhone] = useState(get);
+  const [phone, setPhone] = useState(isPhoneWidth);
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     let mq = null;
