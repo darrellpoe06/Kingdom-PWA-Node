@@ -1064,7 +1064,16 @@ class Build:
         self.report["outcome"] = "published"
         self.report.update(lesson_id=module["id"], branch=branch, ll=ll, dr=dr, writer=chosen["writer"])
         add = [stage_tag("published", ts), "lesson-captured", "lesson-published", "lesson-id:" + module["id"]]
-        self.finish(add, remove=("lesson-building", "awaiting-review"), companions_add=["lesson-captured"],
+        # build-failed comes off here. It is a LIVE status flag, grouped with
+        # lesson-building in this file's own tag list, and the push above has
+        # succeeded -- so a row that still carries it reads "shipped ...
+        # [build-failed]" to everyone afterwards, which is the sibling of the
+        # brake's promise that a killed build is "never left looking busy": a
+        # build that later shipped must not be left looking FAILED. The history
+        # is untouched -- build:failed@<time> and build-reason:<why> stay, so
+        # the earlier attempt is still auditable (DR-1187).
+        self.finish(add, remove=("lesson-building", "awaiting-review", "build-failed"),
+                    companions_add=["lesson-captured"],
                     hosted_add=["lesson-captured", "lesson-published", "lesson-id:" + module["id"]])
         release_numbers(self.numbers, self.build_id)
         self._drop_worktree()
