@@ -59,6 +59,7 @@
 // Learn must travel as church + learn) is still true and still worth a gate.
 import { PROJECT_STATUSES_ACTIVE } from './opportunity-capacity.js';
 import { DENSITY_ACTIONS } from './home-view-prefs.js';
+import { surfaceAccess } from './surface-access.js';
 
 // The six tiles, in her order, with the sub-labels from her own mockups.
 //
@@ -89,20 +90,80 @@ export const HUB_TILES = [
 
 // The router's real top-level view names, read from the host on 2026-09-17 and
 // pinned here so a renamed route fails a check instead of a family member's tap.
-export const HOST_VIEWS = ['overview', 'church', 'books', 'messages', 'rentals', 'projects', 'tlc'];
+export const HOST_VIEWS = ['overview', 'church', 'books', 'messages', 'rentals', 'projects', 'tlc', 'notes', 'create', 'voice', 'recipes', 'health', 'games', 'tvtime', 'library', 'vault', 'research', 'cameras', 'databack', 'markets', 'advocacy', 'scribe', 'crm', 'inventory', 'forecast', 'cohorts'];
 
-// The Quick Actions, in the order her densest mockup shows them. Every one of
-// these has real machinery behind it in this app; none is a placeholder.
+// THE QUICK ACTIONS ARE DOORS TO THE TABS THE TILES DO NOT ALREADY OPEN.
+//
+// Until 2026-10-21 they were the eight of her densest mockup, and four of them
+// opened what a tile beside them already opened (Messages, Projects, Real
+// Estate, Money). Darrell, with the Hub on his phone: "Add notes and create to
+// the quick links", then: "Have more options, none that overlap, so we have
+// more options and advertise the other tabs." (DR-1192.) So:
+//
+//   - the three RECORD actions stay (focus, goal, photo): they act on this
+//     page's own records, not on a tab;
+//   - every other action is a door to ONE tab, and no two actions, and no
+//     action and tile, open the same place (pinned: `overlappingActions`);
+//   - every door names its `surface` in surfaces.js, and `actionsFor` keeps
+//     only the doors this viewer may open, by the SAME rule the nav uses
+//     (lib/surface-access.js) — a door nobody can walk through is not drawn
+//     (DR-0330), so a visitor sees the open rooms and the family sees more;
+//   - the order is everyday first; the density decides how many show.
+//
+// Every `view` / `churchView` here was read out of the host's render switch
+// (poe-financial-mvp-v28.jsx) and is pinned against it in life-hub.test.jsx.
 export const HUB_ACTIONS = [
   { key: 'focus', label: "Add today's focus", view: null, churchView: null },
   { key: 'goal', label: 'Set a goal', view: null, churchView: null },
-  { key: 'message', label: 'Send a message', view: 'messages', churchView: null },
-  { key: 'lesson', label: 'Open a lesson', view: 'church', churchView: 'learn' },
-  { key: 'addProject', label: 'Start a project', view: 'projects', churchView: null },
-  { key: 'property', label: 'Check a property', view: 'rentals', churchView: null },
-  { key: 'money', label: 'Open Money', view: 'books', churchView: null },
   { key: 'photo', label: 'Add a photo', view: null, churchView: null, hub: 'stories' },
+  { key: 'lesson', label: 'Open a lesson', view: 'church', churchView: 'learn', surface: 'learn' },
+  { key: 'notes', label: 'Open Notes', view: 'notes', churchView: null, surface: 'notes' },
+  { key: 'create', label: 'Open Create', view: 'create', churchView: null, surface: 'create' },
+  { key: 'voice', label: 'Open Voice', view: 'voice', churchView: null, surface: 'voice' },
+  { key: 'scripture', label: 'Read Scripture', view: 'church', churchView: 'scripture', surface: 'scripture' },
+  { key: 'recipes', label: "Chef's Corner", view: 'recipes', churchView: null, surface: 'recipes' },
+  { key: 'health', label: 'Road to 150', view: 'health', churchView: null, surface: 'health' },
+  { key: 'games', label: 'Play a game', view: 'games', churchView: null, surface: 'games' },
+  { key: 'tvtime', label: 'TV Time', view: 'tvtime', churchView: null, surface: 'tvtime' },
+  { key: 'library', label: 'Open the Library', view: 'library', churchView: null, surface: 'library' },
+  { key: 'vault', label: 'Open the Vault', view: 'vault', churchView: null, surface: 'vault' },
+  { key: 'research', label: 'Research', view: 'research', churchView: null, surface: 'research' },
+  { key: 'cameras', label: 'See the cameras', view: 'cameras', churchView: null, surface: 'cameras' },
+  { key: 'databack', label: 'Your Data', view: 'databack', churchView: null, surface: 'databack' },
+  { key: 'markets', label: 'Markets', view: 'markets', churchView: null, surface: 'markets' },
+  { key: 'advocacy', label: 'Advocacy', view: 'advocacy', churchView: null, surface: 'advocacy' },
+  { key: 'scribe', label: 'Scribe', view: 'scribe', churchView: null, surface: 'scribe' },
+  { key: 'crm', label: 'CRM', view: 'crm', churchView: null, surface: 'crm' },
+  { key: 'inventory', label: 'Inventory', view: 'inventory', churchView: null, surface: 'inventory' },
+  { key: 'forecast', label: 'Forecast', view: 'forecast', churchView: null, surface: 'forecast' },
+  { key: 'cohorts', label: 'Academy', view: 'cohorts', churchView: null, surface: 'cohorts' },
 ];
+
+/** Where a tile or action lands, as one comparable string; records are null. */
+export function destinationOf(x = {}) {
+  if (x.hub) return `hub:${x.hub}`;
+  if (!x.view) return null;
+  return x.churchView ? `${x.view}/${x.churchView}` : x.view;
+}
+
+/**
+ * Actions that open a tab another action, or a tile, already opens. Empty is
+ * the promise; the test pins it, and a new action that duplicates a tile fails
+ * there instead of on somebody's phone. Hub records (the stories panel the Big
+ * Picture tile also opens) are this page's own, not a tab, and are not counted.
+ */
+export function overlappingActions(actions = HUB_ACTIONS, tiles = HUB_TILES) {
+  const seen = new Map();
+  for (const t of tiles) { const d = destinationOf(t); if (d && !d.startsWith('hub:')) seen.set(d, `tile ${t.key}`); }
+  const out = [];
+  for (const a of actions) {
+    const d = destinationOf(a);
+    if (!d || d.startsWith('hub:')) continue;
+    if (seen.has(d)) out.push({ key: a.key, destination: d, same: seen.get(d) });
+    else seen.set(d, `action ${a.key}`);
+  }
+  return out;
+}
 
 /** Active projects, by the SAME definition the capacity layer uses. */
 export function openProjectCount(projects = []) {
@@ -133,10 +194,21 @@ export function hubTiles(world = {}, { unread = 0 } = {}) {
   });
 }
 
-/** How many Quick Actions this density shows, and which ones. */
-export function actionsFor(density = 'airy') {
+/**
+ * How many Quick Actions this density shows, and which ones: the doors this
+ * viewer may open, in order, cut to the density's count. `surfaces` is the
+ * registry keyed by id (surfaceById); without it every door is assumed open,
+ * which only a test should rely on.
+ */
+export function actionsFor(density = 'airy', { viewer = null, surfaces = null } = {}) {
   const n = DENSITY_ACTIONS[density] || DENSITY_ACTIONS.airy;
-  return HUB_ACTIONS.slice(0, n);
+  const open = HUB_ACTIONS.filter((a) => {
+    if (!a.surface || !surfaces) return true;
+    const s = surfaces[a.surface];
+    if (!s) return false;
+    return surfaceAccess(s, viewer || {}).allowed;
+  });
+  return open.slice(0, n);
 }
 
 /** True when a tile's number came from a record rather than from nowhere. */

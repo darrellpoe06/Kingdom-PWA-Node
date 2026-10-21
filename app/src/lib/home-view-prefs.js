@@ -45,9 +45,11 @@ export const HOME_VIEWS = ['current', 'lifehub'];
 export const DEFAULT_HOME_VIEW = 'lifehub';
 export const DEFAULT_HUB_DENSITY = 'airy';
 export const HUB_DENSITIES = ['airy', 'photo', 'compact'];
-// How many Quick Actions each of her three looks put on the screen, measured
-// from the mockups themselves (4 / 8 / 6) rather than chosen here.
-export const DENSITY_ACTIONS = { airy: 4, photo: 8, compact: 6 };
+// How many Quick Actions each of her three looks put on the screen. Measured
+// from the mockups themselves as 4 / 8 / 6 (DR-0464); doubled on 2026-10-21
+// when the actions became doors to every tab the tiles do not open — Darrell:
+// "more options, none that overlap" (DR-1192). Whole rows of four, always.
+export const DENSITY_ACTIONS = { airy: 8, photo: 16, compact: 12 };
 
 export const HOME_VIEW_KEY = 'poetech:home-view';
 export const HUB_DENSITY_KEY = 'poetech:home-hub-density';
