@@ -56,6 +56,10 @@ export default function SectionTabs({
   // line: "taking up a lot of space... why?!"). The tabs keep the room and
   // scroll; the control never shrinks.
   trailing = null,
+  // A class for the strip's wrapper (DR-1171: the TLC door hides its strip
+  // below `sm`, where a bottom bar drives the same active id). The tablist
+  // stays in the DOM and keyboard-reachable; only its box is styled.
+  stripClassName = '',
 }) {
   const valid = sections.filter(Boolean);
   const [activeState, setActiveState] = useState(() => {
@@ -126,7 +130,12 @@ export default function SectionTabs({
 
   return (
     <div className={sub ? 'space-y-3' : 'space-y-4'}>
-      {trailing ? (
+      {stripClassName ? <div className={stripClassName}>{trailing ? (
+        <div className="flex items-center gap-2" data-testid={`${idBase}-tab-row`}>
+          <div className="min-w-0 flex-1">{strip}</div>
+          <div className="shrink-0">{trailing}</div>
+        </div>
+      ) : strip}</div> : trailing ? (
         <div className="flex items-center gap-2" data-testid={`${idBase}-tab-row`}>
           <div className="min-w-0 flex-1">{strip}</div>
           <div className="shrink-0">{trailing}</div>
