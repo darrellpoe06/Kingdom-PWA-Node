@@ -590,6 +590,7 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .bg-\\[\\#C9A227\\]{background-color:#FCD34D!important}
 [data-theme="midnight"] .bg-\\[\\#1C3F38\\]{background-color:#0F1A14!important}
 [data-theme="midnight"] .bg-\\[\\#8A6510\\]{background-color:#3A2E0E!important}
+[data-theme="midnight"] .bg-\\[\\#3A2A4A\\]{background-color:#1E1528!important}
 [data-theme="midnight"] .text-\\[\\#F0D58A\\]{color:#FCD34D!important}
 [data-theme="midnight"] .bg-\\[\\#1A1D1B\\]{background-color:#000000!important}
 [data-theme="midnight"] .text-\\[\\#C9A227\\]{color:#FCD34D!important}
