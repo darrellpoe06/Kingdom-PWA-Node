@@ -55,10 +55,13 @@ describe('readHeaderCollapsed', () => {
     const s = makeStore();
     s.setItem(HEADER_COLLAPSED_KEY, '1');
     expect(readHeaderCollapsed(s, false)).toBe(true);
-    for (const door of ['PropertiesDoor', 'TlcPublicDoor']) {
-      const src = readFileSync(join(HERE, '..', 'components', `${door}.jsx`), 'utf8');
-      expect(src, `${door} opens with the header shown`).toContain('readHeaderCollapsed(undefined, false)');
-    }
+    const props = readFileSync(join(HERE, '..', 'components', 'PropertiesDoor.jsx'), 'utf8');
+    expect(props, 'PropertiesDoor opens with the header shown').toContain('readHeaderCollapsed(undefined, false)');
+    // The TLC door (DR-1180): shown on a wide screen, TUCKED on a phone, so
+    // the first phone screen is the reference's home and not a control row;
+    // a saved choice still wins (the fallback only names what ABSENT means).
+    const tlc = readFileSync(join(HERE, '..', 'components', 'TlcPublicDoor.jsx'), 'utf8');
+    expect(tlc, 'TlcPublicDoor names its first-run default per screen width').toContain('readHeaderCollapsed(undefined, firstHeaderCollapsed(isPhoneWidth()))');
   });
 
   it('reads collapsed only for the exact "1" string', () => {
