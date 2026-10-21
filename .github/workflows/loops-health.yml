@@ -251,25 +251,15 @@ jobs:
             const clock = w.clock || {};
             const now = new Date().toISOString();
             // One timestamp per loop, with WHICH witness said so carried beside
-            // it. A loop's OWN ledger age is the better evidence (it is that
-            // loop's file); the services-sync clock is the fallback, and only
-            // for a loop whose last run that cycle was `ok`. Anything else
-            // stays null -> the census reads it as unknown, never "never".
-            const services = {};
-            for (const [name, e] of Object.entries(w.loops || {})) {
-              let at = null; let from = null;
-              const age = Number(e && e.ledger_age_s);
-              if (Number.isFinite(age) && age >= 0) {
-                at = new Date(Date.now() - age * 1000).toISOString();
-                from = `its own ledger, ${age}s old`;
-              } else if (e && e.last_run === 'ok' && clock.last_run_at) {
-                at = clock.last_run_at;
-                from = 'the services-sync cycle it last ran ok in';
-              } else {
-                from = `no timestamp available (last run ${(e && e.last_run) || 'unknown'})`;
-              }
-              services[name] = { last_run_at: at, from, verdict: (e && e.last_run) || 'unknown' };
-            }
+            // it. THE RULE LIVES IN A FILE, not here (DR-1152): inline, the only
+            // thing a test could do was grep this text, and a source-text
+            // assertion survives the break it is meant to catch. The first live
+            // witness proved the cost -- `Number(e.ledger_age_s)` with a null
+            // age is 0, so six of ten loops published `its own ledger, 0s old`
+            // and a timestamp of "now" for a ledger that does not exist.
+            const { servicesFromWitness } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/loops-witness-services.mjs`);
+            const services = servicesFromWitness(w, { now: Date.now() });
             const doc = {
               readAt: now,
               clock: { last_run_at: clock.last_run_at || null, age_s: clock.age_s ?? null },
