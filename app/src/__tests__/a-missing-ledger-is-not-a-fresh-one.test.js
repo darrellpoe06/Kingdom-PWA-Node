@@ -169,7 +169,7 @@ describe('the workflow calls this file rather than keeping its own copy', () => 
 });
 
 // =============================================================================
-// AND THE WITNESS CANNOT FAIL IN SILENCE (DR-1158)
+// AND THE WITNESS CANNOT FAIL IN SILENCE (DR-1161)
 // =============================================================================
 // DR-1152 moved the rule into `scripts/loops-witness-services.mjs` so a test
 // could RUN it. The first real run of that change threw:

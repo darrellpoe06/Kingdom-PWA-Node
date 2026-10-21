@@ -1,4 +1,4 @@
-# DR-1158: The witness cannot fail in silence — a brake that turns a failure into a green is a disarmed check
+# DR-1161: The witness cannot fail in silence — a brake that turns a failure into a green is a disarmed check
 
 **Date:** 2026-10-21
 **Status:** accepted

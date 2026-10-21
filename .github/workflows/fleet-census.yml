@@ -186,7 +186,7 @@ jobs:
           print(f"folded {len(doc['services'])} NAS loop(s); {dated} carry a timestamp")
 
           # A WITNESS THAT HAS STOPPED PUBLISHING LOOKS EXACTLY LIKE A HEALTHY
-          # ONE FROM HERE (DR-1158). It did stop, for two hours, because the
+          # ONE FROM HERE (DR-1161). It did stop, for two hours, because the
           # publish step threw and `continue-on-error` reported success: the
           # report issue simply kept its old body and this fold kept folding it
           # with full confidence. So the AGE of what we just read is checked and
