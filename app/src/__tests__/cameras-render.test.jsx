@@ -12,6 +12,7 @@ import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
 import { WYZE_DRAFT_KEY, WALL_KEY, reconnectDelayMs, LIVE_RECONNECT_DELAY_MS, LIVE_RECONNECT_DELAY_MAX_MS, LIVE_FIRST_FRAME_TIMEOUT_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
 import { CAMS_TAB_KEY } from '../components/Cameras.jsx';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
+import { resetDirectState, encodePayload } from '../lib/camera-direct.js';
 
 const TOKEN = 'family-test-token';
 
@@ -60,6 +61,7 @@ function makeFetch(plan) {
     }
     if (u.startsWith('/cams/rec/') && u.split('/').length === 4) return jsonResponse(200, plan.clips ?? { camera: 'front_yard', clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 1000, start: 1 }, { name: '2026-10-07T06-50-00.mp4', bytes: 2000, start: 2 }], count: 2 });
     if (u.startsWith('/cams/why/')) return jsonResponse(plan.whyStatus ?? 200, plan.why ?? { id: 'x', producers: [{ kind: 'wyze', host: '192.168.1.77', state: 'connecting' }], probe: { status: 500, ok: false, error: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', ms: 900 }, log: ['06:40 warn [wyze] connect failed: i/o timeout'] });
+    if (u === '/cams/direct') { plan.directAsks = [...(plan.directAsks || []), JSON.parse(opts.body).camera]; return jsonResponse(plan.directStatus ?? 404, plan.direct ?? { error: 'no-direct' }); }
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
     if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
     if (u === '/cams/restart') return jsonResponse(plan.restartStatus ?? 200, plan.restart ?? { ok: true, restarting: true, running: 'aaaa', on_disk: 'bbbb', changed: true });
@@ -86,6 +88,7 @@ describe('Cameras surface', () => {
     // wall; live-in-every-tile (DR-0776, the default) has its own case and is
     // switched off here so each road is tested on its own.
     try { localStorage.setItem(LIVE_TILES_KEY, '0'); } catch { /* fine */ }
+    resetDirectState();
     if (!URL.createObjectURL) URL.createObjectURL = () => 'blob:test';
     if (!URL.revokeObjectURL) URL.revokeObjectURL = () => {};
     // jsdom's media element has no decoder; Close calls pause()/load() on the
@@ -349,6 +352,50 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="recording-cameras"]')).toBeNull();
   });
 
+  it('THE DIRECT ROAD (DR-1097, sixteenth read): a camera on Wyze\'s WebRTC road plays straight from Wyze with no NAS ticket; when the NAS has no session for it the tile takes the NAS road', async () => {
+    try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    const offers = [];
+    class WS {
+      constructor(url) { this.url = url; setTimeout(() => this.onopen && this.onopen(), 0); }
+      send(t) { const m = JSON.parse(t); if (m.action === 'SDP_OFFER') { offers.push(this.url); setTimeout(() => this.onmessage({ data: JSON.stringify({ messageType: 'SDP_ANSWER', messagePayload: encodePayload({ type: 'answer', sdp: 'v=0 a' }) }) }), 0); } }
+      close() {}
+    }
+    class PC {
+      addTransceiver() {}
+      async createOffer() { return { type: 'offer', sdp: 'v=0 o' }; }
+      async setLocalDescription(d) { this.localDescription = d; }
+      async setRemoteDescription() { setTimeout(() => this.ontrack({ track: { kind: 'video' }, streams: [{ id: 'wyze-stream' }] }), 0); }
+      async addIceCandidate() {}
+      async getStats() { return new Map(); }
+      close() {}
+    }
+    vi.stubGlobal('WebSocket', WS);
+    vi.stubGlobal('RTCPeerConnection', PC);
+    const plan = {
+      list: { cameras: [{ id: 'porch_east', name: 'porch east', kind: 'wyze', road: 'kvs' }, { id: 'garage', name: 'garage', kind: 'rtsp' }], count: 2 },
+      health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32 },
+      directStatus: 200, direct: { signaling_url: 'wss://v-1.kinesisvideo.us-east-1.amazonaws.com/?X-Amz-Signature=s', ice_servers: [], client_id: 'c1', camera: 'porch_east' },
+    };
+    const { fetchImpl, calls } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
+    expect(plan.directAsks).toEqual(['porch_east']);
+    expect(offers).toEqual([plan.direct.signaling_url]);
+    expect(container.querySelector('[data-testid="tile-direct-porch_east"]').textContent).toBe("Straight from Wyze's WebRTC");
+    expect(container.querySelector('[data-testid="tile-live-porch_east"] video').srcObject).toEqual({ id: 'wyze-stream' });
+    const tickets = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera);
+    expect(tickets).toEqual(['garage']);
+    // The NAS has no session for it (404 no-direct): the same tile rides the NAS road.
+    act(() => root.unmount()); root = createRoot(container); resetDirectState();
+    plan.directStatus = 404; plan.direct = { error: 'no-direct' }; plan.directAsks = [];
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
+    expect(plan.directAsks).toEqual(['porch_east']);
+    expect(container.querySelector('[data-testid="tile-direct-porch_east"]')).toBeNull();
+    expect(container.querySelector('[data-testid="tile-live-porch_east"] video').getAttribute('src')).toMatch(/\/cams\/live\/porch_east/);
+  });
+
   it('live in every tile is the default (DR-0776): each camera tile is a live player with its own ticket, no snapshots are polled for them, the toggle falls back to frames, and the header shows the measured Funnel traffic', async () => {
     try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
     const { fetchImpl, calls } = makeFetch({
@@ -455,7 +502,7 @@ describe('Cameras surface', () => {
       expect(tickets()).toBe(ticketsBefore + 1);
       video = container.querySelector('video');
       expect(video).toBeTruthy();
-      expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe('reconnected 1×');
+      expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe('reconnected 1× · last: the stream ended on its own');
       // and it never says the NAS stopped it at a clock the NAS does not run (live_max_seconds 0)
       expect(container.textContent).not.toMatch(/stops each live view at/);
       // ten failures in a row with no picture: each one is followed by another
@@ -471,7 +518,7 @@ describe('Cameras surface', () => {
         if (wait === LIVE_RECONNECT_DELAY_MAX_MS) atCeiling += 1;
         await act(async () => { await vi.advanceTimersByTimeAsync(wait + 50); });
         expect(tickets(), `try ${i} came back by itself`).toBe(before + 1);
-        expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe(`reconnected ${i + 1}×`);
+        expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe(`reconnected ${i + 1}× · last: the browser could not open this stream`);
       }
       expect(atCeiling).toBeGreaterThan(0);
       expect(container.textContent).not.toMatch(/Stopped after|Press Resume|Gave up/);

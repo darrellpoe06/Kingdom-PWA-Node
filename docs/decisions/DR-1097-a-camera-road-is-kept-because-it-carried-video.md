@@ -540,3 +540,52 @@ Darrell, 19:35 CDT, sent a screenshot of 805 Porch - Floodlight Cam - East playi
   - So the twin of a camera not already flowing timed out. These are the `read tcp ->127.0.0.1:8554: i/o timeout` lines that fill `/why`, while the camera's own stream and frame worked.
 - **Fixed:** a twin of a held Kinesis camera is asked of go2rtc only once the held session carries video, within the 20 s frame clock, the same rule `/snap` follows. Otherwise it answers 504 and names why.
 - **Proven:** selftest 480. PROVEN TO CATCH: with the wait taken out, its check fails.
+
+## Sixteenth read (2026-10-21 01:00 UTC): the direct road, the way the Wyze app opens a camera
+
+Darrell, 2026-10-21: "Do we have to have the tellscale or nas way... why not another more permanent way.... thinking about how!!!!!!!!!! If this keeps undermining the very mission of the requirements?!!!!!!!"
+
+**What the Wyze app does.** It opens Wyze's own WebRTC session (Amazon Kinesis Video Streams) from the phone. The video goes from the camera to the phone, or through Amazon's TURN relay, and never crosses a NAS or a tunnel. The tab can do the same for every camera the NAS keeps on Wyze's WebRTC road.
+
+**Built (the direct road):**
+- **NAS, `POST /cams/direct {camera}`** (cams_forwarder.py `kvs_direct_session`, `_direct`). The NAS keeps the Wyze account and asks the bridge for one session (`/signaling/<name>?kvs`, the same answer go2rtc's `wyzeClient` reads). It hands the signed-in viewer only three things, all short-lived and good for that one camera:
+  - a presigned `wss://` URL to Amazon's signaling service, refused unless its host is `*.amazonaws.com`;
+  - the session's `stun:`/`turn:` servers, with every other scheme dropped;
+  - its client id.
+- **The Wyze email, password and API key never leave the NAS.** Neither does the bridge's own sign-in. A selftest pins that the answer carries nothing else.
+- **Who can ask:** the same viewer group as `/ticket` (the family key, or a camera grant for that camera).
+- **The app, `lib/camera-direct.js`.** The browser opens that WebSocket and an RTCPeerConnection (video and audio, receive only). It speaks Kinesis signaling the way go2rtc's `kinesisClient` does:
+  - an `SDP_OFFER`, then `ICE_CANDIDATE`s, each payload base64 JSON, to `recipientClientId`;
+  - it reads `SDP_ANSWER` and `ICE_CANDIDATE`, holding Wyze's early candidates until the answer arrives.
+- **The tiles and the large view** (`TileLive`, `LiveVideo`) try it first for a camera with `road: 'kvs'`. A tile on it reads "Straight from Wyze's WebRTC".
+- **Anything that brings no picture falls back to the NAS road:**
+  - 404 (not on that road), 503 (Wyze calls it offline), a refusal, 15 s with no track, or 8 s with no new video bytes;
+  - a camera that failed here takes the NAS road for 2 minutes, then is tried again.
+- **The NAS road stays** for every camera not on Wyze's WebRTC road, for frames, for recordings, and as the fallback.
+
+**Brakes (DR-0248, deterministic class):**
+- **Budget:** one session per camera per 3 s on the NAS, since each is a Wyze API call through the bridge; at most 6 direct sessions per device; every connect times out at 15 s.
+- **Lock:** per camera, under `DIRECT_LOCK`.
+- **Stop-path:** `CAMS_DIRECT=0` on the NAS, which sends every camera back to the NAS road.
+
+**Proven (not yet live):**
+- Forwarder selftest: 496 passing (was 480). PROVEN TO CATCH, each break turning a check red:
+  - the offline gate;
+  - the Amazon-host check;
+  - the scheme filter;
+  - the main-name rule;
+  - the per-camera budget;
+  - the stop-path.
+- App: 15 unit checks (`camera-direct.test.js`) and one render check (a Kinesis camera plays from the stream with no NAS ticket; a 404 sends it to the NAS road). PROVEN TO CATCH, each break turning a check red:
+  - the road gate;
+  - the early-candidate hold;
+  - the failure memory;
+  - the stall watchdog.
+
+**What the 01:00 UTC screenshot shows** (Darrell's View 2, before any of this or #2322 is live on the NAS):
+- 805 north and 805 north east show pictures.
+- 805 porch cam and 805 back door read "waiting for the first picture". 805 Porch Cam is on Wyze's own offline list (thirteenth read); #2322's live gate makes it say so instead of waiting.
+
+**Not known yet:** whether Amazon answers a second viewer while go2rtc's held session is open on the same camera. If it refuses, the tile falls back to the NAS road, which is today's behavior.
+
+`re-review: 2026-10-21`. Once this is live, open Cameras on the Fold. A Kinesis tile reads "Straight from Wyze's WebRTC" when the direct road carried it, and the NAS's live count drops by one for each such tile.

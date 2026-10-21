@@ -64,6 +64,18 @@ import {
   startPairing, pollPairing, approvePairing, pairLink, readPairParam, stripPairParam, normalizePairCode, PAIR_TIMING,
   LIVE_ROADS, roadLabel, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, chooseLiveRoad, roadLine,
 } from '../lib/cameras.js';
+import { tryDirectRoad, noteDirectFailure } from '../lib/camera-direct.js';
+
+// THE DIRECT ROAD (DR-1097, sixteenth read): a camera on Wyze's WebRTC road is
+// opened straight from this device, the way the Wyze app opens it; the NAS
+// road stays for every other camera and for any try that brings no picture.
+function closeDirect(ref) {
+  if (ref.current) { try { ref.current.close(); } catch { /* gone */ } ref.current = null; }
+}
+function attachStream(el, stream) {
+  if (el && stream && el.srcObject !== stream) { try { el.srcObject = stream; } catch { /* a device fact */ } }
+}
+const DIRECT_CHIP = "Straight from Wyze's WebRTC";
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
 // explains"). The Wyze sign-in registers its steps as this screen's reading,
@@ -711,16 +723,32 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
   const lastFailed = useRef('');
+  const direct = useRef(null);
 
   // THE STREAM THIS DEVICE OPENS (DR-0798): the camera's own, or its H.264
   // twin when the camera sends only H.265 and this <video> cannot decode it.
   // ...and the SD twin for a tile in a grid (DR-0799): the camera's own
   // substream, so a Firestick carries several cameras at once.
   const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
+  // Primitives, not the camera object: a list re-read makes new objects, and
+  // the stream must not reopen for that.
+  const camId = cam.id;
+  const camRoad = cam.road;
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
-    setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0 }));
+    closeDirect(direct);
+    setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', stream: null, firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0 }));
     try {
+      const d = await tryDirectRoad({ id: camId, road: camRoad }, token, { onEnd: (why) => { if (alive.current && endedRef.current) endedRef.current(why); } });
+      if (!alive.current) { if (d.ok) d.close(); return; }
+      if (d.ok) {
+        direct.current = d;
+        setSt((p) => ({ ...p, mode: 'direct', stream: d.stream, src: `direct:${camId}:${reconnects}`, startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
+        timers.current.first = setTimeout(() => {
+          if (alive.current && endedRef.current) endedRef.current(`no picture from Wyze's WebRTC after ${Math.round(LIVE_FIRST_FRAME_TIMEOUT_MS / 1000)} s; the NAS road is next`, { onlyIfBlank: true });
+        }, LIVE_FIRST_FRAME_TIMEOUT_MS);
+        return;
+      }
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: streamId }) }, FETCH_TIMEOUT_MS);
       if (!r.ok) throw new Error(r.status === 401 ? 'the family key was refused' : r.status === 503 ? 'the NAS has all its live slots in use' : `ticket HTTP ${r.status}`);
       const { ticket } = await r.json();
@@ -730,7 +758,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       const mode = chooseLiveRoad({ pref: road, stats: loadRoadStats(), canPlayType: canPlay, avoid: lastFailed.current });
       lastFailed.current = '';
       const startedAt = Date.now();
-      setSt((p) => ({ ...p, mode, src: liveUrl(streamId, mode, ticket, { nonce: reconnects }), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
+      setSt((p) => ({ ...p, mode, stream: null, src: liveUrl(streamId, mode, ticket, { nonce: reconnects }), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
       timers.current.first = setTimeout(() => {
         // No picture by now: say so AND come back by itself (DR-0833), the
         // wait growing while it stays blank. Nothing here waits on a hand.
@@ -740,7 +768,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       if (!alive.current) return;
       setSt((p) => ({ ...p, opening: false, error: String((e && e.message) || e) }));
     }
-  }, [streamId, token, road]);
+  }, [streamId, token, road, camId, camRoad]);
 
   useEffect(() => {
     alive.current = true;
@@ -751,6 +779,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     // for, the moment it is shown.
     if (released) {
       clearTimeout(t.first); clearTimeout(t.reopen);
+      closeDirect(direct);
       const v = t.video;
       if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
       setSt((p) => ({ ...p, src: '', opening: false, ended: false, error: '', reconnecting: false }));
@@ -760,6 +789,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     return () => {
       alive.current = false;
       clearTimeout(t.first); clearTimeout(t.reopen);
+      closeDirect(direct);
       const v = t.video;
       if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
     };
@@ -774,7 +804,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       const opened = p.firstFrameMs != null;
       if (onlyIfBlank && opened) return p;
       recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
-      if (!opened) lastFailed.current = p.mode;
+      // A direct try that brought no picture sends this camera to the NAS road for a while.
+      if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); } else if (!opened) lastFailed.current = p.mode;
       // NO CAP, NO RESUME (DR-0833): the next try is always armed. The wait
       // grows only while the camera gives no picture; a hidden page waits the
       // long step and looks again rather than asking the NAS for tickets
@@ -791,9 +822,9 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
         }, ms);
       };
       again(wait);
-      return { ...p, ended: true, error: reason, reconnecting: true, blank, nextAt: Date.now() + wait };
+      return { ...p, ended: true, error: reason, lastWhy: reason, reconnecting: true, blank, nextAt: Date.now() + wait };
     });
-  }, [open]);
+  }, [open, camId]);
   endedRef.current = endedOnItsOwn;
 
   // THE TILE IS TENDED (DR-0799): every LIVE_TEND_MS the element is asked
@@ -801,7 +832,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   // freeze reconnects; a lag is run down or jumped (lib tendLiveVideo).
   const tendMemo = useRef(null);
   useEffect(() => {
-    if (!st.src || st.ended || released) return undefined;
+    // A direct session watches its own received bytes (lib/camera-direct.js).
+    if (!st.src || st.ended || released || st.mode === 'direct') return undefined;
     tendMemo.current = null;
     const id = setInterval(() => {
       const v = timers.current.video;
@@ -843,12 +875,13 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     return (
       <div className={`relative bg-black w-full h-full overflow-hidden ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={testId} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
-          <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline className="w-full h-full object-contain"
+          <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-contain"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
         )}
-        <div className="absolute left-1 right-8 top-1 w-fit px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
+        <div className="absolute left-1 right-8 top-1 w-fit px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}{st.mode === 'direct' ? ' · Wyze WebRTC' : ''}</div>
+        {st.reconnects > 0 && st.lastWhy ? <div className="absolute left-1 right-8 top-7 w-fit px-1.5 py-0.5 bg-black/60 text-white/80 text-[0.5625rem] truncate" data-testid={`${testId}-last-why`}>last: {st.lastWhy}</div> : null}
       </div>
     );
   }
@@ -868,13 +901,13 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
               </select>
             </label>
           ) : null}
-          {st.mode && !compact ? <span className={chip.muted} title={roadLine(loadRoadStats(), st.mode)} data-testid={`${testId}-mode`}>{road === 'auto' ? `Auto chose ${roadLabel(st.mode)}` : `${roadLabel(st.mode)} · pinned`}</span> : null}
+          {st.mode && !compact ? <span className={chip.muted} title={roadLine(loadRoadStats(), st.mode)} data-testid={`${testId}-mode`}>{st.mode === 'direct' ? DIRECT_CHIP : road === 'auto' ? `Auto chose ${roadLabel(st.mode)}` : `${roadLabel(st.mode)} · pinned`}</span> : null}
           <button type="button" onClick={onClose} className={`${compact ? btnGhost : btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{compact ? 'Remove' : 'Close'}</button>
         </div>
       </div>
       <div className={`mt-2 bg-black aspect-video w-full flex items-center justify-center ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={`${testId}-picture`} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
-          <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline controls={!compact} className="w-full h-full"
+          <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline controls={!compact} className="w-full h-full"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
         ) : (
           <div className="text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
@@ -885,8 +918,9 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
           {st.firstFrameMs != null ? <span className={chip.ok}>first picture in {(st.firstFrameMs / 1000).toFixed(1)} s</span>
             : st.error && !st.ended ? <span className={chip.blocked}>{st.error}</span>
             : st.src ? <span className={chip.wait}>waiting for the first picture</span> : null}
+          {st.mode === 'direct' && compact ? <span className={chip.muted} data-testid={`${testId}-direct`}>{DIRECT_CHIP}</span> : null}
           {st.stalls > 0 ? <span className={chip.wait}>{st.stalls} stall{st.stalls === 1 ? '' : 's'}</span> : null}
-          {st.reconnects > 0 ? <span className={chip.wait} data-testid={`${testId}-reconnects`}>reconnected {st.reconnects}×</span> : null}
+          {st.reconnects > 0 ? <span className={chip.wait} data-testid={`${testId}-reconnects`} title={st.lastWhy || ''}>reconnected {st.reconnects}×{st.lastWhy ? ` · last: ${st.lastWhy}` : ''}</span> : null}
           {st.firstFrameMs != null && !st.ended ? <span>on for {elapsed} s{liveMax > 0 ? ` of ${liveMax}` : ''}</span> : null}
         </div>
       </div>
@@ -1031,18 +1065,30 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, blank: 0, nextAt: 0, error: '', mode: '' });
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
+  const direct = useRef(null);
+  const endRef = useRef(null);
   const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
+  const camId = cam.id;
+  const camRoad = cam.road;
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
-    setSt((p) => ({ ...p, ended: false, src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0, error: '' }));
+    closeDirect(direct);
+    setSt((p) => ({ ...p, ended: false, src: '', stream: null, firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0, error: '' }));
     try {
+      const d = await tryDirectRoad({ id: camId, road: camRoad }, token, { onEnd: (why) => { if (alive.current && endRef.current) endRef.current(why); } });
+      if (!alive.current) { if (d.ok) d.close(); return; }
+      if (d.ok) {
+        direct.current = d;
+        setSt((p) => ({ ...p, mode: 'direct', stream: d.stream, src: `direct:${camId}:${reconnects}`, startedAt: Date.now() }));
+        return;
+      }
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: streamId }) }, FETCH_TIMEOUT_MS);
       if (!r.ok) throw new Error(r.status === 503 ? 'the NAS has all its live slots in use' : `ticket HTTP ${r.status}`);
       const { ticket } = await r.json();
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
       const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
-      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), mode, startedAt: Date.now() }));
+      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), stream: null, mode, startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
         setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
       }, LIVE_FIRST_FRAME_TIMEOUT_MS);
@@ -1050,17 +1096,18 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       if (!alive.current) return;
       setSt((p) => ({ ...p, error: String((e && e.message) || e) }));
     }
-  }, [streamId, token]);
+  }, [streamId, token, camId, camRoad]);
   useEffect(() => {
     alive.current = true;
     open(0);
     const t = timers.current;
-    return () => { alive.current = false; clearTimeout(t.first); clearTimeout(t.reopen); const v = t.video; if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } } };
+    return () => { alive.current = false; clearTimeout(t.first); clearTimeout(t.reopen); closeDirect(direct); const v = t.video; if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } } };
   }, [open]);
   const endedOnItsOwn = useCallback((reason) => {
     setSt((p) => {
       if (p.ended) return p;
       const opened = p.firstFrameMs != null;
+      if (p.mode === 'direct') { closeDirect(direct); if (!opened) noteDirectFailure(camId); }
       const blank = opened ? 0 : (p.blank || 0) + 1;
       if (onFailed && blank === TILE_BLANK_TELL) setTimeout(() => onFailed(`live view has had no picture: ${reason}`), 0);
       const wait = reconnectDelayMs(blank);
@@ -1076,11 +1123,12 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       again(wait);
       return { ...p, ended: true, error: reason, blank, nextAt: Date.now() + wait };
     });
-  }, [open, onFailed]);
+  }, [open, onFailed, camId]);
+  endRef.current = endedOnItsOwn;
   // Tended like every live tile (DR-0799): a frozen picture reconnects, a lag is run down.
   const tendMemo = useRef(null);
   useEffect(() => {
-    if (!st.src || st.ended) return undefined;
+    if (!st.src || st.ended || st.mode === 'direct') return undefined;
     tendMemo.current = null;
     const id = setInterval(() => {
       const v = timers.current.video;
@@ -1097,7 +1145,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   return (
     <div className="aspect-video bg-black relative" data-testid={`tile-live-${cam.id}`}>
       {st.src && !st.ended ? (
-        <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline className="w-full h-full object-cover"
+        <video ref={(el) => { timers.current.video = el; attachStream(el, st.stream); }} key={st.src} src={st.stream ? undefined : st.src} autoPlay muted playsInline className="w-full h-full object-cover"
           onLoadedData={() => setSt((p) => (p.firstFrameMs == null ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : p))}
           onEnded={() => endedOnItsOwn(liveMax > 0 && elapsed >= liveMax - 2 ? 'the NAS clock' : 'stream ended')}
           onError={() => endedOnItsOwn(st.firstFrameMs == null ? 'could not open' : 'stream broke')} />
@@ -1106,6 +1154,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       )}
       {st.firstFrameMs == null && st.src && !st.ended && !st.error ? <div className="absolute bottom-1 left-1 text-[0.5625rem] text-white/70">waiting for the first picture</div> : null}
       {st.reconnects > 0 ? <div className="absolute top-1 right-1 text-[0.5625rem] text-white/80 bg-black/50 px-1">reconnected {st.reconnects}×</div> : null}
+      {st.mode === 'direct' && st.src && !st.ended ? <div className="absolute bottom-1 right-1 text-[0.5625rem] text-white/80 bg-black/50 px-1" data-testid={`tile-direct-${cam.id}`}>{DIRECT_CHIP}</div> : null}
     </div>
   );
 }
