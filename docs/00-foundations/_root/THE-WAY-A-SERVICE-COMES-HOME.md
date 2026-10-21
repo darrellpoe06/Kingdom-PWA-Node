@@ -93,3 +93,17 @@ The gate is proven to catch: the old installer, a witness without its standing l
 - It does not cancel a bill. The register says which bills exist (one, today) and which jobs have no bill behind them, so the gain is named honestly as control, or as money, never assumed.
 - It does not run a tool that fails the candidates gate, the three brakes, or the licence review.
 - It does not audit the twenty-two services born before it in one night. They are listed with what they lack and a date, and each is brought up to the Way in order of blast radius.
+
+---
+
+## A secret comes home the same Way (DR-1159)
+
+Declared by Darrell 2026-10-21, on being handed a paste block for a token the NAS already held: *"One move and why can't you use cli... or ssh?!"* and *"Make that mandatory... add to the Ways and documentation."*
+
+A value the NAS holds (a bearer, a key, a file) reaches the repository, Cloudflare or any lane the agent drives by one of three roads, tried in this order, stopping at the first that works:
+
+1. **A GitHub runner over the team's tailnet.** `tailscale/github-action` with `TS_AUTHKEY`, then `ssh -i` with `NAS_SSH_KEY` to `dpoe@poetech.tail5a2f35.ts.net`; the value is masked the instant it is read (`::add-mask::`) and leaves the runner only as a request header or a secret body. `deploy-cloudflare-pages.yml`, `push-sender-credentials.yml`, `cf-roads-worker.yml` and `announce-bearer-sync.yml` walk it. The NAS's own GitHub token (DR-0085) writes a repository secret from there.
+2. **ConnectBot.** Darrell's SSH from his phone, handed a self-contained paste that does the whole move on the NAS side (DR-0108 §4).
+3. **A hand.** A value typed from one screen into another, only when it is one only Darrell can mint (his Cloudflare dashboard, his card, his signature), and then with the reason written down.
+
+The proof is read back, never claimed: the secret by name and date, and where a bell is involved, one ring at the lowest priority (DR-0970). The sandbox the agent works in has no route to the NAS; that bounds the agent, never the team. A paste handed to Darrell for a value the NAS already holds is a Ways finding (an `orchestration` REV), not a delivery.
