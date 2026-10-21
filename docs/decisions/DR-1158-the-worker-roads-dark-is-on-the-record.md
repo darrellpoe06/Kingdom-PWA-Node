@@ -12,6 +12,10 @@
 
 ---
 
+## Context
+
+The site witness (`site-health.yml`, DR-0125) names a known outage once and writes it to the incident ledger once a day (DR-0975), so a genuinely new fault stands out. Since #2285 taught it to look for the poetech-roads Worker, its one unchanged reading has been written as new on every run, because no carve-out knew it.
+
 ## What was measured
 
 - **The reading.** Since #2285 (DR-1124) taught `site-health.yml` to ask `GET poetech.us/edge/whoami`, every run has reported one reason: the SPA shell (`200`, `text/html`) where the poetech-roads Worker's JSON 401 belongs. First seen by run 39507209827 at 2026-10-20T22:20Z; last by run 39551336752 at 2026-10-21T05:45Z, with `served=1798c64 main=1798c64`, `pages.dev shell 200`, `backend auth 200`, preflight 200 and the records road answering (POST 400, 81 bytes). The site is up and fresh; the Worker has never been deployed on its route.
@@ -23,6 +27,10 @@
 `KNOWN_OUTAGES` carries a second entry, `cf-roads-worker`: head `THE WORKER ROADS ARE DARK TOO`, tail `the wrangler zone route or the Worker's own deploy is the place to look` (the stable ends of the add_fail; the middle interpolates the measured code and content-type), `since` 2026-10-20T22:20:24Z, `issue` 2057, **`until` 2026-10-28**. The `reach` names the hand that fixes it and the run that proved the token short.
 
 The run **still fails** on every probe while the Worker is dark (`exit 1`, pinned by the suite). What changes: the verdict reads `KNOWN`, the ledger note is written once a day instead of once a run, the bell follows the same throttle, and a genuinely new fault still reads `NEW` beside it.
+
+## Impact
+
+Unresolved, the ledger on #2057 grows by one "new fault" note per run (four in eight hours) and the next real fault arrives as one more comment nobody reads; the run stays red either way. The carve-out keeps the run red and the ledger readable, and dies on its own date so it cannot quietly outlive the fault.
 
 ## What is deferred, and why
 
