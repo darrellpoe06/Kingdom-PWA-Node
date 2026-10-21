@@ -25,8 +25,8 @@ import SectionTabs from './SectionTabs.jsx';
 import TlcGovernance from './TlcGovernance.jsx';
 import { canManageTeam } from '../lib/instance-role.js';
 import UiIcon from './UiIcon.jsx';
+import { TLC_BTN as BTN } from '../lib/tlc-ui.js';
 
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 function Fold({ title, kind, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -102,7 +102,7 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
   const go = (id) => (onOpen ? <button type="button" onClick={() => onOpen(id)} className={BTN}>Open {id === 'training' ? 'Training' : id === 'onboarding' ? 'Onboarding' : id}</button> : null);
 
   const documents = (
-    <section className="bg-white border border-[#E8E4DC] p-3">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Office documents · all in the app</div>
       <Fold title="Independent Contractor Handbook" kind="Policies & procedures · read here">
         <HandbookSections handbook={handbook} />
@@ -136,7 +136,7 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
     </section>
   );
   const whoWeAre = (
-    <section className="bg-white border border-[#E8E4DC] p-3">
+    <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Who we are</div>
       <p className="text-sm text-[#1A1815] leading-relaxed mb-2">{TLC_HANDBOOK.welcome}</p>
       <div className="text-xs text-[#1A1815]"><b>Mission.</b> <span className="text-[#5A5751]">{TLC_HANDBOOK.mission}</span></div>
@@ -148,7 +148,7 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
   );
   const areas = [
     { id: 'documents', label: 'Documents', icon: 'book', render: () => documents },
-    staff ? { id: 'launch', label: 'Launch board', icon: 'check', render: () => <section className="bg-white border border-[#E8E4DC] p-3"><TlcLaunchBoard /></section> } : null,
+    staff ? { id: 'launch', label: 'Launch board', icon: 'check', render: () => <section className="bg-white border border-[#E8E4DC] rounded-2xl p-3"><TlcLaunchBoard /></section> } : null,
     { id: 'who', label: 'Who we are', icon: 'users', render: () => whoWeAre },
     // Owners and managers govern from the same app (DR-0346): the hierarchy,
     // the live members with guarded seat changes, invites, removal.
@@ -158,7 +158,7 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
   return (
     <div className="space-y-4 pt-3">
       {st && (
-        <section className="border border-[#1A1815] bg-white p-3">
+        <section className="border border-[#1A1815] bg-white rounded-2xl p-3">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">My intake packet</div>
           <div className="text-sm font-bold text-[#1A1815]">{st.label}</div>
           <p className="text-xs text-[#5A5751] leading-relaxed mt-1">

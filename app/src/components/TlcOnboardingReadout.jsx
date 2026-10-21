@@ -74,8 +74,8 @@ export default function TlcOnboardingReadout({ view, sections = SECTIONS }) {
     <div className="space-y-4">
       <div className="flex items-start gap-3">
         {view.headshot_thumb
-          ? <img src={view.headshot_thumb} alt="" width="72" height="72" className="w-[72px] h-[72px] object-cover bg-[#E8E4DC] shrink-0" />
-          : <div aria-hidden="true" className="w-[72px] h-[72px] bg-[#E8E4DC] flex items-center justify-center text-[#5A5751] shrink-0"><UiIcon name="users" /></div>}
+          ? <img src={view.headshot_thumb} alt="" width="72" height="72" className="w-[72px] h-[72px] rounded-full object-cover bg-[#E8E4DC] shrink-0" />
+          : <div aria-hidden="true" className="w-[72px] h-[72px] rounded-full bg-[#E8E4DC] flex items-center justify-center text-[#5A5751] shrink-0"><UiIcon name="users" /></div>}
         <div className="min-w-0">
           <div className="text-base font-bold text-[#1A1815]">{applicantName(p) || view.email || 'New colleague'}</div>
           <div className="text-xs text-[#5A5751]">{[p.licenseType, p.employmentStatus].filter(Boolean).join(' · ')}</div>

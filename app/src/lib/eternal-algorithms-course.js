@@ -24,7 +24,8 @@
 //
 // Pure + deterministic (proven-to-catch in eternal-algorithms-course.test.js).
 // =============================================================================
-import { GODHEAD_SECTIONS, GODHEAD_ALGORITHMS } from './godhead-study.js';
+import { GODHEAD_SECTIONS, GODHEAD_ALGORITHMS, godheadVerse } from './godhead-study.js';
+import ETERNAL_STORIES from './eternal-algorithms-stories.json';
 import { progressSummaryFor, exportCurriculumMarkdownFor } from './church-classes.js';
 import { datedSchedule } from './lesson-dates.js';
 
@@ -35,12 +36,32 @@ import { datedSchedule } from './lesson-dates.js';
 // SELECTION over the catalog's own sentences — the same truth at three
 // depths, exactly how the Scripture study levels — never an invented rephrase
 // of doctrine (DR-0076).
+// THE VERSES ARE IN THE LESSON (Darrell 2026-10-21, on Revelation — Deep
+// Processing: "Even the verses of the lessons are not here in these courses...
+// Inside each lesson... My family and friends and children will use them for
+// clarity"). Each reference the pattern stands on is quoted, verbatim, from the
+// verified KJV fetch the study renders (godheadVerse) — never typed here
+// (DR-0076). A reference the fetch does not hold is left out of the quotes
+// rather than invented; the census test names any such gap.
+export function wordQuotes(refs) {
+  return (refs || []).map((ref) => {
+    const text = godheadVerse(ref);
+    return text ? `"${text.trim()}" (${ref}, KJV)` : null;
+  }).filter(Boolean);
+}
+
 export function moduleFromAlgorithm(alg) {
   const refs = (alg.refs || []).join(' · ');
-  const standard = [
+  const quotes = wordQuotes(alg.refs);
+  const word = quotes.length ? `The Word, read first:\n\n${quotes.join('\n\n')}` : null;
+  const withWord = (parts) => [word, ...parts].filter(Boolean).join('\n\n');
+  const standard = withWord([
     alg.threeD ? `3D · practical: ${alg.threeD}` : null,
     alg.outcome ? `The outcome — you win with it: ${alg.outcome}` : null,
-  ].filter(Boolean).join('\n\n');
+  ]);
+  // TWO STORIES TO A LESSON (DR-0215 / DR-0855), kept beside the catalog by
+  // pattern id so the catalog the study renders stays untouched.
+  const stories = Array.isArray(alg.stories) && alg.stories.length ? alg.stories : (ETERNAL_STORIES[alg.id] || null);
   return {
     id: `ea-${alg.id}`,
     title: alg.name,
@@ -51,22 +72,23 @@ export function moduleFromAlgorithm(alg) {
     levels: {
       standard,
       // Teen — the shortest true read: the Word's own IF and the win, plain.
-      teen: [
+      teen: withWord([
         `The Word says: IF ${alg.condition}`,
         alg.outcome ? `You win with it: ${alg.outcome}` : null,
         'Small step: pick ONE thing this week that moves your side of the IF.',
-      ].filter(Boolean).join('\n\n'),
+      ]),
       // Senior — the whole depth: conditional, consequence, practice, and why
       // it works in a person (every sentence from the catalog itself).
-      senior: [
+      senior: withWord([
         `IF ${alg.condition}`,
         `THEN ${alg.consequence}`,
         alg.threeD ? `3D · practical: ${alg.threeD}` : null,
         alg.psyche ? `Why it works in you: ${alg.psyche}` : null,
         alg.outcome ? `The outcome — you win with it: ${alg.outcome}` : null,
-      ].filter(Boolean).join('\n\n'),
+      ]),
     },
-    inApp: 'Open this pattern in Church → Eternal Algorithms and read every verse verbatim. Then take it to your Study (or the Council Chamber): write where this conditional is currently running in your house — and one obedience step this week that moves your side of the IF.',
+    ...(stories ? { stories } : {}),
+    inApp: 'Read the verses above aloud, slowly, as a house. Then take it to your Study (or the Council Chamber): write where this conditional is currently running in your house — and one obedience step this week that moves your side of the IF.',
     anchor: { ref: refs, theme: alg.condition },
     launch: { view: 'church', churchView: 'eternal-algorithms' },
   };

@@ -216,3 +216,131 @@ describe('it reads the real fleet, so a stopped parse cannot read as success', (
     expect(sched).toBeGreaterThan(c.total / 3);
   });
 });
+
+// =============================================================================
+// THE NAS HALF GETS ASKED TOO (DR-1151)
+// =============================================================================
+// This census printed 28 of 118 jobs blank and the code said why:
+//   lastRun: null,
+//   // The loop ledgers hold this and loops-health.yml reads them; it is not
+//   // in the repo, so from here it is unknown, never "never".
+// True of the REPO, false of the FLEET. loops-health.yml measures every one of
+// those loops on the same tailnet, fifteen minutes apart — `readServices()`
+// simply never accepted the `runs` argument. A missing parameter, not a
+// missing road, and the deferral written beside it ("data, not code") was
+// wrong twice over.
+describe('the NAS half is asked, and still never says "never"', () => {
+  const RUNS = {
+    services: {
+      'lesson-mail': { last_run_at: '2026-10-21T02:50:00Z', from: 'its own ledger, 600s old' },
+      'church-mail': { last_run_at: null, from: 'no timestamp available (last run unknown)' },
+    },
+  };
+
+  it('a loop the witness timestamped reads RAN, with its provenance carried', () => {
+    const j = census(RUNS).jobs.find((x) => x.name === 'lesson-mail');
+    expect(j.fleet).toBe('nas-service');
+    expect(j.lastRunClass).toBe('ran');
+    expect(j.lastRun).toBe('2026-10-21T02:50:00Z');
+    // WHICH witness said so travels with the number, so no reader has to guess.
+    expect(j.lastRunFrom).toMatch(/its own ledger/);
+  });
+
+  it('a loop the witness could not timestamp stays UNKNOWN', () => {
+    const j = census(RUNS).jobs.find((x) => x.name === 'church-mail');
+    expect(j.lastRunClass).toBe('unknown');
+    expect(j.lastRun).toBe(null);
+  });
+
+  it('a NAS loop can NEVER be reported "never", even if a count is handed in', () => {
+    // THE DELIBERATE ASYMMETRY, and the case that pins it. "Never" means the
+    // system holding the history was asked and had no run. Nothing we can ask
+    // holds a NAS loop's run COUNT — only its most recent evidence — so a
+    // count arriving in the services map is dropped rather than believed. A
+    // workflow with the same input IS "never", and that difference is the
+    // whole point.
+    const withCount = { services: { 'lesson-mail': { last_run_at: null, runs_counted: 0 } } };
+    const j = census(withCount).jobs.find((x) => x.name === 'lesson-mail');
+    expect(j.lastRunClass).toBe('unknown');
+    expect(lastRunClass({ last_run_at: null, runs_counted: 0 })).toBe('never');
+  });
+
+  it('with no runs file at all the NAS half is unchanged — unknown, not never', () => {
+    const c = census();
+    const nas = c.jobs.filter((j) => j.fleet === 'nas-service');
+    expect(nas.length).toBeGreaterThan(20);
+    expect(nas.every((j) => j.lastRunClass === 'unknown')).toBe(true);
+    expect(nas.some((j) => j.lastRunClass === 'never')).toBe(false);
+  });
+
+  it('a timestamped loop moves withALastRun, and the totals still add up', () => {
+    const before = census();
+    const after = census(RUNS);
+    expect(after.withALastRun).toBe(before.withALastRun + 1);
+    expect(after.total).toBe(before.total);
+    expect(after.neverRun).toBe(before.neverRun);
+    for (const c of [before, after]) {
+      expect(c.withALastRun + c.neverRun + c.unknownLastRun).toBe(c.total);
+    }
+  });
+});
+
+describe('one road to one truth — the two halves of the fold', () => {
+  const LOOPS = readFileSync(join(REPO, '.github/workflows/loops-health.yml'), 'utf8');
+  const CENSUS = readFileSync(join(REPO, '.github/workflows/fleet-census.yml'), 'utf8');
+
+  it('the loops witness publishes where the census reads, same label', () => {
+    // A reader aimed at something nothing writes reports "no data" for ever.
+    expect(LOOPS).toMatch(/const label = 'loops-report'/);
+    expect(CENSUS).toMatch(/labels=loops-report/);
+  });
+
+  it('publishing can never change the loops witness’s own verdict', () => {
+    // It runs AFTER the verdict and cannot fail the job: a healthy witness must
+    // not go red because an issue write failed, and a dark one must not go
+    // green. The gate is this workflow's judgement, not its reporting.
+    const judge = LOOPS.indexOf('Judge each loop on what it wrote');
+    const publish = LOOPS.indexOf('Report: publish the per-loop witness');
+    expect(judge).toBeGreaterThan(0);
+    expect(publish).toBeGreaterThan(judge);
+    const step = LOOPS.slice(publish, publish + 400);
+    expect(step).toMatch(/continue-on-error: true/);
+  });
+
+  it('it is not filed as an incident — a healthy witness is not an outage', () => {
+    const publish = LOOPS.indexOf('Report: publish the per-loop witness');
+    const diagnose = LOOPS.indexOf('Diagnose the dark loops');
+    const step = LOOPS.slice(publish, diagnose);
+    expect(step).toMatch(/labels: \[label\]/);
+    expect(step).not.toMatch(/'incident'/);
+  });
+
+  it('the census needs no tailnet of its own to read it', () => {
+    // Two roads to one truth drift. The census stays a reader.
+    const fold = CENSUS.indexOf('Fold in the loops witness');
+    expect(fold).toBeGreaterThan(0);
+    const step = CENSUS.slice(fold, fold + 2600);
+    expect(step).not.toMatch(/tailscale|NAS_SSH_KEY|ssh /i);
+  });
+
+  it('every way the fold can fail leaves the NAS half UNKNOWN, loudly', () => {
+    // DR-0076. A report that cannot be read is not "no loops ran".
+    const fold = CENSUS.indexOf('Fold in the loops witness');
+    const step = CENSUS.slice(fold, CENSUS.indexOf('The census, and the two questions'));
+    for (const why of [
+      /could not read the loops report/,
+      /no loops-report issue yet/,
+      /carries no witness block/,
+      /does not parse/,
+      /names no services/,
+    ]) expect(step).toMatch(why);
+    expect((step.match(/stays UNKNOWN/g) || []).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('no run COUNT crosses the road, so the asymmetry holds end to end', () => {
+    const fold = CENSUS.indexOf('Fold in the loops witness');
+    const step = CENSUS.slice(fold, CENSUS.indexOf('The census, and the two questions'));
+    expect(step).toMatch(/"last_run_at": e\.get\("last_run_at"\), "from": e\.get\("from"\)/);
+    expect(step).not.toMatch(/runs_counted["']?\s*:/);
+  });
+});

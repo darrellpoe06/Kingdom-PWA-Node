@@ -20,8 +20,9 @@ const item = (over = {}) => ({
 });
 
 describe('every kind, read from the rows each screen already reads', () => {
-  it('names the six kinds and which screen marks which seen', () => {
-    expect(ARRIVAL_KINDS).toEqual(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback']);
+  it('names the seven kinds and which screen marks which seen', () => {
+    expect(ARRIVAL_KINDS).toEqual(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
+    expect(SCREEN_KINDS.learn).toEqual(['lesson-new']);
     expect(SCREEN_KINDS['your-lessons']).toEqual(['lesson-ready', 'lesson-review', 'lesson-published']);
     expect(SCREEN_KINDS.decide).toEqual(['review-queue']);
     expect(SCREEN_KINDS.feedback).toEqual(['feedback']);

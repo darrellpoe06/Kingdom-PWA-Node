@@ -131,7 +131,7 @@ describe('the watcher: one combined count, dropped by the screen, rung while hid
   let stop = null;
   afterEach(() => { if (stop) stop(); stop = null; });
 
-  const setUp = async ({ owner = true } = {}) => {
+  const setUp = async ({ owner = true, catalog = [] } = {}) => {
     const win = makeWin();
     const data = {
       lessons: { ok: true, owner, items: [{ id: 'r1', createdAt: '2026-10-01T10:00:00Z', progressTags: ['lesson', 'awaiting-review', 'build:awaiting-review@2026-10-01T11:00:00Z'], spoken: false, review: { state: 'pending', line: '' }, published: null }] },
@@ -148,11 +148,23 @@ describe('the watcher: one combined count, dropped by the screen, rung while hid
         lessons: async () => async () => data.lessons,
         queue: async () => async () => data.queue,
         feedback: async () => async () => data.feedback,
+        // These cases count rows; the catalog has its own (arrivals-new-lessons.test.js).
+        catalog: async () => () => catalog,
       },
     });
     await flush();
     return { win, data, events, signOut: () => authCb(null) };
   };
+
+  it('PROVEN TO CATCH: a lesson that lands in the catalog is counted and listed, and opening Learn drops it (2026-10-21)', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { win, events } = await setUp({ catalog: [{ courseKey: 'sovereign-ai', lessonId: 'sov99-a-lesson-from-today', day: today }] });
+    const last = events.at(-1);
+    expect(last.items.map((i) => i.id)).toContain('lesson-new:sovereign-ai/sov99-a-lesson-from-today');
+    expect(win.navCalls.at(-1)).toBe(4);   // the 3 row arrivals + the new lesson
+    fire(win, ARRIVALS_SEEN_EVENT, { kinds: ['lesson-new'] });
+    expect(win.navCalls.at(-1)).toBe(3);
+  });
 
   it('the icon and the title carry unread messages PLUS every other unseen arrival', async () => {
     const { win, events } = await setUp();
@@ -198,7 +210,7 @@ describe('the watcher: one combined count, dropped by the screen, rung while hid
         stop = startArrivalsWatch(w, {
           supabase: client,
           onAuthChange: (cb) => { cb({ user: { id: 'u1' } }); return () => {}; },
-          loaders: { lessons: async () => async () => d.lessons, queue: async () => async () => d.queue, feedback: async () => async () => d.feedback },
+          loaders: { lessons: async () => async () => d.lessons, queue: async () => async () => d.queue, feedback: async () => async () => d.feedback, catalog: async () => () => [] },
         });
         await vi.advanceTimersByTimeAsync(50);
         return { win: w, data: d };

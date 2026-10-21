@@ -82,17 +82,54 @@ const BUTTON = /<button\b[^>]*>/gs;
  * which made them recorded debt that was never owed.
  */
 function focusConstants(src) {
+  const names = new Set();
+  // A constant may carry the ring by interpolating another that does
+  // (`const BTN = \`... ${FOCUS}\``, the design-system shape, DR-1156), so the
+  // pass repeats until no new name appears — the same text, read until settled.
+  const decls = [...src.matchAll(/const\s+(\w+)\s*=\s*(['"`])((?:(?!\2).)*)\2/g)];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const m of decls) {
+      if (names.has(m[1])) continue;
+      const v = m[3];
+      const carries = v.includes('focus:outline') || v.includes('focus-visible:')
+        || [...names].some((n) => v.includes('${' + n + '}'));
+      if (carries) { names.add(m[1]); grew = true; }
+    }
+  }
+  return [...names];
+}
+
+/**
+ * The names a file IMPORTS from a sibling module whose value carries the ring
+ * (DR-1156: the TLC screens draw their button from lib/tlc-ui.js, so the ring
+ * lives one file away from the tag that wears it). Only relative imports are
+ * followed, and a module that cannot be read resolves to NOTHING — an unread
+ * file is never assumed to carry a ring (DR-0076 §8). `readModule(relPath)`
+ * returns the module's source, or null; the default reads from app/src.
+ */
+function importedFocusConstants(src, id, readModule) {
   const names = [];
-  for (const m of src.matchAll(/const\s+(\w+)\s*=\s*(['"`])((?:(?!\2).)*)\2/g)) {
-    if (m[3].includes('focus:outline') || m[3].includes('focus-visible:')) names.push(m[1]);
+  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"](\.[^'"]+)['"]/g)) {
+    let mod = null;
+    try { mod = readModule(join(dirname(id), m[2])); } catch { mod = null; }
+    if (!mod) continue;
+    const carriers = new Set(focusConstants(mod));
+    for (const spec of m[1].split(',')) {
+      const [exported, local] = spec.trim().split(/\s+as\s+/).map((x) => x && x.trim());
+      if (exported && carriers.has(exported)) names.push(local || exported);
+    }
   }
   return names;
 }
 
+const readSourceModule = (rel) => readFileSync(join(SRC, rel), 'utf8');
+
 /** A control a keyboard can reach must SHOW where it is. */
-export function scanFocusRing(src, id) {
+export function scanFocusRing(src, id, readModule = readSourceModule) {
   const out = [];
-  const ringNames = focusConstants(src);
+  const ringNames = [...focusConstants(src), ...importedFocusConstants(src, id, readModule)];
   for (const m of src.matchAll(BUTTON)) {
     const tag = m[0];
     if (!tag.includes('className=')) continue;          // unstyled: not ours to judge

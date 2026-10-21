@@ -57,3 +57,20 @@ export function withLessonDates(courses) {
     return schedule === c.schedule ? c : { ...c, schedule };
   });
 }
+
+/**
+ * Every dated lesson in every course, newest day first ({courseKey, lessonId,
+ * day}). The arrivals bell reads this so a lesson that lands in the catalog
+ * rings whether or not anyone holds a row for it (2026-10-21: "The arrivals
+ * popup for latest lessons don't keep up with the lessons").
+ */
+export function datedLessons(dated = DATED) {
+  const out = [];
+  for (const [courseKey, rows] of Object.entries(dated || {})) {
+    for (const [lessonId, row] of Object.entries(rows || {})) {
+      if (Array.isArray(row) && ISO_DAY.test(row[0])) out.push({ courseKey, lessonId, day: row[0] });
+    }
+  }
+  const num = (id) => { const m = /^[a-z]+(\d+)-/i.exec(id); return m ? Number(m[1]) : -1; };
+  return out.sort((a, b) => (a.day !== b.day ? (a.day < b.day ? 1 : -1) : num(b.lessonId) - num(a.lessonId)));
+}

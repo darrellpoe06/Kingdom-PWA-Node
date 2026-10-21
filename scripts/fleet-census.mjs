@@ -42,9 +42,14 @@
 //
 // --runs takes {"workflows": {"<file.yml>": {"last_run_at": "<iso>|null",
 //               "state": "active|disabled_manually|disabled_inactivity",
-//               "runs_counted": <n>}}, "window": "<what was queried>"}
-// Written by .github/workflows/fleet-census.yml, which can ask the API; a
-// read with no window stated is not evidence of anything.
+//               "runs_counted": <n>}},
+//               "services": {"<loop name>": {"last_run_at": "<iso>|null",
+//               "from": "<which witness said so>"}},
+//               "window": "<what was queried>"}
+// Written by .github/workflows/fleet-census.yml, which can ask the API for the
+// workflows and reads loops-health.yml's published witness for the NAS loops; a
+// read with no window stated is not evidence of anything. A `services` entry
+// carries no run COUNT on purpose -- see readServices below.
 // =============================================================================
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
@@ -112,29 +117,53 @@ export function readWorkflows(runs = {}) {
     });
 }
 
-export function readServices() {
+// THE NAS HALF NOW GETS ASKED TOO (DR-1151). This used to hardcode
+// `lastRunClass: 'unknown'` with the comment "loops-health.yml reads them; it
+// is not in the repo, so from here it is unknown" -- and that was true of the
+// REPO and false of the FLEET. loops-health.yml already measures every one of
+// these loops on the same Tailscale road, fifteen minutes apart, and the
+// census simply never took the parameter: `readServices()` did not accept
+// `runs` at all. So 28 of 118 jobs in the report read blank because of a
+// missing argument, not a missing road, and the deferral I wrote ("data, not
+// code") was wrong twice over.
+//
+// `runs.services[name]` now goes through the SAME `lastRunClass` as a
+// workflow, which keeps one definition of ran/never/unknown across both
+// fleets. One asymmetry is deliberate: a NAS entry must never produce
+// **never**. "Never" means the system that keeps the history was asked and
+// had no run, and nothing we can ask holds a NAS loop's run COUNT -- only its
+// most recent evidence. So a NAS row either has a timestamp (ran) or stays
+// unknown, and `runs_counted` is dropped on the way in rather than trusted.
+export function readServices(runs = {}) {
   if (!existsSync(SERVICES)) return [];
   const raw = JSON.parse(readFileSync(SERVICES, 'utf8'));
   const list = Array.isArray(raw) ? raw : raw.services;
-  return list.map((s) => ({
-    fleet: 'nas-service',
-    name: s.name,
-    // Every one of these rides the services-sync clock, so an enabled service
-    // is a scheduled job even though no cron line appears beside it.
-    kind: 'scheduled',
-    state: s.enabled ? 'active' : 'disabled_manually',
-    onDemandOnly: false,
-    cron: ['(services-sync, every 15 min)'],
-    lastRun: null,
-    // The loop ledgers hold this and loops-health.yml reads them; it is not in
-    // the repo, so from here it is unknown, never "never".
-    lastRunClass: 'unknown',
-    why: s.description ? String(s.description).slice(0, 160) : '',
-  }));
+  const asked = runs.services || {};
+  return list.map((s) => {
+    const r = asked[s.name];
+    // Only `last_run_at` is honoured; a count is not evidence we can have.
+    const entry = r && 'last_run_at' in r ? { last_run_at: r.last_run_at } : undefined;
+    return {
+      fleet: 'nas-service',
+      name: s.name,
+      // Every one of these rides the services-sync clock, so an enabled service
+      // is a scheduled job even though no cron line appears beside it.
+      kind: 'scheduled',
+      state: s.enabled ? 'active' : 'disabled_manually',
+      onDemandOnly: false,
+      cron: ['(services-sync, every 15 min)'],
+      lastRun: entry && entry.last_run_at ? entry.last_run_at : null,
+      lastRunClass: lastRunClass(entry),
+      // How the timestamp was arrived at, carried with it so a reader never
+      // has to guess which witness spoke (DR-0076 provenance).
+      lastRunFrom: (r && r.from) || null,
+      why: s.description ? String(s.description).slice(0, 160) : '',
+    };
+  });
 }
 
 export function census(runs = {}) {
-  const jobs = [...readWorkflows(runs), ...readServices()];
+  const jobs = [...readWorkflows(runs), ...readServices(runs)];
   const enabled = jobs.filter((j) => j.state !== 'disabled_manually' && j.state !== 'disabled_inactivity');
   const disabled = jobs.filter((j) => !enabled.includes(j));
   return {

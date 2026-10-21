@@ -27,6 +27,8 @@
 // a break. Progress is per-person and cannot be shown without a person, so the
 // absence now explains itself instead of looking like a defect.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { withWordQuotes } from '../lib/lesson-word-quotes.js';
+import { withSideStories } from '../lib/lesson-side-stories.js';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -179,7 +181,11 @@ describe('the course door shows the time, before the decision', () => {
     expect(text).toMatch(/1×/);
     expect(text).toMatch(/1\.5×/);
     // The numbers are the lib's, not re-derived in the component.
-    const expected = courseDuration(LIVING_LESSONS_MODULES, { ageBand: 'adult' });
+    // Measured on the lessons as the reader gets them: Learn opens a lesson
+    // that only cited its verses with them quoted (lib/lesson-word-quotes.js)
+    // and adds the stories it was missing (lib/lesson-side-stories.js).
+    const asRead = withSideStories(withWordQuotes([{ key: 'living-lessons', schedule: LIVING_LESSONS_MODULES }]))[0].schedule;
+    const expected = courseDuration(asRead, { ageBand: 'adult' });
     expect(text).toContain(formatDuration(expected.listen[0].minutes));
     expect(text).toContain(formatDuration(expected.listen[1].minutes));
   });

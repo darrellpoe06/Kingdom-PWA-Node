@@ -17,6 +17,7 @@ import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
+import { fetchFleetCensus } from '../lib/fleet-census-live.js';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
 import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
@@ -172,24 +173,101 @@ export function OpenclawTowerStrip({ tower }) {
   );
 }
 
+// FleetCensusStrip — how many jobs we have, how many are on, and how many have
+// ever actually run (DR-1148; the census itself is DR-1140).
+//
+// Darrell brought back a migration census — 149 jobs, 131 enabled, 78 with a
+// last run date — and asked whether the disabled ones need to move and whether
+// the enabled ones with no run date have ever run. The answer he could not get
+// about our OWN fleet now lives here, and the strip's main job is to keep the
+// distinction the question turns on: "enabled with no last run date" is THREE
+// populations with three opposite decisions, never one number. Nothing is
+// computed here — every figure is the census's own measurement, read live.
+export function FleetCensusStrip({ fleet }) {
+  if (!fleet) return null;
+  if (!fleet.ok) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751] mb-2" data-testid="fleet-census-strip">
+        Fleet census unreadable right now — {fleet.notice || (fleet.verdict && fleet.verdict.line) || 'no reason given'}
+      </p>
+    );
+  }
+  const { census: c, answer: a, verdict: v, freshness: fr } = fleet;
+  const kpi = v.tone === 'good'
+    ? { status: 'good', label: v.line }
+    : v.tone === 'bad'
+      ? { status: 'problem', label: v.line }
+      : { status: 'idle', label: v.line };
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]" data-testid="fleet-census-strip">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">The fleet — how many jobs, how many on, how many have ever run</span>
+        <span className="flex items-center gap-2">
+          <KpiDot status={kpi.status} label={kpi.label} />
+          {fr && fr.known && (
+            <KpiDot
+              status={fr.stale ? 'attention' : 'good'}
+              label={fr.stale
+                ? `census stale (last ran ${String(fr.lastRunAt || '').slice(0, 10) || 'at an unknown time'})`
+                : `censused ${String(fr.lastRunAt || '').slice(0, 10)}`}
+            />
+          )}
+        </span>
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {c.total} jobs · {c.enabled} enabled · {c.disabled} disabled ·{' '}
+        {c.withALastRun} with a last run.{' '}
+        {a ? (
+          <>
+            Of the <span className="font-semibold">enabled</span> ones with none:{' '}
+            <span className="font-semibold">{a.nothingFiresIt.length}</span> nothing
+            fires on a clock (on-demand — correct),{' '}
+            <span className="font-semibold">{a.askedAndEmpty.length}</span> on a clock with the history
+            asked and empty,{' '}
+            <span className="font-semibold">{a.nobodyAsked.length}</span> the history was never asked.{' '}
+            {/* Darrell's FIRST question, kept in its own column (DR-1149): a
+                disabled job is not an unasked one, and counting it with the
+                unasked answers the wrong question. */}
+            {a.disabled.length ? (
+              <>
+                Separately, <span className="font-semibold">{a.disabled.length}</span> turned off:{' '}
+                <span className="font-mono">{a.disabled.map((j) => j.name).join(', ')}</span> — on or
+                off is a decision, not a gap.{' '}
+              </>
+            ) : null}
+          </>
+        ) : null}
+        &quot;Never, in retained history&quot; is not &quot;never once fired&quot;, and unknown is never
+        counted as never.{' '}
+        {fleet.reportUrl
+          ? <a href={fleet.reportUrl} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the census</a>
+          : null}
+      </p>
+    </div>
+  );
+}
+
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
   const [health, setHealth] = useState(null);
   const [harvest, setHarvest] = useState(null);
   const [tower, setTower] = useState(null);
+  const [fleet, setFleet] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh, hh, oc] = await Promise.all([
+    const [data, sh, hh, oc, fc] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
       fetchHarvestHealth().catch(() => null),
       fetchOpenclawTower().catch(() => null),
+      fetchFleetCensus().catch(() => null),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
     setHarvest(hh);
     setTower(oc);
+    setFleet(fc);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -250,6 +328,8 @@ export default function OpsBoard() {
       <UptimeStrip health={health} />
       <HarvestStrip harvest={harvest} />
       <OpenclawTowerStrip tower={tower} />
+      {/* The fleet's own line — jobs, enabled, and how many have ever run (DR-1148). */}
+      <FleetCensusStrip fleet={fleet} />
 
       {/* Data-integrity standard report — how much of the app is verified
           live-data vs painted, and the trend over time (DR-0196; Darrell

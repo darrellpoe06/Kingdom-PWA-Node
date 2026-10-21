@@ -95,3 +95,35 @@ describe('multi-neurological levels by depth selection (never an invented rephra
     }
   });
 });
+
+// Darrell 2026-10-21, on Revelation — Deep Processing: "Even the verses of the
+// lessons are not here in these courses... Inside each lesson... My family and
+// friends and children will use them for clarity." Every reference a pattern
+// stands on is quoted verbatim, from the verified fetch, in every band.
+describe('the verses are inside each lesson', () => {
+  it('PROVEN TO CATCH: every Eternal lesson quotes each of its references verbatim at every level', async () => {
+    const { godheadVerse } = await import('../lib/godhead-study.js');
+    let quoted = 0;
+    for (const alg of GODHEAD_ALGORITHMS) {
+      const m = moduleFromAlgorithm(alg);
+      for (const ref of alg.refs || []) {
+        const text = godheadVerse(ref);
+        expect(text, `${alg.id}: ${ref} has no verified text`).toBeTruthy();
+        const q = `"${text.trim()}" (${ref}, KJV)`;
+        for (const body of [m.lesson, m.levels.standard, m.levels.teen, m.levels.senior]) {
+          expect(body.includes(q), `${alg.id} does not quote ${ref}`).toBe(true);
+        }
+        quoted += 1;
+      }
+      // the Word comes first in every band
+      for (const body of [m.lesson, m.levels.teen, m.levels.senior]) expect(body.startsWith('The Word, read first:')).toBe(true);
+      expect(m.inApp).not.toMatch(/Open this pattern in Church/);
+    }
+    expect(quoted).toBeGreaterThan(300);
+  });
+
+  it('a reference the fetch does not hold is never invented', () => {
+    const m = moduleFromAlgorithm({ ...ALG, refs: ['Deuteronomy 30:19', 'Nowhere 99:99'] });
+    expect(m.lesson).not.toMatch(/Nowhere 99:99/);
+  });
+});

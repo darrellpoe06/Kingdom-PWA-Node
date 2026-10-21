@@ -315,6 +315,100 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="heritage"] p,[data-theme="heritage"] li{line-height:1.55}
 
 /* ===================================================================
+   THEME: TLC — ivory & forest (2026-10-21, DR-1156)
+   TLC Therapy Solutions' own finish, from Darrell's reference: a warm
+   ivory field, white cards with one soft shadow and rounded corners,
+   deep forest green for every primary fill and the selected state, a
+   sage tint where the house tray was, charcoal ink, and champagne only
+   as a rule or a fill, never as text on paper. Calming without being
+   soft-headed: every pairing below was MEASURED with
+   scripts/contrast-guard.mjs's own math before it was written — ink on
+   ivory 12.74 / on card 14.25, muted 5.48 / 6.14, white on forest 9.72,
+   forest accent text 6.74 / 7.54, sage text 5.47 / 6.12, gold text
+   5.19 / 5.81, ink on gold 6.84. True red marks nothing (DR-0099).
+   The same mechanism as every theme above: the base literals are
+   remapped, so every TLC screen (the door, the practice workspace, the
+   Learn space, hiring, onboarding, the Assistant) inherits the finish
+   and nothing it keys on changes. The TLC door opens in it by its own
+   fallback (TLC_DEFAULT_THEME), exactly as the church door does.
+   =================================================================== */
+[data-theme="tlc"]{--form-surface:#FFFFFF;--form-ink:#2A2B27;--form-line:#CFCBC0;--form-hint:#6B6F67;color-scheme:light}
+[data-theme="tlc"]{background-color:#F4F2ED;color:#2A2B27;letter-spacing:0}
+[data-theme="tlc"] .bg-\\[\\#FAF8F4\\]{background-color:#F4F2ED!important}
+[data-theme="tlc"] .bg-white{background-color:#FFFFFF!important;box-shadow:0 1px 2px rgba(42,43,39,0.04),0 8px 24px rgba(42,43,39,0.06)}
+/* RADIUS ONLY WHERE THE COMPONENT SAID NOTHING. A rule on the token outranks a
+   utility (0,2,0 over 0,1,0), so written plainly it flattened every rounded-full
+   pill to 12px and rounded the sticky header — seen on the live door, not in
+   the code. :not([class*="rounded"]) hands the shape back to any element that
+   chose its own (rounded-none included). */
+[data-theme="tlc"] .bg-white:not([class*="rounded"]){border-radius:16px}
+[data-theme="tlc"] .bg-\\[\\#E8E4DC\\]{background-color:#E6EBE3!important}
+[data-theme="tlc"] .bg-\\[\\#F0EDE6\\]{background-color:#EDEBE4!important}
+[data-theme="tlc"] .bg-\\[\\#F2EFE9\\]{background-color:#EDEBE4!important}
+[data-theme="tlc"] .bg-\\[\\#F0ECE4\\]{background-color:#EDEBE4!important}
+[data-theme="tlc"] .bg-\\[\\#F0F4EA\\]{background-color:#E6EBE3!important}
+[data-theme="tlc"] .bg-\\[\\#E4EED6\\]{background-color:#E6EBE3!important}
+[data-theme="tlc"] .border-\\[\\#E8E4DC\\]{border-color:#E4E1D9!important}
+[data-theme="tlc"] .border-\\[\\#C9C2B4\\]{border-color:#D6D2C8!important}
+[data-theme="tlc"] .border-\\[\\#C9BFA8\\]{border-color:#D6D2C8!important}
+[data-theme="tlc"] .border-\\[\\#E6E0D6\\]{border-color:#E4E1D9!important}
+/* the strong ink line reads as a sage-forest outline: an input, an outlined
+   button and a strong card all keep their edge, none shout */
+[data-theme="tlc"] .border-\\[\\#1A1815\\]{border-color:#8E9F93!important}
+[data-theme="tlc"] .border-\\[\\#1A1815\\]:not([class*="rounded"]){border-radius:14px}
+[data-theme="tlc"] .border-2{border-radius:16px}
+[data-theme="tlc"] .text-\\[\\#1A1815\\]{color:#2A2B27!important}
+[data-theme="tlc"] .text-\\[\\#FAF8F4\\]{color:#F4F2ED!important}
+[data-theme="tlc"] .text-\\[\\#5A5751\\]{color:#5F635B!important}
+[data-theme="tlc"] .text-\\[\\#6B665E\\]{color:#5F635B!important}
+[data-theme="tlc"] .text-\\[\\#8A857C\\]{color:#6B6F67!important}
+[data-theme="tlc"] .text-\\[\\#3F5226\\]{color:#2E5A47!important}
+[data-theme="tlc"] .text-\\[\\#2F5D50\\]{color:#2F5D4A!important}
+/* the dark fill is the forest — the primary button of the reference */
+[data-theme="tlc"] .bg-\\[\\#1A1815\\]{background-color:#2E4A3C!important}
+[data-theme="tlc"] .bg-\\[\\#1A1815\\]:not([class*="rounded"]){border-radius:12px}
+[data-theme="tlc"] .bg-\\[\\#5A5751\\]{background-color:#5F635B!important}
+[data-theme="tlc"] .border-\\[\\#5A5751\\]{border-color:#5F635B!important}
+[data-theme="tlc"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#243B30!important;color:#FFFFFF!important}
+[data-theme="tlc"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#EDEBE4!important}
+[data-theme="tlc"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#DCE3D9!important}
+/* the house rust -> forest accent (links, eyebrows, the Book pill) */
+[data-theme="tlc"] .text-\\[\\#B85838\\]{color:#2F5D4A!important}
+[data-theme="tlc"] .border-\\[\\#B85838\\]{border-color:#2E4A3C!important}
+[data-theme="tlc"] .bg-\\[\\#B85838\\]{background-color:#2E4A3C!important}
+[data-theme="tlc"] .bg-\\[\\#B85838\\]:not([class*="rounded"]){border-radius:12px}
+[data-theme="tlc"] .hover\\:bg-\\[\\#B85838\\]:hover{background-color:#243B30!important}
+[data-theme="tlc"] .hover\\:text-\\[\\#B85838\\]:hover{color:#2E4A3C!important}
+[data-theme="tlc"] .hover\\:border-\\[\\#B85838\\]:hover{border-color:#2E4A3C!important}
+/* the olive -> sage green (the healthy state, the done mark) */
+[data-theme="tlc"] .text-\\[\\#5A6E3D\\]{color:#3F6B50!important}
+[data-theme="tlc"] .border-\\[\\#5A6E3D\\]{border-color:#3F6B50!important}
+[data-theme="tlc"] .bg-\\[\\#5A6E3D\\]{background-color:#3F6B50!important}
+/* the blue stays a calm navy-blue; it already clears AA on ivory (6.36) */
+/* THE SELECTED CHIP wears the forest: 9.72 apart from an unselected card,
+   its white label 9.72 (checkSelectedState, DR-0713). */
+[data-theme="tlc"] .poe-selected{background-color:#2E4A3C!important;color:#FFFFFF!important;border-color:#2E4A3C!important}
+/* champagne is a rule and a fill, never text on paper: the heading rule,
+   the active tab on the forest rail; its text form is #7A6230 (5.19) */
+[data-theme="tlc"] .section-title-wrapper{border-color:#C7B27A!important}
+[data-theme="tlc"] [data-testid="top-nav-tabs"] .border-\\[\\#B85838\\]{border-color:#2E4A3C!important}
+[data-theme="tlc"] .text-\\[\\#D97706\\]{color:#7A6230!important}
+[data-theme="tlc"] .text-\\[\\#8A6E1F\\]{color:#7A6230!important}
+[data-theme="tlc"] .chrome-dock[data-in-reader="false"]{background-color:#2E4A3C!important}
+[data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *){background-color:transparent!important;border-color:transparent!important;color:#F4F2ED!important}
+[data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *):hover{border-color:#C7B27A!important}
+[data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn-on:not(.poe-dock-menu *){background-color:#C7B27A!important;border-color:#C7B27A!important;color:#2A2B27!important}
+[data-theme="tlc"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *) .poe-dock-accent{color:#E9DDB8!important}
+/* the focus ring and the picker's selected ring wear the forest too — seen on
+   the live door as the one rust-orange left on an otherwise forest page */
+[data-theme="tlc"] .focus\\:outline-\\[\\#B85838\\]:focus{outline-color:#2E4A3C!important}
+[data-theme="tlc"] .ring-\\[\\#B85838\\]{--tw-ring-color:#2E4A3C!important}
+/* soft corners on every control, roomy prose — the reference's feel */
+[data-theme="tlc"] button{border-radius:12px}
+[data-theme="tlc"] input,[data-theme="tlc"] select,[data-theme="tlc"] textarea{border-radius:10px}
+[data-theme="tlc"] p,[data-theme="tlc"] li{line-height:1.55}
+
+/* ===================================================================
    THEME: MIDNIGHT — OLED-friendly true black + smooth grey gradient
    Battery-saving on OLED screens · soft greys merge into the deep
    =================================================================== */
@@ -530,6 +624,10 @@ export const THEMES = [
   // default when it shows initially" asked for, without moving the family's.
   { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
   { key: 'lovecorner', color: '#FFF8F7', border: '#C03222', label: 'The Love Corner · red & white' },
+  // TLC Therapy Solutions' own finish rides third (DR-1156): the TLC door
+  // opens in it by its own fallback (TLC_DEFAULT_THEME), the same shape as the
+  // church's; the family app's first-run theme is untouched.
+  { key: 'tlc',      color: '#F4F2ED', border: '#2E4A3C', label: 'TLC · ivory & forest' },
   { key: 'anchor',   color: '#EDEEF0', border: '#2B3440', label: 'Anchor · meek strength' },
   { key: 'bedrock',  color: '#F2EDE4', border: '#3A3228', label: 'Bedrock · sound & solid' },
   { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
@@ -560,6 +658,22 @@ export const DEFAULT_THEME = 'heritage';
 // opens in the Love Corner's red; every palette stays one tap away on both
 // (DR-0524 — a device that chose keeps its choice).
 export const CHURCH_DEFAULT_THEME = 'lovecorner';
+
+// THE TLC DOOR OPENS IN TLC'S OWN COLORS (DR-1156). Darrell, 2026-10-21, with
+// the reference on screen: warm ivory and cream, deep forest green for the
+// primary buttons and navigation, soft sage, warm taupe, a subtle champagne,
+// charcoal text — "calming without appearing overly feminine... trustworthy
+// and appropriate for a professional therapy practice". A DOOR fallback, as
+// the church's is: the family app keeps Heritage (DR-1046), every palette
+// stays one tap away on the door, and a device that chose keeps its choice
+// (DR-0524).
+//
+// THE SHELL ASKS FOR IT BY THE DOOR TOO (`tlcDoorOnly ? TLC_DEFAULT_THEME`),
+// not only TlcPublicDoor: the shell's own useThemePref paints the phone's bars
+// on mount AFTER the door's (a parent's effect runs last), so with the door
+// alone the TLC status bar wore Heritage's ivory — seen on the live door, not
+// in the code. The comment lives here and not in the shell by DR-0291's trim.
+export const TLC_DEFAULT_THEME = 'tlc';
 
 // THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
 // on his phone in the installed app, a white strip above the page and a white

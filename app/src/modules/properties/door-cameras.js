@@ -98,6 +98,53 @@ export function doorCameraState(door) {
   return { state: 'shared', token, note: str(d.camera_grant_note) };
 }
 
+/**
+ * WHAT THE TENANT SEES, AND WHAT THEY DO NOT (Darrell, 2026-10-21: "show the
+ * allowed cameras for the tenants located in the app and what they have or
+ * dont have access to... this will show and tell us owners when they do or
+ * don't have access"). From the NAS's list, the door's grant as the NAS holds
+ * it, and the boxes ticked on this screen:
+ *   seen      the cameras the door's grant opens (what the tenant's tab shows)
+ *   notSeen   every other camera on the NAS
+ *   toAdd     ticked here, not in the grant yet (Share gives them)
+ *   toRemove  in the grant, unticked here (Share takes them out)
+ * `grant` is the NAS's own record ({cameras: [...] | '*'}) or null when the NAS
+ * did not say; then nothing is claimed as seen.
+ */
+export function doorCameraView({ cameras = [], grant = null, picked = [] } = {}) {
+  const list = (Array.isArray(cameras) ? cameras : []).filter((c) => c && c.id);
+  const all = grant && grant.cameras === '*';
+  const inGrant = new Set(all ? list.map((c) => c.id) : (grant && Array.isArray(grant.cameras) ? grant.cameras : []));
+  const ticked = new Set(Array.isArray(picked) ? picked : []);
+  const seen = list.filter((c) => inGrant.has(c.id));
+  const notSeen = list.filter((c) => !inGrant.has(c.id));
+  return {
+    seen,
+    notSeen,
+    toAdd: list.filter((c) => ticked.has(c.id) && !inGrant.has(c.id)),
+    toRemove: seen.filter((c) => !ticked.has(c.id)),
+  };
+}
+
+/** The ids a door's grant opens, for the picker's first ticks; null when the NAS did not say. */
+export function grantCameraIds(grant, cameras = []) {
+  if (!grant) return null;
+  if (grant.cameras === '*') return (Array.isArray(cameras) ? cameras : []).map((c) => c.id);
+  return Array.isArray(grant.cameras) ? [...grant.cameras] : [];
+}
+
+/** One plain line for a camera's answer to the door's own grant. */
+export function tenantFrameLine({ status = 0, body = null } = {}) {
+  const err = body && typeof body.error === 'string' ? body.error : '';
+  if (status === 200) return { ok: true, text: 'The tenant sees this, live' };
+  if (status === 401) return { ok: false, text: 'Refused: the door\'s grant is not valid on the NAS (taken back or expired)' };
+  if (status === 403) return { ok: false, text: 'Refused: the door\'s grant does not include this camera' };
+  if (err === 'wyze-offline') return { ok: false, text: 'Shared, but Wyze says the camera is offline' };
+  if (status === 504 || err === 'frame-timeout') return { ok: false, text: 'Shared, but the camera gave no picture in time' };
+  if (status === 0) return { ok: false, text: 'The camera road did not answer' };
+  return { ok: false, text: `Shared, but the NAS answered HTTP ${status}${err ? ` (${err})` : ''}` };
+}
+
 /** Write the grant onto the door (owner/admin/member of the instance, per 0055). */
 export async function setDoorCameraGrant(tenancyId, { token = null, note = null } = {}, client = supabase) {
   try {

@@ -1673,14 +1673,35 @@ export function dropLines(events, camId, limit = 6) {
 // Pure decisions here, proven in plain tests; the element is only touched by
 // tendLiveVideo.
 // =============================================================================
+// A TILE HANGS UP ONLY ON A STREAM THAT STOPPED (DR-1097, sixteenth read;
+// Darrell 2026-10-21: "Cameras constantly blinking... only stream for a few to
+// 20 seconds and blinks... the disconnecting logic is horrible"). Measured
+// that night: the NAS and the Funnel carried 805_north_sd and
+// 805_north_east_sd for 90 s without a break (longest gap 1.5 s, the media
+// clock at 1.019x real time, cams-diag 39525490979 / 39526244413), while the
+// tiles blinked every 15-25 s. The tab was hanging up streams that were still
+// flowing, on a proxy: a play position that had not moved for 6 s, or a lag
+// past 12 s. Now:
+//   - a tile is FROZEN only when nothing moves: not the position, not the
+//     data arriving (the buffered edge), not the decoded frame count, for
+//     FREEZE_SECONDS;
+//   - data still arriving while the position is stuck is a STALL: the element
+//     is asked to play, a gap in what has arrived is stepped over (a small
+//     move inside data already here, never a jump to the edge -- DR-0808),
+//     and only STALL_GIVE_UP_S of that is given up on;
+//   - a lag is run down harder (LIVE_CATCHUP_RATE_FAST) and only a stream
+//     LIVE_LAG_RECONNECT_S behind is opened fresh.
 export const LIVE_TEND_MS = 2000;
-export const FREEZE_SECONDS = 6;
+export const FREEZE_SECONDS = 10;
+export const STALL_NUDGE_S = 3;
+export const STALL_GIVE_UP_S = 20;
 export const LIVE_LAG_SEEK_S = 3;
 export const LIVE_LAG_RATE_S = 1;
 export const LIVE_CATCHUP_RATE = 1.08;
-export const LIVE_CATCHUP_RATE_FAST = 1.25;
-export const LIVE_LAG_RECONNECT_S = 12;
+export const LIVE_CATCHUP_RATE_FAST = 1.5;
+export const LIVE_LAG_RECONNECT_S = 30;
 export const LIVE_EDGE_MARGIN_S = 0.5;
+export const GAP_STEP_S = 0.05;
 
 // THE SAME CAR KEEPS GOING BY (DR-0808; Darrell 2026-10-07, the Window view
 // on the Firestick: "the livestream from the cameras keep looping the video
@@ -1727,11 +1748,43 @@ export function liveEdgeDecision({ currentTime, edge, playbackRate = 1, mode = '
  * position that moved, a pause, or the end resets it; a position that has not
  * moved counts the seconds since it last did.
  */
-export function freezeStep(memo, { currentTime, paused = false, ended = false }, nowMs) {
+export function freezeStep(memo, { currentTime, paused = false, ended = false, edge = null, frames = null }, nowMs) {
   const t = Number(currentTime);
-  if (paused || ended || !Number.isFinite(t)) return { lastTime: Number.isFinite(t) ? t : null, since: nowMs, frozenFor: 0 };
-  if (!memo || memo.lastTime == null || t !== memo.lastTime) return { lastTime: t, since: nowMs, frozenFor: 0 };
-  return { lastTime: t, since: memo.since, frozenFor: Math.max(0, (nowMs - memo.since) / 1000) };
+  const e = Number.isFinite(Number(edge)) && edge !== null ? Number(edge) : null;
+  const f = Number.isFinite(Number(frames)) && frames !== null ? Number(frames) : null;
+  const fresh = { lastTime: Number.isFinite(t) ? t : null, lastEdge: e, lastFrames: f, since: nowMs, posSince: nowMs, frozenFor: 0, stuckFor: 0 };
+  if (paused || ended || !Number.isFinite(t) || !memo || memo.lastTime == null) return fresh;
+  const moved = t !== memo.lastTime;
+  // Anything moving is life: the position, the data arriving, the frames decoded.
+  const alive = moved
+    || (e !== null && memo.lastEdge !== null && memo.lastEdge !== undefined && e > memo.lastEdge)
+    || (f !== null && memo.lastFrames !== null && memo.lastFrames !== undefined && f > memo.lastFrames);
+  const since = alive ? nowMs : memo.since;
+  const posSince = moved ? nowMs : (memo.posSince ?? memo.since);
+  return { lastTime: t, lastEdge: e, lastFrames: f, since, posSince,
+    frozenFor: Math.max(0, (nowMs - since) / 1000), stuckFor: Math.max(0, (nowMs - posSince) / 1000) };
+}
+
+/** The start of the first range of arrived data past `t` (a gap to step over), or null. */
+export function nextRangeStart(ranges, t) {
+  try {
+    for (let i = 0; ranges && i < ranges.length; i += 1) {
+      const a = ranges.start(i);
+      if (a > t + 0.1) return a;
+    }
+  } catch { /* a device fact */ }
+  return null;
+}
+
+function decodedFrames(video) {
+  try {
+    if (video && typeof video.getVideoPlaybackQuality === 'function') {
+      const q = video.getVideoPlaybackQuality();
+      if (q && Number.isFinite(Number(q.totalVideoFrames))) return Number(q.totalVideoFrames);
+    }
+    if (video && Number.isFinite(Number(video.webkitDecodedFrameCount))) return Number(video.webkitDecodedFrameCount);
+  } catch { /* a device fact */ }
+  return null;
 }
 
 /**
@@ -1741,12 +1794,24 @@ export function freezeStep(memo, { currentTime, paused = false, ended = false },
  */
 export function tendLiveVideo(video, memo, { mode = 'mp4', nowMs = Date.now() } = {}) {
   if (!video) return { memo, frozen: false, lag: null, action: 'none' };
-  const state = { currentTime: Number(video.currentTime), paused: !!video.paused, ended: !!video.ended };
+  const edgeNow = liveEdge(video, mode);
+  const state = { currentTime: Number(video.currentTime), paused: !!video.paused, ended: !!video.ended, edge: edgeNow, frames: decodedFrames(video) };
   const next = freezeStep(memo, state, nowMs);
-  const frozen = next.frozenFor >= FREEZE_SECONDS;
+  // Frozen: nothing at all has moved. Given up: data arrives, the picture never does.
+  const frozen = next.frozenFor >= FREEZE_SECONDS || next.stuckFor >= STALL_GIVE_UP_S;
+  if (!frozen && !state.paused && !state.ended && next.stuckFor >= STALL_NUDGE_S && next.frozenFor < next.stuckFor) {
+    // A STALL: bytes keep coming, the position does not. Step over a gap in
+    // what has arrived, or ask the element to play on.
+    const gap = nextRangeStart(video.buffered, state.currentTime);
+    try {
+      if (gap !== null) { video.currentTime = gap + GAP_STEP_S; }
+      else if (typeof video.play === 'function') { const pr = video.play(); if (pr && typeof pr.catch === 'function') pr.catch(() => {}); }
+    } catch { /* a device fact */ }
+    return { memo: next, frozen: false, lag: null, action: gap !== null ? 'gap-step' : 'nudge', behind: null };
+  }
   let decision = { action: 'none', lag: null };
   if (!frozen && !state.paused && !state.ended && Number(video.readyState) >= 2) {
-    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: liveEdge(video, mode), playbackRate: video.playbackRate, mode });
+    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: edgeNow, playbackRate: video.playbackRate, mode });
     try {
       if (decision.action === 'seek') video.currentTime = decision.to;
       else if (decision.action === 'rate') video.playbackRate = decision.rate;

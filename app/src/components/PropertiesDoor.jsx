@@ -433,22 +433,32 @@ function OwnSpace({ session }) {
  * place. Now it asks, and the one answer that needs no account (looking for a
  * place) is served immediately from the listed vacancies.
  */
-function SignedOutDoor({ left = false, onReturn } = {}) {
+// THE OWNER WALKS THROUGH THE SAME DOOR (Darrell, 2026-10-21: "PoeTech App
+// owners... they will see the tenants version inside the PoeTech App on
+// Properties tab... just like the other one"). `preview` mounts this exact
+// component inside PoeTech's Properties tab (modules/properties/PropertiesTab):
+// the same welcome, the same six portals, the same live listings and the same
+// application. Nothing here is a copy that can drift. In preview, only the two
+// steps that would act as someone else are held: the application is shown in
+// full but not sent from the owner's seat, and the sign-in step says where a
+// tenant lands instead of signing the owner in again. A link's ?apply= or
+// ?listing= belongs to the public door, so the preview starts at the welcome.
+export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit = null, onViewAs = null } = {}) {
   // A QR on a vacant unit lands here with ?apply=<rental id>. Someone who
   // scanned a code at a property has already answered "who are you" — they are
   // asking about that unit — so the who-picker is skipped rather than made into
   // a toll gate in front of the thing they came for.
   const scanned = useMemo(
-    () => (typeof window === 'undefined' ? null : readApplyTarget(window.location.search)),
-    [],
+    () => (preview || typeof window === 'undefined' ? null : readApplyTarget(window.location.search)),
+    [preview],
   );
   // A SHARED LISTING LANDS ON ITS CARD WITH THE PICTURES OPEN (DR-1006):
   // ?listing=<id> from the preview page's refresh, or the page's own path
   // when the page is gone and the shell booted on it. Like a scan, it has
   // already answered "who are you" — but it opens pictures, never the form.
   const wanted = useMemo(
-    () => (typeof window === 'undefined' ? null : readListingTarget(window.location.search, window.location.pathname)),
-    [],
+    () => (preview || typeof window === 'undefined' ? null : readListingTarget(window.location.search, window.location.pathname)),
+    [preview],
   );
   const [who, setWho] = useState(scanned || wanted ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
@@ -501,7 +511,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             notice renders ONLY when `left` is true: "You're signed out on this
             device. Your PoeTech sign-in is still active -- this door only forgot you."
             with the "Come back in" action (PoePropertiesWelcome.jsx). */}
-        <WelcomeHero left={left} onReturn={onReturn} />
+        <WelcomeHero left={preview ? false : left} onReturn={onReturn} />
         {/* The six portals are WHO_OPTIONS, unchanged: same ids, same
             needsAccount, same handler (setWho). Only the look is new. */}
         <PortalCards options={WHO_OPTIONS} onPick={setWho} />
@@ -600,6 +610,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
           preselect={picked.id || (scan.matched ? scan.unit.id : '')}
           openFor={picked.pick}
           openOnLoad={scan.matched}
+          preview={preview}
         />
       </div>
     );
@@ -631,7 +642,21 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
               is how the app knows which one is yours. Nothing to set up.
             </p>
           )}
-          {!wantsAuth && (
+          {preview && (
+            <div data-testid="preview-sign-in">
+              <p className="pp-panel-note">
+                This is the step a {chosen.id === 'landlord' ? 'landlord' : 'person'} takes here: <strong>Sign in / create a profile</strong>,
+                then they land in their own seat. You are already signed in as the owner, so the button is held in this preview.
+              </p>
+              {chosen.id !== 'landlord' && onViewAs ? (
+                <button type="button" onClick={() => onViewAs(chosen.id)} className={`pp-btn mt-4 ${FOCUS_RING}`} data-testid="preview-view-as">
+                  See what they see after signing in
+                </button>
+              ) : null}
+              {chosen.id === 'landlord' && onEdit ? <button type="button" onClick={onEdit} className={`pp-btn mt-4 ${FOCUS_RING}`} data-testid="preview-to-edit">Open the backend (Edit)</button> : null}
+            </div>
+          )}
+          {!preview && !wantsAuth && (
             <button
               type="button"
               onClick={() => {
@@ -646,7 +671,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             >Sign in / create a profile</button>
           )}
         </div>
-      {wantsAuth && (
+      {!preview && wantsAuth && (
         <div className="pp-panel pp-auth">
           {/* SIGNING IN COMES BACK THROUGH THE DOOR (DR-0954).
               Christina, 2026-10-11, relayed by Darrell: "When I sign in as
@@ -757,7 +782,7 @@ function BeforeYouApply() {
  * the form is already open and nothing visibly happens — the selection would
  * change silently, under a form they are no longer looking at.
  */
-function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false }) {
+function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false, preview = false }) {
   const [open, setOpen] = useState(openFor > 0 || openOnLoad);
   const [values, setValues] = useState({});
   // A scan already said which unit. Preselecting it is the whole point of the
@@ -877,6 +902,11 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
           </fieldset>
         );
       })}
+      {preview ? (
+        <p className="pp-panel-note" data-testid="preview-apply-held">
+          Preview: this is the application exactly as an applicant fills it in. It is not sent from the owner&rsquo;s seat; an applicant&rsquo;s own Send puts it on your Doors board.
+        </p>
+      ) : (
       <button
         type="button" disabled={!check.ok || !name}
         onClick={async () => {
@@ -890,6 +920,7 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
         }}
         className={`pp-btn ${FOCUS_RING}`}
       >Send my application</button>
+      )}
       {!check.ok && check.missing.length > 0 && (
         <p className="pp-panel-note">Still needed: {check.missing.length} required field{check.missing.length === 1 ? '' : 's'}.</p>
       )}

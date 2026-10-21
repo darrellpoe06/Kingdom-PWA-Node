@@ -28,9 +28,9 @@ import { liveSections, liveDocuments } from '../lib/tlc-office-forms.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 import UiIcon from './UiIcon.jsx';
 import { INPUT, Label, TextField, YesNo, MultiSelect, Availability } from './TlcFieldInputs.jsx';
+import { TLC_BTN as BTN } from '../lib/tlc-ui.js';
 
 const AUTOSAVE_MS = 2500;
-const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_PRIMARY = 'min-h-[36px] px-4 py-2 text-sm font-semibold bg-[#B85838] text-white hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 function FileField({ field, pointer, packetId, onPointer, onThumb, editable }) {
@@ -291,7 +291,7 @@ export default function TlcOnboardingForm({ token }) {
 
   return (
     <div className="space-y-3">
-      <div className="border border-[#1A1815] bg-white p-3">
+      <div className="border border-[#1A1815] bg-white rounded-2xl p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Colleague intake</div>

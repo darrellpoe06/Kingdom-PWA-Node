@@ -28,7 +28,8 @@ import HeaderAuthButton from './HeaderAuthButton.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
-import { THEME_CSS, THEMES, useThemePref } from '../lib/theme-css.js';
+import { THEME_CSS, THEMES, TLC_DEFAULT_THEME, useThemePref } from '../lib/theme-css.js';
+import { TLC_CARD, TLC_BAND, TLC_BTN_PRIMARY, TLC_BTN_SECONDARY, TLC_EYEBROW, TLC_CHIP, TLC_ICON_WELL, TLC_PORTRAIT } from '../lib/tlc-ui.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
 import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
@@ -54,8 +55,8 @@ import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 function OnboardingDoor({ token, signedIn }) {
   return (
     <div className="w-full px-4 sm:px-6 py-6 space-y-4">
-      <section className="bg-white border border-[#1A1815] p-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Join the clinical team</div>
+      <section className={TLC_CARD}>
+        <div className={TLC_EYEBROW}>Join the clinical team</div>
         <h2 className="text-xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>You have been invited to onboard with TLC Therapy Solutions.</h2>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           {signedIn
@@ -68,41 +69,56 @@ function OnboardingDoor({ token, signedIn }) {
             <TlcOnboardingForm token={token} />
             <p className="text-xs text-[#5A5751]">Once your packet is approved, the TLC app opens your Training and Team sections: <a href={`${TLC_APP_PATH}?tlc=1`} className="underline text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">open the TLC app</a>.</p>
           </>
-        : <div className="border border-[#E8E4DC] bg-white p-3 sm:w-96"><PasswordAuth mode="signup" embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} /></div>}
+        : <div className={`${TLC_CARD} sm:w-96`}><PasswordAuth mode="signup" embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} /></div>}
     </div>
   );
 }
 
 // The client-facing booking page (the sendable front door a prospect meets).
+// THE LOOK (DR-1156, Darrell's reference): a welcome band on the ivory field,
+// then the clinical team as rounded paper cards with a round portrait, the
+// services as cards with a forest Book pill, and insurance as one quiet card
+// with its mark. Every fact still comes from tlc-practice.js + the roster;
+// nothing here is new content — the same names, links and insurance line,
+// drawn the way the reference draws them.
 function ClientDoor() {
   const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+      {/* The welcome band — what this door is for, in one breath. The three
+          verbs name the three tabs a visitor already has (Find · Book · Learn). */}
+      <section className={`${TLC_BAND} flex items-start gap-4`} aria-label="Welcome">
+        <span className={`${TLC_ICON_WELL} bg-white`} aria-hidden="true"><UiIcon name="heart" /></span>
+        <div className="min-w-0">
+          <div className={TLC_EYEBROW}>Welcome</div>
+          <p className="text-lg sm:text-xl leading-snug text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>Find your therapist, book online, and learn at your own pace.</p>
+          <p className="text-sm text-[#5A5751] mt-1">{TLC_BRAND.blurb}</p>
+        </div>
+      </section>
+
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
       <section>
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Clinical Team</div>
+        <div className={TLC_EYEBROW}>Clinical Team</div>
         <h2 className="text-2xl mb-4" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Match a Preferred Provider</h2>
         {/* ts-grid-collapse: one readable column at Largest/Big Print — two
             clipped columns is not large print (index.css, 2026-08-05). */}
-        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {team.map((t) => (
             <a
               key={t.name}
               href={t.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-[#E8E4DC] p-3 flex items-start gap-3 hover:border-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              className={`${TLC_CARD} flex items-start gap-4 hover:border-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}
             >
               {t.photo
-                ? <img src={t.photo} alt={t.name} loading="lazy" width="72" height="72" className="w-[72px] h-[72px] object-cover bg-[#E8E4DC] flex-shrink-0" />
-                : <div aria-hidden="true" className="w-[72px] h-[72px] bg-[#E8E4DC] flex-shrink-0" />}
-              <div className="min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h3 className="text-sm min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h3>
-                  <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] whitespace-nowrap">View →</span>
-                </div>
-                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{t.role}</div>
-                <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{t.specialty}</p>
+                ? <img src={t.photo} alt={t.name} loading="lazy" width="64" height="64" className={`${TLC_PORTRAIT} w-16 h-16`} />
+                : <div aria-hidden="true" className={`${TLC_PORTRAIT} w-16 h-16 flex items-center justify-center text-[#5A5751]`}><UiIcon name="users" /></div>}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base min-w-0 break-words leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h3>
+                <span className={`${TLC_CHIP} mt-1.5 mb-2`}>{t.role}</span>
+                <p className="text-xs leading-snug text-[#5A5751]">{t.specialty}</p>
+                <span className="mt-2.5 inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">View profile <span aria-hidden="true">→</span></span>
               </div>
             </a>
           ))}
@@ -111,26 +127,32 @@ function ClientDoor() {
 
       {/* Services — each books directly into Acuity. */}
       <section>
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Therapy Services</div>
+        <div className={TLC_EYEBROW}>Therapy Services</div>
         <h2 className="text-2xl mb-4" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>All Options · Direct Online Intake</h2>
-        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {TLC_SERVICES.map((s) => (
-            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
-              <div className="flex items-baseline justify-between gap-2 mb-1">
-                <h3 className="text-sm min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h3>
-                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+            <div key={s.name} className={`${TLC_CARD} flex flex-col gap-2 hover:border-[#B85838] transition-colors`}>
+              <div className="flex items-start gap-3">
+                <span className={TLC_ICON_WELL} aria-hidden="true"><UiIcon name="calendar" /></span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base min-w-0 break-words leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h3>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">{s.desc}</div>
+                </div>
               </div>
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
-              <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
+              <p className="text-xs leading-snug text-[#5A5751]">{s.for}</p>
+              <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className={`${TLC_BTN_PRIMARY} self-start mt-1 min-h-[2.5rem] px-4 text-xs`}>Book <span aria-hidden="true">→</span></a>
             </div>
           ))}
         </div>
       </section>
 
       {/* Insurance accepted. */}
-      <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1.5">Insurance Accepted</div>
-        <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_INSURANCE}</p>
+      <section className={`${TLC_CARD} flex items-start gap-4`}>
+        <span className={TLC_ICON_WELL} aria-hidden="true"><UiIcon name="shield" /></span>
+        <div className="min-w-0">
+          <div className={TLC_EYEBROW}>Insurance Accepted</div>
+          <p className="text-sm text-[#1A1815] leading-relaxed">{TLC_INSURANCE}</p>
+        </div>
       </section>
     </div>
   );
@@ -208,7 +230,10 @@ export default function TlcPublicDoor() {
   // is exactly why this read as "the reader can't change the system" rather
   // than "the picker is broken" — it depended on which door you were standing
   // in. useThemePref both subscribes and saves, so the effect goes with it.
-  const [theme, setTheme] = useThemePref('cream');
+  // THE DOOR OPENS IN TLC'S OWN COLORS (DR-1156): ivory and forest by its own
+  // fallback, the same shape as the church door's; a device that chose keeps
+  // its choice (DR-0524) and every palette stays one tap away below.
+  const [theme, setTheme] = useThemePref(TLC_DEFAULT_THEME);
   const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
   // The standard PoeTech collapsing top bar: the header drops up out of the way
   // while you read down the page, and comes back down the moment you scroll up.
@@ -227,16 +252,14 @@ export default function TlcPublicDoor() {
   // (app/tlc/app/index.html) — a runtime swap on a /poetech-app/ page would
   // make that page un-installable as anything (the linked manifest's scope
   // wouldn't contain the page).
+  // The theme-color meta is NOT written here any more (DR-1156): the theme
+  // itself paints the phone's bars (syncThemeChrome, DR-0744), so the status
+  // bar wears ivory on the TLC palette and black on Midnight, never a fixed
+  // ink that fought the palette the reader chose.
   useEffect(() => {
     const prevTitle = document.title;
     document.title = `${TLC_BRAND.name} — ${TLC_BRAND.tagline}`;
-    const themeMeta = document.querySelector('meta[name="theme-color"]');
-    const prevTheme = themeMeta ? themeMeta.getAttribute('content') : null;
-    if (themeMeta) themeMeta.setAttribute('content', '#1A1815');
-    return () => {
-      document.title = prevTitle;
-      if (themeMeta && prevTheme) themeMeta.setAttribute('content', prevTheme);
-    };
+    return () => { document.title = prevTitle; };
   }, []);
 
   // Track sign-in so staff get the office menu; clients get the booking page.
@@ -324,7 +347,7 @@ export default function TlcPublicDoor() {
           header states). Collapsed above Normal, TextSizeEscapeHatch keeps the
           way out on screen exactly as the PoeTech shell does. */}
       <header
-        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !loginOpen ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`ts-safe-sticky sticky top-0 z-40 rounded-none bg-white border-b border-[#E8E4DC] transition-transform duration-300 will-change-transform ${headerHidden && !loginOpen ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           {/* 1 · the compact bar */}
@@ -332,13 +355,16 @@ export default function TlcPublicDoor() {
             {/* The brand is CHROME: .ts-chrome-region caps it (font + box) so
                 raising text size grows the BODY copy, never the wordmark. The
                 name never cuts off mid-word (whitespace-nowrap + truncate). */}
-            <div className="min-w-0 ts-chrome-region">
-              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.name}</h1>
+            <div className="min-w-0 ts-chrome-region flex items-center gap-2.5">
+              {/* The mark: a heart in the forest well — the brand's own sign,
+                  painted by the theme so it reads in every palette. */}
+              <span className="hidden sm:inline-flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-[#1A1815] text-white" aria-hidden="true"><UiIcon name="heart" /></span>
+              <h1 className="text-base sm:text-xl leading-none whitespace-nowrap truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.name}</h1>
             </div>
             <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
               {/* Book stays in the bar: for a client it is THE action, reachable
                   from every scroll position. */}
-              <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-2 bg-[#B85838] text-white text-[0.625rem] font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors whitespace-nowrap focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+              <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[2.25rem] px-3.5 py-2 rounded-full bg-[#B85838] text-white text-[0.625rem] font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors whitespace-nowrap focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
                 Book
               </a>
               {/* Staff log in / out — lets TLC staff sign in from the door itself,
@@ -351,7 +377,7 @@ export default function TlcPublicDoor() {
               {signedIn ? (
                 <HeaderAuthButton />
               ) : (
-                <button type="button" onClick={() => (showLogin ? setShowLogin(false) : openAuth('signin'))} aria-expanded={showLogin} aria-label="Sign in or create an account" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <button type="button" onClick={() => (showLogin ? setShowLogin(false) : openAuth('signin'))} aria-expanded={showLogin} aria-label="Sign in or create an account" className="text-[0.625rem] uppercase tracking-wider min-h-[2.25rem] px-3.5 py-2 rounded-full border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Sign in
                 </button>
               )}
@@ -367,7 +393,7 @@ export default function TlcPublicDoor() {
                 aria-expanded={!headerCollapsed}
                 aria-label={headerCollapsed ? 'Show the full header (tagline, comfort controls, share)' : 'Hide the top space — keep only the bar for more room'}
                 title={headerCollapsed ? 'Show the full header' : 'Hide the top space (keep the bar)'}
-                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center border border-[#1A1815] bg-transparent text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center rounded-full border border-[#1A1815] bg-transparent text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
                 <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
@@ -415,7 +441,7 @@ export default function TlcPublicDoor() {
                     type="button"
                     aria-label={`Text size ${s.name}`}
                     aria-pressed={sizeKey === s.key}
-                    className={`min-h-[2.25rem] min-w-[2.25rem] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                    className={`min-h-[2.25rem] min-w-[2.25rem] rounded-full border px-2 text-xs transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
                     onClick={() => setSizeKey(s.key)}
                   >
                     {s.label}
@@ -424,16 +450,16 @@ export default function TlcPublicDoor() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2.5 ts-chrome-region">
-                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
-                  Book an appointment
+                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className={TLC_BTN_PRIMARY}>
+                  <UiIcon name="calendar" /> Book an appointment
                 </a>
-                <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className={TLC_BTN_SECONDARY}>
                   Learn more
                 </a>
                 {/* Show a scannable QR right on screen — for a screen-share or an
                     in-person "point your phone at this" (Darrell 2026-07-14). It
                     shares the way in; it never grants access. */}
-                <button type="button" onClick={() => setShowShare((v) => !v)} aria-expanded={showShare} className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                <button type="button" onClick={() => setShowShare((v) => !v)} aria-expanded={showShare} className={TLC_BTN_SECONDARY}>
                   {showShare ? 'Hide QR' : 'Share · QR'}
                 </button>
               </div>
@@ -458,9 +484,9 @@ export default function TlcPublicDoor() {
               shows in BOTH header states: a tucked-away top space never hides
               the way in. */}
           {loginOpen && (
-            <div ref={authPanelRef} className="mb-4 max-w-sm border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{authMode === 'signup' ? 'Create your account' : 'Sign in'}</div>
-              <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{authMode === 'signup' ? 'Clients keep their place in Mental skills and receive the lessons their therapist assigns. Staff sign in with the account the office gave them.' : 'Clients and staff sign in here. New here? Create a profile below.'}</p>
+            <div ref={authPanelRef} className="mb-4 max-w-sm rounded-2xl border border-[#E8E4DC] bg-[#FAF8F4] p-4 sm:p-5">
+              <div className={TLC_EYEBROW}>{authMode === 'signup' ? 'Create your account' : 'Sign in'}</div>
+              <p className="text-xs text-[#5A5751] mb-3 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{authMode === 'signup' ? 'Clients keep their place in Mental skills and receive the lessons their therapist assigns. Staff sign in with the account the office gave them.' : 'Clients and staff sign in here. New here? Create a profile below.'}</p>
               <PasswordAuth key={authMode} mode={authMode} embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} onSignedIn={() => { setShowLogin(false); }} />
             </div>
           )}
@@ -492,8 +518,9 @@ export default function TlcPublicDoor() {
           tab, signed in or out; the same reader every PoeTech surface carries. */}
       <TTSControl />
 
-      <footer className="border-t border-[#E8E4DC] mt-4">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-center">
+      <footer className="border-t border-[#E8E4DC] mt-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center space-y-1">
+          <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{TLC_BRAND.tagline}</p>
           <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] transition-colors">
             {TLC_BRAND.name} · tlctherapysolutions.me
           </a>

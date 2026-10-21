@@ -1,6 +1,6 @@
 // =============================================================================
 // sov44 — the thief who forgot to lock his own door: the pit he digged, the old
-// hole nobody repaired, and the Keeper who neither slumbers nor sleeps (DR-1143)
+// hole nobody repaired, and the Keeper who neither slumbers nor sleeps (DR-1145)
 // =============================================================================
 // Week 44 of Sovereign A.I. On 2026-10-20 at 12:21 UTC Darrell forwarded The
 // Neuron's morning issue ("AI hackers forgot to lock up") into the lesson lane
