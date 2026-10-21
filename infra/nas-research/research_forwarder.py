@@ -95,6 +95,35 @@ TOWER_TIMEOUT = 4
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 ASK_PATHS = {"/ask", "/research/ask"}
+# THE READING (DR-1199). Darrell, 2026-10-21, on an answered item that was a raw
+# transcript: "What happens when we get the results from our Research? Did we
+# create the systems I expected... opportunities and constraints... fix it."
+# /read takes the WORDS an answer already holds (a transcript, a search answer)
+# plus the sender's own note, and asks the tower -- no search -- for a reading
+# in one fixed shape: what it is, the opportunities for the family's systems,
+# the constraints, the next step, and where in PoeTech it lands. Unverified,
+# like every answer; one at a time, like every ask.
+READ_PATHS = {"/read", "/research/read"}
+MAX_READ_CHARS = 24000
+MAX_READ_BODY_BYTES = 96 * 1024   # the words of a long transcript, with room for UTF-8
+MAX_NOTE_CHARS = 500
+READ_LIST_MAX = 5
+READ_LINE_MAX = 300
+# Where a reading may say a thing lands: the systems PoeTech has today.
+LANDS = ("love-corner", "learn", "properties", "money", "recipes", "health", "games",
+         "tv-time", "church", "tlc", "research", "unplaced")
+READING_SYSTEM = (
+    "You read material for a family that builds its own software (PoeTech): a Learn department of lessons, "
+    "the Love Corner church app (weekly teaching and trivia for its people), Poe Properties (doors, tenants, workers), "
+    "Money (the family books), Chef's Corner recipes, Road to 150 health, Games, TV Time, TLC. "
+    "Answer ONLY with a JSON object with these keys: "
+    "\"what\" (one sentence: what the material is), "
+    "\"opportunities\" (up to 5 short strings: what the family could build, teach, or use from it), "
+    "\"constraints\" (up to 5 short strings: cost, rights, dependencies, what it would undermine, what is unverified), "
+    "\"next\" (one sentence: the single next step), "
+    "\"lands\" (exactly one of: " + ", ".join(LANDS) + "). "
+    "Never invent facts the material does not hold; say when something is uncertain."
+)
 HEALTH_PATHS = {"/health", "/research/health"}
 
 UNVERIFIED_NOTE = ("Sources are what the search returned; the answer's [n] marks are the "
@@ -193,6 +222,79 @@ def parse_ask(body_bytes):
             or any(s not in SOURCE_KINDS for s in sources)):
         return None, (400, f"sources must be a list drawn from {', '.join(SOURCE_KINDS)}")
     return {"query": query, "mode": mode, "sources": list(dict.fromkeys(sources))}, None
+
+
+def parse_read(body_bytes):
+    """Validate a reading request: the words, and the sender's note. Returns (request, None) or (None, (status, error))."""
+    try:
+        doc = json.loads(body_bytes.decode("utf-8") or "{}")
+    except (UnicodeDecodeError, ValueError):
+        return None, (400, "the body is not JSON")
+    if not isinstance(doc, dict):
+        return None, (400, "the body must be a JSON object")
+    text = doc.get("text")
+    if not isinstance(text, str) or len(text.strip()) < 40:
+        return None, (400, "text is empty or too short to read (under 40 characters)")
+    text = text.strip()
+    truncated = False
+    if len(text) > MAX_READ_CHARS:
+        text = text[:MAX_READ_CHARS]
+        truncated = True
+    note = doc.get("note", "")
+    if note is None:
+        note = ""
+    if not isinstance(note, str):
+        return None, (400, "note must be a string")
+    note = note.strip()[:MAX_NOTE_CHARS]
+    return {"text": text, "note": note, "truncated": truncated}, None
+
+
+def _short_list(value):
+    out = []
+    for x in (value if isinstance(value, list) else []):
+        if isinstance(x, str) and x.strip():
+            out.append(x.strip()[:READ_LINE_MAX])
+        if len(out) >= READ_LIST_MAX:
+            break
+    return out
+
+
+def clean_reading(obj):
+    """The model's JSON -> the reading's fixed shape, or None when it is not one."""
+    if not isinstance(obj, dict):
+        return None
+    what = obj.get("what")
+    if not isinstance(what, str) or not what.strip():
+        return None
+    lands = obj.get("lands")
+    lands = lands.strip().lower() if isinstance(lands, str) else ""
+    if lands not in LANDS:
+        lands = "unplaced"
+    nxt = obj.get("next")
+    return {
+        "what": what.strip()[:READ_LINE_MAX],
+        "opportunities": _short_list(obj.get("opportunities")),
+        "constraints": _short_list(obj.get("constraints")),
+        "next": (nxt.strip()[:READ_LINE_MAX] if isinstance(nxt, str) else ""),
+        "lands": lands,
+    }
+
+
+def tower_chat(base, model, system, user, timeout):
+    """One answer from the tower's own chat door (Ollama /api/chat), as JSON text. No search."""
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": 0.2},
+    }
+    req = urllib.request.Request(base + "/api/chat", data=json.dumps(payload).encode("utf-8"), method="POST")
+    req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        doc = json.loads(r.read().decode("utf-8") or "{}")
+    msg = doc.get("message") if isinstance(doc, dict) else None
+    return str((msg or {}).get("content") or "")
 
 
 class Vane:
@@ -324,8 +426,55 @@ def make_handler(vane, token, ask_timeout=ASK_TIMEOUT, tower=None):
                 return self._json(code, obj)
             return self._json(404, {"error": "not found"})
 
+        def _read(self, raw):
+            """The reading door (DR-1199): the words in, the fixed shape out; the tower alone, no search."""
+            ask, err = parse_read(raw)
+            if err:
+                return self._json(err[0], {"error": err[1]})
+            if tower is None:
+                return self._json(503, {"error": "No AI tower is set for this road, so nothing can read."})
+            ok, why = tower.state()
+            if not ok:
+                return self._json(503, {"error": why})
+            if not inflight.acquire(blocking=False):
+                return self._json(503, {"error": "a question is already being answered; ask again in a minute"})
+            try:
+                try:
+                    chosen, why = choose_models(vane.providers())
+                except (urllib.error.URLError, socket.timeout, OSError, ValueError) as e:
+                    return self._json(503, {"error": f"Vane is not answering: {e}"})
+                if not chosen:
+                    return self._json(503, {"error": why})
+                user = ("The sender wrote: " + (ask["note"] or "(nothing)") + "\n\nThe material:\n" + ask["text"])
+                try:
+                    content = tower_chat(tower.base(), chosen["chat"], READING_SYSTEM, user, ask_timeout)
+                except socket.timeout:
+                    return self._json(504, {"error": f"no reading within {ask_timeout}s"})
+                except urllib.error.HTTPError as e:
+                    return self._json(502, {"error": f"the tower answered {e.code}"})
+                except (urllib.error.URLError, OSError, ValueError) as e:
+                    if "timed out" in str(e):
+                        return self._json(504, {"error": f"no reading within {ask_timeout}s"})
+                    return self._json(502, {"error": f"the tower failed: {e}"})
+                try:
+                    reading = clean_reading(json.loads(content or "{}"))
+                except ValueError:
+                    reading = None
+                if reading is None:
+                    return self._json(502, {"error": "the model did not answer in the reading's shape"})
+                return self._json(200, {
+                    "reading": reading,
+                    "truncated": ask["truncated"],
+                    "model": chosen["chat"],
+                    "verified": False,
+                    "note": UNVERIFIED_NOTE,
+                })
+            finally:
+                inflight.release()
+
         def do_POST(self):
-            if self._path() not in ASK_PATHS:
+            path = self._path()
+            if path not in ASK_PATHS and path not in READ_PATHS:
                 return self._json(404, {"error": "not found"})
             if not bearer_ok(self.headers.get("Authorization"), token):
                 return self._json(401, {"error": "the family key is missing or wrong"})
@@ -333,8 +482,11 @@ def make_handler(vane, token, ask_timeout=ASK_TIMEOUT, tower=None):
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 length = -1
-            if length < 0 or length > MAX_BODY_BYTES:
+            cap = MAX_READ_BODY_BYTES if path in READ_PATHS else MAX_BODY_BYTES
+            if length < 0 or length > cap:
                 return self._json(413, {"error": "the body is too large"})
+            if path in READ_PATHS:
+                return self._read(self.rfile.read(length))
             ask, err = parse_ask(self.rfile.read(length))
             if err:
                 return self._json(err[0], {"error": err[1]})
@@ -440,7 +592,8 @@ def _selftest():
     threading.Thread(target=up.serve_forever, daemon=True).start()
     token = "selftest-family-key"
 
-    # A fake GPU tower: an Ollama that answers GET /api/tags.
+    # A fake GPU tower: an Ollama that answers GET /api/tags, and POST /api/chat
+    # with whatever the reading case has staged (state["chat"]).
     class FakeTower(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -448,6 +601,16 @@ def _selftest():
         def do_GET(self):
             data = b'{"models": [{"name": "qwen2.5:14b-instruct-q4_K_M"}, {"name": "nomic-embed-text:latest"}]}'
             self.send_response(200 if self.path == "/api/tags" else 404)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            state["chat_body"] = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+            data = json.dumps({"message": {"role": "assistant", "content": state.get("chat") or ""}}).encode("utf-8")
+            self.send_response(200 if self.path == "/api/chat" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -545,6 +708,35 @@ def _selftest():
           and sb.get("embeddingModel", {}).get("key") == "nomic-embed-text:latest"
           and sb.get("stream") is False and sb.get("history") == [] and sb.get("sources") == ["web"],
           "Vane is asked with our models, no history, no streaming, web only by default")
+
+    # --- the reading: the words in, the fixed shape out (DR-1199) ---------
+    words = "The Maya built cities in the rainforest; Charnay visited after reading Stevens and Catherwood. " * 3
+    s, _, _ = req("POST", "/read", body={"text": words}, auth=None)
+    check(s == 401, "CATCHES a reading with no family key: 401")
+    s, b, _ = req("POST", "/read", body={"text": "too short"})
+    check(s == 400 and "too short" in b.get("error", ""), "CATCHES words too short to read: 400")
+    s, b, _ = req("POST", "/read", body={"text": words, "note": 7})
+    check(s == 400, "CATCHES a note that is not a string: 400")
+    state["chat"] = json.dumps({"what": "A transcript about the Maya.", "opportunities": ["A History lesson on the Maya", "A Love Corner trivia week", "x", "y", "z", "one too many"],
+                                "constraints": ["The transcript is unverified"], "next": "Draft the lesson.", "lands": "learn"})
+    s, b, _ = req("POST", "/read", body={"text": words, "note": "We need this inside the Love Corner App each week."})
+    r = b.get("reading") or {}
+    check(s == 200 and r.get("what") == "A transcript about the Maya." and r.get("lands") == "learn" and len(r.get("opportunities", [])) == READ_LIST_MAX,
+          "a reading comes back in the fixed shape, lists capped at five")
+    check(b.get("verified") is False and "not checked" in b.get("note", ""), "every reading is marked unverified, in words")
+    cb = state.get("chat_body") or {}
+    check(cb.get("model", "").startswith("qwen2.5:14b") and cb.get("stream") is False and cb.get("format") == "json"
+          and "Love Corner App" in (cb.get("messages") or [{}, {}])[1].get("content", "") and "Maya" in (cb.get("messages") or [{}, {}])[1].get("content", ""),
+          "the tower is asked with our model, JSON only, the sender's note and the words together, no search")
+    state["chat"] = json.dumps({"what": "x", "lands": "the moon"})
+    s, b, _ = req("POST", "/read", body={"text": words})
+    check(s == 200 and (b.get("reading") or {}).get("lands") == "unplaced", "CATCHES a landing outside the list: unplaced, never invented")
+    state["chat"] = "I cannot answer in JSON, sorry."
+    s, b, _ = req("POST", "/read", body={"text": words})
+    check(s == 502 and "shape" in b.get("error", ""), "CATCHES a model that does not answer in the shape: 502, nothing written")
+    state["chat"] = json.dumps({"what": "x", "lands": "learn"})
+    s, b, _ = req("POST", "/read", body={"text": "w" * (MAX_READ_CHARS + 500)})
+    check(s == 200 and b.get("truncated") is True, "words over the cap are read to the cap and say so (truncated)")
 
     # --- one at a time ----------------------------------------------------
     hold = threading.Event()

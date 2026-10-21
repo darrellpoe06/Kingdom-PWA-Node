@@ -87,7 +87,8 @@ describe('the row says where the words are', () => {
     const got = [];
     const onUse = (e) => got.push(e.detail);
     window.addEventListener(USE_PROMPT_EVENT, onUse);
-    await act(async () => { c.querySelector('[data-testid="prompt-words-use"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // ONE "To the box" (DR-1200): it puts the words in an empty box, or under what it holds.
+    await act(async () => { c.querySelector('[data-testid="prompt-words-add"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     window.removeEventListener(USE_PROMPT_EVENT, onUse);
     expect(got.length).toBe(1);
     expect(JSON.stringify(got[0])).toMatch(/For about a decade/);
@@ -118,7 +119,7 @@ describe('the row says where the words are', () => {
     expect(sortPrompts(rows, 'type').map((r) => promptType(r))).toEqual(['lesson', 'poetech', 'prayer', 'saved']);
     expect(promptTypes(rows).map((t) => t.key)).toEqual(['lesson', 'poetech', 'prayer', 'saved']);
   });
-  it('the words go anywhere, one or several: "Add to the box" gathers under what the box holds, and the box appends instead of replacing', async () => {
+  it('the words go anywhere, one or several: "To the box" gathers under what the box holds, and the box appends instead of replacing', async () => {
     // the pure rule the box applies
     expect(boxAfter('', 'first', 'append')).toBe('first');
     expect(boxAfter('first', 'second', 'append')).toBe('first\n\nsecond');
@@ -132,9 +133,11 @@ describe('the row says where the words are', () => {
     window.addEventListener(USE_PROMPT_EVENT, onUse);
     await act(async () => { c.querySelector('[data-testid="prompt-add"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await act(async () => { c.querySelector('[data-testid="prompt-words-add"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    await act(async () => { c.querySelector('[data-testid="prompt-use"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     window.removeEventListener(USE_PROMPT_EVENT, onUse);
-    expect(got.map((d) => d.mode)).toEqual(['append', 'append', 'replace']);
+    // ONE box button per thing (DR-1200): the "Put ... in the box" replacers are gone.
+    expect(c.querySelector('[data-testid="prompt-use"]')).toBeNull();
+    expect(c.querySelector('[data-testid="prompt-words-use"]')).toBeNull();
+    expect(got.map((d) => d.mode)).toEqual(['append', 'append']);
     expect(got[1].body).toMatch(/^For about a decade/);
     // and the box honours it: the handler applies boxAfter with the event's mode
     const box = readFileSync(join(process.cwd(), 'src', 'components', 'OneVoiceInput.jsx'), 'utf8');

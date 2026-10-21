@@ -139,11 +139,12 @@ describe('the history on screen', () => {
     });
     expect(container.querySelectorAll('[data-testid="prompt-row"]')).toHaveLength(1);
   });
-  it('"Put it in the box" hands the prompt back to the box', async () => {
+  it('"To the box" hands the prompt back to the box (one box button, DR-1200)', async () => {
     await mount(P);
     const heard = vi.fn();
     window.addEventListener(USE_PROMPT_EVENT, heard);
-    await act(async () => { container.querySelector('[data-testid="prompt-use"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(container.querySelector('[data-testid="prompt-use"]')).toBeNull();
+    await act(async () => { container.querySelector('[data-testid="prompt-add"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     window.removeEventListener(USE_PROMPT_EVENT, heard);
     expect(heard.mock.calls[0][0].detail.body).toMatch(/keys of hell/);
     expect(sendPromptToBox('x', null)).toBe(false);

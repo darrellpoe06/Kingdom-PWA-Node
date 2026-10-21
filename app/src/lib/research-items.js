@@ -50,6 +50,57 @@ export const ANSWER_TAG = 'research-answer';
 export const FAILED_TAG = 'research-failed';
 export const CLAIMED_TAG = 'research-claimed';
 export const ANSWERED_TAG = 'research-answered';
+// THE READING (DR-1199): a second child row, made from the answer's own words,
+// in a fixed shape -- what it is, the opportunities, the constraints, the next
+// step, where it lands. It arrives when the tower answers, which may be later
+// than the answer; until then the item says the reading is pending, in words.
+export const READING_TAG = 'research-reading';
+export const READING_FAILED_TAG = 'research-reading-failed';
+export const READING_PENDING = 'Reading pending: the road has not yet said what this is for us. It looks again every 15 minutes while an AI tower answers.';
+
+/** Where a reading may say a thing lands, and the app's own door for it. */
+export const LANDS = Object.freeze({
+  'love-corner': { label: 'The Love Corner App', view: 'church' },
+  learn: { label: 'Learn', view: 'church', sub: 'learn' },
+  properties: { label: 'Poe Properties', view: 'properties' },
+  money: { label: 'Money', view: 'books' },
+  recipes: { label: "Chef's Corner", view: 'recipes' },
+  health: { label: 'Road to 150', view: 'health' },
+  games: { label: 'Games', view: 'games' },
+  'tv-time': { label: 'TV Time', view: 'tvtime' },
+  church: { label: 'The church door', view: 'church' },
+  tlc: { label: 'TLC', view: 'tlc' },
+  research: { label: 'Research (a follow-up)', view: 'research' },
+  unplaced: { label: 'Not placed yet', view: null },
+});
+
+/**
+ * The reading row's text -> {what, opportunities, constraints, next, lands}, or
+ * null when the body is not a reading. The shape research-reading-text.mjs writes.
+ */
+export function parseReading(body) {
+  const s = String(body || '');
+  const i = s.search(/^\s*Reading:\s*$/m);
+  if (i < 0) return null;
+  const lines = s.slice(i).split('\n').map((l) => l.trim());
+  const out = { what: '', opportunities: [], constraints: [], next: '', lands: 'unplaced', truncated: false };
+  let bucket = null;
+  for (const l of lines) {
+    if (/^Reading:$/.test(l)) continue;
+    const m = l.match(/^What it is:\s*(.*)$/i);
+    if (m) { out.what = m[1].trim(); bucket = null; continue; }
+    if (/^Opportunities:$/i.test(l)) { bucket = 'opportunities'; continue; }
+    if (/^Constraints:$/i.test(l)) { bucket = 'constraints'; continue; }
+    const n = l.match(/^Next step:\s*(.*)$/i);
+    if (n) { out.next = n[1].trim(); bucket = null; continue; }
+    const g = l.match(/^Lands:\s*([a-z-]+)\s*$/i);
+    if (g) { out.lands = LANDS[g[1].toLowerCase()] ? g[1].toLowerCase() : 'unplaced'; bucket = null; continue; }
+    if (/^\(The words were longer/.test(l)) { out.truncated = true; continue; }
+    if (bucket && /^- /.test(l)) out[bucket].push(l.slice(2).trim());
+  }
+  if (!out.what) return null;
+  return out;
+}
 
 // THE WORDS THE SURFACE SAYS. Each state is a fact in the row's own tags, never
 // inferred from a clock: a row nobody has claimed reads "waiting", not "working".
@@ -109,6 +160,12 @@ export function researchItems(rows) {
     if (!of) continue;
     if (has(r, ANSWER_TAG)) children.set(`${of}:answer`, r);
     else if (has(r, FAILED_TAG)) children.set(`${of}:failed`, r);
+    else if (has(r, READING_TAG)) children.set(`${of}:reading`, r);
+    else if (has(r, READING_FAILED_TAG)) {
+      // The newest failure wins, so the words on the item are the latest why.
+      const cur = children.get(`${of}:reading-failed`);
+      if (!cur || String(r.created_at || '') > String(cur.created_at || '')) children.set(`${of}:reading-failed`, r);
+    }
   }
   const items = [];
   for (const r of list) {
@@ -121,7 +178,15 @@ export function researchItems(rows) {
     // finished (DR-0076: unknown is not a no).
     const state = answer ? 'answered' : failure ? 'failed' : has(r, CLAIMED_TAG) ? 'working' : 'waiting';
     const parsed = answer ? parseAnswer(answer.body) : { answer: '', sources: [] };
+    const readingRow = children.get(`${r.id}:reading`) || null;
+    const readingFailed = children.get(`${r.id}:reading-failed`) || null;
+    const reading = readingRow ? parseReading(readingRow.body) : null;
     items.push({
+      reading,
+      readingAt: readingRow ? readingRow.created_at || '' : '',
+      // Why the reading is still pending, in the road's words when it said; the
+      // standing sentence otherwise. Only on an answered item.
+      readingWhy: answer && !reading ? (readingFailed ? String(readingFailed.body || '') : READING_PENDING) : '',
       id: r.id,
       createdAt: r.created_at || '',
       createdBy: r.created_by || '',
@@ -167,7 +232,7 @@ export async function fetchMyResearch({ supabase, limit = 100 } = {}) {
     const { data, error } = await supabase
       .from('agent_inbox')
       .select('id, body, tags, created_at, created_by')
-      .or(`tags.cs.${JSON.stringify([RESEARCH_TAG])},tags.cs.${JSON.stringify([ANSWER_TAG])},tags.cs.${JSON.stringify([FAILED_TAG])}`)
+      .or(`tags.cs.${JSON.stringify([RESEARCH_TAG])},tags.cs.${JSON.stringify([ANSWER_TAG])},tags.cs.${JSON.stringify([FAILED_TAG])},tags.cs.${JSON.stringify([READING_TAG])},tags.cs.${JSON.stringify([READING_FAILED_TAG])}`)
       .eq('created_by', uid)
       .order('created_at', { ascending: false })
       .limit(limit);

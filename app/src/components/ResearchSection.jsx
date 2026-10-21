@@ -29,11 +29,13 @@
 // sent nothing" (DR-0076 — unknown is not a no).
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
-import { fetchMyResearch, UNVERIFIED_NOTE } from '../lib/research-items.js';
+import { fetchMyResearch, UNVERIFIED_NOTE, LANDS } from '../lib/research-items.js';
 import { researchHealth } from '../lib/research.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import { supabase } from '../lib/supabase.js';
 import ResearchTry from './ResearchTry.jsx';
+// ONE PRESS FROM AN ANSWER TO WHAT IT BECOMES (DR-1200).
+import CreateFromWords from './CreateFromWords.jsx';
 
 const card = 'bg-white border border-[#E8E4DC] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -76,6 +78,37 @@ function Item({ item }) {
           {/* The sentence, on every answered item. Never only a badge. */}
           <p className={noteCls}>{item.note}</p>
           <p className="mt-1 whitespace-pre-wrap text-[0.8125rem] text-[#1A1815]">{item.answer}</p>
+          {/* THE READING (DR-1199): what it is for us, in the fixed shape, or
+              the honest word that it is still pending. Never a raw dump as the
+              last word on an item. */}
+          {item.reading ? (
+            <div className="mt-2 border-t border-[#E8E4DC] pt-2" data-testid="research-reading">
+              <div className={labelCls}>What this is for us</div>
+              <p className="mt-1 text-[0.8125rem] text-[#1A1815]" style={serif} data-testid="research-reading-what">{item.reading.what}</p>
+              <div className={`${labelCls} mt-2`}>Opportunities</div>
+              {item.reading.opportunities.length === 0
+                ? <p className="mt-1 text-[0.75rem] text-[#5A5751]">None named.</p>
+                : <ul className="mt-1 list-disc pl-5 text-[0.8125rem] text-[#1A1815]" data-testid="research-reading-opportunities">{item.reading.opportunities.map((x) => <li key={x}>{x}</li>)}</ul>}
+              <div className={`${labelCls} mt-2`}>Constraints</div>
+              {item.reading.constraints.length === 0
+                ? <p className="mt-1 text-[0.75rem] text-[#5A5751]">None named.</p>
+                : <ul className="mt-1 list-disc pl-5 text-[0.8125rem] text-[#1A1815]" data-testid="research-reading-constraints">{item.reading.constraints.map((x) => <li key={x}>{x}</li>)}</ul>}
+              <div className={`${labelCls} mt-2`}>Next step</div>
+              <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{item.reading.next || 'None named.'}</p>
+              <div className={`${labelCls} mt-2`}>Where it lands</div>
+              <p className="mt-1 text-[0.8125rem] text-[#1A1815]" data-testid="research-reading-lands">
+                {LANDS[item.reading.lands] && LANDS[item.reading.lands].view
+                  ? <a className="underline" href={`?view=${LANDS[item.reading.lands].view}${LANDS[item.reading.lands].sub ? `&sub=${LANDS[item.reading.lands].sub}` : ''}`}>{LANDS[item.reading.lands].label}</a>
+                  : (LANDS[item.reading.lands] || LANDS.unplaced).label}
+              </p>
+              {item.reading.truncated && <p className={`mt-1 ${noteCls}`}>The words were longer than the road reads at once; this reading covers their first part.</p>}
+              <p className={`mt-2 ${noteCls}`}>{item.note}</p>
+            </div>
+          ) : (
+            <p className={`mt-2 ${noteCls}`} data-testid="research-reading-pending">{item.readingWhy}</p>
+          )}
+          <div className={`${labelCls} mt-2`}>Make something of it</div>
+          <CreateFromWords body={item.answer} destination="research" idBase={`create-${item.id}`} />
           <div className={`${labelCls} mt-2`}>Sources ({item.sources.length})</div>
           {item.sources.length === 0
             ? <p className={`mt-1 ${noteCls}`}>No source link came back with this answer, so there is nothing to check it against.</p>
