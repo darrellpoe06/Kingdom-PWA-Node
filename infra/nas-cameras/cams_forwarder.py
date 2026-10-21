@@ -232,6 +232,9 @@ def wyze_client_reset():
         WYZE_STATE["client"] = None
 
 
+WYZE_OFFLINE_ANSWER = {"error": "wyze-offline", "detail": "Wyze's own list says this camera is offline; no Kinesis offer was sent"}
+
+
 def wyze_offline_streams(fetch=True, factory=None):
     """The stream ids Wyze's own list calls offline (DR-0807's word), or None
     when the list cannot be read. fetch=False never asks the cloud: it reads
@@ -3327,6 +3330,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(400, {"error": "bad-camera-id"})
                 if not self._ticketed(cam, query):
                     return self._json(401, {"error": "unauthorized"})
+                if self._wyze_offline_kvs(cam):
+                    return self._json(503, WYZE_OFFLINE_ANSWER)
                 return self._playlist(cam, query, "/api/stream.m3u8?src=%s&mp4" % urllib.parse.quote(cam), at_root=True)
 
             m = re.match(r"^/live/([^/]+)/hls/([^/]+)$", path)
@@ -3902,8 +3907,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 # thirteenth read): nobody can answer it, and go2rtc 1.9.14 never
                 # closes the PeerConnection an unanswered offer leaves behind. Only
                 # the list already held is read; a frame never waits on Wyze's cloud.
-                if base_of(cam) in kvs_road_ids() and base_of(cam) in (wyze_offline_streams(fetch=False, factory=wyze_factory) or ()):
-                    return self._json(503, {"error": "wyze-offline", "detail": "Wyze's own list says this camera is offline; no Kinesis offer was sent"})
+                if self._wyze_offline_kvs(cam):
+                    return self._json(503, WYZE_OFFLINE_ANSWER)
                 kvs = kvs_viewed(upstream, cam)
                 frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs else snap_timeout
                 if kvs and KVS_HOLD.holding(base_of(cam)):
@@ -4176,11 +4181,32 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             live_note(len(body))
             return self._bytes(status, ctype, body)
 
+        def _wyze_offline_kvs(self, cam):
+            """A camera on Wyze's WebRTC road that Wyze's own list (the one already
+            held) calls offline: no frame, live view or playlist sends it an offer
+            (DR-1097, thirteenth and fifteenth reads)."""
+            return base_of(cam) in kvs_road_ids() and base_of(cam) in (wyze_offline_streams(fetch=False, factory=wyze_factory) or ())
+
         def _live_mp4(self, cam):
+            if self._wyze_offline_kvs(cam):
+                return self._json(503, WYZE_OFFLINE_ANSWER)
             if not live_gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_live": max_live})
             try:
-                kvs_viewed(upstream, cam)
+                kvs = kvs_viewed(upstream, cam)
+                # A TWIN WAITS FOR ITS CAMERA (DR-1097, fifteenth read). A grid tile
+                # asks the SD twin, which go2rtc reads off its own RTSP restream of
+                # the camera, and go2rtc's RTSP client gives a DESCRIBE answer 5 s
+                # (pkg/rtsp/conn.go: the package Timeout, which #timeout= does not
+                # reach). The answer waits on the Kinesis dial, 6-12 s, so the twin
+                # of a camera not yet flowing always timed out ("read tcp
+                # ->127.0.0.1:8554: i/o timeout", the wall in /why) while the
+                # camera's own stream and frame worked. The twin is asked of go2rtc
+                # only once the held session carries video, within the frame clock.
+                if kvs and is_twin(cam) and KVS_HOLD.holding(base_of(cam)):
+                    if KVS_HOLD.wait_flowing(base_of(cam), KVS_SNAP_TIMEOUT) <= 0:
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(KVS_SNAP_TIMEOUT),
+                                                "detail": "no video on Wyze's WebRTC road yet; the twin was not asked"})
                 req = urllib.request.Request(upstream + "/api/stream.mp4?src=" + urllib.parse.quote(cam))
                 try:
                     r = urllib.request.urlopen(req, timeout=LIVE_CONNECT_TIMEOUT)
@@ -4900,6 +4926,11 @@ def _selftest():
     live96 = 'api:\n  listen: "127.0.0.1:1984"\nstreams:\n  front: "rtsp://f"\n# kept\n"quoted top": 1\nwyze:\n  me@x.y:\n    api_id: a\n    password: b\nZ\n'
     check(config_stray_lines(live96) == [11], "the stray line is found by shape: one character at column 0, not a key (%r)" % config_stray_lines(live96))
     check(config_stray_lines('api:\n  listen: ":1984"\n---\nstreams:\n  a: "x:y"\n') == [], "keys, quoted keys, comments, document markers and indented lines are never strays")
+    # The fifteenth read (2026-10-21): an older copy's tail after wyze:, fragments with indented keys between them.
+    live100 = 'streams:\n  front: "rtsp://f"\nwyze:\n  me@x.y:\n    api_id: a\n    api_key: k1\n    password: b\nmple.co\nom"\n    api_key: old\n    password: old\n"x.y.z"\n'
+    check(config_stray_lines(live100) == [8, 9, 10, 11, 12],
+          "PROVEN TO CATCH: fragments at column 0 are strays, and so is every indented line after one (the duplicated api_key/password go2rtc named), up to the next real key (%r)" % config_stray_lines(live100))
+    check(config_stray_lines('a:\n  x: 1\nZ\n  y: 2\nb:\n  z: 3\n') == [3, 4], "PROVEN TO CATCH: an indented line after a stray goes with it, and the next real top-level key ends the run (b: and its line stay)")
     cfg9 = os.path.join(tempfile.mkdtemp(prefix="cams-stray-"), "go2rtc.yaml")
     with open(cfg9, "w") as fh:
         fh.write(live96)
@@ -4913,6 +4944,14 @@ def _selftest():
     seen["config_refuse"] = False
     check(r9b == "refused" and open(cfg9).read() == live96, "when go2rtc's own parse refuses, the file is left exactly as it was")
     check(repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg8 + ".none", log=lambda *_a: None) == "unreadable", "no file, nothing done")
+    cfg100 = os.path.join(tempfile.mkdtemp(prefix="cams-stray-"), "go2rtc.yaml")
+    with open(cfg100, "w") as fh:
+        fh.write(live100)
+    seen["config_posts"] = []
+    r100 = repair_config_strays("http://127.0.0.1:%d" % fp, config_path=cfg100, log=lambda *_a: None)
+    posted = seen["config_posts"][-1] if seen["config_posts"] else ""
+    check(r100 == "repaired-5" and "old" not in posted and posted.count("api_key") == 1 and posted.endswith("    password: b\n") and '  front: "rtsp://f"' in posted,
+          "the 2026-10-21 tail goes to go2rtc without the fragments or the stale duplicate keys, the first api_key and password kept (%s)" % r100)
     seen["config_posts"] = []
     self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None, config_path=cfg9)
     check(len(seen["config_posts"]) == 1 and "\nZ\n" not in seen["config_posts"][0],
@@ -6074,9 +6113,30 @@ def _selftest():
         s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
         check(s == 503 and b"wyze-offline" in d and frames() == n1 and touched == [],
               "PROVEN TO CATCH: a frame of a Kinesis camera Wyze's own list calls offline is 503 wyze-offline: no held session, no go2rtc ask, so no offer go2rtc would leave open (%d %r)" % (s, d[:100]))
+        lives = lambda: sum(1 for q in seen["queries"] if q.startswith("/api/stream.mp4?src=front_yard"))  # noqa: E731
+        l0 = lives()
+        s, _h, tk = call("POST", "/ticket", b'{"camera":"front_yard"}', auth=B)
+        tkv = json.loads(tk.decode("utf-8")).get("ticket", "") if s == 200 else ""
+        s, _h, d = call("GET", "/live/front_yard.mp4?t=" + urllib.parse.quote(tkv))
+        check(s == 503 and b"wyze-offline" in d and lives() == l0 and touched == [],
+              "PROVEN TO CATCH: a LIVE view of a Kinesis camera Wyze calls offline is 503 wyze-offline too, no session held and go2rtc never asked to dial (19:35 CDT: the tab's live tiles kept offering 805 Apt 4) (%d %r)" % (s, d[:80]))
+        s, _h, d = call("GET", "/live/front_yard/index.m3u8?t=" + urllib.parse.quote(tkv))
+        check(s == 503 and b"wyze-offline" in d, "...and its HLS playlist the same (%d)" % s)
         cloud_rl["offline"] = set()
         s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
         check(s == 200 and touched == ["front_yard"], "back online in Wyze's list, the same camera is held and served again (%d)" % s)
+        cloud_rl["offline"] = set()
+        s, _h, tk = call("POST", "/ticket", b'{"camera":"front_yard_sd"}', auth=B)
+        tsd = json.loads(tk.decode("utf-8")).get("ticket", "") if s == 200 else ""
+        sd_asks = lambda: sum(1 for q in seen["queries"] if q.startswith("/api/stream.mp4?src=front_yard_sd"))  # noqa: E731
+        KVS_HOLD = StubHold(False)
+        a0 = sd_asks()
+        s, _h, d = call("GET", "/live/front_yard_sd.mp4?t=" + urllib.parse.quote(tsd))
+        check(s == 504 and b"the twin was not asked" in d and sd_asks() == a0,
+              "PROVEN TO CATCH: a grid tile's SD twin of a Kinesis camera not yet carrying video is a 504, and go2rtc (whose RTSP restream gives the dial 5 s) is not asked (%d %r)" % (s, d[:90]))
+        KVS_HOLD = StubHold(True)
+        s, _h, d = call("GET", "/live/front_yard_sd.mp4?t=" + urllib.parse.quote(tsd))
+        check(s == 200 and sd_asks() == a0 + 1, "once the camera's held session carries video, the twin is asked and served (%d, %d asks)" % (s, sd_asks() - a0))
     finally:
         cloud_rl["offline"] = set()
         KVS_HOLD, BRIDGE_ROADS_FILE = saved_hold, saved_roads7
@@ -6413,14 +6473,30 @@ def config_stream_sources(text):
 
 def config_stray_lines(text):
     """The line numbers of go2rtc.yaml lines no YAML block mapping can hold: a
-    line at column 0 that is not a key, a comment, blank or a document marker."""
+    line at column 0 that is not a key, a comment, blank or a document marker,
+    AND every indented line after one, up to the next top-level key.
+
+    The second half is the fifteenth read (cams-diag 39522679592, 2026-10-21):
+    the file's tail after the wyze: block held three column-0 fragments with
+    two indented lines between them, and go2rtc named those two as "mapping
+    key ... already defined" once the fragments were out. They are the end of
+    an older, longer copy of the same block, left behind after it; an indented
+    line after a stray belongs to no key a parser can reach, so it goes with
+    the stray. go2rtc's own parse still decides before anything is written."""
     out = []
+    after_stray = False
     for k, line in enumerate(str(text or "").split("\n"), 1):
-        if not line.strip() or line[0].isspace():
+        if not line.strip():
+            continue
+        if line[0].isspace():
+            if after_stray:
+                out.append(k)
             continue
         if re.match(r"^(#|---|\.\.\.)", line) or re.match(r"^(\"[^\"]*\"|'[^']*'|[^\s:#'\"-][^:]*):(\s|$)", line):
+            after_stray = False
             continue
         out.append(k)
+        after_stray = True
     return out
 
 

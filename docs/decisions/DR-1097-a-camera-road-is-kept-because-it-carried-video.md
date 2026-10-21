@@ -494,3 +494,49 @@ Darrell, the same afternoon: "Build the turn fix it now". The second reading the
   - the 4 Kinesis cameras above.
 
 `re-review: 2026-10-21`, unchanged: read the TURN count again hours after this release. It should climb back only at the rate of offers Wyze leaves unanswered.
+
+## Fifteenth field read (2026-10-21 00:40 UTC; cams-diag 39522679592 with `camera=805_porch_-_floodlight_cam_-_east`): "Never works in our app"
+
+Darrell, 19:35 CDT, sent a screenshot of 805 Porch - Floodlight Cam - East playing live in the Wyze app: "Never works in our app always working in wyze... fix it!!!!"
+
+**What the NAS says about that camera, on loopback:**
+- go2rtc's frame: 200 in 4.1 s, 183 KB.
+- `/why`: probe 200 in 5.4 s. The judge kept it on Wyze's WebRTC road, with 16 KB of video in 8.3 s.
+- A 35 s stream: 5.0 MB.
+- So the camera, Wyze's road and go2rtc all carry it.
+- The gap is on the road the phone rides. The served build points at the Funnel (`UNLOCK_CAMS_BASE`), and no instrument had ever asked a camera that way.
+- **Built:** cams-diag now asks both loopback and the Funnel the way the tab does: the tile's frame, a ticket, and 25 s of the live MP4, with codes, first byte, bytes, content-type, CORS and codec boxes. The next dispatch with this camera reads the phone's road.
+
+**Found by the same read: `go2rtc.yaml` is unreadable again, a new shape.**
+- The file was written at 19:20 CDT.
+- After the wyze: block it carries three column-0 fragments (7, 3 and 7 characters) with two indented lines between them.
+- The repair took the fragments out, and go2rtc still refused the file: "line 96: mapping key "api_key" already defined at line 94; line 97: mapping key "password" already defined at line 95".
+- Those two lines are the tail of an older, longer copy of the same block.
+- Until the file reads, every PUT goes unpersisted and the release (thirteenth read) refuses to restart go2rtc. Its parse guard is doing its job.
+- **Fixed:** an indented line after a column-0 stray goes with the stray, up to the next real top-level key. go2rtc's own parse still decides before anything is written. The first `api_key` and `password` are kept.
+- What wrote the tail is not known. The forwarder writes this file only through a temporary file and `os.replace`, which cannot leave a tail behind.
+
+**Found by the same read: the tab's live tiles still offered a camera Wyze calls offline.**
+- At 19:35 CDT, while the tab was open, kvs-hold re-armed 805 Apt 4 every 40 s, and each re-arm was an unanswered offer.
+- The thirteenth read's gate covered frames only.
+- **Fixed:** a live MP4 or HLS playlist of a Kinesis camera Wyze's list calls offline is 503 `wyze-offline` too. No session is held and go2rtc is never asked.
+
+**Proven:**
+- Forwarder selftest: 478 passing (was 473).
+- PROVEN TO CATCH: taking out the indented-tail rule turns 3 checks red, and taking out the live gate turns its check red.
+
+`re-review: 2026-10-21`. Run cams-diag with this camera once #2322 is live, and read the phone's road. Whatever that road refuses is the next fix.
+
+**The phone's road, read the same night** (cams-diag 39523337060, run from this branch, 00:46-00:48 UTC):
+- **Through the Funnel, asked the way the tab asks:**
+  - frame `?w=640`: 200 in 0.99 s;
+  - ticket: issued;
+  - live `.mp4`: 200, first byte at 1.45 s, 3.99 MB in 25 s, `video/mp4; codecs="avc1.42E01F"` (H.264, which every phone plays);
+  - `access-control-allow-origin: https://poetech.us`.
+- So the camera's own stream reaches the phone over the Funnel. The Funnel and the NAS are not what fails.
+- **What fails is the grid.**
+  - A grid tile asks the camera's SD twin (`liveStreamId(..., { sd: true })`, Cameras.jsx). For a Kinesis camera the twin is go2rtc's own RTSP restream (`rtsp://127.0.0.1:8554/<id>`).
+  - go2rtc's RTSP client gives a DESCRIBE answer 5 s (`pkg/rtsp/conn.go`, the package `Timeout`, which `#timeout=` does not reach). That answer waits on the Kinesis dial, which takes 6 to 12 s.
+  - So the twin of a camera not already flowing timed out. These are the `read tcp ->127.0.0.1:8554: i/o timeout` lines that fill `/why`, while the camera's own stream and frame worked.
+- **Fixed:** a twin of a held Kinesis camera is asked of go2rtc only once the held session carries video, within the 20 s frame clock, the same rule `/snap` follows. Otherwise it answers 504 and names why.
+- **Proven:** selftest 480. PROVEN TO CATCH: with the wait taken out, its check fails.

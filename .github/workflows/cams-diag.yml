@@ -240,6 +240,37 @@ jobs:
             if [ -n "$TOK" ]; then curl -s -m 25 -H "Authorization: Bearer $TOK" "http://127.0.0.1:8773/why/$CAMERA" | scrub; echo; else echo "(token file unreadable by this user)"; fi
             echo "=== a 35s stream probe: $CAMERA (bytes received while go2rtc waits up to #timeout=30 for the on-demand camera) ==="
             curl -s -m 35 -o /dev/null -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/stream.mp4?src=$CAMERA" || echo "stream probe ended/timed out"
+            # DR-1097 fifteenth read: the road the PHONE takes. The app's build points
+            # at the Funnel (deploy-cloudflare-pages.yml UNLOCK_CAMS_BASE), and every
+            # instrument above asks loopback. So ask the way the tab asks: Funnel
+            # hostname, Origin poetech.us, the family bearer, a ticket, then the
+            # tile's own frame and its own live MP4. The bearer and the ticket are
+            # never printed; only codes, sizes, timings, headers named below and
+            # the codec boxes the first bytes carry.
+            if [ -n "$TOK" ]; then
+              for ROAD in "http://127.0.0.1:8773" "https://poetech.tail5a2f35.ts.net/cams"; do
+                echo "=== the tab's own asks for $CAMERA via $ROAD ==="
+                curl -s -m 25 -o /tmp/tab.jpg -D /tmp/tab.h -w '  frame ?w=640: HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' \
+                  -H "Authorization: Bearer $TOK" -H 'Origin: https://poetech.us' "$ROAD/snap/$CAMERA.jpg?w=640" || echo "  frame: no answer"
+                grep -i -E '^(content-type|access-control-allow-origin):' /tmp/tab.h 2>/dev/null | sed 's/^/    /' | tr -d '\r'
+                TK="$(curl -s -m 15 -X POST -H "Authorization: Bearer $TOK" -H 'Origin: https://poetech.us' -H 'Content-Type: application/json' \
+                  --data "{\"camera\":\"$CAMERA\"}" "$ROAD/ticket" | python3 -c 'import json,sys
+          try: print(json.load(sys.stdin).get("ticket") or "")
+          except Exception: print("")')"
+                if [ -z "$TK" ]; then echo "  ticket: none issued"; continue; fi
+                echo "  ticket: issued (never printed)"
+                curl -s -m 25 -o /tmp/tab.mp4 -D /tmp/tab.mh -w '  live .mp4 for 25 s: HTTP %{http_code}, first byte at %{time_starttransfer}s, %{size_download} bytes\n' \
+                  -H 'Origin: https://poetech.us' "$ROAD/live/$CAMERA.mp4?t=$TK" || true
+                grep -i -E '^(content-type|access-control-allow-origin):' /tmp/tab.mh 2>/dev/null | sed 's/^/    /' | tr -d '\r'
+                python3 - /tmp/tab.mp4 <<'PYC'
+          import sys
+          b = open(sys.argv[1], "rb").read(512 * 1024) if sys.argv[1] else b""
+          boxes = [k for k in (b"ftyp", b"moov", b"moof", b"mdat", b"avc1", b"avc3", b"hvc1", b"hev1", b"mp4a", b"opus") if k in b]
+          print("    codec boxes in the first %d bytes: %s" % (len(b), ", ".join(x.decode() for x in boxes) or "none"))
+          PYC
+                rm -f /tmp/tab.jpg /tmp/tab.h /tmp/tab.mp4 /tmp/tab.mh
+              done
+            fi
             echo "=== docker logs poetech-wyze-bridge AFTER the probes (last 30 lines, scrubbed): the bridge's reaction to $CAMERA ==="
             if [ -n "$DOCKER" ]; then $DOCKER logs --tail 30 poetech-wyze-bridge 2>&1 | scrub; fi
           fi
