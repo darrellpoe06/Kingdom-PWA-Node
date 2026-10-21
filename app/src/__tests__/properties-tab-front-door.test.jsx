@@ -50,6 +50,7 @@ return {
 const appProps = [];
 vi.mock('../modules/properties/PropertiesApp.jsx', () => ({
   default: (props) => { appProps.push(props); return createElement('div', { 'data-testid': 'properties-app' }, 'backend'); },
+  PREVIEW_ROLES: ['tenant', 'household', 'field_worker', 'manager'],
 }));
 const sent = [];
 vi.mock('../modules/properties/cloud.js', async (importOriginal) => ({
@@ -118,15 +119,33 @@ describe('the Properties tab: the front door, then Edit', () => {
     expect(initialPane({ address: { tab: null, door: null }, storage: { getItem() { throw new Error('blocked'); } } })).toBe('front');
   });
 
-  it('PROVEN TO CATCH: "I live here" shows the step a tenant takes, never a second sign-in for the owner, and leads to Edit', async () => {
+  it('PROVEN TO CATCH: "I live here" never signs the owner in again, and opens the tenant\'s own signed-in screens over the owner\'s doors', async () => {
     const el = await mount();
     await click(el.querySelector('[data-portal="tenant"]'));
     expect(el.querySelector('[data-testid="sign-in-panel"]')).toBeTruthy();
     expect(el.querySelector('[data-testid="preview-sign-in"]').textContent).toMatch(/held in this preview/);
     expect(el.querySelector('input[type="email"], input[type="password"]')).toBeNull();
     expect([...el.querySelectorAll('button')].some((b) => /Sign in \/ create a profile/.test(b.textContent))).toBe(false);
+    await click(el.querySelector('[data-testid="preview-view-as"]'));
+    expect(el.querySelector('[data-testid="properties-view-as"]').getAttribute('data-role')).toBe('tenant');
+    expect(el.querySelector('[data-testid="properties-view-as-banner"]').textContent).toMatch(/Seen as a tenant[\s\S]*recorded as you, the owner/);
+    expect(appProps.at(-1).viewAs).toBe('tenant');
+    expect(appProps.at(-1).surface).toBe('poetech');
+    await click(el.querySelector('[data-testid="properties-view-as-back"]'));
+    expect(el.querySelector('[data-testid="properties-portal-cards"]')).toBeTruthy();
+  });
+
+  it('the 1099 worker and the manager open their own faces too; "I own properties" opens the backend', async () => {
+    const el = await mount();
+    await click(el.querySelector('[data-portal="field_worker"]'));
+    await click(el.querySelector('[data-testid="preview-view-as"]'));
+    expect(appProps.at(-1).viewAs).toBe('field_worker');
+    await click(el.querySelector('[data-testid="properties-pane-front"]'));
+    await click(el.querySelector('[data-portal="landlord"]'));
+    expect(el.querySelector('[data-testid="preview-view-as"]')).toBeNull();
     await click(el.querySelector('[data-testid="preview-to-edit"]'));
     expect(el.querySelector('[data-testid="properties-app"]')).toBeTruthy();
+    expect(appProps.at(-1).viewAs ?? null).toBe(null);
   });
 
   it('PROVEN TO CATCH: "Looking for a place" shows the live listings and the full application, and nothing is sent from the owner\'s seat', async () => {

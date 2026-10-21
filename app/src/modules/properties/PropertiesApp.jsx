@@ -279,7 +279,15 @@ const KIND_LABEL = {
  *                   Absent in the Poe Properties door: the money river runs
  *                   books-side by design (0150's posting trigger enforces it).
  */
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null }) {
+// THE OWNER SEES WHAT HIS PEOPLE SEE (Darrell, 2026-10-21: "I want the
+// landlords to get the same or almost the same experience as tenants...
+// Because then they will already know their tenants experience before they
+// send them into the Poe Properties App"). `viewAs` renders this workspace with
+// that role's face and tabs (PREVIEW_ROLES) over the doors the owner already
+// reads. Only the FACE changes: anything sent from a preview is still recorded
+// as the person really signed in (realRole), never as the tenant.
+export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
@@ -670,7 +678,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // 2. The role. Derived from what the database actually returned for THIS person:
   //    a household membership, a capability grant, or (the family's own session)
   //    the fact that they can see doors with no delegated grant at all.
-  const role = useMemo(() => {
+  const realRole = useMemo(() => {
     if (household.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
     if (grants.includes('request.manage') || grants.includes('rentroll.view')) return 'manager';
     if (grants.includes('docs.add') || grants.includes('property.history')) return 'field_worker';
@@ -691,8 +699,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     }
     return 'tenant';
   }, [grants, household, activeDoor, surface, rentals, seat]);
+  const previewing = Boolean(viewAs && PREVIEW_ROLES.includes(viewAs));
+  const role = previewing ? viewAs : realRole;
 
-  const face = useMemo(() => resolveFace(role, grants), [role, grants]);
+  const face = useMemo(() => resolveFace(role, previewing ? (ROLE_CEILING[role] || []) : grants), [role, grants, previewing]);
 
   // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0998). Once a
   // session, in the background, for the family only: each building with a
@@ -702,7 +712,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // lookups, one a second); a door already on the map is never touched.
   const placing = useRef(false);
   useEffect(() => {
-    if (role !== 'owner' || !rentals.length || placing.current) return;
+    if (realRole !== 'owner' || !rentals.length || placing.current) return;
     placing.current = true;
     (async () => {
       const save = (id, patch, summary) => updateRental(id, patch, { summary });
@@ -718,7 +728,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       const r = a && a.ok ? await placeDoorsOnTheMap({ rentals: held.rentals, placed: a.placed, save }) : { placed: [] };
       if (r.placed.length || held.done.length) boot();
     })().catch(() => {});
-  }, [role, rentals, boot]);
+  }, [realRole, rentals, boot]);
   // THE FIRST SCREEN IS THE DOORS. The landing tab used to be "the first tab
   // that is not locked", which put the landlord on his Doors only BECAUSE the
   // Work board above it was wrongly locked (model.js, 2026-09-08). With the
@@ -828,10 +838,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // Never a silent return: a dead control that says nothing is the
     // defect Darrell met on this very tab (DR-0870).
     if (!workDoor) { say(WHY_NO_DOOR['no-door']); return; }
-    const built = buildMaintenanceRequest({ ...form, tenancyId: workDoor.tenancyId, byRole: role });
+    const built = buildMaintenanceRequest({ ...form, tenancyId: workDoor.tenancyId, byRole: realRole });
     const res = await fileWorkOrder({
       instance_id: workDoor.instanceId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
-      created_by_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
+      created_by_role: realRole === 'owner' ? 'landlord' : realRole === 'field_worker' ? 'worker' : realRole,
       title: built.title || form.title, detail: built.detail || form.detail || null,
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
     });
@@ -906,7 +916,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     const a = await assignWorkOrder(request.id, rec.assign);
     if (!a || !a.ok) { say(`Not recorded: ${(a && a.reason) || 'the assignment did not save'}`); return; }
     if (rec.status && rec.status !== request.status) await setWorkOrderStatus(request.id, rec.status);
-    await postNote(buildTenancyNote({ instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, requestId: request.id, authorRole: role, body: rec.note }));
+    await postNote(buildTenancyNote({ instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, requestId: request.id, authorRole: realRole, body: rec.note }));
     say(`${request.title}: sent to ${worker.name}, and the record says so.`);
     refresh();
   };
@@ -923,7 +933,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (!d.ok) { say(WHY_NO_DOOR[d.reason] || `Not sent: ${d.reason}`); return; }
     const res = await postMessage({
       instanceId: d.door.instance_id, tenancyId: d.door.id, body: body.trim(),
-      fromRole: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
+      fromRole: realRole === 'owner' ? 'landlord' : realRole === 'field_worker' ? 'worker' : realRole,
     });
     say(res.ok ? 'Sent, and on the record.' : `Not sent: ${res.reason}`);
     refresh();
@@ -933,7 +943,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (!body.trim()) return;
     if (!workDoor) { say(WHY_NO_DOOR['no-door']); return; }
     const res = await postNote(buildTenancyNote({
-      instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, authorRole: role, body,
+      instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, authorRole: realRole, body,
     }));
     say(res.ok ? 'Note added to the record.' : `Not saved: ${res.reason}`);
     refresh();
@@ -1536,7 +1546,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   const res = await recordRent({
                     instanceId: workDoor.instanceId, tenancyId: tenantOnDoor, rentalId: workDoor.rentalId,
                     amount: row.amount, forPeriod: row.for_period, method: row.method, memo: row.memo,
-                    paidOn: row.paid_on, role: role === 'owner' ? 'landlord' : 'manager', status: 'confirmed',
+                    paidOn: row.paid_on, role: realRole === 'owner' ? 'landlord' : 'manager', status: 'confirmed',
                   });
                   refresh();
                   return res;

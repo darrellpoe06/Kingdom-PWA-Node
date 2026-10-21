@@ -443,7 +443,7 @@ function OwnSpace({ session }) {
 // full but not sent from the owner's seat, and the sign-in step says where a
 // tenant lands instead of signing the owner in again. A link's ?apply= or
 // ?listing= belongs to the public door, so the preview starts at the welcome.
-export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit = null } = {}) {
+export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit = null, onViewAs = null } = {}) {
   // A QR on a vacant unit lands here with ?apply=<rental id>. Someone who
   // scanned a code at a property has already answered "who are you" — they are
   // asking about that unit — so the who-picker is skipped rather than made into
@@ -648,7 +648,12 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
                 This is the step a {chosen.id === 'landlord' ? 'landlord' : 'person'} takes here: <strong>Sign in / create a profile</strong>,
                 then they land in their own seat. You are already signed in as the owner, so the button is held in this preview.
               </p>
-              {onEdit ? <button type="button" onClick={onEdit} className={`pp-btn mt-4 ${FOCUS_RING}`} data-testid="preview-to-edit">Open the backend (Edit)</button> : null}
+              {chosen.id !== 'landlord' && onViewAs ? (
+                <button type="button" onClick={() => onViewAs(chosen.id)} className={`pp-btn mt-4 ${FOCUS_RING}`} data-testid="preview-view-as">
+                  See what they see after signing in
+                </button>
+              ) : null}
+              {chosen.id === 'landlord' && onEdit ? <button type="button" onClick={onEdit} className={`pp-btn mt-4 ${FOCUS_RING}`} data-testid="preview-to-edit">Open the backend (Edit)</button> : null}
             </div>
           )}
           {!preview && !wantsAuth && (

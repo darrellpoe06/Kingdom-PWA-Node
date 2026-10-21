@@ -17,7 +17,7 @@
 // ?door=, DR-0901) opens Edit, since that is where the link points.
 // =============================================================================
 import React, { Suspense, lazy, useState } from 'react';
-import PropertiesApp from './PropertiesApp.jsx';
+import PropertiesApp, { PREVIEW_ROLES } from './PropertiesApp.jsx';
 import { addressNow } from './use-address.js';
 import { WELCOME_CSS } from '../../components/PoePropertiesWelcome.jsx';
 import { useThemePref } from '../../lib/theme-css.js';
@@ -45,11 +45,17 @@ function savePane(id) {
 }
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+const SEEN_AS = Object.freeze({ tenant: 'a tenant', household: 'a household member', field_worker: 'a 1099 worker', manager: 'a manager' });
 
 export default function PropertiesTab(props) {
   const [pane, setPaneRaw] = useState(() => initialPane({ address: addressNow() }));
   const setPane = (id) => { savePane(id); setPaneRaw(id); };
   const [theme] = useThemePref('cream');
+  // "See what they see after signing in": the same workspace with that role's
+  // face, over the doors this owner reads (PropertiesApp viewAs). Not kept on
+  // the device: a preview is a visit, the tab comes back to the door or Edit.
+  const [viewAs, setViewAs] = useState(null);
+  const pick = (id) => { setViewAs(null); setPane(id); };
   return (
     <div data-testid="properties-tab">
       <div className="flex flex-wrap items-center gap-2 mb-3" role="tablist" aria-label="Properties: front door or backend">
@@ -58,20 +64,28 @@ export default function PropertiesTab(props) {
             key={p.id}
             type="button"
             role="tab"
-            aria-selected={pane === p.id}
-            onClick={() => setPane(p.id)}
+            aria-selected={!viewAs && pane === p.id}
+            onClick={() => pick(p.id)}
             title={p.hint}
             data-testid={`properties-pane-${p.id}`}
-            className={`min-h-[44px] px-4 border text-xs uppercase tracking-wider ${pane === p.id ? 'bg-[#2F5D50] border-[#2F5D50] text-white' : 'border-[#1A1815] text-[#1A1815]'} ${FOCUS}`}
+            className={`min-h-[44px] px-4 border text-xs uppercase tracking-wider ${!viewAs && pane === p.id ? 'bg-[#2F5D50] border-[#2F5D50] text-white' : 'border-[#1A1815] text-[#1A1815]'} ${FOCUS}`}
           >{p.label}</button>
         ))}
-        <span className="text-xs text-[#5A5751]">{pane === 'front' ? 'Your front door, exactly as your tenants and applicants see it' : 'The backend your tenants never see'}</span>
+        <span className="text-xs text-[#5A5751]">{viewAs ? `Seeing your doors as ${SEEN_AS[viewAs]} sees them` : pane === 'front' ? 'Your front door, exactly as your tenants and applicants see it' : 'The backend your tenants never see'}</span>
       </div>
-      {pane === 'front' ? (
+      {viewAs ? (
+        <div data-testid="properties-view-as" data-role={viewAs}>
+          <div className="border-l-4 border-[#B85838] bg-white p-2 mb-3 text-xs text-[#1A1815]" role="status" data-testid="properties-view-as-banner">
+            <strong>Seen as {SEEN_AS[viewAs]}.</strong> These are the screens they get after signing in, over your own doors. Anything you send from here is real and is recorded as you, the owner.
+            <button type="button" onClick={() => setViewAs(null)} className={`ml-2 underline ${FOCUS}`} data-testid="properties-view-as-back">Back to the front door</button>
+          </div>
+          <PropertiesApp {...props} viewAs={viewAs} />
+        </div>
+      ) : pane === 'front' ? (
         <div data-theme={theme === 'cream' ? undefined : theme} className="pp-door rounded overflow-hidden px-3 sm:px-4" data-testid="properties-front-door">
           <style>{WELCOME_CSS}</style>
           <Suspense fallback={<p className="text-xs p-3">Opening the front door…</p>}>
-            <FrontDoor preview onEdit={() => setPane('edit')} />
+            <FrontDoor preview onEdit={() => pick('edit')} onViewAs={(r) => setViewAs(PREVIEW_ROLES.includes(r) ? r : null)} />
           </Suspense>
         </div>
       ) : (
