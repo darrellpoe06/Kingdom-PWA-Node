@@ -1235,6 +1235,26 @@ const NODES = [
   // workflow's state and whether it has ever run, reads the enabled flags out
   // of services.json, and files ONLY the genuinely broken class -- a clock set
   // with nothing behind it -- on the rolling ledger the OpsBoard already reads.
+  // DR-1147: the collision no branch-local gate can see. Reads the base ref's
+  // records and every OTHER open PR's ADDED records -- the union -- and fails
+  // only when a number this branch introduces is already held by a different
+  // MERGED record. A race between two open PRs is reported, never failed.
+  wf('dr-number-claim.yml', {
+    id: 'dr-number-claim', name: 'A number claimed twice, caught before the merge (DR-1147)',
+    purpose: 'On any pull request touching docs/decisions: reads the base branch\u2019s decision numbers and every other open PR\u2019s added records, then fails the check only for a number a different merged record already holds, naming both records and the renumber command. A number two open PRs both want is reported as a race, because merge order has not decided it.',
+    reads: [
+      { res: 'gh:pr', token: 'pulls?state=open' },
+      { res: 'gh:main', token: 'ls-tree' },
+    ],
+    writes: [
+      // The check RESULT is the real output: auto-merge reads gh:check, so a
+      // failing claim check is what keeps the lane from landing the PR. The
+      // comment is advice beside it, on the same sink keep-prs-current uses.
+      { res: 'gh:check', token: 'exit 1' },
+      { res: 'gh:pr-advice', token: 'dr-number-claim' },
+    ],
+    seeds: ['auto-merge'],
+  }),
   wf('fleet-census.yml', {
     id: 'fleet-census', name: 'Census of our own jobs (DR-1140)',
     purpose: 'Weekly and on dispatch: counts every job in all three fleets, asks GitHub for each workflow’s state and exact run count, and keeps “never ran” apart from “nobody asked”. Files an incident only for a job nothing can fire, or a scheduled job with no run in retained history.',
