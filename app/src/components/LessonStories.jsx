@@ -27,6 +27,8 @@ import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import { referencesIn } from '../lib/verse-refs.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { storyHeading, storyFootnote } from '../lib/story-truth.js';
+// One draft road, the Thinking Space's own (DR-1181).
+import { readFormDraft, writeFormDraft, clearDraft, hasWords } from '../lib/draft-autosave.js';
 import {
   STORY_TONES, validateSubmission, saveDraft, submitStory,
   perspectivesForLesson, perspectiveDraftFor, fetchLessonPerspectives,
@@ -70,10 +72,30 @@ function StoryOption({ story, note, testId }) {
 }
 
 export function AddPerspective({ lesson, onSubmitted }) {
-  const [form, setForm] = useState(() => perspectiveDraftFor(lesson));
+  // YOUR WORDS ARE KEPT WHILE YOU WRITE THEM (DR-1181). Darrell, 2026-10-21:
+  // "Where did my text and typing go?!!!!!!!!!!!!!!!!"
+  //
+  // This form held a title, a verse, "Who lived it" and a SIX-ROW story body in
+  // React state alone. `perspectiveDraftFor` is, by its own docstring, "The
+  // empty form for a new perspective" — it persists nothing. A reload, a phone
+  // discarding the tab, or any remount took the whole story, and the form's own
+  // copy promised "Saved on this device... nothing is lost", which was true
+  // only AFTER a submit that failed to reach the queue.
+  //
+  // Now every keystroke is kept on this device, per lesson, by the same keeper
+  // the Thinking Space has used since 2026-07-10 — one draft road, not two. The
+  // consent box is deliberately NOT restored (draft-autosave NEVER_RESTORED):
+  // the words come back, the attestation is made again by the person.
+  const surface = `lesson-perspective:${lesson?.id || 'unknown'}`;
+  const blank = perspectiveDraftFor(lesson);
+  const [form, setForm] = useState(() => readFormDraft(surface, blank, undefined, blank));
   const [errors, setErrors] = useState([]);
   const [notice, setNotice] = useState('');
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const set = (k) => (e) => setForm((f) => {
+    const next = { ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value };
+    writeFormDraft(surface, next, undefined, undefined, blank);
+    return next;
+  });
   const testimony = form.kind === 'testimony';
 
   const submit = async (e) => {
@@ -85,6 +107,10 @@ export function AddPerspective({ lesson, onSubmitted }) {
     const res = await submitStory(form);
     if (res && res.ok) {
       setNotice('Shared. It is in the review queue, and everyone in this space will see it here once a steward has reviewed it.');
+      // The draft is cleared ONLY on a share that actually reached the queue.
+      // A signed-out save or a failed reach leaves it exactly where it is, so
+      // the next visit still has the words (DR-1181).
+      clearDraft(surface);
       setForm(perspectiveDraftFor(lesson));
       if (onSubmitted) onSubmitted(res.row);
     } else if (res && res.skipped === 'signed-out') {
@@ -104,6 +130,16 @@ export function AddPerspective({ lesson, onSubmitted }) {
         <p className="text-[0.75rem] text-[#1A1815]" style={serif}>
           A story from your own life that this lesson brought to mind, or a parable you would tell to land it. Call it what it truly is: a true story carries your name and your consent; a parable is a picture, not a record.
         </p>
+        {/* SAY THAT THE WORDS ARE KEPT (DR-1181). A save nobody can see does
+            not restore the trust a lost story took: the person who has just
+            watched a page eat six rows of their own writing needs to be told,
+            on the screen, that this one holds. Shown only once there is
+            something to keep, so an untouched form makes no promise. */}
+        {hasWords(form, blank) && (
+          <p className="text-[0.6875rem] text-[#5A6E3D]" style={serif} data-testid="perspective-kept">
+            Kept on this device as you write — close this, reload, come back tomorrow, and your words are still here. They reach your space only when you tap Share.
+          </p>
+        )}
         <fieldset className="flex flex-wrap gap-3 text-[0.75rem] text-[#1A1815]">
           <legend className={labelCls}>What it is</legend>
           <label className="inline-flex items-center gap-1 min-h-[36px]"><input type="radio" name={`lp-kind-${lesson.id}`} value="testimony" checked={form.kind === 'testimony'} onChange={set('kind')} /> A true story I lived</label>
