@@ -1406,6 +1406,25 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0302-a-door-keeps-what-its-meter-said.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0302-door-meter-smoke.sql 2>&1 | tee "$RUNNER_TEMP/door-meter.txt"
           grep -q 'DOOR METER SMOKE: PASS' "$RUNNER_TEMP/door-meter.txt"
+          # 0306 (DR-1167): a tenant sees their own tenancy, from the day it
+          # became theirs. A vacant unit record claimed by a new tenant shows
+          # them nothing the landlord wrote before the claim; the household
+          # reads what the tenant reads; the landlord reads everything; an
+          # ended tenancy keeps its history for the tenant it names and shows
+          # none of it to a stranger who claims it.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0306-a-tenant-sees-their-own-tenancy-from-the-day-it-became-theirs.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0306-tenant-window-smoke.sql 2>&1 | tee "$RUNNER_TEMP/tenant-window.txt"
+          grep -q 'TENANT WINDOW SMOKE: PASS' "$RUNNER_TEMP/tenant-window.txt"
+          # 0307 (DR-1166): a building is counted before it is built. The owner
+          # keeps a development project and every record under it (budget
+          # lines, change orders, commercial bays, phase checks, the capital
+          # stack); an admin writes; a member reads but does not write; a
+          # VIEWER and another instance read nothing; a line cannot be filed
+          # under another instance's project; a passed check and an approved
+          # change order must carry their dates; a blank amount stays NULL.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0307-a-building-is-counted-before-it-is-built.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0307-development-smoke.sql 2>&1 | tee "$RUNNER_TEMP/development.txt"
+          grep -q 'DEVELOPMENT SMOKE: PASS' "$RUNNER_TEMP/development.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

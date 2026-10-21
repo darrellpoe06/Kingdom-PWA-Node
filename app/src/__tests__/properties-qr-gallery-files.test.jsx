@@ -151,7 +151,7 @@ describe('a property\'s pictures', () => {
 
   it('says it is empty when it is', () => {
     const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
-    expect(txt(host)).toMatch(/No pictures on this property yet/);
+    expect(txt(host)).toMatch(/No pictures filed to this door.s record yet/);
   });
 
   it('shows each picture with its caption, kind and room', () => {
