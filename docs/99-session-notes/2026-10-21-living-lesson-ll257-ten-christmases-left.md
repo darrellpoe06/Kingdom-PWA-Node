@@ -17,9 +17,9 @@ interviewer "James" exactly once and never names the man answering. There are no
 `voice:DP` tags (DR-0712), so this is **not Darrell teaching and not Bishop Gwin teaching**
 (DR-0719). The lesson says so in its first paragraph and never guesses a voice.
 
-**Every figure is the man's own claim and the lesson asserts none of them** — thirty-five software
-companies, an exit of $670 million, a channel of 26 million followers, an age of 67, ten Christmases
-left, combat in the Gulf War in 1991. **Nobody here checked one of them**, and the lesson says that
+**Every figure is a speaker's own claim and the lesson asserts none of them** — the man answering
+claimed thirty-five software companies, an exit of $670 million, an age of 67, ten Christmases left
+and combat in the Gulf War in 1991; the man **filming** claimed the channel of 26 million followers. **Nobody here checked one of them**, and the lesson says that
 sentence out loud. The money, company and follower figures are pinned **absent from every age
 band** by test; the two numbers the teaching actually works from (67, and ten Christmases) are his
 too and are attributed wherever they appear.

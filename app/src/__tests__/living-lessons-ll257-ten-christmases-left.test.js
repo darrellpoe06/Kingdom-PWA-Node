@@ -296,7 +296,10 @@ describe('L257 — what the recording is, said plainly before the teaching', () 
   });
 
   it('attributes every figure to the man on camera and asserts none of them', () => {
-    expect(L.lesson).toContain('Every figure in the clip is his own claim and this lesson asserts none of them');
+    expect(L.lesson).toContain('Every figure in the clip is a speaker’s own claim and this lesson asserts none of them.');
+    // the followers claim belongs to the man FILMING, not the man answering
+    expect(L.lesson).toContain('the man filming claimed a channel of twenty-six million followers');
+    expect(L.lesson).toContain('The man answering claimed thirty-five software companies');
     expect(L.lesson).toContain('Nobody here checked one of them.');
     for (const f of ['thirty-five software companies', 'six hundred and seventy million dollars', 'twenty-six million followers', 'ten Christmases left', 'the Gulf War in 1991']) {
       expect(L.lesson, `provenance drops the claim: ${f}`).toContain(f);
