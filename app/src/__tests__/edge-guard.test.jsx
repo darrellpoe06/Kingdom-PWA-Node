@@ -42,10 +42,16 @@ describe('edge-guard client', () => {
     expect(r).toMatchObject({ ok: false, reason: 'signed-out' });
     expect(touched).toBe(false);
   });
-  it('the SPA shell (text/html) means the road is not open yet, and says which workflow opens it', async () => {
+  it('the SPA shell (text/html) means the road is not open yet, says the site itself is fine, and names the token that opens it (DR-1180)', async () => {
     const r = await edgeCall('/bots', {}, async () => new Response('<!doctype html><html></html>', { headers: { 'content-type': 'text/html' } }));
     expect(r).toMatchObject({ ok: false, reason: 'no-road' });
+    expect(r.message).toContain('open through Pages');
+    expect(r.message).toContain('Cloudflare token');
+    expect(r.message).toContain('Workers Scripts:Edit');
     expect(r.message).toContain('cf-roads-worker.yml');
+    // The old wording asked the steward to dispatch a deploy the token could
+    // not carry out; the ask is now the token, and the deploy follows it.
+    expect(r.message).not.toMatch(/^.*Dispatch cf-roads-worker/);
   });
   it('a network failure and a non-JSON answer are named, never thrown', async () => {
     expect(await edgeCall('/bots', {}, async () => { throw new Error('offline'); })).toMatchObject({ ok: false, reason: 'network' });

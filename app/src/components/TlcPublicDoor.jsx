@@ -24,12 +24,15 @@ import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
 import TTSControl from './TTSControl.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
-import HeaderAuthButton from './HeaderAuthButton.jsx';
+import HeaderAuthButton, { headerName } from './HeaderAuthButton.jsx';
+import { loadMyProfile } from '../lib/profiles-sync.js';
+import TlcHome from './TlcHome.jsx';
+import TlcDoorDock from './TlcDoorDock.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { THEME_CSS, THEMES, TLC_DEFAULT_THEME, useThemePref } from '../lib/theme-css.js';
-import { TLC_CARD, TLC_BAND, TLC_BTN_PRIMARY, TLC_BTN_SECONDARY, TLC_EYEBROW, TLC_CHIP, TLC_ICON_WELL, TLC_PORTRAIT } from '../lib/tlc-ui.js';
+import { TLC_CARD, TLC_BTN_PRIMARY, TLC_BTN_SECONDARY, TLC_EYEBROW, TLC_CHIP, TLC_ICON_WELL, TLC_PORTRAIT } from '../lib/tlc-ui.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
 import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
@@ -84,20 +87,11 @@ function OnboardingDoor({ token, signedIn }) {
 function ClientDoor() {
   const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-      {/* The welcome band — what this door is for, in one breath. The three
-          verbs name the three tabs a visitor already has (Find · Book · Learn). */}
-      <section className={`${TLC_BAND} flex items-start gap-4`} aria-label="Welcome">
-        <span className={`${TLC_ICON_WELL} bg-white`} aria-hidden="true"><UiIcon name="heart" /></span>
-        <div className="min-w-0">
-          <div className={TLC_EYEBROW}>Welcome</div>
-          <p className="text-lg sm:text-xl leading-snug text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>Find your therapist, book online, and learn at your own pace.</p>
-          <p className="text-sm text-[#5A5751] mt-1">{TLC_BRAND.blurb}</p>
-        </div>
-      </section>
-
-      {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
-      <section>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-2 pb-6 sm:pb-8 space-y-8">
+      {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see");
+          the welcome card above it is TlcHome's (DR-1171), and its "Continue
+          without an account" lands here. */}
+      <section id="tlc-find-team">
         <div className={TLC_EYEBROW}>Clinical Team</div>
         <h2 className="text-2xl mb-4" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Match a Preferred Provider</h2>
         {/* ts-grid-collapse: one readable column at Largest/Big Print — two
@@ -207,12 +201,23 @@ export default function TlcPublicDoor() {
   // here) · Join the team (the open positions). A link picks the tab.
   const [visitorTab, setVisitorTab] = useState(deepLink ? 'learn' : jobsLink.jobs ? 'jobs' : 'find');
   const visitorSections = [
-    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    // THE FIRST SECTION IS THE HOME (DR-1171): the welcome card, the quick
+    // actions, then Match a Preferred Provider — the reference's first screen
+    // over the door's first section, one tab, so every deep link and every
+    // test that lands on 'find' still lands on the providers.
+    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn={false} tiles={visitorTiles} onSignIn={() => openAuth('signin')} onCreateAccount={() => openAuth('signup')} onBrowse={visitorTiles[0].onOpen} /><ClientDoor /></> },
     // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
     { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest readAloud={false} onFindTherapist={() => setVisitorTab('find')} onCreateAccount={() => openAuth('signup')} /></div> },
     { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} interest={jobsLink.interest} /></div> },
   ]; // the one slider, controlled so Team can send you to a sister tab
+  const visitorTiles = [
+    { id: 'find-team', label: 'Find your therapist', sub: 'Match a preferred provider', icon: 'users', onOpen: () => { try { document.getElementById('tlc-find-team')?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch { /* non-browser */ } } },
+    { id: 'book', label: 'Book an appointment', sub: 'Online, in a few taps', icon: 'calendar', href: TLC_BRAND.bookingUrl },
+    { id: 'learn', label: 'Mental skills', sub: 'Lessons, free to read', icon: 'bookOpen', onOpen: () => setVisitorTab('learn') },
+    { id: 'jobs', label: 'Join the team', sub: 'Open positions', icon: 'pencil', onOpen: () => setVisitorTab('jobs') },
+  ];
   const [showShare, setShowShare] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
   // These are platform staples: every surface must be resizable + re-themeable.
@@ -267,6 +272,11 @@ export default function TlcPublicDoor() {
   const [sessionUserId, setSessionUserId] = useState(null);
   const [colleague, setColleague] = useState(null); // the signed-in person's own intake packet, if any
   useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setSessionEmail(s?.user?.email || ''); setSessionUserId(s?.user?.id || null); if (s) myPacketStatus().then(setColleague); else setColleague(null); }), []);
+  // The greeting's name (DR-1171): the chosen profile name, else the sign-in's
+  // own handle — the same rule the bar's chip uses (headerName).
+  const [profile, setProfile] = useState(null);
+  useEffect(() => { if (!signedIn) { setProfile(null); return; } let live = true; loadMyProfile().then((p) => { if (live) setProfile(p || null); }).catch(() => {}); return () => { live = false; }; }, [signedIn]);
+  const greetName = headerName(profile, { user: { email: sessionEmail } });
 
 
   // The signed-in person's REAL role, from the database (DR-0271 / DR-0220 P3)
@@ -292,7 +302,7 @@ export default function TlcPublicDoor() {
   ) }] : []);
   // ONE slider, side by side, no second row (Darrell 2026-09-10).
   const sections = [
-    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    { id: 'find', label: 'Find your therapist', dockLabel: 'Home', icon: 'home', render: () => <><TlcHome signedIn name={greetName} tiles={memberTiles} /><ClientDoor /></> },
     ...officeSection('inquiries', 'Inquiries', 'phone', 'inquiries'),
     ...officeSection('growth', 'Client Growth', 'chart', 'growth'),
     ...officeSection('revenue', 'Revenue', 'coins', 'revenue'),
@@ -324,6 +334,21 @@ export default function TlcPublicDoor() {
     ...(canManageTeam(roleState) ? [{ id: 'onboarding', label: 'Onboarding', icon: 'pencil', render: () => <TlcOnboarding /> }] : []),
   ];
 
+  // The quick actions of the home (DR-1171): the sections this person has,
+  // Book, and (staff) the Assistant — each a tile that opens the same tab.
+  const tileSub = { inquiries: 'New and open inquiries', growth: 'The client funnel', revenue: "The practice's numbers", training: staff || newHire ? 'Scripts, courses, sessions' : 'Your lessons', team: 'Documents and the launch board', assistant: 'The referral desk', jobs: 'Open positions', onboarding: 'Invite a colleague' };
+  const memberTiles = [
+    { id: 'find-team', label: 'Find your therapist', sub: 'Match a preferred provider', icon: 'users', onOpen: () => { try { document.getElementById('tlc-find-team')?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch { /* non-browser */ } } },
+    { id: 'book', label: 'Book an appointment', sub: 'Online, in a few taps', icon: 'calendar', href: TLC_BRAND.bookingUrl },
+    ...sections.filter((x) => x.id !== 'find').map((x) => ({ id: x.id, label: x.label, sub: tileSub[x.id] || '', icon: x.icon, onOpen: () => setActiveTab(x.id) })),
+  ];
+  // The bottom bar on a phone (DR-1171): the first four sections, then More.
+  const dockItems = (signedIn ? sections : visitorSections).map((x) => ({ id: x.id, label: x.label, dockLabel: x.dockLabel, icon: x.icon }));
+  const dockMore = [
+    { id: 'book', label: 'Book an appointment', icon: 'calendar', href: TLC_BRAND.bookingUrl },
+    { id: 'share', label: showShare ? 'Hide QR' : 'Share · QR', icon: 'link', onSelect: () => { setShowShare((v) => !v); if (headerCollapsed) toggleHeaderChrome(); } },
+    ...(signedIn ? [] : [{ id: 'signin', label: 'Sign in', icon: 'lock', onSelect: () => openAuth('signin') }]),
+  ];
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
@@ -416,7 +441,16 @@ export default function TlcPublicDoor() {
                   shared libs (theme-css / text-size) the whole PoeTech app uses.
                   ts-chrome-region: chrome must not compound with its own setting;
                   ts-escape-hatch: pinned on screen at big sizes (index.css). */}
-              <div className="mt-3 flex flex-wrap items-center gap-1.5 ts-chrome-region ts-escape-hatch bg-white" role="group" aria-label="Comfort controls">
+              {/* APPEARANCE (DR-1171): the eleven swatches and five sizes stay —
+                  every surface must be re-themeable and resizable — but behind
+                  one small toggle, so the top of the door reads as the
+                  reference's hero and not as a control panel. The group keeps
+                  its name and its place in the hideaway. */}
+              <div className="mt-3 ts-chrome-region ts-escape-hatch" role="group" aria-label="Comfort controls">
+                <button type="button" onClick={() => setAppearanceOpen((v) => !v)} aria-expanded={appearanceOpen} className="inline-flex items-center gap-1.5 min-h-[2.25rem] px-3 rounded-full border border-[#E8E4DC] text-xs text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  <UiIcon name="palette" /> Appearance <UiIcon name={appearanceOpen ? 'chevronUp' : 'chevronDown'} />
+                </button>
+                <div className={`${appearanceOpen ? 'flex' : 'hidden'} mt-2 flex-wrap items-center gap-1.5 bg-white rounded-2xl p-2`}>
                 {THEMES.map((t) => (
                   <button
                     key={t.key}
@@ -447,6 +481,7 @@ export default function TlcPublicDoor() {
                     {s.label}
                   </button>
                 ))}
+                </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2.5 ts-chrome-region">
@@ -504,12 +539,12 @@ export default function TlcPublicDoor() {
         {onboardToken ? (
           <OnboardingDoor token={onboardToken} signedIn={signedIn} />
         ) : signedIn ? (
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-            <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-24 sm:pb-6">
+            <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} stripClassName="hidden sm:block" />
           </div>
         ) : (
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-            <SectionTabs sections={visitorSections} ariaLabel="TLC door sections" idBase="tlc-door" defaultId="find" activeId={visitorTab} onActiveChange={setVisitorTab} />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-24 sm:pb-6">
+            <SectionTabs sections={visitorSections} ariaLabel="TLC door sections" idBase="tlc-door" defaultId="find" activeId={visitorTab} onActiveChange={setVisitorTab} stripClassName="hidden sm:block" />
           </div>
         )}
       </main>
@@ -517,6 +552,12 @@ export default function TlcPublicDoor() {
       {/* The single floating read-aloud control for the whole door — every
           tab, signed in or out; the same reader every PoeTech surface carries. */}
       <TTSControl />
+
+      {/* The bottom bar on a phone (DR-1171): the same sections, at the thumb.
+          Not under an onboarding link — the packet is one page, no bar. */}
+      {!onboardToken && (
+        <TlcDoorDock items={dockItems} activeId={signedIn ? activeTab : visitorTab} onSelect={signedIn ? setActiveTab : setVisitorTab} more={dockMore} />
+      )}
 
       <footer className="border-t border-[#E8E4DC] mt-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center space-y-1">

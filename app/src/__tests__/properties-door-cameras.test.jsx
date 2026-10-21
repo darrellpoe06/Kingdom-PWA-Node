@@ -134,8 +134,14 @@ describe('the landlord shares and takes back; the household watches', () => {
     expect(boxes).toHaveLength(4);
     expect(boxes.filter((b) => b.checked)).toHaveLength(2);
     expect(container.querySelector('[data-testid="door-cameras-count"]').textContent).toBe('4 cameras on the NAS; 2 at this door’s address; 2 ticked for this door.');
-    // Nobody is on the door, and the tab says so instead of implying a household.
-    expect(container.querySelector('[data-testid="door-cameras-nobody-yet"]').textContent).toContain('Nobody signs into this door yet');
+    // Nobody is on the door, and the tab says so instead of implying a
+    // household. The promise STRENGTHENED in DR-1179: this notice no longer
+    // tests how many NAMES the door carries — a lease name with no account
+    // counted as a viewer, so it never fired on the door Darrell actually
+    // shared to — but whether anybody has JOINED, and it names what to do.
+    const nobodyYet = container.querySelector('[data-testid="door-cameras-nobody-yet"]').textContent;
+    expect(nobodyYet).toMatch(/Nobody is on this door yet/);
+    expect(nobodyYet).toMatch(/People/);
     expect(container.querySelector('[data-testid="door-cameras-nobody"]').textContent).toContain('Nobody signs into this door yet');
   });
 
@@ -219,7 +225,16 @@ describe('the landlord shares and takes back; the household watches', () => {
     H.nasGrants = [];
     await mount(createElement(DoorCamerasTab, { door: SHARED_DOOR, onChange: async () => ({ ok: true }) }));
     await settle();
-    await until(() => !!container.querySelector('[data-testid="door-cameras-grant-state"]'));
+    // WAIT FOR THE ANSWER, NOT FOR THE ELEMENT. This `until` asked only that
+    // `door-cameras-grant-state` EXIST — and it exists in the loading state
+    // too, carrying "reading it from the NAS…". So on a slow runner the wait
+    // was satisfied by the loading render and the assertion raced the fetch:
+    // CI shard 2/4 on 2026-10-21 read "The door's grant: reading it from the
+    // NAS…." where it wanted "no longer holds this grant". The condition now
+    // names the state under test, so the wait cannot be satisfied early.
+    await until(() => /no longer holds this grant/.test(
+      (container.querySelector('[data-testid="door-cameras-grant-state"]') || {}).textContent || '',
+    ));
     expect(container.querySelector('[data-testid="door-cameras-grant-state"]').textContent).toMatch(/no longer holds this grant, so the tenant sees no camera/);
     expect(container.querySelector('[data-testid="door-cameras-tenant-eye"]')).toBeNull();
     await act(async () => root.unmount()); root = null; container.remove();

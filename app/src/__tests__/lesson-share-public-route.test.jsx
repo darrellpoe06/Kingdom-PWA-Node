@@ -65,6 +65,19 @@ const clickTab = (label) => {
   act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 };
 
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course is
+// open until one is chosen, so the section chips exist only inside a course.
+// The cases that arrive by a SHARED LINK get their course from the link; the
+// one that mounts plain chooses it through the picker.
+const openCourse = (courseKey) => {
+  const sel = container.querySelector('#learn-course-pick');
+  if (!sel) return;
+  act(() => {
+    Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, courseKey);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+};
+
 const TOKEN = 'k7Qm2xPa9LtB';
 
 describe('signed out, the shared link opens the lesson for reading and listening', { timeout: 60000 }, () => {
@@ -110,6 +123,7 @@ describe('signed out, the shared link opens the lesson for reading and listening
 
   it('Paper & print: signed out, the download asks for an account; signed in, the downloads are there', () => {
     mount({ signedIn: false });
+    openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Downloading needs a free account/);
     expect(container.textContent).not.toMatch(/Download \.md/);
@@ -117,6 +131,7 @@ describe('signed out, the shared link opens the lesson for reading and listening
     act(() => root.unmount());
     root = createRoot(container);
     mount({ signedIn: true });
+    openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Download \.md/);
     expect(container.textContent).not.toMatch(/Downloading needs a free account/);

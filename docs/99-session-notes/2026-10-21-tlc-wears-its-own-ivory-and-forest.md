@@ -52,3 +52,7 @@ Not in this app (the reference shows them; the brief says "wherever those featur
 ## Addendum, later the same day — "Nothing changed. Why does it still look the same" (DR-1170)
 
 The finish reached main and deployed (run 1838 green for 394ab43e) and Darrell's phone showed the old look. Cause: the door opened in TLC's colors only by a fallback, and the device's one shared preference key already held the family app's palette. Fix: a per-door theme scope (`setThemeScope`); the TLC door enters it at boot (`enterTlcDoorContext`), reads and writes its own key with its own default, and the family key is untouched. Five new cases, the shipped bug proven to catch. The church door carries the same gap by construction; dated 2026-10-28.
+
+## Addendum, the shape — "It's better but it does not look like this at all" (DR-1171)
+
+The palette was right and the layout was the old door's. The first section now carries a home (`TlcHome.jsx`: forest welcome card, greeting when signed in, the Learn space's KJV verse, quick-action tiles from the person's own sections, a schedule row), a phone bottom bar (`TlcDoorDock.jsx`, four sections + More, publishing `--chrome-dock-h` so the read-aloud and text-size floaters stand above it), and the swatches fold behind one Appearance toggle. Every test contract kept: the `find` label, the tablist, the hideaway, every anchor external. Observed at 390px: home, tucked header, More sheet, Mental skills — zero errors.

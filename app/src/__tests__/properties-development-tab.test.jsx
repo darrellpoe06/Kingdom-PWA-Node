@@ -64,6 +64,10 @@ const fakeApi = (over = {}) => ({
   patchRow: vi.fn(async () => ({ ok: true })),
   deleteRow: vi.fn(async () => ({ ok: true })),
   setCheck: vi.fn(async () => ({ ok: true })),
+  // The sixth child's writer (DR-1175). Its own surface is proven in
+  // your-team-for-building-from-nothing.test.jsx; here it only has to exist, so
+  // the Team card this tab now mounts first does not read undefined.
+  setTeamMember: vi.fn(async () => ({ ok: true })),
   ...over,
 });
 
