@@ -287,7 +287,7 @@ const KIND_LABEL = {
 // reads. Only the FACE changes: anything sent from a preview is still recorded
 // as the person really signed in (realRole), never as the tenant.
 export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
@@ -1406,7 +1406,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 only their tenancy, so the door's tenancies are read too. */}
             {(role === 'owner' || role === 'manager') && (
               <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
-                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} />
+                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} addEvent={addEvent} />
             )}
             </>
           );
