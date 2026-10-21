@@ -299,12 +299,23 @@ describe('one road to one truth — the two halves of the fold', () => {
     // It runs AFTER the verdict and cannot fail the job: a healthy witness must
     // not go red because an issue write failed, and a dark one must not go
     // green. The gate is this workflow's judgement, not its reporting.
+    //
+    // THE MECHANISM MOVED, and this case caught the move (DR-1161). It asserted
+    // `continue-on-error: true`, which is how the guarantee was first built --
+    // and that flag is exactly what hid the publish step's first real failure,
+    // because it reports a FAILED step's conclusion as `success`. The guarantee
+    // now comes from the script catching its own errors and saying them out
+    // loud, so the promise is kept AND the failure is visible. What must stay
+    // true either way is pinned here: the step comes after the verdict, and it
+    // never calls setFailed.
     const judge = LOOPS.indexOf('Judge each loop on what it wrote');
     const publish = LOOPS.indexOf('Report: publish the per-loop witness');
     expect(judge).toBeGreaterThan(0);
     expect(publish).toBeGreaterThan(judge);
-    const step = LOOPS.slice(publish, publish + 400);
-    expect(step).toMatch(/continue-on-error: true/);
+    const step = LOOPS.slice(publish, LOOPS.indexOf('Diagnose the dark loops', publish));
+    expect(step).toMatch(/catch \(e\)/);
+    expect(step).toMatch(/core\.warning/);
+    expect(step).not.toMatch(/setFailed/);
   });
 
   it('it is not filed as an incident — a healthy witness is not an outage', () => {
