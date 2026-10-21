@@ -231,3 +231,67 @@ describe('the asking half, and the line it must not cross', () => {
     expect(none.stdout).toMatch(/No introduced number is claimed/);
   });
 });
+
+// =============================================================================
+// A RACE MUST TELL BOTH SIDES (DR-1160)
+// =============================================================================
+// DR-1147 decided that a contested number REPORTS and never fails, which is
+// right: two open PRs wanting one number is a race nobody has lost, and failing
+// both would be a gate picking a winner it has no standing to pick. What it did
+// not do was make the report reach a person. It printed into a step summary, so
+// the session that merged second learned about the collision from main going
+// RED, and paid the full repair — a rename, a citation pass read by hand, a gate
+// run and a re-verify.
+//
+// MEASURED 2026-10-21: nine collisions landed on main in eleven hours. At 05:30
+// three open PRs were racing on two numbers (#2338 and #2340 both on DR-1158,
+// #2339 and #2340 both on DR-1159) and not one side had been told. DR-1147 dated
+// the question "did the warning prove enough?" for 2026-11-03; the answer came
+// thirteen days early and it was no.
+//
+// Each racing PR runs this check itself, so one comment per PR reaches every
+// side while moving is still cheap.
+describe('the race reaches a person, not only a step summary', () => {
+  const WF = readFileSync(join(REPO, '.github/workflows/dr-number-claim.yml'), 'utf8');
+
+  it('a contested verdict is detected from the reader’s own output', () => {
+    // From the SAME text the reader prints, not a second computation that could
+    // disagree with the verdict it is reporting.
+    expect(WF).toMatch(/grep -q 'CONTESTED WITH AN OPEN PR' \/tmp\/claims\.txt/);
+    expect(WF).toMatch(/contested=true/);
+    expect(WF).toMatch(/contested=false/);
+  });
+
+  it('it comments on a contested PR, and that step cannot fail the PR', () => {
+    const step = WF.slice(WF.indexOf('Tell this PR when another open PR wants'),
+      WF.indexOf('A number already on main fails this check'));
+    expect(step).toMatch(/steps\.judge\.outputs\.contested == 'true'/);
+    expect(step).toMatch(/Nobody has lost this race/);
+    // It must not exit non-zero or mark the check failed: reporting is the whole
+    // point, and a race that fails the build is the treadmill DR-1147 ended.
+    expect(step).not.toMatch(/setFailed|exit 1/);
+  });
+
+  it('the comment says who moves and when, so the reader need not re-derive it', () => {
+    const step = WF.slice(WF.indexOf('Tell this PR when another open PR wants'),
+      WF.indexOf('A number already on main fails this check'));
+    expect(step).toMatch(/merges second has to move/);
+    expect(step).toMatch(/DR-1136/);
+    expect(step).toMatch(/clean\*\* tree/);
+  });
+
+  it('one comment per PR, updated — never a new one on every push', () => {
+    const step = WF.slice(WF.indexOf('Tell this PR when another open PR wants'),
+      WF.indexOf('A number already on main fails this check'));
+    expect(step).toMatch(/updateComment/);
+    expect(step).toMatch(/listComments/);
+  });
+
+  it('and failing on a settled collision is untouched', () => {
+    // The only thing that may fail this check is still taken-on-main.
+    expect(WF).toMatch(/A number already on main fails this check/);
+    const fail = WF.slice(WF.indexOf('A number already on main fails this check'));
+    expect(fail).toMatch(/steps\.judge\.outputs\.code != '0'/);
+    expect(fail).toMatch(/exit 1/);
+  });
+});
