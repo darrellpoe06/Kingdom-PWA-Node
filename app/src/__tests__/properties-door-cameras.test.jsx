@@ -134,8 +134,14 @@ describe('the landlord shares and takes back; the household watches', () => {
     expect(boxes).toHaveLength(4);
     expect(boxes.filter((b) => b.checked)).toHaveLength(2);
     expect(container.querySelector('[data-testid="door-cameras-count"]').textContent).toBe('4 cameras on the NAS; 2 at this door’s address; 2 ticked for this door.');
-    // Nobody is on the door, and the tab says so instead of implying a household.
-    expect(container.querySelector('[data-testid="door-cameras-nobody-yet"]').textContent).toContain('Nobody signs into this door yet');
+    // Nobody is on the door, and the tab says so instead of implying a
+    // household. The promise STRENGTHENED in DR-1179: this notice no longer
+    // tests how many NAMES the door carries — a lease name with no account
+    // counted as a viewer, so it never fired on the door Darrell actually
+    // shared to — but whether anybody has JOINED, and it names what to do.
+    const nobodyYet = container.querySelector('[data-testid="door-cameras-nobody-yet"]').textContent;
+    expect(nobodyYet).toMatch(/Nobody is on this door yet/);
+    expect(nobodyYet).toMatch(/People/);
     expect(container.querySelector('[data-testid="door-cameras-nobody"]').textContent).toContain('Nobody signs into this door yet');
   });
 

@@ -12,7 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { fetchWithTimeout, authHeaders, listUrl, parseCameraList, createGrant, revokeGrant, saveGrantToken, grantLink, FETCH_TIMEOUT_MS,
   fetchGrants, grantState, grantLine, snapUrl, runLimited, SNAP_CONCURRENCY, FRAME_TIMEOUT_MS } from '../../lib/cameras.js';
 import { bridgeToken } from '../../lib/nas-photos.js';
-import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, whoSeesDoorCameras,
+import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, whoSeesDoorCameras, whoCanOpen,
   doorCameraView, grantCameraIds, tenantFrameLine, splitCamerasByDoor, offeredCameras } from './door-cameras.js';
 import { CameraAccessDesk, AskForCameras } from './CameraAccess.jsx';
 
@@ -96,6 +96,10 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
   // "Cameras tab shows no Cameras!!!!!!").
   const target = door || place;
   const viewers = whoSeesDoorCameras({ door, people });
+  // Whether anybody on this door has ACTUALLY joined — not how many names it
+  // carries (DR-1179). A lease name with no account counts as a viewer and
+  // counts for nothing when a camera has to be opened.
+  const open = whoCanOpen({ door, people });
   const [list, setList] = useState({ status: 'loading', cameras: [] });
   const [picked, setPicked] = useState([]);
   const [days, setDays] = useState(365);
@@ -187,7 +191,16 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
     seeded.current = true;
     setGrantTick((n) => n + 1);
     setBusy(false);
-    setMsg(`Shared with this door: ${note}.`);
+    // SAY AT THE MOMENT OF SHARING WHETHER THIS CAN REACH ANYBODY (DR-1179).
+    // Darrell gave Apt 1 and Apt 2 camera access and they did not get it: the
+    // grant was minted and written correctly, and nobody on either door had
+    // ever signed in, so RLS handed them no tenancy row to read it from. This
+    // tab reported plain success and left that fact in a lower fold. A share is
+    // not finished when the token is written — it is finished when somebody can
+    // open it, and when nobody can, this is the sentence that says so.
+    setMsg(open.canOpen
+      ? `Shared with this door: ${note}. ${open.words}`
+      : `Shared with this door: ${note} — but NOBODY CAN OPEN IT YET. ${open.words}`);
   };
   const takeBack = async () => {
     setBusy(true); setMsg('Taking it back…');
@@ -249,8 +262,15 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
       {shared.state === 'shared' && grantRead.status === 'ready' && grantState(grantRead.grant) !== 'live' ? (
         <p className="text-xs mt-1 text-[#B85838]" style={serif} data-testid="door-cameras-grant-state">The door&rsquo;s grant is {grantState(grantRead.grant)}: the tenant sees no camera until you share again.</p>
       ) : null}
-      {target && viewers.length === 0 ? (
-        <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-nobody-yet">Nobody signs into this door yet; what is shared shows the day they do (Who has access, below).</p>
+      {/* THE TEST THAT USED TO MISS (DR-1179): `viewers.length === 0` never
+          fired on a door carrying a tenant NAME with no account, which is
+          exactly the door Darrell shared to. What matters is whether anybody has
+          joined, and it is said HERE, beside the share state, not in the fold
+          below. Red when nothing shared here can be opened. */}
+      {target && !open.canOpen ? (
+        <p className={`text-xs mt-1 ${shared.state === 'shared' ? 'text-[#B85838] font-semibold' : 'text-[#5A5751]'}`} style={serif} data-testid="door-cameras-nobody-yet">
+          {shared.state === 'shared' ? 'Nobody can open what is shared here yet. ' : ''}{open.words}
+        </p>
       ) : null}
       {liveGrant && view.seen.length > 0 ? <TenantEye cameras={view.seen} grantToken={shared.token} /> : null}
       {liveGrant && beyond > 0 && role === 'manager' ? (
