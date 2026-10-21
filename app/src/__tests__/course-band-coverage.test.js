@@ -109,7 +109,14 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(252); // 252 on 2026-10-21: 251 was sov45 (no single witness -- the office of the critic, DR-1146),
+    expect(baseline.allFour).toBe(253); // 253 on 2026-10-21: 252 was sov46, and this is sov47 (the purse opens after the wall falls --
+    // deferred maintenance, the alarm nobody answers, and the house that droppeth through, DR-1192), built from the IT Brew issue
+    // "Downtime is money" that Darrell forwarded at 16:52 UTC with one word on it -- a DIFFERENT IT Brew issue from the one sov46
+    // was built from, which is why the date alone does not identify it. It carries all four age bands from the first commit, so
+    // adultOnly did NOT move with it. Its spine was chosen by measurement rather than by theme: the obvious reading of that article
+    // is "count the cost", which sov34 and sov38 already hold on Luke 14:28 and Matthew 7:24, so sov47 stands instead on
+    // Ecclesiastes 10:18, Proverbs 24:30-34 and Nehemiah 2:17 -- all at zero occurrences in this course before it.
+    // 252 on 2026-10-21: 251 was sov45 (no single witness -- the office of the critic, DR-1146),
     // and this is sov46 (the helper that must see everything -- Hezekiah's open treasure house, the goods that are another man's,
     // and the sight that belongs to Yahweh alone, DR-1139), built from the IT Brew issue Darrell forwarded with one word on it.
     // Both carry all four age bands from their first commit, so adultOnly did NOT move with either: the total may grow, the DEBT may not.
