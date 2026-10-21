@@ -1,0 +1,58 @@
+# Transcript of YouTube video ZmkZjUzeT6E
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 863 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+What's up, everybody? Brandon Lindsay here with the Rehab Valuator's Playbook. Part of what we
+do on this platform is help train you and teach you on our favorite project management software,
+the Rehab Valuator. And I came across a situation today. It's a perfect example to show you the
+actual value and utility that this software brings to your company. And what I had to deal with
+today, or I guess over the past week, is we have decided as a company to list one of our new
+construction homes on the market for pre-sale. And what that means is I'm going to have to come
+up with a number to list this property at without knowing the final spend on the project. But
+with the Rehab Valuator, I'm able to have a good sense of where I'm at in the budget, whether
+I'm over budget or under budget, and where that budget is ultimately going. So, I can have a
+good, confident feeling of what my final spend's going to be, so I can have a good, confident
+price that I list this this property on the market for. So, we're going to jump right in. I'm
+going to try to make this video short and sweet. Right here, we're going to scroll real quick
+through our budget. This is a budget that we made prior to construction. We have these templates
+uploaded in the Rehab Valuator, so you can use these templates and make these budgets really
+fast, just like I did. Up here, and and just to take a step back, we're in our project
+management suite within the Rehab Valuator, where you have your budget, schedule, transactions,
+and tracking spreadsheet. This is not the home page for the Rehab Valuator. I didn't want to
+show you our overall deal profit and numbers, since we're about to list this. I'm going to keep
+that private. But if you are Rehab Valuator member, you're able to see all my numbers, as you
+know. So, anyway, back to it. We just went through the budget. Now, we're going to skip over
+schedule. That's not what we're talking about right now. And we're going to go to transactions.
+These are all of the transactions that we've had on the project so far. So, these all get
+uploaded, and the great part is once you upload a transaction, it automatically links to a line
+item that you've already added to your budget in the beginning of the project. Now, let's go to
+the track cuz ultimately, this is what it spits out, a tracking spreadsheet that shows you
+exactly where you are in your budget. So, this column shows your budget that you made in the
+beginning, your budget uh price per square foot. Then, you have your actual column. This is what
+you're actually spending. You know, these are the numbers that are getting um spit out from from
+uploading your your transactions and linking them to each of these line items. And then, you're
+going to have your variance all the way on the right, ultimately telling you if you're doing
+good or bad, if you're over or under your budget. So, what you'll see for us, we have a lot of
+green. We have a few red, one big red number, and then you'll see as we go down, these are all
+the line items that have not yet um been completed. So, obviously, you can see how great this
+is. Now, all I'm going to do is I'm going to print this out, send it to my partner, send it to
+my lender, you know, whoever needs to see it to be able for us as a company to be able to make
+the right decisions going forward. And another quick note that shows you how great this is or
+something that I'm very, very happy about with this software is right here. So, say we're about
+to build five more new construction houses. What's really nice here is we have finalized our
+framing material and labor expenses, which means we have a final price per square foot on our
+framing material, framing labor. Now, we can take these numbers and go into our next couple
+projects knowing that framing material has cost me about $25 per square foot and framing labor
+was expensed at about $7 per square foot. So, these are all great things that if you're trying
+to scale as a rehabber or even just do a few rehabs per year, this is a great way for you to
+know your numbers and track your numbers and ultimately this is how you learn pricing and
+construction a lot more quickly and efficiently than any other process. So, if you have any
+questions, let me know. That's the end of this video. I'm going to post a link to the Rehab
+Valuator. You can get a first month trial or a one month trial for a dollar. I'll also post a
+link to the Rehabbers Playbook where you can get all this education and training and more. Hope
+you guys like the video. Thanks so much. Bye.
