@@ -93,7 +93,7 @@ export default function FamilyStories({ onClose = null, deps = {} }) {
   const [story, setStory] = useState(null); // {frames, i, title}
   const [uploadState, setUploadState] = useState('idle'); // idle | busy | failed | done
   const [generation, setGeneration] = useState(0);
-  // HOW LONG THE WAIT HAS BEEN, and the reason it is bounded (DR-1167).
+  // HOW LONG THE WAIT HAS BEEN, and the reason it is bounded (DR-1173).
   // "Opening the library…" was one silent line with no elapsed time and no
   // ceiling. The years call alone may take 45s, and on the legacy probe path
   // (36 months, 3 at a time, 45s each) the worst case is NINE MINUTES of that
