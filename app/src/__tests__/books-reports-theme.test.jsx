@@ -106,7 +106,7 @@ describe('the Reports section: visible, one set of controls, theme tokens only',
     const parsed = parseThemes(THEME_CSS);
     const keys = THEMES.map((t) => t.key);
     // DR-1060 added three: the church's own red/white/black, and two options.
-    // DR-1152 added TLC's own ivory & forest, riding third as the church's rides second.
+    // DR-1153 added TLC's own ivory & forest, riding third as the church's rides second.
     expect(keys).toEqual(['heritage', 'lovecorner', 'tlc', 'anchor', 'bedrock', 'cream', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
     for (const k of keys.filter((x) => x !== 'cream')) expect(parsed[k], `${k} parsed`).toBeTruthy();
   });

@@ -75,7 +75,7 @@ function OnboardingDoor({ token, signedIn }) {
 }
 
 // The client-facing booking page (the sendable front door a prospect meets).
-// THE LOOK (DR-1152, Darrell's reference): a welcome band on the ivory field,
+// THE LOOK (DR-1153, Darrell's reference): a welcome band on the ivory field,
 // then the clinical team as rounded paper cards with a round portrait, the
 // services as cards with a forest Book pill, and insurance as one quiet card
 // with its mark. Every fact still comes from tlc-practice.js + the roster;
@@ -230,7 +230,7 @@ export default function TlcPublicDoor() {
   // is exactly why this read as "the reader can't change the system" rather
   // than "the picker is broken" — it depended on which door you were standing
   // in. useThemePref both subscribes and saves, so the effect goes with it.
-  // THE DOOR OPENS IN TLC'S OWN COLORS (DR-1152): ivory and forest by its own
+  // THE DOOR OPENS IN TLC'S OWN COLORS (DR-1153): ivory and forest by its own
   // fallback, the same shape as the church door's; a device that chose keeps
   // its choice (DR-0524) and every palette stays one tap away below.
   const [theme, setTheme] = useThemePref(TLC_DEFAULT_THEME);
@@ -252,7 +252,7 @@ export default function TlcPublicDoor() {
   // (app/tlc/app/index.html) — a runtime swap on a /poetech-app/ page would
   // make that page un-installable as anything (the linked manifest's scope
   // wouldn't contain the page).
-  // The theme-color meta is NOT written here any more (DR-1152): the theme
+  // The theme-color meta is NOT written here any more (DR-1153): the theme
   // itself paints the phone's bars (syncThemeChrome, DR-0744), so the status
   // bar wears ivory on the TLC palette and black on Midnight, never a fixed
   // ink that fought the palette the reader chose.

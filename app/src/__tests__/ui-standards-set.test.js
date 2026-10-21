@@ -80,10 +80,10 @@ describe('each check finds the thing it is named for', () => {
     expect(scanFocusRing(bare, 'x.jsx')).toHaveLength(1);
   });
 
-  it('sees a focus ring carried by an IMPORTED design-system constant (DR-1152) — and never by an unread one', () => {
+  it('sees a focus ring carried by an IMPORTED design-system constant (DR-1153) — and never by an unread one', () => {
     // The TLC screens draw their button from lib/tlc-ui.js, whose strings carry
     // the ring through an interpolated FOCUS constant. The first CI run of
-    // DR-1152 flagged 12 such buttons as gaps that were never owed: the ring
+    // DR-1153 flagged 12 such buttons as gaps that were never owed: the ring
     // was one file away. The module is handed in, so the case needs no disk.
     const designSystem = [
       "const FOCUS = 'focus:outline focus:outline-2 focus:outline-[#B85838]';",

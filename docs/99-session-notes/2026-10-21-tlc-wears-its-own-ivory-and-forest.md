@@ -1,6 +1,6 @@
-# 2026-10-21 — TLC Therapy Solutions wears its own ivory & forest (DR-1152)
+# 2026-10-21 — TLC Therapy Solutions wears its own ivory & forest (DR-1153)
 
-**What changed and why**, in one page. The record is `docs/decisions/DR-1152-tlc-wears-its-own-ivory-and-forest.md`.
+**What changed and why**, in one page. The record is `docs/decisions/DR-1153-tlc-wears-its-own-ivory-and-forest.md`.
 
 ## The ask
 

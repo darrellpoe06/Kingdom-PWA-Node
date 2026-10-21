@@ -84,7 +84,7 @@ const BUTTON = /<button\b[^>]*>/gs;
 function focusConstants(src) {
   const names = new Set();
   // A constant may carry the ring by interpolating another that does
-  // (`const BTN = \`... ${FOCUS}\``, the design-system shape, DR-1152), so the
+  // (`const BTN = \`... ${FOCUS}\``, the design-system shape, DR-1153), so the
   // pass repeats until no new name appears — the same text, read until settled.
   const decls = [...src.matchAll(/const\s+(\w+)\s*=\s*(['"`])((?:(?!\2).)*)\2/g)];
   let grew = true;
@@ -103,7 +103,7 @@ function focusConstants(src) {
 
 /**
  * The names a file IMPORTS from a sibling module whose value carries the ring
- * (DR-1152: the TLC screens draw their button from lib/tlc-ui.js, so the ring
+ * (DR-1153: the TLC screens draw their button from lib/tlc-ui.js, so the ring
  * lives one file away from the tag that wears it). Only relative imports are
  * followed, and a module that cannot be read resolves to NOTHING — an unread
  * file is never assumed to carry a ring (DR-0076 §8). `readModule(relPath)`
