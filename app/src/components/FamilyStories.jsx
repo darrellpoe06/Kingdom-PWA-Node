@@ -55,9 +55,16 @@ const AT_ONCE = 3;
 
 /**
  * How long the FIRST load may sit before this screen says the library did not
- * answer. Comfortably longer than a healthy `/library/years` round trip and far
+ * answer. Comfortably longer than a healthy fetchLibraryYears round trip and far
  * shorter than the legacy month-probe worst case, which is what used to leave
  * the screen silent for minutes.
+ *
+ * The round trip is named by its FUNCTION, not by a path: client-path-parity
+ * caught the first draft of this comment, which wrote the path with a leading
+ * slash. The gate reads a leading-slash literal as a client path that
+ * production must provide, and a bare one is provided by nothing — the real
+ * call is `${NAS_PHOTO_BASE}/library/years`, whose base does have a provider.
+ * The gate could not tell a comment from a fetch, and it was right not to try.
  */
 export const FIRST_LOAD_BUDGET_MS = 25000;
 
