@@ -89,7 +89,18 @@ const numbered = (mods) => mods.map((m) => {
 // whose own catalog held 81 modules against main's 238 so the file could never
 // be merged, rebuilt to the band floors in all four bands, and spliced between
 // ll78 and ll80. Closing a hole beats documenting one.
-const KNOWN_MISSING = [211, 212];
+// 235 IS A PERMANENT GAP as of 2026-10-21, and the first one made on purpose.
+// Darrell, with two screenshots side by side: "Same lesson from before?!!!!!!!!
+// Really?!!!!!!" L235 and L257 were ONE teaching -- the same spoken street
+// interview -- built twice, which the new one-teaching-one-lesson guard now
+// measures at 23 shared verses, 85% of the smaller lesson's ground. L257 is the
+// superset, so L235 was FOLDED INTO IT and removed: its four verses that L257
+// lacked (Genesis 32:10, 1 Chronicles 29:14, Hebrews 9:27, Job 1:21) are taught
+// in L257 in L235's own sentences, and its two parables are told there. Nothing
+// was deleted that was not first carried across. Unlike 193 / 203 / 210 this is
+// NOT a hold: no `ll235` will ever exist again, so the entry is permanent and
+// the second check below cannot ask for it back.
+const KNOWN_MISSING = [211, 212, 235];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {
