@@ -1,7 +1,7 @@
 # 2026-10-21 — Living Lesson ll257, "Ten Christmases Left"
 
 **Module id:** `ll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them` (`ll257`)
-**Decision record:** DR-1153
+**Decision record:** DR-1159
 **Source row:** `a6f86a58-684b-4d27-9550-0b5b7bbca4fb`
 
 ## What the source is
@@ -104,7 +104,7 @@ verification is the pinned gate, which re-derives both directions from the commi
 | band differentiation | worst pair **0.41** (ceiling 0.5) — child~youth 0.05, youth~teen 0.19, teen~senior 0.41, child~senior 0.04 |
 | three directions | `placesMissingDirections` empty; `hasAllThree` true — lesson and all four bands |
 | title near each band's start | `unnamedBands` empty |
-| talk-together ratchet, live | 673 lessons · all 78 · everyBand 78, against a 609 / 14 / 14 baseline (left unraised on purpose; DR-1153 Decision 6, `re-review: 2026-10-28`) |
+| talk-together ratchet, live | 673 lessons · all 78 · everyBand 78, against a 609 / 14 / 14 baseline (left unraised on purpose; DR-1159 Decision 6, `re-review: 2026-10-28`) |
 | four-band ratchet | 426 / 252 **before and after** — regenerated, byte-identical; the Living Lessons series is not one of the 44 catalog courses that ratchet scans |
 | lesson-dates | 837 of 837 dated, 0 undated (exit 0) |
 

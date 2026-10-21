@@ -24761,7 +24761,7 @@ export const LIVING_LESSONS_MODULES = [
   },
   // ll257 - Ten Christmases Left: counting our days the way Yahweh counts them
   // (a recorded street interview captured in the app, 2026-10-21; speakers not
-  // identified, every figure the speaker's own claim, DR-1153)
+  // identified, every figure the speaker's own claim, DR-1159)
   {
     "id": "ll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them",
     "stories": [
