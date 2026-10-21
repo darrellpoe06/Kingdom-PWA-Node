@@ -12,6 +12,10 @@
 
 ---
 
+## Context
+
+A door shares its cameras with its household (DR-0841) from the NAS's whole list, read with the family key on the device. The same tab is drawn for the manager face, and nothing between the list and the face asked where each camera is.
+
 ## What was measured
 
 - The tab read the NAS's whole list with the family key on the device (33 cameras; `camera-health` run 39553333996 lists 33 streams) and offered every one of them to the manager face: the picker, "Not shared, so the tenant does not see these (21)" with every name, and the access desk's "cameras people can ask for". The family's home cameras (`front_cam`, `basketball_cam`, the kitchen) were among the 21, named on a manager's screen.
@@ -24,6 +28,10 @@
 2. **A manager is offered the door's own only.** `offeredCameras('manager')` is the here-group. On the manager face no other camera is listed, named or counted as "not shared"; the access desk's menu is the same set; a camera beyond the address that the owner shared is **counted** ("1 more camera beyond this address is shared with this door by the owner; not shown here") and kept through the manager's Share, never named.
 3. **The owner is offered everything, set apart.** The door's own first, ticked by the address; the rest in a fold "Not at this address (N): a at another address, b with no address in the name" with the warning that ticking one shares another address, or the home, with this household. The owner alone can give them.
 4. **The note on the row stays the owner's.** A manager's "Shared now" reads a count from the NAS's grant, not the owner's note, so the note cannot leak a name.
+
+## Impact
+
+Unresolved, a property manager (or the owner previewing as one) is shown, by name, every camera the family owns, the home's among them, and can tick them into a door's grant; the location of a camera is nowhere a decision can read it. With the split, a manager's screen holds only the door's own cameras, the owner's fold names the rest with the warning, and the counts make the location a measured thing.
 
 ## What is deferred, and why
 

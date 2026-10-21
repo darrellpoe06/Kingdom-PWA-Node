@@ -12,6 +12,10 @@
 
 ---
 
+## Context
+
+A door's pictures live in two places: the record (`property_photos`, what every seat on the door may read under its walls) and the family's archive on the NAS (behind the family key, DR-1002's shelf). The worker's Pictures tab reads the record; the family's Edit side shows both; nothing said which kind of empty a bare record was, and filing from the archive was one picture at a time.
+
 ## What was measured
 
 - The worker's Pictures tab reads `property_photos` for the door (0185 admits a worker with Document It or Property history); 709 Commercial St had **0** rows, so it read "No pictures on this property yet", a sentence the app invented about a door whose archive held **121** pictures (`709CommercialSt` on the NAS photo server, read in 1.3 s over the same-origin road).
