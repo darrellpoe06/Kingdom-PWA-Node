@@ -134,8 +134,17 @@ async function startGuide(host) {
 const WALKS = {
   'learn-lists': async (look) => {
     const { host } = mount(createElement(ChurchLearn, learnProps()));
+    // ARRIVAL: no course is chosen, so the page is the one sortable list of
+    // courses (DR-1183). The course's own lists are one tap in, which is a
+    // state a person reaches -- and this walk's rule is that a control counts
+    // as present if it is found in ANY state of its surface.
     look(host);
     choose(host.querySelector('[data-testid="learn-course-sort"]'), 'latest');
+    look(host);
+    // WITH A COURSE OPEN: the lesson lists, the section tabs, the course
+    // controls. Chosen through the picker, the way openLesson does it.
+    const sel = host.querySelector('#learn-course-pick');
+    if (sel) choose(sel, 'living-lessons');
     look(host);
   },
   'lesson-header': async (look, { sabotage } = {}) => {

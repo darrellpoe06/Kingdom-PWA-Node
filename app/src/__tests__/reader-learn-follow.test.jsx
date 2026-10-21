@@ -74,7 +74,21 @@ const mountLearn = () => act(() => learnRoot.render(createElement(ChurchLearn, {
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
 const learnButton = (text) => [...learnBox.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
-const openGuide = () => { mountLearn(); act(() => { learnButton('Start this week →').click(); }); return getReadTarget(); };
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
+// 2026-10-21: "only have that sortable list when it is chosen". Nothing is open
+// until a course is chosen, so opening a lesson's guide takes the same first tap
+// a reader takes -- the course row in that one list.
+const chooseFirstCourse = () => {
+  const row = learnBox.querySelector('[data-testid="course-choice-list"] button[data-course]');
+  if (!row) throw new Error('the one list offered no course to open');
+  act(() => { row.click(); });
+};
+const openGuide = () => {
+  mountLearn();
+  chooseFirstCourse();
+  act(() => { learnButton('Start this week →').click(); });
+  return getReadTarget();
+};
 
 /** Share of spoken sentences that could be found on screen — the old path. */
 const searchCoverage = (el, spokenText) => {

@@ -165,10 +165,25 @@ let container, root;
 beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 const extraCourses = buildCatalogCourseDescriptors();
-const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
+const render = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
   extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {}, ...props,
 })));
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
+// 2026-10-21: "It's like a title page saying your inside living lessons...
+// only have that sortable list when it is chosen". Nothing is open on that
+// view until a course is chosen, and every case in this file is about what is
+// INSIDE an open course -- so `mount` makes the same tap a reader makes. A
+// DEPARTMENT tab still opens on its own first course (DR-0432/0433), so
+// clicking one after this behaves exactly as it did.
+const openFirstCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) return; // a department tab, or a course already remembered
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+const mount = (props = {}) => { render(props); openFirstCourse('Living Lessons'); };
 const panel = (id) => container.querySelector(`[data-testid="${id}"]`);
 const flat = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
 

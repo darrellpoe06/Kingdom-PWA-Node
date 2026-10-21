@@ -63,14 +63,21 @@ describe('the recipient opens the link and the lesson is there', () => {
     expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
   });
 
-  it('with no link at all, Learn opens on the DEFAULT course', () => {
+  it('with no link at all, Learn opens on the ONE LIST and no course', () => {
+    // RE-POINTED 2026-10-21 (DR-1183). This pinned "no link -> the heading
+    // reads Living Lessons", which is the title page Darrell named: "It's like
+    // a title page saying your inside living lessons... only have that sortable
+    // list when it is chosen". With no link, nothing is open -- so the heading
+    // names no course and the one list is the page. What this file is actually
+    // about, a LINK deciding which course is active, is pinned above and is
+    // unchanged; this case is the no-link control for it.
     mount();
-    // The picker still LISTS every course; what a link changes is which one is
-    // ACTIVE, so the heading is the honest assertion.
-    // The default moved to Living Lessons on 2026-09-11 (Darrell: "let the
-    // default courses be... Living Lessons not Ai etc") — a visitor was meeting
-    // "Learning A.I. The Way" as though it were what this church teaches.
-    expect(container.querySelector('#learn-h').textContent).toBe('Living Lessons from the Word');
+    expect(container.querySelector('#learn-h').textContent).toBe('Choose a course');
+    const list = container.querySelector('[data-testid="course-choice-list"]');
+    expect(list, 'with no course chosen the one list is the page').toBeTruthy();
+    expect(list.querySelectorAll('button[data-course]').length).toBeGreaterThan(1);
+    // Living Lessons is offered as a row, never as the title.
+    expect(list.textContent).toContain('Living Lessons from the Word');
   });
 });
 
@@ -79,7 +86,13 @@ describe('a stale link never lands on a dead screen', () => {
     setSearch(lessonQuery({ courseKey: 'a-course-we-retired', lessonId: 'x' }));
     mount();
     expect(text()).toContain('Church · Learn');
-    expect(container.querySelector('#learn-h').textContent).toBe('Living Lessons from the Word');
+    // "Normally" is now the one list, not a course nobody asked for (DR-1183).
+    // The promise this case holds -- NEVER A DEAD SCREEN -- is unchanged, and
+    // is asserted on what is actually there.
+    expect(container.querySelector('#learn-h').textContent).toBe('Choose a course');
+    const list = container.querySelector('[data-testid="course-choice-list"]');
+    expect(list, 'a stale link must land on the one list, not a blank').toBeTruthy();
+    expect(list.querySelectorAll('button[data-course]').length).toBeGreaterThan(1);
   });
 
   it('a lesson that no longer exists still opens its course', () => {
