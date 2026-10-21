@@ -13,13 +13,27 @@
 **Grounds:** Darrell, 2026-10-21, with DR-1156 merged and deployed and the TLC door open on his phone: **"Nothing changed. Why does it still look the same."** Then: **"When will it be done. It's been 7 hours."**
 **Principles:** `feedback_believe_firsthand_device_reports` (his report is ground truth); DR-0076 §6 (reality-trace on the real device, not the sandbox); DR-0524 (a device that chose keeps its choice — re-scoped here, not overturned); DR-0878 (one choice, every surface); DR-1060 (a door opens in its own colors); DR-1156
 
-## What was wrong
+## Context
 
 DR-1156 shipped a measured ivory & forest finish and opened the TLC door in it **by a fallback**: `useThemePref(TLC_DEFAULT_THEME)`. A fallback is consulted only when the device's ONE shared preference key (`poe-theme-pref`) is empty. Darrell's phone chose a palette in the family app months ago, as any device that has used the app has. So the door opened in that palette, and the one person who asked for the redesign never saw it. The sandbox review (a fresh browser, no saved key) could not have shown this; his phone did.
 
 Under Heritage the shape changes (pills, rounded cards, round portraits) are near-invisible too, because Heritage already rounds and shadows. "Nothing changed" was an accurate description of his screen.
 
 The church door has the same gap by construction (DR-1060 wrote "a device that chose keeps its choice" as the rule); it is noted below, not changed here.
+
+## What was measured
+
+- `lib/theme-css.js` before this change: one key, `poe-theme-pref`, read by `readThemePref(fallback)` for every shell; the fallback used only when the key is empty or holds an unknown palette.
+- DR-1156's door: `useThemePref(TLC_DEFAULT_THEME)` in both the door and the shell — a fallback on both lines, so a saved key wins on both.
+- Darrell's phone: a palette chosen in the family app (DR-0524 keeps it), so the key was not empty; the door opened in that palette. The sandbox review ran in a fresh browser with an empty key and showed `tlc` — a true measurement of the wrong device.
+- The order of hooks in the shell: the door-context `useState` initializer at the `tlcDoorOnly` line runs before the theme hook's first read in the same render, so a scope set there is in force for that read.
+
+## Impact
+
+- A client opening the TLC app on any phone sees TLC's finish, not whatever that phone's family app chose. The practice's door looks like the practice.
+- A choice made inside the door (Midnight at night) stays in the door; the family app is untouched, and the family's choice no longer dresses the practice.
+- The operator tab inside the family app and every other shell read the same key they always did; nothing moves for them.
+- Shell line count unchanged (5192).
 
 ## Decision
 
