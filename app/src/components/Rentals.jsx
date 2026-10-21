@@ -24,9 +24,13 @@ import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provisio
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
-import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfolio.js';
+import { derivePortfolio, isPersonalProp, unitsOf, mortgageFacts, rentFact } from '../lib/rental-portfolio.js';
 import { doorState } from '../lib/real-estate-door.js';
 import RealEstateDoor from './RealEstateDoor.jsx';
+// The whole Properties section is the `.pp-door` island now, not just the band
+// at its top (DR-1178) — one stylesheet dresses the band AND the list.
+import { WELCOME_CSS } from './PoePropertiesWelcome.jsx';
+import { useThemePref } from '../lib/theme-css.js';
 import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
@@ -1879,6 +1883,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   );
   // Tapping a band on the door opens exactly those doors in the list below.
   const [doorFocus, setDoorFocus] = useState(null);
+  // The island's theme, read at this level because the island now wraps the
+  // whole section (DR-1178). Same hook RealEstateDoor used when it scoped
+  // itself, so the colors keep following the person's choice exactly as before.
+  const [reTheme] = useThemePref('cream');
   const focusedIds = useMemo(() => {
     if (!doorFocus) return null;
     const band = door.attention.find((b) => b.key === doorFocus);
@@ -1903,13 +1911,33 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       icon: 'home',
       render: () => (
         <>
+      {/* THE WHOLE SECTION IS THE ISLAND, NOT JUST THE BAND (DR-1178). Darrell,
+          2026-10-21, with two screenshots: "This isn't like the other tab
+          enough... it only changed or added things to the top... why... we need
+          the look of the Properties tab all the way and the colors can change
+          with the color choices like the other tab."
+          DR-1169 mounted RealEstateDoor as its OWN `.pp-door` island, so the
+          palette existed for the band and stopped at its edge -- every `.pp-*`
+          class below it would have resolved to nothing. The island moves up to
+          wrap the section, the band drops its own scope (`scoped={false}`, the
+          prop it already carries for exactly this), and one stylesheet now
+          dresses the band AND the list. `data-theme` rides the same
+          `useThemePref` the band used, so the colors keep following the
+          person's choice -- which they already did; it was the SHAPE that
+          stopped at the top. */}
+      <div data-theme={reTheme === 'cream' ? undefined : reTheme} className="pp-door pp-re-door" data-testid="real-estate-scope">
+        <style>{WELCOME_CSS}</style>
       <section>
         {/* The door opens on the portfolio, not on a label (DR-1169). */}
-        <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} />
+        <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} scoped={false} />
 
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
-          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[44px] px-1 focus:outline focus:outline-2 focus:outline-[#B85838]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+        <div className="pp-list-head">
+          <div>
+            <span className="pp-kicker">Poe Properties LLC</span>
+            <h2 className="pp-list-title">Properties <span className="pp-list-count">· {rentals.length}</span></h2>
+            <div className="pp-rule" aria-hidden="true" />
+          </div>
+          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className={`pp-pill ${showPropForm ? 'pp-pill-quiet' : ''}`}>{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
         {/* Round 7 — Top form is for ADD, and for FULL-EDIT when "Full editor ↗"
@@ -2198,7 +2226,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   )}
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
+                      {/* Playfair, like every title on the front door (DR-1178). */}
+                      <div className="pp-row-title">{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
                         {(() => {
                           // THE ONE PATTERN (DR-0999): street, unit, town, state zip,
@@ -2223,8 +2252,21 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="text-right">
                       {(r.rent || 0) > 0 ? (
                         <>
-                          <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                          <div className="mt-1 flex justify-end"><span data-testid="re-status-pill" className={`inline-block rounded-full px-2 py-0.5 text-[0.625rem] uppercase tracking-wider ${r.status === 'late' || r.status === 'vacant' ? 'bg-[#B85838] text-white' : 'bg-[#E8E4DC] text-[#1A1815]'}`}>{r.status}</span></div>
+                          <div className="pp-row-rent">{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                          {/* A LABEL IS NOT A MEASUREMENT (DR-1178). Every card
+                              read "PAYING" while the door above read "No lease
+                              is synced yet, so this month has nothing to measure
+                              against" -- two fields about one fact, disagreeing
+                              on one screen. The pill now carries which it is:
+                              the ledger's own word when a lease is synced, and
+                              otherwise the property record's word, titled so,
+                              with the gap named as the LEDGER'S (Darrell: "Real
+                              Estate is more accurate than the other"). */}
+                          {(() => { const f = rentFact(r, paidPortfolio.byDoor[r.remoteUuid]); return (
+                          <div className="mt-1 flex justify-end" data-testid="re-status" data-backed={String(f.backed)}>
+                            <span data-testid="re-status-pill" title={f.words} className={`inline-block rounded-full px-2 py-0.5 text-[0.625rem] uppercase tracking-wider ${r.status === 'late' || r.status === 'vacant' ? 'bg-[#B85838] text-white' : 'bg-[#E8E4DC] text-[#1A1815]'}`}>{r.status}</span>
+                          </div>
+                          ); })()}
                         </>
                       ) : (
                         <>
@@ -2234,21 +2276,47 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
-                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
+                  {/* THE NOTE FIELDS ARE ONE CHAIN, NOT THREE BLANKS (DR-1178).
+                      Darrell 2026-10-21: "fields should be concise ... made to
+                      work together". A rate is the multiplier between a balance
+                      and a payment, so a row carrying a balance and a rate no
+                      longer shows "P&I —" and makes someone do the arithmetic:
+                      piFor() derives it and SAYS it derived it, with the term it
+                      assumed. An entered figure always wins. With nothing to go
+                      on it names which field is missing instead of a bare dash. */}
+                  {(() => { const mf = mortgageFacts(r); const mono = { fontFamily: '"JetBrains Mono", monospace' };
+                    // A deduced figure is shown with a ~ so it is never mistaken
+                    // for one somebody typed, and `words` says what it came from.
+                    const dz = (k) => mf.basis === k ? '~' : '';
+                    return (
+                  <div className="mt-2 text-xs" data-testid="re-note" data-state={mf.state} data-basis={mf.basis}>
+                  {mf.state === 'none' ? (
+                    <p className="text-[#5A5751]" data-testid="re-note-clear">{mf.words}</p>
+                  ) : (<>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div><span className="text-[#5A5751]">Mortgage:</span> <span style={mono}>{mf.balance > 0 ? fmt(mf.balance) : '—'}</span></div>
+                    <div><span className="text-[#5A5751]">Rate:</span> <span style={mono}>{mf.basis === 'rate' || mf.rate > 0 ? `${dz('rate')}${mf.rate.toFixed(2)}%` : '—'}</span></div>
+                    <div><span className="text-[#5A5751]">P&I:</span> <span style={mono}>{mf.payment > 0 ? `${dz('payment')}${fmt(mf.payment)}` : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Map:</span> {areaFor(r)
                       ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" data-testid="re-area">On the map · area</span>
                       : typeof r.lat === 'number' ? <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)} <span className="text-[#5A5751]">(this device)</span></span>
                       : <button type="button" onClick={() => startEditProp(r)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
+                  {/* WHAT IT IS BASED ON, always said (Darrell 2026-10-21: "need
+                      to say its based on this or that"). A deduced figure never
+                      stands without its basis, and a partial record names the
+                      one field that would complete it. */}
+                  {mf.words ? <p className="text-[0.625rem] text-[#5A5751] mt-1" data-testid="re-note-basis">{mf.words}</p> : null}
+                  </>)}
+                  </div>
+                  ); })()}
                   {(areaFor(r) || r.address) && (
                     <MapOnRequest area={areaFor(r)} query={r.address ? formatBuilding({ address: r.address, city: r.city, state: r.state }) : ''} where={[r.city, r.state].filter(Boolean).join(', ')} streetShown />
                   )}
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
-                    <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
-                    <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {/* The same family of pill the front door uses (DR-1178). */}
+                    <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="pp-act">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
+                    <button type="button" onClick={() => openRecords(r)} className="pp-act pp-act-red">
                       {/* COUNTS WHAT THE OPEN RECORD ACTUALLY HOLDS (fixed 2026-08-28).
                           This read "0 maint · 0 notes · 0 photos" on a property whose
                           record held three unit notes: it counted conversationLog and
@@ -2279,12 +2347,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         rather than a disabled button. Our own home still never
                         offers it. */}
                     {!isPersonalProp(r) && splitTarget(r) && (
-                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="pp-act pp-act-good">
                         {splitFor?.id === r.id ? '× Cancel split' : `⌗ Split into ${LEVEL_PLURAL[splitTarget(r)]}`}
                       </button>
                     )}
-                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
-                    <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+                    <span aria-hidden="true" className="h-5 w-px ml-auto" style={{ background: 'var(--pp-line)' }} />
+                    <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="pp-act">Delete</button>
                   </div>
                   {/* Inline split panel — dropdown for the door count, auto Apt 1..N
                       labels (each editable), one tap creates the doors. Replaces the
@@ -2893,25 +2961,44 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 let gi = 0;
                 return (
                   <div>
-                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">
+                    <p className="pp-eyebrow">
                       {doorFocus
                         ? <>Showing {incomeProducing.length} of {portfolioRentals.length} · {(door.attention.find((b) => b.key === doorFocus) || {}).label}</>
-                        : <>Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</>}
-                    </div>
+                        : <>Income-producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</>}
+                    </p>
+                    {/* WHERE THE TWO TABS MEET, SAID ONCE (DR-1178). Darrell:
+                        "we need them to fit together". They already share a key
+                        -- a rentals row's `remoteUuid` IS the id a Poe Properties
+                        tenancy points at through `rental_id` -- and each side
+                        owns a different half: the PROPERTY (address, rent,
+                        mortgage, photos, records) is this tab's, the TENANCY
+                        (lease, tenant, cameras, work orders) is the door's,
+                        which is where the workflow writes it and where RLS
+                        governs it. Saying so once here beats repeating it, and
+                        beats a reader guessing why a rent figure lives in one
+                        tab and a lease in the other. */}
+                    {paidPortfolio.rollup.doors === 0 && (
+                      <p className="pp-cam-note" data-testid="re-ledger-gap">
+                        These are the property records — address, rent, mortgage and photos — and they are the accurate ones.
+                        The rent <strong>ledger</strong> has no lease synced for any of these doors yet, so a status below is the
+                        property record&rsquo;s word rather than a measured month. Start a door&rsquo;s lease on its Poe Properties
+                        door and this month lands here.
+                      </p>
+                    )}
                     <div className="space-y-3">
                       {entries.map((e) => e.type === 'building' ? (
-                        <div key={`b-${e.key}`} className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
-                          <div className="bg-[#FAF8F4] border-b border-[#E8E4DC] px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
-                            <span className="flex items-baseline gap-2">
-                              <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{e.building}</span>
-                              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{e.rollup.doorCount} {e.rollup.doorCount === 1 ? 'door' : 'doors'}</span>
+                        <div key={`b-${e.key}`} className="pp-row-card">
+                          <div className="pp-row-head">
+                            <span className="flex items-baseline gap-2 flex-wrap">
+                              <span className="pp-row-title">{e.building}</span>
+                              <span className="pp-list-count">{e.rollup.doorCount} {e.rollup.doorCount === 1 ? 'door' : 'doors'}</span>
                             </span>
-                            <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(e.rollup.monthlyRent)}/mo</span>
+                            <span className="pp-good" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem' }}>{fmt(e.rollup.monthlyRent)}/mo</span>
                           </div>
                           {e.units.map((u) => renderPropertyRow(u, gi++, lastIdx))}
                         </div>
                       ) : (
-                        <div key={`s-${e.rental.id}`} className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
+                        <div key={`s-${e.rental.id}`} className="pp-row-card">
                           {renderPropertyRow(e.rental, gi++, lastIdx)}
                         </div>
                       ))}
@@ -2921,8 +3008,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               })()}
               {personal.length > 0 && (
                 <div>
-                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
+                  <p className="pp-eyebrow">Personal &amp; non-rental · {personal.length}</p>
+                  <div className="pp-row-card">
                     {personal.map((r, i) => renderPropertyRow(r, i, personal.length - 1))}
                   </div>
                 </div>
@@ -2931,6 +3018,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           );
         })()}
       </section>
+      </div>
         </>
       ),
     },
