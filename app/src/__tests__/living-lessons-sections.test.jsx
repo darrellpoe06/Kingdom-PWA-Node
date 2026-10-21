@@ -186,7 +186,7 @@ describe('on the real Learn tree', () => {
     expect(offers.textContent).toMatch(/For /);
     // the course's own completeness, counted from its lessons (lib/lesson-completeness.js)
     expect(offers.querySelector('[data-testid="course-offers-completeness"]').textContent)
-      .toMatch(new RegExp(`^Two stories in all ${LIVING_LESSONS_MODULES.length} lessons · the verses quoted inside \\d+ of ${LIVING_LESSONS_MODULES.length}$`));
+      .toMatch(new RegExp(`^Two stories in all ${LIVING_LESSONS_MODULES.length} lessons · the verses quoted inside (all |\\d+ of )${LIVING_LESSONS_MODULES.length}$`));
     const law = sectionLessons(LIVING_LESSONS_MODULES)[0];
     const chip = offers.querySelector(`[data-testid="course-offers-part-${law.key}"]`);
     expect(chip.textContent).toBe(`${law.label} · ${law.lessons.length}`);
