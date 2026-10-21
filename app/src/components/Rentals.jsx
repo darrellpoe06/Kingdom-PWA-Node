@@ -1867,9 +1867,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   //    SAME real rows already in hand (the rentals table, the leases +
   //    rent_payments ledger loaded above, the incident list), so the band is a
   //    live view, never a painted one.
+  //    `photoCounts` is the live NAS chat-channel total already fetched above
+  //    (channelCounts) — the pictures a person actually sees — so the service
+  //    line counts what is really on file, not only what this device holds.
   const door = useMemo(
-    () => doorState({ rentals, entities, paidRollup: paidPortfolio.rollup, incidents, snowball: rentalSnowball }),
-    [rentals, entities, paidPortfolio, incidents, rentalSnowball]
+    () => doorState({
+      rentals, entities, paidRollup: paidPortfolio.rollup, incidents,
+      snowball: rentalSnowball, today: currentDate, photoCounts: channelCounts,
+    }),
+    [rentals, entities, paidPortfolio, incidents, rentalSnowball, currentDate, channelCounts]
   );
   // Tapping a band on the door opens exactly those doors in the list below.
   const [doorFocus, setDoorFocus] = useState(null);

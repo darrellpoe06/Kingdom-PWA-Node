@@ -66,8 +66,13 @@ const isEmpty = (r) => r && (r.status === 'vacant' || r.status === 'unrented');
  * @param {object} args.paidRollup  rent-portfolio-paid rollup (may be null)
  * @param {Array}  args.incidents   data.incidents
  * @param {object} args.snowball    the payoff projection (may be null)
+ * @param {Date|string} args.today  the day to judge a due date against
+ * @param {object} args.photoCounts per-rental photo totals the caller already
+ *                                  holds (the NAS chat-channel archive), keyed
+ *                                  by rental id; a door missing from it falls
+ *                                  back to the photos on its own record
  */
-export function doorState({ rentals = [], entities = [], paidRollup = null, incidents = [], snowball = null } = {}) {
+export function doorState({ rentals = [], entities = [], paidRollup = null, incidents = [], snowball = null, today = null, photoCounts = null } = {}) {
   const p = derivePortfolio(rentals, entities);
   const own = p.portfolioRentals;
   const ownIds = new Set(own.map((r) => r.id));
@@ -148,6 +153,88 @@ export function doorState({ rentals = [], entities = [], paidRollup = null, inci
     attention,
     allClear: attention.length === 0 && own.length > 0,
     clear,
+    service: serviceRecord({ own, incidents, today, photoCounts }),
+  };
+}
+
+// --- the level of service, off the record ------------------------------------
+// Darrell, 2026-10-21: "If a potential tenant uses the app they will be able to
+// see the level of services that were provided by us."
+//
+// So this is a TRUST figure, and a trust figure is the last place a painted
+// number belongs (DR-0061 P15). Every one of these is counted off a row that
+// already exists:
+//
+//   · answered / typical days — data.incidents, the ones whose linkedTo.type is
+//     'rental'. `date` is the day it was opened, `resolvedAt` the day the app
+//     stamped when someone marked it resolved. An incident missing either date
+//     is EXCLUDED from the timing and counted in `unmeasured`, so the typical
+//     figure is never an average over rows that could not be measured.
+//   · still open, and whether each is inside the window its own urgency band
+//     set (`dueDate`), judged against the day handed in — never a clock read
+//     inside this pure function.
+//   · photos / maintenance entries / rooms / systems / notes — the six stores a
+//     property record keeps (lib/property-record-counts.js STORES). Photos use
+//     the caller's live count where it has one (the NAS chat-channel archive,
+//     which is what a person actually sees), and the record's own otherwise.
+//
+// A portfolio that has not logged anything yet gets `known: false` and says so.
+// Nothing here is estimated, rounded up, or carried over from a demo row.
+const MEDIAN = (xs) => {
+  const s = [...xs].sort((a, b) => a - b);
+  if (!s.length) return null;
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+};
+const asDay = (v) => {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(String(v).slice(0, 10));
+  return Number.isFinite(d.getTime()) ? Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) : null;
+};
+const DAY = 86400000;
+
+export function serviceRecord({ own = [], incidents = [], today = null, photoCounts = null } = {}) {
+  const ownIds = new Set(own.map((r) => r.id));
+  const mine = (Array.isArray(incidents) ? incidents : [])
+    .filter((i) => i && i.linkedTo && i.linkedTo.type === 'rental' && ownIds.has(i.linkedTo.id));
+  const resolved = mine.filter((i) => i.status === 'resolved');
+  const open = mine.filter((i) => i.status !== 'resolved');
+
+  // Only an incident carrying BOTH a day opened and a day resolved can be timed.
+  const spans = [];
+  for (const i of resolved) {
+    const from = asDay(i.date);
+    const to = asDay(i.resolvedAt);
+    if (from == null || to == null || to < from) continue;
+    spans.push(Math.round((to - from) / DAY));
+  }
+  const now = asDay(today);
+  const overdue = now == null ? null : open.filter((i) => { const d = asDay(i.dueDate); return d != null && d < now; }).length;
+
+  // What the records themselves hold, across every door.
+  const store = { photos: 0, maintenance: 0, notes: 0, rooms: 0, systems: 0, conversations: 0 };
+  const len = (v) => (Array.isArray(v) ? v.length : 0);
+  for (const r of own) {
+    const live = photoCounts && Number.isFinite(Number(photoCounts[r.id])) ? Number(photoCounts[r.id]) : null;
+    store.photos += live != null ? live : len(r.photos);
+    store.maintenance += len(r.maintenanceLog);
+    store.notes += len(r.unitNotes);
+    store.rooms += len(r.rooms);
+    store.systems += len(r.equipment);
+    store.conversations += len(r.conversationLog);
+  }
+  const filed = store.photos + store.maintenance + store.notes + store.rooms + store.systems + store.conversations;
+
+  return {
+    known: mine.length > 0 || filed > 0,
+    answered: resolved.length,
+    openNow: open.length,
+    overdue,
+    typicalDays: MEDIAN(spans),
+    measured: spans.length,
+    unmeasured: resolved.length - spans.length,
+    ...store,
+    filed,
   };
 }
 

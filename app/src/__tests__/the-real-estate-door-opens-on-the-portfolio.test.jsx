@@ -205,18 +205,42 @@ describe('the band on screen says what the rows say', () => {
     expect(host.textContent).toContain('Proverbs 27:23');
   });
 
-  it('marks nothing with true red — the Blood keeps that color (DR-0099)', () => {
+  it('assigns no color meaning to the Word, and adds no red of its own (DR-0099)', () => {
     const host = mount(createElement(RealEstateDoor, { state: state() }));
-    const html = host.innerHTML;
-    expect(html).not.toMatch(/#(FF0000|F00|E00000|D00000|CC0000|FF2|FF3)[0-9A-F]*/i);
-    expect(html).not.toMatch(/\btext-red-|\bbg-red-|\bborder-red-/);
+    // The verse rides --pp-muted, never the brand red: no color meaning is
+    // attached to Scripture on this surface.
+    const verse = host.querySelector('.pp-verse');
+    expect(verse.className).not.toMatch(/pp-red/);
+    expect(verse.textContent).toContain('Be thou diligent');
+    // The band itself introduces no colour literal; every colour it uses is a
+    // --pp-* token the shared stylesheet owns and remaps for midnight.
+    const own = readFileSync(join(process.cwd(), 'src/components/RealEstateDoor.jsx'), 'utf8');
+    expect(own).not.toMatch(/#[0-9A-Fa-f]{3,8}/);
   });
 
   it('every tap target on the band is at least 44px tall', () => {
     const host = mount(createElement(RealEstateDoor, { state: state(), focus: 'late' }));
     const buttons = [...host.querySelectorAll('button')];
     expect(buttons.length).toBeGreaterThan(1);
-    for (const b of buttons) expect(b.className, b.textContent).toMatch(/min-h-\[44px\]/);
+    // jsdom lays nothing out, so the height is read where it is declared: the
+    // shared stylesheet, in the ts-fixed unit every other control there uses.
+    const css = readFileSync(join(process.cwd(), 'src/components/PoePropertiesWelcome.jsx'), 'utf8');
+    expect(css).toMatch(/\.pp-band\{[^}]*min-height:calc\(2\.75 \* var\(--ts-fixed,1rem\)\)/);
+    expect(css).toMatch(/\.pp-back\{[^}]*min-height:calc\(2\.75 \* var\(--ts-fixed,1rem\)\)/);
+    for (const b of buttons) expect(b.className, b.textContent).toMatch(/pp-band|pp-back/);
+  });
+
+  it('wears the Poe Properties face by using its stylesheet, not a copy of it', () => {
+    const host = mount(createElement(RealEstateDoor, { state: state() }));
+    const scope = host.querySelector('[data-testid="real-estate-door-scope"]');
+    expect(scope.className).toContain('pp-door');
+    expect(host.querySelector('style').textContent).toContain('--pp-red');
+    expect(host.querySelectorAll('.pp-panel').length).toBeGreaterThan(2);
+    // Inside the Poe Properties app the host already is a .pp-door, so the
+    // island does not declare the palette or the stylesheet twice.
+    const inside = mount(createElement(RealEstateDoor, { state: state(), scoped: false }));
+    expect(inside.querySelector('style')).toBe(null);
+    expect(inside.querySelector('[data-testid="real-estate-door"]')).toBeTruthy();
   });
 });
 
@@ -234,51 +258,138 @@ describe('PROVEN-TO-CATCH: a painted figure would be named', () => {
 });
 
 // =============================================================================
-// The band's own colors, measured in every theme (DR-0076 §4)
+// The band's own colors, measured in both themes the stylesheet defines
 // =============================================================================
-// Not a claim: the repo's own contrast math over the real theme CSS, on the
-// exact token/background pairs this band renders. The first draft used the
-// urgency amber #D97706 the incident row uses and measured 3.08-3.19:1 on the
-// card in ten of eleven themes; it was replaced with the tracked blue rather
-// than shipped with a comment saying AA. This case keeps that honest.
-describe('every pair the band renders clears WCAG 2.1 AA in every theme', () => {
-  it('measures, it does not claim', async () => {
-    const { parseThemes, contrastRatio } = await import('../../../scripts/contrast-guard.mjs');
-    const root = join(process.cwd(), '..');
-    const css = readFileSync(join(root, 'app/src/poe-financial-mvp-v28.jsx'), 'utf8')
-      + '\n' + readFileSync(join(root, 'app/src/lib/theme-css.js'), 'utf8');
-    const themes = parseThemes(css);
-    expect(Object.keys(themes).length).toBeGreaterThan(5);
+// Not a claim: the repo's own WCAG math over the --pp-* tokens read straight
+// out of the shared stylesheet, so a drift in either palette is MEASURED here
+// rather than assumed. The first draft of this band used the urgency amber
+// #D97706 the incident row uses and measured 3.08-3.19:1 on the card in ten of
+// eleven app themes; it was replaced rather than shipped under a comment
+// claiming AA, which is the exact failure DR-0076 was written about.
+describe('every pair the band renders clears WCAG 2.1 AA in both themes', () => {
+  const css = () => readFileSync(join(process.cwd(), 'src/components/PoePropertiesWelcome.jsx'), 'utf8');
+  const tokensIn = (src, needle) => {
+    const i = src.indexOf(needle);
+    expect(i, `missing block: ${needle}`).toBeGreaterThan(-1);
+    const seg = src.slice(i, src.indexOf('}', i));
+    const out = {};
+    for (const m of seg.matchAll(/--(pp-[a-z-]+):(#[0-9A-Fa-f]{6})/g)) out[m[1]] = m[2];
+    return out;
+  };
 
-    // fg slot → the background slot it actually sits on in RealEstateDoor.jsx.
-    // Only the rent-this-month strip is the cream base; everything else is the
-    // white card.
-    const PAIRS = [
-      ['headline ink on the card', 'textPrimary', 'cardBg'],
-      ['eyebrow rust on the card', 'accentRust', 'cardBg'],
-      ['hold green on the card', 'accentGreen', 'cardBg'],
-      ['hold rust on the card', 'accentRust', 'cardBg'],
-      ['hold label grey on the card', 'textSecondary', 'cardBg'],
-      ['band blue on the card', 'accentBlue', 'cardBg'],
-      ['verse grey on the card', 'textSecondary', 'cardBg'],
-      ['show-all rust on the card', 'accentRust', 'cardBg'],
-      ['ledger line ink on the strip', 'textPrimary', 'baseBg'],
-      ['ledger grey on the strip', 'textSecondary', 'baseBg'],
-    ];
+  it('measures, it does not claim', async () => {
+    const { contrastRatio } = await import('../../../scripts/contrast-guard.mjs');
+    const src = css();
+    const light = { ...tokensIn(src, '.pp-door{'), ...tokensIn(src, '.pp-door{--pp-good') };
+    const midnight = {
+      ...light,
+      ...tokensIn(src, '[data-theme="midnight"].pp-door{'),
+      ...tokensIn(src, '[data-theme="midnight"].pp-door{--pp-good'),
+    };
+    // Every foreground this band paints, on the panel it actually sits on.
+    const FG = ['pp-ink', 'pp-muted', 'pp-red', 'pp-good', 'pp-watch'];
     const below = [];
-    for (const [name, t] of Object.entries(themes)) {
-      for (const [what, fg, bg] of PAIRS) {
-        const r = contrastRatio(t[fg], t[bg]);
-        if (!(r >= 4.5)) below.push(`${name} · ${what}: ${r == null ? 'unparseable' : r.toFixed(2)}:1 (${t[fg]} on ${t[bg]})`);
+    for (const [name, pal] of [['light', light], ['midnight', midnight]]) {
+      for (const fg of FG) {
+        const r = contrastRatio(pal[fg], pal['pp-card']);
+        if (!(r >= 4.5)) below.push(`${name} · ${fg}: ${r == null ? 'unparseable' : r.toFixed(2)}:1 (${pal[fg]} on ${pal['pp-card']})`);
       }
     }
     expect(below, below.join('\n')).toEqual([]);
   });
 
+  it('the two accents it added carry a midnight remap, so neither goes dark-on-dark', () => {
+    const src = css();
+    expect(src).toMatch(/\.pp-door\{--pp-good:#[0-9A-Fa-f]{6};--pp-watch:#[0-9A-Fa-f]{6}\}/);
+    expect(src).toMatch(/\[data-theme="midnight"\]\.pp-door\{--pp-good:#[0-9A-Fa-f]{6};--pp-watch:#[0-9A-Fa-f]{6}\}/);
+  });
+
   it('refuses the amber that was measured and rejected', () => {
-    // A regression here would be silent on screen and loud nowhere else.
     const src = readFileSync(join(process.cwd(), 'src/components/RealEstateDoor.jsx'), 'utf8');
-    const tones = src.slice(src.indexOf('const TONE_TEXT'), src.indexOf('const TONE_EDGE'));
-    expect(tones).not.toContain('#D97706');
+    expect(src).not.toContain('#D97706');
+  });
+});
+
+// =============================================================================
+// The level of service, on record (Darrell 2026-10-21)
+// =============================================================================
+// "If a potential tenant uses the app they will be able to see the level of
+// services that were provided by us." A trust figure is the last place a
+// painted number belongs, so every one of these is counted off a row that
+// already exists, and an incident that cannot be TIMED is excluded from the
+// typical figure and said out loud rather than averaged in.
+describe('the service line counts the record, and times only what it can', () => {
+  const ISSUES = [
+    { id: 'i1', status: 'resolved', date: '2026-10-01', resolvedAt: '2026-10-03', linkedTo: { type: 'rental', id: 'a' } }, // 2 days
+    { id: 'i2', status: 'resolved', date: '2026-09-10', resolvedAt: '2026-09-14', linkedTo: { type: 'rental', id: 'b' } }, // 4 days
+    { id: 'i3', status: 'resolved', date: '2026-09-01', resolvedAt: '2026-09-07', linkedTo: { type: 'rental', id: 'c' } }, // 6 days
+    { id: 'i4', status: 'resolved', date: '2026-08-01', linkedTo: { type: 'rental', id: 'c' } },                           // no resolvedAt
+    { id: 'i5', status: 'open', date: '2026-10-18', dueDate: '2026-10-20', linkedTo: { type: 'rental', id: 'c' } },        // overdue
+    { id: 'i6', status: 'open', date: '2026-10-20', dueDate: '2026-10-25', linkedTo: { type: 'rental', id: 'd' } },        // in window
+    { id: 'i7', status: 'resolved', date: '2026-10-01', resolvedAt: '2026-10-02', linkedTo: { type: 'rental', id: 'home' } }, // the family home
+  ];
+  const svc = (extra = {}) => doorState({ rentals: ROWS, entities: ENTITIES, incidents: ISSUES, today: '2026-10-21', ...extra }).service;
+
+  it('answers with the median of the issues it could time', () => {
+    const s = svc();
+    expect(s.answered).toBe(4);        // the family home's (i7) is not ours to claim
+    expect(s.measured).toBe(3);
+    expect(s.unmeasured).toBe(1);      // i4 has no resolved date — counted, not timed
+    expect(s.typicalDays).toBe(4);
+  });
+
+  it('says how many open issues are past the day their own band promised', () => {
+    const s = svc();
+    expect(s.openNow).toBe(2);
+    expect(s.overdue).toBe(1);
+  });
+
+  it('never guesses the day: no today in, no overdue figure out', () => {
+    const s = doorState({ rentals: ROWS, entities: ENTITIES, incidents: ISSUES }).service;
+    expect(s.overdue).toBe(null);
+    expect(s.openNow).toBe(2);
+  });
+
+  it('with nothing timeable it reports no typical figure rather than a zero', () => {
+    const s = doorState({
+      rentals: ROWS, entities: ENTITIES, today: '2026-10-21',
+      incidents: [{ id: 'x', status: 'resolved', date: '2026-10-01', linkedTo: { type: 'rental', id: 'a' } }],
+    }).service;
+    expect(s.answered).toBe(1);
+    expect(s.typicalDays).toBe(null);
+    expect(s.measured).toBe(0);
+  });
+
+  it('counts the six stores a record keeps, and takes the live photo total where there is one', () => {
+    const withRecords = ROWS.map((r) => (r.id === 'a'
+      ? { ...r, photos: [1, 2], maintenanceLog: [1, 2, 3], unitNotes: [1], rooms: [1, 2], equipment: [1], conversationLog: [] }
+      : r));
+    const plain = doorState({ rentals: withRecords, entities: ENTITIES }).service;
+    expect(plain.photos).toBe(2);
+    expect(plain.maintenance).toBe(3);
+    expect(plain.rooms).toBe(2);
+    expect(plain.filed).toBe(2 + 3 + 1 + 2 + 1);
+    // The archive on the NAS holds 40 for that door — what a person actually
+    // sees — so that is the number, not the two on this device.
+    const live = doorState({ rentals: withRecords, entities: ENTITIES, photoCounts: { a: 40 } }).service;
+    expect(live.photos).toBe(40);
+  });
+
+  it('a portfolio with no history says so instead of printing zeroes', () => {
+    const s = doorState({ rentals: ROWS, entities: ENTITIES }).service;
+    expect(s.known).toBe(false);
+  });
+
+  it('the band prints the service line only when there is a record', () => {
+    const withService = doorState({ rentals: ROWS, entities: ENTITIES, incidents: ISSUES, today: '2026-10-21' });
+    const host = mount(createElement(RealEstateDoor, { state: withService }));
+    const line = host.querySelector('[data-testid="re-door-service"]');
+    expect(line.textContent).toContain('4 issues answered');
+    expect(line.textContent).toContain('typically in');
+    expect(line.textContent).toContain('1 past the day promised');
+    expect(line.textContent).toContain('3 of 4 carry both dates');
+
+    const empty = mount(createElement(RealEstateDoor, { state: doorState({ rentals: ROWS, entities: ENTITIES }) }));
+    expect(empty.querySelector('[data-testid="re-door-service"]')).toBe(null);
   });
 });

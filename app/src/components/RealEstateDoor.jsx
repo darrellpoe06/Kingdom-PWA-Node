@@ -1,9 +1,12 @@
 // =============================================================================
-// RealEstateDoor — the first thing the Real Estate tab says
+// RealEstateDoor — the Real Estate tab wears the Poe Properties face
 // =============================================================================
 // Darrell, 2026-10-21 at 01:35, on his phone: "real estate needs a makeover
 // too... it looks bland... boring..." — then, settling it himself, "Maybe
-// makeover Real Estate tab and the we keep it."
+// makeover Real Estate tab and the we keep it." And then the shape of the
+// makeover, in his own words: "Real Estate can also look like Properties...
+// and have the new features we discussed earlier... the we could have the Real
+// Estate features still inside the Poe Properties App."
 //
 // Measured before anything was drawn (a real Chromium on the built dist at
 // 360px): the door opened on a 10px grey "PROPERTIES · N" label and a stack of
@@ -11,121 +14,120 @@
 // first screen. The state WAS there — one tab over, in Portfolio & payoff, or
 // derivable from rows already loaded. This band brings it to the door.
 //
+// IT LOOKS LIKE PROPERTIES BY USING PROPERTIES' OWN STYLESHEET, not by copying
+// its hex values. `WELCOME_CSS` (components/PoePropertiesWelcome.jsx) scopes
+// the whole `--pp-*` palette to a `.pp-door` element and remaps it once for
+// midnight, so a scoped island inherits the Playfair headings, the gold rule,
+// the white `.pp-panel`, the auto-fit `.pp-cards` grid and the red pill button
+// AND stays legible in every theme. That is exactly the pattern
+// `modules/properties/PropertiesTab.jsx:79` already uses to host the front
+// door inside the PoeTech shell, repeated here — one stylesheet, one palette,
+// two surfaces, no fork.
+//
 // Pure display. Every number is handed in from lib/real-estate-door.js, which
 // derives it from the real rows (the `rentals` table, the `leases` +
-// `rent_payments` ledger, the incident list). Nothing here invents a figure,
-// and a month the ledger cannot speak for says so in words instead of drawing
-// an empty bar (DR-0076 §8). Standalone-mountable on purpose, so the feature
-// gate can walk its controls (DR-0726).
+// `rent_payments` ledger, the incident list, the six stores a property record
+// keeps). Nothing here invents a figure, and a month the ledger cannot speak
+// for says so in words instead of drawing an empty bar (DR-0076 §8).
+// Standalone-mountable on purpose, so the feature gate can walk its controls
+// (DR-0726) and so the Poe Properties app can mount the same band.
 //
-// Colors come from the app's existing tokens as CLASSES, never inline, so each
-// theme remaps them (contrast-guard). True red appears nowhere: the Blood is
-// the only thing it marks (DR-0099). The rust here is the brand's #B85838 on
-// the WHITE card, where it measures 4.68:1 — AA — rather than on the cream
-// base where the same token is a known sub-AA warning.
+// ON THE RED (DR-0099): `--pp-red` is Poe Properties' shipped brand red, and
+// it is used here exactly as that door uses it — on chrome: the kicker, a
+// pill, the meter fill, the button. It never marks the Scripture, which is set
+// in `--pp-muted`; no color meaning is assigned to the Word on this surface.
 //
 // Recorded as DR-1169.
 // =============================================================================
 import React from 'react';
-import { PaidBar } from './RentLedger.jsx';
+import { WELCOME_CSS } from './PoePropertiesWelcome.jsx';
+import { useThemePref } from '../lib/theme-css.js';
 
 const fmt = (n) => (n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`);
-const SERIF = { fontFamily: '"Fraunces", serif' };
-const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 
-// Tone → the themeable text class. ONLY the three accent tokens the contrast
-// guard tracks and every theme remaps are used, because an untracked literal
-// cannot be remapped and would render dark-on-dark in midnight. The urgency
-// amber (#D97706) that the incident band in Rentals.jsx uses was measured here
-// first and REFUSED: 3.08-3.19:1 on the card across ten of eleven themes, well
-// under AA. 'watch' is the tracked blue instead (DR-0076 §4 — measured, never
-// claimed). Nothing here is true red; the Blood keeps that color (DR-0099).
-const TONE_TEXT = {
-  green: 'text-[#5A6E3D]',
-  rust: 'text-[#B85838]',
-  watch: 'text-[#2A5A8E]',
-  muted: 'text-[#5A5751]',
-  ink: 'text-[#1A1815]',
-};
-const TONE_EDGE = {
-  green: 'border-[#5A6E3D]',
-  rust: 'border-[#B85838]',
-  watch: 'border-[#2A5A8E]',
-  muted: 'border-[#E8E4DC]',
-  ink: 'border-[#1A1815]',
-};
+// The band's own classes, all defined in WELCOME_CSS's RealEstate block.
+// `pp-good` / `pp-watch` are the two non-brand accents this surface needs —
+// defined there as --pp-* tokens with a midnight remap, never as inline hex,
+// because an inline color cannot be remapped and goes dark-on-dark.
+const TONE_CLASS = { green: 'pp-good', rust: 'pp-red', watch: 'pp-watch', muted: 'pp-mute', ink: '' };
 
 /**
  * @param {object} props
  * @param {object} props.state   the value of lib/real-estate-door.js doorState()
  * @param {string|null} props.focus  the attention band the list is filtered to
  * @param {(key: string|null) => void} props.onFocus  focus that band, or clear it
+ * @param {boolean} props.scoped  false when the host already provides `.pp-door`
+ *   (inside the Poe Properties app), so the palette and the stylesheet are not
+ *   declared twice.
  */
-export default function RealEstateDoor({ state, focus = null, onFocus = () => {} }) {
+export default function RealEstateDoor({ state, focus = null, onFocus = () => {}, scoped = true }) {
+  const [theme] = useThemePref('cream');
   if (!state) return null;
-  const { doors, properties, label, collected, holds, attention, allClear, clear, personal } = state;
+  const { doors, properties, label, collected, holds, attention, allClear, clear, personal, service } = state;
 
-  return (
-    <section
-      data-testid="real-estate-door"
-      aria-label="This portfolio, at a glance"
-      className="bg-white border border-[#1A1815] rounded-2xl shadow-sm overflow-hidden mb-4"
-    >
+  const band = (
+    <section data-testid="real-estate-door" aria-label="This portfolio, at a glance" className="pp-re">
       {/* The name of the thing, and how big it is — read from the rows. */}
-      <div className="px-4 pt-4 pb-3 border-b border-[#E8E4DC]">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Real Estate · {label}</div>
-        <h2 className="text-2xl sm:text-3xl text-[#1A1815] leading-tight mt-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>
+      <div className="pp-panel pp-re-head">
+        <span className="pp-kicker">Real Estate · {label}</span>
+        <h2 className="pp-panel-title">
           {doors} {doors === 1 ? 'door' : 'doors'}
-          {properties !== doors && <span className="text-[#5A5751]"> · {properties} {properties === 1 ? 'property' : 'properties'}</span>}
+          {properties !== doors && <span className="pp-mute"> · {properties} {properties === 1 ? 'property' : 'properties'}</span>}
         </h2>
+        <div className="pp-rule" />
         {personal > 0 && (
-          <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF}>
+          <p className="pp-panel-note">
             {personal} more {personal === 1 ? 'is' : 'are'} the family&apos;s own home, counted separately.
           </p>
         )}
-      </div>
 
-      {/* This month, against the lease ledger — or why it cannot say. */}
-      <div className="px-4 py-3 border-b border-[#E8E4DC] bg-[#FAF8F4]">
-        <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1.5">Rent this month</div>
+        {/* This month, against the lease ledger — or why it cannot say. */}
+        <div className="pp-eyebrow">Rent this month</div>
         {collected.known ? (
           <div data-testid="re-door-collected">
-            <PaidBar received={collected.received} expected={collected.expected} />
-            <p className="text-[0.6875rem] text-[#1A1815] mt-1.5" style={MONO}>
-              {fmt(collected.received)} of {fmt(collected.expected)} due · {collected.doorsPaid} of {collected.doorsCounted} {collected.doorsCounted === 1 ? 'door' : 'doors'} paid
-              {collected.doorsPartial > 0 && <span className="font-semibold"> · {collected.doorsPartial} part-paid</span>}
+            <div
+              className="pp-meter"
+              role="img"
+              aria-label={`${collected.percent}% of this month's rent received`}
+            >
+              <span className="pp-meter-fill" style={{ width: `${Math.max(0, Math.min(100, collected.percent))}%` }} />
+            </div>
+            <p className="pp-re-line">
+              <strong>{fmt(collected.received)}</strong> of {fmt(collected.expected)} due · {collected.doorsPaid} of {collected.doorsCounted} {collected.doorsCounted === 1 ? 'door' : 'doors'} paid
+              {collected.doorsPartial > 0 && <> · {collected.doorsPartial} part-paid</>}
             </p>
-            {collected.note && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={SERIF}>{collected.note}</p>}
+            {collected.note && <p className="pp-re-note">{collected.note}</p>}
           </div>
         ) : (
-          <p data-testid="re-door-collected-unknown" className="text-[0.75rem] text-[#5A5751] italic" style={SERIF}>{collected.note}</p>
+          <p data-testid="re-door-collected-unknown" className="pp-re-note">{collected.note}</p>
         )}
       </div>
 
       {/* What it holds. Sums of figures actually on the rows; a sub-line says
-          how many are entered whenever some are not. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC]">
+          how many are entered whenever some are not. The same auto-fit grid
+          the front page's portal cards ride. */}
+      <ul className="pp-cards pp-re-stats">
         {holds.map((h) => (
-          <div key={h.key} className="bg-white px-3 py-2.5">
-            <div className="text-[0.5625rem] uppercase tracking-[0.15em] text-[#5A5751] leading-tight">{h.label}</div>
-            <div className={`text-lg sm:text-xl leading-tight ${TONE_TEXT[h.tone] || TONE_TEXT.ink}`} style={{ ...SERIF, fontWeight: 500 }}>{fmt(h.value)}</div>
-            {h.sub && <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-0.5 leading-tight">{h.sub}</div>}
-          </div>
+          <li key={h.key} className="pp-panel pp-stat">
+            <span className="pp-stat-label">{h.label}</span>
+            <span className={`pp-stat-value ${TONE_CLASS[h.tone] || ''}`}>{fmt(h.value)}</span>
+            {h.sub && <span className="pp-stat-sub">{h.sub}</span>}
+          </li>
         ))}
-      </div>
+      </ul>
 
       {/* What wants a person today. Each chip carries a real count and opens
           exactly those doors in the list below. */}
-      <div className="px-4 py-3 border-t border-[#E8E4DC]">
-        <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">What wants you today</div>
+      <div className="pp-panel">
+        <span className="pp-kicker">What wants you today</span>
         {allClear ? (
-          <p data-testid="re-door-all-clear" className="text-[0.8125rem] text-[#5A6E3D]" style={SERIF}>
+          <p data-testid="re-door-all-clear" className="pp-panel-lead pp-good">
             Every door is rented, paying, and carries its figures. Nothing is waiting on you here.
           </p>
         ) : attention.length === 0 ? (
-          <p className="text-[0.8125rem] text-[#5A5751] italic" style={SERIF}>No property is on the books yet — add the first one above.</p>
+          <p className="pp-panel-note">No property is on the books yet — add the first one above.</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="pp-re-bands">
             {attention.map((b) => (
               <button
                 key={b.key}
@@ -133,42 +135,88 @@ export default function RealEstateDoor({ state, focus = null, onFocus = () => {}
                 data-testid={`re-door-focus-${b.key}`}
                 aria-pressed={focus === b.key}
                 onClick={() => onFocus(focus === b.key ? null : b.key)}
-                className={`text-left px-3 py-2 min-h-[44px] border bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] ${focus === b.key ? 'border-[#1A1815]' : TONE_EDGE[b.tone] || TONE_EDGE.muted}`}
+                className={`pp-band${focus === b.key ? ' is-on' : ''}`}
               >
-                <span className={`text-base ${TONE_TEXT[b.tone] || TONE_TEXT.ink}`} style={{ ...SERIF, fontWeight: 600 }}>{b.count}</span>
-                <span className="text-[0.6875rem] text-[#1A1815] ml-1.5" style={SERIF}>{b.count === 1 ? 'door' : 'doors'} {b.label}</span>
+                <span className={`pp-band-n ${TONE_CLASS[b.tone] || ''}`}>{b.count}</span>
+                <span className="pp-band-w">{b.count === 1 ? 'door' : 'doors'} {b.label}</span>
               </button>
             ))}
           </div>
         )}
         {focus && (
-          <button
-            type="button"
-            data-testid="re-door-show-all"
-            onClick={() => onFocus(null)}
-            className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[44px] px-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
-          >
+          <button type="button" data-testid="re-door-show-all" onClick={() => onFocus(null)} className="pp-back pp-re-back">
             ← Show every door again
           </button>
         )}
       </div>
 
+      {/* THE LEVEL OF SERVICE, ON RECORD. Darrell 2026-10-21: "If a potential
+          tenant uses the app they will be able to see the level of services
+          that were provided by us." A trust figure, so every one of these is
+          counted off a row that already exists — resolved incident dates, the
+          open ones against their own due dates, and the six stores a property
+          record keeps. The typical-days figure names how many incidents it
+          could actually time; one that cannot be timed is excluded and said,
+          never averaged in (DR-0076 §8). */}
+      {service && service.known && (
+        <div data-testid="re-door-service" className="pp-panel">
+          <span className="pp-kicker">The service on record</span>
+          <p className="pp-panel-lead">
+            {service.answered > 0
+              ? <><strong>{service.answered}</strong> {service.answered === 1 ? 'issue' : 'issues'} answered and closed</>
+              : <>No issue has been closed yet</>}
+            {service.typicalDays != null && (
+              <>, typically in <strong>{service.typicalDays}</strong> {service.typicalDays === 1 ? 'day' : 'days'}</>
+            )}
+            {service.openNow > 0 && (
+              <> · <strong>{service.openNow}</strong> open now
+                {service.overdue != null && (service.overdue > 0
+                  ? <span className="pp-red">, {service.overdue} past the day promised</span>
+                  : <span className="pp-good">, all inside the day promised</span>)}
+              </>
+            )}.
+          </p>
+          {service.filed > 0 && (
+            <p className="pp-re-line">
+              On file: {service.photos} {service.photos === 1 ? 'photo' : 'photos'} · {service.maintenance} maintenance · {service.rooms} {service.rooms === 1 ? 'room' : 'rooms'} · {service.systems} {service.systems === 1 ? 'system' : 'systems'} · {service.notes} {service.notes === 1 ? 'note' : 'notes'}
+            </p>
+          )}
+          {service.unmeasured > 0 && (
+            <p className="pp-re-note">
+              {service.measured} of {service.answered} carry both dates; the rest are counted but not timed.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* The payoff line, off the real mortgage rows, and the one verse this
           whole tab is for. KJV, quoted exactly as it is written. */}
-      <div className="px-4 py-3 border-t border-[#E8E4DC] bg-white">
+      <div className="pp-panel">
         {clear && (
-          <p className="text-[0.8125rem] text-[#1A1815] mb-1.5" style={SERIF}>
+          <p className="pp-panel-lead">
             At today&apos;s payments every note clears in <strong>{clear.years.toFixed(1)} years</strong>
             {clear.date ? <> — {clear.date}</> : null}.{' '}
             {clear.bySeven
-              ? <span className="text-[#5A6E3D]">Inside the seventh year.</span>
-              : <span className="text-[#B85838]">Past the seventh year as it stands.</span>}
+              ? <span className="pp-good">Inside the seventh year.</span>
+              : <span className="pp-watch">Past the seventh year as it stands.</span>}
           </p>
         )}
-        <p className="text-[0.6875rem] text-[#5A5751] italic" style={SERIF}>
-          &ldquo;Be thou diligent to know the state of thy flocks, and look well to thy herds.&rdquo; <span className="not-italic uppercase tracking-wider text-[0.5625rem]">KJV — Proverbs 27:23</span>
+        <p className="pp-verse">
+          &ldquo;Be thou diligent to know the state of thy flocks, and look well to thy herds.&rdquo;{' '}
+          <span className="pp-verse-ref">KJV — Proverbs 27:23</span>
         </p>
       </div>
     </section>
+  );
+
+  // Inside the Poe Properties app the host already is a `.pp-door`, so the
+  // island would declare the palette and the stylesheet twice. On the Real
+  // Estate tab it is the island itself.
+  if (!scoped) return band;
+  return (
+    <div data-theme={theme === 'cream' ? undefined : theme} className="pp-door pp-re-door" data-testid="real-estate-door-scope">
+      <style>{WELCOME_CSS}</style>
+      {band}
+    </div>
   );
 }
