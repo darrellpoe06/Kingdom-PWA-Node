@@ -79,6 +79,8 @@
    "sov41-the-agent-that-drowned-in-its-own-output": ["2026-10-19", "ec323f4e"],
    "sov42-the-three-year-degree-and-the-work-that-teaches": ["2026-10-19", "dfb7b87a"],
    "sov43-work-beside-learning-is-apostolic-and-the-release-that-carries-his-name": ["2026-10-20", "fad09270"],
+   "sov44-the-thief-who-forgot-to-lock-his-own-door": ["2026-10-20", "f4979cc3"],
+   "sov45-no-single-witness-and-the-office-of-the-critic": ["2026-10-20", "867c399c"],
    "sov46-the-helper-that-must-see-everything": ["2026-10-20", "9d05df19"]
   },
   "ai-legal-blueprint": {
@@ -683,8 +685,5 @@
    "ea-gh-yahweh-gets-both": ["2026-08-09", "2cdde764"]
   }
  },
- "undated": {
-  "sovereign-ai/sov44-the-thief-who-forgot-to-lock-his-own-door": "no commit ever added a line defining id: 'sov44-the-thief-who-forgot-to-lock-his-own-door'",
-  "sovereign-ai/sov45-no-single-witness-and-the-office-of-the-critic": "no commit ever added a line defining id: 'sov45-no-single-witness-and-the-office-of-the-critic'"
- }
+ "undated": {}
 }
