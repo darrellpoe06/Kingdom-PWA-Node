@@ -22,7 +22,7 @@ import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import LifeHub from '../components/LifeHub.jsx';
-import FamilyStories from '../components/FamilyStories.jsx';
+import FamilyStories, { FIRST_LOAD_BUDGET_MS } from '../components/FamilyStories.jsx';
 import { HUB_TILES, HUB_ACTIONS } from '../lib/life-hub.js';
 import {
   dateInWords, yearsAgo, monthsToProbe, monthsFromYears, chaptersFrom, nearToday,
@@ -290,5 +290,69 @@ describe('the story plays and comes back (4)', () => {
     click(byTestId('stories-play-year'));
     await settle();
     expect(byTestId('story-caption').textContent).toBe('January 23, 2024 · 2 years ago');
+  });
+});
+
+// =============================================================================
+// THE WAIT IS BOUNDED, AND IT SAYS WHAT IT IS DOING (DR-1162)
+// =============================================================================
+// Darrell opened "Our years in pictures" on his phone and it sat on
+// "Opening the library…" — one silent line, no elapsed time, no way on. Every
+// other outcome this screen reaches draws a card that SAYS something: `no-key`
+// explains how a device gets its key, `unreachable` says the NAS did not answer
+// and offers Retry, `empty` says the first picture starts the first chapter.
+// Only the slow path said nothing, so a dead library and a slow one looked
+// identical — to him, and to the screen itself.
+//
+// And the wait is not short. `/library/years` carries a 45s timeout, and on the
+// legacy month-probe path (36 months, AT_ONCE = 3, 45s each) the worst case is
+// about NINE MINUTES on that one line.
+describe('a wait that says nothing is the same lie as a green that means nothing (4)', () => {
+  it('the budget sits below the probe worst case and above a healthy read', () => {
+    expect(FIRST_LOAD_BUDGET_MS).toBeLessThan((36 / 3) * 45000);
+    expect(FIRST_LOAD_BUDGET_MS).toBeGreaterThan(10000);
+  });
+
+  it('a library that never answers ends as unreachable, with its Retry', async () => {
+    vi.useFakeTimers();
+    // The real shape of the hang: the years call never settles at all.
+    const deps = fakeDeps({
+      fetchLibraryYears: vi.fn(() => new Promise(() => {})),
+      fetchLibrary: vi.fn(() => new Promise(() => {})),
+    });
+    render(createElement(FamilyStories, { deps }));
+    await settle();
+    expect(byTestId('stories-loading')).toBeTruthy();
+    await act(async () => { vi.advanceTimersByTime(FIRST_LOAD_BUDGET_MS + 1500); });
+    await settle();
+    expect(byTestId('stories-loading')).toBeNull();
+    expect(byTestId('stories-unreachable')).toBeTruthy();
+    expect(byTestId('stories-retry')).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it('while it waits it names what it reads and how long it has waited', async () => {
+    vi.useFakeTimers();
+    const deps = fakeDeps({
+      fetchLibraryYears: vi.fn(() => new Promise(() => {})),
+      fetchLibrary: vi.fn(() => new Promise(() => {})),
+    });
+    render(createElement(FamilyStories, { deps }));
+    await act(async () => { vi.advanceTimersByTime(4000); });
+    await settle();
+    expect(text()).toMatch(/own library on the NAS/);
+    expect(text()).toMatch(/\d+s/);
+    await act(async () => { vi.advanceTimersByTime(6000); });
+    await settle();
+    expect(text()).toMatch(/taking longer than usual/);
+    vi.useRealTimers();
+  });
+
+  it('a library that answers is never cut off by the budget', async () => {
+    const deps = fakeDeps({});
+    render(createElement(FamilyStories, { deps }));
+    await settle(8);
+    expect(byTestId('stories-loading')).toBeNull();
+    expect(byTestId('stories-unreachable')).toBeNull();
   });
 });

@@ -53,6 +53,14 @@ const CHIP = 'border border-[#E8E4DC] px-2.5 py-1 rounded-full text-[0.625rem] u
 const PAGE = 24;
 const AT_ONCE = 3;
 
+/**
+ * How long the FIRST load may sit before this screen says the library did not
+ * answer. Comfortably longer than a healthy `/library/years` round trip and far
+ * shorter than the legacy month-probe worst case, which is what used to leave
+ * the screen silent for minutes.
+ */
+export const FIRST_LOAD_BUDGET_MS = 25000;
+
 /** The month keys whose pictures can fall within `window` days of today, in any year. */
 function monthsNearToday(today, window = 7) {
   const d = today.getDate();
@@ -85,8 +93,36 @@ export default function FamilyStories({ onClose = null, deps = {} }) {
   const [story, setStory] = useState(null); // {frames, i, title}
   const [uploadState, setUploadState] = useState('idle'); // idle | busy | failed | done
   const [generation, setGeneration] = useState(0);
+  // HOW LONG THE WAIT HAS BEEN, and the reason it is bounded (DR-1162).
+  // "Opening the library…" was one silent line with no elapsed time and no
+  // ceiling. The years call alone may take 45s, and on the legacy probe path
+  // (36 months, 3 at a time, 45s each) the worst case is NINE MINUTES of that
+  // same line. Every other outcome here -- no key, unreachable, empty -- draws
+  // a card that says what happened and offers a way on; the slow one said
+  // nothing, so a dead library and a slow one looked identical. Darrell saw it
+  // sitting on "Opening the library…" and the honest answer was that the screen
+  // could not tell him either.
+  const [waitedS, setWaitedS] = useState(0);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
+
+  // The wait is bounded and counted. A library that has not answered in
+  // FIRST_LOAD_BUDGET_MS is reported unreachable -- the card that already
+  // exists, with its Retry -- rather than left spinning: an unknown that looks
+  // like work in progress is the same lie as a green that means nothing
+  // (DR-0076). The in-flight reads stop themselves through the load effect's
+  // own `cancelled` flag.
+  useEffect(() => {
+    if (status !== 'loading') { setWaitedS(0); return undefined; }
+    const started = Date.now();
+    const tick = setInterval(() => {
+      if (alive.current) setWaitedS(Math.round((Date.now() - started) / 1000));
+    }, 1000);
+    const giveUp = setTimeout(() => {
+      if (alive.current) setStatus((cur) => (cur === 'loading' ? 'unreachable' : cur));
+    }, FIRST_LOAD_BUDGET_MS);
+    return () => { clearInterval(tick); clearTimeout(giveUp); };
+  }, [status, generation]);
 
   const putPage = useCallback((month, page) => {
     if (!alive.current || !page) return;
@@ -258,7 +294,12 @@ export default function FamilyStories({ onClose = null, deps = {} }) {
       )}
 
       {status === 'loading' && (
-        <p className={`text-sm ${MUTED}`} role="status" data-testid="stories-loading">Opening the library…</p>
+        <p className={`text-sm ${MUTED}`} role="status" data-testid="stories-loading">
+          {waitedS < 3
+            ? 'Opening the library…'
+            : `Reading the years from our own library on the NAS… ${waitedS}s`}
+          {waitedS >= 8 ? ' · it is taking longer than usual' : ''}
+        </p>
       )}
 
       {status === 'no-key' && (
