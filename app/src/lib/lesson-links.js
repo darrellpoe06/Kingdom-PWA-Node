@@ -61,7 +61,7 @@ export function lessonUrl({ courseKey, lessonId, origin, path } = {}) {
 }
 
 /**
- * A LESSON THAT WAS FOLDED INTO ANOTHER STILL ANSWERS ITS OWN LINK (DR-1184).
+ * A LESSON THAT WAS FOLDED INTO ANOTHER STILL ANSWERS ITS OWN LINK (DR-1185).
  *
  * When one teaching turns out to have been built twice, the duplicate is folded
  * into the lesson that keeps it and removed from the catalog. Every link already
