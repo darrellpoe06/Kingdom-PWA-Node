@@ -105,7 +105,7 @@ export default function PorchHero({ photo = null, credential = null, fetchImpl =
         ) : photo}
         <span className="pp-photo-band" aria-hidden="true" />
         {offer.offered ? (
-          <button type="button" onClick={live ? close : open} className="pp-cam-open" data-testid="porch-hero-toggle">
+          <button type="button" onClick={live ? close : open} className="pp-cam-open focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#E00000]" data-testid="porch-hero-toggle">
             {live ? 'Back to the photo' : words.button}
           </button>
         ) : null}
