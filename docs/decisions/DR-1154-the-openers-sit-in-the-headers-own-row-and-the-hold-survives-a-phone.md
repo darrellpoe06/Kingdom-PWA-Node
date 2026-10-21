@@ -1,4 +1,4 @@
-# DR-1153: The openers sit in the header's own row, the hold survives a phone, and the door's answer is on screen
+# DR-1154: The openers sit in the header's own row, the hold survives a phone, and the door's answer is on screen
 
 **Date:** 2026-10-21
 **Status:** accepted

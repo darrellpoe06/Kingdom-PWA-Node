@@ -1,4 +1,4 @@
-# DR-1152: The Big Picture is the family's years in pictures — the NAS library, read as chapters and stories
+# DR-1153: The Big Picture is the family's years in pictures — the NAS library, read as chapters and stories
 
 **Date:** 2026-10-21
 **Status:** accepted

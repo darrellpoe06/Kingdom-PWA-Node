@@ -16,7 +16,7 @@
 //
 // WHAT EACH TILE READS, traced to the record (measured 2026-09-17):
 //   Big Picture  — no count. It opens the family's years in pictures
-//                  (DR-1152); the chapter counts live on that screen, read
+//                  (DR-1153); the chapter counts live on that screen, read
 //                  from the NAS library, not painted on a tile.
 //   Books        — no count. The ledger's honest number is a BALANCE, and a
 //                  balance is not a badge: a bare figure on the family's front
@@ -69,7 +69,7 @@ import { DENSITY_ACTIONS } from './home-view-prefs.js';
 // properties answer to both 'rentals' and 'properties'. So a destination is a
 // pair: the top-level view, and the church sub-view where one is needed.
 //
-// THE BIG PICTURE OPENS THE FAMILY'S YEARS IN PICTURES (DR-1152). Until
+// THE BIG PICTURE OPENS THE FAMILY'S YEARS IN PICTURES (DR-1153). Until
 // 2026-10-21 it pointed at `overview` — and since the Hub became the home
 // (DR-1046) `overview` IS the Hub, so the tile went nowhere. Darrell: "Clicking
 // Big Picture should show the family photos... over time or stories like

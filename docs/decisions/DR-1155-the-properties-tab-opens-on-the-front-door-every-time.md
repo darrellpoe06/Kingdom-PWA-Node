@@ -1,4 +1,4 @@
-# DR-1154: The Properties tab opens on the front door every time — a visit to Edit is a visit, not a new default
+# DR-1155: The Properties tab opens on the front door every time — a visit to Edit is a visit, not a new default
 
 **Date:** 2026-10-21
 **Status:** accepted

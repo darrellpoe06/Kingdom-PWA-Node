@@ -757,7 +757,7 @@ def library_dirs(y, mo):
 
 def library_years():
     """{years:[{year, count, months:[{month,count}]}]} for the whole library
-    (DR-1152): every year folder the dated roots and the phone backup hold,
+    (DR-1153): every year folder the dated roots and the phone backup hold,
     counted picture by picture with the same rules the month listing uses
     (picture extensions only, dot-files out, one count per name across the
     folders). Newest year first, months in order. A root that does not exist
@@ -1282,7 +1282,7 @@ def make_handler(args):
                 return
             # THE WHOLE LIBRARY BY MONTH (DR-1002): the dated photo roots and the
             # phone backup, read as folders -- no Synology Photos sign-in.
-            # THE LIBRARY'S YEARS (DR-1152): which years and months hold
+            # THE LIBRARY'S YEARS (DR-1153): which years and months hold
             # pictures, and how many -- the chapters of the family's story.
             if path.endswith("/library/years") or path == "/library/years":
                 if not bearer_ok(self.headers.get("Authorization"), token):
@@ -1874,7 +1874,7 @@ def selftest():
         ok("http: an empty month is honest-empty, never an error", st == 200 and body["total"] == 0 and body["photos"] == [])
         st, _h, body = _get("/library?month=2024-13")
         ok("http: a month that is not a month is 400", st == 400)
-        # THE LIBRARY'S YEARS (DR-1152): the chapters, counted from the folders.
+        # THE LIBRARY'S YEARS (DR-1153): the chapters, counted from the folders.
         st, _h, body = _get("/library/years", bearer=False)
         ok("http: /library/years without the bearer is 401", st == 401)
         st, _h, body = _get("/library/years")
