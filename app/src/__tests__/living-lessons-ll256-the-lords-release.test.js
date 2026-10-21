@@ -174,10 +174,22 @@ const anchoredRefs = (module) => {
 };
 
 // (a) THE MODULE EXISTS ONCE, AT ITS NUMBER
+//
+// NOT "as the last lesson" (amended 2026-10-21, DR-1165). As first written this
+// block pinned `LIVING_LESSONS_MODULES[length - 1].id === ID` and
+// `Math.max(...claimed) === 256` — a lesson's own gate pinning the SIZE of the
+// catalog. It cost within hours of landing: ll257 broke both, so a green gate
+// went red over a lesson it does not guard and nothing wrong with ll256, whose
+// other 141 cases passed throughout. ll255's and ll254's gates assert no such
+// thing, so this was never the convention. What stays true for good is that
+// ll256 appears once and sits AFTER ll255; the claimed maximum is a floor.
 describe('L256 exists exactly once, at its own number, dated the day it was spoken', () => {
-  it('is in the catalog exactly once, as the last lesson', () => {
+  it('is in the catalog exactly once, after L255', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    const at = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
+    const prev = LIVING_LESSONS_MODULES.findIndex((m) => m.id === 'll255-all-things-work-together-the-integrated-system-and-which-way-it-runs');
+    expect(prev, 'L255 is in the catalog').toBeGreaterThan(-1);
+    expect(at, 'L256 follows L255 in reading order').toBeGreaterThan(prev);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 
@@ -185,7 +197,8 @@ describe('L256 exists exactly once, at its own number, dated the day it was spok
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 256)).toHaveLength(1);
     expect(claimed.includes(255), '256 follows 255 — no number was jumped').toBe(true);
-    expect(Math.max(...claimed)).toBe(256);
+    // a floor, not an equality: a later lesson raises the max and must not fail this
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(256);
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
   });
 
