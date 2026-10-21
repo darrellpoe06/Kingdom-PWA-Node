@@ -27,7 +27,7 @@ import {
   loadCameraMenu, saveCameraMenu, loadCameraAccess, askForCameras, decideCameraAccess, giveCameraAccess,
 } from './cloud.js';
 import {
-  GIVE_ROLES, ACCESS_DAYS, expiresOn, accessBook, accessLine, myLiveGrant, accessText,
+  GIVE_ROLES, ACCESS_DAYS, expiresOn, accessBook, accessLine, myLiveGrant, accessText, menuReach, cameraReach,
 } from './door-cameras.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -138,8 +138,16 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
 
   return (
     <div data-testid="camera-access-desk">
+      {/* A MENU IS NOT ACCESS, AND IT SAYS SO (DR-1179). Darrell ticked this
+          list for Apt 2 "including short stays" and asked whether it worked. It
+          did what it does — which is publish a list of what may be REQUESTED —
+          and the old line both buried that and got the audience wrong: it named
+          "a 1099 worker sent here" as someone who sees these names, when
+          resolveFace gives the `cameras` face to TENANT_TABS only, so a worker
+          and a short-stay guest never see this list at all. Both are reached by
+          Give access to anyone, below. */}
       <Head>Cameras people can ask for at {doorName}</Head>
-      <p className="text-xs text-[#5A5751]" style={serif}>Anyone signed into this door (a tenant, their household, a 1099 worker sent here) sees these names and can ask. They see nothing until you give it.</p>
+      <p className="text-xs text-[#B85838] font-semibold" style={serif} data-testid="camera-menu-not-access">{menuReach({ saved: (menu || []).length }).words}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1" data-testid="camera-menu-pick">
         {cameras.map((c) => (
           <label key={c.id} className="flex items-center gap-2 text-sm" style={serif}>
@@ -165,6 +173,7 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
 
       <Head>Give access to anyone</Head>
       <p className="text-xs text-[#5A5751]" style={serif}>A short-stay guest, a new tenant, a worker without the app: they get a link to text. No account, no password; it ends on the day you choose, or when you take it back.</p>
+      <p className="text-xs text-[#1A1815]" style={serif} data-testid="camera-give-reach">{cameraReach(give.role).words}</p>
       <div className="flex flex-wrap items-end gap-2 mt-1">
         <label className="text-xs text-[#5A5751]">Who
           <input value={give.name} onChange={(e) => setGive((g) => ({ ...g, name: e.target.value }))} maxLength={120} aria-label="Who it is for" className={`${field} block`} style={serif} />
