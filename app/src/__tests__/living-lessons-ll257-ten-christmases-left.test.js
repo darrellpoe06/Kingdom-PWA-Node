@@ -210,6 +210,13 @@ const PINNED = {
   'Psalms 139:16': 'in thy book all my members were written',
   'Deuteronomy 6:7': 'when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up',
   'Proverbs 27:17': 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend.',
+  // FOLDED IN FROM L235 (DR-1184). The same teaching had been built twice; the
+  // four verses only the other lesson carried are now taught here, in this
+  // lesson's own citation shape, in the other lesson's own sentences.
+  'Genesis 32:10': 'I am not worthy of the least of all the mercies, and of all the truth, which thou hast shewed unto thy servant',
+  '1 Chronicles 29:14': 'for all things come of thee, and of thine own have we given thee',
+  'Hebrews 9:27': 'And as it is appointed unto men once to die, but after this the judgment',
+  'Job 1:21': 'the LORD gave, and the LORD hath taken away; blessed be the name of the LORD',
 };
 
 const splitRef = (ref) => {
@@ -490,6 +497,28 @@ describe('L257 — every verse it stands on is the corpus, verbatim', () => {
     expect([...anchored].filter((r) => !quoted.has(r)), 'anchor.ref claims a verse the lesson never quotes').toEqual([]);
   });
 
+  // CARRIED FORWARD FROM THE L235 HARNESS (DR-1184). That file's subject was
+  // folded into this lesson and the file is deleted, so the three checks it
+  // held that this one did not are kept here. Deleting a gate must not quietly
+  // delete what it caught.
+  it('PROVEN TO CATCH: a straightened apostrophe fails, so the curly ones in the corpus are real', () => {
+    const v = corpusVerse('Job', 1, 21);
+    expect(v).toContain('mother\u2019s');
+    expect(norm(v.replace('mother\u2019s', "mother's"))).not.toBe(norm(v));
+  });
+
+  it('PROVEN TO CATCH: changed case fails, so a lowercase verse opening is never "fixed"', () => {
+    const v = corpusVerse('1 Timothy', 6, 18);
+    expect(v.startsWith('That')).toBe(true);
+    expect(norm('that' + v.slice(4))).not.toBe(norm(v));
+  });
+
+  it('quotes no verse with an ellipsis, because an elided quote is verbatim nowhere', () => {
+    for (const s of spansOf(L)) {
+      expect(s.quoted, `${s.book} ${s.ch}:${s.label} is elided`).not.toMatch(/\.\.\.|\u2026/);
+    }
+  });
+
   it('PROVEN TO CATCH: one altered word in one quoted verse is named by field and reference', () => {
     const anchor = '"So teach us to number our days, that we may apply our hearts unto wisdom." (Psalms 90:12)';
     expect(L.lesson.includes(anchor), 'the mutation anchor must exist before it proves anything').toBe(true);
@@ -684,14 +713,38 @@ describe('L257 — four bands, each carrying the whole message', () => {
 describe('L257 — two stories that teach this lesson, and a quiz that works', () => {
   const words = (s) => String(s).trim().split(/\s+/).length;
 
-  it('carries exactly two parables, one light and one solemn, 180-320 words, with no quoted Scripture', () => {
-    expect(L.stories).toHaveLength(2);
-    expect(L.stories.map((s) => s.kind)).toEqual(['parable', 'parable']);
-    expect(L.stories.map((s) => s.tone).sort()).toEqual(['light', 'solemn']);
-    for (const s of L.stories) {
-      expect(String(s.body)).not.toMatch(/"/);
-      expect(words(s.body)).toBeGreaterThanOrEqual(180);
-      expect(words(s.body)).toBeLessThanOrEqual(320);
+  // FOUR PARABLES SINCE DR-1184: this lesson's own two, and the two carried in
+  // from L235 when the duplicate was folded. They are kept apart deliberately.
+  const OWN = ['The Calendar on Ruthie Vance Mercer Lane', 'The Fourth Warehouse'];
+  const CARRIED = {
+    // Pinned at their real length, not padded into this lesson's band: these
+    // are L235's parables carried VERBATIM, and lengthening one to clear a
+    // floor would be us rewriting a parable we did not write.
+    'The Calendar on the Inside of the Cabinet Door': 167,
+    'The Man Who Would Not Sell His Hard Years': 180,
+  };
+
+  it('carries four parables — its own two and the two folded in — each light or solemn, none quoting Scripture', () => {
+    expect(L.stories).toHaveLength(4);
+    expect(L.stories.map((s) => s.kind)).toEqual(['parable', 'parable', 'parable', 'parable']);
+    expect(L.stories.map((s) => s.tone)).toEqual(['light', 'solemn', 'light', 'solemn']);
+    for (const s of L.stories) expect(String(s.body), s.title).not.toMatch(/"/);
+    expect(L.stories.slice(0, 2).map((s) => s.title)).toEqual(OWN);
+    expect(L.stories.slice(2).map((s) => s.title)).toEqual(Object.keys(CARRIED));
+  });
+
+  it('its OWN two keep the 180-320 word band they were written to', () => {
+    for (const s of L.stories.filter((x) => OWN.includes(x.title))) {
+      expect(words(s.body), s.title).toBeGreaterThanOrEqual(180);
+      expect(words(s.body), s.title).toBeLessThanOrEqual(320);
+    }
+  });
+
+  it('the two folded in are the length they already were, to the word', () => {
+    for (const [title, n] of Object.entries(CARRIED)) {
+      const s = L.stories.find((x) => x.title === title);
+      expect(s, title).toBeTruthy();
+      expect(words(s.body), `${title} was edited`).toBe(n);
     }
   });
 

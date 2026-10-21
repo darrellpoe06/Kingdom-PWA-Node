@@ -134,26 +134,17 @@ export function duplicatePairs(courses, opts = {}) {
 }
 
 /**
- * THE ONE KNOWN PAIR, and why it is here rather than fixed.
+ * NO RECORDED PAIR. There was exactly one, and it was FOLDED rather than
+ * recorded (DR-1184): ll235 and ll257 were one teaching built twice, so the
+ * four verses and two parables only ll235 carried were moved into ll257 and
+ * ll235 was removed from the catalog. Nothing was deleted that was not first
+ * carried across, and the catalog now holds no pair this rule finds.
  *
- * Both lessons carry real work nobody should throw away: ll235 has 4 verses
- * ll257 does not, and TWO PARABLES of its own ("The Calendar on the Inside of
- * the Cabinet Door", "The Man Who Would Not Sell His Hard Years"); ll257 has 53
- * verses ll235 does not, and two parables of its own. Folding them is an
- * EDITORIAL decision about Yahweh's Word on a COLG-facing surface, and it is
- * Darrell's to make, not a gate's and not mine. So the gate names the pair with
- * its measurement and does not fail on it, and it fails on a SECOND one.
- *
- * `re-review: 2026-10-28` — Darrell's call, with the measurement in hand.
+ * The list stays, empty, because the next duplicate is recorded here with its
+ * why and a re-review date only if folding it is genuinely the Governor's call;
+ * the default is to fold, as this one was.
  */
-export const KNOWN_PAIRS = Object.freeze([
-  Object.freeze({
-    course: 'living-lessons',
-    a: 'll235-ten-christmases-left-and-every-knee-shall-bow',
-    b: 'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them',
-    why: 'Both built from the same spoken street interview. 23 verses shared, 85% of the smaller lesson; 4 verses and 2 parables are only in ll235, 53 verses and 2 parables only in ll257. Folding them is Darrell’s editorial call on his own teaching; nothing is deleted until he makes it. re-review: 2026-10-28',
-  }),
-]);
+export const KNOWN_PAIRS = Object.freeze([]);
 
 const pairKey = (p) => [str(p.course), ...[str(p.a), str(p.b)].sort()].join('|');
 
