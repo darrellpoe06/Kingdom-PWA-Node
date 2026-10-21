@@ -503,3 +503,28 @@ describe('the board says when an advertised door has no listing pictures', () =>
     expect(container.querySelector('[data-testid="listing-no-pictures"]')).toBe(null);
   });
 });
+
+// WHO SEES WHAT, ON THE PEOPLE TAB (DR-1198): the family reads the evaluated
+// matrix where they invite people; a tenant's face carries no such thing.
+describe('the People tab carries the access matrix for the family', () => {
+  it('the landlord sees it, one face at a time, opening on the 1099 worker', async () => {
+    H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
+    await mount({ surface: 'poetech' });
+    await tap(/^People$/);
+    const m = container.querySelector('[data-testid="access-matrix"]');
+    expect(m, 'no matrix on the People tab').toBeTruthy();
+    expect(m.getAttribute('data-role')).toBe('worker');
+    expect(container.querySelector('[data-testid="access-row-cameras"]').textContent).toMatch(/any cameras/);
+    const pick = container.querySelector('[data-testid="access-matrix-role"]');
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    await act(async () => { setter.call(pick, 'tenant'); pick.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(m.getAttribute('data-role')).toBe('tenant');
+    expect(container.querySelector('[data-testid="access-row-pictures-condition"]').textContent).toMatch(/only their own tenancy/);
+  });
+  it('a tenant\'s face has no People tab and no matrix', async () => {
+    H.doors = [KOEHN_TENANCY]; H.rentals = [];
+    await mount({ surface: 'door' });
+    expect(buttons().map((b) => (b.textContent || '').trim())).not.toContain('People');
+    expect(container.querySelector('[data-testid="access-matrix"]')).toBe(null);
+  });
+});

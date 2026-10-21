@@ -38,6 +38,7 @@ import { workerRoster, someoneElse, dispatchText, dispatchRecord, myJobs, dispat
 import { formatPhone } from '../../lib/member-contact.js';
 import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import DoorPictures from './DoorPictures.jsx';
+import AccessMatrix from './AccessMatrix.jsx';
 import { pickPreviewDoor, previewScope, previewDoorData, previewSeesPhoto } from './preview.js';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
@@ -1731,7 +1732,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   rentalId={askDoorId} instanceId={(activeRental || activeDoor)?.instance_id || null}
                   me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} />;
           case 'people':
-            return <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
+            return (<>
+              <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
               onInvite={async (payload) => {
                 // A vacant unit can have a 1099 worker on it long before it has
                 // a tenant — make the unit record if it is missing (DR-0870).
@@ -1753,7 +1755,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 const res = await revokeInvite(person.id);
                 say(res.ok ? `${person.name} no longer has access to this door.` : `Not removed: ${res.reason}`);
                 if (res.ok) refresh();
-              }} />;
+              }} />
+              {/* WHO SEES WHAT (DR-1198): the evaluated matrix, read where
+                  people are invited, one face at a time. */}
+              {(role === 'owner' || role === 'manager') && <AccessMatrix />}
+            </>);
           default:
             return null;
         }

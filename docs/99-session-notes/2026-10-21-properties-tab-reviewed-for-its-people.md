@@ -32,3 +32,7 @@
 
 - Nobody has seen it rendered; the live pass on the phone and the TV is the stewards' after deploy (DR-0104). On the TV, check the footer first: OFFLINE means the device.
 - The worker's own Pictures tab keeps GalleryTab; whether it wants the tenant's read-only room view is `re-review: 2026-10-28`.
+
+## Addendum — who sees what, and the 1099 worker's cameras (DR-1198)
+
+Darrell then asked for workers to be given more than tenants or short stays (the basement camera; pictures), said a gift to a worker on Apt 2 "would not work", and asked that all access per user be evaluated. Traced: every leg of a gift already accepts any cameras for a worker (the NAS grammar; 0266's trigger checks the menu only for an ask); a delegated worker already reads every picture on the door. What failed was legibility: the app said "pick at least one camera" for a bad id and `write-failed` for a database refusal. Built: `access-matrix.js` + `AccessMatrix.jsx` on the People tab; `badCameraIds` and the NAS's own code and the database's message in the refusal; the 0266 smoke gives a worker five cameras, three off the menu (fresh PostgreSQL 16: PASS).

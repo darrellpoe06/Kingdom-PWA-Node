@@ -20,7 +20,7 @@
 // cameras open right here.
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
-import { createGrant, revokeGrant, saveGrantToken, grantLink } from '../../lib/cameras.js';
+import { createGrant, revokeGrant, saveGrantToken, grantLink, badCameraIds } from '../../lib/cameras.js';
 import { smsHref } from '../../lib/dispatch.js';
 import { boundedRead } from '../../lib/bounded-read.js';
 import {
@@ -78,6 +78,14 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
   };
 
   const mint = async (name, cams, days) => {
+    // A REFUSAL NAMES ITS CAUSE (DR-1198, DR-0076 §8). Darrell, 2026-10-21,
+    // giving a 1099 worker more cameras than the short stays: "it would not
+    // work." The NAS refuses a whole list for one id outside its grammar and
+    // the app said "pick at least one camera" — which he had. Now the ids it
+    // would refuse are named here before anything is sent, and the NAS's own
+    // error code travels with every other refusal.
+    const bad = badCameraIds(cams);
+    if (bad.length) return { ok: false, reason: `the NAS would refuse ${bad.length === 1 ? 'this camera id' : 'these camera ids'}: ${bad.join(', ')} (letters, digits, dots, dashes and underscores only)` };
     const g = await createGrant({ name, cameras: cams, days, actions: false }, token);
     if (!g || !g.ok || !g.token) return { ok: false, reason: (g && (g.error || g.reason || g.message)) || 'the NAS did not mint a grant' };
     return { ok: true, token: g.token, id: g.id || String(g.token).split('.')[1] };
@@ -90,7 +98,7 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
     if (!g.ok) { setBusy(false); setMsg(`Not given: ${g.reason}.`); return; }
     const w = await decideCameraAccess(r.id, { status: 'granted', grant_token: g.token, grant_id: g.id, days, expires_on: expiresOn(days) });
     setBusy(false);
-    if (!w.ok) { await revokeGrant(g.id, token); setMsg(`Not given: ${w.reason}. The grant was taken back on the NAS.`); return; }
+    if (!w.ok) { await revokeGrant(g.id, token); setMsg(`Not given: the record was not written (${w.reason}${w.error ? ` — ${w.error}` : ''}). The grant was taken back on the NAS.`); return; }
     setMsg(`Given: ${r.person_label} sees it in the app now.`);
     reload();
   };
@@ -124,7 +132,7 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
       days: give.days, expires_on: expiresOn(give.days),
     });
     setBusy(false);
-    if (!w.ok) { await revokeGrant(g.id, token); setMsg(`Not given: ${w.reason}. The grant was taken back on the NAS.`); return; }
+    if (!w.ok) { await revokeGrant(g.id, token); setMsg(`Not given: the record was not written (${w.reason}${w.error ? ` — ${w.error}` : ''}). The grant was taken back on the NAS.`); return; }
     const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
     const link = grantLink(g.token, origin);
     const text = accessText({ name, door: doorName, cameras: give.cams.map(nameOf), link, days: give.days });

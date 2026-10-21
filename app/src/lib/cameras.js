@@ -101,6 +101,10 @@ export function pickLiveMode(canPlayType, userAgent = null) {
 }
 
 export const CAMERA_ID = /^[A-Za-z0-9_.-]{1,64}$/;
+/** The ids in a pick the NAS would refuse (cams_forwarder grant_normalize: 'bad-cameras'), named before anything is sent (DR-1198). */
+export function badCameraIds(list = []) {
+  return (Array.isArray(list) ? list : []).filter((x) => typeof x !== 'string' || !CAMERA_ID.test(x));
+}
 
 // The forwarder's /list -> a clean, sorted array. Tolerates garbage.
 export function parseCameraList(json) {
@@ -1000,7 +1004,7 @@ export async function createGrant({ name, cameras = '*', days = 0, actions = fal
     try { body = await r.json(); } catch { body = null; }
     const err = body && typeof body.error === 'string' ? body.error : '';
     if (r.status === 200 && body && body.token) return { ok: true, id: body.id, token: body.token, linkPath: body.link_path || undefined, message: `Access made for ${name}. Share the link below; it is shown once.` };
-    if (r.status === 400) return { ok: false, message: err === 'missing-name' ? 'Give the access a name (whose it is).' : err === 'bad-cameras' ? 'Pick at least one camera, or every camera.' : `The NAS refused it (${err || 'bad request'}).` };
+    if (r.status === 400) return { ok: false, message: err === 'missing-name' ? 'Give the access a name (whose it is).' : err === 'bad-cameras' ? 'The NAS refused the camera list: it needs at least one camera, and every id must be letters, digits, dots, dashes or underscores (bad-cameras).' : err === 'bad-days' ? 'The NAS refused the number of days (bad-days).' : `The NAS refused it (${err || 'bad request'}).` };
     if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can give access.' };
     if (r.status === 404) return { ok: false, message: 'The NAS is running an older camera service without access grants yet.' };
     return { ok: false, message: `The camera road answered HTTP ${r.status}${err ? ` (${err})` : ''}.` };
