@@ -212,7 +212,7 @@ describe('the band on screen says what the rows say', () => {
     const verse = host.querySelector('.pp-verse');
     expect(verse.className).not.toMatch(/pp-red/);
     expect(verse.textContent).toContain('Be thou diligent');
-    // The band itself introduces no colour literal; every colour it uses is a
+    // The band itself introduces no color literal; every color it uses is a
     // --pp-* token the shared stylesheet owns and remaps for midnight.
     const own = readFileSync(join(process.cwd(), 'src/components/RealEstateDoor.jsx'), 'utf8');
     expect(own).not.toMatch(/#[0-9A-Fa-f]{3,8}/);
