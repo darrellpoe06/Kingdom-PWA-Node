@@ -65,6 +65,9 @@ const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx'
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
 const { default: PropertyPhotoActions, PhotoRemoveButton } = await import('../components/PropertyPhotoActions.jsx');
+const { default: TVTime } = await import('../components/TVTime.jsx');
+const { default: TVChannels } = await import('../components/TVChannels.jsx');
+const { __setCatalogFetcher } = await import('../lib/tv-catalog.js');
 const { default: RealEstateDoor } = await import('../components/RealEstateDoor.jsx');
 const { doorState } = await import('../lib/real-estate-door.js');
 const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
@@ -311,6 +314,56 @@ const WALKS = {
     look(host);
     const fold = host.querySelector('[data-testid="feedback-earlier"]');
     act(() => { fold.open = true; fold.dispatchEvent(new Event('toggle')); });
+    await settle();
+    look(host);
+  },
+  'tvtime-watch': async (look) => {
+    // TV Time > a show card > Where to watch (DR-1168). Two states are needed:
+    // a title whose streaming service is KNOWN (the answer + the free-service
+    // routes) and one that was never asked (the TVmaze check button). Both are
+    // seeded straight into the device-local store, which is where TV Time's
+    // list really lives, so no search or network is involved.
+    __setCatalogFetcher(async () => ({ ok: false, json: async () => null })); // posters fail soft
+    const seed = (key, custom) => {
+      try {
+        localStorage.setItem(`poetech.tvtime.v1:${key}`, JSON.stringify({
+          version: 1,
+          shows: { s1: { status: 'watching', rating: 0, comments: [], watched: {} } },
+          custom: { s1: custom },
+        }));
+      } catch { /* a storage-less environment degrades to the empty list */ }
+    };
+    const base = { id: 's1', kind: 'show', title: 'Shelter Show', genre: 'Drama', poster: '', year: '2020', seasons: [] };
+
+    // State 1 - KNOWN: webChannel present, so the answer and the routes render.
+    seed('known@b.com', { ...base, network: '', webChannel: 'Tubi' });
+    const known = mount(createElement(TVTime, { email: 'known@b.com' }));
+    await settle();
+    const openKnown = known.host.querySelector('[data-testid="tv-watch-open"]');
+    if (openKnown) { click(openKnown); await settle(); }
+    look(known.host);
+
+    // State 2 - NEVER ASKED: no webChannel key at all (a pre-DR-1168 record or
+    // a zip import), so the "Check TVmaze" control renders.
+    seed('fresh@b.com', { ...base, network: '' });
+    const fresh = mount(createElement(TVTime, { email: 'fresh@b.com' }));
+    await settle();
+    const openFresh = fresh.host.querySelector('[data-testid="tv-watch-open"]');
+    if (openFresh) { click(openFresh); await settle(); }
+    look(fresh.host);
+  },
+  'tvtime-channels': async (look) => {
+    // TV Time > Free channels (DR-1168). A seeded follow is what makes "Check
+    // for new episodes" render, so the walk starts from a list with one channel
+    // on it. Its feed read goes to /api/youtube-feed and fails soft here (there
+    // is no edge in jsdom), which is itself the honest state the surface shows.
+    try {
+      localStorage.setItem('poetech.tvchannels.v1:ch@b.com', JSON.stringify({
+        version: 1,
+        channels: { UCAuUUnT6oDeKwE6v1NGQxug: { id: 'UCAuUUnT6oDeKwE6v1NGQxug', title: 'TED', addedAt: '2026-01-01T00:00:00Z' } },
+      }));
+    } catch { /* storage-less: the empty state still carries the add controls */ }
+    const { host } = mount(createElement(TVChannels, { email: 'ch@b.com' }));
     await settle();
     look(host);
   },

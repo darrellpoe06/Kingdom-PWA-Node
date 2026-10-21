@@ -49,6 +49,14 @@
     "real-estate-door": {
       "name": "Real Estate door",
       "where": "Real Estate > Properties, the band the tab opens on: this month's rent against the lease ledger, what the portfolio holds, and the bands that open exactly the doors wanting a person (components/RealEstateDoor.jsx, mounted by components/Rentals.jsx)"
+    },
+    "tvtime-watch": {
+      "name": "TV Time — Where to watch",
+      "where": "PoeTech TV Time > My shows & picks > a show card > Where to watch: the real streaming answer, the TVmaze check for an un-asked title, and the free-service routes (components/TVTime.jsx, lib/tv-where-to-watch.js; DR-1168)"
+    },
+    "tvtime-channels": {
+      "name": "TV Time — Free channels",
+      "where": "PoeTech TV Time > Free channels: follow a free YouTube channel and see its new episodes, read through the Church tab's existing /api/church-recent proxy with /api/youtube-channel-id resolving a pasted handle (components/TVChannels.jsx, lib/youtube-follow.js; DR-1168)"
     }
   },
   "features": [
@@ -1566,6 +1574,78 @@
         "testid": "re-door-show-all"
       },
       "note": "The way back out of a focused band, so narrowing the list is never a one-way door (DR-1169)."
+    },
+    {
+      "id": "tv-watch-open",
+      "name": "Where to watch (on a show card)",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-open"
+      }
+    },
+    {
+      "id": "tv-watch-answer",
+      "name": "Where-to-watch answer line",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-answer"
+      }
+    },
+    {
+      "id": "tv-watch-check",
+      "name": "Check TVmaze for an un-asked title",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-check"
+      }
+    },
+    {
+      "id": "tv-watch-free-tubi",
+      "name": "Look on Tubi",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-free-tubi"
+      }
+    },
+    {
+      "id": "tv-watch-free-pluto",
+      "name": "Look on Pluto TV",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-free-pluto"
+      }
+    },
+    {
+      "id": "tv-watch-free-roku",
+      "name": "Open The Roku Channel",
+      "surface": "tvtime-watch",
+      "find": {
+        "testid": "tv-watch-free-roku"
+      }
+    },
+    {
+      "id": "tv-channel-input",
+      "name": "Paste a free channel's link",
+      "surface": "tvtime-channels",
+      "find": {
+        "testid": "tv-channel-input"
+      }
+    },
+    {
+      "id": "tv-channel-follow",
+      "name": "Follow a free channel",
+      "surface": "tvtime-channels",
+      "find": {
+        "testid": "tv-channel-follow"
+      }
+    },
+    {
+      "id": "tv-channel-refresh",
+      "name": "Check for new episodes",
+      "surface": "tvtime-channels",
+      "find": {
+        "testid": "tv-channel-refresh"
+      }
     }
   ],
   "removed": [],
