@@ -8,8 +8,9 @@
 //
 // WHAT THIS READS (the reality trace, DR-0061): the NAS photo server's library
 // — the phones' backups and the dated roots, listed by month with the date
-// read from the camera's own file name (`/library/years`, `/library?month=`,
-// `/library-photo?name=`). Every chapter count on this screen is the server's
+// read from the camera's own file name (the `library/years`, `library?month=`
+// and `library-photo?name=` routes, behind the same-origin nas-photos road in
+// lib/nas-photos.js). Every chapter count on this screen is the server's
 // count of real files; every frame is a real picture; a year with no pictures
 // is not a chapter. Nothing here is painted.
 //
