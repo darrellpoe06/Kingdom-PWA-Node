@@ -178,12 +178,33 @@ export function gitDayFor(id, scan, derived = DERIVED_LESSONS) {
  * Is a committed entry still true against git? Returns null when it is, or the
  * reason it is not. An entry whose commit is in history must match git's day
  * and commit exactly. An entry whose commit is NOT in history (the lesson was
- * dated on its branch, or before its first commit — 'working-tree' — and then
- * squash-merged) must be on or before git's day and within SQUASH_GRACE_DAYS.
+ * dated on its branch and then squash-merged) must be on or before git's day
+ * and within SQUASH_GRACE_DAYS. The 'working-tree' PLACEHOLDER is true only
+ * while the lesson really is uncommitted; once git can trace it, the row is
+ * rejected so the derivation replaces it with the real commit.
  */
 export function judgeEntry(entry, git, reachable, id = null) {
   if (!entry || !isIsoDay(entry.date)) return 'no recorded day';
-  if (entry.sha === 'working-tree' && git && git.reason) return null; // still uncommitted
+  // 'working-tree' is a PLACEHOLDER for a lesson written but not yet committed.
+  // It is the honest answer while that is still true, and a stale claim the
+  // moment the lesson lands. Measured 2026-10-21 on main 911f444a7: all 584
+  // committed rows carry an 8-hex sha and none carries this placeholder, so
+  // rejecting a landed one cannot disturb a single existing row.
+  //
+  // WHY IT HAD TO BE SAID OUT LOUD. sov48's row was derived before its commit,
+  // written as 'working-tree', and passed `--check` — so it was committed. Then
+  // every re-derivation KEPT it, because this function returned null for it down
+  // the day-gap path below (the placeholder is not in `reachable`, and the
+  // recorded day matched git's day, so the gap was 0). Meanwhile
+  // lesson-dates.test.js requires /^[0-9a-f]{8}$/ of every sha, so the file was
+  // simultaneously blessed by the check and rejected by the suite, and the only
+  // way out was to DELETE the row by hand and re-derive. A check that passes on
+  // what the suite fails is worse than no check (DR-0076 §3).
+  if (entry.sha === 'working-tree') {
+    if (!git || git.reason) return null; // genuinely still uncommitted
+    return `recorded 'working-tree', but it has since landed as ${git.sha} on ${git.date}`
+      + ' — a committed row must name its commit; re-derive (npm run lesson-dates) to replace it';
+  }
   if (!git || git.reason) return `git cannot trace it (${git ? git.reason : 'no record'})`;
   if (entry.sha && reachable.has(entry.sha)) {
     if (entry.sha !== git.sha) return `recorded commit ${entry.sha} is not the first commit that defined it (${git.sha})`;
