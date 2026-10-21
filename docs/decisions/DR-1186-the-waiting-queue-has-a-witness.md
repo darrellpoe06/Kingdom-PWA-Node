@@ -40,6 +40,19 @@ The hourly intake routine begins: dispatch `inbox-lessons-waiting.yml`, read its
 - **Never a body, unchanged.** `scripts/lesson-inbox-waiting.sql` already selects `length(coalesce(body,''))` and never the body; the log step reads the rows only from the file that query wrote, and a case pins the exact set of files it reads.
 - **It is still dispatch-only.** No timer, no compute spawned, 5-minute cap, same concurrency group — so this is not the class DR-0248's brakes govern. Cases pin `workflow_dispatch` as the only trigger and the absence of a `schedule`.
 
+## A promise this collided with, and what replaced it
+
+**The gates caught a premise error in this record's own design.** `issues: write` was added here without checking whether anything already guaranteed its absence — and something did. `lesson-inbox-bell.test.js:247` asserted, since before this work, that `inbox-lessons-waiting.yml` contains no `issues: write | pull-requests: write | contents: write` at all, beside a ban on `INSERT|UPDATE|DELETE`. So two tests in the same suite flatly contradicted each other: this record's asserts the permission IS present, the older one that it is NOT. Shard 1/4 failed, correctly.
+
+**The older assertion was a proxy, and the fix states the thing it stood for instead of weakening it.** What that line protected is *"this workflow mutates nothing"* — nothing in the database, nothing in the repository, nothing on a pull request. A rolling run log on its own issue is not what that ban exists to prevent; it is how six existing witnesses in this repository record themselves, and `site-health.yml` holds `issues: write` for exactly this reason. So the blanket is replaced by the guarantees individually, **and they are stricter than what was there**:
+
+- `pull-requests: write` and `contents: write` still banned, and `contents: read` / `pull-requests: read` now pinned positively.
+- No `git push`, `git commit`, `gh pr`, `gh release`, or `gh api --method PUT|POST|PATCH|DELETE` anywhere in the file.
+- The **complete set** of `gh` write verbs is pinned: `issue list`, `issue comment`, `issue create` — and nothing else. The old ban said nothing about what a write would be if the permission were ever granted; this names every one.
+- **Proven to catch:** injecting a single `gh pr comment` into the log step turned it red; removed, green again.
+
+The lesson worth keeping is the cheap one: a new permission on an existing workflow is a claim about that workflow, and something in this repository may already have promised the opposite. Grep for the promise before adding the permission.
+
 ## Verification
 
 - **13 cases green**, reading the workflow as **source** (this repository's way with a workflow, and it needs no YAML parser in `app/`'s dependencies). The steps are split on their own `- name:`/`- uses:` lines at the steps' indent, so a claim about one step **cannot** be satisfied by text in another — the exact hole a lazy regex left in DR-1175's gate earlier the same day, not repeated here.
