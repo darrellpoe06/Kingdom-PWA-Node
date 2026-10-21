@@ -71,7 +71,7 @@ export const CAMPUSES = [
     name: 'North Campus',
     tier: 'premium',
     address: 'The Church of the Living God — main campus',
-    blurb: 'The main ~44,000 sq ft church. The larger space; premium rate.',
+    blurb: 'The main ~33,000 sq ft church. The larger space; premium rate.',
     spaces: [
       { id: 'north-whole',      name: 'Whole Campus (exclusive use)', wholeCampus: true, capacity: 600 },
       { id: 'north-sanctuary',  name: 'Main Sanctuary',               capacity: 600 },
