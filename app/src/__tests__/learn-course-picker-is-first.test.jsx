@@ -70,6 +70,26 @@ const isBefore = (a, b) =>
   !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 const picker = () => container.querySelector('#learn-course-pick');
+
+// THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
+// one tap away in its area (Continue, Latest, Find, Record, Downloads). These
+// helpers make the tap a reader makes before the lookup, so each case still
+// pins what it always pinned, reached the way it is reached.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
+
+// LEARN OPENS ON THE ONE LIST NOW (DR-1183): no course is open until one is
+// chosen, so a test about a control that belongs to an open course opens one
+// first -- the same tap a reader makes.
+const openCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) throw new Error('the one list offered no course to open');
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
 // The department tabs are role="tab" nodes, not plain buttons -- selecting them
 // by tagName finds nothing and the assertion passes vacuously, which is how a
 // gate becomes theatre. Same selector the crosslisted-in-the-picker suite uses.
@@ -92,6 +112,11 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('comes before SHARE THIS COURSE (Darrell: "Share course is at the top not the course drop down")', () => {
     mount();
+    // Share this course belongs to an OPEN course, and nothing is open until
+    // one is chosen (DR-1183), so this opens one first -- the order it pins is
+    // between the picker and that control, not whether the control exists on
+    // arrival.
+    openCourse();
     const share = [...container.querySelectorAll('button')]
       .find((b) => /share this course/i.test(b.textContent || ''));
     expect(share, 'the share-course control must exist').toBeTruthy();
@@ -100,6 +125,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('comes before the derived catalog line', () => {
     mount();
+    openArea('downloads'); // the catalog line is the Downloads area's (DR-1190)
     const line = [...container.querySelectorAll('p')]
       .find((p) => /every finished lesson in the PoeTech App/i.test(p.textContent || ''));
     expect(line, 'the catalog line must exist').toBeTruthy();
@@ -113,6 +139,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
     // is seeded now, so the order is actually asserted.
     window.localStorage.setItem('poe-learn-place', JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mountWithCatalog();
+    openArea('continue'); // the offer is the Continue area's (DR-1190); its chip stays on the bar
     const resume = container.querySelector('[data-testid="continue-offer"]');
     expect(resume, 'a seeded place must render the offer').toBeTruthy();
     expect(resume.textContent).toMatch(/pick up where you left off/i);
@@ -164,6 +191,7 @@ describe('the obvious progression: pick one of N courses, or search by name, the
 
   it('STEP 2 — the search box sits directly BELOW the picker, before anything else', () => {
     mount();
+    openArea('find'); // the finder is the Find area's (DR-1190): one tap under the picker
     const find = container.querySelector('#learn-lesson-find');
     expect(find, 'the lesson finder must render').toBeTruthy();
     expect(isBefore(picker(), find), 'picker first').toBe(true);
@@ -177,6 +205,7 @@ describe('the obvious progression: pick one of N courses, or search by name, the
 
   it('STEP 3 — the scroll (the lessons bar and the schedule) comes after both', () => {
     mount();
+    openArea('find');
     const find = container.querySelector('#learn-lesson-find');
     const bar = container.querySelector('[data-testid="lessons-bar"]');
     expect(isBefore(find, bar), 'search must precede the lessons bar').toBe(true);
@@ -195,44 +224,32 @@ describe('the obvious progression: pick one of N courses, or search by name, the
   // spot is why the same complaint came back thirteen days later, so it is
   // closed here rather than in a comment.
   // ---------------------------------------------------------------------------
-  it('comes before the cross-listed block on a DEPARTMENT tab, not after it', async () => {
+  it('on every DEPARTMENT tab the picker precedes the course index, and no other course\'s lessons are inserted at all (DR-1182)', async () => {
     mountWithCatalog();
     const tabs = deptTabs().filter((t) => (t.textContent || '').trim() !== 'Courses');
     expect(tabs.length, 'no department tabs rendered').toBeGreaterThan(0);
-    // Walk the tabs until one actually renders the shelf. Asserting only on
-    // Business would pass vacuously -- Business gathers cross-listed COURSES
-    // (which now live in the picker) but no cross-listed LESSONS, so its shelf
-    // never mounts and the check would prove nothing. A gate that cannot fire
-    // is not a gate (DR-0076 §3), so this fails outright if NO department
-    // renders the shelf.
     let checked = 0;
     for (const tab of tabs) {
       await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      const shelf = container.querySelector('[data-testid="learn-crosslisted"]');
-      if (!shelf) continue;
-      checked += 1;
-      // A department with ONE course of its own and none that serve it has no
-      // picker BY DESIGN (ChurchLearn: "the picker appears whenever there is
-      // somewhere else to go"). History became that case on 2026-09-23 when
-      // DR-0575 gave it a shelf of seventeen gathered lessons under its single
-      // course, and this loop, written when every shelved department had a
-      // picker, read the absence as a regression. It is not one: with no
-      // second course there is nothing for the control to offer, and the
-      // shelf sits directly under the tabs with nothing hidden above it.
-      // Asserted, not assumed: the department really is one course + none.
+      const label = tab.textContent.trim();
+      // The gathered-lessons block (DR-0448 / DR-0598) left every department
+      // tab on 2026-10-21: "Do not put any other lessons out there other than
+      // that, period." So does the every-course shelf.
+      expect(container.querySelector('[data-testid="learn-crosslisted"]'), `other courses' lessons on ${label}`).toBe(null);
+      expect(container.querySelector('[data-testid="lesson-browse-all"]'), `the every-course shelf on ${label}`).toBe(null);
+      const index = container.querySelector('[data-testid="course-lessons-first"]');
       if (!picker()) {
-        const label = tab.textContent.trim();
+        // A department with ONE course of its own and none that serve it has
+        // no picker BY DESIGN (nothing else to offer). Asserted, not assumed.
         const own = CATALOG.filter((c) => (c.meta.category || 'General Studies') === label).length;
         expect(own + courseCrossListedCount(label), `no course dropdown on ${label}`).toBe(1);
         continue;
       }
-      expect(
-        isBefore(picker(), shelf),
-        `on ${tab.textContent.trim()} the picker must precede the cross-listed block, never follow it`,
-      ).toBe(true);
+      checked += 1;
+      if (index) expect(isBefore(picker(), index), `on ${label} the picker must precede the course's lesson index`).toBe(true);
     }
-    expect(checked, 'no department rendered the cross-listed shelf — this check proved nothing').toBeGreaterThan(0);
-  });
+    expect(checked, 'no department rendered a picker — this check proved nothing').toBeGreaterThan(0);
+  }, 120000); // every department tab on the whole catalog, each a full re-render
 
   it('comes before the Eternal Algorithms study panel on its own tab', async () => {
     mountWithCatalog();

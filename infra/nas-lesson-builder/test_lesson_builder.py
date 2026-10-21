@@ -977,6 +977,41 @@ class Road(unittest.TestCase):
         self.assertIn("PROVEN-TO-CATCH", test)
         self.assertIn(v("Psalms", 121, 4), test)
 
+    def test_a_build_that_later_ships_does_not_stay_marked_failed(self):
+        """DR-1187. A row whose first attempt failed keeps build-failed while a
+        second attempt ships it, and afterwards reads "shipped ...
+        [build-failed]" to every operator who looks. That happened to the real
+        row a6f86a58 on 2026-10-21: made 03:07, a stage failed 03:39, the
+        stale alarm rang 07:14, and it shipped as ll257 at 08:08 -- and the
+        line still said build-failed, which cost six lookups to a reader
+        deciding whether a teaching Darrell spoke had been lost. It had not.
+
+        build-failed is a LIVE status flag, grouped with lesson-building in
+        this file's own tag list, so the push clears it -- the sibling of the
+        brake's promise that a killed build is "never left looking busy". The
+        HISTORY stays: build:failed@<time> and build-reason:<why> are not
+        touched, so the earlier attempt is still auditable.
+        """
+        db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building", "build-failed",
+                                          lb.stage_tag("failed", "2026-10-21T03:39:34Z"),
+                                          "build-reason:the first attempt stopped"])])
+        b, rep = build(db, FakeGit(), [ScriptedWriter("claude", make_lesson(), primary=True)], mode="primary")
+        tags = db.rows["r1"]["tags"]
+        self.assertEqual(rep["outcome"], "published", rep)
+        # It shipped, so it does not read as failed any more.
+        self.assertNotIn("build-failed", tags)
+        self.assertIn("lesson-published", tags)
+        self.assertIn("lesson-id:" + rep["lesson_id"], tags)
+        # And nothing was erased: the failed attempt is still on the record,
+        # with its reason, which is the whole difference between clearing a
+        # stale flag and hiding a failure.
+        times = lb.stage_times(tags)
+        self.assertEqual(times["failed"], "2026-10-21T03:39:34Z")
+        self.assertIn("build-reason:the first attempt stopped", tags)
+        # The milestone both sides compute now agrees with the tags.
+        self.assertEqual(lb.bell_milestone(tags), "shipped")
+        del b
+
     def preview_build(self, previewer):
         db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building"])])
         git = FakeGit()

@@ -116,6 +116,30 @@ const GAP_REASONS = {
   212: 'DR-0761 — the orchestrator build label `wt-l212`; the teaching shipped as sovereign-ai sov33. No ll212 was ever minted.',
 };
 
+// A THIRD KIND OF GAP, which this check had never had (DR-1185, 2026-10-21).
+//
+// KNOWN_GAPS above is SHRINK-ONLY on purpose: it exists so a session cannot
+// quietly skip a number, and letting it grow would hand back the thing it
+// guards. 235 is not a skip. L235 was a real lesson, really taught — and it was
+// one of TWO lessons built from the same spoken street interview. Darrell, with
+// both on screen: "Same lesson from before?!!!!!!!! Really?!!!!!!" L257 is the
+// superset, so L235's four verses and two parables were carried into it and
+// L235 was removed. The number is unclaimed because its TEACHING MOVED, not
+// because anybody skipped it.
+//
+// So a folded number is listed here instead, with a stricter requirement than
+// KNOWN_GAPS carries: it must name the lesson that absorbed it, and the case
+// below checks that lesson is really in the catalog. KNOWN_GAPS keeps its
+// shrink-only property exactly as it was, and the unclaimed check accepts both
+// lists — a number excused for a reason the record states is not a hole.
+const FOLDED_AWAY = {
+  235: {
+    into: 'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them',
+    why: 'DR-1185 — L235 and L257 were one teaching built twice (23 verses shared, 85% of the smaller). L257 keeps it; L235\u2019s four verses (Genesis 32:10, 1 Chronicles 29:14, Hebrews 9:27, Job 1:21) and two parables were carried into it, in the adult lesson and all four bands. No ll235 will exist again.',
+  },
+};
+const FOLDED_NUMBERS = Object.keys(FOLDED_AWAY).map(Number);
+
 describe('Living Lessons — the lesson number is unique', () => {
   it('no two modules share a lesson number', () => {
     expect(duplicateNumbers(LIVING_LESSONS_MODULES)).toEqual([]);
@@ -149,10 +173,33 @@ describe('Living Lessons — the lesson number is unique', () => {
 
   it('no NEW number goes unclaimed, and a filled one may always be removed', () => {
     const gaps = unclaimedNumbers(LIVING_LESSONS_MODULES);
-    const appeared = gaps.filter((n) => !KNOWN_GAPS.includes(n));
+    const excused = [...KNOWN_GAPS, ...FOLDED_NUMBERS];
+    const appeared = gaps.filter((n) => !excused.includes(n));
     expect(appeared, 'a lesson number nobody claims is a hole a reader can fall into').toEqual([]);
-    expect(gaps.length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
+    // SHRINK-ONLY, UNCHANGED. KNOWN_GAPS is still measured against its own
+    // length alone: it may lose entries and never gain them, which is the whole
+    // ratchet. A folded number is counted separately because it is a different
+    // thing (DR-1185), not because the ratchet was loosened.
+    expect(gaps.filter((n) => KNOWN_GAPS.includes(n)).length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
       .toBeLessThanOrEqual(KNOWN_GAPS.length);
+    expect(KNOWN_GAPS.length, 'KNOWN_GAPS itself must not grow').toBe(2);
+    expect(gaps.length).toBe(excused.length);
+  });
+
+  it('a FOLDED number names the lesson that absorbed it, and that lesson is really there', () => {
+    const ids = LIVING_LESSONS_MODULES.filter(Boolean).map((m) => m.id);
+    for (const n of FOLDED_NUMBERS) {
+      const f = FOLDED_AWAY[n];
+      expect(f.why, `${n} is folded with no reason written down`).toMatch(/DR-\d{4}/);
+      expect(ids, `${n} says it folded into ${f.into}, which is not in the catalog`).toContain(f.into);
+      // And the folded number itself is really gone.
+      expect(ids.some((id) => id.startsWith(`ll${n}-`)), `ll${n} is listed as folded but still mounted`).toBe(false);
+    }
+  });
+
+  it('PROVEN TO CATCH: a folded number pointing at a lesson that is not there fails', () => {
+    const ids = LIVING_LESSONS_MODULES.filter(Boolean).map((m) => m.id);
+    expect(ids).not.toContain('ll999-a-lesson-that-was-never-built');
   });
 
   // An allowance with no reason beside it is how 211 and 212 got investigated

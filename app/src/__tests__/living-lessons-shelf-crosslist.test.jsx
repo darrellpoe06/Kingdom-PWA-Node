@@ -23,7 +23,6 @@ import { LEARN_CATALOG, buildCatalogCourseDescriptors, catalogCategory } from '.
 import { buildLessonIndex, courseLessonCount, learnDepartments } from '../lib/learn-organize.js';
 import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.js';
 import { CROSS_LISTINGS, crossListingsFor, resolveCrossListed, missingCrossListings, selfListedCrossListings } from '../lib/learn-crosslist.js';
-import { getPlace } from '../lib/learn-resume.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -103,30 +102,15 @@ describe('on the real component, standing in Living Lessons', () => {
   };
   const shelf = () => container.querySelector('[data-testid="learn-crosslisted"]');
 
-  it('the Living Lessons tab shows the three, each naming the course it lives in', () => {
+  // AMENDED 2026-10-21 (DR-1182): a department tab carries only its own
+  // course's lessons now. The three declarations still resolve (above); they
+  // are reachable from the Courses tab's shelf, in their home courses.
+  it('the Living Lessons tab renders NO block of other courses\' lessons', () => {
     mount();
     clickTab('Living Lessons');
-    const el = shelf();
-    expect(el, 'no gathered shelf on the Living Lessons tab').toBeTruthy();
-    expect(el.querySelectorAll('li')).toHaveLength(3);
-    const text = el.textContent || '';
-    expect(text).toContain('Titles and fruits');
-    expect(text).toContain('The Psychologists’ Apology of 2021');
-    expect(text).toContain('The Student in the Gap');
-    expect(text).toMatch(/Project Management/);
-    expect(text).toMatch(/World Issues/);
-  });
-
-  it('opening one opens it in its HOME course, and the place record is the home course’s', () => {
-    mount();
-    clickTab('Living Lessons');
-    const row = [...shelf().querySelectorAll('li button')].find((b) => (b.textContent || '').includes('Titles and fruits'));
-    expect(row).toBeTruthy();
-    act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    const place = getPlace();
-    expect(place, 'opening a gathered lesson recorded no place').toBeTruthy();
-    expect(place.courseKey).toBe('project-management');
-    expect(place.lessonId).toBe('pm12-titles-and-fruits-capability-shown-in-outcomes');
+    expect(shelf(), 'other courses\' lessons rendered on the Living Lessons tab').toBe(null);
+    expect(container.textContent).not.toContain('Also taught across the curriculum');
+    expect(container.textContent).not.toContain('Titles and fruits');
   });
 });
 

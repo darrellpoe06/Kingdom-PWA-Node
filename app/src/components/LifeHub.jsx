@@ -47,6 +47,7 @@ import {
 import { recentActivity, agoLabel } from '../lib/home-activity.js';
 import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
+import HubCamera from './HubCamera.jsx';
 import UiIcon from './UiIcon.jsx';
 
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4';
@@ -70,19 +71,39 @@ const TILE_STYLE = {
   projects:   { fill: 'bg-[#2B2F2D]', icon: 'folder' },
   tlc:        { fill: 'bg-[#9E4A2A]', icon: 'heart' },
 };
+// One fill and one glyph per action. Every fill is a token with a midnight
+// twin in theme-css.js (heritage-home.test.jsx pins that), so the tiles keep
+// their contrast in every theme; the few fills that go bright at midnight
+// flip their ink there too.
 const ACTION_STYLE = {
   focus: { fill: 'bg-[#1F3A2E]', icon: 'check' },
   goal: { fill: 'bg-[#1B2A4A]', icon: 'pin' },
-  message: { fill: 'bg-[#8A6510]', icon: 'chat' },
   lesson: { fill: 'bg-[#9E4A2A]', icon: 'bookOpen' },
-  addProject: { fill: 'bg-[#1F3A2E]', icon: 'folder' },
-  property: { fill: 'bg-[#1C3F38]', icon: 'home' },
-  money: { fill: 'bg-[#2B2F2D]', icon: 'coins' },
-  photo: { fill: 'bg-[#8A6510]', icon: 'eye' },
+  notes: { fill: 'bg-[#3A2A4A]', icon: 'pencil' },
+  create: { fill: 'bg-[#5A6E3D]', icon: 'palette' },
+  voice: { fill: 'bg-[#8A6510]', icon: 'mic' },
+  scripture: { fill: 'bg-[#1C3F38]', icon: 'cross' },
+  recipes: { fill: 'bg-[#2B2F2D]', icon: 'chefHat' },
+  health: { fill: 'bg-[#9E4A2A]', icon: 'heart' },
+  games: { fill: 'bg-[#1B2A4A]', icon: 'dice' },
+  tvtime: { fill: 'bg-[#3A2A4A]', icon: 'monitor' },
+  library: { fill: 'bg-[#1F3A2E]', icon: 'book' },
+  photo: { fill: 'bg-[#8A6510]', icon: 'upload' },
+  vault: { fill: 'bg-[#2B2F2D]', icon: 'shield' },
+  research: { fill: 'bg-[#1C3F38]', icon: 'globe' },
+  cameras: { fill: 'bg-[#1B2A4A]', icon: 'eye' },
+  databack: { fill: 'bg-[#3A2A4A]', icon: 'sliders' },
+  markets: { fill: 'bg-[#5A6E3D]', icon: 'chart' },
+  advocacy: { fill: 'bg-[#9E4A2A]', icon: 'landmark' },
+  scribe: { fill: 'bg-[#1F3A2E]', icon: 'tools' },
+  crm: { fill: 'bg-[#8A6510]', icon: 'users' },
+  inventory: { fill: 'bg-[#2B2F2D]', icon: 'folder' },
+  forecast: { fill: 'bg-[#1C3F38]', icon: 'calendar' },
+  cohorts: { fill: 'bg-[#1B2A4A]', icon: 'sparkle' },
 };
 const ACTIVITY_ICON = { incident: 'alert', project: 'folder', note: 'dove', photo: 'eye', goal: 'pin', focus: 'check' };
 
-export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '' }) {
+export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '', viewer = null, surfaces = null }) {
   const { density } = useHomePrefs();
   const [unread, setUnread] = useState(0);
   const [newest, setNewest] = useState(null);
@@ -106,7 +127,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   }, []);
 
   const tiles = useMemo(() => hubTiles(data, { unread }), [data, unread]);
-  const actions = useMemo(() => actionsFor(density), [density]);
+  // The doors THIS viewer may open, by the nav's own rule (DR-1196). The
+  // registry comes in from the shell with the viewer: it is shell-only
+  // (module-boundary-guard), so a component never imports it.
+  const actions = useMemo(() => actionsFor(density, { viewer, surfaces }), [density, viewer, surfaces]);
   const activity = useMemo(() => recentActivity(data, { limit: 5 }), [data]);
   const focusList = data.dailyFocus || [];
   const todays = focusForDay(focusList);
@@ -139,7 +163,11 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
+      {/* The live camera, or a painted home that says what the space is for, in
+          the space beside the title (Darrell, 2026-10-21; HubCamera.jsx). Beside
+          the title from md up; under it on a phone. */}
+      <header className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] items-start">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Life Hub</h2>
           <p className={`text-xs ${MUTED}`}>Everything in one place. Your own view — the Current View is still there.</p>
@@ -167,6 +195,8 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             Current View
           </button>
         </div>
+      </div>
+      <HubCamera setView={setView} />
       </header>
 
       {panel === 'stories' && <FamilyStories onClose={() => setPanel(null)} />}
@@ -315,8 +345,9 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
           </form>
         </section>
 
-        {/* QUICK ACTIONS — four, six or eight, which is the one thing her three
-            mockups genuinely disagree about. Every one lands somewhere real; the
+        {/* QUICK ACTIONS — doors to the tabs the tiles do not open, none of them
+            twice (DR-1196): eight, twelve or sixteen by density, whole rows of
+            four. Every one lands somewhere real and open to this viewer; the
             two that have no destination scroll to the record on this page. */}
         <section aria-labelledby="hub-actions-h" className={CARD}>
           <h3 id="hub-actions-h" className="text-sm font-semibold flex items-center gap-2"><span aria-hidden="true" className="text-[#5A6E3D]"><UiIcon name="sparkle" /></span>Quick Actions</h3>

@@ -304,7 +304,13 @@ export function formatStatus(rows, ctx = {}, service = null) {
     out.push('', `== lesson rows made in the last day, any state: ${ctx.recent.length} ==`);
     for (const r of ctx.recent) {
       const p = progressOf(r, { ...ctx, now });
-      const marks = safeTags(r.tags).filter((t) => /^(lesson-[a-z-]+|awaiting-review|canary|voice[a-z-]*|mirrored|build-failed)$/.test(t));
+      // lesson-id:<id> rides here too. It is the ONE tag that answers the only
+      // question a reader of this line has -- did the teaching land, and as
+      // WHAT -- and the `$` anchor used to drop it, because the id follows a
+      // colon. On 2026-10-21 a row printed `shipped ... [build-failed]` and
+      // took six lookups to resolve to "it shipped as ll257 at 08:08"; the id
+      // on the line is that answer in place (DR-1187).
+      const marks = safeTags(r.tags).filter((t) => /^(lesson-id:[A-Za-z0-9._-]+|lesson-[a-z-]+|awaiting-review|canary|voice[a-z-]*|mirrored|build-failed)$/.test(t));
       out.push(`${r.id}  made ${r.created_at}  ${p.label}  [${marks.join(', ')}]${p.last_stage ? `  last stage ${p.last_stage}` : ''}`);
     }
   }

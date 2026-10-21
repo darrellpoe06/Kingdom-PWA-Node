@@ -84,10 +84,21 @@ describe('the row is under every stage header', () => {
 
 describe('the real lesson: one row, in the Open stage, wired to the remembered band', () => {
   const extraCourses = buildCatalogCourseDescriptors();
-  const mount = (setAgeBand) => draw(createElement(ChurchLearn, {
-    extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
-    learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand,
-  }));
+  // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course is
+  // open until one is chosen, so `mount` takes the same first tap a reader does
+  // before these cases open a lesson inside it.
+  const mount = (setAgeBand) => {
+    draw(createElement(ChurchLearn, {
+      extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
+      learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand,
+    }));
+    // Living Lessons specifically: it is what `defaultCourse` opened before, and
+    // it is the course that counts in LESSONS, so "Start this lesson" exists.
+    const rows = [...host.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+    const row = rows.find((b) => (b.textContent || '').includes('Living Lessons'));
+    if (!row) throw new Error(`Living Lessons was not offered among ${rows.length} courses`);
+    act(() => { row.click(); });
+  };
   it('opening a lesson shows exactly ONE "Who is learning?" row, before the Open stage body, and a pick reaches setAgeBand', () => {
     const setAgeBand = vi.fn();
     mount(setAgeBand);

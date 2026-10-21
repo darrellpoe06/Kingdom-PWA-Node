@@ -299,11 +299,31 @@ describe('downloading needs an account (DR-0698)', () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     const props = { extraCourses: COURSES, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {}, learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {} };
+    // "Download this course" belongs to an OPEN course, and no course is open
+    // until one is chosen (DR-1183). Chosen through the picker, which this file
+    // already uses above.
+    const pick = () => {
+      const sel = container.querySelector('#learn-course-pick');
+      if (!sel) return;
+      act(() => {
+        Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, 'living-lessons');
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    };
+    // Both download doors are the Downloads area's (DR-1190): one tap.
+    const downloads = () => {
+      const tab = container.querySelector('#learn-area-tab-downloads');
+      if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    };
     act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: true })));
+    pick();
+    downloads();
     const all = container.querySelector('[data-testid="download-all-open"]');
     expect(all.textContent).toMatch(/Download every lesson \(\d+\)/);
     expect(container.querySelector('[data-testid="download-course-open"]').textContent).toMatch(/Download this course \(\d+ lessons\)/);
     act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: false })));
+    pick();
+    downloads();
     expect(container.querySelector('[data-testid="download-all-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="learn-download-all"] [data-testid="download-needs-account"]')).toBeTruthy();

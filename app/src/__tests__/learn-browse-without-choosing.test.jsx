@@ -112,7 +112,14 @@ describe('the Learn surface itself — no course, no word, still every lesson', 
   // The host assembles its own built-in courses alongside the props, so these
   // assert INVARIANTS rather than fixed numbers — which also proves the counts
   // are derived from the mounted catalog and never typed (DR-0121).
-  const shelfOf = () => container.querySelector('[data-testid="lesson-browse-all"]');
+  // THE SHELF IS THE FIND AREA'S (DR-1190): one tap, never a scroll past the
+  // lessons. Christina's case still holds -- no course chosen, no word typed,
+  // every lesson on the shelf -- reached by the tab that says Find.
+  const shelfOf = () => {
+    const tab = container.querySelector('#learn-area-tab-find');
+    if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    return container.querySelector('[data-testid="lesson-browse-all"]');
+  };
 
   it('THE REPORTED CASE: the shelf is on screen with no course chosen and no word typed', () => {
     mount();

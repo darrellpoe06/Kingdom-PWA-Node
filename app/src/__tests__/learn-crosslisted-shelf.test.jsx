@@ -17,7 +17,6 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { crossListingsFor } from '../lib/learn-crosslist.js';
-import { getPlace } from '../lib/learn-resume.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -44,57 +43,43 @@ const clickTab = (label) => {
 };
 const shelf = () => container.querySelector('[data-testid="learn-crosslisted"]');
 
-describe('the A.I. department gathers the curriculum\'s A.I. lessons', () => {
+// AMENDED 2026-10-21 (DR-1182). Darrell: "on those specific tabs that are
+// isolating out living lessons or history or whatever it is specifically, only
+// have the course information in that one for that list... Do not put any
+// other lessons out there other than that, period." The gathered-lessons block
+// no longer renders on ANY department tab. The declarations stay (they still
+// resolve to live lessons, learn-crosslist.test.js), the course-level pointers
+// stay in the picker (DR-0516), and the Courses tab's shelf reaches every
+// lesson of every course. This file now pins the ABSENCE on the real tree.
+describe('a department tab shows no other course\'s lessons (DR-1182)', () => {
   it('shows nothing of the kind on the whole-catalog tab', () => {
     mount();
     expect(shelf()).toBe(null);
   });
 
-  it('shows every gathered lesson, with the course it lives in', () => {
+  it('the A.I. department still DECLARES its gathered lessons, and renders none of them as a block', () => {
     mount();
     clickTab('A.I. The Way');
-    const el = shelf();
-    expect(el, 'no gathered shelf in the A.I. department').toBeTruthy();
-    const text = el.textContent || '';
-    expect(text).toContain('Also taught across the curriculum');
     const declared = crossListingsFor('A.I. The Way');
     expect(declared.length).toBeGreaterThanOrEqual(9);
-    expect(el.querySelectorAll('li')).toHaveLength(declared.length);
-    // The home course is named on every row — the reader is told where a
-    // lesson lives before they go there.
-    expect(text).toContain('Living Lessons');
-    expect(text).toMatch(/Lesson \d+/);
-    // And the tab's own summary says how many are gathered. The wording gained
-    // the word "lessons" when course-level cross-listing landed (DR-0516),
-    // because a shelf can now gather both and "9 more" would not say which —
-    // so the assertion follows the copy rather than the copy following it.
-    expect(container.querySelector('[data-testid="learn-departments"]').textContent)
-      .toContain(`${declared.length} more lessons taught across the curriculum`);
+    expect(shelf(), 'other courses\' lessons rendered on a department tab').toBe(null);
+    const text = container.textContent || '';
+    expect(text).not.toContain('Also taught across the curriculum');
+    expect(container.querySelector('[data-testid="learn-departments"]').textContent).not.toContain('more lessons taught across the curriculum');
   });
 
-  it('opens a gathered lesson in its HOME course, out of the department', () => {
-    mount();
-    clickTab('A.I. The Way');
-    const rows = [...shelf().querySelectorAll('li button')];
-    const tower = rows.find((b) => (b.textContent || '').includes('Tower'));
-    expect(tower, 'the cross-listed Tower lesson is not on the shelf').toBeTruthy();
-    const title = (tower.textContent || '');
-    act(() => tower.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    // The lesson is open and in focus — the department strip steps aside, as it
-    // does for any opened lesson.
-    expect(deptTabs()).toHaveLength(0);
-    expect(container.textContent).toContain(title.slice(0, 40).trim().split(' · ')[0].slice(0, 30));
-    // AND THE CREDIT IS THE HOME COURSE'S. This is the whole claim: the place
-    // record written by opening it from the A.I. department names Living
-    // Lessons, the course the lesson actually lives in — so there is one
-    // credit, not two, whichever shelf the reader found it on.
-    const place = getPlace();
-    expect(place, 'opening a gathered lesson recorded no place').toBeTruthy();
-    expect(place.courseKey).toBe('living-lessons');
-    expect(place.lessonId).toBe('ll34-the-tower-the-race-and-the-sovereign');
+  it('PROVEN TO CATCH: the block\'s own test id is what this file looks for', () => {
+    // The selector is the one the block carried; a block that came back under
+    // the same id would fail the assertions above, not slip past them.
+    expect(shelf).toBeTypeOf('function');
+    const fake = document.createElement('div');
+    fake.setAttribute('data-testid', 'learn-crosslisted');
+    container.appendChild(fake);
+    expect(shelf()).toBe(fake);
+    fake.remove();
   });
 
-  it('a department with no cross-listings shows no shelf', () => {
+  it('a department with no cross-listings shows no shelf either', () => {
     mount();
     clickTab('Mathematics');
     expect(shelf()).toBe(null);

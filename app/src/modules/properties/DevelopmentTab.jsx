@@ -7,7 +7,13 @@
 // our home", and "features to be inside our Poe Properties Apps for building
 // businesses and apartment deals with investors".
 //
-// One project at a time: its budget (land, soft, hard, the TI allowance, the
+// And 2026-10-21, with a photograph of a slide titled "Your Team": "Research
+// and add features and functionality for users to formulation of their teams...
+// Inside the Poe Properties Apps for building from nothing" (DR-1175,
+// migration 0308) — the Team card, FIRST on the tab, because the team is what
+// you find before there is anything to price.
+//
+// One project at a time: its team, its budget (land, soft, hard, the TI allowance, the
 // cost of money, the contingency), the change orders drawn on it, each
 // commercial bay's allowance, the phases in build order with their dated and
 // signed checks, what it is worth, and the deal as investors see it. Beside
@@ -22,13 +28,14 @@ import {
 } from './development.js';
 import {
   developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow,
-  setCheck, projectForEngine,
+  setCheck, setTeamMember, projectForEngine,
 } from './development-cloud.js';
+import { SEQUENCE_READING, roleKey, teamState, nextToFind, teamWords } from './development-team.js';
 import { toCents, money } from '../../lib/door-economics.js';
 import { confirmThen } from '../../lib/confirm-action.js';
 
 export const DEFAULT_API = {
-  instanceId: developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow, setCheck,
+  instanceId: developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow, setCheck, setTeamMember,
 };
 
 const WHY = {
@@ -36,6 +43,8 @@ const WHY = {
   'timed-out': 'The server did not answer in time. Try again in a moment.',
   'no-instance': 'Sign in to the Poe Properties space to keep a project.',
   'needs-a-name': 'Give the project a name.',
+  'needs-a-role': 'Say which role this person fills.',
+  'needs-a-person': 'Give the person’s name. To leave the role empty, use remove.',
   'needs-a-date': 'Say the date the check was made.',
   'signed-out': 'Sign in again to save.',
   failed: 'That could not be saved. Only the owner or an admin writes here.',
@@ -391,6 +400,113 @@ function ProjectRef({ value, onSave }) {
   );
 }
 
+/**
+ * YOUR TEAM (DR-1175, migration 0308) — the people a ground-up build needs,
+ * from the slide Darrell sent, and which of them this project has found.
+ *
+ * The sixteen roles, their order and their wording are HIS SLIDE. The slide
+ * sets nine of them bold and never says what bold means, so this card shows the
+ * emphasis and says whose it is — it does not call them required. The reading
+ * of the numbering is PoeTech's and is labelled as PoeTech's.
+ *
+ * A role with nobody reads "nobody yet", because for a person building from
+ * nothing the gaps ARE the information: what the card is for is the list of who
+ * to go and find next.
+ */
+function Team({ project, data, api, reload }) {
+  const commercial = ['mixed-use', 'commercial'].includes(project.kind);
+  const s = teamState({ commercial, filled: data.filled });
+  const next = nextToFind(s);
+  const [open, setOpen] = useState('');
+  const [form, setForm] = useState({ name: '', company: '', phone: '', email: '', note: '', joinedOn: '' });
+  const [msg, setMsg] = useState('');
+
+  const start = (role, who) => {
+    setOpen(roleKey(role.role));
+    setMsg('');
+    setForm({
+      name: (who && who.name) || '', company: (who && who.company) || '', phone: (who && who.phone) || '',
+      email: (who && who.email) || '', note: (who && who.note) || '', joinedOn: (who && who.joinedOn) || '',
+    });
+  };
+  const save = async (role) => {
+    const r = await api.setTeamMember(project, { roleKey: roleKey(role.role), ...form });
+    setMsg(say(r));
+    if (r.ok) { setOpen(''); reload(); }
+  };
+
+  return (
+    <Card
+      title="Your team"
+      right={<span className="text-[0.75rem] text-[#6B665E]" data-testid="dev-team-count">{s.have.length} of {s.total} filled</span>}
+    >
+      <p role="status" data-testid="dev-team-words" className="text-[0.8125rem] text-[#1A1815] mb-2">{teamWords(s)}</p>
+      <p className="text-[0.75rem] text-[#6B665E] mb-1">
+        The sixteen roles, their order and their wording are from the slide. It sets nine of them in bold and does not say what bold means, so they are shown in bold here and counted as the slide{'’'}s emphasis — not as a requirement.
+        {s.emphasisedNeeded > 0 ? ` ${s.emphasisedNeeded} of the ${s.emphasised} it emphasises are still to find.` : ` All ${s.emphasised} it emphasises are filled.`}
+      </p>
+      <p className="text-[0.75rem] text-[#6B665E] mb-2" data-testid="dev-team-reading">
+        Reading the numbering ({SEQUENCE_READING.whose}): {SEQUENCE_READING.words}
+      </p>
+      {!commercial && (
+        <p className="text-[0.75rem] text-[#6B665E] mb-2">
+          Three roles the slide marks {'“'}commercial{'”'} — the civil, MEP and structural engineers — are left out of a {PROJECT_KINDS.find((k) => k.key === project.kind)?.label.toLowerCase()} build. Change what is being built and they appear.
+        </p>
+      )}
+      {msg && <p role="alert" className="text-[0.75rem] text-[#B85838] mb-1">{msg}</p>}
+      <ol className="mb-2" data-testid="dev-team-list">
+        {s.roles.map((role) => {
+          const key = roleKey(role.role);
+          const who = data.filled[key] || null;
+          const editing = open === key;
+          return (
+            <li key={key} className="border-t border-[#F0ECE4] py-1.5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 text-[0.8125rem]">
+                <span className="min-w-0">
+                  <span className="text-[#6B665E] tabular-nums mr-1.5">{role.n}.</span>
+                  <span className={role.emphasis === 'bold' ? 'font-semibold text-[#1A1815]' : 'text-[#1A1815]'}>{role.role}</span>
+                  {role.commercial && <span className="text-[#6B665E]"> (commercial)</span>}
+                  {role.note && <span className="text-[#6B665E]"> — {role.note}</span>}
+                </span>
+                <span className="flex items-center gap-2">
+                  {who
+                    ? <span className="text-[#2F5D50]">{who.name}{who.company ? ` · ${who.company}` : ''}</span>
+                    : <span className="text-[#6B665E]">nobody yet{next && next.n === role.n ? ' · next by the numbering' : ''}</span>}
+                  <Btn onClick={() => (editing ? setOpen('') : start(role, who))} aria-label={`${who ? 'Change who fills' : 'Name someone for'} ${role.role}`}>
+                    {editing ? 'Close' : who ? 'Change' : 'Name someone'}
+                  </Btn>
+                  {who && (
+                    <button
+                      type="button" className="text-[0.75rem] text-[#B85838] underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      onClick={confirmThen(`Remove ${who.name} from ${role.role}? The role goes back to being a gap.`, async () => { await api.deleteRow('dev_team', who.id); reload(); })}
+                    >remove</button>
+                  )}
+                </span>
+              </div>
+              {who && (who.phone || who.email || who.note || who.joinedOn) && (
+                <p className="text-[0.75rem] text-[#6B665E] mt-0.5">
+                  {[who.phone, who.email, who.joinedOn ? `since ${who.joinedOn}` : null, who.note].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              {editing && (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Field id={`team-name-${key}`} label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+                  <Field id={`team-company-${key}`} label="Company" value={form.company} onChange={(v) => setForm({ ...form, company: v })} />
+                  <Field id={`team-phone-${key}`} label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+                  <Field id={`team-email-${key}`} label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
+                  <Field id={`team-joined-${key}`} label="On the team since" type="date" value={form.joinedOn} onChange={(v) => setForm({ ...form, joinedOn: v })} />
+                  <Field id={`team-note-${key}`} label="Note" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
+                  <div className="self-end"><Btn tone="primary" disabled={!form.name.trim()} onClick={() => save(role)}>Save</Btn></div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </Card>
+  );
+}
+
 /** What to build on a lot: Kleyman's single-family-or-duplex comparison. */
 export function BuildToRent() {
   const blank = { name: '', lot: '', units: '1', sqft: '', perFt: '', rent: '' };
@@ -596,7 +712,7 @@ export function DevelopmentTab({ api = DEFAULT_API }) {
   return (
     <div data-testid="development-tab">
       <Card title="Development">
-        <p className="text-[0.8125rem] text-[#1A1815]">Count the cost before you build: the budget with every category a build carries, the change orders against the contingency, each phase{'’'}s checks with who signed them, what the finished building is worth, and the deal for investors.</p>
+        <p className="text-[0.8125rem] text-[#1A1815]">Count the cost before you build: the sixteen people a ground-up build needs and which of them you have found, the budget with every category a build carries, the change orders against the contingency, each phase{'’'}s checks with who signed them, what the finished building is worth, and the deal for investors.</p>
         {state.loading && <p className="text-[0.75rem] text-[#6B665E] mt-1">Reading the projects…</p>}
         {state.msg && <p role="alert" className="text-[0.75rem] text-[#B85838] mt-1">{state.msg}</p>}
         {projects.length > 0 && (
@@ -627,6 +743,7 @@ export function DevelopmentTab({ api = DEFAULT_API }) {
                 onSave={async (v) => { await api.patchProject(project.id, { project_ref: v.trim() || null }); reload(); }} />
             </div>
           </Card>
+          <Team project={project} data={engine} api={api} reload={reload} />
           <Budget project={project} data={engine} api={api} reload={reload} />
           {hasCommercial && <Bays project={project} data={engine} api={api} reload={reload} />}
           <ChangeOrders project={project} data={engine} api={api} reload={reload} />

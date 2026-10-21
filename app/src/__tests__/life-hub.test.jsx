@@ -26,7 +26,7 @@
 //   5. CHROME THAT GROWS WITH THE TEXT. The switches are fixed-size chrome and
 //      the file declares no width cap, so the reader's text size moves the
 //      words and not the furniture (DR-0410 / DR-0438 / DR-0246).
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,7 +49,9 @@ import {
   HOME_VIEWS, HUB_DENSITIES, DENSITY_ACTIONS, HOME_VIEW_KEY,
   getHomeView, setHomeView, setHubDensity, __resetHomePrefs, readPref, DEFAULT_HOME_VIEW,
 } from '../lib/home-view-prefs.js';
-import { HUB_TILES, HUB_ACTIONS, HOST_VIEWS, hubTiles, actionsFor, hasRealCount, openProjectCount, doorCount } from '../lib/life-hub.js';
+import { HUB_TILES, HUB_ACTIONS, HOST_VIEWS, hubTiles, actionsFor, overlappingActions, hasRealCount, openProjectCount, doorCount } from '../lib/life-hub.js';
+import { surfaceById } from '../surfaces.js';
+import { surfaceAccess } from '../lib/surface-access.js';
 import { PROJECT_STATUSES_ACTIVE } from '../lib/opportunity-capacity.js';
 import { DM_UNREAD_EVENT } from '../lib/notify-readiness.js';
 
@@ -83,7 +85,9 @@ const world = {
   projects: [{ id: 'p1', status: 'active' }, { id: 'p2', status: 'planning' }, { id: 'p3', status: 'complete' }, { id: 'p4', status: 'on-hold' }],
   dailyFocus: [], goals: [],
 };
-const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, setChurchView: noop, setBooksView: noop, ...over });
+// The registry rides in from the shell, as it does in the app (the Hub never
+// imports it: module-boundary-guard). No viewer reads as a visitor.
+const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, setChurchView: noop, setBooksView: noop, surfaces: surfaceById, ...over });
 const render = (el) => { act(() => root.render(el)); };
 const text = () => container.textContent || '';
 
@@ -368,7 +372,9 @@ describe("Today's Focus and My Goals are written into the world", () => {
 describe('her three looks all ship, as density', () => {
   it('gives each density the number of Quick Actions her mockup showed', () => {
     expect(HUB_DENSITIES).toEqual(['airy', 'photo', 'compact']);
-    expect(DENSITY_ACTIONS).toEqual({ airy: 4, photo: 8, compact: 6 });
+    // Her mockups' 4 / 8 / 6, doubled when the actions became doors to every
+    // other tab (DR-1196): whole rows of four.
+    expect(DENSITY_ACTIONS).toEqual({ airy: 8, photo: 16, compact: 12 });
     for (const d of HUB_DENSITIES) expect(actionsFor(d)).toHaveLength(DENSITY_ACTIONS[d]);
   });
 
@@ -386,15 +392,101 @@ describe('her three looks all ship, as density', () => {
       const s = [...container.querySelectorAll('section')].find((x) => (x.textContent || '').includes('Quick Actions'));
       return s.querySelectorAll('button').length;
     };
-    expect(count()).toBe(4);
-    act(() => setHubDensity('photo'));
+    // No viewer handed in reads as a visitor: the signed-in and family doors
+    // are not drawn, so photo density shows the 14 open to anyone, not 16.
+    // (Without the registry every door would read as open; the shell always
+    // hands it in, and hubProps does the same.)
     expect(count()).toBe(8);
+    act(() => setHubDensity('photo'));
+    expect(count()).toBe(14);
     act(() => setHubDensity('compact'));
-    expect(count()).toBe(6);
+    expect(count()).toBe(12);
+  });
+
+  it('a family member at photo density sees the full sixteen, with the family doors in them', () => {
+    const viewer = { signedIn: true, isFamilyMember: true };
+    act(() => setHubDensity('photo'));
+    render(createElement(LifeHub, hubProps({ viewer })));
+    const s = [...container.querySelectorAll('section')].find((x) => (x.textContent || '').includes('Quick Actions'));
+    const labels = [...s.querySelectorAll('button')].map((b) => (b.textContent || '').trim());
+    expect(labels).toHaveLength(16);
+    expect(labels).toContain('Open the Vault');
+    expect(labels).toContain('See the cameras');
+    act(() => setHubDensity('airy'));
+  });
+
+  it('no Quick Action opens what a tile or another action opens; every door names its surface and matches it (DR-1196)', () => {
+    // Darrell, 2026-10-21: "Have more options, none that overlap, so we have
+    // more options and advertise the other tabs."
+    expect(overlappingActions(HUB_ACTIONS, HUB_TILES)).toEqual([]);
+    // PROVEN TO CATCH: a door to Money duplicates the Money tile; a second
+    // door to Notes duplicates the first.
+    const dupTile = [...HUB_ACTIONS, { key: 'money', label: 'Open Money', view: 'books', churchView: null }];
+    expect(overlappingActions(dupTile, HUB_TILES)).toEqual([{ key: 'money', destination: 'books', same: 'tile books' }]);
+    const dupAction = [...HUB_ACTIONS, { key: 'notes2', label: 'Notes again', view: 'notes', churchView: null }];
+    expect(overlappingActions(dupAction, HUB_TILES)).toEqual([{ key: 'notes2', destination: 'notes', same: 'action notes' }]);
+    // Every door names a registered surface whose view and sub are its own,
+    // so the access rule it is filtered by is the rule for the tab it opens.
+    for (const a of HUB_ACTIONS) {
+      if (!a.view) continue;
+      const s = surfaceById[a.surface];
+      expect(s, `${a.key} names no registered surface`).toBeTruthy();
+      expect(s.view, `${a.key} opens ${a.view} but its surface is ${s.view}`).toBe(a.view);
+      expect(s.sub || null, `${a.key} sub drifted from its surface`).toBe(a.churchView || null);
+    }
+  });
+
+  it('draws only the doors this viewer may open, by the nav\'s own rule (DR-1196; a shut door is never drawn, DR-0330)', () => {
+    const keys = (viewer) => actionsFor('photo', { viewer, surfaces: surfaceById }).map((a) => a.key);
+    const visitor = keys({ signedIn: false });
+    expect(visitor).not.toContain('vault');
+    expect(visitor).not.toContain('crm');
+    expect(visitor).toContain('notes');
+    expect(visitor).toContain('recipes');
+    const signedIn = keys({ signedIn: true });
+    expect(signedIn).toContain('vault');
+    expect(signedIn).toContain('library');
+    expect(signedIn).not.toContain('crm');
+    const family = keys({ signedIn: true, isFamilyMember: true });
+    expect(family).toContain('cameras');
+    expect(family).toHaveLength(16);
+    // The family-only doors (CRM, Inventory, Forecast, Academy, Scribe) sit
+    // past the sixteenth for the family, so they are open but not drawn at any
+    // density today: the density is the cut, never the key.
+    expect(surfaceAccess(surfaceById.crm, { signedIn: true, isFamilyMember: true }).allowed).toBe(true);
+    expect(HUB_ACTIONS.findIndex((a) => a.key === 'crm')).toBeGreaterThanOrEqual(16);
+    // Reviewer mode is not a key (DR-0104): the family's camera door leaves with it.
+    const reviewer = keys({ signedIn: true, isFamilyMember: true, reviewerMode: true });
+    expect(reviewer).not.toContain('cameras');
+    expect(reviewer).toContain('vault');
+  });
+
+  it('shows Notes and Create at every density, and each opens its real view (DR-1196)', () => {
+    // Darrell, 2026-10-21, with the Hub on his phone: "Add notes and create to
+    // the quick links." Notes is the Thinking Space; Create is the Creation
+    // Workspace. Both must survive the airiest look, not only the densest.
+    for (const d of HUB_DENSITIES) {
+      const keys = actionsFor(d).map((a) => a.key);
+      expect(keys, `${d} lost Notes`).toContain('notes');
+      expect(keys, `${d} lost Create`).toContain('create');
+    }
+    const notes = HUB_ACTIONS.find((a) => a.key === 'notes');
+    const create = HUB_ACTIONS.find((a) => a.key === 'create');
+    expect(notes.label).toBe('Open Notes');
+    expect(create.label).toBe('Open Create');
+    expect(HOST.includes("view === 'notes'"), 'the Thinking Space route is gone').toBe(true);
+    expect(HOST.includes("view === 'create'"), 'the Creation Workspace route is gone').toBe(true);
+    const setView = vi.fn();
+    render(createElement(LifeHub, hubProps({ setView })));
+    const btn = (label) => [...container.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === label);
+    act(() => btn('Open Notes').click());
+    expect(setView).toHaveBeenLastCalledWith('notes');
+    act(() => btn('Open Create').click());
+    expect(setView).toHaveBeenLastCalledWith('create');
   });
 
   it('and every action either routes somewhere real or lands on a record here', () => {
-    for (const a of actionsFor('photo')) {
+    for (const a of HUB_ACTIONS) {
       if (a.hub) {
         expect(codeOnly(HUB_SRC).includes(`panel === '${a.hub}'`), `${a.key} opens a panel the Hub does not render`).toBe(true);
       } else if (a.view) {

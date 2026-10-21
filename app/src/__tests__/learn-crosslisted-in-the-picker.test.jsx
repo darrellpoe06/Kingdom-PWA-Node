@@ -142,10 +142,11 @@ describe('a one-course department still gets its dropdown, above the gathered le
   });
 });
 
-// THE COURSE'S OWN LESSONS COME FIRST ON THE TAB; THE GATHERED ONES FOLLOW
-// (Darrell 2026-09-24, History: "This should be at the top!"). DR-0598.
-describe('on a department that gathers lessons from other courses, the course’s own by-title list precedes them', () => {
-  it('History: the pick-a-lesson index renders before the "also taught across the curriculum" block, and the dropdown before both', () => {
+// THE COURSE'S OWN LESSONS ARE THE ONLY LESSONS ON THE TAB (DR-1182; before
+// it, DR-0598 put the gathered ones after them). Darrell 2026-10-21: "Do not
+// put any other lessons out there other than that, period."
+describe('on a department that declares gathered lessons, the course\'s own by-title list is the only lesson list', () => {
+  it('History: the dropdown, then the pick-a-lesson index, and no "also taught across the curriculum" block', () => {
     mount();
     clickTab('History');
     const sel = picker();
@@ -153,9 +154,9 @@ describe('on a department that gathers lessons from other courses, the course’
     const crosslisted = container.querySelector('[data-testid="learn-crosslisted"]');
     expect(sel, 'no dropdown').toBeTruthy();
     expect(index, 'no by-title index').toBeTruthy();
-    expect(crosslisted, 'History gathers lessons; the block must render').toBeTruthy();
+    expect(crosslisted, 'History declares gathered lessons; the block must NOT render on its tab').toBe(null);
     const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(before(sel, index), 'dropdown must precede the lesson list').toBe(true);
-    expect(before(index, crosslisted), 'the course’s own lessons must precede the gathered ones').toBe(true);
+    expect(container.querySelector('[data-testid="lesson-browse-all"]'), 'the every-course shelf belongs to the Courses tab').toBe(null);
   });
 });

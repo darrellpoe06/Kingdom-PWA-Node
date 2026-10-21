@@ -210,6 +210,50 @@ describe('the rule itself (scripts/lesson-dates-core.mjs)', () => {
     expect(judgeEntry({ date: '2026-09-30', sha: 'working-tree' }, { reason: 'no commit ever added' }, reach)).toBe(null);
   });
 
+  // PROVEN TO CATCH (DR-1194). sov48's row was derived before its commit, so it
+  // was written 'working-tree'; `--check` PASSED on it, so it was committed; and
+  // then every re-derivation KEPT it, because the placeholder is not in
+  // `reachable` and the recorded day matched git's day, so it fell down the
+  // grace path above and scored a gap of 0. Meanwhile the suite below requires
+  // /^[0-9a-f]{8}$/ of every sha, so the file was blessed by the check and
+  // rejected by the suite at the same time, and the only way out was deleting
+  // the row by hand. A check that passes on what the suite fails is worse than
+  // no check, so the placeholder is now true ONLY while the lesson really is
+  // uncommitted.
+  it('judgeEntry: a working-tree placeholder is kept while uncommitted and REJECTED once it lands', () => {
+    const reach = new Set(['dddddddd']);
+    const untraceable = { reason: 'no commit ever added a line defining it' };
+    const landed = { date: '2026-10-21', sha: '8189cbaa' };
+    // While it really is uncommitted, the placeholder is the honest answer.
+    expect(judgeEntry({ date: '2026-10-21', sha: 'working-tree' }, untraceable, reach)).toBe(null);
+    // Once git can trace it, the row is stale — on the SAME day, which is the
+    // exact shape that slipped through (gap 0 is what made it look sound).
+    const why = judgeEntry({ date: '2026-10-21', sha: 'working-tree' }, landed, reach);
+    expect(why).toMatch(/working-tree/);
+    expect(why).toMatch(/8189cbaa/);
+    expect(why).toMatch(/re-derive/);
+  });
+
+  it('buildDatesFile replaces a landed working-tree row with the real commit, so no hand-editing is needed', () => {
+    const catalog = [{ key: 'banking', ids: ['bank1-first'] }];
+    const scan = createScanner();
+    scan.line('\u0001aaaaaaaa 1760000000');
+    scan.line('+++ b/app/src/lib/banking-course.js');
+    scan.line("+  { id: 'bank1-first', title: 'x' },");
+    const built = buildDatesFile({
+      catalog,
+      scan: scan.result(),
+      reachable: new Set(['aaaaaaaa']),
+      previous: { courses: { banking: { 'bank1-first': ['2026-10-09', 'working-tree'] } } },
+      recorded: {},
+      today: null,
+    });
+    const row = built.file.courses.banking['bank1-first'];
+    expect(row[1]).toMatch(/^[0-9a-f]{8}$/);      // the real commit, not the placeholder
+    expect(row[1]).toBe('aaaaaaaa');
+    expect(built.problems.map((p) => p.id)).toContain('bank1-first');
+  });
+
   it('buildDatesFile keeps what git supports, replaces and reports what it does not, and reports Living Lessons differences', () => {
     const catalog = [{ key: 'banking', ids: ['bank1-first', 'bank3-untraced'] }, { key: 'living-lessons', ids: ['whohe1-keyed'] }];
     const reachable = new Set(['aaaaaaaa', 'bbbbbbbb', 'cccccccc']);

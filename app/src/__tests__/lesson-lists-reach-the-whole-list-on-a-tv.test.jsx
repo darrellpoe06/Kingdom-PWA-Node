@@ -61,10 +61,21 @@ describe('the CSS reaches the list that was cut off', () => {
   it('flattens inner scroll boxes inside main on a TV, with an opt-out class', () => {
     expect(css).toMatch(/html\[data-device-class="tv"\] main \.overflow-y-auto:not\(\.tv-keep-scroll\)\s*\{[^}]*max-height:\s*none\s*!important;[^}]*overflow-y:\s*visible\s*!important;/);
   });
-  it('the Learn tree lesson list and the browse-all shelf are overflow-y-auto boxes under the shell’s main', () => {
+  it('the Learn lists are NOT inner scroll boxes any more — one scroll on every device (DR-1182)', () => {
+    // Darrell 2026-10-21: "I don't want 3 or 4 different scroll bars in a
+    // space. I want all of the options in one scroll bar." The TV rule above
+    // used to be what flattened the course index, the browse shelf and the
+    // latest list on a TV only; the lists now ride the page's own scroll on
+    // every device, so the rule has nothing of theirs left to flatten. It
+    // stays for any other box inside main. This pins that none of the three
+    // lists carries an inner vertical scrollbar again.
     const learn = SRC('components/ChurchLearn.jsx');
-    expect(learn).toMatch(/max-h-\[45vh\] overflow-y-auto[^>]*data-testid="course-lesson-list"/);
-    expect(learn).toMatch(/data-testid="lesson-browse-all"[\s\S]{0,600}max-h-\[55vh\] overflow-y-auto/);
+    const latest = SRC('components/LatestLessons.jsx');
+    expect(learn).toMatch(/<ol className="space-y-0\.5" data-testid="course-lesson-list"/);
+    expect(learn).not.toMatch(/overflow-y-auto[^>]*data-testid="course-lesson-list"/);
+    expect(learn).not.toMatch(/data-testid="lesson-browse-all"[\s\S]{0,900}overflow-y-auto/);
+    expect(latest).toMatch(/<ol className="space-y-0\.5" data-testid="learn-latest-list"/);
+    expect(latest).not.toMatch(/overflow-y-auto/);
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<main className=/);
     // The class the rule keys on is written at boot, before anything paints.
     expect(SRC('main.jsx')).toMatch(/markDeviceClass\(window\)/);

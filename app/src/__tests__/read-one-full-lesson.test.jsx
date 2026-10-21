@@ -138,6 +138,14 @@ describe('Learn — the open lesson registers itself as the one full reading', (
   it('opening a lesson guide registers THAT one lesson, full text; closing clears it', () => {
     mountLearn();
     expect(getReadTarget()).toBeNull();
+    // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course
+    // is open until one is chosen, so this takes the reader's first tap. The
+    // assertion below still pins the A.I. course's week 1, because that is the
+    // first row of this mount's catalog.
+    const row = container.querySelector('[data-testid="course-choice-list"] button[data-course]');
+    if (!row) throw new Error('the one list offered no course to open');
+    act(() => { row.click(); });
+    expect(getReadTarget(), 'choosing a course opens no lesson by itself').toBeNull();
     act(() => { button('Start this week →').click(); });
     const t = getReadTarget();
     expect(t).toBeTruthy();

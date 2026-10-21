@@ -35,11 +35,28 @@ afterEach(() => {
   container.remove();
 });
 
-const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
+const render = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {}, recordProgress: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
   ...props,
 })));
+// LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
+// 2026-10-21: "It's like a title page saying your inside living lessons...
+// only have that sortable list when it is chosen". Nothing is open on that
+// view until a course is chosen, and every case in this file is about what is
+// INSIDE an open course -- so `mount` makes the same tap a reader makes. A
+// DEPARTMENT tab still opens on its own first course (DR-0432/0433), so
+// clicking one after this behaves exactly as it did.
+const openFirstCourse = (match = null) => {
+  const rows = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];
+  if (!rows.length) return; // a department tab, or a course already remembered
+  const row = match ? rows.find((b) => (b.textContent || '').includes(match)) : rows[0];
+  if (!row) throw new Error(`course not offered: ${match}`);
+  act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+// This file mounts without `extraCourses`, so the catalog is the host's own
+// courses; the first row of the one list is the course these cases are about.
+const mount = (props = {}) => { render(props); openFirstCourse(); };
 
 const isBefore = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 const picker = () => container.querySelector('#learn-course-pick');
@@ -62,12 +79,19 @@ describe('after the course comes the lesson index — nothing in between', () =>
     // The live screenshot: after picking a course, the next list on screen was
     // the finder's blank-state shelf — OTHER courses' lessons — with the chosen
     // course's own titles far below. This course's lessons must come first.
+    // Since DR-1190 the finder and the shelf are the Find AREA's: in the
+    // Lessons area nothing at all sits between the course and its lessons, and
+    // the Find tab, one tap away, carries the finder with the shelf under it.
     mount();
+    expect(container.querySelector('#learn-lesson-find'), 'no finder between the course and its lessons').toBe(null);
+    expect(container.querySelector('[data-testid="lesson-browse-all"]'), 'no shelf between the course and its lessons').toBe(null);
+    const tab = container.querySelector('#learn-area-tab-find');
+    expect(tab, 'the Find area is offered').toBeTruthy();
+    act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const find = container.querySelector('#learn-lesson-find');
-    expect(find, 'the finder must render').toBeTruthy();
-    expect(isBefore(index(), find), 'this course\'s lessons must precede search').toBe(true);
-    const shelf = container.querySelector('[data-testid="lesson-browse-all"]');
-    if (shelf) expect(isBefore(index(), shelf), 'this course\'s lessons must precede the all-courses shelf').toBe(true);
+    expect(find, 'the finder must render in its area').toBeTruthy();
+    expect(isBefore(picker(), find), 'the picker precedes the finder').toBe(true);
+    expect(index(), 'the index is the Lessons area\'s, not the Find area\'s').toBe(null);
   });
 
   it('there is ONE list, not two — the CourseView copy is gone', () => {
