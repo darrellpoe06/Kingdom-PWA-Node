@@ -250,7 +250,7 @@ export function vacantUnitRow({ instanceId, rental } = {}) {
 }
 
 /**
- * WHERE A NEW TENANT'S INVITATION LANDS (DR-1159). A tenant is invited onto a
+ * WHERE A NEW TENANT'S INVITATION LANDS (DR-1163). A tenant is invited onto a
  * tenancy that is THEIRS, so what they see starts with them:
  *   · a vacant unit record (nobody on it, not ended) is given their name and
  *     contact first ('hold'), which stamps the day it became theirs (0306);

@@ -222,7 +222,7 @@ export async function loadMyHousehold(client = supabase) {
  */
 export async function loadDoorRecord(tenancyId, { rentalId = null, earlierTenancyIds = [] } = {}, client = supabase) {
   const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], unreadable: [] };
-  // EVERY TENANCY THE DOOR HAS HAD (DR-1159): the landlord's record of a door
+  // EVERY TENANCY THE DOOR HAS HAD (DR-1163): the landlord's record of a door
   // is every tenant's, not only the current one's. `earlierTenancyIds` is
   // passed for the landlord's faces only; a tenant's read stays their own, and
   // RLS (0150 + 0306) would withhold the rest from them regardless.

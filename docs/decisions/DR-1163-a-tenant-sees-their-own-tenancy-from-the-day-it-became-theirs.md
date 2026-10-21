@@ -1,4 +1,4 @@
-# DR-1159: A tenant sees their own tenancy, from the day it became theirs — the landlord sees every tenancy the door has had
+# DR-1163: A tenant sees their own tenancy, from the day it became theirs — the landlord sees every tenancy the door has had
 
 **Date:** 2026-10-21
 **Status:** accepted

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0306 TENANT WINDOW SMOKE — a tenant sees their own tenancy, from the day it
--- became theirs (0306, DR-1159). Runs in a transaction and ROLLS BACK.
+-- became theirs (0306, DR-1163). Runs in a transaction and ROLLS BACK.
 -- PASS prints 'TENANT WINDOW SMOKE: PASS'; any wrong sight RAISES.
 --
 -- Scenario: landlord instance F, owner O.

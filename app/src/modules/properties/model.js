@@ -166,7 +166,7 @@ export const MANAGER_TABS = [
 export function unseenByThisFace(role, grants = [], { since = null } = {}) {
   const held = new Set(grants);
   const out = [];
-  // A tenant's history begins when the tenancy became theirs (DR-1159).
+  // A tenant's history begins when the tenancy became theirs (DR-1163).
   if ((role === 'tenant' || role === 'household') && since) {
     const day = String(since).slice(0, 10);
     out.push(`Your history begins on ${day}, when this tenancy became yours. What happened at this door before that belongs to the landlord's record, not yours.`);
@@ -405,7 +405,7 @@ export function changeSummary(e = {}, titleOf = new Map()) {
 }
 
 // ---------------------------------------------------------------------------
-// A TENANT SEES THEIR OWN TENANCY, FROM THE DAY IT BECAME THEIRS (DR-1159).
+// A TENANT SEES THEIR OWN TENANCY, FROM THE DAY IT BECAME THEIRS (DR-1163).
 // Darrell, 2026-10-21, looking at Apt 2 "seen as a tenant": "A new tenant
 // should only see their history... the landlord should see all historical
 // events" — and "all tabs should make sense".

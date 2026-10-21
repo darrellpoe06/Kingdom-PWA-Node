@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0306 — A tenant sees their own tenancy, from the day it became theirs (DR-1159)
+-- 0306 — A tenant sees their own tenancy, from the day it became theirs (DR-1163)
 -- =============================================================================
 -- Darrell, 2026-10-21, looking at 805 North Prospect Avenue Apt 2 "seen as a
 -- tenant": "A new tenant should only see their history... the landlord should
@@ -42,7 +42,7 @@
 ALTER TABLE public.rental_tenancies ADD COLUMN IF NOT EXISTS tenant_from timestamptz;
 
 COMMENT ON COLUMN public.rental_tenancies.tenant_from IS
-  'When this tenancy first had a person on it. Its tenant and household read the tenancy''s rows from this moment on (0306, DR-1159).';
+  'When this tenancy first had a person on it. Its tenant and household read the tenancy''s rows from this moment on (0306, DR-1163).';
 
 -- Who is on a row: a name, an email, a phone or an account.
 CREATE OR REPLACE FUNCTION public.tenancy_has_person(t public.rental_tenancies)
