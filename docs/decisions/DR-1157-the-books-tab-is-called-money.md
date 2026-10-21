@@ -1,4 +1,4 @@
-# DR-1156: The Books tab is called Money — the word changes, the id does not
+# DR-1157: The Books tab is called Money — the word changes, the id does not
 
 **Date:** 2026-10-21
 **Status:** accepted
