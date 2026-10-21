@@ -3,11 +3,12 @@
 // =============================================================================
 // Darrell 2026-09-17, relaying three home-view mockups from his wife Christina
 // ("options she would like to see as views for the app") with three decisions
-// given: CURRENT VIEW STAYS THE DEFAULT front door, build real records for the
-// tiles that had none, and let the phone nav fold behind More. So this is an
-// OPT-IN: nobody's screen changes until they choose it, which is also why it is
-// not a Tier C front-door swap (RELEASE-TIERS) — the front door is unchanged
-// for everyone who does nothing.
+// given: the Current View stayed the default front door AT FIRST, build real
+// records for the tiles that had none, and let the phone nav fold behind More.
+// It shipped opt-in (DR-0464). On 2026-10-15 Darrell approved the Hub as the
+// home (DR-1046), the Tier C front-door decision that opt-in had deferred, so
+// DEFAULT_HOME_VIEW below is 'lifehub'; a device that already chose the Current
+// View keeps it.
 //
 // WHY A DEVICE STORE, SAID PLAINLY. "Per person" is implemented here as "per
 // device", the same way live-player-prefs.js and text-size.js already work in
@@ -68,9 +69,10 @@ export function readPref(getItem, allowed = [], fallback = null) {
 
 const read = (key, allowed, fallback) => readPref(() => localStorage.getItem(key), allowed, fallback);
 
-// DEFAULT IS 'current'. A reader who never chooses anything, or whose storage
-// is blocked, or who is in a private window, gets exactly the screen they have
-// today. That is the whole promise of the opt-in.
+// THE DEFAULT IS DEFAULT_HOME_VIEW ('lifehub' since DR-1046). A reader who never
+// chooses anything, or whose storage is blocked, or who is in a private window,
+// opens the Life Hub; a stored 'current' is honoured. One constant, read here and
+// in the test's reset, so a break that flipped the real default is visible.
 let state = {
   homeView: read(HOME_VIEW_KEY, HOME_VIEWS, DEFAULT_HOME_VIEW),
   density: read(HUB_DENSITY_KEY, HUB_DENSITIES, DEFAULT_HUB_DENSITY),

@@ -49,9 +49,11 @@ const URGENCY_ACCENT_CLS = {
 // Home — WHICH front door this reader opens
 // =============================================================================
 // Darrell 2026-09-17 gave three decisions on Christina's mockups, and the first
-// was that the CURRENT VIEW STAYS THE DEFAULT. So this is a two-line switch
-// with a default of "current": a reader who never chooses anything sees exactly
-// the screen they see today, and the Life Hub is reached only by choosing it.
+// was that the Current View stayed the default while the Hub was opt-in. On
+// 2026-10-15 he approved the Hub as the home (DR-1046), so the switch's default
+// is now 'lifehub' (ONE constant, lib/home-view-prefs.js): a reader who never
+// chooses anything opens the Life Hub, and a device that chose the Current View
+// keeps it. The switch itself is unchanged: two siblings, one preference.
 //
 // WHY IT LIVES HERE AND NOT IN THE SHELL. The shell is frozen to bug-fixes and
 // its line count may only go DOWN (monolith-budget-guard, DR-0078). Exporting
