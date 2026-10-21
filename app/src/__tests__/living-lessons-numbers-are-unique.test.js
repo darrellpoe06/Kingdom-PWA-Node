@@ -116,7 +116,7 @@ const GAP_REASONS = {
   212: 'DR-0761 — the orchestrator build label `wt-l212`; the teaching shipped as sovereign-ai sov33. No ll212 was ever minted.',
 };
 
-// A THIRD KIND OF GAP, which this check had never had (DR-1184, 2026-10-21).
+// A THIRD KIND OF GAP, which this check had never had (DR-1191, 2026-10-21).
 //
 // KNOWN_GAPS above is SHRINK-ONLY on purpose: it exists so a session cannot
 // quietly skip a number, and letting it grow would hand back the thing it
@@ -135,7 +135,7 @@ const GAP_REASONS = {
 const FOLDED_AWAY = {
   235: {
     into: 'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them',
-    why: 'DR-1184 — L235 and L257 were one teaching built twice (23 verses shared, 85% of the smaller). L257 keeps it; L235\u2019s four verses (Genesis 32:10, 1 Chronicles 29:14, Hebrews 9:27, Job 1:21) and two parables were carried into it, in the adult lesson and all four bands. No ll235 will exist again.',
+    why: 'DR-1191 — L235 and L257 were one teaching built twice (23 verses shared, 85% of the smaller). L257 keeps it; L235\u2019s four verses (Genesis 32:10, 1 Chronicles 29:14, Hebrews 9:27, Job 1:21) and two parables were carried into it, in the adult lesson and all four bands. No ll235 will exist again.',
   },
 };
 const FOLDED_NUMBERS = Object.keys(FOLDED_AWAY).map(Number);
@@ -179,7 +179,7 @@ describe('Living Lessons — the lesson number is unique', () => {
     // SHRINK-ONLY, UNCHANGED. KNOWN_GAPS is still measured against its own
     // length alone: it may lose entries and never gain them, which is the whole
     // ratchet. A folded number is counted separately because it is a different
-    // thing (DR-1184), not because the ratchet was loosened.
+    // thing (DR-1191), not because the ratchet was loosened.
     expect(gaps.filter((n) => KNOWN_GAPS.includes(n)).length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
       .toBeLessThanOrEqual(KNOWN_GAPS.length);
     expect(KNOWN_GAPS.length, 'KNOWN_GAPS itself must not grow').toBe(2);

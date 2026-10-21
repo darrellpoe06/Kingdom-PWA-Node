@@ -1,4 +1,4 @@
-# DR-1184: One teaching is one lesson — the duplicate he saw is folded, and a second one cannot ship
+# DR-1191: One teaching is one lesson — the duplicate he saw is folded, and a second one cannot ship
 
 **Date:** 2026-10-21
 **Status:** accepted
