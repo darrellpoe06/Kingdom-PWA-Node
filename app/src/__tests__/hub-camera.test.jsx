@@ -1,5 +1,5 @@
 // =============================================================================
-// The Life Hub's live camera, and the painted home that says what it is (DR-1181)
+// The Life Hub's live camera, and the painted home that says what it is (DR-1184)
 // =============================================================================
 // Darrell, 2026-10-21, circling the space beside the Life Hub's title: "a live
 // stream of the camera chosen by the user... With a connect a camera feed or

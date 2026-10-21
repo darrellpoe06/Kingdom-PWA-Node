@@ -1,4 +1,4 @@
-# DR-1181: The Life Hub shows your home, live — and for everyone else it says what the space is for
+# DR-1184: The Life Hub shows your home, live — and for everyone else it says what the space is for
 
 **Date:** 2026-10-21
 **Status:** accepted

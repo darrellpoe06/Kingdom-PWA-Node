@@ -1,5 +1,5 @@
 // =============================================================================
-// HubCamera — the Life Hub's live camera, or a painted home that says what it is (DR-1181)
+// HubCamera — the Life Hub's live camera, or a painted home that says what it is (DR-1184)
 // =============================================================================
 // Darrell, 2026-10-21, circling the empty space beside the Life Hub's title:
 // "I would to have a live stream of the camera chosen by the user as a
