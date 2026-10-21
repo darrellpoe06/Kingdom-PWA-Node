@@ -64,7 +64,7 @@ export const SURFACES = [
   // ── top-level surfaces ──────────────────────────────────────────────────
   { id: 'about',        label: 'About',            nav: 'top', view: 'about',        sub: null,          load: () => import('./components/About.jsx') },
   { id: 'rentals',      label: 'Rentals',          nav: 'top', view: 'rentals',      sub: null,          load: pick(() => import('./components/Rentals.jsx'), 'Rentals') },
-  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesApp') },
+  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesTab') },
   { id: 'markets',      label: 'Markets',          nav: 'top', view: 'markets',      sub: null,          load: pick(() => import('./components/Markets.jsx'), 'Markets') },
   { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
   { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
