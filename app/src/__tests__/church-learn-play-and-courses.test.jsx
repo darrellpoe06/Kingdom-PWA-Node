@@ -89,6 +89,9 @@ const overviewButton = () => buttons().find((b) => /Play the whole course overvi
 describe('▶ Play is there for a member — not only the Governor', () => {
   it('THE REPORTED CASE: a non-Governor sees play buttons on the lessons', () => {
     mount();
+    // The play controls live on the course's own index, which waits for a
+    // chosen course like the rest of the course's blocks (DR-1182, DR-1183).
+    openCourse('Living Lessons');
     expect(playButtons().length, 'the list must carry a play control per lesson').toBeGreaterThan(0);
   });
 
@@ -107,6 +110,7 @@ describe('▶ Play is there for a member — not only the Governor', () => {
 
   it('a play control carries a plain-language title for the hesitant reader', () => {
     mount();
+    openCourse('Living Lessons');
     const play = playButtons()[0];
     expect(play.getAttribute('title')).toMatch(/read it yourself or have it read aloud/i);
   });
@@ -118,6 +122,7 @@ describe('▶ Play is there for a member — not only the Governor', () => {
     // reads the lesson!!!!! Does not open the PowerPoint!!!" So it now pins the
     // thing he actually asked for -- a reading is REQUESTED and no deck opens.
     mount();
+    openCourse('Living Lessons');
     const plays = playButtons();
     expect(plays.length).toBeGreaterThan(0);
     await act(async () => { plays[plays.length - 1].click(); });

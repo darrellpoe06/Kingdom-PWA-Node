@@ -139,13 +139,22 @@ const WALKS = {
     // state a person reaches -- and this walk's rule is that a control counts
     // as present if it is found in ANY state of its surface.
     look(host);
+    // THE AREAS ARE SUB-TABS (DR-1190): Continue, Latest, Find, Record and
+    // Downloads each render only when their tab is open. A control behind a
+    // tab is still a control a person reaches, so the walk opens every area.
+    const areas = () => [...host.querySelectorAll('[id^="learn-area-tab-"]')];
+    const walkAreas = () => { for (const tab of areas()) { click(tab); look(host); } };
+    walkAreas();
+    click(host.querySelector('#learn-area-tab-lessons'));
     choose(host.querySelector('[data-testid="learn-course-sort"]'), 'latest');
     look(host);
     // WITH A COURSE OPEN: the lesson lists, the section tabs, the course
     // controls. Chosen through the picker, the way openLesson does it.
     const sel = host.querySelector('#learn-course-pick');
     if (sel) choose(sel, 'living-lessons');
+    click(host.querySelector('#learn-area-tab-lessons'));
     look(host);
+    walkAreas();
   },
   'lesson-header': async (look, { sabotage } = {}) => {
     const { host } = mount(createElement(ChurchLearn, learnProps()));

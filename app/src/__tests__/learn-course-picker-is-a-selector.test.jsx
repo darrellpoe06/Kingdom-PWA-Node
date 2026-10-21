@@ -100,14 +100,24 @@ describe('a device that has never chosen sees the PROMPT, not a course dressed a
     expect(prompt().disabled).toBe(false);
   });
 
-  it('the label says what the control does, and the lesson index names its course', () => {
+  it('the label says what the control does, and the lesson index names its course once one is chosen', () => {
     mount();
     const label = container.querySelector('label[for="learn-course-pick"]');
     expect(label.textContent).toMatch(/Courses · select one of \d+/);
-    // the list under the picker is labelled by COURSE, so it never reads as
-    // "those lessons" under a title-like control
+    // A device that has never chosen meets the one list of courses and NO
+    // course's lesson index (DR-1183 made nothing open until chosen; DR-1182
+    // put the index among the blocks that wait). Then, after the tap a reader
+    // makes, the list under the picker is labelled by COURSE, so it never
+    // reads as "those lessons" under a title-like control.
+    expect(index(), 'no course is open yet, so no index').toBe(null);
+    const row = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+      .find((b) => /Learning A\.I\. The Way/.test(b.textContent || ''));
+    expect(row, 'the one list offers the A.I. course').toBeTruthy();
+    act(() => row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const heading = index().textContent;
     expect(heading).toMatch(/Learning A\.I\. The Way · pick a \w+ by title · \d+/i);
+    // and the control is still the prompt, not the course dressed as a heading
+    expect(container.querySelector('label[for="learn-course-pick"]').textContent).toMatch(/Courses · select one of \d+/);
   });
 });
 

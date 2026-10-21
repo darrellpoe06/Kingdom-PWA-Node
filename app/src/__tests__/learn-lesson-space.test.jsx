@@ -50,6 +50,13 @@ const mount = (props = {}) =>
     ...props,
   })));
 
+
+// THE AREAS ARE SUB-TABS (DR-1190): the Continue offer lives one tap away in
+// its area; this makes the tap a reader makes before the lookup.
+const openArea = (id) => {
+  const tab = container.querySelector(`#learn-area-tab-${id}`);
+  if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
 const click = (btn) => act(() => { btn.click(); });
 const buttonByText = (text) =>
   [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
@@ -154,6 +161,7 @@ describe('the lesson\'s own space — no more losing your place', () => {
   it('Continue from the offer lands IN the lesson\'s own space with its guide open', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mount();
+    openArea('continue'); // the offer is the Continue area's (DR-1190)
     click(buttonByText('Continue →'));
 
     const cards = lessonCards();

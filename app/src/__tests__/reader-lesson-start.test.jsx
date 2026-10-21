@@ -183,7 +183,16 @@ const mountLearn = () => act(() => root.render(createElement(ChurchLearn, {
   ageBand: 'adult',
   setAgeBand: () => {},
 })));
+// LEARN OPENS ON THE ONE LIST (DR-1183) and the by-title index waits for a
+// chosen course (DR-1182 / DR-1190), so the index this file browses is reached
+// the way a reader reaches it: one tap on Living Lessons in the one list.
+const openLivingLessons = () => {
+  const row = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
+    .find((b) => b.getAttribute('data-course') === 'living-lessons');
+  if (row) act(() => { row.click(); });
+};
 const browseTo = (lessonId) => {
+  openLivingLessons();
   const title = container.querySelector(`li[data-lesson-id="${lessonId}"] button`);
   expect(title, 'the lesson is listed').toBeTruthy();
   act(() => { title.click(); });
