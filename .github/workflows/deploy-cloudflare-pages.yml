@@ -11,12 +11,37 @@
 # on push to main — never a per-branch preview. The preview fan-out that blew
 # the Vercel cap cannot recur here, regardless of how many lanes are active.
 #
-# SAFE-BY-DEFAULT / NO CUTOVER YET: the deploy job is gated on the repo variable
-# CF_PAGES_ENABLED == 'true'. Until Darrell sets that variable (and adds the
-# Cloudflare + VITE_ secrets below), this workflow SKIPS cleanly — it builds and
-# serves nothing, so it cannot break the live Vercel path. Activation is a single
-# variable flip plus secrets; see the cutover doc. This is NOT a required CI
-# check, so even a failure here never blocks the auto-merge lane.
+# THE CUTOVER HAPPENED. THIS IS PRODUCTION. (Corrected 2026-10-21. This block
+# used to call itself safe-by-default and still-pending, and described Vercel as
+# the path that was serving — true when written, false for some time since, and
+# by 2026-10-21 the most misleading comment in the repository: read as written
+# it told you this pipeline was a dry run and that a red Vercel status was a
+# production outage. Both were the opposite of the truth. The exact old wording
+# is deliberately NOT quoted here, because the guard that keeps this honest
+# matches on the claim and cannot tell a quotation from an assertion;
+# app/src/__tests__/the-cutover-already-happened.test.js is that guard.)
+#
+# Measured 2026-10-21, two independent ways:
+#   · the Cloudflare Pages project `poetech-app` holds the domains
+#     ["poetech-app.pages.dev", "poetech.us", "www.poetech.us"], and every road
+#     probed on poetech.us answered signed `pages-function`;
+#   · this gated deploy job is producing real successes on main (90ac836 at
+#     15:45Z, d44f366 at 15:06Z), which it cannot do unless the gate is open.
+#
+# So poetech.us is served from here. VERCEL IS NOT PRODUCTION. Its integration
+# still builds on each push and still posts a `Vercel` commit status, and that
+# status goes red whenever the Hobby 100/day cap is spent — on 2026-10-21,
+# "Resource is limited - try again in 24 hours (api-deployments-free-per-day)"
+# landed on every open PR. It blocks nothing: PR #2366 merged at 15:53Z with
+# `Vercel: failure` and an overall combined status of `failure`. Treat a red
+# Vercel as noise, and NEVER as evidence about the live site — site-health.yml
+# is what measures that (DR-0125).
+#
+# The deploy job stays gated on CF_PAGES_ENABLED == 'true'; the variable is
+# ON, and the gate now reads as the off-switch it has become rather than as a
+# cutover that is still pending. This is NOT a required CI check, so even a
+# failure here never blocks the auto-merge lane — but it DOES stop the site
+# advancing, which is the worst outcome there is (DR-0107).
 #
 # The /n8n same-origin proxy moves with us: app/functions/n8n/[[path]].js is a
 # Pages Function deployed alongside the static assets (replacing the Vercel
@@ -42,8 +67,9 @@ jobs:
   deploy:
     name: build + deploy to Cloudflare Pages
     runs-on: ubuntu-latest
-    # Gate: stays skipped until Darrell flips the variable on (post-research,
-    # credentials in place). Keeps the live Vercel serving untouched until then.
+    # Gate: the variable is ON and this serves poetech.us (see the header).
+    # It is now an OFF-SWITCH, not a pending cutover — clearing it stops the
+    # live site advancing, which is the worst outcome there is (DR-0107).
     if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
     outputs:
       # This build's boot-critical JS chunk paths — the propagation sentinel
