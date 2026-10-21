@@ -65,6 +65,8 @@ const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx'
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
 const { default: PropertyPhotoActions, PhotoRemoveButton } = await import('../components/PropertyPhotoActions.jsx');
+const { default: RealEstateDoor } = await import('../components/RealEstateDoor.jsx');
+const { doorState } = await import('../lib/real-estate-door.js');
 const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
 const { _resetScreenAwakeForTests } = await import('../lib/screen-awake.js');
 
@@ -277,6 +279,19 @@ const WALKS = {
       deps: { confirm: () => false, remove: async () => ({ ok: true }) },
     }));
     look(remover);
+  },
+  'real-estate-door': async (look) => {
+    // The band the Real Estate tab opens on (DR-1169). Mounted standalone on
+    // real-shaped rows: one door behind on rent, one standing empty, so both
+    // bands are on screen, and focused so the way back out is too.
+    const rentals = [
+      { id: 'p1', name: '1402 Maple St', rent: 1100, actual: 1100, status: 'paying', entityId: 'e-poeprops', mortgage: { balance: 88000, rate: 6.5, monthlyPI: 556, escrow: 180 } },
+      { id: 'p2', name: '1521 Oak Ave', rent: 1400, actual: 550, status: 'late', entityId: 'e-poeprops', mortgage: { balance: 110000, rate: 6.5, monthlyPI: 695, escrow: 220 } },
+      { id: 'p3', name: '312 Willow Ln', rent: 950, actual: 0, status: 'vacant', entityId: 'e-poeprops', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 506, escrow: 170 } },
+    ];
+    const state = doorState({ rentals, entities: [{ id: 'e-poeprops', name: 'Steward Real Estate LLC' }] });
+    const { host } = mount(createElement(RealEstateDoor, { state, focus: 'late', onFocus: () => {} }));
+    look(host);
   },
   'feedback-queue': async (look) => {
     // A steward's focused note that carries a picture (DR-0742).

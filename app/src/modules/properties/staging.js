@@ -250,6 +250,41 @@ export function vacantUnitRow({ instanceId, rental } = {}) {
 }
 
 /**
+ * WHERE A NEW TENANT'S INVITATION LANDS (DR-1167). A tenant is invited onto a
+ * tenancy that is THEIRS, so what they see starts with them:
+ *   · a vacant unit record (nobody on it, not ended) is given their name and
+ *     contact first ('hold'), which stamps the day it became theirs (0306);
+ *   · a tenancy already in their name (same email or phone) is used as it is;
+ *   · an ended tenancy, or one in someone else's name, is never reused: a new
+ *     tenancy is started for them ('new'), and the old one stays the old
+ *     tenant's record, whole.
+ * Pure: returns what to write; the caller writes it.
+ */
+export function tenancyForTenantInvite({ door = null, instanceId = null, rental = null, invitee = {} } = {}) {
+  const text = (v) => String(v ?? '').trim() || null;
+  const email = text(invitee.email);
+  const phone = text(invitee.phone);
+  const name = text(invitee.displayName);
+  const digits = (v) => String(v || '').replace(/\D/g, '').slice(-10);
+  const held = Boolean(door && (door.tenant_user_id || text(door.tenant_name) || text(door.tenant_email) || text(door.tenant_phone)));
+  const same = Boolean(door && ((email && text(door.tenant_email) && email.toLowerCase() === door.tenant_email.trim().toLowerCase())
+    || (phone && digits(door.tenant_phone).length === 10 && digits(phone) === digits(door.tenant_phone))));
+  if (door && door.status !== 'ended' && same) return { ok: true, action: 'use', door };
+  if (door && door.status !== 'ended' && !held) {
+    return { ok: true, action: 'hold', door, patch: { tenant_name: name, tenant_email: email, tenant_phone: phone } };
+  }
+  const built = tenancyRowForDoor({
+    instanceId: instanceId || door?.instance_id || rental?.instance_id,
+    rentalRef: door?.rental_ref || rental?.slug || rental?.id,
+    propertyLabel: door?.property_label || rental?.display_name || rental?.address,
+    unitLabel: door?.unit_label || rental?.unit || null,
+    tenantName: name, tenantEmail: email, tenantPhone: phone,
+  });
+  if (!built.ok) return built;
+  return { ok: true, action: 'new', row: { ...built.row, status: 'pending' } };
+}
+
+/**
  * The fields a person may edit on a tenancy or a door, and what changed.
  * Returns the patch plus a human sentence for the record — an edit that leaves
  * no trace is how two people end up disagreeing about what the lease said.

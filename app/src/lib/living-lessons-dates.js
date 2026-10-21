@@ -346,4 +346,8 @@ export const LIVING_LESSONS_ADDED = {
   // first lands in a commit of that day, so the commit day and the spoken day
   // agree.
   'll256-the-lords-release-is-for-a-neighbor-loving-a-mixed-multitude-the-way-he-means': '2026-10-21',
+  // L257 (DR-1165): a recorded street interview captured inside the app on
+  // 2026-10-21 and built the same day. The speakers are not identified; every
+  // figure in the clip is the speaker's own claim and this catalog asserts none.
+  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',
 };

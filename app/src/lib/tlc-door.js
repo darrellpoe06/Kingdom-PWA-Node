@@ -23,6 +23,7 @@
 // PURE (no React, no network); TlcPublicDoor.jsx renders it.
 // =============================================================================
 import { TLC_BRAND } from './tlc-practice.js';
+import { setThemeScope, TLC_DEFAULT_THEME } from './theme-css.js';
 
 // The door's shareable front-door on poetech.us: the static entry page
 // (public/tlc/index.html) that previews as TLC in a texted link, then meta-
@@ -57,4 +58,16 @@ export function isTlcDoorContext(search) {
   } catch {
     return false;
   }
+}
+
+// THE DOOR ENTERS ITS OWN PALETTE (DR-1170). The shell asks this once at boot,
+// in place of isTlcDoorContext: the same answer, and when it is yes the theme
+// store is scoped to the door BEFORE the shell's first read of the preference,
+// so the door opens in TLC's ivory & forest on every device -- including one
+// that chose a palette in the family app long ago -- and a choice made inside
+// the door is the door's alone. Pure apart from that one scope write.
+export function enterTlcDoorContext(search) {
+  const on = isTlcDoorContext(search);
+  if (on) setThemeScope('tlc', TLC_DEFAULT_THEME);
+  return on;
 }

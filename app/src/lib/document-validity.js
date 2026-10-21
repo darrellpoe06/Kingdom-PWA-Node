@@ -114,6 +114,13 @@ export const EXPIRING_KINDS = Object.freeze([
   { id: 'passport', match: /\bpassport\b/i, label: 'Passport', termMonths: 120, warnDays: 180 },
   { id: 'drivers-license', match: /driver.?s licen[cs]e|state (id|identification) card/i, label: "Driver's license", termMonths: 48, warnDays: 60 },
   { id: 'work-authorization', match: /work authori[sz]ation|\bEAD\b|visa\b/i, label: 'Work authorization', termMonths: 12, warnDays: 90 },
+  // --- the door's own shelf (DR-1163). property_documents.kind is an exact
+  // token ('insurance', 'inspection', 'permit'); matched as the whole token
+  // between the field separators, never as a bare word, so "Insurance claim
+  // dispute" (legal work, not a policy) still reads as nothing.
+  { id: 'insurance-door', match: /(^|· )insurance( ·|$)/i, label: '· insurance ·', termMonths: 12, warnDays: 60 },
+  { id: 'inspection-door', match: /(^|· )inspection( ·|$)/i, label: '· inspection ·', termMonths: 12, warnDays: 45 },
+  { id: 'permit-door', match: /(^|· )permit( ·|$)/i, label: '· permit ·', termMonths: 12, warnDays: 45 },
 ]);
 
 /** Kinds that are permanent by nature — a deed does not expire. */

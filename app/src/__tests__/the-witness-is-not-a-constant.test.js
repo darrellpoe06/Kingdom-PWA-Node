@@ -227,6 +227,86 @@ describe('the ledger stays readable', () => {
 
 });
 
+// Verbatim from run 39551336752, 2026-10-21T05:45:56Z, the REASONS env line:
+// the one reason the probe has reported since #2285 taught it to look for the
+// Worker (DR-1124). Not a paraphrase, for the reason note 3 of the script
+// gives: the text carries 'text/html; charset=utf-8', and a split on '; '
+// would cut it in half.
+const REAL_WORKER_REASON =
+  "THE WORKER ROADS ARE DARK TOO — GET poetech.us/edge/whoami answered 200 with 'text/html; charset=utf-8' instead of the JSON 401 edge.js returns to any unauthenticated caller. This is a DIFFERENT layer from the Pages Functions above: /edge/* is the poetech-roads Worker on a zone route, and it is the only road the Edge Guard and the Admin visitor count ride. If the Function probe above is failing too, the outage is wider than Pages and the wrangler zone route or the Worker's own deploy is the place to look";
+
+// The four runs that each wrote "A FAULT NOT ALREADY ON RECORD" for this same
+// unchanged reading, 2026-10-20/21 (issue #2057, comments 6303066583,
+// 6303818861, 6305786987, 6309027619).
+const FOUR_RUNS = ['2026-10-20T22:20:24Z', '2026-10-20T23:08:55Z', '2026-10-21T01:32:07Z', '2026-10-21T05:45:56Z'];
+
+describe('the Worker roads are on the record too (DR-1158)', () => {
+  it('reads the REAL Worker-roads reason as KNOWN, naming #2057, the day and the hand that fixes it', () => {
+    const r = classifyReasons(REAL_WORKER_REASON, { now: FOUR_RUNS[3] });
+    expect(r.verdict).toBe('KNOWN');
+    expect(r.broken, 'still a failing run — the Worker really is dark').toBe(true);
+    expect(r.knownIds).toEqual(['cf-roads-worker']);
+    expect(r.days, '2026-10-20T22:20 to 2026-10-21T05:45 is day 0').toBe(0);
+    expect(r.headline).toMatch(/#2057/);
+    expect(r.headline).toMatch(/Workers Scripts:Edit/);
+    expect(r.headline).toMatch(/zero zones/);
+  });
+
+  it('PROVEN-TO-CATCH: without the entry the same reading is NEW on every run — four notes in eight hours', () => {
+    const without = KNOWN_OUTAGES.filter((k) => k.id !== 'cf-roads-worker');
+    let notes = 0;
+    for (const now of FOUR_RUNS) {
+      const r = classifyReasons(REAL_WORKER_REASON, { now, known: without });
+      expect(r.verdict).toBe('NEW');
+      if (shouldWriteLedger({ anyNew: r.anyNew, lastKnownAt: null, now }).write) notes += 1;
+    }
+    expect(notes, 'the shape DR-0975 was written to end').toBe(4);
+  });
+
+  it('with the entry, the second, third and fourth runs of the night are not written', () => {
+    let last = null;
+    let notes = 0;
+    for (const now of FOUR_RUNS) {
+      const r = classifyReasons(REAL_WORKER_REASON, { now });
+      const d = shouldWriteLedger({ anyNew: r.anyNew, lastKnownAt: last, now });
+      if (d.write) { notes += 1; last = now; }
+    }
+    expect(notes, 'one note for the night, then silence until a day has passed').toBe(1);
+  });
+
+  it('both known outages at once read KNOWN, both acknowledged, the day counted from the older', () => {
+    const r = classifyReasons(`${REAL_PAGES_REASON}; ${REAL_WORKER_REASON}`, { now: FOUR_RUNS[3] });
+    expect(r.verdict).toBe('KNOWN');
+    expect(r.knownIds.sort()).toEqual(['cf-pages-functions', 'cf-roads-worker']);
+    expect(r.days, 'counted from 2026-10-09, the older of the two').toBe(11);
+  });
+
+  it('SIGN-IN arriving beside the known Worker outage is still NEW — the carve is one signature', () => {
+    const r = classifyReasons(`${REAL_WORKER_REASON}; ${REAL_SIGNIN_REASON}`, { now: FOUR_RUNS[3] });
+    expect(r.verdict).toBe('NEW');
+    expect(r.newPieces).toHaveLength(1);
+    expect(r.newPieces[0]).toMatch(/SIGN-IN IS DOWN/);
+    expect(r.knownIds).toEqual(['cf-roads-worker']);
+  });
+
+  it('the entry dies on 2026-10-28, the date the token is re-reviewed, and the reading is loud again', () => {
+    const entry = KNOWN_OUTAGES.find((k) => k.id === 'cf-roads-worker');
+    expect(entry.until).toBe('2026-10-28');
+    expect(classifyReasons(REAL_WORKER_REASON, { now: '2026-10-28T23:59:00Z' }).verdict).toBe('KNOWN');
+    const r = classifyReasons(REAL_WORKER_REASON, { now: '2026-10-29T00:00:01Z' });
+    expect(r.verdict).toBe('NEW');
+    expect(r.knownIds).toEqual([]);
+  });
+
+  it('the head and tail are the words the workflow really writes, so a re-wording goes loud', () => {
+    const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+    const wf = readFileSync(join(REPO_ROOT, '.github/workflows/site-health.yml'), 'utf8');
+    const entry = KNOWN_OUTAGES.find((k) => k.id === 'cf-roads-worker');
+    expect(wf).toContain(`add_fail "${entry.signature}`);
+    expect(wf).toContain(`${entry.tail}"`);
+  });
+});
+
 // SOURCE PINS. The classifier is pure and testable; the behaviour that keeps
 // the witness honest lives in the workflow, so these read the real file.
 // Without them the whole change could be reverted a line at a time and this

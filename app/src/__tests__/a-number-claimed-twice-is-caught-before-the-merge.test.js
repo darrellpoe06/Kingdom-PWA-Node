@@ -37,7 +37,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import {
-  claimsOnDisk, introducedBy, classify, firstFreeAbove, report,
+  claimsOnDisk, introducedBy, classify, firstFreeAbove, report, heldOnMain,
 } from '../../../scripts/dr-number-claims.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -143,6 +143,22 @@ describe('the asking half, and the line it must not cross', () => {
     // edit as a claim would make every touch of the ledger a false collision.
     const text = readFileSync(WF, 'utf8');
     expect(text).toMatch(/f\.get\("status"\) not in \("added", "renamed"\)/);
+  });
+
+  it('PROVEN TO CATCH: a red main holding a number twice does not fail the PR that repairs it', () => {
+    // Measured 2026-10-21 on #2354. Main held DR-1162 twice after #2340 merged
+    // second; the workflow kept only the first file per number, so the repair,
+    // which keeps main's OTHER DR-1162, was told DR-1162 was taken. The old
+    // reading (first file only) reproduces that verdict; the full list does not.
+    const archive = 'DR-1162-the-landlord-files-the-archive-to-the-door.md';
+    const building = 'DR-1162-a-building-is-counted-before-it-is-built.md';
+    const repair = { 1162: archive };
+    expect(classify(introducedBy(repair, { 1162: building }), repair, { 1162: building }, {})[0].verdict)
+      .toBe('taken-on-main');
+    const redMain = { 1162: [building, archive] };
+    expect(heldOnMain(redMain, '1162')).toEqual([building, archive]);
+    expect(introducedBy(repair, redMain)).not.toContain('1162');
+    expect(readFileSync(WF, 'utf8')).toMatch(/main_claims\.setdefault\(str\(int\(m\.group\(1\)\)\), \[\]\)\.append\(/);
   });
 
   it('it excludes the PR being judged from the claims it gathers', () => {

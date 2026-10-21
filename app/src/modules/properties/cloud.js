@@ -220,23 +220,29 @@ export async function loadMyHousehold(client = supabase) {
  * The two halves are independent and both are kept: 0260 widened WHICH rows
  * belong to a door; DR-0876 is about whether the answer can be trusted.
  */
-export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client = supabase) {
+export async function loadDoorRecord(tenancyId, { rentalId = null, earlierTenancyIds = [] } = {}, client = supabase) {
   const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], unreadable: [] };
-  if (!tenancyId && !rentalId) return ok(empty);
-  const scoped = (q) => (tenancyId && rentalId
-    ? q.or(`tenancy_id.eq.${tenancyId},rental_id.eq.${rentalId}`)
-    : tenancyId ? q.eq('tenancy_id', tenancyId) : q.eq('rental_id', rentalId));
+  // EVERY TENANCY THE DOOR HAS HAD (DR-1167): the landlord's record of a door
+  // is every tenant's, not only the current one's. `earlierTenancyIds` is
+  // passed for the landlord's faces only; a tenant's read stays their own, and
+  // RLS (0150 + 0306) would withhold the rest from them regardless.
+  const ids = [...new Set([tenancyId, ...(earlierTenancyIds || [])].filter(Boolean))];
+  if (!ids.length && !rentalId) return ok(empty);
+  const byTenancy = (q) => (ids.length === 1 ? q.eq('tenancy_id', ids[0]) : q.in('tenancy_id', ids));
+  const scoped = (q) => (ids.length && rentalId
+    ? q.or(`tenancy_id.in.(${ids.join(',')}),rental_id.eq.${rentalId}`)
+    : ids.length ? byTenancy(q) : q.eq('rental_id', rentalId));
   const none = Promise.resolve({ data: [] });
   try {
     const [req, msg, note, rent, ntc] = await Promise.all([
       scoped(client.from('tenant_maintenance_requests').select('*')).order('created_at', { ascending: true }),
-      tenancyId ? client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }) : none,
+      ids.length ? byTenancy(client.from('tenant_messages').select('*')).order('sent_at', { ascending: true }) : none,
       scoped(client.from('tenancy_notes').select('*')).order('created_at', { ascending: true }),
       // The door keeps its money (0265 / DR-0903): every payment on this door,
       // with a tenant or without, under the reader's own RLS — a tenant still
       // reads only their own; the family reads the door's whole history.
       scoped(client.from('rent_records').select('*')).order('reported_at', { ascending: true }),
-      tenancyId ? client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }) : none,
+      ids.length ? byTenancy(client.from('tenant_notices').select('*')).order('posted_at', { ascending: true }) : none,
     ]);
     const unreadable = [];
     const part = (res, what) => {
