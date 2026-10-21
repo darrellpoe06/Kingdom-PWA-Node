@@ -210,7 +210,7 @@ const PINNED = {
   'Psalms 139:16': 'in thy book all my members were written',
   'Deuteronomy 6:7': 'when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up',
   'Proverbs 27:17': 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend.',
-  // FOLDED IN FROM L235 (DR-1184). The same teaching had been built twice; the
+  // FOLDED IN FROM L235 (DR-1185). The same teaching had been built twice; the
   // four verses only the other lesson carried are now taught here, in this
   // lesson's own citation shape, in the other lesson's own sentences.
   'Genesis 32:10': 'I am not worthy of the least of all the mercies, and of all the truth, which thou hast shewed unto thy servant',
@@ -503,7 +503,7 @@ describe('L257 — every verse it stands on is the corpus, verbatim', () => {
     expect([...anchored].filter((r) => !quoted.has(r)), 'anchor.ref claims a verse the lesson never quotes').toEqual([]);
   });
 
-  // CARRIED FORWARD FROM THE L235 HARNESS (DR-1184). That file's subject was
+  // CARRIED FORWARD FROM THE L235 HARNESS (DR-1185). That file's subject was
   // folded into this lesson and the file is deleted, so the three checks it
   // held that this one did not are kept here. Deleting a gate must not quietly
   // delete what it caught.
@@ -719,7 +719,7 @@ describe('L257 — four bands, each carrying the whole message', () => {
 describe('L257 — two stories that teach this lesson, and a quiz that works', () => {
   const words = (s) => String(s).trim().split(/\s+/).length;
 
-  // FOUR PARABLES SINCE DR-1184: this lesson's own two, and the two carried in
+  // FOUR PARABLES SINCE DR-1185: this lesson's own two, and the two carried in
   // from L235 when the duplicate was folded. They are kept apart deliberately.
   const OWN = ['The Calendar on Ruthie Vance Mercer Lane', 'The Fourth Warehouse'];
   const CARRIED = {

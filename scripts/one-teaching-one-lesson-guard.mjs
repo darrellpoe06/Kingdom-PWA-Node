@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// one-teaching-one-lesson-guard — two lessons built from one teaching (DR-1184)
+// one-teaching-one-lesson-guard — two lessons built from one teaching (DR-1185)
 // =============================================================================
 // Darrell, 2026-10-21: "Same lesson from before?!!!!!!!!!!!!!!!!!!!!!!!
 // Really?!!!!!!" -- and he was right; nothing in the suite could see it.
