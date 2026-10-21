@@ -193,27 +193,43 @@ export default function FamilyStories({ onClose = null, deps = {} }) {
     setStory({ frames, i: Math.max(0, Math.min(i, frames.length - 1)), title });
   };
 
-  const onPickFile = async (e) => {
-    const file = e.target.files && e.target.files[0];
+  // ADD PICTURES, plural (ui-standards: a picker for something plural takes
+  // more than one). Each one is shrunk on the device and sent in turn; the
+  // note says how many landed and how many did not, never a bare "saved".
+  const [uploadNote, setUploadNote] = useState('');
+  const onPickFiles = async (e) => {
+    const files = Array.from((e.target.files && e.target.files.length) ? e.target.files : []);
     e.target.value = '';
-    if (!file) return;
+    if (!files.length) return;
     setUploadState('busy');
-    try {
-      const dataUrl = await d.compressImageFile(file, 1600, 0.75);
-      const r = await d.uploadPhoto(dataUrl, { dest: 'family', filename: file.name });
+    setUploadNote(files.length === 1 ? 'Sending 1 picture…' : `Sending ${files.length} pictures…`);
+    let sent = 0;
+    for (const file of files) {
+      try {
+        const dataUrl = await d.compressImageFile(file, 1600, 0.75);
+        const r = await d.uploadPhoto(dataUrl, { dest: 'family', filename: file.name });
+        if (r) sent += 1;
+      } catch { /* counted below as not sent */ }
       if (!alive.current) return;
-      setUploadState(r ? 'done' : 'failed');
-      if (r) setGeneration((g) => g + 1);
-    } catch {
-      if (alive.current) setUploadState('failed');
+      if (sent < files.length) setUploadNote(`${sent} of ${files.length} sent…`);
     }
+    if (!alive.current) return;
+    const failed = files.length - sent;
+    if (sent === 0) {
+      setUploadState('failed');
+      setUploadNote(files.length === 1 ? 'That picture did not reach the library. Nothing was saved; try it again.' : `None of the ${files.length} pictures reached the library. Nothing was saved; try again.`);
+      return;
+    }
+    setUploadState('done');
+    setUploadNote(`${sent} ${sent === 1 ? 'picture' : 'pictures'} saved to the family library${failed ? `; ${failed} did not reach it` : ''}. ${sent === 1 ? 'It takes its place' : 'They take their place'} in this year's chapter.`);
+    setGeneration((g) => g + 1);
   };
 
   const addPhoto = (
     <label className={`inline-flex items-center gap-1.5 cursor-pointer ${CHIP} ${FOCUS_RING} border-[#1A1815]`}>
       <span aria-hidden="true"><UiIcon name="upload" /></span>
-      <span>{uploadState === 'busy' ? 'Sending…' : 'Add a photo'}</span>
-      <input type="file" accept="image/*" className="sr-only" onChange={onPickFile} disabled={uploadState === 'busy'} data-testid="stories-add-photo" />
+      <span>{uploadState === 'busy' ? 'Sending…' : 'Add photos'}</span>
+      <input type="file" accept="image/*" multiple className="sr-only" onChange={onPickFiles} disabled={uploadState === 'busy'} data-testid="stories-add-photo" />
     </label>
   );
 
@@ -236,11 +252,8 @@ export default function FamilyStories({ onClose = null, deps = {} }) {
         </div>
       </header>
 
-      {uploadState === 'failed' && (
-        <p role="status" className="text-xs text-[#9E4A2A]">That picture did not reach the library. Nothing was saved; try it again.</p>
-      )}
-      {uploadState === 'done' && (
-        <p role="status" className={`text-xs ${MUTED}`}>Saved to the family library. It takes its place in this year&apos;s chapter.</p>
+      {uploadNote && (
+        <p role="status" className={`text-xs ${uploadState === 'failed' ? 'text-[#9E4A2A]' : MUTED}`} data-testid="stories-upload-note">{uploadNote}</p>
       )}
 
       {status === 'loading' && (

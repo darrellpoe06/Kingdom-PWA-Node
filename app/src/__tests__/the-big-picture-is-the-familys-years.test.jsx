@@ -238,6 +238,24 @@ describe('the component says its states in words (3)', () => {
   });
 });
 
+describe('pictures are added in the plural', () => {
+  it('the picker takes many; each is shrunk and sent in turn, and the note counts what landed', async () => {
+    const deps = fakeDeps({ uploadPhoto: vi.fn(async (_u, { filename }) => (filename === 'bad.jpg' ? null : { ok: true })) });
+    render(createElement(FamilyStories, { deps }));
+    await settle(10);
+    const input = byTestId('stories-add-photo');
+    expect(input.multiple, 'a picker for pictures takes more than one').toBe(true);
+    const files = [new File(['a'], 'one.jpg', { type: 'image/jpeg' }), new File(['b'], 'bad.jpg', { type: 'image/jpeg' }), new File(['c'], 'three.jpg', { type: 'image/jpeg' })];
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    await settle(12);
+    expect(deps.compressImageFile).toHaveBeenCalledTimes(3);
+    expect(deps.uploadPhoto.mock.calls.map((c) => c[1].filename)).toEqual(['one.jpg', 'bad.jpg', 'three.jpg']);
+    expect(deps.uploadPhoto.mock.calls[0][1].dest).toBe('family');
+    expect(byTestId('stories-upload-note').textContent).toMatch(/2 pictures saved to the family library; 1 did not reach it/);
+  });
+});
+
 describe('the story plays and comes back (4)', () => {
   it('advances by itself every FRAME_MS, pauses on request, and Close returns to the chapters', async () => {
     vi.useFakeTimers();
