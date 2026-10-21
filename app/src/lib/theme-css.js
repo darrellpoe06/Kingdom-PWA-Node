@@ -315,7 +315,7 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="heritage"] p,[data-theme="heritage"] li{line-height:1.55}
 
 /* ===================================================================
-   THEME: TLC — ivory & forest (2026-10-21, DR-1153)
+   THEME: TLC — ivory & forest (2026-10-21, DR-1156)
    TLC Therapy Solutions' own finish, from Darrell's reference: a warm
    ivory field, white cards with one soft shadow and rounded corners,
    deep forest green for every primary fill and the selected state, a
@@ -624,7 +624,7 @@ export const THEMES = [
   // default when it shows initially" asked for, without moving the family's.
   { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
   { key: 'lovecorner', color: '#FFF8F7', border: '#C03222', label: 'The Love Corner · red & white' },
-  // TLC Therapy Solutions' own finish rides third (DR-1153): the TLC door
+  // TLC Therapy Solutions' own finish rides third (DR-1156): the TLC door
   // opens in it by its own fallback (TLC_DEFAULT_THEME), the same shape as the
   // church's; the family app's first-run theme is untouched.
   { key: 'tlc',      color: '#F4F2ED', border: '#2E4A3C', label: 'TLC · ivory & forest' },
@@ -659,7 +659,7 @@ export const DEFAULT_THEME = 'heritage';
 // (DR-0524 — a device that chose keeps its choice).
 export const CHURCH_DEFAULT_THEME = 'lovecorner';
 
-// THE TLC DOOR OPENS IN TLC'S OWN COLORS (DR-1153). Darrell, 2026-10-21, with
+// THE TLC DOOR OPENS IN TLC'S OWN COLORS (DR-1156). Darrell, 2026-10-21, with
 // the reference on screen: warm ivory and cream, deep forest green for the
 // primary buttons and navigation, soft sage, warm taupe, a subtle champagne,
 // charcoal text — "calming without appearing overly feminine... trustworthy

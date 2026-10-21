@@ -107,7 +107,7 @@ describe('the Love Corner door opens in the Love Corner’s colors', () => {
   });
 
   it('the shell asks for it by the DOOR, not globally', () => {
-    // RETARGETED, NOT RELAXED (DR-1153): the TLC door's fallback now rides the
+    // RETARGETED, NOT RELAXED (DR-1156): the TLC door's fallback now rides the
     // same line, so the exact string moved; the guarantee — the church door asks
     // for the church's theme and the family app falls through to DEFAULT_THEME —
     // is what is pinned.

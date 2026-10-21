@@ -34,7 +34,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (f) => readFileSync(join(HERE, '..', 'components', f), 'utf8');
 
 // Every surface that paints `data-theme` from the shared preference, with the
-// fallback each one asks for. RETARGETED, NOT RELAXED (DR-1153, the same move
+// fallback each one asks for. RETARGETED, NOT RELAXED (DR-1156, the same move
 // DR-1060 made for the shell below): the TLC door now opens in TLC's own
 // ivory & forest by its own fallback, so the exact string this pinned
 // (`useThemePref('cream')`) moved for that one door. The guarantee this case

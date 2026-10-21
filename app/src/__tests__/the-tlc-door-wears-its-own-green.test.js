@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// The TLC door wears its own ivory & forest (DR-1153)
+// The TLC door wears its own ivory & forest (DR-1156)
 // =============================================================================
 // Darrell, 2026-10-21, with the reference on screen: "warm ivory and cream
 // backgrounds, deep forest green for primary buttons and navigation, soft sage
@@ -57,7 +57,7 @@ describe('the palette is the reference, measured', () => {
 
   it('WHY champagne is a rule and a fill, never text on paper', () => {
     // The measurement that decided it. If it ever stops being true the
-    // reasoning in DR-1153 is wrong and should be re-read.
+    // reasoning in DR-1156 is wrong and should be re-read.
     expect(contrastRatio(GOLD, IVORY)).toBeLessThan(4.5);
     expect(contrastRatio(GOLD, CARD)).toBeLessThan(4.5);
     // ...so its text form is a deep gold, and ink reads on the gold fill.
@@ -133,7 +133,7 @@ describe('one vocabulary, every TLC screen (nothing a guard does not already mea
   });
 
   it('PROVEN-TO-CATCH: no TLC office screen keeps a private copy of the field or the button', () => {
-    // Before DR-1153 seven files each carried their own INPUT/BTN string. A
+    // Before DR-1156 seven files each carried their own INPUT/BTN string. A
     // copy that comes back is one screen drifting from the rest.
     const dir = join(HERE, '..', 'components');
     const tlcFiles = readdirSync(dir).filter((f) => /^Tlc.*\.jsx$/.test(f));
