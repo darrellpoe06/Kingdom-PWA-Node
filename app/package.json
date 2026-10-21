@@ -20,6 +20,8 @@
     "icons": "node ../scripts/gen-icons.mjs",
     "lesson-dates": "vite-node ../scripts/derive-lesson-dates.mjs",
     "lesson-dates:check": "vite-node ../scripts/derive-lesson-dates.mjs --check",
+    "jobs:registry": "node ../scripts/derive-job-registry.mjs",
+    "jobs:registry:check": "node ../scripts/derive-job-registry.mjs --check",
     "verify:catalog": "vitest run src/__tests__/doubled-word-guard.test.js src/__tests__/the-voice-is-heard-as-written.test.js",
     "verify": "npm run lint && npm run verify:gates && vitest run",
     "ship": "node ../scripts/push-stranding-guard.mjs --stamp && npm run verify && node ../scripts/decision-record-guard.mjs && node ../scripts/push-stranding-guard.mjs && git push -u origin HEAD",

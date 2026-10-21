@@ -13,8 +13,8 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import HubCamera from '../components/HubCamera.jsx';
 import {
-  HUB_CAMERA_KEY, HUB_THUMBS_MAX, HUB_CAMERA_WORDS, loadHubCamera, saveHubCamera,
-  pickHubCamera, hubThumbs, hubCameraState,
+  HUB_CAMERA_KEY, HUB_CAMERA_HIDDEN_KEY, HUB_THUMBS_MAX, HUB_CAMERA_WORDS, loadHubCamera, saveHubCamera,
+  loadHubCameraHidden, saveHubCameraHidden, pickHubCamera, hubThumbs, hubCameraState,
 } from '../lib/hub-camera.js';
 import { resetDirectState } from '../lib/camera-direct.js';
 
@@ -123,11 +123,12 @@ describe('HubCamera', () => {
     expect(el.querySelector('[data-testid="tile-live-back_yard"] video')).toBeTruthy();
     // the SD twin, because the NAS keeps one for this camera
     expect(el.querySelector('[data-testid="tile-live-back_yard"] video').getAttribute('src')).toMatch(/back_yard_sd/);
-    expect(el.querySelectorAll('[data-testid^="hub-camera-thumb-"]').length).toBe(4);
+    // EVERY other camera, small (DR-1191: "also choose any camera") -- five of six here, not four
+    expect(el.querySelectorAll('[data-testid^="hub-camera-thumb-"]').length).toBe(5);
     // every NAS call carried this device's own key
     expect(plan.calls.every((c) => c.auth === 'Bearer family-key')).toBe(true);
     // small frames are stills, never more live views
-    expect(plan.calls.filter((c) => c.url.includes('/snap/')).length).toBe(4);
+    expect(plan.calls.filter((c) => c.url.includes('/snap/')).length).toBe(5);
     expect(plan.calls.filter((c) => c.url.endsWith('/ticket')).length).toBe(1);
     // a tap keeps it, on this device
     await act(async () => { el.querySelector('[data-testid="hub-camera-thumb-garage"]').click(); });
@@ -136,6 +137,60 @@ describe('HubCamera', () => {
     expect(el.querySelector('[data-testid="hub-camera-live"]').getAttribute('data-camera')).toBe('garage');
     expect(el.querySelector('[data-testid="tile-live-back_yard"]')).toBe(null);
     expect(el.querySelector('[data-testid="hub-camera-thumb-back_yard"]')).toBeTruthy();
+  });
+
+  it('any camera can be chosen by name, and the choice is kept (DR-1191)', async () => {
+    const s = memStore();
+    const el = await render(createElement(HubCamera, { credential: OWNER, fetchImpl: fakeFetch, storage: s }));
+    await until(() => el.querySelector('[data-testid="hub-camera-pick"]'));
+    const pick = el.querySelector('[data-testid="hub-camera-pick"]');
+    expect([...pick.querySelectorAll('option')].map((o) => o.value)).toEqual(CAMS.map((c) => c.id));
+    expect(pick.value).toBe('back_yard');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(pick, 'nursery');
+      pick.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await until(() => el.querySelector('[data-testid="hub-camera-live"]').getAttribute('data-camera') === 'nursery');
+    expect(s.getItem(HUB_CAMERA_KEY)).toBe('nursery');
+    expect(el.querySelector('[data-testid="hub-camera-thumb-nursery"]')).toBe(null);
+    expect(el.querySelector('[data-testid="hub-camera-thumb-back_yard"]')).toBeTruthy();
+  });
+
+  it('the cameras can be closed on the front page, the way back stays where they were, and the choice survives (DR-1191)', async () => {
+    const s = memStore();
+    saveHubCamera('kitchen', s);
+    const el = await render(createElement(HubCamera, { credential: OWNER, fetchImpl: fakeFetch, storage: s, setView: () => {} }));
+    await until(() => el.querySelector('[data-testid="tile-live-kitchen"] video'));
+    const hide = el.querySelector('[data-testid="hub-camera-hide"]');
+    expect(hide.getAttribute('aria-label')).toBe(HUB_CAMERA_WORDS.hide);
+    expect(hide.className).toMatch(/min-h-\[36px\]/);
+    await act(async () => { hide.click(); });
+    const block = el.querySelector('[data-testid="hub-camera"]');
+    expect(block.getAttribute('data-state')).toBe('hidden');
+    expect(el.querySelector('[data-testid="hub-camera-hidden"]').textContent).toBe(HUB_CAMERA_WORDS.hidden);
+    // nothing plays and no small frame is asked while closed; the stream was given back
+    expect(el.querySelector('[data-testid="hub-camera-live"]')).toBe(null);
+    expect(el.querySelectorAll('[data-testid^="hub-camera-thumb-"]').length).toBe(0);
+    expect(s.getItem(HUB_CAMERA_HIDDEN_KEY)).toBe('1');
+    expect(s.getItem(HUB_CAMERA_KEY)).toBe('kitchen');
+    // the way back, and the Cameras tab, are right where the cameras were
+    expect(el.querySelector('[data-testid="hub-camera-open"]')).toBeTruthy();
+    await act(async () => { el.querySelector('[data-testid="hub-camera-show"]').click(); });
+    await until(() => el.querySelector('[data-testid="tile-live-kitchen"] video'));
+    expect(s.getItem(HUB_CAMERA_HIDDEN_KEY)).toBe(null);
+    expect(el.querySelector('[data-testid="hub-camera-live"]').getAttribute('data-camera')).toBe('kitchen');
+  });
+
+  it('closed stays closed next time on this device, and plain-JS storage reads it (PROVEN: a cleared flag reopens)', async () => {
+    const s = memStore();
+    saveHubCameraHidden(true, s);
+    expect(loadHubCameraHidden(s)).toBe(true);
+    const el = await render(createElement(HubCamera, { credential: OWNER, fetchImpl: fakeFetch, storage: s }));
+    await settle();
+    expect(el.querySelector('[data-testid="hub-camera"]').getAttribute('data-state')).toBe('hidden');
+    expect(plan.calls.filter((c) => c.url.includes('/snap/') || c.url.endsWith('/ticket')).length).toBe(0);
+    saveHubCameraHidden(false, s);
+    expect(loadHubCameraHidden(s)).toBe(false);
   });
 
   it('the kept choice plays first next time', async () => {
