@@ -19,7 +19,7 @@
 >
 > *"I checked the anyone can see section for apt 2 cameras including short stays... did it work?!!!!!!!!!!!!!!!!!!!!!"*
 
-## Why they did not get it — traced, not guessed
+## What was measured — why they did not get it, traced rather than guessed
 
 **The grant was right. The reader could not reach it.** `loadMyDoors` (`cloud.js:154`) selects `camera_grant` and leans entirely on RLS. `rental_tenancies_read` (migration **0150**) admits a tenant through exactly two arms:
 
