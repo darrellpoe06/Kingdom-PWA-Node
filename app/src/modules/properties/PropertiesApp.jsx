@@ -378,8 +378,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    function suspended forever with setLoading(false) unreachable, and the
   //    tab sat on "Opening your properties..." until it was closed — nothing
   //    rendered to tap, so nothing in the app could recover it (2026-09-01).
-  const boot = useCallback(async () => {
-    setLoading(true);
+  // A RELOAD NEVER BLANKS THE PAGE (DR-1199). Only the FIRST boot shows
+  // "Opening your properties…". Every later boot — after a save, after the
+  // background placement finishes (DR-0998), after a picture is filed —
+  // refreshes the lists IN PLACE. It used to set loading every time, which
+  // unmounted the whole page for a beat: the door-journeys leg caught a
+  // half-typed payment wiped that way on 2026-10-21 (the amount gone, the
+  // rest kept), and a person typing into any form here would lose it the
+  // same way whenever the board reloaded behind them. "Try again" on the
+  // could-not-be-reached card still shows it, because there the person asked.
+  const booted = useRef(false);
+  const boot = useCallback(async (opts) => {
+    if (!booted.current || (opts && opts.show === true)) setLoading(true);
     // EACH STAGE GETS ITS OWN CEILING. The first version spent ONE 6s budget
     // across all three stages, to avoid stacking 3 x 6s. That traded a slow
     // freeze for something worse: STARVATION. claimPropertyAccess() runs first
@@ -459,6 +469,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // before 0150 applies, and that is not a failure to reach anything.
     setUnreached([d, g, h, r].some((x) => !x.ok));
     setLoading(false);
+    booted.current = true;
 
     // A SLOW ROAD IS NOT A DEAD ONE — ONE RETRY, IN THE BACKGROUND (DR-0950).
     //
@@ -1224,7 +1235,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           )}
           <button
             type="button"
-            onClick={boot}
+            onClick={() => boot({ show: true })}
             className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50] text-[#2F5D50]"
           >Try again</button>
         </div>

@@ -29,13 +29,14 @@ const H = vi.hoisted(() => ({
   assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [],
   // The pictures of a door and its rooms, and the door a tenancy resolves to
   // (door_of_my_tenancy) — what 0309 lets a tenant read (DR-1199).
-  doorPhotos: [], rooms: [], askDoor: null,
+  doorPhotos: [], rooms: [], askDoor: null, claimGate: null,
 }));
 
 vi.mock('../modules/properties/cloud.js', () => {
   const noop = async () => ({ ok: true });
   return {
-    claimPropertyAccess: async () => ({ ok: true }),
+    // A gate the reload waits on, so a test can hold a boot mid-way (DR-1199).
+    claimPropertyAccess: async () => { if (H.claimGate) await H.claimGate; return { ok: true }; },
     loadMyDoors: async () => ({ ok: true, doors: H.doors }),
     loadMyGrants: async () => ({ ok: true, grants: H.grants, byScope: {}, roleLabel: null }),
     loadMyHousehold: async () => ({ ok: true, memberships: H.household }),
@@ -111,7 +112,7 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] , doorPhotos: [], rooms: [], askDoor: null });
+  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] , doorPhotos: [], rooms: [], askDoor: null , claimGate: null });
 });
 
 async function mount(props = {}) {
@@ -526,5 +527,36 @@ describe('the People tab carries the access matrix for the family', () => {
     await mount({ surface: 'door' });
     expect(buttons().map((b) => (b.textContent || '').trim())).not.toContain('People');
     expect(container.querySelector('[data-testid="access-matrix"]')).toBe(null);
+  });
+});
+
+// A RELOAD NEVER BLANKS THE PAGE (DR-1199). The door-journeys leg caught a
+// half-typed payment wiped by a background reload on 2026-10-21: every boot
+// after the first set "Opening your properties…" and unmounted the page.
+describe('a reload behind the family keeps the page on screen', () => {
+  it('PROVEN TO CATCH: advertising a door reloads the board without ever drawing the loading screen over it', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    await mount({ surface: 'poetech' });
+    // Open the Rent tab on the door and type an amount.
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Rent$/);
+    const amount = container.querySelector('input[aria-label="Amount received"]');
+    expect(amount, 'no payment form on the Rent tab').toBeTruthy();
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    await act(async () => { setter.call(amount, '300'); amount.dispatchEvent(new Event('input', { bubbles: true })); });
+    // Hold the next boot mid-way, then reload the board the way a save does.
+    let release; H.claimGate = new Promise((r) => { release = r; });
+    const reload = buttons().find((b) => /^Try again$/.test((b.textContent || '').trim()));
+    expect(reload, 'the reload under test must not be the Try-again card').toBe(undefined);
+    await tap(/^Doors$/);
+    await tap(/^List$/);
+    await tap(/^Advertise$/);
+    expect(text(), 'a reload drew the loading screen over the page').not.toContain('Opening your properties');
+    await act(async () => { release(); });
+    for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(text()).not.toContain('Opening your properties');
+    await tap(/^Rent$/);
+    const again = container.querySelector('input[aria-label="Amount received"]');
+    expect(again).toBeTruthy();
   });
 });

@@ -919,19 +919,47 @@ export async function loadDoorTenancies(rentalRef, client = supabase) {
  * `rentals_select USING user_in_instance(instance_id)` (read from pg_policy,
  * not assumed). RLS is the gate; this is the UI reflecting it (DR-0060).
  */
+// THE COLUMNS THE BOARD READS, and the ones it can live without for a while.
+// A column a NEW migration adds is read only when the database already has it
+// (DR-1199): the app deploys on merge and the migration applies on its own
+// lane, so for a few minutes -- or for good, on a database a migration has not
+// reached -- the app asks for a column that does not exist. PostgREST then
+// refuses the WHOLE read, and the Properties tab says it could not be reached:
+// the door-journeys leg caught exactly that on 2026-10-21 (0309's
+// pictures_shared_with_door, missing from the e2e chain). So a missing
+// OPTIONAL column is dropped and the read asked again; the board loses only
+// that column's word, never the doors.
+export const RENTAL_COLUMNS = 'id, slug, instance_id, address, unit, city, state, status, monthly_rent, tenant_name, display_name, property_type, rentable_level, listed_at, listed_rent, listed_note, notes, showcase_order, address_visibility';
+export const RENTAL_OPTIONAL_COLUMNS = Object.freeze(['pictures_shared_with_door']);
+
+/** The optional columns a PostgREST error says do not exist, or []. */
+export function missingOptionalColumns(error, optional = RENTAL_OPTIONAL_COLUMNS) {
+  const msg = String((error && (error.message || error.details || error.hint)) || '');
+  if (!/does not exist|could not find|schema cache/i.test(msg)) return [];
+  return optional.filter((c) => msg.includes(c));
+}
+
 export async function loadMyRentals(client = supabase) {
   try {
-    const { data, error } = await client
-      .from('rentals')
-      // showcase_order MUST be here: the board sorts by shelfOrder(rentals), so
-      // without this column every door reads as unplaced and "Show first" writes
-      // to a column the reloaded board never sees — the door never moves (the
-      // bug Darrell hit 2026-08-28). The DB order is a stable fallback only.
-      .select('id, slug, instance_id, address, unit, city, state, status, monthly_rent, tenant_name, display_name, property_type, rentable_level, listed_at, listed_rent, listed_note, notes, showcase_order, address_visibility, pictures_shared_with_door')
-      .order('showcase_order', { ascending: true, nullsFirst: false })
-      .order('address', { ascending: true });
-    if (error) return no('read-failed', error);
-    return ok({ rentals: data || [] });
+    let optional = [...RENTAL_OPTIONAL_COLUMNS];
+    for (let attempt = 0; attempt <= RENTAL_OPTIONAL_COLUMNS.length; attempt += 1) {
+      const cols = [RENTAL_COLUMNS, ...optional].join(', ');
+      const { data, error } = await client
+        .from('rentals')
+        // showcase_order MUST be here (RENTAL_COLUMNS): the board sorts by
+        // shelfOrder(rentals), so without it every door reads as unplaced and
+        // "Show first" writes to a column the reloaded board never sees -- the
+        // door never moves (the bug Darrell hit 2026-08-28). The DB order is a
+        // stable fallback only.
+        .select(cols)
+        .order('showcase_order', { ascending: true, nullsFirst: false })
+        .order('address', { ascending: true });
+      if (!error) return ok({ rentals: data || [], missingColumns: RENTAL_OPTIONAL_COLUMNS.filter((c) => !optional.includes(c)) });
+      const gone = missingOptionalColumns(error, optional);
+      if (!gone.length) return no('read-failed', error);
+      optional = optional.filter((c) => !gone.includes(c));
+    }
+    return no('read-failed', { message: 'the rentals read kept refusing its optional columns' });
   } catch (e) { return no('unexpected', e); }
 }
 

@@ -67,6 +67,15 @@ A tenant opening Poe Properties sees the pictures of the place they live in, roo
 - **The app:** `properties-work-on-any-door` 24 cases (seven added: the tenant's Pictures tab with the room dropdown and in-place open, the two honest states, the landlord's face without it, the one-door tenant preview and its pictures, choosing the other door, the one-door worker board, the preview's write still the landlord's, the board notice both ways); `the-preview-is-one-door-through-their-wall` (the 0309 scenario in JavaScript, every wrong sight asserted absent); `a-door-shows-its-pictures-to-its-people` (the switch word, the migration text, the smoke and both CI legs pinned); `properties-intake` (the ten required fields and the validator refusing without one); `a-slow-road-is-not-a-dead-one` (the offline line, and its absence online); `every-poe-properties-page-is-reportable` (27 surfaces, 28 keys). Lint 0.
 - **Not seen rendered:** this sandbox has no route to poetech.us; the live pass on his phone and the TV is his, after deploy (DR-0104). On the TV, the first check is the footer: OFFLINE means the device, not the server.
 
+## Found by the door-journeys leg, and fixed (2026-10-21)
+
+The first push of this record turned the end-to-end door journeys red (Chrome + PostgREST + PostgreSQL). Two causes, both real, both now closed:
+
+1. **A new column took the doors down.** `scripts/e2e/build-door-db.sh` stopped at 0291, so the rentals read asked for `pictures_shared_with_door` on a database without it; PostgREST refuses the whole read for one unknown column, and the board said it could not be reached. Production has the same race between the app's deploy and the migration's lane. `loadMyRentals` now drops a missing OPTIONAL column (`RENTAL_OPTIONAL_COLUMNS`) and asks again; a missing core column, RLS, or the network is still a refusal. The e2e chain now replays 0309. Pinned in `a-new-column-never-takes-the-doors-down.test.js`, proven to catch (with the fallback removed, the doors read as failed).
+2. **A reload blanked the page and wiped a half-typed form.** Every `boot()` after the first set "Opening your properties…", unmounting the page; when the background placement (DR-0998) finished mid-journey, the payment amount being typed was lost. Only the first boot (and Try again on the could-not-be-reached card, where the person asked) shows it now; every later reload refreshes in place. Pinned in `properties-work-on-any-door.test.jsx`, proven to catch (with the old line restored, the loading screen is drawn over the page).
+
+Measured locally on PostgreSQL 16 + PostgREST 12.2.12 + Chromium: main 16 of 16 journeys; this branch 16 of 16 on a fresh database.
+
 ## What this does not do
 
 - It does not open condition pictures (turn, move-in, move-out, damage, inspection) of other tenancies to a tenant; 0153's reason stands and the smoke pins it.
