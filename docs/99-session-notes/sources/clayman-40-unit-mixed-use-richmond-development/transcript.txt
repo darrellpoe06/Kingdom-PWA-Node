@@ -1,0 +1,405 @@
+# Transcript of YouTube video 608WXaTG8Js
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 6513 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+Ever wonder what a project of this size costs to build? Or the process that actually goes into
+construction? Well, stick around and in this video, I'm going to break down both of those things
+in detail that you've likely never seen before. These are topics very rarely thought, especially
+for free. So, make sure you watch this whole video. A little background. Earlier this year, my
+partner and I finished this new construction 40 unit mixeduse project. It's actually more than
+40 units. There are 40 apartments here, plus 8,000 ft² of retail space occupied by three amazing
+tenants. 45,000 ft² of awesomeness in the heart of a superd desirable neighborhood in Richmond,
+Virginia with very little supply and an almost non-existent construction pipeline. So, in this
+video, I'm going to break down the construction process and show you exactly what this project
+cost to build. I'll break down every cost category and I'll show you some super important budget
+items that are very easy to miss but are absolutely crucial. Frankly, the kind of information
+that I wish others shared more openly and was available when I was getting started. And before I
+go any further, I know the thumbnail on the video may have said that I built a 40 unit, but let
+me be super clear. I developed this project and I did it with a very capable partner of mine.
+But the building was built by literally hundreds of incredibly hardworking contractors and
+subcontractors. None of what I do is possible without these people and they rarely get the
+credit they deserve. So this project sits on.9 acre site less than one acre. It used to be a
+Bank of America branch. It just so happens that my f very first job out of college was for Bank
+of America Securities up in New York in in I worked in bond sales and it it just so happens that
+they fired my ass. Yes, ladies and gentlemen, this was me circa 2004 working on Wall Street.
+Lots of hair gel, lots of partying, and even more attitude. My god, I had a terrible attitude. I
+thought I was smarter than everyone in the room. Hint, I wasn't not even close. Uh, look,
+frankly, I deserve to be fired. But nevertheless, I took great pleasure in personally watching
+our contractors take a wrecking ball to this ugly ass Bank of America branch, and we replaced it
+with something much better. 40 new construction apartments, great layouts. It's a mix of
+one-bedroom and two-bedroom units, quartz countertops, stainless steel appliances, walk-in
+closets, really nice kitchens, high-end LBP flooring. We increased the balcony size. Originally,
+it was going to be 5t deep. We increased it to 8t deep, which makes a huge amount of difference.
+People can, these are like luxurious balconies. Ton of outdoor space that's private to each
+apartment. Our tenants can put full dining sets out there, lounge sets. I mean, these are great
+outdoor spaces. It's a huge attractive tenant amenities. We also took 10 apartments and
+massively upgraded the finishes in order to turn them into short-term and midterm rentals. They
+turned out really nice. We had an awesome interior designer that helped us design and pick out
+finishes and pick out furniture and everything else. And the cool thing about these midscale
+buildings is they don't typically require a lot of amenities such as gyms, pools, lounges. We
+have a really nice lobby for tenants, mail room, package room, and that's really about it. We
+find that the oversized balconies and private outdoor space is what actually gets used a lot
+here. Plus, the neighborhood and the new amazing businesses that just opened directly downstairs
+in our building serve as major amenities. Janet's Bakery took 2,000 square ft out of the 8,000
+and they opened first. Absolutely amazing bakery with great coffee, pastries, sandwiches. This
+place gets absolutely mobbed every day they're open there. It's an amazing local business run by
+phenomenal local people. Just packed every day. Next door, another 2,000 square feet is occupied
+by uh Tao Yoga. This is their second location and again they're like an amazing addition to the
+neighborhood. Neighborhood was really excited about getting a yoga studio. They're local
+entrepreneurs just kicking butt. Really, really great business. And then the remaining 4,000
+square ft are taken by a sushi restaurant called Lucky AF. Stands for Lucky Asian Fusion. This
+is also their second location in Richmond and they're about to open. All three commercial spaces
+were fully pre-released over six months before we finished construction of the building. So
+again, in this video, if you watch it, I'm going to show you visually the construction process
+start to finish. I'm going to show you exactly what this project cost to plan and build. I'm
+going to show you important cost items not to be missed. I'm going to show you how we structured
+the budget line item by line item. I'm going to show you how we structured the deal with the
+general contractor and a lot more. But I got to warn you, if if you watch if you've watched any
+of my past videos, then then you've already seen this disclaimer. This is a long video. If you
+follow my channel, you know we don't put out the typical YouTube There are no lambos or
+motivational fluff in my videos. I I try to go deep. I try to provide information that very few
+others do. And this is for serious people, people that have attention spans. So, no Tik Tok
+brain. [clears throat] So, if that's you, stick around. You'll get a ton of value out of this
+video. Otherwise, keep it moving, buddy. I also highly recommend you watch this video on a
+desktop or a tablet rather than your phone. I'll be showing you our detailed budgets and
+drilling into the numbers, and it may be hard to see this on a small screen. So, really quick,
+my name is Daniel Clayman. I live in Richmond, Virginia. I built real estate. I built software
+for real estate investors. I, as I mentioned earlier in this video, I got laid off from my
+corporate job. Um, well, actually, Bank of America was not the first one to fire me. Bank of
+They were not the last to fire me. Bank of America was the first to fire me. And then a couple
+of years later, I got laid off in 2008 when the economy crashed and I started in real estate
+with zero. I'm a first generation immigrant. I came here in ' 92 from Soviet Union and um but I
+I worked my butt off and now I own a large multif family and mixeduse portfolio. It's not huge.
+It's about a $70 million portfolio right now that uh I own. We have a lot more projects in the
+pipeline, but that that's it. My company specializes in built-ren development. We build
+everything from single family homes and duplexes all the way to small and mediumsiz apartment
+buildings and urban mixed use infill projects like these. All right. And because I build both
+small and large projects, I think this puts me in a relatively unique position to see costs
+across a wide spectrum of projects. So conversations constantly happen internally in my company
+about what's better. Should we be building small by residential code or larger projects to get
+economies of scale? So, I'll touch on some of those topics here. And by the way, there are two
+other videos on our YouTube channel that I put out recently covering in detail the cost for
+building a duplex project that I recently completed and a 4unit project that I built by
+commercial building code. And so if you want a better understanding of what costs look like when
+you build by residential code versus commercial code after you watch this video, go back and
+watch that one. All right, so let's jump in and talk about the construction first. I'm going to
+walk you through in detail how we built this building and then I'm going to show you the costs
+for all this stuff. All right, so first came the demo of this ugly Bank of America branch. Good
+rhythms giant conglomerate bank. We won't miss you. Then comes sight prep. Scraping off top soil
+and hauling it. Then we import additional stone to build and level the building pad. Once the
+pad is ready, we start digging footers and laying rebar in the footers and in the specific areas
+of the site that also require it, such as under stairwells and under elevator shafts. All of
+this gets regular third-party inspections. They come out and inspect depth of footers, rebar,
+and then test the strength of concrete once it's poured. It's a separate item that we carry in
+the budget and I'll show you that in a few minutes. Once everything is ready, concrete pump
+trucks arrive and we start pouring concrete. When the project this size is done over multiple
+days in stages, so while they're pouring concrete in one part of the site, they may still be
+digging footers in another. Once concrete is poured, surveyors brick point the foundation.
+Basically, this tells the brickmason exactly where they should place their block and the
+brickmason starts their work. Here, we started with one of the stair towers. At the same time as
+this is happening, the plumber is running new lateral connections to the street for water and
+sewer. So, this is what our final foundation uh plan for our final foundation look like on this
+project. And you'll see when I show you the site plan, we have parking in the rear of the
+building for our apartment tenants and we have parking in the front of the building for our
+retail commercial tenants. But this is the completed foundation for the site. So once the
+perimeter foundation is complete, the plumber comes in and starts digging and laying groundwork
+underneath the two firstf floor apartments on the right side of the building. This is the only
+area where underground plumbing was required because the rest of the first floor was a
+commercial slab that we left completely open for the time being. The commercial groundwork only
+happens once we have signed leases with the commercial businesses because then they design their
+own spaces from scratch and typically hire their own plumbers to do the groundwork based on
+their design. So, this is the site plan for the building. And I'm going to look over at my other
+screen here, but you can see there's two apartments on the ground floor in the rear of the
+building, but the rest is commercial space. We broke this up in this case into multiple retail
+bays. But during construction, all of this is mostly left as just gravel floor. At the same time
+as the plumber is laying groundwork, electricians come in and run conduits for service through
+the slab to multiple commercial bays. We want to do this ahead of time and run commercial
+service to each commercial bay so that we don't have to do this down the road when our tenants
+are doing their buildout because it would be insanely expensive to do this later. While the
+plumber is working on groundwork in the apartments in the rear, structural steel arrives and the
+sub starts setting it on the rest of the building. This is the steel necessary to support the
+cantal levered parking in the rear along with a massive glass storefront that will cover the
+entire first floor commercial area. So quite a bit of structural steel in this project. Multiple
+six figures worth of structural steel here. While the plumber so while while the steel erection
+is finishing the slab in the apartments is prepared for the concrete pour with poly and rebar.
+We also prep the perimeter of the commercial space for a partial slap pour. This is called a
+skirt. We just pour the outside of the commercial spaces and leave most of the floor as gravel
+again to allow full customization by future commercial tenants. Once the slab is prepped, the
+concrete is poured and allowed to cure. Now, just FYI, to get to this stage, it took us roughly
+4 and 1/2 months, including a bunch of weather delays. And again, I have to give credit to a
+really good general contractor here and their team, because the initial part of a project like
+this requires tremendous coordination between 20 different subs, often working on the job
+together. So four and a half months to get to this stage in my view is pretty pretty good. And
+by the way, getting projects like this off the ground is no easy task with a lot of sequential
+steps from lead to pre-offer due diligence to contract to pre-closing due diligence, etc. There
+is a specific pre-development process that you should follow to save time and ensure you're not
+closing on the wrong deal, ensuring your project gets designed well and permanent on time. So,
+I've created a simple pre-development process map that you can download absolutely free if you
+go to this link rehabvaluator.com/map. Just enter your email and my system will send it to you
+right away. You can download the PDF, save it, print it, use it, refer to this going forward.
+It's a really valuable resource. Anyway, let's keep going. Now, the real fun begins. We start
+framing up. The first floor apartments get framed up and trusses for second floor get delivered
+where most of the apartments will be. At the same time as framing is happening, excavation and
+install of what's called a BMP happens under the front parking area. A BMP is essentially an
+underground storm water storage facility. It collects all of our water runoff from the parking
+and from the building from the gutters and downspouts. Holds that storm water in place and
+slowly releases it to the combined storm and sewer system in the street. Pretty expensive system
+but necessary by building code for us. Meanwhile, framing continues. Second floor trusses get
+set. Then second floor framing starts. A few weeks later, we have a fully topped out building
+along with a new roof. Once the building tops out, framers set the windows and start balcony
+construction. We're now roughly 6 months into the project. So once the roof is on and the
+building is dried, then we start what's called MEP roughens. Mechanical, electrical, and
+plumbing inside the building. This also includes the sprinkler contractor running his pipes as
+well. So that's four trades. On a single family home, you may sequence these trades one at a
+time. You have the plumber through, then the electrician, then HVAC, or in some other order. But
+on the job the size, all of these subs work together at the same time, though possibly different
+ends of the building. We do the the pre pre-rock for tubs as well. At the same time as trade
+ruffins are happening, framers are installing balcony decking and exterior doors. We use only
+resilient materials on the outside. No wood. This is all Trex decking. It's all composite
+material. It looks great and it will last a really long time without ever needing us to power
+wash it or to stain it. We pay a lot more money upfront for this decking rather than using salt
+treated wood. But over the course of the next 10, 15, 20 years, it's going to save us massive
+amounts of money in maintenance and headaches and coordination with tenants. Nobrainer. Now,
+it's not just electrical, mechanical, plumbing, and sprinkler that are running wires inside the
+building at the same time. There are three additional subcontractors in this case roughing in as
+well. fire alarm contractor, our low voltage subcontractor installing wires for security cameras
+and access controls and an internet cable company pre-wiring our building for internet access in
+each apartment. So that's six different subs running pipe. It's actually seven different subs
+running pipe and wires in the building that must be closely coordinated. Seven different subs.
+While all this craziness is taking place, the mason starts putting up the brick veneer. This is
+always exciting to watch because now you can finally start seeing the building come together,
+including the building facade. As the brickmason is finishing, the sighting contractor starts.
+Now the storefront glass starts going in. And again, this is this is where the project really
+starts to feel real and and you start really understanding what the building is going to look
+like at completion. It's really neat. Meanwhile, on the inside, once all trade rough inspections
+pass, it's time to insulate and then hang drywall. Once the walls are closed up, the hardest and
+most important parts of the project are finished. All of the surprises and any potential change
+orders are generally out of the way. and it's smoother sailing from there. Once we install
+drywall, the next step is to pour what's called gyprete on the floor. It's basically a one-inch
+layer of concrete that gets poured on top of the subfloor for soundproofing. It it it actually
+is really effective for both STC and ITC rating, sound and impact. It's a phenomenal
+soundproofing feature that goes into every one of our multif family buildings and then LVP
+flooring just goes on top of that concrete. So once chipret is poured and cured, interior doors
+and kitchen cabinets get installed. At the same time, roof HVAC units are getting set by the
+mechanical sub and roof penetrations get sealed by the roofer. And then of course the elevator
+gets installed. In this building we have an elevator. So now we're roughly at 11 months from the
+demo of the original bank building. And it's basically just down to finish work. Painting quartz
+install flooring install along with tray trimouts, hanging bath fixtures, light fixtures,
+putting up HVAC grills, and then punch work on outside. We paved the parking, installed
+landscaping, built the trash enclosure, and I showed you some of the final picks at the
+beginning of this video. Let me know in the comments what you think. Overall, start to finish,
+from first starting the demo of the bank building to the final certificate of occupancy. This
+took 14 months. 14 months start to finish in my book. That's pretty good. All right. So, what
+did this all cost? What did this all cost to build? Let's let's jump into that. All right. So, I
+am in my rehabaler account. This is the software that uh I've developed and that we use for all
+of our development projects for deal research, financial feasibility, comps, lender
+presentations and funding as well as project management. Thousands and thousands of uh users
+around the country and actually around the world use this now as well. So, let me show you the
+numbers. The land cost a million and a quarter, $1.25 million with roughly $20,000 in closing
+costs. So, what did the project cost to build? You can see the total budget was $10,153,000. But
+how does this break out? This is where I think the really interesting part is that almost nobody
+shows you. So, let me break down the budget for you. So first of all, these kinds of budgets are
+always broken down by soft costs and hard costs. Soft costs are basically an easy way to think
+about soft costs is everything that happens before shovels hit the ground, before the building
+physically starts being built. So what goes into soft costs? I've broken these out by owner
+carried soft costs, general conditions, and other soft costs. So let me explain to you what
+these items are. General conditions are provided to us in this case by the general contractor.
+These are their costs in order to build this building. They have to staff a part-time project
+manager. They have to staff a full-time site super. The site super is there 40, 50, 60 hours a
+week, whatever it takes to build this project, and only builds this project. He's there
+full-time. temporary utilities and then there was other general conditions. Um mostly trailer,
+temporary fencing, daily cleanup, dumpsters, but these are basically the overhead expenses for
+the general contractor, not their profit, their overhead expenses. So $535,000 in general
+conditions, a big chunk of it being payroll. So owner carried soft costs, these are items that
+we are ourselves carrying on the budget that we are not paying directly to the general
+contractor. So, municipal fees, building permits, tap fees, architect and engineering fees,
+$210,000. Closing legal title, financing, closing costs. Construction management, $83,000
+construction management fee is what we essentially paid ourselves as developers to manage the
+project. And then there's a developer fee in here of half a million dollar. This is a fee that
+the general partners of the entity get paid to develop the project. And in this deal, a a piece
+of the equity was with limited partners. And so basically this is this is the income that my
+partner and I collected over the course of the project in order to develop this project. We we
+split half a million dollars and then marketing insurance and pre-open. So total in owner
+carried soft cost of $1.2 million. All right. Now if I go to the track view I can start seeing
+this budget broken out on a dollar per foot basis. Now in this case I preloaded my final costs
+into the budget. So the reason why you don't see anything in the actual column is in this case I
+did not use the software to track my budget versus actual. I wanted to show you guys my final
+costs. And so what it says here in the budget is what's actually the final cost for the project.
+So you can see owner carried soft costs were about $27 per foot. Building permits that was a big
+chunk of it. And tap fees for utilities was 4.5 bucks a foot. Between architect and all of our
+engineering, mechanical, electrical, plumbing, civil, structural, we paid about $4.67 $67 a foot
+for this project. And then the developer fee was a big chunk of that. So what else do we have in
+there? Other soft costs, builder's risk insurance, general liability insurance. We have to carry
+both. And we as a developer pay for that out of pocket, not our general contractor. Our general
+contractor carries their own general liability insurance and workers comp. But in addition to
+our contractor's general liability insurance, we carry our own GL policy and the builder's risk
+policy. The builder's risk policy covers the building general liability covers this says this
+should say general liability insurance and then originally the construction contingency in this
+project. So again, when you're working with a general contractor, typically they will build in a
+contingency into their bid that they're giving you as the developer. But then we carried a
+contingency on top of what our general contractor was charging. And originally, this contingency
+was half a million dollars. But we ate into this contingency. And I'm going to show you all the
+change orders that ate into this contingency. And so this is the remainder of that contingency
+that's left here. And then demolition, right? Demolition was a soft cost that we carried on the
+budget. So those are soft costs. You can see soft costs in this project were $46 a foot, which
+is significant. Now, how do hard costs break out? So first of all, there's builder profit and
+overhead. This is the actual profit that the general contractor collects for building this
+project. So they charge general conditions which is their overhead but then their pure profit in
+this case was n bucks a foot just over n bucks a foot. $413,000. Then we have site work. And so
+all of these numbers are coming directly from the general contractor. They're part of a what's
+called a GMP, a guaranteed maximum price contract. So we before we broke ground on this project,
+we went into this project with a guaranteed maximum price contract from a very good general
+contractor. So we knew ahead of time what this project was going to cost my partner and I. So
+site work, you can see how site work is broken down, mobilization, ENS controls, clearing and
+demo, earth work. Here's the storm sewer. You remember I showed you pictures of the underground
+storm water detention facility that needed to be put underneath the front parking area? $175,000
+for this sanitary sewer labor to connect to it. Water connections, concrete, asphalt survey and
+layouts, spoils removal, removing and dumping excess dirt, fencing and gates. And this is for
+powdercoated aluminum and vinyl fencing. Also really good price. Bike racks, landscaping, etc.
+Then you've got concrete. Concrete was significant portion cost here. $212,000. Footers, walls
+and pedestals, elevator pit, etc., etc., etc. Masonry, again, big part of this project,
+$380,000. foundation, rebar, east stairwell, west stairwell, elevator shaft, and then the brick
+veneer.8 $844 per foot. Structural steel. You remember I showed you all the structural steel on
+this project in order to support the rear cantal lever parking and the storefront steel.
+$422,000 in structural steel here, right? About half of that is material. The rest of it is uh
+labor framing. Obviously, a huge cost in this project. $26 a foot between materials and labor.
+Labor was just under $6 a foot. Framing materials were $650,000, about 14.5 bucks a foot.
+Trusses additionally, additionally to the framing materials, right? So you can see between
+trusses and the rest of the lumber package, we're talking almost 20 bucks a foot here.
+Insulation, fiber, cement, sighting. Right. So we've got brick veneer on the portion of the
+building. Siding and all the trim on the rest of it. Material labor. $150,000 for sighting,
+$58,000 for labor. TPO roof, a rubber 60 mil roof material, labor, spray, fireproofing, fire
+stopping, sealants. Altogether, the roof was about five and a half bucks a foot. Doors, prehung
+wood doors, entry doors, aluminum storefront, all that glass in the front to support the retail
+space. $153,000 in this project. significant cost. Windows and patio doors. We use fiberglass
+patio doors with built-in blinds. This was $130,000, about three bucks a foot. And I like
+looking at things on a dollar per foot basis because it helps you equalize one project to the
+next. Gypsson board, right? That's drywall, material, labor, flooring, and tile. This is an
+all-in price for materials and labor for LVP, for hallway, glue down flooring, for LVP in the
+bathrooms, stairwells, treads. All right. Painting under three bucks a foot. That's a good
+price. Materials and labor, $129,000. Exterior signage. Interior signage, right? a big building
+sign that says Evelyn on the outside and an interior signage $14,000. Accessory shelving, right?
+We really have this broken out. Fire extinguishers, mailboxes, shelving labor. Appliances,
+$140,000. That's not bad for 40 apartments, kitchens, and countertops. Casework, these are all
+the cabinets and countertops. Again, like our general contractor was able to command really good
+pricing on these items. If you divide this per apartment, these are really good prices. And then
+obviously some of the biggest expenses in buildings like this are the trades. Plumbing,
+groundwork, roughening, trim, mechanical, that's HVAC, electrical. So you can see between
+plumbing, mechanical and electrical we are 13 another 1124 plus 14 38 almost $40 a foot is
+trades. You add to that the fire alarm, you're at about 40 bucks a foot on this project is
+trades. And then we have owner carried items. Now what did we carry in addition to so owner
+carried items? First of all, tenant improvement allowance. Out of this budget, $115, $520,000
+was a tenant improvement allowance. What is a tenant improvement allowance? We build the
+commercial spaces as shelves. When we lease a particular space to the tenant, they start their
+buildout from essentially gravel floor and four walls. We bring water, sewer to the space. We
+bring gas to the space. We bring electrical power and panels to the space. But then they have to
+do their ground work. They have to pour their concrete slab. They have to frame up their space.
+They have to do roughen electrical, roughen plumbing, roughen HVAC, and take it from there. So,
+it's a significant undertaking, but we give them what's called a tenant improvement allowance in
+order to contribute money to those costs. And so we typically I have separate training on how we
+structured these deals, but for the 8,000 square feet of commercial, we budgeted and carried on
+our budget $520,000 in tenant improvement allowance. This is really important because if you
+leave this out of your budget when you go to get financing or when you go and raise equity from
+limited partners, if you forget this expense, you're now having to come up with this money out
+of pocket in order to get your commercial spaces leased. It's a big problem. So, it's very
+important to carry this on your budget. And then we originally carried a contingency here,
+right? But we here I deleted the contingency because my final costs reflect that contingency in
+the change orders. And so here are the change orders that happened throughout this project. We
+had to pay a performance bond. Our lender end up requiring a performance bond to be paid on
+behalf of the general contractor. We had to make a lot of drawing revisions initially that cost
+almost 60 grand. There was some site work change orders that cost $66,000. We end up up
+upgrading some appliances. We originally for my two-bedroom apartments, we had up- down fridges
+like 18 cubic feet. I wanted to upgrade on our two-bedroom apartments these two bigger
+sidebyside refrigerators. This cost an extra 18 grand for our Airbnb units for our short and
+medium-term rentals. We end up upgrading bathrooms, showers in 10 of the apartments to like I
+showed you pictures of these beautiful showers with a handheld shower head, a rainfall shower
+head, beautiful tile instead of the typical fiberglass one piece stubborn surrounds. This cost
+$25,000. There's a credit for some changes that we made to flooring. We upgraded to nicer
+countertops. And then there's a bunch of other miscellaneous change orders. So $340,000 in
+change orders may seem like a lot, but we had a half a million contingency here. So we actually
+came in under budget. So that's our budget, right? You again, you can see how it breaks out
+between soft costs and hard costs. Altogether, $225,000 in soft plus hard costs for this
+project. But the final asbuilt value of this building was almost $15 million. And you can see my
+total all-in cost basis came in at $12 million. So at the end of this project, we end up
+creating $3 million in new equity in new sweat equity on our balance sheet. I'd say that's
+pretty good. So let's break down these numbers really quick. Land was $1.27 million. As I just
+showed you, soft costs were just over $2 million. Here, hard costs were just over $8 million.
+And then cost of money was $725,000 for a total project cost of $12,148,000. So on the dollar
+per foot basis, these numbers look pretty good. Land price makes sense. soft costs, hard costs,
+cost of money, all in this project, including everything, including land, including cost of
+money, came in at $269 a foot. But on a per unit basis, these numbers, if we look at it based on
+40 apartments, these numbers seem a little high to me. You know, over $300,000 per unit. That
+doesn't make sense to me. So, we're forgetting something. Wait a minute. Oh, okay. It's 8,000
+square feet of retail in this building. We're literally from that analysis on the perunit
+analysis, we're leaving out an entire strip shopping center. When we say this is a 40unit
+building, it's much more than a 40unit building. So, what's the retail worth? How do we
+accurately look at this building on a on a per unit analysis? I think you're going to find this
+interesting. If you're if you're still watching this video, you're going to find this
+interesting. I'm going to give you a very quick back of the napkin way to value commercial
+space. There are all kinds of nuances here, but here's a quick and dirty. 8,000 square feet
+times our initial market rent was and this is what we got. $27 per foot per year. $27 per foot
+per year. That's $216,000 in gross income. This is how commercial rent usually gets quoted. It's
+dollars per foot per year and it's triple net rent, which means that the tenants take care of
+their maintenance. They pay their share of the building's real estate taxes and they pay their
+share of the building's insurance. So that's gross income. We're going to take out from that
+gross income 27% operating expenses. Now, why is it 27%. If you watch some of my other videos, I
+usually say that for apartment buildings, new construction, class A, really nice stuff, we
+typically model between 30 and 32%. That's roughly where we operate. But remember this is triple
+net. That means that we are not paying real estate taxes on in or insurance on this portion of
+the building. The tenants pay that for us. So operating expense ratio for commercial space is
+actually lower. So we're going to take out 27%. That gets me to $157,680 annual net operating
+income. So, how do we value commercial space? Well, it's NOI divided by a cap rate. So, normally
+I would run my apartments here in this neighborhood for class A commercial multif family. I
+would run it at a five or five and a half cap. But retail space usually trades at a higher cap
+rate than apartments. So, I'm going to value this retail space at a six cap. Now, some brokers,
+some bankers, some appraisers may argue that it should actually be even higher, maybe 6 1/2 cap,
+but I'm going to use a 6% cap rate here. So, I'm going to take that NOI and divide it by 6% cap
+rate to arrive at the value of my retail strip center on the first floor of this building of
+$2.628 million. Okay. So, how do how do we count for the retail in our unit count analysis?
+Here's one way to do it. See if you can follow me here. As built value of this building is $15
+million. Out of that, retail is worth $2.628 million. So, the apartments are worth 82.5% of the
+building. So, if I simply take 40 apartments and divide it by 82.5%, that gets me to 48 units.
+So basically one way to look at it is to say that the retail space is equivalent to essentially
+having eight apartments in the building. So then if I take 48 apartments instead of 40, these
+are the per unit values I'm getting. Right? So my cost basis now makes more sense. I am at about
+$253,000 per unit is what this building came in all in. Now, there's other ways to to look at
+this analysis, but this is what I'm choosing to do and I hope it makes sense. If not, post in
+the comments and I will try to clarify and and and answer your questions. All right. So, if
+you're still here, congratulations. You don't have Tik Tok brain. That makes you like.1% of the
+population. Nice work. Here's what I want you to do. Leave me a comment below. Let me know if
+this was valuable. If you have questions, I'll be happy to answer them. Make sure you sub to our
+YouTube channels. I have a ton of other valuable, super valuable content on real estate
+development here. And by the way, again, the the software that I'm using to demonstrate on on
+this channel in these in these videos, these ability, budgets, lender proposals, it's called
+Rehab Valuator. And if you're a flipper, if you're a builder, if you're a developer, this is
+right up your alley. I developed the software myself personally. We have many, many thousands of
+paying users on this platform. it. We give you dynamic, easy way to navigate deal analysis,
+including really good data that you need to make decisions, seller and property data, nationwide
+sales comps, nationwide rental comps, full project management suite that I just showed you,
+including detailed construction budgets, scopes of work, uh, lender presentations to secure
+financing. Right. This is big ability to create point-and-click lender proposals to get you
+funded for construction or for long-term development projects, including performance, everything
+else that your lender wants to see. I designed this tool myself, but frankly, I got tired of
+messing around with clunky spreadsheets and confusing models, and this is something that we're
+constantly pumping money back into in order to make it better and better. And so, you can take
+it for a 14-day no commitment test drive for just a dollar. Again, you're going to get all of
+these things. Go to rehabalier.com/trial. And we have again thousands of happy users, ton of
+testimonials, ton of social proof. We take incredible care of our clients. Our our support team
+is phenomenal. They sit in my office next to me and and help our clients all day long. All
+right. So, go to rehabvalier.com/trial. take it for a test drive if you're in this business or
+if you want to be in this business. And lastly, one more thing. This may be of interest to you.
+I recently launched a very structured online community and mentoring program for existing and
+budding small to mediumcale real estate developers. It's called cash flow developer academy.
+includes detailed a toz training uh like picture my YouTube videos but on steroids in a very
+structured curriculum format taking you through the entire pre-development development and
+post-development process. It's got a resources gold mine with everything you'll ever need. Live
+Zoom calls every week, direct access to me for mentoring, a community of over 200 other
+developers around the country. We do live construction site meetups multiple times a year, live
+events around the country. So, if you want to get more info on Cash Flow Developer Academy, go
+to rehabbalator.comcda. All right, and again, leave me a comment. Make sure you like this video.
+Make sure you subscribe to our channel. And I'll see you on the next one. All right.
