@@ -35,6 +35,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: read
+  issues: write  # the rolling run log (DR-1186)
 
 jobs:
   list:
@@ -47,15 +48,30 @@ jobs:
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: List the waiting lesson rows (never a body)
+        id: waiting
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
           # One definition of "waiting", shared with the bell (DR-0725).
-          out=$(bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql) || { echo "::error::could not read the live database"; exit 1; }
+          # A FAILED READ IS RECORDED AS UNKNOWN, NEVER AS ZERO (DR-0076 section
+          # 8, DR-1186). The old shape exited here, which is right -- the run
+          # must fail -- but it left nothing behind, and a lane whose queue
+          # cannot be read must not look like a lane with an empty queue. So the
+          # outcome is written down first, then the run fails.
+          if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql); then
+            echo "read=failed" >> "$GITHUB_OUTPUT"
+            echo "count=unknown" >> "$GITHUB_OUTPUT"
+            { echo "### Waiting lesson rows: UNKNOWN"; echo "The live database could not be read. This is not an empty queue -- it is an unread one."; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::could not read the live database"
+            exit 1
+          fi
           n=$(printf '%s' "$out" | grep -c . || true)
           echo "waiting lesson rows: $n"
           printf '%s\n' "$out"
+          echo "read=ok" >> "$GITHUB_OUTPUT"
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          { printf '%s\n' "$out"; } > "$RUNNER_TEMP/waiting-rows.txt"
           { echo "### Waiting lesson rows: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: The NAS lesson builder's progress (never a body)
         env:
@@ -68,3 +84,66 @@ jobs:
           node scripts/lesson-inbox-bell.mjs --status --rows status/rows.txt --versions status/versions.txt \
             --prs status/prs.json --service status/service.json --recent status/recent.txt | tee status/print.txt
           { echo "### The NAS lesson builder"; echo '```'; cat status/print.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---------------------------------------------------------------------
+      # THE ROLLING RUN LOG (DR-1186). Darrell's hourly intake routine's FIRST
+      # step is this workflow, and from a cloud session its result was
+      # effectively unreadable: the only road to it was the Actions listing,
+      # which returns every run's full commit body and cost thousands of tokens
+      # to learn nothing. So two firings of a standing lane passed without
+      # anyone able to say whether a teaching was waiting.
+      #
+      # Six witnesses in this repo already solve this the same way -- site
+      # health (#1693), node availability (#1696), the public shelf (#2126),
+      # the reader's level (#1687), the loops (#2329), the fleet census (#2325).
+      # This is the seventh, and it carries their doctrine with it: it appends
+      # on EVERY run, pass or fail, so SILENCE on the log means the witness did
+      # not run rather than that nothing is waiting.
+      #
+      # NEVER A BODY. The query gives id / created_at / created_by / source /
+      # tags / body LENGTH and never the body itself, because a lesson holds a
+      # person's words and this log is visible to the repository. This step
+      # passes that output through unchanged and adds nothing to it.
+      # ---------------------------------------------------------------------
+      - name: Record the run (rolling log, pass or fail)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          READ: ${{ steps.waiting.outputs.read }}
+          COUNT: ${{ steps.waiting.outputs.count }}
+        run: |
+          set -uo pipefail
+          title='lesson-intake: the waiting queue, run log'
+          at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          run_url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          # An absent output means the read step never got to say -- the job died
+          # before it, which is its own answer and is not "nothing waiting".
+          case "${READ:-}" in
+            ok)     head="**${COUNT}** lesson row(s) waiting" ;;
+            failed) head='**UNKNOWN** -- the live database could not be read. This is NOT an empty queue; it is an unread one.' ;;
+            *)      head='**UNKNOWN** -- the read step did not report (the job ended before it). Not an empty queue.' ;;
+          esac
+          {
+            printf -- '- %s — %s ([run](%s))\n' "$at" "$head" "$run_url"
+            if [ "${READ:-}" = "ok" ] && [ "${COUNT:-0}" != "0" ] && [ -s "$RUNNER_TEMP/waiting-rows.txt" ]; then
+              printf '\n  <details><summary>the rows (id | created_at | created_by | source | tags | body length — never a body)</summary>\n\n  ```\n'
+              sed 's/^/  /' "$RUNNER_TEMP/waiting-rows.txt"
+              printf '  ```\n  </details>\n'
+            fi
+          } > "$RUNNER_TEMP/intake-line.md"
+          num=$(gh issue list --repo "$REPO" --state all --search "in:title lesson-intake: the waiting queue, run log" --json number --jq '.[0].number // ""') || num=""
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$REPO" --body-file "$RUNNER_TEMP/intake-line.md" || echo "::warning::could not append to the run log on #${num}; this run's measurement is in the step summary only"
+          else
+            {
+              echo "Rolling run log for inbox-lessons-waiting.yml, the read of the in-app lesson queue that the hourly intake routine starts from."
+              echo
+              echo "Every run appends its line here, pass or fail, so SILENCE on this log means the witness did not run rather than that nothing is waiting (DR-0125 / DR-1186). A read that FAILED is recorded as UNKNOWN and never as zero: a queue nobody could read is not an empty queue."
+              echo
+              echo "Never a body. Each row is listed as id, created_at, created_by, source, tags and body LENGTH only, because a lesson holds a person's words and this log is visible to the repository."
+              echo
+              cat "$RUNNER_TEMP/intake-line.md"
+            } > "$RUNNER_TEMP/intake-body.md"
+            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/intake-body.md" || echo "::warning::could not open the run log; this run's measurement is in the step summary only"
+          fi
