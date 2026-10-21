@@ -49,7 +49,8 @@
 //        --main-claims claims-main.json --pr-claims claims-prs.json
 //   node scripts/dr-number-claims.mjs --selftest
 //
-// claims files: {"<number>": "<what holds it>"} for main, and for open PRs
+// claims files: {"<number>": "<what holds it>" | ["<each record>", ...]} for
+// main (a list when a red main holds a number twice), and for open PRs
 // {"<number>": [{"pr": <n>, "file": "<name>"}]}. Written by
 // .github/workflows/dr-number-claim.yml, which can ask the API for both.
 // =============================================================================
@@ -85,9 +86,22 @@ export function claimsOnDisk(dir = DECISIONS) {
  * The test for "this branch is merely behind main" is the FILENAME matching,
  * not the number being present.
  */
+/**
+ * Every record main holds on a number. A RED MAIN CAN HOLD TWO: measured
+ * 2026-10-21, #2340 merged second and main held DR-1162 twice. Reading only the
+ * first file made the PR that REPAIRED main look as if it introduced the other
+ * one, and this gate failed the repair. A branch holding any record main holds
+ * on that number is not introducing it.
+ */
+export function heldOnMain(mainClaims, n) {
+  const v = mainClaims[n];
+  if (v == null) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 export function introducedBy(branchClaims, mainClaims) {
   return Object.keys(branchClaims)
-    .filter((n) => mainClaims[n] !== branchClaims[n])
+    .filter((n) => !heldOnMain(mainClaims, n).includes(branchClaims[n]))
     .sort((a, b) => Number(a) - Number(b));
 }
 
@@ -98,12 +112,12 @@ export function introducedBy(branchClaims, mainClaims) {
 export function classify(introduced, branchClaims, mainClaims, prClaims = {}) {
   return introduced.map((n) => {
     const mine = branchClaims[n];
-    const onMain = mainClaims[n];
+    const onMain = heldOnMain(mainClaims, n);
     // Only a DIFFERENT record counts as taken. The same filename on main means
     // this branch is simply behind, which a base merge fixes and which must
     // never be reported as a collision.
-    if (onMain && onMain !== mine) {
-      return { number: n, verdict: 'taken-on-main', mine, held: onMain };
+    if (onMain.length && !onMain.includes(mine)) {
+      return { number: n, verdict: 'taken-on-main', mine, held: onMain.join(', ') };
     }
     const others = (prClaims[n] || []).filter((c) => c.file !== mine);
     if (others.length) {
@@ -180,6 +194,14 @@ function selftest() {
   const same = classify(['1143'], main, main, {});
   ok('the SAME record on main is not a collision, just a stale branch',
     same[0].verdict === 'free');
+
+  // A red main holding two records on one number does not charge a branch
+  // that keeps one of them and renumbers the other away.
+  const redMain = { 1143: [main[1143], branch[1143]] };
+  ok('a branch keeping one of a red main\'s two records is not introducing it',
+    !introducedBy({ 1143: main[1143] }, redMain).includes('1143'));
+  ok('a third record on a red main\'s number is still TAKEN',
+    classify(['1143'], { 1143: 'DR-1143-a-third.md' }, redMain, {})[0].verdict === 'taken-on-main');
 
   const contested = classify(['1147'], { 1147: fixtureMine }, {},
     { 1147: [{ pr: 2319, file: fixtureTheirs }] });

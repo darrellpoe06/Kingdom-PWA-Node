@@ -1,6 +1,6 @@
 // =============================================================================
 // Building from the ground up: the budget, the phases and their checks, the
-// contingency and its change orders, and what the building is worth (DR-1162).
+// contingency and its change orders, and what the building is worth (DR-1166).
 // The Richmond build Daniil Kleyman walked through is the fixture: its own
 // numbers, from the transcript in docs/99-session-notes/sources/
 // clayman-40-unit-mixed-use-richmond-development/.

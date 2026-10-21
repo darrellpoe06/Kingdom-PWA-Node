@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0305 — A building is counted before it is built (DR-1162)
+-- 0307 — A building is counted before it is built (DR-1166)
 -- =============================================================================
 -- Darrell, 2026-10-21, over Daniil Kleyman's walk-through of a 40-unit
 -- mixed-use build in Richmond: "Find and create processes for these types of

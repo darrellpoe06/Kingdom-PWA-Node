@@ -697,7 +697,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const previewing = Boolean(viewAs && PREVIEW_ROLES.includes(viewAs));
   const role = previewing ? viewAs : realRole;
 
-  // The landlord's faces read every tenancy this door has had (DR-1163); the
+  // The landlord's faces read every tenancy this door has had (DR-1167); the
   // ids join as one string key so a re-read happens only when the set moves.
   const landlordSees = realRole === 'owner' || realRole === 'manager';
   const doorTenancyKey = (doorData.tenancies || []).map((t) => t.id).filter(Boolean).sort().join(',');
@@ -787,7 +787,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Who said what, by name (DR-0871) — joined from the invite rows, which
   // hold both the name and the user id once the person has signed in.
   const speakerNames = useMemo(() => namesByUserId(invites), [invites]);
-  // A TENANT SEES THEIR OWN TENANCY (DR-1163). The tenant and household faces,
+  // A TENANT SEES THEIR OWN TENANCY (DR-1167). The tenant and household faces,
   // real or previewed, read this tenancy's rows from the day it became theirs
   // and never the landlord's own door notes; every other face reads the door.
   const tenantFace = role === 'tenant' || role === 'household';
@@ -847,7 +847,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return { ok: true, door: res.row, created: true };
   }, [activeDoor, activeRental]);
 
-  // A TENANT IS INVITED ONTO A TENANCY THAT IS THEIRS (DR-1163). Never onto
+  // A TENANT IS INVITED ONTO A TENANCY THAT IS THEIRS (DR-1167). Never onto
   // an ended tenancy or someone else's: the new tenant's history starts with
   // them (staging.js tenancyForTenantInvite says which row, this writes it).
   const doorForTenant = async (invitee) => {
@@ -1330,7 +1330,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       )}
 
       {tenantFace && seen.vacant && (
-        // NOBODY LIVES HERE YET (DR-1163): on a door with no tenant on its
+        // NOBODY LIVES HERE YET (DR-1167): on a door with no tenant on its
         // record, the tenant's face is empty on every tab, and says why, so
         // the landlord's preview never passes off his own record as theirs.
         <div className="border-l-4 border-[#2F5D50] bg-white p-2 mb-3 text-xs text-[#1A1815]" role="status" data-testid="tenant-face-vacant" style={serif}>
@@ -1457,7 +1457,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             </>
           );
           case 'development':
-            // BUILDING FROM THE GROUND UP (DR-1162). The projects live in the
+            // BUILDING FROM THE GROUND UP (DR-1166). The projects live in the
             // landlord instance behind the books' wall (0305): the owner's.
             return role === 'owner'
               ? <DevelopmentTab />
