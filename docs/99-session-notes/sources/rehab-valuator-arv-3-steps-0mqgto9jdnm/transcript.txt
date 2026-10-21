@@ -1,0 +1,125 @@
+# Transcript of YouTube video 0mQgtO9JdnM
+# Fetched on the NAS from its residential IP (the CI path is YouTube-IP-blocked;
+# infra/nas-loops/services.json transcript-trickle records that measurement).
+# Source: youtube-asr, language en, 2040 words.
+# NO TIMESTAMPS on this route: the fetcher joins the caption segments, so a
+# quotation here can be attributed to the speaker but NOT cited to a minute mark.
+# These are auto-generated captions - a machine's hearing, not the speaker's own
+# text. Verify any wording before quoting a person from it.
+
+the after repair value or arv of a home is one of the most important pieces of data that you
+need as a real estate investor but as a rookie maybe you haven't figured out exactly how to
+determine a property's arv but that's okay because this video was made just for you we're going
+to break down how you can quickly and easily estimate a property's arv with just 3 3 simple
+steps hey there guys my name is tony j robinson and i'm the co-host of the bigger pockets real
+estate rookie podcast you can follow me on instagram at tony j robinson now today we're going to
+talk all about the all-important after repair value this is truly one of the most important
+skills that an investor needs to develop whether you're flipping wholesaling or holding property
+as a long-term or short-term rental you need to have a good grasp on what that property will be
+worth once you finish your rehab now for this video we're only going to focus on single family
+homes estimating the arv for large multi-family and commercial properties is a totally different
+beast so we'll leave that for a different video now first up let's just define exactly what arv
+is your after repair value or arv for short is the estimated value of a house after you've
+completed your planned repairs now let's give an example if you bought a house for seventy five
+thousand dollars and spent another twenty five thousand dollars in repairs your total investment
+is one hundred thousand dollars but the actual value of that house is likely going to be some
+other number and hopefully a higher number it could be worth 100 000 after the repairs which
+means your spot on with your cost and your your value or it could be worth 90 000 after the
+repairs which means you might have gotten a bad deal or on the other hand it could be worth two
+hundred thousand dollars which means you got an amazing deal now hopefully that quick example
+shows how getting your arv wrong is one of the fastest ways to make a deal go badly now you
+might be thinking tony if the arv is so important why don't i just hire a professional like an
+agent or an appraiser to do it for me now the short answer is that would be super both
+inefficient and impractical and let me break down why as a real estate investor you're going to
+be analyzing a lot of deals and there's no way on earth that an agent or an appraiser would be
+able to provide you with an arv in a timely manner you would be waiting forever if you're
+relying on those two people and you would miss out on so many deals because you're waiting on
+these professionals to do the work for you now a second reason is the better you get at
+estimating arvs on your own the more confidence you'll become and honestly as a rookie investor
+building your confidence is crucial to your success lastly you become intimately more familiar
+with your market by investing time into estimating your own arv you start to know what houses
+might be worth after just a quick glance at the listing and at that point you graduate from
+being a real estate rookie to uh you know i actually don't know what comes after a ricky so let
+me figure that out okay so i just googled it and apparently after a rookie there's intermediate
+uh they're skilled and there's proficient so there you have it i guess we're gonna have to
+launch another youtube channel called the real estate intermediate okay so we've defined arv and
+i shared why i feel it's so important for you to develop this skill so now let's get into the
+three steps you need to take to quickly estimate a property's arv okay so step one is to gather
+information on the subject property when i say subject property i just mean the property that
+you want to estimate the arv for which in most cases is the property that you're thinking about
+buying and here's the information that you want to gather on that subject property first is
+location you want to know not just the city but the neighborhoods within the city you know what
+school districts is the house associated with is the subject property near any cool or desirable
+amenities like a lake or a shopping mall or freeways or public transit or pretty much anything
+that most people would view as positive you then want to identify any negative aspects of the
+location are there loud or awful smells coming from the nearby factory is the house next door a
+complete eyesore or again anything else that would be a major concern to most people after you
+research the location you want to look up information on the actual lot the land that the
+property sits on what's the size of the lot is the yard fenced or unfenced is the property on a
+cul-de-sac or in the middle of a busy street look at any other unique features or factors of the
+land that the property sits on and last you want to look at the actual property characteristics
+what's the property square footage how many bedrooms and bathrooms does it have is there a
+garage or a carport is it a single family detached home or a condo you know what year was a
+property built in after those more black and white details are established you want to focus on
+the style and the finish the subject property will have after your rehab is complete right will
+you be making this a high-end renovation with you know granite marbled everything you know or
+are you going kind of more middle of the road it's up to you but you want to make sure that you
+have an image of what the house will look like when it's done for the next step of the arv
+process now let me also explain exactly where you can get all of this information now the mls is
+obviously the first choice and has all of the information that you need for a property but you
+can also use free resources like zillow or redfin or even paid resources like prop stream okay
+so that was step one gathering information on the subject property step two is gathering
+information on comparable or similar properties comparable properties or comps for short are
+properties that have similar characteristics to the subject property so how do you find these
+comps the same way you found the data for your subject property using sites like zillow and
+redfin are totally fine or of course you can ask your agent to pull a list of recently sold
+properties and then last there's always paid options like prop stream so now you know where you
+can pull the data but let me clarify exactly what you should be looking for first you want to
+look at recent sales ideally properties that have sold within the last maybe three to six months
+second you want comparable locations if your subject property is in the c-class part of the
+neighborhood then your subject property should also be in a c-class part of the neighborhood the
+closer your comps are in proximity to your subject property the better now i usually start my
+search about a quarter mile out from the subject property and only increase the radius if i'm
+having trouble finding enough good comps now as a side note if you invest in a more densely
+populated area then maybe a half mile or so should get you the right number of cups now if you
+invest in more rural areas right where each property maybe sits on like an acre or two then you
+might need to increase your search radius from you know a quarter mile to a few miles after
+location you want to check for similar size ideally your comp should be within 15 give or take
+um to the size of your subject property next you want your cops to have the same bedroom and
+bathroom count as your subject property in most neighborhoods a three bedroom is going to sell
+for more than a two bedroom and a two bedroom will sell for more than a one bedroom so if your
+subject property is a two bedroom but your comp is a four then your arv is going to be off and
+you might walk into a very bad deal now the one place that you do have a little wiggle room is
+with the bathrooms bathrooms generally don't impact arv as heavily as bedrooms so if you're off
+by half a bathroom or so you shouldn't worry too much about it the goal of this step isn't to
+find an identical comp because that's nearly impossible instead you want to find a group of
+comps that share the most common broad criteria that i just went through the next part of this
+process is to create a spreadsheet where your store all of the comps that you find and in this
+spreadsheet you'll want to notate the property's address sales price the date that it was sold
+number of bedrooms and bathrooms and square footage but before we move on if you're enjoying
+this video please do us a huge favor and subscribe to our channel and turn on the notifications
+we're working super hard to create valuable content for all of our real estate rookies and your
+support really does mean the world to us okay so now it's time for step three where you'll use
+the data from your comps to estimate the value of your subject property the goal with this step
+is to create an estimated arv remember not a bulletproof number there are so many different ways
+to complete this last step some people take averages of sale prices for their comps uh other
+people create a range where your cheapest comp is the bottom um and then your most expensive
+comp is the top of that range i personally like to take a slightly different approach where i
+use the price per square foot and let me break that down i want you to look at the sales price
+for each of your comps and then divide that sale price by the square footage of that property
+this gives you your price per square foot again you're going to take your sales price divided by
+the square footage and that will give you your price per square foot once you've got a price per
+square foot for each comp i want you to then calculate an average price per square foot for all
+of your comps so basically just take all of your price per square foot and find the average once
+you have your average price per square foot multiply that number to your subject property square
+footage and voila you've got your estimated arv before we end i want to explain something very
+important real estate valuation right finding your arv is always just an educated guess even the
+best appraiser broker or investor can't predict the future instead we're using hard data from
+the past to make educated guesses about the future but markets can change quickly and there is
+some risk in trying to predict the future so just know going into it that your arvs won't be
+perfect but the good news is you don't need it to be perfect you just need to be pretty darn
+close and if you follow the steps in this video i promise you'll get there so i hope you all
+enjoyed today's video again please support the channel by subscribing and turning on
+notifications you guys can connect with me on instagram at tony j robinson and we can keep the
+conversation going there thanks again for hanging out with me today and i will see you all in
+the next video see you later [Music] you
