@@ -3,26 +3,26 @@ name: TV watch-link probe (DR-1164, temporary)
 # TEMPORARY MEASUREMENT WORKFLOW (DR-0076 §4: measure, never claim).
 # Deleted in the same PR once its findings are recorded in DR-1164.
 #
-# The cloud sandbox has NO route to tubitv.com / pluto.tv / therokuchannel.roku.com
-# / youtube.com (CONNECT tunnel failed, response 403 on every one), so a GitHub
-# runner is the only eye we have on whether a candidate link is real.
+# ROUND 1 (run 39558010050) and ROUND 2 (run 39558202527) measured:
+#   tubi  /search/<q>       200, title ECHOED the query, bogus path 404 -> PROVEN
+#   pluto /en/search?q=<q>  200, body mentions the title, bogus served home -> PROVEN
+#         (pluto /en/search/<q> was MY FIRST GUESS and it IGNORES the query —
+#          the probe is the only reason that wrong URL is not in the shipped code)
+#   roku  /search/<q>       200 but a 24KB SPA shell, 15 bytes off a nonsense
+#                           path -> NOT PROVEN, settled in round 3 below
+#   freevee home            404 -> THE SERVICE IS GONE (Amazon folded it into
+#                           Prime Video; not shipped)
+#   youtube.com/@Google     200 and the page carries channel_id=UC... -> handle
+#                           resolution works keylessly, exactly as the edge
+#                           function reads it
+#   youtube feeds/videos.xml?channel_id=<two ids recalled from memory>  404 BOTH
 #
-# ROUND 1 (run 39558010050) measured:
-#   tubi   /search/<q>      200 and the TITLE ECHOED THE QUERY  -> real
-#   tubi   /search?q=<q>     200 but title "Trending Searches"   -> query ignored
-#   pluto  /en/search/<q>    200 but title was the HOME page     -> query ignored
-#   pluto  /en/search?q=<q>  200 and title "Search - ..."        -> real
-#   roku   /search...        200, 24KB identical SPA shell       -> inconclusive
-#   plex   /search?query=    200, SPA shell                      -> inconclusive
-#   crackle                  connection error from the runner    -> dropped
-#   freevee home             404                                 -> SERVICE IS GONE
-#   youtube RSS (bad id)     404 from Google itself              -> HOST REACHABLE
-#
-# ROUND 2 (this file) settles the two inconclusive ones by comparing /search
-# against a NONSENSE path on the same host: if a catch-all serves the identical
-# shell for both, a 200 on /search proves nothing and we do not ship it. And it
-# reads a REAL YouTube RSS feed, so the Atom parser can be verified against the
-# live document instead of a shape recalled from memory.
+# ROUND 3 (this file) settles the one question the whole YouTube half rests on:
+# were those two ids simply WRONG, or is the feed endpoint unusable? It asks with
+# an id that was MEASURED from the live channel page in round 2
+# (UCK8sQmJBp8GCxrOtXWBpyEA, Google's own channel) instead of one recalled from
+# memory. If a measured id also 404s, the sovereign road is absent and that is a
+# stop-and-report premise conflict, not something to code around.
 
 on:
   workflow_dispatch:
@@ -37,51 +37,40 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Is /search a real route, or a catch-all shell?
+      - name: Does the public feed endpoint answer a MEASURED channel id?
         run: |
           set -u
-          UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
-          fetch() { curl -sS -o "$2" -w '%{http_code}' -L --max-time 25 -A "$UA" "$1" 2>/dev/null || echo ERR; }
-
-          cmp_route() {
-            name="$1"; good="$2"; bogus="$3"
-            c1=$(fetch "$good" /tmp/a.html); h1=$(sha256sum /tmp/a.html | cut -c1-12); s1=$(wc -c < /tmp/a.html)
-            c2=$(fetch "$bogus" /tmp/b.html); h2=$(sha256sum /tmp/b.html | cut -c1-12); s2=$(wc -c < /tmp/b.html)
-            if [ "$h1" = "$h2" ]; then verdict="CATCH-ALL (identical body for a nonsense path) -> DO NOT SHIP"; else verdict="DISTINCT route"; fi
-            printf '%-12s search=%s/%s  bogus=%s/%s  %s\n' "$name" "$c1" "$s1" "$c2" "$s2" "$verdict"
-          }
-
-          echo "=== does the host distinguish /search from nonsense? ==="
-          cmp_route "roku" "https://therokuchannel.roku.com/search/the%20office" "https://therokuchannel.roku.com/zzzz-not-a-route-9f3b/the%20office"
-          cmp_route "plex" "https://watch.plex.tv/search?query=the%20office"     "https://watch.plex.tv/zzzz-not-a-route-9f3b?query=the%20office"
-          cmp_route "tubi" "https://tubitv.com/search/the%20office"              "https://tubitv.com/zzzz-not-a-route-9f3b/the%20office"
-          cmp_route "pluto" "https://pluto.tv/en/search?q=the%20office"          "https://pluto.tv/en/zzzz-not-a-route-9f3b?q=the%20office"
-
-          echo
-          echo "=== does the Tubi/Pluto body actually MENTION the queried title? ==="
-          for u in "https://tubitv.com/search/breaking%20bad" "https://pluto.tv/en/search?q=breaking%20bad"; do
-            fetch "$u" /tmp/c.html > /dev/null
-            n=$(grep -o -i -c 'breaking bad' /tmp/c.html 2>/dev/null || echo 0)
-            printf '%-52s mentions-of-title=%s\n' "$u" "$n"
+          # Resolve a handle to its id the same way the edge function does, then
+          # ask the feed endpoint with THAT id. End to end, no memory involved.
+          for handle in "@Google" "@mkbhd" "@TED"; do
+            curl -sS -o /tmp/ch.html -L --max-time 25 -A 'Mozilla/5.0' "https://www.youtube.com/$handle" 2>/dev/null || true
+            cid=$(grep -o -m1 'channel_id=UC[A-Za-z0-9_-]\{22\}' /tmp/ch.html | head -1 | cut -d= -f2)
+            if [ -z "${cid:-}" ]; then echo "$handle -> NO ID ON PAGE"; continue; fi
+            code=$(curl -sS -o /tmp/feed.xml -w '%{http_code}' -L --max-time 25 \
+              -A 'PoeTech-FamilyOS/1.0 (+https://poetech.us)' \
+              -H 'Accept: application/atom+xml,application/xml,text/xml' \
+              "https://www.youtube.com/feeds/videos.xml?channel_id=$cid" 2>/dev/null || echo ERR)
+            bytes=$(wc -c < /tmp/feed.xml)
+            echo "=== $handle -> $cid  feed-http=$code  bytes=$bytes"
+            if [ "$code" = "200" ]; then
+              echo "--- feed head:"
+              head -c 900 /tmp/feed.xml
+              echo
+              echo "--- first entry (the exact element names the parser must read):"
+              tr '\n' '\001' < /tmp/feed.xml | grep -o '<entry>.\{0,900\}' | head -1 | tr '\001' '\n'
+              echo
+            else
+              echo "--- non-200 body head:"; head -c 300 /tmp/feed.xml; echo
+            fi
           done
 
-      - name: Read a REAL YouTube RSS feed (the sovereign road's source document)
+      - name: Settle The Roku Channel's real search route
         run: |
           set -u
-          for cid in UC_x5XG1OV2P6uZZ5FSM9Ttw UCupvZG-5ko_eiXAupbDfxWw; do
-            code=$(curl -sS -o /tmp/feed.xml -w '%{http_code}' -L --max-time 25 "https://www.youtube.com/feeds/videos.xml?channel_id=$cid" 2>/dev/null || echo ERR)
-            echo "--- channel_id=$cid  http=$code  bytes=$(wc -c < /tmp/feed.xml)"
-            head -c 1400 /tmp/feed.xml
-            echo
-            echo "...first entry:"
-            tr '\n' '\001' < /tmp/feed.xml | grep -o '<entry>.\{0,1200\}' | head -1 | tr '\001' '\n'
-            echo
-          done
-          echo "=== can a channel PAGE be resolved to its UC id, keylessly? ==="
-          for u in "https://www.youtube.com/@Google" "https://www.youtube.com/c/Google"; do
-            code=$(curl -sS -o /tmp/ch.html -w '%{http_code}' -L --max-time 25 -A 'Mozilla/5.0' "$u" 2>/dev/null || echo ERR)
-            id=$(grep -o -m1 'channel_id=UC[A-Za-z0-9_-]\{22\}' /tmp/ch.html | head -1)
-            id2=$(grep -o -m1 '"channelId":"UC[A-Za-z0-9_-]\{22\}"' /tmp/ch.html | head -1)
-            id3=$(grep -o -m1 'channel/UC[A-Za-z0-9_-]\{22\}' /tmp/ch.html | head -1)
-            printf '%-40s http=%s  rss-link=%s  json=%s  canonical=%s\n' "$u" "$code" "${id:-none}" "${id2:-none}" "${id3:-none}"
-          done
+          curl -sS -o /tmp/roku.html -L --max-time 25 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36' "https://therokuchannel.roku.com/" 2>/dev/null || true
+          echo "home bytes=$(wc -c < /tmp/roku.html)"
+          echo "--- every /search-ish href or route string the site itself ships:"
+          grep -o -E '"/[a-z-]*search[^"]{0,40}"' /tmp/roku.html | sort -u | head -20
+          grep -o -E 'href="[^"]*search[^"]*"' /tmp/roku.html | sort -u | head -20
+          echo "--- robots/sitemap view of the search path:"
+          curl -sS -L --max-time 20 "https://therokuchannel.roku.com/robots.txt" 2>/dev/null | head -25
