@@ -349,7 +349,9 @@ If a teaching is doctrinally sensitive or ambiguous about placement, capture it 
 
 **Quoting him back: render for MEANING, not his typos — unless the raw form works; never his voice, never the claim; quoted Scripture stays verbatim. DR-0331.**
 
-Pairs with: The Source of Answers, the Godhead Study integrity harness, and DR-0089 (capture-and-ship of a spoken teaching is approved follow-through, not a new ask).
+Pairs with: The Source of Answers, the Godhead Study harness, and DR-0089 (capture-and-ship of a spoken teaching is approved follow-through, not a new ask).
+
+**What he SENDS is the same covenant — a link, prompt or video becomes research in the app by itself, every item a LEAD marked `verified:false`; check the TEAM's reach before saying a road must be built. `_root/THE-RESEARCH-LANE.md`, DR-1174.**
 
 ---
 
