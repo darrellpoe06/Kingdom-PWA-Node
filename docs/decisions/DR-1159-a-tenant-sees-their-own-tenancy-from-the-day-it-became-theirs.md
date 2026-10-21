@@ -16,6 +16,10 @@
 **Grounds:** Darrell, 2026-10-21, with a screenshot of 805 North Prospect Avenue Apt 2 "Seen as a tenant", History (2): a LANDLORD NOTE of 7/6/2026 about the previous tenant moving out without cleaning or returning the keys, and a landlord MESSAGE of 10/10/2026, "Testing the process....". The door has no tenant. The same page said "Your landlord's own private notes about this property are not part of your history." His words: **"A new tenant should only see their history... the landlord should see all historical events and data make sense?"** Then, over the same preview's Documents tab: **"Should be their lease etc... all tabs should make sense."**
 **Principles:** DR-0061 (a surface is a live view of real records; reality-trace first); DR-0076 (proven to catch; a surface does not say what is not so); DR-0876 (a face names what it is not shown); DR-0104 (the reviewer's preview is the user's real screen); DR-0870 / DR-0904 (the vacant unit record and the door's own tenancy); DR-0313 / DR-0365 (Poe Properties' instance)
 
+## Context
+
+A new tenant's screens showed history that was not theirs: the landlord's own note about the previous tenant, and a test message written on a door with nobody in it. The page beside them promised the opposite. Darrell asked that a tenant see only their own history and the landlord see all of it, on every tab.
+
 ## What was true (the trace)
 
 1. **The preview leaked; the real tenant did not, for the note.** `PropertiesApp` passed the door's `property_notes` into `buildHistory` for every face. The comment on `buildHistory` said "the caller passes it in solely for the management face", and the caller did not. A real tenant's RLS returns no `property_notes`, so the 7/6 note was invisible to a signed-in tenant. In the landlord's preview, though, the rows were read under the landlord's RLS, so his own note appeared under the tenant's heading. DR-0104 says the preview is how the stewards check the tenant's screen, so a preview that shows more than the tenant gets is a false check.
@@ -31,6 +35,13 @@
 4. **Every tab makes sense on a door with nobody in it.** The tenant face says "Nobody lives at this door yet" and explains what a tenant will see. My place says there is no lease yet. Documents reads no tenancy. On a tenancy, My place says when its record begins and that the lease and its papers are under Documents. History's "what this face is not shown" names the day the tenant's history begins.
 5. **A tenant is invited onto a tenancy that is theirs** (`tenancyForTenantInvite`). A vacant unit record is given their name and contact first, which opens their window and lets a lease filed after the invitation reach them. A tenancy already in their name (same email or phone) is used as it is. An ended tenancy, or one in someone else's name, is never reused: a new tenancy is started for them.
 6. **The landlord sees every tenancy the door has had.** `loadDoorRecord` reads all of the door's tenancies for the owner and manager faces, plus the door's own rows. A tenant's read stays their own, and RLS withholds the rest from them regardless.
+
+## Impact
+
+- **Tenants:** a signed-in tenant or household member no longer reads anything written on their tenancy row before it became theirs. This covers messages, notes, work orders, payments, notices and papers. A vacant door's preview shows an empty, explained face.
+- **Landlords:** the owner and manager faces lose nothing. They gain every earlier tenancy on the door's history. Their own door notes stay off the tenant's screen.
+- **Existing records:** 0306 backfills `tenant_from` from the row's birth. A unit record claimed with no name on it is backfilled from its claim. A tenant who was reading vacancy-era rows on such a record stops seeing them, which is the point.
+- **The obligation it creates:** a lease filed on a vacant record before the invitation named the tenant is not theirs to read until the landlord moves `tenant_from` back. The re-review checks for this case. No price, gate or public page changes.
 
 ## Verification
 
