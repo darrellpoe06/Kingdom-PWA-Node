@@ -229,7 +229,7 @@ describe('the header is wired to it', () => {
     expect(SRC).toMatch(/if \(!offer\) return null;/);
   });
 
-  it('the header\'s OWN row mounts it, beside the bell, and the tab row no longer does (DR-1152)', () => {
+  it('the header\'s OWN row mounts it, beside the bell, and the tab row no longer does (DR-1153)', () => {
     // Darrell 2026-10-21: "The Garage Door will get pressed accidentally move
     // it to the open space in the header". Until then the two openers sat in
     // the tab row in both of its shapes, where a thumb scrolling the tabs

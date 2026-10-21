@@ -88,7 +88,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   const [focusText, setFocusText] = useState('');
   const [goalText, setGoalText] = useState('');
   const [goalBy, setGoalBy] = useState('');
-  // A panel the Hub renders itself (DR-1145): 'stories' is the family's years
+  // A panel the Hub renders itself (DR-1152): 'stories' is the family's years
   // in pictures, opened by the Big Picture tile and the Add a photo action.
   const [panel, setPanel] = useState(null);
 

@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; import OpenerButton from './components/OpenerButton.jsx'; import GarageHeaderButton from './components/GarageHeaderButton.jsx'; // every arrival counted (DR-0728); the openers in the header's own row (DR-1152)
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; import OpenerButton from './components/OpenerButton.jsx'; import GarageHeaderButton from './components/GarageHeaderButton.jsx'; // every arrival counted (DR-0728); the openers in the header's own row (DR-1153)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import AppDoorControls from './components/AppDoorControls.jsx';

@@ -240,7 +240,7 @@ export async function fetchLibrary({ month, limit = 24, offset = 0 } = {}) {
 }
 
 /**
- * The library's YEARS (DR-1145): which years and months hold pictures and how
+ * The library's YEARS (DR-1152): which years and months hold pictures and how
  * many — the chapters of the family's story. Returns {years:[{year,count,
  * months:[{month,count}]}]} newest year first; {years:null, legacy:true} when
  * the server predates the route (404), so the caller can probe months the old

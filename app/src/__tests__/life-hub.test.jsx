@@ -197,7 +197,7 @@ describe('every tile opens something that exists in this app', () => {
   it('names only real top-level views, checked against the host file — or a panel the Hub itself renders', () => {
     for (const t of HUB_TILES) {
       if (t.hub) {
-        // A `hub` destination is a panel inside the Hub (DR-1145), so there is
+        // A `hub` destination is a panel inside the Hub (DR-1152), so there is
         // no host route to check; the Hub must render that panel by name.
         expect(t.view, `${t.key} names both a view and a hub panel`).toBeNull();
         expect(codeOnly(HUB_SRC).includes(`panel === '${t.hub}'`), `the Hub renders no '${t.hub}' panel`).toBe(true);
