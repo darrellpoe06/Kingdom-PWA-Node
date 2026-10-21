@@ -123,6 +123,49 @@ export function suggestDoorCameras(cameras = [], door = {}) {
   return (Array.isArray(cameras) ? cameras : []).filter((c) => c && c.id && hit(c) && notAnothersUnit(c)).map((c) => c.id);
 }
 
+/**
+ * WHERE A CAMERA IS, AND WHO IS OFFERED IT (DR-1164). Darrell, 2026-10-21, on
+ * the manager's Cameras tab listing all 33 cameras on the NAS, his home's among
+ * them: "my personal home cameras should be an option only I can give... not a
+ * property manager... camera location should be a significant issue... so
+ * they shouldn't be able to see my home cameras unless I give them that."
+ *
+ * A camera's place is read from its name the way suggestDoorCameras reads it
+ * (the house number first, then a word of the address). From the NAS's whole
+ * list a door sorts three groups:
+ *   here       carrying this door's address (805 ... for the 805 doors)
+ *   elsewhere  carrying another house number (another property)
+ *   unplaced   no address in the name at all: the family's own home cameras
+ *              (front_cam, basketball_cam, Kitchen 2) or a camera not yet named
+ * The location is a finding on its own (the KPI he named): a camera nobody
+ * can place is said, never silently offered.
+ */
+export function splitCamerasByDoor(cameras = [], door = {}) {
+  const list = (Array.isArray(cameras) ? cameras : []).filter((c) => c && c.id);
+  const hereIds = new Set(suggestDoorCameras(list, door));
+  const numbered = (c) => /(^|[^0-9])\d{2,}([^0-9]|$)/.test(`${str(c.name)} ${str(c.id)}`);
+  const rest = list.filter((c) => !hereIds.has(c.id));
+  return {
+    here: list.filter((c) => hereIds.has(c.id)),
+    elsewhere: rest.filter(numbered),
+    unplaced: rest.filter((c) => !numbered(c)),
+  };
+}
+
+/**
+ * The cameras a face may be offered on this door. A MANAGER is offered the
+ * cameras at the door's address and no others: a camera at another address or
+ * the family's own is never listed, named or counted for them. The OWNER is
+ * offered everything, the door's own first and the rest set apart with a
+ * warning, because sharing one of those to a door hands another address, or
+ * the home, to its household.
+ */
+export function offeredCameras(role, split) {
+  const s = split || { here: [], elsewhere: [], unplaced: [] };
+  if (role === 'manager') return [...s.here];
+  return [...s.here, ...s.elsewhere, ...s.unplaced];
+}
+
 /** The plain note the row carries beside the token. */
 export function grantNote(cameras = [], picked = [], { days = 0 } = {}) {
   const names = (Array.isArray(cameras) ? cameras : []).filter((c) => picked.includes(c.id)).map((c) => str(c.name) || c.id);

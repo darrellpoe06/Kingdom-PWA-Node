@@ -160,7 +160,7 @@ describe('the landlord files on a door nobody lives in', () => {
     await pickDoor('805 North Prospect Avenue');
     await tap(/^Work board$/);
     expect(text()).toContain('You are in');
-    expect(H.recordCalls.at(-1)).toEqual([null, { rentalId: 'r-apt2' }]);
+    expect(H.recordCalls.at(-1)).toEqual([null, { rentalId: 'r-apt2', earlierTenancyIds: [] }]);
     expect(fileIt().disabled).toBe(true);
     await typeJob(JOB);
     expect(fileIt().disabled).toBe(false);
@@ -185,7 +185,7 @@ describe('the landlord files on a door nobody lives in', () => {
     H.rentals = [KOEHN]; H.doors = [KOEHN_TENANCY];
     await mount();
     await tap(/^Work board$/);
-    expect(H.recordCalls.at(-1)).toEqual(['t1', { rentalId: 'r-koehn' }]);
+    expect(H.recordCalls.at(-1)).toEqual(['t1', { rentalId: 'r-koehn', earlierTenancyIds: [] }]);
     await typeJob('Leaking kitchen faucet');
     await tap(/^File it$/i);
     expect(H.filed[0]).toMatchObject({ tenancy_id: 't1', rental_id: 'r-koehn', created_by_role: 'landlord' });

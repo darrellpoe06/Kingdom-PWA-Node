@@ -718,15 +718,46 @@ export function syncThemeChrome(theme, doc = (typeof document !== 'undefined' ? 
 // picked this returns THAT — so the default follows the last chosen color
 // (Darrell 2026-07-19).
 const THEME_PREF_KEY = 'poe-theme-pref';
+
+// A DOOR'S OWN PALETTE KEY (DR-1170). Darrell, 2026-10-21, with DR-1156
+// deployed and the TLC door open on his phone: "Nothing changed. Why does it
+// still look the same". Because of the line above this one: the preference is
+// ONE key for every shell on the device, and a door's fallback is consulted
+// only when that key is empty. Any device that ever chose a palette in the
+// family app -- his did, months ago -- opened the TLC door in THAT palette, and
+// the finish DR-1156 measured and shipped was never shown to the one person
+// who asked for it. The fallback was the wrong instrument: it is a first-run
+// default, and the door is not the family app.
+//
+// So a door may declare a SCOPE. While a scope is set, the preference is read
+// from and written to the door's own key (`poe-theme-pref:<scope>`), with the
+// door's own default when nothing was chosen there yet. The family app's key is
+// untouched in both directions: choosing Midnight inside the TLC door at night
+// dresses the TLC door, not the family app, and the family's Heritage never
+// dresses a therapy practice's clients. Every picker in the door (the comfort
+// row, the reader panel) reads and writes through here, so DR-0878's "one
+// choice, every surface" still holds -- within the door, which is the surface.
+// The scope is set once at boot, before the first read (tlc-door.js).
+let themeScope = '';
+let themeScopeDefault = '';
+export function setThemeScope(scope, defaultTheme = '') {
+  themeScope = typeof scope === 'string' ? scope.trim() : '';
+  themeScopeDefault = themeScope && THEME_KEYS.has(defaultTheme) ? defaultTheme : '';
+  return themeScope;
+}
+export function getThemeScope() { return themeScope; }
+const themePrefKey = () => (themeScope ? `${THEME_PREF_KEY}:${themeScope}` : THEME_PREF_KEY);
+
 export function readThemePref(fallback = DEFAULT_THEME) {
+  const miss = themeScopeDefault || fallback;
   try {
-    const v = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_PREF_KEY) : null;
-    return v && THEME_KEYS.has(v) ? v : fallback;
-  } catch { return fallback; }
+    const v = typeof localStorage !== 'undefined' ? localStorage.getItem(themePrefKey()) : null;
+    return v && THEME_KEYS.has(v) ? v : miss;
+  } catch { return miss; }
 }
 export function saveThemePref(theme) {
   try {
-    if (typeof localStorage !== 'undefined' && THEME_KEYS.has(theme)) localStorage.setItem(THEME_PREF_KEY, theme);
+    if (typeof localStorage !== 'undefined' && THEME_KEYS.has(theme)) localStorage.setItem(themePrefKey(), theme);
   } catch { /* private mode */ }
 }
 

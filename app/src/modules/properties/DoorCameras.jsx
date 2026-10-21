@@ -13,7 +13,7 @@ import { fetchWithTimeout, authHeaders, listUrl, parseCameraList, createGrant, r
   fetchGrants, grantState, grantLine, snapUrl, runLimited, SNAP_CONCURRENCY, FRAME_TIMEOUT_MS } from '../../lib/cameras.js';
 import { bridgeToken } from '../../lib/nas-photos.js';
 import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, whoSeesDoorCameras,
-  doorCameraView, grantCameraIds, tenantFrameLine } from './door-cameras.js';
+  doorCameraView, grantCameraIds, tenantFrameLine, splitCamerasByDoor, offeredCameras } from './door-cameras.js';
 import { CameraAccessDesk, AskForCameras } from './CameraAccess.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -85,7 +85,9 @@ export function TenantEye({ cameras = [], grantToken = '', fetchImpl = globalThi
 // tenant or a 1099 worker arrives — hiding the whole control behind a tenancy
 // is the DR-0870 root cause, met here for the fifth time. The door record is
 // created by the caller's ensureDoor() when the grant is actually made.
-export function DoorCamerasTab({ door, place = null, people = [], onChange, rentalId = null, instanceId = null }) {
+// `role` is the face in hand: 'owner' or 'manager' (DR-1164). A manager is
+// offered the cameras at the door's address and no others.
+export function DoorCamerasTab({ door, place = null, people = [], onChange, rentalId = null, instanceId = null, role = 'owner' }) {
   const token = bridgeToken();
   // The door in hand: its tenancy record, or the unit itself when it has none.
   // The list used to be read only with a tenancy record, so an empty unit's
@@ -149,7 +151,19 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
     setPicked(ids || suggestDoorCameras(list.cameras, target));
   }, [list, grantRead, target]);
   const liveGrant = grantRead.status === 'ready' && grantState(grantRead.grant) === 'live' ? grantRead.grant : null;
-  const view = doorCameraView({ cameras: list.cameras, grant: liveGrant, picked });
+  // WHOSE CAMERAS THIS FACE IS OFFERED (DR-1164): a manager, the door's own
+  // only; the owner, everything, the door's own first. Every list below (the
+  // picker, what the tenant sees, what is not shared, what can be asked for)
+  // reads `offered`, so a camera at another address or the family's home is
+  // never named on a manager's screen, not even as "not shared".
+  const split = splitCamerasByDoor(list.cameras, target);
+  const offered = offeredCameras(role, split);
+  const offeredIds = new Set(offered.map((c) => c.id));
+  const apart = [...split.elsewhere, ...split.unplaced];
+  // Cameras the door's grant opens beyond what this face is offered: set by
+  // the owner, kept through a manager's Share, counted for them, never named.
+  const beyond = liveGrant ? (grantCameraIds(liveGrant, list.cameras) || []).filter((id) => !offeredIds.has(id)).length : 0;
+  const view = doorCameraView({ cameras: offered, grant: liveGrant, picked });
 
   const toggle = (id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const share = async () => {
@@ -157,7 +171,9 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
     setBusy(true); setMsg('Minting the grant on the NAS…');
     const r = await createGrant({ name: doorGrantName(target), cameras: picked, days, actions: false }, token);
     if (!r || !r.ok || !r.token) { setBusy(false); setMsg(`Not shared: ${(r && (r.error || r.reason)) || 'the NAS did not mint a grant'}.`); return; }
-    const note = grantNote(list.cameras, picked, { days });
+    const note = role === 'manager'
+      ? grantNote(offered, picked.filter((id) => offeredIds.has(id)), { days }) + (beyond ? `, and ${beyond} beyond this address set by the owner` : '')
+      : grantNote(list.cameras, picked, { days });
     const w = await onChange({ token: r.token, note });
     if (w && w.ok === false) {
       await revokeGrant(grantIdOf(r.token), token);
@@ -215,13 +231,15 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
           )}
           {/* Asked for and given, per person (DR-0938): tenants, workers, guests. */}
           {token && list.status === 'ready' && list.cameras.length > 0 && rentalId && instanceId && (
-            <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={list.cameras} token={token} />
+            <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={offered} token={token} />
           )}
           <p className="text-[0.625rem] mt-2 text-[#5A5751]" style={serif}>Every grant on every camera, with who last used it, is in PoeTech &rarr; Cameras &rarr; Who can see.</p>
         </div>
       ); return (<>
       {shared.state === 'shared' ? (
-        <p className="text-xs mt-1 text-[#1A1815]" style={serif} data-testid="door-cameras-shared">Shared now: {shared.note || 'a grant with no note'}.
+        <p className="text-xs mt-1 text-[#1A1815]" style={serif} data-testid="door-cameras-shared">Shared now: {role === 'manager'
+          ? (liveGrant ? `${view.seen.length} camera${view.seen.length === 1 ? '' : 's'} at this door’s address${beyond ? `, and ${beyond} beyond it set by the owner` : ''}` : 'a grant this door carries')
+          : (shared.note || 'a grant with no note')}.
           <button type="button" onClick={takeBack} disabled={busy} className={`${btn} ml-2 bg-white border-[#B85838] text-[#B85838]`} data-testid="door-cameras-take-back">Take back</button>
         </p>
       ) : <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Nothing shared with this door yet.</p>}
@@ -235,9 +253,12 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
         <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-nobody-yet">Nobody signs into this door yet; what is shared shows the day they do (Who has access, below).</p>
       ) : null}
       {liveGrant && view.seen.length > 0 ? <TenantEye cameras={view.seen} grantToken={shared.token} /> : null}
+      {liveGrant && beyond > 0 && role === 'manager' ? (
+        <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-beyond">{beyond} more camera{beyond === 1 ? '' : 's'} beyond this address {beyond === 1 ? 'is' : 'are'} shared with this door by the owner; not shown here.</p>
+      ) : null}
       {liveGrant && list.status === 'ready' && view.notSeen.length > 0 ? (
         <details className="mt-2" data-testid="door-cameras-not-seen">
-          <summary className="text-xs text-[#1A1815] cursor-pointer" style={serif}><strong>Not shared, so the tenant does not see these ({view.notSeen.length})</strong></summary>
+          <summary className="text-xs text-[#1A1815] cursor-pointer" style={serif}><strong>Not shared, so the tenant does not see these ({view.notSeen.length})</strong>{role !== 'manager' ? ' at this address; the rest are in the fold below' : ''}</summary>
           <p className="text-xs text-[#5A5751] mt-1" style={serif}>{view.notSeen.map((c) => c.name || c.id).join(', ')}</p>
         </details>
       ) : null}
@@ -259,16 +280,44 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
         <p className="text-xs mt-2 text-[#B85838]" style={serif} data-testid="door-cameras-none">The NAS answered and lists no cameras. Add them in PoeTech &rarr; Cameras, then come back here.</p>
       ) : (
         <>
-          <p className="text-xs mt-2 text-[#5A5751]" style={serif} data-testid="door-cameras-count">{list.cameras.length} camera{list.cameras.length === 1 ? '' : 's'} on the NAS; {picked.length} ticked for this door.</p>
-          <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Tick the cameras at this door (the ones carrying its address are ticked already), say for how long, and share. The household sees only these, through the same road the family uses; the family key never leaves this device.</p>
+          {role === 'manager' ? (
+            <>
+              <p className="text-xs mt-2 text-[#5A5751]" style={serif} data-testid="door-cameras-count">{split.here.length} camera{split.here.length === 1 ? '' : 's'} at this door&rsquo;s address; {picked.filter((id) => offeredIds.has(id)).length} ticked for this door.</p>
+              <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-manager-scope">Only the cameras at this address are offered here. A camera at another address, or the family&rsquo;s own, is the owner&rsquo;s to give.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs mt-2 text-[#5A5751]" style={serif} data-testid="door-cameras-count">{list.cameras.length} camera{list.cameras.length === 1 ? '' : 's'} on the NAS; {split.here.length} at this door&rsquo;s address; {picked.length} ticked for this door.</p>
+              <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Tick the cameras at this door (the ones carrying its address are ticked already), say for how long, and share. The household sees only these, through the same road the family uses; the family key never leaves this device.</p>
+            </>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-2" data-testid="door-cameras-pick">
-            {list.cameras.map((c) => (
+            {split.here.map((c) => (
               <label key={c.id} className="flex items-center gap-2 text-sm" style={serif}>
                 <input type="checkbox" checked={picked.includes(c.id)} onChange={() => toggle(c.id)} aria-label={`Share ${c.name || c.id}`} />
                 <span>{c.name || c.id}</span>
               </label>
             ))}
           </div>
+          {role !== 'manager' && apart.length > 0 ? (
+            /* THE REST, SET APART (DR-1164). The owner alone sees and may tick
+               these. The warning is the point: a camera here is at another
+               address or in the family's own home, and sharing it to this door
+               hands that place to this household. A camera with no address in
+               its name is also a finding: nobody can place it from the list. */
+            <details className="mt-2 border-l-2 border-[#B85838] pl-2" data-testid="door-cameras-apart">
+              <summary className="text-xs text-[#1A1815] cursor-pointer" style={serif}><strong>Not at this address ({apart.length})</strong>: {split.elsewhere.length} at another address, {split.unplaced.length} with no address in the name (the family&rsquo;s own, or not yet named). Yours alone to give.</summary>
+              <p className="text-xs text-[#B85838] mt-1" style={serif}>Ticking one of these shares a camera at another address, or your home, with this door&rsquo;s household. A manager is never offered them.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1" data-testid="door-cameras-pick-apart">
+                {apart.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm" style={serif}>
+                    <input type="checkbox" checked={picked.includes(c.id)} onChange={() => toggle(c.id)} aria-label={`Share ${c.name || c.id} (not at this address)`} />
+                    <span>{c.name || c.id}</span>
+                  </label>
+                ))}
+              </div>
+            </details>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="For how long" className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
               <option value={0}>Until taken back</option>

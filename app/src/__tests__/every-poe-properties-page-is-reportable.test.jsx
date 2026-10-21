@@ -66,7 +66,8 @@ describe('the module knows what pages it has', () => {
     // 24 with 'wall' (Life at 805: the tenant's Life here and the family's
     // Life wall share one id, DR-1010).
     // 25 with 'energy' (what the door's meter recorded, DR-1098).
-    expect(ids).toHaveLength(25);
+    // 26 with 'development' (building from the ground up, DR-1166).
+    expect(ids).toHaveLength(26);
   });
 
   it('carries the faces that show a surface, because a report wants to say who was looking', () => {
@@ -112,8 +113,8 @@ describe('every page is selectable in the feedback form', () => {
   it('they are grouped under their own heading, not buried in Real Estate', () => {
     const g = FEEDBACK_AREAS.find((x) => x.group === 'Poe Properties');
     expect(g).toBeTruthy();
-    // 25 pages (21, plus stays and papers from #2096, wall from DR-1010, energy from DR-1098) + the general entry.
-    expect(g.items).toHaveLength(26);
+    // 26 pages (21, plus stays and papers from #2096, wall from DR-1010, energy from DR-1098, development from DR-1166) + the general entry.
+    expect(g.items).toHaveLength(27);
   });
 
   it('a page key is not confusable with the Real Estate tab it replaced', () => {
