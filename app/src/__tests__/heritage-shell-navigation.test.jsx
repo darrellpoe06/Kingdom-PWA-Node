@@ -27,7 +27,7 @@ describe('nav-items: the list the shell used to hold inline', () => {
     const ids = navItems(FAMILY).map(([id]) => id);
     expect(ids).toEqual([
       'overview', 'books', 'inbound', 'rentals', 'properties', 'projects', 'tlc', 'opportunities', 'about', '__sep__',
-      'messages', 'notes', 'create', 'voice', 'scribe', 'library', 'recipes', 'health', 'games', 'tvtime', 'advocacy', 'databack',
+      'messages', 'notes', 'create', 'voice', 'scribe', 'research', 'library', 'recipes', 'health', 'games', 'tvtime', 'advocacy', 'databack',
       'cameras', 'vault', 'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'moore', 'forecast',
       'cohorts', 'admin',
     ]);
