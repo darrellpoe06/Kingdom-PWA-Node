@@ -270,6 +270,22 @@ export function normalizeLedger(text, { nextId } = {}) {
             + 'This is a number collision, not a duplicate row, and folding them would delete one '
             + `decision from the ledger. Renumber the newer file to DR-${String(maxRowId(text) + 1).padStart(4, '0')} `
             + '(its file name, its INDEX row and every reference to it), then run this again.\n'
+            // THE NUMBER THIS REFUSAL NAMES IS A GUESS, AND IT WAS WRONG THREE
+            // TIMES IN NINETY MINUTES. Measured 2026-10-22 on PR #2360: this
+            // message said 1185 -> 1205 -> 1207 for one record, and every one
+            // was already claimed by unlanded work from other sessions.
+            // `maxRowId` reads what is ON DISK, and disk cannot see a branch
+            // still in flight — DR-1079's exact finding, and the reason
+            // claim-decision-number.mjs exists. The guess is KEPT (it is right
+            // whenever nothing is in flight, and the suite pins it), but it no
+            // longer reads as a verified free number. Saying so costs a
+            // paragraph; following it blindly cost a renumber, a re-verified
+            // tree and another CI cycle, three times over.
+            + `\nCHECK THAT NUMBER BEFORE USING IT. DR-${String(maxRowId(text) + 1).padStart(4, '0')} is max-on-disk + 1,\n`
+            + 'and disk cannot see a branch still in flight. On 2026-10-22 this refusal named three\n'
+            + 'different targets for one record inside ninety minutes and every one was already\n'
+            + 'claimed by unlanded work. Run this and use the number IT reports:\n'
+            + '    node scripts/claim-decision-number.mjs\n'
             // THE ORDER IS PART OF THE CURE, and it was learned by failing it
             // three times on one record on 2026-10-15 (DR-1020's re-review
             // asked for the week's collision count; one record hit THREE in
@@ -287,6 +303,9 @@ export function normalizeLedger(text, { nextId } = {}) {
             + `  2. node scripts/renumber-decision-record.mjs ${row[1]} ${String(maxRowId(text) + 1).padStart(4, '0')} --file <the record that moves>\n`
             + '     (on a clean tree only ONE record holds the number, so it rewrites every\n'
             + '      citing file for you; mid-merge it must refuse them as ambiguous)\n'
+            // The paste-ready line is where the wrong number actually gets
+            // used, so the caveat is repeated here instead of only above.
+            + '      — and use that target ONLY if claim-decision-number.mjs agreed; otherwise its number\n'
             + '  3. commit that rename on its own, so it is reviewable\n'
             + '  4. git merge origin/main, then run this script again\n');
         }
