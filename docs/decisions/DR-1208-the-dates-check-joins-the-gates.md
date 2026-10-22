@@ -41,6 +41,32 @@ verify:gates = 25 node guards (decision-citation-guard IN, business-systems-guar
 
 The wider consolidation DR-1194 reserved is **still reserved** and still dated. This does not answer it; it removes the one piece of it that was a line of JSON.
 
+## The fold found something on its first live merge — a misleading red of its own making
+
+Minutes after the fold, `main` moved (DR-1205/1206 merged as `4353172bb`), and merging it into this very branch made `verify:gates` go **red** on:
+
+```
+world-issues/wi-the-way-was-45-minutes-long: git cannot trace it
+  (no commit ever added a line defining id: 'wi-the-way-was-45-minutes-long')
+derive-lesson-dates --check FAILED: 1 entry git does not support
+```
+
+**Measured before concluding anything:** the same check on `origin/main` is **green — 840 of 840 lessons dated, exit 0.** So the row is fine. The cause is the moment it ran: the repo's own ledger-merge flow is `git merge --no-commit` → `resolve-ledger-conflicts.mjs` → commit, and mid-merge the **working tree holds the merged file while HEAD does not hold the merged history**, so `git log` genuinely cannot find the commit that added a line the tree can see. Proven by changing nothing else: committing the merge took it to **exit 0**.
+
+That is a real cost this fold created. Before it, the check ran when a session chose to; now it runs inside `verify:gates`, which is exactly what a session runs mid-merge — so a good row reports as untraceable at the one moment the flow puts you there.
+
+**The fix is the message, not the exit code.** `derive-lesson-dates --check` now asks git whether a merge is in progress and says so:
+
+```
+NOTE: a MERGE IS IN PROGRESS. HEAD does not yet contain the merged history, so git cannot trace
+      a line the working tree already has. This is NOT necessarily a bad row: commit the merge
+      and run this again before believing it.
+```
+
+It **still exits 1.** An unknown is never a pass (DR-0125 — unknown freshness never reads as fresh), so this does not become a green that means nothing; it becomes a red that tells the truth about itself.
+
+One implementation note worth keeping: it asks `git rev-parse --verify MERGE_HEAD` rather than testing for a `.git/MERGE_HEAD` path, because **`.git` is a file in a worktree** and the path test would silently never fire — a no-op guard that looks like a guard, which is how this nearly shipped as decoration.
+
 ## Impact — what this obligates
 
 **Unresolved, the cost is a check nobody runs.** `lesson-dates:check` existed, passed, and was not in the gate set any session runs before pushing — so the judgement DR-1194 added to `judgeEntry` yesterday (a committed row must name its commit) was enforced only by the full suite, in CI, after a push. A check outside the pre-push set is a check that finds things late.
@@ -70,3 +96,13 @@ Run against the real `app/src/lib/lesson-dates.json`, not a fixture, with a byte
 The first attempt at this proof **proved nothing, and I nearly recorded it anyway**: the patch targeted the row as an object when it is a pair (`["2026-06-15", "2b90e74d"]`), so it threw, nothing was written, and the gate passed — which reads exactly like "the gate does not catch it." It was caught by checking that the patch had applied before trusting the run, which is the refusal DR-1207's operator makes unskippable. Two of those in one day is the argument for the operator, not an argument about this gate.
 
 And the message the break produced is DR-1194's own judgement firing — the fold is carrying a real check, not a decorative one.
+
+**The merge-aware note is proven in both directions**, in a throwaway worktree built to recreate the exact condition (`4353172bb~1`, then `git merge --no-commit 4353172bb`), because by then this branch's own merge was already committed and the condition could not be reproduced in place:
+
+| condition | result |
+|---|---|
+| mid-merge, `MERGE_HEAD` present | FAILED **with** the note, exit 1 |
+| merge committed, nothing else changed | exit **0** |
+| genuine bad row (`sha` → `working-tree`), no merge in progress | FAILED **without** the note, exit 1 |
+
+The third row is the one that matters: a note printed on every failure would excuse all of them, and this one stays silent when the failure is real.
