@@ -213,3 +213,35 @@ export function buildNewBuildingDoors(base = {}, labels = []) {
 
 // Re-export so callers can filter personal rows before grouping in one import.
 export { isPersonalProp };
+
+// WHAT THE BUILDING'S OWN RECORD IS MISSING, read from its doors (Darrell
+// 2026-10-22: "There is only 4 apartments in the building" and "We were
+// splitting apt 4 after the current tenant moves to another one of our bigger
+// properties"). Measured on 805 (building-probe): five door records, four of
+// them without the building label, and two of them labelled "Apt 4" (the one
+// with the tenant, and the split half added 2026-08-28, unrented). So the
+// building counts its APARTMENTS by distinct unit label, names the doors that
+// are missing the building label so one tap can fill it in, and names the
+// labels on record twice, so the split half can be named apart. Nothing is
+// guessed: the caller writes only what the person confirms.
+export function buildingRecordGaps(units = [], key = '') {
+  const doors = Array.isArray(units) ? units : [];
+  const missingLabel = doors.filter((r) => !buildingKeyOf(r) && key);
+  const byLabel = new Map();
+  for (const r of doors) {
+    const l = unitLabelOf(r);
+    const k = l.toLowerCase();
+    if (!byLabel.has(k)) byLabel.set(k, { label: l, doors: [] });
+    byLabel.get(k).doors.push(r);
+  }
+  const duplicates = [...byLabel.values()].filter((g) => g.doors.length > 1);
+  return { apartments: byLabel.size, records: doors.length, missingLabel, duplicates };
+}
+
+// The name a split half is offered first: its label with the next letter
+// ("Apt 4" -> "Apt 4B"), a suggestion the person can change before it is saved.
+export const splitHalfLabel = (label) => {
+  const l = String(label || '').trim();
+  if (!l) return '';
+  return /[A-Za-z]$/.test(l) && /\d[A-Za-z]$/.test(l) ? `${l.slice(0, -1)}${String.fromCharCode(l.slice(-1).toUpperCase().charCodeAt(0) + 1)}` : `${l}B`;
+};

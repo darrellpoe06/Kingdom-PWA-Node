@@ -36,6 +36,7 @@ import {
   LEVELS, LEVEL_LABEL, LEVEL_PLURAL, levelOf, splitTarget, refuseSplit,
   defaultLabels, planSplit, describeSplit,
 } from '../lib/rentable-levels.js';
+import BuildingTools from './BuildingTools.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
 import RentLedger, { PaidBar } from './RentLedger.jsx';
@@ -2922,6 +2923,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             </span>
                             <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(e.rollup.monthlyRent)}/mo</span>
                           </div>
+                          <BuildingTools entry={e} incidents={incidents} addIncident={addIncident} updateRental={updateRental} readOnly={readOnly} />
                           {e.units.map((u) => renderPropertyRow(u, gi++, lastIdx))}
                         </div>
                       ) : (
