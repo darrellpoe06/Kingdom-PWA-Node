@@ -137,6 +137,7 @@ function Created({ item }) {
   let line;
   if (item.created.length) line = item.created.map((c) => c.label).join('; ');
   else if (item.researchOnly) line = 'Kept as research: nothing else was asked of it.';
+  else if (item.intents.length && item.state === 'failed') line = `To be filed from the words you sent with the link: ${item.intents.map((i) => i.label.toLowerCase()).join(' and ')}. The link itself could not be read.`;
   else if (item.intents.length) line = `To be filed: ${item.intents.map((i) => i.label.toLowerCase()).join(' and ')}, once its reading comes back (twenty minutes at most).`;
   else return null;
   return (
@@ -216,9 +217,12 @@ function Item({ item }) {
         </div>
       )}
       {item.state === 'failed' && (
-        <p role="alert" className={`mt-2 ${noteCls}`}>
-          {item.why || 'The road did not say why. That is itself worth reporting.'}
-        </p>
+        <>
+          <p role="alert" className={`mt-2 ${noteCls}`}>
+            {item.why || 'The road did not say why. That is itself worth reporting.'}
+          </p>
+          <Created item={item} />
+        </>
       )}
       {item.state === 'waiting' && (
         <p className="mt-2 text-[0.75rem] text-[#5A5751]">

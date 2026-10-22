@@ -593,7 +593,9 @@ jobs:
       # the PoeTech App -- filed from the words, the reading and every piece of
       # its context, in one statement that cannot happen twice.
       - name: File what it was sent for (a lesson, a build request, or research only)
-        if: steps.gate.outputs.go == 'true' && steps.look.outputs.verdict == 'answered'
+        # Also after a look that FAILED (DR-1202): an unreadable link sent for
+        # a lesson or features is filed from the words sent with it.
+        if: always() && steps.gate.outputs.go == 'true' && (steps.look.outputs.verdict == 'answered' || steps.look.outputs.verdict == 'failed')
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
           ROW: ${{ steps.waiting.outputs.id }}

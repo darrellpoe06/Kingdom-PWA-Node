@@ -32,7 +32,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import {
   researchIntents, noteOf, parseLinkAnswer, lessonRequestBody, buildRequestBody,
-  parseCreated, createdBody, MAX_FILED_CHARS,
+  parseCreated, createdBody, MAX_FILED_CHARS, unreadCanFile,
 } from '../lib/research-create.js';
 import { researchItems } from '../lib/research-items.js';
 
@@ -128,6 +128,19 @@ describe('what is filed', () => {
     const b = buildRequestBody({ itemId: ID, itemBody: 'https://x.example/v/1 features', answer: ANSWER, reading });
     expect(b.indexOf('Opportunities:')).toBeLessThan(b.indexOf('THE SOURCE'));
     expect(b).toContain('- A lesson on James 2');
+  });
+  it('an unreadable link is filed from the words sent with it, saying so, and nothing from the link', () => {
+    // Measured: six roads could not read the mt27.org message (run 39706275631).
+    const b = buildRequestBody({ itemId: ID, itemBody: 'https://mt27.org/msg/YjBr4hNY\nWe need this inside the Love Corner App each week as trivia questions', answer: '', reading: null, unread: 'the page gave almost no readable words' });
+    expect(b).toContain('We need this inside the Love Corner App each week as trivia questions');
+    expect(b).toContain('THE LINK COULD NOT BE READ on our own machines: the page gave almost no readable words');
+    expect(b).toContain('Nothing here is from the link.');
+    expect(b).toContain('Reading: none (the link could not be read');
+    expect(b).not.toContain('THE SOURCE');
+  });
+  it('PROVEN-TO-CATCH: a bare link that could not be read files nothing', () => {
+    expect(unreadCanFile('https://mt27.org/msg/zz this one')).toBe(false);
+    expect(unreadCanFile('https://mt27.org/msg/x We need this inside the Love Corner App')).toBe(true);
   });
   it('a reading not yet made is said, not invented', () => {
     expect(lessonRequestBody({ itemId: ID, itemBody: REEL, answer: ANSWER, reading: null })).toMatch(/Reading: not made yet/);
@@ -294,6 +307,12 @@ describe('the lane, end to end, with no overlap', () => {
     expect(wf).toMatch(/WALL="-o tailscale0 -j REJECT"/);
     expect(wf).toMatch(/NETS="10\.0\.0\.0\/8,172\.16\.0\.0\/12,192\.168\.0\.0\/16,169\.254\.0\.0\/16,100\.64\.0\.0\/10"/);
     expect(wf).toMatch(/\[ "\$WALLED" = 1 \] && timeout 90 "\$CHROME"/);
+  });
+  it('a failed look still files from the words sent with it, and the backlog lists unreadable items', () => {
+    expect(wf).toMatch(/if: always\(\) && steps\.gate\.outputs\.go == 'true' && \(steps\.look\.outputs\.verdict == 'answered' \|\| steps\.look\.outputs\.verdict == 'failed'\)/);
+    const back = read('scripts', 'research-create-waiting.sql');
+    expect(back).toMatch(/a\.tags \? 'research-failed' AND NOT \(a\.tags \? 'superseded'\)/);
+    expect(create).toMatch(/--failed "\$W\/failed\.txt"/);
   });
   it('filing is one statement that cannot happen twice', () => {
     expect(create).toMatch(/WITH claim AS \(\n\s+UPDATE public\.agent_inbox SET tags = tags \|\| '\[\\"research-created\\"\]'::jsonb\n\s+WHERE id = '\$ID' AND NOT \(tags \? 'research-created'\)/);

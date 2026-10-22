@@ -30,7 +30,8 @@ SQL="SELECT i.created_by, i.instance_id,
   replace(encode(convert_to(i.tags::text, 'UTF8'), 'base64'), chr(10), ''),
   replace(encode(convert_to(coalesce(i.body,''), 'UTF8'), 'base64'), chr(10), ''),
   replace(encode(convert_to(coalesce((SELECT a.body FROM public.agent_inbox a WHERE a.tags ? 'research-answer' AND a.tags ? ('of:' || i.id::text) ORDER BY a.created_at DESC LIMIT 1),''), 'UTF8'), 'base64'), chr(10), ''),
-  replace(encode(convert_to(coalesce((SELECT r.body FROM public.agent_inbox r WHERE r.tags ? 'research-reading' AND r.tags ? ('of:' || i.id::text) ORDER BY r.created_at DESC LIMIT 1),''), 'UTF8'), 'base64'), chr(10), '')
+  replace(encode(convert_to(coalesce((SELECT r.body FROM public.agent_inbox r WHERE r.tags ? 'research-reading' AND r.tags ? ('of:' || i.id::text) ORDER BY r.created_at DESC LIMIT 1),''), 'UTF8'), 'base64'), chr(10), ''),
+  replace(encode(convert_to(coalesce((SELECT f.body FROM public.agent_inbox f WHERE f.tags ? 'research-failed' AND NOT (f.tags ? 'superseded') AND f.tags ? ('of:' || i.id::text) ORDER BY f.created_at DESC LIMIT 1),''), 'UTF8'), 'base64'), chr(10), '')
 FROM public.agent_inbox i WHERE i.id = '$ID' AND i.tags ? 'research' AND i.tags ? 'research-answered';"
 row=$(printf '%s' "$SQL" | bash "$HERE/live-sql.sh" '|') || { echo "research-create: could not read the item" >&2; exit 1; }
 [ -n "$row" ] || { echo "research-create: $ID is not an answered research item"; exit 0; }
@@ -42,9 +43,18 @@ printf '%s' "$row" | cut -d'|' -f4 | base64 -d > "$W/tags.json"
 printf '%s' "$row" | cut -d'|' -f5 | base64 -d > "$W/item.txt"
 printf '%s' "$row" | cut -d'|' -f6 | base64 -d > "$W/answer.txt"
 printf '%s' "$row" | cut -d'|' -f7 | base64 -d > "$W/reading.txt"
+printf '%s' "$row" | cut -d'|' -f8 | base64 -d > "$W/failed.txt"
 
-node "$HERE/research-create-text.mjs" --id "$ID" --item "$W/item.txt" --tags "$W/tags.json" --answer "$W/answer.txt" --reading "$W/reading.txt" > "$W/out.json" \
-  || { echo "research-create: the words to file could not be made" >&2; exit 1; }
+node "$HERE/research-create-text.mjs" --id "$ID" --item "$W/item.txt" --tags "$W/tags.json" --answer "$W/answer.txt" --reading "$W/reading.txt" --failed "$W/failed.txt" > "$W/out.json"
+rc=$?
+if [ "$rc" = 3 ]; then
+  # Nothing to file from: no words came back AND too few were sent with the
+  # link to be a request of their own. Said, and marked, never invented.
+  printf '%s' "UPDATE public.agent_inbox SET tags = tags || '[\"research-create-none\"]'::jsonb WHERE id = '$ID' AND NOT (tags ? 'research-create-none');" | bash "$HERE/live-sql.sh" '|' >/dev/null || true
+  echo "research-create: $ID has no words to file from (the link could not be read and too little was sent with it)"
+  exit 0
+fi
+[ "$rc" = 0 ] || { echo "research-create: the words to file could not be made" >&2; exit 1; }
 INTENTS=$(node -e "const o=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));process.stdout.write(o.intents.join(','))" "$W/out.json")
 if [ -z "$INTENTS" ]; then
   printf '%s' "UPDATE public.agent_inbox SET tags = tags || '[\"research-create-none\"]'::jsonb WHERE id = '$ID' AND NOT (tags ? 'research-create-none');" | bash "$HERE/live-sql.sh" '|' >/dev/null \
