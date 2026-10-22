@@ -377,8 +377,26 @@ export function lintAgeAppropriate(issue) {
   return out;
 }
 
+// The source names WHO made it, never what they believe (2026-10-22). Issue 21
+// shipped its creator as "a creator who posts on deconstruction, exvangelical
+// and current-events subjects": a label on a named person's faith that no
+// source in the lesson carried (the reel's own transcript was the whole of the
+// research), set at the head of a lesson as if it were a fact about him. The
+// creator line says who made the material, from the record; a person's walk
+// with Yahweh is not ours to label.
+const FAITH_STANCE_LABEL = /deconstruct|ex-?vangelical|ex-?evangelical|ex-?christian|former christian|post-?christian|apostat|atheis|agnostic|left the faith|deconverted/i;
+export function lintSourceNamesWhoNotWhatTheyBelieve(issue) {
+  const i = normalizeIssue(issue);
+  const creator = i.source?.creator;
+  if (!isNonEmptyStr(creator)) return [];
+  const hit = creator.match(FAITH_STANCE_LABEL);
+  return hit
+    ? [{ code: 'source/faith-label', severity: 'error', message: `source.creator labels the maker's faith ("${hit[0]}"). Name who made the material, from the record; never what they believe.` }]
+    : [];
+}
+
 export const ISSUE_LINTERS = [
-  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate,
+  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate, lintSourceNamesWhoNotWhatTheyBelieve,
 ];
 
 // auditIssue — run every safeguard. ok === true only when NO error-severity
@@ -410,7 +428,7 @@ function buildLessonProse(i) {
   );
   if (i.source.creator) {
     parts.push(
-      `THE SOURCE. The claims here come from ${i.source.creator}'s ${i.source.medium}${i.source.title ? ` ("${i.source.title}")` : ''}${i.source.asOf ? `, as of ${i.source.asOf}` : ''}. We treat it as ONE creator's argument — sourced and labeled — not as truth to repeat.`,
+      `THE SOURCE. From ${i.source.creator}: ${i.source.medium}${i.source.title ? ` ("${i.source.title}")` : ''}${i.source.asOf ? `, as of ${i.source.asOf}` : ''}. We treat it as ONE creator's argument — sourced and labeled — not as truth to repeat.`,
     );
   }
   if (i.claims.length) {
