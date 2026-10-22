@@ -117,3 +117,7 @@ deploy that never fired.
 `all 4 break(s) proven to catch, and the tree is byte-identical.`
 
 The suite's weighting is deliberate: the two cases that matter most are *"a green deploy of a DIFFERENT commit proves nothing"* and *"a spent budget is UNKNOWN even though the loop ended."* Those are the two lies the hand-written version told, and `exitCodeOf` is additionally pinned so that nothing unrecognised — a typo, a future verdict — can become a pass by default.
+
+**And the proving run that followed the NO_SUCH_COMMIT change reported `1 of 4 break(s) NOT proven`, in a commit whose message said all four were re-proven.** The cause was refusal 3 doing its job: adding the fourth outcome rewrote `exitCodeOf` from one line into four, so that break's `find` string no longer existed and the break could not apply — the stale-manifest catch, for the second time tonight. The code was never wrong; the proof was. What made it reach a commit message is a process slip worth naming: **I chained the prover and the push into one command, so a non-zero prover exit gated nothing.** Repointed at the rewritten function, all four are PROVED with the tree byte-identical. Recorded rather than amended away, because a record about a proof that lied cannot carry an overclaimed proof of its own.
+
+The rule that follows, and it is the whole lesson of this record applied to its own making: **a proving run is read before the push, never chained after it.**
