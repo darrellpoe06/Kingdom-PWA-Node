@@ -80,7 +80,7 @@ export function Home(props) {
         setBooksView={props.setBooksView}
         viewer={props.viewer || null}
         surfaces={props.surfaces || null}
-        workOrderOps={{ updateIncident: props.updateIncident || null, workerOps: props.workerOps || null, contractors: props.contractors || [], movers: { poetech: props.sendToPoeTech || null, pastor: props.addChurchVoice || null, prayer: props.addPrayerRequest || null, private: props.addNote || null } }}
+        workOrderOps={{ updateIncident: props.updateIncident || null, addIncident: props.addIncident || null, workerOps: props.workerOps || null, contractors: props.contractors || [], movers: { poetech: props.sendToPoeTech || null, pastor: props.addChurchVoice || null, prayer: props.addPrayerRequest || null, private: props.addNote || null } }}
       />
     );
   }
@@ -569,7 +569,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                     id: 'work-orders',
                     label: 'Work orders',
                     icon: 'list',
-                    render: () => <WorkOrderTriage incidents={incidents} rentals={rentals} updateIncident={updateIncident} workerOps={workerOps} contractors={contractors} movers={{ poetech: sendToPoeTech, pastor: addChurchVoice, prayer: addPrayerRequest, private: addNote }} />,
+                    render: () => <WorkOrderTriage incidents={incidents} rentals={rentals} updateIncident={updateIncident} addIncident={addIncident} workerOps={workerOps} contractors={contractors} movers={{ poetech: sendToPoeTech, pastor: addChurchVoice, prayer: addPrayerRequest, private: addNote }} />,
                   },
                   {
                     id: 'capacity',

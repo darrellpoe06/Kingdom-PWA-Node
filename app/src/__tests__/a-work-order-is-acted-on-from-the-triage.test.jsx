@@ -79,7 +79,15 @@ describe('tap it, then act on it', () => {
     await mount({ incidents: [incident('i1')], updateIncident, load: noCloud });
     await click(q('work-order').querySelector('button'));
     await click(q('work-order-move-resolved'));
-    expect(updateIncident).toHaveBeenCalledWith('i1', expect.objectContaining({ status: 'resolved', _note: 'Resolve (from the triage)' }));
+    // DR-1216: a close carries a written result; Resolve opens the check first.
+    expect(updateIncident).not.toHaveBeenCalled();
+    await act(async () => {
+      const box = q('work-order-close').querySelector('textarea');
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(box, 'replaced the washer');
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await click(q('work-order-close-go'));
+    expect(updateIncident).toHaveBeenCalledWith('i1', expect.objectContaining({ status: 'resolved', _note: 'Resolve: replaced the washer' }));
     expect(q('work-order-last').textContent).toBe('#1: Done: Resolve.');
   });
   it('Move it sends the words, whole, to where they belong, then closes the work order as converted', async () => {
@@ -140,7 +148,7 @@ describe('the road is wired to the stores, on both screens', () => {
   });
   it('the Life Hub and Big Picture both pass them to the triage', () => {
     expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/workOrderOps=\{\{ updateIncident: props\.updateIncident/);
-    expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/<WorkOrderTriage incidents=\{incidents\} rentals=\{rentals\} updateIncident=\{updateIncident\} workerOps=\{workerOps\}/);
+    expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/<WorkOrderTriage incidents=\{incidents\} rentals=\{rentals\} updateIncident=\{updateIncident\} addIncident=\{addIncident\} workerOps=\{workerOps\}/);
     expect(read('components', 'LifeHub.jsx')).toMatch(/<WorkOrderTriage [^>]*\{\.\.\.\(workOrderOps \|\| \{\}\)\} \/>/);
   });
 });

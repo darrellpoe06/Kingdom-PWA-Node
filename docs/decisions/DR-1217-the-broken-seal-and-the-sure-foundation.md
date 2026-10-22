@@ -23,7 +23,7 @@ The post carried two warnings from one day: PHP's critical security release and 
   - **The PHP release.** Advance notice on php.announce (message 509) and from the PHP Foundation: two critical flaws rated 9.2, released 2026-10-21 at 14:00 UTC. The CISA alert of 2026-10-21 and the analyses by Rapid7 and Tenable give CVE-2026-109618/109619, the fixed versions 8.5.12/8.4.27/8.3.36/8.2.35, and unauthenticated remote code execution.
   - **The eMudhra keys.** Eight intermediates with keys reported as P-384 values below 256, recoverable from the public certificate (Mozilla bug 2083449, Mozilla's post, eMudhra's own statement, CERT-In CIAD-2026-0050, independent coverage).
   - **The browser blocks.** Firefox and Chrome from October 17, Apple October 19, Microsoft October 20; Chrome removed the emSign ECC Root CA – G3 root.
-  - **Our own house.** No PHP and no WordPress in the repository or the NAS service images; Node 20 in thirteen workflows and one service (moved in its own change).
+  - **Our own house.** No PHP and no WordPress in the repository or the NAS service images; Node 20 in thirteen workflows and one service (moved the same day, DR-1218).
 - **Partly documented:**
   - The analysts' description of the two flaws' mechanism, and one firm's report of exploitation attempts from October 17.
   - The trust-store fix versions (Python certifi 2026.10.19; Node.js 22.23.4/24.22.1/26.12.1).

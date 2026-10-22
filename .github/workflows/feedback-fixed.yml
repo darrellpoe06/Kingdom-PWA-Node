@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 400
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: The commits on the deployed build (last 21 days)
         run: |
           set -euo pipefail

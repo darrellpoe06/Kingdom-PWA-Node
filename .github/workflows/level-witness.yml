@@ -63,7 +63,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # Installed OUTSIDE the checkout so nothing in the repo tree is touched.
       - name: Install Playwright (chromium only)

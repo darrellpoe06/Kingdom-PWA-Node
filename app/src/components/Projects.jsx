@@ -4,11 +4,13 @@
 // shipped r20; this is the structural extraction.
 import React, { useState, useMemo } from 'react';
 import { useHistoryValue } from '../lib/nav-history.js';
-import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
+import { MetricCell, SectionTitle } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
 import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
+import SectionTabs from './SectionTabs.jsx';
+import WorkOrderTriage from './WorkOrderTriageLazy.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import AriReview from './AriReview.jsx';
 import MinistryOps from './MinistryOps.jsx';
@@ -292,7 +294,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [] }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [], workOrderOps = null }) {
   const [subView, setSubView] = useState('list');
   // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
   // the timeline list, then on up the app history — the device Back button no
@@ -326,63 +328,83 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // gate where extracted requirements become build-board items by a steward's
   // hand. Governor-gated like the rest of the factory surfaces.
   if (isGovernor) tabs.push(['clients','◈ Clients']);
-  return (
-    <div className="space-y-4">
-      {/* App Firm-Up / Completion headline — the live rollup of the whole build.
-          Darrell 2026-07-01: the boards timeline IS the timeline for finishing
-          the app, so overall % + projected finish + the persistent-backend share
-          + the module-ledger line-count lead the hub. Reads the shared board
-          store, so closing an item moves this on its own. */}
-      <AppFirmUp onOpenBoards={() => setSubView('boards')} />
-      {/* The sub-tab strip scrolls horizontally so every section stays reachable
-          on a phone — Decisions / Loops fall off the right edge of a
-          full-width <main> (#264) otherwise, and the un-scrollable overflow used
-          to expose a white band beside the dark theme. <TabScroll> owns the
-          scroll; see shared.jsx. */}
-      <TabScroll className="border-b border-[#E8E4DC]" label="Project sections">
-        {tabs.map(([id, label]) => (
-          <button key={id} onClick={() => setSubView(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${subView === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </TabScroll>
-      {subView === 'list' && (
-        <>
-          <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
-          {/* Feedback moved to its OWN sub-tab with a count (2026-07-07) — it
-              rendered buried below the fold here and Darrell lost his own
-              submission. See the 'feedback' branch below. */}
-          {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
-              bottom of the Projects list so the connection is obvious. The
-              dedicated Inventory sub-tab is where the editing/adding lives. */}
-          <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} compact />
-        </>
+  // The four areas and their pages ([id, label, what the page is for]). Only
+  // the ids `tabs` grants (the governor pages) are shown.
+  const granted = new Set(tabs.map(([id]) => id));
+  const groups = [
+    { id: 'work', label: 'Work', icon: 'tools', explain: 'Run the work: the projects, every work order, the boards, and what they cost.', items: [
+      ['list', 'Projects', 'Every project, its dates and who is on it.'],
+      ['work-orders', 'Work orders', 'Every work order in the order it came in: add one, give it to a worker, check it and close it.'],
+      ['phases', 'Phase walk', 'Each board, phase by phase.'],
+      ['workload', 'Workload', 'Hours per week, twelve months out.'],
+      ['boards', 'Boards', 'Open a board and work its items.'],
+      ['inventory', 'Inventory', 'What the projects need to buy, and when.'],
+      ['scopes', 'Agreements', 'Scopes of work and agreements.'],
+    ] },
+    { id: 'voices', label: 'Voices', icon: 'chat', explain: 'What the family has said: feedback, discussions, concerns.', items: [
+      ['feedback', `Feedback (${feedback.length})`, 'Everything sent with the Feedback button.'],
+      ['discussions', 'Discussions', 'Conversations tied to a project.'],
+      ['concerns', 'Concerns', 'Concerns and their solutions.'],
+      ['ministry-ops', 'Ministry Ops', 'Ministry operations.'],
+    ] },
+    { id: 'reviews', label: 'Reviews', icon: 'check', explain: 'How the work and the app are doing, checked.', items: [
+      ['ari-review', 'Ari Review', 'The app reviews its own records.'],
+      ['report', 'Perpetual Report', 'What got better, and what is dated to.'],
+      ['governance', 'Decisions', 'Decisions waiting on the Governor.'],
+      ['loops', 'Loops', 'The loops the app runs, and their health.'],
+      ['db', 'DB Health', 'The database migrations, applied or failed.'],
+      ['delays', 'Delays', 'Asked-for against finished.'],
+      ['clients', 'Clients', 'Client discovery, to the build board.'],
+    ].filter(([id]) => granted.has(id)) },
+    { id: 'build', label: 'PoeTech Build', icon: 'monitor', explain: 'The PoeTech build board.', items: [
+      ['build', 'Build board', 'What is being built, and its gates.'],
+    ] },
+  ];
+  // A page that is not in any group (an old id) falls back to Projects.
+  const groupOf = (id) => (groups.find((g) => g.items.some(([x]) => x === id)) || groups[0]).id;
+  const firstOf = (gid) => (groups.find((g) => g.id === gid) || groups[0]).items[0][0];
+  const panel = (id) => (
+    <>
+      {id === 'list' && (
+        <Projects part="list" projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
       )}
-      {subView === 'boards' && (
+      {(id === 'phases' || id === 'workload') && (
+        <Projects part={id} projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
+      )}
+      {id === 'work-orders' && (
+        <WorkOrderTriage incidents={incidents} rentals={rentals} contractors={contractors} {...(workOrderOps || {})} />
+      )}
+      {id === 'boards' && (
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
-      {subView === 'ari-review' && (
+      {id === 'ari-review' && (
         <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} loopData={loopData} financialDocAt={financialDocAt} />
       )}
-      {subView === 'feedback' && (
+      {id === 'feedback' && (
         <div className="space-y-4">
           {feedbackPanel || <p className="text-sm text-[#5A5751]">No feedback submissions yet — the FEEDBACK button on any page lands here.</p>}
         </div>
       )}
-      {subView === 'discussions' && (
+      {id === 'discussions' && (
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
       )}
-      {subView === 'concerns' && (
+      {id === 'concerns' && (
         <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
       )}
-      {subView === 'report' && (
+      {id === 'report' && (
         <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} scopes={scopes} />
       )}
-      {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
-      {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
-      {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
-      {subView === 'ministry-ops' && <MinistryOps />}
-      {subView === 'delays' && isGovernor && <DelayReport />}
-      {subView === 'clients' && isGovernor && <ClientDiscovery />}
-      {subView === 'governance' && isGovernor && (
+      {id === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
+      {id === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
+      {/* App Firm-Up / Completion headline — the live rollup of the whole
+          build (Darrell 2026-07-01). It leads the PoeTech Build page, where it
+          belongs, instead of every Projects page (2026-10-22: "too busy"). */}
+      {id === 'build' && <AppFirmUp onOpenBoards={() => setSubView('boards')} />}
+      {id === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
+      {id === 'ministry-ops' && <MinistryOps />}
+      {id === 'delays' && isGovernor && <DelayReport />}
+      {id === 'clients' && isGovernor && <ClientDiscovery />}
+      {id === 'governance' && isGovernor && (
         <div className="space-y-6">
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
           <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
@@ -416,7 +438,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
           />
         </div>
       )}
-      {subView === 'loops' && isGovernor && (
+      {id === 'loops' && isGovernor && (
         <div className="space-y-6">
           <LoopHealth data={loopData} decisions={loopDecisions} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
           {/* The freshness-loop Review feed, folded in from its former standalone
@@ -426,7 +448,38 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
           <ReviewFeed />
         </div>
       )}
-      {subView === 'db' && isGovernor && <DbHealth />}
+      {id === 'db' && isGovernor && <DbHealth />}
+    </>
+  );
+  return (
+    <div className="space-y-4">
+      {/* A MENU, NOT A SCROLL (Darrell 2026-10-22: "Users will not see this
+          space because its too busy and not clear enough", "Submenus systems
+          needed", "Not long scrolling... each tab is for functionality and
+          management"). Eleven-plus tabs in one strip became four groups, each
+          with its own row of pages; the old list page, which stacked the
+          stats, the forecast, the phase walk and the list in one long read,
+          is three pages. Every page id is the one it always was, so each
+          setSubView(...) elsewhere still lands where it did. */}
+      <SectionTabs
+        idBase="projects-group"
+        ariaLabel="Project areas"
+        activeId={groupOf(subView)}
+        onActiveChange={(g) => { if (g !== groupOf(subView)) setSubView(firstOf(g)); }}
+        sections={groups.map((g) => ({
+          id: g.id, label: g.label, icon: g.icon, explain: g.explain,
+          render: () => (
+            <SectionTabs
+              variant="sub"
+              idBase={`projects-${g.id}`}
+              ariaLabel={`${g.label} pages`}
+              activeId={g.items.some(([id]) => id === subView) ? subView : g.items[0][0]}
+              onActiveChange={setSubView}
+              sections={g.items.map(([id, label, explain]) => ({ id, label, explain, render: () => panel(id) }))}
+            />
+          ),
+        }))}
+      />
     </div>
   );
 }
@@ -742,7 +795,7 @@ function ProjectCloseControls({ project, updateProject, isOverdue }) {
   );
 }
 
-function Projects({ projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, discussions = [], addDiscussion = null, wakeData = null, onOpenDiscussions = null }) {
+function Projects({ part = 'list', projects, entities, contractors = [], addProject, updateProject, deleteProject, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, discussions = [], addDiscussion = null, wakeData = null, onOpenDiscussions = null }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [scope, setScope] = useState(() => defaultProjectScope(projects, currentUserId, currentUserPersona));
@@ -895,13 +948,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
 
   return (
     <div className="space-y-6">
-      <section className="bg-white border border-[#1A1815] rounded-2xl p-5 sm:p-6">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
-        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>See your whole life at once.</h2>
-        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Personal projects · family commitments · friend time · church work · day job · tech consulting · rental real estate · clinical practice · tech repairs. Every project has a start, an end, and a weekly load. Track them all in one place so you can see when things are heavy and when they ease up. Coordinate, not just survive.
-        </p>
-      </section>
+      {/* The intro paragraph that led this page moved into the sub-menu's one
+          explain line (Darrell 2026-10-22: "Not long scrolling... each tab is
+          for functionality and management"): Projects, Phase walk and Workload
+          are now each their own page of the Work menu (ProjectsWrapper). */}
 
       {/* Whose projects am I looking at? — the same data, seen from each user's
           own perspective. "Mine" is your own list; "Everyone" is the whole
@@ -931,7 +981,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       )}
 
       {/* Snapshot stats — at a glance */}
-      {scoped.length > 0 && (
+      {part === 'list' && scoped.length > 0 && (
         <section>
           <div className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
             <MetricCell label="Active" value={`${scoped.filter(p => p.status === 'active').length}`} sub="in flight" small accent="green" />
@@ -943,7 +993,8 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       )}
 
       {/* Workload visualization */}
-      {scoped.length > 0 && (
+      {part === 'workload' && scoped.length === 0 && <p className="text-sm text-[#5A5751]">No projects yet, so there is no load to forecast. Add one on Projects.</p>}
+      {part === 'workload' && scoped.length > 0 && (
         <section>
           <SectionTitle eyebrow="Coordination">12-Month Workload Forecast · Hours / Week</SectionTitle>
           <div className="bg-white border border-[#1A1815] rounded-2xl p-5">
@@ -981,8 +1032,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           the moment the last item of a phase went done (the finish ripple in
           use-board-tasks.patchTask). All derived from the real board_tasks
           rows and real recorded moments — never an invented date (DR-0076). */}
-      <BoardsOnTimeline tasks={boardTasks} projects={scoped} />
+      {part === 'phases' && <BoardsOnTimeline tasks={boardTasks} projects={scoped} />}
 
+      {part === 'list' && (<>
       {/* Filter + add */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
@@ -1331,6 +1383,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         )}
       </section>
+      </>)}
     </div>
   );
 }
