@@ -131,6 +131,17 @@ describe('resolve-ledger-conflicts — pure pieces, each proven to catch', () =>
     expect(() => normalizeLedger(collision)).toThrow(/renumber-decision-record\.mjs 0101 0102/);
     expect(() => normalizeLedger(collision)).toThrow(/clean tree/);
     expect(() => normalizeLedger(collision)).toThrow(/then run this script again/);
+    // AND THE NUMBER IT NAMES IS MARKED AS A GUESS (2026-10-22). maxRowId reads
+    // DISK, which cannot see a branch still in flight, so this refusal told one
+    // record on PR #2360 to take 1185 -> 1205 -> 1207 inside ninety minutes and
+    // every one of those was already claimed by unlanded work -- DR-1079's
+    // finding, arriving as three wasted renumbers. The guess stays, because it
+    // is right whenever nothing is in flight; what changed is that it no longer
+    // reads as verified, and it names the tool that does verify.
+    expect(() => normalizeLedger(collision)).toThrow(/CHECK THAT NUMBER BEFORE USING IT/);
+    expect(() => normalizeLedger(collision)).toThrow(/claim-decision-number\.mjs/);
+    expect(() => normalizeLedger(collision), 'it must say WHY the guess can be wrong, not just to check')
+      .toThrow(/cannot see a branch still in flight/);
     // The same rows with the same link are still an ordinary duplicate, kept once.
     const same = collision.replace('(the-other-lane.md)', '(b.md)');
     expect(normalizeLedger(same).removedRows).toEqual(['DR-0101']);
