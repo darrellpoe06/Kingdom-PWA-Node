@@ -552,3 +552,47 @@ describe('the preference is remembered on the device, honestly', () => {
     expect(src).toMatch(/profile row|schema change/i);
   });
 });
+
+// EACH PERSON ARRANGES THEIR OWN LIFE HUB (DR-1201). Darrell, 2026-10-21:
+// "edit our front screens so all sections can be edited by users to arrange as
+// they please."
+describe('the Life Hub is arranged by the person reading it', () => {
+  const order = () => [...container.querySelectorAll('[data-testid^="hub-arrange-"][data-hidden]')].map((li) => li.getAttribute('data-testid').replace('hub-arrange-', ''));
+  const clickId = async (id) => { await act(async () => { container.querySelector(`[data-testid="${id}"]`).click(); }); };
+  afterEach(() => { try { localStorage.removeItem('poetech:home-hub-layout.v1'); } catch { /* blocked */ } });
+
+  it('PROVEN TO CATCH: Arrange opens in place; a section moves up and the page follows; Hide hides it with a line and the way back; the standard order returns', async () => {
+    render(createElement(LifeHub, hubProps()));
+    await clickId('hub-arrange');
+    expect(container.querySelector('[data-testid="hub-arrange-panel"]')).toBeTruthy();
+    expect(order()).toEqual(['welcome', 'tiles', 'messages', 'focus', 'actions']);
+    await clickId('hub-arrange-actions-up');
+    await clickId('hub-arrange-actions-up');
+    await clickId('hub-arrange-actions-up');
+    expect(order()).toEqual(['welcome', 'actions', 'tiles', 'messages', 'focus']);
+    // The page itself follows: Quick Actions now renders above the tiles.
+    const html = container.innerHTML;
+    expect(html.indexOf('Quick Actions')).toBeLessThan(html.indexOf('aria-label="Life Hub"'));
+    await clickId('hub-arrange-tiles-show');
+    await clickId('hub-arrange-done');
+    expect(container.querySelector('nav[aria-label="Life Hub"]'), 'a hidden section still rendered').toBe(null);
+    expect(container.querySelector('[data-testid="hub-hidden-line"]').textContent).toMatch(/^One section is hidden on this device\. Arrange$/);
+    // Kept on this device.
+    expect(JSON.parse(localStorage.getItem('poetech:home-hub-layout.v1')).hidden).toEqual(['tiles']);
+    await clickId('hub-hidden-arrange');
+    await clickId('hub-arrange-reset');
+    expect(order()).toEqual(['welcome', 'tiles', 'messages', 'focus', 'actions']);
+    expect(localStorage.getItem('poetech:home-hub-layout.v1')).toBe(null);
+    expect(container.querySelector('nav[aria-label="Life Hub"]')).toBeTruthy();
+  });
+
+  it('the header stays: the Arrange control, the densities and Current View are never in the arrangeable list', async () => {
+    render(createElement(LifeHub, hubProps()));
+    await clickId('hub-arrange');
+    expect(order()).not.toContain('header');
+    expect(container.querySelector('[data-testid="hub-arrange"]')).toBeTruthy();
+    const up = container.querySelector('[data-testid="hub-arrange-welcome-up"]');
+    expect(up.disabled).toBe(true);
+    expect(up.getAttribute('aria-label')).toBe('Move Welcome up');
+  });
+});

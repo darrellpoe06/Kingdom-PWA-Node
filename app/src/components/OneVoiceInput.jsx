@@ -26,7 +26,7 @@ import { useIntakeHold } from '../lib/intake-guard.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
-import { sendVoiceLesson, formatClock, RECORDING_KINDS, RECORDING_KIND_LABELS, DEFAULT_RECORDING_KIND } from '../lib/lesson-voice.js';
+import { sendVoiceLesson, formatClock, recordingProblem, RECORDING_KINDS, RECORDING_KIND_LABELS, DEFAULT_RECORDING_KIND } from '../lib/lesson-voice.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
@@ -161,6 +161,7 @@ export function OneVoiceInput({
   // recorder records; the box always says what is happening; the box's own
   // Send sends the recording (with any typed words). There is no second send.
   const [lessonTake, setLessonTake] = useState(null);     // { blob, url, seconds, verdict }
+  const [shortTakeNote, setShortTakeNote] = useState('');  // DR-1200: a take set aside so the words could go
   const [lessonLive, setLessonLive] = useState({ recording: false, seconds: 0 });
   const [lessonsSeen, setLessonsSeen] = useState(0);
   const [sending, setSending] = useState(false);
@@ -343,7 +344,22 @@ export function OneVoiceInput({
   const send = () => {
     const t = text.trim();
     if (!t || sending || lessonRecording) return;
-    if (takeReady) { sendSpokenLesson(t); return; }
+    if (takeReady) {
+      // THE WORDS GO, EVEN WHEN THE RECORDING CANNOT (DR-1200). Darrell,
+      // 2026-10-21, with a transcript in the box and a 0:02 take beside it:
+      // "After putting things in the box, it does not allow me to just send
+      // it." The send insisted on the recording, the recording was under the
+      // 3-second floor, and the words were refused with it. Now a take too
+      // short to send is set aside, said so in one line, and the words in the
+      // box go as the lesson. A take with no words beside it still says why.
+      const short = recordingProblem({ blob: lessonTake.blob, seconds: lessonTake.seconds });
+      if (!short || isSpokenLessonLine(t)) { sendSpokenLesson(t); return; }
+      setShortTakeNote(`The ${formatClock(lessonTake.seconds)} recording was too short to send (${short.replace(/^Record /, 'it needs ').replace(/\.$/, '')}), so it was set aside and your words went on their own.`);
+      dropKeptRecording(surface);
+      setLessonTake(null);
+    } else {
+      setShortTakeNote('');
+    }
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
     else if (route === 'lesson') setConfirmation(null); // its own line arrives with the relay's answer
@@ -498,7 +514,6 @@ export function OneVoiceInput({
       {/* THE SENDER SEES WHAT HAPPENED (DR-0636): every lesson they sent, its
           state, and the words Whisper wrote. The Notes tab shows it below. */}
       {route === 'lesson' && surface !== 'notes' && <LessonInbox refreshKey={lessonsSeen} />}
-      {lessonWords && <LessonsForSituation words={lessonWords} />}
       {route === 'lesson' && (
         /* WHAT THIS IS, CHOSEN AT RECORD TIME (DR-0810). DR-0768 dated this:
            a homework reading arrived as a lesson row, the builder's gate
@@ -578,6 +593,14 @@ export function OneVoiceInput({
         </button>
       </div>
       {confirmation && <p className="text-[0.6875rem] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirmation}</p>}
+      {shortTakeNote && <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="short-take-set-aside">{shortTakeNote}</p>}
+      {/* WHAT IS LIKE IT COMES AFTER WHAT YOU ARE DOING (DR-1200). Darrell,
+          2026-10-21: "why would we have to go through all these links before we
+          can just see what we're doing?... Those other things are suggestions
+          for things that are like it." The lessons already written from the
+          Word that speak to these words sit under Send now, never between the
+          person and it (DR-0630 keeps them on screen after a send). */}
+      {lessonWords && <LessonsForSituation words={lessonWords} />}
       {confirmation && lastSent && officeEmail && (
         <p className="text-[0.6875rem] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           <a

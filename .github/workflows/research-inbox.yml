@@ -38,6 +38,19 @@
 # variables and are never echoed; the step summary carries ids, kinds, counts and
 # verdicts only. The family key is read on the NAS and never leaves it.
 #
+# THE READING (DR-1200). When NO item waits to be answered, the same run may
+# instead READ one answered item: the words its answer holds and the sender's
+# own note go to POST /research/read on the NAS (the tower alone, no search),
+# and come back in one fixed shape -- what it is, the opportunities, the
+# constraints, the next step, where in PoeTech it lands -- written as a
+# `research-reading` child row the Research section draws. Darrell, from the
+# Research tab: "What happens when we get the results from our Research? Did
+# we create the systems I expected... opportunities and constraints... fix it."
+# Still ONE road call per run: the reading never runs in a run that answered.
+# A tower that is asleep writes `research-reading-failed` with its words and the
+# item is not asked again for six hours (scripts/research-reading-waiting.sql),
+# so a sleeping tower is said on the item, never hammered.
+#
 # BRAKES (deterministic class, DR-0248: budget + lock).
 #   Budget -- ONE row per run, one road call, a 20000-character cap on the answer
 #            body, and a 15-minute job ceiling. It cannot drain a backlog and it
@@ -247,3 +260,125 @@ jobs:
           # A failed look is a real finding, not a pass: the run goes red so it is
           # seen, while the row is already marked so it does not loop (DR-0768).
           [ "$VERDICT" = answered ] || { echo "::error::the item could not be looked into: $WHY"; exit 1; }
+
+      # ---------------------------------------------------------------------
+      # THE READING (DR-1200): only in a run that found nothing to answer, so
+      # the run still spends at most ONE road call.
+      # ---------------------------------------------------------------------
+      - name: Which answered item waits for its reading (one row; bodies never printed)
+        if: steps.gate.outputs.go == 'true' && steps.waiting.outputs.found != 'true'
+        id: rwait
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          row=$(bash scripts/live-sql.sh '|' < scripts/research-reading-waiting.sql) || {
+            echo "::error::could not read the live database -- this is NOT 'no reading waiting'"; exit 1; }
+          if [ -z "$row" ]; then
+            echo "no answered item waits for its reading"
+            echo "### research-inbox: no reading waiting" >> "$GITHUB_STEP_SUMMARY"
+            echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          ID=$(printf '%s' "$row" | cut -d'|' -f1)
+          BY=$(printf '%s' "$row" | cut -d'|' -f2)
+          INST=$(printf '%s' "$row" | cut -d'|' -f3)
+          [[ "$ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row id is not a uuid"; exit 1; }
+          printf '%s' "$row" | cut -d'|' -f4 | base64 -d > /tmp/rnote.txt
+          printf '%s' "$row" | cut -d'|' -f5 | base64 -d > /tmp/rwords.txt
+          echo "reading for item $ID · words $(wc -c < /tmp/rwords.txt) characters · note $(wc -c < /tmp/rnote.txt) characters"
+          { echo "found=true"; echo "id=$ID"; echo "by=$BY"; echo "inst=$INST"; } >> "$GITHUB_OUTPUT"
+          { echo "### research-inbox: reading item \`$ID\`"; echo "- words: $(wc -c < /tmp/rwords.txt) characters"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Claim it for a reading (one reader)
+        if: steps.gate.outputs.go == 'true' && steps.rwait.outputs.found == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ROW: ${{ steps.rwait.outputs.id }}
+        run: |
+          set -uo pipefail
+          SQL="UPDATE public.agent_inbox SET tags = tags || '[\"research-reading-claimed\"]'::jsonb WHERE id = '$ROW' AND NOT (tags ? 'research-reading-claimed'); SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW';"
+          after=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not claim the row for its reading"; exit 1; }
+          echo "claimed: $after"
+
+      - name: Read it on the NAS (the tower alone, no search)
+        if: steps.gate.outputs.go == 'true' && steps.rwait.outputs.found == 'true'
+        id: read
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          chmod 600 /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+          # The words and the note travel as FILES, never on a command line.
+          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rwords.txt dpoe@poetech.tail5a2f35.ts.net:/tmp/rw.txt >/dev/null 2>&1 || true
+          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rnote.txt dpoe@poetech.tail5a2f35.ts.net:/tmp/rn.txt >/dev/null 2>&1 || true
+          $SSH 'sh -s' > /tmp/read.json 2>/dev/null <<'EOS' || true
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          export TOK
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.request
+          rd = lambda p: open(p, encoding='utf-8').read() if os.path.exists(p) else ''
+          req = urllib.request.Request('http://127.0.0.1:8797/read', method='POST',
+                                        data=json.dumps({'text': rd('/tmp/rw.txt'), 'note': rd('/tmp/rn.txt')[:500]}).encode())
+          req.add_header('Content-Type', 'application/json')
+          req.add_header('Authorization', 'Bearer ' + os.environ.get('TOK', ''))
+          try:
+              with urllib.request.urlopen(req, timeout=200) as r:
+                  print(json.dumps({'code': r.status, **json.loads(r.read().decode() or '{}')}))
+          except urllib.error.HTTPError as e:
+              try:
+                  body = json.loads(e.read().decode() or '{}')
+              except ValueError:
+                  body = {}
+              print(json.dumps({'code': e.code, 'error': str(body.get('error', ''))[:200]}))
+          except Exception as e:
+              print(json.dumps({'code': 0, 'error': str(e)[:200]}))
+          PY
+          EOS
+          $SSH 'rm -f /tmp/rw.txt /tmp/rn.txt' || true
+          node scripts/research-reading-text.mjs /tmp/read.json > /tmp/reading.txt 2>/tmp/read.err || true
+          if [ "$(wc -c < /tmp/reading.txt)" -gt 30 ]; then
+            VERDICT=read
+            WHY=""
+          else
+            VERDICT=failed
+            WHY="$(head -c 200 /tmp/read.err || true)"
+          fi
+          echo "reading verdict: $VERDICT"
+          { echo "verdict=$VERDICT"; echo "why=$WHY"; } >> "$GITHUB_OUTPUT"
+          { echo "- reading: $VERDICT"; [ "$VERDICT" = read ] || echo "- why: $WHY"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write the reading where the Research section reads it
+        if: steps.gate.outputs.go == 'true' && steps.rwait.outputs.found == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ROW: ${{ steps.rwait.outputs.id }}
+          BY: ${{ steps.rwait.outputs.by }}
+          INST: ${{ steps.rwait.outputs.inst }}
+          VERDICT: ${{ steps.read.outputs.verdict }}
+          WHY: ${{ steps.read.outputs.why }}
+        run: |
+          set -uo pipefail
+          if [ "$VERDICT" = read ]; then
+            TAG=research-reading
+            { echo "Unverified: this came from our own model reading the words. Read the source before relying on a sentence."; echo; cat /tmp/reading.txt; } > /tmp/rbody.txt
+            UNCLAIM=""
+          else
+            TAG=research-reading-failed
+            printf '%s\n' "${WHY:-the road did not say why}" > /tmp/rbody.txt
+            # Released, so it is read again -- but not for six hours (the waiting
+            # query skips an item whose reading failed that recently).
+            UNCLAIM="UPDATE public.agent_inbox SET tags = tags - 'research-reading-claimed' WHERE id = '$ROW';"
+          fi
+          B64=$(base64 -w0 < /tmp/rbody.txt)
+          SQL="INSERT INTO public.agent_inbox (instance_id, body, tags, source, created_by) VALUES ('$INST', convert_from(decode('$B64','base64'),'UTF8'), '[\"$TAG\",\"of:$ROW\"]'::jsonb, 'research-inbox', '$BY'); $UNCLAIM SELECT count(*) FROM public.agent_inbox WHERE tags @> '[\"of:$ROW\"]'::jsonb;"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not write the reading row"; exit 1; }
+          echo "child rows for $ROW: $out"
+          echo "- reading row written (\`$TAG\`)" >> "$GITHUB_STEP_SUMMARY"
+          # A tower that is asleep is ordinary; it is said on the item. Seen here
+          # as a warning, not a red run every quarter hour.
+          [ "$VERDICT" = read ] || echo "::warning::the reading could not be made: $WHY"
+

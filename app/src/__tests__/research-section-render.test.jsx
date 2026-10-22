@@ -123,6 +123,29 @@ describe('the Research section on screen', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
   });
 
+  it('an answered item draws its reading: what it is, the opportunities, the constraints, and where it lands (DR-1200)', async () => {
+    store.rows = [
+      row({ id: 'r1', body: 'https://mt27.org/msg/x We need this inside the Love Corner App each week.', tags: ['research', 'research-answered'] }),
+      row({ id: 'c1', tags: ['research-answer', 'of:r1'], body: 'Unverified: x\n\n# Transcript\nThe weekly trivia.' }),
+      row({ id: 'g1', tags: ['research-reading', 'of:r1'], body: 'Unverified: x\n\nReading:\nWhat it is: A weekly trivia message.\nOpportunities:\n- A Love Corner trivia week\nConstraints:\n- Who holds the rights\nNext step: Ask the sender.\nLands: love-corner\n' }),
+    ];
+    await render();
+    expect(container.querySelector('[data-testid="research-reading-what"]').textContent).toBe('A weekly trivia message.');
+    expect(container.querySelector('[data-testid="research-reading-opportunities"]').textContent).toContain('A Love Corner trivia week');
+    expect(container.querySelector('[data-testid="research-reading-constraints"]').textContent).toContain('Who holds the rights');
+    expect(container.querySelector('[data-testid="research-reading-lands"]').textContent).toBe('The Love Corner App');
+    expect(container.querySelector('[data-testid="create-from-words"]'), 'no Create row on the answer').toBeTruthy();
+  });
+
+  it('an answered item with no reading yet says the reading is pending, never a raw dump as the last word', async () => {
+    store.rows = [
+      row({ id: 'r1', body: 'a question?', tags: ['research', 'research-answered'] }),
+      row({ id: 'c1', tags: ['research-answer', 'of:r1'], body: 'Unverified: x\n\nThe answer.' }),
+    ];
+    await render();
+    expect(container.querySelector('[data-testid="research-reading-pending"]').textContent).toMatch(/^Reading pending/);
+  });
+
   it('a read that failed says so, and does not draw an empty list', async () => {
     store.error = { message: 'permission denied' };
     await render();

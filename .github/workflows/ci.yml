@@ -1425,6 +1425,15 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0307-a-building-is-counted-before-it-is-built.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0307-development-smoke.sql 2>&1 | tee "$RUNNER_TEMP/development.txt"
           grep -q 'DEVELOPMENT SMOKE: PASS' "$RUNNER_TEMP/development.txt"
+          # 0309 (DR-1199): a door shows its pictures to its people. The tenant
+          # and household read the door's listing pictures and its rooms while
+          # the landlord's per-door switch is on (and their own tenancy's
+          # pictures always); never a turn shot, never another door; the
+          # delegated worker's read (0185) and the owner's are untouched by
+          # the switch; a stranger reads nothing.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0309-a-door-shows-its-pictures-to-its-people.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0309-door-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/door-pictures.txt"
+          grep -q 'DOOR PICTURES SMOKE: PASS' "$RUNNER_TEMP/door-pictures.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

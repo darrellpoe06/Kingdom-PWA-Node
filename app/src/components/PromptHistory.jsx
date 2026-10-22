@@ -3,7 +3,7 @@
 // plus the ones you chose to save; dated, sortable, searchable, reusable (DR-0615)
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SORTS, sortPrompts, searchPrompts, dateText, listPrompts, setKept, deletePrompt, sendPromptToBox, addToBox, promptType, promptTypes } from '../lib/saved-prompts.js';
+import { SORTS, sortPrompts, searchPrompts, dateText, listPrompts, setKept, deletePrompt, addToBox, promptType, promptTypes } from '../lib/saved-prompts.js';
 // ONE ROW PER TYPE, THE STANDARD SUB-TABS (DR-0116; Darrell 2026-10-20: "Can we
 // sort based on type and use our standard subtab standard?"). The list is read
 // through the same chip row every other surface uses, one type at a time, with
@@ -20,6 +20,8 @@ import { wordsForPrompt, anySpokenLine } from '../lib/prompt-words.js';
 // WITHDRAW, OR SEND THE WORDS WHERE THEY BELONG (DR-1142): the same control
 // Your lessons carries, on the row that made the promise.
 import MoveMyWords from './MoveMyWords.jsx';
+// ONE PRESS FROM WORDS TO WHAT THEY BECOME (DR-1200).
+import CreateFromWords from './CreateFromWords.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -54,7 +56,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
   }, [state.rows, by, query]);
 
   const copy = async (body) => {
-    try { await navigator.clipboard.writeText(body); setSaid('Copied.'); } catch { setSaid('Copy is not allowed in this browser; use "Put it in the box".'); }
+    try { await navigator.clipboard.writeText(body); setSaid('Copied.'); } catch { setSaid('Copy is not allowed in this browser; use "To the box".'); }
   };
 
   return (
@@ -125,8 +127,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
                     {opened[p.id] && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF} data-testid="prompt-words-text">{w.words}</p>}
                     <div className="flex gap-1.5 mt-1 flex-wrap">
                       <button type="button" data-testid="prompt-words-show" aria-expanded={!!opened[p.id]} onClick={() => setOpened((o) => ({ ...o, [p.id]: !o[p.id] }))} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>{opened[p.id] ? 'Hide the words' : 'Show the words'}</button>
-                      <button type="button" data-testid="prompt-words-use" onClick={() => { sendPromptToBox(w.words); setSaid('The words are in the box above. Choose where they go, then send.'); }} className={`${BTN} border-[#1A1815] text-[#1A1815]`}>Put the words in the box</button>
-                      <button type="button" data-testid="prompt-words-add" onClick={() => { addToBox(w.words); setSaid('The words were added under what the box holds. Gather what belongs together, choose where it goes, then send.'); }} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>Add the words to the box</button>
+                      <button type="button" data-testid="prompt-words-add" onClick={() => { addToBox(w.words); setSaid('The words are in the box above, under anything it already held. Press Send there.'); }} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>To the box</button>
                     </div>
                     {mover}
                   </div>
@@ -140,9 +141,17 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
               }
               return <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="prompt-words" data-state="unmatched">No recording of {w.clock} is on record for this line{lessons.ok ? '' : ' (your lessons could not be read; sign in, then reopen this page)'}. A line sent while signed out, or whose upload failed, has no words to come back.</p>;
             })()}
+            {/* CREATE, WITHOUT THE BOX (DR-1200): tick what these words become and
+                press Create. The words Whisper wrote are used when they came back;
+                a spoken line with no words yet has nothing to create from. */}
+            {(() => {
+              const w = wordsForPrompt(p, lessons.items);
+              const words = w && w.state === 'written' ? w.words : (w ? '' : p.body);
+              if (!String(words || '').trim()) return null;
+              return <CreateFromWords body={words} destination={p.destination || ''} idBase={`create-${p.id}`} deps={deps.create || undefined} />;
+            })()}
             <div className="flex gap-1.5 mt-1 flex-wrap">
-              <button type="button" data-testid="prompt-use" onClick={() => { sendPromptToBox(p.body); setSaid('Put in the box above. Choose where it goes, then send.'); }} className={`${BTN} border-[#1A1815] text-[#1A1815]`}>Put it in the box</button>
-              <button type="button" data-testid="prompt-add" onClick={() => { addToBox(p.body); setSaid('Added under what the box holds. Gather what belongs together, choose where it goes, then send.'); }} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>Add to the box</button>
+              <button type="button" data-testid="prompt-add" onClick={() => { addToBox(p.body); setSaid('In the box above, under anything it already held. Press Send there.'); }} className={`${BTN} border-[#5A6E3D] text-[#5A6E3D]`}>To the box</button>
               <button type="button" onClick={() => copy(p.body)} className={`${BTN} border-[#E8E4DC] text-[#5A5751]`}>Copy</button>
               <button type="button" data-testid="prompt-keep" aria-pressed={!!p.kept} onClick={async () => { if (await setKept({ ...deps, id: p.id, kept: !p.kept })) load(); }} className={`${BTN} ${p.kept ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A6E3D] text-[#5A6E3D]'}`}>{p.kept ? 'Kept' : 'Keep'}</button>
               <button type="button" data-testid="prompt-delete" onClick={confirmThen('Delete this prompt from your history? This cannot be undone.', async () => { if (await deletePrompt({ ...deps, id: p.id })) load(); })} className={`${BTN} border-[#E8E4DC] text-[#B85838]`}>Delete</button>

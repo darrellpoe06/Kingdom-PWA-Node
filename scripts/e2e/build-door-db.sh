@@ -65,6 +65,12 @@ done
 # in a state production has not been in since 2026-10-11, and a replay ending
 # where production actually is is the whole point of replaying it.
 #
+# 0309 IS IN THIS LIST (DR-1199): the app reads rentals.pictures_shared_with_door,
+# and a chain that stopped at 0291 left the journeys' rentals read refused whole
+# on 2026-10-21 (the board said it could not be reached). The app now survives a
+# missing optional column (cloud.js loadMyRentals), and the replay still ends
+# where production is.
+#
 # NOTE FOR THE NEXT EDITOR: these are backslash-continued words, not separate
 # lines. A `#` comment placed BETWEEN them is not a comment on one entry -- it
 # comments out the remainder of the logical line, silently dropping every file
@@ -95,7 +101,8 @@ for f in \
   0288-a-short-stays-only-season-advertises-the-night-alone.sql \
   0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql \
   0290-a-listing-list-never-carries-the-bytes.sql \
-  0291-borrowing-goes-both-ways.sql; do
+  0291-borrowing-goes-both-ways.sql \
+  0309-a-door-shows-its-pictures-to-its-people.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 

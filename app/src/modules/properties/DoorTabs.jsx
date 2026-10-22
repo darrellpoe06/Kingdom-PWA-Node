@@ -628,6 +628,10 @@ export function DoorsBoard({
       ownHome: isOwnHome(r),
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
+      // WHAT A VISITOR WOULD SEE ON THE CARD (DR-1199): only 'listing' shots
+      // reach the public shelf (public_vacancy_photos). An advertised door
+      // with none is advertised with a blank card, and the board says so.
+      listingShots: photos.filter((p) => p.rental_ref === r.id && !p.archived_at && p.kind === 'listing').length,
       ...(() => {
         if (coverByRental.get(r.id)) return { sharedCount: 0, sharedFrom: '' };
         const sibs = apartmentOf(r);
@@ -751,6 +755,11 @@ export function DoorsBoard({
                   )}
                 </div>
               </button>
+              {x.listed && !x.rented && x.listingShots === 0 && (
+                <p className="px-2 pb-1 text-[0.6875rem] text-[#9E4A2A] leading-snug" role="status" data-testid="listing-no-pictures">
+                  Advertised with no listing pictures: visitors see this door&rsquo;s card with no picture on it. In Pictures, file or re-mark the shots you want shown as &ldquo;Listing&rdquo;.
+                </p>
+              )}
               {canManage && (
                 <div className="px-2 pb-2 flex flex-wrap items-center gap-1">
                   <ArrangeControls id={x.rental.id} index={i} total={rows.length} onArrange={onArrange} busy={busy} />
@@ -853,6 +862,11 @@ export function DoorsBoard({
                 </div>
               )}
             </div>
+            {x.listed && !x.rented && x.listingShots === 0 && (
+              <p className="mt-1 text-[0.75rem] text-[#9E4A2A] leading-snug" role="status" data-testid="listing-no-pictures">
+                Advertised with no listing pictures: visitors see this door&rsquo;s card with no picture on it. In Pictures, file or re-mark the shots you want shown as &ldquo;Listing&rdquo;.
+              </p>
+            )}
             {qrFor === x.rental.id && <DoorQR rental={x.rental} label={x.label} />}
             {editingDoor === x.rental.id && (
               <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
@@ -1113,17 +1127,31 @@ export const OFFERINGS = Object.freeze([
 // editor could change it or say it on a whole unit. Three words, three states.
 export const UTILITIES_WORDS = Object.freeze({ paid: 'all paid', tenant: 'tenant pays' });
 export function utilitiesWord(v) { return v === true ? UTILITIES_WORDS.paid : v === false ? UTILITIES_WORDS.tenant : ''; }
+// WHO SEES THIS DOOR'S LISTING PICTURES (DR-1199, 0309). A word on the form,
+// a boolean on the row; ON unless the family holds them. The database decides
+// what a tenant reads — this is only the family's hand on the switch.
+export const PICTURES_WORDS = Object.freeze({ shared: 'Its tenant and household see them', held: 'Only the family sees them' });
+export function picturesWord(v) { return v === false ? PICTURES_WORDS.held : PICTURES_WORDS.shared; }
+export function picturesValue(word) { return word !== PICTURES_WORDS.held; }
 export function utilitiesValue(word) { return word === UTILITIES_WORDS.paid ? true : word === UTILITIES_WORDS.tenant ? false : null; }
 /** The editor's patch, with the utilities word turned back into the column's boolean (or NULL). */
 export function rentalPatchOut(patch = {}) {
-  if (!('utilities' in patch)) return patch;
-  const { utilities, ...rest } = patch;
-  return { ...rest, utilities_included: utilitiesValue(utilities) };
+  let out = patch;
+  if ('utilities' in out) {
+    const { utilities, ...rest } = out;
+    out = { ...rest, utilities_included: utilitiesValue(utilities) };
+  }
+  if ('pictures' in out) {
+    const { pictures, ...rest } = out;
+    out = { ...rest, pictures_shared_with_door: picturesValue(pictures) };
+  }
+  return out;
 }
 
 function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' }) {
   const [f, setF] = useState({
     utilities: utilitiesWord(rental.utilities_included),
+    pictures: picturesWord(rental.pictures_shared_with_door),
     photo_channel: archive || rental.photo_channel || '',
     address: rental.address || '',
     unit: rental.unit || '',
@@ -1185,6 +1213,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     photo_channel: archive || rental.photo_channel || '',
     building_note: rental.building_note || '',
     utilities: utilitiesWord(rental.utilities_included),
+    pictures: picturesWord(rental.pictures_shared_with_door),
   }), [rental, archive]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
@@ -1207,6 +1236,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     { key: 'biweekly_rate', label: 'Rate every two weeks', numeric: true },
     { key: 'building_note', label: 'What the building offers' },
     { key: 'utilities', label: 'Utilities' },
+    { key: 'pictures', label: 'Who sees the listing pictures' },
     { key: 'address_visibility', label: 'Street on the public listing' },
     { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
@@ -1276,6 +1306,21 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
           </span>
         </label>
         <AreaEditor rental={rental} onSave={onSave} busy={busy} />
+        {/* WHO SEES THIS DOOR'S LISTING PICTURES (DR-1199). Darrell: "those
+            images should be able to be seen by the people we are adding to
+            the system, or if we decide we want them to." The sentence under
+            the choice says what the database will do. */}
+        <label className="sm:col-span-2"><span className={lbl}>Who sees the listing pictures</span>
+          <select className={field} value={f.pictures} onChange={set('pictures')} data-testid="pictures-shared">
+            <option value={PICTURES_WORDS.shared}>{PICTURES_WORDS.shared}</option>
+            <option value={PICTURES_WORDS.held}>{PICTURES_WORDS.held}</option>
+          </select>
+          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="pictures-rule">
+            {f.pictures === PICTURES_WORDS.held
+              ? 'The tenant and household see only the pictures filed to their own tenancy. Workers sent to this door still see its pictures.'
+              : 'The tenant and household see this door\u2019s listing pictures and its rooms, and the pictures filed to their own tenancy; never a condition picture from before their time.'}
+          </span>
+        </label>
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
         </label>

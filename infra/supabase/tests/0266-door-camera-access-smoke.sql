@@ -112,6 +112,9 @@ DECLARE
   gift uuid := '00000000-0000-4000-d000-0000000c0266';
   tok  text := 'g.abcdefabcdef.' || repeat('1', 32);
   tok2 text := 'g.bcdefabcdefa.' || repeat('2', 32);
+  -- A 1099 worker given MORE than the door offers its tenants (DR-1198).
+  giftW uuid := '00000000-0000-4000-d000-0000000d0266';
+  tok3 text := 'g.cdefabcdefab.' || repeat('3', 32);
   v    text;
 BEGIN
   -- 1. The menu: the family offers; a tenant cannot.
@@ -186,6 +189,20 @@ BEGIN
     'INSERT INTO door_camera_access (id, instance_id, rental_id, kind, person_role, person_label, cameras, status, grant_token, grant_id, days, expires_on)
      VALUES (%L, %L, %L, ''given'', ''guest'', ''Airbnb guest, Oct 12 to 15'', ARRAY[''805_porch''], ''granted'', %L, ''bcdefabcdefa'', 5, current_date + 5)', gift, inst, doorA, tok2),
     'the family gives an Airbnb guest the porch by link', true);
+
+  -- 4b. A 1099 worker is given MORE than the door offers its tenants (DR-1198).
+  --     Darrell, 2026-10-21: "we give 1099 workers maybe basement... where as we
+  --     may not usually give that to anyone else except management." The menu
+  --     holds the porch and the hallway; the gift names five cameras, three of
+  --     them off the menu, and the row keeps all five. The worker reads nothing
+  --     of the gift's token (a gift is read by its holder's link, DR-0938).
+  PERFORM pg_temp.runs(o, format(
+    'INSERT INTO door_camera_access (id, instance_id, rental_id, kind, person_role, person_label, cameras, status, grant_token, grant_id, days, expires_on)
+     VALUES (%L, %L, %L, ''given'', ''worker'', ''Mike, the plumber'', ARRAY[''805_porch'', ''805_basement'', ''basement_north'', ''805_hall'', ''poebasement''], ''granted'', %L, ''cdefabcdefab'', 3, current_date + 3)', giftW, inst, doorA, tok3),
+    'the family gives a 1099 worker five cameras, three of them off the door''s menu', true);
+  IF (SELECT cardinality(cameras) FROM door_camera_access WHERE id = giftW) <> 5 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker''s gift did not keep every camera'; END IF;
+  IF (SELECT camera_names[2] FROM door_camera_access WHERE id = giftW) <> '805_basement' THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: an off-menu camera lost its name on the row'; END IF;
+  IF pg_temp.val_as(w, format('SELECT count(*) FROM door_camera_access WHERE id = %L', giftW))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker reads the gift row itself (a gift reaches its holder by link)'; END IF;
 
   -- 5. Taking back.
   IF pg_temp.changes(o, format('UPDATE door_camera_access SET status = ''revoked'' WHERE id = %L', gift)) <> 1 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the family could not take it back'; END IF;

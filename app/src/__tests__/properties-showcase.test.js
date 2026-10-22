@@ -173,10 +173,14 @@ describe('the landlord can actually reach the arrangement', () => {
     // The bug Darrell hit 2026-08-28: First did nothing because loadMyRentals
     // selected an explicit column list WITHOUT showcase_order, so every door
     // read as unplaced and the reload never carried the new position back.
+    // Since DR-1199 the columns live in one list, RENTAL_COLUMNS, which every
+    // attempt of the read selects (an optional column may be dropped; these
+    // never are), so the pin is on the list and on the read using it.
     const cloud = _rf(_join(process.cwd(), 'src/modules/properties/cloud.js'), 'utf8');
+    const list = cloud.slice(cloud.indexOf('export const RENTAL_COLUMNS'), cloud.indexOf('export const RENTAL_OPTIONAL_COLUMNS'));
+    expect(list).toMatch(/showcase_order/);
     const sel = cloud.slice(cloud.indexOf('export async function loadMyRentals'));
-    const firstSelect = sel.slice(sel.indexOf('.select('), sel.indexOf('.order('));
-    expect(firstSelect).toMatch(/showcase_order/);
+    expect(sel.slice(0, sel.indexOf('.select('))).toMatch(/\[RENTAL_COLUMNS, \.\.\.optional\]/);
   });
 
   it('reordering writes NO audit note — the order lives in showcase_order, not the notes', () => {

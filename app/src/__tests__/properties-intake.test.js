@@ -37,6 +37,26 @@ describe('the questions are the ones on his form', () => {
     }
   });
 
+  it('PROVEN TO CATCH: who they rented from, how to reach them, what they paid, and where they lived before are mandatory (DR-1199)', () => {
+    // Darrell, 2026-10-21: "we do need their last landlord's name and phone
+    // number directly from them... and previous address. And their monthly
+    // rent that they paid should be mandatory as well."
+    const required = (section, id) => APPLICATION_SECTIONS.find((s) => s.id === section).fields.find((f) => f.id === id).required;
+    for (const id of ['landlordName', 'landlordPhone', 'monthlyRent']) {
+      expect(required('currentAddress', id), `currentAddress.${id}`).toBe(true);
+      expect(required('previousAddress', id), `previousAddress.${id}`).toBe(true);
+    }
+    for (const id of ['street', 'city', 'state', 'zip']) expect(required('previousAddress', id), `previousAddress.${id}`).toBe(true);
+    // And the validator refuses an application that leaves any of them out.
+    const values = {};
+    for (const s of APPLICATION_SECTIONS) for (const f of s.fields) if (f.required && f.collect === 'app') values[`${s.id}.${f.id}`] = 'x';
+    expect(validateApplication(values).ok).toBe(true);
+    delete values['previousAddress.landlordPhone'];
+    const v = validateApplication(values);
+    expect(v.ok).toBe(false);
+    expect(v.missing).toEqual(['previousAddress.landlordPhone']);
+  });
+
   it('asks for a cell phone, because that is how an approved tenant signs in', () => {
     const applicant = APPLICATION_SECTIONS.find((s) => s.id === 'applicant');
     const cell = applicant.fields.find((f) => f.id === 'cellPhone');

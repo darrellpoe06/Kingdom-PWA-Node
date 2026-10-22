@@ -33,6 +33,8 @@ vi.mock('../modules/properties/cloud.js', () => ({
   giveCameraAccess: async (row) => { H.given.push(row); return { ok: true }; },
 }));
 vi.mock('../lib/cameras.js', () => ({
+  // The forwarder's grammar, mirrored (DR-1198): named before a mint.
+  badCameraIds: (list) => (list || []).filter((x) => typeof x !== 'string' || !/^[A-Za-z0-9_.-]{1,64}$/.test(x)),
   createGrant: async (args, token) => { H.minted.push({ ...args, token }); return { ok: true, id: 'abcdefabcdef', token: TOKEN }; },
   revokeGrant: async (id, token) => { H.revoked.push([id, token]); return { ok: true }; },
   saveGrantToken: (t) => { H.saved.push(t); return true; },

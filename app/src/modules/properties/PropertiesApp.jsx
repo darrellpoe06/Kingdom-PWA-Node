@@ -37,6 +37,9 @@ import { smsHref, telHref } from '../../lib/dispatch.js';
 import { workerRoster, someoneElse, dispatchText, dispatchRecord, myJobs, dispatchable } from './dispatch-roster.js';
 import { formatPhone } from '../../lib/member-contact.js';
 import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
+import DoorPictures from './DoorPictures.jsx';
+import AccessMatrix from './AccessMatrix.jsx';
+import { pickPreviewDoor, previewScope, previewDoorData, previewSeesPhoto } from './preview.js';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
@@ -97,7 +100,7 @@ const oneThumb = async (id) => { const r = await loadPhotoThumbs([id]); return r
  */
 const DOOR_SCOPED = new Set([
   'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread', 'stays',
-  'readiness',
+  'readiness', 'pictures',
   // The work is an option of the door (DR-0837): the board, the dispatch, the
   // worker's jobs and the documentation all read ONE door's requests, so they
   // carry the door's header and its open-work count like every other tab here.
@@ -290,9 +293,9 @@ const KIND_LABEL = {
 export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
 export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null }) {
   const [loading, setLoading] = useState(true);
-  const [doors, setDoors] = useState([]);
-  const [grants, setGrants] = useState([]);
-  const [household, setHousehold] = useState([]);
+  const [rawDoors, setDoors] = useState([]);
+  const [rawGrants, setGrants] = useState([]);
+  const [rawHousehold, setHousehold] = useState([]);
   const [claim, setClaim] = useState(null);
   // THE PAGE THE LINK ASKED FOR (DR-0901). A deep link lands here: the tab and
   // the door come out of the URL on the first render rather than being
@@ -318,15 +321,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // module never fetches them itself — the shell hands them in, so this surface
   // has no opinion about WHERE a record lives, only about not asserting it.
   const [staged, setStaged] = useState(() => records.map((r) => stageFromRecord(r)).filter(Boolean));
-  const [rentals, setRentals] = useState([]);
+  const [rawRentals, setRentals] = useState([]);
   // THE LANDLORD SEAT (DR-1007, 0207's resolver): the space the doors live
   // in, and the proof of the owner's face before the first door exists.
   const [seat, setSeat] = useState(null);
   // Every photo this person may see, for the board's cover thumbnails. RLS
   // scopes it, so a tenant's copy holds only their own tenancy's pictures.
-  const [doorPhotos, setDoorPhotos] = useState([]);
+  const [rawDoorPhotos, setDoorPhotos] = useState([]);
   // Each door's own order of the apartment pictures it borrows (DR-0984).
-  const [photoOrders, setPhotoOrders] = useState({});
+  const [rawPhotoOrders, setPhotoOrders] = useState({});
   // The public listings anyone can see with no account (column-safe: no tenant
   // names, no mortgage — cloud.js). Shown when this person holds neither a
   // tenancy nor an owned door, so the front door is never a blank space.
@@ -342,6 +345,31 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // instead of guessing at it.
   const [unreachedWhy, setUnreachedWhy] = useState([]);
 
+  // THE PREVIEW IS ONE DOOR, THROUGH THAT PERSON'S WALL (DR-1199). `viewAs`
+  // renders a role's face over the owner's doors; until 2026-10-21 only the
+  // face changed and the data stayed the owner's — every door, every picture.
+  // Now the preview stands on ONE door (chosen in the bar, else the first
+  // door somebody lives on) and the lists below are cut to what that role
+  // would read there, by the database's own rules (preview.js). The raw
+  // state above is what the OWNER read, and is what realRole and every
+  // write still use: anything sent from a preview is recorded as the owner.
+  const previewing = Boolean(viewAs && PREVIEW_ROLES.includes(viewAs));
+  const [previewDoor, setPreviewDoor] = useState('');
+  const preview = useMemo(() => {
+    if (!previewing) return null;
+    const rental = pickPreviewDoor(viewAs, previewDoor, rawRentals, rawDoors);
+    return previewScope(viewAs, rental, { doors: rawDoors, rentals: rawRentals, household: rawHousehold, photos: rawDoorPhotos, photoOrders: rawPhotoOrders });
+  }, [previewing, viewAs, previewDoor, rawRentals, rawDoors, rawHousehold, rawDoorPhotos, rawPhotoOrders]);
+  const doors = preview ? preview.doors : rawDoors;
+  const rentals = preview ? preview.rentals : rawRentals;
+  // (The household list is only read by realRole, which reads the raw one; the
+  //  preview's household membership is carried by preview.household for tests.)
+  const grants = rawGrants; // the preview's ceiling is applied where the face resolves (ROLE_CEILING)
+  const doorPhotos = preview ? preview.photos : rawDoorPhotos;
+  const photoOrders = preview ? preview.photoOrders : rawPhotoOrders;
+  const previewActive = preview ? preview.activeId : null;
+  useEffect(() => { if (previewActive != null) setActiveId(previewActive); }, [previewActive]);
+
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
   //    is safe on every open and is what turns "invited" into "recognized".
   //
@@ -350,8 +378,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    function suspended forever with setLoading(false) unreachable, and the
   //    tab sat on "Opening your properties..." until it was closed — nothing
   //    rendered to tap, so nothing in the app could recover it (2026-09-01).
-  const boot = useCallback(async () => {
-    setLoading(true);
+  // A RELOAD NEVER BLANKS THE PAGE (DR-1199). Only the FIRST boot shows
+  // "Opening your properties…". Every later boot — after a save, after the
+  // background placement finishes (DR-0998), after a picture is filed —
+  // refreshes the lists IN PLACE. It used to set loading every time, which
+  // unmounted the whole page for a beat: the door-journeys leg caught a
+  // half-typed payment wiped that way on 2026-10-21 (the amount gone, the
+  // rest kept), and a person typing into any form here would lose it the
+  // same way whenever the board reloaded behind them. "Try again" on the
+  // could-not-be-reached card still shows it, because there the person asked.
+  const booted = useRef(false);
+  const boot = useCallback(async (opts) => {
+    if (!booted.current || (opts && opts.show === true)) setLoading(true);
     // EACH STAGE GETS ITS OWN CEILING. The first version spent ONE 6s budget
     // across all three stages, to avoid stacking 3 x 6s. That traded a slow
     // freeze for something worse: STARVATION. claimPropertyAccess() runs first
@@ -431,6 +469,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // before 0150 applies, and that is not a failure to reach anything.
     setUnreached([d, g, h, r].some((x) => !x.ok));
     setLoading(false);
+    booted.current = true;
 
     // A SLOW ROAD IS NOT A DEAD ONE — ONE RETRY, IN THE BACKGROUND (DR-0950).
     //
@@ -541,7 +580,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Handing the slug to the uuid columns matched nothing, so Rooms and Photos
   // were silently empty on every door. Resolve the rentals row once, then give
   // each loader the key its own column actually holds.
-  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [] });
+  const [rawDoorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [] });
+  const doorData = useMemo(() => (preview ? previewDoorData(viewAs, preview, rawDoorData) : rawDoorData), [preview, viewAs, rawDoorData]);
   const activeRental = useMemo(
     () => rentals.find((r) => r.slug && r.slug === activeDoor?.rental_ref)
       || rentals.find((r) => r.id === activeId)
@@ -674,27 +714,29 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    a household membership, a capability grant, or (the family's own session)
   //    the fact that they can see doors with no delegated grant at all.
   const realRole = useMemo(() => {
-    if (household.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
-    if (grants.includes('request.manage') || grants.includes('rentroll.view')) return 'manager';
-    if (grants.includes('docs.add') || grants.includes('property.history')) return 'field_worker';
+    // THE RAW LISTS, ON PURPOSE: who is really signed in never changes with a
+    // preview (DR-1199); a work order filed from the tenant's view is still
+    // the landlord's.
+    if (rawHousehold.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
+    if (rawGrants.includes('request.manage') || rawGrants.includes('rentroll.view')) return 'manager';
+    if (rawGrants.includes('docs.add') || rawGrants.includes('property.history')) return 'field_worker';
     // A LANDLORD IS A LANDLORD BEFORE HE HAS A TENANT (fixed 2026-08-27). This
     // branch used to require `activeDoor`, i.e. an existing TENANCY — so an
     // owner with 12 properties and no tenancy rows fell through to 'tenant' and
     // met an empty screen built for somebody else. Being able to read `rentals`
     // is the membership proof (RLS: user_in_instance), and it is true from the
     // moment he owns a door, which is the moment he needs the app.
-    if (rentals.length > 0 && !grants.length && household.length === 0) return 'owner';
+    if (rawRentals.length > 0 && !rawGrants.length && rawHousehold.length === 0) return 'owner';
     // A LANDLORD WITH NO DOOR YET IS STILL THE LANDLORD (DR-1007). The seat
     // on a landlord-type space (owner or admin) is the same membership proof
     // RLS reads; it is true from the moment the space exists, which is the
     // moment the first door needs adding.
-    if (seatIsOwner(seat) && !grants.length && household.length === 0) return 'owner';
-    if (activeDoor && !grants.length && household.length === 0) {
+    if (seatIsOwner(seat) && !rawGrants.length && rawHousehold.length === 0) return 'owner';
+    if (activeDoor && !rawGrants.length && rawHousehold.length === 0) {
       return surface === 'poetech' ? 'owner' : 'tenant';
     }
     return 'tenant';
-  }, [grants, household, activeDoor, surface, rentals, seat]);
-  const previewing = Boolean(viewAs && PREVIEW_ROLES.includes(viewAs));
+  }, [rawGrants, rawHousehold, activeDoor, surface, rawRentals, seat]);
   const role = previewing ? viewAs : realRole;
 
   // The landlord's faces read every tenancy this door has had (DR-1167); the
@@ -1181,9 +1223,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               happening this needs looking at from the server side.
             </p>
           )}
+          {/* THE DEVICE ITSELF MAY BE THE REASON (DR-1199). On 2026-10-21 the
+              TV showed this card with every read 'not-reached' while the
+              footer read OFFLINE: the app had loaded from its cache and the
+              device had no road to the database. Saying so here keeps a
+              person from chasing the server for a cable. */}
+          {typeof navigator !== 'undefined' && navigator.onLine === false && (
+            <p className="mt-2 text-[0.75rem] text-[#5A5751] leading-relaxed" role="status" data-testid="properties-offline">
+              This device says it is offline right now, which is why nothing answered. The page answers again when it is back on the network.
+            </p>
+          )}
           <button
             type="button"
-            onClick={boot}
+            onClick={() => boot({ show: true })}
             className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50] text-[#2F5D50]"
           >Try again</button>
         </div>
@@ -1209,6 +1261,22 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             It listed TENANCIES, and only two of the twelve doors have one. Whoever
             can read the doors picks from all of them, in the board's order; a
             tenant (who reads no doors) still picks among their own tenancies. */}
+        {/* THEIR DOOR (DR-1199): which of the owner's doors the preview stands
+            on. The picker below then shows what that person would see — one
+            door, or their one tenancy — never the owner's whole board. */}
+        {preview && rawRentals.length > 1 && (
+          <label className="text-xs text-[#5A5751] flex items-center gap-1" style={serif}>Their door
+            <select
+              value={preview.rental ? preview.rental.id : ''}
+              onChange={(e) => setPreviewDoor(e.target.value)}
+              className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+              aria-label="Which door they are on"
+              data-testid="preview-door"
+            >
+              {doorPickerOptions(rawRentals).map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+            </select>
+          </label>
+        )}
         {doorChoices.length > 1 ? (
           <select
             // STRAIGHT TO ITS PICTURES (DR-0985). Darrell, 2026-10-13, on this
@@ -1345,6 +1413,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={tenantFace && seen.vacant ? null : activeDoor} vacant={tenantFace && seen.vacant} since={tenantFace ? seen.since : null} />;
+          // THE PICTURES OF THIS PLACE (DR-1199). The tenant reads no rentals
+          // row, so the door's id comes from door_of_my_tenancy (askDoorId),
+          // the same lookup the cameras and the wall use; the pictures and
+          // rooms are then exactly what 0309 lets this person read.
+          case 'pictures': return <DoorPictures rentalId={askDoorId} loadThumb={oneThumb} loadImage={oneImage} allow={preview ? (p) => previewSeesPhoto(viewAs, preview, p) : null} />;
           // The readiness list is keyed by the rental's UUID where there is one
           // (a slug can be renamed; the row's id cannot), and its bedroom groups
           // are the door's REAL rooms — see readiness.js for the full trace.
@@ -1670,7 +1743,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   rentalId={askDoorId} instanceId={(activeRental || activeDoor)?.instance_id || null}
                   me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} />;
           case 'people':
-            return <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
+            return (<>
+              <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
               onInvite={async (payload) => {
                 // A vacant unit can have a 1099 worker on it long before it has
                 // a tenant — make the unit record if it is missing (DR-0870).
@@ -1692,7 +1766,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 const res = await revokeInvite(person.id);
                 say(res.ok ? `${person.name} no longer has access to this door.` : `Not removed: ${res.reason}`);
                 if (res.ok) refresh();
-              }} />;
+              }} />
+              {/* WHO SEES WHAT (DR-1198): the evaluated matrix, read where
+                  people are invited, one face at a time. */}
+              {(role === 'owner' || role === 'manager') && <AccessMatrix />}
+            </>);
           default:
             return null;
         }

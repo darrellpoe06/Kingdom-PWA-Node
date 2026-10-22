@@ -213,6 +213,52 @@ describe('one Send for a spoken lesson', () => {
     expect(H.state.relayed[0].body).toMatch(/Typed with it: The keys of hell and death/);
   });
 
+  it('PROVEN-TO-CATCH (DR-1200): words in the box go as the lesson even when the take beside them is under 3 seconds', async () => {
+    // Darrell, 2026-10-21, a transcript in the box and a 0:02 take: "Not sent
+    // (Record at least 3 seconds.)". The words were refused with the recording.
+    await openLesson();
+    await click(byId('voice-lesson-record'));
+    await flush();
+    await tick(2);
+    await click(byId('voice-lesson-stop'));
+    await flush();
+    const ta = byId('one-voice-text');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(ta, 'S1: What happened when they made a woman? S2: But all was not well.');
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await click(byId('one-voice-send'));
+    await flush();
+    expect(container.textContent).not.toMatch(/Not sent \(Record at least 3 seconds/);
+    expect(H.state.relayed).toHaveLength(1);
+    expect(H.state.relayed[0].tags[0]).toBe('lesson');
+    expect(H.state.relayed[0].tags).not.toContain('voice');
+    expect(H.state.relayed[0].body).toMatch(/^S1: What happened when they made a woman\?/);
+    expect(Object.keys(H.state.objects)).toHaveLength(0);
+    expect(byId('short-take-set-aside').textContent).toBe('The 0:02 recording was too short to send (it needs at least 3 seconds), so it was set aside and your words went on their own.');
+  });
+
+  it('a take under 3 seconds with no words beside it still says why it cannot send', async () => {
+    await openLesson();
+    await click(byId('voice-lesson-record'));
+    await flush();
+    await tick(2);
+    await click(byId('voice-lesson-stop'));
+    await flush();
+    await click(byId('one-voice-send'));
+    await flush();
+    expect(container.textContent).toMatch(/Record at least 3 seconds/);
+    expect(H.state.relayed).toHaveLength(0);
+  });
+
+  it('the suggestions from the Word sit under Send, never between the person and it (DR-1200)', () => {
+    const src = require('node:fs').readFileSync(require('node:path').join(process.cwd(), 'src', 'components', 'OneVoiceInput.jsx'), 'utf8');
+    const send = src.indexOf('data-testid="one-voice-send"');
+    const like = src.indexOf('<LessonsForSituation words={lessonWords} />');
+    expect(send).toBeGreaterThan(0);
+    expect(like, 'the suggestions render before Send').toBeGreaterThan(send);
+  });
+
   it('the Speak button\'s hold on the microphone is released before recording starts', async () => {
     window.SpeechRecognition = FakeRecognition;
     await openLesson();

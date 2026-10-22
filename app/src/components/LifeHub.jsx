@@ -49,6 +49,7 @@ import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
 import HubCamera from './HubCamera.jsx';
 import UiIcon from './UiIcon.jsx';
+import { HUB_SECTIONS, DEFAULT_LAYOUT, normalizeLayout, isStandard, moveSection, toggleHidden, layoutRuns, loadHubLayout, saveHubLayout, hiddenLine } from '../lib/hub-layout.js';
 
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4';
 const MUTED = 'text-[#5A5751]';
@@ -113,6 +114,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   // A panel the Hub renders itself (DR-1153): 'stories' is the family's years
   // in pictures, opened by the Big Picture tile and the Add a photo action.
   const [panel, setPanel] = useState(null);
+  // THE READER'S OWN ORDER (DR-1201), kept on this device.
+  const [layout, setLayoutState] = useState(() => loadHubLayout());
+  const [arranging, setArranging] = useState(false);
+  const setLayout = (next) => { setLayoutState(next); saveHubLayout(next); };
 
   // The page's single DM watcher tells every surface that needs to know.
   useEffect(() => {
@@ -161,49 +166,15 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
   };
   const openMessages = () => go('messages', null);
 
-  return (
-    <div className="space-y-4">
-      {/* The live camera, or a painted home that says what the space is for, in
-          the space beside the title (Darrell, 2026-10-21; HubCamera.jsx). Beside
-          the title from md up; under it on a phone. */}
-      <header className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] items-start">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Life Hub</h2>
-          <p className={`text-xs ${MUTED}`}>Everything in one place. Your own view — the Current View is still there.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* Chrome stays chrome: fixed text-[0.625rem] so it does not grow with
-              the reader's text size (DR-0438), and it wraps rather than
-              widening the row on a 360px phone. */}
-          {HUB_DENSITIES.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setHubDensity(d)}
-              aria-pressed={density === d}
-              className={`${CHIP} ${FOCUS_RING} ${density === d ? 'border-[#1A1815] bg-white' : ''}`}
-            >
-              {d}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setHomeView('current')}
-            className={`${CHIP} border-[#1A1815] ${FOCUS_RING}`}
-          >
-            Current View
-          </button>
-        </div>
-      </div>
-      <HubCamera setView={setView} />
-      </header>
-
-      {panel === 'stories' && <FamilyStories onClose={() => setPanel(null)} />}
-
-      {panel === null && (<>
+  // THE SECTIONS, BY NAME (DR-1201): each person arranges them (lib/hub-layout.js).
+  const SECTION = {
+    welcome: (
+      <>
       <HomeHero name={welcomeName} />
-
+      </>
+    ),
+    tiles: (
+      <>
       {/* THE SIX TILES. Two columns at 360px, three from sm up, six from lg —
           the text gets the width and the chrome never does (DR-0410 / DR-0438). */}
       <nav aria-label="Life Hub" className="ts-grid-collapse grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
@@ -229,8 +200,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
           );
         })}
       </nav>
-
-      <div className="ts-grid-collapse grid grid-cols-1 lg:grid-cols-3 gap-4">
+      </>
+    ),
+    messages: (
+      <>
         {/* RECENT MESSAGES — what the single DM watcher has told this page, and
             nothing more: the unread count and the newest unread sender. The
             three chips are the Messages surface's own three tabs; each opens
@@ -260,7 +233,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             )}
           </div>
         </section>
-
+      </>
+    ),
+    focus: (
+      <>
         {/* TODAY'S FOCUS + MY GOALS — real records (lib/daily-focus.js). */}
         <section aria-labelledby="hub-focus-h" className={CARD}>
           <div className="flex items-baseline justify-between gap-2">
@@ -344,7 +320,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             <button type="submit" className={`border border-[#1A1815] px-3 py-2 text-[0.625rem] uppercase tracking-wider min-h-[36px] ${FOCUS_RING}`}>Set</button>
           </form>
         </section>
-
+      </>
+    ),
+    actions: (
+      <>
         {/* QUICK ACTIONS — doors to the tabs the tiles do not open, none of them
             twice (DR-1196): eight, twelve or sixteen by density, whole rows of
             four. Every one lands somewhere real and open to this viewer; the
@@ -392,7 +371,99 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             {activity.length === 0 && <li className={`text-xs ${MUTED}`}>Nothing recorded yet. Incidents, projects, notes, photos, goals and finished focus items show here as they happen.</li>}
           </ul>
         </section>
+      </>
+    ),
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* The live camera, or a painted home that says what the space is for, in
+          the space beside the title (Darrell, 2026-10-21; HubCamera.jsx). Beside
+          the title from md up; under it on a phone. */}
+      <header className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] items-start">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Life Hub</h2>
+          <p className={`text-xs ${MUTED}`}>Everything in one place. Your own view — the Current View is still there.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Chrome stays chrome: fixed text-[0.625rem] so it does not grow with
+              the reader's text size (DR-0438), and it wraps rather than
+              widening the row on a 360px phone. */}
+          {HUB_DENSITIES.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setHubDensity(d)}
+              aria-pressed={density === d}
+              className={`${CHIP} ${FOCUS_RING} ${density === d ? 'border-[#1A1815] bg-white' : ''}`}
+            >
+              {d}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setHomeView('current')}
+            className={`${CHIP} border-[#1A1815] ${FOCUS_RING}`}
+          >
+            Current View
+          </button>
+          <button
+            type="button"
+            onClick={() => setArranging((v) => !v)}
+            aria-expanded={arranging}
+            className={`${CHIP} ${FOCUS_RING} ${arranging ? 'border-[#1A1815] bg-white' : ''}`}
+            data-testid="hub-arrange"
+          >
+            Arrange
+          </button>
+        </div>
       </div>
+      <HubCamera setView={setView} />
+      </header>
+      {/* ARRANGE, IN PLACE (DR-1201; UX-PATTERNS 2e): opens under its button.
+          Every section moves and hides; the header stays, because it is the
+          way back. */}
+      {arranging && (
+        <div className={CARD} data-testid="hub-arrange-panel">
+          <p className={`text-xs ${MUTED} mb-2`}>Move what you use first to the top, and hide what you do not use. Kept on this device.</p>
+          <ol className="space-y-1">
+            {normalizeLayout(layout).order.map((id, i, all) => {
+              const sec = HUB_SECTIONS.find((x) => x.id === id);
+              const hidden = normalizeLayout(layout).hidden.includes(id);
+              return (
+                <li key={id} className="flex flex-wrap items-center gap-1.5" data-testid={`hub-arrange-${id}`} data-hidden={hidden ? 'true' : 'false'}>
+                  <span className={`text-sm flex-1 min-w-[10rem] ${hidden ? MUTED : ''}`}>{sec.label}{hidden ? ' (hidden)' : ''}</span>
+                  <button type="button" onClick={() => setLayout(moveSection(layout, id, -1))} disabled={i === 0} aria-label={`Move ${sec.label} up`} className={`${CHIP} ${FOCUS_RING} disabled:opacity-30`} data-testid={`hub-arrange-${id}-up`}>Up</button>
+                  <button type="button" onClick={() => setLayout(moveSection(layout, id, 1))} disabled={i === all.length - 1} aria-label={`Move ${sec.label} down`} className={`${CHIP} ${FOCUS_RING} disabled:opacity-30`} data-testid={`hub-arrange-${id}-down`}>Down</button>
+                  <button type="button" onClick={() => setLayout(toggleHidden(layout, id))} aria-pressed={!hidden} className={`${CHIP} ${FOCUS_RING}`} data-testid={`hub-arrange-${id}-show`}>{hidden ? 'Show' : 'Hide'}</button>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => setLayout(DEFAULT_LAYOUT)} disabled={isStandard(layout)} className={`${CHIP} ${FOCUS_RING} disabled:opacity-30`} data-testid="hub-arrange-reset">Back to the standard order</button>
+            <button type="button" onClick={() => setArranging(false)} className={`${CHIP} border-[#1A1815] ${FOCUS_RING}`} data-testid="hub-arrange-done">Done</button>
+          </div>
+        </div>
+      )}
+
+      {panel === 'stories' && <FamilyStories onClose={() => setPanel(null)} />}
+
+      {panel === null && (<>
+      {hiddenLine(layout) && !arranging && (
+        <p className={`text-xs ${MUTED}`} data-testid="hub-hidden-line">
+          {hiddenLine(layout)}{' '}
+          <button type="button" onClick={() => setArranging(true)} className={`underline min-h-[36px] ${FOCUS_RING}`} data-testid="hub-hidden-arrange">Arrange</button>
+        </p>
+      )}
+      {layoutRuns(layout).map((run) => (run.kind === 'block'
+        ? <React.Fragment key={run.id}>{SECTION[run.id]}</React.Fragment>
+        : (
+          <div key={run.ids.join('+')} className="ts-grid-collapse grid grid-cols-1 lg:grid-cols-3 gap-4" data-testid="hub-cards">
+            {run.ids.map((id) => <React.Fragment key={id}>{SECTION[id]}</React.Fragment>)}
+          </div>
+        )))}
       </>)}
     </div>
   );
