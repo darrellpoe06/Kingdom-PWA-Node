@@ -11,6 +11,10 @@
 **Grounds:** the gate `ledger-names-its-thread` went red on PR #2389 (vitest shard 3/4, check run 119601867868) demanding a Gmail thread id from DR-1205 — a lesson that never touched email. Found while driving that PR to green; the red was real, and it was pointing at the guard rather than at the record.
 **Principles:** DR-0076 §3 (proven to catch — a gate that passes on a break is itself a lie), §4 (measure, never claim), §8 (name the method's limits); DR-0621 (a flag is where the work starts — the gate's complaint was worked until it was right, not silenced); DR-0075 (recurring friction becomes a fix); DR-1051 (the rule this generalizes); DR-1202 (the road that made it necessary)
 
+## Context
+
+The first lesson through the research road (PR #2389, DR-1205) went red on `ledger-names-its-thread`. The guard asked that lesson for a Gmail thread id it cannot have, because it came in through the app, not through email. The red was real, and it pointed at the guard, not at the record: the rule that keeps the repo as the second witness of every intake knew only one road.
+
 ## SHOULD → ARE → GAPS → CLOSE (DR-0219)
 
 **SHOULD.** DR-1051 set the rule after a measured near-miss: a lesson built from an intake must name that intake in the repo, so `grep <id> docs/decisions/` answers *"have we already built this?"* offline, with no Gmail label and no inference. The reason is written in the guard's own header — the `Lesson-Captured` label is a SINGLE witness living outside the repo, and on 2026-10-15 it silently failed to be written while the record it should have contradicted named no id either. **Both witnesses were blind at once.** The repo is the second witness.
@@ -37,6 +41,11 @@
 **The debt list is split from the records that BUILT a road, and that is the honest part.** A road's founding record quotes the one-word instruction while explaining how its own door works, so the proximity detector cannot tell it from a record built *through* the door. `DR-0312` (the email lane) and `DR-0608` (the in-app door) are both that. DR-0608 is the clearest case there is: it measured `agent_inbox` at **0 rows** by SQL count on the live project while it was being written — proof inside the record that no teaching had yet come that way.
 
 They are not debt. A future session reads the debt count to know how many ids are still owed, and counting two permanent false positives in it made that number say **2** when the true answer is **1** (DR-0505, whose provenance names the sender but neither the publication nor the date, so there is nothing to match a thread on). Nothing was recovered and no excuse moved: **the count became true.** `BUILT_THE_ROAD` is closed at two, and each entry must earn its place twice — the detector has to actually flag it, and it has to be flagged on the road it claims to have built, or the test deletes the entry for dead weight.
+
+## Impact
+
+- **Unresolved,** every lesson built through the research road carries no second witness. That is the 2026-10-15 blindness (DR-1051) reopened, on the road that began carrying teachings the same day. And because every intake record cites DR-0312, each such lesson would also be refused for a thread id it cannot have, so the new road could not ship a lesson without writing a fiction into its record.
+- **The call obligates:** every research-road record names its `agent_inbox` row or research item, lowercase, under its label. The roads are never interchangeable. `BUILT_THE_ROAD` stays closed at two. The debt count reads the true 1. The phrase list is re-read against the real research-road records by its `re-review:` date below.
 
 ## Two sessions reached this decision within minutes, and the merge kept the better half of each
 
