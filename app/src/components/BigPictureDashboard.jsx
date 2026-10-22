@@ -80,6 +80,7 @@ export function Home(props) {
         setBooksView={props.setBooksView}
         viewer={props.viewer || null}
         surfaces={props.surfaces || null}
+        workOrderOps={{ updateIncident: props.updateIncident || null, workerOps: props.workerOps || null, contractors: props.contractors || [], movers: { poetech: props.sendToPoeTech || null, pastor: props.addChurchVoice || null, prayer: props.addPrayerRequest || null, private: props.addNote || null } }}
       />
     );
   }
@@ -106,7 +107,7 @@ export function TryLifeHubButton() {
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, addNote = null }) {
+export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, updateIncident = null, sendToPoeTech = null, addChurchVoice = null, addPrayerRequest = null, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, addNote = null }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -568,7 +569,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                     id: 'work-orders',
                     label: 'Work orders',
                     icon: 'list',
-                    render: () => <WorkOrderTriage incidents={incidents} rentals={rentals} />,
+                    render: () => <WorkOrderTriage incidents={incidents} rentals={rentals} updateIncident={updateIncident} workerOps={workerOps} contractors={contractors} movers={{ poetech: sendToPoeTech, pastor: addChurchVoice, prayer: addPrayerRequest, private: addNote }} />,
                   },
                   {
                     id: 'capacity',

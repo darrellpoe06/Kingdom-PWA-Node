@@ -23,6 +23,8 @@
 // time order. Nothing is invented; a store that could not be read is reported
 // by the caller, never shown as "no work orders".
 
+import { MAINTENANCE_TRANSITIONS } from './tenant-portal.js';
+
 const CLOSED = new Set([
   'resolved', 'closed', 'complete', 'completed', 'declined', 'cancelled', 'canceled',
   'wont-fix', 'archived', 'converted', 'handled', 'discarded', 'shipped',
@@ -67,6 +69,8 @@ export function fromIncident(inc, { doorLabelOf } = {}) {
     sourceLabel: 'Real Estate',
     cameInAt,
     title: text(i.description) || text(i.title) || text(i.category) || 'Work order',
+    // The words as written (line breaks kept), for the open view and for a move.
+    fullText: String(i.description || i.title || '').trim(),
     category: text(i.category),
     door: door || '',
     status: text(i.status) || 'open',
@@ -75,11 +79,12 @@ export function fromIncident(inc, { doorLabelOf } = {}) {
     crew: crewOf(i.dispatch),
     notes,
     open_in: { view: 'overview' },
+    record: { kind: 'incident', id: i.id },
   };
 }
 
 /** One Poe Properties work order, with its job notes and its change history. */
-export function fromRequest(req, { docs = [], events = [], doorLabelOf } = {}) {
+export function fromRequest(req, { docs = [], events = [], notes: said = [], doorLabelOf } = {}) {
   const r = req || {};
   const notes = [];
   if (text(r.detail)) notes.push({ at: r.created_at || '', text: text(r.detail), by: text(r.created_by_role) });
@@ -95,6 +100,10 @@ export function fromRequest(req, { docs = [], events = [], doorLabelOf } = {}) {
     const said = [text(d.outcome), text(d.note), text(d.followup)].filter(Boolean).join(' · ');
     if (said) notes.push({ at: d.created_at || '', text: `job note: ${said}`, by: 'worker' });
   }
+  for (const n of said) {
+    if (!n || n.request_id !== r.id || !text(n.body)) continue;
+    notes.push({ at: n.created_at || '', text: text(n.body), by: text(n.author_label) || text(n.author_role) });
+  }
   if (text(r.proof_note)) notes.push({ at: r.updated_at || r.created_at || '', text: `proof: ${text(r.proof_note)}`, by: '' });
   if (text(r.resolution_note)) notes.push({ at: r.updated_at || r.created_at || '', text: `resolved: ${text(r.resolution_note)}`, by: '' });
   notes.sort((a, b) => ms(a.at) - ms(b.at));
@@ -105,6 +114,7 @@ export function fromRequest(req, { docs = [], events = [], doorLabelOf } = {}) {
     sourceLabel: 'Poe Properties',
     cameInAt: r.created_at || '',
     title: text(r.title) || 'Work order',
+    fullText: [String(r.title || '').trim(), String(r.detail || '').trim()].filter(Boolean).join('\n\n'),
     category: text(r.area),
     door: door || '',
     status: text(r.status) || 'submitted',
@@ -113,6 +123,7 @@ export function fromRequest(req, { docs = [], events = [], doorLabelOf } = {}) {
     crew: text(r.assigned_to_label) ? [text(r.assigned_to_label)] : [],
     notes,
     open_in: { view: 'properties' },
+    record: { kind: 'request', id: r.id, instanceId: r.instance_id || null, tenancyId: r.tenancy_id || null, rentalId: r.rental_id || null },
   };
 }
 
@@ -122,11 +133,11 @@ export function fromRequest(req, { docs = [], events = [], doorLabelOf } = {}) {
  * the queue lists the open ones first, oldest first — the order they came in
  * is the order they are owed — then the closed ones, newest closed last.
  */
-export function triageQueue({ incidents = [], requests = [], docs = [], events = [], doorLabelOf } = {}) {
+export function triageQueue({ incidents = [], requests = [], docs = [], events = [], notes = [], doorLabelOf } = {}) {
   // Every incident is a work order: the Action Queue IS the Real Estate work
   // order record (incidents-sync.js), whatever its category.
   const fromInc = (Array.isArray(incidents) ? incidents : []).filter(Boolean).map((i) => fromIncident(i, { doorLabelOf }));
-  const fromReq = (Array.isArray(requests) ? requests : []).map((r) => fromRequest(r, { docs, events, doorLabelOf }));
+  const fromReq = (Array.isArray(requests) ? requests : []).map((r) => fromRequest(r, { docs, events, notes, doorLabelOf }));
   const all = [...fromInc, ...fromReq].sort((a, b) => ms(a.cameInAt) - ms(b.cameInAt) || a.key.localeCompare(b.key));
   all.forEach((w, n) => { w.number = n + 1; });
   const open = all.filter((w) => w.open);
@@ -142,4 +153,51 @@ export function cameInLabel(at) {
   const day = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(at))) return day;
   return `${day} · ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+// ---------------------------------------------------------------------------
+// ACTING FROM THE TRIAGE (DR-1215). Darrell, 2026-10-22, on a triage that only
+// showed: "Fix it!!! Never wait!!!" Each work order is moved where it lives,
+// by that store's own rules: an incident by the Action Queue's lifecycle
+// (updateIncident writes the phase move and its note into the log); a Poe
+// Properties work order only along MAINTENANCE_TRANSITIONS (tenant-portal.js),
+// the same machine its own screen follows, and the database's RLS decides who
+// may. "Move it" sends a thought that was filed as a work order (the Thinking
+// Space item) to where it belongs, and closes the work order without deleting
+// a word of it.
+// ---------------------------------------------------------------------------
+const INCIDENT_MOVES = {
+  open: [['in-progress', 'Start the work'], ['resolved', 'Resolve']],
+  'in-progress': [['resolved', 'Resolve']],
+};
+
+// WHERE A THOUGHT FILED AS A WORK ORDER GOES (Darrell, 2026-10-22, on #4: "That
+// long text was for a feature and or requirements for the Ohio church... we
+// should be able to move that to the place that makes sense for those notes!").
+// The Thinking Space's own destinations (lib/one-voice-routing.js DESTINATIONS),
+// through the same shell handlers it uses; the work order then closes as
+// 'converted', its words kept in its log.
+export const MOVE_TARGETS = [
+  { key: 'poetech', label: 'PoeTech: a feature or requirements', done: 'PoeTech (a build directive)' },
+  { key: 'pastor', label: 'A note the pastors see', done: 'the pastors' },
+  { key: 'prayer', label: 'The prayer list', done: 'the prayer list' },
+  { key: 'private', label: 'My Thinking Space (private)', done: 'your Thinking Space' },
+];
+const REQUEST_LABEL = {
+  received: 'Mark received', scheduled: 'Schedule', 'in-progress': 'Start the work',
+  resolved: 'Resolve', declined: 'Decline', cancelled: 'Cancel',
+};
+
+/** What can be done next with this work order: status moves, and whether it takes a crew and notes. */
+export function actionsFor(w) {
+  if (!w || !w.record) return { moves: [], canAssign: false, canNote: false, canMove: false };
+  const status = String(w.status || '').toLowerCase();
+  if (w.record.kind === 'incident') {
+    const moves = w.open
+      ? (INCIDENT_MOVES[status] || INCIDENT_MOVES.open).map(([to, label]) => ({ to, label }))
+      : [{ to: 'open', label: 'Reopen' }];
+    return { moves, canAssign: w.open, canNote: true, canMove: w.open };
+  }
+  const next = MAINTENANCE_TRANSITIONS[status] || [];
+  return { moves: next.map((to) => ({ to, label: REQUEST_LABEL[to] || to })), canAssign: w.open, canNote: true, canMove: false };
 }

@@ -447,16 +447,18 @@ export async function loadAllWorkOrders(client = supabase) {
     const req = await client.from('tenant_maintenance_requests').select('*').order('created_at', { ascending: true });
     if (req.error) return no('read-failed', req.error);
     const requests = req.data || [];
-    if (!requests.length) return ok({ requests, docs: [], events: [], unreadable: [] });
+    if (!requests.length) return ok({ requests, docs: [], events: [], notes: [], unreadable: [] });
     const ids = requests.map((r) => r.id);
-    const [d, e] = await Promise.all([
+    const [d, e, n] = await Promise.all([
       client.from('request_documentation').select('id, request_id, outcome, followup, note, has_video, created_at').in('request_id', ids).order('created_at', { ascending: true }),
       client.from('door_events').select('*').eq('subject', 'work').in('subject_id', ids).order('at', { ascending: true }),
+      client.from('tenancy_notes').select('id, request_id, author_role, author_label, body, created_at').in('request_id', ids).order('created_at', { ascending: true }),
     ]);
     const unreadable = [];
     if (d.error) unreadable.push('job notes');
     if (e.error) unreadable.push('change history');
-    return ok({ requests, docs: d.error ? [] : d.data || [], events: e.error ? [] : e.data || [], unreadable });
+    if (n.error) unreadable.push('notes');
+    return ok({ requests, docs: d.error ? [] : d.data || [], events: e.error ? [] : e.data || [], notes: n.error ? [] : n.data || [], unreadable });
   } catch (err) { return no('unexpected', err); }
 }
 
