@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import time
+import datetime
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -853,6 +854,33 @@ class Stages(unittest.TestCase):
                  (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z"], OWNER, False)]
         for tags, who, ok in cases:
             self.assertEqual(lb.eligibility(row("r", TEACHING, tags, who))[0], ok, tags)
+
+    def test_a_rate_limit_is_waited_out_not_counted_as_a_failed_lesson(self):
+        """DR-1202, measured 2026-10-22: row d5480d79 failed twice in 34 seconds on
+        the model API's 429 and fell to the Routine with nothing wrong in it. The
+        real reason tag it carried is used here, byte for byte."""
+        real = ('build-reason:no version passed every gate (1 written): cli-local cli-local exit 1: '
+                'oncurrency_limit":0,"budget":0},"by_type":{}},"is_error":true,"num_turns":1,'
+                '"subtype":"success","api_error_status":429,"result":"Y')
+        two = ["lesson", "build:failed@2026-10-22T01:24:20Z", "build:failed@2026-10-22T01:24:34Z", real]
+        at = lambda hhmm: datetime.datetime.strptime("2026-10-22T" + hhmm + ":00Z", "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+        self.assertTrue(lb.rate_limited(two))
+        ok, why = lb.eligibility(row("r", TEACHING, two, OWNER), now=at("01:30"))
+        self.assertFalse(ok)
+        self.assertIn("waiting out the model's limit", why)
+        self.assertEqual(lb.eligibility(row("r", TEACHING, two, OWNER), now=at("02:00")), (True, "eligible"),
+                         "after the cooldown it is offered again, though two attempts are spent")
+        spent = two + ["build:failed@2026-10-22T02:00:00Z", "build:failed@2026-10-22T02:31:00Z"]
+        ok, why = lb.eligibility(row("r", TEACHING, spent, OWNER), now=at("09:00"))
+        self.assertFalse(ok, "PROVEN TO CATCH: the retries are bounded, never a loop")
+        self.assertIn("rate-limited 4 times", why)
+
+    def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
+        tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",
+                "build-reason:no version passed every gate (1 written): verse gate: Numbers 35:11 not verbatim"]
+        self.assertFalse(lb.rate_limited(tags))
+        self.assertEqual(lb.eligibility(row("r", TEACHING, tags, OWNER), now=10 ** 10),
+                         (False, "failed 2 times: left for the hourly Routine"))
 
     def test_a_withdrawn_row_is_nobody_s_to_build_and_never_waits(self):
         """DR-1142: its person took it back from the lesson door. The reason is
