@@ -112,6 +112,9 @@ export const RESEARCH_STATES = Object.freeze({
   working: 'Being looked into now',
   answered: 'An answer came back',
   failed: 'Could not be looked into',
+  // DR-1203: the link could not be read, but what it was sent for was filed
+  // from the words sent with it -- never "could not" when the work was done.
+  filed: 'Filed from your words',
 });
 
 // The one sentence that rides every item, in words, on the surface. DR-0076:
@@ -143,11 +146,23 @@ export function researchKind(body) {
 export function parseAnswer(body) {
   const s = String(body || '');
   const i = s.search(/\n\s*Sources:\s*\n/i);
-  if (i < 0) return { answer: s.trim(), sources: [] };
-  const head = s.slice(0, i).trim();
-  const tail = s.slice(i).replace(/^\n\s*Sources:\s*\n/i, '');
-  const urls = tail.split('\n').map((l) => l.trim()).filter(Boolean).map((url) => ({ url, title: url }));
-  return { answer: head, sources: safeSources(urls) };
+  const head = i < 0 ? s : s.slice(0, i);
+  const sources = i < 0 ? [] : safeSources(s.slice(i).replace(/^\n\s*Sources:\s*\n/i, '')
+    .split('\n').map((l) => l.trim()).filter(Boolean).map((url) => ({ url, title: url })));
+  // THE WORDS, CLEAN (DR-1203; Darrell's screenshot of 2026-10-22). The card
+  // already prints the unverified sentence once, so the row's own copy of it
+  // is not repeated inside the words; and a transcript's leading "# ..."
+  // lines describe the transcript (where it was fetched, what kind of
+  // captions) -- they are kept, as `about`, but never read as its words.
+  const lines = head.replace(/^\s+/, '').split('\n');
+  if (lines.length && /^(Unverified|From your own words):/.test(lines[0])) {
+    lines.shift();
+    while (lines.length && !lines[0].trim()) lines.shift();
+  }
+  const about = [];
+  while (lines.length && /^#( |$)/.test(lines[0])) about.push(lines.shift().replace(/^# ?/, ''));
+  while (lines.length && !lines[0].trim()) lines.shift();
+  return { answer: lines.join('\n').trim(), sources, about: about.join(' ').replace(/\s+/g, ' ').trim() };
 }
 
 /**
@@ -187,8 +202,10 @@ export function researchItems(rows) {
     // is not "being looked into": nothing will try it again by itself.
     const gaveUp = !answer && !failure && has(r, CLAIMED_TAG)
       && (Array.isArray(r.tags) ? r.tags.filter((t) => t === 'research-released').length : 0) >= 3;
-    const state = answer ? 'answered' : (failure || gaveUp) ? 'failed' : has(r, CLAIMED_TAG) ? 'working' : 'waiting';
-    const parsed = answer ? parseAnswer(answer.body) : { answer: '', sources: [] };
+    const filedFromWords = !answer && failure && children.has(`${r.id}:created`)
+      && parseCreated(children.get(`${r.id}:created`).body).length > 0;
+    const state = answer ? 'answered' : filedFromWords ? 'filed' : (failure || gaveUp) ? 'failed' : has(r, CLAIMED_TAG) ? 'working' : 'waiting';
+    const parsed = answer ? parseAnswer(answer.body) : { answer: '', sources: [], about: '' };
     const readingRow = children.get(`${r.id}:reading`) || null;
     const readingFailed = children.get(`${r.id}:reading-failed`) || null;
     const reading = readingRow ? parseReading(readingRow.body) : null;
@@ -202,7 +219,7 @@ export function researchItems(rows) {
       created: createdRow ? parseCreated(createdRow.body) : [],
       filedAt: createdRow ? createdRow.created_at || '' : '',
       researchOnly: has(r, 'research-create-none'),
-      source: answer ? parseLinkAnswer(parsed.answer) : null,
+      source: answer ? parseLinkAnswer(answer.body) : null,
       reading,
       readingAt: readingRow ? readingRow.created_at || '' : '',
       // Why the reading is still pending, in the road's words when it said; the
@@ -219,6 +236,7 @@ export function researchItems(rows) {
       answerId: answer ? answer.id || '' : '',
       answeredAt: answer ? answer.created_at || '' : '',
       answer: parsed.answer,
+      about: parsed.about || '',
       sources: parsed.sources,
       why: failure ? String(failure.body || '') : gaveUp ? GAVE_UP_WHY : '',
       failedAt: failure ? failure.created_at || '' : '',

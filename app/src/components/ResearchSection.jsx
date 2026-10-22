@@ -62,10 +62,12 @@ const STATE_COLOR = Object.freeze({
   working: 'text-[#1A1815]',
   answered: 'text-[#1A1815]',
   failed: 'text-[#1A1815]',
+  filed: 'text-[#1A1815]',
 });
 
 const btnCls = 'min-h-[44px] border border-[#1A1815] bg-white px-3 text-[0.6875rem] uppercase tracking-wider text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#1A1815]';
 const PREVIEW_CHARS = 700;
+const OWN_WORDS_NOTE = 'From your own words: the link could not be read, so nothing here came from it.';
 
 // THE WORDS, EASY TO USE (DR-1202): the first part shown, the whole of it one
 // press away, and a copy so they can go anywhere without retyping.
@@ -165,11 +167,25 @@ function Item({ item }) {
       </p>
       {item.state === 'answered' && (
         <div className="mt-2 border-t border-[#E8E4DC] pt-2">
-          {/* The sentence, on every answered item. Never only a badge. */}
-          <p className={noteCls}>{item.note}</p>
+          {/* The sentence, on every answered item. Never only a badge. His own
+              words are not a web search's, and say so instead (DR-1203). */}
+          <p className={noteCls}>{item.source && item.source.kind === 'words' ? OWN_WORDS_NOTE : item.note}</p>
           {item.source && item.source.shaped
             ? <SourceBlock source={item.source} />
-            : <Words text={item.answer} testId="research-answer-words" />}
+            : item.source && item.source.kind === 'words'
+              ? (
+                <div className="mt-2" data-testid="research-own-words">
+                  <div className={labelCls}>Your own words are the request</div>
+                  <Words text={item.source.words} testId="research-own-words-text" />
+                  {item.source.note && <p className={`mt-1 ${noteCls}`}>{item.source.note}</p>}
+                </div>
+              )
+              : (
+                <>
+                  {item.about && <p className="mt-1 text-[0.6875rem] text-[#5A5751]" data-testid="research-answer-about">About these words: {item.about}</p>}
+                  <Words text={item.answer} testId="research-answer-words" />
+                </>
+              )}
           <Created item={item} />
           {/* THE READING (DR-1199): what it is for us, in the fixed shape, or
               the honest word that it is still pending. Never a raw dump as the
@@ -214,6 +230,12 @@ function Item({ item }) {
                 ))}
               </ol>
             )}
+        </div>
+      )}
+      {item.state === 'filed' && (
+        <div className="mt-2 border-t border-[#E8E4DC] pt-2" data-testid="research-filed-from-words">
+          <Created item={item} />
+          <p className={`mt-1 ${noteCls}`}>Your words above are the request. The link itself could not be read: {item.why || 'the road did not say why'}</p>
         </div>
       )}
       {item.state === 'failed' && (

@@ -421,11 +421,30 @@ jobs:
             fi
           fi
 
+          # YOUR OWN WORDS FIRST (DR-1203). Darrell, 2026-10-22, on the mt27.org
+          # link six roads could not read: "The features words were already
+          # there... how can you not have them?!" They were: the words he
+          # writes beside a link ARE the request. So a link that cannot be read
+          # never makes an item read "could not be looked into" while his words
+          # sit above it -- his words become the answer, the reading runs on
+          # them, and what was sent for is filed from them. Five words or more;
+          # a bare link with nothing beside it still says why it was not read.
+          FROM=link
+          if [ "$KIND" = link ] && [ "$VERDICT" != answered ]; then
+            NOTE=$(python3 -c "import re;print(re.sub(r'https?://[^\\s<>\"\x27]+',' ',open('/tmp/item.txt').read()).strip())" 2>/dev/null || true)
+            if [ "$(printf '%s' "$NOTE" | wc -w)" -ge 5 ]; then
+              { echo "Your own words, sent with the link:"; printf '%s\n' "$NOTE"; echo; echo "The link itself could not be read on our own machines: $WHY"; } > /tmp/answer.txt
+              VERDICT=answered
+              FROM=words
+              echo "the link could not be read; its sender's own words are the answer"
+            fi
+          fi
+
           # Budget: an answer is capped, so one item cannot write an unbounded row.
           head -c 20000 /tmp/answer.txt > /tmp/answer.capped.txt || true
           mv /tmp/answer.capped.txt /tmp/answer.txt
-          echo "verdict: $VERDICT · answer characters: $(wc -c < /tmp/answer.txt)"
-          { echo "verdict=$VERDICT"; echo "why=$WHY"; } >> "$GITHUB_OUTPUT"
+          echo "verdict: $VERDICT · from: $FROM · answer characters: $(wc -c < /tmp/answer.txt)"
+          { echo "verdict=$VERDICT"; echo "why=$WHY"; echo "from=$FROM"; } >> "$GITHUB_OUTPUT"
           { echo "- verdict: $VERDICT"; [ "$VERDICT" = answered ] && echo "- answer characters: $(wc -c < /tmp/answer.txt)" || echo "- why: $WHY"; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Write the answer where the Research section reads it
@@ -437,11 +456,17 @@ jobs:
           INST: ${{ steps.waiting.outputs.inst }}
           VERDICT: ${{ steps.look.outputs.verdict }}
           WHY: ${{ steps.look.outputs.why }}
+          FROM: ${{ steps.look.outputs.from }}
         run: |
           set -uo pipefail
           # The child row is created_by the SENDER, so RLS gives it back to the
           # person who sent the item and to nobody else (DR-0060).
-          if [ "$VERDICT" = answered ]; then
+          if [ "$VERDICT" = answered ] && [ "$FROM" = words ]; then
+            TAG=research-answer
+            # His own words are not a web search's: their first line says so,
+            # and that nothing in them came from the link (DR-1203, DR-0076).
+            { echo "From your own words: the link could not be read, so nothing here came from it."; echo; cat /tmp/answer.txt; } > /tmp/body.txt
+          elif [ "$VERDICT" = answered ]; then
             TAG=research-answer
             # The unverified sentence is the answer's FIRST LINE, so the words
             # cannot travel anywhere without it (DR-0076).

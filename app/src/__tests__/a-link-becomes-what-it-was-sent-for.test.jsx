@@ -156,6 +156,52 @@ describe('what is filed', () => {
   });
 });
 
+describe('your own words first (DR-1203)', () => {
+  // Darrell, on the mt27.org link six roads could not read: "The features
+  // words were already there... how can you not have them?!"
+  const OWN = 'From your own words: the link could not be read, so nothing here came from it.\n\nYour own words, sent with the link:\nWe need this inside the Love Corner App each week... trivia questions\n\nThe link itself could not be read on our own machines: the page gave almost no readable words\n';
+  it('the words he wrote beside an unreadable link come back as the request, never as a source', () => {
+    const p = parseLinkAnswer(OWN);
+    expect(p.kind).toBe('words');
+    expect(p.words).toBe('We need this inside the Love Corner App each week... trivia questions');
+    expect(p.note).toBe('The link itself could not be read: the page gave almost no readable words');
+    expect(p.shaped).toBe(false);
+  });
+  it('the build request carries his words and says nothing came from the link', () => {
+    const b = buildRequestBody({ itemId: ID, itemBody: 'https://mt27.org/msg/YjBr4hNY\nWe need this inside the Love Corner App each week... trivia questions', answer: OWN, reading: null });
+    expect(b).toContain('We need this inside the Love Corner App each week... trivia questions');
+    expect(b).toContain('THE LINK COULD NOT BE READ on our own machines (the page gave almost no readable words).');
+    expect(b).toContain('Nothing here is from the link.');
+    expect(b).not.toContain('THE RESEARCH (unverified)');
+  });
+  it('PROVEN-TO-CATCH: an item filed from his words never reads "could not be looked into"', () => {
+    const rows = [
+      { id: ID, body: 'https://mt27.org/msg/YjBr4hNY\nWe need this inside the Love Corner App each week... trivia questions', tags: ['research', 'research-answered', 'research-created'], created_at: '2026-10-21T22:43:00Z' },
+      { id: 'f1', body: 'the page gave almost no readable words', tags: ['research-failed', `of:${ID}`], created_at: '2026-10-22T01:33:00Z' },
+      { id: 'c1', body: 'Filed: build 33333333-3333-3333-3333-333333333333', tags: ['research-created', `of:${ID}`], created_at: '2026-10-22T01:37:00Z' },
+    ];
+    const [i] = researchItems(rows);
+    expect(i.state).toBe('filed');
+    expect(i.label).toBe('Filed from your words');
+    const [unfiled] = researchItems(rows.slice(0, 2));
+    expect(unfiled.state).toBe('failed');
+  });
+});
+
+describe('the words read clean (his screenshot, 2026-10-22)', () => {
+  const CAPTIONS = `${UNVERIFIED}\n\n# Transcript of YouTube video 6GVmsB3PLmY\n# Fetched on the NAS from its residential IP.\n# Source: youtube-asr, language en, 6431 words.\n\nWhat's up, guys? It's been a while.`;
+  it('PROVEN-TO-CATCH: the unverified sentence is not repeated inside the words', () => {
+    const [i] = researchItems([
+      { id: ID, body: 'https://youtu.be/6GVmsB3PLmY', tags: ['research', 'research-answered'], created_at: '2026-10-21T14:27:00Z' },
+      { id: 'a1', body: CAPTIONS, tags: ['research-answer', `of:${ID}`], created_at: '2026-10-21T18:06:00Z' },
+    ]);
+    expect(i.answer.startsWith("What's up, guys?")).toBe(true);
+    expect(i.answer).not.toContain('Unverified:');
+    expect(i.answer).not.toContain('# Transcript');
+    expect(i.about).toBe('Transcript of YouTube video 6GVmsB3PLmY Fetched on the NAS from its residential IP. Source: youtube-asr, language en, 6431 words.');
+  });
+});
+
 describe('the item reads true', () => {
   const row = (o) => ({ id: ID, body: `${REEL}\nLesson`, tags: ['research'], created_at: '2026-10-22T00:42:00Z', created_by: 'u1', ...o });
   it('PROVEN-TO-CATCH: a superseded failure does not shadow the item looked into again', () => {
@@ -253,6 +299,38 @@ describe('the Research card', () => {
   });
 });
 
+describe('the card, from his own words', () => {
+  let host; let root;
+  beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); });
+  afterEach(() => { act(() => root.unmount()); host.remove(); });
+  const mount = async () => {
+    await act(async () => { root.render(createElement(ResearchSection, { fetchImpl: async () => { throw new Error('no route'); } })); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  };
+  it('an item filed from his words says so, and never "could not be looked into"', async () => {
+    store.rows = [
+      { id: ID, body: 'https://mt27.org/msg/YjBr4hNY\nWe need this inside the Love Corner App each week... trivia questions', tags: ['research', 'research-answered', 'research-created', 'create:build'], created_at: '2026-10-21T22:43:00Z', created_by: 'u1' },
+      { id: 'f1', body: 'the page gave almost no readable words', tags: ['research-failed', `of:${ID}`], created_at: '2026-10-22T01:33:00Z', created_by: 'u1' },
+      { id: 'c1', body: 'Filed: build 33333333-3333-3333-3333-333333333333', tags: ['research-created', `of:${ID}`], created_at: '2026-10-22T01:37:00Z', created_by: 'u1' },
+    ];
+    await mount();
+    expect(host.textContent).toContain('Filed from your words');
+    expect(host.textContent).not.toContain('Could not be looked into');
+    expect(host.querySelector('[data-testid="research-filed-from-words"]').textContent).toMatch(/A build request for the PoeTech App/);
+  });
+  it('an answer made of his own words never carries the web-search sentence', async () => {
+    store.rows = [
+      { id: ID, body: 'https://mt27.org/msg/zz\nWe need this inside the Love Corner App each week', tags: ['research', 'research-answered'], created_at: '2026-10-22T02:00:00Z', created_by: 'u1' },
+      { id: 'a1', body: 'From your own words: the link could not be read, so nothing here came from it.\n\nYour own words, sent with the link:\nWe need this inside the Love Corner App each week\n\nThe link itself could not be read on our own machines: unsupported\n', tags: ['research-answer', `of:${ID}`], created_at: '2026-10-22T02:01:00Z', created_by: 'u1' },
+    ];
+    await mount();
+    const own = host.querySelector('[data-testid="research-own-words"]');
+    expect(own.textContent).toMatch(/Your own words are the request/);
+    expect(own.textContent).toMatch(/We need this inside the Love Corner App each week/);
+    expect(host.textContent).toContain('From your own words: the link could not be read, so nothing here came from it.');
+  });
+});
+
 describe('the lane, end to end, with no overlap', () => {
   const wf = read('.github', 'workflows', 'research-inbox.yml');
   const claim = read('scripts', 'research-inbox-waiting.sql');
@@ -320,6 +398,12 @@ describe('the lane, end to end, with no overlap', () => {
     expect(create).toMatch(/FROM claim WHERE \$WB/);
     expect(create).toMatch(/\\"lesson\\",\\"from-research\\"/);
     expect(create).toMatch(/\\"tell-poetech\\",\\"poetech-app\\"/);
+  });
+  it('a link that cannot be read is answered by the words sent with it, said so on its first line', () => {
+    expect(wf).toMatch(/if \[ "\$\(printf '%s' "\$NOTE" \| wc -w\)" -ge 5 \]; then/);
+    expect(wf).toMatch(/echo "Your own words, sent with the link:"/);
+    expect(wf).toMatch(/echo "From your own words: the link could not be read, so nothing here came from it\."/);
+    expect(wf).toMatch(/from: \$\{\{ steps\.look\.outputs\.from \}\}|FROM: \$\{\{ steps\.look\.outputs\.from \}\}/);
   });
   it('the NAS selftests run in CI', () => {
     const ci = read('.github', 'workflows', 'ci.yml');
