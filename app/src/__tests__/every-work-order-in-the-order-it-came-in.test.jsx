@@ -119,7 +119,7 @@ describe('where it lives', () => {
   });
   it('on the Life Hub, under Recent Activity, and on Big Picture → Now', () => {
     expect(read('components', 'LifeHub.jsx')).toMatch(/<WorkOrderTriage incidents=\{data\.incidents \|\| \[\]\}/);
-    expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/id: 'work-orders',[\s\S]{0,120}<WorkOrderTriage incidents=\{incidents\} rentals=\{rentals\} \/>/);
+    expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/id: 'work-orders',[\s\S]{0,120}<WorkOrderTriage incidents=\{incidents\} rentals=\{rentals\} /);
   });
   it('reads Poe Properties under the reader\'s own RLS, never scoped by the client', () => {
     const src = read('modules', 'properties', 'cloud.js');

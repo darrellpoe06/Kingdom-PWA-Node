@@ -105,7 +105,7 @@ const ACTION_STYLE = {
 };
 const ACTIVITY_ICON = { incident: 'alert', project: 'folder', note: 'dove', photo: 'eye', goal: 'pin', focus: 'check' };
 
-export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '', viewer = null, surfaces = null }) {
+export default function LifeHub({ data = {}, setData = null, setView = null, setChurchView = null, setBooksView = null, welcomeName = '', viewer = null, surfaces = null, workOrderOps = null }) {
   const { density } = useHomePrefs();
   const [unread, setUnread] = useState(0);
   const [newest, setNewest] = useState(null);
@@ -374,7 +374,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
           {/* WORK ORDER TRIAGE (DR-1213) — every work order in the system, Real
               Estate's and Poe Properties', in the order it came in, with its
               notes. Recent Activity is a mix of six; this is the queue. */}
-          <WorkOrderTriage incidents={data.incidents || []} rentals={(data.inflows && data.inflows.rentals) || []} />
+          <WorkOrderTriage incidents={data.incidents || []} rentals={(data.inflows && data.inflows.rentals) || []} {...(workOrderOps || {})} />
         </section>
       </>
     ),
