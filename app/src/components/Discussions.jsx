@@ -17,6 +17,7 @@
 // Real data: every record is a row in the `discussions` table (migration 0035),
 // synced cross-device. NO-LEAK: the list is filtered by visibleDiscussions so a
 // PRIVATE record only shows to its author or an owner (proven-to-catch test).
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useMemo, useState } from 'react';
 import {
   DISCUSSION_KINDS, kindMeta, validateDiscussion, normalizeProjectSlugs,

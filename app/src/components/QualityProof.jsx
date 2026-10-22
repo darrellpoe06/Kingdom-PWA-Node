@@ -27,6 +27,7 @@
 // Governor-gated at the mount (BuildBoard), like the orchestration board: this is
 // dev/ops proof, public data but noise for a family user. Reuses KpiDot + the
 // shared KPI palette so it can never re-pick colors.
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useCallback, useEffect, useState } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';

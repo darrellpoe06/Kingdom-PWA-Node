@@ -16,6 +16,7 @@
 // Governor-only: the queue names credentials, spend, and Tier-C activations, so
 // it renders only for a signed-in family/governor account (isGovernor gate at
 // the call site).
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useEffect, useState } from 'react';
 import { DECISION_KIND } from '../lib/decisions.js';
 import { CHAIN_SLOTS, CHAIN_LABELS, CHAIN_QUESTIONS, chainCoverage } from '../lib/decision-chain.js';

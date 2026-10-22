@@ -14,6 +14,7 @@
 // perpetual-report.js); the failures & fixes strip is the derived answer to
 // "are we implementing fixes for all the failures recorded?" — it moves the
 // moment the underlying records do.
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useEffect, useMemo, useState } from 'react';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { composeConcerns } from '../lib/concerns.js';

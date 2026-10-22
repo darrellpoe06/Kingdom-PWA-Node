@@ -19,6 +19,7 @@
 // own scheme -- white on #1A1815 -- one cohesive dark overlay (and no light-on-
 // dark theme clash for the legibility/contrast guards).
 // =============================================================================
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useState } from 'react';
 import { normalizeReviews } from '../lib/quality-proof.js';
 

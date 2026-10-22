@@ -10,6 +10,7 @@
 // green "enforced" banner when every recognition milestone carries it, a RED banner
 // if one ever doesn't (fairnessGateViolations). Read-only surface.
 // =============================================================================
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
