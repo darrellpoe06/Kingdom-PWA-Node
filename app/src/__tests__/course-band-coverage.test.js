@@ -110,7 +110,7 @@ describe('the debt, recorded as it actually is', () => {
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
     expect(baseline.allFour).toBe(255); // 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
-    // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1203),
+    // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1205),
     // the FIRST lesson built through the research road DR-1202 opened: Darrell sent an Instagram reel with one word on it, the NAS wrote
     // its words with a local Whisper model, and the lesson was built from the transcript. It carries all four age bands from the first
     // commit, so adultOnly did NOT move with it, and the world-issues row reads {lessons: 21, allFour: 2}. Its ground was chosen by
