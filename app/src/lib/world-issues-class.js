@@ -5846,7 +5846,7 @@ const CAMPUS_ROADS_ISSUE = {
   },
   "skill": "CHECK EACH CLAIM SEPARATELY, BECAUSE A SOURCE CAN BE EXACTLY RIGHT ABOUT ONE THING AND WRONG ABOUT ANOTHER. This reel makes six or seven factual claims in ninety seconds. Checked one at a time against reporting and against the institutions’ own pages, they do not all land the same way: one is corroborated down to the number of minutes, one is confirmed by the named university’s own website, two are not supported by what could be found, and one material fact is missing from the telling. The skill is not “decide whether the creator is trustworthy.” It is to stop treating a video as one object that is either true or false, and start treating it as a list of separate statements, each of which has its own answer. The Word asks for exactly this patience — \"He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him\" (Proverbs 18:17), which week one of this course works at length. What is added here is the second half: once you have sorted the claims, the Word has its own ruling on the part that turns out to be true, and it is older and sharper than the argument on either side.",
   "source": {
-    "creator": "Monte Mader (@montemader), a creator who posts on deconstruction, exvangelical and current-events subjects",
+    "creator": "Monte Mader (@montemader), who made the reel",
     "medium": "a short-form video (Instagram reel), carrying a paid sponsorship",
     "title": "Video by montemader — on campus polling sites",
     "url": "https://www.instagram.com/reel/Dem5dUqiOqb/",

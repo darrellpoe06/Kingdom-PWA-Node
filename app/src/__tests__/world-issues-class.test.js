@@ -199,3 +199,20 @@ describe('lens fields that are rendered must be strings (the blank-curriculum cl
     expect(auditIssue(base()).violations.filter((v) => v.code.startsWith('lens/'))).toEqual([]);
   });
 });
+
+describe('the source names who made it, never what they believe (2026-10-22)', () => {
+  const campus = WORLD_ISSUES.find((i) => i.id === 'wi-the-way-was-45-minutes-long');
+  it('issue 21 names its creator from the record, with no label on his faith', () => {
+    expect(campus.source.creator).toBe('Monte Mader (@montemader), who made the reel');
+    expect(auditIssue(campus).errors.filter((e) => e.code === 'source/faith-label')).toEqual([]);
+  });
+  it('PROVEN TO CATCH: the line that shipped is refused', () => {
+    const shipped = { ...campus, source: { ...campus.source, creator: 'Monte Mader (@montemader), a creator who posts on deconstruction, exvangelical and current-events subjects' } };
+    expect(auditIssue(shipped).errors.map((e) => e.code)).toContain('source/faith-label');
+  });
+  it('the source line reads as a sentence for every issue (no possessive glued onto a clause)', () => {
+    const lesson = buildDiscernmentModules([campus])[0].lesson;
+    expect(lesson).toContain('THE SOURCE. From Monte Mader (@montemader), who made the reel: a short-form video');
+    expect(lesson).not.toMatch(/reel's a short-form/);
+  });
+});
