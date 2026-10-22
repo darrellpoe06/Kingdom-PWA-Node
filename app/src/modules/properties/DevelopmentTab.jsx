@@ -30,7 +30,7 @@ import {
   developmentInstanceId, loadProjects, loadProject, createProject, patchProject, addRow, patchRow, deleteRow,
   setCheck, setTeamMember, projectForEngine,
 } from './development-cloud.js';
-import { SEQUENCE_READING, roleKey, teamState, nextToFind, teamWords } from './development-team.js';
+import { SEQUENCE_READING, EMPHASIS_MEANING, VIDEO_SOURCE, VIDEO_WAYS, roleKey, teamState, nextToFind, teamWords } from './development-team.js';
 import { toCents, money } from '../../lib/door-economics.js';
 import { confirmThen } from '../../lib/confirm-action.js';
 
@@ -404,10 +404,9 @@ function ProjectRef({ value, onSave }) {
  * YOUR TEAM (DR-1175, migration 0308) — the people a ground-up build needs,
  * from the slide Darrell sent, and which of them this project has found.
  *
- * The sixteen roles, their order and their wording are HIS SLIDE. The slide
- * sets nine of them bold and never says what bold means, so this card shows the
- * emphasis and says whose it is — it does not call them required. The reading
- * of the numbering is PoeTech's and is labelled as PoeTech's.
+ * The sixteen roles, their order and their wording are HIS SLIDE. What its
+ * bold means, the order to find them in, and what to know about each role come
+ * from THE VIDEO the slide is from (DR-1204), each labelled as the video's.
  *
  * A role with nobody reads "nobody yet", because for a person building from
  * nothing the gaps ARE the information: what the card is for is the list of who
@@ -420,6 +419,8 @@ function Team({ project, data, api, reload }) {
   const [open, setOpen] = useState('');
   const [form, setForm] = useState({ name: '', company: '', phone: '', email: '', note: '', joinedOn: '' });
   const [msg, setMsg] = useState('');
+  const [told, setTold] = useState('');
+  const [ways, setWays] = useState(false);
 
   const start = (role, who) => {
     setOpen(roleKey(role.role));
@@ -441,13 +442,30 @@ function Team({ project, data, api, reload }) {
       right={<span className="text-[0.75rem] text-[#6B665E]" data-testid="dev-team-count">{s.have.length} of {s.total} filled</span>}
     >
       <p role="status" data-testid="dev-team-words" className="text-[0.8125rem] text-[#1A1815] mb-2">{teamWords(s)}</p>
-      <p className="text-[0.75rem] text-[#6B665E] mb-1">
-        The sixteen roles, their order and their wording are from the slide. It sets nine of them in bold and does not say what bold means, so they are shown in bold here and counted as the slide{'’'}s emphasis — not as a requirement.
-        {s.emphasisedNeeded > 0 ? ` ${s.emphasisedNeeded} of the ${s.emphasised} it emphasises are still to find.` : ` All ${s.emphasised} it emphasises are filled.`}
+      <p className="text-[0.75rem] text-[#6B665E] mb-1" data-testid="dev-team-emphasis">
+        The sixteen roles, their order and their wording are from the slide. Its nine in bold are, in {EMPHASIS_MEANING.whose}{'’'}s words, {'“'}{EMPHASIS_MEANING.words}{'”'}.
+        {s.emphasisedNeeded > 0 ? ` ${s.emphasisedNeeded} of those ${s.emphasised} are still to find.` : ` All ${s.emphasised} of those are filled.`}
       </p>
-      <p className="text-[0.75rem] text-[#6B665E] mb-2" data-testid="dev-team-reading">
-        Reading the numbering ({SEQUENCE_READING.whose}): {SEQUENCE_READING.words}
+      <p className="text-[0.75rem] text-[#6B665E] mb-1" data-testid="dev-team-reading">
+        The order ({SEQUENCE_READING.whose}): {SEQUENCE_READING.words}
       </p>
+      <p className="text-[0.6875rem] text-[#6B665E] mb-1">
+        From {VIDEO_SOURCE.who}, {'“'}{VIDEO_SOURCE.title}{'”'} ({VIDEO_SOURCE.how}). <a className="underline" href={VIDEO_SOURCE.link} target="_blank" rel="noopener noreferrer">Watch it</a>.
+      </p>
+      <Btn onClick={() => setWays((v) => !v)} aria-expanded={ways} aria-label="Finding, vetting and keeping your team, from the video">
+        {ways ? 'Close: finding, vetting, keeping them' : 'Finding, vetting and keeping them'}
+      </Btn>
+      {ways && (
+        <div className="mt-2 mb-2 text-[0.75rem] text-[#1A1815]" data-testid="dev-team-ways">
+          <p className="mb-1">{VIDEO_WAYS.local}</p>
+          <p className="font-semibold">Where to find them</p>
+          <ul className="list-disc pl-5 mb-1">{VIDEO_WAYS.find.map((x) => <li key={x}>{x}</li>)}</ul>
+          <p className="font-semibold">How to vet them</p>
+          <ul className="list-disc pl-5 mb-1">{VIDEO_WAYS.vet.map((x) => <li key={x}>{x}</li>)}</ul>
+          <p className="font-semibold">How to keep them</p>
+          <ul className="list-disc pl-5">{VIDEO_WAYS.keep.map((x) => <li key={x}>{x}</li>)}</ul>
+        </div>
+      )}
       {!commercial && (
         <p className="text-[0.75rem] text-[#6B665E] mb-2">
           Three roles the slide marks {'“'}commercial{'”'} — the civil, MEP and structural engineers — are left out of a {PROJECT_KINDS.find((k) => k.key === project.kind)?.label.toLowerCase()} build. Change what is being built and they appear.
@@ -472,6 +490,11 @@ function Team({ project, data, api, reload }) {
                   {who
                     ? <span className="text-[#2F5D50]">{who.name}{who.company ? ` · ${who.company}` : ''}</span>
                     : <span className="text-[#6B665E]">nobody yet{next && next.n === role.n ? ' · next by the numbering' : ''}</span>}
+                  {role.video && (
+                    <Btn onClick={() => setTold(told === key ? '' : key)} aria-expanded={told === key} aria-label={`What the video says about the ${role.role}`}>
+                      {told === key ? 'Close' : 'What the video says'}
+                    </Btn>
+                  )}
                   <Btn onClick={() => (editing ? setOpen('') : start(role, who))} aria-label={`${who ? 'Change who fills' : 'Name someone for'} ${role.role}`}>
                     {editing ? 'Close' : who ? 'Change' : 'Name someone'}
                   </Btn>
@@ -487,6 +510,20 @@ function Team({ project, data, api, reload }) {
                 <p className="text-[0.75rem] text-[#6B665E] mt-0.5">
                   {[who.phone, who.email, who.joinedOn ? `since ${who.joinedOn}` : null, who.note].filter(Boolean).join(' · ')}
                 </p>
+              )}
+              {told === key && role.video && (
+                <div className="mt-1 border-l-2 border-[#2F5D50] pl-2 text-[0.75rem] text-[#1A1815]" data-testid={`dev-team-video-${key}`}>
+                  <p><span className="font-semibold">When: </span>{role.video.when}</p>
+                  <p><span className="font-semibold">What they do: </span>{role.video.does}</p>
+                  {role.video.vet.length > 0 && (
+                    <>
+                      <p className="font-semibold mt-1">What to ask them</p>
+                      <ul className="list-disc pl-5">{role.video.vet.map((q) => <li key={q}>{q}</li>)}</ul>
+                    </>
+                  )}
+                  {role.video.pay && <p className="mt-1"><span className="font-semibold">Ballpark pay: </span>{role.video.pay}</p>}
+                  {role.video.pay && <p className="text-[0.6875rem] text-[#6B665E]">{VIDEO_WAYS.payCaveat}</p>}
+                </div>
               )}
               {editing && (
                 <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">

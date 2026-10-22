@@ -80,8 +80,13 @@ export function researchIntents(body, tags) {
  * answer of another shape comes back as { words: <all of it> }.
  */
 export function parseLinkAnswer(answer) {
-  const s = String(answer || '').replace(/^Unverified:[^\n]*\n+/, '');
+  const s = String(answer || '').replace(/^(Unverified|From your own words):[^\n]*\n+/, '');
   const out = { title: '', site: '', by: '', length: '', link: '', caption: '', words: '', how: '', note: '', shaped: false, kind: 'video' };
+  // YOUR OWN WORDS (DR-1203): a link that could not be read, answered by the
+  // words its sender wrote beside it. Kept apart from a source, so nothing
+  // here is ever presented as coming from the link.
+  const own = s.match(/^Your own words, sent with the link:\n([\s\S]*?)(?:\n\nThe link itself could not be read on our own machines: ([^\n]*))?\s*$/);
+  if (own) return { ...out, kind: 'words', words: own[1].trim(), note: own[2] ? `The link itself could not be read: ${own[2].trim()}` : '' };
   const lines = s.split('\n');
   const head = (lines[0] || '').match(/^(.*) \(([^()]+)\)\s*$/);
   if (!head || !lines.some((l) => /^Link: /.test(l))) return { ...out, words: s.trim() };
@@ -129,6 +134,9 @@ function contextLines({ itemBody, answer, unread }) {
   const l = [`What was sent: ${String(itemBody || '').trim()}`];
   if (unread) {
     l.push('', `THE LINK COULD NOT BE READ on our own machines: ${unread}`,
+      'What was sent with it is the request itself, in the words above. Nothing here is from the link.');
+  } else if (p.kind === 'words') {
+    l.push('', `THE LINK COULD NOT BE READ on our own machines${p.note ? ` (${p.note.replace(/^The link itself could not be read: /, '')})` : ''}.`,
       'What was sent with it is the request itself, in the words above. Nothing here is from the link.');
   } else if (p.shaped) {
     l.push('', 'THE SOURCE (every part kept, so the subject has its context):');

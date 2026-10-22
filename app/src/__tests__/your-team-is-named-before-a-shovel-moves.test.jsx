@@ -238,17 +238,34 @@ describe('the Team card on the screen', () => {
     );
   });
 
-  it('PROVEN TO CATCH: the card shows the slide’s emphasis and never calls it required', async () => {
+  it('PROVEN TO CATCH: the card says what the bold means in the video\'s words, and never calls it required', async () => {
     await pick(api());
     expect(host.textContent).not.toMatch(/required/i);
-    expect(host.textContent).toMatch(/It sets nine of them in bold and does not say what bold means/);
-    expect(host.textContent).toMatch(/9 of the 9 it emphasises are still to find/);
+    expect(byTest('dev-team-emphasis').textContent).toMatch(/Its nine in bold are, in the video’s words, “the core members of your team that you'll need even if you want to build a single-family home or a duplex”/);
+    expect(host.textContent).toMatch(/9 of those 9 are still to find/);
+    expect(host.textContent).not.toMatch(/does not say what bold means/);
   });
 
-  it('says whose the reading of the numbering is, so his list and mine are never one voice', async () => {
+  it('says whose the order is: the video\'s, never presented as the slide\'s', async () => {
     await pick(api());
-    expect(byTest('dev-team-reading').textContent)
-      .toMatch(/Reading the numbering \(read from the numbering by PoeTech, not stated on the slide\)/);
+    expect(byTest('dev-team-reading').textContent).toMatch(/^The order \(from the video\): Before an offer/);
+  });
+
+  it('each role opens what the video says about it: when, what they do, what to ask, ballpark pay with its caveat', async () => {
+    await pick(api());
+    const btn = [...host.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'What the video says about the Architect');
+    expect(btn).toBeTruthy();
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+    await act(async () => { btn.click(); });
+    const v = byTest('dev-team-video-architect');
+    expect(v.textContent).toMatch(/When: Before the offer, in due diligence/);
+    expect(v.textContent).toMatch(/Are you familiar with zoning in this county\?/);
+    expect(v.textContent).toMatch(/Ballpark pay: A draftsman for single-family and duplex plans about \$1–\$2 a foot/);
+    expect(v.textContent).toMatch(/His own ballpark figures from his Virginia projects/);
+    const ways = [...host.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Finding, vetting and keeping your team, from the video');
+    await act(async () => { ways.click(); });
+    expect(byTest('dev-team-ways').textContent).toMatch(/The state licensing board \(in Virginia, DPOR\)/);
+    expect(host.textContent).not.toMatch(/required/i);
   });
 
   it('clearing a role goes through delete, so the role becomes a gap again', async () => {
