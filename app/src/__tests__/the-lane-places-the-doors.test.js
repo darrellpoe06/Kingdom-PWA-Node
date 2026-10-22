@@ -116,7 +116,7 @@ describe('the lane', () => {
     expect(deploy).toMatch(/workflows\/complete-addresses\.yml\/dispatches/);
     expect(deploy).toMatch(/"then_place":"true"/);
     const chain = read('.github/workflows/complete-addresses.yml');
-    expect(chain).toMatch(/\n  place:\n    needs: complete\n    if: \$\{\{ always\(\) && github\.event\.inputs\.then_place == 'true' \}\}/);
+    expect(chain).toMatch(/\n {2}place:\n {4}needs: complete\n {4}if: \$\{\{ always\(\) && github\.event\.inputs\.then_place == 'true' \}\}/);
     expect(chain).toMatch(/workflows\/place-doors\.yml\/dispatches/);
     const sh = read('scripts/place-doors-over-tailnet.sh');
     expect(sh).toMatch(/area_lat is null or nearby is null/);          // doors not on the map, or never asked what is nearby (DR-1019)
