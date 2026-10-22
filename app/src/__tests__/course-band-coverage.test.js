@@ -109,7 +109,7 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(255); // 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
+    expect(baseline.allFour).toBe(256); // 256 on 2026-10-22: World Issues issue 22 (the broken seal and the sure foundation -- PHP's critical release and eight compromised eMudhra intermediate keys, checked with their owners and taught Word first, DR-1217), built from the forum post Darrell pasted with one word on it, carries all four age bands from the first commit; regenerated from the real catalog by course-band-baseline-write.mjs (was 255); 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
     // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1205),
     // the FIRST lesson built through the research road DR-1202 opened: Darrell sent an Instagram reel with one word on it, the NAS wrote
     // its words with a local Whisper model, and the lesson was built from the transcript. It carries all four age bands from the first
