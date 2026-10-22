@@ -32,6 +32,50 @@ export const buildingKeyOf = (r) => {
   return b || null;
 };
 
+// THE BUILDING A DOOR BELONGS TO, read across its siblings (Darrell 2026-10-22:
+// "805 N Prospect Ave Champaign IL the building... not one of the apartments").
+// Measured on the live database (building-probe): 805's five doors share one
+// address and each carries its unit label, but only ONE carries the building
+// label, so the per-record key above left four of them standing alone and the
+// building never read as one. A door's building is therefore:
+//   1. its own building label, when it has one;
+//   2. else the one building label its address-siblings carry (exactly one);
+//   3. else its address, when two or more doors share that address;
+//   4. else none: it stands alone.
+// Two different labels at one address (a complex of buildings) stay apart:
+// the unlabelled doors there are not guessed into either.
+const addressKeyOf = (r) => String((r && r.address) || '').toLowerCase().replace(/[.,#]/g, ' ').replace(/\s+/g, ' ').trim();
+
+export function buildingResolver(rentals = []) {
+  const byAddr = new Map(); // address key -> { count, labels: Set }
+  for (const r of Array.isArray(rentals) ? rentals : []) {
+    const a = addressKeyOf(r);
+    if (!a) continue;
+    const slot = byAddr.get(a) || { count: 0, labels: new Set() };
+    slot.count += 1;
+    const own = buildingKeyOf(r);
+    if (own) slot.labels.add(own);
+    byAddr.set(a, slot);
+  }
+  return (r) => {
+    const own = buildingKeyOf(r);
+    if (own) return own;
+    const slot = byAddr.get(addressKeyOf(r));
+    if (!slot) return null;
+    if (slot.labels.size === 1) return [...slot.labels][0];
+    if (slot.labels.size === 0 && slot.count >= 2) return String(r.address).trim();
+    return null;
+  };
+}
+
+// Every building of two or more doors, in first-seen order:
+// [{ key, label, doors: [...] }]. The key is what a building work order links to.
+export function buildingsOf(rentals = []) {
+  return groupDoorsByBuilding(rentals)
+    .filter((e) => e.type === 'building')
+    .map((e) => ({ key: e.key, label: e.building, doors: e.units }));
+}
+
 // A short per-unit label for a door within its building. Prefers an explicit
 // unitLabel; else derives from the trailing "Apt 3" / "Unit 4" / "#2" in the
 // name; else falls back to the whole name.
@@ -70,9 +114,10 @@ export function groupDoorsByBuilding(rentals = []) {
   const order = [];            // building keys in first-seen order
   const byKey = new Map();     // key -> units[]
   const singles = [];          // { idx, rental } for lone doors
+  const keyOf = buildingResolver(list);
 
   list.forEach((r, idx) => {
-    const key = buildingKeyOf(r);
+    const key = keyOf(r);
     if (key) {
       if (!byKey.has(key)) { byKey.set(key, []); order.push({ key, idx }); }
       byKey.get(key).push(r);
@@ -168,3 +213,35 @@ export function buildNewBuildingDoors(base = {}, labels = []) {
 
 // Re-export so callers can filter personal rows before grouping in one import.
 export { isPersonalProp };
+
+// WHAT THE BUILDING'S OWN RECORD IS MISSING, read from its doors (Darrell
+// 2026-10-22: "There is only 4 apartments in the building" and "We were
+// splitting apt 4 after the current tenant moves to another one of our bigger
+// properties"). Measured on 805 (building-probe): five door records, four of
+// them without the building label, and two of them labelled "Apt 4" (the one
+// with the tenant, and the split half added 2026-08-28, unrented). So the
+// building counts its APARTMENTS by distinct unit label, names the doors that
+// are missing the building label so one tap can fill it in, and names the
+// labels on record twice, so the split half can be named apart. Nothing is
+// guessed: the caller writes only what the person confirms.
+export function buildingRecordGaps(units = [], key = '') {
+  const doors = Array.isArray(units) ? units : [];
+  const missingLabel = doors.filter((r) => !buildingKeyOf(r) && key);
+  const byLabel = new Map();
+  for (const r of doors) {
+    const l = unitLabelOf(r);
+    const k = l.toLowerCase();
+    if (!byLabel.has(k)) byLabel.set(k, { label: l, doors: [] });
+    byLabel.get(k).doors.push(r);
+  }
+  const duplicates = [...byLabel.values()].filter((g) => g.doors.length > 1);
+  return { apartments: byLabel.size, records: doors.length, missingLabel, duplicates };
+}
+
+// The name a split half is offered first: its label with the next letter
+// ("Apt 4" -> "Apt 4B"), a suggestion the person can change before it is saved.
+export const splitHalfLabel = (label) => {
+  const l = String(label || '').trim();
+  if (!l) return '';
+  return /[A-Za-z]$/.test(l) && /\d[A-Za-z]$/.test(l) ? `${l.slice(0, -1)}${String.fromCharCode(l.slice(-1).toUpperCase().charCodeAt(0) + 1)}` : `${l}B`;
+};

@@ -144,7 +144,7 @@ describe('the Governor’s queue', () => {
 
   it('the queue sits behind the Governor gate, and the database is the real gate (source pins)', () => {
     const projects = read('app/src/components/Projects.jsx');
-    expect(projects).toMatch(/subView === 'governance' && isGovernor && \([\s\S]*?<MemberLessonQueue signedIn=\{!!currentUserId\} \/>[\s\S]*?<GovernanceQueue/);
+    expect(projects).toMatch(/id === 'governance' && isGovernor && \([\s\S]*?<MemberLessonQueue signedIn=\{!!currentUserId\} \/>[\s\S]*?<GovernanceQueue/);
     // Only the Governor opens the queue or decides.
     expect(MIG).toMatch(/member_lesson_queue\(\)[\s\S]*?IF NOT public\.is_lesson_governor\(\) THEN\s+RAISE EXCEPTION/);
     expect(MIG).toMatch(/review_member_lesson\(p_row uuid[\s\S]*?IF NOT public\.is_lesson_governor\(\) THEN\s+RAISE EXCEPTION/);

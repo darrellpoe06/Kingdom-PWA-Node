@@ -66,6 +66,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md`
 - `docs/00-foundations/_root/THE-WAY-A-SERVICE-COMES-HOME.md` — how a job a subscription did comes home onto our own hardware: weighed, files owned, one locked door, installs itself on every path, says why, a witness that says where the install stands, shown in the app, seeds the next (DR-1119; gate `a-service-comes-home.test.js`).
 - `docs/00-foundations/_root/FROM-A-LINK-TO-WHAT-IT-WAS-SENT-FOR.md` — the process a link, a question or a teaching follows from being sent to becoming a lesson (Word first) or a feature: rung, claimed as a batch, words by more than one road, read, filed once, shown with all its context (DR-1202; gate `a-link-becomes-what-it-was-sent-for.test.jsx`).
+- `docs/00-foundations/_root/A-WORK-ORDER-FROM-CALL-TO-CLOSE.md` — the work-order procedure across the three stores (Real Estate work orders, Poe Properties requests, property boards): one building with flexible doors, filed from scratch, put on a worker, checked, closed with what was done; the failure table and the dated constraints (DR-1216; gate `a-building-work-order-from-call-to-close.test.jsx`).
 - `docs/00-foundations/_root/IDENTITY-ROLES-AUDIT.md`
 - `docs/00-foundations/_root/IN-PLACE-FIRST.md`
 - `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md`
