@@ -28,6 +28,7 @@ import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfoli
 import { doorState } from '../lib/real-estate-door.js';
 import RealEstateDoor from './RealEstateDoor.jsx';
 import { recordSummary } from '../lib/property-record-counts.js';
+import { assetBooksYear } from '../modules/properties/model.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import CarryUpRecords from './CarryUpRecords.jsx';
@@ -116,8 +117,9 @@ const prettifyShortName = (s) => String(s || '')
   .trim();
 const propertyLabel = (r) => {
   if (!r) return 'Property';
-  const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ');
-  if (r.address && /\s/.test(String(r.address).trim())) return full;
+  // THE ONE FORMATTER (DR-0999, DR-1211): the title is the building line Poe
+  // Properties prints, so a door reads the same on both tabs, ZIP and all.
+  if (r.address && /\s/.test(String(r.address).trim())) return formatBuilding({ address: r.address, city: r.city, state: r.state, zip: r.zip });
   return prettifyShortName(r.name || r.address || 'Property');
 };
 // Total photos on a property: room-filed photos + maintenance-log photos. Shown
@@ -655,7 +657,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
   );
 }
 
-function PropertyDetails({ rental, updateRental, paid = null }) {
+function PropertyDetails({ rental, updateRental, paid = null, books = null }) {
   const [lightbox, setLightbox] = useState(null);
   // Lease + tenant — single edit form (collapsible).
   const blankLease = () => ({
@@ -1075,7 +1077,7 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
 
       {/* RENT — PAID VS DUE (build step b): per-door-month payment entry +
           history over the shipped ledger (lib/rent-payments.js). */}
-      <RentLedger rental={rental} />
+      <RentLedger rental={rental} books={books} label={propertyLabel(rental)} />
 
       {/* EQUIPMENT */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
@@ -1156,7 +1158,7 @@ const RECORD_TABS = [
   { id: 'tenancy', label: 'Tenancy', count: null },
 ];
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {} }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {}, books = null }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -2219,6 +2221,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           👤 <strong>{r.tenantName}</strong>
                         </div>
                       )}
+                      {books && r.remoteUuid && (() => {
+                        // THE ASSET'S OWN MONEY, FROM THE BOOKS (DR-1211): the
+                        // entries linked to this door this year, the same rows
+                        // the books show, so the door and the books agree.
+                        const year = String(currentDate || new Date().toISOString()).slice(0, 4);
+                        const b = assetBooksYear(books.transactions, r.remoteUuid, year);
+                        return (
+                          <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" data-testid="re-asset-books">
+                            {b.count ? `In the books, ${year}: ${fmt(b.total)} across ${b.count} entr${b.count === 1 ? 'y' : 'ies'}` : `Nothing in the books for this door in ${year} yet`}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="text-right">
                       {(r.rent || 0) > 0 ? (
@@ -2454,7 +2468,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
                       </>)}
                       {recTab === 'property' && (<>
-                      <PropertyDetails rental={r} updateRental={updateRental} paid={paidPortfolio.byDoor[r.remoteUuid]} />
+                      <PropertyDetails rental={r} updateRental={updateRental} paid={paidPortfolio.byDoor[r.remoteUuid]} books={books} />
                       </>)}
                       {recTab === 'property' && (<>
                       {/* Restore a collapsed multi-unit building into separate
