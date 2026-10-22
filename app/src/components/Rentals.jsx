@@ -117,7 +117,7 @@ const prettifyShortName = (s) => String(s || '')
   .trim();
 const propertyLabel = (r) => {
   if (!r) return 'Property';
-  // THE ONE FORMATTER (DR-0999, DR-1209): the title is the building line Poe
+  // THE ONE FORMATTER (DR-0999, DR-1211): the title is the building line Poe
   // Properties prints, so a door reads the same on both tabs, ZIP and all.
   if (r.address && /\s/.test(String(r.address).trim())) return formatBuilding({ address: r.address, city: r.city, state: r.state, zip: r.zip });
   return prettifyShortName(r.name || r.address || 'Property');
@@ -2222,7 +2222,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         </div>
                       )}
                       {books && r.remoteUuid && (() => {
-                        // THE ASSET'S OWN MONEY, FROM THE BOOKS (DR-1209): the
+                        // THE ASSET'S OWN MONEY, FROM THE BOOKS (DR-1211): the
                         // entries linked to this door this year, the same rows
                         // the books show, so the door and the books agree.
                         const year = String(currentDate || new Date().toISOString()).slice(0, 4);

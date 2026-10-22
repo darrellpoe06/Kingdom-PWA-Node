@@ -86,7 +86,7 @@ import { holdTheRecords } from './hold-the-record.js';
 import { PROPERTY_CHANNELS } from '../../lib/nas-photos.js';
 
 const ACCENT = '#2F5D50';
-// The books sweep (DR-1209) posts at most this many rent records a pass.
+// The books sweep (DR-1211) posts at most this many rent records a pass.
 const POST_SWEEP_MAX = 60;
 
 // THE TWO WAYS A TILE GETS ITS BYTES (DR-0955). Both by id, both bounded, both
@@ -1157,7 +1157,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   };
 
   // The books entry for one rent record, named by ITS door (not whichever door
-  // is open), with that door's owning business (DR-1209).
+  // is open), with that door's owning business (DR-1211).
   const bookEntryFor = (rentRow) => {
     const door = (rawRentals || []).find((r) => r && r.id === rentRow.rental_id) || null;
     return rentRecordToBookEntry(rentRow, {
@@ -1181,7 +1181,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     refresh();
   };
 
-  // MONEY ADDED HERE GOES TO THE BOOKS, BY ITSELF (DR-1209). Darrell,
+  // MONEY ADDED HERE GOES TO THE BOOKS, BY ITSELF (DR-1211). Darrell,
   // 2026-10-22: "Money added to this tab needs to also go to books for each
   // asset." A confirmed payment used to wait for a "Post to books" press that
   // nothing prompted, so the books missed it. Inside the PoeTech app (where

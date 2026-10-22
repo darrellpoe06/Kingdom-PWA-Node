@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// The rent goes to the books, of its asset, once (DR-1209)
+// The rent goes to the books, of its asset, once (DR-1211)
 // =============================================================================
 // Darrell, 2026-10-22: "Money added to this tab needs to also go to books for
 // each asset... also should be synced with the assets tab." MEASURED before

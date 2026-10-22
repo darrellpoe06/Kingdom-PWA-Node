@@ -87,7 +87,7 @@ export default function RentLedger({ rental, books = null, label = '' }) {
         expectedAmount: due, amount: form.amount, method: form.method, location: form.location,
       });
       if (!res.ok) { setMsg(`Couldn't record: ${res.reason.replace(/-/g, ' ')}.`); setBusy(false); return; }
-      // THE MONEY GOES TO THE BOOKS TOO (DR-1209): the same payment, as a
+      // THE MONEY GOES TO THE BOOKS TOO (DR-1211): the same payment, as a
       // rental-income entry on this asset and its business, once. When the
       // same door, amount and month are already in the books (entered on Poe
       // Properties instead), nothing is posted twice.

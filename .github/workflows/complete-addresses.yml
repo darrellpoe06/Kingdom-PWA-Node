@@ -1,5 +1,5 @@
 # =============================================================================
-# Complete addresses — each door's address held whole, from evidence (DR-1209)
+# Complete addresses — each door's address held whole, from evidence (DR-1211)
 # =============================================================================
 # Darrell, 2026-10-22: "fix the addresses to reflect the correct addresses and
 # not the abbreviated addresses... Each asset should work end to end." The
@@ -16,7 +16,7 @@
 # PUBLIC RUN PAGES: the trace names each door by the first eight characters of
 # its id and says what it did; never an address, never a name.
 #
-# THE CHAIN (repeatable, DR-1209): every successful deploy dispatches this with
+# THE CHAIN (repeatable, DR-1211): every successful deploy dispatches this with
 # write=true and then_place=true; it completes what it can prove and then
 # dispatches place-doors.yml, so the map places doors from whole addresses.
 #
@@ -91,7 +91,7 @@ jobs:
           printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/after.json && node scripts/complete-addresses.mjs /tmp/after.json > /dev/null 2> /tmp/after.txt
           echo "after the write:"; cat /tmp/after.txt
 
-  # THE DOORS ARE PLACED EVEN WHEN THIS LANE FAILS (DR-1209): a job of its
+  # THE DOORS ARE PLACED EVEN WHEN THIS LANE FAILS (DR-1211): a job of its
   # own, so a timeout or a red step above can never stop the door placer
   # the deploy used to dispatch directly.
   place:

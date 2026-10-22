@@ -47,7 +47,7 @@ export function fromCensus(body) {
 /**
  * Nominatim: [{lat: "40.1", lon: "-88.2", display_name, address: {...}}].
  * With addressdetails the answer also carries its PARTS, so a door's address
- * can be completed from what was matched (DR-1209); without them it is a point.
+ * can be completed from what was matched (DR-1211); without them it is a point.
  */
 export function fromNominatim(body) {
   const m = Array.isArray(body) ? body[0] : null;

@@ -22,7 +22,7 @@ import { createTableSync } from './table-sync.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** A books entry as its cloud row (exported for its tests, DR-1209). */
+/** A books entry as its cloud row (exported for its tests, DR-1211). */
 export function transactionToRow(item, { tenantId, userId }) {
     return {
       instance_id:            tenantId,
@@ -37,7 +37,7 @@ export function transactionToRow(item, { tenantId, userId }) {
       is_transfer:          !!item.isTransfer,
       reconciliation:       item.reconciliation ?? null,
       receipt:              item.receipt ?? null,
-      // THE ASSET THIS MONEY BELONGS TO (DR-1209). The columns have existed
+      // THE ASSET THIS MONEY BELONGS TO (DR-1211). The columns have existed
       // since schema v1 and were never sent, so a rent entry reached the books
       // naming its door only inside its description. A door's id is a uuid,
       // so only a uuid is ever written; anything else is no link.

@@ -1,4 +1,4 @@
-# DR-1209: Each asset works end to end — its address held whole from evidence, and its money in its books
+# DR-1211: Each asset works end to end — its address held whole from evidence, and its money in its books
 
 **Date:** 2026-10-22
 **Status:** accepted

@@ -451,7 +451,7 @@ export async function confirmRent(id, client = supabase) {
 /**
  * Every confirmed rent record not yet in the books, across all the doors the
  * signed-in person can see (RLS decides which; the client never scopes by
- * tenancy). The books side posts each ONCE (posted_tx_id), DR-1209.
+ * tenancy). The books side posts each ONCE (posted_tx_id), DR-1211.
  */
 export async function loadUnpostedRent(client = supabase) {
   try {

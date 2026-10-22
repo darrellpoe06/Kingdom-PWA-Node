@@ -495,14 +495,14 @@ export function rentRecordToBookEntry(record = {}, { propertyLabel = '', unitLab
     description: `Rent${record.for_period ? ` ${record.for_period}` : ''}${door ? ` — ${door}` : ''}`,
     amount,
     type: 'income',
-    // THE BOOKS' OWN SLUG (DR-1209). This said 'Rental Income' -- the label --
+    // THE BOOKS' OWN SLUG (DR-1211). This said 'Rental Income' -- the label --
     // and the books keep only their slugs (BooksTransactions coerces anything
     // else to 'other'), so every rent posted from Properties counted as
     // "other" and no rental-income total or report ever saw it.
     category: 'rental-income',
     entityId,
     accountId,
-    // WHICH BUSINESS, AND WHICH ASSET (DR-1209): the door's owning entity, and
+    // WHICH BUSINESS, AND WHICH ASSET (DR-1211): the door's owning entity, and
     // the door itself by its id, so the books can be read per asset.
     entityOverride: entitySlug || null,
     linkedToKind: record.rental_id ? 'rental' : null,
@@ -517,7 +517,7 @@ export function rentRecordToBookEntry(record = {}, { propertyLabel = '', unitLab
  * Is this payment already in the books? The same rent can be entered on
  * either tab -- Poe Properties (rent_records) or Real Estate (rent_payments)
  * -- and each is a different table, so the books are asked: an entry for the
- * same asset, the same amount, in the same month, is the same money (DR-1209).
+ * same asset, the same amount, in the same month, is the same money (DR-1211).
  */
 export function alreadyInBooks(transactions = [], { rentalId, amount, date }) {
   const month = String(date || '').slice(0, 7);
@@ -528,7 +528,7 @@ export function alreadyInBooks(transactions = [], { rentalId, amount, date }) {
     && String(t.date || '').slice(0, 7) === month);
 }
 
-/** A payment recorded on Real Estate's rent ledger, as the books entry it is (DR-1209). */
+/** A payment recorded on Real Estate's rent ledger, as the books entry it is (DR-1211). */
 export function rentPaymentToBookEntry({ leaseId, month, amount, at, rentalId, entitySlug = null, label = '' } = {}) {
   const when = String(at || '').slice(0, 10) || `${String(month || '').slice(0, 7)}-01`;
   return {
@@ -650,7 +650,7 @@ export function coLivingTag(rental, siblings = 0) {
 
 /**
  * What the books hold for one asset in one year: {total, count} from the
- * entries linked to it (DR-1209), so a door shows the money the books show.
+ * entries linked to it (DR-1211), so a door shows the money the books show.
  */
 export function assetBooksYear(transactions = [], rentalId, year) {
   let total = 0; let count = 0;

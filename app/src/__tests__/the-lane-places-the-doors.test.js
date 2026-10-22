@@ -107,7 +107,7 @@ describe('the lane', () => {
     expect(wf).toMatch(/PLACE_DOORS_ENABLED != 'false'/);             // KILL
     expect(wf).toMatch(/tailscale\/github-action@v3/);
     expect(wf).toMatch(/bash scripts\/place-doors-over-tailnet\.sh/);
-    // THE CHAIN (DR-1209): a successful deploy dispatches the address
+    // THE CHAIN (DR-1211): a successful deploy dispatches the address
     // completer with then_place, and IT dispatches the door placer from a job
     // of its own that runs whatever the completer did (always()), so the doors
     // are still placed after every deploy, now from whole addresses.
