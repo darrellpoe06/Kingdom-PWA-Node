@@ -44,11 +44,20 @@ export function fromCensus(body) {
   return isPoint(lat, lng) ? { lat, lng, matched: String(m.matchedAddress || ''), source: 'census' } : null;
 }
 
-/** Nominatim: [{lat: "40.1", lon: "-88.2", display_name}]. */
+/**
+ * Nominatim: [{lat: "40.1", lon: "-88.2", display_name, address: {...}}].
+ * With addressdetails the answer also carries its PARTS, so a door's address
+ * can be completed from what was matched (DR-1211); without them it is a point.
+ */
 export function fromNominatim(body) {
   const m = Array.isArray(body) ? body[0] : null;
   const lat = Number(m?.lat); const lng = Number(m?.lon);
-  return isPoint(lat, lng) ? { lat, lng, matched: String(m.display_name || ''), source: 'openstreetmap' } : null;
+  if (!isPoint(lat, lng)) return null;
+  const a = (m && m.address) || {};
+  const parts = a.house_number && a.road
+    ? { number: String(a.house_number), street: String(a.road), city: String(a.city || a.town || a.village || a.hamlet || ''), state: String(a.state || ''), zip: String(a.postcode || '') }
+    : null;
+  return { lat, lng, matched: String(m.display_name || ''), source: 'openstreetmap', ...(parts ? { parts } : {}) };
 }
 
 /** {ok:true, lat, lng, matched, source} or {ok:false, reason}. Never throws. */
@@ -63,7 +72,7 @@ export async function geocode(q, { fetchImpl = fetch, timeoutMs = TIMEOUT_MS } =
     tried.push('census: no match');
   } catch (e) { tried.push(`census: ${e.message}`); }
   try {
-    const u = `${NOMINATIM}?${new URLSearchParams({ q: query, format: 'jsonv2', limit: '1', countrycodes: 'us' })}`;
+    const u = `${NOMINATIM}?${new URLSearchParams({ q: query, format: 'jsonv2', limit: '1', countrycodes: 'us', addressdetails: '1' })}`;
     const hit = fromNominatim(await getJson(u, fetchImpl, timeoutMs, { 'user-agent': UA }));
     if (hit) return { ok: true, ...hit };
     tried.push('openstreetmap: no match');

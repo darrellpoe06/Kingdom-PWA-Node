@@ -25,6 +25,7 @@ import { getInstanceId } from '../lib/table-sync.js';
 import { loadLeasesByRental } from '../lib/lease-sync.js';
 import { recordRentPayment, loadRentPayments, paidPercent } from '../lib/rent-payments.js';
 import { buildTenantStatement } from '../lib/rent-statement.js';
+import { rentPaymentToBookEntry, alreadyInBooks } from '../modules/properties/model.js';
 
 const METHODS = [['cash', 'Cash'], ['check', 'Check'], ['ach', 'ACH / bank'], ['zelle', 'Zelle'], ['venmo', 'Venmo'], ['cashapp', 'Cash App'], ['other', 'Other']];
 const fmt = (n) => `$${(Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -47,7 +48,7 @@ export function PaidBar({ received, expected }) {
   );
 }
 
-export default function RentLedger({ rental }) {
+export default function RentLedger({ rental, books = null, label = '' }) {
   const [state, setState] = useState({ phase: 'loading', lease: null, rows: [], error: '' });
   const [form, setForm] = useState({ month: thisMonth(), amount: '', method: 'zelle', location: '' });
   const [busy, setBusy] = useState(false);
@@ -86,8 +87,25 @@ export default function RentLedger({ rental }) {
         expectedAmount: due, amount: form.amount, method: form.method, location: form.location,
       });
       if (!res.ok) { setMsg(`Couldn't record: ${res.reason.replace(/-/g, ' ')}.`); setBusy(false); return; }
+      // THE MONEY GOES TO THE BOOKS TOO (DR-1211): the same payment, as a
+      // rental-income entry on this asset and its business, once. When the
+      // same door, amount and month are already in the books (entered on Poe
+      // Properties instead), nothing is posted twice.
+      let booked = '';
+      if (books && typeof books.postEntry === 'function') {
+        const entry = rentPaymentToBookEntry({
+          leaseId: state.lease.leaseId, month: form.month, amount: form.amount, at: new Date().toISOString(),
+          rentalId: rental.remoteUuid || null, entitySlug: rental.entityId || null, label,
+        });
+        if (alreadyInBooks(books.transactions, { rentalId: entry.linkedToId, amount: entry.amount, date: entry.date })) {
+          booked = ' Already in the books.';
+        } else {
+          books.postEntry(entry);
+          booked = ' Added to the books.';
+        }
+      }
       setForm((f) => ({ ...f, amount: '', location: '' }));
-      setMsg(`Recorded — ${res.status} · ${res.percent}% paid for ${form.month}.`);
+      setMsg(`Recorded — ${res.status} · ${res.percent}% paid for ${form.month}.${booked}`);
       await load();
     } catch (e) {
       setMsg(`Couldn't record: ${(e && e.message) || 'error'}.`);

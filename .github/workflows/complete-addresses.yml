@@ -1,0 +1,112 @@
+# =============================================================================
+# Complete addresses — each door's address held whole, from evidence (DR-1211)
+# =============================================================================
+# Darrell, 2026-10-22: "fix the addresses to reflect the correct addresses and
+# not the abbreviated addresses... Each asset should work end to end." The
+# live rows were measured first (rentals-address-probe, run 39717503181): eight
+# of thirteen doors held an incomplete address in the one record Poe
+# Properties and Real Estate both read.
+#
+# This reads the doors from the database the app reads, asks the same /geocode
+# lookup the app trusts (Census, then OpenStreetMap) with the rules in
+# app/src/modules/properties/complete-address.js, and, with write=true, writes
+# each completion through a guarded UPDATE carrying the app's own edit trace.
+# write=false (the default) prints what it WOULD do and writes nothing.
+#
+# PUBLIC RUN PAGES: the trace names each door by the first eight characters of
+# its id and says what it did; never an address, never a name.
+#
+# THE CHAIN (repeatable, DR-1211): every successful deploy dispatches this with
+# write=true and then_place=true; it completes what it can prove and then
+# dispatches place-doors.yml, so the map places doors from whole addresses.
+#
+# THE SECOND ROAD: a house the map cannot find is asked of the research road
+# (the NAS /ask, web sources), and the lane reads each source page itself,
+# from a public address only; a page is evidence only when it shows this
+# house, in its own town, with a ZIP.
+#
+# THE BRAKES (deterministic class, DR-0248: budget + lock): at most 30 lookups
+# and 4 research questions a run; 15 minutes; single instance (a new fire queues). It is
+# idempotent: a completed door no longer wants completing, and a door a family
+# member edited in between is left alone (the UPDATE matches only the values
+# that were read).
+name: Complete addresses (whole addresses on the database the app reads)
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: 'Write the completions (true) or only say what they would be (false)'
+        required: false
+        default: 'false'
+      then_place:
+        description: 'When done, dispatch place-doors.yml (the deploy chain sets this)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: complete-addresses
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WRITE: ${{ github.event.inputs.write || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the doors, ask the map, and complete what it proves
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          umask 077; KF="$(mktemp)"; printf '%s\n' "$NAS_SSH_KEY" > "$KF"; export NAS_SSH_KEY_FILE="$KF"; trap 'rm -f "$KF"' EXIT
+          Q="SELECT coalesce(json_agg(json_build_object('id', id, 'slug', slug, 'notes', notes, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'zip', zip, 'display_name', display_name) ORDER BY slug), '[]'::json) FROM public.rentals;"
+          printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/rows.json || { echo "::error::could not read the doors"; exit 1; }
+          node scripts/complete-addresses.mjs /tmp/rows.json > /tmp/updates.sql 2> /tmp/trace.txt; rc=$?
+          cat /tmp/trace.txt
+          [ "$rc" = 0 ] || { echo "::error::the completion could not run"; exit 1; }
+          n=$(grep -c '^UPDATE ' /tmp/updates.sql || true)
+          { echo "### Complete addresses"; echo; sed 's/^/    /' /tmp/trace.txt; echo; echo "statements: $n · write: $WRITE"; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$WRITE" != "true" ] || [ "$n" = 0 ]; then echo "nothing written (write=$WRITE, statements=$n)"; exit 0; fi
+          ok=0
+          while IFS= read -r stmt; do
+            [ -n "$stmt" ] || continue
+            res=$(printf '%s\n' "$stmt" | bash scripts/live-sql.sh '|' 2>&1); code=$?
+            if [ "$code" = 0 ]; then ok=$((ok + 1)); fi
+          done < /tmp/updates.sql
+          echo "written: $ok of $n" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/after.json && node scripts/complete-addresses.mjs /tmp/after.json > /dev/null 2> /tmp/after.txt
+          echo "after the write:"; cat /tmp/after.txt
+
+  # THE DOORS ARE PLACED EVEN WHEN THIS LANE FAILS (DR-1211): a job of its
+  # own, so a timeout or a red step above can never stop the door placer
+  # the deploy used to dispatch directly.
+  place:
+    needs: complete
+    if: ${{ always() && github.event.inputs.then_place == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Dispatch place-doors.yml on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/place-doors.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "place-doors dispatched" | tee -a "$GITHUB_STEP_SUMMARY"
