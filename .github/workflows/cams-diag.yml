@@ -238,11 +238,11 @@ jobs:
           print("by who ended it: %s" % (", ".join("%s=%d" % kv for kv in sorted(le.get("by_why",{}).items())) or "none yet"))
           now=time.time()
           ends=le.get("ends",[])
-          # DR-1097 twenty-first read: r is the app's own reconnect count on the URL
+          # DR-1097 twenty-first read: r is the reconnect count the app puts on the URL
           # (0 = a tile mounted fresh: opened, tapped or navigated to); "-" = an older forwarder
           if ends and "r" in ends[0]:
               re_=sum(1 for e in ends if (e.get("r") or 0) > 0)
-              print("opened by the app's own reconnect: %d of %d (a tile mounted fresh, r=0: %d)" % (re_, len(ends), len(ends)-re_))
+              print("reopened by the app itself: %d of %d (a tile mounted fresh, r=0: %d)" % (re_, len(ends), len(ends)-re_))
           for e in ends[:40]:
               r=e.get("r")
               print("  %5ds ago  %-34s %6.1f s %7d KB  r=%-3s %s" % (now-e.get("at",now), str(e.get("camera"))[:34], e.get("s",0), e.get("kb",0), "-" if r is None else r, e.get("why")))
