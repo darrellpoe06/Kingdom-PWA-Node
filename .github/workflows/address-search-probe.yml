@@ -41,7 +41,7 @@ jobs:
         run: |
           set -uo pipefail
           cat > /tmp/search.sql <<'SQL'
-          BEGIN READ ONLY;
+          BEGIN;  -- not READ ONLY: it writes only its own temp tables, and ends in ROLLBACK
           SET LOCAL statement_timeout = '60s';
           CREATE TEMP TABLE doors(tag text, pat text) ON COMMIT DROP;
           INSERT INTO doors VALUES
