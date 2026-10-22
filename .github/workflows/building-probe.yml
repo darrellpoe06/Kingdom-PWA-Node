@@ -1,0 +1,59 @@
+# building-probe -- how 805 N Prospect is shaped in the live data, measured before
+# building work orders are built
+#
+# WHY (2026-10-22, Darrell): "805 N Prospect Ave Champaign IL the building... not
+# one of the apartments... we need work done in the foyer... and other basement
+# activities... how do we add a work order from scratch". The runner measures
+# the live shape first (DR-0076 section 4; the sandbox has no route to the
+# database).
+#
+# PUBLIC RUN PAGES: counts and booleans only; never an address, a name or a label.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): one read-only
+# transaction, 5 minutes, concurrency group `building-probe`. Temporary:
+# removed in the same PR that builds building work orders.
+
+name: building-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/building-work-orders]
+    paths: ['.github/workflows/building-probe.yml']
+
+concurrency:
+  group: building-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: The building's shape (read only, counts only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/m.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == 1. rentals whose address starts 805 (rows|with a building label|distinct building labels|with a unit label|distinct addresses) ==
+          SELECT count(*), count(*) FILTER (WHERE coalesce(building_label,'')<>''), count(DISTINCT building_label), count(*) FILTER (WHERE coalesce(unit,'')<>''), count(DISTINCT address)
+            FROM rentals WHERE address ILIKE '805%';
+          \echo == 2. every building label in use (doors per label, label length only) ==
+          SELECT length(building_label), count(*) FROM rentals WHERE coalesce(building_label,'')<>'' GROUP BY building_label ORDER BY 2 DESC;
+          \echo == 3. rentals overall (rows|with building label) ==
+          SELECT count(*), count(*) FILTER (WHERE coalesce(building_label,'')<>'') FROM rentals;
+          \echo == 4. incidents linked to a rental by kind (kind|rows) ==
+          SELECT coalesce(linked_to_kind,'(none)'), count(*) FROM incidents GROUP BY 1 ORDER BY 1;
+          ROLLBACK;
+          SQL
+          bash scripts/live-sql.sh '|' < /tmp/m.sql
