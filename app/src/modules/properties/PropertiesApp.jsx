@@ -1782,7 +1782,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 }} />
               : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras}
                   rentalId={askDoorId} instanceId={(activeRental || activeDoor)?.instance_id || null}
-                  me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} />;
+                  me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} role={role} />;
           case 'people':
             return (<>
               <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
