@@ -77,6 +77,10 @@ And because the paste-ready line in step 2 is where a wrong number actually gets
 - **It does not reduce the collision RATE at all.** DR-1195 measured that rate and found it holding; this makes each collision cheaper to resolve correctly, nothing more.
 - **`claim-decision-number.mjs` has its own blind spot, inherited unchanged:** it cannot see two sessions that both run it in the same minute before either pushes. DR-1079 names that, and only a shared reservation fixes it.
 
+  **That blind spot then happened to this record, before it merged, and the timing was measured rather than assumed.** `dr-number-claim` reported DR-1209 contested between this branch and #2392 (`DR-1209-each-asset-works-end-to-end-its-address-and-its-money.md`). Git says this branch's record was committed and pushed at **04:03**; #2392's was committed at **04:10:57**, seven minutes later. The tool, run at 04:05, reported `next free decision number: DR-1209 … 41 number(s) held by unlanded branches, 0 of them at or above DR-1210` — **correct at the moment it was asked, and stale seven minutes later.** Nothing was wrong with the scan; the number was genuinely free when each side looked. That is the race, exactly as DR-1079 described it, caught on the record that documents it.
+
+  **And nothing is renumbered here on that account.** DR-1136 makes merge order the only tiebreak, and the check's own words are *"renumbering into a number that is still moving is the treadmill this exists to end."* Whichever of the two lands second moves, on a clean tree, with the tool re-run at that moment — which is precisely the instruction this record just put into the refusal. The rule and the evidence arrived together.
+
 ## Proven to catch (DR-0076 §3)
 
 The three new assertions sit in the existing refusal case, which already pinned the number and the order, so the whole message is now held by one test:
