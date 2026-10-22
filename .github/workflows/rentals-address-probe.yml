@@ -1,0 +1,80 @@
+# rentals-address-probe -- does the cloud row hold the whole address Real Estate is not showing?
+#
+# WHY (2026-10-22, Darrell): "The property addresses from the Properties tab
+# are correct... the ones in the Real Estate are not complete... Each asset
+# should work end to end." Poe Properties reads the cloud `rentals` row; Real
+# Estate reads its device copy merged over that row (lib/rentals-sync.js
+# mergeRemoteRentals). Before anything is changed, the runner measures the
+# cloud side (DR-0076 section 4; the sandbox has no route to the database).
+#
+# PUBLIC RUN PAGES: this prints the SHAPE of each address only (house number
+# present, the street-type word, town, state form, ZIP, unit) and edit times,
+# never a whole address and never a tenant's name.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): one read-only
+# statement block, 5 minutes, concurrency group `rentals-address-probe`.
+
+name: rentals-address-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-f1e2f200-2gkouu]
+    paths: ['.github/workflows/rentals-address-probe.yml']
+
+concurrency:
+  group: rentals-address-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  shape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: The shape of every rentals row's address (read only, no whole address, no names)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/shape.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == 1. rows per instance (instance|rows) ==
+          SELECT i.slug, count(*) FROM rentals r JOIN instances i ON i.id=r.instance_id GROUP BY 1 ORDER BY 1;
+          \echo == 2. each row (slug8|house no|street word|street words|town|state form|zip|unit|building|name=address|name words|updated|created) ==
+          SELECT left(r.slug,8),
+                 (coalesce(r.address,'') ~ '^\s*\d+'),
+                 coalesce(substring(trim(regexp_replace(coalesce(r.address,''), '[,\s]+(apt|apartment|unit|suite|ste|room|rm|bed|#)\.?\s*[A-Za-z0-9-]+\s*$', '', 'i')) from '([A-Za-z.]+)\s*$'),'-'),
+                 coalesce(array_length(regexp_split_to_array(trim(coalesce(r.address,'')), '\s+'),1),0),
+                 (coalesce(r.city,'')<>''),
+                 CASE WHEN coalesce(r.state,'')='' THEN 'none' WHEN length(r.state)=2 THEN 'code' ELSE 'name' END,
+                 (coalesce(r.zip,'') ~ '^\d{5}'),
+                 (coalesce(r.unit,'')<>''),
+                 (coalesce(r.building_label,'')<>''),
+                 (lower(trim(coalesce(r.display_name,'')))=lower(trim(coalesce(r.address,'')))),
+                 coalesce(array_length(regexp_split_to_array(trim(coalesce(r.display_name,'')), '\s+'),1),0),
+                 to_char(r.updated_at,'YYYY-MM-DD HH24:MI'), to_char(r.created_at,'YYYY-MM-DD')
+            FROM rentals r ORDER BY r.slug;
+          \echo == 3. address edits in the audit log (slug8|when|address changed|city changed|zip changed|display_name changed) ==
+          SELECT left(coalesce(e.after->>'slug', e.before->>'slug', e.record_id::text),8), to_char(e.occurred_at,'YYYY-MM-DD HH24:MI'),
+                 (e.before->>'address') IS DISTINCT FROM (e.after->>'address'),
+                 (e.before->>'city') IS DISTINCT FROM (e.after->>'city'),
+                 (e.before->>'zip') IS DISTINCT FROM (e.after->>'zip'),
+                 (e.before->>'display_name') IS DISTINCT FROM (e.after->>'display_name')
+            FROM record_events e
+           WHERE e.record_kind IN ('rental','rentals') AND e.occurred_at >= '2026-10-01'
+             AND ((e.before->>'address') IS DISTINCT FROM (e.after->>'address') OR (e.before->>'zip') IS DISTINCT FROM (e.after->>'zip')
+                  OR (e.before->>'display_name') IS DISTINCT FROM (e.after->>'display_name'))
+           ORDER BY 2 DESC LIMIT 60;
+          \echo == 4. record kinds seen for rentals (kind|events since 2026-10-01) ==
+          SELECT record_kind, count(*) FROM record_events WHERE occurred_at >= '2026-10-01' AND record_kind ILIKE '%rent%' GROUP BY 1 ORDER BY 1;
+          ROLLBACK;
+          SQL
+          bash scripts/live-sql.sh '|' < /tmp/shape.sql || { echo "::error::could not read the live database"; exit 1; }
