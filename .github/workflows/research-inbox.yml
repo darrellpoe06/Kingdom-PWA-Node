@@ -441,8 +441,11 @@ jobs:
           fi
 
           # Budget: an answer is capped, so one item cannot write an unbounded row.
-          head -c 20000 /tmp/answer.txt > /tmp/answer.capped.txt || true
-          mv /tmp/answer.capped.txt /tmp/answer.txt
+          # The cap is the link road's own (link_words.py MAX_TEXT, 400,000
+          # characters, DR-1202): it was 20,000 BYTES here, which cut an hour's
+          # teaching to its first twenty minutes before it was stored, read or
+          # filed -- a limit nobody chose. Cut by CHARACTER, never mid-letter.
+          python3 -c "import sys; p=sys.argv[1]; t=open(p, encoding='utf-8', errors='replace').read(); n=len(t); t=t[:400000]; open(p, 'w', encoding='utf-8').write(t + ('\n\n(The words ran past 400,000 characters; they are kept to that length.)' if n > 400000 else ''))" /tmp/answer.txt || true
           echo "verdict: $VERDICT · from: $FROM · answer characters: $(wc -c < /tmp/answer.txt)"
           { echo "verdict=$VERDICT"; echo "why=$WHY"; echo "from=$FROM"; } >> "$GITHUB_OUTPUT"
           { echo "- verdict: $VERDICT"; [ "$VERDICT" = answered ] && echo "- answer characters: $(wc -c < /tmp/answer.txt)" || echo "- why: $WHY"; } >> "$GITHUB_STEP_SUMMARY"
@@ -556,7 +559,7 @@ jobs:
           req.add_header('Content-Type', 'application/json')
           req.add_header('Authorization', 'Bearer ' + os.environ.get('TOK', ''))
           try:
-              with urllib.request.urlopen(req, timeout=200) as r:
+              with urllib.request.urlopen(req, timeout=960) as r:
                   print(json.dumps({'code': r.status, **json.loads(r.read().decode() or '{}')}))
           except urllib.error.HTTPError as e:
               try:
@@ -745,7 +748,7 @@ jobs:
           req.add_header('Content-Type', 'application/json')
           req.add_header('Authorization', 'Bearer ' + os.environ.get('TOK', ''))
           try:
-              with urllib.request.urlopen(req, timeout=200) as r:
+              with urllib.request.urlopen(req, timeout=960) as r:
                   print(json.dumps({'code': r.status, **json.loads(r.read().decode() or '{}')}))
           except urllib.error.HTTPError as e:
               try:

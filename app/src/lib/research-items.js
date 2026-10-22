@@ -86,7 +86,7 @@ export function parseReading(body) {
   const i = s.search(/^\s*Reading:\s*$/m);
   if (i < 0) return null;
   const lines = s.slice(i).split('\n').map((l) => l.trim());
-  const out = { what: '', opportunities: [], constraints: [], next: '', lands: 'unplaced', truncated: false };
+  const out = { what: '', opportunities: [], constraints: [], next: '', lands: 'unplaced', truncated: false, parts: 0, partsRead: 0 };
   let bucket = null;
   for (const l of lines) {
     if (/^Reading:$/.test(l)) continue;
@@ -98,7 +98,14 @@ export function parseReading(body) {
     if (n) { out.next = n[1].trim(); bucket = null; continue; }
     const g = l.match(/^Lands:\s*([a-z-]+)\s*$/i);
     if (g) { out.lands = LANDS[g[1].toLowerCase()] ? g[1].toLowerCase() : 'unplaced'; bucket = null; continue; }
-    if (/^\(The words were longer/.test(l)) { out.truncated = true; continue; }
+    if (/^\(The words were longer/.test(l)) {
+      out.truncated = true;
+      const pr = l.match(/(\d+) of (\d+) parts/);
+      if (pr) { out.partsRead = Number(pr[1]); out.parts = Number(pr[2]); }
+      continue;
+    }
+    const whole = l.match(/^\(Read in (\d+) parts/);
+    if (whole) { out.parts = Number(whole[1]); out.partsRead = out.parts; continue; }
     if (bucket && /^- /.test(l)) out[bucket].push(l.slice(2).trim());
   }
   if (!out.what) return null;

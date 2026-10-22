@@ -55,7 +55,7 @@ describe('the renderer writes the reading, or refuses', () => {
     expect(parseReading(`Unverified: x\n\n${r.out}`)).toEqual({
       what: 'A transcript about the Maya and the corn men.',
       opportunities: ['A History lesson on the Maya', 'A Love Corner trivia week'],
-      constraints: ['The transcript is unverified'], next: 'Draft the lesson.', lands: 'learn', truncated: false,
+      constraints: ['The transcript is unverified'], next: 'Draft the lesson.', lands: 'learn', truncated: false, parts: 0, partsRead: 0,
     });
   });
   it('PROVEN TO CATCH: a refusal from the road, a reading that stopped saying unverified, and one that says nothing are never written', () => {
@@ -69,6 +69,27 @@ describe('the renderer writes the reading, or refuses', () => {
     expect(p.lands).toBe('unplaced');
     expect(p.truncated).toBe(true);
     expect(parseReading('no reading here')).toBe(null);
+  });
+});
+
+describe('a long piece is read in parts, and the card says how much (DR-1202)', () => {
+  it('every part read: the reading says so, and is not called partial', () => {
+    const p = parseReading(render({ ...GOOD, parts: 3, parts_read: 3, truncated: false }).out);
+    expect(p.truncated).toBe(false);
+    expect(p.parts).toBe(3);
+    expect(p.partsRead).toBe(3);
+  });
+  it('PROVEN TO CATCH: a part that failed midway reads as 1 of 3, never as the whole', () => {
+    const r = render({ ...GOOD, parts: 3, parts_read: 1, truncated: true });
+    expect(r.out).toMatch(/1 of 3 parts were read/);
+    const p = parseReading(r.out);
+    expect(p.truncated).toBe(true);
+    expect(p.partsRead).toBe(1);
+    expect(p.parts).toBe(3);
+  });
+  it('a one-part reading carries no parts line at all', () => {
+    const r = render({ ...GOOD, parts: 1, parts_read: 1 });
+    expect(r.out).not.toMatch(/parts/);
   });
 });
 
