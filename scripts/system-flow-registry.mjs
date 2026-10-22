@@ -665,7 +665,8 @@ const NODES = [
       { res: 'db:agent_inbox#research-answer', token: 'ANSWER_TAG' },
       { res: 'http:research', file: 'app/src/components/ResearchSection.jsx', token: 'researchHealth' },
     ],
-    writes: [{ res: 'db:agent_inbox#research', file: 'app/src/components/ResearchSection.jsx', token: "tags: ['research']" }],
+    // DR-1202: the row carries what it is for (create:lesson / create:build).
+    writes: [{ res: 'db:agent_inbox#research', file: 'app/src/components/ResearchSection.jsx', token: "tags: ['research', ...chosen" }],
     seeds: ['research-inbox'],
   }),
   app('app/src/lib/photo-backup.js', {
@@ -1204,16 +1205,21 @@ const NODES = [
     writes: [{ res: 'gh:research-lead', token: 'LEAD, not a finding' }], seeds: [],
   }),
   wf('research-inbox.yml', {
-    id: 'research-inbox', name: 'A research item he sent is looked into (DR-1172)',
-    purpose: 'Every 15 minutes and on dispatch: takes the OLDEST waiting agent_inbox row tagged research off the live database the app reads, CLAIMS it with research-claimed before spending anything (so one prompt is never answered twice), then gets its words on a road that already exists — a link through youtube-captions.py on the NAS’s residential address, a question through /ask behind the family key — and writes the answer back as a child row the Research section reads, with the unverified sentence as its first line. A link never falls back to audio transcription: that spends the tower’s GPU and is a decision to take on purpose. No body and nothing key-shaped reaches the log.',
+    id: 'research-inbox', name: 'A research item is looked into, read, and becomes what it was sent for (DR-1172, DR-1202)',
+    purpose: 'On the NAS bell, every 15 minutes and on dispatch: CLAIMS every waiting agent_inbox research row in one statement (FOR UPDATE SKIP LOCKED, up to six) and works each on its own runner, four at once, in its own NAS folder. A link gets its words on our own machines: YouTube captions first, else its audio through the same Whisper ladder the spoken lessons ride (link_words.py on the NAS, a runner fetch as the second road); a question goes through /ask. The answer is written with the unverified sentence first, read into opportunities and constraints in the same pass, and then FILED as what it was sent for: a lesson row for the NAS lesson builder (Word first, every verse checked against the KJV) and/or a PoeTech build request, in one statement that cannot happen twice. No body and nothing key-shaped reaches the log.',
     reads: [
       { res: 'gh:dispatch', token: 'workflow_dispatch' },
+      { res: 'gh:research-waiting', token: 'research-waiting' },
       { res: 'db:agent_inbox#research', file: 'scripts/research-inbox-waiting.sql', token: 'FROM public.agent_inbox' },
       { res: 'yt:channel', token: 'youtube-captions.py' },
       { res: 'http:research', token: '127.0.0.1:8797' },
     ],
-    writes: [{ res: 'db:agent_inbox#research-answer', token: 'research-answer' }],
-    seeds: ['research-section'],
+    writes: [
+      { res: 'db:agent_inbox#research-answer', token: 'research-answer' },
+      { res: 'db:agent_inbox#lesson', file: 'scripts/research-create.sh', token: '\\"lesson\\",\\"from-research\\"' },
+      { res: 'db:agent_inbox#poetech', file: 'scripts/research-create.sh', token: 'tell-poetech' },
+    ],
+    seeds: ['research-section', 'lesson-builder'],
   }),
   wf('immich-health.yml', {
     id: 'immich-health', name: 'Photo-backup road witness (DR-1120)', purpose: 'Once a day and on dispatch: over the tailnet, reads the photo-backup forwarder’s /health and asks Immich its version through the door with the family key; on a failure says where the install stands first.',
@@ -1758,8 +1764,13 @@ const NODES = [
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
   }),
   rider('service:research', 'infra/nas-research/research_forwarder.py', {
-    id: 'research-road', name: 'Research road (Vane behind the locked door)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101).',
-    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }], writes: [{ res: 'http:research', token: '/research' }], seeds: ['research'],
+    id: 'research-road', name: 'Research road (Vane behind the locked door, and the research bell)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101). Its installer also rings the research lane when an item waits (DR-1202).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }, { res: 'db:agent_inbox#research', file: 'infra/nas-research/research_bell.py', token: '/rest/v1/agent_inbox' }],
+    // THE BELL (DR-1202) rides this service's installer each cycle, before any
+    // step that can stop it: when a research item waits it sends ONE
+    // repository_dispatch research-waiting, because GitHub ran the lane's own
+    // schedule three times in six hours.
+    writes: [{ res: 'http:research', token: '/research' }, { res: 'gh:research-waiting', file: 'infra/nas-research/research_bell.py', token: 'research-waiting' }], seeds: ['research', 'research-inbox'],
   }),
   rider('service:immich', 'infra/nas-immich/immich_forwarder.py', {
     id: 'photo-backup-road', name: 'Photo-backup road (Immich behind the locked door)', purpose: 'Takes the phones’ photos and videos onto the pool through Immich; the forwarder is the only door, passing Immich’s API under the family key and never its pages (DR-1120).',

@@ -14,8 +14,10 @@ import { sendPoeTechRequest } from '../lib/poetech-request.js';
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const LIVE = { relay: relayThought, poetech: sendPoeTechRequest };
 
-export default function CreateFromWords({ body = '', destination = '', deps = LIVE, idBase = 'create' }) {
-  const [targets, setTargets] = useState(() => defaultTargets(destination));
+// `done`: the targets these words were ALREADY filed for (DR-1202), shown as
+// done and never offered twice -- one item never becomes two of the same lesson.
+export default function CreateFromWords({ body = '', destination = '', deps = LIVE, idBase = 'create', done = [] }) {
+  const [targets, setTargets] = useState(() => defaultTargets(destination).filter((t) => !done.includes(t)));
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState('');
   const problem = createProblem(body, targets);
@@ -32,10 +34,11 @@ export default function CreateFromWords({ body = '', destination = '', deps = LI
       {CREATE_TARGETS.map((t) => (
         <label key={t.id} className="flex items-center gap-1.5 text-[0.75rem] text-[#1A1815] min-h-[36px] cursor-pointer" style={SERIF} title={`Goes ${t.goes}.`}>
           <input
-            type="checkbox" checked={targets.includes(t.id)} onChange={() => toggle(t.id)}
+            type="checkbox" checked={!done.includes(t.id) && targets.includes(t.id)} onChange={() => toggle(t.id)}
+            disabled={done.includes(t.id)}
             data-testid={`${idBase}-${t.id}`} className="accent-[#B85838]"
           />
-          {t.label}
+          {t.label}{done.includes(t.id) ? ' (already filed)' : ''}
         </label>
       ))}
       <button

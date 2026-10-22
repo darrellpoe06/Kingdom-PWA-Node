@@ -51,6 +51,17 @@ OLLAMA_CANDIDATES="${RESEARCH_OLLAMA_CANDIDATES:-http://100.69.19.13:11434 http:
 # secret, so readable by the forwarder; empty when no tower answered).
 OLLAMA_URL_FILE="$DATA/ollama.url"
 
+echo "== research install: the bell (DR-1202) =="
+# FIRST, before any step that can stop this installer: the bell does not need
+# the search road (a link is read by yt-dlp and Whisper, not Vane), so a dark
+# road must never silence it. One pass per cycle; it rings only when work waits
+# and the waiting set changed (or an hour passed). Never fails the install.
+if command -v python3 >/dev/null 2>&1; then
+  timeout 60 python3 "$SRC/research_bell.py" 2>&1 | sed 's/^/  /' || echo "  research-bell: did not finish (timeout or error); the next cycle tries again"
+else
+  echo "  research-bell: python3 not found"
+fi
+
 echo "== research install: token =="
 if [ ! -s "$TOKEN_FILE" ]; then
   echo "  $TOKEN_FILE is missing -- the forwarder refuses to start an unlocked door. Nothing done."
