@@ -1,0 +1,80 @@
+# =============================================================================
+# Complete addresses — each door's address held whole, from evidence (DR-1207)
+# =============================================================================
+# Darrell, 2026-10-22: "fix the addresses to reflect the correct addresses and
+# not the abbreviated addresses... Each asset should work end to end." The
+# live rows were measured first (rentals-address-probe, run 39717503181): eight
+# of thirteen doors held an incomplete address in the one record Poe
+# Properties and Real Estate both read.
+#
+# This reads the doors from the database the app reads, asks the same /geocode
+# lookup the app trusts (Census, then OpenStreetMap) with the rules in
+# app/src/modules/properties/complete-address.js, and, with write=true, writes
+# each completion through a guarded UPDATE carrying the app's own edit trace.
+# write=false (the default) prints what it WOULD do and writes nothing.
+#
+# PUBLIC RUN PAGES: the trace names each door by the first eight characters of
+# its id and says what it did; never an address, never a name.
+#
+# THE BRAKES (deterministic class, DR-0248: budget + lock): at most 30 lookups
+# a run, one a second; 10 minutes; single instance (a new fire queues). It is
+# idempotent: a completed door no longer wants completing, and a door a family
+# member edited in between is left alone (the UPDATE matches only the values
+# that were read).
+name: Complete addresses (whole addresses on the database the app reads)
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: 'Write the completions (true) or only say what they would be (false)'
+        required: false
+        default: 'false'
+  push:
+    branches: [ccr-f1e2f200-2gkouu]
+    paths: ['.github/workflows/complete-addresses.yml', 'scripts/complete-addresses.mjs', 'app/src/modules/properties/complete-address.js']
+
+concurrency:
+  group: complete-addresses
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  complete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WRITE: ${{ github.event.inputs.write || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the doors, ask the map, and complete what it proves
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          Q="SELECT coalesce(json_agg(json_build_object('id', id, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'zip', zip, 'display_name', display_name) ORDER BY slug), '[]'::json) FROM public.rentals;"
+          printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/rows.json || { echo "::error::could not read the doors"; exit 1; }
+          node scripts/complete-addresses.mjs /tmp/rows.json > /tmp/updates.sql 2> /tmp/trace.txt; rc=$?
+          cat /tmp/trace.txt
+          [ "$rc" = 0 ] || { echo "::error::the completion could not run"; exit 1; }
+          n=$(grep -c '^UPDATE ' /tmp/updates.sql || true)
+          { echo "### Complete addresses"; echo; sed 's/^/    /' /tmp/trace.txt; echo; echo "statements: $n · write: $WRITE"; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$WRITE" != "true" ] || [ "$n" = 0 ]; then echo "nothing written (write=$WRITE, statements=$n)"; exit 0; fi
+          ok=0
+          while IFS= read -r stmt; do
+            [ -n "$stmt" ] || continue
+            res=$(printf '%s\n' "$stmt" | bash scripts/live-sql.sh '|' 2>&1); code=$?
+            if [ "$code" = 0 ]; then ok=$((ok + 1)); fi
+          done < /tmp/updates.sql
+          echo "written: $ok of $n" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/after.json && node scripts/complete-addresses.mjs /tmp/after.json > /dev/null 2> /tmp/after.txt
+          echo "after the write:"; cat /tmp/after.txt
