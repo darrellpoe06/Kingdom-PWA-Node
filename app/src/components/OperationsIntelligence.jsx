@@ -9,6 +9,7 @@
 // intelligence.js). The incident read goes through lib/site-health.js, the same
 // reader the OpsBoard uses; a failed read is said, never painted as zero.
 // =============================================================================
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useEffect, useMemo, useState } from 'react';
 import { deriveOperations, INCIDENT_HOURS, REPEAT_OBSERVATIONS, DUE_SOON_REVIEW_DAYS } from '../lib/operations-intelligence.js';
 import { STALL_DAYS } from '../lib/decision-intelligence.js';

@@ -29,6 +29,7 @@
 //     locally-generated ids when writing remotely).
 // =============================================================================
 
+import './build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import supabase from './supabase.js';
 import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 import { currentDoor, PERSONAL_DOOR } from './app-doors.js';

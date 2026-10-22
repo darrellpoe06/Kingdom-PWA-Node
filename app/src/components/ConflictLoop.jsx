@@ -12,6 +12,7 @@
 //
 // Governor-gated at the mount (BuildBoard), like OpsBoard / QualityProof — this
 // is dev/ops orchestration internals. Reuses KpiDot + the shared KPI palette.
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import {

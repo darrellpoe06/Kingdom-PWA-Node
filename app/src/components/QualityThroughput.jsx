@@ -22,6 +22,7 @@
 // Mounted in the Command, Control & Serve Center's See faculty (governor-gated
 // there, no-leak). Read-only: this board watches; the doing stays behind its
 // own gates (the ops queue card, the deploy lane, the Cage).
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useCallback, useEffect, useState } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';

@@ -9,6 +9,7 @@
 // fonts (no text-[Npx]), no device-font emoji (UiIcon where a glyph earns its
 // place), no width-cap classes — this file carries NO consistency-guard
 // baseline debt on purpose.
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
