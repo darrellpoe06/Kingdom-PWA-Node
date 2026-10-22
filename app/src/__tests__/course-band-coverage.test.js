@@ -109,7 +109,17 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(254); // 254 on 2026-10-21: 253 was sov47, and this is sov48 (the bread they brought was mouldy --
+    expect(baseline.allFour).toBe(255); // 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
+    // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1203),
+    // the FIRST lesson built through the research road DR-1202 opened: Darrell sent an Instagram reel with one word on it, the NAS wrote
+    // its words with a local Whisper model, and the lesson was built from the transcript. It carries all four age bands from the first
+    // commit, so adultOnly did NOT move with it, and the world-issues row reads {lessons: 21, allFour: 2}. Its ground was chosen by
+    // measurement: the obvious spine was the INTERSECTION of two issues this course already holds -- wi-musk-creator-critique (how to
+    // receive a creator's advocacy video; Proverbs 18:17, Exodus 23:2, Leviticus 19:15, Isaiah 10:1) and wi-scotus-mail-in-voting-2026
+    // (the vote and a just measure; Deuteronomy 1:17, Proverbs 11:1, Deuteronomy 25:13) -- ten shared verses, which is DR-1185's own
+    // duplicate threshold. What was free, counted and not guessed at: Deuteronomy 19:2/19:3/19:6, Numbers 35:11-12, Joshua 20:4,
+    // Isaiah 57:14, Isaiah 62:10 and "cities of refuge" were at ZERO across all 44 courses, so it stands on the roads Yahweh measured.
+    // 254 on 2026-10-21: 253 was sov47, and this is sov48 (the bread they brought was mouldy --
     // cache invalidation, the answer that was true when you stored it, and the bread that is new every morning, DR-1193), built from
     // the ByteByteGo issue "LLM Prompt Caching Versus Semantic Caching" that Darrell forwarded at 17:12 UTC with one word on it --
     // the SECOND of two forwards that day, the first being the IT Brew issue sov47 came from. It carries all four age bands from the
