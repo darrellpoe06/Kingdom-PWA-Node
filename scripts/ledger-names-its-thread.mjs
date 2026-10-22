@@ -58,10 +58,15 @@ export const THREAD_ID = /\b[0-9a-f]{16}\b/;
 
 /** Pure. Does this record describe a teaching that arrived as a forward? */
 export function isEmailSourced(text, window = NEAR_WINDOW) {
+  return nearTheOneWord(text, 'forward', window);
+}
+
+/** Pure. Does `word` sit within `window` characters of the quoted one-word instruction? */
+function nearTheOneWord(text, word, window) {
   const t = String(text || '');
   const low = t.toLowerCase();
   const fwd = [];
-  for (let i = low.indexOf('forward'); i !== -1; i = low.indexOf('forward', i + 1)) fwd.push(i);
+  for (let i = low.indexOf(word); i !== -1; i = low.indexOf(word, i + 1)) fwd.push(i);
   if (!fwd.length) return false;
   // The one word Darrell writes over a forward, in the shapes records use:
   // "Lesson", "Lesson.", **"Lesson."**, *"Lesson"*.
@@ -75,6 +80,28 @@ export function isEmailSourced(text, window = NEAR_WINDOW) {
 
 /** Pure. Does this record name a Gmail thread id? */
 export const namesAThread = (text) => THREAD_ID.test(String(text || ''));
+
+// THE RESEARCH ROAD HAS ITS OWN WITNESS (DR-1202, measured 2026-10-22 on
+// DR-1205). A lesson can now arrive through the app's research road instead of
+// Gmail: a link sent with one word on it ("Lesson"), looked into on the NAS,
+// filed as a `lesson` row tagged `research-source:<item uuid>`. There is no
+// Gmail thread to name. Its exact identifier is the research item's uuid, and
+// `grep <uuid> docs/decisions/` answers "have we built this?" for that road
+// the same way a thread id does for a forward. DR-1205 was the first such
+// record; it named its item and was still refused, because the detector saw
+// "forwarded" in its Principles line and asked for a thread that cannot exist.
+export const RESEARCH_ITEM = /\bresearch item `?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+
+/**
+ * Pure. Does this record describe a teaching that arrived through the research
+ * road? Proximity again (DR-1050): "research road" within NEAR_WINDOW of the
+ * quoted one word, so the records that BUILT the road (DR-1101, DR-1172,
+ * DR-1200...) are not mistaken for lessons that came down it.
+ */
+export const isResearchSourced = (text, window = NEAR_WINDOW) => nearTheOneWord(text, 'research road', window);
+
+/** Pure. Does this record name the exact witness of the road it arrived by? */
+export const namesItsWitness = (text) => namesAThread(text) || RESEARCH_ITEM.test(String(text || ''));
 
 /**
  * Walk the real ledger. Returns every email-sourced record and which of them
@@ -90,9 +117,11 @@ export function walkLedger(root = join(HERE, '..')) {
   for (const n of names.filter((f) => /^DR-\d{4}-.+\.md$/.test(f)).sort()) {
     let text;
     try { text = readFileSync(join(dir, n), 'utf8'); } catch { continue; }
-    if (!isEmailSourced(text)) continue;
+    const research = isResearchSourced(text);
+    if (!isEmailSourced(text) && !research) continue;
     sourced.push(n);
-    if (!namesAThread(text)) missing.push(n);
+    // A research-road record is held to its own witness; a forward to its thread.
+    if (!(research ? namesItsWitness(text) : namesAThread(text))) missing.push(n);
   }
   return { sourced, missing };
 }

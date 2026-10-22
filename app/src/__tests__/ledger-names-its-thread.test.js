@@ -30,6 +30,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   isEmailSourced, namesAThread, walkLedger, NEAR_WINDOW, THREAD_ID,
+  isResearchSourced, namesItsWitness,
 } from '../../../scripts/ledger-names-its-thread.mjs';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -104,6 +105,34 @@ describe('namesAThread — a Gmail thread id, not just any hex', () => {
     // one pass as a thread id, or every record citing a commit would look
     // compliant and the guard would be theatre.
     expect(namesAThread('merged as 0c3c68665ffeeddccbbaa99887766554433221100'), 'a 40-char SHA is not a thread id').toBe(false);
+  });
+});
+
+describe('the research road names its own witness (DR-1202, measured on DR-1205)', () => {
+  const ITEM = 'ed11c486-9568-49ad-94ca-5fcd6872e577';
+
+  it('a lesson sent down the research road is recognised, and its item uuid is its witness', () => {
+    const rec = `Darrell sent an Instagram reel into the app's research road with one word on it: "Lesson" (research item \`${ITEM}\`).`;
+    expect(isResearchSourced(rec)).toBe(true);
+    expect(namesItsWitness(rec)).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: a research-road lesson that names no item is refused', () => {
+    const rec = 'Darrell sent a reel into the research road with one word on it: "Lesson".';
+    expect(isResearchSourced(rec)).toBe(true);
+    expect(namesItsWitness(rec), 'no uuid, no witness').toBe(false);
+    expect(namesItsWitness(`${rec} research item ed11c486-9568-49ad-94ca-5fcd6872e57`), 'a uuid one character short').toBe(false);
+  });
+
+  it('a record that BUILT the road is not a lesson that came down it', () => {
+    const far = `The research road takes a link and reads it on the NAS.\n${'filler. '.repeat(400)}\nElsewhere: "Lesson".`;
+    expect(isResearchSourced(far)).toBe(false);
+  });
+
+  it('a forward is still held to a Gmail thread id, never let off by a uuid', () => {
+    const { missing } = walkLedger(ROOT);
+    expect(missing).not.toContain('DR-1205-the-way-was-45-minutes-long.md');
+    expect(namesAThread(`forwarded with one word on it, "Lesson" (research item ${ITEM})`)).toBe(false);
   });
 });
 
