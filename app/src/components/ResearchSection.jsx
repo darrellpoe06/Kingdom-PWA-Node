@@ -30,6 +30,8 @@
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchMyResearch, UNVERIFIED_NOTE, LANDS } from '../lib/research-items.js';
+// WHAT IT IS FOR, CHOSEN WHEN IT IS SENT (DR-1202).
+import { INTENTS, CREATE_TAG_PREFIX } from '../lib/research-create.js';
 import { researchHealth } from '../lib/research.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import { supabase } from '../lib/supabase.js';
@@ -62,6 +64,89 @@ const STATE_COLOR = Object.freeze({
   failed: 'text-[#1A1815]',
 });
 
+const btnCls = 'min-h-[44px] border border-[#1A1815] bg-white px-3 text-[0.6875rem] uppercase tracking-wider text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#1A1815]';
+const PREVIEW_CHARS = 700;
+
+// THE WORDS, EASY TO USE (DR-1202): the first part shown, the whole of it one
+// press away, and a copy so they can go anywhere without retyping.
+function Words({ text, testId, how }) {
+  const [all, setAll] = useState(false);
+  const [copied, setCopied] = useState('');
+  const t = String(text || '');
+  if (!t.trim()) return null;
+  const long = t.length > PREVIEW_CHARS;
+  const shown = all || !long ? t : `${t.slice(0, PREVIEW_CHARS).trimEnd()}…`;
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(t);
+      setCopied('Copied.');
+    } catch {
+      setCopied('This browser would not copy; press and hold the words instead.');
+    }
+  }
+  return (
+    <div className="mt-1" data-testid={testId}>
+      {how && <p className="text-[0.6875rem] text-[#5A5751]">{how}</p>}
+      <p className="mt-1 whitespace-pre-wrap break-words text-[0.8125rem] text-[#1A1815]">{shown}</p>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        {long && (
+          <button type="button" className={btnCls} onClick={() => setAll((v) => !v)} aria-expanded={all} data-testid={`${testId}-all`}>
+            {all ? 'Show less' : `Show all the words (${t.length.toLocaleString()} characters)`}
+          </button>
+        )}
+        <button type="button" className={btnCls} onClick={copy} data-testid={`${testId}-copy`}>Copy the words</button>
+        {copied && <span role="status" className="text-[0.6875rem] text-[#1A1815]">{copied}</span>}
+      </div>
+    </div>
+  );
+}
+
+// THE SOURCE, EACH PART IN ITS OWN PLACE: what it is, who posted it, how long,
+// the way back to it, the caption under it, and what is said in it.
+function SourceBlock({ source }) {
+  const facts = [source.site, source.by && `posted by ${source.by}`, source.length].filter(Boolean).join(' · ');
+  return (
+    <div className="mt-2" data-testid="research-source">
+      <div className={labelCls}>The source</div>
+      <p className="mt-1 text-[0.9375rem] text-[#1A1815]" style={serif} data-testid="research-source-title">{source.title || 'A post'}</p>
+      {facts && <p className="text-[0.75rem] text-[#5A5751]">{facts}</p>}
+      {source.link && (
+        <a href={source.link} target="_blank" rel="noopener noreferrer" className={`${btnCls} mt-1 inline-flex items-center`} data-testid="research-source-open">
+          Open the post
+        </a>
+      )}
+      {source.caption && (
+        <>
+          <div className={`${labelCls} mt-2`}>The caption under it</div>
+          <Words text={source.caption} testId="research-source-caption" />
+        </>
+      )}
+      {source.words && (
+        <>
+          <div className={`${labelCls} mt-2`}>What is said in it</div>
+          <Words text={source.words} testId="research-source-words" how={source.how ? `${source.how.charAt(0).toUpperCase()}${source.how.slice(1)}.` : ''} />
+        </>
+      )}
+      {source.note && <p className={`mt-1 ${noteCls}`}>{source.note}</p>}
+    </div>
+  );
+}
+
+// WHAT WAS MADE OF IT -- the end of the process, said in words.
+function Created({ item }) {
+  let line;
+  if (item.created.length) line = item.created.map((c) => c.label).join('; ');
+  else if (item.researchOnly) line = 'Kept as research: nothing else was asked of it.';
+  else if (item.intents.length) line = `To be filed: ${item.intents.map((i) => i.label.toLowerCase()).join(' and ')}, once its reading comes back (twenty minutes at most).`;
+  else return null;
+  return (
+    <div className="mt-2" data-testid="research-created">
+      <div className={labelCls}>Created from this</div>
+      <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{line}</p>
+    </div>
+  );
+}
+
 function Item({ item }) {
   return (
     <li className="border border-[#E8E4DC] p-3">
@@ -73,11 +158,18 @@ function Item({ item }) {
         </span>
       </div>
       <p className="mt-1 whitespace-pre-wrap break-words text-[0.8125rem] text-[#1A1815]">{item.body}</p>
+      {/* WHAT IT WAS SENT FOR, first, in words (DR-1202). */}
+      <p className="mt-1 text-[0.6875rem] text-[#5A5751]" data-testid="research-sent-for">
+        {item.intents.length ? `Sent for: ${item.intents.map((i) => i.label).join(' and ')}` : 'Sent for: research'}
+      </p>
       {item.state === 'answered' && (
         <div className="mt-2 border-t border-[#E8E4DC] pt-2">
           {/* The sentence, on every answered item. Never only a badge. */}
           <p className={noteCls}>{item.note}</p>
-          <p className="mt-1 whitespace-pre-wrap text-[0.8125rem] text-[#1A1815]">{item.answer}</p>
+          {item.source && item.source.shaped
+            ? <SourceBlock source={item.source} />
+            : <Words text={item.answer} testId="research-answer-words" />}
+          <Created item={item} />
           {/* THE READING (DR-1199): what it is for us, in the fixed shape, or
               the honest word that it is still pending. Never a raw dump as the
               last word on an item. */}
@@ -107,8 +199,8 @@ function Item({ item }) {
           ) : (
             <p className={`mt-2 ${noteCls}`} data-testid="research-reading-pending">{item.readingWhy}</p>
           )}
-          <div className={`${labelCls} mt-2`}>Make something of it</div>
-          <CreateFromWords body={item.answer} destination="research" idBase={`create-${item.id}`} />
+          <div className={`${labelCls} mt-2`}>Make something else of it</div>
+          <CreateFromWords body={item.answer} destination="research" idBase={`create-${item.id}`} done={item.created.map((c) => c.intent)} />
           <div className={`${labelCls} mt-2`}>Sources ({item.sources.length})</div>
           {item.sources.length === 0
             ? <p className={`mt-1 ${noteCls}`}>No source link came back with this answer, so there is nothing to check it against.</p>
@@ -143,6 +235,7 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(null);
+  const [forWhat, setForWhat] = useState({ lesson: false, build: false });
 
   const load = useCallback(async () => {
     const r = await fetchMyResearch({ supabase: client });
@@ -162,11 +255,13 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
     if (!body || busy) return;
     setBusy(true);
     setSent(null);
-    const r = await send({ body, tags: ['research'], source: 'research-section' });
+    const chosen = Object.keys(forWhat).filter((k) => forWhat[k]);
+    const r = await send({ body, tags: ['research', ...chosen.map((k) => `${CREATE_TAG_PREFIX}${k}`)], source: 'research-section' });
     setBusy(false);
     if (r && r.ok) {
       setDraft('');
-      setSent({ ok: true });
+      setForWhat({ lesson: false, build: false });
+      setSent({ ok: true, chosen });
       await load();
     } else {
       setSent({ ok: false, reason: (r && r.reason) || 'unknown' });
@@ -212,9 +307,10 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
       <section className={card} aria-labelledby="research-send-title">
         <h3 id="research-send-title" className="text-base text-[#1A1815]" style={serif}>Send something to look into</h3>
         <p className="mt-1 text-[0.75rem] text-[#5A5751]">
-          A link is fetched on our own machine at home — the only one of ours that video sites
-          answer. A question is searched and answered on the research road. Either way it lands
-          here as an item you can come back to.
+          A link is fetched on our own machine at home and its words are written down: the
+          captions when it has them, otherwise its audio through Whisper on our own machines. A
+          question is searched and answered on the research road. Either way it lands here as an
+          item you can come back to, and it becomes what you tick below.
         </p>
         <form onSubmit={onSend} className="mt-2">
           <label htmlFor="research-send" className={labelCls}>A link, or a question</label>
@@ -226,6 +322,28 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
             className="mt-1 w-full border border-[#C9C2B6] bg-white p-2 text-[0.8125rem] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]"
             placeholder="https://youtu.be/… — or: which of these options can we actually run ourselves?"
           />
+          {/* WHAT IT IS FOR (DR-1202): tick what it should become, and the
+              lane files it after the research. Nothing ticked = research. */}
+          <fieldset className="mt-2" data-testid="research-for">
+            <legend className={labelCls}>What is it for?</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {Object.values(INTENTS).map((i) => (
+                <label key={i.id} className="inline-flex min-h-[44px] items-center gap-2 border border-[#C9C2B6] px-3 text-[0.75rem] text-[#1A1815]">
+                  <input
+                    type="checkbox"
+                    checked={forWhat[i.id]}
+                    onChange={(e) => setForWhat((f) => ({ ...f, [i.id]: e.target.checked }))}
+                    data-testid={`research-for-${i.id}`}
+                    className="focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#1A1815]"
+                  />
+                  {i.label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-[0.6875rem] text-[#5A5751]">
+              Nothing ticked keeps it as research. Writing “Lesson” or “features” beside the link does the same as ticking.
+            </p>
+          </fieldset>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <button
               type="submit"
@@ -234,7 +352,7 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
             >
               {busy ? 'Sending…' : 'Send it'}
             </button>
-            {sent && sent.ok && <span role="status" className="text-[0.6875rem] text-[#1A1815]">Kept. It is in the list below, waiting.</span>}
+            {sent && sent.ok && <span role="status" className="text-[0.6875rem] text-[#1A1815]">{sent.chosen && sent.chosen.length ? `Kept. It is in the list below, waiting; after the research it becomes ${sent.chosen.map((k) => INTENTS[k].label.toLowerCase()).join(' and ')}.` : 'Kept. It is in the list below, waiting.'}</span>}
             {sent && !sent.ok && (
               <span role="alert" className={noteCls}>
                 {sent.reason === 'signed-out' ? 'Sign in first — an item is kept against your own account.' : `Not kept: ${sent.reason}`}

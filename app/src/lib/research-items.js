@@ -39,6 +39,8 @@
 // =============================================================================
 
 import { safeSources } from './research.js';
+// WHAT IT WAS SENT FOR, AND WHAT WAS MADE OF IT (DR-1202).
+import { researchIntents, parseLinkAnswer, parseCreated, CREATED_TAG, INTENTS } from './research-create.js';
 
 const has = (row, t) => Array.isArray(row && row.tags) && row.tags.includes(t);
 const ofTag = (row) => (Array.isArray(row && row.tags)
@@ -56,6 +58,7 @@ export const ANSWERED_TAG = 'research-answered';
 // than the answer; until then the item says the reading is pending, in words.
 export const READING_TAG = 'research-reading';
 export const READING_FAILED_TAG = 'research-reading-failed';
+export const GAVE_UP_WHY = 'Three runners were lost while looking into this, so it is not tried again by itself. Re-open it from the research lane to try once more.';
 export const READING_PENDING = 'Reading pending: the road has not yet said what this is for us. It looks again every 15 minutes while an AI tower answers.';
 
 /** Where a reading may say a thing lands, and the app's own door for it. */
@@ -159,9 +162,13 @@ export function researchItems(rows) {
     const of = ofTag(r);
     if (!of) continue;
     if (has(r, ANSWER_TAG)) children.set(`${of}:answer`, r);
-    else if (has(r, FAILED_TAG)) children.set(`${of}:failed`, r);
+    // A failure from before a road existed is kept as the record but marked
+    // superseded when the item is looked into again, so it reads waiting, then
+    // its new answer -- never "could not" for something now being done.
+    else if (has(r, FAILED_TAG) && !has(r, 'superseded')) children.set(`${of}:failed`, r);
+    else if (has(r, CREATED_TAG)) children.set(`${of}:created`, r);
     else if (has(r, READING_TAG)) children.set(`${of}:reading`, r);
-    else if (has(r, READING_FAILED_TAG)) {
+    else if (has(r, READING_FAILED_TAG) && !has(r, 'superseded')) {
       // The newest failure wins, so the words on the item are the latest why.
       const cur = children.get(`${of}:reading-failed`);
       if (!cur || String(r.created_at || '') > String(cur.created_at || '')) children.set(`${of}:reading-failed`, r);
@@ -176,12 +183,26 @@ export function researchItems(rows) {
     // then answered reads "answered", never "working". And a row with neither
     // reads WAITING even if it is hours old — an unanswered row must never look
     // finished (DR-0076: unknown is not a no).
-    const state = answer ? 'answered' : failure ? 'failed' : has(r, CLAIMED_TAG) ? 'working' : 'waiting';
+    // A claim released three times (its runner was lost each time, DR-1202)
+    // is not "being looked into": nothing will try it again by itself.
+    const gaveUp = !answer && !failure && has(r, CLAIMED_TAG)
+      && (Array.isArray(r.tags) ? r.tags.filter((t) => t === 'research-released').length : 0) >= 3;
+    const state = answer ? 'answered' : (failure || gaveUp) ? 'failed' : has(r, CLAIMED_TAG) ? 'working' : 'waiting';
     const parsed = answer ? parseAnswer(answer.body) : { answer: '', sources: [] };
     const readingRow = children.get(`${r.id}:reading`) || null;
     const readingFailed = children.get(`${r.id}:reading-failed`) || null;
     const reading = readingRow ? parseReading(readingRow.body) : null;
+    const createdRow = children.get(`${r.id}:created`) || null;
+    const intents = researchIntents(r.body, r.tags);
     items.push({
+      // What it was sent for (a lesson, features for the app), what was filed
+      // from it, and the source in its labelled parts -- every piece that gives
+      // the subject context, each in its own place on the item.
+      intents: intents.map((k) => INTENTS[k]),
+      created: createdRow ? parseCreated(createdRow.body) : [],
+      filedAt: createdRow ? createdRow.created_at || '' : '',
+      researchOnly: has(r, 'research-create-none'),
+      source: answer ? parseLinkAnswer(parsed.answer) : null,
       reading,
       readingAt: readingRow ? readingRow.created_at || '' : '',
       // Why the reading is still pending, in the road's words when it said; the
@@ -199,7 +220,7 @@ export function researchItems(rows) {
       answeredAt: answer ? answer.created_at || '' : '',
       answer: parsed.answer,
       sources: parsed.sources,
-      why: failure ? String(failure.body || '') : '',
+      why: failure ? String(failure.body || '') : gaveUp ? GAVE_UP_WHY : '',
       failedAt: failure ? failure.created_at || '' : '',
       // NOT A FIELD READ FROM A ROW. A constant, so no row and no later edit can
       // present a research answer as established fact (DR-0076 / DR-1101).
@@ -221,7 +242,7 @@ export function waitingItems(rows) {
  * reads like "you have sent nothing" (DR-0076: a row that cannot be read is
  * reported, never treated as absent).
  */
-export async function fetchMyResearch({ supabase, limit = 100 } = {}) {
+export async function fetchMyResearch({ supabase, limit = 400 } = {}) {
   try {
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess?.session?.user?.id || null;
@@ -232,7 +253,7 @@ export async function fetchMyResearch({ supabase, limit = 100 } = {}) {
     const { data, error } = await supabase
       .from('agent_inbox')
       .select('id, body, tags, created_at, created_by')
-      .or(`tags.cs.${JSON.stringify([RESEARCH_TAG])},tags.cs.${JSON.stringify([ANSWER_TAG])},tags.cs.${JSON.stringify([FAILED_TAG])},tags.cs.${JSON.stringify([READING_TAG])},tags.cs.${JSON.stringify([READING_FAILED_TAG])}`)
+      .or(`tags.cs.${JSON.stringify([RESEARCH_TAG])},tags.cs.${JSON.stringify([ANSWER_TAG])},tags.cs.${JSON.stringify([FAILED_TAG])},tags.cs.${JSON.stringify([READING_TAG])},tags.cs.${JSON.stringify([READING_FAILED_TAG])},tags.cs.${JSON.stringify([CREATED_TAG])}`)
       .eq('created_by', uid)
       .order('created_at', { ascending: false })
       .limit(limit);

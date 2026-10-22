@@ -359,6 +359,17 @@ jobs:
       - name: research forwarder selftest
         working-directory: infra/nas-research
         run: python3 research_forwarder.py --selftest
+      # The link road and the research bell (DR-1202). Proven-to-catch: the
+      # link road fails if a lookalike host, an inside-the-house address or a
+      # tailnet name gets through, if the media is kept, or if the second road
+      # (media fetched from another address) stops giving the same result; the
+      # bell fails if it rings for a claimed row, rings twice inside the hour
+      # for the same work, or carries a word instead of ids.
+      - name: link road + research bell selftests
+        working-directory: infra/nas-research
+        run: |
+          python3 link_words.py --selftest
+          python3 research_bell.py --selftest
       # Photo-backup forwarder selftest (DR-1120): the locked door in front of
       # Immich. Proven-to-catch: fails if any Immich page is passed through, if
       # the family key is missing, wrong, or offered as a bearer, if the key

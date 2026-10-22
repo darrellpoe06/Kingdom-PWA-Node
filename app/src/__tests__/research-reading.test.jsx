@@ -100,14 +100,30 @@ describe('the item carries its reading, or says it is pending', () => {
   });
 });
 
-describe('the lane runs it at most once per run, and never hammers a sleeping tower', () => {
+describe('the lane reads each item once, in the pass that answered it, and never hammers a sleeping tower', () => {
   const wf = read('.github', 'workflows', 'research-inbox.yml');
   const sql = read('scripts', 'research-reading-waiting.sql');
-  it('every reading step runs only when nothing waited to be answered', () => {
-    const steps = wf.split('\n      - name: ').filter((b) => /rwait|steps\.read\.|research-reading/.test(b));
-    expect(steps.length).toBeGreaterThanOrEqual(4);
-    expect(wf).toMatch(/if: steps\.gate\.outputs\.go == 'true' && steps\.waiting\.outputs\.found != 'true'\n\s+id: rwait/);
-    for (const b of steps.filter((x) => x.includes("steps.rwait.outputs.found == 'true'"))) expect(b).toMatch(/steps\.rwait\.outputs\.found == 'true'/);
+  // DR-1202 replaced "a reading only in a run that answered nothing" with "a
+  // reading in the SAME pass as its answer, for THAT item, on its own runner",
+  // plus a backlog pass that runs only AFTER the work job, so the two can
+  // never read one item twice.
+  const job = (name) => {
+    const i = wf.indexOf(`\n  ${name}:\n`);
+    const rest = wf.slice(i + 1);
+    const j = rest.slice(3).search(/\n {2}[a-z]+:\n/);
+    return j < 0 ? rest : rest.slice(0, j + 3);
+  };
+  it('a work runner reads the item it just answered, and only when it answered', () => {
+    const work = job('work');
+    expect(work).toMatch(/if: steps\.gate\.outputs\.go == 'true' && steps\.look\.outputs\.verdict == 'answered'\n\s+id: rwait/);
+    const steps = work.split('\n      - name: ').filter((b) => b.includes("steps.rwait.outputs.found == 'true'"));
+    expect(steps.length).toBeGreaterThanOrEqual(3);
+  });
+  it('the backlog reading runs only after the work job', () => {
+    const backlog = job('backlog');
+    expect(backlog).toMatch(/needs: \[pick, work\]/);
+    expect(backlog).toMatch(/id: rwait/);
+    expect(backlog).toMatch(/research-reading-waiting\.sql/);
   });
   it('claims before spending the road, releases on failure, and waits six hours after a failed reading', () => {
     expect(wf).toMatch(/research-reading-claimed/);
