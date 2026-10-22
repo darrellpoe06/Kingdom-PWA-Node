@@ -6,8 +6,8 @@
 // to be SHOWN to catch the break before it is trusted: "a gate that always
 // passes is itself a lie." The way that proof is run in this repo is by hand —
 // patch the implementation, run the suite, watch it go red, restore, re-run.
-// Four breaks were proven that way on 2026-10-22, for a generalization of the
-// DR-1051 intake-witness gate, and the FIRST attempt proved nothing at all:
+// Four breaks were proven that way on 2026-10-22 for DR-1206, which generalized
+// the DR-1051 intake-witness gate, and the FIRST attempt proved nothing at all:
 //
 //   the loop restored each break with `git checkout <file>`, which reverted the
 //   IMPLEMENTATION along with the break, because the implementation was not yet

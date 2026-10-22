@@ -38,6 +38,28 @@
 // measured, the loose version flagged 40 records where the proximity version
 // flags 27, and the extras included DR-0685 (Android dictation) which has
 // nothing to do with an emailed teaching.
+//
+// THERE ARE TWO ROADS NOW, AND THE WITNESS RULE IS ABOUT THE ROAD, NOT GMAIL
+// (added 2026-10-22). DR-1202 opened a second intake the same week: Darrell
+// sends a link into the app's own research road and the teaching is built from
+// an `agent_inbox` row, never touching email. Those lessons have no thread id
+// to name — and until this change the guard IGNORED the whole class, so every
+// research-road lesson arrived with NO second witness at all. That is the
+// exact blindness the near-miss above is about, reopened on a new road.
+//
+// A research-road record names its ROW id instead. The grep that answers "have
+// we built this?" is the same grep on a different identifier: a uuid.
+//
+// THE CLASSIFICATION TRIES THE RESEARCH ROAD FIRST, ON PURPOSE. Every intake
+// record cites DR-0312 — the record that CREATED the email lane — and that
+// citation puts the word "forwarded" a line away from the quoted instruction.
+// Measured on DR-1205, the first research-road lesson: the email detector
+// fires on its `**Principles:**` line alone, while the record plainly says the
+// teaching came through the research road. The deliberate false positive
+// already carried for DR-0312 in the outstanding list would otherwise have
+// repeated on every record built through the new road, forever — and worse,
+// it would have demanded a Gmail thread id for a teaching that has none,
+// which is a gate asking to be satisfied by a fiction.
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,53 +78,137 @@ export const NEAR_WINDOW = 600;
 /** A Gmail thread id as the API returns it: 16 lowercase hex characters. */
 export const THREAD_ID = /\b[0-9a-f]{16}\b/;
 
-/** Pure. Does this record describe a teaching that arrived as a forward? */
-export function isEmailSourced(text, window = NEAR_WINDOW) {
+/**
+ * The research road's identifiers, as its records write them: a lowercase uuid
+ * carrying the LABEL of what it names. This is that road's thread id — the
+ * exact identifier a future session greps to answer "have we already built
+ * this?" for a teaching that never touched email.
+ *
+ * THE LABEL IS REQUIRED, and that is not fussiness. A bare uuid appears in
+ * this ledger for plenty of things that are not an intake — a migration, a
+ * bucket, a Supabase project. Accepting any uuid would let a record look
+ * witnessed while naming something unrelated, which is the theatre DR-0076 §3
+ * forbids. `research item <uuid>` is the form a research-road record already
+ * uses; the `agent_inbox` row is the same teaching's row in the same lane, and
+ * either answers the grep.
+ *
+ * THE LABEL MAY BE CAPITALISED; THE ID MAY NOT. A record can open a sentence
+ * with "Research item ...", so the label allows a capital. The uuid does not:
+ * it is matched exactly as the API returns it, lowercase, for the same reason
+ * `namesAThread` refuses `1A135F...` — an id in the wrong case is an id the
+ * grep will not find, which is the whole promise of naming it. (A case-blind
+ * flag over the whole pattern let `D5480D79-...` through; caught by the test
+ * below before this merged.)
+ */
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+export const RESEARCH_ITEM = new RegExp(`\\b[Rr]esearch item \`?${UUID}\\b`);
+export const INBOX_ROW = new RegExp(`\\bagent_inbox\`? row \`?${UUID}\\b`);
+export const ROW_ID = new RegExp(`\\b${UUID}\\b`);
+
+/**
+ * The phrases a record uses for the research road. `agent_inbox` is the table
+ * itself, so it is the strongest signal; the prose names are how the record
+ * reads. Kept narrow deliberately — a loose "research" would sweep in half the
+ * ledger, since nearly every record researches something.
+ */
+export const RESEARCH_ROAD_WORDS = ['agent_inbox', 'research road', 'research lane'];
+
+/** The one word Darrell writes over a teaching he sends in, in record shapes. */
+const INSTRUCTION = /["“*]\s*Lesson\.?\s*["”*]/g;
+
+/**
+ * Pure. Does any of `words` sit within `window` characters of the quoted
+ * one-word instruction? This is the proximity rule both roads share.
+ */
+function nearTheInstruction(text, words, window) {
   const t = String(text || '');
   const low = t.toLowerCase();
-  const fwd = [];
-  for (let i = low.indexOf('forward'); i !== -1; i = low.indexOf('forward', i + 1)) fwd.push(i);
-  if (!fwd.length) return false;
-  // The one word Darrell writes over a forward, in the shapes records use:
+  const at = [];
+  for (const w of words) {
+    for (let i = low.indexOf(w); i !== -1; i = low.indexOf(w, i + 1)) at.push(i);
+  }
+  if (!at.length) return false;
   // "Lesson", "Lesson.", **"Lesson."**, *"Lesson"*.
-  const re = /["“*]\s*Lesson\.?\s*["”*]/g;
+  const re = new RegExp(INSTRUCTION.source, 'g');
   let m;
   while ((m = re.exec(t)) !== null) {
-    if (fwd.some((j) => Math.abs(m.index - j) <= window)) return true;
+    if (at.some((j) => Math.abs(m.index - j) <= window)) return true;
   }
   return false;
+}
+
+/** Pure. Does this record describe a teaching that arrived as a forward? */
+export function isEmailSourced(text, window = NEAR_WINDOW) {
+  return nearTheInstruction(text, ['forward'], window);
+}
+
+/** Pure. Does this record describe a teaching that arrived on the research road? */
+export function isResearchSourced(text, window = NEAR_WINDOW) {
+  return nearTheInstruction(text, RESEARCH_ROAD_WORDS, window);
+}
+
+/**
+ * Pure. Which road did this teaching arrive on — or null for a record that is
+ * not built from an intake at all. The research road is tried first; the
+ * header says why.
+ */
+export function roadOf(text) {
+  if (isResearchSourced(text)) return 'research';
+  if (isEmailSourced(text)) return 'email';
+  return null;
 }
 
 /** Pure. Does this record name a Gmail thread id? */
 export const namesAThread = (text) => THREAD_ID.test(String(text || ''));
 
+/** Pure. Does this record name its research item or its `agent_inbox` row? */
+export const namesARow = (text) => {
+  const t = String(text || '');
+  return RESEARCH_ITEM.test(t) || INBOX_ROW.test(t);
+};
+
 /**
- * Walk the real ledger. Returns every email-sourced record and which of them
- * name no thread. Takes its root as an argument so a fixture tree can be
- * walked instead.
+ * Pure. The witness this road requires, and whether the record carries it.
+ * The roads are NOT interchangeable: a thread id on a research-road lesson is
+ * a grep that finds nothing, which is worse than an empty provenance line.
+ */
+export const namesItsWitness = (text, road) => (
+  road === 'research' ? namesARow(text) : namesAThread(text)
+);
+
+/**
+ * Walk the real ledger. Returns every record built from an intake, which of
+ * them name no witness, and the road each one arrived on. Takes its root as an
+ * argument so a fixture tree can be walked instead.
  */
 export function walkLedger(root = join(HERE, '..')) {
   const dir = join(root, DECISIONS);
   let names;
-  try { names = readdirSync(dir); } catch { return { sourced: [], missing: [] }; }
+  try { names = readdirSync(dir); } catch { return { sourced: [], missing: [], roads: {} }; }
   const sourced = [];
   const missing = [];
+  const roads = {};
   for (const n of names.filter((f) => /^DR-\d{4}-.+\.md$/.test(f)).sort()) {
     let text;
     try { text = readFileSync(join(dir, n), 'utf8'); } catch { continue; }
-    if (!isEmailSourced(text)) continue;
+    const road = roadOf(text);
+    if (!road) continue;
     sourced.push(n);
-    if (!namesAThread(text)) missing.push(n);
+    roads[n] = road;
+    if (!namesItsWitness(text, road)) missing.push(n);
   }
-  return { sourced, missing };
+  return { sourced, missing, roads };
 }
 
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith('ledger-names-its-thread.mjs');
 if (invokedDirectly) {
-  const { sourced, missing } = walkLedger();
-  console.log(`ledger-names-its-thread: ${sourced.length} record(s) built from a forward, ${missing.length} naming no thread id.`);
-  for (const m of missing) console.log(`  - ${m}`);
-  if (!missing.length) console.log('  every one names the thread it was built from.');
+  const { sourced, missing, roads } = walkLedger();
+  const byRoad = (r) => sourced.filter((n) => roads[n] === r).length;
+  console.log(`ledger-names-its-thread: ${sourced.length} record(s) built from an intake `
+    + `(${byRoad('email')} forwarded, ${byRoad('research')} research road), `
+    + `${missing.length} naming no witness.`);
+  for (const m of missing) console.log(`  - ${m} (${roads[m]} road)`);
+  if (!missing.length) console.log('  every one names the intake it was built from.');
   // A finder, not a gate. The gate lives in the test, which holds the
   // shrink-only ledger of what is still outstanding.
   process.exit(0);
