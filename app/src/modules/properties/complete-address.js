@@ -169,15 +169,74 @@ export function familyTowns(rows = []) {
 }
 
 /**
- * The questions to ask for one door: one line when it names its town, one per
- * family town when it does not (or when its own record contradicts itself).
+ * The town a door's own record vouches for, or ''. A door whose address field
+ * lost its street does not vouch for its town either: the same edit that put
+ * the town into the street wrote that town (1513 Holly Hill: address and city
+ * both "Champaign", while its own edit trail reads "City: (blank) -> Danville").
  */
-export function questionsFor(row = {}, towns = []) {
+export function ownTown(row = {}) {
   const rec = recordedStreet(row);
-  if (!rec) return [];
-  const own = rec.from === 'address' ? tidy(row.city) : '';
-  if (own) return [{ q: [rec.street, own, tidy(row.state)].filter(Boolean).join(', '), town: own, state: tidy(row.state) }];
-  return towns.map((t) => ({ q: [rec.street, t.city, t.state].filter(Boolean).join(', '), town: t.city, state: t.state }));
+  if (!rec) return '';
+  if (rec.from === 'address' && tidy(row.city)) return tidy(row.city);
+  return trailTown(row.notes);
+}
+
+/**
+ * The town the family's own edit trail last set, or ''. Every door edit
+ * appends "[date] Edited — City: (blank) → Danville" or "Address: 1513 Holly
+ * Hill, Danville, Illinois → ..." to the door's notes (the app's edit path and
+ * this lane write the same trace). The LAST town named on the left or right of
+ * such an edit is the town the family itself typed; it is a record, not a
+ * guess. A trail that names no town gives ''.
+ */
+export function trailTown(notes) {
+  const text = String(notes || '');
+  let town = '';
+  const re = /(City|Address):\s*([^;\n]*?)\s*(?:→|->)\s*([^;\n]*)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const [, field, before, after] = m;
+    const clean = (v) => tidy(v).replace(/[.,;]+$/, '');
+    if (field === 'City') {
+      const t = clean(after);
+      if (t && !/^\(blank\)$/i.test(t)) town = t;
+      continue;
+    }
+    // An Address edit whose either side carries "street, town, state": the town is the part after the street.
+    for (const side of [before, after]) {
+      const parts = String(side || '').split(',').map(tidy).filter(Boolean);
+      if (parts.length >= 2 && houseNumber(parts[0]) && !/^\d/.test(parts[1]) && parts[1].length > 1 && !/^(il|illinois)$/i.test(parts[1])) town = parts[1];
+    }
+  }
+  return town;
+}
+
+/**
+ * The question to ask for one door: its street in the town its own record
+ * vouches for. A door with no such town gets NO question.
+ *
+ * MEASURED, and why: the first dry run (run 39718050197) let a door with no
+ * town be asked in each family town and completed when exactly one answered.
+ * It answered for 1513 Holly Hill in Champaign, where that door's own trail
+ * says Danville, and the geocoder could not find 1508 Holly Hill in Danville
+ * at all. "The only town that answered" is not "the door's town" when the
+ * geocoder is missing the real street. So the town must come from the family,
+ * never from which town happened to answer.
+ */
+export function questionsFor(row = {}) {
+  const rec = recordedStreet(row);
+  const own = ownTown(row);
+  if (!rec || !own) return [];
+  return [{ q: [rec.street, own, tidy(row.state)].filter(Boolean).join(', '), town: own, state: tidy(row.state) }];
+}
+
+/** Why a door is left for the family to finish, in the words its card prints. */
+export function needsFromFamily(row = {}) {
+  const rec = recordedStreet(row);
+  if (!rec) return 'the street and house number';
+  if (rec.from === 'name') return 'the street (its address field holds a town) and the town';
+  if (!ownTown(row)) return 'the town';
+  return '';
 }
 
 /** Does this match belong to this door, in this town? */
@@ -201,10 +260,15 @@ export function matchIsThisHouse(parts, rec, town) {
 export function completion(row = {}, answers = []) {
   const rec = recordedStreet(row);
   if (!rec) return { ok: false, why: 'no street with a house number on the record' };
+  // Only an answer in the town this door's own record vouches for counts; an
+  // answer from any other town is not about this house (dry run 39718050197).
+  const own = ownTown(row);
+  if (!own) return { ok: false, why: `the family must name ${needsFromFamily(row) || 'the town'}` };
   const found = [];
   for (const a of answers || []) {
-    const parts = a && a.hit && a.hit.ok ? matchedParts(a.hit) : null;
-    if (matchIsThisHouse(parts, rec, a.town)) found.push({ ...a, parts });
+    if (!a || low(a.town) !== low(own)) continue;
+    const parts = a.hit && a.hit.ok ? matchedParts(a.hit) : null;
+    if (matchIsThisHouse(parts, rec, own)) found.push({ ...a, parts });
   }
   if (!found.length) return { ok: false, why: 'the map could not find this house' };
   const towns = new Set(found.map((f) => low(f.parts.city)));
@@ -221,7 +285,7 @@ export function completion(row = {}, answers = []) {
     was.address = oldAddress;
   }
   const city = tidy(row.city);
-  const townFix = rec.from === 'name' || !city;
+  const townFix = rec.from === 'name' || !city || low(city) !== low(own);
   if (townFix && p.city && low(p.city) !== low(city)) { patch.city = titleWord(p.city).replace(/\b\w/g, (c) => c.toUpperCase()); was.city = city; }
   if (!tidy(row.state) && p.state) { patch.state = p.state; was.state = ''; }
   if (!/^\d{5}/.test(tidy(row.zip)) && p.zip) { patch.zip = p.zip; was.zip = tidy(row.zip); }

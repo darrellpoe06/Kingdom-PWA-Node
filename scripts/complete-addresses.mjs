@@ -30,7 +30,7 @@
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { geocode } from '../app/functions/geocode.js';
-import { wantsCompleting, familyTowns, questionsFor, completion } from '../app/src/modules/properties/complete-address.js';
+import { wantsCompleting, questionsFor, completion, needsFromFamily } from '../app/src/modules/properties/complete-address.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Bounded, never a loop: at most this many lookups a run, one a second and a bit.
@@ -44,8 +44,8 @@ export function rowsFromJson(text) {
   if (!Array.isArray(v)) return [];
   const s = (x) => String(x == null ? '' : x).trim();
   return v.filter((d) => d && UUID.test(s(d.id))).map((d) => ({
-    id: s(d.id).toLowerCase(), instance_id: s(d.instance_id), address: s(d.address), unit: s(d.unit),
-    city: s(d.city), state: s(d.state), zip: s(d.zip), display_name: s(d.display_name),
+    id: s(d.id).toLowerCase(), slug: s(d.slug), instance_id: s(d.instance_id), address: s(d.address), unit: s(d.unit),
+    city: s(d.city), state: s(d.state), zip: s(d.zip), display_name: s(d.display_name), notes: String(d.notes || ''),
   }));
 }
 
@@ -58,9 +58,8 @@ export async function completeRows(rows, { find, wait = (ms) => new Promise((r) 
   let looked = 0;
   for (const row of rows || []) {
     if (!wantsCompleting(row)) continue;
-    const towns = familyTowns((rows || []).filter((r) => r.instance_id === row.instance_id));
-    const questions = questionsFor(row, towns);
-    if (!questions.length) { results.push({ id: row.id, ok: false, why: 'no town to ask in', asked: 0 }); continue; }
+    const questions = questionsFor(row);
+    if (!questions.length) { results.push({ id: row.id, slug: row.slug, ok: false, why: `the family must name ${needsFromFamily(row) || 'the town'}`, asked: 0 }); continue; }
     if (looked + questions.length > max) { results.push({ id: row.id, ok: false, why: 'left for the next run (the lookup budget is spent)', asked: 0 }); continue; }
     const answers = [];
     for (const qn of questions) {
@@ -70,7 +69,7 @@ export async function completeRows(rows, { find, wait = (ms) => new Promise((r) 
       try { hit = await find(qn.q); } catch (e) { hit = { ok: false, reason: String(e && e.message || e) }; }
       answers.push({ town: qn.town, state: qn.state, hit });
     }
-    results.push({ id: row.id, asked: questions.length, ...completion(row, answers) });
+    results.push({ id: row.id, slug: row.slug, town: questions[0].town, asked: questions.length, ...completion(row, answers) });
   }
   return { results, looked };
 }
@@ -115,7 +114,7 @@ async function main() {
   const done = r.results.filter((x) => x.ok).length;
   process.stderr.write(`complete-addresses: ${rows.length} door(s) read; ${r.results.length} wanted completing; ${r.looked} lookup(s); ${done} completed\n`);
   for (const x of r.results) {
-    process.stderr.write(`  ${x.id.slice(0, 8)} -> ${x.ok ? `completed: ${Object.keys(x.patch).join(', ')}` : `left as it is: ${x.why}`} (${x.asked} question${x.asked === 1 ? '' : 's'})\n`);
+    process.stderr.write(`  ${(x.slug || x.id).slice(0, 10)}${x.town ? ` [${x.town}]` : ''} -> ${x.ok ? `completed: ${Object.keys(x.patch).join(', ')}` : `left as it is: ${x.why}`} (${x.asked} question${x.asked === 1 ? '' : 's'})\n`);
   }
   process.stdout.write(updatesSql(rows, r.results));
 }

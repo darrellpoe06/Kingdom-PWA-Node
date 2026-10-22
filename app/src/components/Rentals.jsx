@@ -116,8 +116,9 @@ const prettifyShortName = (s) => String(s || '')
   .trim();
 const propertyLabel = (r) => {
   if (!r) return 'Property';
-  const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ');
-  if (r.address && /\s/.test(String(r.address).trim())) return full;
+  // THE ONE FORMATTER (DR-0999, DR-1207): the title is the building line Poe
+  // Properties prints, so a door reads the same on both tabs, ZIP and all.
+  if (r.address && /\s/.test(String(r.address).trim())) return formatBuilding({ address: r.address, city: r.city, state: r.state, zip: r.zip });
   return prettifyShortName(r.name || r.address || 'Property');
 };
 // Total photos on a property: room-filed photos + maintenance-log photos. Shown

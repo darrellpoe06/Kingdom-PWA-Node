@@ -61,7 +61,7 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          Q="SELECT coalesce(json_agg(json_build_object('id', id, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'zip', zip, 'display_name', display_name) ORDER BY slug), '[]'::json) FROM public.rentals;"
+          Q="SELECT coalesce(json_agg(json_build_object('id', id, 'slug', slug, 'notes', notes, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'zip', zip, 'display_name', display_name) ORDER BY slug), '[]'::json) FROM public.rentals;"
           printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/rows.json || { echo "::error::could not read the doors"; exit 1; }
           node scripts/complete-addresses.mjs /tmp/rows.json > /tmp/updates.sql 2> /tmp/trace.txt; rc=$?
           cat /tmp/trace.txt

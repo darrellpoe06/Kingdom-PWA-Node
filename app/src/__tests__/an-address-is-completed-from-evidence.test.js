@@ -10,7 +10,7 @@
 // address field that lost its street); the values are made up.
 import { describe, it, expect } from 'vitest';
 import {
-  fullStreet, sameStreet, matchedParts, recordedStreet, wantsCompleting, familyTowns, questionsFor, completion,
+  fullStreet, sameStreet, matchedParts, recordedStreet, wantsCompleting, questionsFor, completion, trailTown, ownTown, needsFromFamily,
 } from '../modules/properties/complete-address.js';
 import { rowsFromJson, completeRows, updatesSql } from '../../../scripts/complete-addresses.mjs';
 import { fromNominatim } from '../../functions/geocode.js';
@@ -21,7 +21,7 @@ const ROWS = [
   { id: ID(1), instance_id: 'i', address: '12 Oak Dr', unit: '', city: 'Danville', state: 'IL', zip: '', display_name: '12 Oak Dr' },
   { id: ID(2), instance_id: 'i', address: '30 Elm Hill', unit: '', city: 'Danville', state: 'IL', zip: '', display_name: '30 Elm Hill' },
   { id: ID(3), instance_id: 'i', address: '7 Birch', unit: '', city: '', state: 'IL', zip: '', display_name: '7 Birch' },
-  { id: ID(4), instance_id: 'i', address: 'Champaign', unit: '', city: 'Champaign', state: 'Illinois', zip: '', display_name: '31 Elm Hill' },
+  { id: ID(4), instance_id: 'i', address: 'Champaign', unit: '', city: 'Champaign', state: 'Illinois', zip: '', display_name: '31 Elm Hill', notes: '[2026-10-13] Edited — Address: 31 Elm Hill, Danville, Illinois → 31 Elm Hill,; City: (blank) → Danville' },
   { id: ID(5), instance_id: 'i', address: '9 North Main Avenue', unit: 'Apt 2', city: 'Champaign', state: 'Illinois', zip: '61820', display_name: '9 North Main Avenue' },
 ];
 
@@ -52,11 +52,21 @@ describe('which doors want completing, and what is asked', () => {
   it('a door whose address lost its street is read from its own name', () => {
     expect(recordedStreet(ROWS[3])).toMatchObject({ street: '31 Elm Hill', from: 'name' });
   });
-  it('a door with no town is asked in each of the family’s towns', () => {
-    const towns = familyTowns(ROWS);
-    expect(towns.map((t) => t.city)).toEqual(['Danville', 'Champaign']);
-    expect(questionsFor(ROWS[2], towns).map((q) => q.q)).toEqual(['7 Birch, Danville, IL', '7 Birch, Champaign, Illinois']);
-    expect(questionsFor(ROWS[0], towns).map((q) => q.q)).toEqual(['12 Oak Dr, Danville, IL']);
+  it('a door is asked only in the town its own record vouches for', () => {
+    expect(questionsFor(ROWS[0]).map((q) => q.q)).toEqual(['12 Oak Dr, Danville, IL']);
+    expect(questionsFor(ROWS[2]), 'no town anywhere: nothing is asked').toEqual([]);
+    expect(needsFromFamily(ROWS[2])).toBe('the town');
+  });
+  it('the town of a door whose address lost its street is the one its own edit trail set, not the one it now holds', () => {
+    expect(trailTown(ROWS[3].notes)).toBe('Danville');
+    expect(ownTown(ROWS[3])).toBe('Danville');
+    expect(questionsFor(ROWS[3]).map((q) => q.q)).toEqual(['31 Elm Hill, Danville, Illinois']);
+  });
+  it('PROVEN TO CATCH: whichever family town happens to answer is never taken as the door\'s town', () => {
+    // Measured on the first dry run (39718050197): a no-town search answered
+    // in the wrong town because the geocoder did not know the real street.
+    const c = completion(ROWS[3], [{ town: 'Danville', hit: { ok: false } }, { town: 'Champaign', hit: census('31 ELM HILL DR, CHAMPAIGN, IL, 61821') }]);
+    expect(c.ok).toBe(false);
   });
 });
 
@@ -71,26 +81,8 @@ describe('the completion, only from a match that is this house', () => {
     expect(completion(ROWS[1], [{ town: 'Danville', hit: census('30 ELM HILL DR, DANVILLE, IL, 61832') }]).patch)
       .toMatchObject({ address: '30 Elm Hill Drive', zip: '61832' });
   });
-  it('a door with no town takes the ONE family town that holds its house', () => {
-    const c = completion(ROWS[2], [
-      { town: 'Danville', hit: { ok: false } },
-      { town: 'Champaign', hit: census('7 BIRCH ST, CHAMPAIGN, IL, 61821') },
-    ]);
-    expect(c.patch).toMatchObject({ address: '7 Birch Street', city: 'Champaign', zip: '61821' });
-  });
-  it('PROVEN TO CATCH: the same house in two family towns is left for the family to name', () => {
-    const c = completion(ROWS[2], [
-      { town: 'Danville', hit: census('7 BIRCH ST, DANVILLE, IL, 61832') },
-      { town: 'Champaign', hit: census('7 BIRCH ST, CHAMPAIGN, IL, 61821') },
-    ]);
-    expect(c.ok).toBe(false);
-    expect(c.why).toMatch(/town must be named/);
-  });
-  it('mends an address that lost its street, from its own name, in the town that holds it', () => {
-    const c = completion(ROWS[3], [
-      { town: 'Danville', hit: census('31 ELM HILL DR, DANVILLE, IL, 61832') },
-      { town: 'Champaign', hit: { ok: false } },
-    ]);
+  it('mends an address that lost its street, from its own name, in the town its own trail set', () => {
+    const c = completion(ROWS[3], [{ town: 'Danville', hit: census('31 ELM HILL DR, DANVILLE, IL, 61832') }]);
     expect(c.patch).toMatchObject({ address: '31 Elm Hill Drive', city: 'Danville', zip: '61832', display_name: '31 Elm Hill Drive' });
     expect(c.summary).toMatch(/was "Champaign"/);
   });
