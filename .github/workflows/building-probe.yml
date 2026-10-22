@@ -59,6 +59,15 @@ jobs:
           \echo == 1c. does the display name of each 805 door end in its unit label (row#|ends in unit|name equals address) ==
           SELECT row_number() OVER (ORDER BY created_at), coalesce(display_name,'') ILIKE '%' || coalesce(unit,'~~') , coalesce(display_name,'') = coalesce(address,'')
             FROM rentals WHERE address ILIKE '805%' ORDER BY created_at;
+          \echo == 5. board_tasks by board kind (slug prefix|boards|rows|done|with owner|with due date) ==
+          SELECT split_part(board_slug, ':', 1), count(DISTINCT board_slug), count(*), count(*) FILTER (WHERE status='done'),
+                 count(*) FILTER (WHERE coalesce(owner,'')<>''), count(*) FILTER (WHERE due_date IS NOT NULL)
+            FROM board_tasks GROUP BY 1 ORDER BY 3 DESC;
+          \echo == 6. the board titled 805 (slug prefix|group|status|rows|with owner|with notes) ==
+          SELECT split_part(board_slug, ':', 1), group_label, status, count(*), count(*) FILTER (WHERE coalesce(owner,'')<>''), count(*) FILTER (WHERE coalesce(notes,'')<>'')
+            FROM board_tasks WHERE board_title ILIKE '805%' GROUP BY 1,2,3 ORDER BY 1,2,3;
+          \echo == 7. does the 805 board point at one door or the building (rows whose slug suffix matches an 805 rental id|its unit label) ==
+          SELECT r.unit, count(*) FROM board_tasks b JOIN rentals r ON b.board_slug LIKE '%' || r.id::text || '%' WHERE r.address ILIKE '805%' GROUP BY 1;
           \echo == 4. incidents linked to a rental by kind (kind|rows) ==
           SELECT coalesce(linked_to_kind,'(none)'), count(*) FROM incidents GROUP BY 1 ORDER BY 1;
           ROLLBACK;
