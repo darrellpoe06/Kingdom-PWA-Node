@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Fetch the agency's GTFS feed (the first address that answers with a zip)
         env:
           GTFS_URL: ${{ inputs.gtfs_url }}

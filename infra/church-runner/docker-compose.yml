@@ -28,7 +28,7 @@
 
 services:
   probe:
-    image: node:20-alpine
+    image: node:22-alpine   # Node 20 is past end of life and gets no trust-store fixes (DR-1218)
     container_name: church-runner-probe
     restart: "no"            # single-shot; the scheduler is the clock (no self-loop)
     init: true
