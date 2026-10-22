@@ -28,6 +28,30 @@ const OUT = join(ROOT, 'app/src/lib/lesson-dates.json');
 const CHECK = process.argv.includes('--check');
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 });
 
+/**
+ * Is a merge in progress? MEASURED 2026-10-22, on the branch that folded this
+ * check into verify:gates (DR-1208). The repo's own ledger-merge flow is
+ * `git merge --no-commit` → `resolve-ledger-conflicts.mjs` → commit, and run
+ * at that moment the working tree holds the merged file while HEAD does NOT
+ * hold the merged history — so `git log` genuinely cannot find the commit that
+ * added a line the tree already has, and a perfectly good row reports as
+ * untraceable. Proven on this branch: FAILED mid-merge on
+ * world-issues/wi-the-way-was-45-minutes-long, exit 0 the moment the merge was
+ * committed, with nothing else changed.
+ *
+ * `.git` is a FILE in a worktree, so a path test for `.git/MERGE_HEAD` is
+ * wrong there (it silently never fires, which is how this nearly shipped as a
+ * no-op). git itself is asked instead.
+ */
+function mergeInProgress() {
+  try {
+    execFileSync('git', ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd: ROOT, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function mountedCatalog() {
   const { LEARN_CATALOG } = await import('../app/src/lib/learn-catalog.js');
   const { buildEternalProcessingCourses } = await import('../app/src/lib/eternal-algorithms-course.js');
@@ -82,6 +106,13 @@ async function main() {
     for (const p of problems) console.error(`  ${p.course}/${p.id}: ${p.why}`);
     if (problems.length || stale) {
       console.error(`derive-lesson-dates --check FAILED: ${problems.length} entr${problems.length === 1 ? 'y' : 'ies'} git does not support${stale ? '; app/src/lib/lesson-dates.json is not what the script derives' : ''}.`);
+      // It still EXITS 1 — an unknown is never a pass (DR-0125) — but it no
+      // longer reads as a bad row when the row is fine. See mergeInProgress().
+      if (mergeInProgress()) {
+        console.error('NOTE: a MERGE IS IN PROGRESS. HEAD does not yet contain the merged history, so git cannot trace');
+        console.error('      a line the working tree already has. This is NOT necessarily a bad row: commit the merge');
+        console.error('      and run this again before believing it.');
+      }
       console.error('Fix: cd app && npm run lesson-dates, then commit app/src/lib/lesson-dates.json. Never edit its days by hand.');
       process.exit(1);
     }
