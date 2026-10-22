@@ -31,6 +31,7 @@ The process a link, a question, or a teaching follows from the moment it is sent
 3. **A second address** — a site that turns the NAS away is fetched from the runner and handed to the same Whisper ladder.
 4. **The caption under the post** — when nothing is spoken, the post's own words are what is read, and the card says so.
 5. **The page's own words** — a link that is a page, not a video (an article, a message), is read for its title, description and visible text, from the NAS and then the runner; every redirect is checked so a page can never send the road inside the house.
+6. **The page, rendered** — a page that draws its words with script is opened in the runner's own headless browser, behind a firewall that refuses the tailnet and every private address while it runs, and read the same way.
 
 ## Word first, in the lesson
 

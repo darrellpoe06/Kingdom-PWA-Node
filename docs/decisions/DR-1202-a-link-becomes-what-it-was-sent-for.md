@@ -55,7 +55,7 @@
 | what | before | after |
 |---|---|---|
 | link hosts the lane can read | YouTube with captions | any public https host, YouTube without captions included |
-| roads to a link's words | 1 (captions) | 6 (captions, NAS audio, runner audio, the caption under the post, the page's own words from the NAS, then from the runner) |
+| roads to a link's words | 1 (captions) | 7 (captions, NAS audio, runner audio, the caption under the post, the page's own words from the NAS, then the runner, then rendered in the runner's browser) |
 | clocks that start the lane | 1 (GitHub's, measured 3 runs in 6 h) | 2 (the NAS clock every 15 min, and GitHub's) |
 | items worked per run | 1 | up to 6, four side by side |
 | runs to go from a link to a filed lesson | 3 (answer, then reading, then a hand) | 1 |
@@ -79,6 +79,7 @@
   - **Run 39705185863, on the fix, did the whole process on the live system.** The NAS's own yt-dlp fetched the reel from Instagram. Whisper wrote **3,874 characters** of its words on **the NAS CPU**, because the tower was asleep (`{"ok": true, "site": "Instagram", "rung": "the NAS CPU", "model": "small"}`). The answer row landed. The reading came back `503: No AI tower was answering`, which the item says in words and the backlog retries, and it did **not** hold up the filing. `research-create.sh` filed the lesson: `intents [lesson] -> claim|lesson|build|record = 1|1|0|1`.
   - **The live tags showed one more defect of mine, now fixed and pinned:** a re-open had left the earlier claim's time beside the new one, which could have let the release free an item still in flight. A claim now keeps one time, and a re-open clears it (proven on PostgreSQL 16).
   - **Run 39705324897 found a capability gap, now closed:** the features link was an mt27.org message page, not a video, and yt-dlp said `Unsupported URL` on both addresses. A fifth road reads a web page for its words (title, description, visible text; never its script or style), from the NAS and then the runner, with every redirect re-checked by the same door as the link (proven to catch: with the redirect check removed, the selftest fails).
+  - **Run 39705941254 found the next gap, now closed:** the mt27.org page draws its words with script, so its HTML held almost none. A sixth road renders it in the runner's own headless Chrome and the same page reader reads it, while the runner's firewall refuses every connection over the tailnet and to any private or link-local address, so a page's script can never reach the NAS. Proven locally: a page whose words appear only by script rendered to *"Who built the ark, and how many cubits long was it?"*.
 - **Still to be read:** the lesson the builder writes from that row (whether the Word leads and every verse is verbatim) is the trial's second half, read when the builder reports — `re-review: 2026-10-29` at the latest.
 
 ## Not closed, each with its why and date

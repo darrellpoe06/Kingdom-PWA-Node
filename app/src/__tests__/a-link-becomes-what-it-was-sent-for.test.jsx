@@ -284,6 +284,17 @@ describe('the lane, end to end, with no overlap', () => {
     expect(wf).toMatch(/ROAD 3 -- a site that turns the NAS's address away/);
     expect(wf).not.toMatch(/the item held a link that is not one this road can reach/);
   });
+  it('a page drawn by script is rendered on the runner only behind a wall to the tailnet and the house', () => {
+    const wall = wf.indexOf('sudo iptables -I OUTPUT $WALL');
+    const chrome = wf.indexOf('timeout 90 "$CHROME" --headless=new');
+    const down = wf.indexOf('sudo iptables -D OUTPUT $WALL');
+    expect(wall).toBeGreaterThan(0);
+    expect(chrome).toBeGreaterThan(wall);
+    expect(down).toBeGreaterThan(chrome);
+    expect(wf).toMatch(/WALL="-o tailscale0 -j REJECT"/);
+    expect(wf).toMatch(/NETS="10\.0\.0\.0\/8,172\.16\.0\.0\/12,192\.168\.0\.0\/16,169\.254\.0\.0\/16,100\.64\.0\.0\/10"/);
+    expect(wf).toMatch(/\[ "\$WALLED" = 1 \] && timeout 90 "\$CHROME"/);
+  });
   it('filing is one statement that cannot happen twice', () => {
     expect(create).toMatch(/WITH claim AS \(\n\s+UPDATE public\.agent_inbox SET tags = tags \|\| '\[\\"research-created\\"\]'::jsonb\n\s+WHERE id = '\$ID' AND NOT \(tags \? 'research-created'\)/);
     expect(create).toMatch(/FROM claim WHERE \$WL/);

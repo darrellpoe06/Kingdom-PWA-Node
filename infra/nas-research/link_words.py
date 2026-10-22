@@ -293,6 +293,25 @@ def read_page(url, fetch=None, resolve=None):
     return {"title": title, "caption": desc, "words": text}, ""
 
 
+def rendered_page(url, html_path, resolve=None):
+    """ROAD 6 (DR-1202): a page drawn by script, rendered by a headless browser
+    on the runner, read by the same page reader. The same door first."""
+    site = site_of(url, resolve)
+    if not site:
+        return fail("this link points inside the house or is not an https link, so it is not read")
+    try:
+        with open(html_path, encoding="utf-8", errors="replace") as f:
+            html_text = f.read(MAX_PAGE_BYTES)
+    except OSError as e:
+        return fail("the rendered page could not be read (%s)" % e)
+    title, desc, text = page_text(html_text)
+    if len(text) < 40 and not desc:
+        return fail("even rendered, the page gave almost no readable words", url=clean_url(url), site=site)
+    return {"ok": True, "kind": "page", "url": clean_url(url), "site": site, "by": "", "duration": None,
+            "title": title, "caption": desc, "words": text, "rung": "the page, rendered", "model": "",
+            "partial": False, "note": ""}
+
+
 def take_slot(deadline, slots=SLOTS, slot_dir=SLOT_DIR, now=time.monotonic, sleep=time.sleep):
     """An open file holding an exclusive lock on one of `slots` slot files, or
     None when none freed before the deadline. Never raises."""
@@ -407,7 +426,8 @@ def render(result):
     if result.get("caption"):
         lines += ["", "The caption under the post:", result["caption"]]
     if result.get("words") and result.get("kind") == "page":
-        lines += ["", "What the page says (read from the page itself on our own machine):", result["words"]]
+        how = "rendered in a browser on our own runner" if result.get("rung") == "the page, rendered" else "read from the page itself on our own machine"
+        lines += ["", "What the page says (%s):" % how, result["words"]]
     elif result.get("words"):
         how = "Whisper (%s) on %s" % (result.get("model") or "model", result.get("rung") or "our machines")
         lines += ["", "What is said in it (transcribed by %s%s):" % (how, ", stopped early -- the rest was not reached" if result.get("partial") else ""),
@@ -527,6 +547,20 @@ def selftest():
     hop = door.redirect_request(req0, None, 302, "Found", {}, "https://mt27.org/msg/y")
     check("a redirect that stays public is followed", hop is not None and hop.full_url == "https://mt27.org/msg/y")
 
+    # ROAD 6: a page drawn by script, rendered by a browser, read the same way.
+    rd = tempfile.mkdtemp(prefix="lw-dom-")
+    dom = os.path.join(rd, "dom.html")
+    with open(dom, "w") as f:
+        f.write('<html><head><title>Trivia</title></head><body><div id=app><h2>This week</h2><p>Who built the ark, and how long was it?</p></div><script>x()</script></body></html>')
+    r = rendered_page("https://mt27.org/msg/x", dom, resolve=pub)
+    check("a rendered page is read for its words", r.get("ok") and "Who built the ark" in r.get("words", "") and r.get("rung") == "the page, rendered")
+    check("a rendered page says how it was read", "rendered in a browser on our own runner" in render(r))
+    check("a rendered page still passes the door", not rendered_page("https://10.0.0.9/x", dom, resolve=pub).get("ok"))
+    with open(dom, "w") as f:
+        f.write("<html><body><div id=app></div></body></html>")
+    check("an empty rendered page says so", "even rendered" in rendered_page("https://mt27.org/msg/x", dom, resolve=pub).get("why", ""))
+    shutil.rmtree(rd, ignore_errors=True)
+
     # The second road: a file and details fetched elsewhere ride the same ladder.
     tmp = tempfile.mkdtemp(prefix="lw-test-")
     handed = os.path.join(tmp, "media.m4a")
@@ -573,6 +607,7 @@ def main():
     ap.add_argument("--url-file", help="read the link from a file (never on a command line)")
     ap.add_argument("--media", help="a file another road fetched")
     ap.add_argument("--meta", help="that road's yt-dlp -J details, as a file")
+    ap.add_argument("--page-html", help="ROAD 6: a page a browser rendered (its DOM), read for its words")
     ap.add_argument("--out")
     ap.add_argument("--ytdlp", default=os.environ.get("LINK_WORDS_YTDLP", YTDLP_DEFAULT))
     ap.add_argument("--render")
@@ -592,6 +627,12 @@ def main():
     if not (url and a.out):
         ap.error("a link (--url or --url-file) and --out are required")
     ytdlp = a.ytdlp if os.path.exists(a.ytdlp) else (shutil.which("yt-dlp") or a.ytdlp)
+    if a.page_html:
+        result = rendered_page(url, a.page_html)
+        with open(a.out, "w") as f:
+            json.dump(result, f)
+        print(json.dumps({k: result.get(k) for k in ("ok", "site", "kind", "rung", "why")}))
+        return 0
     meta = None
     if a.meta:
         try:

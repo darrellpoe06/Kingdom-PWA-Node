@@ -342,11 +342,39 @@ jobs:
                 # ROAD 5 from the runner's address: the same page road the NAS
                 # tried, run here, for a page that turns the NAS away.
                 LINK_WORDS_YTDLP=/nonexistent LINK_WORDS_WORK=/tmp/lw-work timeout 120 python3 infra/nas-research/link_words.py --url-file /tmp/item.txt --out /tmp/link_words.runner.json > /tmp/lw3.log 2>&1 || true
+                echo "the page road from the runner: $(tail -1 /tmp/lw3.log | head -c 300)"
                 if python3 -c "import json,sys;sys.exit(0 if json.load(open('/tmp/link_words.runner.json')).get('ok') is True else 1)" 2>/dev/null; then
                   cp /tmp/link_words.runner.json /tmp/link_words.json
-                  echo "the page road from the runner: $(tail -1 /tmp/lw3.log | head -c 300)"
                 else
-                  echo "the page road from the runner: $(tail -1 /tmp/lw3.log | head -c 300)"
+                  # ROAD 6 -- a page drawn by script (measured: the mt27.org
+                  # message gave no words as plain HTML). The runner's own
+                  # headless Chrome renders it and the same page reader reads
+                  # it. WHILE THE BROWSER RUNS, the runner's firewall refuses
+                  # every connection over the tailnet and to any private or
+                  # link-local address, so a page's script can never reach the
+                  # NAS or the runner's own metadata through it; the rules come
+                  # out the moment it ends, and its throwaway profile is deleted.
+                  CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)
+                  if [ -n "$CHROME" ] && [ -n "$LINK_CLEAN" ]; then
+                    WALL="-o tailscale0 -j REJECT"
+                    NETS="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,100.64.0.0/10"
+                    sudo iptables -I OUTPUT $WALL && sudo iptables -I OUTPUT -d "$NETS" -j REJECT && sudo ip6tables -I OUTPUT $WALL \
+                      && WALLED=1 || WALLED=0
+                    PROF=$(mktemp -d)
+                    [ "$WALLED" = 1 ] && timeout 90 "$CHROME" --headless=new --disable-gpu --no-sandbox --hide-scrollbars --no-first-run \
+                      --user-data-dir="$PROF" --virtual-time-budget=20000 --dump-dom -- "$LINK_CLEAN" > /tmp/dom.html 2>/tmp/dom.err || true
+                    rm -rf "$PROF"
+                    sudo iptables -D OUTPUT $WALL 2>/dev/null || true
+                    sudo iptables -D OUTPUT -d "$NETS" -j REJECT 2>/dev/null || true
+                    sudo ip6tables -D OUTPUT $WALL 2>/dev/null || true
+                    python3 infra/nas-research/link_words.py --page-html /tmp/dom.html --url-file /tmp/item.txt --out /tmp/link_words.dom.json > /tmp/lw4.log 2>&1 || true
+                    echo "the rendered page from the runner ($(wc -c < /tmp/dom.html) bytes): $(tail -1 /tmp/lw4.log | head -c 300)"
+                    if python3 -c "import json,sys;sys.exit(0 if json.load(open('/tmp/link_words.dom.json')).get('ok') is True else 1)" 2>/dev/null; then
+                      cp /tmp/link_words.dom.json /tmp/link_words.json
+                    fi
+                  else
+                    echo "no browser on this runner for a page drawn by script"
+                  fi
                 fi
               fi
             fi
