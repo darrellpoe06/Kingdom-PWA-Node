@@ -52,6 +52,13 @@ jobs:
           SELECT length(building_label), count(*) FROM rentals WHERE coalesce(building_label,'')<>'' GROUP BY building_label ORDER BY 2 DESC;
           \echo == 3. rentals overall (rows|with building label) ==
           SELECT count(*), count(*) FILTER (WHERE coalesce(building_label,'')<>'') FROM rentals;
+          \echo == 1b. each 805 door, oldest first (row#|unit label|has building label|property_type|status|rent>0|has tenant name|tenancies|created) ==
+          SELECT row_number() OVER (ORDER BY r.created_at), r.unit, coalesce(r.building_label,'')<>'', r.property_type, r.status, coalesce(r.monthly_rent,0)>0,
+                 coalesce(r.tenant_name,'')<>'', (SELECT count(*) FROM rental_tenancies t WHERE t.rental_id = r.id), r.created_at::date
+            FROM rentals r WHERE r.address ILIKE '805%' ORDER BY r.created_at;
+          \echo == 1c. does the display name of each 805 door end in its unit label (row#|ends in unit|name equals address) ==
+          SELECT row_number() OVER (ORDER BY created_at), coalesce(display_name,'') ILIKE '%' || coalesce(unit,'~~') , coalesce(display_name,'') = coalesce(address,'')
+            FROM rentals WHERE address ILIKE '805%' ORDER BY created_at;
           \echo == 4. incidents linked to a rental by kind (kind|rows) ==
           SELECT coalesce(linked_to_kind,'(none)'), count(*) FROM incidents GROUP BY 1 ORDER BY 1;
           ROLLBACK;
