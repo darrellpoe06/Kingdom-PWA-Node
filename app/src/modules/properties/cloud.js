@@ -435,6 +435,31 @@ export async function loadRecordEvents(subjectIds = [], client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * Every work order the signed-in person can read, across all the doors (RLS
+ * decides which; the client never scopes by tenancy), with the worker's job
+ * notes and every change to the second. For the one triage queue across the
+ * whole system (DR-1213). A part that cannot be read is named in `unreadable`,
+ * never returned as an empty list.
+ */
+export async function loadAllWorkOrders(client = supabase) {
+  try {
+    const req = await client.from('tenant_maintenance_requests').select('*').order('created_at', { ascending: true });
+    if (req.error) return no('read-failed', req.error);
+    const requests = req.data || [];
+    if (!requests.length) return ok({ requests, docs: [], events: [], unreadable: [] });
+    const ids = requests.map((r) => r.id);
+    const [d, e] = await Promise.all([
+      client.from('request_documentation').select('id, request_id, outcome, followup, note, has_video, created_at').in('request_id', ids).order('created_at', { ascending: true }),
+      client.from('door_events').select('*').eq('subject', 'work').in('subject_id', ids).order('at', { ascending: true }),
+    ]);
+    const unreadable = [];
+    if (d.error) unreadable.push('job notes');
+    if (e.error) unreadable.push('change history');
+    return ok({ requests, docs: d.error ? [] : d.data || [], events: e.error ? [] : e.data || [], unreadable });
+  } catch (err) { return no('unexpected', err); }
+}
+
 export async function confirmRent(id, client = supabase) {
   try {
     const { error } = await client.from('rent_records')
