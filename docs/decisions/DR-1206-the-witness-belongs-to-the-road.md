@@ -11,7 +11,7 @@
 **Grounds:** the gate `ledger-names-its-thread` went red on PR #2389 (vitest shard 3/4, check run 119601867868) demanding a Gmail thread id from DR-1205 — a lesson that never touched email. Found while driving that PR to green; the red was real, and it was pointing at the guard rather than at the record.
 **Principles:** DR-0076 §3 (proven to catch — a gate that passes on a break is itself a lie), §4 (measure, never claim), §8 (name the method's limits); DR-0621 (a flag is where the work starts — the gate's complaint was worked until it was right, not silenced); DR-0075 (recurring friction becomes a fix); DR-1051 (the rule this generalizes); DR-1202 (the road that made it necessary)
 
-## SHOULD → ARE → GAPS → CLOSE (DR-0219)
+## Context — SHOULD → ARE → GAPS → CLOSE (DR-0219)
 
 **SHOULD.** DR-1051 set the rule after a measured near-miss: a lesson built from an intake must name that intake in the repo, so `grep <id> docs/decisions/` answers *"have we already built this?"* offline, with no Gmail label and no inference. The reason is written in the guard's own header — the `Lesson-Captured` label is a SINGLE witness living outside the repo, and on 2026-10-15 it silently failed to be written while the record it should have contradicted named no id either. **Both witnesses were blind at once.** The repo is the second witness.
 
@@ -82,7 +82,19 @@ A first attempt at proving these was itself wrong and is recorded here because t
 
 The fixture cases build the two records the real ledger cannot contain — a research-road lesson *without* its row id, and the same record *with* it — in a temporary tree, which is why the guard was written to take its root as an argument.
 
-## Limits, named rather than left (DR-0076 §8)
+## Impact — what this obligates, and the limits stated (DR-0076 §8)
+
+**Left unresolved, the cost was a duplicate lesson.** That is not hypothetical: it is what DR-1051 was written after, and the only thing that prevented it on 2026-10-15 was the phrase "positional encoding" happening to sit in DR-1005's prose. The research road was carrying teachings with that protection switched off, so every lesson built through it was one coincidence away from being taught twice — Darrell's words rebuilt as though they had never arrived.
+
+**What the call obligates, from here:**
+
+- **Every research-road lesson names its row or its research item**, in the provenance line, in the form `(\`agent_inbox\` row \`<uuid>\`)` or `(research item \`<uuid>\`)`. Not a bare uuid — the label is what makes the grep answerable.
+- **The witness is the road's, not whichever is handy.** A thread id does not discharge a research-road record and a row id does not discharge a forward. Both are pinned.
+- **`BUILT_THE_ROAD` is closed at two.** A third entry means someone is standing up a third intake road, and that is a decision to record before it is a test to edit.
+- **The debt number means what it says again.** One id is owed — DR-0505 — and recovering it means reading that record for which teaching it carries and finding the newsletter by subject. A guessed id stays worse than none.
+- **The hourly intake routine's tagging step inherits this.** `lesson-id:` / `lesson-pr:` tags are written on the row; the record must now also name that row, so the repo and the table agree without either being consulted about the other.
+
+### Limits, named rather than left
 
 - **It still cannot tell a real id from a plausible one.** It checks that a record NAMES one. A wrong id is a different failure from a missing id, and this guard only catches the second. Unchanged from DR-1051 and still true.
 - **A record that invents a new phrase for the research road escapes it.** Three phrases are watched. A future record that says "the in-app intake" and nothing else would not be classified, and would pass unguarded — the same shape of gap this record just closed, one layer in. `re-review: 2026-11-05` — re-read the research-road records then and widen the phrase list to what they actually say, rather than to what I guessed today.
