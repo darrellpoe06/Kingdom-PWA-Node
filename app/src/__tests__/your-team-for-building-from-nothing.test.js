@@ -57,11 +57,14 @@ describe('the slide, verbatim', () => {
     expect(JSON.stringify(DEV_TEAM_ROLES)).not.toMatch(/required/i);
   });
 
-  it('keeps MY reading of the numbering separate from HIS list, and says whose it is', () => {
-    expect(SEQUENCE_READING.whose).toMatch(/not stated on the slide/);
-    expect(SEQUENCE_READING.words).toMatch(/Survey and soil before a design/);
-    // The reading is not smuggled into a role.
-    expect(JSON.stringify(DEV_TEAM_ROLES)).not.toMatch(/before a design/);
+  it('the order is the VIDEO\'s, says so, and corrects the earlier guess (DR-1204)', () => {
+    // PoeTech once read the numbering as "a price before a lender". The video
+    // the slide comes from says lender relationships come FIRST, before a deal.
+    expect(SEQUENCE_READING.whose).toBe('from the video');
+    expect(SEQUENCE_READING.words).toMatch(/^Before an offer: build lender relationships before you have a deal/);
+    expect(SEQUENCE_READING.words).not.toMatch(/a price before a lender/);
+    // The slide's list itself is untouched: the order note is not smuggled into a role.
+    expect(JSON.stringify(DEV_TEAM_ROLES.map((r) => r.role))).not.toMatch(/Before an offer/);
   });
 });
 
