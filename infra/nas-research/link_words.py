@@ -64,7 +64,7 @@ MAX_TEXT = 400000
 # rather than all grinding the CPU together. A slot is a held file lock, so a
 # crashed holder frees its slot the moment its process ends.
 SLOTS = int(os.environ.get("LINK_WORDS_SLOTS", "2"))
-SLOT_DIR = os.environ.get("LINK_WORDS_SLOT_DIR", "/var/services/homes/dpoe/research-work/.slots")
+SLOT_DIR = os.environ.get("LINK_WORDS_SLOT_DIR") or os.path.expanduser("~/research-work/.slots")
 MAX_CAPTION = 8000
 
 # Known hosts get a friendly name; ANY public https host is read (yt-dlp knows

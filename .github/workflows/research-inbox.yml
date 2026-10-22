@@ -255,8 +255,19 @@ jobs:
           # THIS ITEM'S OWN FOLDER on the NAS's volume (DR-1202): items run side
           # by side, so no two may share a /tmp name, and a video's audio must
           # never land on the NAS's small system partition.
-          NW="/var/services/homes/dpoe/research-work/$ITEM"
-          $SSH "mkdir -p '$NW' && chmod 700 '$NW'" || true
+          # FILES TRAVEL OVER THE SSH SHELL, NEVER scp (DR-1202, measured on run
+          # 39704781328): scp spoke the NAS's SFTP view, where the home folder
+          # is not at its real path, so the copy went nowhere and the NAS then
+          # said it could not open the file. `cat >` over ssh writes the real
+          # filesystem, and each copy is confirmed before it is relied on.
+          put() { $SSH "cat > '$2'" < "$1" && $SSH "test -e '$2'"; }
+          # THE WORK ROOT IS ASKED OF THE NAS, NEVER ASSUMED: the first of the
+          # user's own home, the PoeTech volume, then /tmp that it can write.
+          WROOT=$($SSH 'for d in "$HOME/research-work" /volume1/PoeTech/research-work /tmp/research-work; do mkdir -p "$d" 2>/dev/null && [ -w "$d" ] && { echo "$d"; break; }; done' 2>/dev/null)
+          [ -n "$WROOT" ] || WROOT=/tmp/research-work
+          echo "work root on the NAS: $WROOT"
+          NW="$WROOT/$ITEM"
+          $SSH "mkdir -p '$NW' && chmod 700 '$NW'" || echo "::error::could not make the item's folder on the NAS ($NW)"
           : > /tmp/answer.txt
           VERDICT=failed
           WHY="the road did not run"
@@ -297,9 +308,10 @@ jobs:
             # link travel as FILES: the script from this checkout, so a branch
             # is proven before it merges; the link never on a command line.
             LV="$REPO/infra/nas-lesson-voice"
-            scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new infra/nas-research/link_words.py dpoe@poetech.tail5a2f35.ts.net:$NW/link_words.py >/dev/null 2>&1 || true
-            scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/item.txt dpoe@poetech.tail5a2f35.ts.net:$NW/link_item.txt >/dev/null 2>&1 || true
-            LWRUN="PY=/volume1/PoeTech/venvs/lesson-voice/bin/python; [ -x \$PY ] || PY=python3; cd '$LV' && LINK_WORDS_LADDER_DIR='$LV' LINK_WORDS_WORK='$NW' timeout 2700 \$PY '$NW/link_words.py' --url-file '$NW/link_item.txt' --out '$NW/link_words.json'"
+            if ! put infra/nas-research/link_words.py "$NW/link_words.py" || ! put /tmp/item.txt "$NW/link_item.txt"; then
+              echo "::error::the link road could not be carried to the NAS ($NW)"
+            fi
+            LWRUN="PY=/volume1/PoeTech/venvs/lesson-voice/bin/python; [ -x \$PY ] || PY=python3; cd '$LV' && LINK_WORDS_LADDER_DIR='$LV' LINK_WORDS_WORK='$NW' LINK_WORDS_SLOT_DIR='$WROOT/.slots' timeout 2700 \$PY '$NW/link_words.py' --url-file '$NW/link_item.txt' --out '$NW/link_words.json'"
             $SSH "$LWRUN" > /tmp/lw.log 2>&1 || true
             $SSH "cat '$NW/link_words.json'" > /tmp/link_words.json 2>/dev/null || true
             echo "link road on the NAS: $(tail -1 /tmp/lw.log | head -c 400)"
@@ -308,7 +320,8 @@ jobs:
               # ROAD 3 -- a site that turns the NAS's address away is fetched
               # from THIS runner's address instead, and the file goes to the
               # NAS for the same ladder. One process, a second road in.
-              echo "the NAS fetch was refused; trying the runner's own address"
+              LW_WHY=$(python3 -c "import json;print(json.load(open('/tmp/link_words.json')).get('why') or 'no result')" 2>/dev/null || echo "no result")
+              echo "the NAS road gave no words ($LW_WHY); trying the runner's own address"
               python3 -m pip install --quiet --disable-pip-version-check yt-dlp >/dev/null 2>&1 || true
               mkdir -p /tmp/lw-media && rm -f /tmp/lw-media/*
               LINK_CLEAN=$(python3 -c "import re;m=re.search(r'https?://[^\\s<>\"\x27]+',open('/tmp/item.txt').read());print(m.group(0).rstrip('.,;:)]}') if m else '')")
@@ -316,8 +329,8 @@ jobs:
                 timeout 1500 python3 -m yt_dlp --no-playlist --no-warnings --no-part -f 'bestaudio/worst[acodec!=none]/best' -o '/tmp/lw-media/media.%(ext)s' -- "$LINK_CLEAN" >/dev/null 2>/tmp/lw-fetch.err || true
                 MEDIA=$(ls /tmp/lw-media/ 2>/dev/null | head -1)
                 if [ -n "$MEDIA" ]; then
-                  scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new "/tmp/lw-media/$MEDIA" "dpoe@poetech.tail5a2f35.ts.net:$NW/handed-$MEDIA" >/dev/null 2>&1 || true
-                  scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/lw-meta.json "dpoe@poetech.tail5a2f35.ts.net:$NW/handed-meta.json" >/dev/null 2>&1 || true
+                  put "/tmp/lw-media/$MEDIA" "$NW/handed-$MEDIA" || echo "::warning::the fetched file could not be carried to the NAS"
+                  put /tmp/lw-meta.json "$NW/handed-meta.json" || true
                   $SSH "$LWRUN --media '$NW/handed-$MEDIA' --meta '$NW/handed-meta.json'" > /tmp/lw2.log 2>&1 || true
                   $SSH "cat '$NW/link_words.json'" > /tmp/link_words.json 2>/dev/null || true
                         echo "link road from the runner: $(tail -1 /tmp/lw2.log | head -c 400)"
@@ -340,7 +353,7 @@ jobs:
             # The /ask door DR-1101 brought home. The key is read ON the NAS.
             # The question text is carried there as a FILE, not on a command
             # line, so it cannot appear in a process list or a log.
-            scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/item.txt "dpoe@poetech.tail5a2f35.ts.net:$NW/q.txt" >/dev/null 2>&1 || true
+            put /tmp/item.txt "$NW/q.txt" || echo "::warning::the question could not be carried to the NAS"
             $SSH "NW='$NW' sh -s" > /tmp/ask.json 2>/dev/null <<'EOS' || true
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
@@ -454,10 +467,21 @@ jobs:
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
           # The words and the note travel as FILES, never on a command line.
           # This reading's own folder (DR-1202): readings run side by side.
-          RD="/var/services/homes/dpoe/research-work/read-$ROW"
-          $SSH "mkdir -p '$RD' && chmod 700 '$RD'" || true
-          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rwords.txt "dpoe@poetech.tail5a2f35.ts.net:$RD/rw.txt" >/dev/null 2>&1 || true
-          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rnote.txt "dpoe@poetech.tail5a2f35.ts.net:$RD/rn.txt" >/dev/null 2>&1 || true
+          # FILES TRAVEL OVER THE SSH SHELL, NEVER scp (DR-1202, measured on run
+          # 39704781328): scp spoke the NAS's SFTP view, where the home folder
+          # is not at its real path, so the copy went nowhere and the NAS then
+          # said it could not open the file. `cat >` over ssh writes the real
+          # filesystem, and each copy is confirmed before it is relied on.
+          put() { $SSH "cat > '$2'" < "$1" && $SSH "test -e '$2'"; }
+          # THE WORK ROOT IS ASKED OF THE NAS, NEVER ASSUMED: the first of the
+          # user's own home, the PoeTech volume, then /tmp that it can write.
+          WROOT=$($SSH 'for d in "$HOME/research-work" /volume1/PoeTech/research-work /tmp/research-work; do mkdir -p "$d" 2>/dev/null && [ -w "$d" ] && { echo "$d"; break; }; done' 2>/dev/null)
+          [ -n "$WROOT" ] || WROOT=/tmp/research-work
+          echo "work root on the NAS: $WROOT"
+          RD="$WROOT/read-$ROW"
+          $SSH "mkdir -p '$RD' && chmod 700 '$RD'" || echo "::warning::could not make the reading's folder on the NAS ($RD)"
+          put /tmp/rwords.txt "$RD/rw.txt" || echo "::warning::the words could not be carried to the NAS"
+          put /tmp/rnote.txt "$RD/rn.txt" || true
           $SSH "RD='$RD' sh -s" > /tmp/read.json 2>/dev/null <<'EOS' || true
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
@@ -630,10 +654,21 @@ jobs:
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
           # The words and the note travel as FILES, never on a command line.
           # This reading's own folder (DR-1202): readings run side by side.
-          RD="/var/services/homes/dpoe/research-work/read-$ROW"
-          $SSH "mkdir -p '$RD' && chmod 700 '$RD'" || true
-          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rwords.txt "dpoe@poetech.tail5a2f35.ts.net:$RD/rw.txt" >/dev/null 2>&1 || true
-          scp -i /tmp/nas_key -o StrictHostKeyChecking=accept-new /tmp/rnote.txt "dpoe@poetech.tail5a2f35.ts.net:$RD/rn.txt" >/dev/null 2>&1 || true
+          # FILES TRAVEL OVER THE SSH SHELL, NEVER scp (DR-1202, measured on run
+          # 39704781328): scp spoke the NAS's SFTP view, where the home folder
+          # is not at its real path, so the copy went nowhere and the NAS then
+          # said it could not open the file. `cat >` over ssh writes the real
+          # filesystem, and each copy is confirmed before it is relied on.
+          put() { $SSH "cat > '$2'" < "$1" && $SSH "test -e '$2'"; }
+          # THE WORK ROOT IS ASKED OF THE NAS, NEVER ASSUMED: the first of the
+          # user's own home, the PoeTech volume, then /tmp that it can write.
+          WROOT=$($SSH 'for d in "$HOME/research-work" /volume1/PoeTech/research-work /tmp/research-work; do mkdir -p "$d" 2>/dev/null && [ -w "$d" ] && { echo "$d"; break; }; done' 2>/dev/null)
+          [ -n "$WROOT" ] || WROOT=/tmp/research-work
+          echo "work root on the NAS: $WROOT"
+          RD="$WROOT/read-$ROW"
+          $SSH "mkdir -p '$RD' && chmod 700 '$RD'" || echo "::warning::could not make the reading's folder on the NAS ($RD)"
+          put /tmp/rwords.txt "$RD/rw.txt" || echo "::warning::the words could not be carried to the NAS"
+          put /tmp/rnote.txt "$RD/rn.txt" || true
           $SSH "RD='$RD' sh -s" > /tmp/read.json 2>/dev/null <<'EOS' || true
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"

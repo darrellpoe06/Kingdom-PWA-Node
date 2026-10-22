@@ -248,8 +248,12 @@ describe('the lane, end to end, with no overlap', () => {
   it('items are worked side by side, four at once, each in its own NAS folder', () => {
     expect(wf).toMatch(/max-parallel: 4/);
     expect(wf).toMatch(/id: \$\{\{ fromJSON\(needs\.pick\.outputs\.items\) \}\}/);
-    expect(wf).toMatch(/NW="\/var\/services\/homes\/dpoe\/research-work\/\$ITEM"/);
-    expect(wf).not.toMatch(/poetech\.tail5a2f35\.ts\.net:\/tmp\//);
+    expect(wf).toMatch(/NW="\$WROOT\/\$ITEM"/);
+    expect(wf).toMatch(/for d in "\$HOME\/research-work" \/volume1\/PoeTech\/research-work \/tmp\/research-work/);
+    // PROVEN on run 39704781328: scp wrote into the NAS's SFTP view, not its
+    // real filesystem, and the link road then could not open its own script.
+    expect(wf).not.toMatch(/\bscp -i /);
+    expect(wf).toMatch(/put\(\) \{ \$SSH "cat > '\$2'" < "\$1" && \$SSH "test -e '\$2'"; \}/);
   });
   it('PROVEN-TO-CATCH: there is no workflow-wide lock to queue behind', () => {
     const top = wf.slice(0, wf.indexOf('\njobs:'));
