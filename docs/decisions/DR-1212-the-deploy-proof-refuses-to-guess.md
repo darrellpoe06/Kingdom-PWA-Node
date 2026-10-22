@@ -1,4 +1,4 @@
-# DR-1210: The deploy proof refuses to guess — my own watcher reported a deploy it never saw, on the one rule written in nine hours of downtime
+# DR-1212: The deploy proof refuses to guess — my own watcher reported a deploy it never saw, on the one rule written in nine hours of downtime
 
 **Date:** 2026-10-22
 **Status:** accepted
