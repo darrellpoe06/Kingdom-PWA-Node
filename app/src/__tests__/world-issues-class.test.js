@@ -216,3 +216,41 @@ describe('the source names who made it, never what they believe (2026-10-22)', (
     expect(lesson).not.toMatch(/reel's a short-form/);
   });
 });
+
+describe('one lesson, Word first (2026-10-22: "two lessons in one... What happened to the pattern")', () => {
+  const campus = WORLD_ISSUES.find((i) => i.id === 'wi-the-way-was-45-minutes-long');
+  const mods = buildDiscernmentModules(WORLD_ISSUES);
+  const REF = /\b(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Isaiah|Proverbs|Haggai|Psalms?|Matthew|John|Romans|Hebrews|Revelation|Ecclesiastes|Samuel) \d+:\d+/;
+
+  it('every issue audits clean on the new rule, and issue 21 opens its Word section with the Word', () => {
+    WORLD_ISSUES.forEach((i) => expect(auditIssue(i).errors.filter((e) => /^(word-first|one-lesson)\//.test(e.code)), i.id).toEqual([]));
+    expect(campus.lens.fourD.deepSource.startsWith('WORD FIRST — YAHWEH MEASURED THE ROADS.')).toBe(true);
+  });
+  it('PROVEN TO CATCH: a Word section that opens with where it came from and what the checking found', () => {
+    const preamble = 'WHERE THIS CAME FROM. Darrell sent an Instagram reel into the app with one word on it. '.repeat(8);
+    const late = { ...campus, lens: { ...campus.lens, fourD: { ...campus.lens.fourD, deepSource: preamble + campus.lens.fourD.deepSource } } };
+    expect(auditIssue(late).errors.map((e) => e.code)).toContain('word-first/late');
+  });
+  it('PROVEN TO CATCH: a Word section that retells the checks the stages already give', () => {
+    const twice = { ...campus, lens: { ...campus.lens, fourD: { ...campus.lens.fourD, deepSource: `${campus.lens.fourD.deepSource}\n\n${campus.claims[0].text}` } } };
+    expect(auditIssue(twice).errors.map((e) => e.code)).toContain('one-lesson/retold');
+  });
+  it('the adult reads the Word first, in every issue, and issue 21 tells each claim once', () => {
+    mods.forEach((m) => expect(m.lesson.startsWith('WORD FIRST'), m.id).toBe(true));
+    const adult = mods.find((m) => m.id === campus.id).lesson;
+    expect(adult).not.toMatch(/WHAT THE CHECKING FOUND/);
+    // The Word section, the source and Stage 1 tell each claim once (Stages 2 and 3 may quote one on purpose).
+    const told = adult.slice(0, adult.indexOf('STAGE 2 —'));
+    campus.claims.forEach((c) => expect(told.split(c.text.slice(10, 45)).length - 1, c.id).toBe(1));
+  });
+  it('each age version of issue 21 reaches the Word before the first claim it checks, with no machinery in it', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = campus.levels[band];
+      const word = t.search(REF);
+      const claim = t.search(/UT Arlington|Texas|Tarrant|Union Square/);
+      expect(word, band).toBeGreaterThan(-1);
+      if (claim > -1) expect(word, band).toBeLessThan(claim);
+      expect(t, band).not.toMatch(/\bNAS\b|Whisper|the row (itself )?records/);
+    }
+  });
+});

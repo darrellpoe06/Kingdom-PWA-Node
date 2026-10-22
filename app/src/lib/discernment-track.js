@@ -395,8 +395,36 @@ export function lintSourceNamesWhoNotWhatTheyBelieve(issue) {
     : [];
 }
 
+// ONE LESSON, WORD FIRST (2026-10-22). Darrell, on World Issues 21: "It's two
+// lessons in one of the same lesson back to back" and "What happened to the
+// pattern!" Its Word section (lens.fourD.deepSource) opened with where the reel
+// came from and "WHAT THE CHECKING FOUND, BEFORE ANY TEACHING" — the Stage 1
+// and 2 the reader had just been given — and reached its first verse at
+// character 2,095; then it closed with the edge, the heart, the two courts and
+// what to do, which accountability and stewardship say again right after it.
+// Measured across issues 1-20: the Word section quotes the Word within its
+// first 456 characters and retells no claim. These hold every issue to that.
+const SCRIPTURE_REF = /\b(?:[1-3] )?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation) \d+:\d+/;
+export const WORD_LEADS_WITHIN = 600;
+export function lintOneLessonWordFirst(issue) {
+  const i = normalizeIssue(issue);
+  const deep = i.lens?.fourD?.deepSource;
+  if (!isNonEmptyStr(deep)) return [];
+  const out = [];
+  const m = deep.match(SCRIPTURE_REF);
+  if (!m || m.index > WORD_LEADS_WITHIN) {
+    out.push({ code: 'word-first/late', severity: 'error', message: `The Word section reaches its first verse at character ${m ? m.index : 'never'}; it opens with the Word (within ${WORD_LEADS_WITHIN}), not with the source or the checks.` });
+  }
+  const retold = [...i.claims.map((c) => c.text), ...i.verifiable.map((v) => v.statement)]
+    .filter(isNonEmptyStr).map((t) => t.slice(10, 45)).filter((k) => k.length >= 30 && deep.includes(k));
+  if (retold.length) {
+    out.push({ code: 'one-lesson/retold', severity: 'error', message: `The Word section retells ${retold.length} claim or check the stages already give ("${retold[0]}…"). One lesson, told once.` });
+  }
+  return out;
+}
+
 export const ISSUE_LINTERS = [
-  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate, lintSourceNamesWhoNotWhatTheyBelieve,
+  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate, lintSourceNamesWhoNotWhatTheyBelieve, lintOneLessonWordFirst,
 ];
 
 // auditIssue — run every safeguard. ok === true only when NO error-severity
@@ -423,6 +451,12 @@ export function auditAllIssues(issues) {
 // sees the structured stages; this is the teaching narrative behind them.
 function buildLessonProse(i) {
   const parts = [];
+  // WORD FIRST (DR-0097; the Way, FROM-A-LINK-TO-WHAT-IT-WAS-SENT-FOR.md step 4).
+  // The adult reads this prose, and it opened with the source and the claims,
+  // reaching the Word only at Stage 4, after everything it was meant to judge.
+  // The Word section leads now; Stage 4 keeps the rest of the lens.
+  const deep = i.lens.fourD.deepSource;
+  if (deep) parts.push(/^\s*WORD FIRST\b/i.test(deep) ? deep : `WORD FIRST. ${deep}`);
   parts.push(
     `This lesson speaks the documented truth plainly and teaches HOW to weigh the rest — checking sources, hearing every side, and letting the Word say what it says about justice and accountability. What is proven is named; what is unproven is labeled; the verdict on a soul is left to God.`,
   );
@@ -442,8 +476,8 @@ function buildLessonProse(i) {
   if (i.perspectives.length) {
     parts.push(`STAGE 3 — PERSPECTIVES. ${i.perspectives.map((p) => `${p.label}: ${p.steelman}`).join(' ')} We state each at its strongest before we weigh any of them.`);
   }
-  if (i.lens.fourD.deepSource || i.lens.threeD) {
-    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.fourD.deepSource} ${i.lens.threeD} ${i.lens.accountability?.statement ? `ACCOUNTABILITY — WHAT THE WORD REQUIRES. ${i.lens.accountability.statement}` : ''} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
+  if (i.lens.threeD || i.lens.accountability?.statement) {
+    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.threeD} ${i.lens.accountability?.statement ? `ACCOUNTABILITY — WHAT THE WORD REQUIRES. ${i.lens.accountability.statement}` : ''} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
   }
   if (i.reflection.skill) {
     parts.push(`STAGE 5 — REFLECTION + SKILL. ${i.reflection.skill}`);
