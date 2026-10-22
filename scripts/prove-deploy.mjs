@@ -39,11 +39,23 @@
 // successful deploy of a DIFFERENT commit is not evidence about this one, and a
 // tool that takes the newest green run it can find will happily prove the wrong
 // thing on a busy night.
+//
+// AND IT SAYS WHEN THE SHA ITSELF IS NOT A COMMIT (added within the hour, on
+// its first real use). I asked it about `85607d6036e1ba5c93f20b5a0ddc92f0a1aa1fc2`
+// — nine characters of a real sha and a tail I typed from memory. It answered
+// "no Deploy run exists for that sha", which is TRUE and which I read as "the
+// deploy never fired", so I dispatched one that was not needed; the real tip,
+// `85607d603b8e6d…`, had deployed successfully all along. The tool behaved
+// correctly and still pointed me the wrong way, because "no run for this
+// commit" and "that is not a commit" are different facts and only one of them
+// is about the deploy. `git cat-file -t` separates them in one call.
 import { execFileSync } from 'node:child_process';
 
 export const PROVED = 'proved';
 export const FAILED = 'failed';
 export const UNKNOWN = 'unknown';
+/** Not a verdict about the deploy at all — the question was malformed. */
+export const NO_SUCH_COMMIT = 'no-such-commit';
 
 /** The workflow whose success means the site actually advanced (DR-0054). */
 export const DEPLOY_WORKFLOW = 'Deploy (Cloudflare Pages)';
@@ -77,8 +89,37 @@ export function verdictOf(runs, sha) {
   return { verdict: FAILED, why: `the deploy for ${sha} ended ${done.conclusion}, which is not a success` };
 }
 
-/** Pure. 0 proved, 1 failed, 2 unknown — "I do not know" is not "it broke". */
-export const exitCodeOf = (verdict) => (verdict === PROVED ? 0 : verdict === FAILED ? 1 : 2);
+/**
+ * Pure. 0 proved, 1 failed, 2 unknown, 3 the sha is not a commit.
+ * "I do not know" is not "it broke", and "you asked about nothing" is neither.
+ */
+export const exitCodeOf = (verdict) => (
+  verdict === PROVED ? 0
+    : verdict === FAILED ? 1
+      : verdict === NO_SUCH_COMMIT ? 3
+        : 2
+);
+
+/**
+ * Does this sha name a commit the local repository has? A sha that does not
+ * exist cannot have a deploy, and saying "no deploy run exists for it" invites
+ * exactly the wrong conclusion — measured on myself, see the header.
+ *
+ * A repository that simply has not fetched the commit yet would also answer
+ * no, so this is reported as its own outcome rather than folded into UNKNOWN:
+ * the caller is told to check the sha, not to go looking at the deploy.
+ */
+export function commitExists(sha, runGit = defaultRunGit) {
+  try {
+    return String(runGit(['cat-file', '-t', sha])).trim() === 'commit';
+  } catch {
+    return false;
+  }
+}
+
+function defaultRunGit(args) {
+  return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+}
 
 /**
  * Pure. The verdict after the wait budget is spent. THIS IS THE BUG, ISOLATED:
@@ -107,6 +148,17 @@ if (invokedDirectly) {
     console.error('usage: node scripts/prove-deploy.mjs --sha <full 40-char sha> [--wait <seconds>] [--repo owner/name]');
     console.error('  exit 0 PROVED, 1 FAILED, 2 UNKNOWN. A full sha is required: a short one cannot be compared to head_sha.');
     process.exit(2);
+  }
+  // Asked before anything else: a sha that is not a commit is a bad QUESTION,
+  // and answering it about the deploy is how I misread this tool on its first
+  // real use. It exits 3 so it cannot be mistaken for either "unknown" or a
+  // deploy failure.
+  if (!commitExists(sha)) {
+    console.log(`\n${NO_SUCH_COMMIT.toUpperCase()}: ${sha} is not a commit in this repository.`);
+    console.log('Nothing is being said about any deploy. Re-read the sha (git rev-parse origin/main)');
+    console.log('rather than typing it: nine matching characters and a wrong tail reads exactly like a');
+    console.log('deploy that never fired.');
+    process.exit(exitCodeOf(NO_SUCH_COMMIT));
   }
   const deadline = Date.now() + budget * 1000;
   let last = null;

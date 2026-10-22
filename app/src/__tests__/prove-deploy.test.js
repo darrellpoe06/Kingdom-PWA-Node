@@ -20,7 +20,8 @@
 // as success.
 import { describe, it, expect } from 'vitest';
 import {
-  verdictOf, exitCodeOf, afterBudget, PROVED, FAILED, UNKNOWN, DEPLOY_WORKFLOW,
+  verdictOf, exitCodeOf, afterBudget, commitExists,
+  PROVED, FAILED, UNKNOWN, NO_SUCH_COMMIT, DEPLOY_WORKFLOW,
 } from '../../../scripts/prove-deploy.mjs';
 
 const SHA = 'a'.repeat(40);
@@ -104,11 +105,35 @@ describe('afterBudget — the fall-through, which is the bug isolated', () => {
   });
 });
 
+describe('commitExists — a bad question is not an answer about the deploy', () => {
+  // MEASURED ON MYSELF, within the hour of writing this tool. I asked it about
+  // 85607d6036e1ba5c93f20b5a0ddc92f0a1aa1fc2 — nine characters of the real sha
+  // and a tail typed from memory. It said "no Deploy run exists for that sha",
+  // which was TRUE, and I read it as "the deploy never fired" and dispatched one
+  // that was not needed; the real tip had deployed successfully all along.
+  // "No run for this commit" and "that is not a commit" are different facts.
+  it('tells a real commit from a sha-shaped string', () => {
+    expect(commitExists('abc', () => 'commit\n')).toBe(true);
+    expect(commitExists('abc', () => 'tree\n'), 'a tree is not a commit').toBe(false);
+    expect(commitExists('abc', () => { throw new Error('could not get object info'); })).toBe(false);
+  });
+
+  it('PROVEN-TO-CATCH: a missing commit gets its OWN outcome, never UNKNOWN', () => {
+    // If this folded into UNKNOWN, the output would again point at the deploy
+    // when the problem is the question — the exact misread this came from.
+    expect(NO_SUCH_COMMIT).not.toBe(UNKNOWN);
+    expect(exitCodeOf(NO_SUCH_COMMIT), 'and its own exit code, so a caller can branch on it').toBe(3);
+    expect(exitCodeOf(NO_SUCH_COMMIT)).not.toBe(exitCodeOf(UNKNOWN));
+    expect(exitCodeOf(NO_SUCH_COMMIT)).not.toBe(0);
+  });
+});
+
 describe('exitCodeOf — "I do not know" is not "it broke"', () => {
-  it('maps the three outcomes to three codes', () => {
+  it('maps the outcomes to distinct codes', () => {
     expect(exitCodeOf(PROVED)).toBe(0);
     expect(exitCodeOf(FAILED)).toBe(1);
     expect(exitCodeOf(UNKNOWN)).toBe(2);
+    expect(exitCodeOf(NO_SUCH_COMMIT)).toBe(3);
   });
 
   it('PROVEN-TO-CATCH: nothing unrecognised maps to 0', () => {

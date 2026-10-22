@@ -62,6 +62,29 @@ The second case is the one the hand-written loop answered with `UP · fresh` and
 
 **It will not dispatch the site witness without a proof.** An outside-in "fresh" reading taken while the deploy is still queued is a reading of the *previous* build, which is how a stale site passes a freshness check.
 
+## Its first real use caught me, not the deploy — so it gained a fourth outcome
+
+Within the hour, I pointed it at DR-1209's merge and asked about `85607d6036e1ba5c93f20b5a0ddc92f0a1aa1fc2`. It answered **UNKNOWN — no Deploy run exists for that sha**, and a background watcher repeated that thirteen times over about six minutes. I read it as *"the deploy never fired"*, and because DR-0107 says to dispatch immediately in that case, **I dispatched a deploy that was not needed.**
+
+The sha was wrong. Main's real tip is `85607d603b8e6d8584b27f0227806eb2a4fbbbbf` — **nine matching characters and a tail I typed from memory.** `git cat-file -t` on my version: `could not get object info`. The real tip had already deployed successfully (`workflow_dispatch` run `39724743615`), so the proof existed the whole time and `prove-deploy` on the correct sha returns **PROVED, exit 0.**
+
+Three things worth separating, because they are not the same mistake:
+
+1. **The tool was right.** It refused to find a "close enough" run, which is precisely the scan-bug protection working — had it matched loosely it would have reported PROVED for a commit that does not exist.
+2. **I nearly "fixed" a correct tool**, the second time tonight that instinct appeared (the first was the CI roll-up, where DR-1041's exit-1-on-cancelled turned out to be deliberate and load-bearing).
+3. **But the message genuinely pointed the wrong way.** "No deploy run exists for this sha" and "that is not a commit" are different facts, and only the first is about the deploy. A true answer that invites the wrong action is a real defect, not a user error to shrug at.
+
+So there is a fourth outcome: **NO_SUCH_COMMIT, exit 3**, checked by `git cat-file -t` before any API call, never folded into UNKNOWN, with its own exit code so a caller can branch on it:
+
+```
+NO-SUCH-COMMIT: 85607d6036e1ba… is not a commit in this repository.
+Nothing is being said about any deploy. Re-read the sha (git rev-parse origin/main)
+rather than typing it: nine matching characters and a wrong tail reads exactly like a
+deploy that never fired.
+```
+
+**And the root cause is mine and worth naming:** this is the second identifier tonight I typed from memory instead of reading — the first was a script path, `scripts/lowest-free-dr.mjs`, which also did not exist and went into a comment on another session's PR before I caught it. DR-0076 §8 is about provenance for *claims*; the same rule applies to the identifiers a claim is built on. The tool now makes that particular slip cost one line instead of a spurious deploy.
+
 ## Impact — what this obligates
 
 **Unresolved, the cost is the 2026-07-06 outage with the alarm disconnected.** Nine hours of stale build happened *with* safeguards in place; the lesson was to watch the product. A proof that reports success without observing the deploy puts the safeguard back in the state that allowed it — and worse, leaves a written "deploy ✓, UP · fresh" in the record for the next session to trust.
