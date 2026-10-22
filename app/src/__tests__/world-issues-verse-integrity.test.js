@@ -2689,3 +2689,194 @@ describe('Issue 20 — The wage that no longer buys the day: every fragment verb
     }
   });
 });
+
+// =============================================================================
+// Issue 22 — The broken seal and the sure foundation (DR-1217). Every fragment
+// below was read from app/public/bible/kjv/*.json, never from memory, and the
+// span-by-span scan reads the issue itself so a tamper anywhere fails.
+// =============================================================================
+const BROKEN_SEAL_QUOTES = [
+  { ref: '2 Timothy 2:19', book: '2Timothy', ch: 2, v: 19, fragments: ['the foundation of God standeth sure, having this seal, The Lord knoweth them that are his', 'The Lord knoweth them that are his'] },
+  { ref: 'Psalms 118:8', book: 'Psalms', ch: 118, v: 8, fragments: ['It is better to trust in the LORD than to put confidence in man'] },
+  { ref: 'Psalms 121:4', book: 'Psalms', ch: 121, v: 4, fragments: ['he that keepeth Israel shall neither slumber nor sleep'] },
+  { ref: 'Esther 8:8', book: 'Esther', ch: 8, v: 8, fragments: ['the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse', 'may no man reverse'] },
+  { ref: 'Daniel 6:17', book: 'Daniel', ch: 6, v: 17, fragments: ['the king sealed it with his own signet, and with the signet of his lords; that the purpose might not be changed', 'that the purpose might not be changed'] },
+  { ref: 'Jeremiah 32:10', book: 'Jeremiah', ch: 32, v: 10, fragments: ['I subscribed the evidence, and sealed it, and took witnesses'] },
+  { ref: 'Haggai 2:23', book: 'Haggai', ch: 2, v: 23, fragments: ['will make thee as a signet: for I have chosen thee'] },
+  { ref: 'Ephesians 1:13', book: 'Ephesians', ch: 1, v: 13, fragments: ['ye were sealed with that holy Spirit of promise', 'were sealed with that holy Spirit of promise'] },
+  { ref: 'Revelation 5:9', book: 'Revelation', ch: 5, v: 9, fragments: ['Thou art worthy to take the book, and to open the seals thereof: for thou wast slain', 'to open the seals'] },
+  { ref: 'Revelation 3:7', book: 'Revelation', ch: 3, v: 7, fragments: ['he that hath the key of David, he that openeth, and no man shutteth; and shutteth, and no man openeth', 'the key of David, he that openeth, and no man shutteth'] },
+  { ref: 'Isaiah 22:22', book: 'Isaiah', ch: 22, v: 22, fragments: ['so he shall open, and none shall shut; and he shall shut, and none shall open'] },
+  { ref: 'Psalms 118:9', book: 'Psalms', ch: 118, v: 9, fragments: ['It is better to trust in the LORD than to put confidence in princes', 'than to put confidence in princes'] },
+  { ref: 'Jeremiah 17:5', book: 'Jeremiah', ch: 17, v: 5, fragments: ['Cursed be the man that trusteth in man, and maketh flesh his arm'] },
+  { ref: 'Jeremiah 17:7', book: 'Jeremiah', ch: 17, v: 7, fragments: ['Blessed is the man that trusteth in the LORD, and whose hope the LORD is'] },
+  { ref: 'Jeremiah 17:8', book: 'Jeremiah', ch: 17, v: 8, fragments: ['shall not be careful in the year of drought, neither shall cease from yielding fruit'] },
+  { ref: 'Ezekiel 33:6', book: 'Ezekiel', ch: 33, v: 6, fragments: ['if the watchman see the sword come, and blow not the trumpet, and the people be not warned', 'if the watchman see the sword come, and blow not the trumpet'] },
+  { ref: 'Ezekiel 33:4', book: 'Ezekiel', ch: 33, v: 4, fragments: ['whosoever heareth the sound of the trumpet, and taketh not warning', 'heareth the sound of the trumpet, and taketh not warning'] },
+  { ref: 'Ezekiel 33:5', book: 'Ezekiel', ch: 33, v: 5, fragments: ['But he that taketh warning shall deliver his soul', 'he that taketh warning shall deliver his soul'] },
+  { ref: 'Nehemiah 4:9', book: 'Nehemiah', ch: 4, v: 9, fragments: ['we made our prayer unto our God, and set a watch against them day and night', 'made our prayer unto our God, and set a watch against them day and night'] },
+  { ref: 'Psalms 127:1', book: 'Psalms', ch: 127, v: 1, fragments: ['except the LORD keep the city, the watchman waketh but in vain'] },
+  { ref: 'Proverbs 27:12', book: 'Proverbs', ch: 27, v: 12, fragments: ['A prudent man foreseeth the evil, and hideth himself; but the simple pass on, and are punished'] },
+  { ref: 'Matthew 24:43', book: 'Matthew', ch: 24, v: 43, fragments: ['if the goodman of the house had known in what watch the thief would come, he would have watched'] },
+  { ref: '2 Timothy 1:7', book: '2Timothy', ch: 1, v: 7, fragments: ['For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good'] },
+  { ref: 'Proverbs 14:15', book: 'Proverbs', ch: 14, v: 15, fragments: ['The simple believeth every word: but the prudent man looketh well to his going'] },
+  { ref: 'Proverbs 16:33', book: 'Proverbs', ch: 16, v: 33, fragments: ['The lot is cast into the lap; but the whole disposing thereof is of the LORD'] },
+  { ref: 'Matthew 7:24', book: 'Matthew', ch: 7, v: 24, fragments: ['built his house upon a rock'] },
+  { ref: 'Matthew 7:25', book: 'Matthew', ch: 7, v: 25, fragments: ['it fell not: for it was founded upon a rock'] },
+  { ref: 'Matthew 7:27', book: 'Matthew', ch: 7, v: 27, fragments: ['fell: and great was the fall of it'] },
+  { ref: 'Isaiah 28:16', book: 'Isaiah', ch: 28, v: 16, fragments: ['a tried stone, a precious corner stone, a sure foundation', 'a sure foundation'] },
+  { ref: 'Psalms 11:3', book: 'Psalms', ch: 11, v: 3, fragments: ['If the foundations be destroyed, what can the righteous do?'] },
+  { ref: 'Proverbs 24:3', book: 'Proverbs', ch: 24, v: 3, fragments: ['Through wisdom is an house builded; and by understanding it is established'] },
+  { ref: 'Proverbs 24:4', book: 'Proverbs', ch: 24, v: 4, fragments: ['And by knowledge shall the chambers be filled with all precious and pleasant riches'] },
+  { ref: '1 Corinthians 13:2', book: '1Corinthians', ch: 13, v: 2, fragments: ['and have not charity, I am nothing'] },
+  { ref: 'Proverbs 14:23', book: 'Proverbs', ch: 14, v: 23, fragments: ['In all labour there is profit: but the talk of the lips tendeth only to penury', 'In all labour there is profit'] },
+  { ref: 'Jeremiah 6:14', book: 'Jeremiah', ch: 6, v: 14, fragments: ['saying, Peace, peace; when there is no peace', 'Peace, peace; when there is no peace'] },
+  { ref: 'Proverbs 11:14', book: 'Proverbs', ch: 11, v: 14, fragments: ['in the multitude of counsellors there is safety'] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: ['For kings, and for all that are in authority'] },
+  { ref: 'Psalms 146:3', book: 'Psalms', ch: 146, v: 3, fragments: ['Put not your trust in princes'] },
+  { ref: 'Proverbs 21:31', book: 'Proverbs', ch: 21, v: 31, fragments: ['The horse is prepared against the day of battle: but safety is of the LORD'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['God shall bring every work into judgment, with every secret thing'] },
+  { ref: 'John 1:29', book: 'John', ch: 1, v: 29, fragments: ['the Lamb of God, which taketh away the sin of the world'] },
+  { ref: 'Colossians 1:17', book: 'Colossians', ch: 1, v: 17, fragments: ['all things consist'] },
+];
+
+describe('Issue 22 — The broken seal and the sure foundation: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-the-broken-seal-and-the-sure-foundation');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published, and the derived count moved with it', () => {
+    expect(issue).toBeTruthy();
+    expect(WORLD_ISSUES.includes(issue)).toBe(true);
+    expect(WORLD_ISSUES_META.weeks).toBe(WORLD_ISSUES.length);
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of BROKEN_SEAL_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('EVERY "..." (Ref) span in the issue, on every field, is verbatim in the verse it names', () => {
+    const text = JSON.stringify(issue).replace(/\\"/g, '"');
+    const re = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)(?:-(\d+))?\)/g;
+    const bad = [];
+    let n = 0;
+    for (const m of text.matchAll(re)) {
+      const [, span, book, ch, a, b] = m;
+      const vs = [];
+      for (let v = Number(a); v <= Number(b || a); v += 1) vs.push(kjvVerse(book.replace(/ /g, ''), Number(ch), v));
+      n += 1;
+      if (!norm(vs.join(' ')).includes(norm(span))) bad.push(`${book} ${ch}:${a}: "${span}"`);
+    }
+    expect(n, 'a low count means the scan broke').toBeGreaterThan(80);
+    expect(bad).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = BROKEN_SEAL_QUOTES.flatMap((q) => q.fragments.filter((f) => !blob.includes(norm(f))).map((f) => `${q.ref}: "${f}"`));
+    expect(missing).toEqual([]);
+    expect(BROKEN_SEAL_QUOTES.length).toBeGreaterThan(40);
+  });
+
+  // PROVEN-TO-CATCH (DR-0076 §3): a one-word tamper in either anchor verse must
+  // fail. Run RED by corrupting the module (sure→strong, warning→counsel) and
+  // restored GREEN — recorded in DR-1217.
+  it('CATCHES a one-word tamper in the two anchor verses', () => {
+    const seal = kjvVerse('2Timothy', 2, 19);
+    expect(norm(seal).includes(norm('the foundation of God standeth strong, having this seal'))).toBe(false);
+    expect(norm(seal).includes(norm('the foundation of God standeth sure, having this seal'))).toBe(true);
+    const warn = kjvVerse('Ezekiel', 33, 5);
+    expect(norm(warn).includes(norm('But he that taketh counsel shall deliver his soul'))).toBe(false);
+    expect(norm(warn).includes(norm('But he that taketh warning shall deliver his soul'))).toBe(true);
+    // and the reasoning the whole lesson rests on: the decree sealed with the king's ring stands
+    const ring = kjvVerse('Esther', 8, 8);
+    expect(norm(ring).includes(norm('sealed with the king’s ring, may any man reverse'))).toBe(false);
+    expect(norm(ring).includes(norm('sealed with the king’s ring, may no man reverse'))).toBe(true);
+  });
+
+  // DR-0100's three tiers: the release, the weak keys, the browsers' blocks and
+  // our own house are DOCUMENTED and said plainly; the analysts' mechanism and
+  // the early-attack report, and the trust-store versions, are PARTLY documented;
+  // the post's "all messed up" and the two slogans are OPINION.
+  it('states the documented plainly, keeps the open narrow, and labels the opinions', () => {
+    for (const id of ['f-php-release', 'f-emudhra-keys', 'f-browsers-acted', 'f-our-house']) {
+      expect(issue.verifiable.find((v) => v.id === id).status, id).toBe('documented');
+    }
+    for (const id of ['f-php-detail', 'f-who-is-still-exposed']) {
+      expect(issue.verifiable.find((v) => v.id === id).status, id).toBe('partly-documented');
+    }
+    expect(issue.claims.find((c) => c.id === 'c-two-slogans').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-web-messed-up').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-only-limited').attribution).toMatch(/eMudhra, in its own statement/);
+    const release = issue.verifiable.find((v) => v.id === 'f-php-release').statement;
+    for (const fig of ['9.2', '8.5.12', '8.4.27', '8.3.36', '8.2.35', 'CVE-2026-109618', 'CVE-2026-109619']) expect(release, fig).toContain(fig);
+    expect(issue.verifiable.find((v) => v.id === 'f-emudhra-keys').statement).toMatch(/below 256/);
+    for (const v of issue.verifiable) {
+      expect(v.sources.length, v.id).toBeGreaterThan(0);
+      for (const s of v.sources) expect(s.asOf, v.id).toBe('2026-10-22');
+    }
+  });
+
+  it('says what it could not open, what is open, and never names the poster', () => {
+    expect(issue.limits.some((l) => /could NOT be opened directly from this sandbox/.test(l.text))).toBe(true);
+    expect(issue.limits.some((l) => /April 2025/.test(l.text) && /too little randomness/.test(l.text))).toBe(true);
+    expect(issue.limits.some((l) => /"No evidence found" is not "proven unused,"/.test(l.text))).toBe(true);
+    expect(issue.source.creator).toMatch(/^An unnamed member of an online developer forum/);
+    expect(issue.source.note).toMatch(/THE FORUM IS THE INTERMEDIARY/);
+    expect(issue.verifiable.find((v) => v.id === 'f-our-house').statement).toMatch(/no PHP and no WordPress/);
+  });
+
+  it('Word first — the seal and the hand, the seal that cannot be forged, trust, the watchman, prudence, proving, the lot, the rock, the Resources, both slogans', () => {
+    const d = issue.lens.fourD.deepSource;
+    expect(d.indexOf('WORD FIRST — A SEAL STANDS FOR THE HAND THAT HOLDS IT')).toBe(0);
+    for (const head of [
+      'THE SEAL THAT CANNOT BE FORGED',
+      'WHERE TRUST BELONGS',
+      'THE WATCHMAN’S DUTY CUTS BOTH WAYS',
+      'PRUDENCE IS NOT FEAR',
+      'PROVE ALL THINGS, INCLUDING THE WARNING',
+      'THE LOT AND THE KEY',
+      'BUILT ON THE ROCK, NOT ON THE SAND',
+      'THE RESOURCES BUILD THE HOUSE',
+      'NOW THE WORD CORRECTS THE TWO SLOGANS',
+      'HEAR EVERY WATCHMAN, AND TRUST NO PRINCE',
+    ]) expect(d, head).toContain(head);
+    // reasoned, not merely cited (DR-0281)
+    expect(d).toMatch(/Let the Word explain the Word/);
+    expect(d).toMatch(/A signet is the person, carried in wax/);
+    expect(d).toMatch(/The curse is not on using a certificate/);
+    expect(d).toMatch(/Wisdom BUILDS, Understanding ESTABLISHES, Knowledge FILLS/);
+    expect(d).toMatch(/KJV’s own lowercase stands in the quotation/);
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.benefits.some((b) => /eternal court/.test(b) && /after this life/.test(b))).toBe(true);
+    expect(issue.perspectives.length).toBeGreaterThanOrEqual(5);
+    expect(issue.lens.graceNote).toMatch(/No condemnation of any soul/);
+    expect(issue.lens.graceNote).toMatch(/Lamb of Yahweh and the Eternal Son/);
+  });
+
+  it('keeps our voice on Yahweh, the adversary lowercase, and all four bands safe', () => {
+    const ours = [issue.skill, issue.title, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship,
+      issue.lens.accountability.statement, issue.lens.fourD.deepSource, ...issue.lens.benefits,
+      ...issue.reflection.prompts, issue.reflection.skill, issue.reflection.practice,
+      issue.levels.child, issue.levels.youth, issue.levels.teen, issue.levels.senior].join(' ');
+    expect(/\bGod\b/.test(ours.replace(/"[^"]*"/g, ''))).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil|Baal)\b/.test(ours)).toBe(false);
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(issue.levels[band], band).toBeTruthy();
+      expect(issue.levels[band].trim().split(/\s+/).length, band).toBeGreaterThan(300);
+    }
+    expect(issue.levels.child.length).toBeLessThan(issue.levels.youth.length);
+    expect(issue.levels.youth.length).toBeLessThan(issue.levels.teen.length);
+    expect(issue.levels.teen.length).toBeLessThan(issue.levels.senior.length);
+    for (const term of ['racist', 'nazi', 'hitler', 'genocide', 'kill', 'sex', 'slur', 'damn', 'hell ']) {
+      expect(issue.levels.child.toLowerCase(), term).not.toContain(term);
+    }
+  });
+});
