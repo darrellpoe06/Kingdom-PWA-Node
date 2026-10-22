@@ -109,6 +109,14 @@ describe('the triage card says the truth about what it read', () => {
 
 describe('where it lives', () => {
   const read = (...p) => readFileSync(join(HERE, '..', ...p), 'utf8');
+  it('PROVEN TO CATCH: the card is loaded on its own, never into the shell chunk at the size limit', () => {
+    for (const f of ['LifeHub.jsx', 'BigPictureDashboard.jsx']) {
+      const src = read('components', f);
+      expect(src, f).toMatch(/import WorkOrderTriage from '\.\/WorkOrderTriageLazy\.jsx';/);
+      expect(src, f).not.toMatch(/from '\.\/WorkOrderTriage\.jsx'/);
+    }
+    expect(read('components', 'WorkOrderTriageLazy.jsx')).toMatch(/lazy\(\(\) => import\('\.\/WorkOrderTriage\.jsx'\)\)/);
+  });
   it('on the Life Hub, under Recent Activity, and on Big Picture → Now', () => {
     expect(read('components', 'LifeHub.jsx')).toMatch(/<WorkOrderTriage incidents=\{data\.incidents \|\| \[\]\}/);
     expect(read('components', 'BigPictureDashboard.jsx')).toMatch(/id: 'work-orders',[\s\S]{0,120}<WorkOrderTriage incidents=\{incidents\} rentals=\{rentals\} \/>/);

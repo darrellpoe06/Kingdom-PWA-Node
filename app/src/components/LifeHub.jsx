@@ -45,7 +45,7 @@ import {
   addGoal, daysUntil, GOAL_STATUSES,
 } from '../lib/daily-focus.js';
 import { recentActivity, agoLabel } from '../lib/home-activity.js';
-import WorkOrderTriage from './WorkOrderTriage.jsx';
+import WorkOrderTriage from './WorkOrderTriageLazy.jsx';
 import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
 import HubCamera from './HubCamera.jsx';

@@ -104,7 +104,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], load = l
       </ol>
       {queue.closed.length > 0 && (
         <div className="mt-2">
-          <button type="button" onClick={() => setShowClosed((s) => !s)} aria-expanded={showClosed} className={`text-[0.625rem] uppercase tracking-wider border border-[#E8E4DC] px-2 py-1 min-h-[32px] ${FOCUS_RING}`}>
+          <button type="button" onClick={() => setShowClosed((s) => !s)} aria-expanded={showClosed} className={`text-[0.625rem] uppercase tracking-wider border border-[#E8E4DC] px-2 py-1 min-h-[36px] ${FOCUS_RING}`}>
             {showClosed ? 'Hide' : 'Show'} {queue.closed.length} closed
           </button>
           {showClosed && (

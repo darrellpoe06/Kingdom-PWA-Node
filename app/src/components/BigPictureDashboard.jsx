@@ -27,7 +27,7 @@ import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
 import { incidentNoteText } from '../lib/recorded-note.js';
-import WorkOrderTriage from './WorkOrderTriage.jsx';
+import WorkOrderTriage from './WorkOrderTriageLazy.jsx';
 import {
   traceNetCashFlow, traceCollectionRate, traceToDebt,
   traceReserves, traceDebtFree, traceRentalsFree,
