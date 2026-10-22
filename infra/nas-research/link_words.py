@@ -176,6 +176,123 @@ def fetch_media(url, ytdlp, workdir, runner):
     return path, ""
 
 
+# --- ROAD 5: a web page's own words (DR-1202) ---------------------------------
+# Measured on run 39705324897: the features link was an mt27.org message page,
+# not a video, and yt-dlp said "Unsupported URL". A page is read for what it
+# says: its title, its description, and its visible text. Every redirect is
+# checked by the same door as the link, so a page can never send this road
+# inside the house.
+MAX_PAGE_BYTES = 3 * 1024 * 1024
+PAGE_TIMEOUT = 30
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+
+
+def page_text(html_text):
+    """(title, description, text) from HTML. Pure (stdlib html.parser)."""
+    from html.parser import HTMLParser  # noqa: PLC0415
+
+    class P(HTMLParser):
+        SKIP = {"script", "style", "noscript", "svg", "template", "head"}
+        BLOCK = {"p", "div", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "article", "section", "br", "tr", "pre"}
+
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.skip = 0
+            self.in_title = False
+            self.title = ""
+            self.meta = {}
+            self.parts = []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if tag == "meta":
+                k = (a.get("property") or a.get("name") or "").lower()
+                if k in ("og:title", "og:description", "description", "twitter:description", "twitter:title") and a.get("content"):
+                    self.meta.setdefault(k, a["content"].strip())
+            if tag == "title":
+                self.in_title = True
+            if tag in self.SKIP:
+                self.skip += 1
+            if tag in self.BLOCK:
+                self.parts.append("\n")
+
+        def handle_endtag(self, tag):
+            if tag == "title":
+                self.in_title = False
+            if tag in self.SKIP and self.skip:
+                self.skip -= 1
+            if tag in self.BLOCK:
+                self.parts.append("\n")
+
+        def handle_data(self, data):
+            if self.in_title:
+                self.title += data
+            elif not self.skip:
+                self.parts.append(data)
+
+    p = P()
+    try:
+        p.feed(html_text)
+    except Exception:  # noqa: BLE001 -- a broken page still gives what it gave
+        pass
+    title = (p.meta.get("og:title") or p.title or p.meta.get("twitter:title") or "").strip()
+    desc = (p.meta.get("og:description") or p.meta.get("description") or p.meta.get("twitter:description") or "").strip()
+    lines = [re.sub(r"[ \t\r\f\v]+", " ", l).strip() for l in "".join(p.parts).split("\n")]
+    text = "\n".join(l for l in lines if l)
+    return title[:300], desc[:MAX_CAPTION], text[:MAX_TEXT]
+
+
+def redirect_door(resolve=None):
+    """A redirect handler that re-checks every hop with the link's own door."""
+    import urllib.request  # noqa: PLC0415
+
+    class Door(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            if not site_of(newurl, resolve):
+                raise ValueError("the page redirected inside the house or off https, so it was not followed")
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    return Door()
+
+
+def default_fetch(url, resolve=None):
+    """(status, content_type, body bytes) with every redirect re-checked."""
+    import urllib.request  # noqa: PLC0415
+
+    opener = urllib.request.build_opener(redirect_door(resolve))
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,text/plain;q=0.9,*/*;q=0.1"})
+    with opener.open(req, timeout=PAGE_TIMEOUT) as res:
+        return res.status, res.headers.get("Content-Type", ""), res.read(MAX_PAGE_BYTES + 1)
+
+
+def read_page(url, fetch=None, resolve=None):
+    """(result dict, why). The page's words, or why not."""
+    fetch = fetch or (lambda u: default_fetch(u, resolve))
+    try:
+        status, ctype, body = fetch(url)
+    except Exception as e:  # noqa: BLE001
+        return None, "the page could not be fetched (%s)" % str(e)[:200]
+    if status != 200:
+        return None, "the page answered %s" % status
+    if len(body) > MAX_PAGE_BYTES:
+        body = body[:MAX_PAGE_BYTES]
+    ct = (ctype or "").lower()
+    if ct and not ("html" in ct or "text/plain" in ct or "xml" in ct):
+        return None, "the link is a %s file, not a page or a video" % ct.split(";")[0]
+    m = re.search(r"charset=([\w-]+)", ct)
+    try:
+        html_text = body.decode(m.group(1) if m else "utf-8", "replace")
+    except LookupError:
+        html_text = body.decode("utf-8", "replace")
+    if "text/plain" in ct:
+        title, desc, text = "", "", html_text[:MAX_TEXT]
+    else:
+        title, desc, text = page_text(html_text)
+    if len(text) < 40 and not desc:
+        return None, "the page gave almost no readable words (it may draw them with script)"
+    return {"title": title, "caption": desc, "words": text}, ""
+
+
 def take_slot(deadline, slots=SLOTS, slot_dir=SLOT_DIR, now=time.monotonic, sleep=time.sleep):
     """An open file holding an exclusive lock on one of `slots` slot files, or
     None when none freed before the deadline. Never raises."""
@@ -206,7 +323,7 @@ def default_ladder(path, deadline):
 
 
 def link_words(url, ytdlp=YTDLP_DEFAULT, runner=default_runner, ladder=default_ladder, now=time.monotonic, resolve=None,
-               media=None, meta=None):
+               media=None, meta=None, fetch=None):
     """media/meta: the SECOND ROAD. When the NAS's own fetch is turned away
     (a site that refuses one address), the lane fetches from a runner's address
     and hands the file and its details here, and they ride the same Whisper
@@ -219,7 +336,13 @@ def link_words(url, ytdlp=YTDLP_DEFAULT, runner=default_runner, ladder=default_l
     if meta is None:
         meta, why = read_meta(url, ytdlp, runner)
         if meta is None:
-            return fail(why, url=url, site=site)
+            # Not a video this road can fetch: read it as a page instead.
+            page, pwhy = read_page(url, fetch=fetch, resolve=resolve)
+            if page:
+                return {"ok": True, "kind": "page", "url": url, "site": site, "by": "", "duration": None,
+                        "title": page["title"], "caption": page["caption"], "words": page["words"],
+                        "rung": "the page itself", "model": "", "partial": False, "note": ""}
+            return fail("%s; read as a page: %s" % (why, pwhy), url=url, site=site)
     duration = meta.get("duration")
     base = {
         "url": url, "site": site,
@@ -283,7 +406,9 @@ def render(result):
     lines.append("Link: " + (result.get("url") or ""))
     if result.get("caption"):
         lines += ["", "The caption under the post:", result["caption"]]
-    if result.get("words"):
+    if result.get("words") and result.get("kind") == "page":
+        lines += ["", "What the page says (read from the page itself on our own machine):", result["words"]]
+    elif result.get("words"):
         how = "Whisper (%s) on %s" % (result.get("model") or "model", result.get("rung") or "our machines")
         lines += ["", "What is said in it (transcribed by %s%s):" % (how, ", stopped early -- the rest was not reached" if result.get("partial") else ""),
                   result["words"]]
@@ -372,6 +497,35 @@ def selftest():
     check("a failed result renders nothing", render({"ok": False, "why": "x"}) == "")
     r = link_words("https://10.0.0.5/x", runner=runner_ok, ladder=ladder_ok, resolve=pub)
     check("an inside host never reaches yt-dlp", not r.get("ok") and "inside the house" in r.get("why", ""))
+
+    # ROAD 5: a page that is not a video is read for its words.
+    html_doc = ('<html><head><title>Trivia</title><meta property="og:description" content="Weekly questions">'
+                '<script>var x = "never this";</script><style>.a{}</style></head>'
+                '<body><h1>Love Corner trivia</h1><p>Question one: who built the ark?</p><p>Question two.</p></body></html>')
+    unsupported = lambda a, t: (1, "", "ERROR: Unsupported URL: https://mt27.org/msg/x")
+    r = link_words("https://mt27.org/msg/x", runner=unsupported, ladder=ladder_ok, resolve=pub,
+                   fetch=lambda u: (200, "text/html; charset=utf-8", html_doc.encode()))
+    check("a page that is not a video is read for its words", r.get("ok") and r.get("kind") == "page" and "who built the ark" in r.get("words", ""))
+    check("the page's title and description are kept", r.get("title") == "Trivia" and r.get("caption") == "Weekly questions")
+    check("a page's script and style are never its words", "never this" not in r.get("words", "") and ".a{}" not in r.get("words", ""))
+    check("a page renders as what the page says", "What the page says (read from the page itself" in render(r))
+    r = link_words("https://mt27.org/msg/x", runner=unsupported, ladder=ladder_ok, resolve=pub,
+                   fetch=lambda u: (200, "text/html", b"<html><body><div id=app></div><script>render()</script></body></html>"))
+    check("a page drawn by script says so, never an empty answer", not r.get("ok") and "almost no readable words" in r.get("why", ""))
+    r = link_words("https://mt27.org/msg/x", runner=unsupported, ladder=ladder_ok, resolve=pub,
+                   fetch=lambda u: (200, "application/zip", b"PK"))
+    check("a file that is neither page nor video says what it is", not r.get("ok") and "application/zip" in r.get("why", ""))
+    import urllib.request as _ur
+    door = redirect_door(pub)
+    req0 = _ur.Request("https://mt27.org/msg/x")
+    refused = ""
+    try:
+        door.redirect_request(req0, None, 302, "Found", {}, "https://192.168.1.26/admin")
+    except ValueError as e:
+        refused = str(e)
+    check("PROVEN-TO-CATCH: a redirect inside the house is never followed", "inside the house" in refused)
+    hop = door.redirect_request(req0, None, 302, "Found", {}, "https://mt27.org/msg/y")
+    check("a redirect that stays public is followed", hop is not None and hop.full_url == "https://mt27.org/msg/y")
 
     # The second road: a file and details fetched elsewhere ride the same ladder.
     tmp = tempfile.mkdtemp(prefix="lw-test-")

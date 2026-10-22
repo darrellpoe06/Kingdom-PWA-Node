@@ -81,7 +81,7 @@ export function researchIntents(body, tags) {
  */
 export function parseLinkAnswer(answer) {
   const s = String(answer || '').replace(/^Unverified:[^\n]*\n+/, '');
-  const out = { title: '', site: '', by: '', length: '', link: '', caption: '', words: '', how: '', note: '', shaped: false };
+  const out = { title: '', site: '', by: '', length: '', link: '', caption: '', words: '', how: '', note: '', shaped: false, kind: 'video' };
   const lines = s.split('\n');
   const head = (lines[0] || '').match(/^(.*) \(([^()]+)\)\s*$/);
   if (!head || !lines.some((l) => /^Link: /.test(l))) return { ...out, words: s.trim() };
@@ -98,6 +98,7 @@ export function parseLinkAnswer(answer) {
     if ((m = l.match(/^Link: (.*)$/))) { out.link = m[1].trim(); bucket = null; continue; }
     if (/^The caption under the post:$/.test(l)) { bucket = caption; continue; }
     if ((m = l.match(/^What is said in it \((.*)\):$/))) { out.how = m[1].trim(); bucket = words; continue; }
+    if ((m = l.match(/^What the page says \((.*)\):$/))) { out.how = m[1].trim(); out.kind = 'page'; bucket = words; continue; }
     if ((m = l.match(/^Note: (.*)$/))) { out.note = m[1].trim(); bucket = null; continue; }
     if (bucket) bucket.push(l);
   }
@@ -127,7 +128,7 @@ function contextLines({ itemBody, answer }) {
     if (p.length) l.push(`Length: ${p.length}`);
     if (p.link) l.push(`Link: ${p.link}`);
     if (p.caption) l.push('', 'The caption under the post:', p.caption);
-    if (p.words) l.push('', `What is said in it (${p.how || 'transcribed on our own machines'}):`, p.words);
+    if (p.words) l.push('', p.kind === 'page' ? `What the page says (${p.how || 'read from the page itself'}):` : `What is said in it (${p.how || 'transcribed on our own machines'}):`, p.words);
     if (p.note) l.push('', `Note: ${p.note}`);
   } else {
     l.push('', 'THE RESEARCH (unverified):', p.words);

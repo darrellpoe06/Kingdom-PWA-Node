@@ -88,6 +88,20 @@ describe('the source, in its labelled parts (the NAS renderer and the app agree)
     expect(p.words).toBe('Faith without works is dead.');
     expect(p.how).toBe('transcribed by Whisper (large-v3-turbo) on the 4070 tower');
   });
+  it('a page (not a video) comes back as what the page says, made by the real renderer', () => {
+    // Measured on run 39705324897: the features link was an mt27.org message
+    // page, and yt-dlp said "Unsupported URL". A page is read for its words.
+    const page = `${UNVERIFIED}\n\n${rendered({ ok: true, kind: 'page', url: 'https://mt27.org/msg/YjBr4hNY', site: 'mt27.org', title: 'Trivia', by: '', caption: 'Weekly questions', duration: null, words: 'Question one: who built the ark?', rung: 'the page itself', model: '', partial: false, note: '' })}`;
+    const p = parseLinkAnswer(page);
+    expect(p.shaped).toBe(true);
+    expect(p.kind).toBe('page');
+    expect(p.site).toBe('mt27.org');
+    expect(p.caption).toBe('Weekly questions');
+    expect(p.words).toBe('Question one: who built the ark?');
+    const b = buildRequestBody({ itemId: ID, itemBody: 'https://mt27.org/msg/YjBr4hNY trivia each week', answer: page, reading: null });
+    expect(b).toContain('What the page says (read from the page itself on our own machine):');
+    expect(b).not.toContain('What is said in it');
+  });
   it('a captions answer of another shape is kept whole, never dropped', () => {
     const p = parseLinkAnswer(`${UNVERIFIED}\n\nSome captions text.`);
     expect(p.shaped).toBe(false);

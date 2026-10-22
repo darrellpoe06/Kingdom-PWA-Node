@@ -30,6 +30,7 @@ The process a link, a question, or a teaching follows from the moment it is sent
 2. **The audio through Whisper** — the NAS's own pinned yt-dlp fetches it; the 4070 tower writes the words, or the NAS CPU when the tower is asleep. Any public https link, YouTube without captions included.
 3. **A second address** — a site that turns the NAS away is fetched from the runner and handed to the same Whisper ladder.
 4. **The caption under the post** — when nothing is spoken, the post's own words are what is read, and the card says so.
+5. **The page's own words** — a link that is a page, not a video (an article, a message), is read for its title, description and visible text, from the NAS and then the runner; every redirect is checked so a page can never send the road inside the house.
 
 ## Word first, in the lesson
 

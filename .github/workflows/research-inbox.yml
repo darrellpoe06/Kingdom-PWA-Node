@@ -338,7 +338,16 @@ jobs:
                   echo "the runner could not fetch it either: $(tail -1 /tmp/lw-fetch.err | head -c 300)"
                 fi
               else
-                echo "the runner could not read it either: $(tail -1 /tmp/lw-meta.err 2>/dev/null | head -c 300)"
+                echo "the runner could not read it as a video either: $(tail -1 /tmp/lw-meta.err 2>/dev/null | head -c 300)"
+                # ROAD 5 from the runner's address: the same page road the NAS
+                # tried, run here, for a page that turns the NAS away.
+                LINK_WORDS_YTDLP=/nonexistent LINK_WORDS_WORK=/tmp/lw-work timeout 120 python3 infra/nas-research/link_words.py --url-file /tmp/item.txt --out /tmp/link_words.runner.json > /tmp/lw3.log 2>&1 || true
+                if python3 -c "import json,sys;sys.exit(0 if json.load(open('/tmp/link_words.runner.json')).get('ok') is True else 1)" 2>/dev/null; then
+                  cp /tmp/link_words.runner.json /tmp/link_words.json
+                  echo "the page road from the runner: $(tail -1 /tmp/lw3.log | head -c 300)"
+                else
+                  echo "the page road from the runner: $(tail -1 /tmp/lw3.log | head -c 300)"
+                fi
               fi
             fi
             $SSH "rm -rf '$NW'" || true

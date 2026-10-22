@@ -112,7 +112,7 @@ function SourceBlock({ source }) {
       {facts && <p className="text-[0.75rem] text-[#5A5751]">{facts}</p>}
       {source.link && (
         <a href={source.link} target="_blank" rel="noopener noreferrer" className={`${btnCls} mt-1 inline-flex items-center`} data-testid="research-source-open">
-          Open the post
+          {source.kind === 'page' ? 'Open the page' : 'Open the post'}
         </a>
       )}
       {source.caption && (
@@ -123,7 +123,7 @@ function SourceBlock({ source }) {
       )}
       {source.words && (
         <>
-          <div className={`${labelCls} mt-2`}>What is said in it</div>
+          <div className={`${labelCls} mt-2`}>{source.kind === 'page' ? 'What the page says' : 'What is said in it'}</div>
           <Words text={source.words} testId="research-source-words" how={source.how ? `${source.how.charAt(0).toUpperCase()}${source.how.slice(1)}.` : ''} />
         </>
       )}
