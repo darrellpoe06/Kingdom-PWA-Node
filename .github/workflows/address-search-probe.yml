@@ -1,0 +1,66 @@
+# address-search-probe -- where in the database do the whole addresses already live?
+#
+# Darrell, 2026-10-22: "The correct addresses are already inside!!!!!!!!!" The
+# rentals columns hold the short forms (rentals-address-probe, run
+# 39717503181), so the whole forms are elsewhere. This reads EVERY text column
+# in the public schema, read only, and for each incomplete door reports the
+# table.column that mentions it, how many rows, how many carry a ZIP after it,
+# and the street-type word written after the street. PUBLIC RUN PAGES: no
+# address, no name, no ZIP value is printed; the street-type word and town
+# names are not private.
+#
+# BRAKES: one read-only transaction, 5 minutes, single instance.
+name: address-search-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ccr-f1e2f200-2gkouu]
+    paths: ['.github/workflows/address-search-probe.yml']
+
+concurrency:
+  group: address-search-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Search every text column for the eight doors (shape only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/search.sql <<'SQL'
+          BEGIN READ ONLY;
+          SET LOCAL statement_timeout = '60s';
+          CREATE TEMP TABLE doors(tag text, pat text) ON COMMIT DROP;
+          INSERT INTO doors VALUES
+            ('1003ko', '1003\s+koehn'), ('1213ko', '1213\s+koehn'), ('1508hh', '1508\s+holly\s+hill'),
+            ('1513hh', '1513\s+holly\s+hill'), ('1508wi', '1508\s+williamsburg'), ('709com', '709\s+commercial'),
+            ('440ss', '440\s+s(?:outh)?\.?\s'), ('2111ta', '2111\s+ta');
+          CREATE TEMP TABLE hits(col text, tag text, n bigint, with_zip bigint, types text, towns text) ON COMMIT DROP;
+          SELECT format($f$INSERT INTO hits SELECT %L, d.tag,
+                   count(*),
+                   count(*) FILTER (WHERE t.v ~* (d.pat || '[^0-9]{0,80}\m\d{5}\M')),
+                   string_agg(DISTINCT lower((regexp_match(t.v, d.pat || '\s*[a-z]*\s+(dr|drive|st|street|ave|avenue|ln|lane|ct|court|rd|road|cir|circle|pl|place|way|blvd)\M', 'i'))[1]), '/'),
+                   string_agg(DISTINCT lower((regexp_match(t.v, d.pat || '[^,\n]{0,40},\s*(danville|champaign|urbana|savoy|rantoul|tilton|westville|catlin|oakwood|georgetown|mahomet)\M', 'i'))[1]), '/')
+              FROM (SELECT %I::text AS v FROM %I.%I) t JOIN doors d ON t.v ~* d.pat GROUP BY d.tag$f$,
+                 c.table_name || '.' || c.column_name, c.column_name, c.table_schema, c.table_name)
+            FROM information_schema.columns c JOIN information_schema.tables tb ON tb.table_schema = c.table_schema AND tb.table_name = c.table_name AND tb.table_type = 'BASE TABLE'
+           WHERE c.table_schema = 'public' AND c.data_type IN ('text', 'character varying', 'jsonb', 'json')
+          \gexec
+          \echo == where each door is written (table.column|door|rows|rows with a ZIP after it|street type written|town written) ==
+          SELECT col, tag, n, with_zip, coalesce(types, '-'), coalesce(towns, '-') FROM hits ORDER BY tag, with_zip DESC, n DESC;
+          ROLLBACK;
+          SQL
+          bash scripts/live-sql.sh '|' < /tmp/search.sql 2>&1 | grep -v '^INSERT ' | grep -v '^SET$' | grep -v '^CREATE TABLE$' || { echo "::error::the search could not run"; exit 1; }

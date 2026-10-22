@@ -16,8 +16,17 @@
 # PUBLIC RUN PAGES: the trace names each door by the first eight characters of
 # its id and says what it did; never an address, never a name.
 #
+# THE CHAIN (repeatable, DR-1207): every successful deploy dispatches this with
+# write=true and then_place=true; it completes what it can prove and then
+# dispatches place-doors.yml, so the map places doors from whole addresses.
+#
+# THE SECOND ROAD: a house the map cannot find is asked of the research road
+# (the NAS /ask, web sources), and the lane reads each source page itself,
+# from a public address only; a page is evidence only when it shows this
+# house, in its own town, with a ZIP.
+#
 # THE BRAKES (deterministic class, DR-0248: budget + lock): at most 30 lookups
-# a run, one a second; 10 minutes; single instance (a new fire queues). It is
+# and 4 research questions a run; 15 minutes; single instance (a new fire queues). It is
 # idempotent: a completed door no longer wants completing, and a door a family
 # member edited in between is left alone (the UPDATE matches only the values
 # that were read).
@@ -30,6 +39,10 @@ on:
         description: 'Write the completions (true) or only say what they would be (false)'
         required: false
         default: 'false'
+      then_place:
+        description: 'When done, dispatch place-doors.yml (the deploy chain sets this)'
+        required: false
+        default: 'false'
   push:
     branches: [ccr-f1e2f200-2gkouu]
     paths: ['.github/workflows/complete-addresses.yml', 'scripts/complete-addresses.mjs', 'app/src/modules/properties/complete-address.js']
@@ -40,11 +53,12 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   complete:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       WRITE: ${{ github.event.inputs.write || 'false' }}
     steps:
@@ -61,6 +75,7 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
+          umask 077; KF="$(mktemp)"; printf '%s\n' "$NAS_SSH_KEY" > "$KF"; export NAS_SSH_KEY_FILE="$KF"; trap 'rm -f "$KF"' EXIT
           Q="SELECT coalesce(json_agg(json_build_object('id', id, 'slug', slug, 'notes', notes, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'zip', zip, 'display_name', display_name) ORDER BY slug), '[]'::json) FROM public.rentals;"
           printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/rows.json || { echo "::error::could not read the doors"; exit 1; }
           node scripts/complete-addresses.mjs /tmp/rows.json > /tmp/updates.sql 2> /tmp/trace.txt; rc=$?
@@ -78,3 +93,14 @@ jobs:
           echo "written: $ok of $n" | tee -a "$GITHUB_STEP_SUMMARY"
           printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/after.json && node scripts/complete-addresses.mjs /tmp/after.json > /dev/null 2> /tmp/after.txt
           echo "after the write:"; cat /tmp/after.txt
+      - name: Then place the doors from their whole addresses
+        if: ${{ always() && github.event.inputs.then_place == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/place-doors.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "place-doors dispatched" | tee -a "$GITHUB_STEP_SUMMARY"

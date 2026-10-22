@@ -300,6 +300,96 @@ export function completion(row = {}, answers = []) {
   }
   if (!Object.keys(patch).length) return { ok: false, why: 'already whole' };
   const said = Object.keys(patch).map((k) => `${k} "${patch[k]}"${was[k] ? ` (was "${was[k]}")` : ''}`).join(', ');
-  const source = f.hit.source === 'openstreetmap' ? 'OpenStreetMap' : 'the US Census Bureau geocoder';
+  const source = f.hit.source === 'openstreetmap' ? 'OpenStreetMap' : f.hit.source === 'research' ? `a public page the research road found (${f.hit.host || 'its source'})` : 'the US Census Bureau geocoder';
   return { ok: true, patch, summary: `Address completed from ${source}, which matched this house: ${said}` };
+}
+
+// =============================================================================
+// THE SECOND ROAD: the research road's sources (Darrell, 2026-10-22: "Why
+// can't the research space do it?!"). When the map cannot find a house, the
+// lane asks the research road where it is, then READS EACH SOURCE PAGE ITSELF
+// and believes only what a page shows: this house's number, its street (the
+// same words, with or without the street type) and its own town, followed by
+// a state and a ZIP. The research road's answer is never the evidence -- the
+// page is. Two pages that disagree on the ZIP are no answer at all.
+// =============================================================================
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SUFFIX_ALTS = (() => {
+  const byFull = new Map();
+  for (const [abbr, full] of Object.entries(SUFFIXES)) {
+    const k = full.toLowerCase();
+    if (!byFull.has(k)) byFull.set(k, new Set([k]));
+    byFull.get(k).add(abbr);
+  }
+  return byFull;
+})();
+const ALL_SUFFIX_WORDS = [...new Set([...Object.keys(SUFFIXES), ...Object.values(SUFFIXES).map((s) => s.toLowerCase())])];
+
+/** Visible text of a page, lower case, one space between words. */
+export function pageWords(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/gi, ' ').replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * This house, as a page writes it: {street, zip} when the page shows the
+ * door's number + street + its own town + state + ZIP, else null.
+ */
+export function addressOnPage(text, rec, town) {
+  if (!rec || !town) return null;
+  const number = houseNumber(rec.street);
+  const words = streetWords(tidy(rec.street).replace(/^\d+[A-Za-z]?\s+/, ''));
+  if (!number || !words.length) return null;
+  // Every stored word must appear, in order: a direction in either spelling,
+  // the last word in either spelling when it is a street type ("Dr"/"Drive"),
+  // and then at most ONE more street type the record left off ("Elm Hill" ->
+  // "Elm Hill Dr": "Hill" is itself a USPS type, so it cannot be the last word
+  // the page may write).
+  const alt = (w, i) => {
+    if (i === 0 && FULL_DIRECTION.has(w)) {
+      const ab = Object.keys(DIRECTIONS).find((k) => DIRECTIONS[k].toLowerCase() === w);
+      return `(?:${esc(w)}|${esc(ab)}\\.?)`;
+    }
+    if (i === words.length - 1 && SUFFIX_ALTS.has(w)) return `(?:${[...SUFFIX_ALTS.get(w)].map(esc).join('|')})\\.?`;
+    return esc(w);
+  };
+  const streetRe = words.map(alt).join('\\s+');
+  const extra = `(?:\\s+(${ALL_SUFFIX_WORDS.map(esc).join('|')})\\.?)?`;
+  const re = new RegExp(`\\b${esc(number.toLowerCase())}\\s+${streetRe}${extra}[\\s,]+${esc(low(town))}[\\s,]+(?:il|illinois|[a-z]{2})\\.?[\\s,]+(\\d{5})(?:-\\d{4})?\\b`, 'g');
+  const t = String(text || '');
+  const zips = new Set();
+  let type = '';
+  let m;
+  while ((m = re.exec(t)) !== null) {
+    zips.add(m[2]);
+    if (m[1]) type = m[1];
+  }
+  if (zips.size !== 1) return null;
+  const named = words.map((w, i) => (i === words.length - 1 && SUFFIX_ALTS.has(w) ? (SUFFIXES[w] || titleWord(w)) : titleWord(w)));
+  const added = type ? (SUFFIXES[type] || titleWord(type)) : '';
+  const street = [...named, added].filter(Boolean).join(' ');
+  return { street, zip: [...zips][0] };
+}
+
+/**
+ * The completion from source pages: [{url, text}] -> the same completion()
+ * the map's answer gets, as if the page were the geocoder, or {ok:false, why}.
+ */
+export function completionFromPages(row = {}, pages = []) {
+  const rec = recordedStreet(row);
+  const own = ownTown(row);
+  if (!rec || !own) return { ok: false, why: `the family must name ${needsFromFamily(row) || 'the town'}` };
+  const seen = [];
+  for (const p of pages || []) {
+    const hit = addressOnPage(pageWords(p && p.text), rec, own);
+    if (hit) seen.push({ ...hit, url: String(p.url || '') });
+  }
+  if (!seen.length) return { ok: false, why: 'no source page shows this house with its town and ZIP' };
+  if (new Set(seen.map((s) => s.zip)).size > 1) return { ok: false, why: 'the source pages disagree on the ZIP' };
+  const best = seen.find((s) => streetWords(s.street).length > streetWords(rec.street.replace(/^\d+[A-Za-z]?\s+/, '')).length) || seen[0];
+  let host;
+  try { host = new URL(best.url).hostname; } catch { host = 'a public page'; }
+  return completion(row, [{ town: own, hit: { ok: true, source: 'research', host, parts: { number: houseNumber(rec.street), street: best.street, city: own, state: tidy(row.state), zip: best.zip } } }]);
 }
