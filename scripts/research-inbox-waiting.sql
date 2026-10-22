@@ -57,7 +57,11 @@ WITH waiting AS (
   FOR UPDATE SKIP LOCKED
 )
 UPDATE public.agent_inbox a
-   SET tags = a.tags || jsonb_build_array('research-claimed', 'research-claimed-at:' || extract(epoch from now())::bigint)
+   -- One claim time only: an earlier claim's time (left by a re-open or a
+   -- release) is dropped, so a fresh claim is never judged by an old one.
+   SET tags = COALESCE((SELECT jsonb_agg(t) FROM jsonb_array_elements_text(a.tags) t
+                         WHERE t NOT LIKE 'research-claimed-at:%'), '[]'::jsonb)
+              || jsonb_build_array('research-claimed', 'research-claimed-at:' || extract(epoch from now())::bigint)
   FROM waiting w
  WHERE a.id = w.id
 RETURNING a.id;

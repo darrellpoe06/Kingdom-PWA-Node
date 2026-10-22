@@ -242,6 +242,10 @@ describe('the lane, end to end, with no overlap', () => {
     expect(claim).toMatch(/'research-claimed-at:' \|\| extract\(epoch from now\(\)\)::bigint/);
     expect(claim).toMatch(/< extract\(epoch from now\(\)\)::bigint - 5400/);
     expect(claim).toMatch(/t = 'research-released'\) < 3/);
+    // PROVEN on the live reel (run 39705185863): a re-open left an old claim
+    // time beside the new one. A claim keeps ONE time, and a re-open clears it.
+    expect(claim).toMatch(/WHERE t NOT LIKE 'research-claimed-at:%'\), '\[\]'::jsonb\)\n\s+\|\| jsonb_build_array\('research-claimed'/);
+    expect(wf).toMatch(/WHERE t NOT LIKE 'research-claimed-at:%' AND t NOT IN \('research-claimed', 'research-answered'/);
     expect(claim).toMatch(/LIMIT 6/);
     expect(claim).toMatch(/RETURNING a\.id/);
   });

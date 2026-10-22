@@ -139,7 +139,7 @@ jobs:
           [ "$INTENT" = research ] || ADD="[\"create:$INTENT\"]"
           # The old failure is KEPT (the record of what happened) and marked
           # superseded, so the item reads waiting, then its new answer.
-          SQL="UPDATE public.agent_inbox SET tags = (tags - 'research-claimed' - 'research-answered' - 'research-created' - 'research-create-none' - 'research-reading-claimed') || '$ADD'::jsonb WHERE id = '$ROW' AND tags ? 'research'; UPDATE public.agent_inbox SET tags = tags || '[\"superseded\"]'::jsonb WHERE tags ? ('of:' || '$ROW') AND (tags ? 'research-failed' OR tags ? 'research-reading-failed') AND NOT (tags ? 'superseded'); SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW';"
+          SQL="UPDATE public.agent_inbox SET tags = COALESCE((SELECT jsonb_agg(t) FROM jsonb_array_elements_text(tags) t WHERE t NOT LIKE 'research-claimed-at:%' AND t NOT IN ('research-claimed', 'research-answered', 'research-created', 'research-create-none', 'research-reading-claimed')), '[]'::jsonb) || '$ADD'::jsonb WHERE id = '$ROW' AND tags ? 'research'; UPDATE public.agent_inbox SET tags = tags || '[\"superseded\"]'::jsonb WHERE tags ? ('of:' || '$ROW') AND (tags ? 'research-failed' OR tags ? 'research-reading-failed') AND NOT (tags ? 'superseded'); SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW';"
           after=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not re-open the item"; exit 1; }
           [ -n "$after" ] || { echo "::error::no research item has that id"; exit 1; }
           echo "re-opened $ROW for $INTENT: $after"
