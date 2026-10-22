@@ -11,7 +11,11 @@
 **Grounds:** the gate `ledger-names-its-thread` went red on PR #2389 (vitest shard 3/4, check run 119601867868) demanding a Gmail thread id from DR-1205 — a lesson that never touched email. Found while driving that PR to green; the red was real, and it was pointing at the guard rather than at the record.
 **Principles:** DR-0076 §3 (proven to catch — a gate that passes on a break is itself a lie), §4 (measure, never claim), §8 (name the method's limits); DR-0621 (a flag is where the work starts — the gate's complaint was worked until it was right, not silenced); DR-0075 (recurring friction becomes a fix); DR-1051 (the rule this generalizes); DR-1202 (the road that made it necessary)
 
-## Context — SHOULD → ARE → GAPS → CLOSE (DR-0219)
+## Context
+
+The first lesson through the research road (PR #2389, DR-1205) went red on `ledger-names-its-thread`. The guard asked that lesson for a Gmail thread id it cannot have, because it came in through the app, not through email. The red was real, and it pointed at the guard, not at the record: the rule that keeps the repo as the second witness of every intake knew only one road.
+
+## SHOULD → ARE → GAPS → CLOSE (DR-0219)
 
 **SHOULD.** DR-1051 set the rule after a measured near-miss: a lesson built from an intake must name that intake in the repo, so `grep <id> docs/decisions/` answers *"have we already built this?"* offline, with no Gmail label and no inference. The reason is written in the guard's own header — the `Lesson-Captured` label is a SINGLE witness living outside the repo, and on 2026-10-15 it silently failed to be written while the record it should have contradicted named no id either. **Both witnesses were blind at once.** The repo is the second witness.
 
@@ -85,6 +89,8 @@ The fixture cases build the two records the real ledger cannot contain — a res
 ## Impact — what this obligates, and the limits stated (DR-0076 §8)
 
 **Left unresolved, the cost was a duplicate lesson.** That is not hypothetical: it is what DR-1051 was written after, and the only thing that prevented it on 2026-10-15 was the phrase "positional encoding" happening to sit in DR-1005's prose. The research road was carrying teachings with that protection switched off, so every lesson built through it was one coincidence away from being taught twice — Darrell's words rebuilt as though they had never arrived.
+
+**And the road could not have shipped a lesson without writing a fiction into its record** (the other session's phrasing, kept because it is the sharper statement): since every intake record cites DR-0312, each research-road lesson would also have been refused for a thread id it cannot have, and the only way past a gate like that is to invent an identifier. A gate that can only be satisfied by a false provenance line is worse than no gate.
 
 **What the call obligates, from here:**
 
