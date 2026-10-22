@@ -61,6 +61,16 @@ jobs:
           \gexec
           \echo == where each door is written (table.column|door|rows|rows with a ZIP after it|street type written|town written) ==
           SELECT col, tag, n, with_zip, coalesce(types, '-'), coalesce(towns, '-') FROM hits ORDER BY tag, with_zip DESC, n DESC;
+          \echo == the books and rent tables as they stand (table|column|type) ==
+          SELECT table_name, column_name, data_type FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name IN ('transactions', 'rent_records', 'rent_payments', 'leases') AND (column_name ~ '^(linked_to|rental|lease_id|transaction_id|posted_tx|entity|period|for_period|amount|received|status)' )
+           ORDER BY 1, 2;
+          \echo == rows today (table|rows|rows naming an asset) ==
+          SELECT 'transactions', count(*), count(*) FILTER (WHERE linked_to_id IS NOT NULL) FROM transactions
+          UNION ALL SELECT 'rent_records', count(*), count(*) FILTER (WHERE rental_id IS NOT NULL) FROM rent_records
+          UNION ALL SELECT 'rent_payments', count(*), count(*) FILTER (WHERE transaction_id IS NOT NULL) FROM rent_payments;
+          \echo == rent posted to the books, by category (category|rows) ==
+          SELECT coalesce(category, '<null>'), count(*) FROM transactions WHERE slug LIKE 'rent-%' GROUP BY 1 ORDER BY 1;
           ROLLBACK;
           SQL
           bash scripts/live-sql.sh '|' < /tmp/search.sql 2>&1 | grep -v '^INSERT ' | grep -v '^SET$' | grep -v '^CREATE TABLE$' || { echo "::error::the search could not run"; exit 1; }
