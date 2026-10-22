@@ -187,6 +187,17 @@ export function normalizeIssue(issue) {
       id: l?.id || `limit-${idx}`,
       text: typeof l === 'string' ? l : (l?.text || ''),
     })).filter((l) => l.text),
+    // AUTHORED stories, carried through so a discernment issue can satisfy the
+    // same lesson-completeness floor every other course does (DR-0215 /
+    // DR-0855: at least two parables or true stories). This track grew up
+    // without them — every issue before 2026-10-22 is pinned in the
+    // lesson-completeness baseline as short of stories — and the shrink-only
+    // rule means a NEW issue may not add to that debt, which it cannot do
+    // unless the field reaches the module. A story that claims to have
+    // happened names whose life it was or it is a parable
+    // (PARABLE-AND-TESTIMONY-METHOD; the true-story gate pins the sourced
+    // testimonies at five, all Darrell's, all in living-lessons-class.js).
+    stories: arr(i.stories).filter((s) => s && typeof s === 'object'),
   };
 }
 
@@ -439,6 +450,7 @@ export function buildDiscernmentModule(issue) {
     },
     levels: i.levels,
     quiz: i.quiz || undefined,
+    stories: i.stories,
     lesson: buildLessonProse(i),
     facilitator: {
       talkingPoints: [
