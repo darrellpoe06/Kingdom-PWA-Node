@@ -42,7 +42,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   isEmailSourced, isResearchSourced, roadOf, namesAThread, namesARow,
-  walkLedger, NEAR_WINDOW, THREAD_ID, ROW_ID,
+  namesItsWitness, walkLedger, NEAR_WINDOW, THREAD_ID, ROW_ID, RESEARCH_ITEM,
 } from '../../../scripts/ledger-names-its-thread.mjs';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -159,12 +159,29 @@ describe('isResearchSourced — the second road, opened by DR-1202', () => {
 });
 
 describe('namesARow — the research road’s witness', () => {
-  it('accepts a real row id and rejects what is nearly one', () => {
+  it('accepts either identifier the road records, in the form records write it', () => {
     expect(namesARow('(`agent_inbox` row `d5480d79-4005-418d-b882-69f3187cc32c`)')).toBe(true);
-    expect(namesARow('row d5480d79-4005-418d-b882-69f3187cc32'), '11 in the last group').toBe(false);
-    expect(namesARow('D5480D79-4005-418D-B882-69F3187CC32C'), 'the API returns lowercase').toBe(false);
+    expect(namesARow('(research item `ed11c486-9568-49ad-94ca-5fcd6872e577`)')).toBe(true);
+    expect(namesARow('research item ed11c486-9568-49ad-94ca-5fcd6872e577'), 'no backticks needed').toBe(true);
+  });
+
+  it('rejects what is nearly one', () => {
+    expect(namesARow('research item d5480d79-4005-418d-b882-69f3187cc32'), '11 in the last group').toBe(false);
+    expect(namesARow('research item D5480D79-4005-418D-B882-69F3187CC32C'), 'the API returns lowercase').toBe(false);
     expect(namesARow('no id here at all')).toBe(false);
-    expect(ROW_ID.test('ed11c486-9568-49ad-94ca-5fcd6872e577'), 'the research item id shape too').toBe(true);
+    expect(ROW_ID.test('ed11c486-9568-49ad-94ca-5fcd6872e577'), 'the bare uuid shape, for comparison').toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: a BARE uuid is not a witness — the label is required', () => {
+    // Taken from the other session's work on this same gate, which got this
+    // right where my first pass did not. This ledger names plenty of uuids
+    // that are not an intake: a migration, a storage bucket, a Supabase
+    // project. Accepting any uuid would let a record LOOK witnessed while
+    // pointing at something unrelated, and the grep it promises would answer
+    // about the wrong thing — theatre, by DR-0076 §3.
+    const bare = 'the run wrote d5480d79-4005-418d-b882-69f3187cc32c to the bucket';
+    expect(ROW_ID.test(bare), 'the uuid really is in there').toBe(true);
+    expect(namesARow(bare), 'but nothing says what it is').toBe(false);
   });
 
   it('PROVEN-TO-CATCH: a thread id does not satisfy the research road', () => {
@@ -173,6 +190,50 @@ describe('namesARow — the research road’s witness', () => {
     // wrong witness for a forward — each would answer the grep with nothing.
     expect(namesARow('(Gmail thread `1a135f165fe391e3`)')).toBe(false);
     expect(namesAThread('row `d5480d79-4005-418d-b882-69f3187cc32c`'), 'a uuid has no 16-hex run').toBe(false);
+  });
+});
+
+// TWO SESSIONS REACHED THIS SAME DECISION WITHIN MINUTES, from opposite ends
+// of the same red check, and these four cases are the other one's — kept
+// because they pin the road's own witness in the words a record actually uses,
+// and because the labelled-uuid rule above is theirs and is better than what I
+// wrote first. The only change is the `road` argument: this tree holds the
+// roads apart, so a research record is asked for a research witness by name
+// rather than for whichever of the two it happens to carry.
+describe('the research road names its own witness (DR-1202, measured on DR-1205)', () => {
+  const ITEM = 'ed11c486-9568-49ad-94ca-5fcd6872e577';
+
+  it('a lesson sent down the research road is recognised, and its item uuid is its witness', () => {
+    const rec = `Darrell sent an Instagram reel into the app's research road with one word on it: "Lesson" (research item \`${ITEM}\`).`;
+    expect(isResearchSourced(rec)).toBe(true);
+    expect(namesItsWitness(rec, 'research')).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: a research-road lesson that names no item is refused', () => {
+    const rec = 'Darrell sent a reel into the research road with one word on it: "Lesson".';
+    expect(isResearchSourced(rec)).toBe(true);
+    expect(namesItsWitness(rec, 'research'), 'no uuid, no witness').toBe(false);
+    expect(namesItsWitness(`${rec} research item ed11c486-9568-49ad-94ca-5fcd6872e57`, 'research'), 'a uuid one character short').toBe(false);
+  });
+
+  it('a record that BUILT the road is not a lesson that came down it', () => {
+    const far = `The research road takes a link and reads it on the NAS.\n${'filler. '.repeat(400)}\nElsewhere: "Lesson".`;
+    expect(isResearchSourced(far)).toBe(false);
+  });
+
+  it('a forward is still held to a Gmail thread id, never let off by a uuid', () => {
+    const { missing } = walkLedger(ROOT);
+    expect(missing).not.toContain('DR-1205-the-way-was-45-minutes-long.md');
+    expect(namesAThread(`forwarded with one word on it, "Lesson" (research item ${ITEM})`)).toBe(false);
+  });
+
+  it('RESEARCH_ITEM is exported and matches the real record', () => {
+    // The other session exported it; keeping it exported keeps that test
+    // surface, and this pins it against the live DR rather than a fixture.
+    const dr = readFileSync(
+      join(ROOT, 'docs/decisions', 'DR-1205-the-way-was-45-minutes-long.md'), 'utf8',
+    );
+    expect(RESEARCH_ITEM.test(dr), 'the first research-road lesson names its item').toBe(true);
   });
 });
 

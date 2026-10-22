@@ -79,12 +79,31 @@ export const NEAR_WINDOW = 600;
 export const THREAD_ID = /\b[0-9a-f]{16}\b/;
 
 /**
- * An `agent_inbox` row id as the research road records it: a lowercase uuid.
- * This is that road's thread id — the exact identifier a future session greps
- * to answer "have we already built this?" for a teaching that never touched
- * email.
+ * The research road's identifiers, as its records write them: a lowercase uuid
+ * carrying the LABEL of what it names. This is that road's thread id — the
+ * exact identifier a future session greps to answer "have we already built
+ * this?" for a teaching that never touched email.
+ *
+ * THE LABEL IS REQUIRED, and that is not fussiness. A bare uuid appears in
+ * this ledger for plenty of things that are not an intake — a migration, a
+ * bucket, a Supabase project. Accepting any uuid would let a record look
+ * witnessed while naming something unrelated, which is the theatre DR-0076 §3
+ * forbids. `research item <uuid>` is the form a research-road record already
+ * uses; the `agent_inbox` row is the same teaching's row in the same lane, and
+ * either answers the grep.
+ *
+ * THE LABEL MAY BE CAPITALISED; THE ID MAY NOT. A record can open a sentence
+ * with "Research item ...", so the label allows a capital. The uuid does not:
+ * it is matched exactly as the API returns it, lowercase, for the same reason
+ * `namesAThread` refuses `1A135F...` — an id in the wrong case is an id the
+ * grep will not find, which is the whole promise of naming it. (A case-blind
+ * flag over the whole pattern let `D5480D79-...` through; caught by the test
+ * below before this merged.)
  */
-export const ROW_ID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/;
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+export const RESEARCH_ITEM = new RegExp(`\\b[Rr]esearch item \`?${UUID}\\b`);
+export const INBOX_ROW = new RegExp(`\\bagent_inbox\`? row \`?${UUID}\\b`);
+export const ROW_ID = new RegExp(`\\b${UUID}\\b`);
 
 /**
  * The phrases a record uses for the research road. `agent_inbox` is the table
@@ -142,8 +161,11 @@ export function roadOf(text) {
 /** Pure. Does this record name a Gmail thread id? */
 export const namesAThread = (text) => THREAD_ID.test(String(text || ''));
 
-/** Pure. Does this record name an `agent_inbox` row id? */
-export const namesARow = (text) => ROW_ID.test(String(text || ''));
+/** Pure. Does this record name its research item or its `agent_inbox` row? */
+export const namesARow = (text) => {
+  const t = String(text || '');
+  return RESEARCH_ITEM.test(t) || INBOX_ROW.test(t);
+};
 
 /**
  * Pure. The witness this road requires, and whether the record carries it.
