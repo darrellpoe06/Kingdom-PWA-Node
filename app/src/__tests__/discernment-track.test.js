@@ -30,7 +30,7 @@ function validIssue(overrides = {}) {
       { id: 'v2', label: 'The defenders', steelman: 'The strongest case the defenders make is lawful process and disputed motive.' },
     ],
     lens: {
-      fourD: { deepSource: 'Scripture engages injustice with truth and grace.', scripture: 'Micah 6:8' },
+      fourD: { deepSource: 'Scripture engages injustice with truth and grace (Micah 6:8).', scripture: 'Micah 6:8' },
       threeD: 'Care about the real people affected; do not let outrage own you.',
       benefits: ['Calm in a loud world', 'Sharper source-checking', 'Both courts: some judgment in this life, all of it in the eternal court after this life (Ecclesiastes 12:14; Hebrews 9:27).'],
       graceNote: 'Name a wrong without condemning a person made in God\'s image.',
