@@ -20,6 +20,8 @@
 --     without the NAS grant                                              ✔ / ✘
 --   the family takes it back: the token is gone; revoked -> granted      ✔ / ✘
 --   who asked never changes; nothing is deleted                          ✘
+--   a gift by ACCOUNT is read by that worker alone, token and all
+--     (DR-1210); the tenant, household and a stranger do not             ✔ / ✘
 --   asked, granted, declined, given, revoked are on the clock; each
 --     person reads only their own                                        ✔
 -- =============================================================================
@@ -115,6 +117,9 @@ DECLARE
   -- A 1099 worker given MORE than the door offers its tenants (DR-1198).
   giftW uuid := '00000000-0000-4000-d000-0000000d0266';
   tok3 text := 'g.cdefabcdefab.' || repeat('3', 32);
+  -- A 1099 worker given cameras BY HIS ACCOUNT, in his own app (DR-1210).
+  giftA uuid := '00000000-0000-4000-d000-0000000e0266';
+  tok4 text := 'g.defabcdefabc.' || repeat('4', 32);
   v    text;
 BEGIN
   -- 1. The menu: the family offers; a tenant cannot.
@@ -203,6 +208,22 @@ BEGIN
   IF (SELECT cardinality(cameras) FROM door_camera_access WHERE id = giftW) <> 5 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker''s gift did not keep every camera'; END IF;
   IF (SELECT camera_names[2] FROM door_camera_access WHERE id = giftW) <> '805_basement' THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: an off-menu camera lost its name on the row'; END IF;
   IF pg_temp.val_as(w, format('SELECT count(*) FROM door_camera_access WHERE id = %L', giftW))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker reads the gift row itself (a gift reaches its holder by link)'; END IF;
+
+  -- 4c. The same worker given cameras BY HIS ACCOUNT (DR-1210). Darrell,
+  --     2026-10-22: "they should be showing on their cameras tab inside the
+  --     Poe Properties App... sometimes they will not have the PoeTech App".
+  --     A gift written with person_user_id is read by that person's own
+  --     session, token and all (that is what opens his Cameras tab), and by
+  --     nobody else on the door.
+  PERFORM pg_temp.runs(o, format(
+    'INSERT INTO door_camera_access (id, instance_id, rental_id, kind, person_user_id, person_role, person_label, cameras, status, grant_token, grant_id, days, expires_on)
+     VALUES (%L, %L, %L, ''given'', %L, ''worker'', ''Mike, the plumber'', ARRAY[''805_porch'', ''805_basement'', ''805_hall''], ''granted'', %L, ''defabcdefabc'', 0, NULL)', giftA, inst, doorA, w, tok4),
+    'the family gives a signed-in 1099 worker three cameras by his account', true);
+  IF pg_temp.val_as(w, format('SELECT grant_token FROM door_camera_access WHERE id = %L', giftA)) IS DISTINCT FROM tok4 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker cannot read the cameras given to his own account'; END IF;
+  IF pg_temp.val_as(t, format('SELECT count(*) FROM door_camera_access WHERE id = %L', giftA))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the tenant reads the worker''s gift'; END IF;
+  IF pg_temp.val_as(h, format('SELECT count(*) FROM door_camera_access WHERE id = %L', giftA))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the household reads the worker''s gift'; END IF;
+  IF pg_temp.val_as(s, format('SELECT count(*) FROM door_camera_access WHERE id = %L', giftA))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: a stranger reads the worker''s gift'; END IF;
+  IF pg_temp.changes(w, format('UPDATE door_camera_access SET cameras = ARRAY[''kitchen''] WHERE id = %L', giftA)) <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the worker rewrote his own gift'; END IF;
 
   -- 5. Taking back.
   IF pg_temp.changes(o, format('UPDATE door_camera_access SET status = ''revoked'' WHERE id = %L', gift)) <> 1 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the family could not take it back'; END IF;

@@ -100,6 +100,10 @@ export function peopleOnDoor(invites = [], { instanceId = null, tenancyId = null
       grants: (Array.isArray(i.capabilities) ? i.capabilities : []).map((c) => CAPABILITY_LABELS[c] || c),
       joined: !!i.claimed_at,
       joinedAt: i.claimed_at || null,
+      // The account they signed in with (DR-1210): a camera given to them by
+      // name lands on THEIR Cameras tab only through this id (0266 RLS reads
+      // door_camera_access by person_user_id = auth.uid()).
+      userId: i.claimed_by || null,
       invitedAt: i.created_at || null,
       everywhere: !i.tenancy_id,
       revoked: !!i.revoked,

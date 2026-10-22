@@ -28,6 +28,7 @@ import {
 } from './cloud.js';
 import {
   GIVE_ROLES, ACCESS_DAYS, expiresOn, accessBook, accessLine, myLiveGrant, accessText, menuReach, cameraReach,
+  roleWord, giveRoleOf, signedInOnDoor, heldBy,
 } from './door-cameras.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -46,15 +47,19 @@ function DaysPick({ value, onChange, label = 'For how long' }) {
 }
 
 /** The family's desk for one door. `cameras` is the NAS list; `token` the family key. */
-export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door', cameras = [], token }) {
+export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door', cameras = [], token, people = [] }) {
   const [menu, setMenu] = useState(null);
   const [offer, setOffer] = useState([]);
   const [rows, setRows] = useState([]);
   const [daysFor, setDaysFor] = useState({});
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const [give, setGive] = useState({ name: '', role: 'guest', phone: '', cams: [], days: 3 });
+  const [give, setGive] = useState({ name: '', role: 'guest', phone: '', cams: [], days: 3, userId: null });
   const [made, setMade] = useState(null);
+  // The refusal or result of Give access, said BESIDE the button (DR-1210):
+  // "Name who it is for" used to land at the foot of the desk, under the whole
+  // holders list, so a press with Who empty looked like a press that did nothing.
+  const [giveMsg, setGiveMsg] = useState('');
 
   const reload = useCallback(async () => {
     const [m, a] = await Promise.all([
@@ -68,6 +73,26 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
 
   const nameOf = (id) => (cameras.find((c) => c.id === id) || {}).name || id;
   const book = accessBook(rows);
+  // Who on this door has an account, so a gift lands in THEIR app (DR-1210).
+  const onDoor = signedInOnDoor(people);
+  // What the person being given to already holds here: a new gift replaces it.
+  const prior = heldBy(rows, { userId: give.userId, name: give.name });
+  const priorCams = [...new Set(prior.flatMap((r) => r.cameras || []))];
+  const priorKey = prior.map((r) => r.id).join(',');
+  // Their current cameras are ticked for them the moment they are named, so
+  // giving MORE is ticking more; unticking one gives them less.
+  useEffect(() => {
+    if (!priorKey) return;
+    setGive((g) => ({ ...g, cams: [...new Set([...g.cams, ...priorCams])] }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priorKey]);
+  const pickPerson = (userId) => {
+    const p = onDoor.find((x) => x.userId === userId);
+    setGiveMsg('');
+    if (!p) { setGive((g) => ({ ...g, userId: null })); return; }
+    setGive((g) => ({ ...g, userId: p.userId, name: p.name, role: giveRoleOf(p.roleLabel), phone: (p.contact && p.contact.phone) || g.phone }));
+  };
+  const roleChoices = GIVE_ROLES.some((r) => r.id === give.role) ? GIVE_ROLES : [...GIVE_ROLES, { id: give.role, label: roleWord(give.role) }];
 
   const saveMenu = async () => {
     setBusy(true);
@@ -122,23 +147,44 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
 
   const giveNow = async () => {
     const name = give.name.trim();
-    if (!name || give.cams.length === 0) { setMsg('Name who it is for and tick at least one camera.'); return; }
-    setBusy(true); setMsg(`Minting access for ${name} on the NAS…`);
+    if (!name && give.cams.length === 0) { setGiveMsg('Not given: pick who it is for (or type their name) and tick at least one camera.'); return; }
+    if (!name) { setGiveMsg(`Not given: pick who it is for${onDoor.length ? ' from the people signed into this door' : ''}, or type their name.`); return; }
+    if (give.cams.length === 0) { setGiveMsg(`Not given: tick at least one camera for ${name}.`); return; }
+    const replacing = heldBy(rows, { userId: give.userId, name });
+    setBusy(true); setGiveMsg(`Minting access for ${name} on the NAS…`);
     const g = await mint(`${name} · ${doorName}`, give.cams, give.days);
-    if (!g.ok) { setBusy(false); setMsg(`Not given: ${g.reason}.`); return; }
+    if (!g.ok) { setBusy(false); setGiveMsg(`Not given: ${g.reason}.`); return; }
     const w = await giveCameraAccess({
       instance_id: instanceId, rental_id: rentalId, person_role: give.role, person_label: name,
+      // THE ACCOUNT, WHEN THEY HAVE ONE (DR-1210). Without it 0266's read
+      // policy never hands the row to their session and their Cameras tab
+      // stays empty; the gift could only travel as a link.
+      ...(give.userId ? { person_user_id: give.userId } : {}),
       cameras: give.cams, camera_names: give.cams.map(nameOf), grant_token: g.token, grant_id: g.id,
       days: give.days, expires_on: expiresOn(give.days),
     });
+    if (!w.ok) { await revokeGrant(g.id, token); setBusy(false); setGiveMsg(`Not given: the record was not written (${w.reason}${w.error ? ` — ${w.error}` : ''}). The grant was taken back on the NAS.`); return; }
+    // GIVING AGAIN REPLACES (DR-1210): the new grant carries every camera
+    // ticked, their earlier ones included, so the earlier grant is taken back
+    // on the NAS and on the ledger. One person, one grant, the newest.
+    let left = 0;
+    for (const r of replacing) {
+      if (r.grant_id) await revokeGrant(r.grant_id, token);
+      const d = await decideCameraAccess(r.id, { status: 'revoked' });
+      if (!d.ok) left += 1;
+    }
     setBusy(false);
-    if (!w.ok) { await revokeGrant(g.id, token); setMsg(`Not given: the record was not written (${w.reason}${w.error ? ` — ${w.error}` : ''}). The grant was taken back on the NAS.`); return; }
     const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
     const link = grantLink(g.token, origin);
     const text = accessText({ name, door: doorName, cameras: give.cams.map(nameOf), link, days: give.days });
     setMade({ name, link, text, sms: smsHref(give.phone, text) });
-    setMsg('');
-    setGive({ name: '', role: 'guest', phone: '', cams: [], days: 3 });
+    const n = give.cams.length;
+    const where = give.userId
+      ? `${name} sees ${n === 1 ? 'it' : `all ${n}`} on the Cameras tab of their Poe Properties app now, signed in, no PoeTech app needed; the link below also works on any phone.`
+      : `${name} has no account on this door, so the link below is how it reaches them.`;
+    const replaced = replacing.length ? ` This REPLACES the access they held before (${replacing.length === 1 ? 'one grant' : `${replacing.length} grants`}, taken back${left ? `; ${left} could not be marked taken back on the record` : ''}).` : '';
+    setGiveMsg(`Given: ${n} camera${n === 1 ? '' : 's'} to ${name}. ${where}${replaced}`);
+    setGive({ name: '', role: 'guest', phone: '', cams: [], days: 3, userId: null });
     reload();
   };
 
@@ -150,10 +196,11 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
           list for Apt 2 "including short stays" and asked whether it worked. It
           did what it does — which is publish a list of what may be REQUESTED —
           and the old line both buried that and got the audience wrong: it named
-          "a 1099 worker sent here" as someone who sees these names, when
-          resolveFace gives the `cameras` face to TENANT_TABS only, so a worker
-          and a short-stay guest never see this list at all. Both are reached by
-          Give access to anyone, below. */}
+          "a 1099 worker sent here" as someone who sees these names. (DR-1210
+          corrected the correction: WORKER_TABS does carry a Cameras tab and
+          0266 lets a signed-in worker read the menu. Only a short-stay guest
+          never sees it.) Both are also reached by Give access to anyone,
+          below, a signed-in worker in his own app. */}
       <Head>Cameras people can ask for at {doorName}</Head>
       <p className="text-xs text-[#B85838] font-semibold" style={serif} data-testid="camera-menu-not-access">{menuReach({ saved: (menu || []).length }).words}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1" data-testid="camera-menu-pick">
@@ -180,15 +227,23 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
       ))}
 
       <Head>Give access to anyone</Head>
-      <p className="text-xs text-[#5A5751]" style={serif}>A short-stay guest, a new tenant, a worker without the app: they get a link to text. No account, no password; it ends on the day you choose, or when you take it back.</p>
+      <p className="text-xs text-[#5A5751]" style={serif}>Someone signed into this door, a 1099 worker on it among them: pick them and the cameras show on the Cameras tab of their Poe Properties app. A short-stay guest, a new tenant, a worker without an account: type their name and they get a link to text. No password either way; it ends on the day you choose, or when you take it back. Give as many cameras as you like; giving again to the same person replaces what they held.</p>
       <p className="text-xs text-[#1A1815]" style={serif} data-testid="camera-give-reach">{cameraReach(give.role).words}</p>
+      {onDoor.length > 0 && (
+        <label className="block text-xs text-[#5A5751] mt-1">Someone signed into this door (it shows in their app)
+          <select value={give.userId || ''} onChange={(e) => pickPerson(e.target.value)} aria-label="Someone signed into this door" className={`${field} block text-xs`} style={serif} data-testid="camera-give-person">
+            <option value="">Nobody picked: type a name below for a link</option>
+            {onDoor.map((p) => <option key={p.userId} value={p.userId}>{p.name} · {p.roleName}</option>)}
+          </select>
+        </label>
+      )}
       <div className="flex flex-wrap items-end gap-2 mt-1">
         <label className="text-xs text-[#5A5751]">Who
-          <input value={give.name} onChange={(e) => setGive((g) => ({ ...g, name: e.target.value }))} maxLength={120} aria-label="Who it is for" className={`${field} block`} style={serif} />
+          <input value={give.name} onChange={(e) => { const v = e.target.value; setGiveMsg(''); setGive((g) => ({ ...g, name: v, userId: null })); }} maxLength={120} aria-label="Who it is for" className={`${field} block`} style={serif} />
         </label>
         <label className="text-xs text-[#5A5751]">As
           <select value={give.role} onChange={(e) => setGive((g) => ({ ...g, role: e.target.value }))} aria-label="As what" className={`${field} block text-xs`} style={serif}>
-            {GIVE_ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+            {roleChoices.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
         </label>
         <label className="text-xs text-[#5A5751]">Their cell (to text it)
@@ -206,7 +261,11 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
           </label>
         ))}
       </div>
+      {prior.length > 0 && (
+        <p className="text-xs mt-1 text-[#1A1815]" style={serif} data-testid="camera-give-replaces">{give.name.trim() || 'They'} already hold{give.name.trim() ? 's' : ''} {priorCams.length} camera{priorCams.length === 1 ? '' : 's'} here: {priorCams.map(nameOf).join(', ')}. Giving again REPLACES that grant with exactly the cameras ticked below; theirs are ticked already, so tick more to give more.</p>
+      )}
       <button type="button" onClick={giveNow} disabled={busy} className={`${btn} mt-2 bg-[#2F5D50] text-white border-[#2F5D50]`} data-testid="camera-give">Give access</button>
+      {giveMsg && <p className="text-xs mt-1 text-[#2F5D50] font-semibold" role="status" data-testid="camera-give-msg" style={serif}>{giveMsg}</p>}
       {made && (
         <div className="mt-2 border-l-2 border-[#2F5D50] pl-2" data-testid="camera-given-link">
           <p className="text-xs text-[#1A1815]" style={serif}>{made.name}&rsquo;s link (shown once; it opens only those cameras):</p>
@@ -221,7 +280,7 @@ export function CameraAccessDesk({ instanceId, rentalId, doorName = 'this door',
       <Head>Who holds access now ({book.holding.length})</Head>
       {book.holding.length === 0 ? <p className="text-xs text-[#5A5751]" style={serif}>Nobody holds access to these cameras through this door.</p> : book.holding.map((r) => (
         <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-center justify-between gap-2" data-testid="camera-holder">
-          <span className="text-sm text-[#1A1815]" style={serif}>{accessLine(r)}</span>
+          <span className="text-sm text-[#1A1815]" style={serif}>{accessLine(r)}<span className="text-[#5A5751]"> · {r.person_user_id ? 'in their Poe Properties app' : 'by link'}</span></span>
           <button type="button" onClick={() => takeBack(r)} disabled={busy} className={`${btn} bg-white border-[#B85838] text-[#B85838]`}>Take back</button>
         </div>
       ))}
@@ -278,7 +337,11 @@ export function AskForCameras({ instanceId, rentalId, me = null, myName = '', re
       {live && (
         <div className="mt-1" data-testid="ask-for-cameras-live">
           <p className="text-xs text-[#1A1815]" style={serif}>Given to you: {(live.camera_names || live.cameras || []).join(', ')}{live.expires_on ? ` until ${live.expires_on}` : ', until taken back'}.</p>
-          {renderCameras ? <div className="mt-2">{renderCameras(live.grant_token)}</div> : null}
+          {/* No camera surface handed in (the PoeTech shell passes none): the
+              grant still opens, by its own link, never a dead end (DR-1210). */}
+          {renderCameras ? <div className="mt-2" data-testid="ask-for-cameras-surface">{renderCameras(live.grant_token)}</div> : (
+            <a href={grantLink(live.grant_token, typeof window !== 'undefined' && window.location ? window.location.origin : '')} className={`${btn} inline-block mt-2 bg-[#2F5D50] text-white border-[#2F5D50]`} data-testid="ask-for-cameras-open">Open my cameras</a>
+          )}
         </div>
       )}
       {menu === null ? <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Reading what this door offers…</p>

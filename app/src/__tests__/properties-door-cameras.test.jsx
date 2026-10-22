@@ -155,7 +155,7 @@ describe('the landlord shares and takes back; the household watches', () => {
     await mount(createElement(DoorCamerasTab, { door: DOOR, people, onChange: async () => ({ ok: true }) }));
     const who = Array.from(container.querySelectorAll('[data-testid="door-cameras-viewer"]')).map((n) => n.textContent);
     expect(who).toEqual(['Jordan Reed · Tenant · signed in', 'Sam Reed · Household member · has not signed in yet']);
-    expect(container.querySelector('[data-testid="door-cameras-who"]').textContent).toContain('A 1099 worker, a guest and an applicant never do');
+    expect(container.querySelector('[data-testid="door-cameras-who"]').textContent).toContain('A 1099 worker, a guest and an applicant never see the door’s share');
   });
 
   // Darrell, 2026-10-21: "show the allowed cameras for the tenants... and what

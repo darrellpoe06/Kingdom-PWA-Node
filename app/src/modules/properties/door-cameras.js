@@ -146,9 +146,9 @@ export function whoCanOpen({ door = null, people = [] } = {}) {
  *
  * AND FOR A SHORT-STAY GUEST IT DOES NOTHING AT ALL. Ticking a guest's name in
  * that list cannot reach a guest, because a guest never signs into the door:
- * `resolveFace` gives the `cameras` tab to TENANT_TABS only (tenant and
- * household), a 1099 worker's WORKER_TABS has no cameras tab, and a short-stay
- * guest is not a door role at all. A guest is reached by **Give access to
+ * a short-stay guest is not a door role at all. (This comment once also said
+ * WORKER_TABS has no cameras tab. It has one — model.js — and a signed-in
+ * worker reads the menu under 0266; corrected by DR-1210.) A guest is reached by **Give access to
  * anyone**, which mints their grant and hands back a link to text — the only
  * control on this tab that actually delivers a camera to someone with no
  * account.
@@ -158,11 +158,17 @@ export function whoCanOpen({ door = null, people = [] } = {}) {
  * surface decides where to put it.
  */
 export function menuReach({ saved = 0 } = {}) {
+  // CORRECTED (DR-1210): this used to say a 1099 worker "never sees this list
+  // at all". Measured against the code, that was false: WORKER_TABS carries a
+  // `cameras` tab (model.js), PropertiesApp renders AskForCameras on it, and
+  // door_camera_menu_read (0266) admits door_role_of_user = 'worker'. A worker
+  // signed into the door sees the menu and can ask. Only a short-stay guest,
+  // who is not a door role at all, never sees it.
   return {
     grants: false,
     words: saved > 0
-      ? `Saved. This is a MENU, not access: the ${saved} camera${saved === 1 ? '' : 's'} named here can be ASKED for by the tenant and their household signed into this door, and they see nothing until you press Give it on their ask. A 1099 worker and a short-stay guest never see this list at all — reach them with “Give access to anyone” below, which mints their access and hands you a link to text.`
-      : 'This is a MENU, not access. Naming a camera here lets the tenant and their household ask for it; they see nothing until you press Give it. A 1099 worker or a short-stay guest cannot see this list — use “Give access to anyone” below for them.',
+      ? `Saved. This is a MENU, not access: the ${saved} camera${saved === 1 ? '' : 's'} named here can be ASKED for by the people signed into this door (the tenant, their household, a 1099 worker on it), and they see nothing until you press Give it on their ask. A short-stay guest never sees this list — reach them with “Give access to anyone” below, which mints their access and hands you a link to text. A 1099 worker can be given any cameras there directly, too.`
+      : 'This is a MENU, not access. Naming a camera here lets the people signed into this door (the tenant, their household, a 1099 worker on it) ask for it; they see nothing until you press Give it. A short-stay guest cannot see this list — use “Give access to anyone” below for them, and for a 1099 worker you want to give cameras to outright.',
   };
 }
 
@@ -187,7 +193,7 @@ export const CAMERA_REACH = Object.freeze({
   member: { by: 'family key', words: 'A member on this instance reads the cameras with the family key, not with a grant.' },
   tenant: { by: 'door grant', words: 'The tenant sees what is shared with this door, once they have signed in.' },
   household: { by: 'door grant', words: 'A household member sees what is shared with this door, once they have signed in.' },
-  worker: { by: 'own grant', words: 'A 1099 worker is given cameras one person at a time — not by the door and not by the ask menu, which they cannot see.' },
+  worker: { by: 'own grant', words: 'A 1099 worker is given cameras one person at a time, never by the door. Pick them below if they are signed into this door: what you tick shows on the Cameras tab of their Poe Properties app, no PoeTech app needed. Without an account they get a link to text.' },
   guest: { by: 'own grant', words: 'A short-stay guest never signs into the door. Give them access by name and send the link; that is the only way a camera reaches them.' },
 });
 export function cameraReach(role) {
@@ -415,6 +421,43 @@ export function myLiveGrant(rows = [], me = null, today = new Date()) {
   return (Array.isArray(rows) ? rows : [])
     .filter((r) => r && me && r.person_user_id === me && r.status === 'granted' && r.grant_token && (!r.expires_on || r.expires_on >= day))
     .sort((a, b) => String(b.decided_at || b.created_at || '').localeCompare(String(a.decided_at || a.created_at || '')))[0] || null;
+}
+
+// -----------------------------------------------------------------------------
+// GIVEN TO A PERSON, IN THEIR OWN APP (DR-1210). Darrell, 2026-10-22: "Still
+// can't give a 1099 worker more cameras... they should be showing on their
+// cameras tab inside the Poe Properties App... sometimes they will not have
+// the PoeTech App... so they will need to see them there."
+//
+// "Give access to anyone" wrote every gift with NO person_user_id, so 0266's
+// read policy (person_user_id = auth.uid()) never handed it to the worker's
+// own session, and myLiveGrant never matched it: a gift only ever travelled as
+// a link. A person signed into the door is now picked by account, and a
+// second gift to the same person REPLACES the first, stated on the screen,
+// instead of stacking a second grant the worker's tab would never show.
+// -----------------------------------------------------------------------------
+
+/** The ledger role (0266 person_role) a person on the door is given as. */
+export function giveRoleOf(roleLabel) {
+  return { field_worker: 'worker', tenant: 'tenant', household: 'household', manager: 'manager' }[roleLabel] || 'other';
+}
+
+/** The people on this door who have signed in: a camera given to them lands in their app. */
+export function signedInOnDoor(people = []) {
+  return (Array.isArray(people) ? people : []).filter((p) => p && p.joined && p.userId);
+}
+
+/**
+ * The access this person holds here now and has not run out: by their account
+ * when they have one, by the name on the row when it went by link. These are
+ * what a new gift to the same person replaces.
+ */
+export function heldBy(rows = [], { userId = null, name = '' } = {}, today = new Date()) {
+  const day = today.toISOString().slice(0, 10);
+  const n = str(name).toLowerCase();
+  return (Array.isArray(rows) ? rows : []).filter((r) => r && r.status === 'granted' && r.grant_token
+    && (!r.expires_on || r.expires_on >= day)
+    && (userId ? r.person_user_id === userId : (!r.person_user_id && !!n && str(r.person_label).toLowerCase() === n)));
 }
 
 /** The text a guest is sent: the link, what it opens, and until when. */
