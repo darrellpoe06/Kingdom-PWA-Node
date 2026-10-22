@@ -63,6 +63,12 @@ jobs:
             FROM door_events e WHERE e.subject = 'work' GROUP BY 1 ORDER BY 1;
           \echo == 4b. the detail keys door_events carries on work (key|events) ==
           SELECT k, count(*) FROM door_events e, jsonb_object_keys(e.detail) k WHERE e.subject = 'work' GROUP BY 1 ORDER BY 2 DESC;
+          \echo == 4c. request_documentation, the worker's job notes (outcome|notes|with a note|with followup|with a picture|with video|first|last) ==
+          SELECT d.outcome, count(*), count(*) FILTER (WHERE coalesce(d.note,'')<>''), count(*) FILTER (WHERE coalesce(d.followup::text,'')<>''),
+                 count(*) FILTER (WHERE d.image_data IS NOT NULL), count(*) FILTER (WHERE d.has_video), min(d.created_at)::date, max(d.created_at)::date
+            FROM request_documentation d GROUP BY 1 ORDER BY 1;
+          \echo == 4d. tenancy_notes (rows|first|last) ==
+          SELECT count(*), min(created_at)::date, max(created_at)::date FROM tenancy_notes;
           \echo == 5. door_events columns ==
           SELECT column_name, data_type FROM information_schema.columns WHERE table_schema='public' AND table_name='door_events' ORDER BY ordinal_position;
           \echo == 6. old maintenance_requests (rows|first|last) ==
