@@ -33,7 +33,7 @@ The process a link, a question, or a teaching follows from the moment it is sent
 5. **The page's own words** — a link that is a page, not a video (an article, a message), is read for its title, description and visible text, from the NAS and then the runner; every redirect is checked so a page can never send the road inside the house.
 6. **The page, rendered** — a page that draws its words with script is opened in the runner's own headless browser, behind a firewall that refuses the tailnet and every private address while it runs, and read the same way.
 
-**When every road fails**, the item says why in words, and a link sent for a lesson or features is filed from the words sent with it, saying plainly that the link was not read. A bare link with almost nothing beside it is never filed from nothing.
+**Your own words first (DR-1203).** The words written beside a link are the request. When every road to the link fails and five or more words sit beside it, those words are the answer — said so on its first line, read in the same pass, and filed as what it was sent for. The card reads *Filed from your words*, never *Could not be looked into*. A bare link with almost nothing beside it still says why it was not read, and is never filed from nothing.
 
 ## Word first, in the lesson
 
