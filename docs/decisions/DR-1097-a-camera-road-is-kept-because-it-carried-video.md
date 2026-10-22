@@ -744,3 +744,5 @@ Darrell, 20:03-20:04 CDT, seven screenshots of the window view, with each tile's
 `re-review: 2026-10-22`, with the direct-road question above. Read cams-diag after the family next uses Cameras:
 - Ends with `r` of 1 or more are the app reopening a tile on its own. Their durations name the rule: about 20 s is the first-frame bound, 30 s or more behind live is the lag rule. The fix goes there.
 - Runs that are all `r=0` are tiles mounted fresh: a tap, the tab left and opened again, or a remount. Those are read from the screen, not from the NAS.
+
+**My own break, the same night.** The first cams-diag after #2385 (39700246848, 00:32 UTC) died at `sh: line 170: syntax error near unexpected token '('`. The new printer line said "the app's own reconnect", and its apostrophe closed the `python3 -c '...'` string around it. I had tested that Python on its own, outside the shell quoting it lives in. The words no longer use an apostrophe, and `cams-diag-prints-every-live-end.test.js` now runs the workflow's own `live_ends()` under `sh` with curl stubbed. It fails on that break (2 cases red against the broken printer) and passes on the fix (3 green).
