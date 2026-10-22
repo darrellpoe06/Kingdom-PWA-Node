@@ -13,6 +13,7 @@
 // `replyTo`, the new note carries reply_to, and the categorizer sends every
 // reply to a person (never the same automatic answer twice).
 // =============================================================================
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React from 'react';
 import { categorizeIntake, outcomeFor, INTAKE_CATEGORIES } from '../lib/intake-outcome.js';
 import { receiptCode, receiptStatus } from '../lib/feedback-receipt.js';

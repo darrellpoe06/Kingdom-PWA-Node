@@ -19,6 +19,7 @@
 // A hand-kept list can silently rot (it did — 20 days); a derived one can only
 // go stale if the ways themselves stop recording, which is the failure we
 // actually want surfaced (DR-0076 / DR-0120 / DR-0121).
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useState } from 'react';
 import WorkflowStatus from './WorkflowStatus.jsx';
 import LlmHealth from './LlmHealth.jsx';

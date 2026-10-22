@@ -408,6 +408,8 @@ export default defineConfig({
           // DR-0675: the Who He Is data (every passage of the whole Word that
           // tells Who He Is, ~0.8 MB) rides in its own file, like the courses.
           if (/[\\/]src[\\/]lib[\\/]who-he-is(-data\.json|-rules\.js|\.js)$/.test(id)) return 'who-he-is';
+          // DR-1214: the build-time manifests ride in their own file, once.
+          if (/[\\/]src[\\/]lib[\\/]build-manifests\.js$/.test(id)) return 'build-manifests';
           if (/[\\/]src[\\/]lib[\\/]living-lessons-class\.js$/.test(id)) return 'living-lessons';
           if (/[\\/]src[\\/]lib[\\/][a-z0-9-]+-(course|class|study)\.js$/.test(id)) return 'learn-courses';
           return undefined;
@@ -418,15 +420,28 @@ export default defineConfig({
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),
-    __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
-    __DR_LEDGER__: JSON.stringify(decisionLedger),
-    __DR_PRINCIPLES__: JSON.stringify(drPrinciples),
-    __QUALITY_PROOF__: JSON.stringify(qualityProof),
-    __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
-    __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
-    __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
-    __TEST_CENSUS__: JSON.stringify(testCensus),
-    __LESSONS_PRINCIPLES__: JSON.stringify(lessonsPrinciples),
+    // DR-1214: each manifest's JSON is pasted ONCE, into src/lib/build-manifests.js
+    // (its own chunk); every name the app reads is a reference to that global.
+    // `define` pastes its value at every use, and the 2.41 MB ledger was pasted
+    // six times into the shell chunk (14.5 MB of its 24 MB) when it was inlined here.
+    __GOVERNANCE_QUEUE__: 'globalThis.__PT_GOVERNANCE_QUEUE',
+    __DR_LEDGER__: 'globalThis.__PT_DR_LEDGER',
+    __DR_PRINCIPLES__: 'globalThis.__PT_DR_PRINCIPLES',
+    __QUALITY_PROOF__: 'globalThis.__PT_QUALITY_PROOF',
+    __INTERCONNECT_LOOPS__: 'globalThis.__PT_INTERCONNECT_LOOPS',
+    __CONFLICT_LOOP__: 'globalThis.__PT_CONFLICT_LOOP',
+    __UIUX_REVIEWS__: 'globalThis.__PT_UIUX_REVIEWS',
+    __TEST_CENSUS__: 'globalThis.__PT_TEST_CENSUS',
+    __LESSONS_PRINCIPLES__: 'globalThis.__PT_LESSONS_PRINCIPLES',
+    __GOVERNANCE_QUEUE_DATA__: JSON.stringify(governanceQueue),
+    __DR_LEDGER_DATA__: JSON.stringify(decisionLedger),
+    __DR_PRINCIPLES_DATA__: JSON.stringify(drPrinciples),
+    __QUALITY_PROOF_DATA__: JSON.stringify(qualityProof),
+    __INTERCONNECT_LOOPS_DATA__: JSON.stringify(interconnectLoops),
+    __CONFLICT_LOOP_DATA__: JSON.stringify(conflictLoop),
+    __UIUX_REVIEWS_DATA__: JSON.stringify(uiuxReviews),
+    __TEST_CENSUS_DATA__: JSON.stringify(testCensus),
+    __LESSONS_PRINCIPLES_DATA__: JSON.stringify(lessonsPrinciples),
   },
   server: {
     proxy: {

@@ -14,6 +14,7 @@
 // the app's established tokens (brick / terracotta / olive / muted), never red.
 // Theme CLASSES + rem only, so the global text-size control scales it.
 // =============================================================================
+import '../lib/build-manifests.js'; // the build-time manifests, held once (DR-1214)
 import React, { useMemo, useState, useEffect } from 'react';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { fetchWaysBrain } from '../lib/ways-brain.js';
