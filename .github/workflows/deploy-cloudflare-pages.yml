@@ -449,7 +449,7 @@ jobs:
             && echo "lessons-sync dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
-  # THE DOORS ARE PLACED (DR-1015), AFTER THEIR ADDRESSES ARE WHOLE (DR-1207).
+  # THE DOORS ARE PLACED (DR-1015), AFTER THEIR ADDRESSES ARE WHOLE (DR-1209).
   # After a successful deploy, complete-addresses.yml completes each door's
   # address from evidence and then dispatches place-doors.yml itself, so the
   # map always places a door from its whole address: one chain, in order,

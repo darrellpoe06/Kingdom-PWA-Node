@@ -485,9 +485,9 @@ export function newestFirst(events = []) {
 // holds the idempotency (rent_records.posted_tx_id + the posting trigger, 0150);
 // this is the pure mapper the books surface writes through.
 // ---------------------------------------------------------------------------
-export function rentRecordToBookEntry(record = {}, { propertyLabel = '', unitLabel = '', entityId = null, accountId = null } = {}) {
+export function rentRecordToBookEntry(record = {}, { propertyLabel = '', unitLabel = '', entityId = null, accountId = null, entitySlug = null } = {}) {
   const amount = Number(record.amount) || 0;
-  const when = record.confirmed_at || record.reported_at || null;
+  const when = record.paid_on || record.confirmed_at || record.reported_at || null;
   const door = [propertyLabel, unitLabel].filter(Boolean).join(' · ');
   return {
     id: `rent-${record.id}`,                 // stable -> the books row is idempotent
@@ -495,12 +495,53 @@ export function rentRecordToBookEntry(record = {}, { propertyLabel = '', unitLab
     description: `Rent${record.for_period ? ` ${record.for_period}` : ''}${door ? ` — ${door}` : ''}`,
     amount,
     type: 'income',
-    category: 'Rental Income',
+    // THE BOOKS' OWN SLUG (DR-1209). This said 'Rental Income' -- the label --
+    // and the books keep only their slugs (BooksTransactions coerces anything
+    // else to 'other'), so every rent posted from Properties counted as
+    // "other" and no rental-income total or report ever saw it.
+    category: 'rental-income',
     entityId,
     accountId,
+    // WHICH BUSINESS, AND WHICH ASSET (DR-1209): the door's owning entity, and
+    // the door itself by its id, so the books can be read per asset.
+    entityOverride: entitySlug || null,
+    linkedToKind: record.rental_id ? 'rental' : null,
+    linkedToId: record.rental_id || null,
     method: record.method || 'other',
     source: 'poe-properties',
     sourceRecordId: record.id || null,
+  };
+}
+
+/**
+ * Is this payment already in the books? The same rent can be entered on
+ * either tab -- Poe Properties (rent_records) or Real Estate (rent_payments)
+ * -- and each is a different table, so the books are asked: an entry for the
+ * same asset, the same amount, in the same month, is the same money (DR-1209).
+ */
+export function alreadyInBooks(transactions = [], { rentalId, amount, date }) {
+  const month = String(date || '').slice(0, 7);
+  const amt = Math.round((Number(amount) || 0) * 100);
+  if (!rentalId || !month || !amt) return false;
+  return (transactions || []).some((t) => t && t.linkedToId === rentalId
+    && Math.round((Number(t.amount) || 0) * 100) === amt
+    && String(t.date || '').slice(0, 7) === month);
+}
+
+/** A payment recorded on Real Estate's rent ledger, as the books entry it is (DR-1209). */
+export function rentPaymentToBookEntry({ leaseId, month, amount, at, rentalId, entitySlug = null, label = '' } = {}) {
+  const when = String(at || '').slice(0, 10) || `${String(month || '').slice(0, 7)}-01`;
+  return {
+    id: `rentpay-${leaseId}-${String(month || '').slice(0, 7)}-${String(at || '').replace(/[^0-9]/g, '').slice(0, 14)}`,
+    date: when,
+    description: `Rent ${String(month || '').slice(0, 7)}${label ? ` — ${label}` : ''}`,
+    amount: Number(amount) || 0,
+    type: 'income',
+    category: 'rental-income',
+    entityOverride: entitySlug || null,
+    linkedToKind: rentalId ? 'rental' : null,
+    linkedToId: rentalId || null,
+    source: 'real-estate',
   };
 }
 
@@ -605,4 +646,19 @@ export function coLivingTag(rental, siblings = 0) {
   // No level recorded, but it is demonstrably not alone in its apartment.
   if (Number(siblings) > 0) return 'Co-living \u2014 shares this apartment';
   return null;
+}
+
+/**
+ * What the books hold for one asset in one year: {total, count} from the
+ * entries linked to it (DR-1209), so a door shows the money the books show.
+ */
+export function assetBooksYear(transactions = [], rentalId, year) {
+  let total = 0; let count = 0;
+  if (!rentalId) return { total, count };
+  const y = String(year || '');
+  for (const t of transactions || []) {
+    if (!t || t.linkedToId !== rentalId || (y && String(t.date || '').slice(0, 4) !== y)) continue;
+    total += Number(t.amount) || 0; count += 1;
+  }
+  return { total: Math.round(total * 100) / 100, count };
 }

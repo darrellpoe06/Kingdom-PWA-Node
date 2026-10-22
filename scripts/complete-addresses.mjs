@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// complete-addresses — the lane completes each door's address from evidence (DR-1207)
+// complete-addresses — the lane completes each door's address from evidence (DR-1209)
 // =============================================================================
 // Darrell, 2026-10-22: "fix the addresses to reflect the correct addresses and
 // not the abbreviated addresses... Each asset should work end to end."
@@ -76,7 +76,7 @@ export async function completeRows(rows, { find, ask = null, readPage = null, wa
       answers.push({ town: qn.town, state: qn.state, hit });
     }
     let done = completion(row, answers);
-    // THE SECOND ROAD (DR-1207): the map could not find this house, so the
+    // THE SECOND ROAD (DR-1209): the map could not find this house, so the
     // research road is asked where it is, and its SOURCE PAGES are read by
     // the lane itself; only a page that shows this house in its own town
     // with a ZIP is evidence (completionFromPages).

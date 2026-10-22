@@ -448,6 +448,21 @@ export async function confirmRent(id, client = supabase) {
  * database trigger refuses this from any delegated operator (0150), so a failure
  * here is the gate working, not a bug.
  */
+/**
+ * Every confirmed rent record not yet in the books, across all the doors the
+ * signed-in person can see (RLS decides which; the client never scopes by
+ * tenancy). The books side posts each ONCE (posted_tx_id), DR-1209.
+ */
+export async function loadUnpostedRent(client = supabase) {
+  try {
+    const { data, error } = await client.from('rent_records')
+      .select('id, rental_id, tenancy_id, amount, for_period, method, status, paid_on, confirmed_at, reported_at, posted_tx_id')
+      .eq('status', 'confirmed').is('posted_tx_id', null);
+    if (error) return no('read-failed', error);
+    return ok({ records: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
 export async function markRentPosted(id, txId, client = supabase) {
   try {
     const uid = await userId(client);

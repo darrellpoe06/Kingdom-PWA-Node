@@ -1184,6 +1184,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [], seeds: [],
   }),
+  wf('complete-addresses.yml', {
+    id: 'complete-addresses', name: 'The lane completes each door’s address from evidence (DR-1209)', purpose: 'After every successful deploy and on dispatch: reads every door from the sovereign database over the tailnet, asks the app’s own /geocode road (Census, then OpenStreetMap) in the town the door’s own record or edit trail vouches for, and when the map cannot find the house asks the research road and reads its source pages itself from public addresses only; writes one guarded UPDATE per door it can prove (house number, street and town all this door’s), with the app’s edit trace, then dispatches place-doors so the map places doors from whole addresses.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'db:rentals', file: '.github/workflows/complete-addresses.yml', token: 'FROM public.rentals' }, { res: 'http:research', file: 'scripts/complete-addresses.mjs', token: '127.0.0.1:8797' }],
+    writes: [{ res: 'db:rentals', file: 'scripts/complete-addresses.mjs', token: 'UPDATE public.rentals' }], seeds: ['place-doors'],
+  }),
   wf('place-doors.yml', {
     id: 'place-doors', name: 'The lane places the doors (DR-1015)', purpose: 'After every successful deploy and on dispatch: reads every door with an address and no area from the sovereign database over the tailnet, looks each building up once on the runner with the app’s own placement (the house matched by number and town, the area rounded, what is nearby incl. the city bus, no line naming the building’s street), and writes one guarded UPDATE per door so a held door’s public card advertises its area and amenities; the family’s own area always wins.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'db:rentals', file: 'scripts/place-doors-over-tailnet.sh', token: 'from public.rentals' }],

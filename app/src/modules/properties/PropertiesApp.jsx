@@ -21,11 +21,11 @@ import {
   resolveFace, buildHistory, newestFirst, forThisTenancy, tenancyHasTenant, buildJobDoc, buildTenancyNote, changeSummary,
   unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
-  canPostToBooks, rentRecordToBookEntry, unpostedRent, coLivingTag } from './model.js';
+  canPostToBooks, rentRecordToBookEntry, unpostedRent, alreadyInBooks, coLivingTag } from './model.js';
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
-  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
+  postJobDoc, recordRent, confirmRent, markRentPosted, loadUnpostedRent, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
   revokeInvite, loadDoorMoney, doorOfMyTenancy,
 } from './cloud.js';
 import { moneyByDoor, moneyLine } from './door-money.js';
@@ -86,6 +86,8 @@ import { holdTheRecords } from './hold-the-record.js';
 import { PROPERTY_CHANNELS } from '../../lib/nas-photos.js';
 
 const ACCENT = '#2F5D50';
+// The books sweep (DR-1209) posts at most this many rent records a pass.
+const POST_SWEEP_MAX = 60;
 
 // THE TWO WAYS A TILE GETS ITS BYTES (DR-0955). Both by id, both bounded, both
 // only when something is actually on screen asking. The list carries neither.
@@ -1154,6 +1156,17 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     boot();
   };
 
+  // The books entry for one rent record, named by ITS door (not whichever door
+  // is open), with that door's owning business (DR-1209).
+  const bookEntryFor = (rentRow) => {
+    const door = (rawRentals || []).find((r) => r && r.id === rentRow.rental_id) || null;
+    return rentRecordToBookEntry(rentRow, {
+      propertyLabel: door ? (door.display_name || door.address) : activeDoor?.property_label,
+      unitLabel: door ? door.unit : activeDoor?.unit_label,
+      entitySlug: door ? door.entity_slug : null,
+    });
+  };
+
   const postRentToBooks = async (rentRow) => {
     const gate = canPostToBooks(rentRow);
     if (!gate.ok) { say(`Not posted: ${gate.reason}`); return; }
@@ -1161,14 +1174,42 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       say('Posting to the books happens in the PoeTech app, where the books live.');
       return;
     }
-    const entry = rentRecordToBookEntry(rentRow, {
-      propertyLabel: activeDoor?.property_label, unitLabel: activeDoor?.unit_label,
-    });
+    const entry = bookEntryFor(rentRow);
     books.postEntry(entry);
     const res = await markRentPosted(rentRow.id, entry.id);
     say(res.ok ? 'Posted to the books.' : `The books entry was made but the record could not be stamped: ${res.reason}`);
     refresh();
   };
+
+  // MONEY ADDED HERE GOES TO THE BOOKS, BY ITSELF (DR-1209). Darrell,
+  // 2026-10-22: "Money added to this tab needs to also go to books for each
+  // asset." A confirmed payment used to wait for a "Post to books" press that
+  // nothing prompted, so the books missed it. Inside the PoeTech app (where
+  // the books live), the owner's Properties posts every confirmed, unposted
+  // rent record across all doors ONCE: the stable id (rent-<record>) and the
+  // posted_tx_id stamp make a second pass a no-op. Bounded: one pass per
+  // load of the doors, at most POST_SWEEP_MAX records.
+  const sweeping = useRef(false);
+  useEffect(() => {
+    if (realRole !== 'owner' || preview || !books || typeof books.postEntry !== 'function' || sweeping.current) return;
+    sweeping.current = true;
+    (async () => {
+      const r = await boundedRead(loadUnpostedRent(), 8000, { ok: false });
+      if (!r || !r.ok) { sweeping.current = false; return; }
+      let posted = 0;
+      for (const row of (r.records || []).slice(0, POST_SWEEP_MAX)) {
+        if (!canPostToBooks(row).ok) continue;
+        const entry = bookEntryFor(row);
+        // Entered on Real Estate's ledger already: the same money, never twice.
+        if (alreadyInBooks(books.transactions, { rentalId: entry.linkedToId, amount: entry.amount, date: entry.date })) continue;
+        books.postEntry(entry);
+        const res = await markRentPosted(row.id, entry.id);
+        if (res && res.ok) posted += 1;
+      }
+      if (posted) refresh();
+    })().catch(() => { sweeping.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realRole, preview, books, rawRentals]);
 
   // ---- render --------------------------------------------------------------
   if (loading) return <div className="p-4 text-xs text-[#5A5751]" style={serif}>Opening your properties…</div>;
