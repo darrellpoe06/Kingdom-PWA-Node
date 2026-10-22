@@ -230,7 +230,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
             : <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Nothing is shared with this door, so nobody on it sees a camera.</p>}
           {target && (
             <div className="mt-2 border-l-2 border-[#2F5D50] pl-2" data-testid="door-cameras-who">
-              <p className="text-xs text-[#1A1815]" style={serif}><strong>Who will see them:</strong> the tenant and their household when they sign into this door. A 1099 worker, a guest and an applicant never do.</p>
+              <p className="text-xs text-[#1A1815]" style={serif}><strong>Who will see them:</strong> the tenant and their household when they sign into this door. A 1099 worker, a guest and an applicant never see the door&rsquo;s share; give them cameras of their own under &ldquo;Give access to anyone&rdquo;.</p>
               {viewers.length === 0 ? (
                 <p className="text-xs text-[#5A5751]" style={serif} data-testid="door-cameras-nobody">Nobody signs into this door yet, so nobody would see them. Invite the tenant or a household member in People first.</p>
               ) : (
@@ -244,7 +244,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
           )}
           {/* Asked for and given, per person (DR-0938): tenants, workers, guests. */}
           {token && list.status === 'ready' && list.cameras.length > 0 && rentalId && instanceId && (
-            <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={offered} token={token} />
+            <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={offered} token={token} people={people} />
           )}
           <p className="text-[0.625rem] mt-2 text-[#5A5751]" style={serif}>Every grant on every camera, with who last used it, is in PoeTech &rarr; Cameras &rarr; Who can see.</p>
         </div>
@@ -357,14 +357,35 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
   );
 }
 
-export function TenantCamerasTab({ door, renderCameras = null, rentalId = null, instanceId = null, me = null, myName = '' }) {
-  const shared = doorCameraState(door);
+// `role` is the face in hand. Only the TENANT and the HOUSEHOLD are reached by
+// the door's grant (DR-0841). Any other face — a 1099 worker above all — is
+// reached ONLY by cameras given to them by name (DR-0938, DR-1210), so the
+// door's grant is never read, shown or kept on this device for them. Before
+// DR-1210 this tab rendered the door's grant for every face: a worker holding
+// property.history reads the tenancy row (rental_tenancies_read, 0150), so
+// their Cameras tab opened the HOUSEHOLD's cameras, while the owner's screen
+// said "A 1099 worker... never do".
+const DOOR_GRANT_FACES = new Set(['tenant', 'household']);
+export function TenantCamerasTab({ door, renderCameras = null, rentalId = null, instanceId = null, me = null, myName = '', role = 'tenant' }) {
+  const byDoor = DOOR_GRANT_FACES.has(role);
+  const shared = byDoor ? doorCameraState(door) : { state: 'none', token: '', note: '' };
   useEffect(() => { if (shared.state === 'shared') saveGrantToken(shared.token); }, [shared.state, shared.token]);
   // Ask for the cameras the family offers on this door (DR-0938); anyone on
   // the door can, whether or not the household grant below exists.
   const ask = rentalId && instanceId
     ? <AskForCameras instanceId={instanceId} rentalId={rentalId} me={me} myName={myName} renderCameras={renderCameras} />
     : null;
+  if (!byDoor) {
+    return (
+      <>
+      <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="door-cameras-given">
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Cameras given to you</h3>
+        <p className="text-xs mt-1 text-[#5A5751]" style={serif}>The cameras the owner gives you by name show below, live, right here in Poe Properties; no PoeTech app needed. You see only what was given to you, until the day it ends or it is taken back.</p>
+      </section>
+      {ask}
+      </>
+    );
+  }
   if (shared.state !== 'shared') {
     return (
       <>
