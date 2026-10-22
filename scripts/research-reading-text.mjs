@@ -61,6 +61,16 @@ const out = [
   ...list(r.constraints).map((x) => `- ${x}`),
   `Next step: ${line(r.next) || 'none named'}`,
   `Lands: ${lands}`,
-  ...(body.truncated === true ? ['(The words were longer than the road reads at once; the reading covers their first part.)'] : []),
+  // A long piece is read in parts (DR-1202): say how much was read, never claim the whole.
+  ...(() => {
+    const parts = Number.isInteger(body.parts) ? body.parts : 0;
+    const readN = Number.isInteger(body.parts_read) ? body.parts_read : 0;
+    if (body.truncated === true) {
+      return [parts && readN
+        ? `(The words were longer than the road read: ${readN} of ${parts} parts were read, so this reading covers those parts, not the whole.)`
+        : '(The words were longer than the road reads at once; the reading covers their first part.)'];
+    }
+    return parts > 1 ? [`(Read in ${parts} parts; every part was read.)`] : [];
+  })(),
 ];
 process.stdout.write(`${out.join('\n')}\n`);

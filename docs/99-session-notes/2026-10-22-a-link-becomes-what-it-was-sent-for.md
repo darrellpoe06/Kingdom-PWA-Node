@@ -30,7 +30,9 @@
 - Local PostgreSQL 16: claim, backlog, build filed + record, refused a double, research only, lesson filed Word first.
 - Lint 0; `verify:gates` 0; research, decision and ledger suites 226 green.
 
-## Next (dated)
+## Done the same session (nothing dated)
 
-- On merge: re-open the 22:43 link for *build*, dispatch the lane, read the live rows for both items. The trial lesson is read for Word-first and verbatim verses.
-- `re-review: 2026-10-29`: readings past 24k characters; Instagram login walls; the trial lesson.
+- The trial lesson (World Issues 21, PR #2389) read against the KJV: 62 spans, 1 altered word fixed before merge. Its red gate (`ledger-names-its-thread`) fixed at the root: the research road names its own witness. Its row marked `lesson-captured`.
+- Readings past 24k characters: read in parts, merged, the card says how many.
+- The 20,000-byte answer cut found and removed (400,000 characters, cut by character).
+- Instagram login walls: open on the first measured refusal, a credential only Darrell holds. See DR-1202's follow-through.

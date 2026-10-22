@@ -140,6 +140,37 @@ def failed_attempts(tags):
     return sum(1 for t in tags or [] if str(t).startswith("build:failed@"))
 
 
+# A RATE LIMIT IS A WAIT, NOT A FAILED LESSON (DR-1202, measured 2026-10-22).
+# The research road's first lesson row (d5480d79) failed twice in 34 seconds,
+# 01:24:00 and 01:24:34, both on the model API's HTTP 429. Nothing was wrong
+# with the teaching; the limit had not passed yet, and two immediate tries
+# spent both of the row's attempts inside one minute, so it fell to the hourly
+# Routine. Now a row whose failure says it was rate-limited waits out a
+# cooldown before it is offered again (the services-sync sweep re-offers it; no
+# new timer), and earns RATE_LIMIT_RETRIES more tries beyond MAX_ATTEMPTS --
+# bounded and spaced, so the AI-class brakes stay whole: the per-build budget,
+# the per-row lock and the stop-paths are unchanged.
+RATE_LIMIT_COOLDOWN_SECONDS = int(os.environ.get("LESSON_RATE_LIMIT_COOLDOWN_SECONDS", "1800"))
+RATE_LIMIT_RETRIES = int(os.environ.get("LESSON_RATE_LIMIT_RETRIES", "2"))
+_RATE_LIMITED = re.compile(r'api_error_status\\?"?\s*:\s*429|\bHTTP 429\b|\b429 Too Many|rate[ _-]?limit|overloaded', re.I)
+
+
+def rate_limited(tags):
+    """Did this row's builds fail because the model's rate limit had not passed?"""
+    return any(str(t).startswith("build-reason:") and _RATE_LIMITED.search(str(t)) for t in tags or [])
+
+
+def last_failed_at(tags):
+    """The newest build:failed@ time, as epoch seconds, or None."""
+    best = None
+    for t in tags or []:
+        m = re.match(r"^build:failed@(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)$", str(t))
+        if m:
+            at = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+            best = at if best is None or at > best else best
+    return best
+
+
 def reason_tag(text):
     return "build-reason:" + re.sub(r"\s+", " ", str(text)).strip()[:200]
 
@@ -148,7 +179,7 @@ def reason_tag(text):
 # pure: which rows are ours to build (the hourly Routine's rules, as code)
 # =============================================================================
 
-def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
+def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS, now=None):
     """(ok, why). Mirrors the in-app Routine's rules (DR-0608/0610/0611/0635)."""
     tags = row.get("tags") or []
     if "lesson" not in tags:
@@ -179,8 +210,16 @@ def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
         return False, "waiting for its words (the transcript row carries them)"
     if "build:deferred@" in " ".join(str(t) for t in tags) or any(str(t).startswith("build:deferred@") for t in tags):
         return False, "deferred to the hourly Routine"
-    if failed_attempts(tags) >= max_attempts:
-        return False, "failed {} times: left for the hourly Routine".format(failed_attempts(tags))
+    fails = failed_attempts(tags)
+    if fails and rate_limited(tags):
+        if fails >= max_attempts + RATE_LIMIT_RETRIES:
+            return False, "rate-limited {} times: left for the hourly Routine".format(fails)
+        last = last_failed_at(tags)
+        wait = (last + RATE_LIMIT_COOLDOWN_SECONDS - (time.time() if now is None else now)) if last else 0
+        if wait > 0:
+            return False, "rate-limited: waiting out the model's limit, offered again in {} min".format(int(wait // 60) + 1)
+    elif fails >= max_attempts:
+        return False, "failed {} times: left for the hourly Routine".format(fails)
     if "lesson-declined" in tags:
         return False, "declined by the Governor"
     if str(row.get("created_by") or "") not in owners and "lesson-approved" not in tags:

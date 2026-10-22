@@ -210,7 +210,8 @@ function Item({ item }) {
                   ? <a className="underline" href={`?view=${LANDS[item.reading.lands].view}${LANDS[item.reading.lands].sub ? `&sub=${LANDS[item.reading.lands].sub}` : ''}`}>{LANDS[item.reading.lands].label}</a>
                   : (LANDS[item.reading.lands] || LANDS.unplaced).label}
               </p>
-              {item.reading.truncated && <p className={`mt-1 ${noteCls}`}>The words were longer than the road reads at once; this reading covers their first part.</p>}
+              {item.reading.truncated && <p className={`mt-1 ${noteCls}`}>{item.reading.parts ? `The words were longer than the road read; this reading covers ${item.reading.partsRead} of ${item.reading.parts} parts, not the whole.` : 'The words were longer than the road reads at once; this reading covers their first part.'}</p>}
+              {!item.reading.truncated && item.reading.parts > 1 && <p className={`mt-1 ${noteCls}`}>{`Read in ${item.reading.parts} parts; every part was read.`}</p>}
               <p className={`mt-2 ${noteCls}`}>{item.note}</p>
             </div>
           ) : (

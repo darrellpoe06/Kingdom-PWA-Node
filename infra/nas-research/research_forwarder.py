@@ -50,6 +50,7 @@ import os
 import socket
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -104,8 +105,18 @@ ASK_PATHS = {"/ask", "/research/ask"}
 # the constraints, the next step, and where in PoeTech it lands. Unverified,
 # like every answer; one at a time, like every ask.
 READ_PATHS = {"/read", "/research/read"}
-MAX_READ_CHARS = 24000
-MAX_READ_BODY_BYTES = 96 * 1024   # the words of a long transcript, with room for UTF-8
+MAX_READ_CHARS = 24000            # one PART: what the tower reads at once
+# A LONG PIECE IS READ IN PARTS (DR-1202, 2026-10-22). The reading used to read
+# the first 24,000 characters and drop the rest, so an hour-long teaching was
+# read for its first twenty minutes. Now the words are cut into parts at a
+# paragraph or sentence edge, each part is read on its own, and the readings
+# are merged so every part contributes. Eight parts is 192,000 characters --
+# a long sermon or a full lecture -- inside one wall-clock budget, one tower,
+# one at a time. Past eight parts, or past the budget, the reply says exactly
+# how much was read (parts_read of parts); it never claims the whole.
+MAX_READ_PARTS = 8
+READ_BUDGET = 900                 # seconds for every part of one reading together
+MAX_READ_BODY_BYTES = 400000 * 4 + 64 * 1024   # the link road's whole answer (400,000 characters) in UTF-8, with room; parts past eight are trimmed after
 MAX_NOTE_CHARS = 500
 READ_LIST_MAX = 5
 READ_LINE_MAX = 300
@@ -236,17 +247,67 @@ def parse_read(body_bytes):
     if not isinstance(text, str) or len(text.strip()) < 40:
         return None, (400, "text is empty or too short to read (under 40 characters)")
     text = text.strip()
-    truncated = False
-    if len(text) > MAX_READ_CHARS:
-        text = text[:MAX_READ_CHARS]
-        truncated = True
+    parts = split_parts(text)
+    truncated = len(parts) > MAX_READ_PARTS
+    parts = parts[:MAX_READ_PARTS]
     note = doc.get("note", "")
     if note is None:
         note = ""
     if not isinstance(note, str):
         return None, (400, "note must be a string")
     note = note.strip()[:MAX_NOTE_CHARS]
-    return {"text": text, "note": note, "truncated": truncated}, None
+    return {"text": parts[0], "parts": parts, "note": note, "truncated": truncated}, None
+
+
+def split_parts(text, size=MAX_READ_CHARS):
+    """Cut the words into parts of at most `size` characters, at a paragraph or sentence edge where one is near."""
+    parts = []
+    rest = text
+    while len(rest) > size:
+        cut = -1
+        for edge in ("\n\n", "\n", ". ", "? ", "! "):
+            i = rest.rfind(edge, int(size * 0.8), size)
+            if i != -1:
+                cut = i + len(edge)
+                break
+        if cut == -1:
+            i = rest.rfind(" ", int(size * 0.8), size)
+            cut = i + 1 if i != -1 else size
+        parts.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    if rest:
+        parts.append(rest)
+    return [p for p in parts if p]
+
+
+def merge_readings(readings):
+    """Several parts' readings -> one. What it is and the next step come from the opening part; the lists take
+    from every part in turn, so a later part is never crowded out; it lands where most parts say it lands."""
+    if not readings:
+        return None
+    if len(readings) == 1:
+        return readings[0]
+
+    def braid(key):
+        out, seen = [], set()
+        lists = [r.get(key) or [] for r in readings]
+        for i in range(max(len(x) for x in lists)):
+            for x in lists:
+                if i < len(x) and x[i].lower() not in seen and len(out) < READ_LIST_MAX:
+                    seen.add(x[i].lower())
+                    out.append(x[i])
+        return out
+
+    placed = [r["lands"] for r in readings if r.get("lands") and r["lands"] != "unplaced"]
+    lands = max(placed, key=lambda k: (placed.count(k), -placed.index(k))) if placed else "unplaced"
+    first = readings[0]
+    return {
+        "what": first["what"],
+        "opportunities": braid("opportunities"),
+        "constraints": braid("constraints"),
+        "next": first.get("next") or next((r.get("next") for r in readings if r.get("next")), ""),
+        "lands": lands,
+    }
 
 
 def _short_list(value):
@@ -445,26 +506,46 @@ def make_handler(vane, token, ask_timeout=ASK_TIMEOUT, tower=None):
                     return self._json(503, {"error": f"Vane is not answering: {e}"})
                 if not chosen:
                     return self._json(503, {"error": why})
-                user = ("The sender wrote: " + (ask["note"] or "(nothing)") + "\n\nThe material:\n" + ask["text"])
-                try:
-                    content = tower_chat(tower.base(), chosen["chat"], READING_SYSTEM, user, ask_timeout)
-                except socket.timeout:
-                    return self._json(504, {"error": f"no reading within {ask_timeout}s"})
-                except urllib.error.HTTPError as e:
-                    return self._json(502, {"error": f"the tower answered {e.code}"})
-                except (urllib.error.URLError, OSError, ValueError) as e:
-                    if "timed out" in str(e):
+                parts = ask["parts"]
+                deadline = time.monotonic() + READ_BUDGET
+                readings = []
+                for n, part in enumerate(parts, 1):
+                    left = deadline - time.monotonic()
+                    if readings and left < 30:
+                        break
+                    label = "The material:" if len(parts) == 1 else f"The material, part {n} of {len(parts)} of one long piece (read this part):"
+                    user = ("The sender wrote: " + (ask["note"] or "(nothing)") + "\n\n" + label + "\n" + part)
+                    try:
+                        content = tower_chat(tower.base(), chosen["chat"], READING_SYSTEM, user, max(30, min(ask_timeout, left)))
+                    except socket.timeout:
+                        if readings:
+                            break
                         return self._json(504, {"error": f"no reading within {ask_timeout}s"})
-                    return self._json(502, {"error": f"the tower failed: {e}"})
-                try:
-                    reading = clean_reading(json.loads(content or "{}"))
-                except ValueError:
-                    reading = None
-                if reading is None:
-                    return self._json(502, {"error": "the model did not answer in the reading's shape"})
+                    except urllib.error.HTTPError as e:
+                        if readings:
+                            break
+                        return self._json(502, {"error": f"the tower answered {e.code}"})
+                    except (urllib.error.URLError, OSError, ValueError) as e:
+                        if readings:
+                            break
+                        if "timed out" in str(e):
+                            return self._json(504, {"error": f"no reading within {ask_timeout}s"})
+                        return self._json(502, {"error": f"the tower failed: {e}"})
+                    try:
+                        one = clean_reading(json.loads(content or "{}"))
+                    except ValueError:
+                        one = None
+                    if one is None:
+                        if readings:
+                            break
+                        return self._json(502, {"error": "the model did not answer in the reading's shape"})
+                    readings.append(one)
+                reading = merge_readings(readings)
                 return self._json(200, {
                     "reading": reading,
-                    "truncated": ask["truncated"],
+                    "truncated": ask["truncated"] or len(readings) < len(parts),
+                    "parts": len(parts),
+                    "parts_read": len(readings),
                     "model": chosen["chat"],
                     "verified": False,
                     "note": UNVERIFIED_NOTE,
@@ -609,7 +690,11 @@ def _selftest():
         def do_POST(self):
             n = int(self.headers.get("Content-Length") or 0)
             state["chat_body"] = json.loads(self.rfile.read(n).decode("utf-8") or "{}")
-            data = json.dumps({"message": {"role": "assistant", "content": state.get("chat") or ""}}).encode("utf-8")
+            state["chat_calls"] = state.get("chat_calls", 0) + 1
+            # A list stages one answer per call, so a reading in parts can be watched part by part.
+            staged = state.get("chat")
+            content = staged.pop(0) if isinstance(staged, list) and staged else staged
+            data = json.dumps({"message": {"role": "assistant", "content": content if isinstance(content, str) else ""}}).encode("utf-8")
             self.send_response(200 if self.path == "/api/chat" else 404)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
@@ -735,8 +820,35 @@ def _selftest():
     s, b, _ = req("POST", "/read", body={"text": words})
     check(s == 502 and "shape" in b.get("error", ""), "CATCHES a model that does not answer in the shape: 502, nothing written")
     state["chat"] = json.dumps({"what": "x", "lands": "learn"})
-    s, b, _ = req("POST", "/read", body={"text": "w" * (MAX_READ_CHARS + 500)})
-    check(s == 200 and b.get("truncated") is True, "words over the cap are read to the cap and say so (truncated)")
+    # --- a long piece, read in parts (DR-1202) -----------------------------
+    para = ("The cities of refuge were set a day's journey apart so that every slayer could reach one. " * 40).strip()
+    long_words = "\n\n".join([para] * 18)          # 65,000 characters: three parts
+    parts = split_parts(long_words)
+    check(len(parts) == 3 and all(len(x) <= MAX_READ_CHARS for x in parts) and sum(len(x) for x in parts) >= len(long_words) - 200,
+          "a long piece is cut into parts of at most one read each, nothing dropped")
+    check(all(x.endswith(".") for x in parts[:-1]), "each part is cut at a paragraph or sentence edge, never mid-word")
+    state["chat_calls"] = 0
+    state["chat"] = [json.dumps({"what": "A teaching on the cities of refuge.", "opportunities": ["A lesson on distance"], "constraints": ["Unverified transcript"], "next": "Draft the lesson.", "lands": "learn"}),
+                     json.dumps({"what": "part two", "opportunities": ["A Love Corner trivia week", "a lesson on distance"], "constraints": [], "lands": "love-corner"}),
+                     json.dumps({"what": "part three", "opportunities": ["A family study night"], "constraints": ["Long"], "lands": "learn"})]
+    s, b, _ = req("POST", "/read", body={"text": long_words})
+    r = b.get("reading") or {}
+    check(s == 200 and state["chat_calls"] == 3 and b.get("parts") == 3 and b.get("parts_read") == 3 and b.get("truncated") is False,
+          "every part is read, one call each, and the reply says all three were read")
+    check(r.get("what") == "A teaching on the cities of refuge." and r.get("next") == "Draft the lesson." and r.get("lands") == "learn",
+          "what it is and the next step come from the opening part; it lands where most parts say")
+    check(r.get("opportunities") == ["A lesson on distance", "A Love Corner trivia week", "A family study night"] and r.get("constraints") == ["Unverified transcript", "Long"],
+          "every part contributes to the lists, a repeat is said once")
+    cb = (state.get("chat_body") or {}).get("messages") or [{}, {}]
+    check("part 3 of 3" in cb[1].get("content", ""), "each part is told which part of the piece it is")
+    state["chat"] = [json.dumps({"what": "A teaching.", "lands": "learn"}), "not json"]
+    s, b, _ = req("POST", "/read", body={"text": long_words})
+    check(s == 200 and b.get("parts_read") == 1 and b.get("parts") == 3 and b.get("truncated") is True,
+          "CATCHES a part that fails midway: what was read is kept, and the reply says 1 of 3, never the whole")
+    state["chat"] = json.dumps({"what": "x", "lands": "learn"})
+    s, b, _ = req("POST", "/read", body={"text": ("w " * (MAX_READ_CHARS // 2)) * (MAX_READ_PARTS + 1)})
+    check(s == 200 and b.get("parts") == MAX_READ_PARTS and b.get("truncated") is True,
+          "words past eight parts are read to eight parts and say so (truncated)")
 
     # --- one at a time ----------------------------------------------------
     hold = threading.Event()
