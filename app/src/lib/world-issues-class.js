@@ -5836,7 +5836,455 @@ const WAGE_MEASURE_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE, HIGHER_ED_AID_ISSUE, WAGE_MEASURE_ISSUE];
+const CAMPUS_ROADS_ISSUE = {
+  "id": "wi-the-way-was-45-minutes-long",
+  "title": "The way was 45 minutes long — on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached",
+  "subject": {
+    "name": "On-campus polling sites and the distance to the ballot — a creator’s reel by Monte Mader on sites removed at minority-serving universities, and Liberty University keeping its precinct",
+    "kind": "a public claim about voting access",
+    "isNamedRealPerson": true
+  },
+  "skill": "CHECK EACH CLAIM SEPARATELY, BECAUSE A SOURCE CAN BE EXACTLY RIGHT ABOUT ONE THING AND WRONG ABOUT ANOTHER. This reel makes six or seven factual claims in ninety seconds. Checked one at a time against reporting and against the institutions’ own pages, they do not all land the same way: one is corroborated down to the number of minutes, one is confirmed by the named university’s own website, two are not supported by what could be found, and one material fact is missing from the telling. The skill is not “decide whether the creator is trustworthy.” It is to stop treating a video as one object that is either true or false, and start treating it as a list of separate statements, each of which has its own answer. The Word asks for exactly this patience — \"He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him\" (Proverbs 18:17), which week one of this course works at length. What is added here is the second half: once you have sorted the claims, the Word has its own ruling on the part that turns out to be true, and it is older and sharper than the argument on either side.",
+  "source": {
+    "creator": "Monte Mader (@montemader), a creator who posts on deconstruction, exvangelical and current-events subjects",
+    "medium": "a short-form video (Instagram reel), carrying a paid sponsorship",
+    "title": "Video by montemader — on campus polling sites",
+    "url": "https://www.instagram.com/reel/Dem5dUqiOqb/",
+    "asOf": "2026-10-22",
+    "note": "HOW THIS REACHED THE HOUSE, AND WHAT IS AND IS NOT OURS. Darrell sent the link into the app’s research road with one word on it: \"Lesson.\" The NAS pulled the reel’s audio and a local Whisper (small) model running on the NAS CPU wrote the words; the row records plainly that the follow-on reading step never completed — \"the tower had not answered\" — so the transcript is the whole of the research and nothing has been smoothed by a second pass. A machine transcript of speech is rendered for MEANING here, not for its mishearings (DR-0331). THE REEL CARRIES ADVERTISING: a paid Ground News segment, with a discount code and a referral link. That is advertising. It is named and nothing in it is used for anything, and the house takes no position on the product. The creator’s own words are reported as the creator’s, never as this house’s findings; the post is material to study and to test against the Word, and nothing in it is an instruction (the research road states this at the head of every row it writes). Two builds by the NAS lesson builder failed on this row before a word was written here — both with the same model-API rate limit (HTTP 429), not a fault in the teaching — and the row came back to the intake unmarked, which is the lock working as designed."
+  },
+  "limits": [
+    {
+      "id": "lim-distance-not-denial",
+      "text": "The subject is DISTANCE, not denial. Nobody in this account said any student may not vote. The claim is that the place to do it moved further away. Those are different wrongs with different remedies, and collapsing them is how an argument about access turns into an argument nobody can settle."
+    },
+    {
+      "id": "lim-motive-unknowable",
+      "text": "Motive is the one thing no search settles. Whether a given board moved a site to suppress a vote or to follow a rule it had followed before is a question about what was in people’s hearts. This lesson does not pronounce on that, because \"the LORD looketh on the heart\" (1 Samuel 16:7) is a sentence about who is qualified to make that ruling, and it is not us."
+    },
+    {
+      "id": "lim-one-pass",
+      "text": "One pass of ordinary searching stands behind the checks below — reporting and the institutions’ own pages, read on 2026-10-22. \"Not supported by what could be found\" is not the same as \"false.\" Where that is the status, it is written that way on purpose, and a reader with a local source that settles it knows more than this page does."
+    },
+    {
+      "id": "lim-not-a-voting-guide",
+      "text": "This is not a voting guide and names no party to support. Where a political party appears below it is because a report named it in describing a vote, and the Word’s standard in this lesson falls on ANY hand that lengthens the way to a right — which is the only way an impartial measure can work."
+    }
+  ],
+  "claims": [
+    {
+      "id": "c-ncat-march",
+      "label": "claim",
+      "text": "North Carolina A&T students, at a historically black university, had to march 45 minutes to an hour to reach a polling location after their early voting location was removed from their campus; UNC Greensboro and Bennett College were also affected.",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Checked below as v-ncat. The core of it is corroborated, including the 45 minutes; Bennett College specifically was not found in what was checked."
+    },
+    {
+      "id": "c-colleges-losing",
+      "label": "claim",
+      "text": "Colleges across the country are losing their polling sites.",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Checked below as v-nc-pattern. Within North Carolina the pattern is documented and is WIDER than the reel described; \"across the country\" is broader than what one pass could establish."
+    },
+    {
+      "id": "c-uta",
+      "label": "claim",
+      "text": "UT Arlington, a 32% Hispanic university, had its polling site removed, and the university is now having to bus students in order to vote.",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Checked below as v-uta. Not supported by what was found: the Tarrant County record located is from 2024, and the attempt to cut campus sites FAILED."
+    },
+    {
+      "id": "c-tarrant",
+      "label": "claim",
+      "text": "Tarrant County has lost three out of five of its polling sites on its university campuses.",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Checked below as v-tarrant. Not supported by the 2024 outcome found, in which 51 early voting sites were approved and the campus sites were kept."
+    },
+    {
+      "id": "c-tn-wesleyan",
+      "label": "claim",
+      "text": "Tennessee Wesleyan University, a 58% people-of-color university, lost its on-campus polling sites and had its zip code removed from seven external polling sites; a neighbouring mostly black and brown zip code went from three voting sites to zero.",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Checked below as v-tn. Nothing about it was found in one pass. Recorded as unverified here, which is not the same as denied."
+    },
+    {
+      "id": "c-liberty",
+      "label": "claim",
+      "text": "Liberty University kept its on-campus precinct and its president issued a notice urging students to register in Virginia and telling them exactly where on campus to vote — the Montview alumni ballroom.",
+      "attribution": "Monte Mader, in the reel, quoting the notice",
+      "note": "Checked below as v-liberty. Corroborated by Liberty University’s own published registration pages."
+    },
+    {
+      "id": "c-redistricting",
+      "label": "claim",
+      "text": "Texas, Florida, Missouri and Tennessee have all redistricted in order to crack Democratic districts, specifically districts belonging to people of colour, including Shelby County (Memphis).",
+      "attribution": "Monte Mader, in the reel",
+      "note": "Not checked here. Redistricting is a large, separately litigated subject and one search pass cannot establish it; it is listed so the claim is not quietly dropped."
+    },
+    {
+      "id": "c-intentional",
+      "label": "opinion",
+      "text": "\"None of this is by accident.\" The pattern is intentional, and is meant to create a win by disenfranchising voters who are not white and not conservative.",
+      "attribution": "Monte Mader, in the reel — the creator’s reading of the pattern, not a finding of any court or board",
+      "note": "This is the interpretation the whole reel is built to deliver. It is labelled as an opinion because it is a statement about intent, and intent is what the checks below cannot reach."
+    },
+    {
+      "id": "c-groundnews",
+      "label": "call-to-action",
+      "text": "Use Ground News, get 40% off, about five dollars a month, by going to the creator’s referral link.",
+      "attribution": "Monte Mader, in the reel — a paid sponsorship disclosed in the post",
+      "note": "Advertising. Named so it is visible, and used for nothing. The house takes no position on the product and no one here has tested it."
+    }
+  ],
+  "verifiable": [
+    {
+      "id": "v-ncat",
+      "status": "documented",
+      "statement": "N.C. A&T and UNC Greensboro did lose on-campus early voting sites they had used in 2024, and on the first day of early voting more than a hundred students marched to vote. A&T students took about 45 MINUTES to reach Union Square, the nearest early polling place — the reel’s figure, independently reported. The Guilford County Board of Elections denied both campuses; the State Board of Elections upheld that plan, by a vote reported as 3-2 along party lines. Student organisers formed a group to raise money to shuttle students, and one organiser called the result a modern-day poll tax on students.",
+      "sources": [
+        {
+          "title": "After losing on-campus voting sites, N.C. A&T and UNCG students march to the polls",
+          "publisher": "WUNC",
+          "url": "https://www.wunc.org/2026-10-16/after-losing-on-campus-voting-sites-nc-a-t-and-uncg-students-march-to-polls",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "North Carolina A&T and UNC Greensboro march to polling locations",
+          "publisher": "TheGrio, 2026-10-16",
+          "url": "https://thegrio.com/2026/10/16/north-carolina-at-unc-greensboro-march-polling-locations/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "North Carolina election board denies voting site at nation’s largest HBCU for second time",
+          "publisher": "Democracy Docket",
+          "url": "https://www.democracydocket.com/news-alerts/north-carolina-election-board-denies-voting-site-at-nations-largest-hbcu-for-second-time/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "HBCU students fight for campus voting sites",
+          "publisher": "Capital B News",
+          "url": "https://capitalbnews.org/hbcu-students-fight-campus-voting-sites/",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "STATED PLAINLY, NOT HEDGED (DR-0100). The removals and the 45-minute walk are reported facts and this page does not soften them into \"some say.\" AND THE TELLING OMITS SOMETHING MATERIAL: the Guilford County elections director said A&T was not selected this year and has never had an early polling site in a MIDTERM since early voting began in North Carolina in 2000 — 2024, the year the reel compares to, was a presidential election. That fact does not make the 45 minutes shorter, and it does not settle whether the decision was right; it does mean the honest sentence is \"a site they had in 2024 was not granted for 2026,\" not \"a site they always had was taken away.\""
+    },
+    {
+      "id": "v-nc-pattern",
+      "status": "documented",
+      "statement": "Within North Carolina the removal of on-campus early voting sites for 2026 is broader than the reel said: reporting names Western Carolina University, UNC Greensboro, Elon University and N.C. A&T, and a county board voted 3-2 to remove N.C. State’s Talley Student Center as an early voting site. College Democratic groups at three North Carolina universities dropped a challenge after a federal court found they lacked standing.",
+      "sources": [
+        {
+          "title": "The State Board removed the early voting site at WCU and three other college campus polling locations — here’s why that matters",
+          "publisher": "WHQR, 2026-01-15",
+          "url": "https://www.whqr.org/local/2026-01-15/the-state-board-removed-early-voting-site-at-wcu-and-three-other-college-campus-polling-locations-heres-why-that-matters",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "NC Board of Elections cuts Sunday early voting hours, eliminates some college polling sites",
+          "publisher": "ABC11",
+          "url": "https://abc11.com/amp/post/nc-board-elections-cuts-sunday-early-voting-hours-eliminates-college-polling-sites/18399404/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "North Carolina College Democrats drop vanishing-poll lawsuit",
+          "publisher": "Bloomberg Government",
+          "url": "https://news.bgov.com/litigation/north-carolina-college-democrats-drop-vanishing-poll-lawsuit",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "Worth saying out loud: on this one the creator UNDERSTATED the case in his own favour’s direction, and a reader who dismissed the whole reel because of the Texas error would have missed a documented pattern. That is the cost of grading a source as a whole instead of claim by claim."
+    },
+    {
+      "id": "v-uta",
+      "status": "disputed",
+      "statement": "Not supported by what was found. The Tarrant County record located concerns 2024, and the push to cut early voting sites on college campuses FAILED: after an initial 2-2 vote in September 2024, the Commissioners Court approved 51 early voting sites by 4-1, and the UT Arlington site was kept. In 2020 the UT Arlington early voting location recorded 9,754 ballots cast. No report of a 2026 removal at UT Arlington was found in this pass.",
+      "sources": [
+        {
+          "title": "Advocates fight to keep early voting locations at college campuses in Tarrant County",
+          "publisher": "CBS News Texas",
+          "url": "https://www.cbsnews.com/texas/news/advocates-fight-to-keep-early-voting-locations-at-college-campuses-in-tarrant-county/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "Tarrant County Commissioners Court votes to keep early voting sites on college campuses",
+          "publisher": "CBS News Texas",
+          "url": "https://www.cbsnews.com/texas/news/tarrant-county-early-voting-commissioners-court/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "GOP bid to remove polling sites from Tarrant County college campuses fails",
+          "publisher": "KSAT, 2024-09-12",
+          "url": "https://www.ksat.com/news/texas/2024/09/12/gop-bid-to-remove-polling-sites-from-tarrant-county-college-campuses-fails/",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "Marked disputed rather than false because absence of a found report is not proof of absence, and a later change could exist that this pass did not reach. What can be said is that the specific thing the reel asserts — that the UT Arlington site was removed and students must now be bused — is contradicted by the clearest record found, in which the removal attempt lost."
+    },
+    {
+      "id": "v-tarrant",
+      "status": "disputed",
+      "statement": "Not supported by the same record. \"Three out of five campus sites lost\" does not match a 2024 outcome in which the campus sites were retained in a 51-site plan. Nothing was found establishing a later loss of three of five.",
+      "sources": [
+        {
+          "title": "Tarrant County Commissioners Court votes to keep early voting sites on college campuses",
+          "publisher": "CBS News Texas",
+          "url": "https://www.cbsnews.com/texas/news/tarrant-county-early-voting-commissioners-court/",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "Same caution as v-uta: not found is not disproved. It is listed at this status so the figure is never repeated from this page as though it were established."
+    },
+    {
+      "id": "v-tn",
+      "status": "disputed",
+      "statement": "Unverified. One pass of searching for Tennessee Wesleyan University and a 2026 polling-site removal returned nothing about that school; every result concerned North Carolina campuses. The specific figures in the claim — 58% people of colour, seven external sites, a neighbouring zip code going from three sites to zero — were not located at all.",
+      "sources": [
+        {
+          "title": "Searched for Tennessee Wesleyan University and a 2026 polling-site removal; nothing about that school was located. The places to look are the county election commission for Athens, Tennessee, and local outlets there.",
+          "publisher": "This house’s own search, recorded as a negative result (DR-0076: a read that failed is recorded as unknown, never as zero)",
+          "url": "",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "This is the entry a reader should copy the method from. The claim is specific, checkable, and simply was not confirmed here. The honest word is \"I do not know,\" and writing that down is a result, not a gap (DR-0076: a read that failed is recorded as unknown and never as zero)."
+    },
+    {
+      "id": "v-liberty",
+      "status": "documented",
+      "statement": "Liberty University does maintain an on-campus Election Day precinct and tells students where it is. Liberty’s own registration pages state that registering with an on-campus address lets a student vote at the Montview Alumni Ballroom, require the Flames Box number in the residence address line, and warn that students registering with an off-campus address must look up their own precinct instead. The same pages carry the 2026 deadline: a Citizen Portal registration after 2026-10-23 will not allow a ballot in the 2026-11-03 general election.",
+      "sources": [
+        {
+          "title": "Register to Vote — on-campus registration and the Montview Alumni Ballroom precinct, with the 2026 deadlines",
+          "publisher": "Liberty University (the institution’s own page)",
+          "url": "https://www.liberty.edu/register-to-vote/",
+          "asOf": "2026-10-22"
+        },
+        {
+          "title": "Voter Registration — Office of the Dean of Students",
+          "publisher": "Liberty University",
+          "url": "https://www.liberty.edu/students/dean/voter-registration/",
+          "asOf": "2026-10-22"
+        }
+      ],
+      "note": "Corroborated from the institution’s own publication, which is the strongest kind of source for a claim about what an institution does. Note what this does and does not show: it establishes that Liberty has a campus precinct and promotes it. It does not by itself establish WHY other campuses lost theirs, which is the inference the reel draws from the pair."
+    }
+  ],
+  "interpretation": [
+    {
+      "id": "i-intentional",
+      "statement": "The pattern of removals is intentional and aimed at voters who are not white and not conservative.",
+      "restsOn": "A comparison between campuses that lost sites and one that kept its own. The comparison is real and the North Carolina losses are documented — but the inference needs every leg of the comparison to hold, and two legs of it (Texas, Tennessee) could not be confirmed here, while a third fact (A&T has not had a midterm early site since 2000) cuts against the simplest reading. Intent also cannot be read off an outcome: a decision can produce an unjust effect without anyone having aimed at it, and it can be aimed at and denied. This page does not decide it either way."
+    },
+    {
+      "id": "i-poll-tax",
+      "statement": "Making students travel to vote is a modern-day poll tax.",
+      "restsOn": "An organiser’s phrase, quoted in reporting. As an argument it rests on treating time and fare as a cost imposed on the ballot. That is a serious claim worth hearing, and the Word has its own version of it (Deuteronomy 19:6, where distance alone defeats a right). As a legal claim it is contested, and calling it a tax is a rhetorical move, not a finding."
+    },
+    {
+      "id": "i-liberty-contrast",
+      "statement": "Liberty keeping its precinct while other campuses lose theirs shows the sorting is by politics.",
+      "restsOn": "Two true facts set side by side. But Virginia, North Carolina, Texas and Tennessee are different states with different boards, different rules and different histories, and a precinct in one state surviving while early voting sites in another are not renewed may have several causes. The contrast is striking; it is not, by itself, a mechanism."
+    },
+    {
+      "id": "i-across-the-country",
+      "statement": "\"Colleges across the country are losing their polling sites.\"",
+      "restsOn": "A documented state-level pattern in North Carolina, generalised to the nation. The North Carolina half is solid. The generalisation is the part a reader should mark as not yet shown here — which is different from shown false."
+    },
+    {
+      "id": "i-us-repeating",
+      "statement": "What it means for us to pass this on.",
+      "restsOn": "Nothing in the reel — this one is about the reader. Once a check has found that two of the specifics do not stand up, repeating them anyway is no longer a mistake; it is a report we know to be unsupported. \"Thou shalt not raise a false report\" (Exodus 23:1) binds the one who passes a thing on, not only the one who starts it, and it does not stop binding because the cause is sympathetic."
+    }
+  ],
+  "perspectives": [
+    {
+      "id": "p-students",
+      "label": "The students and organisers who marched",
+      "heldBy": "N.C. A&T and UNCG students, the organisers who raised shuttle money, and legislators who spoke at the march",
+      "steelman": "A right you cannot reach is not a right you have. A student without a car, between two classes and a shift, is not meaningfully free to vote 45 minutes away, and saying \"the law still permits you\" answers a question nobody asked. The burden does not fall evenly either: it lands hardest where students are poorest and least likely to own a car, which is precisely where these campuses are. If a rule produces that result year after year, a reasonable person may judge the rule by its fruit without having to prove anyone’s motive."
+    },
+    {
+      "id": "p-board",
+      "label": "The county and state boards who made the decision",
+      "heldBy": "The Guilford County Board of Elections and the State Board of Elections, as reported",
+      "steelman": "Early voting sites are allocated on a budget, with staff, equipment and a history of turnout, and no board can grant every request. A&T has not had an early voting site in a midterm since early voting began in 2000; 2024 was a presidential year with far higher turnout. Granting a site in a presidential year and not in a midterm is a consistent practice, not a reversal, and a board that reallocated by expected turnout would produce exactly this pattern with no intent toward anyone. A charge of suppression also has to explain why the same board left other sites in place."
+    },
+    {
+      "id": "p-liberty",
+      "label": "Liberty University and students who vote on its campus",
+      "heldBy": "Liberty University, in its own published guidance to students",
+      "steelman": "A university telling its students how and where to register and vote is a straightforwardly good thing, and nothing in Liberty’s pages asks for anyone else to lose a site. Being named in someone else’s comparison is not a wrong committed. If the complaint is that students should be able to vote where they live, Liberty is doing the thing the complaint asks for, and the right response to a campus that keeps its precinct is not to resent it but to ask for the same."
+    },
+    {
+      "id": "p-skeptic",
+      "label": "The reader who checked and found two claims failing",
+      "heldBy": "Anyone who ran the same searches this page ran",
+      "steelman": "When a ninety-second video gets Texas wrong and cannot support Tennessee, the honest response is to trust its other numbers less, not more. That is not cynicism; it is what checking is for. A creator with a sponsorship and a thesis has a reason to stack examples, and a reader who noticed the weakest ones is doing the work the creator asked him to do — he told the audience to go and read the full story rather than a piece of it."
+    },
+    {
+      "id": "p-word",
+      "label": "The reader who wants to know what the Word says before taking a side",
+      "heldBy": "This house",
+      "steelman": "Both of the loudest answers skip a step. One says the distance proves the motive; the other says the absence of proven motive makes the distance fine. Scripture does neither: it declines to read a heart it has not been shown (1 Samuel 16:7), and it also treats an unreachable remedy as a real injustice in its own right, whoever meant what (Deuteronomy 19:6). Holding both is not fence-sitting — it is the only position that can still be held when the facts come back mixed, as here they did."
+    }
+  ],
+  "lens": {
+    "fourD": {
+      "deepSource": "THE WAY WAS 45 MINUTES LONG — AND SCRIPTURE HAS A RULING ON THE LENGTH OF A ROAD.\n\nWHERE THIS CAME FROM. Darrell sent an Instagram reel into the app’s research road with one word on it: \"Lesson.\" The NAS pulled its audio and a local Whisper model wrote the words on our own machine; the row records that the follow-on reading never completed, so the transcript is the whole of the research. The reel carries a paid sponsorship, which is named as advertising and used for nothing. The creator’s claims are reported as his, never as this house’s findings.\n\nWHAT THE CHECKING FOUND, BEFORE ANY TEACHING. Six factual claims were taken one at a time. Three came back documented, including the one at the centre: N.C. A&T and UNC Greensboro did lose on-campus early voting sites they had used in 2024, and on the first morning of early voting more than a hundred students walked — A&T students about 45 minutes, to Union Square. The reel’s own figure held up under independent reporting. Two came back unsupported: the clearest Tarrant County record found is from 2024, and in it the attempt to cut campus sites FAILED, the court voting 4-1 to approve 51 sites with UT Arlington kept. One came back with nothing found at all: Tennessee Wesleyan. And one fact the reel leaves out cuts against its simplest reading — the Guilford County elections director said A&T has never had an early polling site in a MIDTERM since early voting began in 2000, and 2024 was a presidential year.\n\nSo the honest result is mixed, and the mixture is the first lesson. A source can be exact about one thing and wrong about another. Grading a video as a single object — trustworthy or not — gets you the wrong answer twice: you either swallow the Texas error or you throw away a documented North Carolina pattern that is in fact WIDER than the reel described, since reporting also names Western Carolina, Elon and a vote to remove N.C. State’s Talley Student Center. Week one of this course teaches that patience at length from \"He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him\" (Proverbs 18:17), and the week on the mail-in ruling works the just-measure ground. Neither is repeated here. What is new is the question underneath the part that turned out to be TRUE.\n\nTHE WORD FIRST: YAHWEH MEASURED THE ROADS. The question is not new and it is not American. When Yahweh set up the cities of refuge — the places a man who had caused a death without intending it could run to, and stand trial instead of being cut down on the road — He did not only establish the right. He legislated the DISTANCE.\n\n\"Thou shalt separate three cities for thee in the midst of thy land\" (Deuteronomy 19:2). Then the command that ought to stop a reader cold: \"Thou shalt prepare thee a way, and divide the coasts of thy land, which the LORD thy God giveth thee to inherit, into three parts, that every slayer may flee thither\" (Deuteronomy 19:3). Prepare a way. Divide the land into three parts, so that no one is too far from one. The refuge was not placed where it was convenient to place it; it was placed where it could be REACHED, and the roads to it were to be made passable on purpose.\n\nAnd then Yahweh gives the reason out loud, which is the sentence this whole lesson turns on: \"Lest the avenger of the blood pursue the slayer, while his heart is hot, and overtake him, because the way is long, and slay him; whereas he was not worthy of death\" (Deuteronomy 19:6).\n\nBECAUSE THE WAY IS LONG. Read what that verse assumes. The right exists. The law is already on the man’s side — he \"was not worthy of death.\" Nobody has repealed anything. And Yahweh says that if the road is too long, the right will not save him, because the distance will finish the matter before the justice can. The length of the road is treated as part of the injustice, not as an unfortunate circumstance around it. A remedy out of reach is counted, by Yahweh Himself, as a remedy denied.\n\nThat is the principle under the documented half of this reel, and it is worth seeing how exactly it fits. Nobody in this account told a student he may not vote. The right was not repealed. The place moved. And the honest reading of Deuteronomy 19:6 is that \"you may still vote, it is only 45 minutes away\" is precisely the answer the verse refuses to accept in the matter it governs. The one who set the standard did not say \"the law permits him to flee.\" He said make the road short enough that fleeing works.\n\nThe rest of the refuge law carries the same care. \"Then ye shall appoint you cities to be cities of refuge for you; that the slayer may flee thither\" (Numbers 35:11) — appointed, named in advance, not improvised when someone came running. The purpose is stated as access to a hearing: \"that the manslayer die not, until he stand before the congregation in judgment\" (Numbers 35:12). And when he arrives he is received: he \"shall stand at the entering of the gate of the city, and shall declare his cause in the ears of the elders of that city\" (Joshua 20:4). The gate is open, the elders are present, and his cause gets heard. Every part of the design is about a right that actually functions for the person who needs it.\n\nPREPARE THE WAY, AND TAKE UP THE STUMBLINGBLOCK. The command to clear a road is not confined to Deuteronomy. Isaiah says it twice as a charge: \"Cast ye up, cast ye up, prepare the way, take up the stumblingblock out of the way of my people\" (Isaiah 57:14). And again: \"prepare ye the way of the people; cast up, cast up the highway; gather out the stones\" (Isaiah 62:10). Notice the direction of the duty. It is not addressed to the people who are struggling down the road, telling them to walk harder. It is addressed to whoever has charge of the road, telling them to GATHER OUT THE STONES. In Scripture, the one with the power over the path carries the duty to clear it.\n\nThe same logic appears as a flat prohibition in the law of neighbour-love: \"Thou shalt not curse the deaf, nor put a stumblingblock before the blind, but shalt fear thy God\" (Leviticus 19:14). The offence there is not a lie or a theft. It is placing an obstacle where someone cannot see it coming — an act whose whole character is that it exploits a disadvantage the other person did not choose. And Proverbs puts the positive duty in one line that applies to anyone holding an allocation in their hands: \"Withhold not good from them to whom it is due, when it is in the power of thine hand to do it\" (Proverbs 3:27). DUE is the operative word. Where a thing is owed and the power to give it is in your hand, withholding is not neutrality.\n\nThis is also why the standard cannot be partisan without ceasing to be the standard. Deuteronomy 19 does not say prepare the way for the people who agree with you. It says divide the land in three so EVERY slayer may flee thither. A rule about reachable remedies that only applies when the people inconvenienced are on your side is not that rule at all; it is a preference wearing its clothes. The Word’s version falls on any hand that lengthens the way to a right, and that is what makes it usable by someone who has not yet decided which party he agrees with.\n\nTHE OTHER EDGE, AND IT CUTS TOWARD US. Having said the documented part plainly, there is a second command here, and it lands on the reader rather than on any board: \"Thou shalt not raise a false report: put not thine hand with the wicked to be an unrighteous witness\" (Exodus 23:1). Before the check, repeating the Texas claim would have been an honest mistake. After it, repeating it is passing on a report we have reason to believe does not stand. The verse binds whoever carries a thing along, not only whoever started it, and it does not relax because the cause is sympathetic or because the other examples held. That is a harder discipline than either side of this argument usually asks for: say the true part without softening it, AND drop the parts that failed, even though dropping them weakens a case you may agree with.\n\nWHAT THIS LESSON DOES NOT DECIDE. It does not rule on motive. The reel’s conclusion — that none of this is by accident — is a claim about what was intended, and intent is the one thing none of the checking could reach. \"man looketh on the outward appearance, but the LORD looketh on the heart\" (1 Samuel 16:7) is not a soft sentence; it is a statement about who is qualified to issue that verdict, and it is not us. A board that reallocated by expected turnout would produce this same pattern with no intent toward anyone, and a board that did intend it would deny it. Both remain possible after everything above, which is why this page stops where its evidence stops.\n\nTHE TWO COURTS. That limit is not an escape, for anyone. Judgment in this life is real but partial — boards are reviewed, courts rule, some wrongs are corrected and some are not, and a challenge in North Carolina was dropped for lack of standing rather than settled on its merits. The second court is neither partial nor avoidable: \"For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil\" (Ecclesiastes 12:14), and \"as it is appointed unto men once to die, but after this the judgment\" (Hebrews 9:27). Every secret thing includes the reasoning inside a decision that was never written down. It also includes the motive of the person who repeated a claim he knew was shaky because it helped his side. Both are evidence in the same court.\n\nWHAT TO DO WITH IT. The Word’s instruction in this matter is unusually practical, because it is about roads. Where the way to something owed is long, shorten it — that is Deuteronomy 19:3 and Isaiah 57:14 in plain terms, and it is work anyone can do at the scale they actually have: a ride given, a form explained, a deadline passed on in time, a road cleared for one person who could not otherwise reach the thing that was already theirs. The students who raised money to shuttle one another were, whatever anyone concludes about the board, doing exactly what Isaiah 57:14 commands. And \"To do justice and judgment is more acceptable to the LORD than sacrifice\" (Proverbs 21:3) — which puts the cleared road above the argument about the road, every time.",
+      "scripture": "Deuteronomy 19:2-6 (the cities of refuge and the measured roads: \"because the way is long\"); Numbers 35:11-12; Joshua 20:4; Isaiah 57:14 and Isaiah 62:10 (prepare the way, gather out the stones); Leviticus 19:14; Proverbs 3:27; Exodus 23:1; 1 Samuel 16:7; Ecclesiastes 12:14; Hebrews 9:27; Proverbs 21:3"
+    },
+    "threeD": "In the ordinary, 3rd-dimensional register this is an allocation story: a county board has a budget, a list of sites, turnout history and staff, and it draws a map. On that level the arguments are the usual ones — cost against access, precedent against need, whose turnout justifies whose site. Everything in that register is real, and the reel is operating almost entirely inside it: counting campuses, comparing one that kept its precinct against others that did not, and inferring a motive from the pattern. The register has a ceiling, though, and this subject hits it. Inside the 3D argument there is no way to settle whether a long road is an injustice or merely an inconvenience, because that depends on a standard the budget does not contain. Both sides end up asserting it: one side says distance is a burden that counts, the other says the right is intact so the distance does not. The argument cannot be finished with more numbers. It needs a ruling from outside, which is what the next section supplies — and which was issued, in writing, about the roads to the cities of refuge, several thousand years before anyone drew a precinct map.",
+    "accountability": {
+      "statement": "WHAT THE WORD REQUIRES, AND OF WHOM. Where a decision has in fact put a remedy out of reach, Scripture does not ask for a statement of regret; it asks for the road to be shortened, by the hand that has the power over it: \"take up the stumblingblock out of the way of my people\" (Isaiah 57:14), and \"Withhold not good from them to whom it is due, when it is in the power of thine hand to do it\" (Proverbs 3:27). The duty attaches to whoever holds the allocation — which in this case means a board, not a student, because the Isaiah charge is addressed to the one with charge of the road and not to the people walking it. AND OF US: the same page that says the documented part plainly is bound by \"Thou shalt not raise a false report\" (Exodus 23:1) on the parts that did not stand up, so the Texas and Tennessee claims are not repeated from here as though they were established, and anyone carrying this teaching further carries that restraint with it. No person’s heart is judged here (1 Samuel 16:7). Judgment of DEEDS in this life is real but partial, and every reasoning never written down is still evidence in the court of Ecclesiastes 12:14.",
+      "scripture": "Isaiah 57:14; Proverbs 3:27; Exodus 23:1; Ecclesiastes 12:14; Hebrews 9:27"
+    },
+    "benefits": [
+      "A method you can actually run: six claims from one ninety-second video, taken one at a time, with the result written down for each — three documented, two unsupported, one not found at all — so a reader sees what checking looks like instead of being told to do it.",
+      "The documented part said plainly and not hedged (DR-0100): N.C. A&T and UNC Greensboro lost on-campus early voting sites they had in 2024, and students walked about 45 minutes to the nearest early site. The reel’s own figure held up under independent reporting, and this page does not soften it into \"some say.\"",
+      "The two claims that failed, named as plainly as the ones that held — because a page that only corrects sources it disagrees with is not checking anything.",
+      "The omitted fact restored: A&T has never had an early polling site in a midterm since 2000, and 2024 was a presidential year. It does not make the walk shorter; it does change the honest sentence from \"a site they always had was taken\" to \"a site they had in 2024 was not granted for 2026.\"",
+      "Deuteronomy 19 read as what it is — a law about DISTANCE. Yahweh divided the land in three and commanded \"prepare thee a way\" so the refuge could be reached, and gave the reason out loud: \"because the way is long.\" A remedy out of reach is counted by Him as a remedy denied.",
+      "The duty put where Scripture puts it: Isaiah 57:14 addresses the one with charge of the road, not the people walking it — \"take up the stumblingblock out of the way of my people\" — which is why \"they can still drive there\" is not an answer the Word accepts in the matter it governs.",
+      "An impartial standard that stays impartial: Deuteronomy 19:3 says every slayer may flee thither, so a rule about reachable remedies that only applies when the inconvenienced party is on your side is not that rule at all. Usable by a reader who has not decided which party he agrees with.",
+      "Both courts kept in view. Judgment here is real but partial — a North Carolina challenge was dropped for lack of standing rather than settled — while \"God shall bring every work into judgment, with every secret thing\" (Ecclesiastes 12:14) and \"after this the judgment\" (Hebrews 9:27) take in the reasoning never written down AND the motive of anyone who repeated a shaky claim because it helped his side."
+    ],
+    "graceNote": "A word for the reader this subject can crush. If you have ever been the one for whom the way was long — the clinic across two bus transfers, the office that closes before your shift ends, the form that needed a notary you could not reach — then Deuteronomy 19:6 may be the first time you have seen that counted as a real wrong rather than your own failure to try harder. It is counted. Yahweh wrote the distance into the law because He knew the road would decide the matter, and He did not blame the man running. Hold that alongside the other half: the reel that moved you got two of its examples wrong, and that is going to be true of a great deal of what is handed to you by people who are angry on your behalf. Both can be so. Your experience is not invalidated when someone describing it overstates it, and the right response is not to stop caring but to stop needing the exaggerated version — the documented version was already enough.",
+    "stewardship": "STEWARDSHIP, AT THE SCALE YOU ACTUALLY HAVE. Isaiah 57:14 is a command about road maintenance, which makes it one of the more practical things in Scripture. Nobody reading this allocates polling places. Almost everybody reading this is, for somebody, the person with charge of a road. The deadline you know and they do not. The ride you could give. The form you understand. The appointment you could make while they are at work. The student organisers who raised money to shuttle one another did a small, plain, unglamorous thing that matches the verse exactly, whatever anyone concludes about the board that made it necessary. The household version is to pick one person for whom some road is long, and shorten it this week — not campaign about it, shorten it. And the second half of stewardship here is over your own mouth: keep the parts that checked out, drop the parts that did not, and notice that dropping them costs you something and do it anyway. \"To do justice and judgment is more acceptable to the LORD than sacrifice\" (Proverbs 21:3) covers both halves — the road cleared, and the report kept straight.\n\nTALK ABOUT IT TOGETHER. Parents, ask your children to take one forwarded clip apart into its separate claims with you, and teach them Deuteronomy 19:6 while you look two of them up. Children, ask your parents which right they have on paper that is hardest to actually use, and listen to the whole answer before offering a fix. And talk with a friend about one claim you each believe on a video’s word alone, then check each other’s this week and pray together about whichever one turns out to be shaky.",
+    "anchor": {
+      "ref": "Deuteronomy 19:3; Isaiah 57:14",
+      "theme": "Yahweh established the cities of refuge and then legislated the ROADS to them — \"Thou shalt prepare thee a way\" (Deuteronomy 19:3), with the reason said out loud: \"because the way is long\" (Deuteronomy 19:6). A right that cannot be reached is treated as a right denied, and the duty to clear the path falls on whoever has charge of it: \"take up the stumblingblock out of the way of my people\" (Isaiah 57:14)."
+    }
+  },
+  "reflection": {
+    "skill": "The move to keep: take a video apart into its separate statements before judging any of them. Six claims, six separate answers — and the answers here did not agree with each other. Then, once sorted, ask the question the sorting does not answer: what does the Word say about the part that turned out to be true? Those are two different operations and most arguments collapse them, which is why most arguments about a video end with both people more certain and neither better informed.",
+    "practice": "Take the next forwarded clip that makes you feel something and write its claims in a list before you reply to anyone about it. Put one of three words beside each: checked, failed, unknown. Then pass on only the checked ones — and notice what it costs you to drop a failed claim that pointed the way you already lean. That cost is the whole exercise.",
+    "prompts": [
+      "Six claims, three documented, two unsupported, one not found. Does that make the reel reliable or unreliable — and is that even the right question to be asking of it?",
+      "Deuteronomy 19:6 says the right would fail \"because the way is long.\" Where in your own life has a right you genuinely had been defeated by distance, cost or hours rather than by anyone denying it?",
+      "Isaiah 57:14 addresses whoever has charge of the road. For whom are you that person this week, and which road is it?",
+      "The reel got Texas wrong. Does that change anything about the 45 minutes in Greensboro? Say why or why not, in one sentence.",
+      "A&T had a site in 2024 and not in 2026, and 2024 was a presidential year. How does that fact change the sentence you would use to describe what happened — and does it change what should be done about it?",
+      "Exodus 23:1 binds the one who passes a report on. What is the last thing you forwarded without checking, and would it survive the three words: checked, failed, unknown?",
+      "Deuteronomy 19:3 says the way was prepared so EVERY slayer might flee. What does an impartial version of this standard cost the side you agree with?",
+      "The verdict on motive is left to Yahweh here (1 Samuel 16:7). Is that a cop-out or a limit — and what would it take to change your answer?"
+    ]
+  },
+  "levels": {
+    "child": "THE ROAD THAT WAS TOO LONG.\n\nHere is something Yahweh did a very long time ago, and it is about roads.\n\nBack then, if someone caused a terrible accident — they did not mean to hurt anybody, but somebody got hurt — the family of the hurt person might come after them while they were still angry. So Yahweh made special safe cities. If you could get to a safe city, you were allowed to stand at the gate and tell the leaders what really happened, and they had to listen to you. You were safe while they worked it out.\n\nNow here is the part that is easy to miss, and it is the whole point. Yahweh did not only say \"there will be safe cities.\" He also said something about HOW FAR AWAY they could be.\n\nThe Word says: \"Thou shalt prepare thee a way\" (Deuteronomy 19:3). Prepare a way means: build a good road, and make sure it goes there. Yahweh told them to split the land into three parts so that a safe city was never too far from anybody.\n\nAnd He said exactly why. If the road were too long, the person would never make it in time — \"because the way is long\" (Deuteronomy 19:6).\n\nThink about what that means. The rule already said the person was allowed to be safe. Nobody took that rule away. But if the road is too long, being allowed does not help you one bit. You cannot get there. So Yahweh counted a road that was too long as a real problem, not a small one.\n\nThat is a big idea and you can use it your whole life: IT IS NOT ENOUGH FOR SOMETHING GOOD TO EXIST. People have to be able to REACH it.\n\nYahweh says this another way too. He tells the people in charge of the road: \"take up the stumblingblock out of the way of my people\" (Isaiah 57:14). A stumblingblock is something left in the path that makes people trip. And notice who He is talking to. He is not telling the people walking to walk better. He is telling the people who look after the road to go and move the rock. If you are the one who can move the rock, moving it is your job.\n\nThere is one more rule in this story, and it is for us when we talk about it. Grown-ups sent a video to this house saying some people had to walk a very long way to do something important. Some of the things in the video turned out to be true when we looked them up. Some of them did not. So here is the rule: \"Thou shalt not raise a false report\" (Exodus 23:1). That means do not pass a story along until you have checked it. Not even if you really like the story. Checking first is how you keep from telling people something that is not so.\n\nSo two things to carry: move the rock if you can move it, and check the story before you tell it.\n\nSOMETHING TO DO TODAY. Think of one person who has a hard time reaching something. Maybe somebody small who cannot reach the cups. Maybe somebody slow who gets left behind when everyone walks fast. Maybe somebody new who does not know where anything is. Go and make the way shorter for that one person today — hand them the cup, slow down and walk with them, show them where the thing is. That is Isaiah 57:14 done with your own hands, and it counts.\n\nYahweh builds short roads to safe places, and He never gets tired of being come to.\n\nTALK ABOUT IT TOGETHER. Parents, ask your children to find one thing in the house that somebody small cannot reach, and teach them Deuteronomy 19:3 while you fix it together. Children, ask your parents about a time something was too far away for them to get to, and listen all the way to the end. And tell a friend the rule about checking a story first, and ask each other what you both believe that nobody has looked up yet.",
+    "youth": "SIX CLAIMS, THREE DIFFERENT ANSWERS.\n\nA creator posted a ninety-second video arguing that colleges are losing their on-campus voting sites, and that the pattern is aimed at students who are not white and not conservative. Darrell sent it into this app with one word on it: \"Lesson.\" The app pulled the audio onto our own machine and a local program wrote out the words. The video also carries a paid advertisement, which we name and use for nothing.\n\nHere is the thing worth learning, and it has almost nothing to do with politics. The video makes about six separate factual claims. We looked them up one at a time. They did not all come back the same.\n\nTRUE, AND CHECKED. North Carolina A&T and UNC Greensboro really did lose on-campus early voting sites they had used in 2024. On the first morning of early voting, more than a hundred students walked to vote together, and the walk from A&T took about 45 minutes. The creator said 45 minutes to an hour. Independent news reporting says about 45 minutes. He was right, and this page is not going to mumble about it. The pattern in that state is actually BIGGER than he said — reporting also names Western Carolina, Elon, and a vote to remove the early voting site at N.C. State’s student centre.\n\nNOT SUPPORTED. He said UT Arlington in Texas had its voting site removed and the university now has to bus students. The clearest record we could find is from 2024, and in it the attempt to cut campus voting sites FAILED — the county commissioners voted 4-1 to approve 51 sites and kept the UT Arlington one. We found no report of a 2026 removal there.\n\nNOT FOUND AT ALL. He gave detailed figures about Tennessee Wesleyan University. We searched and found nothing about that school at all. Not false — just not confirmed. \"I do not know\" is a real answer and we wrote it down as one.\n\nAND ONE THING HE LEFT OUT. The county elections director said A&T has never had an early voting site in a MIDTERM election since early voting started in 2000 — and 2024, the year he compares to, was a presidential year. That does not make the 45-minute walk any shorter. It does change the accurate sentence from \"a site they always had was taken away\" to \"a site they had in 2024 was not granted this year.\"\n\nSo: partly right, partly wrong, partly unknown. That is normal, and handling it is the thing to learn. If you grade the video as one lump — trustworthy or garbage — you get it wrong twice. Swallow it whole and you repeat the Texas error. Throw it out whole and you throw away a documented pattern that is real.\n\nNOW THE WORD, ON THE PART THAT IS TRUE. This is where it gets good, because Scripture has already ruled on the length of a road.\n\nYahweh set up cities of refuge — safe cities where a person who caused a death by accident could run and get a fair hearing instead of being cut down on the way. And He did not stop at creating the right. He legislated the distance: \"Thou shalt prepare thee a way, and divide the coasts of thy land, which the LORD thy God giveth thee to inherit, into three parts, that every slayer may flee thither\" (Deuteronomy 19:3). Split the land in three so nobody is too far from one. Build the road.\n\nThen He gives the reason out loud, and this is the sentence to memorise: \"Lest the avenger of the blood pursue the slayer, while his heart is hot, and overtake him, because the way is long\" (Deuteronomy 19:6).\n\nRead what that assumes. The right already exists. The law is already on the man’s side. Nobody repealed anything. And Yahweh says that if the road is too long, the right will not save him — the distance will finish the matter before the justice can. **He counts the length of the road as part of the injustice.** A remedy you cannot reach is treated by Yahweh as a remedy denied.\n\nWhich means \"you can still vote, it is only 45 minutes away\" is exactly the kind of answer Deuteronomy 19:6 refuses to accept in the matter it governs. The One who set the standard did not say \"the law permits him to flee.\" He said make the road short enough that fleeing actually works.\n\nAnd He says who has the job: \"take up the stumblingblock out of the way of my people\" (Isaiah 57:14). That is addressed to whoever has charge of the road — not to the people walking it, telling them to walk harder. Proverbs puts the same duty positively: \"Withhold not good from them to whom it is due, when it is in the power of thine hand to do it\" (Proverbs 3:27).\n\nONE MORE EDGE, AND IT POINTS AT US. \"Thou shalt not raise a false report\" (Exodus 23:1). Before we checked, repeating the Texas claim would have been an honest mistake. After checking, repeating it is passing on something we have reason to think is not so. That verse binds whoever carries a story along, not just whoever started it, and it does not go quiet because you happen to like where the story points.\n\nAlso notice what this lesson does NOT do. It does not decide whether anyone meant to do harm. \"man looketh on the outward appearance, but the LORD looketh on the heart\" (1 Samuel 16:7) is not a soft sentence — it is about who is qualified to make that call, and it is not us. A board allocating by expected turnout would produce this same pattern with nobody aiming at anyone. We stop where our evidence stops.\n\nTALK ABOUT IT TOGETHER. Parents, ask your children to take one forwarded clip apart into its separate claims with you, and teach them Exodus 23:1 while you look two of them up. Children, ask your parents about a right they had on paper that was hard to actually use, and listen to the whole story before you answer. And talk with a friend about one claim you each believe because a video said so, then check each other’s this week.",
+    "teen": "A RIGHT YOU CANNOT REACH, AND THE LAW THAT MEASURED ROADS.\n\nPROVENANCE, FIRST. An Instagram reel by a creator who posts under @montemader came into this app through its research road, sent by Darrell with one word above it: \"Lesson.\" The NAS downloaded the audio, a Whisper model running locally on our own processor wrote the words, and the row itself records that the follow-on reading step never finished — so the raw transcript is the whole of the research and nothing was polished by a second pass. The reel carries a paid sponsorship with a discount code. That is advertising; it is named, nothing in it is used, and this house takes no position on the product. Everything the creator says is reported as his claim, never as a finding of ours.\n\nTHE DISCIPLINE THIS WEEK TEACHES. Not \"is this creator trustworthy.\" That question has no useful answer. The discipline is to break the video into its separate factual statements and check them INDIVIDUALLY, because the results will not agree with each other — and a source that is exact about one thing can be wrong about the next. Week one of this course builds that patience from \"He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him\" (Proverbs 18:17); the week on the mail-in ruling works the just-measure ground. Neither is repeated here. This week adds the half those weeks do not reach: once you have sorted the claims, Scripture has a specific ruling on the part that survives.\n\nWHAT SIX CHECKS RETURNED.\n\nDocumented. North Carolina A&T and UNC Greensboro lost on-campus early voting sites they had used in 2024. On the first day of early voting more than a hundred students marched to the polls, and A&T students took about 45 minutes to reach Union Square, the nearest early site. The Guilford County Board of Elections denied both campuses and the State Board of Elections upheld the plan, in a vote reported as 3-2 along party lines. Students formed a group to raise shuttle money; an organiser called it a modern-day poll tax on students. The creator said \"45 minutes to an hour.\" The reporting says about 45 minutes. He was right, and nothing here hedges it.\n\nDocumented, and wider than he said. Within North Carolina the 2026 removals also touch Western Carolina University and Elon University, and a county board voted 3-2 to drop N.C. State’s Talley Student Center as an early voting site. A legal challenge by College Democratic groups at three universities was dropped after a federal court found they lacked standing — dropped for standing, note, not decided on the merits.\n\nNot supported. He states that UT Arlington, a 32% Hispanic university, had its polling site removed and must now bus students. The clearest Tarrant County record found is from 2024, and in it the effort to cut college sites FAILED: after an initial 2-2 vote in September 2024, the Commissioners Court approved 51 early voting sites by 4-1 and the UT Arlington site was kept. For scale, that site recorded 9,754 ballots in 2020. No 2026 removal there was found.\n\nNot supported. \"Tarrant County has lost three out of five of its polling sites on its university campuses\" does not match that outcome either.\n\nNot found. Detailed figures about Tennessee Wesleyan — 58% people of colour, a zip code struck from seven external sites, a neighbouring zip going from three sites to zero — returned nothing in one pass. That is recorded as unknown, which is not the same as denied. A reader with a local source knows more than this page.\n\nDocumented, from the institution itself. Liberty University does keep an on-campus Election Day precinct and tells students exactly where it is. Liberty’s own registration pages state that registering with an on-campus address lets a student vote at the Montview Alumni Ballroom, require the Flames Box number on the residence line, and warn that an off-campus registration means looking up your own precinct. The same pages carry this year’s deadline. An institution’s own publication is the strongest source there is for what that institution does — and note carefully what it does NOT establish: that Liberty has a precinct does not by itself explain why other campuses lost theirs, which is the inference the reel draws from the pair.\n\nOmitted. The Guilford County elections director said A&T was not selected this year and has never had an early polling site in a MIDTERM since early voting began in North Carolina in 2000. 2024 was a presidential year. That fact does not shorten the walk and does not settle whether the decision was right, but it changes the accurate sentence from \"a site they always had was taken away\" to \"a site they had in 2024 was not granted for 2026.\" A lesson that left it out would be doing the same thing it is criticising.\n\nSo the result is genuinely mixed. Hold that, because the temptation runs both ways and both ways are errors. Swallow the reel whole and you carry the Texas claim into a conversation where someone will check it. Discard it whole and you have thrown away a documented removal pattern in an entire state, which is worse.\n\nNOW THE WORD, ON THE PART THAT HELD. Scripture ruled on the length of a road about three thousand years before anyone drew a precinct map.\n\nThe cities of refuge existed so that a person who caused a death without intending it could run somewhere and stand trial rather than be killed on the road by a relative while the grief was still hot. Yahweh established that right — and then He legislated the distance. \"Thou shalt separate three cities for thee in the midst of thy land\" (Deuteronomy 19:2); \"Thou shalt prepare thee a way, and divide the coasts of thy land, which the LORD thy God giveth thee to inherit, into three parts, that every slayer may flee thither\" (Deuteronomy 19:3). Divide the land in three so no one is too far from a refuge, and build the road.\n\nThen the reason, stated out loud: \"Lest the avenger of the blood pursue the slayer, while his heart is hot, and overtake him, because the way is long, and slay him; whereas he was not worthy of death\" (Deuteronomy 19:6).\n\nLook hard at the logic. The right exists. The law is already on the man’s side — the text says plainly he \"was not worthy of death.\" Nothing has been repealed. And Yahweh says that if the road is too long the right will not save him, because the distance will settle the matter before the justice can. The length of the road is treated as part of the wrong, not as weather around it. A remedy out of reach is, by Yahweh’s own reckoning, a remedy denied.\n\nEverything else in the refuge law carries the same care about access. The cities are appointed in advance — \"ye shall appoint you cities to be cities of refuge for you\" (Numbers 35:11), named before anyone needs them rather than improvised when someone comes running. The stated purpose is a hearing: \"that the manslayer die not, until he stand before the congregation in judgment\" (Numbers 35:12). And on arrival he is actually received — he \"shall stand at the entering of the gate of the city, and shall declare his cause in the ears of the elders of that city\" (Joshua 20:4). Gate open, elders present, cause heard. The design is a right that functions for the person who needs it, not one that merely exists.\n\nWHOSE JOB THE ROAD IS. Isaiah gives the charge twice, and the addressee is the point: \"Cast ye up, cast ye up, prepare the way, take up the stumblingblock out of the way of my people\" (Isaiah 57:14), and \"prepare ye the way of the people; cast up, cast up the highway; gather out the stones\" (Isaiah 62:10). Neither is addressed to the people struggling along the road, telling them to walk harder. Both are addressed to whoever has charge of the road, telling them to GATHER OUT THE STONES. The same principle appears as a flat prohibition in the law of neighbour-love: \"Thou shalt not curse the deaf, nor put a stumblingblock before the blind, but shalt fear thy God\" (Leviticus 19:14) — the offence being an obstacle placed where the other person cannot see it coming, which is to say an act whose whole character is exploiting a disadvantage they did not choose. And Proverbs states the positive duty for anyone holding an allocation: \"Withhold not good from them to whom it is due, when it is in the power of thine hand to do it\" (Proverbs 3:27). DUE is the load-bearing word.\n\nWHY THIS STANDARD CANNOT BE PARTISAN. Deuteronomy 19:3 does not say prepare the way for the people who vote as you do. It says divide the land in three so EVERY slayer may flee thither. A rule about reachable remedies that only activates when the inconvenienced party is on your side is not that rule — it is a preference in its costume. The Word’s version falls on any hand that lengthens the way to something owed, which is exactly what makes it usable by a reader who has not decided which party he agrees with, and uncomfortable for everyone.\n\nTHE EDGE THAT CUTS TOWARD US. \"Thou shalt not raise a false report: put not thine hand with the wicked to be an unrighteous witness\" (Exodus 23:1). Before the checking, repeating the Texas claim would have been an honest mistake. After it, repeating it is knowingly passing on a report that does not stand. The verse binds the carrier, not only the originator, and it does not relax because the cause is sympathetic or because the other examples held up. This is the harder half of the discipline: say the documented part without softening it, AND drop the failed parts even though dropping them weakens a case you may agree with.\n\nWHAT IS LEFT UNDECIDED, ON PURPOSE. The reel’s conclusion — \"none of this is by accident\" — is a claim about intent, and intent is the single thing none of the checking could reach. \"man looketh on the outward appearance, but the LORD looketh on the heart\" (1 Samuel 16:7) is not sentiment; it is a statement about jurisdiction. A board reallocating by expected turnout produces this pattern with no aim at anyone; a board that did aim at it would deny it. Both remain live after every check above, so this page stops where its evidence stops — and that restraint is not the same as saying the distance does not matter, because Deuteronomy 19:6 already said it does.\n\nBOTH COURTS. The limit is nobody’s escape. Judgment here is real but partial — boards get reviewed, courts rule, and a challenge was dropped for standing rather than settled. The other court is neither partial nor optional: \"For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil\" (Ecclesiastes 12:14), and \"as it is appointed unto men once to die, but after this the judgment\" (Hebrews 9:27). Every secret thing takes in the reasoning inside a decision nobody wrote down — and also the motive of a person who repeated a shaky claim because it helped his side. Same court, same docket.\n\nTALK ABOUT IT TOGETHER. Parents, ask your children to sort a forwarded video into separate claims and mark each one checked, failed or unknown, and teach them Deuteronomy 19:6 while you do it. Children, ask your parents which right they have on paper that is hardest to actually use, and listen to the whole answer before you offer a fix. Friend to friend, trade one claim each that you believe on a video’s word alone, check each other’s this week, and pray together about the one that turns out to be shaky.",
+    "senior": "YOU HAVE WALKED A LONG ROAD FOR SOMETHING THAT WAS ALREADY YOURS.\n\nA short video came into this house this week, sent in for a lesson. In it a creator argues that colleges are losing the polling places that used to sit on their own campuses, and that the pattern is aimed at particular students. We pulled its words onto our own machine, and then we did the thing this course exists to do: we took its claims apart and looked them up one by one. The video also carries a paid advertisement, which we name and use for nothing.\n\nThe honest result was mixed, and the mixture is worth your time. Some of it checked out exactly. North Carolina A&T and UNC Greensboro did lose early voting sites they had in 2024, and on the first morning of early voting more than a hundred students walked together to vote — about forty-five minutes from the A&T campus. The creator said forty-five minutes to an hour; the reporting says about forty-five. He had it right.\n\nOther parts did not hold. He said a Texas university lost its site and now buses students. The clearest record we found is from two years ago, and in it the attempt to remove campus sites failed — the county voted to keep fifty-one sites, including that one. A third claim, about a university in Tennessee, we could not find anything about at all. And one fact was missing from the telling: the county elections official said that campus has never had an early voting site in a midterm year since early voting began in 2000, and the year he compares to was a presidential year.\n\nSo: partly right, partly wrong, partly unknown. If you have lived long enough you already know that is what most advocacy looks like, from every direction, and that the person who is right about the thing that happened to you may be careless about the thing that happened to somebody else.\n\nNOW THE PART THIS LESSON IS REALLY FOR. Because there is a decent chance you do not need to be persuaded that a long road can defeat a right. You may have lived it.\n\nThe clinic that moved across town after the bus route changed. The office that closed at four when your shift ended at five. The form that needed a notary, and the notary was downtown, and downtown meant a whole day and a ride you had to ask somebody for. The appointment you lost because the only slot was Tuesday morning. Nobody ever told you that you were not entitled. The entitlement was never the problem. The distance was.\n\nAnd if anyone ever suggested that this was your own failure of effort — that you should have tried harder, planned better, gone earlier — then hear what Yahweh put in His own law, in writing, about the length of a road.\n\nHe set up cities of refuge: places a man who had caused a death by accident could run to and get a hearing, instead of being cut down on the road by a grieving relative. He established the right. And then He legislated the distance: \"Thou shalt prepare thee a way, and divide the coasts of thy land, which the LORD thy God giveth thee to inherit, into three parts, that every slayer may flee thither\" (Deuteronomy 19:3). Three parts, so that nobody lived too far from refuge. And build the road.\n\nThen He said why, and this is the sentence to take with you: \"Lest the avenger of the blood pursue the slayer, while his heart is hot, and overtake him, because the way is long, and slay him; whereas he was not worthy of death\" (Deuteronomy 19:6).\n\nSit with what that verse takes for granted. The man had the right. The law was already on his side — he \"was not worthy of death.\" And Yahweh says the right would not save him if the road was too long, because the distance would finish the matter before the justice could arrive. He counted the length of the road as part of the wrong. He did not tell the man to run faster.\n\nThat is Yahweh’s own reckoning, and it means something for every long road you have walked. A right you could not reach was not a small inconvenience that you should have managed better. By the standard of the One who wrote the law, it was a real injustice, and He legislated against it before anyone thought to complain.\n\nAnd see who He holds responsible. \"Cast ye up, cast ye up, prepare the way, take up the stumblingblock out of the way of my people\" (Isaiah 57:14). He does not address the people limping along the road. He addresses whoever has charge of it, and tells them to move the stone. \"Withhold not good from them to whom it is due, when it is in the power of thine hand to do it\" (Proverbs 3:27) — where a thing is owed and you hold the power to hand it over, withholding is not neutral ground.\n\nThere is a second half, and it is the one that takes more character. \"Thou shalt not raise a false report\" (Exodus 23:1). The video that moved you got two of its examples wrong. That verse binds the person who passes a story along, not only the one who made it up, and it does not go quiet because the story points the way you already lean — or because you have earned the right to be angry about the subject. Keep the part that checked out. Let go of the part that did not. It will cost you something to let go of it, and that cost is exactly the obedience.\n\nWhat this lesson does not do is tell you what was in anyone’s heart. \"man looketh on the outward appearance, but the LORD looketh on the heart\" (1 Samuel 16:7). We can describe what was decided and measure how far people had to walk. Why it was decided is above our pay grade, and saying so is not weakness — it is staying inside the jurisdiction we were given. Nor is it the end of the matter: judgment here is partial and sometimes a case is dropped on a technicality rather than settled, but \"God shall bring every work into judgment, with every secret thing\" (Ecclesiastes 12:14), and \"as it is appointed unto men once to die, but after this the judgment\" (Hebrews 9:27). The reasoning nobody wrote down is still on the record somewhere.\n\nWHAT THERE IS TO DO, AT YOUR SCALE. You almost certainly do not allocate polling places. You are almost certainly, for somebody, the person with charge of a road. The grandchild who does not know the deadline. The neighbour without a ride. The friend who cannot work the website. The widow at church who has not opened the letter because she does not understand it. Shortening one road for one person this week is Isaiah 57:14 done with your hands, and it outranks having the correct opinion about the argument — \"To do justice and judgment is more acceptable to the LORD than sacrifice\" (Proverbs 21:3).\n\nAnd when you tell the younger ones about the long roads you walked, tell them the true version. It was enough.\n\nTALK ABOUT IT TOGETHER. Parents and grandparents, ask your children and grandchildren which rights they think they have that would be hard to actually use, and teach them Deuteronomy 19:6 out of your own memory of a road that was too long. Children, ask your parents to tell you about a time the distance beat them, and listen to the whole story before you try to solve anything. Friend to friend, call one friend this week, trade one belief each that came from a video rather than a source, and pray with each other about what the checking turns up."
+  },
+  "quiz": {
+    "questions": [
+      {
+        "q": "Six factual claims from the reel were checked one at a time. What came back?",
+        "options": [
+          "Three documented, two unsupported, one not found at all",
+          "All six documented",
+          "All six false",
+          "The claims could not be separated"
+        ],
+        "answer": 0,
+        "explain": "That mixture is the lesson. A source can be exact about one thing and wrong about the next, so grading a video as a single trustworthy-or-not object gets the answer wrong twice."
+      },
+      {
+        "q": "The reel said North Carolina A&T students walked 45 minutes to an hour. What did checking find?",
+        "options": [
+          "Corroborated — reporting says about 45 minutes to the nearest early site",
+          "It was an exaggeration",
+          "No such march happened",
+          "The walk was under ten minutes"
+        ],
+        "answer": 0,
+        "explain": "A&T and UNC Greensboro lost on-campus early voting sites they had used in 2024, more than a hundred students marched on the first day, and the walk took about 45 minutes. Documented facts are stated plainly here, not hedged into \"some say.\""
+      },
+      {
+        "q": "What did checking find about the UT Arlington claim?",
+        "options": [
+          "Not supported — the clearest record is 2024, when the attempt to cut campus sites FAILED 4-1",
+          "Fully confirmed for 2026",
+          "The university never had a polling site",
+          "Confirmed by the university itself"
+        ],
+        "answer": 0,
+        "explain": "The Tarrant County Commissioners Court approved 51 early voting sites by 4-1 and kept the UT Arlington site. It is recorded as disputed rather than false, because not finding a report is not proof none exists."
+      },
+      {
+        "q": "Nothing at all could be found about the Tennessee Wesleyan claim. How is that recorded?",
+        "options": [
+          "As unknown — which is a result, not a gap, and is not the same as denied",
+          "As false, since nothing was found",
+          "As documented, to be fair to the creator",
+          "It is left out of the lesson"
+        ],
+        "answer": 0,
+        "explain": "A read that failed is recorded as unknown and never as zero. \"I do not know\" is an honest answer, written down as one, and a reader with a local source knows more than the page does."
+      },
+      {
+        "q": "In Deuteronomy 19:3 Yahweh commands \"prepare thee a way\" and divides the land in three parts. Why?",
+        "options": [
+          "So that every slayer could actually REACH a city of refuge",
+          "To mark the borders of the tribes",
+          "To speed up trade between cities",
+          "So the cities could be defended"
+        ],
+        "answer": 0,
+        "explain": "He did not only establish the right to refuge; He legislated the distance to it, and commanded that the road be prepared, so that the remedy could be reached by the person who needed it."
+      },
+      {
+        "q": "Deuteronomy 19:6 gives the reason out loud. What would have defeated the man’s right?",
+        "options": [
+          "That \"the way is long\" — the distance, not any repeal of the law",
+          "That he was guilty after all",
+          "That the elders refused to hear him",
+          "That the city gates were shut"
+        ],
+        "answer": 0,
+        "explain": "The text says plainly he \"was not worthy of death\" — the right existed and nothing was repealed. Yahweh counts the length of the road as part of the injustice: a remedy out of reach is a remedy denied."
+      },
+      {
+        "q": "Isaiah 57:14 says \"take up the stumblingblock out of the way of my people.\" Who is being addressed?",
+        "options": [
+          "Whoever has charge of the road — not the people walking it",
+          "The people walking, told to walk harder",
+          "Only prophets",
+          "Nobody in particular"
+        ],
+        "answer": 0,
+        "explain": "The duty to clear a path falls on the one with power over it, which is why \"they can still travel there\" is not an answer the Word accepts in the matter it governs. Proverbs 3:27 states the same duty positively."
+      },
+      {
+        "q": "Two of the reel’s claims did not stand up. What does Exodus 23:1 require of a reader now?",
+        "options": [
+          "Not to pass those on — the verse binds whoever carries a report, not only whoever started it",
+          "To discard the documented claims as well",
+          "Nothing, since the main point was right",
+          "To decide the creator acted in bad faith"
+        ],
+        "answer": 0,
+        "explain": "\"Thou shalt not raise a false report.\" Before checking, repeating the Texas claim was an honest mistake; after checking it is knowingly passing on a report that does not stand — and the verse does not relax because the cause is sympathetic."
+      }
+    ]
+  },
+  "stories": [
+    {
+      "kind": "parable",
+      "tone": "serious",
+      "title": "The Window That Closed At Four",
+      "body": "Picture a woman who was owed a thing. Not applying for a favour — owed it, by a rule written down, and nobody ever disputed that she qualified. To collect it she had to appear in person at a counter that opened at nine and closed at four. Her shift ran seven to three-thirty, forty minutes away on two buses, and the second bus came every fifty minutes. Three times she worked it out on paper and three times the arithmetic came out the same: she could make the counter by ten past four, which is to say she could not make it at all. She asked for an hour off and was told to use a vacation day, and she had four of those for the year and a daughter who got fevers. In the eleventh month she gave up, and when she gave up the file closed itself with a notation that she had not pursued the claim. Here is the part worth sitting with. Every single person in that story followed the rule. The counter kept its posted hours. The supervisor applied the leave policy as written. The clerk filed the lapse correctly. Nobody denied her anything, and at the end she did not have the thing she was owed. If you asked any of them whether she had been treated unjustly they would have said no, and they would each have been describing their own part accurately. The injustice was not in anybody’s part. It was in the distance between them, which was nobody’s job."
+    },
+    {
+      "kind": "parable",
+      "tone": "light",
+      "title": "The Clerk Who Moved The Table",
+      "body": "Picture a clerk in a small office where people came to file one particular form. The form had to be witnessed, and the witness desk was on the third floor, and the lift had been out since spring. Most people who came to file that form were old, because of what the form was for. The clerk watched them get to the bottom of the stairs, look up, and decide to come back another day, and many of them did not come back another day. She had no authority over the lift, no budget, and no standing to change the posted procedure. What she had was a folding table. She carried it down, set it in the lobby by the window, got the witness to sit there for two hours on Tuesday mornings, and told the next nine people who came in that Tuesday was the day. Filings went up, which nobody had asked her to achieve, and the lift stayed broken for another year. When a visiting manager asked her what programme this was, she said it was not a programme, it was a table. That is the whole of it. She did not win the argument about the lift, because she never had the argument about the lift. She shortened one road by the width of one table, for the people who happened to arrive while she was there, and the ones who filed that year filed because of furniture."
+    }
+  ]
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE, HIGHER_ED_AID_ISSUE, WAGE_MEASURE_ISSUE, CAMPUS_ROADS_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
