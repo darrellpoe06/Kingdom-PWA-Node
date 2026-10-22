@@ -24,12 +24,25 @@
 // HELD ledger in n8n-is-gone.test.js and the band-coverage baseline). Nine
 // records predate the rule. Each is named with why it is outstanding, the list
 // may only get shorter, and no NEW record may join it.
+//
+// TWO ROADS, 2026-10-22. DR-1202 opened a second intake — a link sent into the
+// app's own research road, built from an `agent_inbox` row, no email anywhere.
+// Until this change the guard did not see that class AT ALL, so a lesson built
+// the new way carried no second witness: the near-miss above, reopened on a
+// new road. The witness is now the ROAD's own identifier — a thread id for a
+// forward, the row uuid for the research road — and the debt list is split
+// from the records that BUILT a road, because carrying those as debt made the
+// debt number itself a lie.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import {
+  mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  isEmailSourced, namesAThread, walkLedger, NEAR_WINDOW, THREAD_ID,
+  isEmailSourced, isResearchSourced, roadOf, namesAThread, namesARow,
+  walkLedger, NEAR_WINDOW, THREAD_ID, ROW_ID,
 } from '../../../scripts/ledger-names-its-thread.mjs';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -45,15 +58,36 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 // names `1a13f985bb4d2a79`, DR-1050 names `1a135f165fe391e3`.
 const FIRST_RECORD_UNDER_THE_RULE = 1048;
 
-// Every record that arrived before the rule and names no thread, with WHY.
-// This list may only SHRINK. Recovering an id means deleting its entry in the
-// same commit, and the test fails if an entry no longer applies — so a stale
-// excuse cannot sit here looking like a fact.
-const OUTSTANDING = [
+// The records that BUILT an intake road. A road's own founding record quotes
+// the one-word instruction while explaining how the door works, so the
+// proximity detector cannot tell it from a record built THROUGH the door. They
+// are not debt: there is no id to recover, because no teaching came that way.
+//
+// THEY WERE CARRIED AS DEBT UNTIL 2026-10-22, AND THAT WAS THE WRONG SHAPE.
+// A future session reads the debt count to know how many ids are still owed;
+// counting two permanent false positives in it made that number say 2 when the
+// real answer was 1. Splitting them is not an excuse being moved — it is the
+// count becoming true. This list is CLOSED at two: a third entry means someone
+// is about to build a third intake road, which is a decision, not a test edit.
+const BUILT_THE_ROAD = [
   {
     file: 'DR-0312-the-inbox-is-a-lesson-door-and-the-way-reviews-itself.md',
-    why: 'not a lesson built from one forward at all — it is the record that CREATED the email lane, and it quotes the one-word instruction while describing how the door works. The detector cannot tell a record about the door from a record built through it, and tightening it further would start losing real lessons. Carried as a known, deliberate false positive rather than weakening the check.',
+    road: 'email',
+    why: 'the record that CREATED the email lane. It quotes the one-word instruction while describing how the door works, and the detector cannot tell a record about the door from a record built through it. Tightening the detector further would start losing real lessons, so this is carried as a known, deliberate false positive instead of weakening the check.',
   },
+  {
+    file: 'DR-0608-the-lesson-door-inside-the-app-built-and-pinned-its-reader-staged-and-the-transition-written-before-it-is-taken.md',
+    road: 'research',
+    why: 'the research road\'s DR-0312 — the record that BUILT the in-app lesson door. It measured `agent_inbox` at 0 rows by SQL count on the live project while it was being written, which is proof in the record itself that no teaching had yet arrived that way. There is no row id to name, and asking it for one would be asking a gate to be satisfied by a fiction.',
+  },
+];
+
+// Every record that arrived before the rule and names no witness, with WHY.
+// This is REAL DEBT: an id that exists and has not been recovered yet. The
+// list may only SHRINK. Recovering an id means deleting its entry in the same
+// commit, and the test fails if an entry no longer applies — so a stale excuse
+// cannot sit here looking like a fact.
+const OUTSTANDING = [
   {
     file: 'DR-0505-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside.md',
     why: 'its provenance line names the sender but not the publication or the date ("Darrell forwarded, from dpoe@illinois..."), so unlike the seven recovered on 2026-10-15 there is nothing to match a thread on. Recovering it means reading the record for which teaching it carries and finding that newsletter by subject. A guessed id is worse than none, so it waits for that reading.',
@@ -90,6 +124,58 @@ describe('isEmailSourced — proximity, which is DR-1050’s lesson applied', ()
   });
 });
 
+describe('isResearchSourced — the second road, opened by DR-1202', () => {
+  it('recognises the shape a research-road record actually writes', () => {
+    expect(isResearchSourced('Darrell sent an Instagram reel into the app\'s research road on 2026-10-22 with one word on it: "Lesson"')).toBe(true);
+    expect(isResearchSourced('arrived as an `agent_inbox` row tagged lesson, with the single word **"Lesson."**')).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: "research" alone is not the research road', () => {
+    // Nearly every record in this ledger researches something. If the detector
+    // took the bare word, it would sweep in most of the ledger and then demand
+    // a row uuid from records that never saw an intake at all.
+    expect(isResearchSourced('I researched this thoroughly before writing the "Lesson"'), 'the bare word is not the road').toBe(false);
+    expect(isResearchSourced('four web searches of prior research informed the "Lesson"')).toBe(false);
+    // And the real phrase IS caught, so the fixture is not simply inert.
+    expect(isResearchSourced('it came up the research road with one word on it, "Lesson"')).toBe(true);
+  });
+
+  it('roadOf prefers the research road, because every intake record cites DR-0312', () => {
+    // MEASURED ON DR-1205, the first research-road lesson. Its Principles line
+    // cites "DR-0312 (a forwarded item is built Word-first...)", which puts
+    // "forwarded" a line from the quoted instruction — so the email detector
+    // fires on a teaching that never touched email. Without this ordering the
+    // guard would demand a Gmail thread id for a lesson that has none, on
+    // every record built through the new road, forever.
+    const real = 'sent a reel into the app\'s research road with one word on it: "Lesson" '
+      + '(`agent_inbox` row `d5480d79-4005-418d-b882-69f3187cc32c`).\n'
+      + '**Principles:** DR-0312 (a forwarded item is built Word-first)';
+    expect(isEmailSourced(real), 'the email detector really does fire on it').toBe(true);
+    expect(roadOf(real), 'and the research road wins anyway').toBe('research');
+    // A plain forward is still judged as a forward.
+    expect(roadOf('Darrell forwarded the newsletter with one word on it, "Lesson"')).toBe('email');
+    expect(roadOf('a record about nothing in particular')).toBe(null);
+  });
+});
+
+describe('namesARow — the research road’s witness', () => {
+  it('accepts a real row id and rejects what is nearly one', () => {
+    expect(namesARow('(`agent_inbox` row `d5480d79-4005-418d-b882-69f3187cc32c`)')).toBe(true);
+    expect(namesARow('row d5480d79-4005-418d-b882-69f3187cc32'), '11 in the last group').toBe(false);
+    expect(namesARow('D5480D79-4005-418D-B882-69F3187CC32C'), 'the API returns lowercase').toBe(false);
+    expect(namesARow('no id here at all')).toBe(false);
+    expect(ROW_ID.test('ed11c486-9568-49ad-94ca-5fcd6872e577'), 'the research item id shape too').toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: a thread id does not satisfy the research road', () => {
+    // The two roads are not interchangeable. A 16-hex Gmail id is the wrong
+    // witness for a teaching that came through the app, and a row uuid is the
+    // wrong witness for a forward — each would answer the grep with nothing.
+    expect(namesARow('(Gmail thread `1a135f165fe391e3`)')).toBe(false);
+    expect(namesAThread('row `d5480d79-4005-418d-b882-69f3187cc32c`'), 'a uuid has no 16-hex run').toBe(false);
+  });
+});
+
 describe('namesAThread — a Gmail thread id, not just any hex', () => {
   it('accepts a real id, in prose or in backticks', () => {
     expect(namesAThread('(Gmail thread `1a135f165fe391e3`)')).toBe(true);
@@ -108,43 +194,75 @@ describe('namesAThread — a Gmail thread id, not just any hex', () => {
 });
 
 describe('the real ledger — the rule for new records, and a shrink-only debt', () => {
-  const { sourced, missing } = walkLedger(ROOT);
+  const { sourced, missing, roads } = walkLedger(ROOT);
   const numOf = (f) => parseInt(f.slice(3, 7), 10);
+  const FOUNDING = BUILT_THE_ROAD.map((b) => b.file);
 
   it('the walk reaches the real ledger, not an empty directory', () => {
     const all = readdirSync(join(ROOT, 'docs/decisions')).filter((f) => /^DR-\d{4}-.+\.md$/.test(f));
     expect(all.length, 'the ledger itself').toBeGreaterThan(500);
-    expect(sourced.length, 'records built from a forward').toBeGreaterThan(20);
+    expect(sourced.length, 'records built from an intake').toBeGreaterThan(20);
   });
 
-  it(`every record from DR-${FIRST_RECORD_UNDER_THE_RULE} on names the thread it was built from`, () => {
+  it('BOTH roads are actually walked — a road with no records would pass silently', () => {
+    // The whole failure this change fixes was a class the guard could not see.
+    // If the research road ever stops being detected, these numbers say so
+    // instead of the suite going quietly green on an empty set.
+    const count = (r) => sourced.filter((f) => roads[f] === r).length;
+    expect(count('email'), 'forwarded lessons').toBeGreaterThan(20);
+    expect(count('research'), 'research-road records (DR-0608 built the door, DR-1205 came through it)')
+      .toBeGreaterThanOrEqual(2);
+  });
+
+  it(`every record from DR-${FIRST_RECORD_UNDER_THE_RULE} on names the intake it was built from`, () => {
     const ruled = missing.filter((f) => numOf(f) >= FIRST_RECORD_UNDER_THE_RULE);
     expect(
       ruled,
-      'a lesson built from a forward must record its Gmail thread id, so the repo is a second witness '
-      + 'when the Lesson-Captured label is missed. Add it to the provenance line as (Gmail thread `<16 hex>`).',
+      'a lesson built from an intake must record its road\'s identifier, so the repo is a second witness '
+      + 'when the Lesson-Captured label is missed. A forward names (Gmail thread `<16 hex>`); a research-road '
+      + 'lesson names its `agent_inbox` row `<uuid>`.',
     ).toEqual([]);
   });
 
   it('the outstanding list is EXACTLY the real debt — no stale excuses, no quiet additions', () => {
-    const older = missing.filter((f) => numOf(f) < FIRST_RECORD_UNDER_THE_RULE).sort();
+    const older = missing
+      .filter((f) => numOf(f) < FIRST_RECORD_UNDER_THE_RULE && !FOUNDING.includes(f))
+      .sort();
     const listed = OUTSTANDING.map((o) => o.file).sort();
-    // Both directions. An entry whose record now names its thread is a stale
+    // Both directions. An entry whose record now names its witness is a stale
     // excuse and must be deleted; a record that slipped in unlisted is a
     // quiet addition.
     expect(listed, 'an entry no longer applies — delete it in the same commit that recovered the id').toEqual(older);
   });
 
   it('the debt may only SHRINK', () => {
-    const older = missing.filter((f) => numOf(f) < FIRST_RECORD_UNDER_THE_RULE);
-    expect(older.length, 'this number may go down and never up').toBeLessThanOrEqual(2);
+    const older = missing
+      .filter((f) => numOf(f) < FIRST_RECORD_UNDER_THE_RULE && !FOUNDING.includes(f));
+    // ONE, since 2026-10-22. It was two while DR-0312 was counted here; moving
+    // it to BUILT_THE_ROAD did not recover an id, it corrected what the number
+    // means. The ceiling may go down and never up.
+    expect(older.length, 'this number may go down and never up').toBeLessThanOrEqual(1);
   });
 
   it('every outstanding entry states a real why, not a shrug', () => {
-    for (const o of OUTSTANDING) {
+    for (const o of [...OUTSTANDING, ...BUILT_THE_ROAD]) {
       expect(o.why.length, `${o.file} needs a reason worth reading`).toBeGreaterThan(60);
       expect(o.why, `${o.file} must not excuse itself by guessing`).not.toMatch(/^unknown$|^tbd$/i);
     }
+  });
+
+  it('the road-founding list is exactly the records that really are founding, and really do slip the detector', () => {
+    // An entry here must EARN its place twice: the detector has to flag it (or
+    // the entry is dead weight pretending to hold something) and the record
+    // has to be flagged on the road it claims to have built.
+    for (const b of BUILT_THE_ROAD) {
+      expect(missing, `${b.file} is listed as a false positive but is not flagged — delete the entry`).toContain(b.file);
+      expect(roads[b.file], `${b.file} claims the ${b.road} road`).toBe(b.road);
+      expect(numOf(b.file), 'a founding record predates the rule by definition')
+        .toBeLessThan(FIRST_RECORD_UNDER_THE_RULE);
+    }
+    // CLOSED at two. A third road is a decision (DR-1202 was one), not an edit.
+    expect(BUILT_THE_ROAD.length, 'a third entry means a third intake road — record the decision first').toBe(2);
   });
 
   it('the two ids recovered on 2026-10-15 are actually in their records', () => {
@@ -181,5 +299,67 @@ describe('the real ledger — the rule for new records, and a shrink-only debt',
     ]) {
       expect(all.includes(id), `${what}: grep ${id} docs/decisions/ must find it`).toBe(true);
     }
+  });
+
+  it('a research-road lesson is answerable the same way — by its row id', () => {
+    // The new road's half of the claim above. DR-1205 is the first lesson
+    // built this way; `grep <row id> docs/decisions/` must answer for it.
+    const dr = readFileSync(
+      join(ROOT, 'docs/decisions', 'DR-1205-the-way-was-45-minutes-long.md'), 'utf8',
+    );
+    expect(dr, 'the row that carried the teaching').toContain('d5480d79-4005-418d-b882-69f3187cc32c');
+    expect(roads['DR-1205-the-way-was-45-minutes-long.md'], 'judged on the road it came in on').toBe('research');
+  });
+});
+
+describe('PROVEN-TO-CATCH on a fixture tree: the new road is really guarded', () => {
+  // The guard's failure mode is silence, so this builds the two records the
+  // real ledger cannot contain — a research-road lesson WITHOUT its row id,
+  // and one with it — and walks a tree holding only those. If this ever goes
+  // green on the missing-id case, the whole two-road change is theatre.
+  const tree = (files) => {
+    const root = mkdtempSync(join(tmpdir(), 'ledger-witness-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    for (const [name, body] of Object.entries(files)) {
+      writeFileSync(join(root, 'docs/decisions', name), body, 'utf8');
+    }
+    return root;
+  };
+  const LESSON = (witness) => '# DR-9001 — a teaching that came up the research road\n\n'
+    + `**Grounds:** Darrell sent a link into the app's research road with one word on it: "Lesson"${witness}.\n`;
+
+  it('flags a research-road lesson that names no row id', () => {
+    const root = tree({ 'DR-9001-a-teaching.md': LESSON('') });
+    const { sourced, missing, roads } = walkLedger(root);
+    expect(sourced, 'it is seen as an intake record at all').toEqual(['DR-9001-a-teaching.md']);
+    expect(roads['DR-9001-a-teaching.md']).toBe('research');
+    expect(missing, 'no row id, so it must be flagged').toEqual(['DR-9001-a-teaching.md']);
+  });
+
+  it('passes the same record once the row id is in it', () => {
+    const root = tree({
+      'DR-9001-a-teaching.md': LESSON(' (`agent_inbox` row `d5480d79-4005-418d-b882-69f3187cc32c`)'),
+    });
+    const { sourced, missing } = walkLedger(root);
+    expect(sourced).toEqual(['DR-9001-a-teaching.md']);
+    expect(missing, 'the witness is there').toEqual([]);
+  });
+
+  it('a Gmail thread id does NOT satisfy a research-road lesson', () => {
+    // The temptation when a gate is red is to paste in whatever identifier is
+    // at hand. A thread id for a teaching that never touched email would be a
+    // grep that finds nothing, which is worse than an empty provenance line.
+    const root = tree({ 'DR-9001-a-teaching.md': LESSON(' (Gmail thread `1a135f165fe391e3`)') });
+    expect(walkLedger(root).missing, 'wrong road\'s witness').toEqual(['DR-9001-a-teaching.md']);
+  });
+
+  it('and a row id does NOT satisfy a forward', () => {
+    const root = tree({
+      'DR-9002-a-forward.md': '# DR-9002\n\n**Grounds:** Darrell forwarded a newsletter with one '
+        + 'word on it, "Lesson" (row `d5480d79-4005-418d-b882-69f3187cc32c`).\n',
+    });
+    const { roads, missing } = walkLedger(root);
+    expect(roads['DR-9002-a-forward.md']).toBe('email');
+    expect(missing, 'a forward owes a thread id').toEqual(['DR-9002-a-forward.md']);
   });
 });
