@@ -27,6 +27,7 @@ import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
 import { incidentNoteText } from '../lib/recorded-note.js';
+import WorkOrderTriage from './WorkOrderTriage.jsx';
 import {
   traceNetCashFlow, traceCollectionRate, traceToDebt,
   traceReserves, traceDebtFree, traceRentalsFree,
@@ -560,6 +561,14 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           )}
                       </>
                     ),
+                  },
+                  {
+                    // DR-1213: every work order, Real Estate's and Poe
+                    // Properties', in the order it came in, with its notes.
+                    id: 'work-orders',
+                    label: 'Work orders',
+                    icon: 'list',
+                    render: () => <WorkOrderTriage incidents={incidents} rentals={rentals} />,
                   },
                   {
                     id: 'capacity',

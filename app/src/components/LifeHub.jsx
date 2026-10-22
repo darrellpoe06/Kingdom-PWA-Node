@@ -45,6 +45,7 @@ import {
   addGoal, daysUntil, GOAL_STATUSES,
 } from '../lib/daily-focus.js';
 import { recentActivity, agoLabel } from '../lib/home-activity.js';
+import WorkOrderTriage from './WorkOrderTriage.jsx';
 import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
 import HubCamera from './HubCamera.jsx';
@@ -370,6 +371,10 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
             ))}
             {activity.length === 0 && <li className={`text-xs ${MUTED}`}>Nothing recorded yet. Incidents, projects, notes, photos, goals and finished focus items show here as they happen.</li>}
           </ul>
+          {/* WORK ORDER TRIAGE (DR-1213) — every work order in the system, Real
+              Estate's and Poe Properties', in the order it came in, with its
+              notes. Recent Activity is a mix of six; this is the queue. */}
+          <WorkOrderTriage incidents={data.incidents || []} rentals={(data.inflows && data.inflows.rentals) || []} />
         </section>
       </>
     ),
