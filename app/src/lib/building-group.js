@@ -32,6 +32,50 @@ export const buildingKeyOf = (r) => {
   return b || null;
 };
 
+// THE BUILDING A DOOR BELONGS TO, read across its siblings (Darrell 2026-10-22:
+// "805 N Prospect Ave Champaign IL the building... not one of the apartments").
+// Measured on the live database (building-probe): 805's five doors share one
+// address and each carries its unit label, but only ONE carries the building
+// label, so the per-record key above left four of them standing alone and the
+// building never read as one. A door's building is therefore:
+//   1. its own building label, when it has one;
+//   2. else the one building label its address-siblings carry (exactly one);
+//   3. else its address, when two or more doors share that address;
+//   4. else none: it stands alone.
+// Two different labels at one address (a complex of buildings) stay apart:
+// the unlabelled doors there are not guessed into either.
+const addressKeyOf = (r) => String((r && r.address) || '').toLowerCase().replace(/[.,#]/g, ' ').replace(/\s+/g, ' ').trim();
+
+export function buildingResolver(rentals = []) {
+  const byAddr = new Map(); // address key -> { count, labels: Set }
+  for (const r of Array.isArray(rentals) ? rentals : []) {
+    const a = addressKeyOf(r);
+    if (!a) continue;
+    const slot = byAddr.get(a) || { count: 0, labels: new Set() };
+    slot.count += 1;
+    const own = buildingKeyOf(r);
+    if (own) slot.labels.add(own);
+    byAddr.set(a, slot);
+  }
+  return (r) => {
+    const own = buildingKeyOf(r);
+    if (own) return own;
+    const slot = byAddr.get(addressKeyOf(r));
+    if (!slot) return null;
+    if (slot.labels.size === 1) return [...slot.labels][0];
+    if (slot.labels.size === 0 && slot.count >= 2) return String(r.address).trim();
+    return null;
+  };
+}
+
+// Every building of two or more doors, in first-seen order:
+// [{ key, label, doors: [...] }]. The key is what a building work order links to.
+export function buildingsOf(rentals = []) {
+  return groupDoorsByBuilding(rentals)
+    .filter((e) => e.type === 'building')
+    .map((e) => ({ key: e.key, label: e.building, doors: e.units }));
+}
+
 // A short per-unit label for a door within its building. Prefers an explicit
 // unitLabel; else derives from the trailing "Apt 3" / "Unit 4" / "#2" in the
 // name; else falls back to the whole name.
@@ -70,9 +114,10 @@ export function groupDoorsByBuilding(rentals = []) {
   const order = [];            // building keys in first-seen order
   const byKey = new Map();     // key -> units[]
   const singles = [];          // { idx, rental } for lone doors
+  const keyOf = buildingResolver(list);
 
   list.forEach((r, idx) => {
-    const key = buildingKeyOf(r);
+    const key = keyOf(r);
     if (key) {
       if (!byKey.has(key)) { byKey.set(key, []); order.push({ key, idx }); }
       byKey.get(key).push(r);

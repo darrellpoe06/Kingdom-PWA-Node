@@ -23,8 +23,19 @@
 // assignWorkOrder / postNote, under the reader's RLS, and re-read after.
 // A write that fails says so beside the button; nothing is claimed done
 // until the store took it.
+//
+// A NEW WORK ORDER, AND THE WORKERS (Darrell, 2026-10-22: "805 N Prospect Ave
+// Champaign IL the building... not one of the apartments... we need work done
+// in the foyer... and other basement activities... how do we add a work order
+// from scratch" and "Also seeing all workers outstanding and just a place to
+// review the results"). "New work order" files one for a building's common
+// areas (linked to the building, lib/building-group.js), for one apartment, or
+// for nothing in particular, through the shell's own addIncident. "By worker"
+// shows each worker's open work; "To review" shows the work the workers have
+// finished that is still open, to accept (Resolve) or send back.
 import React, { useEffect, useMemo, useState } from 'react';
-import { triageQueue, cameInLabel, actionsFor, MOVE_TARGETS } from '../lib/work-order-triage.js';
+import { triageQueue, cameInLabel, actionsFor, MOVE_TARGETS, BUILDING_AREAS, NEW_URGENCIES, newWorkOrder, workersBoard, resultsToReview, workersFinished } from '../lib/work-order-triage.js';
+import { buildingsOf } from '../lib/building-group.js';
 import { loadAllWorkOrders, setWorkOrderStatus, assignWorkOrder, postNote } from '../modules/properties/cloud.js';
 import { buildTenancyNote } from '../modules/properties/model.js';
 
@@ -51,6 +62,7 @@ function Actions({ w, act, contractors, movers, busy, message }) {
   const [worker, setWorker] = useState('');
   const [target, setTarget] = useState('');
   const { moves, canAssign, canNote, canMove } = actionsFor(w);
+  const canSendBack = w.open && w.record && w.record.kind === 'incident' && workersFinished(w);
   const places = MOVE_TARGETS.filter((t) => movers && typeof movers[t.key] === 'function');
   const people = (Array.isArray(contractors) ? contractors : []).filter((c) => c && c.name);
   const btn = `text-[0.6875rem] border border-[#B85838] text-[#B85838] px-2 py-1 min-h-[36px] disabled:opacity-50 ${FOCUS_RING}`;
@@ -61,6 +73,9 @@ function Actions({ w, act, contractors, movers, busy, message }) {
           {moves.map((m) => (
             <button key={m.to} type="button" disabled={busy} onClick={() => act({ kind: 'status', to: m.to, label: m.label })} className={btn} data-testid={`work-order-move-${m.to}`}>{m.label}</button>
           ))}
+          {canSendBack && (
+            <button type="button" disabled={busy} onClick={() => act({ kind: 'sendback' })} className={btn} data-testid="work-order-send-back">Send it back to the worker</button>
+          )}
         </div>
       )}
       {canMove && places.length > 0 && (
@@ -97,6 +112,100 @@ function Actions({ w, act, contractors, movers, busy, message }) {
         </form>
       )}
       {message && <p role="status" className={`text-[0.625rem] ${message.ok ? MUTED : 'text-[#B85838]'}`} data-testid="work-order-result">{message.text}</p>}
+    </div>
+  );
+}
+
+function NewWorkOrder({ rentals, addIncident, onSaved }) {
+  const buildings = useMemo(() => buildingsOf(rentals), [rentals]);
+  const doors = (Array.isArray(rentals) ? rentals : []).filter((r) => r && r.id && String(r.name || r.address || '').trim());
+  const [where, setWhere] = useState(buildings.length ? `b:${buildings[0].key}` : '');
+  const [area, setArea] = useState(BUILDING_AREAS[0]);
+  const [words, setWords] = useState('');
+  const [urgency, setUrgency] = useState('incident');
+  const [error, setError] = useState('');
+  const isBuilding = where.startsWith('b:');
+  const field = `text-xs border border-[#E8E4DC] bg-white px-2 min-h-[36px] w-full ${FOCUS_RING}`;
+  const save = (e) => {
+    e.preventDefault();
+    let spot = { kind: 'none' };
+    if (isBuilding) spot = { kind: 'building', key: where.slice(2) };
+    else if (where.startsWith('d:')) { const r = doors.find((x) => x.id === where.slice(2)); spot = { kind: 'door', id: where.slice(2), entityId: r && r.entityId }; }
+    const made = newWorkOrder({ where: spot, area: isBuilding ? area : '', words, urgency });
+    if (made.error) { setError(made.error); return; }
+    try {
+      const id = addIncident(made.item);
+      setWords(''); setError('');
+      onSaved(made.item, id);
+    } catch (err) {
+      setError(`Not saved: ${(err && err.message) || 'unexpected'}.`);
+    }
+  };
+  return (
+    <form onSubmit={save} className="mt-2 border border-[#E8E4DC] rounded-md p-2 space-y-2" data-testid="work-order-new-form">
+      <div>
+        <label className="text-[0.625rem] uppercase tracking-wider" htmlFor="wo-new-where">Where is the work?</label>
+        <select id="wo-new-where" value={where} onChange={(e) => setWhere(e.target.value)} className={field}>
+          {buildings.length > 0 && (
+            <optgroup label="A building's common areas (not one apartment)">
+              {buildings.map((b) => <option key={b.key} value={`b:${b.key}`}>{b.label}: the building ({b.doors.length} doors)</option>)}
+            </optgroup>
+          )}
+          {doors.length > 0 && (
+            <optgroup label="One apartment or door">
+              {doors.map((r) => <option key={r.id} value={`d:${r.id}`}>{String(r.name || r.address).trim()}</option>)}
+            </optgroup>
+          )}
+          <option value="">Not a property</option>
+        </select>
+      </div>
+      {isBuilding && (
+        <div>
+          <label className="text-[0.625rem] uppercase tracking-wider" htmlFor="wo-new-area">Which part of the building?</label>
+          <select id="wo-new-area" value={area} onChange={(e) => setArea(e.target.value)} className={field}>
+            {BUILDING_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+      )}
+      <div>
+        <label className="text-[0.625rem] uppercase tracking-wider" htmlFor="wo-new-words">What needs doing?</label>
+        <textarea id="wo-new-words" rows={3} value={words} onChange={(e) => setWords(e.target.value)} placeholder="e.g. Replace the foyer light, patch the stair wall" className={`text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 w-full ${FOCUS_RING}`} />
+      </div>
+      <div>
+        <label className="text-[0.625rem] uppercase tracking-wider" htmlFor="wo-new-urgency">How soon?</label>
+        <select id="wo-new-urgency" value={urgency} onChange={(e) => setUrgency(e.target.value)} className={field}>
+          {NEW_URGENCIES.map((u) => <option key={u.key} value={u.key}>{u.label}</option>)}
+        </select>
+      </div>
+      {error && <p role="status" className="text-[0.625rem] text-[#B85838]" data-testid="work-order-new-error">{error}</p>}
+      <button type="submit" className={`text-[0.6875rem] bg-[#1A1815] text-white px-3 min-h-[36px] ${FOCUS_RING}`} data-testid="work-order-new-save">Save the work order</button>
+    </form>
+  );
+}
+
+function WorkersView({ board, openJob }) {
+  if (board.busy.length === 0) {
+    return <p className={`mt-2 text-xs ${MUTED}`} data-testid="work-order-workers-none">No worker has open work. Open a work order and use Give it to.{board.idle.length ? ` On the roster: ${board.idle.join(', ')}.` : ''}</p>;
+  }
+  return (
+    <div className="mt-2 space-y-2" data-testid="work-order-workers">
+      {board.busy.map((p) => (
+        <div key={p.name} className="border border-[#E8E4DC] rounded-md p-2" data-testid="work-order-worker">
+          <p className="text-xs font-semibold">{p.name}</p>
+          <p className={`text-[0.625rem] ${MUTED}`}>{p.open.length - p.doneOpen} to do · {p.doneOpen} done, waiting on your review</p>
+          <ul className="mt-1 space-y-1">
+            {p.open.map(({ w, piece }) => (
+              <li key={w.key}>
+                <button type="button" onClick={() => openJob(w.key)} className={`w-full text-left text-[0.6875rem] border border-[#E8E4DC] px-2 py-1 min-h-[36px] ${FOCUS_RING}`}>
+                  <span className="font-semibold text-[#B85838]">#{w.number}</span> <span className="line-clamp-1 inline">{w.title}</span>
+                  <span className={`block text-[0.625rem] ${MUTED}`}>{w.door || w.sourceLabel} · {piece.status === 'done' ? 'their part is done' : 'assigned'} · came in {cameInLabel(w.cameInAt)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {board.idle.length > 0 && <p className={`text-[0.625rem] ${MUTED}`}>Nothing open for: {board.idle.join(', ')}.</p>}
     </div>
   );
 }
@@ -141,7 +250,9 @@ function Row({ w, expanded, onToggle, act, contractors, movers, busy, message })
   );
 }
 
-export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders }) {
+export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders }) {
+  const [view, setView] = useState('queue');
+  const [adding, setAdding] = useState(false);
   const [cloud, setCloud] = useState({ state: 'loading', requests: [], docs: [], events: [], notes: [], unreadable: [] });
   const [expanded, setExpanded] = useState(null);
   const [showClosed, setShowClosed] = useState(false);
@@ -183,6 +294,10 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
           workerOps.onAssign(r.id, a.contractor, a.contractor.type || 'contractor');
         } else if (a.kind === 'note') {
           updateIncident(r.id, { _logNote: a.text });
+        } else if (a.kind === 'sendback') {
+          if (!workerOps || !workerOps.onReopen) throw new Error('this screen cannot send work back');
+          for (const p of w.workers || []) if (p.status === 'done' && p.assignmentId) workerOps.onReopen(r.id, p.assignmentId);
+          updateIncident(r.id, { _logNote: 'Sent back to the worker from the triage review' });
         } else if (a.kind === 'move') {
           const send = movers && movers[a.target.key];
           if (typeof send !== 'function') throw new Error(`this screen cannot send to ${a.target.done}`);
@@ -201,7 +316,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       }
       setLast(null);
       const said = (res && res.ok
-        ? { ok: true, text: a.kind === 'status' ? `Done: ${a.label}.` : a.kind === 'assign' ? `Given to ${a.contractor.name}.` : a.kind === 'move' ? `Moved to ${a.target.done}. It has left the open work orders; its words are kept.` : 'Note added.' }
+        ? { ok: true, text: a.kind === 'status' ? `Done: ${a.label}.` : a.kind === 'assign' ? `Given to ${a.contractor.name}.` : a.kind === 'move' ? `Moved to ${a.target.done}. It has left the open work orders; its words are kept.` : a.kind === 'sendback' ? 'Sent back: the worker\'s part is open again.' : 'Note added.' }
         : { ok: false, text: `Not saved: ${(res && (res.error || res.reason)) || 'the store refused it'}.` });
       setMessage(said);
       // A move or a close takes the row out of the open list, so the card says
@@ -214,6 +329,13 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       setBusy(false);
     }
   };
+  const board = useMemo(() => workersBoard(queue, contractors), [queue, contractors]);
+  const review = useMemo(() => resultsToReview(queue), [queue]);
+  const openJob = (key) => { setView('queue'); setExpanded(key); setMessage(null); };
+  const tab = (id, label) => (
+    <button type="button" key={id} onClick={() => setView(id)} aria-pressed={view === id} data-testid={`work-order-view-${id}`}
+      className={`text-[0.625rem] uppercase tracking-wider border px-2 min-h-[36px] ${view === id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC]'} ${FOCUS_RING}`}>{label}</button>
+  );
   const rowProps = (w) => ({ w, expanded: expanded === w.key, onToggle: () => toggle(w.key), act: actOn(w), contractors, movers, busy, message: expanded === w.key ? message : null });
 
   return (
@@ -222,6 +344,22 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       <p className={`text-[0.625rem] ${MUTED}`} data-testid="work-order-summary">
         {queue.open.length} open · {queue.closed.length} closed · every work order in the system, numbered in the order it came in
       </p>
+      <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Work order views">
+        {tab('queue', `Queue · ${queue.open.length}`)}
+        {tab('workers', `By worker · ${board.busy.length}`)}
+        {tab('review', `To review · ${review.waiting.length}`)}
+        {addIncident && (
+          <button type="button" onClick={() => setAdding((v) => !v)} aria-expanded={adding} data-testid="work-order-new"
+            className={`text-[0.625rem] uppercase tracking-wider border border-[#B85838] text-[#B85838] px-2 min-h-[36px] ${FOCUS_RING}`}>{adding ? 'Close the form' : '+ New work order'}</button>
+        )}
+      </div>
+      {adding && addIncident && (
+        <NewWorkOrder rentals={rentals} addIncident={addIncident} onSaved={(item, id) => {
+          setAdding(false); setView('queue');
+          if (id) setExpanded(`inc-${id}`);
+          setLast({ ok: true, text: `Saved: ${item.description.split('\n')[0].slice(0, 80)}. It is in the queue below; give it to a worker from there.` });
+        }} />
+      )}
       {last && <p role="status" className={`text-[0.625rem] ${last.ok ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`} data-testid="work-order-last">{last.text}</p>}
       {cloud.state === 'loading' && <p className={`text-[0.625rem] ${MUTED}`} data-testid="work-order-reading">Reading Poe Properties&apos; work orders…</p>}
       {cloud.state === 'failed' && (
@@ -232,6 +370,25 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       {cloud.state === 'read' && cloud.unreadable.length > 0 && (
         <p className="text-[0.625rem] text-[#B85838]" role="status">Could not read: {cloud.unreadable.join(', ')}. The notes below may be missing those.</p>
       )}
+      {view === 'workers' && <WorkersView board={board} openJob={openJob} />}
+      {view === 'review' && (
+        <div className="mt-2" data-testid="work-order-review">
+          <p className={`text-[0.625rem] ${MUTED}`}>Finished by the workers and still open: open one to read what was done, then Resolve it or send it back.</p>
+          <ol className="mt-1.5 space-y-1.5" aria-label="Finished by the workers, waiting on your review">
+            {review.waiting.map((w) => <Row key={w.key} {...rowProps(w)} />)}
+            {review.waiting.length === 0 && <li className={`text-xs ${MUTED}`}>Nothing is waiting on your review.</li>}
+          </ol>
+          {review.recent.length > 0 && (
+            <>
+              <p className={`mt-2 text-[0.625rem] uppercase tracking-wider ${MUTED}`}>Closed, with workers on them</p>
+              <ol className="mt-1.5 space-y-1.5" aria-label="Closed work orders that had workers">
+                {review.recent.map((w) => <Row key={w.key} {...rowProps(w)} />)}
+              </ol>
+            </>
+          )}
+        </div>
+      )}
+      {view === 'queue' && (<>
       <ol className="mt-2 space-y-1.5" aria-label="Open work orders, in the order they came in">
         {queue.open.map((w) => <Row key={w.key} {...rowProps(w)} />)}
         {queue.open.length === 0 && cloud.state !== 'loading' && <li className={`text-xs ${MUTED}`}>No open work orders.</li>}
@@ -248,6 +405,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
           )}
         </div>
       )}
+      </>)}
     </section>
   );
 }
