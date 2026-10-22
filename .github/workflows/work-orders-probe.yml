@@ -1,0 +1,74 @@
+# work-orders-probe -- where every work order lives, measured before the triage queue is built
+#
+# WHY (2026-10-22, Darrell, on Big Picture's Recent Activity showing two work
+# orders from 120 days ago): "Where are the work orders in order that they
+# came in with notes across the whole system?!" and "Work order triage".
+# The runner measures the live stores first (DR-0076 section 4; the sandbox
+# has no route to the database).
+#
+# PUBLIC RUN PAGES: counts, dates, statuses and lengths only; never a title,
+# a note, an address or a name.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): one read-only
+# transaction, 5 minutes, concurrency group `work-orders-probe`. Temporary:
+# removed in the same PR that builds the queue.
+
+name: work-orders-probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/work-order-triage]
+    paths: ['.github/workflows/work-orders-probe.yml']
+
+concurrency:
+  group: work-orders-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Every work-order store (read only, shapes and counts only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/m.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == 1. incidents (instance|urgency|status|rows|first incident_date|last incident_date|last created|with lifecycle notes|with dispatch) ==
+          SELECT i.slug, x.urgency, x.status, count(*), min(x.incident_date), max(x.incident_date), max(x.created_at)::date,
+                 count(*) FILTER (WHERE jsonb_array_length(coalesce(x.lifecycle->'log','[]'::jsonb)) > 0),
+                 count(*) FILTER (WHERE x.dispatch IS NOT NULL)
+            FROM incidents x LEFT JOIN instances i ON i.id = x.instance_id GROUP BY 1,2,3 ORDER BY 1,2,3;
+          \echo == 2. incidents by category (category|rows) ==
+          SELECT category, count(*) FROM incidents GROUP BY 1 ORDER BY 2 DESC;
+          \echo == 3. tenant_maintenance_requests (instance|status|priority|rows|first created|last created|with detail|with resolution note|with proof note|assigned|has rental) ==
+          SELECT i.slug, w.status, w.priority, count(*), min(w.created_at)::date, max(w.created_at)::date,
+                 count(*) FILTER (WHERE coalesce(w.detail,'')<>''), count(*) FILTER (WHERE coalesce(w.resolution_note,'')<>''),
+                 count(*) FILTER (WHERE coalesce(w.proof_note,'')<>''), count(*) FILTER (WHERE w.assigned_to IS NOT NULL OR coalesce(w.assigned_to_label,'')<>''),
+                 count(*) FILTER (WHERE w.rental_id IS NOT NULL)
+            FROM tenant_maintenance_requests w LEFT JOIN instances i ON i.id = w.instance_id GROUP BY 1,2,3 ORDER BY 1,2,3;
+          \echo == 4. door_events on work orders (event|events|with detail keys|first|last) ==
+          SELECT e.event, count(*), count(*) FILTER (WHERE e.detail <> '{}'::jsonb), min(e.at)::date, max(e.at)::date
+            FROM door_events e WHERE e.subject = 'work' GROUP BY 1 ORDER BY 1;
+          \echo == 4b. the detail keys door_events carries on work (key|events) ==
+          SELECT k, count(*) FROM door_events e, jsonb_object_keys(e.detail) k WHERE e.subject = 'work' GROUP BY 1 ORDER BY 2 DESC;
+          \echo == 5. door_events columns ==
+          SELECT column_name, data_type FROM information_schema.columns WHERE table_schema='public' AND table_name='door_events' ORDER BY ordinal_position;
+          \echo == 6. old maintenance_requests (rows|first|last) ==
+          SELECT count(*), min(created_at)::date, max(created_at)::date FROM maintenance_requests;
+          \echo == 7. tenant_maintenance_requests columns ==
+          SELECT column_name, data_type FROM information_schema.columns WHERE table_schema='public' AND table_name='tenant_maintenance_requests' ORDER BY ordinal_position;
+          ROLLBACK;
+          SQL
+          bash scripts/live-sql.sh '|' < /tmp/m.sql 2>&1 | sed 's/^/  /'
