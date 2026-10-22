@@ -90,8 +90,17 @@ jobs:
           echo "written: $ok of $n" | tee -a "$GITHUB_STEP_SUMMARY"
           printf '%s' "$Q" | bash scripts/live-sql.sh '|' > /tmp/after.json && node scripts/complete-addresses.mjs /tmp/after.json > /dev/null 2> /tmp/after.txt
           echo "after the write:"; cat /tmp/after.txt
-      - name: Then place the doors from their whole addresses
-        if: ${{ always() && github.event.inputs.then_place == 'true' }}
+
+  # THE DOORS ARE PLACED EVEN WHEN THIS LANE FAILS (DR-1209): a job of its
+  # own, so a timeout or a red step above can never stop the door placer
+  # the deploy used to dispatch directly.
+  place:
+    needs: complete
+    if: ${{ always() && github.event.inputs.then_place == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Dispatch place-doors.yml on main
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

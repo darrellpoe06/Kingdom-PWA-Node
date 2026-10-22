@@ -107,9 +107,17 @@ describe('the lane', () => {
     expect(wf).toMatch(/PLACE_DOORS_ENABLED != 'false'/);             // KILL
     expect(wf).toMatch(/tailscale\/github-action@v3/);
     expect(wf).toMatch(/bash scripts\/place-doors-over-tailnet\.sh/);
+    // THE CHAIN (DR-1209): a successful deploy dispatches the address
+    // completer with then_place, and IT dispatches the door placer from a job
+    // of its own that runs whatever the completer did (always()), so the doors
+    // are still placed after every deploy, now from whole addresses.
     const deploy = read('.github/workflows/deploy-cloudflare-pages.yml');
-    expect(deploy).toMatch(/workflows\/place-doors\.yml\/dispatches/);
-    expect(deploy).toMatch(/place-doors:\s*\n\s*name: dispatch the door placer \(after a successful deploy\)\s*\n\s*needs: deploy/);
+    expect(deploy).toMatch(/place-doors:\s*\n\s*name: dispatch the address completer, which then places the doors \(after a successful deploy\)\s*\n\s*needs: deploy/);
+    expect(deploy).toMatch(/workflows\/complete-addresses\.yml\/dispatches/);
+    expect(deploy).toMatch(/"then_place":"true"/);
+    const chain = read('.github/workflows/complete-addresses.yml');
+    expect(chain).toMatch(/\n  place:\n    needs: complete\n    if: \$\{\{ always\(\) && github\.event\.inputs\.then_place == 'true' \}\}/);
+    expect(chain).toMatch(/workflows\/place-doors\.yml\/dispatches/);
     const sh = read('scripts/place-doors-over-tailnet.sh');
     expect(sh).toMatch(/area_lat is null or nearby is null/);          // doors not on the map, or never asked what is nearby (DR-1019)
     expect(sh).toMatch(/'had_area', area_lat is not null/);
