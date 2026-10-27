@@ -308,7 +308,29 @@ def schema_problems(obj):
         return ["not an object"]
     verdict = obj.get("verdict")
     if verdict not in ("lesson", "test-only", "not-a-lesson"):
-        p.append("verdict must be lesson | test-only | not-a-lesson")
+        # SAY WHAT ARRIVED, not only what was required (DR-1249).
+        #
+        # MEASURED 2026-10-27: four waiting rows had been handed back for ~100
+        # hours carrying this and nothing else as their whole recorded reason.
+        # From outside the box that is undiagnosable -- it cannot distinguish
+        # a writer that used a different word, an object with no `verdict` at
+        # all, or the extractor having locked onto the wrong `{`. The prompt
+        # was checked and DOES offer all three words, so the obvious
+        # explanation was already ruled out and there was nothing left to
+        # read. A gate that refuses without naming what it refused sends the
+        # reader to the one place they must not go: the row's body.
+        #
+        # The received value is an enum-shaped field, not content, so it is
+        # safe to name -- bounded here anyway in case the writer put prose in
+        # it. The KEY NAMES are schema rather than content and are safe for
+        # the same reason, and they are what separates the three cases: a
+        # truncated or wrong object shows a short or alien key list, while a
+        # full lesson object with a bad word shows every expected key.
+        # NEVER a value from any other field (DR-0669: never a body).
+        shown = repr(verdict[:40]) if isinstance(verdict, str) else repr(verdict)
+        keys = sorted(k for k in obj.keys() if isinstance(k, str))[:14]
+        p.append("verdict must be lesson | test-only | not-a-lesson, got {} "
+                 "(object carried {} key(s): {})".format(shown, len(obj), ", ".join(keys)))
     if verdict != "lesson":
         return p
     for f in ("placement", "title", "slug", "bigIdea", "inApp", "lesson_intro", "lesson_close", "dr_summary"):
