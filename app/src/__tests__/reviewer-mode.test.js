@@ -18,8 +18,10 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   REVIEWER_MODE_KEY, isReviewerModeOn, enterReviewerMode, exitReviewerMode,
-  ReviewerModeBanner,
+  ReviewerModeBanner, reviewerLensMode, isReviewerSelf, isReviewerStranger,
+  enterReviewerModeAs, switchReviewerMode, REVIEWER_LENS_COPY,
 } from '../lib/reviewer-mode.jsx';
+import * as lens from '../lib/reviewer-lens.js';
 import { previewAction } from '../lib/admin-console.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -45,6 +47,66 @@ describe('isReviewerModeOn — fail-soft, narrow-only flag read', () => {
   it('fails soft (OFF) with no storage or a throwing storage', () => {
     expect(isReviewerModeOn(null)).toBe(false);
     expect(isReviewerModeOn({ getItem: () => { throw new Error('blocked'); } })).toBe(false);
+  });
+});
+
+describe('two modes, one value (DR-1240) — self keeps his rows, stranger hides them, neither grants', () => {
+  it("the legacy '1' every device already holds reads as 'self' — exactly what it did", () => {
+    const s = fakeStorage({ [REVIEWER_MODE_KEY]: '1' });
+    expect(reviewerLensMode(s)).toBe('self');
+    expect(isReviewerSelf(s)).toBe(true);
+    expect(isReviewerStranger(s)).toBe(false);
+    expect(isReviewerModeOn(s)).toBe(true);
+  });
+  it("'self' and 'stranger' are the two modes; anything else is OFF, never a mode", () => {
+    expect(reviewerLensMode(fakeStorage({ [REVIEWER_MODE_KEY]: 'self' }))).toBe('self');
+    expect(reviewerLensMode(fakeStorage({ [REVIEWER_MODE_KEY]: 'stranger' }))).toBe('stranger');
+    expect(isReviewerStranger(fakeStorage({ [REVIEWER_MODE_KEY]: 'stranger' }))).toBe(true);
+    expect(isReviewerSelf(fakeStorage({ [REVIEWER_MODE_KEY]: 'stranger' }))).toBe(false);
+    for (const junk of ['steward', 'governor', 'yes', '2', '']) {
+      const s = fakeStorage({ [REVIEWER_MODE_KEY]: junk });
+      expect(reviewerLensMode(s), `'${junk}' must be OFF`).toBe('');
+      expect(isReviewerStranger(s)).toBe(false);
+      expect(isReviewerModeOn(s)).toBe(false);
+    }
+    expect(reviewerLensMode(null)).toBe('');
+    expect(isReviewerStranger({ getItem: () => { throw new Error('blocked'); } })).toBe(false);
+  });
+  it('ONE SOURCE: reviewer-mode.jsx re-exports the very functions reviewer-lens.js defines', () => {
+    expect(isReviewerModeOn).toBe(lens.isReviewerModeOn);
+    expect(isReviewerStranger).toBe(lens.isReviewerStranger);
+    expect(isReviewerSelf).toBe(lens.isReviewerSelf);
+    expect(reviewerLensMode).toBe(lens.reviewerLensMode);
+    expect(REVIEWER_MODE_KEY).toBe(lens.REVIEWER_MODE_KEY);
+  });
+  it('enterReviewerModeAs stores the mode and reloads; an unknown mode falls to self (narrowing, never off-by-garbage)', () => {
+    const storage = fakeStorage(); const reload = vi.fn();
+    enterReviewerModeAs('stranger', storage, reload);
+    expect(reviewerLensMode(storage)).toBe('stranger');
+    enterReviewerModeAs('governor', storage, reload);
+    expect(reviewerLensMode(storage)).toBe('self');
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+  it('switching reloads — the modules read their rows at boot, so a switch must boot again', () => {
+    const storage = fakeStorage({ [REVIEWER_MODE_KEY]: 'self' }); const reload = vi.fn();
+    switchReviewerMode('stranger', storage, reload);
+    expect(reviewerLensMode(storage)).toBe('stranger');
+    expect(reload).toHaveBeenCalledTimes(1);
+    switchReviewerMode('self', storage, reload);
+    expect(reviewerLensMode(storage)).toBe('self');
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+  it("the plain enter is 'self' — what every caller before DR-1240 got", () => {
+    const storage = fakeStorage(); enterReviewerMode(storage, vi.fn());
+    expect(reviewerLensMode(storage)).toBe('self');
+  });
+  it('each mode SAYS what it hides and what still shows (DR-0076): self admits his rows show; stranger names the no-invite face', () => {
+    expect(REVIEWER_LENS_COPY.self.line).toMatch(/own doors, vault, contacts and research still show/);
+    expect(REVIEWER_LENS_COPY.self.line).toMatch(/only .* privileges are hidden/);
+    expect(REVIEWER_LENS_COPY.stranger.line).toMatch(/A person with no invite sees this/);
+    expect(REVIEWER_LENS_COPY.stranger.line).toMatch(/are hidden/);
+    expect(REVIEWER_LENS_COPY.self.switchTo).toBe('stranger');
+    expect(REVIEWER_LENS_COPY.stranger.switchTo).toBe('self');
   });
 });
 
@@ -83,6 +145,46 @@ describe('ReviewerModeBanner — the only way back is real', () => {
     expect(btn, 'the Exit button must exist').toBeTruthy();
     await act(async () => { btn.click(); });
     expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("'self' NAMES itself and says his own rows still show; the switch offers the stranger and fires with it", async () => {
+    const onSwitch = vi.fn();
+    const host = document.createElement('div'); document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(createElement(ReviewerModeBanner, { mode: 'self', onSwitch })); });
+    expect(host.querySelector('[data-reviewer-lens="self"]')).toBeTruthy();
+    expect(host.textContent).toContain('As yourself, privileges hidden');
+    expect(host.textContent).toMatch(/own doors, vault, contacts and research still show/);
+    expect(host.textContent).not.toMatch(/exactly as a signed-in user sees it/);
+    const sw = host.querySelector('[data-testid="reviewer-switch"]');
+    expect(sw.textContent).toMatch(/See as a new user/);
+    await act(async () => { sw.click(); });
+    expect(onSwitch).toHaveBeenCalledWith('stranger');
+  });
+
+  it("'stranger' NAMES itself as a new user, says a person with no invite sees this, and switches back to self", async () => {
+    const onSwitch = vi.fn();
+    const host = document.createElement('div'); document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(createElement(ReviewerModeBanner, { mode: 'stranger', onSwitch })); });
+    expect(host.querySelector('[data-reviewer-lens="stranger"]')).toBeTruthy();
+    expect(host.textContent).toContain('As a new user');
+    expect(host.textContent).toMatch(/A person with no invite sees this/);
+    const sw = host.querySelector('[data-testid="reviewer-switch"]');
+    expect(sw.textContent).toMatch(/See as yourself/);
+    await act(async () => { sw.click(); });
+    expect(onSwitch).toHaveBeenCalledWith('self');
+  });
+
+  it("with no mode handed in, the banner reads the device's own value — the legacy '1' is self", async () => {
+    window.localStorage.setItem(REVIEWER_MODE_KEY, '1');
+    const host = document.createElement('div'); document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(createElement(ReviewerModeBanner, {})); });
+    expect(host.querySelector('[data-reviewer-lens="self"]')).toBeTruthy();
+    window.localStorage.setItem(REVIEWER_MODE_KEY, 'stranger');
+    await act(async () => { root.render(createElement(ReviewerModeBanner, { mode: null })); });
+    window.localStorage.removeItem(REVIEWER_MODE_KEY);
   });
 });
 
@@ -125,6 +227,19 @@ const SHELL_WIRING = [
   'if (reviewerMode) { setShowVerifyBalances(false); return; }',
   // the pinned banner renders whenever the lens is on
   '{reviewerMode && <ReviewerModeBanner />}',
+  // THE MODULES THAT READ THE SIGNED-IN PERSON'S OWN ROWS (DR-1240). The shell
+  // narrows what it DERIVES; these four read the steward's own seat, doors,
+  // vault, contacts and research through RLS as him, so each is handed the
+  // STRANGER mode on its mount line and boots as a person with no invite
+  // under it ('self' leaves their reads alone and the banner says so).
+  // Dropping the prop from any one of them shows the steward his own rows in
+  // stranger mode while the banner claims a new user's view — the exact leak
+  // Darrell caught on his phone 2026-10-27.
+  'const reviewerStranger = isReviewerStranger();',
+  '<PropertiesApp surface="poetech" stranger={reviewerStranger}',
+  '<Messages stranger={reviewerStranger}',
+  '<Vault stranger={reviewerStranger} />',
+  '<ResearchSection stranger={reviewerStranger} />',
 ];
 
 describe('shell wiring — every narrowing + suppression point is present', () => {
@@ -208,7 +323,8 @@ describe('shell wiring — every narrowing + suppression point is present', () =
   });
 
   it('proven-to-catch: the same checks FAIL on a shell without the wiring', () => {
-    const unwired = shell.split('reviewerMode').join('___');
+    // Both lens flags: the any-mode one and the stranger one (DR-1240).
+    const unwired = shell.split('reviewerMode').join('___').split('reviewerStranger').join('___');
     for (const fragment of SHELL_WIRING) {
       expect(unwired.includes(fragment)).toBe(false);
     }
@@ -216,21 +332,35 @@ describe('shell wiring — every narrowing + suppression point is present', () =
 });
 
 describe('admin console wiring — the steward can enter, preview-then-execute', () => {
-  it('the review-as-user action exists with honest preview copy', () => {
+  it('the review-as-user action exists with honest preview copy — and now SAYS his own rows still show (DR-1240)', () => {
     const spec = previewAction('review-as-user');
     expect(spec).toBeTruthy();
-    expect(spec.label).toBe('Review as a user');
+    expect(spec.label).toBe('Review as yourself, privileges hidden');
     expect(spec.danger).toBe(false);
     const preview = spec.preview.join(' ');
     expect(preview).toContain('reloads once');
     expect(preview).toContain('cloud snapshot');
+    expect(preview).toMatch(/Your OWN rows still show/);
     // Honest boundary (DR-0076): deliberate submissions are real, and we say so.
     expect(preview).toContain('still lands in your own account');
   });
 
-  it('AdminConsole renders the action and wires it to enterReviewerMode', () => {
+  it('the review-as-new-user action exists: the stranger, with the Vault create named off', () => {
+    const spec = previewAction('review-as-new-user');
+    expect(spec).toBeTruthy();
+    expect(spec.label).toBe('Review as a new user');
+    expect(spec.danger).toBe(false);
+    const preview = spec.preview.join(' ');
+    expect(preview).toContain('never read your own rows');
+    expect(preview).toMatch(/Vault’s create is off/);
+    expect(preview).toContain('still lands in your own account');
+  });
+
+  it('AdminConsole renders BOTH actions and wires each to its own entry', () => {
     const src = readFileSync(join(SRC, 'components', 'AdminConsole.jsx'), 'utf8');
     expect(src.includes('actionId="review-as-user"')).toBe(true);
-    expect(src.includes('enterReviewerMode')).toBe(true);
+    expect(src.includes('actionId="review-as-new-user"')).toBe(true);
+    expect(src.includes('enterReviewerMode()')).toBe(true);
+    expect(src.includes("enterReviewerModeAs('stranger')")).toBe(true);
   });
 });
