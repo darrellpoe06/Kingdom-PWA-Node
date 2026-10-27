@@ -1551,6 +1551,23 @@ const NODES = [
     ],
     seeds: ['door-pictures'],
   }),
+  // A work order keeps its pictures (DR-1235, 0310): the triage files a
+  // picture on the work order, and on the note it rides, into the same store
+  // the door's wall reads; the name given joins the instance's names, so a
+  // name typed once is offered after.
+  app('app/src/components/WorkOrderPictures.jsx', {
+    id: 'work-order-pictures', name: "A work order's pictures", purpose: 'The owner or the assigned worker takes pictures on a work order from the triage; they ride the note they were taken with, show under it and on the door\u2019s wall; a new picture name becomes one of the options from then on.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/lib/work-order-pictures.js', token: 'request_id: isRequest' },
+      { res: 'db:tenancy_notes', file: 'app/src/components/WorkOrderTriage.jsx', token: "requestOps.note(r, a.note.body, { id: a.note.id })" },
+      { res: 'db:picture_names', file: 'app/src/modules/properties/picture-names.js', token: "rpc('remember_picture_name'" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: 'select(WORK_ORDER_PHOTO_COLUMNS)' },
+      { res: 'db:picture_names', file: 'app/src/modules/properties/picture-names.js', token: "from('picture_names')" },
+    ],
+    seeds: ['door-pictures', 'door-work-orders'],
+  }),
   // A short-stay door's calendar (DR-0930, 0269): a guest asks (no account),
   // the family confirms, declines, blacks out and books; every move on the clock.
   app('app/src/modules/properties/Booking.jsx', {
