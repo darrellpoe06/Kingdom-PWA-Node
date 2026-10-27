@@ -112,7 +112,7 @@ const numbered = (mods) => mods.map((m) => {
 // 261 is still held for the sons-of-God lesson on
 // `claude/ll261-sons-of-god-taught-from-the-word`, pushed and in flight. Delete
 // that entry in the merge that fills it.
-const KNOWN_MISSING = [211, 212, 235, 261];
+const KNOWN_MISSING = [211, 212, 235];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {
