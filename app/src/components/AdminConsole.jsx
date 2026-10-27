@@ -28,7 +28,7 @@
 import React, { useState, useEffect } from 'react';
 import supabase from '../lib/supabase.js';
 import { askRole } from '../lib/church-access.js';
-import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
+import { enterReviewerMode, enterReviewerModeAs } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
@@ -309,6 +309,8 @@ export default function AdminConsole({
   // per-device flag and reloads into the exact signed-in-user boot; the pinned
   // banner's Exit brings this steward view back.
   const doReviewAsUser = () => enterReviewerMode();
+  // ...and the second mode (DR-1240): "as a new user" — the stranger's face.
+  const doReviewAsNewUser = () => enterReviewerModeAs('stranger');
 
   const facts = systemFacts({ isPublicHost, buildSha: BUILD_SHA, buildTime: BUILD_TIME, backendReachable });
 
@@ -383,12 +385,13 @@ export default function AdminConsole({
           <div className="mt-2 border border-[#5A6E3D] bg-[#FAF8F4] p-3">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">How we review</div>
             <p className="text-xs text-[#1A1815] mt-1 leading-relaxed" style={serif}>
-              After every push to production, review it live <strong>as a user</strong> before trusting it — the CI gates prove the build is sound; this proves it’s right on the screen the user actually meets. Use <strong>Review as a user</strong> below any time; it’s always here. A pinned strip carries the one-tap way back.
+              After every push to production, review it live <strong>as a user</strong> before trusting it — the CI gates prove the build is sound; this proves it’s right on the screen the user actually meets. Use <strong>Review as yourself</strong> (privileges hidden; your own doors still show) or <strong>Review as a new user</strong> (a stranger’s face) below any time; both are always here, and the strip switches between them. A pinned strip carries the one-tap way back.
             </p>
           </div>
           <div className="mt-2 space-y-2">
             <GuardedAction actionId="reload-latest" onExecute={doReload} />
             <GuardedAction actionId="review-as-user" onExecute={doReviewAsUser} />
+            <GuardedAction actionId="review-as-new-user" onExecute={doReviewAsNewUser} />
             {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
           </div>
         </section>

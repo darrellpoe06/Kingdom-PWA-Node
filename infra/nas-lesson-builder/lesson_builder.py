@@ -153,11 +153,19 @@ def failed_attempts(tags):
 RATE_LIMIT_COOLDOWN_SECONDS = int(os.environ.get("LESSON_RATE_LIMIT_COOLDOWN_SECONDS", "1800"))
 RATE_LIMIT_RETRIES = int(os.environ.get("LESSON_RATE_LIMIT_RETRIES", "2"))
 _RATE_LIMITED = re.compile(r'api_error_status\\?"?\s*:\s*429|\bHTTP 429\b|\b429 Too Many|rate[ _-]?limit|overloaded', re.I)
+# A PASSING MOMENT, NOT A FAILED LESSON (DR-1232, measured 2026-10-27): six
+# builds started at once and the CLI's sign-in refresh raced -- "Failed to
+# refresh OAuth token: another Claude Code process is refreshing it or exited
+# mid-refresh". The writer now takes one call at a time (lesson_writer.py), and
+# a row that met this is waited out like a rate limit, never blamed for it.
+_TRANSIENT = re.compile(r"Failed to refresh OAuth token|another Claude Code process is refreshing|\btransient:", re.I)
 
 
 def rate_limited(tags):
-    """Did this row's builds fail because the model's rate limit had not passed?"""
-    return any(str(t).startswith("build-reason:") and _RATE_LIMITED.search(str(t)) for t in tags or [])
+    """Did this row's builds fail on a limit or a passing moment (a rate limit,
+    a sign-in refresh race) the next try can pass? Waited out, never blamed."""
+    return any(str(t).startswith("build-reason:") and (_RATE_LIMITED.search(str(t)) or _TRANSIENT.search(str(t)))
+               for t in tags or [])
 
 
 def last_failed_at(tags):
@@ -172,7 +180,20 @@ def last_failed_at(tags):
 
 
 def reason_tag(text):
-    return "build-reason:" + re.sub(r"\s+", " ", str(text)).strip()[:200]
+    """The row's own why, as a tag. 200 characters, so a reader's list stays
+    readable -- and the ONE signal eligibility() reads back from it is kept
+    at the FRONT (DR-1232). Measured 2026-10-27 on fifteen rows: the CLI's
+    429 sat ~250 characters into its JSON tail, after "no version passed
+    every gate (1 written): cli-local cli-local exit 1: ", so the cut tag read
+    `..."killed":{"parent"` and rate_limited() saw nothing; the rows were
+    counted as two failed lessons and left for the hourly Routine with
+    nothing wrong in them. A rate-limited failure now names itself first."""
+    why = re.sub(r"\s+", " ", str(text)).strip()
+    if _RATE_LIMITED.search(why) and not why.lower().startswith("rate-limited"):
+        why = "rate-limited: " + why
+    elif _TRANSIENT.search(why) and not why.lower().startswith("transient"):
+        why = "transient: " + why
+    return "build-reason:" + why[:200]
 
 
 # =============================================================================
@@ -1230,6 +1251,40 @@ def _run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
     return r.stdout.decode("utf-8", "replace")
 
 
+# What git says when a ref in the builder's own clone cannot be moved; the
+# clone heals itself and tries once more (DR-1232).
+STUCK_REF = re.compile(r"unable to update local ref|cannot lock ref|unable to create '.*\.lock'|couldn't write '.*\.lock'")
+
+# What git says when the clone cannot write its own CONFIG, which is a
+# different lock from a ref's and was healed by nothing.
+#
+# MEASURED 2026-10-27, on the twelve waiting rows: three died with
+# "could not lock config file .git/config: File exists" -- a stale
+# .git/config.lock left behind in the builder's OWN clone by a run that was
+# killed before it could release it. STUCK_REF does not match that sentence
+# (it wants "unable to create '...lock'"), and heal_refs() only walks
+# .git/refs/remotes/origin, so the top-level lock was outside both the
+# pattern and the cure. The row was handed back tagged build:failed, which
+# blames the TEACHING for a lock file belonging to the machine.
+#
+# This is DR-1232's finding a second time through a different lock, which is
+# why the cure is widened rather than special-cased: the clone is the
+# builder's own disposable state (ensure() re-clones it from nothing), so a
+# leftover lock in it is never a teaching's fault and never a reason to stop.
+STUCK_CONFIG = re.compile(r"could not lock config file|error locking config file")
+
+# A lock file younger than this may belong to a git that is still running, and
+# is left alone. Only one builder runs at a time (the single-instance lock),
+# so a lock older than this is leftover rather than live -- but the floor
+# costs nothing and removes the one way this cure could do harm.
+STALE_LOCK_SECONDS = 60
+
+# The clone's own top-level locks. Each is a file git creates beside the thing
+# it guards and removes on success; a leftover one only ever blocks the next
+# run. Refs are NOT in this list -- heal_refs() owns those.
+CLONE_LOCKS = ("config.lock", "index.lock", "HEAD.lock", "shallow.lock", "packed-refs.lock")
+
+
 class Git:
     """The builder's OWN clone at DATA/repo (never the services-sync mirror, so
     a build can never leave the mirror dirty)."""
@@ -1246,12 +1301,85 @@ class Git:
         if not os.path.isdir(os.path.join(self.clone, ".git")):
             os.makedirs(self.data_dir, exist_ok=True)
             _run(["git", "clone", "--no-tags", self.remote, self.clone], timeout=1800)
+        try:
+            self._identity()
+        except RuntimeError as e:
+            if not STUCK_CONFIG.search(str(e)):
+                raise
+            # A STALE CONFIG LOCK IS HEALED, NOT HANDED BACK -- the same rule
+            # DR-1232 set for a stuck ref. Only a second failure is a failure.
+            self.heal_locks()
+            self._identity()
+
+    def _identity(self):
         self.g("config", "user.name", "PoeTech NAS lesson builder")
         self.g("config", "user.email", "darrellpoe06@gmail.com")
 
+    def heal_locks(self, now=None):
+        """Drop the clone's own STALE top-level lock files; return what went.
+
+        Every name in CLONE_LOCKS is a file git writes beside the thing it
+        guards and deletes on success, so one still present belongs to a run
+        that died. A lock younger than STALE_LOCK_SECONDS is left alone, so
+        this can never pull the floor out from under a git that is still
+        working. Best effort by design: the retry in the caller is the proof,
+        not this function's return value."""
+        now = time.time() if now is None else now
+        gitdir = os.path.join(self.clone, ".git")
+        removed = []
+        for name in CLONE_LOCKS:
+            path = os.path.join(gitdir, name)
+            try:
+                age = now - os.stat(path).st_mtime
+            except OSError:
+                continue  # not there, which is the normal case
+            if age < STALE_LOCK_SECONDS:
+                continue  # may be live; never race a running git
+            try:
+                os.remove(path)
+                removed.append(name)
+            except OSError:
+                pass
+        return removed
+
     def fetch(self):
         self.ensure()
-        self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        try:
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        except RuntimeError as e:
+            if not STUCK_REF.search(str(e)):
+                raise
+            # A STUCK REF IS HEALED, NOT HANDED BACK (DR-1232). Measured
+            # 2026-10-27 on rows 52121525 and 0593ae29: their third build died
+            # in this fetch -- "(unable to update local ref)" on a branch the
+            # builder's own clone could not update (a stale ref lock, or a
+            # branch whose name is now a directory of other branches) -- and
+            # the TEACHING was blamed with a build:failed tag. The clone is the
+            # builder's own state; it prunes, drops stale locks, repacks, and
+            # fetches once more. Only a second failure is a failure.
+            self.heal_refs()
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+
+    def heal_refs(self):
+        """Clear what stops a fetch from updating refs/remotes/origin: stale
+        lock files, refs the remote no longer has, loose refs a packed one
+        shadows. Each step is best effort; the retry in fetch() is the proof."""
+        # A stale top-level lock stops `gc` and `pack-refs` below as surely as
+        # it stopped `config`, so the clone's own locks go first.
+        self.heal_locks()
+        for args in (("remote", "prune", "origin"), ("pack-refs", "--all"), ("gc", "--prune=now", "--quiet")):
+            try:
+                self.g(*args, timeout=900)
+            except RuntimeError:
+                pass
+        refs_dir = os.path.join(self.clone, ".git", "refs", "remotes", "origin")
+        for root, _dirs, files in os.walk(refs_dir):
+            for f in files:
+                if f.endswith(".lock"):
+                    try:
+                        os.remove(os.path.join(root, f))
+                    except OSError:
+                        pass
 
     def show(self, ref, path):
         try:

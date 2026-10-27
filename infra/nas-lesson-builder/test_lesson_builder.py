@@ -20,6 +20,7 @@ import threading
 import time
 import datetime
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -335,6 +336,55 @@ class Writers(unittest.TestCase):
         del bad["movements"]
         p = lw.schema_problems(bad)
         self.assertTrue(any("teen" in x for x in p) and any("movements" in x for x in p))
+
+    def test_bad_verdict_says_what_it_received(self):
+        """DR-1249. Four rows sat for ~100h carrying only "verdict must be
+        lesson | test-only | not-a-lesson", which cannot tell a wrong WORD
+        from a missing field from the extractor taking the wrong object -- and
+        the prompt was already confirmed to offer all three words, so there
+        was nothing left to read without opening the row's body."""
+        # A wrong word: the refusal must quote it.
+        bad = make_lesson()
+        bad["verdict"] = "not a lesson"
+        p = lw.schema_problems(bad)
+        self.assertEqual(len(p), 1, p)
+        self.assertIn("'not a lesson'", p[0])
+        self.assertIn("verdict must be lesson | test-only | not-a-lesson", p[0])
+
+        # Missing entirely: None must be distinguishable from an empty string.
+        gone = make_lesson()
+        del gone["verdict"]
+        pg = lw.schema_problems(gone)
+        self.assertIn("None", pg[0])
+        empty = make_lesson()
+        empty["verdict"] = ""
+        self.assertIn("''", lw.schema_problems(empty)[0])
+
+        # The key list is what separates a truncated/alien object from a full
+        # lesson object that merely used the wrong word.
+        self.assertIn("title", p[0])
+        thin = {"verdict": "nope", "foo": 1}
+        pt = lw.schema_problems(thin)
+        self.assertIn("2 key(s)", pt[0])
+        self.assertIn("foo", pt[0])
+        self.assertNotIn("title", pt[0])
+
+        # NEVER a body: no value from any other field may appear.
+        bad2 = make_lesson()
+        bad2["verdict"] = "nope"
+        bad2["bigIdea"] = "SECRETSENTENCE the words a person spoke"
+        self.assertNotIn("SECRETSENTENCE", lw.schema_problems(bad2)[0])
+
+        # A prose-stuffed verdict is bounded rather than echoed whole.
+        long_v = make_lesson()
+        long_v["verdict"] = "x" * 400
+        self.assertLess(len(lw.schema_problems(long_v)[0]), 300)
+
+        # The three good words still pass clean.
+        for w in ("lesson", "test-only", "not-a-lesson"):
+            ok = make_lesson()
+            ok["verdict"] = w
+            self.assertEqual([x for x in lw.schema_problems(ok) if "verdict" in x], [])
 
     def test_cli_envelope(self):
         text, usage = lw.parse_cli_reply(json.dumps({"type": "result", "subtype": "success", "is_error": False,
@@ -874,6 +924,228 @@ class Stages(unittest.TestCase):
         ok, why = lb.eligibility(row("r", TEACHING, spent, OWNER), now=at("09:00"))
         self.assertFalse(ok, "PROVEN TO CATCH: the retries are bounded, never a loop")
         self.assertIn("rate-limited 4 times", why)
+
+    def test_the_rate_limit_signal_survives_the_200_character_cut(self):
+        """DR-1232, measured 2026-10-27 on fifteen rows (lesson_versions.error, read
+        over the tailnet): the CLI's envelope puts api_error_status ~250 characters
+        into its 400-byte tail, so after reason_tag's 200-character cut the tag
+        ended at `"killed":{"parent"` and rate_limited() saw nothing. The rows
+        were counted as two failed lessons with nothing wrong in them. The real
+        400-byte tail is used here, byte for byte."""
+        tail = ('ailed":0,"killed":{"parent":0,"user":0,"system":0},"refused":{"depth_limit":0,'
+                '"concurrency_limit":0,"budget":0},"by_type":{}},"is_error":true,"num_turns":1,'
+                '"subtype":"success","api_error_status":429,"result":"You have hit your limit",'
+                '"type":"result","duration_ms":465,"uuid":"0f6d1c2e-aaaa-bbbb-cccc-1234567890ab","queued_turn_count":0}')
+        why = "no version passed every gate (1 written): cli-local cli-local exit 1: " + tail
+        self.assertGreater(why.index("429"), 200, "the fixture reproduces the cut: 429 sits past 200 characters")
+        tag = lb.reason_tag(why)
+        self.assertTrue(tag.startswith("build-reason:rate-limited: no version passed"), tag)
+        self.assertLessEqual(len(tag), len("build-reason:") + 200)
+        self.assertTrue(lb.rate_limited(["lesson", tag]))
+        # PROVEN TO CATCH: the old cut alone loses the signal
+        old = "build-reason:" + why[:200]
+        self.assertFalse(lb.rate_limited(["lesson", old]), "the old tag ends before 429 and reads as a plain failure")
+        # a reason that is not a rate limit is untouched
+        self.assertEqual(lb.reason_tag("verse gate: Numbers 35:11 not verbatim"),
+                         "build-reason:verse gate: Numbers 35:11 not verbatim")
+        # and one that already says so is not prefixed twice
+        self.assertEqual(lb.reason_tag("rate-limited: HTTP 429"), "build-reason:rate-limited: HTTP 429")
+
+    def test_a_failed_cli_run_names_its_status_first(self):
+        """DR-1232: the writer's error opens with HTTP <status> so a reader (and
+        the 200-character tag) sees the rate limit before the envelope's noise."""
+        out = ('{"type":"result","subtype":"success","is_error":true,"num_turns":1,'
+               '"api_error_status":429,"result":"You have hit your limit","duration_ms":465,'
+               '"usage":{},"total_cost_usd":0}').encode("utf-8")
+        said = lw.cli_failure_tail(out, b"")
+        self.assertTrue(said.startswith("HTTP 429 (success): You have hit your limit"), said)
+        self.assertTrue(lb.rate_limited([lb.reason_tag("cli-local exit 1: " + said)]))
+        # not an envelope: the old tail, unchanged
+        self.assertEqual(lw.cli_failure_tail(b"", b"claude: command not found"), "claude: command not found")
+
+    def test_a_stuck_ref_in_the_builder_s_own_clone_is_healed_then_fetched_again(self):
+        """DR-1232, measured 2026-10-27: two re-offered teachings died in Git.fetch()
+        on "(unable to update local ref)" -- the builder's own clone, not the
+        teaching -- and were tagged build:failed for it."""
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "repo", ".git", "refs", "remotes", "origin"))
+        lock = os.path.join(d, "repo", ".git", "refs", "remotes", "origin", "stuck.lock")
+        open(lock, "w").close()
+        calls = []
+        stuck = ["* [new branch] fix/corpus -> origin/fix/corpus (unable to update local ref)"]
+        def fake_run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "fetch" and stuck:
+                raise RuntimeError("git -C repo exit 1: " + stuck.pop())
+            return ""
+        git = lb.Git(data_dir=d)
+        with unittest.mock.patch.object(lb, "_run", fake_run):
+            git.fetch()
+        fetches = [c for c in calls if c and c[0] == "fetch"]
+        self.assertEqual(len(fetches), 2, "fetch, heal, fetch again")
+        healed = [c[0] for c in calls if c and c[0] in ("remote", "pack-refs", "gc")]
+        self.assertEqual(healed, ["remote", "pack-refs", "gc"])
+        self.assertFalse(os.path.exists(lock), "the stale lock is gone")
+        # PROVEN TO CATCH: a failure that is not a stuck ref is raised at once, untouched
+        calls.clear()
+        def plain_fail(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "fetch":
+                raise RuntimeError("git -C repo exit 128: fatal: could not read from remote repository")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", plain_fail):
+            with self.assertRaises(RuntimeError):
+                git.fetch()
+        self.assertEqual(len([c for c in calls if c and c[0] == "fetch"]), 1)
+        # and a ref that stays stuck after the heal is still a failure, said once more
+        def always_stuck(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "fetch":
+                raise RuntimeError("git -C repo exit 1: (unable to update local ref)")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", always_stuck):
+            with self.assertRaises(RuntimeError):
+                git.fetch()
+
+    def test_a_stale_config_lock_is_the_clones_own_and_is_healed_not_blamed(self):
+        """DR-1252, measured 2026-10-27 on the twelve waiting rows: three died
+        with "could not lock config file .git/config: File exists" -- a stale
+        .git/config.lock left by a killed run. STUCK_REF does not match that
+        sentence and heal_refs() only walks refs/remotes/origin, so the lock
+        was outside both the pattern and the cure, and the TEACHING was handed
+        back tagged build:failed for a lock file belonging to the machine."""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        gitdir = os.path.join(d, "repo", ".git")
+        os.makedirs(gitdir)
+        lock = os.path.join(gitdir, "config.lock")
+        open(lock, "w").close()
+        os.utime(lock, (time.time() - 3600, time.time() - 3600))  # an hour old: leftover
+
+        calls = []
+        stuck = [True]
+        def fake_run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "config" and stuck:
+                stuck.pop()
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file "
+                                   ".git/config: File exists")
+            return ""
+        git = lb.Git(data_dir=d)
+        with unittest.mock.patch.object(lb, "_run", fake_run):
+            git.ensure()
+
+        self.assertFalse(os.path.exists(lock), "the stale config lock is gone")
+        names = [c[1] for c in calls if c and c[0] == "config"]
+        # user.name fails, the lock is cleared, then BOTH identity writes run.
+        self.assertEqual(names, ["user.name", "user.name", "user.email"])
+
+        # PROVEN TO CATCH: without the config arm, the same failure escapes and
+        # the row is blamed for it.
+        calls.clear()
+        stuck2 = [True]
+        def fake_run2(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "config" and stuck2:
+                stuck2.pop()
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file "
+                                   ".git/config: File exists")
+            return ""
+        with unittest.mock.patch.object(lb, "STUCK_CONFIG", re.compile(r"\bmatches nothing\b")):
+            with unittest.mock.patch.object(lb, "_run", fake_run2):
+                with self.assertRaises(RuntimeError) as caught:
+                    git.ensure()
+        self.assertIn("could not lock config file", str(caught.exception))
+
+        # A failure that is NOT a config lock is raised at once, untouched.
+        def other_fail(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "config":
+                raise RuntimeError("git -C repo exit 128: fatal: not a git repository")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", other_fail):
+            with self.assertRaises(RuntimeError):
+                git.ensure()
+
+        # And a lock that stays after the heal is still a failure, said once more.
+        def always_locked(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "config":
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file .git/config: File exists")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", always_locked):
+            with self.assertRaises(RuntimeError):
+                git.ensure()
+
+    def test_heal_locks_never_races_a_git_that_is_still_running(self):
+        """A lock younger than STALE_LOCK_SECONDS may be held by a live git, so
+        it is left alone. This is the one way the cure could do harm, and the
+        floor is what removes it."""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        gitdir = os.path.join(d, "repo", ".git")
+        os.makedirs(gitdir)
+        fresh = os.path.join(gitdir, "index.lock")
+        stale = os.path.join(gitdir, "config.lock")
+        for p in (fresh, stale):
+            open(p, "w").close()
+        now = time.time()
+        os.utime(fresh, (now - 1, now - 1))
+        os.utime(stale, (now - lb.STALE_LOCK_SECONDS - 1, now - lb.STALE_LOCK_SECONDS - 1))
+
+        removed = lb.Git(data_dir=d).heal_locks(now=now)
+        self.assertEqual(removed, ["config.lock"])
+        self.assertTrue(os.path.exists(fresh), "a lock a live git may hold is left alone")
+        self.assertFalse(os.path.exists(stale))
+
+        # It reports what it removed, and a clone with no locks is not an error.
+        self.assertEqual(lb.Git(data_dir=d).heal_locks(now=now), [])
+        # Every entry is a TOP-LEVEL file in .git, never a path into refs/ --
+        # the individual ref locks under refs/remotes/origin stay heal_refs()'s
+        # business, so the two cures cannot collide. (packed-refs.lock is a
+        # top-level file despite its name, which is why this checks for a path
+        # separator rather than for the word "refs".)
+        for name in lb.CLONE_LOCKS:
+            self.assertNotIn(os.sep, name, name)
+            self.assertTrue(name.endswith(".lock"), name)
+
+    def test_a_sign_in_refresh_race_is_a_passing_moment_and_the_cli_runs_one_at_a_time(self):
+        """DR-1232, measured 2026-10-27 01:55Z: six builds started at once; each
+        writer died in ~7 s with the CLI's own sentence below. The row is waited
+        out like a rate limit, and the CLI is called under one lock per box."""
+        out = ('{"type":"result","subtype":"success","subagent_stats":{"total":0,"failed":0,"killed":{"parent":0,"user":0,'
+               '"system":0},"refused":{"depth_limit":0,"concurrency_limit":0,"budget":0},"by_type":{}},"is_error":true,'
+               '"num_turns":1,"session_id":"0f6d1c2e-aaaa-bbbb-cccc-1234567890ab","permission_denials":[],"api_error_status":null,'
+               '"result":"Failed to refresh OAuth token: another Claude Code process is refreshing it or exited mid-refresh. Try again.",'
+               '"duration_ms":7157,"uuid":"1a2b3c4d-aaaa-bbbb-cccc-1234567890ab","queued_turn_count":0,"result_index":0}').encode("utf-8")
+        said = lw.cli_failure_tail(out, b"")
+        self.assertTrue(said.startswith("cli error (success): Failed to refresh OAuth token"), said)
+        tag = lb.reason_tag("no version passed every gate (1 written): cli-local cli-local exit 1: " + said)
+        self.assertTrue(tag.startswith("build-reason:transient: no version passed"), tag)
+        self.assertTrue(lb.rate_limited(["lesson", tag]))
+        # PROVEN TO CATCH: the shape that shipped blamed the teaching
+        old_tail = (b"" + out)[-400:].decode("utf-8")
+        self.assertGreater(old_tail.index("Failed to refresh"), 127, "the fixture reproduces the cut: the sentence sits past it")
+        old_tag = "build-reason:" + ("no version passed every gate (1 written): cli-local cli-local exit 1: " + old_tail)[:200]
+        self.assertFalse(lb.rate_limited(["lesson", old_tag]), "the old tag ends before the sentence and reads as a plain failure")
+        # the lock: two writers on one box take turns; a crashed holder never wedges the next
+        d = tempfile.mkdtemp()
+        held = []
+        def run(argv, **kw):
+            import fcntl
+            fh = open(os.path.join(d, "cli-local.lock"), "a+")
+            try:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                held.append("free")   # the lock was NOT held during the call
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                held.append("held")
+            fh.close()
+            class R: returncode, stdout, stderr = 0, b'{"type":"result","subtype":"success","is_error":false,"result":"ok","usage":{}}', b""
+            return R()
+        w = lw.CliLocal({"bin": "/bin/true", "lock_dir": d}, env={}, run=run, which=lambda x: "/bin/true")
+        w.transmit("hello", 10)
+        self.assertEqual(held, ["held"], "the call ran under the box-wide lock")
+        self.assertFalse(os.path.exists(os.path.join(d, "cli-local.lock.locked")))
+        with lw.one_at_a_time(os.path.join(d, "cli-local.lock")):
+            pass  # a second take after release does not block
 
     def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
         tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",

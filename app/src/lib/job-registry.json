@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 38,
+  "scheduled": 39,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -211,6 +211,13 @@
       "name": "review-watcher",
       "crons": [
         "23 11 * * *"
+      ]
+    },
+    {
+      "file": "rls-isolation.yml",
+      "name": "rls-isolation",
+      "crons": [
+        "47 13 * * *"
       ]
     },
     {

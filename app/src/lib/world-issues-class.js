@@ -6284,7 +6284,407 @@ const CAMPUS_ROADS_ISSUE = {
   ]
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE, HIGHER_ED_AID_ISSUE, WAGE_MEASURE_ISSUE, CAMPUS_ROADS_ISSUE];
+// =============================================================================
+// ISSUE 22 — The broken seal (DR-1217). Darrell pasted a forum post from a
+// "General / PHP General" board into the lesson lane with one word on it:
+// "Lesson." The post carried two warnings on one day: PHP's "drop everything and
+// patch now" security release, and an issuer of intermediate certificates whose
+// keys were compromised. The spine is what a seal is in the Word — it stands for
+// the one who holds the key, and a seal anyone can reproduce is no seal — and
+// where trust belongs when the seals of men fail. Every figure was re-checked by
+// live search on 2026-10-22; what could not be opened from here is said so.
+// =============================================================================
+const BROKEN_SEAL_ISSUE = {
+  id: 'wi-the-broken-seal-and-the-sure-foundation',
+  title: 'The Broken Seal and the Sure Foundation — A Critical Patch and a Compromised Certificate Authority, Weighed by the Word',
+  subject: {
+    name: 'the PHP critical security release of 2026-10-21, the compromise of eight eMudhra intermediate certificates, and the trust a seal is meant to carry',
+    kind: 'technology-security-and-public-institutions',
+    isNamedRealPerson: true,
+  },
+  skill: 'Take an urgent technology warning that arrives second-hand and learn to weigh it the Word’s way: lead with what a seal is and whose name it carries; state plainly what is established — two critical PHP flaws rated 9.2 and fixed on 2026-10-21, eight certificate-authority keys so weak they could be recovered from the public certificate, and every major browser blocking them within four days; flag NARROWLY what is genuinely open, including the exact cause of the weak keys, the first report date, and whether anyone used the keys; check the claim against the people who own the thing rather than the post that repeats it; hear the maintainer, the certificate authority, the browser makers, the site operator and the household each at their strongest; and then do what the Word says about watching, warning and trusting, without either panic or shrugging.',
+  source: {
+    creator: 'An unnamed member of an online developer forum, posting in its "General / PHP General" category; pasted into the lesson lane by Darrell with the single word "Lesson"',
+    medium: 'a forum post, received as pasted text',
+    title: 'Critical PHP Update Releasing Today - and Compromised Certificates in the wild',
+    url: '',
+    asOf: '2026-10-22',
+    note: 'PROVENANCE, plainly. The post is a short heads-up from a forum member who names no one and links two items: the PHP news archive for 2026 and a news story headlined "eMudhra Certificate Authority Compromise Triggers Emergency Action Across Browsers." It also quotes the PHP project’s own one-line description of itself. THE FORUM IS THE INTERMEDIARY, and it says so itself — "Hopefully everyone will see this (with more details) through other channels." So every figure below was checked against the parties who own the event: the PHP project’s own announcement list, the United States Cybersecurity and Infrastructure Security Agency, Mozilla’s own bug report, the certificate authority’s own statement, and the security firms who published analyses. The post’s author is not named here because the post does not name them, and nothing about them is guessed. What could and could not be opened from this sandbox is stated in the limits below rather than implied.',
+  },
+  limits: [
+    {
+      id: 'lim-pages-not-opened',
+      text: 'The primary pages could NOT be opened directly from this sandbox: php.net, the php.announce list, the Mozilla security blog and the news sites all failed to resolve from here. Every figure rests on live search results that quote or summarize those pages, cross-checked across independent publishers, and the release details on the CISA alert and the security firms’ analyses. Re-review 2026-10-29: open the PHP release page and Mozilla’s post and confirm each number against its own page.',
+    },
+    {
+      id: 'lim-cause-open',
+      text: 'WHY the keys were weak is not settled in the sources: one account says the keys were generated with too little randomness, and the certificate authority’s own statement attributes it to a flaw in a key generation ceremony held in April 2025. Both agree the keys were weak; they do not agree on the mechanism. The lesson carries both and picks neither.',
+    },
+    {
+      id: 'lim-dates-differ',
+      text: 'The sources differ by a day on when the weakness was first reported (October 17 or October 18) and on when the certificate authority revoked the certificates (October 18 or 19). The order of events is not in doubt; the exact day is carried as reported, with the disagreement named.',
+    },
+    {
+      id: 'lim-exploitation',
+      text: 'Two different questions about attack are kept apart. For the PHP flaws, one security firm reports that attempts to exploit them began on October 17, before public disclosure — a single source, carried as such. For the certificate keys, no source found shows anyone used them maliciously as of October 21. "No evidence found" is not "proven unused," and the lesson says exactly that and no more.',
+    },
+    {
+      id: 'lim-institutions-trail',
+      text: 'THE FIRST DRAFT OF THIS LESSON CARRIED ONLY WHAT THE INSTITUTIONS HAD CONFIRMED (Darrell, 2026-10-27: "World issues did not have the latest information... just the latest in institutions... which are usually behind the main stream"). That was a real gap, named here rather than hidden: the people with their hands on the servers knew about attack attempts days before any office wrote them down, and a lesson that waits for the office is a lesson that is late. So the newest word is now carried in its own dated section, from wherever it is being said, named by who says it and on what record; and an institution’s confirmation is welcomed when it comes but is never the top tier of truth by itself. Whether the national catalog of exploited flaws had listed these two by the end of that week could not be confirmed from this sandbox with a dated page, so it is carried as open, not as fact.',
+    },
+  ],
+  claims: [
+    {
+      id: 'c-drop-everything',
+      text: 'PHP is issuing two critical security updates today, with a "drop everything and patch now" advisory.',
+      label: 'claim',
+      attribution: 'The forum post, paraphrasing the PHP project’s advance notice',
+      note: 'Substantially confirmed. The PHP security team announced in advance a release on Wednesday, October 21, 2026, at 14:00 UTC for two critical vulnerabilities, both rated 9.2, and the United States’ cyber-defense agency issued an alert the same day titled "Critical Vulnerabilities in PHP Require Immediate Patching." The words "drop everything and patch now" are the post’s own summary of that urgency, not a quotation from the project.',
+    },
+    {
+      id: 'c-issuer-compromised',
+      text: 'An issuer of intermediate SSL certificates was recently compromised.',
+      label: 'claim',
+      attribution: 'The forum post, citing a news story about eMudhra',
+      note: 'Confirmed, and the word "compromised" is precise here: the private keys of eight intermediate certificates were weak enough to be recovered from the public certificates themselves. It is not a report of a break-in; it is a report that the locks were made badly. The difference matters for what follows.',
+    },
+    {
+      id: 'c-web-messed-up',
+      text: 'Things not down for PHP patching might be down for certificate chain fixes; the web is "all messed up today" for more than one reason.',
+      label: 'opinion',
+      attribution: 'The forum post’s own framing',
+      note: 'A reasonable read of a bad day, and partly confirmed: one browser maker said plainly that some legitimate certificates chaining to the removed root would stop working. How much of the web was actually down, and for how long, is not measured anywhere in the sources, so it stays the poster’s opinion.',
+    },
+    {
+      id: 'c-only-limited',
+      text: 'The incident is limited to specific intermediate certificates, does not affect the authority’s root private keys or its other intermediates, and none of the affected intermediates issued end-entity certificates.',
+      label: 'claim',
+      attribution: 'eMudhra, in its own statement on the incident',
+      note: 'The interested party’s own account of its own incident. It may well be accurate, and it is carried as theirs. A browser maker’s decision to remove an entire root anyway is independent evidence that at least one outside party did not rest on that account.',
+    },
+    {
+      id: 'c-two-slogans',
+      text: 'Two slogans ride on a day like this: "nothing online can be trusted anymore, so there is no point trying," and "the browsers already fixed it, so there is nothing for anyone else to do."',
+      label: 'opinion',
+      attribution: 'The wider conversation around incidents like these, not the forum post, which makes neither claim',
+      note: 'Carried as opinion on purpose, because each one starts from a true thing and lands on a false one. The Word corrects the CLAIMS in Stage 4 while every fact underneath stays exactly where it is: the flaws are critical whether or not anyone panics, and the browsers really did act fast whether or not everything else is done.',
+    },
+  ],
+  verifiable: [
+    {
+      id: 'f-php-release',
+      statement: 'The PHP security team gave advance notice of a security release on Wednesday, October 21, 2026, at 14:00 UTC, fixing two critical vulnerabilities, both rated 9.2 on CVSS version 4, and encouraged users to prepare to update. The fixed releases are PHP 8.5.12, 8.4.27, 8.3.36 and 8.2.35, and the flaws are tracked as CVE-2026-109618 and CVE-2026-109619. Both allow unauthenticated remote code execution on PHP installations that serve web requests. On October 21 the United States Cybersecurity and Infrastructure Security Agency issued an alert titled "Critical Vulnerabilities in PHP Require Immediate Patching."',
+      status: 'documented',
+      sources: [
+        { title: '[ANNOUNCE] Upcoming Critical PHP Security Release', publisher: 'The PHP project’s php.announce list (message 509)', url: 'https://news-web.php.net/php.announce/509', asOf: '2026-10-22' },
+        { title: 'Advance notice: security release Wed, Oct 21st 2026, 14:00 UTC, two critical vulnerabilities, both rated CVSSv4 9.2', publisher: 'The PHP Foundation, on X', url: 'https://x.com/ThePHPF/status/2112633155631108544', asOf: '2026-10-22' },
+        { title: 'Critical Vulnerabilities in PHP Require Immediate Patching (alert, 2026-10-21)', publisher: 'Cybersecurity and Infrastructure Security Agency (CISA)', url: 'https://www.cisa.gov/news-events/alerts/2026/10/21/critical-vulnerabilities-php-require-immediate-patching', asOf: '2026-10-22' },
+        { title: 'CVE-2026-109618 and CVE-2026-109619: Critical Unauthenticated Remote Code Execution in PHP', publisher: 'Rapid7', url: 'https://www.rapid7.com/blog/post/etr-cve-2026-109618-and-cve-2026-109619-critical-unauthenticated-remote-code-execution-in-php/', asOf: '2026-10-22' },
+        { title: 'php2shell (CVE-2026-109618, CVE-2026-109619): Critical PHP RCE FAQ', publisher: 'Tenable', url: 'https://www.tenable.com/blog/php2shell-cve-2026-109618-cve-2026-109619-frequently-asked-questions-about-critical-php-remote', asOf: '2026-10-22' },
+        { title: 'News Archive - 2026', publisher: 'php.net (linked by the forum post; could not be opened from this sandbox)', url: 'https://www.php.net/archive/2026.php', asOf: '2026-10-22' },
+      ],
+      note: 'STATED PLAINLY. The notice, the date and hour, the two flaws and the 9.2 rating come from the PHP project’s own announcement list and its foundation’s own post; the CVE numbers, the fixed versions and the remote-code-execution description agree across the government alert and independent security firms. The previous regular security releases, on September 24, 2026, were 8.2.34, 8.3.35, 8.4.26 and 8.5.11, which is consistent with these version numbers. NOT opened from here: php.net’s own release page, named above as where a reader confirms it.',
+    },
+    {
+      id: 'f-php-detail',
+      statement: 'Security analysts describe the first flaw as an out-of-memory condition that interrupts request setup, after which half-built data is treated as valid during cleanup, and the second as stale internal data surviving between requests on the same worker. The pair has been nicknamed "PHP2Shell." Disabling the session.upload_progress.enabled setting is reported to block the known attack path for the second flaw, and updating is the only complete fix. One firm reports that exploitation attempts began on October 17, before public disclosure, citing Amazon’s threat intelligence team.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Two Critical PHP Flaws Could Hand Attackers Your Web Servers. Here’s How to Find, Mitigate, and Patch PHP2Shell Now', publisher: 'Qualys', url: 'https://blog.qualys.com/vulnerabilities-threat-research/2026/10/20/php-announces-critical-security-release-for-two-vulnerabilities', asOf: '2026-10-22' },
+        { title: 'php2shell FAQ (the early exploitation attempts, per Amazon Threat Intelligence)', publisher: 'Tenable', url: 'https://www.tenable.com/blog/php2shell-cve-2026-109618-cve-2026-109619-frequently-asked-questions-about-critical-php-remote', asOf: '2026-10-22' },
+        { title: 'Critical RCE vulnerability in PHP: Find impacted assets', publisher: 'runZero', url: 'https://www.runzero.com/blog/php/', asOf: '2026-10-22' },
+      ],
+      note: 'FLAGGED NARROWLY. These are analysts’ descriptions of the mechanism and one firm’s report of early attacks; none was read from the project’s own advisory from here. The mitigation is reported, not tested by us. None of this softens the flaw — "critical" and "unauthenticated" are documented above — it only marks which sentences rest on a single analyst.',
+    },
+    {
+      id: 'f-emudhra-keys',
+      statement: 'Eight intermediate certificate-authority certificates issued under eMudhra, a certificate authority based in India, were found to have weak private keys: each key was reported as a P-384 elliptic-curve value below 256, small enough that anyone holding the public certificate could recover the private key in under a second. Six of the eight issued certificates for websites and two signed code. The weakness was reported by an independent researcher.',
+      status: 'documented',
+      sources: [
+        { title: 'Protecting Firefox users following the compromise of eMudhra intermediate certificates (2026-10-20)', publisher: 'Mozilla Security Blog', url: 'https://blog.mozilla.org/security/2026/10/20/protecting-firefox-users-following-the-compromise-of-emudhra-intermediate-certificates/', asOf: '2026-10-22' },
+        { title: 'Bug 2083449 — eMudhra: Private key compromise of Intermediate Certificates', publisher: 'Mozilla Bugzilla', url: 'https://bugzilla.mozilla.org/show_bug.cgi?id=2083449', asOf: '2026-10-22' },
+        { title: 'eMudhra Statement on Recent Certificate Security Incident', publisher: 'eMudhra', url: 'https://emudhra.com/en/post/certificate-security-incident', asOf: '2026-10-22' },
+        { title: 'Eight eMudhra CA Keys Compromised, Triggering Emergency Fixes Across Browsers and Software', publisher: 'The Hacker News', url: 'https://thehackernews.com/2026/10/eight-emudhra-ca-keys-compromised.html', asOf: '2026-10-22' },
+        { title: 'Indian certification authority eMudhra’s private keys compromised', publisher: 'The Register', url: 'https://www.theregister.com/security/2026/10/20/indian-certification-authority-emudhras-private-keys-compromised-one-of-them-was-the-number-4/5304312', asOf: '2026-10-22' },
+        { title: 'Advisory CIAD-2026-0050', publisher: 'CERT-In (Indian Computer Emergency Response Team)', url: 'https://www.cert-in.org.in/s2cMainServlet?pageid=PUBVLNOTES02&VLCODE=CIAD-2026-0050', asOf: '2026-10-22' },
+      ],
+      note: 'STATED PLAINLY, and it is stark. The whole worth of a certificate authority is that only it can produce its signature; a key that can be recovered from the public certificate means anyone could have produced it. The authority itself, Mozilla’s bug report and independent coverage agree on the eight certificates and on the weakness. The cause is a separate, open question (limits).',
+    },
+    {
+      id: 'f-browsers-acted',
+      statement: 'The browser makers blocked the eight certificates within four days: Firefox, through Mozilla’s OneCRL revocation list, and Chrome from October 17; Apple devices from October 19; Microsoft platforms from October 20. Chrome also removed an entire root, emSign ECC Root CA – G3, and Google said that "some legitimate certificates chaining to this root will cease to function in Chrome as a result." Mozilla also moved to remove the root that signed the affected intermediates. The certificate authority revoked the eight intermediates.',
+      status: 'documented',
+      sources: [
+        { title: 'Protecting Firefox users following the compromise of eMudhra intermediate certificates', publisher: 'Mozilla Security Blog', url: 'https://blog.mozilla.org/security/2026/10/20/protecting-firefox-users-following-the-compromise-of-emudhra-intermediate-certificates/', asOf: '2026-10-22' },
+        { title: 'Mozilla, Google, Apple block compromised eMudhra CA certificates', publisher: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/news/security/mozilla-google-apple-block-compromised-emudhra-ca-certificates/', asOf: '2026-10-22' },
+        { title: 'eMudhra Statement on Recent Certificate Security Incident (the block dates by platform)', publisher: 'eMudhra', url: 'https://emudhra.com/en/post/certificate-security-incident', asOf: '2026-10-22' },
+      ],
+      note: 'Worth saying as plainly as the failure: the watch worked where it was kept. Four companies that compete with each other acted on one researcher’s report inside four days, and one of them chose to break some legitimate sites rather than leave a doubtful root trusted. That cost is real and is named, not hidden.',
+    },
+    {
+      id: 'f-who-is-still-exposed',
+      statement: 'The remaining exposure is software that carries its own list of trusted authorities, or does not check revocation, rather than browsers. Fixes named in coverage include an updated Python certifi package (2026.10.19) and Node.js releases 22.23.4, 24.22.1 and 26.12.1.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'eMudhra CA Compromise: The Trust Stores You Didn’t Patch', publisher: 'Endor Labs', url: 'https://www.endorlabs.com/learn/emudhra-intermediate-ca-compromise-the-trust-stores-you-patched-and-the-ones-you-didnt-know-you-had', asOf: '2026-10-22' },
+        { title: 'eMudhra CA Key Compromise: Chrome and Firefox Have Blocked It, Non-Browser Clients Need Updates Now', publisher: 'Rescana', url: 'https://www.rescana.com/post/emudhra-intermediate-ca-key-compromise-october-2026', asOf: '2026-10-22' },
+      ],
+      note: 'The principle is documented across coverage; the specific package versions come from security firms’ write-ups and were not read from each project’s own release notes from here. The lesson that follows does not depend on the version numbers: a list of whom to trust is only as current as the last time someone updated it.',
+    },
+    {
+      id: 'f-field-ahead-of-the-office',
+      statement: 'The field knew before the office. Amazon’s honeypot network logged an attempt to exploit the PHP flaws on October 17, four days before the patch and the public disclosure on October 21; Cloudflare’s chief executive said its network saw thousands of attempts in the ten hours before the announcement; and CrowdSec counted 1,187 addresses sending PHP2Shell requests by the night of October 25 while reporting that no public exploit yet worked reliably against a default PHP setup and zero publicly confirmed compromises. The newest word on an attack comes from the people watching the wall, and it comes dated.',
+      status: 'documented',
+      sources: [
+        { title: 'PHP2Shell Exploitation Started Days Before Patches', publisher: 'SecurityWeek (reporting Amazon’s MadPot finding)', url: 'https://www.securityweek.com/php2shell-exploitation-started-days-before-patches/', asOf: '2026-10-27' },
+        { title: 'Someone tried to exploit PHP2Shell four days before disclosure', publisher: 'The Hacker News', url: 'https://thehackernews.com/2026/10/someone-tried-to-exploit-php2shell-4.html', asOf: '2026-10-27' },
+        { title: 'PHP2Shell in the Wild: 1,187 IPs, No Mass Exploitation Yet', publisher: 'CrowdSec', url: 'https://www.crowdsec.net/vulntracking-report/cve-2026-109618-php2shell-no-mass-exploitation-yet', asOf: '2026-10-27' },
+      ],
+    },
+    {
+      id: 'f-the-record-of-institutions',
+      statement: 'An institution’s word is weighed by its record, and the record is documented. The United States Public Health Service began a study at Tuskegee in 1932 that followed 399 Black men who had syphilis without treating them, kept it going after penicillin became the standard treatment in the 1940s, and ended it only in 1972 after a newspaper exposed it; the formal apology came from the President on May 16, 1997. And on July 7, 2025, the Department of Justice and the FBI issued a memo stating their review found no incriminating "client list" in the Epstein files and that no further disclosure would be appropriate or warranted — a closing of the book that much of the public, including the administration’s own supporters, did not accept.',
+      status: 'documented',
+      sources: [
+        { title: 'The Untreated Syphilis Study at Tuskegee Timeline', publisher: 'Centers for Disease Control and Prevention', url: 'https://www.cdc.gov/tuskegee/about/timeline.html', asOf: '2026-10-27' },
+        { title: 'Presidential apology for the study at Tuskegee, entered in the Congressional Record (1997-05-19)', publisher: 'Congressional Record, 105th Congress', url: 'https://www.congress.gov/105/crec/1997/05/19/143/66/modified/CREC-1997-05-19-pt1-PgE961-2.htm', asOf: '2026-10-27' },
+        { title: 'DOJ says no evidence Jeffrey Epstein had a "client list" or blackmailed associates', publisher: 'NPR (carried by OPB)', url: 'https://www.opb.org/article/2025/07/07/doj-releases-memo-on-sex-offender-jeffrey-epstein-files/', asOf: '2026-10-27' },
+        { title: 'Trump supporters angry over Justice Department’s Epstein memo', publisher: 'ABC News (ABC7)', url: 'https://abc7.com/post/jeffrey-epstein-trump-supporters-angry-pam-bondi-fbis-kash-patel-dan-bongino-justice-departments-memo/17021438/', asOf: '2026-10-27' },
+      ],
+    },
+    {
+      id: 'f-catalog-listing-open',
+      statement: 'Whether the national Known Exploited Vulnerabilities catalog had listed either PHP flaw by the end of that week is OPEN: one lookup page shows "not included" without a date, and the catalog itself could not be opened from this sandbox. It is carried as a question, not as a fact either way.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'CVE-2026-109618 vulnerability details (KEV: Not Included, undated)', publisher: 'Vulmon', url: 'https://vulmon.com/vulnerabilitydetails?qid=CVE-2026-109618', asOf: '2026-10-27' },
+      ],
+    },
+    {
+      id: 'f-our-house',
+      statement: 'PoeTech checked its own house the same day. Its code and its servers run no PHP and no WordPress: no PHP files in the repository and no PHP or WordPress image among the self-hosted services. Node.js 20, which receives none of the trust-store fixes above, was found in thirteen automation workflows and one self-hosted service, and every one of them was moved to a supported Node.js the same day.',
+      status: 'documented',
+      sources: [
+        { title: 'The repository and its service definitions, searched for PHP, WordPress, Node.js versions and certificate packages (2026-10-22)', publisher: 'PoeTech (Kingdom-PWA-Node repository)', url: '', asOf: '2026-10-22', primary: true },
+      ],
+      note: 'Included because a lesson about watchmen that never looks at its own wall would be teaching what it does not do. The check covers what is in our own repository and our own services; a website a family member uses elsewhere is that host’s to patch, and it is named as outside this check rather than assumed safe.',
+    },
+  ],
+  // THE NEWEST WORD (2026-10-27). Darrell: the first draft carried only what the
+  // institutions had confirmed, and the institutions are usually behind. This
+  // section carries what is being said NOW, from wherever it is being said,
+  // dated and named, with the standing of who says it — the field, the vendor,
+  // or an institution — so the reader can weigh the word by the record.
+  latest: {
+    asOf: '2026-10-27',
+    frame: 'What is being said now, from the people closest to it — dated, named, and weighed by the record of who says it. An institution’s confirmation is welcomed when it comes; it is not waited on.',
+    items: [
+      { said: 'Attack attempts on the PHP flaws began on October 17, four days before the patch; the attacker’s source of the flaw details is not established.', by: 'Amazon’s MadPot honeypot team, via SecurityWeek and The Hacker News', standing: 'field', asOf: '2026-10-27', url: 'https://www.securityweek.com/php2shell-exploitation-started-days-before-patches/' },
+      { said: '1,187 addresses sent PHP2Shell requests in the five days after disclosure; no public exploit yet works reliably on a default PHP; zero publicly confirmed compromises so far.', by: 'CrowdSec (a network sample, not a census)', standing: 'field', asOf: '2026-10-27', url: 'https://www.crowdsec.net/vulntracking-report/cve-2026-109618-php2shell-no-mass-exploitation-yet' },
+      { said: 'The circulating proofs of concept "either don’t work at all, test for timing-based differences, or crash the target."', by: 'watchTowr’s head of threat intelligence, via SecurityWeek', standing: 'field', asOf: '2026-10-27', url: 'https://www.securityweek.com/php2shell-exploitation-started-days-before-patches/' },
+      { said: 'eMudhra’s board decided on October 22 to leave the global TLS certificate business, calling it about one percent of its revenue; replacement certificates come free through partners; its signing and eSign services continue.', by: 'eMudhra’s own filing, via The Hacker News and The Register', standing: 'vendor', asOf: '2026-10-27', url: 'https://thehackernews.com/2026/10/emudhra-to-exit-global-ssltls-business.html' },
+      { said: 'Browsers are covered; the gap is everything that is not a browser. Java does not check certificate revocation by default and keeps its own trust file apart from the operating system’s; Go and Node.js shipped fixed releases; Red Hat is publishing trust-store updates that distrust the certificates.', by: 'Endor Labs, Rescana, Red Hat (RHSB-2026-012) and independent Java maintainers', standing: 'field', asOf: '2026-10-27', url: 'https://access.redhat.com/security/vulnerabilities/RHSB-2026-012' },
+      { said: 'Mozilla stopped trusting the eMudhra root on October 20; Chrome’s removal of the emSign ECC root was expected to reach users on October 27.', by: 'The browser root programs, via The Hacker News', standing: 'institution', asOf: '2026-10-27', url: 'https://thehackernews.com/2026/10/emudhra-to-exit-global-ssltls-business.html' },
+    ],
+  },
+  interpretation: [
+    {
+      id: 'n-the-office-is-late-not-lying',
+      statement: 'That the institutions trailed the field here out of ordinary caution, not concealment, is an inference. A catalog that lists a flaw only after confirmed exploitation is slower by design; nothing in these sources shows anyone hid anything about these two flaws. The lesson separates "late" from "false" and proves neither beyond what the record shows.',
+      restsOn: ['f-field-ahead-of-the-office'],
+    },
+    {
+      id: 'n-a-seal-is-a-claim-of-sole-possession',
+      statement: 'A CERTIFICATE IS A SEAL, AND A SEAL IS A CLAIM THAT ONLY ONE HAND COULD HAVE MADE IT. The padlock in a browser means "a trusted authority vouches that this site is who it says it is," and that vouching is worth exactly as much as the authority’s ability to keep its key to itself. Eight keys that could be recovered from the public certificate were eight seals anyone could press. Nothing has to have been stolen for that to be a failure; the failure is that the seal no longer proves who pressed it.',
+      restsOn: ['f-emudhra-keys'],
+    },
+    {
+      id: 'n-the-watch-held',
+      statement: 'THE WATCH HELD WHERE IT WAS KEPT. The same day shows both halves of the work: a lock made badly, and watchmen who saw it and sounded the warning within hours. A reader who hears only "compromised" misses that the system of watching worked; a reader who hears only "the browsers fixed it" misses that the watch reaches only the walls it stands on.',
+      restsOn: ['f-browsers-acted', 'f-who-is-still-exposed'],
+    },
+    {
+      id: 'n-check-the-owner-not-the-echo',
+      statement: 'CHECK THE OWNER, NOT THE ECHO. The post is honest about being an echo, and it pointed to the owners: the PHP project’s own news and a story about the certificate authority. Every confirmation in this lesson came from going past the post to those who own the event. That is the habit, more than any figure in it.',
+      restsOn: ['f-php-release', 'f-emudhra-keys'],
+    },
+    {
+      id: 'n-our-own-limit',
+      statement: 'OUR OWN LIMIT, STATED FIRST. The project’s release page, Mozilla’s post and the news sites could not be opened from this sandbox; the figures rest on live search results that quote them, cross-checked across independent publishers and a government alert. The cause of the weak keys and the first report date are genuinely open, and so is whether anyone used the keys. A lesson that teaches checking has to say which of its own checks it could not finish.',
+      restsOn: ['f-php-release', 'f-php-detail', 'f-emudhra-keys'],
+    },
+  ],
+  perspectives: [
+    {
+      id: 'p-maintainers',
+      label: 'The maintainers: warn early, fix fast, and tell people what to do',
+      heldBy: 'The PHP security team and the volunteers and staff who maintain the language',
+      steelman: 'At its strongest: a language that runs a large share of the web cannot fix two critical flaws quietly, and it cannot announce them carelessly either. Advance notice with a fixed hour lets every host prepare without handing attackers the details early; the release came with versions for every supported branch and source patches for older ones; and the mitigation was published for people who cannot update today. That is what a responsible watchman does with a trumpet. When the details began to leak, the team was ready to move. The "drop everything" urgency is not drama; it is what a 9.2 means.',
+    },
+    {
+      id: 'p-authority',
+      label: 'The certificate authority: we found it, we revoked it, and it is contained',
+      heldBy: 'eMudhra, in its own statement',
+      steelman: 'Heard fairly: the authority acknowledged the weakness publicly, revoked the eight intermediates within a day or two of the report, traced the problem to one key generation ceremony, and states that its root keys and other intermediates are untouched and that the affected intermediates issued no end-entity certificates. A certificate authority that publishes a timeline and updates it three times in four days is behaving the way the system needs every authority to behave when something goes wrong. Mistakes in key ceremonies are human; hiding them would be the real failure.',
+    },
+    {
+      id: 'p-browsers',
+      label: 'The browser makers: when a seal is in doubt, stop honoring it, even at a cost',
+      heldBy: 'Mozilla, Google, Apple and Microsoft',
+      steelman: 'At its strongest: a browser is the last watchman between a household and a forged site, and it cannot wait for certainty. Blocking eight intermediates is the minimum; removing a whole root, knowing it will break some honest sites, is a judgment that a seal whose maker cannot fully account for it should not be honored by default. Competitors coordinating inside four days is the system working, and the cost to honest sites is a price paid so that the households who never heard of eMudhra did not have to know.',
+    },
+    {
+      id: 'p-operator',
+      label: 'The site operator: two fires at once, and the browsers do not patch my server',
+      heldBy: 'Small hosts, church and family websites, and the people who keep them running',
+      steelman: 'Heard fairly: the browsers protected their users; they did not patch anyone’s server. A volunteer who runs a church site on shared hosting found out from a forum post, not from a vendor, that the language under the site needed an emergency update the same week a certificate chain might stop working for reasons that had nothing to do with them. "Just patch" assumes a person, a window and a host that cooperates. The real cost of a day like this lands on the people with the fewest hands, and the honest answer is to help them, not to scold them.',
+    },
+    {
+      id: 'p-household',
+      label: 'The household: I cannot check certificates; whom am I supposed to trust?',
+      heldBy: 'Families who use the web every day without knowing what an intermediate certificate is',
+      steelman: 'At its strongest: ordinary people were told for years that the padlock means safe, and then they read that the people who make the padlocks made some badly. They are right that they cannot inspect a certificate chain, and right to feel that their trust was placed in hands they never chose. What they can do is small and real: keep their devices and browsers updated, notice warnings instead of clicking through them, and ask someone they trust when something looks wrong. Their unease is not ignorance; it is an accurate sense that trust in man has limits.',
+    },
+    {
+      id: 'p-word-first',
+      label: 'A seal is only as good as the hand that holds it: weigh it by the Word',
+      heldBy: 'Believers who weigh a day like this by the Word rather than by fear or by shrugging',
+      steelman: 'This reader does not have to understand elliptic curves to know what the Word has already settled. A seal stands for the one whose name it carries, and Yahweh’s own seal is the only one that cannot be forged: "the foundation of God standeth sure, having this seal, The Lord knoweth them that are his" (2 Timothy 2:19). Trust in men’s seals is useful and limited — "It is better to trust in the LORD than to put confidence in man" (Psalms 118:8) — so the believer neither panics when one breaks nor pretends none ever will. And the work is still required: the watchman who sees and does not sound the trumpet is accountable (Ezekiel 33:6), and the one who hears the trumpet and ignores it is too (Ezekiel 33:4). So the believer updates, warns the neighbor, prays for those who keep the walls, and sleeps in peace, because "he that keepeth Israel shall neither slumber nor sleep" (Psalms 121:4).',
+    },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — A SEAL STANDS FOR THE HAND THAT HOLDS IT. Before any server is patched, the Word has already said what a seal is. When the king of Persia gave Mordecai his ring, the decree was final for one reason: "the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse" (Esther 8:8). When Daniel was shut in, "the king sealed it with his own signet, and with the signet of his lords; that the purpose might not be changed" (Daniel 6:17). When Jeremiah bought a field, "I subscribed the evidence, and sealed it, and took witnesses" (Jeremiah 32:10). In every case the seal is worth nothing in itself; it is worth exactly what its holder is worth, and only as long as no one else can press it. Let the Word explain the Word: Yahweh says of His chosen servant, "will make thee as a signet: for I have chosen thee" (Haggai 2:23). A signet is the person, carried in wax. That is why a seal that anyone can reproduce is no seal at all, however official it looks. This is the whole of what went wrong in the certificate story, and the Word named it first.\n\nTHE SEAL THAT CANNOT BE FORGED. Every seal men make can fail, and the Word does not pretend otherwise. But it names one that does not: "the foundation of God standeth sure, having this seal, The Lord knoweth them that are his" (2 Timothy 2:19). The believer’s security is not an authority’s key ceremony; it is that "ye were sealed with that holy Spirit of promise" (Ephesians 1:13). Notice the order. The seal men failed to keep is a claim that only one hand made a mark; the seal Yahweh keeps is His knowing of His own, which no researcher can recover from the outside and no attacker can press. And the only One found worthy to open the seals of the last book is the Lamb: "Thou art worthy to take the book, and to open the seals thereof: for thou wast slain" (Revelation 5:9). He holds the key in His own hand — "he that hath the key of David, he that openeth, and no man shutteth; and shutteth, and no man openeth" (Revelation 3:7), the same key promised in Isaiah, "so he shall open, and none shall shut; and he shall shut, and none shall open" (Isaiah 22:22). Men’s keys can be weak. His cannot.\n\nWHERE TRUST BELONGS. The Word does not tell us to stop trusting people; it tells us where trust rests. "It is better to trust in the LORD than to put confidence in man" (Psalms 118:8), and then, as if for this very week, "It is better to trust in the LORD than to put confidence in princes" (Psalms 118:9). Jeremiah gives both roads and their fruit: "Cursed be the man that trusteth in man, and maketh flesh his arm" (Jeremiah 17:5), and "Blessed is the man that trusteth in the LORD, and whose hope the LORD is" (Jeremiah 17:7), whose tree "shall not be careful in the year of drought, neither shall cease from yielding fruit" (Jeremiah 17:8). Reason with that carefully. The curse is not on using a certificate; it is on making flesh one’s arm, on resting the soul on a key ceremony. The blessed man still lives in the drought; he simply does not stop bearing fruit in it. So the believer uses the padlock, updates the device, and never confuses either with the foundation.\n\nTHE WATCHMAN’S DUTY CUTS BOTH WAYS. The forum post is a small trumpet, and the Word has a whole chapter on trumpets. The watchman is accountable for sounding it: "if the watchman see the sword come, and blow not the trumpet, and the people be not warned" (Ezekiel 33:6), the blood is required of him. The hearer is accountable for answering it: "whosoever heareth the sound of the trumpet, and taketh not warning" (Ezekiel 33:4) bears his own. And there is a promise for the one who listens: "But he that taketh warning shall deliver his soul" (Ezekiel 33:5). Nehemiah shows what that looks like at a wall: "we made our prayer unto our God, and set a watch against them day and night" (Nehemiah 4:9). Prayer AND a watch, not one instead of the other. And yet the Word puts the watch in its place: "except the LORD keep the city, the watchman waketh but in vain" (Psalms 127:1). We keep the watch because He commands it, not because the watch is our salvation.\n\nPRUDENCE IS NOT FEAR. "A prudent man foreseeth the evil, and hideth himself; but the simple pass on, and are punished" (Proverbs 27:12). Jesus makes the same point about the house: "if the goodman of the house had known in what watch the thief would come, he would have watched" (Matthew 24:43). This week we were told which watch. To update a server, a browser or a phone after a warning like this is not anxiety; it is the prudent man hiding himself. And the Word forbids the opposite error just as firmly: "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). Sound mind, not shrug and not panic.\n\nPROVE ALL THINGS, INCLUDING THE WARNING. "Prove all things; hold fast that which is good" (1 Thessalonians 5:21). "The simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15). The faithful way to receive an urgent post is neither to dismiss it nor to forward it in alarm, but to go to the owners and check, and then to hold fast what proves good. That applies to us as well: a lesson about checking that does not check its own house is a house built on sand.\n\nTHE LOT AND THE KEY. The weak keys were, by one account, made with too little randomness. The Word speaks to chance plainly: "The lot is cast into the lap; but the whole disposing thereof is of the LORD" (Proverbs 16:33). Men use chance to make their keys strong, and when the chance is thin the key is weak; but nothing about it is outside His disposing. That is not a reason for carelessness in the ceremony. It is a reason the believer never treats any key as the last line.\n\nBUILT ON THE ROCK, NOT ON THE SAND. Jesus ends the Sermon on the Mount with two builders and one storm: the wise man "built his house upon a rock" (Matthew 7:24), and when the floods came "it fell not: for it was founded upon a rock" (Matthew 7:25); the other house "fell: and great was the fall of it" (Matthew 7:27). The storm came to both. The difference was the foundation, laid before the storm. Yahweh has laid one: "a tried stone, a precious corner stone, a sure foundation" (Isaiah 28:16). When the question rises, "If the foundations be destroyed, what can the righteous do?" (Psalms 11:3), the answer is that this Foundation is not one of the ones that can be.\n\nTHE RESOURCES BUILD THE HOUSE. In our own voice, the Resources Yahweh supplies are named in order: Wisdom BUILDS, Understanding ESTABLISHES, Knowledge FILLS — "Through wisdom is an house builded; and by understanding it is established" (Proverbs 24:3), "And by knowledge shall the chambers be filled with all precious and pleasant riches" (Proverbs 24:4) — and Love is senior to all of it, because without it, "and have not charity, I am nothing" (1 Corinthians 13:2). The KJV’s own lowercase stands in the quotation; the capitals are ours, naming provision rather than talent. Here, Wisdom is knowing what to patch first, Understanding is knowing why the seal matters, Knowledge is the version number, and Love is the call to the neighbor whose church website you know is running on an old server.\n\nNOW THE WORD CORRECTS THE TWO SLOGANS. "Nothing online can be trusted, so there is no point trying" sounds humble and is despair; the Word answers that trust was never meant to rest there, and that "In all labour there is profit: but the talk of the lips tendeth only to penury" (Proverbs 14:23) — the work of updating and warning is worth doing. "The browsers fixed it, nothing is left to do" sounds calm and is the false peace of those "saying, Peace, peace; when there is no peace" (Jeremiah 6:14); the watch reached the browsers, and the other walls are still ours. Both slogans are corrected. Every fact underneath them stands exactly where it was.\n\nHEAR EVERY WATCHMAN, AND TRUST NO PRINCE. The maintainers, the authority, the browser makers, the operators and the households are each heard at their strongest in the stages, because "in the multitude of counsellors there is safety" (Proverbs 11:14). Pray for every one of them, "For kings, and for all that are in authority" (1 Timothy 2:2), and "Put not your trust in princes" (Psalms 146:3) — not in a vendor, a browser, a government or a certificate authority. "The horse is prepared against the day of battle: but safety is of the LORD" (Proverbs 21:31). Prepare the horse; rest in Him.',
+      scripture: 'Esther 8:8; Daniel 6:17; Jeremiah 32:10; Haggai 2:23; 2 Timothy 2:19; Ephesians 1:13; Revelation 5:9; Revelation 3:7; Isaiah 22:22; Psalms 118:8-9; Jeremiah 17:5-8; Ezekiel 33:4-6; Nehemiah 4:9; Psalms 127:1; Proverbs 27:12; Matthew 24:43; 2 Timothy 1:7; 1 Thessalonians 5:21; Proverbs 14:15; Proverbs 16:33; Matthew 7:24-27; Isaiah 28:16; Psalms 11:3; Proverbs 24:3-4; 1 Corinthians 13:2; Proverbs 14:23; Jeremiah 6:14; Proverbs 11:14; 1 Timothy 2:1-2; Psalms 146:3; Proverbs 21:31; Psalms 121:4; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically, when a warning like this reaches you, run it in this order. (1) Find the owner. Go past the post to the people who own the thing: the project’s own release, the government alert, the browser maker’s own statement. (2) Say the documented plainly, with its date: two critical PHP flaws rated 9.2, fixed on 2026-10-21 in 8.5.12, 8.4.27, 8.3.36 and 8.2.35; eight certificate-authority keys weak enough to recover from the public certificate; every major browser blocking them by October 20. (3) Flag the open narrowly: the cause of the weak keys, the exact report date, and whether anyone used the keys. (4) Look at your own wall. If you run a website, ask your host whether its PHP is updated, today. If you write software that talks to the internet, update the libraries that carry their own list of trusted authorities. If you only use a phone and a laptop, install the updates waiting on them and do not click past a security warning. (5) Sound the trumpet for one other person: the volunteer who runs the church site, the relative with the small business page. (6) Then rest. You did the watchman’s part; the keeping is His.',
+    accountability: {
+      statement: 'THE TWO COURTS, ON A SEAL AND A WARNING. In man’s court this is already being handled in public: a project published its fix and its warning on a schedule, a government agency issued an alert, browser makers removed trust inside four days, and a certificate authority’s practices are now under review by the root programs that admitted it. That court is real and partial: it reaches the authority’s keys and the maintainers’ code; it does not reach the operator who heard and did nothing, or the forwarder who spread alarm without checking. Yahweh’s court reaches all of it: "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). What the Word requires of each party is plain: of the one who made the lock badly, confession and repair, which the authority has begun; of the watchman, the trumpet; of the hearer, to take warning; and of us, to check our own wall before we comment on anyone else’s.',
+      scripture: 'Ecclesiastes 12:14; Ezekiel 33:4-6; Proverbs 27:12; 1 Thessalonians 5:21',
+    },
+    benefits: [
+      'Both courts, honestly held: in man’s court a fix is shipped, an alert is issued and trust is withdrawn — quickly, and only where the watch stands; in the eternal court after this life every work is judged (Ecclesiastes 12:14), including every trumpet left unblown and every warning ignored (Ezekiel 33:4-6).',
+      'The documented facts in one place, with their dates and their owners, so you can speak about this week without shrinking it or inflating it.',
+      'The Word’s own account of what a seal is — worth exactly what its holder is worth, and only while no one else can press it (Esther 8:8; Haggai 2:23) — which explains the certificate story better than any diagram.',
+      'The one seal that cannot be forged: "The Lord knoweth them that are his" (2 Timothy 2:19), and the believer sealed by the Holy Spirit (Ephesians 1:13).',
+      'A plain order of work for a warning: find the owner, say the documented, flag the open, look at your own wall, warn one neighbor, then rest (Ezekiel 33:5; Proverbs 27:12; 1 Thessalonians 5:21).',
+      'Freedom from both slogans: neither despair nor false peace (Proverbs 14:23; Jeremiah 6:14), with the Resources in order — Wisdom builds, Understanding establishes, Knowledge fills, and Love is senior (Proverbs 24:3-4; 1 Corinthians 13:2).',
+      'Rest that is not neglect: the watch kept because He commands it, and sleep because "he that keepeth Israel shall neither slumber nor sleep" (Psalms 121:4).',
+    ],
+    graceNote: 'No condemnation of any soul in this lesson. It pronounces no verdict on the people of the certificate authority who ran the key ceremony, on its leaders who are answering for it, on the PHP maintainers and volunteers who found, fixed and announced the flaws, on the independent researcher who reported the weak keys, on the browser makers’ engineers who chose to break some honest sites to protect everyone else, on the site operators who could not patch in time, or on the forum member who passed the warning along. Mistakes in a key ceremony are the kind of mistake careful people make; the remedy the Word offers is confession and repair, and the authority has begun both in public. Every person named or implied here is someone Jesus came for — the Lamb of Yahweh and the Eternal Son, "the Lamb of God, which taketh away the sin of the world" (John 1:29), by whom "all things consist" (Colossians 1:17). Pray for them by name where you know it. Their hearts are His to judge.',
+    stewardship: 'The deeper response is to build what the Word builds, at the scale you actually govern. In your own house: know the state of your flocks (Proverbs 27:23) — which devices you have, which are no longer receiving updates, and who keeps each website you are responsible for. Count the cost before you build (Luke 14:28): a site on software no one updates is a tower no one finished. Put the updates on a calendar instead of waiting for a forum post. For anyone you can help, bear the burden with them (Galatians 6:2): the church volunteer, the elderly relative, the small business owner. We did this ourselves the same day: PoeTech searched its own code and servers, found no PHP and no WordPress, and found an older Node.js version in thirteen workflows and one service that will not receive the trust-store fix, and moved every one of them to a supported Node.js the same day. That is the watchman looking at his own wall first. And keep the order straight: Wisdom builds, Understanding establishes, Knowledge fills, and Love is senior to all of it, so the patch is done in love for the people it protects, not out of fear of the headline. And weigh an institution’s word by its record, not by its name. In this very story the field was ahead of the office: the people with their hands on the servers logged attack attempts on October 17, four days before the patch, and the newest word on the attack keeps coming from them, dated, while the offices write it down later. That is the normal order, not a scandal — the watchman on the wall sees the sword before the clerk opens the register — so the newest word is read with its date and the record of whoever says it, and an office’s confirmation is welcomed when it comes but never waited on while the wall is being climbed. History teaches the other half to anyone who will hear it: the Public Health Service left 399 Black men with syphilis untreated from 1932 to 1972, kept it up after penicillin was the standard treatment, and the apology came sixty-five years late; and in July 2025 the Department of Justice and the FBI closed the Epstein files with a memo saying no incriminating "client list" was found and no further disclosure was warranted, which much of the public did not accept. "Put not your trust in princes, nor in the son of man, in whom there is no help" (Psalms 146:3). The Word is the authority; an institution earns a hearing by its record and loses it the same way. Parents, ask your children what they would do if a grown-up in charge said "all clear" while the smoke was still rising. Children, ask your parents to tell you about a time an official answer was wrong and how the family found out. And talk with a friend about one source you both trust, and what its record has done to earn that.',
+    anchor: {
+      ref: '2 Timothy 2:19; Ezekiel 33:5',
+      theme: 'The seals men make can fail; Yahweh’s does not: "the foundation of God standeth sure, having this seal, The Lord knoweth them that are his." And the watchman’s promise for the one who listens: "But he that taketh warning shall deliver his soul."',
+    },
+  },
+  reflection: {
+    skill: 'When an urgent technology warning reaches you second-hand: find the owner of the event and check it there. Say the documented plainly, with its date, and never shrink a critical flaw into a rumor or inflate a contained one into a catastrophe. Flag the open narrowly: one sentence of the story, not the story. Notice who is still exposed after the headline fix. Look at your own wall before you comment on anyone else’s. Warn one person who needs it. Then rest, because the keeping is His.',
+    practice: 'Write six lines. (1) One verse on what a seal is and one on where trust belongs, with references, quoted exactly. (2) Three documented facts from this week, each with its date and its owner. (3) One thing in the story that is still open, named narrowly. (4) Every device and website you are responsible for, and which of them is no longer receiving updates. (5) The strongest sentence for the perspective you least expected to agree with. (6) One trumpet you will sound this week: one person you will check on about their website, phone or computer.',
+    prompts: [
+      'Read Esther 8:8 and Haggai 2:23 together. Why is a seal worth exactly what its holder is worth — and what does that make of a seal that anyone can reproduce?',
+      'Read 2 Timothy 2:19. What is the difference between a seal that proves who made a mark and a seal that is Yahweh’s knowing of His own?',
+      'Psalms 118:8-9 says it is better to trust in the LORD than in man or princes. Does that mean we should stop using certificates, padlocks and updates? Reason it out from Jeremiah 17:5-8.',
+      'Ezekiel 33:4-6 holds both the watchman and the hearer accountable. In this story, who sounded the trumpet, and who is still responsible for taking warning?',
+      'Nehemiah 4:9 says "we made our prayer" and "set a watch." Why both, and what happens to a household that only does one?',
+      'Which facts in this lesson are documented, which rest on one analyst, and which are the interested party’s own account? How would you say each one out loud so the label survives?',
+      'Proverbs 27:12 and 2 Timothy 1:7: how is prudence different from fear, and what does each look like the morning after a warning like this?',
+      'Pray 1 Timothy 2:1-2 for the people who keep the walls of the web — maintainers, certificate authorities, browser makers, site operators — and then read Psalms 121:4. What changes in you when you do both?',
+    ],
+  },
+  levels: {
+    child: 'The Broken Seal: this lesson is about keeping things safe, and about trust. When you visit a website, a little lock shows up at the top of the screen. That lock means a helper checked the website and said, "Yes, this one is real." The helper puts a special seal on it, like a sticker that only that helper can make. A seal only works if nobody else can copy it. This week, people found out that one of the helpers made some seals that were too easy to copy. That is a problem, because then a pretend website could wear a real-looking seal. The good news is that the people who make web browsers moved very fast. They told every computer, "Do not trust those seals anymore." In the same week, the people who make a computer language called PHP found two big holes and fixed them, and they told everyone to update. The Bible talks about seals too. A long time ago a king sealed a letter with his own ring, and the Bible says what was sealed with the king’s ring no one could change (Esther 8:8). A seal matters because of who holds it. The Bible tells us about a seal that can never be copied. It says, "The Lord knoweth them that are his" (2 Timothy 2:19). That means Yahweh knows you, and no one can fake that. The Bible also says, "It is better to trust in the LORD than to put confidence in man" (Psalms 118:8). We can still use locks and seals. We just remember that only Yahweh never fails. The Bible tells us about a watchman, a helper who stands on the wall and blows a trumpet when danger is coming. The watchman has a job, and so do the people who hear the trumpet. When grown ups say, "It is time to update the tablet," that is like a trumpet. You can help by saying yes. Here is something you can do: if a screen ever shows a warning, stop and ask a grown up before you tap. And remember this good news from the Bible: "he that keepeth Israel shall neither slumber nor sleep" (Psalms 121:4). Yahweh never sleeps. You can rest, because He is watching. One more thing: sometimes the people in charge of a whole country say "it is fine" before they have really looked, and the people standing at the wall see the trouble first. So we listen to the person who looked, and we ask when they looked. Parents, ask your children what they would do if someone said "all clear" while the smoke was still rising. Children, ask your parents about a time a grown-up in charge was wrong and how your family found out. And talk with a friend about who you both ask when you are not sure something is safe.',
+    youth: 'The Broken Seal and the Sure Foundation. Here is the news, and here is how to think it through instead of just forwarding it. Someone on a programmers’ forum posted a warning: two big security problems in one day. First, PHP, a language that runs a huge number of websites, found two critical holes that could let an attacker run their own code on a web server without logging in. The PHP team warned everyone ahead of time, picked an hour, and released the fix on October 21, 2026. The United States government’s cyber-defense agency put out an alert the same day saying to patch right away. Second, a company called eMudhra, which issues the certificates behind the little lock in your browser, made eight of its keys so weak that anyone could figure them out from the public certificate in less than a second. A key like that is supposed to be impossible to guess. Firefox, Chrome, Apple and Microsoft all blocked those certificates within four days, and Chrome even stopped trusting a whole top-level certificate, knowing it would break some honest websites. Now the thinking. First, check the owner, not the echo: the forum post said itself that it was just passing the news along, so the facts here were checked with the PHP project, the government alert, Mozilla and the company itself. Second, say what is known plainly and what is not known narrowly. Known: the holes, the fix, the weak keys, the browsers’ blocks. Not settled: exactly why the keys were weak, which day it was first reported, and whether anyone actually used those keys. Third, the Word. A seal in the Bible stands for the person who holds it; a king’s sealed decree "may no man reverse" (Esther 8:8) because only the king had the ring. A seal anyone can copy is no seal. The Bible also names the one seal that cannot be copied: "The Lord knoweth them that are his" (2 Timothy 2:19). And it tells us where to rest our trust: "It is better to trust in the LORD than to put confidence in princes" (Psalms 118:9). That does not mean ignore the warning. Ezekiel says the watchman who sees danger has to blow the trumpet, and the one who hears it has to take warning: "But he that taketh warning shall deliver his soul" (Ezekiel 33:5). So here is your part: install the updates on your phone and laptop, never click past a security warning, and if someone in your family runs a website, ask them if it is updated. Then do not worry about it all night. "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7). And notice who knew first. The people with their hands on the servers logged attack attempts on October 17, four days before the patch, and the newest word on the attack keeps coming from them, dated, while the offices write it down later. That is the usual order, not a scandal, and it is why you read the newest word with its date and the record of who said it instead of waiting for an office to agree. Offices have records too: the Public Health Service left 399 men with syphilis untreated for forty years and the apology came in 1997. "Put not your trust in princes, nor in the son of man, in whom there is no help" (Psalms 146:3). Parents, ask your children which sources they actually read and what each one’s record is. Ask your parents to tell you about a time an official answer was wrong and how they found out. And talk with a friend about one source you both trust and why it has earned it.',
+    teen: 'A forum post Darrell pasted with one word on it, "Lesson," carries two warnings from the same day, and it is honest about being an echo — "Hopefully everyone will see this (with more details) through other channels." Run the moves before you repeat any of it. (0) Lead with the Word, because it got here first. A seal in Scripture is the person in wax. Mordecai’s decree stood because "the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse" (Esther 8:8); Daniel’s den was sealed "that the purpose might not be changed" (Daniel 6:17); Yahweh tells Zerubbabel He "will make thee as a signet: for I have chosen thee" (Haggai 2:23). The seal’s whole value is that only one hand can press it. Hold that, because it is the entire certificate story. (1) Find the owner. The PHP security team gave advance notice of two critical vulnerabilities, both rated 9.2 on CVSS version 4, and released fixes on October 21, 2026, in versions 8.5.12, 8.4.27, 8.3.36 and 8.2.35; the US cyber-defense agency issued an alert titled "Critical Vulnerabilities in PHP Require Immediate Patching." Both flaws allow remote code execution with no login on servers that answer web requests. (2) The seal. Eight intermediate certificates under eMudhra had private keys reported as values below 256 on a curve whose keys should be astronomically large, so anyone with the public certificate could recover the private key in under a second. The browsers blocked them by October 20, and Chrome removed a whole root, with Google admitting some legitimate certificates would stop working. (3) Label the open narrowly. Why the keys were weak is disputed between "too little randomness" and the company’s account of a flawed key ceremony in April 2025. The first report date differs by a day. One security firm reports PHP exploitation attempts starting October 17, before disclosure; no source shows anyone used the certificate keys. Say those as what they are. (4) Ask who is still exposed. The browsers fixed the browsers. Software that carries its own list of trusted authorities, like some Python and Node.js setups, needs its own update, and a website on shared hosting depends on the host. (5) Hear every side at its strongest: the maintainers who warned early, the authority that disclosed and revoked, the browsers that paid a cost to protect everyone, the operator with two fires and no help, and the household that cannot inspect a certificate chain. (6) The Word on trust and work. "It is better to trust in the LORD than to put confidence in man" (Psalms 118:8) is not a reason to stop updating; Jeremiah’s blessed man still lives in the drought and keeps bearing fruit (Jeremiah 17:8). The watchman who sees and does not warn is accountable (Ezekiel 33:6), and so is the one who hears and ignores it (Ezekiel 33:4). "Prove all things; hold fast that which is good" (1 Thessalonians 5:21). And the two slogans both die: "nothing can be trusted, why try" is corrected by "In all labour there is profit" (Proverbs 14:23), and "the browsers fixed it" is the false calm of "Peace, peace; when there is no peace" (Jeremiah 6:14). (7) Do one thing: update what is yours, and ask one person who runs a site whether theirs is patched. Then rest in "a sure foundation" (Isaiah 28:16) that no key ceremony can weaken. (8) Carry the newest word, and weigh the office by its record. This lesson’s first draft held only what the institutions had confirmed, and that was a gap: Amazon’s honeypots logged attack attempts on October 17, four days before the patch; Cloudflare saw thousands of attempts in the ten hours before the announcement; CrowdSec counted 1,187 addresses probing in the five days after, with no reliable public exploit and zero confirmed compromises so far. The field knew first, dated, and the offices wrote it down later, which is the normal order and not a scandal. But an office’s word is never the top tier of truth by itself, because offices have records: the Public Health Service at Tuskegee, 1932 to 1972, 399 Black men with syphilis left untreated after penicillin was the cure, apology in 1997; and the July 2025 memo from the Department of Justice and the FBI closing the Epstein files with no incriminating "client list" found and no further disclosure warranted, which much of the public, including the administration’s own supporters, refused to accept. "The simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15). Read the newest word with its date and the record of who says it; welcome the institution’s confirmation when it comes; never wait on it while the wall is being climbed. Parents, ask your children to show you where they get their news and to say what that source’s record is. Ask your parents to tell you about one time an official answer was wrong and how the family found out. And talk with a friend about the difference between a source that is late and a source that is false.',
+    senior: 'For the seasoned believer, this issue is about keeping apart three things that an honest, hurried warning runs together — what is documented, what rests on one analyst, and what is the interested party’s own account — and then letting the Word say what no vendor and no root program can say about the seals we trust. The source is a short post on a developer forum, unsigned here because it is unsigned there, and candid that it is an echo. So everything was checked past it: the PHP project’s own announcement list and its foundation’s notice, the US Cybersecurity and Infrastructure Security Agency’s alert of October 21, Mozilla’s own bug report and post, the certificate authority’s own statement, and the analyses of independent security firms. The primary pages themselves could not be opened from the sandbox where this was written, and the lesson says so rather than rounding its checking up to done. What is documented, stated plainly. The PHP security team announced in advance, for 14:00 UTC on October 21, 2026, a release fixing two critical vulnerabilities rated 9.2 under CVSS version 4; the fixes are 8.5.12, 8.4.27, 8.3.36 and 8.2.35, and the flaws, CVE-2026-109618 and CVE-2026-109619, allow unauthenticated remote code execution on installations that serve web requests. Separately, eight intermediate certificates issued under eMudhra carried private keys reported as P-384 values below 256, so small that each could be recovered from its public certificate in under a second; six issued website certificates and two signed code. Firefox and Chrome blocked them from October 17, Apple from the 19th and Microsoft from the 20th; Chrome removed the emSign ECC Root CA – G3 root outright, accepting that some legitimate certificates would stop working. What is open, flagged narrowly. The mechanism of the weak keys is told two ways, insufficient randomness on one account and a flawed April 2025 key ceremony on the authority’s own; the first report is dated October 17 by one party and October 18 by another; one firm, citing Amazon’s threat intelligence, reports PHP exploitation attempts from October 17; and no source shows the certificate keys were used maliciously. "No evidence found" is carried as exactly that. Now the Word, which got here first. A seal is the person in wax: "the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse" (Esther 8:8), and Yahweh says of His servant He "will make thee as a signet: for I have chosen thee" (Haggai 2:23). A certificate authority sells exactly this — the assurance that only its hand pressed the mark — and a key that can be recovered from the outside is a ring anyone can wear. Against every seal men make, Scripture sets the one that does not fail: "the foundation of God standeth sure, having this seal, The Lord knoweth them that are his" (2 Timothy 2:19), and the believer "sealed with that holy Spirit of promise" (Ephesians 1:13). The Lamb alone is worthy "to open the seals" (Revelation 5:9), and He holds "the key of David, he that openeth, and no man shutteth" (Revelation 3:7). Trust is placed, not abandoned: "It is better to trust in the LORD than to put confidence in man" (Psalms 118:8) and "than to put confidence in princes" (Psalms 118:9), while Jeremiah’s blessed man, planted by the waters, "shall not be careful in the year of drought, neither shall cease from yielding fruit" (Jeremiah 17:8) — he still lives through the drought and still works. The watchman’s chapter binds both ends of a warning: the one who sees and "blow not the trumpet" (Ezekiel 33:6) answers for it, the one who "heareth the sound of the trumpet, and taketh not warning" (Ezekiel 33:4) answers for himself, and "he that taketh warning shall deliver his soul" (Ezekiel 33:5). Nehemiah’s people "made our prayer unto our God, and set a watch against them day and night" (Nehemiah 4:9) — both, never one for the other — and yet "except the LORD keep the city, the watchman waketh but in vain" (Psalms 127:1). Two slogans are corrected while every fact stays put: despair ("nothing can be trusted") meets "In all labour there is profit" (Proverbs 14:23), and complacency ("it is handled") meets "Peace, peace; when there is no peace" (Jeremiah 6:14). And the house is built in order — Wisdom builds, Understanding establishes, Knowledge fills, with Love senior to all (Proverbs 24:3-4; 1 Corinthians 13:2). In practice: know the state of your flocks (Proverbs 27:23) — your devices, the sites you are responsible for, the volunteer who keeps the church page — put updates on a schedule, sound the trumpet for one neighbor who would not have heard it, pray for all in authority over the web’s walls (1 Timothy 2:1-2), and rest. Our own house did this the same day: no PHP and no WordPress anywhere in our code or servers, and an older Node.js release, which receives none of the trust-store fixes, moved out of thirteen workflows and one service. That is the watchman looking at his own wall first. And then sleep, because "he that keepeth Israel shall neither slumber nor sleep" (Psalms 121:4). A last word for the seasoned, on the standing of institutions. This lesson’s first draft carried only what the institutions had confirmed, and that is the error of a generation that was taught to wait for the office: the field logged attack attempts four days before the patch, and the newest, dated word kept coming from the people on the wall while the catalogs trailed. The office is usually late, and late is not the same as false; but the office is never the top tier of truth by its name alone, because its record is documented. You lived some of it: the Public Health Service at Tuskegee, 1932 to 1972, 399 Black men with syphilis left untreated after penicillin was the cure, the apology in 1997, sixty-five years late; and in July 2025 the Department of Justice and the FBI closed the Epstein files with a memo that found no incriminating "client list" and no further disclosure warranted, which much of the public would not accept. "Put not your trust in princes, nor in the son of man, in whom there is no help" (Psalms 146:3). So carry the newest word with its date and the record of who says it; receive the institution’s confirmation with thanks when it comes; and never make the family wait on an office while the wall is being climbed. Parents and grandparents, ask your children and grandchildren where they first heard of this, and read the dated record with them. Ask your own parents, if they are still with you, about the official answers they stopped believing and why; and ask your grown children to tell you about a time the official answer failed them and how they learned otherwise. And talk with a friend your own age about which institutions earned your trust by their record, and which lost it.',
+  },
+  quiz: {
+    questions: [
+      {
+        q: 'Why does a seal matter at all, in Scripture and on the web?',
+        options: [
+          'Because it looks official',
+          'Because it stands for the one who holds it, and only while no one else can press it',
+          'Because it is hard to read',
+        ],
+        answer: 1,
+        explain: '"the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse" (Esther 8:8) — the seal is worth what the king is worth. A certificate key that anyone can recover from the public certificate is a ring anyone can wear.',
+      },
+      {
+        q: 'Which of these is documented, and which rests on one analyst?',
+        options: [
+          'Both the 9.2 rating of the two PHP flaws and the report of exploitation attempts from October 17 are equally documented',
+          'The two critical flaws, rated 9.2 and fixed on October 21, are documented by the project and a government alert; the October 17 exploitation report rests on one firm citing Amazon',
+          'Neither can be known',
+        ],
+        answer: 1,
+        explain: 'Say the documented plainly and flag the open narrowly. The rating, the date and the fixed versions are confirmed by the owners and a government alert; the early-attack report is one source and is labeled as one.',
+      },
+      {
+        q: 'What did the browser makers do, and what did it cost?',
+        options: [
+          'Nothing yet',
+          'They blocked the eight certificates within four days, and Chrome removed a whole root, knowing some legitimate certificates would stop working',
+          'They removed every certificate on the web',
+        ],
+        answer: 1,
+        explain: 'The watch held where it was kept, and it was not free. A seal whose maker cannot fully account for it should not be honored by default — even at a cost to honest sites.',
+      },
+      {
+        q: 'After the browsers acted, who is still exposed?',
+        options: [
+          'No one',
+          'Software that carries its own list of trusted authorities or does not check revocation, and websites whose servers have not been patched',
+          'Only people who use Firefox',
+        ],
+        answer: 1,
+        explain: 'The browsers fixed the browsers. "The simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15) — the prudent ask what the headline fix did not reach.',
+      },
+      {
+        q: 'What is the one seal the Word says cannot be forged?',
+        options: [
+          'A king’s ring',
+          '"The Lord knoweth them that are his" (2 Timothy 2:19)',
+          'A browser padlock',
+        ],
+        answer: 1,
+        explain: '"the foundation of God standeth sure, having this seal, The Lord knoweth them that are his" (2 Timothy 2:19), and believers "were sealed with that holy Spirit of promise" (Ephesians 1:13). No researcher can recover it from the outside.',
+      },
+      {
+        q: 'Psalms 118:8 says it is better to trust in the LORD than in man. What does that mean for updates and certificates?',
+        options: [
+          'Stop using them; they are trust in man',
+          'Use them as tools, keep them current, and never rest the soul on them',
+          'Trust them completely',
+        ],
+        answer: 1,
+        explain: 'Jeremiah’s blessed man still lives in the drought and keeps bearing fruit (Jeremiah 17:8). The curse is on making flesh one’s arm (Jeremiah 17:5), not on using a lock.',
+      },
+      {
+        q: 'In Ezekiel 33, who is accountable when danger comes?',
+        options: [
+          'Only the watchman',
+          'Both the watchman who must sound the trumpet and the hearer who must take warning',
+          'No one',
+        ],
+        answer: 1,
+        explain: '"if the watchman see the sword come, and blow not the trumpet" (Ezekiel 33:6) he answers for it; "whosoever heareth the sound of the trumpet, and taketh not warning" (Ezekiel 33:4) answers for himself; "he that taketh warning shall deliver his soul" (Ezekiel 33:5).',
+      },
+      {
+        q: 'Both slogans in this lesson are corrected. What happens to the facts underneath them?',
+        options: [
+          'They are corrected too',
+          'They stand untouched — the Word corrects the claim, never the documented risk',
+          'They are set aside as contested',
+        ],
+        answer: 1,
+        explain: '"Nothing can be trusted" dies on "In all labour there is profit" (Proverbs 14:23), and the critical flaws stay critical. "It is handled" dies on "Peace, peace; when there is no peace" (Jeremiah 6:14), and the browsers’ fast action stays real.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE, HIGHER_ED_AID_ISSUE, WAGE_MEASURE_ISSUE, CAMPUS_ROADS_ISSUE, BROKEN_SEAL_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
@@ -6325,5 +6725,5 @@ export function auditWorldIssues() {
 export const WORLD_ISSUES_TUTOR_META = {
   title: WORLD_ISSUES_META.title,
   intro: 'You are a calm, truth-speaking discernment coach for a Word-first track called "Thinking It Through: World Issues & Discernment."',
-  posture: 'Guide ONE learner — who may be a child, a teen, an adult, or a seasoned believer — to think a charged real-world claim through the WORD’s way, matching your words and pace to their age. The moves: (1) identify each claim and who is making it; (2) LABEL it honestly — adjudicated finding, documented fact, unproven allegation, opinion, or call-to-action — and say the documented parts PLAINLY: a jury finding IS a verdict, and hedging proven harm into "no one knows" is false witness (Isaiah 5:20; Jeremiah 6:14); (3) check primary sources, with dates; (4) STEELMAN every side — hear the other side at its strongest before answering (Proverbs 18:17), and mark what it answers AND what it leaves standing; (5) then speak the Word’s justice the way Jesus speaks it: He named documented wrong to its face (Matthew 21:13), stood with the wronged (Luke 4:18), and measured repentance by restitution (Luke 19:8-9) — while the verdict on any SOUL belongs to God alone (Matthew 7:1-5; Romans 14:4), so never hand the learner a condemnation of a person’s heart, and never become a one-sided campaign against a named person. Cite Scripture by reference (ESV primary, KJV where the wording is the point); never invent or paraphrase a verse as if quoting it, and if you are unsure of a fact or a text, say so plainly rather than fabricate. Always point toward righteous engagement over outrage — accountability AND building.',
+  posture: 'Guide ONE learner — who may be a child, a teen, an adult, or a seasoned believer — to think a charged real-world claim through the WORD’s way, matching your words and pace to their age. The moves: (1) identify each claim and who is making it; (2) LABEL it honestly — adjudicated finding, documented fact, unproven allegation, opinion, or call-to-action — and say the documented parts PLAINLY: a jury finding IS a verdict, and hedging proven harm into "no one knows" is false witness (Isaiah 5:20; Jeremiah 6:14); (3) check primary sources, with dates — and carry the NEWEST word, from wherever it is being said, dated and named, because institutions usually trail the field; weigh an institution’s word by its RECORD, never by its name (the Public Health Service at Tuskegee; the 2025 closing of the Epstein files), so its confirmation is welcomed when it comes but is never the top tier of truth by itself — the Word is the authority, and a documented record outranks a title; (4) STEELMAN every side — hear the other side at its strongest before answering (Proverbs 18:17), and mark what it answers AND what it leaves standing; (5) then speak the Word’s justice the way Jesus speaks it: He named documented wrong to its face (Matthew 21:13), stood with the wronged (Luke 4:18), and measured repentance by restitution (Luke 19:8-9) — while the verdict on any SOUL belongs to God alone (Matthew 7:1-5; Romans 14:4), so never hand the learner a condemnation of a person’s heart, and never become a one-sided campaign against a named person. Cite Scripture by reference (ESV primary, KJV where the wording is the point); never invent or paraphrase a verse as if quoting it, and if you are unsure of a fact or a text, say so plainly rather than fabricate. Always point toward righteous engagement over outrage — accountability AND building.',
 };

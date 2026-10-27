@@ -226,7 +226,8 @@ describe('the watcher: one combined count, dropped by the screen, rung while hid
       expect(win.reg.showNotification).toHaveBeenCalledTimes(1);
       const [title, opts] = win.reg.showNotification.mock.calls[0];
       expect(title).toBe('Your lesson is published');
-      expect(opts.data.url).toBe('/lovecorner/app/?view=create&panel=your-lessons');
+      // The ring lands on the LESSON itself, in this door (DR-1253).
+      expect(opts.data.url).toBe('/lovecorner/app/?view=church&sub=learn&course=living-lessons&lesson=ll205');
       expect(opts.tag).toBe('poetech-arrival:lesson-published:r1');
       // Watching the app: a new arrival is counted, and the OS stays quiet.
       win.document.visibilityState = 'visible';

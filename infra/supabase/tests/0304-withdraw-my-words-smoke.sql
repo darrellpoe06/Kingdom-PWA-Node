@@ -15,6 +15,9 @@
 --   the stale sweep alarms a waiting row and NOT a withdrawn one, NOT a reading
 --   (not-a-lesson); after undo the row alarms again (proven-to-catch: the
 --   exclusion is the tag, nothing else), and the undo stamps restored@<time>.
+-- The sweep's result is read for THIS smoke's house only: on the hosted
+-- database other houses' waiting lessons alarm too, and they are not the
+-- subject (DR-1241; see pg_temp.swept below).
 -- PASS prints 'WITHDRAW MY WORDS SMOKE: PASS'; any leak or miss RAISES.
 -- =============================================================================
 BEGIN;
@@ -80,9 +83,23 @@ END $$;
 CREATE OR REPLACE FUNCTION pg_temp.tags_of(_row uuid) RETURNS jsonb LANGUAGE sql AS $$
   SELECT tags FROM public.agent_inbox WHERE id = _row $$;
 
+-- THE SWEEP IS READ FOR THIS HOUSE ONLY (DR-1241). lesson_inbox_stale_sweep()
+-- walks the WHOLE inbox: in ci.yml (withdraw-walls) the inbox is empty but
+-- for these five rows, and in rls-isolation.yml it is the hosted database,
+-- which holds real people's waiting lessons. Measured on runs 342-346
+-- (2026-10-20 to 2026-10-22, every dispatch since 0304 landed): the leg was
+-- red on "the sweep alarmed 34e76,d0304,b724e" -- two real rows the fixture
+-- never wrote. The sweep had not changed; the assertion read the whole table
+-- as if it were the fixture. Rows outside the smoke's house are not this
+-- smoke's subject, and whatever the sweep does to them rolls back with the
+-- rest. The function still RUNS over the whole inbox (the function has no
+-- scope of its own), so a regression that alarms a withdrawn or
+-- not-a-lesson row still shows here: those rows are in this house.
 CREATE OR REPLACE FUNCTION pg_temp.swept() RETURNS text LANGUAGE sql AS $$
   SELECT coalesce(string_agg(right(s.id::text, 5), ',' ORDER BY s.id), '')
-    FROM public.lesson_inbox_stale_sweep(4, 24, now()) s $$;
+    FROM public.lesson_inbox_stale_sweep(4, 24, now()) s
+    JOIN public.agent_inbox a ON a.id = s.id
+   WHERE a.instance_id = 'f0000000-0000-4000-b000-000000000304' $$;
 
 DO $$
 DECLARE

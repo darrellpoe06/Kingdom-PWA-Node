@@ -842,13 +842,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: 0246 and 0252 apply, twice (idempotent); the enqueue is one per teaching per event; a stale row alarms once per window
+      - name: 0246, 0252 and 0311 apply, twice (idempotent); the enqueue is one per teaching per event; a published push lands on the lesson; a stale row alarms once per window
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-bootstrap.sql
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0311-a-published-lessons-push-lands-on-the-lesson.sql; done
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
@@ -1445,6 +1446,20 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0309-a-door-shows-its-pictures-to-its-people.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0309-door-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/door-pictures.txt"
           grep -q 'DOOR PICTURES SMOKE: PASS' "$RUNNER_TEMP/door-pictures.txt"
+          # 0310 (DR-1235): a work order keeps its pictures, a note carries
+          # them, and a name typed once is offered after. The owner files a
+          # picture on a work order riding a note; the worker the job was
+          # GIVEN TO (assigned_to, nothing else) files his own and reads the
+          # job's, never as someone else, never on a job he was not given; a
+          # building's incident with no door still holds its picture; a
+          # picture hung on nothing is refused; the tenant reads the pictures
+          # on the work order at their door; a stranger reads and files
+          # nothing. picture_names: "Before" then "before " is one row used
+          # twice, the first spelling kept; only remember_picture_name()
+          # writes it; a stranger neither names nor reads.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0310-work-order-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/work-order-pictures.txt"
+          grep -q 'WORK ORDER PICTURES SMOKE: PASS' "$RUNNER_TEMP/work-order-pictures.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

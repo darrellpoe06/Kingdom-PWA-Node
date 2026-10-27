@@ -28,6 +28,19 @@
 // counted by lessonVersions in lib/learn-organize.js, never assumed. Each
 // month shows both too.
 //
+// THE SAME ROW AS THE COURSE LIST (Darrell 2026-10-27, two screenshots side by
+// side: "Lessons tab is not giving the count or the play buttons etc... Even
+// the count is different for lessons and latest with the same courses?"). A
+// course's own list gave every lesson a ▶ Play, a Continue or FINISHED mark,
+// and a month heading with its "for every age" count; this list gave a bare
+// title and a heading with lessons and readings. Same lessons, two different
+// rows, two different headings — read as a mismatch, because it was one. Now
+// a row here carries the same ▶ Play (the big full-screen reader, through
+// `onPlay`), the same place mark (RowContinue, from the device's own record),
+// and the month heading says all three numbers both lists can say: lessons ·
+// readings · for every age. The course list says the same three
+// (ChurchLearn.jsx).
+//
 // THE MONTH STAYS AT THE TOP OF THE SCROLL, AND FOLDS (DR-0732, carried here;
 // Darrell 2026-10-01 on this very list: "October and September should stay at
 // the top of the scroll with the count... remember"). The Church > The Word
@@ -43,11 +56,13 @@ import { latestLessons, latestCountLine, catalogReadings, readingsLine, readings
 import { formatAdded, withMonthHeadings } from '../lib/lesson-order.js';
 import { undatedReason } from '../lib/lesson-dates.js';
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
+import { getPlaceFor, placeInProgress } from '../lib/learn-resume.js';
+import { RowContinue } from './LessonContinue.jsx';
 
 /** The fold memory's key for this list: one list, every course. */
 export const LATEST_FOLD_KEY = 'latest:every-course';
 
-export default function LatestLessons({ courses, onOpen, scope = 'every course' }) {
+export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, scope = 'every course' }) {
   const [folded, setFolded] = useState(() => rememberedFolds(LATEST_FOLD_KEY));
   const setFolds = (next) => { setFolded(next); rememberFolds(LATEST_FOLD_KEY, next); };
   const latest = latestLessons(courses);
@@ -103,7 +118,7 @@ export default function LatestLessons({ courses, onOpen, scope = 'every course' 
               type="button"
               data-testid="latest-month-fold"
               aria-expanded={!r.heading.folded}
-              aria-label={`${r.heading.label}, ${r.heading.count} ${r.heading.count === 1 ? 'lesson' : 'lessons'}, ${countWords(perMonth[r.heading.key] || 0)} readings — ${r.heading.folded ? 'open this month' : 'fold this month'}`}
+              aria-label={`${r.heading.label}, ${r.heading.count} ${r.heading.count === 1 ? 'lesson' : 'lessons'}, ${countWords(perMonth[r.heading.key] || 0)} readings${r.heading.aged ? `, ${r.heading.aged} written for every age` : ''} — ${r.heading.folded ? 'open this month' : 'fold this month'}`}
               onClick={() => setFolds(toggleFold(folded, r.heading.key))}
               className="w-full min-h-[44px] pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold flex flex-wrap items-center justify-between gap-x-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
@@ -115,15 +130,20 @@ export default function LatestLessons({ courses, onOpen, scope = 'every course' 
                 <span data-month-lessons>{r.heading.count} {r.heading.count === 1 ? 'lesson' : 'lessons'}</span>
                 {' · '}
                 <span data-month-readings={perMonth[r.heading.key] || 0}>{countWords(perMonth[r.heading.key] || 0)} readings</span>
+                {/* THE OTHER NUMBER, FOR PARENTS (DR-0732) — the same count the
+                    course list's heading carries, so the two headings agree. */}
+                {r.heading.aged ? <span className="text-[#5A6E3D]" data-month-aged={r.heading.aged}>{` · ${r.heading.aged} for every age`}</span> : null}
               </span>
             </button>
           </li>
         ) : (
-          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added}>
+          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added} className="flex items-center gap-2">
+            {/* The title opens the lesson's own space — first in the row, as
+                the course list has it, so the same tap means the same thing. */}
             <button
               type="button"
               onClick={() => onOpen(r.courseKey, r.lessonId)}
-              className="w-full text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="flex-1 min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
               style={{ fontFamily: '"Fraunces", serif' }}
             >
               <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -132,7 +152,40 @@ export default function LatestLessons({ courses, onOpen, scope = 'every course' 
                 {r.n != null ? <>{' · '}<span className="whitespace-nowrap">L{r.n}</span></> : null}
               </span>
               <span className="block">{r.title}</span>
+              {/* ONCE, AT HOME: the course that also teaches this very lesson
+                  (carried whole under its own number) is named here instead
+                  of listed again as a second row. */}
+              {r.alsoIn && r.alsoIn.length ? (
+                <span className="block text-[#5A6E3D] text-[0.6875rem] leading-snug" data-testid="latest-also-in">also taught whole in {r.alsoIn.join(' and ')}</span>
+              ) : null}
+              {/* ONE QUESTION, TWO LESSONS: a different lesson with the same
+                  title is a pair on purpose, and each row says so. */}
+              {r.sameTitleIn && r.sameTitleIn.length ? (
+                <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" data-testid="latest-same-title">same title, another lesson: {r.sameTitleIn.join(', ')}</span>
+              ) : null}
             </button>
+            {/* THE LESSON'S OWN STATE, as the course list shows it (DR-0631):
+                Continue on a lesson begun, FINISHED on one read to the end —
+                from this device's own record, never painted. */}
+            {(() => {
+              const place = getPlaceFor(r.courseKey, r.lessonId);
+              const shown = place && (place.done || placeInProgress(place)) ? place : null;
+              return shown && onContinue ? <RowContinue place={shown} title={r.title} onContinue={onContinue} /> : null;
+            })()}
+            {/* THE SAME ▶ PLAY the course list carries: the big full-screen
+                reader on this one lesson — read it yourself, or read to you. */}
+            {onPlay ? (
+              <button
+                type="button"
+                onClick={() => onPlay(r.courseKey, r.lessonId)}
+                data-testid="latest-play"
+                aria-label={`Play ${r.title} in the big full-screen view`}
+                title={`Open ${r.title} in the big full-screen view — read it yourself or have it read aloud`}
+                className="shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                ▶ Play
+              </button>
+            ) : null}
           </li>
         )))}
       </ol>
