@@ -67,11 +67,12 @@ Then the close inverts the article's hardest practical problem. A cent is not wo
 
 ## Verification
 
-- **15 cases green**, and **5 proven to catch** by mutation (DR-0076 §3), restored to 14 green after each:
+- **15 cases green**, and **5 proven to catch** by mutation (DR-0076 §3), restored to 15 green after each:
   1. Changing `four hundred shekels` to `five hundred` inside the child band's quotation of Genesis 23:16 reddened "every quoted span ... is that verse verbatim" and named the field (`child: Genesis 23:16`).
   2. Turning the curly apostrophe straight inside `rpe.plan`'s quotation of Ruth 4:9 (`Elimelech’s` → `Elimelech's`) reddened BOTH the span case and the dedicated apostrophe case, naming the field and all five offending windows — the sov47 defect class, which this lesson is exposed to through Ruth 4:9, Jeremiah 32:9, Jeremiah 32:12 and 1 Corinthians 6:20.
   3. Stripping the friend line out of the teen band alone made `placesMissingDirections` name `teen` and `missingDirections` return `friends`, **while the pooled `hasAllThree` stayed green** — the exact divergence DR-0795 exists for, asserted on the real text rather than on a fixture.
   4. The array-hole case (`},,` leaving an `undefined` in the catalog) is carried forward from sov48, where the splice actually did it; the generator now excises the preceding comma with the block on `--rebuild` so the rebuild path cannot reproduce it.
+  5. Re-introducing `(Isaiah 55:1)` into the teen band reddened the catalog-wide exclusivity case with the same verdict the appraisal gate gives (`Isaiah 55:1 <- appraisal`), alongside the span and anchor-derivation cases. That case exists because CI, not a local gate, found the defect; see the scope finding below.
 - **Band measurements, from the real text rather than estimated.** Lesson-to-band 8-word shingle overlap: child 0.328, youth 0.350, teen 0.439, senior 0.421 — all under the 0.5 ceiling, so the lesson body is not a band wearing a second label (the sov48 defect, which read 0.995). Band-to-band: 0.280 to 0.414.
 - **DR-1185, measured:** the most verses sov49 shares with any other week in the course is **6** (sov41), against a threshold of 10, and the six are the course's standing confession and growth register (John 1:29, John 3:16, Hebrews 1:8, Deuteronomy 6:7, Galatians 5:22, Hebrews 3:13). `one-teaching-one-lesson-guard` passes.
 - `sovereign-ai-class.test.js` (22 cases) green with `HELD_IN_FLIGHT` **unchanged at `[]`**: weeks 1..49 ascend on disk with no gap, so no hold is recorded and none is discharged.
