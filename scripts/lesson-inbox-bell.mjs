@@ -35,6 +35,8 @@
 //     prints the lesson builder's state and every row in flight (read-only).
 // =============================================================================
 import fs from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const MARKER = 'lesson-bell:v1';
 export const MAX_PER_DAY = 24; // never more AI wakes than the hourly Routine it replaces
@@ -252,6 +254,47 @@ function progressLine(p) {
   return bits.join(' · ');
 }
 
+/**
+ * Rows the queue still calls WAITING whose teaching has already shipped —
+ * their row id is named in a decision record on disk. Pure.
+ *
+ * WHY, MEASURED 2026-10-27. The bell reported "12 waiting for the intake", the
+ * oldest at 110 hours, and FOUR of the twelve were already built, merged and
+ * live: 031a898a and bee78650 (both rows of ll261, DR-1234), 0593ae29 (ll262,
+ * DR-1223) and 6130c486 (ll263, DR-1227). Nothing had written their
+ * `lesson-captured` tag, and that tag IS the builder's lock — so the NAS
+ * builder re-claimed each of them every hour and spent model budget rebuilding
+ * lessons the congregation could already read. One of them was on attempt 4.
+ *
+ * Worse than the waste: had a retry SUCCEEDED, it would have shipped a second
+ * lesson from a teaching that already had one, which is the duplicate DR-0610
+ * exists to forbid.
+ *
+ * It was found by sweeping the waiting ids against docs/decisions BY HAND, and
+ * found again on the next lesson to land, and again on the one after. A check
+ * run four times by hand in one session is a check that belongs in the
+ * instrument (DR-0076: every looked-fine-but-wasn't class becomes a gate). The
+ * bell is the right instrument because the bell is what says the count, and
+ * its count was wrong by four.
+ *
+ * Deliberately exact-match on the full uuid: a prefix would match any record
+ * that happens to quote a few hex characters, and a false "already shipped"
+ * would stop a teaching from ever being built.
+ */
+export function shippedButUnmarked(rows = [], records = []) {
+  const out = [];
+  for (const row of rows || []) {
+    const id = String(row?.id || '');
+    if (!UUID.test(id)) continue;
+    // Only the waiting queue: a row the builder holds, or one awaiting
+    // Darrell's choice, is not this defect.
+    if (!String(milestone(row.tags)).startsWith('waiting')) continue;
+    const hit = (records || []).find((r) => String(r?.text || '').includes(id));
+    if (hit) out.push({ id, record: String(hit.file || '').split('/').pop() });
+  }
+  return out.sort((a, b) => a.id.localeCompare(b.id));
+}
+
 /** The comment: ids, who, when, and tag-derived progress only. */
 export function formatComment(rows, keys, ctx = {}) {
   const now = ctx.now ?? Date.now();
@@ -259,11 +302,21 @@ export function formatComment(rows, keys, ctx = {}) {
   const count = (pred) => ps.filter(pred).length;
   const waiting = count((p) => String(p.milestone).startsWith('waiting'));
   const alarmed = count((p) => p.alarms > 0);
+  // Rows whose lesson already shipped but whose tag was never written. Named
+  // FIRST, because every hour one of these sits here the builder spends a model
+  // call rebuilding a lesson that is already live (see shippedButUnmarked).
+  const shipped = shippedButUnmarked(rows, ctx.records);
   const lines = [
     `**Lesson inbox bell:** ${waiting} waiting for the intake${alarmed ? ` (${alarmed} past the stale alarm, DR-0771)` : ''} · ${count((p) => p.milestone === 'building' || p.milestone === 'gated')} building on the NAS · ${count((p) => p.milestone === 'awaiting-review')} awaiting review · ${count((p) => p.milestone === 'shipped')} shipped in the last day.`,
     '',
     ...ps.map((p) => `- \`${p.id}\` by \`${p.created_by}\` at \`${STAMP.test(String(p.created_at)) ? p.created_at : 'unknown'}\` · ${progressLine(p)}`),
     '',
+    ...(shipped.length
+      ? [`**${shipped.length} of these ALREADY SHIPPED and ${shipped.length === 1 ? 'was' : 'were'} never tagged** — the \`lesson-captured\` tag is the builder's lock, so each one is re-claimed and rebuilt every hour, and a retry that succeeded would ship a duplicate (DR-0610). Tag ${shipped.length === 1 ? 'it' : 'each'} with \`inbox-lesson-tag.yml\`:`,
+        '',
+        ...shipped.map((s) => `- \`${s.id}\` is already recorded in \`${s.record}\``),
+        '']
+      : []),
     waiting
       ? 'Rows waiting for the intake: read the words with `inbox-lesson-body.yml`; mark a shipped lesson with `inbox-lesson-tag.yml` (DR-0725).'
       : "Nothing waits for the intake; this ring reports the NAS builder's progress (DR-0725).",
@@ -326,9 +379,38 @@ function readOr(path, fallback) {
   try { return fs.readFileSync(path, 'utf8'); } catch { return fallback; }
 }
 
+/**
+ * The decision records on disk, as {file, text}. Read here rather than passed
+ * in, because a check nobody feeds is a check that never fires: the records sit
+ * in the same checkout the bell already runs in, so there is nothing to wire.
+ * Unreadable is reported as an empty list, which only costs the shipped-row
+ * line — it never invents a match.
+ */
+function readRecords() {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'decisions');
+  try {
+    return fs.readdirSync(dir)
+      .filter((f) => /^DR-\d{4}-.*\.md$/.test(f))
+      .map((f) => ({ file: f, text: readOr(join(dir, f), '') }));
+  } catch (err) {
+    // SAY SO. The first version of this swallowed the error and returned [],
+    // and a typo (`path.join` with no `path` imported) therefore read exactly
+    // like "no decision records on disk" -- the shipped-row line simply never
+    // appeared, and the unit cases passed because they inject records and never
+    // call this. A read that failed must not read as a clean result (DR-1249).
+    process.stderr.write(`lesson-inbox-bell: could not read ${dir}: ${err?.message || err}\n`);
+    return [];
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const rows = parseWaiting(fs.readFileSync(arg('rows'), 'utf8'));
-  const ctx = { versions: parseVersions(readOr(arg('versions'), '')), prs: parsePrs(readOr(arg('prs'), '[]')), now: Date.now() };
+  const ctx = {
+    versions: parseVersions(readOr(arg('versions'), '')),
+    prs: parsePrs(readOr(arg('prs'), '[]')),
+    records: readRecords(),
+    now: Date.now(),
+  };
   if (process.argv.includes('--status')) {
     let service = null;
     try { service = JSON.parse(readOr(arg('service'), 'null')); } catch { service = null; }
