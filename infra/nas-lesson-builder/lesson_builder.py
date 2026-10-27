@@ -153,11 +153,19 @@ def failed_attempts(tags):
 RATE_LIMIT_COOLDOWN_SECONDS = int(os.environ.get("LESSON_RATE_LIMIT_COOLDOWN_SECONDS", "1800"))
 RATE_LIMIT_RETRIES = int(os.environ.get("LESSON_RATE_LIMIT_RETRIES", "2"))
 _RATE_LIMITED = re.compile(r'api_error_status\\?"?\s*:\s*429|\bHTTP 429\b|\b429 Too Many|rate[ _-]?limit|overloaded', re.I)
+# A PASSING MOMENT, NOT A FAILED LESSON (DR-1232, measured 2026-10-27): six
+# builds started at once and the CLI's sign-in refresh raced -- "Failed to
+# refresh OAuth token: another Claude Code process is refreshing it or exited
+# mid-refresh". The writer now takes one call at a time (lesson_writer.py), and
+# a row that met this is waited out like a rate limit, never blamed for it.
+_TRANSIENT = re.compile(r"Failed to refresh OAuth token|another Claude Code process is refreshing|\btransient:", re.I)
 
 
 def rate_limited(tags):
-    """Did this row's builds fail because the model's rate limit had not passed?"""
-    return any(str(t).startswith("build-reason:") and _RATE_LIMITED.search(str(t)) for t in tags or [])
+    """Did this row's builds fail on a limit or a passing moment (a rate limit,
+    a sign-in refresh race) the next try can pass? Waited out, never blamed."""
+    return any(str(t).startswith("build-reason:") and (_RATE_LIMITED.search(str(t)) or _TRANSIENT.search(str(t)))
+               for t in tags or [])
 
 
 def last_failed_at(tags):
@@ -172,7 +180,20 @@ def last_failed_at(tags):
 
 
 def reason_tag(text):
-    return "build-reason:" + re.sub(r"\s+", " ", str(text)).strip()[:200]
+    """The row's own why, as a tag. 200 characters, so a reader's list stays
+    readable -- and the ONE signal eligibility() reads back from it is kept
+    at the FRONT (DR-1232). Measured 2026-10-27 on fifteen rows: the CLI's
+    429 sat ~250 characters into its JSON tail, after "no version passed
+    every gate (1 written): cli-local cli-local exit 1: ", so the cut tag read
+    `..."killed":{"parent"` and rate_limited() saw nothing; the rows were
+    counted as two failed lessons and left for the hourly Routine with
+    nothing wrong in them. A rate-limited failure now names itself first."""
+    why = re.sub(r"\s+", " ", str(text)).strip()
+    if _RATE_LIMITED.search(why) and not why.lower().startswith("rate-limited"):
+        why = "rate-limited: " + why
+    elif _TRANSIENT.search(why) and not why.lower().startswith("transient"):
+        why = "transient: " + why
+    return "build-reason:" + why[:200]
 
 
 # =============================================================================
@@ -1230,6 +1251,11 @@ def _run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
     return r.stdout.decode("utf-8", "replace")
 
 
+# What git says when a ref in the builder's own clone cannot be moved; the
+# clone heals itself and tries once more (DR-1232).
+STUCK_REF = re.compile(r"unable to update local ref|cannot lock ref|unable to create '.*\.lock'|couldn't write '.*\.lock'")
+
+
 class Git:
     """The builder's OWN clone at DATA/repo (never the services-sync mirror, so
     a build can never leave the mirror dirty)."""
@@ -1251,7 +1277,39 @@ class Git:
 
     def fetch(self):
         self.ensure()
-        self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        try:
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        except RuntimeError as e:
+            if not STUCK_REF.search(str(e)):
+                raise
+            # A STUCK REF IS HEALED, NOT HANDED BACK (DR-1232). Measured
+            # 2026-10-27 on rows 52121525 and 0593ae29: their third build died
+            # in this fetch -- "(unable to update local ref)" on a branch the
+            # builder's own clone could not update (a stale ref lock, or a
+            # branch whose name is now a directory of other branches) -- and
+            # the TEACHING was blamed with a build:failed tag. The clone is the
+            # builder's own state; it prunes, drops stale locks, repacks, and
+            # fetches once more. Only a second failure is a failure.
+            self.heal_refs()
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+
+    def heal_refs(self):
+        """Clear what stops a fetch from updating refs/remotes/origin: stale
+        lock files, refs the remote no longer has, loose refs a packed one
+        shadows. Each step is best effort; the retry in fetch() is the proof."""
+        for args in (("remote", "prune", "origin"), ("pack-refs", "--all"), ("gc", "--prune=now", "--quiet")):
+            try:
+                self.g(*args, timeout=900)
+            except RuntimeError:
+                pass
+        refs_dir = os.path.join(self.clone, ".git", "refs", "remotes", "origin")
+        for root, _dirs, files in os.walk(refs_dir):
+            for f in files:
+                if f.endswith(".lock"):
+                    try:
+                        os.remove(os.path.join(root, f))
+                    except OSError:
+                        pass
 
     def show(self, ref, path):
         try:

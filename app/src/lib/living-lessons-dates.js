@@ -368,6 +368,21 @@ export const LIVING_LESSONS_ADDED = {
   // day it joined the course. The exact send timestamp was not re-read from
   // the database by this builder, so the build day is what is recorded here.
   'll260-the-letters-of-frightened-kings-the-amarna-tablets-and-the-word': '2026-10-27',
+  // ll261 -- two links Darrell sent INSIDE the app down the research road, both on
+  // Genesis 6 and the giants of Canaan, pulling opposite ways. The two sendings sat
+  // in the queue roughly 87 hours before this build, so the exact send day is known
+  // only to within a day; the build day is recorded rather than an estimate dressed
+  // up as a date. Taught from the Word's own usage against ONE measure, add not and
+  // diminish not (Deuteronomy 4:2).
+  // 2026-10-27, not the 10-26 this branch was authored on: eight sibling lessons
+  // were built from the same waiting queue and all land the same day, and
+  // living-lessons-order.test.jsx holds that in number order the days never go
+  // backwards. L259 and L260 carry 10-27, so leaving this one on 10-26 would put
+  // L261 a day BEHIND the two lessons below it and break that order. Dating by the
+  // day the id lands is the precedent already recorded there for L254/L255, and it
+  // is the honest one here: the teaching waited ~87 hours in the queue, so the
+  // send day is not knowable from the row either way.
+  'll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written': '2026-10-27',
   // L262 (DR-1223): a link Darrell sent into the research road inside the app,
   // which waited about 87 hours in the lesson queue and was built out -- the
   // Council of Nicaea did not invent the deity of the Son and voted no canon;

@@ -18,6 +18,8 @@
 # unchanged. ON_ERROR_STOP=1: a failed statement is a non-zero exit, never an
 # empty answer that reads like "the database holds none" (DR-0076). The exit
 # code is psql's: 0 ok, 1-3 a real failure; 10 = the NAS did not answer.
+# Any size of SQL: the body travels on ssh's stdin, never its command line
+# (DR-1232; app/src/__tests__/live-sql-carries-any-size.test.js proves it).
 # =============================================================================
 set -uo pipefail
 SEP="${1:-|}"
@@ -86,4 +88,11 @@ cat "$ERR" >&2
 exit "$rc"
 REMOTE_EOF
 
-$SSH "NAS_ENV='$NAS_ENV' SQL_B64='$SQL_B64' SEP_B64='$SEP_B64' bash -s" < "$REMOTE"
+# THE SQL RIDES STDIN, NEVER THE COMMAND LINE (DR-1232). Until 2026-10-27 the
+# whole SQL travelled as SQL_B64='...' INSIDE the ssh argument, and Linux caps
+# one argument at 128 KiB (MAX_ARG_STRLEN): research-inbox run 40430070416
+# died on "/usr/bin/ssh: Argument list too long" filing a lesson whose words
+# were the full transcript, so the item was never filed. Now the two values
+# are the first lines of the script bash -s reads from stdin, ahead of the
+# remote half; stdin has no size limit. Output and exit code are unchanged.
+{ printf 'SQL_B64=%s\nSEP_B64=%s\n' "$SQL_B64" "$SEP_B64"; cat "$REMOTE"; } | $SSH "NAS_ENV='$NAS_ENV' bash -s"

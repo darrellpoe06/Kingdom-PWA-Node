@@ -118,6 +118,21 @@ export const REQUIREMENTS = Object.freeze({
   },
 });
 
+/**
+ * THE ONE CAMERA PREDICATE (DR-1237). The nav entry, the shell's render gate
+ * and the front page's Cameras tile all ask this and nothing else, so they
+ * cannot disagree about who sees the cameras: the family, or a device holding
+ * a grant the owner gave (a 1099 worker's gift in Poe Properties saves that
+ * same token on his device, DR-1210, so his PoeTech front page opens too).
+ * Reviewer mode is never a key. `hasCameraGrant` is a test seam; left null,
+ * the device's own storage is read.
+ */
+export function canSeeCameras(rawViewer = {}) {
+  const v = viewerOf(rawViewer);
+  const grant = rawViewer && rawViewer.hasCameraGrant;
+  return REQUIREMENTS.cameras.holds(grant == null ? v : { ...v, hasCameraGrant: !v.reviewerMode && !!grant });
+}
+
 export const REQUIREMENT_IDS = Object.freeze(Object.keys(REQUIREMENTS));
 
 /** What a surface with no declared requirement means: open. Stated, not implied. */
