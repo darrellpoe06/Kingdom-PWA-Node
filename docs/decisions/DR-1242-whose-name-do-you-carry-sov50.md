@@ -1,4 +1,4 @@
-# DR-1235: Whose name do you carry — sov50, and the three places where a lesson says the analogy STOPS
+# DR-1242: Whose name do you carry — sov50, and the three places where a lesson says the analogy STOPS
 
 **Date:** 2026-10-27
 **Status:** accepted

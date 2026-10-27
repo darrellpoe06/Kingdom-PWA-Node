@@ -82,7 +82,7 @@ describe('curriculum shape', () => {
     // one. Read SOVEREIGN_AI_MODULES, the same thing the assertion below
     // reads. `scripts/unchecked-claims.mjs` records the identical defect
     // against the identical file in its own header; this is its third sighting.
-    // 2026-10-27, sov50 (DR-1235): week 50 lands while week 49 is still being
+    // 2026-10-27, sov50 (DR-1242): week 50 lands while week 49 is still being
     // written on `origin/claude/sov49-there-is-nobody-to-contact`, so 49 is a
     // hole on disk. MEASURED, not assumed -- the branch was listed from the
     // remote before this entry was written, which is the whole discipline this
