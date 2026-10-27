@@ -42,7 +42,9 @@
 // Usage, from the worktree, DURING a conflicted merge:
 //   node scripts/splice-append.mjs app/src/lib/living-lessons-class.js [more…]
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /** The ledger owns itself; naming one here is a mistake, not a request. */
 export const LEDGER_FILES = Object.freeze([
@@ -132,6 +134,63 @@ const stage = (n, f) => {
   }
 };
 
+/**
+ * Does this text actually PARSE? Returns a reason, or '' when it is fine.
+ *
+ * WHY THIS IS HERE AND NOT IN spliceAppend(). The splice is deliberately a
+ * pure function of three strings with no parsing — that is what makes the
+ * union exactly computable. But "computable" is not "valid": prefix/suffix
+ * arithmetic says nothing about whether the SEAM it creates is legal
+ * JavaScript, and the seam is the one place the result is new.
+ *
+ * MEASURED, 2026-10-27, the second live use. Landing ll263 on top of ll262,
+ * the splice emitted `}` / comment / `{` with NO COMMA between the two lesson
+ * objects, and wrote it. `living-lessons-class.js` then failed to import at
+ * all -- `SyntaxError: Unexpected token '{'`, line 25730 -- so the file held
+ * 260 lessons and the app could load none of them. On the FIRST live use, one
+ * merge earlier, the identical code path produced a valid file: whether the
+ * separating comma lands inside the common prefix or inside our block depends
+ * entirely on where git happened to put the hunk boundary. The tool was not
+ * wrong once; it was lucky once.
+ *
+ * It was caught only because the verification line the tool prints -- "verify
+ * the catalog count and the lesson id before committing" -- was actually run.
+ * A tool whose correctness rests on the operator remembering to check is not
+ * the brake it was written to be (DR-0076 §1), so it now checks itself and
+ * REFUSES, which is already its contract for everything it cannot resolve.
+ *
+ * `node --check` is syntax only: no imports are resolved and no code runs, so
+ * this stays cheap and cannot have side effects.
+ */
+export function syntaxFault(file, text) {
+  if (!/\.(?:js|mjs|cjs|jsx)$/.test(file)) return '';
+  let dir;
+  try {
+    dir = mkdtempSync(join(tmpdir(), 'splice-check-'));
+    const probe = join(dir, 'probe.mjs');
+    writeFileSync(probe, text);
+    try {
+      execFileSync(process.execPath, ['--check', probe], { stdio: ['ignore', 'ignore', 'pipe'] });
+      return '';
+    } catch (err) {
+      const said = String(err.stderr || err.message || '').split('\n')
+        .map((s) => s.trim()).filter(Boolean)
+        .filter((s) => !s.startsWith('at ') && !s.includes('probe.mjs:'))
+        .slice(0, 2).join(' — ');
+      return `the spliced result does not parse (${said || 'node --check rejected it'}). `
+        + 'Both lessons are probably present and the SEAM between them is wrong — '
+        + 'most often the comma between the two objects. Nothing was written.';
+    }
+  } catch {
+    // Could not run the check at all. Say so rather than pass silently: an
+    // unverifiable result must not read as a verified one (DR-0076 §8).
+    return 'the spliced result could not be syntax-checked, so it was not written. '
+      + 'Resolve this file by hand.';
+  } finally {
+    if (dir) { try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } }
+  }
+}
+
 function main(files) {
   let failed = 0;
   for (const file of files) {
@@ -140,6 +199,12 @@ function main(files) {
     });
     if (!r.ok) {
       console.error(`REFUSING ${file}: ${r.reason}`);
+      failed += 1;
+      continue;
+    }
+    const fault = syntaxFault(file, r.text);
+    if (fault) {
+      console.error(`REFUSING ${file}: ${fault}`);
       failed += 1;
       continue;
     }
