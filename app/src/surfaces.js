@@ -174,6 +174,9 @@ for (const s of SURFACES) s.component = withSurfaceBoundary(lazy(s.load), s.labe
 
 // Lookup by id (for the shell + future data-driven render).
 export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
+// The one camera predicate, re-exported so the shell's render gate rides its
+// existing surfaces import line (DR-1237; the shell cannot grow, DR-0078).
+export { canSeeCameras } from './lib/surface-access.js';
 
 // Named exports — the shell's render switch references these bare identifiers
 // today, so exporting them keeps that switch byte-for-byte unchanged while the
