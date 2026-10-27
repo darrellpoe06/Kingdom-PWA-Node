@@ -147,7 +147,7 @@ jobs:
         run: |
           set -uo pipefail
           echo "== the last recorded verdict per waiting row (counts, codes, refs; never a body) =="
-          echo "row id | attempts | last version at | writer | elapsed ms | draft | gates passed | verse passed | spans | verbatim | verse faults | fault refs | structure problems | quotation problems | voice problems | depth problems | repo gates failed | error (elided) | build-reason tags (elided)"
+          echo "row id | attempts | last version at | writer | elapsed ms | draft | gates passed | verse passed | spans | verbatim | verse faults | fault refs | structure problems | quotation problems | voice problems | depth problems | repo gates failed | error (elided) | the CLI's own error sentence (100 chars) | build-reason tags (elided)"
           if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-waiting-last-verdict.sql); then
             echo "::error::the live database could not be read -- this is NOT 'nothing waiting'"; exit 1
           fi

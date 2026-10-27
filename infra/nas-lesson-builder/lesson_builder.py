@@ -1241,6 +1241,11 @@ def _run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
     return r.stdout.decode("utf-8", "replace")
 
 
+# What git says when a ref in the builder's own clone cannot be moved; the
+# clone heals itself and tries once more (DR-1232).
+STUCK_REF = re.compile(r"unable to update local ref|cannot lock ref|unable to create '.*\.lock'|couldn't write '.*\.lock'")
+
+
 class Git:
     """The builder's OWN clone at DATA/repo (never the services-sync mirror, so
     a build can never leave the mirror dirty)."""
@@ -1262,7 +1267,39 @@ class Git:
 
     def fetch(self):
         self.ensure()
-        self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        try:
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+        except RuntimeError as e:
+            if not STUCK_REF.search(str(e)):
+                raise
+            # A STUCK REF IS HEALED, NOT HANDED BACK (DR-1232). Measured
+            # 2026-10-27 on rows 52121525 and 0593ae29: their third build died
+            # in this fetch -- "(unable to update local ref)" on a branch the
+            # builder's own clone could not update (a stale ref lock, or a
+            # branch whose name is now a directory of other branches) -- and
+            # the TEACHING was blamed with a build:failed tag. The clone is the
+            # builder's own state; it prunes, drops stale locks, repacks, and
+            # fetches once more. Only a second failure is a failure.
+            self.heal_refs()
+            self.g("fetch", "--prune", "--no-tags", "origin", "+refs/heads/*:refs/remotes/origin/*", timeout=900)
+
+    def heal_refs(self):
+        """Clear what stops a fetch from updating refs/remotes/origin: stale
+        lock files, refs the remote no longer has, loose refs a packed one
+        shadows. Each step is best effort; the retry in fetch() is the proof."""
+        for args in (("remote", "prune", "origin"), ("pack-refs", "--all"), ("gc", "--prune=now", "--quiet")):
+            try:
+                self.g(*args, timeout=900)
+            except RuntimeError:
+                pass
+        refs_dir = os.path.join(self.clone, ".git", "refs", "remotes", "origin")
+        for root, _dirs, files in os.walk(refs_dir):
+            for f in files:
+                if f.endswith(".lock"):
+                    try:
+                        os.remove(os.path.join(root, f))
+                    except OSError:
+                        pass
 
     def show(self, ref, path):
         try:

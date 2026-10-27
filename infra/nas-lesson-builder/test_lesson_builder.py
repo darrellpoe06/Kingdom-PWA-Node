@@ -20,6 +20,7 @@ import threading
 import time
 import datetime
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -912,6 +913,49 @@ class Stages(unittest.TestCase):
         self.assertTrue(lb.rate_limited([lb.reason_tag("cli-local exit 1: " + said)]))
         # not an envelope: the old tail, unchanged
         self.assertEqual(lw.cli_failure_tail(b"", b"claude: command not found"), "claude: command not found")
+
+    def test_a_stuck_ref_in_the_builder_s_own_clone_is_healed_then_fetched_again(self):
+        """DR-1232, measured 2026-10-27: two re-offered teachings died in Git.fetch()
+        on "(unable to update local ref)" -- the builder's own clone, not the
+        teaching -- and were tagged build:failed for it."""
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "repo", ".git", "refs", "remotes", "origin"))
+        lock = os.path.join(d, "repo", ".git", "refs", "remotes", "origin", "stuck.lock")
+        open(lock, "w").close()
+        calls = []
+        stuck = ["* [new branch] fix/corpus -> origin/fix/corpus (unable to update local ref)"]
+        def fake_run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "fetch" and stuck:
+                raise RuntimeError("git -C repo exit 1: " + stuck.pop())
+            return ""
+        git = lb.Git(data_dir=d)
+        with unittest.mock.patch.object(lb, "_run", fake_run):
+            git.fetch()
+        fetches = [c for c in calls if c and c[0] == "fetch"]
+        self.assertEqual(len(fetches), 2, "fetch, heal, fetch again")
+        healed = [c[0] for c in calls if c and c[0] in ("remote", "pack-refs", "gc")]
+        self.assertEqual(healed, ["remote", "pack-refs", "gc"])
+        self.assertFalse(os.path.exists(lock), "the stale lock is gone")
+        # PROVEN TO CATCH: a failure that is not a stuck ref is raised at once, untouched
+        calls.clear()
+        def plain_fail(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "fetch":
+                raise RuntimeError("git -C repo exit 128: fatal: could not read from remote repository")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", plain_fail):
+            with self.assertRaises(RuntimeError):
+                git.fetch()
+        self.assertEqual(len([c for c in calls if c and c[0] == "fetch"]), 1)
+        # and a ref that stays stuck after the heal is still a failure, said once more
+        def always_stuck(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "fetch":
+                raise RuntimeError("git -C repo exit 1: (unable to update local ref)")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", always_stuck):
+            with self.assertRaises(RuntimeError):
+                git.fetch()
 
     def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
         tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",

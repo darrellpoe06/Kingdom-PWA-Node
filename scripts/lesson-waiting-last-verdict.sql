@@ -17,7 +17,7 @@
 --   | had a draft (body is not null) | gates passed | verse passed | spans | verbatim
 --   | verse faults | fault refs (first 5) | structure problems | quotation problems
 --   | voice problems | depth problems | repo gates failed | error (elided)
---   | build-reason tags (elided)
+--   | the CLI's own error sentence (100 chars) | build-reason tags (elided)
 WITH waiting AS (
   SELECT id, created_at, tags
   FROM public.agent_inbox
@@ -54,6 +54,11 @@ SELECT w.id,
        coalesce((SELECT string_agg(k, ',') FROM jsonb_each(CASE WHEN jsonb_typeof(v.gate_results->'repo_gates') = 'object' THEN v.gate_results->'repo_gates' ELSE '{}'::jsonb END) AS g(k, x)
                   WHERE jsonb_typeof(x) = 'object' AND (x->>'passed') = 'false'), ''),
        left(regexp_replace(coalesce(v.error, ''), '"[^"]{25,}"', '"<elided>"', 'g'), 300),
+       -- The CLI's own error sentence (an is_error envelope's "result" is the
+       -- CLI saying why: "Prompt is too long", a sign-in, a limit). The first
+       -- 100 characters, only from a failed run's envelope -- the same words
+       -- the row's build-reason tag already carries in public (DR-1232).
+       coalesce(substring(coalesce(v.error, '') from '"result":"([^"]{0,100})'), ''),
        coalesce((SELECT string_agg(left(regexp_replace(t.tag, '"[^"]{25,}"', '"<elided>"', 'g'), 220), ' || ')
                    FROM jsonb_array_elements_text(w.tags) AS t(tag) WHERE t.tag LIKE 'build-reason:%'), '')
 FROM waiting w
