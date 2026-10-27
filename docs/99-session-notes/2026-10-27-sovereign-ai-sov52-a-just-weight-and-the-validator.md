@@ -43,6 +43,8 @@ That thinness is stated inside the lesson rather than disguised, and it turned o
 
 **A fault in the verification itself.** The obvious pattern for finding quoted Scripture mis-pairs quote marks when a short quotation sits in the prose — this lesson quotes his own word `"Lesson,"` — so the scan swallowed the prose *between* two real quotations. It produced five false "Yahweh inside a quotation" alarms and counted 104 spans where correct pairing counts 112: a false alarm and an undercount at once, both reading authoritative. The gate now pairs by splitting on the quote character, and a case asserts that the naive regex does mis-pair, so it cannot come back.
 
+**A third thing, found by CI rather than here.** The first push was red: one failure in 8,955, `lesson-completeness.test.js`, naming sov52 as the one lesson in Sovereign A.I. short of its two stories (measured on the mounted catalog: 52 lessons, 51 with stories, 52 quoting the Word inside). A container restart had cut the local four-shard run off mid-flight and the push went out on lint plus the four directly-affected gate files, so the catch moved from this machine to CI — which is what CI is for, but it is not a reason to skip the shards. The gap was **filled, not pinned**: two parables into `lesson-stories.json`, 277 words solemn and 271 light, and `sovereign-ai` still carries no entry in the completeness baseline. The light one — two presses, one checking files on a website and one on its own machine, on the Tuesday the website went down on purpose — is this week's own argument told as a story.
+
 ## Still waiting when this shipped
 
 `d56b9e85` (~109 h) and `b97aa626` (~16 h), both genuinely unbuilt. Named here so the count is not lost.
