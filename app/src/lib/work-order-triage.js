@@ -130,7 +130,8 @@ export function fromRequest(req, { docs = [], events = [], notes: said = [], doo
   }
   for (const n of said) {
     if (!n || n.request_id !== r.id || !text(n.body)) continue;
-    notes.push({ at: n.created_at || '', text: text(n.body), by: text(n.author_label) || text(n.author_role) });
+    // The id rides along so the pictures on a note can be drawn under it (DR-1235).
+    notes.push({ at: n.created_at || '', text: text(n.body), by: text(n.author_label) || text(n.author_role), id: n.id || '' });
   }
   if (text(r.proof_note)) notes.push({ at: r.updated_at || r.created_at || '', text: `proof: ${text(r.proof_note)}`, by: '' });
   if (text(r.resolution_note)) notes.push({ at: r.updated_at || r.created_at || '', text: `resolved: ${text(r.resolution_note)}`, by: '' });
