@@ -1,0 +1,207 @@
+name: Public shelf anon probe
+
+# =============================================================================
+# THE STRANGER'S READ, MEASURED FROM OUTSIDE (DR-1236)
+# =============================================================================
+# Darrell, 2026-10-27, signed out on poetech.us: "the images don't populate
+# when we are advertising the apartment... it does when you go into the first
+# tab however... if you don't have an account you should be able to just see
+# the images". The front door showed "The list of homes could not be loaded
+# just now." That is a READ THAT FAILED, not an empty shelf (DR-0946), and
+# nothing we had could say WHY: the sandbox has no route to poetech.us or the
+# Funnel, the deploy's share-page step reads the shelf from a runner with no
+# Origin header, and site-health's backend probe is a GET on the auth road.
+#
+# This asks the way a signed-out BROWSER asks, in four readings, and prints
+# only HTTP status codes, counts, byte lengths, milliseconds and SQLSTATE /
+# PostgREST error codes. Never a street, a name, a caption or a key.
+#
+#   1. CROSS-ORIGIN RPC as anon: the preflight and the POST a browser on
+#      poetech.us sends to public_vacancies(), then public_vacancy_photo_list
+#      and public_vacancy_picture for the first listed door.
+#   2. THE DATABASE'S OWN CLOCK: how long public_vacancies() takes under the
+#      anon role, against the anon role's statement_timeout, over the
+#      tailnet (DR-1159: the runner reaches the NAS).
+#   3. THE REAL PAGE, signed out, in Chromium: which of the three states the
+#      front door rendered, every /rpc/ response status it got, and how many
+#      listing pictures came up — on the PoeTech front door AND on the
+#      branded Poe Properties door's "Looking for a Place".
+#
+# READ-ONLY BY CONSTRUCTION: SECURITY DEFINER read RPCs, a READ ONLY
+# transaction, one page load with no input. workflow_dispatch only — no timer,
+# so no brakes are owed (CLAUDE.md, Autonomous Automation); the daily
+# public-shelf-witness keeps the standing watch.
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'The backend base the served app calls (the armed sovereign base by default)'
+        required: false
+        default: 'https://poetech.tail5a2f35.ts.net/sb'
+      front:
+        description: 'The signed-out front door to render'
+        required: false
+        default: 'https://poetech.us/'
+      branded:
+        description: 'The branded Poe Properties door to render'
+        required: false
+        default: 'https://poetech.us/properties/app/'
+
+concurrency:
+  group: public-shelf-anon-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SB_URL: ${{ github.event.inputs.base || 'https://poetech.tail5a2f35.ts.net/sb' }}
+      FRONT: ${{ github.event.inputs.front || 'https://poetech.us/' }}
+      BRANDED: ${{ github.event.inputs.branded || 'https://poetech.us/properties/app/' }}
+      APP_ORIGIN: 'https://poetech.us'
+      UA: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Join the tailnet (the anon key lives on the NAS; the database is reached the same way)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Fetch the sovereign anon key (masked, never printed)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          KEY=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
+          rm -f /tmp/nas_key
+          case "$KEY" in eyJ*.eyJ*.*) : ;; *) echo "::error::anon key fetch returned ${#KEY} bytes, not a JWT"; exit 1 ;; esac
+          echo "::add-mask::$KEY"
+          echo "SB_ANON=$KEY" >> "$GITHUB_ENV"
+
+      # -----------------------------------------------------------------------
+      # READING ONE: the cross-origin RPCs, the way supabase-js sends them.
+      # -----------------------------------------------------------------------
+      - name: Cross-origin anon RPCs (status, ms, count, error code only)
+        id: rpc
+        run: |
+          set -uo pipefail
+          B="${SB_URL%/}"
+          H=$(mktemp); O=$(mktemp)
+          code_of() { local c; c=$(cat "$1"); [ -n "$c" ] || c="000"; echo "$c"; }
+          # The preflight a browser on poetech.us sends before any RPC POST.
+          PRE=$(curl -sS -o /dev/null -D "$H" -w '%{http_code}' --max-time 20 -X OPTIONS \
+            -H "Origin: $APP_ORIGIN" -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: apikey,authorization,content-type,content-profile,x-client-info,prefer' \
+            "$B/rest/v1/rpc/public_vacancies" 2>/dev/null) || PRE=""
+          [ -n "$PRE" ] || PRE="000"
+          ALLOW=$(grep -i '^access-control-allow-origin:' "$H" | head -1 | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//' || true)
+          # The POST itself, carrying the Origin and every header supabase-js adds.
+          T0=$(date +%s%N)
+          POST=$(curl -sS -o "$O" -w '%{http_code}' --max-time 30 -X POST \
+            -H "Origin: $APP_ORIGIN" -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+            -H 'content-type: application/json' -H 'content-profile: public' -H 'x-client-info: supabase-js-web/2' \
+            -d '{}' "$B/rest/v1/rpc/public_vacancies" 2>/dev/null) || POST=""
+          T1=$(date +%s%N); MS=$(( (T1 - T0) / 1000000 ))
+          [ -n "$POST" ] || POST="000"
+          CT=$(file -b --mime-type "$O" 2>/dev/null || echo unknown)
+          ROWS=$(jq 'if type=="array" then length else -1 end' "$O" 2>/dev/null || echo "not-json")
+          ERR=$(jq -r 'if type=="object" then (.code // .message // "") else "" end' "$O" 2>/dev/null | cut -c1-80 || true)
+          # The one line with the measured cause, if a cause is in the answer:
+          # an error code (PGRST..., 42..., 57014 = statement timeout) and
+          # never a row's content.
+          echo "::notice title=public_vacancies (anon, cross-origin)::preflight=$PRE allow-origin=${ALLOW:-none} POST=$POST ms=$MS rows=$ROWS content=$CT error=${ERR:-none} bytes=$(wc -c < "$O" | tr -d ' ')"
+          {
+            echo "## Reading one — the cross-origin RPCs as anon"
+            echo "- base: \`${B}\` (host only; the key is masked)"
+            echo "- \`OPTIONS rpc/public_vacancies\` -> **$PRE**, allow-origin \`${ALLOW:-none}\`"
+            echo "- \`POST rpc/public_vacancies\` -> **$POST** in **${MS} ms**, rows **$ROWS**, content \`$CT\`, error \`${ERR:-none}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          FIRST=$(jq -r 'if type=="array" and length>0 then .[0].id else "" end' "$O" 2>/dev/null || true)
+          echo "first_id_present=$([ -n "$FIRST" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+          if [ -n "$FIRST" ]; then
+            L=$(mktemp)
+            LIST=$(curl -sS -o "$L" -w '%{http_code}' --max-time 30 -X POST \
+              -H "Origin: $APP_ORIGIN" -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+              -H 'content-type: application/json' -d "{\"p_rental\":\"$FIRST\"}" \
+              "$B/rest/v1/rpc/public_vacancy_photo_list" 2>/dev/null) || LIST="000"
+            NPIC=$(jq 'if type=="array" then length else -1 end' "$L" 2>/dev/null || echo "not-json")
+            LERR=$(jq -r 'if type=="object" then (.code // "") else "" end' "$L" 2>/dev/null || true)
+            PID=$(jq -r 'if type=="array" and length>0 then .[0].id else "" end' "$L" 2>/dev/null || true)
+            PIC="n/a"; PBYTES=0; PKIND="none"
+            if [ -n "$PID" ]; then
+              P=$(mktemp)
+              PIC=$(curl -sS -o "$P" -w '%{http_code}' --max-time 60 -X POST \
+                -H "Origin: $APP_ORIGIN" -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+                -H 'content-type: application/json' -d "{\"p_rental\":\"$FIRST\",\"p_id\":\"$PID\",\"p_size\":\"thumb\"}" \
+                "$B/rest/v1/rpc/public_vacancy_picture" 2>/dev/null) || PIC="000"
+              PBYTES=$(wc -c < "$P" | tr -d ' ')
+              PKIND=$(head -c 24 "$P" | grep -q '^"data:image/' && echo data-url || echo other)
+            fi
+            echo "::notice title=first door's pictures (anon, cross-origin)::photo_list=$LIST pictures=$NPIC error=${LERR:-none} first_picture=$PIC kind=$PKIND bytes=$PBYTES"
+            {
+              echo "- \`POST rpc/public_vacancy_photo_list\` (first door) -> **$LIST**, pictures **$NPIC**, error \`${LERR:-none}\`"
+              echo "- \`POST rpc/public_vacancy_picture\` (first picture, thumb) -> **$PIC**, \`$PKIND\`, **$PBYTES** bytes"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # -----------------------------------------------------------------------
+      # READING TWO: the database's own clock for the anon role.
+      # -----------------------------------------------------------------------
+      - name: public_vacancies() under the anon role, timed on the database (counts and ms only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/clock.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == role settings (name|config) ==
+          SELECT rolname, coalesce(array_to_string(rolconfig, ' '), '-') FROM pg_roles WHERE rolname IN ('anon','authenticated','authenticator') ORDER BY 1;
+          \echo == grants on the shelf's three functions (function|anon may execute) ==
+          SELECT p.proname, has_function_privilege('anon', p.oid, 'EXECUTE')
+            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public' AND p.proname IN ('public_vacancies','public_vacancy_photo_list','public_vacancy_picture')
+           ORDER BY 1;
+          \echo == as anon: listed doors and the clock (rows|ms) ==
+          SET LOCAL ROLE anon;
+          SELECT count(*), round(extract(epoch FROM clock_timestamp() - now()) * 1000) FROM public.public_vacancies();
+          \echo == as anon: pictures offered on the first listed door (pictures|ms) ==
+          SELECT (SELECT count(*) FROM public.public_vacancy_photo_list(v.id)), round(extract(epoch FROM clock_timestamp() - now()) * 1000)
+            FROM public.public_vacancies() v ORDER BY v.showcase_order NULLS LAST, v.listed_at LIMIT 1;
+          ROLLBACK;
+          SQL
+          if ! out=$(bash scripts/live-sql.sh '|' < /tmp/clock.sql); then
+            echo "::warning::the database's own clock could not be read — the error text follows (SQLSTATE only)"
+            printf '%s\n' "$out" | grep -oE 'ERROR:  [^:]{0,80}' | head -3
+            exit 0
+          fi
+          printf '%s\n' "$out"
+          { echo "## Reading two — the database's own clock"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=database clock (anon role)::$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-900)"
+
+      # -----------------------------------------------------------------------
+      # READING THREE: the real page, signed out, in Chromium.
+      # -----------------------------------------------------------------------
+      - name: Render the signed-out doors in a real browser (states, statuses and counts only)
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null 2>&1
+          npm i --no-audit --no-fund playwright-core@1.47.2 >/dev/null 2>&1
+          npx --yes playwright@1.47.2 install chromium >/dev/null 2>&1
+          cp "$GITHUB_WORKSPACE/scripts/public-shelf-anon-probe.mjs" .
+          node public-shelf-anon-probe.mjs "$FRONT" "$BRANDED" | tee /tmp/doors.txt
+          { echo "## Reading three — the signed-out doors in Chromium"; echo '```'; cat /tmp/doors.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r line; do echo "::notice title=browser::$line"; done < /tmp/doors.txt
