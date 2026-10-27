@@ -1255,6 +1255,35 @@ def _run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
 # clone heals itself and tries once more (DR-1232).
 STUCK_REF = re.compile(r"unable to update local ref|cannot lock ref|unable to create '.*\.lock'|couldn't write '.*\.lock'")
 
+# What git says when the clone cannot write its own CONFIG, which is a
+# different lock from a ref's and was healed by nothing.
+#
+# MEASURED 2026-10-27, on the twelve waiting rows: three died with
+# "could not lock config file .git/config: File exists" -- a stale
+# .git/config.lock left behind in the builder's OWN clone by a run that was
+# killed before it could release it. STUCK_REF does not match that sentence
+# (it wants "unable to create '...lock'"), and heal_refs() only walks
+# .git/refs/remotes/origin, so the top-level lock was outside both the
+# pattern and the cure. The row was handed back tagged build:failed, which
+# blames the TEACHING for a lock file belonging to the machine.
+#
+# This is DR-1232's finding a second time through a different lock, which is
+# why the cure is widened rather than special-cased: the clone is the
+# builder's own disposable state (ensure() re-clones it from nothing), so a
+# leftover lock in it is never a teaching's fault and never a reason to stop.
+STUCK_CONFIG = re.compile(r"could not lock config file|error locking config file")
+
+# A lock file younger than this may belong to a git that is still running, and
+# is left alone. Only one builder runs at a time (the single-instance lock),
+# so a lock older than this is leftover rather than live -- but the floor
+# costs nothing and removes the one way this cure could do harm.
+STALE_LOCK_SECONDS = 60
+
+# The clone's own top-level locks. Each is a file git creates beside the thing
+# it guards and removes on success; a leftover one only ever blocks the next
+# run. Refs are NOT in this list -- heal_refs() owns those.
+CLONE_LOCKS = ("config.lock", "index.lock", "HEAD.lock", "shallow.lock", "packed-refs.lock")
+
 
 class Git:
     """The builder's OWN clone at DATA/repo (never the services-sync mirror, so
@@ -1272,8 +1301,46 @@ class Git:
         if not os.path.isdir(os.path.join(self.clone, ".git")):
             os.makedirs(self.data_dir, exist_ok=True)
             _run(["git", "clone", "--no-tags", self.remote, self.clone], timeout=1800)
+        try:
+            self._identity()
+        except RuntimeError as e:
+            if not STUCK_CONFIG.search(str(e)):
+                raise
+            # A STALE CONFIG LOCK IS HEALED, NOT HANDED BACK -- the same rule
+            # DR-1232 set for a stuck ref. Only a second failure is a failure.
+            self.heal_locks()
+            self._identity()
+
+    def _identity(self):
         self.g("config", "user.name", "PoeTech NAS lesson builder")
         self.g("config", "user.email", "darrellpoe06@gmail.com")
+
+    def heal_locks(self, now=None):
+        """Drop the clone's own STALE top-level lock files; return what went.
+
+        Every name in CLONE_LOCKS is a file git writes beside the thing it
+        guards and deletes on success, so one still present belongs to a run
+        that died. A lock younger than STALE_LOCK_SECONDS is left alone, so
+        this can never pull the floor out from under a git that is still
+        working. Best effort by design: the retry in the caller is the proof,
+        not this function's return value."""
+        now = time.time() if now is None else now
+        gitdir = os.path.join(self.clone, ".git")
+        removed = []
+        for name in CLONE_LOCKS:
+            path = os.path.join(gitdir, name)
+            try:
+                age = now - os.stat(path).st_mtime
+            except OSError:
+                continue  # not there, which is the normal case
+            if age < STALE_LOCK_SECONDS:
+                continue  # may be live; never race a running git
+            try:
+                os.remove(path)
+                removed.append(name)
+            except OSError:
+                pass
+        return removed
 
     def fetch(self):
         self.ensure()
@@ -1297,6 +1364,9 @@ class Git:
         """Clear what stops a fetch from updating refs/remotes/origin: stale
         lock files, refs the remote no longer has, loose refs a packed one
         shadows. Each step is best effort; the retry in fetch() is the proof."""
+        # A stale top-level lock stops `gc` and `pack-refs` below as surely as
+        # it stopped `config`, so the clone's own locks go first.
+        self.heal_locks()
         for args in (("remote", "prune", "origin"), ("pack-refs", "--all"), ("gc", "--prune=now", "--quiet")):
             try:
                 self.g(*args, timeout=900)
