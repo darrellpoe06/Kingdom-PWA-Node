@@ -59,6 +59,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SOVEREIGN_AI_MODULES } from '../lib/sovereign-ai-class.js';
 import { hasAllThree, placesMissingDirections, hasAllThreeEverywhere } from '../lib/talk-together.js';
+import { formatLessonText } from '../lib/lesson-format.js';
 
 const CORPUS = join(process.cwd(), 'public', 'bible', 'kjv');
 
@@ -275,6 +276,20 @@ describe('sov50 — the verses are the corpus, verbatim', () => {
     for (const k of ['child', 'youth', 'teen', 'senior']) {
       const o = overlap(body, shingles(lesson.levels[k]));
       expect(o, `lesson~${k} overlap ${o.toFixed(3)}`).toBeLessThan(0.5);
+    }
+  });
+
+  // THE L178 DEFECT CLASS, and the reason it is here rather than in a comment:
+  // course-four-bands-group-a.test.js runs this check, but its sovereign-ai
+  // PARTIAL list holds only ten weeks, so nothing in the house would have run
+  // it on sov50. It was run by hand once and then written down, because a
+  // verification that lives in a session is not machinery (DR-0239).
+  it('the reader is served every word: the renderer drops nothing from any band', () => {
+    for (const place of ['child', 'youth', 'teen', 'senior', 'lesson']) {
+      const text = place === 'lesson' ? lesson.lesson : lesson.levels[place];
+      const flat = JSON.stringify(formatLessonText(text)).replace(/[^A-Za-z’' ]/g, ' ');
+      const missing = (text.match(/[A-Za-z’']{4,}/g) || []).filter((w) => !flat.includes(w));
+      expect(missing, `${place}: the renderer dropped ${missing.length} word(s)`).toEqual([]);
     }
   });
 
