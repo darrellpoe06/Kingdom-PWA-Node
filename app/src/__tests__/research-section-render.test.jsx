@@ -66,7 +66,7 @@ describe('the Research section is a surface of its own', () => {
   // Why not the registry: see DR-1172. re-review: 2026-11-04.
   it('the shell mounts the Research view', () => {
     const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toContain('<ResearchSection /');
+    expect(shell).toContain('<ResearchSection stranger={reviewerStranger} /'); // handed the lens's stranger mode (DR-1240)
     expect(shell).toContain("view === 'research'");
     // and the route allow-list lets a deep link reach it
     expect(shell).toContain("'research'];");

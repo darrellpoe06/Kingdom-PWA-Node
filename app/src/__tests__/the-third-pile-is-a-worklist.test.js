@@ -53,7 +53,28 @@ const REPO = join(HERE, '..', '..', '..');
 // re-review: 2026-11-20 -- if slack.engineering becomes reachable from a runner
 // with web access, read the two figures back, give sov45 a row in
 // lesson-sources.json, and lower this pin to 9.
-const GAP = 10;
+//
+// 10 -> 11 on 2026-10-27 (ll264, the judgment seat and the reward), and the
+// reason is on the record rather than in a wording change. The lesson teaches
+// the bema from the Word -- Romans 14:10, 2 Corinthians 5:10, 1 Corinthians
+// 3:13-15 -- and none of its teaching rests on the unchecked part. The talk it
+// was built from ALSO said that this kind of platform was where a city crowned
+// its athletes and honoured its soldiers; that is a claim about classical
+// civic practice, not about the Word, and the lesson says so in its own text:
+// "One honest limit, because we do not relay what we did not check... That may
+// well be so, but we did not verify it."
+//
+// It takes the SECOND branch this test's own verdict offers ("say plainly why
+// it cannot be checked"). The claim is not a figure a publisher can hand back,
+// so there is nothing for lesson-sources.json to read: it would want a
+// scholarly source on the bema at Corinth, and a 0-figure row would make
+// `checked()` count a lesson whose figures nobody read, which is the
+// anti-theatre rule in DR-0076 section 3. Carrying it as the talk's claim and
+// labelling it is the honest handling, and the lesson already does that.
+// re-review: 2026-11-27 -- if a runner with web access can read a scholarly
+// source on the bema's civic use, either cite it in the lesson and lower this
+// pin to 10, or drop the sentence.
+const GAP = 11;
 const CHECKED_LESSONS = 1;
 
 describe('both sides of the honesty gap are counted', () => {

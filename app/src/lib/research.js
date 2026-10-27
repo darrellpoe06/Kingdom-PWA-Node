@@ -17,7 +17,14 @@
 // =============================================================================
 
 export const RESEARCH_BASE = '/research';
-export const MAX_QUERY_CHARS = 500;          // the forwarder's own cap
+// 4000, raised from 500 on 2026-10-27, and it MUST stay equal to
+// MAX_QUERY_CHARS in infra/nas-research/research_forwarder.py -- research-road
+// asserts the two match, which is what caught this constant when only the
+// forwarder was raised. This is the cap that actually refuses the reader:
+// queryProblem() stops the question HERE, before any request is sent, so
+// raising the forwarder alone would have left the 500-character refusal exactly
+// where the user meets it.
+export const MAX_QUERY_CHARS = 4000;         // the forwarder's own cap
 export const HEALTH_TIMEOUT_MS = 12000;
 export const ASK_TIMEOUT_MS = 200000;        // the forwarder gives Vane 180 s
 export const MODES = Object.freeze(['speed', 'balanced', 'quality']);

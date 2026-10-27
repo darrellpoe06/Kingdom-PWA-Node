@@ -191,6 +191,8 @@ export function segmentText(text, maxLen = 180) {
 // change — the follow map, the highlight and the paragraph steps still see
 // one sentence each; the engine advances the segment index inside the
 // utterance from the word boundaries the engine fires, and at its end.
+/** A sentence the engine faulted on is spoken again after this long (DR-1251). */
+export const ERROR_RETRY_MS = 250;
 export const RATE_SPAN_FROM = 1.5;
 export const SPAN_CHARS_PER_RATE = 180;
 export const MAX_SPAN_CHARS = 600;
@@ -360,6 +362,9 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
     _started: false, // the current segment's onstart fired (real audio began)
     _retried: false, // we've already kicked-and-retried a silent start this playback
     _watch: null,    // start-watchdog timer id
+    heldAt: null,    // the sentence a reading stopped on after an engine fault (DR-1251)
+    heldWhy: null,   // the engine's own word for that fault
+    _errRetried: false, // the one re-speak a faulted sentence gets before the reading is held
 
     _bgTimer: null,   // background keep-playing ticker
     _bgVis: null,     // the visibilitychange listener while reading
@@ -463,6 +468,10 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
         segmentIndex: this.idx,
         segmentCount: this.segments.length,
         failed: this.failed,
+        // Where a reading stopped on an engine fault, and why (DR-1251);
+        // null while it reads, ends, or is stopped by hand.
+        heldAt: this.heldAt,
+        heldWhy: this.heldWhy,
       });
     },
 
@@ -516,6 +525,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
       u.onend = () => {
         if (gen !== this._gen) return;            // superseded — ignore
         this._clearWatch();
+        this._errRetried = false;                 // a clean end: the next fault gets its own retry
         this.idx = first + span;
         if (this.status === 'playing' && this.idx < this.segments.length) this._speakSegment();
         else if (this.idx >= this.segments.length) this._finish();
@@ -543,7 +553,35 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
         const err = e && e.error;
         if (err === 'interrupted' || err === 'canceled') return;
         this._clearWatch();
-        this._finish();
+        // AN ERROR MID-READING IS NOT THE END (DR-1251; Darrell 2026-10-27:
+        // "Not one stone lesson will not play all the way through the
+        // lesson!!! the tts or reader is worse than ever"). The engine used
+        // to answer ANY other error — 'synthesis-failed', 'audio-busy',
+        // 'network', the errors a phone throws when a notification sounds or
+        // the engine hiccups — with _finish(): status idle, position reset
+        // to the top, and the same state change a lesson read to its end
+        // makes. The control then took "it ended on its own" at its word
+        // and moved to the next piece. One hiccup in sentence 80 of 266 and
+        // the rest of the lesson was never heard.
+        //
+        // Now the sentence is spoken again once; if the engine fails it a
+        // second time the reading STOPS WHERE IT IS: the position is held
+        // (`heldAt`), status goes idle, and the control is told it stopped
+        // on a fault — so it neither moves on nor pretends the lesson
+        // ended, and play resumes from the held sentence.
+        if (!this._errRetried) {
+          this._errRetried = true;
+          this._errAt = err || 'error';
+          if (typeof setTimeout === 'function') { setTimeout(() => { if (gen === this._gen && this.status === 'playing') this._restartCurrent(); }, ERROR_RETRY_MS); }
+          else this._restartCurrent();
+          return;
+        }
+        this._disarmBackground();
+        this.heldAt = this.idx;
+        this.heldWhy = err || 'error';
+        this.status = 'idle';
+        this._dirty = false;
+        this._emit();
       };
       // Retain the live utterance on the engine. Chrome/Android garbage-collect an
       // utterance that has no JS reference WHILE it is speaking, which silently cuts
@@ -621,6 +659,8 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
       this.status = 'idle';
       this.idx = 0;
       this._dirty = false;
+      this.heldAt = null;
+      this.heldWhy = null;
       this._emit();
     },
 
@@ -634,6 +674,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
     /** Speak the loaded text from the start. */
     play() {
       if (!this.segments.length) return;
+      this.heldAt = null; this.heldWhy = null; this._errRetried = false;
       // Only cancel when the synth is actually busy. A bare cancel() immediately
       // before the FIRST speak() is swallowed by Chrome (cancel is async and races
       // the speak) — the classic "tap Read, nothing happens." Guarding the cancel
@@ -742,7 +783,7 @@ export function useTextToSpeech() {
   const supported = useMemo(() => isTTSSupported(), []);
   const [prefs, setPrefs] = useState(() => loadTTSPrefs());
   const [voices, setVoices] = useState([]);
-  const [state, setState] = useState({ status: 'idle', rate: prefs.rate, pitch: prefs.pitch, voiceURI: prefs.voiceURI, segmentIndex: 0, segmentCount: 0, failed: false });
+  const [state, setState] = useState({ status: 'idle', rate: prefs.rate, pitch: prefs.pitch, voiceURI: prefs.voiceURI, segmentIndex: 0, segmentCount: 0, failed: false, heldAt: null, heldWhy: null });
   const engineRef = useRef(null);
 
   // Create the engine once, on a supported device.
@@ -886,6 +927,11 @@ export function useTextToSpeech() {
     // True when the last Read produced no audio at all (mobile blocked/suspended) —
     // the caller shows an honest retry hint instead of a dead, silent button.
     failed: !!state.failed,
+    // The sentence a reading stopped on after an engine fault, and the
+    // engine's word for it (DR-1251); null otherwise. A caller that sees it
+    // neither moves on to the next piece nor calls the lesson finished.
+    heldAt: state.heldAt != null ? state.heldAt : null,
+    heldWhy: state.heldWhy || null,
     rate: prefs.rate,
     voices,
     voiceURI: state.voiceURI != null ? state.voiceURI : prefs.voiceURI,

@@ -141,7 +141,19 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     //
     // The highest number is now L256 (DR-1150, "The LORD's Release Is for a
     // Neighbor"), spoken and built on 2026-10-21.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-21'); // L256
+    //
+    // The highest number is now L259 (DR-1221, "His Name Kept in Stone and
+    // Silver"), the first of nine lessons built the same day from nine
+    // teachings that had waited ~87 hours in the inbox while the lesson lane
+    // was dark. All nine carry 2026-10-27 - the day their ids landed - for the
+    // reason already recorded above for L254/L255: the teachings were spoken
+    // across several days, the exact send day is not knowable from the rows,
+    // and dating by the landing day is what keeps THIS check true rather than
+    // leaving nine dates to go backwards against nine ascending numbers.
+    // The highest is now L265 (Jericho's Barred Gates). The asserted DATE does
+    // not move as the batch lands - all nine carry 2026-10-27 - but this comment
+    // does, so it never names a lesson that is no longer the highest.
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-27'); // L265
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
