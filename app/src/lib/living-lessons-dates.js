@@ -353,4 +353,10 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
+  // L260 (DR-1220): Darrell sent a video on the Amarna letters into the app's
+  // research road; the row waited about ninety hours in the queue before a
+  // builder reached it, and the lesson was built on 2026-10-27, which is the
+  // day it joined the course. The exact send timestamp was not re-read from
+  // the database by this builder, so the build day is what is recorded here.
+  'll260-the-letters-of-frightened-kings-the-amarna-tablets-and-the-word': '2026-10-27',
 };
