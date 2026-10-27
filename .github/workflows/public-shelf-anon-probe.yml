@@ -34,6 +34,12 @@ name: Public shelf anon probe
 # =============================================================================
 
 on:
+  # A push to a probe/** branch runs it there, so a measurement can be taken
+  # BEFORE the fix merges (a workflow_dispatch needs the file on main first).
+  # Never main, never a timer.
+  push:
+    branches: ['probe/**']
+    paths: ['.github/workflows/public-shelf-anon-probe.yml', 'scripts/public-shelf-anon-probe.mjs']
   workflow_dispatch:
     inputs:
       base:
