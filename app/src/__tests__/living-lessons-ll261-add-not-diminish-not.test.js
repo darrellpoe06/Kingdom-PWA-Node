@@ -195,7 +195,10 @@ describe('L261 exists, is numbered, and sits after L258', () => {
     expect(new Set(claimed).size, 'no number is claimed twice').toBe(claimed.length);
   });
   it('carries the build day, at or after L258’s', () => {
-    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-26');
+    // 10-27, moved off the 10-26 this branch was authored on: the eight siblings
+    // from the same waiting queue all land 10-27, and the days must not run
+    // backwards against the numbers (living-lessons-order.test.jsx).
+    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-27');
     expect(LIVING_LESSONS_ADDED[PREV] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
   it('names both sendings honestly, and attaches nothing to a named person the source did not state', () => {
