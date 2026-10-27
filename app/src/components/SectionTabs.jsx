@@ -60,13 +60,23 @@ export default function SectionTabs({
   // below `sm`, where a bottom bar drives the same active id). The tablist
   // stays in the DOM and keyboard-reachable; only its box is styled.
   stripClassName = '',
+  // A row of QUICK LINKS may have NO current tab (DR-1233: the Learn course
+  // chips before any course is chosen, and the chips of courses that only
+  // SERVE a department, none of which is the open one). Opt-in: with it, a
+  // controlled activeId that matches no section selects nothing instead of
+  // falling back to the first chip, and no panel renders. Off by default so
+  // every existing caller keeps its first-tab fallback.
+  allowNone = false,
+  // Extra classes for every tab button (e.g. a taller touch target on a chip
+  // row that is tapped from a phone). Appended after the variant's own.
+  chipClassName = '',
 }) {
   const valid = sections.filter(Boolean);
   const [activeState, setActiveState] = useState(() => {
     if (defaultId && valid.some((s) => s.id === defaultId)) return defaultId;
     return valid.length ? valid[0].id : null;
   });
-  const active = activeId != null && valid.some((s) => s.id === activeId) ? activeId : activeState;
+  const active = activeId != null && (allowNone || valid.some((s) => s.id === activeId)) ? activeId : activeState;
   const setActive = useCallback((id) => { setActiveState(id); if (onActiveChange) onActiveChange(id); }, [onActiveChange]);
   const btnRefs = useRef({});
 
@@ -74,10 +84,12 @@ export default function SectionTabs({
   const onKeyDown = useCallback((e) => {
     if (!valid.length) return;
     const idx = valid.findIndex((s) => s.id === active);
-    if (idx < 0) return;
+    if (idx < 0 && !allowNone) return;
     let next = null;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = valid[(idx + 1) % valid.length];
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = valid[(idx - 1 + valid.length) % valid.length];
+    // With nothing selected (allowNone), Right/Down go to the first chip and
+    // Left/Up to the last, so the keyboard still reaches every link.
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = idx < 0 ? valid[0] : valid[(idx + 1) % valid.length];
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = idx < 0 ? valid[valid.length - 1] : valid[(idx - 1 + valid.length) % valid.length];
     else if (e.key === 'Home') next = valid[0];
     else if (e.key === 'End') next = valid[valid.length - 1];
     if (next) {
@@ -86,16 +98,19 @@ export default function SectionTabs({
       const el = btnRefs.current[next.id];
       if (el && el.focus) el.focus();
     }
-  }, [active, valid, setActive]);
+  }, [active, valid, setActive, allowNone]);
 
   if (!valid.length) return null;
-  const current = valid.find((s) => s.id === active) || valid[0];
+  const current = valid.find((s) => s.id === active) || (allowNone ? null : valid[0]);
   const sub = variant === 'sub';
 
   const strip = (
     <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-center gap-1 px-1'} className={sub ? '' : 'bg-[#E8E4DC] rounded-xl'}>
-      {valid.map((s) => {
-        const on = s.id === current.id;
+      {valid.map((s, i) => {
+        const on = !!current && s.id === current.id;
+        // Roving tabindex still needs ONE reachable stop when nothing is
+        // selected: the first chip takes it.
+        const stop = on || (!current && i === 0);
         // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
         // strip never reads as a duplicate of the underline row above it.
         // THE HERITAGE TRAY (DR-1046): the section row is a soft tray of pill
@@ -105,6 +120,7 @@ export default function SectionTabs({
         const cls = sub
           ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border rounded-full transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'poe-selected bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
           : `px-3 py-2 my-1 whitespace-nowrap rounded-lg transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 text-sm ${on ? 'poe-selected bg-[#1A1815] text-white font-medium' : 'text-[#5A5751] hover:text-[#1A1815] hover:bg-white'}`;
+        const btnCls = chipClassName ? `${cls} ${chipClassName}` : cls;
         return (
           <button
             key={s.id}
@@ -114,10 +130,10 @@ export default function SectionTabs({
             id={`${idBase}-tab-${s.id}`}
             aria-selected={on}
             aria-controls={`${idBase}-panel-${s.id}`}
-            tabIndex={on ? 0 : -1}
+            tabIndex={stop ? 0 : -1}
             onClick={() => setActive(s.id)}
             onKeyDown={onKeyDown}
-            className={cls}
+            className={btnCls}
           >
             {s.icon ? <UiIcon name={s.icon} /> : null}
             {s.label}
@@ -141,7 +157,7 @@ export default function SectionTabs({
           <div className="shrink-0">{trailing}</div>
         </div>
       ) : strip}
-      {current.explain ? (
+      {current && current.explain ? (
         <p id={`${idBase}-explain-${current.id}`} className="text-[0.6875rem] text-[#5A5751] leading-relaxed flex flex-wrap items-baseline gap-x-2" aria-live="polite">
           <span>{current.explain}</span>
           {current.done === true
@@ -149,15 +165,17 @@ export default function SectionTabs({
             : current.detail ? <span className="text-[#8A857C]">{current.detail}</span> : null}
         </p>
       ) : null}
-      <div
-        role="tabpanel"
-        id={`${idBase}-panel-${current.id}`}
-        aria-labelledby={`${idBase}-tab-${current.id}`}
-        tabIndex={0}
-        className="focus:outline-none"
-      >
-        {current.render()}
-      </div>
+      {current ? (
+        <div
+          role="tabpanel"
+          id={`${idBase}-panel-${current.id}`}
+          aria-labelledby={`${idBase}-tab-${current.id}`}
+          tabIndex={0}
+          className="focus:outline-none"
+        >
+          {current.render()}
+        </div>
+      ) : null}
     </div>
   );
 }
