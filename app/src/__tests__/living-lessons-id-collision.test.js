@@ -100,6 +100,18 @@ const numbered = (mods) => mods.map((m) => {
 // was deleted that was not first carried across. Unlike 193 / 203 / 210 this is
 // NOT a hold: no `ll235` will ever exist again, so the entry is permanent and
 // the second check below cannot ask for it back.
+// 259, 260 and 261 WERE HELD here (2026-10-27), the same way 193 / 203 / 210
+// and 236-238 were, and for the same reason at a larger scale: eight lesson
+// builders ran in parallel on one machine against a main whose highest number
+// was ll258, and the coordinator issued fixed ids rather than letting each
+// session compute "lowest free" -- which five of them had already answered
+// identically. 259 was held for "His Name Kept in Stone and Silver" (PR #2414)
+// and 260 for "The Amarna Letters" (PR #2415) while THIS lesson, L262, was
+// written; both have since merged, so BOTH ENTRIES ARE DELETED IN THIS MERGE,
+// which is the convention working exactly as the second check below demands.
+// 261 is still held for the sons-of-God lesson on
+// `claude/ll261-sons-of-god-taught-from-the-word`, pushed and in flight. Delete
+// that entry in the merge that fills it.
 const KNOWN_MISSING = [211, 212, 235];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {

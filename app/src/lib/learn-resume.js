@@ -350,8 +350,21 @@ export function listPlaces(opts = {}) {
  * apart from a Stop pressed on the final words. Either way the listener heard
  * it all, and either way the next start belongs at the top.
  */
+export const PLACE_FINISHED_EVENT = 'poe:place-finished';
 export function finishPlace(patch = {}, opts = {}) {
   recordPlace({ ...patch, done: true }, opts);
+  // THE RECORD HEARS IT AT ONCE (DR-1251). The course view files a finished
+  // place to the learner's record, and it used to look only when it mounted
+  // or when the record changed — so a lesson read to its end sat unfiled
+  // until the next sign-in. Every finisher (the in-space reader's last
+  // sentence, the guide's last unit, the deck's last part) says so here, and
+  // the view that is listening files it in the same breath.
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      const place = getPlace(opts);
+      window.dispatchEvent(new CustomEvent(PLACE_FINISHED_EVENT, { detail: { courseKey: (patch && patch.courseKey) || (place && place.courseKey) || null, lessonId: (patch && patch.lessonId) || (place && place.lessonId) || null } }));
+    }
+  } catch (_) { /* a listener that is not there never breaks a finish */ }
 }
 
 /**
