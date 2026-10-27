@@ -110,7 +110,7 @@ describe('the debt, recorded as it actually is', () => {
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
     expect(baseline.allFour).toBe(257); // 257 on 2026-10-27: sov51 (the office that does not transfer -- what no contract can compel,
-    // and the hireling who leaves, DR-1241), built from the TLDR technology digest Darrell forwarded on 2026-09-30 with one word
+    // and the hireling who leaves, DR-1246), built from the TLDR technology digest Darrell forwarded on 2026-09-30 with one word
     // above it, "Lessons" -- no item named and no question asked, which the lesson states rather than inventing an intent for him.
     // It carries all four age bands from the first commit, so adultOnly did NOT move with it, and the sovereign-ai row reads
     // {lessons: 49, allFour: 28}. Its ground was chosen by measurement TWICE OVER, because the first two candidates were taken: the
