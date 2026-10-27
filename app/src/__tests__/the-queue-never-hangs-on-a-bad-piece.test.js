@@ -98,30 +98,47 @@ describe('an element error on a piece', () => {
 });
 
 describe('a piece that never begins', () => {
-  it('is taken as stuck after STALL_MS and asked for again; one that is playing, or paused by the listener, is left alone', async () => {
+  const stuckQueue = () => {
     const chunks = chunkForClips(TEXT);
     const audio = audioEl();
     const due = [];
+    const cancelled = [];
     const fetchFresh = vi.fn(async (t, i) => ({ url: `fresh:${i}` }));
-    const q = createClipQueue({ chunks, audio, fetchClip: async (t, i) => ({ url: `blob:${i}` }), fetchFresh, onFallback: () => {}, schedule: (fn, ms) => { due.push({ fn, ms }); return due.length; }, unschedule: () => {} });
+    const q = createClipQueue({ chunks, audio, fetchClip: async (t, i) => ({ url: `blob:${i}` }), fetchFresh, onFallback: () => {}, schedule: (fn, ms) => { due.push({ fn, ms }); return due.length; }, unschedule: (id) => cancelled.push(id) });
+    return { q, audio, due, cancelled, fetchFresh };
+  };
+  it('arms the watch for STALL_MS when play() is accepted', async () => {
+    const { q, due } = stuckQueue();
     await q.start(); await tick();
     expect(due.length).toBe(1);
     expect(due[0].ms).toBe(STALL_MS);
-    // Playing: the clock moved. Left alone.
+  });
+  it('a piece whose clock moved, or that the listener paused at the top, is left alone', async () => {
+    const { q, audio, due, fetchFresh } = stuckQueue();
+    await q.start(); await tick();
     audio.currentTime = 0.5;
-    due[0].fn();
-    await tick();
+    due[0].fn(); await tick();
     expect(fetchFresh).not.toHaveBeenCalled();
-    // Paused by the listener at the top: left alone.
     audio.currentTime = 0; audio.paused = true;
-    due[0].fn();
-    await tick();
+    due[0].fn(); await tick();
     expect(fetchFresh).not.toHaveBeenCalled();
-    // Accepted, not paused, never moved: stuck.
-    audio.paused = false;
+  });
+  it('data arriving stands the watch down: a slow road is not a dead one (DR-1254)', async () => {
+    const { q, audio, due, cancelled } = stuckQueue();
+    await q.start(); await tick();
+    expect(cancelled).toEqual([]);
+    audio.fire('loadeddata');
+    expect(cancelled, 'the stall watch was cancelled when data came').toContain(1);
+    expect(due.length).toBe(1);
+  });
+  it('a piece that never loads, never plays and was never paused is asked for again, fresh', async () => {
+    const { q, audio, due, fetchFresh } = stuckQueue();
+    await q.start(); await tick();
+    audio.paused = false; audio.currentTime = 0;
     due[0].fn();
     await tick(); await tick();
     expect(fetchFresh).toHaveBeenCalledTimes(1);
+    expect(fetchFresh.mock.calls[0][1]).toBe(0);
     expect(audio.src).toBe('fresh:0');
   });
 });

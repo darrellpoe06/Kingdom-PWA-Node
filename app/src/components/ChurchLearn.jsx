@@ -4340,6 +4340,9 @@ export default function ChurchLearn({
       // guide open, scrolled to the top.
       setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
+      // A published lesson's arrival lands here now (DR-1253): opening the
+      // lesson is looking at it, so the bell stops counting it.
+      markArrivalsSeen(SCREEN_KINDS.lesson);
       if (shared) {
         waitForElement(`learn-lesson-${deepLink.lessonId}`).then((onScreen) => reportShareLanded(
           onScreen ? { ok: true } : { ok: false, reason: 'lesson card did not render' },

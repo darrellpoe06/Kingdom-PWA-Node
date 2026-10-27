@@ -76,11 +76,37 @@ END $$;
 -- Published: the second event, on the transcript row (the reader tags the row it read).
 UPDATE public.agent_inbox SET tags = tags || '["lesson-published","lesson-id:ll205"]'::jsonb
  WHERE id = '00000000-0000-0000-0000-0000000000a2';
-DO $$ BEGIN
+DO $$
+DECLARE r record;
+BEGIN
   IF (SELECT count(*) FROM public.push_outbox) <> 2 THEN RAISE EXCEPTION 'SMOKE FAIL: lesson-published did not enqueue'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000a1:published' AND title = 'Your lesson is published' AND target_user = '00000000-0000-0000-0000-00000000000a')
     THEN RAISE EXCEPTION 'SMOKE FAIL: the published row is wrong (key, title or person)'; END IF;
+  -- THE LESSON ITSELF (DR-1253, 0311): the published push lands in Learn on
+  -- the lesson the row names, and says so; never on the lane's panel.
+  SELECT * INTO r FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000a1:published';
+  IF r.url <> '/poetech-app/?view=church&sub=learn&course=living-lessons&lesson=ll205' THEN RAISE EXCEPTION 'SMOKE FAIL: the published push landed on %, not the lesson', r.url; END IF;
+  IF r.body <> 'Open it to read it, or have it read to you.' THEN RAISE EXCEPTION 'SMOKE FAIL: the published push words are %', r.body; END IF;
+  IF r.body ILIKE '%spoken%' OR r.body ILIKE '%the words%' THEN RAISE EXCEPTION 'SMOKE FAIL: the published push carried lesson text'; END IF;
 END $$;
+
+-- A row published with NO lesson id (nothing to land on): Your lessons, as
+-- before, never a dead link.
+INSERT INTO public.agent_inbox (id, instance_id, body, tags, created_by) VALUES
+  ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000f0', 'Lesson. (no id yet)', '["lesson","voice"]', '00000000-0000-0000-0000-00000000000a');
+UPDATE public.agent_inbox SET tags = tags || '["lesson-published"]'::jsonb
+ WHERE id = '00000000-0000-0000-0000-0000000000d1';
+DO $$
+DECLARE r record;
+BEGIN
+  SELECT * INTO r FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000d1:published';
+  IF r.id IS NULL THEN RAISE EXCEPTION 'SMOKE FAIL: a published row with no lesson id enqueued nothing'; END IF;
+  IF r.url <> '/poetech-app/?view=create&panel=your-lessons' THEN RAISE EXCEPTION 'SMOKE FAIL: with no lesson id the push landed on %', r.url; END IF;
+  IF r.body <> 'Open Your lessons to read it.' THEN RAISE EXCEPTION 'SMOKE FAIL: with no lesson id the words are %', r.body; END IF;
+END $$;
+-- Measured and removed: every count below this line is what it was before.
+DELETE FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000d1:published';
+DELETE FROM public.agent_inbox WHERE id = '00000000-0000-0000-0000-0000000000d1';
 
 -- Not a lesson: nothing.
 UPDATE public.agent_inbox SET tags = tags || '["awaiting-review","lesson-published"]'::jsonb

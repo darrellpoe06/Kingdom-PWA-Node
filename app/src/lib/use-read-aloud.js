@@ -198,6 +198,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const liteAudioRef = useRef(null);
   const liteMissRef = useRef('');
   const heldLiteRef = useRef('');
+  // WHERE THE TEXT NOW PLAYING SITS IN THE READING (DR-1254; Darrell
+  // 2026-10-27: "It cuts off the reader while I was in the lesson and then
+  // starts me from the beginning instead of the 13 part!!!"). A hand-off —
+  // the NAS voice failing a piece, a reading held in the dark and resumed —
+  // plays the REST of the text as a new run whose pieces count from 0 again,
+  // while the control adds that count to the base it started from. So sentence
+  // 13 lit as sentence 0, the page scrolled to the top, and the bookmark was
+  // written back to the beginning. This is how many pieces of the reading
+  // come before the text now playing; the control adds it. Zero for a fresh
+  // read (whose base already carries the place); grown by each hand-off.
+  const [pieceOffset, setPieceOffset] = useState(0);
+  const pieceOffsetRef = useRef(0);
   const resumeHeldRef = useRef(() => false);
   // One reading, one voice (DR-0654): the pin made when a reading starts, the
   // one hand-off to the device voice, and whether a reading is live now.
@@ -778,6 +790,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       // device voice rather than stopping (and the panel says which voice).
       onFallback: (rest, i, reason) => {
         if (queueRef.current !== q) return;
+        // The rest begins at piece i of THIS run: whatever plays it next
+        // counts from 0, so the offset grows by i (DR-1254).
+        pieceOffsetRef.current += Math.max(0, Number(i) || 0);
+        setPieceOffset(pieceOffsetRef.current);
         queueRef.current = null; audioRef.current = null;
         setCloudPiece(-1);
         liteMissRef.current = reason || 'voice-lite-error';
@@ -873,9 +889,29 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     pin.uri = pick.uri; pin.matched = pick.matched;
     if (rest) tts.speak(rest, pick.uri);
     const man = pin.gender === 'male';
+    // THE BETTER ROAD IS OFFERED, NOT ONLY DESCRIBED (DR-1254; Darrell
+    // 2026-10-27: "the male voice changes mid-lesson to a female voice... are
+    // we using the same solutions or researching better options based on our
+    // experiences?"). The same man's voice the NAS reads in (Piper, Ryan)
+    // runs on the phone itself (lib/device-voice.js, DR-0656 / DR-0881) and
+    // is the first stand-in for a piece — when it is kept on the phone. A
+    // phone with no man's voice of its own and that model not yet kept is
+    // told the one thing that ends this: keep the voice here, once.
+    let keep = null;
+    try {
+      if (!pick.matched && !(await deviceVoiceReady())) {
+        const dv = await checkDeviceVoice({});
+        if (dv && dv.state === 'downloadable' && typeof window !== 'undefined' && window.location) {
+          keep = { href: `${window.location.pathname}?view=voice`, label: `Keep the ${man ? 'man’s' : 'woman’s'} voice on this phone` };
+        }
+      }
+    } catch (_) { keep = null; }
     setNotice(pick.matched
       ? `The church’s reading voice stopped, so the rest reads in this phone’s own voice: ${man ? 'a man’s' : 'a woman’s'} voice, as before.`
-      : `The church’s reading voice stopped, so the rest reads in this phone’s own voice. This phone has no ${man ? 'man’s' : 'woman’s'} voice to match it.`);
+      : keep
+        ? `The church’s reading voice stopped, so the rest reads in this phone’s own voice. This phone has no ${man ? 'man’s' : 'woman’s'} voice to match it — keep the church’s own ${man ? 'man’s' : 'woman’s'} voice on this phone once, and the rest of a lesson stays in it.`
+        : `The church’s reading voice stopped, so the rest reads in this phone’s own voice. This phone has no ${man ? 'man’s' : 'woman’s'} voice to match it.`,
+    keep);
   };
   // A reading held in the background resumes in the NAS voice, from the piece
   // that failed, once the page is seen (DR-0654). If the NAS voice still
@@ -1052,6 +1088,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // step below can ask whether it is still the reading that owns the voice.
     readGenRef.current += 1;
     const gen = readGenRef.current;
+    // A read's own pieces count from its start (DR-1254).
+    pieceOffsetRef.current = 0;
+    setPieceOffset(0);
     // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
     // (a paragraph jump, the hand-over into the dark, a pick-up) CONTINUES
     // that reading and keeps its pin; a read from rest starts a new one.
@@ -1373,6 +1412,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     isPaused: tts.isPaused || cloudPaused,
     // Where the device voice stopped on a fault (DR-1251); null otherwise.
     engineHeldAt: tts.heldAt != null ? tts.heldAt : null,
+    // How many pieces of this reading come before the text now playing (DR-1254).
+    pieceOffset,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,
     // Follow-along (DR-0264): device-voice reads report per-sentence progress
