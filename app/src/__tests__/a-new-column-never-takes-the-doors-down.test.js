@@ -64,6 +64,6 @@ describe('the rentals read', () => {
   });
   it('the end-to-end chain replays 0309, so the journeys run where production is', () => {
     const sh = readFileSync(join(ROOT, 'scripts', 'e2e', 'build-door-db.sh'), 'utf8');
-    expect(sh).toMatch(/0291-borrowing-goes-both-ways\.sql \\\n\s+0309-a-door-shows-its-pictures-to-its-people\.sql; do/);
+    expect(sh).toMatch(/0291-borrowing-goes-both-ways\.sql \\\n\s+0309-a-door-shows-its-pictures-to-its-people\.sql \\\n\s+0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after\.sql; do/);
   });
 });
