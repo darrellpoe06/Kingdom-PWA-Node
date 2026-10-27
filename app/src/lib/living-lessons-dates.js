@@ -353,7 +353,22 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // L259 (DR-1223): a link Darrell sent into the research road inside the app,
+  // L259 (DR-1221): the EVIDENTIAL half of the house rule on the name. Darrell
+  // sent a link into the app's own lesson queue with one word on it, Lesson;
+  // the research road fetched the whole reading on our own machines, and the
+  // row waited about eighty-eight hours before it was built. The date here is
+  // the day the lesson JOINED THE COURSE, which is what this file records --
+  // the row was sent about three and a half days earlier, and that is stated in
+  // the record rather than guessed at here. It takes the next free number above
+  // L258; the repo allows no held numbers (numbers-are-unique pins KNOWN_GAPS).
+  'll259-his-name-kept-in-stone-and-silver': '2026-10-27',
+  // L260 (DR-1220): Darrell sent a video on the Amarna letters into the app's
+  // research road; the row waited about ninety hours in the queue before a
+  // builder reached it, and the lesson was built on 2026-10-27, which is the
+  // day it joined the course. The exact send timestamp was not re-read from
+  // the database by this builder, so the build day is what is recorded here.
+  'll260-the-letters-of-frightened-kings-the-amarna-tablets-and-the-word': '2026-10-27',
+  // L262 (DR-1223): a link Darrell sent into the research road inside the app,
   // which waited about 87 hours in the lesson queue and was built out -- the
   // Council of Nicaea did not invent the deity of the Son and voted no canon;
   // the Word had already said it in the first century. The day recorded is the

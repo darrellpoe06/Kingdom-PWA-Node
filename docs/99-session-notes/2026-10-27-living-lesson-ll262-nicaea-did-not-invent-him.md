@@ -89,12 +89,13 @@ which is why the record moved DR-1220 -> DR-1222 -> **DR-1223** (1220 was held b
 a sibling's in-flight number, and with eight parallel builders only one of them can be contiguous at a
 time. The repository's own answer is a **hold**, registered in `living-lessons-id-collision.test.js`'s
 `KNOWN_MISSING` with its reason and deleted by the merge that fills it, as 193, 203, 210, 236, 237 and
-238 all were. 259, 260 and 261 are registered there with the PRs holding them, and that gate is green.
+238 all were. 259, 260 and 261 were registered there with the PRs holding them. PR #2414 (ll259) and #2415 (ll260) have since merged and are pulled into this branch, so BOTH ENTRIES ARE DELETED HERE, which is the convention working. Only 261 is still held. That gate is green.
 
 **The honest limit:** `living-lessons-numbers-are-unique` cannot accept a hold -- `KNOWN_GAPS` is
 `[211, 212]` with `expect(KNOWN_GAPS.length).toBe(2)` and its own comment says it must not grow. So one
-assertion in that file is red on this branch for the numbering alone, and it clears itself when those
-three siblings land. Its pin was deliberately not touched: loosening another gate's ratchet to land
+assertion in that file is red on this branch for the numbering alone -- it read `[259, 260, 261]` when written
+and reads `[261]` now -- and it clears itself when ll261 lands. CI measured 6,923 of 6,924 cases passing with that one
+assertion as the only failure. Its pin was deliberately not touched: loosening another gate's ratchet to land
 your own work is the wrong trade. The fix belongs in one shared hold registry both gates read
 (`re-review: 2026-11-10`, DR-1223).
 
