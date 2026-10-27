@@ -595,9 +595,19 @@ export function DoorsBoard({
   const rows = useMemo(() => arranged.map((r) => {
     const tenancy = activeByRef.get(r.slug) || null;
     // What it rents for: the tenancy's actual rent if occupied, otherwise the
-    // asking rent, otherwise the door's own figure. Never invented — a door
-    // with no rent anywhere says so rather than showing $0.
-    const rent = Number(tenancy?.monthly_rent) || Number(r.listed_rent) || Number(r.monthly_rent) || 0;
+    // door's own figure, otherwise the price it was advertised at. Never
+    // invented — a door with no rent anywhere says so rather than showing $0.
+    //
+    // THE EDITABLE FIGURE WINS (2026-10-27). This read `listed_rent` before
+    // `r.monthly_rent`, and `listed_rent` is a copy frozen when the door was
+    // first advertised that NO screen can edit. So editing the rent on an
+    // advertised door changed nothing anyone could see: "the $750 will not
+    // update to $1000 even after saving it" (Darrell, 805 North Prospect Apt
+    // 4). When the two disagree, the one the owner can actually type in is by
+    // definition the newer intent. staging.js advertisedPriceFollows now keeps
+    // them in step on every save; this order is what tells the truth about the
+    // doors that already drifted, without rewriting anybody's data.
+    const rent = Number(tenancy?.monthly_rent) || Number(r.monthly_rent) || Number(r.listed_rent) || 0;
     // "so people can see when an opening is available or not... or coming"
     // (Darrell). A lease with an end date inside the window is an opening the
     // family can already talk about. Past the end date it is not "coming" any
