@@ -353,7 +353,7 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // L266 (DR-1226): a Wes Huff conference lecture on archaeological and
+  // L266 (DR-1229): a Wes Huff conference lecture on archaeological and
   // manuscript corroboration of the New Testament, which Darrell sent into the
   // app's research road for a lesson and which then waited about 91 hours in
   // the queue (DR-1219's dark-in-effect window). Built and committed

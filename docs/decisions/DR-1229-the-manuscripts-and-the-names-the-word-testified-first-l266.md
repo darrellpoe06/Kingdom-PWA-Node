@@ -1,4 +1,4 @@
-# DR-1226: The manuscripts and the names — the Word testified first, and the one artifact everybody oversells is the one this lesson refuses to (ll266)
+# DR-1229: The manuscripts and the names — the Word testified first, and the one artifact everybody oversells is the one this lesson refuses to (ll266)
 
 **Date:** 2026-10-27
 **Status:** accepted

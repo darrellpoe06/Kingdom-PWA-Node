@@ -1,7 +1,7 @@
 # L266 — The Manuscripts and the Names: the Word testified first (2026-10-27)
 
 **Module id:** `ll266-the-manuscripts-and-the-names-the-word-testified-first`
-**Decision record:** DR-1226
+**Decision record:** DR-1229
 **Course:** Living Lessons (`app/src/lib/living-lessons-class.js`)
 **Branch:** `claude/ll266-the-manuscripts-and-the-names`
 
@@ -33,7 +33,7 @@ finding: **two of the three artifacts this lesson teaches are
 copyright-encumbered for publication** — the Pilate Stone (Israel Museum /
 IAA) and the Alexamenos graffito (Alinari / Art Resource) — and only P52 has a
 clean route, through Manchester's own terms with a public-domain Wikimedia
-fallback. **No image is added.** The full table is in DR-1226 so the next
+fallback. **No image is added.** The full table is in DR-1229 so the next
 session does not re-derive it.
 
 The speaker is named as the material names him — **Wes Huff**, at the
@@ -141,10 +141,10 @@ for contiguity. Measured at push time, not predicted.
 `origin/claude/ll261-sons-of-god-taught-from-the-word`, and says in its own
 words: *"Taking DR-1227 would collide. DR-1228 is free on disk AND in flight."*
 The instruction was to stop and report rather than pick a replacement, so this
-record **stays at DR-1226** — the number originally assigned, already written,
+record **stays at DR-1229** — the number originally assigned, already written,
 and held by no other branch — rather than moving into the collision or
 inventing DR-1228. Also measured: `origin/main` is still at `aa9617999`
 (DR-1219, #2410), so nothing above DR-1219 or ll258 has actually landed yet,
-including the ll259 and ll260 PRs. The coordinator decides: confirm DR-1226, or
+including the ll259 and ll260 PRs. The coordinator decides: confirm DR-1229, or
 assign a free number and this record is moved with
 `scripts/renumber-decision-record.mjs`.
