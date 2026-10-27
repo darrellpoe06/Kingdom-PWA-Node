@@ -83,6 +83,7 @@ vi.mock('../components/PasswordAuth.jsx', () => ({ default: () => createElement(
 const { default: PublicFrontDoor } = await import('../components/PublicFrontDoor.jsx');
 const { default: PropertiesDoor } = await import('../components/PropertiesDoor.jsx');
 const { vacancyUnit, vacancyUnits, readFailureLine } = await import('../modules/properties/vacancy-unit.js');
+const { heroSlides, heroFallbackWhy, slideTitle } = await import('../modules/properties/hero-slides.js');
 
 let container; let root;
 afterEach(async () => {
@@ -242,5 +243,103 @@ describe('the branded Poe Properties door, signed out', () => {
     await click(tap);
     await flush(6);
     expect(el.querySelector('[data-testid="front-door-none"]')).toBeTruthy();
+  });
+});
+
+describe('the branded door\'s big picture advertises the REAL apartments (Darrell: "does not advertise the images in the carousel... fix it")', () => {
+  const DOOR2 = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+  const ROW2 = { id: DOOR2, label: '12 Example Road', street: '12 Example Road', city: 'Danville', state: 'IL', rent: 680, address_shown: true, offering: 'long-term' };
+  const LIST2 = [{ id: 'q1', caption: 'Front', has_thumb: true }, { id: 'q2', caption: '', has_thumb: true }];
+
+  it('slides: the first picture of every door, then the second — the owners\' order, titled by the home, never the street', () => {
+    const units = vacancyUnits([ROW, ROW2]);
+    const slides = heroSlides(units, { [DOOR]: LIST, [DOOR2]: LIST2 });
+    expect(slides.map((x) => x.photoId)).toEqual(['p1', 'q1', 'p2', 'q2', 'p3']);
+    expect(slides[0].title).toMatch(/^Bed in a shared/);
+    expect(slides[1].title).toBe('Danville, IL');           // the street shown on the card is NOT on the hero
+    expect(JSON.stringify(slides)).not.toContain('12 Example Road');
+    expect(slides[0].alt).toBe('The kitchen — Bed in a shared multi-family in Champaign, Illinois');
+    expect(heroSlides(units, {}, {})).toEqual([]);
+    expect(slideTitle(null)).toBe('');
+  });
+
+  it('why the entryway stands in is always said: four different truths, never silence', () => {
+    const units = vacancyUnits([ROW]);
+    expect(heroFallbackWhy({ read: 'failed', why: 'Read failed: public_vacancies · rpc-error · 57014' })).toMatch(/57014/);
+    expect(heroFallbackWhy({ read: 'loading' })).toMatch(/Reading/);
+    expect(heroFallbackWhy({ read: 'ok', units: [] })).toMatch(/Nothing is advertised/);
+    expect(heroFallbackWhy({ read: 'ok', units, lists: {}, listsRead: 'failed' })).toMatch(/public_vacancy_photo_list/);
+    expect(heroFallbackWhy({ read: 'ok', units, lists: { [DOOR]: [] }, listsRead: 'ok' })).toMatch(/no pictures yet/);
+    expect(heroFallbackWhy({ read: 'ok', units, lists: { [DOOR]: LIST }, listsRead: 'ok' })).toBe('');
+  });
+
+  it('PROVEN TO CATCH: the hero frame shows a vacancy picture with the home\'s name and one 44px segment per slide', async () => {
+    shelfIsUp();
+    const el = await mount(PropertiesDoor);
+    await flush(16);
+    const frame = el.querySelector('.pp-photo');
+    const car = frame.querySelector('[data-testid="hero-carousel"]');
+    expect(car, 'the carousel inside the big picture').toBeTruthy();
+    const img = car.querySelector('[data-testid="hero-slide"]');
+    expect(img?.getAttribute('src')).toBe(BYTES.p1);
+    expect(img.getAttribute('alt')).toMatch(/The kitchen — Bed in a shared/);
+    expect(car.querySelector('[data-testid="hero-slide-title"]').textContent).toMatch(/^Bed in a shared multi-family in Champaign, Illinois · The kitchen$/);
+    const segs = car.querySelectorAll('[data-testid="hero-segments"] button');
+    expect(segs.length).toBe(LIST.length);
+    expect(segs[0].getAttribute('aria-selected')).toBe('true');
+    // The stock entryway is NOT in the frame while the real pictures are up, and no why line.
+    expect(frame.querySelector('img[src="/properties/welcome-entry.jpg"]')).toBeNull();
+    expect(el.querySelector('[data-testid="hero-fallback-why"]')).toBeNull();
+    // The list was read ONCE per door for the cards and the hero together.
+    expect(loadVacancyPhotos.mock.calls.filter((c) => c[0] === DOOR).length).toBe(1);
+    // A segment tap shows that picture.
+    await click(segs[1]);
+    await flush(6);
+    expect(car.querySelector('[data-testid="hero-slide"]')?.getAttribute('src')).toBe(BYTES.p2);
+    expect(car.querySelector('[data-testid="hero-slide-title"]').textContent).toMatch(/The porch$/);
+  });
+
+  it('autoplay walks the slides on its own, and holds while a hand is on it', async () => {
+    vi.useFakeTimers();
+    try {
+      shelfIsUp();
+      const el = await mount(PropertiesDoor);
+      await flush(16);
+      const car = el.querySelector('[data-testid="hero-carousel"]');
+      expect(car.getAttribute('data-slide')).toBe('0');
+      await act(async () => { vi.advanceTimersByTime(5100); });
+      await flush(4);
+      expect(el.querySelector('[data-testid="hero-carousel"]').getAttribute('data-slide')).toBe('1');
+      // React wires onPointerEnter from pointerover/pointerout, so that is what a hand sends.
+      await act(async () => { car.dispatchEvent(new window.Event('pointerover', { bubbles: true })); });
+      await act(async () => { vi.advanceTimersByTime(12000); });
+      expect(el.querySelector('[data-testid="hero-carousel"]').getAttribute('data-slide')).toBe('1');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('with no vacancy the entryway photograph stands in, and the frame says why', async () => {
+    loadPublicVacancies.mockResolvedValue({ ok: true, vacancies: [] });
+    const el = await mount(PropertiesDoor);
+    await flush(8);
+    expect(el.querySelector('.pp-photo img')?.getAttribute('src')).toBe('/properties/welcome-entry.jpg');
+    expect(el.querySelector('[data-testid="hero-carousel"]')).toBeNull();
+    expect(el.querySelector('[data-testid="hero-fallback-why"]').textContent).toMatch(/Nothing is advertised right now/);
+  });
+
+  it('when the read failed the entryway stands in and the ops line carries the failure, never silently', async () => {
+    loadPublicVacancies.mockResolvedValue({ ok: false, reason: 'rpc-error', error: 'PGRST000 could not connect' });
+    const el = await mount(PropertiesDoor);
+    await flush(8);
+    expect(el.querySelector('.pp-photo img')?.getAttribute('src')).toBe('/properties/welcome-entry.jpg');
+    expect(el.querySelector('[data-testid="hero-fallback-why"]').textContent).toBe('Read failed: public_vacancies · rpc-error · PGRST000 could not connect');
+  });
+
+  it('when the doors have no pictures the entryway stands in and says so', async () => {
+    loadPublicVacancies.mockResolvedValue({ ok: true, vacancies: [ROW] });
+    loadVacancyPhotos.mockResolvedValue({ ok: true, photos: [] });
+    const el = await mount(PropertiesDoor);
+    await flush(12);
+    expect(el.querySelector('[data-testid="hero-carousel"]')).toBeNull();
+    expect(el.querySelector('[data-testid="hero-fallback-why"]').textContent).toMatch(/no pictures yet/);
   });
 });

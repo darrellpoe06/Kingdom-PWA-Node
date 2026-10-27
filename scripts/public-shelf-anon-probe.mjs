@@ -54,9 +54,12 @@ async function readDoor(browser, url, { tapLookingForAPlace = false } = {}) {
             : has('[data-testid="front-door-loading"]') ? 'loading'
               : has('[data-testid="vacancies-panel"]') ? 'branded-panel' : 'unknown';
       const why = (document.querySelector('[data-testid="front-door-unreadable-why"]')?.textContent || '').trim();
-      return { state, cards, pics, strip, why };
+      // The branded door's big picture: a real slide up (1) or the entryway standing in (0), and why.
+      const hero = document.querySelector('[data-testid="hero-slide"]') ? 1 : 0;
+      const heroWhy = (document.querySelector('[data-testid="hero-fallback-why"]')?.textContent || '').trim();
+      return { state, cards, pics, strip, why, hero, heroWhy };
     });
-    out.push(`door=${pathOf(url)} state=${seen.state} cards=${seen.cards} pictures=${seen.pics} strip=${seen.strip}${seen.why ? ` why="${scrub(seen.why)}"` : ''}`);
+    out.push(`door=${pathOf(url)} state=${seen.state} cards=${seen.cards} pictures=${seen.pics} strip=${seen.strip} hero=${seen.hero}${seen.why ? ` why="${scrub(seen.why)}"` : ''}${seen.heroWhy ? ` hero_why="${scrub(seen.heroWhy)}"` : ''}`);
   } catch (e) {
     out.push(`door=${pathOf(url)} state=could-not-load error="${scrub(e.message)}"`);
   }

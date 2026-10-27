@@ -27,7 +27,8 @@ import { readApplyTarget, readListingTarget, resolveScan } from '../modules/prop
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { LifeWall } from '../modules/properties/StayWall.jsx';
-import { loadPublicVacancies, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
+import { loadPublicVacancies, loadVacancyPhotos, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
+import { heroSlides, heroFallbackWhy } from '../modules/properties/hero-slides.js';
 import { readWhoIntent, withWhoIntent, withoutWhoIntent, LANDLORD_PATHS, landingFor, holdsSeat, navigate } from '../modules/properties/own-space.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 import { vacancyUnits, readFailureLine } from '../modules/properties/vacancy-unit.js';
@@ -492,6 +493,29 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
     return () => { on = false; };
   }, [shelfAsk]);
 
+  // THE PICTURE LISTS, READ ONCE PER DOOR (DR-1016: the list never carries the
+  // bytes) and handed to BOTH the cards and the hero carousel, so the one
+  // loader answers both and no door is asked twice for its list.
+  const [lists, setLists] = useState({});
+  const [listsRead, setListsRead] = useState('loading'); // loading | ok | failed
+  useEffect(() => {
+    if (shelfRead !== 'ok' || !vacancies || !vacancies.length) { setListsRead(shelfRead === 'ok' ? 'ok' : 'loading'); return undefined; }
+    let on = true;
+    setListsRead('loading');
+    Promise.all(vacancies.map((v) => loadVacancyPhotos(v.id).then((r) => [v.id, r]).catch((e) => [v.id, { ok: false, reason: 'threw', error: e && e.message }])))
+      .then((pairs) => {
+        if (!on) return;
+        const next = {}; let failed = 0;
+        for (const [id, r] of pairs) { if (r && r.ok) next[id] = r.photos || []; else failed += 1; }
+        setLists(next);
+        setListsRead(failed && failed === pairs.length ? 'failed' : 'ok');
+      });
+    return () => { on = false; };
+  }, [shelfRead, vacancies]);
+  const units = vacancyUnits(vacancies || []);
+  const slides = heroSlides(units, lists);
+  const heroWhy = heroFallbackWhy({ read: shelfRead, why: shelfWhy, units, lists, listsRead });
+
   // The vacancies list is the authority on whether a scanned card is still
   // good: public_vacancies already refuses a door that is unadvertised or
   // occupied, so a card left in a window after the unit was taken degrades to
@@ -547,6 +571,9 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
           left={preview ? false : left}
           onReturn={onReturn}
           bigPicture={preview ? null : (photo) => <PorchHero photo={photo} />}
+          slides={slides}
+          why={heroWhy}
+          autoplay={!preview}
         />
         {/* The six portals are WHO_OPTIONS, unchanged: same ids, same
             needsAccount, same handler (setWho). Only the look is new. */}
@@ -563,7 +590,9 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
         <AdvertisedNow
           read={shelfRead}
           why={shelfWhy}
-          units={vacancyUnits(vacancies || [])}
+          units={units}
+          lists={lists}
+          listsRead={listsRead}
           onApply={(rentalId) => { setWho('applicant'); applyFor(rentalId); }}
           onTryAgain={() => setShelfAsk((n) => n + 1)}
         />
@@ -612,10 +641,11 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
             except this is places to live... without an account" (Darrell). */}
         {(vacancies || []).length > 0 && (
           <ul className="pp-shelf grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {vacancyUnits(vacancies || []).map((u) => (
+            {units.map((u) => (
               <VacancyCard
                 key={u.id}
                 unit={u}
+                photos={listsRead === 'loading' ? null : (lists[u.rentalId] || [])}
                 onApply={applyFor}
                 openPictures={wanted && u.rentalId === wanted ? 1 : 0}
               />
@@ -742,7 +772,7 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
  * (DR-1236): the same cards, the same pictures, the same privacy line. Three
  * states, said plainly; a read that failed is never "nothing is listed".
  */
-function AdvertisedNow({ read, why, units, onApply, onTryAgain }) {
+function AdvertisedNow({ read, why, units, lists = {}, listsRead = 'ok', onApply, onTryAgain }) {
   if (read === 'ok' && units.length === 0) return null; // nothing advertised: the portals already say what this door is
   return (
     <section className="pp-step" aria-labelledby="pp-advertised-heading" data-testid="advertised-now">
@@ -763,7 +793,7 @@ function AdvertisedNow({ read, why, units, onApply, onTryAgain }) {
         )}
         {read === 'ok' && units.length > 0 && (
           <ul className="pp-shelf grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="advertised-now-shelf">
-            {units.map((u) => <VacancyCard key={u.id} unit={u} onApply={onApply} />)}
+            {units.map((u) => <VacancyCard key={u.id} unit={u} photos={listsRead === 'loading' ? null : (lists[u.rentalId] || [])} onApply={onApply} />)}
           </ul>
         )}
       </div>

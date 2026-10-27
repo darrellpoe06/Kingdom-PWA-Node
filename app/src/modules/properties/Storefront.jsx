@@ -65,9 +65,18 @@ const serif = { fontFamily: '"Fraunces", serif' };
  * loaded, the card scrolls into view and opens them (DR-1006: a shared link
  * lands with that unit's pictures open). 0 = the ordinary card.
  */
-export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
+/**
+ * `photos` — the unit's picture list when the caller already read it (the
+ * branded door reads every door's list once for its cards AND its hero
+ * carousel, DR-1236); undefined means the card reads its own.
+ */
+export function VacancyCard({ unit, onApply = null, openPictures = 0, photos = undefined }) {
   const rootRef = React.useRef(null);
-  const [shots, setShots] = useState([]);
+  const [shots, setShots] = useState(Array.isArray(photos) ? photos : []);
+  // null = the caller is reading the list and has not got it yet: the card
+  // says "loading", asks nothing, and never prints "Photographs coming" over
+  // pictures that are on their way.
+  const listPending = photos === null;
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
   // A short-stay door takes a stay through its own short form (DR-0930):
@@ -75,11 +84,12 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
   const [booking, setBooking] = useState(false);
 
   useEffect(() => {
-    if (!unit.rentalId) return undefined;
+    if (Array.isArray(photos)) { setShots(photos); return undefined; }
+    if (photos === null || !unit.rentalId) return undefined;
     let on = true;
     loadVacancyPhotos(unit.rentalId).then((r) => { if (on && r.ok) setShots(r.photos || []); });
     return () => { on = false; };
-  }, [unit.rentalId]);
+  }, [unit.rentalId, photos]);
 
   // ONE PICTURE AT A TIME (DR-1016). The list above carries no bytes; the
   // picture on the card (and the next one, so a swipe does not wait) is asked
@@ -190,11 +200,11 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
               className="w-full h-full object-cover"
             />
           </button>
-        ) : shot ? (
+        ) : shot || listPending ? (
           /* The list is here and this picture is on its way (DR-1016): one
-             small read, not a broken frame. */
+             small read, not a broken frame. Or the list itself is on its way. */
           <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] px-2 text-center" role="status" data-testid="vacancy-photo-loading">
-            {`Loading picture ${i + 1} of ${shots.length}`}
+            {shot ? `Loading picture ${i + 1} of ${shots.length}` : 'Loading pictures'}
           </span>
         ) : (
           /* Said plainly rather than shown as a broken frame or a stock photo of
