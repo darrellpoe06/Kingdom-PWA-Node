@@ -353,7 +353,7 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // L259 (DR-1220): a link Darrell sent into the research road inside the app,
+  // L259 (DR-1222): a link Darrell sent into the research road inside the app,
   // which waited about 87 hours in the lesson queue and was built out -- the
   // Council of Nicaea did not invent the deity of the Son and voted no canon;
   // the Word had already said it in the first century. The day recorded is the

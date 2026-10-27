@@ -1,7 +1,7 @@
 # 2026-10-27 — Living Lesson ll259, "Nicaea Did Not Invent Him — The Word Said It First"
 
 **Module id:** `ll259-nicaea-did-not-invent-him-the-word-said-it-first` (`ll259`)
-**Decision record:** DR-1220
+**Decision record:** DR-1222
 **Source:** a link sent into the research road **inside the PoeTech app** with one word over it, "Lesson."
 `agent_inbox` row `0593ae29-1547-46d8-b608-34ae8b09953e` (Darrell's own phone account; it waited about
 87 hours in the lesson queue). `Research item 09f6457a-f259-4569-9aec-a50d2f3073c5`.
@@ -42,7 +42,7 @@ Scripture; the history with its estimates marked; and how to stand when the clai
    "Thy throne, O God, is **forever** and ever" for Hebrews 1:8, where the corpus reads "for ever and
    ever" — the verse the whole argument turns on.
 2. Each external claim in the video was verified against sources outside it and tiered (DR-0100). The
-   tiering, what was left out, and what could not be verified are all written down in DR-1220.
+   tiering, what was left out, and what could not be verified are all written down in DR-1222.
 3. The draft module was run through the repository's own gate scripts (`full-levels`, `reading-level`,
    `band-differentiation`, `title-in-narrative`, `quoted-verse-is-the-verse`, `quotation-integrity`,
    `talk-together`) in the scratchpad **before it touched the catalog**. Final measurement:

@@ -1,4 +1,4 @@
-# DR-1220: Nicaea Did Not Invent Him — The Word Said It First (ll259)
+# DR-1222: Nicaea Did Not Invent Him — The Word Said It First (ll259)
 
 **Date:** 2026-10-27
 **Status:** accepted
@@ -44,7 +44,7 @@ The draft was run through the repository's own gate scripts in the scratchpad **
 
 **What the checks caught while writing.** Three real faults, each fixed before the splice: 1 Corinthians 8:6 was quoted with a lowercased opening "but" where the corpus reads "But"; the senior band read *easier* than the teen band (7.5 is the fixed value, after the ladder came back inverted at 6.3); and the pinned spine was first written from the adult lesson rather than measured, so five verses were pinned "in every band" that three bands quoted only in part — the pins are now generated from a measurement of all five places, and the bands that were genuinely short (2 Peter 3:16 in the child band, Deuteronomy 6:7 in youth and teen, Isaiah 40:8 in youth) had the full clause added, which is better for the reader as well as for the gate.
 
-**Numbers claimed.** `LIVING_LESSONS_MODULES` read at 255 modules with highest ll258 before this change, 256 after; ll259 taken. `scripts/claim-decision-number.mjs` reported DR-1220 free on disk and in flight.
+**Numbers claimed.** `LIVING_LESSONS_MODULES` read at 255 modules with highest ll258 before this change, 256 after; ll259 taken. `scripts/claim-decision-number.mjs` reported DR-1222 free on disk and in flight.
 
 **The id assignment was wrong and was corrected.** The build was dispatched for **ll245**, which has existed on `main` since before this session; the whole block ll245–ll258 was already taken. Measured independently at the start of the build (`git grep` over `origin/main` and the sixty most recently updated remote branches: highest on `main` ll258, highest in flight ll258), and the coordinator sent the same correction mid-build. **ll259** is the number taken, re-verified free immediately before the push.
 
