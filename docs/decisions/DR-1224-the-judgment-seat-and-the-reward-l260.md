@@ -1,15 +1,15 @@
-# DR-1224: The Judgment Seat and the Reward — Salvation Settled, Service Measured (ll264)
+# DR-1224: The Judgment Seat and the Reward — Salvation Settled, Service Measured (ll260)
 
 **Date:** 2026-10-27
 **Status:** accepted
 **Tier:** A (additive curriculum: one new Living Lessons module, dated, with its gate)
 **Type:** curriculum
 **Area:**
-- `app/src/lib/living-lessons-class.js` (`ll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured`, appended after ll258)
-- `app/src/lib/living-lessons-dates.js` (ll264's line; the day it JOINED the course)
-- `app/src/__tests__/living-lessons-ll264-the-judgment-seat-and-the-reward.test.js` (its gate, 173 cases)
+- `app/src/lib/living-lessons-class.js` (`ll260-the-judgment-seat-and-the-reward-salvation-settled-service-measured`, appended after ll258)
+- `app/src/lib/living-lessons-dates.js` (ll260's line; the day it JOINED the course)
+- `app/src/__tests__/living-lessons-ll260-the-judgment-seat-and-the-reward.test.js` (its gate, 173 cases)
 - (no generated file changed: Living Lessons days are RECORDED_ELSEWHERE in `living-lessons-dates.js`, so `npm run lesson-dates` wrote 841 of 841 dated with no diff, and the course-band baseline re-ran at `allFour 255, adultOnly 0, still pinned 174` with no diff. Both were run, and both are reported as no-change rather than claimed as regenerated.)
-- `docs/99-session-notes/2026-10-27-living-lesson-ll264-the-judgment-seat-and-the-reward.md` (the build log)
+- `docs/99-session-notes/2026-10-27-living-lesson-ll260-the-judgment-seat-and-the-reward.md` (the build log)
 
 **Amends:** nothing. Grounds: DR-0076 (every verse fetched verbatim from the repository's own KJV; measure, don't claim; proven-to-catch; name the method's limits), DR-0098 (teach the Word, do not debate it — and stop where the Word stops), DR-0100 (speak established fact; flag the genuinely unverified narrowly), DR-0192 (the trust-but-verify pass runs BEFORE first ship on a research-sourced lesson), DR-0210 (Yahweh in our voice; Jesus confessed as the Lamb of Yahweh and the Eternal Son; quotations untouched), DR-0610 (one teaching, one lesson), DR-0733 and DR-0795 (the three directions in every band), DR-0734 (`anchor.ref` names every verse), DR-1206 (the witness belongs to the road), the standing rule that a teaching Darrell sends in is build input.
 
@@ -71,7 +71,7 @@ Every verse was fetched from `app/public/bible/kjv` before a sentence was writte
 2. The **period-after-quote convention** broke eleven pinned spans: the house style puts the reference outside the quote, so a verse's terminal period is not part of the quoted span. The pins carried the period and read red until they matched what the lesson actually quotes.
 3. Two bands were **short of their fullness floor** (child 0.40, youth 0.46). They were written out rather than padded — the child band gained the two-scenes point and both parables retold at its register, the youth band gained the great-white-throne distinction and the where-we-stop movement.
 
-**Numbers claimed.** `LIVING_LESSONS_MODULES` read at 255 modules with highest ll258 before, 256 with ll264 after. `grep -rc "ll264\b" app/src/lib/` returned 0 on a fresh `origin/main` before writing; ll254–ll258 were confirmed present, so the "highest is ll258" premise was verified rather than taken on report.
+**Numbers claimed.** `LIVING_LESSONS_MODULES` read at 255 modules with highest ll258 before, 256 with ll260 after. `grep -rc "ll260\b" app/src/lib/` returned 0 on a fresh `origin/main` before writing; ll254–ll258 were confirmed present, so the "highest is ll258" premise was verified rather than taken on report.
 
 ## Verify, do not relay (DR-0076 / DR-0192 / DR-0100)
 
@@ -118,11 +118,13 @@ A reader meets this subject sobered and secured at once, which is the thing most
 - **No lexical corpus on disk.** *bema* as the Greek behind "the judgment seat" cannot be verified from a repository resource, only the English rendering can. The lesson therefore leans on the KJV's own consistent rendering and names the word study as a word study. A Strong's or lexicon corpus would close this class of claim for every future lesson; it is not in scope here. `re-review: 2026-11-24`.
 - **The transcript has no timestamps**, so nothing in the lesson is cited to a minute mark, and the per-minute ranges in the row's summary are not reproduced as citations.
 - **The overlap with ll65 is real and was judged, not dissolved.** The increment is the reward/salvation boundary and the bema as a platform; the heart-and-evidence teaching stays ll65's. Neither record cross-links the other in the lesson text. `re-review: 2026-11-10` — read both on the live app in sequence and decide whether one should point at the other.
-- **The DR number was taken as assigned, not as the claim script's lowest free.** `claim-decision-number.mjs` reported DR-1220 as next free (highest on disk DR-1218, DR-1219 in flight). DR-1220–DR-1223 were assigned to sibling builders working in parallel on ll259–ll263, so taking 1220 would have manufactured the collision the script exists to prevent. DR-1224 was verified free on disk and in flight before it was taken.
+- **The lesson id is ll260, not the ll264 this build was assigned, because lesson numbers must run CONTIGUOUSLY.** `app/src/__tests__/living-lessons-numbers-are-unique.test.js` pins `KNOWN_GAPS` at `[211, 212]` and nothing else, so claiming ll264 while 259–263 were unclaimed would have been a hole the gate fails by name — the “reserve a number” convention does not exist here. Measured at renumber time: `app/src/lib/` on merged main held nothing above ll258; of the numbers above it, **ll259 is held by a sibling not yet pushed** and **ll261 is held in flight by PR #2412**, so **ll260 was the lowest id nothing claimed**. Everything was renumbered together — the module id, the dates key, the gate's filename and its `ID` constant and numeric assertions, this record's filename and body, the INDEX row's link, the session note and the branch — and `grep -rn "ll264"` over `app/src` and this record's ledger returns zero.
+  **The dependency this creates, named:** ll260 is contiguous only once ll259 lands. If this merges while 259 is still unclaimed, the unclaimed-number check will flag a hole at 259 — correctly. That is the coordinator's sequencing to hold, not something this record can close from inside one branch.
+- **The DR number was taken as assigned, not as the claim script's lowest free.** `claim-decision-number.mjs` reported DR-1220 as next free (highest on disk DR-1218, DR-1219 in flight). DR-1220–DR-1223 were assigned to sibling builders working in parallel on the lessons above ll258, so taking 1220 would have manufactured the collision the script exists to prevent. The DR number is unaffected by the lesson renumber and stays DR-1224. DR-1224 was verified free on disk and in flight before it was taken.
 
 ## Proven to catch
 
-`living-lessons-ll264-the-judgment-seat-and-the-reward.test.js` — **173 cases, all passing.** It checks the module exists once at its number with all four bands and the day it joined the course; that the provenance names the road, the app, the machines and the fact that no speaker name came back; that the second request is named as product work and never taught; that **71 pinned spans** are the corpus verbatim and **342 referenced spans** are verbatim in the verse each cites; that `anchor.ref` names every verse any span quotes; that the doctrinal edge holds in all five places; that the two scenes stay two; that the unverified claim is flagged and the Egyptian material absent; that the parable and the castaway stop where the Word stops; that the bands clear their floors, rise on the reading ladder and do not duplicate; and that every place carries TALK ABOUT IT TOGETHER with the skill, the rhythm, and growth measured the Word's way.
+`living-lessons-ll260-the-judgment-seat-and-the-reward.test.js` — **173 cases, all passing.** It checks the module exists once at its number with all four bands and the day it joined the course; that the provenance names the road, the app, the machines and the fact that no speaker name came back; that the second request is named as product work and never taught; that **71 pinned spans** are the corpus verbatim and **342 referenced spans** are verbatim in the verse each cites; that `anchor.ref` names every verse any span quotes; that the doctrinal edge holds in all five places; that the two scenes stay two; that the unverified claim is flagged and the Egyptian material absent; that the parable and the castaway stop where the Word stops; that the bands clear their floors, rise on the reading ladder and do not duplicate; and that every place carries TALK ABOUT IT TOGETHER with the skill, the rhythm, and growth measured the Word's way.
 
 **It was proven to catch on the LIVE catalog file, not only on in-test fixtures** — three mutations applied to `living-lessons-class.js` itself, each run, each restored:
 
@@ -134,4 +136,4 @@ A reader meets this subject sobered and secured at once, which is the thing most
 
 Two further in-file mutations are asserted in the gate itself: a child band trimmed to 600 characters is named short, and stripping one band's friend line names that band while the pooled check still reads green (DR-0795's hazard).
 
-`re-review: 2026-11-03` — read L264 on the live app in each band, and record the first reader who can state, unprompted, the difference between losing a reward and losing salvation.
+`re-review: 2026-11-03` — read L260 on the live app in each band, and record the first reader who can state, unprompted, the difference between losing a reward and losing salvation.
