@@ -15,6 +15,8 @@
 
 ## Context
 
+Darrell sent a link about Jericho into the app's own research road under his one word, **"Lesson."** The road waited about ninety hours in the lesson queue and then returned a single witness — a machine-made caption transcript of a video whose speaker is nowhere named — which is both the whole evidential base for this lesson and the reason four restraints are written into it. The material's thesis is largely sound, partly disputed, and wrong at its closing application in a way the Word answers outright. What follows is what arrived, what it claimed, and where the lesson had to say less than the source did.
+
 ### What the research road actually returned, and what it did not
 
 The road returned one thing: an **auto-generated caption transcript** of a YouTube video, 5,116 words, source `youtube-asr`, fetched **on the NAS from its residential IP** because the CI path is YouTube-IP-blocked (`infra/nas-loops/services.json`, transcript-trickle). Four limits travel with it and are named in the lesson's own run sheet rather than hidden:
