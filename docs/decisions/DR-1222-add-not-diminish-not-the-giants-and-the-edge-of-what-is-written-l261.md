@@ -1,4 +1,4 @@
-# DR-1227: Add not, diminish not — the giants, and the edge of what is written (ll261)
+# DR-1222: Add not, diminish not — the giants, and the edge of what is written (ll261)
 
 **Date:** 2026-10-26
 **Status:** accepted
