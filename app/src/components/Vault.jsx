@@ -31,6 +31,7 @@ import {
 } from '../lib/vault-crypto.js';
 import { importText, planImport, toCsv } from '../lib/vault-import.js';
 import * as store from '../lib/vault-store.js';
+import { isReviewerStranger, reviewerLensLine } from '../lib/reviewer-lens.js';
 
 export const IDLE_LOCK_MS = 5 * 60 * 1000;
 export const CLIPBOARD_CLEAR_MS = 30 * 1000;
@@ -65,7 +66,13 @@ function downloadText(name, text, type = 'text/plain') {
   } catch { return false; }
 }
 
-export default function Vault() {
+export default function Vault({ stranger = null }) {
+  // THE LENS'S 'stranger' MODE (DR-1240): reviewing "as a new user" this
+  // surface never reads his header, his rows or this device's cache of them —
+  // it shows the face a person with no vault gets. Creating is OFF there: a
+  // create is an upsert on his real header, which the lens promises to leave
+  // untouched. 'self' mode (privileges hidden) reads his vault as him.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const [userId, setUserId] = useState(undefined); // undefined = asking; null = signed out
   const [header, setHeader] = useState(undefined);  // undefined = loading; null = none yet
   const [rows, setRows] = useState([]);              // ciphertext rows (cache + cloud merged)
@@ -94,6 +101,7 @@ export default function Vault() {
     const uid = await store.currentUserId();
     setUserId(uid);
     if (!uid) { setHeader(null); return; }
+    if (lens) { setHeader(null); setRows([]); setLoadNote('reviewer lens: nothing read'); return; }
     const cached = store.readCache(uid);
     if (cached) { setHeader(cached.header || null); setRows(cached.items || []); }
     const h = await store.loadHeader();
@@ -108,7 +116,7 @@ export default function Vault() {
     } else {
       setLoadNote(cached ? `offline: this device's copy (${it.message})` : `could not reach the server: ${it.message}`);
     }
-  }, []);
+  }, [lens]);
   useEffect(() => { load(); }, [load]);
 
   // --- lock ---------------------------------------------------------------------
@@ -150,6 +158,7 @@ export default function Vault() {
 
   const create = async () => {
     setError('');
+    if (lens) { setError('Creating is off under the reviewer lens: it would write over your own vault.'); return; }
     if (passwordStrength(pass).bits < 50) { setError('Choose a longer passphrase: four or more unrelated words is the simplest strong one.'); return; }
     if (pass !== pass2) { setError('The two passphrases differ.'); return; }
     setBusy('Deriving your key (this takes a moment on purpose)...');
@@ -270,6 +279,9 @@ export default function Vault() {
 
       {userId && header === null && !key && (
         <div className={card}>
+          {lens && (
+            <p className="text-xs text-[#5A5751] mb-2" role="status" data-testid="vault-reviewer-lens">{reviewerLensLine('vault and its records')} Creating is off here.</p>
+          )}
           <div className={labelCls}>No vault yet · create yours</div>
           <p className="text-sm mt-1">Choose a passphrase. Four or more unrelated words you will remember beats a short string of symbols. It is never sent anywhere.</p>
           <label className="block mt-3"><span className={labelCls}>Passphrase</span>
@@ -279,7 +291,7 @@ export default function Vault() {
             <input className={fieldCls} type="password" autoComplete="new-password" value={pass2} onChange={(e) => setPass2(e.target.value)} aria-label="Repeat passphrase" /></label>
           {error && <p className="text-xs text-[#B85838] mt-2">{error}</p>}
           <div className="mt-3 flex items-center gap-3 flex-wrap">
-            <button type="button" className={`${btnDark}`} disabled={!pass || !pass2 || !!busy} onClick={create}>Create my vault</button>
+            <button type="button" className={`${btnDark}`} disabled={!pass || !pass2 || !!busy || lens} onClick={create}>Create my vault</button>
             {(!pass || !pass2) && <span className="text-xs text-[#5A5751]">Type the passphrase twice to enable this.</span>}
             {busy && <span className={chip.wait}>{busy}</span>}
           </div>

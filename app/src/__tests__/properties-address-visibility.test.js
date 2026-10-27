@@ -21,6 +21,7 @@ const sql = readFileSync(
 );
 const store = () => readFileSync(join(process.cwd(), 'src/modules/properties/Storefront.jsx'), 'utf8');
 const app = () => readFileSync(join(process.cwd(), 'src/modules/properties/PropertiesApp.jsx'), 'utf8');
+const unit = () => readFileSync(join(process.cwd(), 'src/modules/properties/vacancy-unit.js'), 'utf8');
 const door = () => readFileSync(join(process.cwd(), 'src/components/PropertiesDoor.jsx'), 'utf8');
 
 describe('0158 — the control, per door', () => {
@@ -123,7 +124,10 @@ describe('the surface stops making a claim it was breaking', () => {
 
   it('reads an un-migrated database as SHOWN, not as protected', () => {
     // Claiming a door is held back when the migration has not run would be the
-    // same lie pointing the other way.
-    expect(app()).toMatch(/address_shown === undefined \? true/);
+    // same lie pointing the other way. The rule lives in the ONE reading of
+    // the row every door shares (vacancy-unit.js, DR-1236); the tab reads it
+    // from there rather than keeping its own copy.
+    expect(unit()).toMatch(/address_shown === undefined \? true/);
+    expect(app()).toMatch(/vacancyUnits\(/);
   });
 });

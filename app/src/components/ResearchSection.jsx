@@ -35,6 +35,7 @@ import { INTENTS, CREATE_TAG_PREFIX } from '../lib/research-create.js';
 import { researchHealth } from '../lib/research.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import { supabase } from '../lib/supabase.js';
+import { isReviewerStranger, reviewerLensLine } from '../lib/reviewer-lens.js';
 import ResearchTry from './ResearchTry.jsx';
 // ONE PRESS FROM AN ANSWER TO WHAT IT BECOMES (DR-1200).
 import CreateFromWords from './CreateFromWords.jsx';
@@ -256,7 +257,11 @@ function Item({ item }) {
   );
 }
 
-export default function ResearchSection({ fetchImpl, client = supabase, send = relayThought }) {
+export default function ResearchSection({ fetchImpl, client = supabase, send = relayThought, stranger = null }) {
+  // THE LENS'S 'stranger' MODE (DR-1240): reviewing "as a new user" never
+  // reads his own research rows; a person who has sent nothing sees this.
+  // 'self' mode reads them as him, and the banner says so.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const [health, setHealth] = useState({ state: 'checking' });
   const [read, setRead] = useState({ state: 'loading', items: [], reason: '' });
   const [draft, setDraft] = useState('');
@@ -265,9 +270,10 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
   const [forWhat, setForWhat] = useState({ lesson: false, build: false });
 
   const load = useCallback(async () => {
+    if (lens) { setRead({ state: 'ok', items: [], reason: '' }); return; }
     const r = await fetchMyResearch({ supabase: client });
     setRead(r.ok ? { state: 'ok', items: r.items, reason: '' } : { state: 'error', items: [], reason: r.reason });
-  }, [client]);
+  }, [client, lens]);
 
   useEffect(() => {
     let live = true;
@@ -403,6 +409,9 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
         )}
         {read.state === 'ok' && items.length === 0 && (
           <p className="mt-2 text-[0.8125rem] text-[#5A5751]">You have not sent anything to look into yet.</p>
+        )}
+        {lens && (
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]" role="status" data-testid="research-reviewer-lens">{reviewerLensLine('research items')}</p>
         )}
         {read.state === 'ok' && items.length > 0 && (
           <ul className="mt-2 space-y-2">{items.map((i) => <Item key={i.id} item={i} />)}</ul>
