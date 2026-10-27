@@ -383,4 +383,10 @@ export const LIVING_LESSONS_ADDED = {
   // is the honest one here: the teaching waited ~87 hours in the queue, so the
   // send day is not knowable from the row either way.
   'll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written': '2026-10-27',
+  // L262 (DR-1223): a link Darrell sent into the research road inside the app,
+  // which waited about 87 hours in the lesson queue and was built out -- the
+  // Council of Nicaea did not invent the deity of the Son and voted no canon;
+  // the Word had already said it in the first century. The day recorded is the
+  // day the lesson joined the course, not the day the link was sent.
+  'll262-nicaea-did-not-invent-him-the-word-said-it-first': '2026-10-27',
 };
