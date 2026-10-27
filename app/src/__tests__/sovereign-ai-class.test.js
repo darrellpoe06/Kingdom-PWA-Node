@@ -82,12 +82,16 @@ describe('curriculum shape', () => {
     // one. Read SOVEREIGN_AI_MODULES, the same thing the assertion below
     // reads. `scripts/unchecked-claims.mjs` records the identical defect
     // against the identical file in its own header; this is its third sighting.
-    // 2026-10-27, sov50 (DR-1242): week 50 lands while week 49 is still being
-    // written on `origin/claude/sov49-there-is-nobody-to-contact`, so 49 is a
-    // hole on disk. MEASURED, not assumed -- the branch was listed from the
-    // remote before this entry was written, which is the whole discipline this
-    // list exists for. DELETE the 49 when that branch merges; do not widen it.
-    const HELD_IN_FLIGHT = [49];
+    // NOTHING IS HELD, recorded 2026-10-27. Weeks 49, 50 and 51 were written on
+    // three branches at the same time; sov50 landed first, then sov49, and this
+    // is week 51 -- the last of the three, so it discharges the last entries.
+    // Its own side of this merge read `[49, 50]`, which was correct when it was
+    // written and wrong the instant both landed; main read `[]` with a note still
+    // telling a reader to delete a 49 that was already gone. RECOMPUTED on the
+    // merged tree rather than taken from either side: 51 modules, weeks 1..51
+    // strictly ascending, nothing missing below 51 -- so `[]`. Never widen this
+    // list to make the assertion pass; a hole nobody recorded is a dropped week.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
