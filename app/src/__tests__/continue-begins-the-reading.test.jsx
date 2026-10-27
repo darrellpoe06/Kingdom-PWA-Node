@@ -56,7 +56,8 @@ describe('every Continue door asks the reading to begin', () => {
     // The offer under the picker, the one on the course card, and the sticky
     // chip — a reader who used the chip would otherwise still tap twice.
     const n = (LEARN.match(/onContinue=\{continueAndRead\}/g) || []).length;
-    expect(n, 'expected the offer, the card and the chip').toBe(3);
+    // ... and, since DR-1251, the Latest list's own Continue on each row.
+    expect(n, 'expected the offer, the card, the chip and the Latest list').toBe(4);
   });
 
   it('the handler resumes AND requests the read, in that order', () => {

@@ -139,10 +139,11 @@ were in how the two playback roads answered a hiccup:
   hands the rest on as a fetch failure always did (the device voice, with
   the notice saying so). A fault inside the joined file drops the join and
   carries on piece by piece from the sentence it was at.
-- Only audio is ever kept or served: a blob says its type is audio, or its
-  head reads RIFF / OggS / fLaC / ID3. A kept blob that is not audio is
-  dropped and the piece fetched again; a fetched non-audio body is never
-  kept and reads as `voice-lite-not-audio`.
+- Only audio is ever kept or served: a blob whose own type names something
+  that is not audio (an error page as text/html, a JSON refusal) is never
+  kept, and a kept one is dropped and the piece fetched again
+  (`voice-lite-not-audio`). A blob with no type is trusted; whether it
+  decodes is the player's call, and one that does not is fetched fresh.
 
 **Proof.** `the-engine-holds-its-place-on-a-fault.test.js` (retry once, hold
 with the position kept — proven-to-catch against `_finish()` resetting to 0 —

@@ -414,39 +414,21 @@ export async function cacheAhead({ keys, fetchPiece, cache, concurrency = 3, onP
  * @param {object} o.cache            createClipCache()
  * @param {(b:Blob) => string} o.makeUrl
  */
-// ONLY AUDIO IS KEPT OR PLAYED (DR-1251). A blob that is not audio — an
-// error page or a cut-off body that arrived with a 200 — used to be cached
-// under the piece's key and handed to the player on every later reading of
-// the same lesson, where it could not be decoded and the reading stopped at
-// the same sentence every time. A WAV begins "RIFF"; the other containers the
-// voice could ever answer with begin "OggS", "fLaC" or "ID3". A blob that
-// says its own type is audio passes; one with no type is read at its head.
-const AUDIO_MAGIC = ['RIFF', 'OggS', 'fLaC', 'ID3'];
-async function headBytes(blob, n) {
-  const part = typeof blob.slice === 'function' ? blob.slice(0, n) : blob;
-  if (typeof part.arrayBuffer === 'function') return new Uint8Array(await part.arrayBuffer());
-  if (typeof FileReader !== 'undefined') {
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(new Uint8Array(r.result));
-      r.onerror = () => rej(r.error);
-      r.readAsArrayBuffer(part);
-    });
-  }
-  return null;
-}
+// ONLY AUDIO IS KEPT OR PLAYED (DR-1251). A blob that says it is something
+// other than audio — an error page that arrived as text/html, a JSON refusal
+// — used to be cached under the piece's key and handed to the player on every
+// later reading of the same lesson, where it could not be decoded and the
+// reading stopped at the same sentence every time. The voice's road already
+// refuses a non-audio Content-Type (lib/voice-service.js synthesizeLite), so
+// this is the same rule applied to what is KEPT: a blob whose own type names
+// something that is not audio is never served. A blob with no type at all is
+// trusted — the player, not this check, decides whether it decodes, and a
+// piece that does not is fetched fresh (lib/clip-queue.js recover).
 export async function looksLikeAudio(blob) {
   if (!blob || !blob.size) return false;
-  if (typeof blob.type === 'string' && /^audio\//i.test(blob.type)) return true;
-  if (typeof blob.type === 'string' && blob.type && !/^application\/octet-stream$/i.test(blob.type)) return false;
-  try {
-    const head = await headBytes(blob, 4);
-    // A device that cannot read a blob's head cannot judge it; the blob is
-    // played, as before, rather than refused for a limit of the device.
-    if (!head) return true;
-    const tag = String.fromCharCode(...head);
-    return tag.length >= 3 && AUDIO_MAGIC.some((m) => tag.startsWith(m.slice(0, tag.length)));
-  } catch { return false; }
+  const type = typeof blob.type === 'string' ? blob.type.trim().toLowerCase() : '';
+  if (!type || type === 'application/octet-stream') return true;
+  return /^audio\//.test(type);
 }
 
 export function createClipSource({ keys, fetchBlob, cache, makeUrl, isAudio = looksLikeAudio }) {

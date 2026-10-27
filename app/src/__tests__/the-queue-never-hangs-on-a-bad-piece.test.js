@@ -129,11 +129,13 @@ describe('a piece that never begins', () => {
 describe('only audio is kept or served', () => {
   const wav = () => new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4])]);          // RIFF
   const html = () => new Blob([new TextEncoder().encode('<html>error</html>')], { type: 'text/html' });
-  it('looksLikeAudio reads the type, else the head', async () => {
+  it('looksLikeAudio trusts a blob that says audio or says nothing, and refuses one that says otherwise', async () => {
     expect(await looksLikeAudio(new Blob([new Uint8Array([1])], { type: 'audio/wav' }))).toBe(true);
     expect(await looksLikeAudio(wav())).toBe(true);
+    expect(await looksLikeAudio(new Blob([new Uint8Array([1])], { type: 'application/octet-stream' }))).toBe(true);
     expect(await looksLikeAudio(html())).toBe(false);
-    expect(await looksLikeAudio(new Blob([new TextEncoder().encode('nope')]))).toBe(false);
+    expect(await looksLikeAudio(new Blob(['{}'], { type: 'application/json' }))).toBe(false);
+    expect(await looksLikeAudio(new Blob([]))).toBe(false);
     expect(await looksLikeAudio(null)).toBe(false);
   });
   it('a kept blob that is not audio is forgotten and the piece fetched again; a fetched non-audio body is never kept', async () => {

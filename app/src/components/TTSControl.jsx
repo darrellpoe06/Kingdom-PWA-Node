@@ -248,12 +248,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     lastTrip,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
     setSkipHandlers,
+    // Where the device voice stopped on a fault (DR-1251; optional in mocks).
+    engineHeldAt,
     setNotice,
     noticeAction,
     standInWhy,
     myVoice,
-    // Where the device voice stopped on a fault (DR-1251; optional in mocks).
-    engineHeldAt,
   } = useReadAloud({ isOwner });
   const engineHeldRef = useRef(null);
   engineHeldRef.current = engineHeldAt != null ? engineHeldAt : null;
