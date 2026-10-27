@@ -389,4 +389,17 @@ export const LIVING_LESSONS_ADDED = {
   // the Word had already said it in the first century. The day recorded is the
   // day the lesson joined the course, not the day the link was sent.
   'll262-nicaea-did-not-invent-him-the-word-said-it-first': '2026-10-27',
+  // L263 (DR-1227): the research road's own intake -- a link Darrell sent into
+  // the app with one word on it, whose reading step never completed, so a
+  // video's machine-made captions about the fall of Jerusalem in AD 70 were the
+  // whole of the research. The lesson is taught from Jesus' own recorded
+  // speech; no line of Josephus or Tacitus is quoted anywhere in it, and the
+  // speaker in that video is not named in anything that reached us, so the
+  // lesson names none. Built 2026-10-27, the day the row was worked.
+  'll263-not-one-stone-the-word-jesus-spoke-over-jerusalem-and-the-year-it-came-true': '2026-10-27',
+  // L264 (DR-1225): Darrell sent a link into the app's own research road on
+  // 2026-10-22; the row waited in the lesson queue and the reading was built
+  // into a lesson on 2026-10-27, so this is the day it JOINED the course, not
+  // the day he sent it (the sending day is in the record and in the lesson).
+  'll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
 };

@@ -169,24 +169,72 @@ export function sortCourses(list, sortKey, ctx = {}) {
 // day is left out and counted (and named in `undatedLessons`), never dated by
 // guess (DR-0076). Since DR-0687 every course carries its days
 // (lib/lesson-dates.js), so this is the whole catalog.
+// Whether a lesson carries its OWN text for every younger and older reader —
+// the "for every age" count on a month heading (DR-0732). One rule, shared by
+// the course list (lesson-order.js withMonthHeadings) and the Latest list.
+export const EVERY_AGE_BANDS = ['child', 'youth', 'teen', 'senior'];
+export function forEveryAge(m) {
+  return !!(m && m.levels && EVERY_AGE_BANDS.every((b) => typeof m.levels[b] === 'string' && m.levels[b].trim()));
+}
+
+const normTitle = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
 export function latestLessons(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
+  const mounted = new Set(list.map((c) => c && c.key).filter(Boolean));
   const rows = [];
   const undatedLessons = [];
+  const carried = [];
   let undated = 0;
+  const toRow = (c, ci, m, mi) => {
+    const added = lessonAdded(m);
+    if (!added) { undated += 1; undatedLessons.push({ courseKey: c.key, lessonId: m.id }); return null; }
+    const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
+    const row = { courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, versions: lessonVersions(m).length, everyAge: forEveryAge(m), alsoIn: [], sameTitleIn: [], ci, mi };
+    rows.push(row);
+    return row;
+  };
+  // A LESSON CARRIED WHOLE INTO A SECOND COURSE IS LISTED ONCE, AT HOME
+  // (Darrell 2026-10-27, on the Latest list: "we have a couple of duplicate
+  // lessons now?"). L153 is authored once in Living Lessons and carried into
+  // Sovereign A.I. as sov18 under `sharedWith` (one source, two doors); the
+  // Latest list showed it twice, same title, same day. The copy is held back
+  // here and the home row says which course also teaches it. A copy whose
+  // home is not mounted, or whose home has no recorded day, is listed itself
+  // so a real lesson never vanishes from the list.
+  const held = [];
   list.forEach((c, ci) => {
     (c.schedule || []).forEach((m, mi) => {
       if (!m || !m.id) return;
-      const added = lessonAdded(m);
-      if (!added) { undated += 1; undatedLessons.push({ courseKey: c.key, lessonId: m.id }); return; }
-      const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
-      rows.push({ courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, versions: lessonVersions(m).length, ci, mi });
+      const sw = m.sharedWith && typeof m.sharedWith === 'object' ? m.sharedWith : null;
+      if (sw && sw.course && sw.lesson && sw.course !== c.key && mounted.has(sw.course)) { held.push({ c, ci, m, mi, sw }); return; }
+      toRow(c, ci, m, mi);
     });
   });
+  for (const h of held) {
+    const home = rows.find((r) => r.courseKey === h.sw.course && r.lessonId === h.sw.lesson);
+    if (home) {
+      home.alsoIn.push(titleOf(h.c) || String(h.c.key || ''));
+      carried.push({ courseKey: h.c.key, courseTitle: titleOf(h.c) || String(h.c.key || ''), lessonId: h.m.id, homeCourseKey: h.sw.course, homeLessonId: h.sw.lesson });
+    } else {
+      toRow(h.c, h.ci, h.m, h.mi);
+    }
+  }
+  // ONE QUESTION, TWO LESSONS: two different lessons that share a title (L17
+  // "Taste and See" in Living Lessons and the Eternal Wisdom algorithm of the
+  // same name, both from the question Darrell spoke on 2026-07-10) stay two
+  // rows — they are two lessons — and each names the other, so a reader sees
+  // a pair on purpose rather than a slip.
+  const byTitle = new Map();
+  for (const r of rows) { const k = normTitle(r.title); if (!k) continue; byTitle.set(k, [...(byTitle.get(k) || []), r]); }
+  for (const group of byTitle.values()) {
+    if (group.length < 2) continue;
+    for (const r of group) r.sameTitleIn = group.filter((o) => o !== r).map((o) => (o.n != null ? `${o.courseTitle} (L${o.n})` : o.courseTitle));
+  }
   rows.sort((a, b) => (a.added !== b.added ? (a.added < b.added ? 1 : -1)
     : ((b.n ?? -1) - (a.n ?? -1)) || (a.ci - b.ci) || (a.mi - b.mi)));
   const courseCount = new Set(rows.map((r) => r.courseKey)).size;
-  return { rows, undated, undatedLessons, courseCount };
+  return { rows, undated, undatedLessons, carried, courseCount };
 }
 
 /**
@@ -195,16 +243,22 @@ export function latestLessons(courses) {
  * the generator's recorded reason (lesson-dates.js undatedReason) — a lesson
  * with none is simply newer than the last time the dates were derived.
  */
-export function latestCountLine({ rows, undatedLessons = [], courseCount }, reasonOf = () => null) {
+export function latestCountLine({ rows, undatedLessons = [], carried = [], courseCount }, reasonOf = () => null) {
   const n = rows.length;
   const where = `${courseCount} ${courseCount === 1 ? 'course' : 'courses'}, each on the day it was first added to the app`;
-  if (!undatedLessons.length) return `All ${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where}.`;
+  // A lesson carried whole into a second course counts for that course on the
+  // Courses tab and is listed ONCE here, at home — said plainly so the two
+  // totals never look like a slip.
+  const once = carried.length
+    ? ` ${carried.length === 1 ? 'One lesson carried whole into a second course is' : `${carried.length} lessons carried whole into a second course are`} listed once, at home.`
+    : '';
+  if (!undatedLessons.length) return `All ${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where}.${once}`;
   const untraced = undatedLessons.filter((u) => reasonOf(u.courseKey, u.lessonId)).length;
   const fresh = undatedLessons.length - untraced;
   const parts = [];
   if (fresh) parts.push(`${fresh} too new to have ${fresh === 1 ? 'its day' : 'their days'} recorded yet`);
   if (untraced) parts.push(`${untraced} whose first day the record cannot trace`);
-  return `${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where} · ${undatedLessons.length} not listed: ${parts.join(', ')}.`;
+  return `${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where} · ${undatedLessons.length} not listed: ${parts.join(', ')}.${once}`;
 }
 
 // THE AGE VERSIONS EACH LESSON REALLY CARRIES (DR-0715; Darrell 2026-09-30:
@@ -329,12 +383,12 @@ export function readingsMeaning({ lessons, younger }) {
 }
 
 /** Each month heading's reading total: the sum of the `versions` of the rows under it. */
-export function monthReadings(items) {
+export function monthReadings(items, versionsOf = (it) => Number(it.versions) || 0) {
   const out = {};
   let key = null;
   for (const it of Array.isArray(items) ? items : []) {
     if (it && it.heading) { key = it.heading.key; out[key] = out[key] || 0; continue; }
-    if (key && it) out[key] += Number(it.versions) || 0;
+    if (key && it) out[key] += Number(versionsOf(it)) || 0;
   }
   return out;
 }
