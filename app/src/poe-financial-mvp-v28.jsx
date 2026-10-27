@@ -165,7 +165,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection,
-  surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
+  surfaceById, canSeeCameras, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
@@ -4739,7 +4739,7 @@ ${THEME_CSS}
             <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
-        {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
+        {view === 'cameras' && canSeeCameras(surfaceViewer) && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
         {view === 'vault' && <SectionBoundary name="Vault"><Vault /></SectionBoundary>}
         {view === 'research' && <SectionBoundary name="Research"><ResearchSection /></SectionBoundary>}
         {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
