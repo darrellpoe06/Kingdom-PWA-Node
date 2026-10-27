@@ -28,7 +28,8 @@
 //                     ones begun, a quiet "Finished" on the ones done.
 // =============================================================================
 import React from 'react';
-import { placeAgo, placeWhere, placeFinishes, finishedLabel } from '../lib/learn-resume.js';
+import { placeAgo, placeWhere, placeInProgress } from '../lib/learn-resume.js';
+import { readMark, readMarkLabel, readMarkSays, VERSION_LABEL } from '../lib/lesson-read-mark.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ownNumber } from '../lib/lesson-order.js';
@@ -152,23 +153,55 @@ export function ContinueChip({ item, onContinue }) {
 }
 
 /** A lesson row's own state in the by-title list: Continue, or Finished. */
-export function RowContinue({ place, title, onContinue }) {
-  if (!place) return null;
-  // HOW MANY TIMES, NOT WHETHER (Darrell 2026-10-10: "Some say finished
-  // should be how many times I've finished it..."). A lesson read twice said
-  // exactly what a lesson read once said, so the second reading left no mark
-  // anywhere. The count rides on the place and ratchets (lib/learn-resume.js).
-  const times = placeFinishes(place);
-  if (times) {
-    const says = times === 1
-      ? 'You finished this lesson on this device'
-      : `You finished this lesson ${times} times on this device`;
+/**
+ * The lesson's own state on its row (DR-0631), and WHICH VERSION (DR-1255):
+ * "✓ READ · Adult" with a tap for each version not read yet, from the
+ * device's place AND the learner's own cloud record; Continue on a lesson
+ * begun; nothing on a lesson never touched. `versions` is the list the lesson
+ * really carries (lib/learn-organize.js lessonVersions); `record` is the
+ * learner's row for this lesson (learner_lesson_records), or null.
+ */
+export function RowContinue({ place, title, onContinue, versions = null, record = null, onReadVersion = null }) {
+  const mark = readMark({ place, record, versions });
+  if (mark.read) {
+    // HOW MANY TIMES, NOT WHETHER (Darrell 2026-10-10: "Some say finished
+    // should be how many times I've finished it..."), and now WHICH WORDS
+    // (Darrell 2026-10-27: "Even which version so I can try the one I didn't
+    // read!!!!!!"). The count and the versions ride the place and ratchet
+    // (lib/learn-resume.js); the record carries them across his devices.
+    const says = readMarkSays(mark, title);
     return (
-      <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1" data-testid="row-finished" data-times={times} title={says} aria-label={says}>
-        {`✓ ${finishedLabel(place)}`}
+      <span className="shrink-0 flex items-center justify-end gap-1 flex-wrap max-w-[50%]" data-testid="row-read-mark">
+        <span
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1"
+          data-testid="row-finished"
+          data-times={mark.times}
+          data-from-record={mark.fromRecord ? 'true' : 'false'}
+          data-versions={mark.readIds.join(' ')}
+          data-unread={mark.unreadIds.join(' ')}
+          title={says}
+          aria-label={says}
+        >
+          {readMarkLabel(mark)}
+        </span>
+        {onReadVersion && mark.unreadIds.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onReadVersion(id)}
+            data-testid="row-read-version"
+            data-version={id}
+            aria-label={`Read the ${VERSION_LABEL[id]} version of ${title}`}
+            title={`Not read yet — read the ${VERSION_LABEL[id]} version of ${title}`}
+            className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white ${FOCUS}`}
+          >
+            {VERSION_LABEL[id]}
+          </button>
+        ))}
       </span>
     );
   }
+  if (!place || !placeInProgress(place)) return null;
   return (
     <button
       type="button"

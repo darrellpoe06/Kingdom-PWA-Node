@@ -401,11 +401,13 @@ export default function Presenter({
   const movedRef = useRef(false);
   const onFinishedRef = useRef(onFinished);
   useEffect(() => { onFinishedRef.current = onFinished; }, [onFinished]);
+  // The register the room was in when the end was reached rides along (the
+  // ageRef above), so the host can name the version that was read (DR-1255).
   const markFinished = useCallback(() => {
     if (finishedForRef.current === presentableId) return;
     finishedForRef.current = presentableId;
     const fn = onFinishedRef.current;
-    if (typeof fn === 'function') { try { fn(); } catch { /* the reading stands either way */ } }
+    if (typeof fn === 'function') { try { fn({ age: ageRef.current }); } catch { /* the reading stands either way */ } }
   }, [presentableId]);
   useEffect(() => { if (atEnd && scenes.length > 0 && movedRef.current) markFinished(); }, [atEnd, scenes.length, markFinished]);
 
