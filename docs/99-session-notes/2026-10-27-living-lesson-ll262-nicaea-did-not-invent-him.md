@@ -1,7 +1,7 @@
-# 2026-10-27 — Living Lesson ll259, "Nicaea Did Not Invent Him — The Word Said It First"
+# 2026-10-27 — Living Lesson ll262, "Nicaea Did Not Invent Him — The Word Said It First"
 
-**Module id:** `ll259-nicaea-did-not-invent-him-the-word-said-it-first` (`ll259`)
-**Decision record:** DR-1222
+**Module id:** `ll262-nicaea-did-not-invent-him-the-word-said-it-first` (`ll262`)
+**Decision record:** DR-1223
 **Source:** a link sent into the research road **inside the PoeTech app** with one word over it, "Lesson."
 `agent_inbox` row `0593ae29-1547-46d8-b608-34ae8b09953e` (Darrell's own phone account; it waited about
 87 hours in the lesson queue). `Research item 09f6457a-f259-4569-9aec-a50d2f3073c5`.
@@ -42,7 +42,7 @@ Scripture; the history with its estimates marked; and how to stand when the clai
    "Thy throne, O God, is **forever** and ever" for Hebrews 1:8, where the corpus reads "for ever and
    ever" — the verse the whole argument turns on.
 2. Each external claim in the video was verified against sources outside it and tiered (DR-0100). The
-   tiering, what was left out, and what could not be verified are all written down in DR-1222.
+   tiering, what was left out, and what could not be verified are all written down in DR-1223.
 3. The draft module was run through the repository's own gate scripts (`full-levels`, `reading-level`,
    `band-differentiation`, `title-in-narrative`, `quoted-verse-is-the-verse`, `quotation-integrity`,
    `talk-together`) in the scratchpad **before it touched the catalog**. Final measurement:
@@ -72,13 +72,31 @@ Scripture; the history with its estimates marked; and how to stand when the clai
 7. `npm run lesson-dates` was not run: `app/src/lib/lesson-dates.json` holds four keys and none of them
    is a Living Lesson, because this course keeps its own recorded days in `living-lessons-dates.js`.
 
-## The id was wrong on dispatch, and was corrected
+## The id moved three times, and the third move found a gate disagreement
 
-The build was dispatched for **ll245**, which has existed on `main` for weeks — the whole block
-ll245–ll258 was already taken. Measured independently at the start of the build (`git grep` over
-`origin/main` and the sixty most recently updated remote branches: highest on `main` ll258, highest in
-flight ll258), and the coordinator sent the same correction mid-build. **ll259** is the number taken,
-re-verified free immediately before the push. The branch was renamed to match.
+Eight lesson builders ran in parallel on one machine against a main whose highest number was
+ll258. This build was dispatched for **ll245** (taken for weeks -- the whole block ll245-ll258 was
+already on `main`), corrected to **ll259**, then **ll260**, and finally fixed at **ll262** by central
+assignment once siblings pushed branches holding ll259 (PR #2414), ll260 (PR #2415) and ll261.
+Every move was measured, never guessed: `git grep` across every remote ref for
+`app/src/lib/living-lessons-class.js`, and `scripts/claim-decision-number.mjs` for the record number,
+which is why the record moved DR-1220 -> DR-1222 -> **DR-1223** (1220 was held by
+`origin/claude/ll260-the-amarna-letters`, 1221 by the ll259 branch).
+
+**The finding.** Trying ll260 while 259 was unclaimed in this tree turned TWO gates red by name --
+`living-lessons-numbers-are-unique` ("expected [ 259 ] to deeply equal []") and
+`living-lessons-id-collision`. Both measure the catalog in the tree being shipped, so neither can see
+a sibling's in-flight number, and with eight parallel builders only one of them can be contiguous at a
+time. The repository's own answer is a **hold**, registered in `living-lessons-id-collision.test.js`'s
+`KNOWN_MISSING` with its reason and deleted by the merge that fills it, as 193, 203, 210, 236, 237 and
+238 all were. 259, 260 and 261 are registered there with the PRs holding them, and that gate is green.
+
+**The honest limit:** `living-lessons-numbers-are-unique` cannot accept a hold -- `KNOWN_GAPS` is
+`[211, 212]` with `expect(KNOWN_GAPS.length).toBe(2)` and its own comment says it must not grow. So one
+assertion in that file is red on this branch for the numbering alone, and it clears itself when those
+three siblings land. Its pin was deliberately not touched: loosening another gate's ratchet to land
+your own work is the wrong trade. The fix belongs in one shared hold registry both gates read
+(`re-review: 2026-11-10`, DR-1223).
 
 ## Where it sits, and what it does not duplicate
 
@@ -96,7 +114,7 @@ Letter 39). Nothing there is duplicated either.
 
 ## Suites run
 
-The new gate (`living-lessons-ll259-nicaea-did-not-invent-him.test.js`, **84 cases**) plus
+The new gate (`living-lessons-ll262-nicaea-did-not-invent-him.test.js`, **84 cases**) plus
 living-lessons-full-levels, order, numbers-are-unique, id-collision, stories, age-appropriateness,
 research-integrity, sections, reading-level-gate, band-differentiation-gate, quotation-integrity-gate,
 quoted-verse-is-the-verse, the-voice-is-heard-as-written and lesson-completeness — 184 cases — then
@@ -104,7 +122,7 @@ ledger-names-its-thread, decision-chain, ledger-integrity and ledger-uniqueness 
 `npm run verify` whole.
 
 **Proven to catch, on the real file:** with `is for ever and ever` altered to `is forever and ever`
-throughout the ll259 module, **five cases went red**, and all 84 passed again once restored. A first
+throughout the ll262 module, **five cases went red**, and all 84 passed again once restored. A first
 proof attempt stayed green because it altered only the first occurrence after the module id, which sits
 in `bigIdea` — that miss is why the wide `scanQuotedVerses` case over `quotedTexts` (benefits, quiz,
 talking points) was added to this gate rather than relied on from the catalog-wide one.

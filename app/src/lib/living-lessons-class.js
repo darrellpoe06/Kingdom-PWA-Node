@@ -25025,10 +25025,10 @@ export const LIVING_LESSONS_MODULES = [
       ]
     }
   },
-  // ll259 - Nicaea did not invent Him; the Word said it first (a link sent into
+  // ll262 - Nicaea did not invent Him; the Word said it first (a link sent into
   // the research road inside the app; it waited about 87 hours; built 2026-10-27)
   {
-    "id": "ll259-nicaea-did-not-invent-him-the-word-said-it-first",
+    "id": "ll262-nicaea-did-not-invent-him-the-word-said-it-first",
     "stories": [
       {
         "kind": "parable",

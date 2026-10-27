@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// ll259 — "Nicaea Did Not Invent Him — The Word Said It First"
+// ll262 — "Nicaea Did Not Invent Him — The Word Said It First"
 // =============================================================================
 // A link was sent into the research road inside the PoeTech app with one word
 // over it, Lesson, and the road returned the whole reading: the auto-generated
@@ -49,7 +49,7 @@ function corpusText(ref) {
   return data.chapters[Number(m[2]) - 1][Number(m[3]) - 1];
 }
 
-const lesson = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll259-'));
+const lesson = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll262-'));
 const everywhere = () => [
   lesson.lesson, lesson.bigIdea, lesson.inApp, lesson.anchor.theme,
   ...Object.values(lesson.levels), ...lesson.benefits,
@@ -130,10 +130,10 @@ const SOMEWHERE = {
 
 const PINNED = { ...IN_EVERY_BAND, ...SOMEWHERE };
 
-describe('ll259 — the lesson is in the catalog, dated, in all four bands', () => {
+describe('ll262 — the lesson is in the catalog, dated, in all four bands', () => {
   it('appears once, after ll258, with child, youth, teen and senior', () => {
     expect(lesson).toBeTruthy();
-    expect(LIVING_LESSONS_MODULES.filter((m) => m.id.startsWith('ll259-'))).toHaveLength(1);
+    expect(LIVING_LESSONS_MODULES.filter((m) => m.id.startsWith('ll262-'))).toHaveLength(1);
     const ids = LIVING_LESSONS_MODULES.map((m) => m.id);
     expect(ids.indexOf(lesson.id)).toBeGreaterThan(ids.findIndex((i) => i.startsWith('ll258-')));
     expect(Object.keys(lesson.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
@@ -178,7 +178,7 @@ describe('ll259 — the lesson is in the catalog, dated, in all four bands', () 
   });
 });
 
-describe('ll259 — every verse is the corpus, verbatim', () => {
+describe('ll262 — every verse is the corpus, verbatim', () => {
   for (const [ref, text] of Object.entries(PINNED)) {
     it(`${ref} matches the corpus on disk`, () => {
       expect(corpusText(ref)).toContain(text);
@@ -235,7 +235,7 @@ describe('ll259 — every verse is the corpus, verbatim', () => {
   });
 });
 
-describe('ll259 — the confession, and the claim answered rather than staged', () => {
+describe('ll262 — the confession, and the claim answered rather than staged', () => {
   it('confesses Jesus as the Lamb of Yahweh and the Eternal Son of Yahweh in every band (DR-0210)', () => {
     for (const [where, text] of Object.entries({ lesson: lesson.lesson, ...lesson.levels })) {
       expect(text, `${where} does not confess Him as the Lamb of Yahweh`).toMatch(/Lamb of Yahweh/);
@@ -268,7 +268,7 @@ describe('ll259 — the confession, and the claim answered rather than staged', 
   });
 });
 
-describe('ll259 — the source is carried at its true weight (DR-0192, DR-0100)', () => {
+describe('ll262 — the source is carried at its true weight (DR-0192, DR-0100)', () => {
   const histories = { lesson: lesson.lesson, child: lesson.levels.child, youth: lesson.levels.youth, teen: lesson.levels.teen, senior: lesson.levels.senior };
 
   it('the canon claim is answered by what SURVIVES from the council, not by assertion', () => {
@@ -310,7 +310,7 @@ describe('ll259 — the source is carried at its true weight (DR-0192, DR-0100)'
   });
 });
 
-describe('ll259 — every band sends the reader in all three directions (DR-0795)', () => {
+describe('ll262 — every band sends the reader in all three directions (DR-0795)', () => {
   it('no place is short of a direction', () => {
     expect(placesMissingDirections(lesson)).toEqual([]);
   });
@@ -324,7 +324,7 @@ describe('ll259 — every band sends the reader in all three directions (DR-0795
   });
 });
 
-describe('ll259 — PROVEN TO CATCH', () => {
+describe('ll262 — PROVEN TO CATCH', () => {
   const sentences = (s) => String(s).split(/(?<=[.!?])\s+/);
 
   it('an altered Hebrews 1:8 is caught WHEREVER it sits — a band, the big idea, a benefit or a talking point', () => {
