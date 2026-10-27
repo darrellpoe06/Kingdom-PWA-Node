@@ -68,7 +68,15 @@ export const SOVEREIGN_AI_META = {
   title: 'Sovereign A.I.: Why We Build Local',
   audience: 'builders, leaders, and family — anyone deciding where our A.I. should run',
   tagline: 'A generator in the garage. The grid can flicker; our lights stay on.',
-  format: '9 weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces',
+  // DERIVED, like `weeks` below (DR-0677). This read '9 weekly sessions' while
+  // the course held 48 — and `church-classes.js` renders BOTH lines into the
+  // same export, so the document said "**Format:** 9 weekly sessions" and then
+  // "**Length:** 48 weekly sessions" two lines later. The count was the one
+  // thing here a new lesson had to remember to edit, which is exactly what the
+  // note under `weeks` already forbids; it sat two lines above that note.
+  get format() {
+    return `${this.weeks} weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces`;
+  },
   cadenceDays: 7,
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
