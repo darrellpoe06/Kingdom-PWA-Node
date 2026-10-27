@@ -25025,10 +25025,10 @@ export const LIVING_LESSONS_MODULES = [
       ]
     }
   },
-  // ll260 - The Judgment Seat and the Reward: salvation settled, service measured.
+  // ll262 - The Judgment Seat and the Reward: salvation settled, service measured.
   // From a link Darrell sent down the app's own research road (2026-10-22); DR-1224.
   {
-    "id": "ll260-the-judgment-seat-and-the-reward-salvation-settled-service-measured",
+    "id": "ll262-the-judgment-seat-and-the-reward-salvation-settled-service-measured",
     "stories": [
       {
         "kind": "parable",

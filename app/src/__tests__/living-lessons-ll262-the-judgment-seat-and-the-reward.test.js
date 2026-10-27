@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L260 — "The Judgment Seat and the Reward": the teaching Darrell sent INSIDE
+// L262 — "The Judgment Seat and the Reward": the teaching Darrell sent INSIDE
 // the PoeTech app, down the app's own research road, on 2026-10-22. DR-1224.
 // =============================================================================
 // WHAT CAME IN. Darrell sent a link into the app's research road; the road
@@ -60,7 +60,7 @@ import { measureDifferentiation, duplicatedBands, DIFF_CEILING } from '../../../
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { placesMissingDirections, hasAllThree, missingDirections } from '../lib/talk-together.js';
 
-const ID = 'll260-the-judgment-seat-and-the-reward-salvation-settled-service-measured';
+const ID = 'll262-the-judgment-seat-and-the-reward-salvation-settled-service-measured';
 const KJV = join(process.cwd(), 'public', 'bible', 'kjv');
 const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
 
@@ -188,35 +188,35 @@ const anchoredRefs = (module) => {
 };
 
 // (a) THE MODULE EXISTS ONCE, AT ITS NUMBER
-describe('L260 exists exactly once, at its own number, with all four bands', () => {
+describe('L262 exists exactly once, at its own number, with all four bands', () => {
   it('is in the catalog exactly once', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 
-  it('claims 260 and only 260, and sits after every lower-numbered lesson present', () => {
+  it('claims 262 and only 262, and sits after every lower-numbered lesson present', () => {
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(claimed.filter((n) => n === 260)).toHaveLength(1);
+    expect(claimed.filter((n) => n === 262)).toHaveLength(1);
     // a floor, not an equality: a later lesson raises the max and must not fail this
-    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(260);
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(262);
     const at = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     const lower = LIVING_LESSONS_MODULES
       .map((m, i) => ({ n: Number((/^ll(\d+)-/.exec(m.id) || [])[1]), i }))
-      .filter((x) => Number.isFinite(x.n) && x.n < 260);
-    expect(Math.max(...lower.map((x) => x.i)), 'L260 reads after every lower number').toBeLessThan(at);
+      .filter((x) => Number.isFinite(x.n) && x.n < 262);
+    expect(Math.max(...lower.map((x) => x.i)), 'L262 reads after every lower number').toBeLessThan(at);
   });
 
   it('carries the day it JOINED the course, at or after the lesson before it', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-27');
     const days = LIVING_LESSONS_MODULES
       .map((m) => ({ n: Number((/^ll(\d+)-/.exec(m.id) || [])[1]), d: LIVING_LESSONS_ADDED[m.id] }))
-      .filter((x) => Number.isFinite(x.n) && x.n < 260 && x.d);
+      .filter((x) => Number.isFinite(x.n) && x.n < 262 && x.d);
     expect(days.every((x) => x.d <= '2026-10-27'), 'the days still follow the numbers').toBe(true);
   });
 });
 
 // (b) PROVENANCE — THE ROAD IS NAMED AND THE SPEAKER IS NOT INVENTED (DR-1206)
-describe('L260 names its road honestly and labels no real person', () => {
+describe('L262 names its road honestly and labels no real person', () => {
   it('says the link came in INSIDE the app, down the research road, fetched on our own machines', () => {
     for (const k of PLACE_KEYS) {
       expect(/sent a link into the PoeTech app|sent a link into our app/.test(PLACES[k]), `${k} does not say how it came in`).toBe(true);
@@ -250,7 +250,7 @@ describe('L260 names its road honestly and labels no real person', () => {
 });
 
 // (c) EVERY QUOTED VERSE IS THE CORPUS, BYTE FOR BYTE
-describe('L260 — every verse it stands on is the corpus, verbatim', () => {
+describe('L262 — every verse it stands on is the corpus, verbatim', () => {
   for (const [ref, text] of Object.entries(PINNED)) {
     it(`${ref} is quoted exactly as the corpus on disk has it`, () => {
       const { book, ch, n } = splitRef(ref);
@@ -348,7 +348,7 @@ describe('L260 — every verse it stands on is the corpus, verbatim', () => {
 });
 
 // (d) THE DOCTRINAL EDGE — BOTH HALVES OF 1 CORINTHIANS 3:15, EVERYWHERE
-describe('L260 — the gospel edge is guarded in BOTH directions, in every place', () => {
+describe('L262 — the gospel edge is guarded in BOTH directions, in every place', () => {
   it.each(PLACE_KEYS)('%s carries BOTH halves of 1 Corinthians 3:15 — the real loss and the man saved', (k) => {
     const t = PLACES[k];
     expect(t.includes('he shall suffer loss'), `${k} drops the loss`).toBe(true);
@@ -394,7 +394,7 @@ describe('L260 — the gospel edge is guarded in BOTH directions, in every place
 });
 
 // (e) THE TWO SEATS STAY TWO, AND NO TIMETABLE IS INVENTED
-describe('L260 — two seats, two questions, no calendar the Word did not give', () => {
+describe('L262 — two seats, two questions, no calendar the Word did not give', () => {
   it.each(PLACE_KEYS)('%s teaches the seat written to believers', (k) => {
     const t = PLACES[k];
     expect(/judgment seat of Christ/.test(t), `${k} never names the seat`).toBe(true);
@@ -422,7 +422,7 @@ describe('L260 — two seats, two questions, no calendar the Word did not give',
 });
 
 // (f) WHAT WE DID NOT VERIFY IS NAMED, NOT RELAYED (DR-0076 Section 8)
-describe('L260 — the unverified claim is flagged, and the picture is built from the corpus instead', () => {
+describe('L262 — the unverified claim is flagged, and the picture is built from the corpus instead', () => {
   it.each(['lesson', 'youth', 'teen', 'senior'])('%s names the one claim it did not verify, and does not assert it', (k) => {
     const t = PLACES[k];
     expect(/did not verify|not verify/i.test(t), `${k} relays the claim without flagging it`).toBe(true);
@@ -454,7 +454,7 @@ describe('L260 — the unverified claim is flagged, and the picture is built fro
 });
 
 // (g) WE STOP WHERE THE WORD STOPS
-describe('L260 — the parable, the castaway, and the silence', () => {
+describe('L262 — the parable, the castaway, and the silence', () => {
   it.each(['lesson', 'youth', 'teen', 'senior'])('%s takes the commendation from the talents and leaves the third servant where the text puts him', (k) => {
     const t = PLACES[k];
     expect(t.includes('Well done, thou good and faithful servant'), `${k} drops the commendation`).toBe(true);
@@ -472,7 +472,7 @@ describe('L260 — the parable, the castaway, and the silence', () => {
 });
 
 // (h) ALL FOUR BANDS, WRITTEN FOR THEIR READER
-describe('L260 — four bands, each for its own reader', () => {
+describe('L262 — four bands, each for its own reader', () => {
   const f = measureFullness(L);
 
   it.each(BANDS)('%s clears its floor share of the adult lesson prose', (b) => {
@@ -520,7 +520,7 @@ describe('L260 — four bands, each for its own reader', () => {
 });
 
 // (i) THE THREE DIRECTIONS, ON THE MODULE AND ON EACH BAND SEPARATELY
-describe('L260 — TALK ABOUT IT TOGETHER, in all three directions, in every place', () => {
+describe('L262 — TALK ABOUT IT TOGETHER, in all three directions, in every place', () => {
   it('the lesson and every band send the reader all three ways in the lesson’s own words', () => {
     expect(placesMissingDirections(L)).toEqual([]);
     expect(hasAllThree(L)).toBe(true);
@@ -556,7 +556,7 @@ describe('L260 — TALK ABOUT IT TOGETHER, in all three directions, in every pla
 });
 
 // (j) THE SHAPE — MOVEMENTS, STORIES, QUIZ, FACILITATOR
-describe('L260 — the full teaching shape', () => {
+describe('L262 — the full teaching shape', () => {
   it('walks its ten movements in order in the adult lesson', () => {
     const markers = [
       'ONE. TWO SEATS',
