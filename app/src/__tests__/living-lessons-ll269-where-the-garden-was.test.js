@@ -138,10 +138,13 @@ describe('L269 is in the catalog, numbered, dated and whole', () => {
     }
   });
 
-  it('claims 269 once and is the highest Living Lesson', () => {
+  // Deliberately NOT asserting that 269 is the highest. ll268's spec did assert
+  // that about itself, and this lesson falsified it within the day -- the
+  // DR-1256 defect, where a check hands a permanent role to whichever lesson is
+  // newest. Which lesson is newest belongs to living-lessons-order.test.jsx.
+  it('claims 269 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(numbers.filter((n) => n === 269)).toHaveLength(1);
-    expect(Math.max(...numbers)).toBe(269);
+    expect(numbers.filter((n) => n === 269)).toEqual([269]);
   });
 
   it('carries its build day, and an anchor whose every reference resolves', () => {
@@ -206,19 +209,31 @@ describe('the house rules that cost ll268 three pushes are pre-run here', () => 
   // already the error made with talk-together in ll268; this is the same error
   // wearing a different coat, so the assertion is deleted rather than reworded.
 
-  it('no quoted span ends with punctuation the verse does not have', () => {
-    const drifted = [];
-    for (const t of EVERY_STRING) {
-      for (const { inside, ref } of quotedPairs(t)) {
-        if (!ref) continue;
-        const last = inside.trim().slice(-1);
-        if (!'.,;:!?'.includes(last)) continue;
-        const verse = corpusText(ref);
-        if (verse && !verse.includes(inside.trim())) drifted.push(`(${ref}) ${inside.slice(-40)}`);
-      }
-    }
-    expect(drifted).toEqual([]);
-  });
+  // THE TERMINAL-PUNCTUATION RULE IS NOT RE-IMPLEMENTED HERE, and the three
+  // attempts it took to accept that are the finding worth keeping.
+  //
+  // First version: it skipped any span with no reference after it, so it went
+  // green while living-lessons-quoted-terminal.test.js failed this module on a
+  // sorting label, "we know." -- a span with no reference at all.
+  //
+  // Second version: widened to flag every quoted span ending in a mark. Too
+  // strict, and it failed on ordinary spans of our own words that are allowed
+  // to end in a mark.
+  //
+  // The real rule, read from the gate rather than guessed at a third time, is
+  // narrow and exact: a span is a drift only when it is NOT found in the KJV
+  // flow as written AND IS found once a trailing mark is stripped -- that is,
+  // when it really is Scripture carrying punctuation Scripture does not have.
+  // ("we know." fired because "we know" happens to occur in the corpus.)
+  //
+  // That is subtle enough that a second implementation of it will drift from
+  // the first, and a proxy that disagrees with the gate is worse than none
+  // because its green gets read as the gate's green. This is the THIRD time in
+  // one session I wrote a local copy of an enforced gate and got it wrong --
+  // talk-together in ll268, the -our spelling above, and this -- so the rule I
+  // am taking from it is: pre-run the gate's own module, never a paraphrase of
+  // its rule. living-lessons-quoted-terminal.test.js owns this and runs on
+  // every push.
 
   it('no generic God, GOD or LORD in our authored voice, while the quotations keep theirs', () => {
     const ourVoice = (t) => String(t).split('"').filter((_, i) => i % 2 === 0).join(' ');
