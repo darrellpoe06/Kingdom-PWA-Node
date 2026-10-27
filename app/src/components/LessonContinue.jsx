@@ -171,7 +171,7 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
     // (lib/learn-resume.js); the record carries them across his devices.
     const says = readMarkSays(mark, title);
     return (
-      <span className="shrink-0 flex items-center justify-end gap-1 flex-wrap max-w-[50%]" data-testid="row-read-mark">
+      <span className="shrink min-w-0 flex items-center justify-end gap-1 flex-wrap" data-testid="row-read-mark">
         <span
           className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1"
           data-testid="row-finished"
