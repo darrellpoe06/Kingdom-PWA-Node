@@ -1,4 +1,4 @@
-# DR-1240: A course says how long it really is — the format line said 9 sessions against 48
+# DR-1245: A course says how long it really is — the format line said 9 sessions against 48
 
 **Date:** 2026-10-27
 **Status:** Accepted
