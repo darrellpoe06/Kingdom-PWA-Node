@@ -409,4 +409,11 @@ export const LIVING_LESSONS_ADDED = {
   // nowhere identified, the captions are a machine's hearing rather than his own
   // text, and nothing he claims is asserted on his authority.
   'll265-jerichos-barred-gates-a-citys-fear-and-one-womans-faith': '2026-10-27',
+  // L266 (DR-1229): a Wes Huff conference lecture on archaeological and
+  // manuscript corroboration of the New Testament, which Darrell sent into the
+  // app's research road for a lesson and which then waited about 91 hours in
+  // the queue (DR-1219's dark-in-effect window). Built and committed
+  // 2026-10-27, so this is the BUILD day, not the day he sent it; the exact
+  // send timestamp was not read by this session and is not asserted here.
+  'll266-the-manuscripts-and-the-names-the-word-testified-first': '2026-10-27',
 };

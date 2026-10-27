@@ -150,10 +150,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // across several days, the exact send day is not knowable from the rows,
     // and dating by the landing day is what keeps THIS check true rather than
     // leaving nine dates to go backwards against nine ascending numbers.
-    // The highest is now L265 (Jericho's Barred Gates). The asserted DATE does
+    // The highest is now L266 (The Manuscripts and the Names). The asserted DATE does
     // not move as the batch lands - all nine carry 2026-10-27 - but this comment
     // does, so it never names a lesson that is no longer the highest.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-27'); // L265
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-27'); // L266
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
