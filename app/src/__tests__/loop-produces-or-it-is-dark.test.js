@@ -15,10 +15,56 @@
 // NOTHING must never read as healthy, and an unread queue must never read as
 // an empty one.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   verdictOf, exitCodeOf, problemsOf,
   HEALTHY, DARK_IN_EFFECT, UNKNOWN, NOT_READY, ALARM_HOURS,
 } from '../../../scripts/loop-produces-or-it-is-dark.mjs';
+
+// AND THE WIRING THAT FEEDS IT (DR-1238), because judging well on numbers
+// nobody fetched is worth nothing.
+//
+// DR-1219 shipped the verdict function with fifteen cases and NOTHING covering
+// the read that hands it the numbers, and the read it shipped could not succeed:
+// `scripts/live-sql.sh` requires NAS_SSH_KEY and opens its OWN connection to the
+// NAS, so it is a RUNNER-side tool, and DR-1219 called it from inside the `sh -s`
+// heredoc already running ON the NAS, where it exits 10 at its first line. Three
+// runs read UNKNOWN before anyone noticed (40423587612, 40425627048,
+// 40431353829). DR-1232 fixed it by adding a runner step that holds the key.
+//
+// NOTHING STOPS THAT REGRESSING. These cases are the missing half: not another
+// assertion about the judgement, but about WHERE the read runs.
+//
+// They are written against the workflow AS IT IS, not as one might assume:
+// `live-sql.sh` is invoked FOUR times on purpose (the probe, the re-offer, the
+// runner outcome read, and the in-heredoc read DR-1232 deliberately KEPT as a
+// documented fallback). So these do NOT demand a single invocation — an earlier
+// draft of this gate did, which was simply wrong about the system and would have
+// forced that fallback out. What they demand is that the read which ANSWERS runs
+// on the runner, carries the key, and keeps its stderr.
+const WF = readFileSync(join(process.cwd(), '..', '.github', 'workflows', 'lesson-builder-health.yml'), 'utf8');
+
+/** Split a workflow's steps on the step indent, so a claim is made about ONE step. */
+export function stepsOf(text) {
+  return text.split(/\n {6}- (?=name:|uses:)/).slice(1);
+}
+/** Comment lines dropped: this file explains the wiring in prose, and prose is not a command. */
+const commandsOnly = (s) => s.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+/** An invocation of the OUTCOME read specifically, not any live-sql call. */
+const READS_OUTCOME = /(^|[\s;&|(=$"])(bash|sh|\.\/)?\s*scripts\/live-sql\.sh[^\n]*lesson-loop-outcome\.sql/m;
+
+export function outcomeReadWiring(text) {
+  const steps = stepsOf(text).map(commandsOnly);
+  const reads = steps.filter((s) => READS_OUTCOME.test(s));
+  const onRunner = reads.filter((s) => !s.includes("'sh -s'"));
+  return {
+    reads: reads.length,
+    onRunner: onRunner.length,
+    runnerHasKey: onRunner.some((s) => s.includes('NAS_SSH_KEY')),
+    runnerKeepsStderr: onRunner.some((s) => /2>\s*\/tmp\/\S+/.test(s) && !/lesson-loop-outcome\.sql[^\n]*2>\s*\/dev\/null/.test(s)),
+  };
+}
 
 /** The live shape on 2026-10-26, from the witness log and the bell. */
 const THE_REAL_FOUR_DAYS = {
@@ -147,5 +193,62 @@ describe('problemsOf — it reinforces the existing judgement rather than replac
     expect(problemsOf(verdictOf({}))).toHaveLength(1);
     expect(problemsOf(verdictOf({ writerReady: true, waiting: 0, shippedLastDay: 0 }))).toEqual([]);
     expect(problemsOf(null)).toEqual([]);
+  });
+});
+
+describe('the outcome read stays on the runner — the wiring, not the judgement (DR-1238)', () => {
+  it('the read that answers runs on the runner, holds the key, and keeps its stderr', () => {
+    const w = outcomeReadWiring(WF);
+    expect(w.reads, 'something must read the outcome at all').toBeGreaterThan(0);
+    expect(w.onRunner, 'at least one outcome read must be OUTSIDE the ssh heredoc').toBeGreaterThan(0);
+    expect(w.runnerHasKey, 'the runner-side read must carry NAS_SSH_KEY, which the NAS does not hold for itself').toBe(true);
+    expect(w.runnerKeepsStderr, 'the runner-side read must keep stderr, so a failed read says WHY').toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: the exact DR-1219 shape — the only outcome read inside the heredoc — is flagged', () => {
+    const broken = [
+      '',
+      '      - name: Ask the builder for its own status',
+      '        run: |',
+      "          $SSH 'sh -s' <<'EOS' > /tmp/witness.json",
+      '          OUTCOME="$(cd "$REPO" && bash scripts/live-sql.sh \'|\' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"',
+      '          EOS',
+      '',
+      '      - name: Judge and report',
+      '        run: |',
+      '          echo judging',
+    ].join('\n');
+    const w = outcomeReadWiring(broken);
+    expect(w.reads, 'the read is there').toBe(1);
+    expect(w.onRunner, 'but none of it is on the runner — this is the break that shipped green').toBe(0);
+    expect(w.runnerHasKey).toBe(false);
+    expect(w.runnerKeepsStderr).toBe(false);
+  });
+
+  it('PROVEN-TO-CATCH: a runner read that throws its stderr away is flagged', () => {
+    const silent = [
+      '',
+      '      - name: Read the outcome from the runner',
+      '        env:',
+      '          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}',
+      '        run: |',
+      "          OUTCOME=\"$(bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)\"",
+      '',
+      '      - name: Judge and report',
+      '        run: |',
+      '          echo judging',
+    ].join('\n');
+    const w = outcomeReadWiring(silent);
+    expect(w.onRunner).toBe(1);
+    expect(w.runnerHasKey).toBe(true);
+    expect(w.runnerKeepsStderr, 'a swallowed error is why the first failure said nothing').toBe(false);
+  });
+
+  it('does NOT demand a single invocation — the kept fallback and the two probes are deliberate', () => {
+    // The real workflow calls live-sql.sh four times. A gate that insisted on one
+    // would be wrong about the system, and would force out the fallback DR-1232
+    // chose to keep. Only the OUTCOME read is the subject here.
+    expect((WF.match(/scripts\/live-sql\.sh/g) || []).length).toBeGreaterThan(1);
+    expect(outcomeReadWiring(WF).onRunner).toBeGreaterThan(0);
   });
 });
