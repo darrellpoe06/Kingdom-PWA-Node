@@ -100,11 +100,53 @@ export function onDisk() {
  *
  * Reading the base ref costs one `ls-tree` and does not care what the tree
  * has checked out.
+ *
+ * A READ THAT FAILED MUST NOT READ AS A CLEAN RESULT (DR-1249). git() above
+ * swallows failure and returns '', so a ref that does not exist here yielded an
+ * empty set -- indistinguishable from "main holds no decision records", which
+ * cannot be true of this repository. MEASURED, 2026-10-27: a GitHub Actions
+ * checkout has no `origin/main` remote-tracking ref at all, so in CI this read
+ * returned NOTHING and the tool's floor fell back to disk alone -- the DR-1247
+ * collision again, through a different door, in the one environment where the
+ * first case for it was supposed to be proving it fixed.
+ *
+ * So the two outcomes are now distinct. `ls-tree` on a valid ref with no such
+ * directory exits 0 and prints nothing; on an invalid ref it exits non-zero.
+ * That is the whole discrimination, and it is git's, not a guess.
  */
-export function onBase(base = 'origin/main') {
-  return numbersInPaths(
-    git(['ls-tree', '--name-only', base, 'docs/decisions/']).split('\n').map((s) => s.trim()).filter(Boolean),
-  );
+export const BASE_CANDIDATES = ['origin/main', 'refs/remotes/origin/main', 'main'];
+
+/** The numbers a ref holds, or null if the ref itself could not be read. */
+export function readRef(ref) {
+  try {
+    const out = execFileSync('git', ['ls-tree', '--name-only', String(ref), 'docs/decisions/'],
+      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    return numbersInPaths(out.split('\n').map((s) => s.trim()).filter(Boolean));
+  } catch {
+    return null;
+  }
+}
+
+export function onBase(base = null) {
+  const tried = [];
+  for (const ref of base ? [String(base)] : BASE_CANDIDATES) {
+    tried.push(ref);
+    const got = readRef(ref);
+    if (got === null) continue; // the ref does not exist here; try the next name
+    if (got.size === 0) {
+      return {
+        ok: false, ref, numbers: got, tried,
+        reason: `${ref} was read but holds no decision records under docs/decisions/, `
+          + 'which cannot be true of this repository',
+      };
+    }
+    return { ok: true, ref, numbers: got, tried, reason: '' };
+  }
+  return {
+    ok: false, ref: null, numbers: new Set(), tried,
+    reason: `no base ref could be read (tried ${tried.join(', ')}) — without main's own records `
+      + 'this tool cannot tell a free number from a taken one',
+  };
 }
 
 /**
@@ -135,8 +177,18 @@ export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {
 
 export function main() {
   const disk = onDisk();
-  const base = onBase();
-  const inFlight = claimedInFlight();
+  const read = onBase();
+  if (!read.ok) {
+    // No number is printed. A number computed without main's own records is
+    // exactly what DR-1247 was written to stop, and a tool that answers anyway
+    // is more dangerous than one that will not answer at all.
+    console.error(`claim-decision-number: REFUSING — ${read.reason}.`);
+    console.error('  Nothing is recommended. Fetch main and ask again:');
+    console.error('    git fetch origin main');
+    return 1;
+  }
+  const base = read.numbers;
+  const inFlight = claimedInFlight({ base: read.ref });
   const taken = new Set([...disk, ...base, ...inFlight.keys()]);
   // What a session would take today, and what is actually free. The landed
   // floor is disk OR base, whichever is higher: a stale tree is behind main,
@@ -148,7 +200,7 @@ export function main() {
   const pad = (n) => `DR-${String(n).padStart(4, '0')}`;
   console.log(`next free decision number: ${pad(free)}`);
   console.log(`  on disk:   ${disk.size} record(s), highest ${pad(Math.max(...disk))}`);
-  console.log(`  on ${'origin/main'}: ${base.size} record(s), highest ${base.size ? pad(Math.max(...base)) : 'none read'}`);
+  console.log(`  on ${read.ref}: ${base.size} record(s), highest ${pad(Math.max(...base))}`);
   if (unseen.length) {
     // Say it plainly: this tree is behind main, and that is the condition under
     // which this tool used to hand out a number main already held.

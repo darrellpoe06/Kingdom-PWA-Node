@@ -12,7 +12,15 @@
 // counts as a claim. The git-walking half is proven on the LIVE repo below,
 // because a fixture cannot show that the scan finds a real branch.
 import { describe, it, expect } from 'vitest';
-import { numbersInPaths, lowestFree, onDisk, onBase, claimedInFlight, SCAN_LIMIT } from '../../../scripts/claim-decision-number.mjs';
+import { writeFileSync, rmSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  numbersInPaths, lowestFree, onDisk, onBase, readRef, claimedInFlight,
+  SCAN_LIMIT, BASE_CANDIDATES,
+} from '../../../scripts/claim-decision-number.mjs';
+
+const DECISIONS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'decisions');
 
 describe('what counts as a claimed number', () => {
   it('reads the number out of a decision file path, wherever it sits', () => {
@@ -96,19 +104,69 @@ describe('what MAIN holds, read from the ref and not from this tree (DR-1247)', 
   // 2026-10-27, this tool answered DR-1244, which main had already landed.
   // Main's records were counted NOWHERE: absent from a stale disk, and
   // skipped by the in-flight scan as already-merged.
-  it('reads main through the ref, so a stale checkout cannot hide a landed number', () => {
-    const base = onBase();
-    expect(base.size, 'origin/main returned no decision files at all').toBeGreaterThan(0);
-    // Every number main holds is taken, whatever this tree looks like.
-    const taken = new Set([...onDisk(), ...base]);
-    for (const n of base) expect(taken.has(n), `main holds DR-${n} but it reads free`).toBe(true);
+  // THIS CASE USED TO ASSERT `onBase().size > 0` AND WAS RED IN CI, which is
+  // how the second defect was found: a GitHub Actions checkout has no
+  // `origin/main` remote-tracking ref, so the read returned nothing, and the
+  // tool quietly fell back to a disk-only floor -- the DR-1247 collision again.
+  // The property that actually matters does not need that ref to exist: the
+  // numbers must come from a REF, not from the working tree. HEAD always
+  // exists, so it proves exactly that, everywhere.
+  it('reads through a ref and not from this tree, so a stale checkout cannot hide a number', () => {
+    const read = onBase('HEAD');
+    expect(read.ok, read.reason).toBe(true);
+    expect(read.ref).toBe('HEAD');
+    expect(read.numbers.size).toBeGreaterThan(0);
+
+    // The discriminator: a file present on DISK but not in the commit must be
+    // absent from the ref read. If onBase() were reading the tree, it would
+    // appear in both.
+    const planted = join(DECISIONS, 'DR-9998-a-file-no-commit-has.md');
+    writeFileSync(planted, '# planted by claim-decision-number.test.js\n');
+    try {
+      expect(onDisk().has(9998), 'the planted file is on disk').toBe(true);
+      expect(onBase('HEAD').numbers.has(9998), 'but HEAD has never held it').toBe(false);
+    } finally {
+      rmSync(planted, { force: true });
+    }
   });
 
-  it('an unreadable base is reported as empty, never as "nothing is taken"', () => {
-    // git() swallows failure and returns '', so a bad ref yields an empty set.
-    // That must not be mistaken for a clean ledger -- it is why main() takes
-    // the HIGHER of disk and base rather than base alone.
-    expect(onBase('refs/heads/no-such-ref-exists-here').size).toBe(0);
+  it('a base ref that cannot be read is a REFUSAL, not an empty ledger (DR-1249)', () => {
+    // The old case asserted only `.size === 0` here -- it pinned the ambiguity
+    // AS the behaviour. An empty set has two meanings and they are opposites:
+    // "main holds nothing" (impossible) and "the ref is not here" (ordinary).
+    const missing = onBase('refs/heads/no-such-ref-exists-here');
+    expect(missing.ok).toBe(false);
+    expect(missing.numbers.size).toBe(0);
+    expect(missing.reason).toMatch(/no base ref could be read/);
+    expect(missing.reason).toMatch(/no-such-ref-exists-here/);
+    expect(missing.tried).toEqual(['refs/heads/no-such-ref-exists-here']);
+  });
+
+  it('readRef separates "the ref is not here" from "the ref holds nothing"', () => {
+    // git's own discrimination, by exit code: ls-tree on a bad ref fails;
+    // on a good ref with no such path it exits 0 and prints nothing.
+    expect(readRef('refs/heads/no-such-ref-exists-here')).toBe(null);
+    const here = readRef('HEAD');
+    expect(here).not.toBe(null);
+    expect(here.size).toBeGreaterThan(0);
+  });
+
+  it('falls through the candidate names rather than failing on the first absent one', () => {
+    // A worktree may have `origin/main`, or only the full remote-tracking
+    // path, or only a local `main`. All three are tried before refusing, and
+    // the one actually used is reported so the output never names a ref it
+    // did not read.
+    expect(BASE_CANDIDATES).toEqual(['origin/main', 'refs/remotes/origin/main', 'main']);
+    const read = onBase();
+    if (read.ok) {
+      expect(BASE_CANDIDATES).toContain(read.ref);
+      expect(read.tried[read.tried.length - 1]).toBe(read.ref);
+    } else {
+      // The CI condition: none of the three is present. It must REFUSE, and
+      // say which names it tried.
+      expect(read.tried).toEqual(BASE_CANDIDATES);
+      expect(read.reason).toMatch(/no base ref could be read/);
+    }
   });
 
   it('PROVEN TO CATCH: the old arithmetic lands inside main; the new one clears it', () => {
