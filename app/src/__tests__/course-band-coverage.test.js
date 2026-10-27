@@ -109,10 +109,11 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(258); // 258 on 2026-10-27: BOTH sov49 (there is nobody to contact) and sov50
-    // (whose name do you carry) land together, so neither side's 257 was right -- each had counted only its own
-    // lesson. Re-measured by scripts/course-band-baseline-write.mjs on the merged catalog (total 432, allFour
-    // 258, adultOnly 0), never by hand: hand-merging this number is exactly how a wrong one ships (DR-0692).
+    expect(baseline.allFour).toBe(259); // 259 on 2026-10-27: sov51 (the office that does not transfer) is the
+    // LAST of three Sovereign A.I. weeks written in parallel. Its own side of this merge said 257 and main said
+    // 258 -- each counted only the weeks it could see. Re-measured by scripts/course-band-baseline-write.mjs on
+    // the merged catalog (total 433, allFour 259, adultOnly 0). Never hand-merged: that is how a wrong number
+    // ships, and it is why DR-0692 made this a script in the first place.
     // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1205),
     // the FIRST lesson built through the research road DR-1202 opened: Darrell sent an Instagram reel with one word on it, the NAS wrote
     // its words with a local Whisper model, and the lesson was built from the transcript. It carries all four age bands from the first

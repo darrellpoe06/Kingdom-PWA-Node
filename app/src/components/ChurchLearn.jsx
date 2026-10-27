@@ -114,7 +114,7 @@ import { searchItOutFor } from '../lib/search-it-out.js';
 // functionality and flow"). The study surface is unchanged; it is mounted
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
-import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords } from '../lib/learn-organize.js';
+import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords, lessonVersions, monthReadings } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
@@ -123,7 +123,7 @@ import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
-import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, PLACE_FINISHED_EVENT } from '../lib/learn-resume.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -1907,7 +1907,7 @@ function CourseView({
   // skipped, and each is sent at most once per session. No loop — a filed
   // lesson lands in `progress` and is skipped from then on.
   const filedReads = React.useRef(new Set());
-  React.useEffect(() => {
+  const fileFinishedPlaces = React.useCallback(() => {
     if (!signedIn || typeof toggleModule !== 'function') return;
     for (const p of listPlaces({ courseKey: course.key })) {
       if (!placeIsFinished(p) || progress[p.lessonId] || filedReads.current.has(p.lessonId)) continue;
@@ -1915,6 +1915,15 @@ function CourseView({
       try { toggleModule(p.lessonId, course.key); } catch (_) { /* the reading stands either way */ }
     }
   }, [signedIn, toggleModule, course.key, progress]);
+  React.useEffect(() => { fileFinishedPlaces(); }, [fileFinishedPlaces]);
+  // ... and the moment any reader finishes a place (DR-1251): the in-space
+  // reader's last sentence, the guide's last unit, the deck's last part.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onFinished = () => fileFinishedPlaces();
+    window.addEventListener(PLACE_FINISHED_EVENT, onFinished);
+    return () => window.removeEventListener(PLACE_FINISHED_EVENT, onFinished);
+  }, [fileFinishedPlaces]);
 
   React.useEffect(() => {
     if (!focusId || typeof window === 'undefined') return undefined;
@@ -2311,7 +2320,19 @@ function CourseView({
         presentable={lessonPresentable(presentLesson, { level: AGEBAND_TO_LEVEL_KEY[ageBand] || null, handsOnLabel, courseTitle: course.meta.title || '' })}
         initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'}
         startOnScreen={presentAutoStart}
-        onClose={() => { setPresentAutoStart(false); setPresentLesson(null); }}
+        onClose={() => { setPresentAutoStart(false); setPresentLesson(null); fileFinishedPlaces(); }}
+        // A LESSON PLAYED TO THE END IS READ (Darrell 2026-10-27: "are we
+        // counting the reading of students accurately and effectively?").
+        // ▶ Play is the door he asked for most ("Play Button reads the
+        // lesson!!!!!"), and until now a lesson read or heard whole through it
+        // left no mark: the deck wrote nothing to the place, so the class
+        // record never saw it. The deck now says so once, the place is
+        // finished the same way the in-space reader finishes it, and the read
+        // is filed to the record at once rather than on the next sign-in.
+        onFinished={() => {
+          try { finishPlace({ courseKey: course.key, lessonId: presentLesson.id }); } catch (_) { /* the reading stands either way */ }
+          fileFinishedPlaces();
+        }}
       />
     );
   }
@@ -4086,6 +4107,10 @@ export default function ChurchLearn({
   const [presentRequest, setPresentRequest] = useState(null);
   const playLesson = (courseKey, lessonId) => {
     setActiveKey(courseKey);
+    // The course's own view answers a Play request, and it is mounted only on
+    // the Lessons area (DR-1183). From Latest (DR-1251) the area has to come
+    // with the request, or ▶ Play there would open nothing.
+    setLearnArea('lessons');
     setResumeOpenGuide(false);
     setResumeLessonId(lessonId);
     setPresentRequest({ lessonId, nonce: Date.now() });
@@ -4782,6 +4807,11 @@ export default function ChurchLearn({
               if (dept && !visibleCourses.some((c) => c.key === courseKey)) setDeptId('all');
               setActiveKey(courseKey); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1);
             }}
+            /* The same ▶ Play and the same Continue the course list's rows
+               carry (Darrell 2026-10-27: "not giving the count or the play
+               buttons"). */
+            onPlay={playLesson}
+            onContinue={continueAndRead}
           />
         )}
         {/* ONE COURSE ON A DEPARTMENT TAB (DR-1182): the places offered here are
@@ -4874,6 +4904,11 @@ export default function ChurchLearn({
           const folded = foldsFor(active.key);
           const rows = visibleItems(items, folded);
           const foldOffer = foldAllOffer(items, folded);
+          // THE SAME THREE NUMBERS AS THE LATEST LIST (Darrell 2026-10-27:
+          // "Even the count is different for lessons and latest with the same
+          // courses?"): lessons · readings · for every age, measured from the
+          // age versions each lesson really carries (DR-0715), never assumed.
+          const monthVersions = monthReadings(items, (m) => lessonVersions(m).length);
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
@@ -5080,7 +5115,7 @@ export default function ChurchLearn({
                         type="button"
                         data-testid="month-fold"
                         aria-expanded={!m.heading.folded}
-                        aria-label={`${m.heading.label}, ${m.heading.count} ${m.heading.count === 1 ? U.noun : `${U.noun}s`}${m.heading.aged ? `, ${m.heading.aged} written for every age` : ''} — ${m.heading.folded ? 'open this month' : 'fold this month'}`}
+                        aria-label={`${m.heading.label}, ${m.heading.count} ${m.heading.count === 1 ? U.noun : `${U.noun}s`}, ${countWords(monthVersions[m.heading.key] || 0)} readings${m.heading.aged ? `, ${m.heading.aged} written for every age` : ''} — ${m.heading.folded ? 'open this month' : 'fold this month'}`}
                         title={m.heading.aged ? `${m.heading.aged} of these ${m.heading.count} are also written for children, youth, teens and seniors — have your kids review them in the Learn tab at their level` : undefined}
                         onClick={() => setFoldsFor(active.key, toggleFold(folded, m.heading.key))}
                         className="w-full min-h-[44px] pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold flex items-center justify-between gap-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
@@ -5090,11 +5125,13 @@ export default function ChurchLearn({
                           <span>{m.heading.label}</span>
                         </span>
                         <span className="text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          {m.heading.count}
+                          <span data-month-lessons>{m.heading.count} {m.heading.count === 1 ? U.noun : `${U.noun}s`}</span>
+                          {' · '}
+                          <span data-month-readings={monthVersions[m.heading.key] || 0}>{countWords(monthVersions[m.heading.key] || 0)} readings</span>
                           {/* THE OTHER NUMBER, FOR PARENTS (DR-0732): how many of
                               this month's lessons the children can read at their
                               own level in the Learn tab. */}
-                          {m.heading.aged ? <span className="text-[#5A6E3D]">{` · ${m.heading.aged} for every age`}</span> : null}
+                          {m.heading.aged ? <span className="text-[#5A6E3D]" data-month-aged={m.heading.aged}>{` · ${m.heading.aged} for every age`}</span> : null}
                         </span>
                       </button>
                     </li>

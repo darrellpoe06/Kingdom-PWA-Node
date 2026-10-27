@@ -516,6 +516,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   useEffect(() => {
     if (tts.failed) setNotice('Audio didn’t start — press play once more, or pick the System voice.');
   }, [tts.failed, setNotice]);
+  // A READING THAT STOPPED ON A FAULT SAYS WHERE (DR-1251). The engine holds
+  // the sentence; the next press of play goes on from the bookmark, which is
+  // that sentence. Said plainly, never dressed as the end of the lesson.
+  useEffect(() => {
+    if (tts.heldAt == null) return;
+    const n = Number(tts.heldAt) + 1;
+    const of = Number(tts.segmentCount) || 0;
+    const why = tts.heldWhy && tts.heldWhy !== 'error' ? ` (${String(tts.heldWhy).replace(/-/g, ' ')})` : '';
+    setNotice(`This phone’s voice stopped at sentence ${n}${of ? ` of ${of}` : ''}${why} — press play to go on from there.`);
+  }, [tts.heldAt, tts.heldWhy, tts.segmentCount, setNotice]);
 
   // Keep the OS transport and the keep-alive session in step with the reader:
   // released the moment nothing is being read, so a finished reading does not
@@ -747,6 +757,15 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         if (i === 0 && first && !served && at === pinned) { served = true; return Promise.resolve({ ...first, speed: at }); }
         return sourceFor(at).clip(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
       },
+      // A piece the element could not play is asked for AGAIN from the voice,
+      // the kept copy forgotten (DR-1251; lib/clip-queue.js recover), and the
+      // stall watch borrows this page's clock.
+      fetchFresh: (t, i, sp) => {
+        const at = Number(sp) > 0 ? Number(sp) : pinned;
+        return sourceFor(at).fresh(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
+      },
+      schedule: (fn, ms) => setTimeout(fn, ms),
+      unschedule: (id) => clearTimeout(id),
       // The pace of every piece, measured (DR-0794): the trip says it in one line.
       onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
@@ -1352,6 +1371,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setSkipHandlers,
     isReading: tts.isReading || cloudPlaying,
     isPaused: tts.isPaused || cloudPaused,
+    // Where the device voice stopped on a fault (DR-1251); null otherwise.
+    engineHeldAt: tts.heldAt != null ? tts.heldAt : null,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,
     // Follow-along (DR-0264): device-voice reads report per-sentence progress
