@@ -19,7 +19,12 @@ name: lesson-builder-health
 on:
   schedule:
     - cron: '3 14 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      probe_waiting:
+        description: 'Also print, per waiting lesson row, the last gate verdict the builder recorded (counts, codes, refs; never a body), and ask the primary writer once, the way the builder asks it (DR-1222)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -112,6 +117,66 @@ jobs:
           PY
           EOS
           cat /tmp/witness.json
+
+      # ON REQUEST (DR-1222): WHY the builder hands rows back, read from what
+      # the gates recorded, by a runner over the tailnet (DR-1159 road 1).
+      # On 2026-10-26 fifteen rows sat four days with "handed back (last:
+      # failed)" and nothing outside the NAS could say what failed: the
+      # build-reason tag is cut at 200 characters and the daily witness judged
+      # readiness only. This prints, per waiting row, the newest
+      # lesson_versions verdict -- writer, elapsed, draft or none, each gate's
+      # counts, the fault refs, the error with every long quoted string elided
+      # -- and then asks the primary writer ONE short question with the exact
+      # flags the builder uses, printing the exit code and the JSON's shape.
+      # Never a body, never a prompt, never a model's reply beyond a word.
+      - name: "Probe (on request): why each waiting row was handed back, as the gates recorded it"
+        if: steps.gate.outputs.go == 'true' && inputs.probe_waiting == true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          echo "== the last recorded verdict per waiting row (counts, codes, refs; never a body) =="
+          echo "row id | attempts | last version at | writer | elapsed ms | draft | gates passed | verse passed | spans | verbatim | verse faults | fault refs | structure problems | quotation problems | voice problems | depth problems | repo gates failed | error (elided) | build-reason tags (elided)"
+          if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-waiting-last-verdict.sql); then
+            echo "::error::the live database could not be read -- this is NOT 'nothing waiting'"; exit 1
+          fi
+          n=$(printf '%s' "$out" | grep -c . || true)
+          echo "waiting rows: $n"
+          printf '%s\n' "$out"
+          { echo "### Waiting rows, the last verdict each: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          echo
+          echo "== the primary writer asked NOW, with the builder's own flags (exit code and JSON shape only) =="
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | tee -a "$GITHUB_STEP_SUMMARY" || echo "the NAS did not answer the writer probe"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          HOME_DIR=$(getent passwd dpoe 2>/dev/null | cut -d: -f6); [ -n "$HOME_DIR" ] || HOME_DIR=/var/services/homes/dpoe
+          B="$HOME_DIR/.local/bin/claude"; [ -x "$B" ] || B=$(command -v claude 2>/dev/null || true)
+          [ -n "$B" ] || { echo "claude CLI: ABSENT"; exit 0; }
+          echo "claude: $B ($("$B" --version 2>&1 | head -1 | cut -c1-80))"
+          W=$(mktemp -d 2>/dev/null || echo "/tmp/lesson-probe.$$"); mkdir -p "$W"; cd "$W" || exit 0
+          unset ANTHROPIC_API_KEY
+          printf 'Reply with the single word ok.' | timeout 180 "$B" -p --output-format json --no-session-persistence --tools "" > "$W/out.json" 2> "$W/err.txt"
+          echo "exit=$?  stdout=$(wc -c < "$W/out.json" | tr -d ' ') bytes  stderr=$(wc -c < "$W/err.txt" | tr -d ' ') bytes"
+          python3 - "$W/out.json" "$W/err.txt" <<'PY'
+          import sys, re, json
+          def elide(s): return re.sub(r'"[^"\n]{25,}"', '"<elided>"', s)
+          out = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          err = open(sys.argv[2], encoding="utf-8", errors="replace").read()
+          try:
+              j = json.loads(out)
+              print("stdout: one JSON document; keys:", sorted(j.keys()) if isinstance(j, dict) else type(j).__name__)
+              if isinstance(j, dict):
+                  for k in ("type", "subtype", "is_error", "num_turns", "duration_ms", "stop_reason"):
+                      if k in j: print("  {} = {}".format(k, j[k]))
+                  if "result" in j: print("  result =", elide(json.dumps(str(j["result"])[:200])))
+          except Exception as e:  # noqa: BLE001
+              print("stdout is not one JSON document ({}); tail: {}".format(type(e).__name__, elide(out[-400:]).replace("\n", " ")))
+          print("stderr tail:", elide(err[-400:]).replace("\n", " ") or "(empty)")
+          PY
+          cd /; rm -rf "$W"
+          EOS
 
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'
