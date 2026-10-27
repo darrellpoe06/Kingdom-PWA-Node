@@ -236,6 +236,14 @@ export function createClipCache({ backend, capBytes, now = () => Date.now(), sch
       } catch { return null; }
     },
     async has(key) { try { return !!(await store.get(key)); } catch { return false; } },
+    /** Forget one clip (DR-1251): a piece the player could not play is never served again. */
+    async del(key) {
+      let bytes = 0;
+      try { const m = await metaOf(key); bytes = Number(m && m.bytes) || 0; } catch { /* unknown size */ }
+      try { await store.del(key); } catch { return false; }
+      if (knownTotal != null && bytes) knownTotal = Math.max(0, knownTotal - bytes);
+      return true;
+    },
     /** `pin` names a download that holds this clip (DR-0722): never evicted while held. */
     async put(key, blob, { pin = null } = {}) {
       if (!blob || !blob.size) return false;
@@ -406,7 +414,42 @@ export async function cacheAhead({ keys, fetchPiece, cache, concurrency = 3, onP
  * @param {object} o.cache            createClipCache()
  * @param {(b:Blob) => string} o.makeUrl
  */
-export function createClipSource({ keys, fetchBlob, cache, makeUrl }) {
+// ONLY AUDIO IS KEPT OR PLAYED (DR-1251). A blob that is not audio — an
+// error page or a cut-off body that arrived with a 200 — used to be cached
+// under the piece's key and handed to the player on every later reading of
+// the same lesson, where it could not be decoded and the reading stopped at
+// the same sentence every time. A WAV begins "RIFF"; the other containers the
+// voice could ever answer with begin "OggS", "fLaC" or "ID3". A blob that
+// says its own type is audio passes; one with no type is read at its head.
+const AUDIO_MAGIC = ['RIFF', 'OggS', 'fLaC', 'ID3'];
+async function headBytes(blob, n) {
+  const part = typeof blob.slice === 'function' ? blob.slice(0, n) : blob;
+  if (typeof part.arrayBuffer === 'function') return new Uint8Array(await part.arrayBuffer());
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(new Uint8Array(r.result));
+      r.onerror = () => rej(r.error);
+      r.readAsArrayBuffer(part);
+    });
+  }
+  return null;
+}
+export async function looksLikeAudio(blob) {
+  if (!blob || !blob.size) return false;
+  if (typeof blob.type === 'string' && /^audio\//i.test(blob.type)) return true;
+  if (typeof blob.type === 'string' && blob.type && !/^application\/octet-stream$/i.test(blob.type)) return false;
+  try {
+    const head = await headBytes(blob, 4);
+    // A device that cannot read a blob's head cannot judge it; the blob is
+    // played, as before, rather than refused for a limit of the device.
+    if (!head) return true;
+    const tag = String.fromCharCode(...head);
+    return tag.length >= 3 && AUDIO_MAGIC.some((m) => tag.startsWith(m.slice(0, tag.length)));
+  } catch { return false; }
+}
+
+export function createClipSource({ keys, fetchBlob, cache, makeUrl, isAudio = looksLikeAudio }) {
   const inflight = new Map();
   let fetches = 0;
   const fromNetwork = (i, timeoutMs) => {
@@ -415,20 +458,38 @@ export function createClipSource({ keys, fetchBlob, cache, makeUrl }) {
         fetches += 1;
         let got;
         try { got = await fetchBlob(i, timeoutMs); } catch (e) { got = { error: (e && e.message) || 'fetch-failed' }; }
-        if (got && got.blob && got.blob.size) await cache.put(keys[i], got.blob);
+        if (got && got.blob && got.blob.size) {
+          if (await isAudio(got.blob)) await cache.put(keys[i], got.blob);
+          else got = { error: 'voice-lite-not-audio' };
+        }
         return got || { error: 'fetch-failed' };
       })().finally(() => inflight.delete(i)));
     }
     return inflight.get(i);
   };
+  const forget = async (i) => { try { if (cache && typeof cache.del === 'function') await cache.del(keys[i]); } catch { /* best-effort */ } };
   return {
     /** For the player: a playable URL for piece i, or {error}. */
     async clip(i, timeoutMs) {
       const hit = await cache.get(keys[i]);
-      if (hit) return { url: makeUrl(hit), cached: true };
+      if (hit) {
+        if (await isAudio(hit)) return { url: makeUrl(hit), cached: true };
+        await forget(i); // a kept blob that is not audio is dropped, and the piece asked for again
+      }
       const got = await fromNetwork(i, timeoutMs);
       if (!got || got.error || !got.blob) return { error: (got && got.error) || 'voice-lite-empty' };
       return { url: makeUrl(got.blob) };
+    },
+    /**
+     * The piece AGAIN, from the voice, never from the device (DR-1251): what
+     * the player asks for when a piece it was handed could not be played.
+     */
+    async fresh(i, timeoutMs) {
+      await forget(i);
+      inflight.delete(i);
+      const got = await fromNetwork(i, timeoutMs);
+      if (!got || got.error || !got.blob) return { error: (got && got.error) || 'voice-lite-empty' };
+      return { url: makeUrl(got.blob), fresh: true };
     },
     /** Fetch every piece not on the device yet, a few at a time. */
     ahead({ concurrency = AHEAD_CONCURRENCY, onProgress, signal } = {}) {

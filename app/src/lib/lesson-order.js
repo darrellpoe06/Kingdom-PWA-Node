@@ -234,7 +234,9 @@ export function withMonthHeadings(list) {
   // review the lessons in the Learn tab"): beside the month's total, how many
   // of its lessons carry all four age readings (child, youth, teen, senior).
   const aged = new Map();
-  const forEveryAge = (m) => !!(m && m.levels && ['child', 'youth', 'teen', 'senior'].every((b) => typeof m.levels[b] === 'string' && m.levels[b].trim()));
+  // A Latest row carries the answer precomputed (`everyAge`, learn-organize.js
+  // forEveryAge); a course-list module carries its `levels`. One rule either way.
+  const forEveryAge = (m) => !!(m && (m.everyAge === true || (m.levels && ['child', 'youth', 'teen', 'senior'].every((b) => typeof m.levels[b] === 'string' && m.levels[b].trim()))));
   for (const m of rows) {
     const k = (monthOf(m.added) || { key: 'undated' }).key;
     counts.set(k, (counts.get(k) || 0) + 1);

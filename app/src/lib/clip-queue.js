@@ -97,7 +97,20 @@ export function overallFraction(chunks, index, pieceFraction) {
  * element plays THAT from the next piece boundary to the end, so the phone
  * holds one long, continuous play with nothing between sentences at all.
  */
-export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now() }) {
+/**
+ * A piece that has not begun to play this long after play() was accepted is
+ * taken as stuck (DR-1251): asked for again once, then handed on. Long enough
+ * for a slow decode on an old phone; short enough that a reading never sits
+ * silent for a minute saying it is playing.
+ */
+export const STALL_MS = 12000;
+
+// `fetchFresh(text, i, pace)` is the piece AGAIN from the voice, the kept copy
+// forgotten (lib/clip-cache.js createClipSource.fresh). `schedule` /
+// `unschedule` arm the stall watch; the queue itself holds no timer (a saved
+// reading must advance inside the ended event with the screen off —
+// saved-voice-keeps-playing.test.js), so the caller lends it one.
+export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now(), schedule = null, unschedule = null }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
   // THE VOICE IS ASKED AGAIN AT THE NEW PACE (2026-10-07, DR-0794; Darrell:
   // "Why does the male voice sound like it's slowing down while it's
@@ -141,6 +154,59 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   // The end of a clip fires 'pause' too (paused goes true before 'ended'):
   // that is not a pause the listener made, and `ended` says so.
   listen('pause', () => { if (!stopped && playFrom != null && !audio.ended) pausedOnce = true; });
+
+  // NEVER A SILENT HANG (DR-1251; Darrell 2026-10-27: "Not one stone lesson
+  // will not play all the way through the lesson!!! the tts or reader is
+  // worse than ever"). The element's 'ended' is the only event this queue
+  // used to listen for. A piece the element could not play — a blob that
+  // would not decode, a source that never loaded — fired 'error', never
+  // 'ended', and the queue waited forever with the panel still saying it was
+  // playing; and because a bad piece was kept on the device, the same lesson
+  // stopped at the same sentence every time. Now an element error, or a
+  // piece that has not begun STALL_MS after play() was accepted, is treated
+  // as a bad piece: it is asked for again once, fresh from the voice (the
+  // kept copy forgotten), and if that cannot be played either the rest of the
+  // reading is handed on the way a piece that could not be fetched always
+  // was. A fault inside the joined file drops the join and carries on piece
+  // by piece from the sentence it was at.
+  const recovered = new Set();   // pieces already asked for again
+  let stallTimer = null;
+  const timeNow = () => { try { return Number(audio.currentTime) || 0; } catch (_) { return 0; } };
+  const clearStall = () => { if (stallTimer != null) { try { if (typeof unschedule === 'function') unschedule(stallTimer); } catch (_) { /* ignore */ } stallTimer = null; } };
+  const armStall = (i) => {
+    clearStall();
+    if (!(STALL_MS > 0) || typeof schedule !== 'function') return;
+    stallTimer = schedule(() => {
+      stallTimer = null;
+      if (stopped || index !== i || playFrom == null) return;
+      // Still at the top, not paused by the listener: it never began.
+      if (timeNow() > 0 || audio.paused === true) return;
+      recover(i, 'piece-stalled');
+    }, STALL_MS);
+  };
+  const recover = (i, reason) => {
+    if (stopped) return;
+    clearStall();
+    if (joined) {
+      // The joined file faulted: back to pieces from here, the join dropped.
+      const at = index >= 0 ? index : i;
+      releaseJoin(joined); joined = null; releaseJoin(pendingJoin); pendingJoin = null;
+      waitFrom = now();
+      playAt(at);
+      return;
+    }
+    if (recovered.has(i) || typeof fetchFresh !== 'function') { fallBack(i, reason); return; }
+    recovered.add(i);
+    release(i);
+    waitFrom = now();
+    const p = Promise.resolve().then(() => fetchFresh(chunks[i].text, i, pace))
+      .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }));
+    urls.set(i, p);
+    p.then((got) => { if (urls.get(i) === p) ready.set(i, got); if (stopped) return; return startPiece(i, got, false); });
+  };
+  listen('error', () => { if (!stopped && index >= 0) recover(index, 'piece-unplayable'); });
+  listen('playing', () => { if (!stopped && index >= 0 && playFrom == null) playFrom = now(); clearStall(); });
+  listen('timeupdate', () => { if (stallTimer != null && timeNow() > 0) clearStall(); });
   const reportPace = (i, clipS, from) => {
     if (!onPace || i < 0 || i >= chunks.length) return;
     const wallMs = from != null ? Math.max(0, now() - from) : null;
@@ -219,7 +285,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     playFrom = null; pausedOnce = false;
     if (onPiece) onPiece(i, { waitMs, inHand });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
-    return playNow(i).then((ok) => { if (ok && index === i && playFrom == null) playFrom = now(); return ok; });
+    return playNow(i).then((ok) => { if (ok && index === i && playFrom == null) { playFrom = now(); armStall(i); } return ok; });
   };
 
   // The joined file takes over from piece i to the end.
@@ -249,7 +315,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     playFrom = null; pausedOnce = false;
     if (onPiece) onPiece(i, { waitMs: joinedWait, inHand: true });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
-    return playNow(i).then((ok) => { if (ok && playFrom == null) playFrom = now(); return ok; });
+    return playNow(i).then((ok) => { if (ok && playFrom == null) { playFrom = now(); armStall(i); } return ok; });
   };
 
   const playAt = (i) => {
@@ -266,6 +332,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   // inside this event whether the screen is on, off, or behind another app.
   audio.onended = () => {
     if (stopped) return;
+    clearStall();
     if (joined) {
       const start = joined.offsets[index] || 0;
       reportPace(index, joined.duration - start, playFrom);
@@ -305,6 +372,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     start() { if (!pendingJoin) want(0); return playAt(0); },
     stop() {
       stopped = true;
+      clearStall();
       for (const [ev, fn] of listening) { try { audio.removeEventListener(ev, fn); } catch (_) { /* ignore */ } }
       listening.length = 0;
       try { audio.pause(); } catch (_) { /* ignore */ }

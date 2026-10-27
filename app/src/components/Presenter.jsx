@@ -241,6 +241,17 @@ export default function Presenter({
   // passes onCurriculumChange to persist the overlay itself.
   storage = undefined,
   onCurriculumChange = null,
+  // THE DECK SAYS WHEN IT WAS READ TO THE END (Darrell 2026-10-27: "are we
+  // counting the reading of students accurately and effectively?"). Measured
+  // before this: ▶ Play opens this deck, and nothing in it wrote to the
+  // learner's place — neither walking every part to the last point nor the
+  // read-aloud reaching the last part (its read target is owned per slide, so
+  // TTSControl's own end-of-lesson mark never matched the lesson). A lesson
+  // read whole through Play counted for nothing. Called at most ONCE per
+  // presentable, the first time the reader reaches the end: every point of
+  // the last part shown after moving through the deck, Next pressed on the
+  // last point, or the read-aloud asked for a part past the last one.
+  onFinished = null,
 }) {
   const store = useMemo(() => (storage !== undefined ? storage : defaultStorage()), [storage]);
   const baseScenes = useMemo(
@@ -383,6 +394,21 @@ export default function Presenter({
   const atEnd = idx >= Math.max(0, scenes.length - 1) && !moreToReveal;
   const atStart = idx <= 0 && reveal <= 0;
 
+  // Read to the end, said once. `moved` keeps a one-part deck from counting
+  // as read the moment it opens: the reader has to go somewhere first, or
+  // press Next on the last point, or let the reading run off the end.
+  const finishedForRef = useRef(null);
+  const movedRef = useRef(false);
+  const onFinishedRef = useRef(onFinished);
+  useEffect(() => { onFinishedRef.current = onFinished; }, [onFinished]);
+  const markFinished = useCallback(() => {
+    if (finishedForRef.current === presentableId) return;
+    finishedForRef.current = presentableId;
+    const fn = onFinishedRef.current;
+    if (typeof fn === 'function') { try { fn(); } catch { /* the reading stands either way */ } }
+  }, [presentableId]);
+  useEffect(() => { if (atEnd && scenes.length > 0 && movedRef.current) markFinished(); }, [atEnd, scenes.length, markFinished]);
+
   // The single broadcast path. Honors "blank": while blanked it sends the holding
   // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
   // room's slide instantly (leadByAge), without leaving the current slide.
@@ -462,14 +488,17 @@ export default function Presenter({
   // finished slide whole). Broadcast follows via the reveal-aware effect below.
   const go = useCallback((dir) => {
     if (dir > 0) {
+      movedRef.current = true;
       const n = pointsCountAt(idxRef.current);
       if (revealRef.current < n) { setReveal((r) => r + 1); return; }
+      // Next on the last point of the last part: the reader is done.
+      if (idxRef.current >= last) { markFinished(); return; }
       setIdx((w) => { const nx = Math.min(last, w + 1); if (nx !== w) setReveal(0); return nx; });
     } else {
       if (revealRef.current > 0) { setReveal((r) => Math.max(0, r - 1)); return; }
       setIdx((w) => { const pv = Math.max(0, w - 1); if (pv !== w) setReveal(pointsCountAt(pv)); return pv; });
     }
-  }, [last, pointsCountAt]);
+  }, [last, pointsCountAt, markFinished]);
 
   // STRAIGHT TO ONE PART (DR-0451). `go` only ever steps, which is right for a
   // clicker and wrong for "present just the one that we want": in a 163-week
@@ -632,13 +661,17 @@ export default function Presenter({
         if (was !== null) setShowMirror(was);
       },
       next: () => {
-        if (idx >= last) return false;
+        // The reading asked for the part after the last one: heard to the end.
+        // (Arriving at the last part by reading is not the end — the last
+        // part still has to be heard — so this path does not count as the
+        // reader having moved; only his own Next does.)
+        if (idx >= last) { markFinished(); return false; }
         setIdx((i2) => Math.min(last, i2 + 1));
         return true;
       },
     });
     return () => clearReadTarget(owner);
-  }, [cur, idx, age, presentableId, last, readMode, onScreen, audienceState, followCode]);
+  }, [cur, idx, age, presentableId, last, readMode, onScreen, audienceState, followCode, markFinished]);
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
   // The same three facts the read-target effect uses, surfaced for the controls
