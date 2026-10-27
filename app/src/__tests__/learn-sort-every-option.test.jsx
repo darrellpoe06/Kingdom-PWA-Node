@@ -171,10 +171,18 @@ describe('the latest lessons, every course', () => {
   const newestFirstRows = (rows) => rows.every((r, i) => i === 0 || rows[i - 1].added >= r.added);
 
   it('pulls every dated lesson in the catalog, newest first, each naming its home course (proven-to-catch)', () => {
-    const { rows, undated, courseCount } = latestLessons(CATALOG);
+    const { rows, undated, carried, courseCount } = latestLessons(CATALOG);
     const total = CATALOG.reduce((t, c) => t + c.schedule.length, 0);
-    // DR-0687: every lesson of every course is listed.
-    expect(rows.length).toBe(total);
+    // DR-0687: every lesson of every course is listed — ONCE. A lesson carried
+    // whole into a second course (L153 into Sovereign A.I. as sov18, under
+    // `sharedWith`) is not a second row (Darrell 2026-10-27: "a couple of
+    // duplicate lessons now?"); its home row names the course that also
+    // teaches it.
+    expect(carried.map((k) => k.lessonId)).toEqual(['sov18-precept-upon-precept-the-voice-that-programs-the-world']);
+    expect(rows.length).toBe(total - carried.length);
+    const home = rows.find((r) => r.lessonId === carried[0].homeLessonId);
+    expect(home.courseKey).toBe('living-lessons');
+    expect(home.alsoIn).toEqual([CATALOG.find((c) => c.key === 'sovereign-ai').meta.title]);
     expect(undated).toBe(0);
     expect(courseCount).toBe(CATALOG.length);
     expect(newestFirstRows(rows)).toBe(true);
@@ -275,11 +283,15 @@ describe('on the real Learn tree', () => {
     expect(list).toBeTruthy();
     const rows = [...list.querySelectorAll('li[data-lesson-id]')];
     // DR-0687: every mounted lesson is listed — the catalog plus the A.I. course Learn mounts itself.
-    const mounted = CATALOG.reduce((t, c) => t + c.schedule.length, 0) + buildSchedule(null).length;
+    // ... each ONCE: the one lesson carried whole into a second course is
+    // listed at home only, and the line says so.
+    const mounted = CATALOG.reduce((t, c) => t + c.schedule.length, 0) + buildSchedule(null).length - 1;
     expect(rows.length).toBe(mounted);
     expect(new Set(rows.map((r) => r.getAttribute('data-course-key'))).size).toBe(CATALOG.length + 1);
     expect(list.querySelector('[data-testid="learn-latest-line"]').textContent)
-      .toBe(`All ${mounted} lessons across ${CATALOG.length + 1} courses, each on the day it was first added to the app.`);
+      .toBe(`All ${mounted} lessons across ${CATALOG.length + 1} courses, each on the day it was first added to the app. One lesson carried whole into a second course is listed once, at home.`);
+    expect(list.querySelectorAll('li[data-lesson-id^="sov18-"]').length).toBe(0);
+    expect(list.querySelector('li[data-lesson-id^="ll153-"] [data-testid="latest-also-in"]').textContent).toMatch(/also taught whole in /);
     expect(list.textContent).not.toMatch(/have no recorded day/);
     const days = rows.map((r) => r.getAttribute('data-added'));
     expect(days.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))).toBe(true);
