@@ -353,4 +353,9 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
+  // L267: a research-road item Darrell sent into the app as a link -- the 1929
+  // excavation of Ugarit, the thirty-sign alphabet, and the lotan/leviathan
+  // parallel. The row waited roughly ninety-one hours in the queue; the date is
+  // the day the lesson was built, not the day the link was sent.
+  'll267-ugarit-and-the-words-we-read-yahweh-is-not-of-that-pantheon-he-is-its-judge': '2026-10-27',
 };
