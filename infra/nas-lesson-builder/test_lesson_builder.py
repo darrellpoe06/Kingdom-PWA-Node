@@ -1006,6 +1006,106 @@ class Stages(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 git.fetch()
 
+    def test_a_stale_config_lock_is_the_clones_own_and_is_healed_not_blamed(self):
+        """DR-1252, measured 2026-10-27 on the twelve waiting rows: three died
+        with "could not lock config file .git/config: File exists" -- a stale
+        .git/config.lock left by a killed run. STUCK_REF does not match that
+        sentence and heal_refs() only walks refs/remotes/origin, so the lock
+        was outside both the pattern and the cure, and the TEACHING was handed
+        back tagged build:failed for a lock file belonging to the machine."""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        gitdir = os.path.join(d, "repo", ".git")
+        os.makedirs(gitdir)
+        lock = os.path.join(gitdir, "config.lock")
+        open(lock, "w").close()
+        os.utime(lock, (time.time() - 3600, time.time() - 3600))  # an hour old: leftover
+
+        calls = []
+        stuck = [True]
+        def fake_run(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "config" and stuck:
+                stuck.pop()
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file "
+                                   ".git/config: File exists")
+            return ""
+        git = lb.Git(data_dir=d)
+        with unittest.mock.patch.object(lb, "_run", fake_run):
+            git.ensure()
+
+        self.assertFalse(os.path.exists(lock), "the stale config lock is gone")
+        names = [c[1] for c in calls if c and c[0] == "config"]
+        # user.name fails, the lock is cleared, then BOTH identity writes run.
+        self.assertEqual(names, ["user.name", "user.name", "user.email"])
+
+        # PROVEN TO CATCH: without the config arm, the same failure escapes and
+        # the row is blamed for it.
+        calls.clear()
+        stuck2 = [True]
+        def fake_run2(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            calls.append(argv[3:])
+            if argv[3] == "config" and stuck2:
+                stuck2.pop()
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file "
+                                   ".git/config: File exists")
+            return ""
+        with unittest.mock.patch.object(lb, "STUCK_CONFIG", re.compile(r"\bmatches nothing\b")):
+            with unittest.mock.patch.object(lb, "_run", fake_run2):
+                with self.assertRaises(RuntimeError) as caught:
+                    git.ensure()
+        self.assertIn("could not lock config file", str(caught.exception))
+
+        # A failure that is NOT a config lock is raised at once, untouched.
+        def other_fail(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "config":
+                raise RuntimeError("git -C repo exit 128: fatal: not a git repository")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", other_fail):
+            with self.assertRaises(RuntimeError):
+                git.ensure()
+
+        # And a lock that stays after the heal is still a failure, said once more.
+        def always_locked(argv, cwd=None, env=None, timeout=600, input_bytes=None):
+            if argv[3] == "config":
+                raise RuntimeError("git -C repo exit 255: error: could not lock config file .git/config: File exists")
+            return ""
+        with unittest.mock.patch.object(lb, "_run", always_locked):
+            with self.assertRaises(RuntimeError):
+                git.ensure()
+
+    def test_heal_locks_never_races_a_git_that_is_still_running(self):
+        """A lock younger than STALE_LOCK_SECONDS may be held by a live git, so
+        it is left alone. This is the one way the cure could do harm, and the
+        floor is what removes it."""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        gitdir = os.path.join(d, "repo", ".git")
+        os.makedirs(gitdir)
+        fresh = os.path.join(gitdir, "index.lock")
+        stale = os.path.join(gitdir, "config.lock")
+        for p in (fresh, stale):
+            open(p, "w").close()
+        now = time.time()
+        os.utime(fresh, (now - 1, now - 1))
+        os.utime(stale, (now - lb.STALE_LOCK_SECONDS - 1, now - lb.STALE_LOCK_SECONDS - 1))
+
+        removed = lb.Git(data_dir=d).heal_locks(now=now)
+        self.assertEqual(removed, ["config.lock"])
+        self.assertTrue(os.path.exists(fresh), "a lock a live git may hold is left alone")
+        self.assertFalse(os.path.exists(stale))
+
+        # It reports what it removed, and a clone with no locks is not an error.
+        self.assertEqual(lb.Git(data_dir=d).heal_locks(now=now), [])
+        # Every entry is a TOP-LEVEL file in .git, never a path into refs/ --
+        # the individual ref locks under refs/remotes/origin stay heal_refs()'s
+        # business, so the two cures cannot collide. (packed-refs.lock is a
+        # top-level file despite its name, which is why this checks for a path
+        # separator rather than for the word "refs".)
+        for name in lb.CLONE_LOCKS:
+            self.assertNotIn(os.sep, name, name)
+            self.assertTrue(name.endswith(".lock"), name)
+
     def test_a_sign_in_refresh_race_is_a_passing_moment_and_the_cli_runs_one_at_a_time(self):
         """DR-1232, measured 2026-10-27 01:55Z: six builds started at once; each
         writer died in ~7 s with the CLI's own sentence below. The row is waited
