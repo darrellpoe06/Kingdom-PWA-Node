@@ -49,6 +49,7 @@ import WorkOrderTriage from './WorkOrderTriageLazy.jsx';
 import HomeHero from './shell/HomeHero.jsx';
 import FamilyStories from './FamilyStories.jsx';
 import HubCamera from './HubCamera.jsx';
+import CamerasTile from './CamerasTile.jsx';
 import UiIcon from './UiIcon.jsx';
 import { HUB_SECTIONS, DEFAULT_LAYOUT, normalizeLayout, isStandard, moveSection, toggleHidden, layoutRuns, loadHubLayout, saveHubLayout, hiddenLine } from '../lib/hub-layout.js';
 
@@ -172,6 +173,9 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
     welcome: (
       <>
       <HomeHero name={welcomeName} />
+      {/* THE CAMERAS OPTION, first after the welcome (DR-1237): for the family
+          and a device holding a grant; its line is read from the camera road. */}
+      <CamerasTile viewer={viewer} setView={setView} />
       </>
     ),
     tiles: (
