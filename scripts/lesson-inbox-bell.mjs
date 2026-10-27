@@ -397,7 +397,12 @@ function readRecords() {
     // and a typo (`path.join` with no `path` imported) therefore read exactly
     // like "no decision records on disk" -- the shipped-row line simply never
     // appeared, and the unit cases passed because they inject records and never
-    // call this. A read that failed must not read as a clean result (DR-1249).
+    // call this. A read that failed must not read as a clean result (DR-1250's
+    // own Verification records this; the citation is deliberately to THIS
+    // branch's record rather than to the sibling that states the principle in
+    // general, because a number that lives only on another unmerged branch does
+    // not exist from here -- which is exactly what decision-citation-guard
+    // caught, and it was right to).
     process.stderr.write(`lesson-inbox-bell: could not read ${dir}: ${err?.message || err}\n`);
     return [];
   }
