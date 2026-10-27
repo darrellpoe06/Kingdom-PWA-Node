@@ -231,6 +231,9 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     pitch, setPitch, stepPitch,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
+    // How many pieces of this reading come before the text now playing
+    // (DR-1253; optional in mocks): a hand-off's pieces count from 0 again.
+    pieceOffset = 0,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
     // broke the engine's own guarantee at its very last hop. tts.js runs a
     // start watchdog whose comment reads "Truly silent after a retry — report
@@ -257,6 +260,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   } = useReadAloud({ isOwner });
   const engineHeldRef = useRef(null);
   engineHeldRef.current = engineHeldAt != null ? engineHeldAt : null;
+  const pieceOffsetRef = useRef(0);
+  pieceOffsetRef.current = Math.max(0, Number(pieceOffset) || 0);
   // A JUMP IN FLIGHT IS A READING IN FLIGHT (2026-10-07; Darrell: "can't be
   // pushed again before it reads the exact same paragraph"). Between a step
   // and the voice's first word — seconds, on the NAS voice — isReading is
@@ -506,6 +511,18 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // is honest rather than a lint silencer.
   const rememberSentence = useCallback((absIndex, text) => {
     if (!text) return;
+    // THE PLACE NEVER WALKS BACKWARDS ON ITS OWN (DR-1253). Within one run
+    // the sentences only move forward; a write far behind the furthest one
+    // reached is a run that lost its count (a hand-off, a restarted engine),
+    // never the listener, and it is refused. A new run (beginRun — Start, a
+    // paragraph pick, Back, a tap) is a new object, so its own count starts
+    // clean and a deliberate return is honoured.
+    const run = followRef.current;
+    if (run) {
+      const high = typeof run.highWater === 'number' ? run.highWater : -1;
+      if (absIndex < high - 2) return;
+      run.highWater = Math.max(high, absIndex);
+    }
     // THE BOOKMARK FOR THIS READING (Darrell 2026-09-24: "start where I left
     // off"). Written for the reading the follow map was built from — never for
     // a tap-started or whole-page read that happens to run while a lesson is
@@ -555,17 +572,20 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
       return;
     }
-    runLocalRef.current = Math.max(0, segmentIndex);
-    const r = followRef.current.ranges[segmentIndex] || null;
+    // A hand-off's engine counts from 0 again; the pieces before it are
+    // added (DR-1253), so the sentence lit and kept is the one being heard.
+    const local = pieceOffsetRef.current + Math.max(0, segmentIndex);
+    runLocalRef.current = local;
+    const r = followRef.current.ranges[local] || null;
     lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
     scrollToVoice(r);
     // The sentence just reached IS the place. `base` is the offset this run
     // started at, so the stored index is absolute within the lesson.
     const st = followRef.current;
-    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + segmentIndex] : null;
-    if (seg && seg.text) rememberSentence(st.base + segmentIndex, seg.text);
-  }, [segmentIndex, isReading, deviceRead, rememberSentence]);
+    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + local] : null;
+    if (seg && seg.text) rememberSentence(st.base + local, seg.text);
+  }, [segmentIndex, pieceOffset, isReading, deviceRead, rememberSentence]);
   // CLOUD (cloned-voice) sentence-follow (DR-0265): the clip has no word
   // timings, but playback fraction → character position → sentence works at
   // sentence granularity. Only re-highlights when the sentence changes.
@@ -574,10 +594,14 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // The NAS voice plays one piece per segment, so the piece playing IS the
     // sentence to light (DR-0653). The clip fraction stays for the studio's
     // single long clip, where there is nothing better to go on.
-    const idx = typeof cloudPiece === 'number' && cloudPiece >= 0
+    const piece = typeof cloudPiece === 'number' && cloudPiece >= 0
       ? cloudPiece
       : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
-    if (idx < 0 || idx === lastCloudIdxRef.current) return;
+    if (piece < 0) return;
+    // A resumed or handed-off rest counts its pieces from 0 again; the pieces
+    // before it are added (DR-1253).
+    const idx = pieceOffsetRef.current + piece;
+    if (idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
     runLocalRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
@@ -592,7 +616,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const st = followRef.current;
     const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + idx] : null;
     if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
-  }, [cloudProgress, cloudPiece, isReading, deviceRead, rememberSentence]);
+  }, [cloudProgress, cloudPiece, pieceOffset, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading && !jumpLive) setMinimized(false); }, [isReading, jumpLive]);
   // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
@@ -628,10 +652,11 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       // spoken segment, and a span is enough to find the word. The DR-0722
       // downloaded-lesson read is the second kind, and it ran with no word
       // highlight at all until 2026-10-09.
-      const span = f.spans ? f.spans[segIdx] : null;
+      const local = pieceOffsetRef.current + segIdx; // a hand-off counts from 0 again (DR-1253)
+      const span = f.spans ? f.spans[local] : null;
       const r = f.spans
         ? (span ? wordRangeIn(f.follow, span, charIndex) : null)
-        : wordRange(f.follow, f.base + segIdx, charIndex);
+        : wordRange(f.follow, f.base + local, charIndex);
       if (r && prefsRef.current.highlight !== 'off') highlightWord(r);
     });
     return () => setBoundaryHandler(null);

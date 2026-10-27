@@ -226,7 +226,8 @@ export function faultAnnouncement({ brandLabel, occurrences } = {}) {
  */
 export function lessonAnnouncement({ event } = {}) {
   if (event === 'published') {
-    return { title: 'Your lesson is published'.slice(0, MAX_TITLE), body: 'Open Your lessons to read it.'.slice(0, MAX_BODY) };
+    // The push lands on the lesson itself (DR-1252), where it is read or read aloud.
+    return { title: 'Your lesson is published'.slice(0, MAX_TITLE), body: 'Open it to read it, or have it read to you.'.slice(0, MAX_BODY) };
   }
   return { title: 'Your lesson is ready to review'.slice(0, MAX_TITLE), body: 'Every version is written. Open Your lessons to choose.'.slice(0, MAX_BODY) };
 }

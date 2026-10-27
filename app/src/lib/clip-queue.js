@@ -98,12 +98,13 @@ export function overallFraction(chunks, index, pieceFraction) {
  * holds one long, continuous play with nothing between sentences at all.
  */
 /**
- * A piece that has not begun to play this long after play() was accepted is
- * taken as stuck (DR-1251): asked for again once, then handed on. Long enough
- * for a slow decode on an old phone; short enough that a reading never sits
- * silent for a minute saying it is playing.
+ * A piece that has not even LOADED this long after play() was accepted is
+ * taken as stuck (DR-1251; widened by DR-1253): asked for again once, then
+ * handed on. Data arriving ('loadeddata', 'canplay'), a 'playing' event or a
+ * moving clock all stand the watch down, so a slow road is given its time and
+ * only a piece that never comes is caught.
  */
-export const STALL_MS = 12000;
+export const STALL_MS = 30000;
 
 // `fetchFresh(text, i, pace)` is the piece AGAIN from the voice, the kept copy
 // forgotten (lib/clip-cache.js createClipSource.fresh). `schedule` /
@@ -206,6 +207,10 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
   };
   listen('error', () => { if (!stopped && index >= 0) recover(index, 'piece-unplayable'); });
   listen('playing', () => { if (!stopped && index >= 0 && playFrom == null) playFrom = now(); clearStall(); });
+  // Data arriving is life, not a stall: a slow road is given its time, and
+  // only a piece that never loads at all is taken as stuck (DR-1253).
+  listen('loadeddata', () => clearStall());
+  listen('canplay', () => clearStall());
   listen('timeupdate', () => { if (stallTimer != null && timeNow() > 0) clearStall(); });
   const reportPace = (i, clipS, from) => {
     if (!onPace || i < 0 || i >= chunks.length) return;

@@ -45,6 +45,7 @@ import { arrivalText } from './notify-readiness.js';
 import { buildStageTimes } from './lesson-pipeline.js';
 import { currentDoor, messageLandingHere } from './app-doors.js';
 import { lessonQuery } from './lesson-links.js';
+import { LIVING_LESSONS_KEY } from './lessons-for-situation.js';
 
 export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
 
@@ -54,6 +55,9 @@ export const SCREEN_KINDS = Object.freeze({
   decide: ['review-queue'],
   feedback: ['feedback'],
   learn: ['lesson-new'],
+  // The lesson itself, opened from its link (DR-1252): a published lesson's
+  // arrival is looked at when the lesson is, not only when Your lessons is.
+  lesson: ['lesson-published'],
 });
 
 // ── new in the catalog ───────────────────────────────────────────────────────
@@ -151,13 +155,25 @@ export function lessonArrivals(items, { owner = false } = {}) {
     }
     if (it.published) {
       const label = [it.published.number, it.published.title].filter(Boolean).join(' ') || it.published.lessonId || '';
+      // THE LESSON ITSELF, NOT THE WORK THAT MADE IT (DR-1252; Darrell
+      // 2026-10-27, the Arrivals card for L265: "These lessons should go to
+      // the actual lesson... not the research road work lesson... The links
+      // need to be changed to go to the correct page... to read or have a
+      // lesson read to you... Users would be confused"). This arrival carried
+      // the lesson's own link in `href` and `screen: 'your-lessons'`, and the
+      // landing honoured the screen — so OPEN went to the lane's Your lessons
+      // panel, the record of the request, not the lesson. Now it lands in
+      // Learn on the lesson, where it is read or read aloud.
+      const lessonId = String(it.published.lessonId || '').trim();
       out.push({
         kind: 'lesson-published',
         id: `lesson-published:${it.id}`,
         at: iso(times.published) || iso(it.createdAt),
         title: 'Your lesson is published',
         detail: label,
-        screen: 'your-lessons',
+        screen: lessonId ? 'learn' : 'your-lessons',
+        courseKey: lessonId ? (it.published.courseKey || LIVING_LESSONS_KEY) : undefined,
+        lessonId: lessonId || undefined,
         href: it.published.href || '',
       });
     }
@@ -297,8 +313,10 @@ export function newSince(items, knownIds) {
 
 /**
  * The URL a tap on an arrival opens, IN THE DOOR THE PERSON IS ALREADY IN
- * (app-doors.js, DR-0444): a message opens its thread; a lesson arrival opens
- * Your lessons; the Governor's queue opens Lessons to decide. Feedback has no
+ * (app-doors.js, DR-0444): a message opens its thread; a lesson that is
+ * written or answered opens Your lessons; a lesson that is PUBLISHED opens the
+ * lesson itself in Learn (DR-1252); the Governor's queue opens Lessons to
+ * decide. Feedback has no
  * URL: its replies live in the Feedback sheet the footer button opens, so the
  * bell presses that button instead (null here).
  */
