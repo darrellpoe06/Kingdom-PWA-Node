@@ -37,13 +37,34 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { triageQueue, cameInLabel, actionsFor, MOVE_TARGETS, BUILDING_AREAS, NEW_URGENCIES, newWorkOrder, workersBoard, resultsToReview, workersFinished, progressOf, ageOf, requiresResult, closingChecks } from '../lib/work-order-triage.js';
 import { buildingsOf } from '../lib/building-group.js';
 import { useBoardTasks, patchTask } from '../lib/use-board-tasks.js';
-import { loadAllWorkOrders, setWorkOrderStatus, assignWorkOrder, postNote } from '../modules/properties/cloud.js';
+import { loadAllWorkOrders, setWorkOrderStatus, assignWorkOrder, postNote, loadWorkOrderPhotos, addPhoto, loadPhotoThumbs, loadPhotoImages } from '../modules/properties/cloud.js';
+import { loadPictureNames, rememberPictureName } from '../modules/properties/picture-names.js';
 import { buildTenancyNote } from '../modules/properties/model.js';
+import { getInstanceId } from '../lib/table-sync.js';
+import { canCarryPictures, picturesOf, picturesOnNote, loosePictures, pictureLine } from '../lib/work-order-pictures.js';
+import { AddPictures, PictureStrip } from './WorkOrderPictures.jsx';
 
 const REQUEST_OPS = {
   setStatus: (id, status) => setWorkOrderStatus(id, status),
   assign: (id, label) => assignWorkOrder(id, { assignedTo: null, assignedToLabel: label }),
-  note: (record, body) => postNote(buildTenancyNote({ instanceId: record.instanceId, tenancyId: record.tenancyId, rentalId: record.rentalId, requestId: record.id, authorRole: 'owner', body })),
+  // `extra` carries a note id made on the device (DR-1235), so the pictures
+  // riding the note can name it; nothing else rides here.
+  note: (record, body, extra = {}) => postNote({ ...buildTenancyNote({ instanceId: record.instanceId, tenancyId: record.tenancyId, rentalId: record.rentalId, requestId: record.id, authorRole: 'owner', body }), ...extra }),
+};
+
+// PICTURES ON THE WORK ORDERS (DR-1235). The same record the door's wall
+// reads (property_photos), metadata in the list, bytes by id when a tile is
+// on screen; the names an instance has given its pictures; the family
+// instance for a Real Estate incident's picture (the shell's own, the one
+// incidents sync to). Injected whole in tests.
+const PHOTO_OPS = {
+  load: loadWorkOrderPhotos,
+  names: loadPictureNames,
+  remember: rememberPictureName,
+  add: addPhoto,
+  thumb: async (id) => { const r = await loadPhotoThumbs([id]); return r.ok ? r.thumbs[id] || null : null; },
+  image: async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; },
+  instanceId: getInstanceId,
 };
 
 // A Projects board item is written through the board's own store (offline
@@ -91,7 +112,7 @@ function doorLabeller(rentals) {
   };
 }
 
-function Actions({ w, act, contractors, movers, busy, message }) {
+function Actions({ w, act, contractors, movers, busy, message, pictures = null }) {
   const [note, setNote] = useState('');
   const [worker, setWorker] = useState('');
   const [target, setTarget] = useState('');
@@ -176,6 +197,10 @@ function Actions({ w, act, contractors, movers, busy, message }) {
           <input id={`wo-note-${w.key}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note…" className={`flex-1 min-w-[10rem] text-xs border border-[#E8E4DC] px-2 min-h-[36px] ${FOCUS_RING}`} />
           <button type="submit" disabled={busy || !note.trim()} className={btn} data-testid="work-order-note">Add note</button>
         </form>
+      )}
+      {pictures && w.open && canCarryPictures(w) && (
+        <AddPictures w={w} instanceId={pictures.instanceId} names={pictures.names} save={(p) => act({ kind: 'pictures', ...p })}
+          remember={pictures.remember} busy={busy} compress={pictures.compress} authorLabel={pictures.authorLabel || ''} />
       )}
       {message && <p role="status" className={`text-[0.625rem] ${message.ok ? MUTED : 'text-[#B85838]'}`} data-testid="work-order-result">{message.text}</p>}
     </div>
@@ -280,8 +305,10 @@ function WorkersView({ board, openJob }) {
   );
 }
 
-function Row({ w, expanded, onToggle, act, contractors, movers, busy, message }) {
+function Row({ w, expanded, onToggle, act, contractors, movers, busy, message, photos = [], pictures = null }) {
   const crew = w.crew.length ? w.crew.join(', ') : '';
+  const loose = loosePictures(photos, w);
+  const loaders = pictures ? { loadThumb: pictures.thumb, loadImage: pictures.image } : {};
   const age = ageOf(w);
   const t = tone(w, age);
   return (
@@ -302,6 +329,7 @@ function Row({ w, expanded, onToggle, act, contractors, movers, busy, message })
           {w.urgency ? ` · ${w.urgency}` : ''}
           {crew ? ` · ${crew}` : ''}
           {` · ${w.notes.length} note${w.notes.length === 1 ? '' : 's'}`}
+          {photos.length ? ` · ${pictureLine(photos.length)}` : ''}
           {expanded ? '' : ' · tap to open'}
         </span>
       </button>
@@ -310,21 +338,28 @@ function Row({ w, expanded, onToggle, act, contractors, movers, busy, message })
           {(w.fullText || '').length > 120 && <p className="px-2 pb-2 text-[0.6875rem] leading-snug whitespace-pre-wrap" data-testid="work-order-full">{w.fullText}</p>}
           <ol className="px-2 pb-2 space-y-1" data-testid="work-order-notes">
             {w.notes.map((n, k) => (
-              <li key={k} className="text-[0.6875rem] leading-snug">
+              <li key={k} className="text-[0.6875rem] leading-snug" data-testid="work-order-note">
                 <span className={`${MUTED} whitespace-nowrap`}>{cameInLabel(n.at)}</span>
                 <span> — {n.text}</span>
+                {n.id && <PictureStrip photos={picturesOnNote(photos, n.id)} {...loaders} label="On this note" />}
               </li>
             ))}
             {w.notes.length === 0 && <li className={`text-[0.6875rem] ${MUTED}`}>No notes were written on this work order.</li>}
           </ol>
-          {act && <Actions w={w} act={act} contractors={contractors} movers={movers} busy={busy} message={message} />}
+          {loose.length > 0 && (
+            <div className="px-2 pb-2" data-testid="work-order-loose-pictures">
+              <span className={`text-[0.625rem] uppercase tracking-wider ${MUTED}`}>Pictures on this work order</span>
+              <PictureStrip photos={loose} {...loaders} label="On this work order" />
+            </div>
+          )}
+          {act && <Actions w={w} act={act} contractors={contractors} movers={movers} busy={busy} message={message} pictures={pictures} />}
         </>
       )}
     </li>
   );
 }
 
-export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS }) {
+export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS, photoOps = PHOTO_OPS, compress = null }) {
   const tasks = useTasks();
   const [view, setView] = useState('queue');
   const [adding, setAdding] = useState(false);
@@ -335,6 +370,35 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
   const [last, setLast] = useState(null);
+  // The pictures on every work order, and the names this instance gives its
+  // pictures (DR-1235). "Could not be read" is said, never shown as none.
+  const [pics, setPics] = useState({ state: 'loading', photos: [], names: [], reason: '' });
+  const [familyInstance, setFamilyInstance] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    if (!photoOps) return undefined;
+    Promise.all([
+      Promise.resolve(photoOps.load ? photoOps.load() : { ok: true, photos: [] }).catch((e) => ({ ok: false, reason: (e && e.message) || 'could not be read' })),
+      Promise.resolve(photoOps.names ? photoOps.names() : { ok: true, names: [] }).catch(() => ({ ok: false, names: [] })),
+    ]).then(([p, n]) => {
+      if (!live) return;
+      setPics({
+        state: p && p.ok ? 'read' : 'failed',
+        photos: p && p.ok ? p.photos || [] : [],
+        names: n && n.ok ? n.names || [] : [],
+        reason: p && p.ok ? '' : (p && (p.reason || p.error)) || 'could not be read',
+      });
+    });
+    return () => { live = false; };
+  }, [photoOps, reads]);
+
+  useEffect(() => {
+    let live = true;
+    if (!photoOps || typeof photoOps.instanceId !== 'function') return undefined;
+    Promise.resolve(photoOps.instanceId()).then((id) => { if (live && id) setFamilyInstance(id); }).catch(() => {});
+    return () => { live = false; };
+  }, [photoOps]);
 
   useEffect(() => {
     let live = true;
@@ -353,6 +417,19 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   );
   const toggle = (key) => { setExpanded((k) => (k === key ? null : key)); setMessage(null); };
 
+  // Each picture is one insert; the count of what landed is the truth the
+  // control shows (DR-0076). After a save the whole queue re-reads.
+  const savePictures = async ({ rows }) => {
+    if (!photoOps || typeof photoOps.add !== 'function') return { ok: false, saved: 0, lost: rows.length, reason: 'this screen cannot file pictures' };
+    let saved = 0; let reason = '';
+    for (const row of rows) {
+      const r = await photoOps.add(row);
+      if (r && r.ok) saved += 1; else reason = (r && (r.reason || r.error)) || 'the store refused it';
+    }
+    if (saved > 0) setReads((n) => n + 1);
+    return { ok: saved === rows.length, saved, lost: rows.length - saved, reason };
+  };
+
   // One action, written to the store the work order lives in.
   const actOn = (w) => async (a) => {
     const r = w.record;
@@ -370,6 +447,12 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
           workerOps.onAssign(r.id, a.contractor, a.contractor.type || 'contractor');
         } else if (a.kind === 'note') {
           updateIncident(r.id, { _logNote: a.text });
+        } else if (a.kind === 'pictures') {
+          // The pictures go on the record first (property_photos, by
+          // incident_ref); the note on the lifecycle log names how many rode
+          // with it. A refused picture is counted, never claimed.
+          res = await savePictures(a);
+          if (res.saved > 0 && a.note) updateIncident(r.id, { _logNote: `${a.note.body} (${pictureLine(res.saved)})` });
         } else if (a.kind === 'sendback') {
           if (!workerOps || !workerOps.onReopen) throw new Error('this screen cannot send work back');
           for (const p of w.workers || []) if (p.status === 'done' && p.assignmentId) workerOps.onReopen(r.id, p.assignmentId);
@@ -404,8 +487,18 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
         }
         else if (a.kind === 'assign') res = await requestOps.assign(r.id, a.contractor.name);
         else if (a.kind === 'note') res = await requestOps.note(r, a.text);
+        else if (a.kind === 'pictures') {
+          // The note goes first with the id the pictures will name; if the
+          // store refuses the note, the pictures still go on the work order
+          // without it (they are evidence either way), and the line says so.
+          let noteOk = false;
+          if (a.note) { const n = await requestOps.note(r, a.note.body, { id: a.note.id }); noteOk = !!(n && n.ok); }
+          res = await savePictures({ ...a, rows: noteOk ? a.rows : a.rows.map((row) => ({ ...row, note_id: null })) });
+          if (a.note && !noteOk && res.saved > 0) res = { ...res, ok: false, reason: `${pictureLine(res.saved)} saved on the work order, but the note was refused` };
+        }
         if (res && res.ok) setReads((n) => n + 1);
       }
+      if (a.kind === 'pictures') { setLast(null); setBusy(false); return res; }
       setLast(null);
       const said = (res && res.ok
         ? { ok: true, text: a.kind === 'status' ? `Done: ${a.label}.` : a.kind === 'assign' ? `Given to ${a.contractor.name}.` : a.kind === 'move' ? `Moved to ${a.target.done}. It has left the open work orders; its words are kept.` : a.kind === 'sendback' ? 'Sent back: the worker\'s part is open again.' : 'Note added.' }
@@ -428,7 +521,8 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
     <button type="button" key={id} onClick={() => setView(id)} aria-pressed={view === id} data-testid={`work-order-view-${id}`}
       className={`text-[0.625rem] uppercase tracking-wider border px-2 min-h-[36px] ${view === id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC]'} ${FOCUS_RING}`}>{label}</button>
   );
-  const rowProps = (w) => ({ w, expanded: expanded === w.key, onToggle: () => toggle(w.key), act: actOn(w), contractors, movers, busy, message: expanded === w.key ? message : null });
+  const pictures = photoOps ? { names: pics.names, remember: photoOps.remember, thumb: photoOps.thumb, image: photoOps.image, instanceId: familyInstance, compress } : null;
+  const rowProps = (w) => ({ w, expanded: expanded === w.key, onToggle: () => toggle(w.key), act: actOn(w), contractors, movers, busy, message: expanded === w.key ? message : null, photos: picturesOf(pics.photos, w), pictures });
 
   return (
     <section aria-labelledby="work-order-triage-h" className="mt-4" data-testid="work-order-triage">
@@ -458,6 +552,9 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
         <p className="text-[0.625rem] text-[#B85838]" role="status" data-testid="work-order-unread">
           Poe Properties&apos; work orders could not be read ({String(cloud.reason)}), so this queue shows the Real Estate work orders only — it is not saying Poe Properties has none.
         </p>
+      )}
+      {pics.state === 'failed' && (
+        <p className="text-[0.625rem] text-[#B85838]" role="status" data-testid="work-order-pictures-unread">The pictures on the work orders could not be read ({String(pics.reason)}); none are shown, which is not saying there are none.</p>
       )}
       {cloud.state === 'read' && cloud.unreadable.length > 0 && (
         <p className="text-[0.625rem] text-[#B85838]" role="status">Could not read: {cloud.unreadable.join(', ')}. The notes below may be missing those.</p>
