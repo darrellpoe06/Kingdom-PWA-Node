@@ -27,10 +27,11 @@ import { readApplyTarget, readListingTarget, resolveScan } from '../modules/prop
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { LifeWall } from '../modules/properties/StayWall.jsx';
-import { loadPublicVacancies, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
+import { loadPublicVacancies, loadVacancyPhotos, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
+import { heroSlides, heroFallbackWhy } from '../modules/properties/hero-slides.js';
 import { readWhoIntent, withWhoIntent, withoutWhoIntent, LANDLORD_PATHS, landingFor, holdsSeat, navigate } from '../modules/properties/own-space.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
-import { areaOf } from '../modules/properties/area.js';
+import { vacancyUnits, readFailureLine } from '../modules/properties/vacancy-unit.js';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 // WHAT AN APPLICANT IS OWED IN WRITING (DR-0357): the criteria every
 // application is judged by and the fair-housing commitment it is read under.
@@ -464,13 +465,56 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
   const [who, setWho] = useState(scanned || wanted ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
+  // THREE STATES ON THIS DOOR TOO (DR-0946, DR-1236). The shelf used to be
+  // asked for only once "Looking for a Place" was tapped, and a read that
+  // FAILED was stored as [] — which the panel then printed as "Nothing is
+  // listed right now", the one sentence a failed read must never become.
+  // Now the shelf is read when the door opens (the advertised apartments
+  // show their pictures UNDER the portals — Darrell 2026-10-27: "Images
+  // below for the advertised apartments?"), and a failure is said as one,
+  // with its reason on the same line the PoeTech front door uses.
+  const [shelfRead, setShelfRead] = useState('loading'); // loading | ok | failed
+  const [shelfWhy, setShelfWhy] = useState('');
+  const [shelfAsk, setShelfAsk] = useState(0);
 
   useEffect(() => {
-    if (who !== 'applicant' || vacancies !== null) return;
     let on = true;
-    loadPublicVacancies().then((r) => { if (on) setVacancies(r.ok ? r.vacancies : []); });
+    setShelfRead('loading');
+    loadPublicVacancies()
+      .then((r) => {
+        if (!on) return;
+        if (r && r.ok) { setVacancies(r.vacancies || []); setShelfWhy(''); setShelfRead('ok'); return; }
+        setVacancies([]); setShelfWhy(readFailureLine(r)); setShelfRead('failed');
+      })
+      .catch((e) => {
+        if (!on) return;
+        setVacancies([]); setShelfWhy(readFailureLine({ reason: 'threw', error: e && e.message })); setShelfRead('failed');
+      });
     return () => { on = false; };
-  }, [who, vacancies]);
+  }, [shelfAsk]);
+
+  // THE PICTURE LISTS, READ ONCE PER DOOR (DR-1016: the list never carries the
+  // bytes) and handed to BOTH the cards and the hero carousel, so the one
+  // loader answers both and no door is asked twice for its list.
+  const [lists, setLists] = useState({});
+  const [listsRead, setListsRead] = useState('loading'); // loading | ok | failed
+  useEffect(() => {
+    if (shelfRead !== 'ok' || !vacancies || !vacancies.length) { setListsRead(shelfRead === 'ok' ? 'ok' : 'loading'); return undefined; }
+    let on = true;
+    setListsRead('loading');
+    Promise.all(vacancies.map((v) => loadVacancyPhotos(v.id).then((r) => [v.id, r]).catch((e) => [v.id, { ok: false, reason: 'threw', error: e && e.message }])))
+      .then((pairs) => {
+        if (!on) return;
+        const next = {}; let failed = 0;
+        for (const [id, r] of pairs) { if (r && r.ok) next[id] = r.photos || []; else failed += 1; }
+        setLists(next);
+        setListsRead(failed && failed === pairs.length ? 'failed' : 'ok');
+      });
+    return () => { on = false; };
+  }, [shelfRead, vacancies]);
+  const units = vacancyUnits(vacancies || []);
+  const slides = heroSlides(units, lists);
+  const heroWhy = heroFallbackWhy({ read: shelfRead, why: shelfWhy, units, lists, listsRead });
 
   // The vacancies list is the authority on whether a scanned card is still
   // good: public_vacancies already refuses a door that is unadvertised or
@@ -527,10 +571,31 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
           left={preview ? false : left}
           onReturn={onReturn}
           bigPicture={preview ? null : (photo) => <PorchHero photo={photo} />}
+          slides={slides}
+          why={heroWhy}
+          autoplay={!preview}
         />
         {/* The six portals are WHO_OPTIONS, unchanged: same ids, same
             needsAccount, same handler (setWho). Only the look is new. */}
         <PortalCards options={WHO_OPTIONS} onPick={setWho} />
+        {/* THE ADVERTISED APARTMENTS, WITH THEIR PICTURES, UNDER THE PORTALS
+            (DR-1236). Darrell, 2026-10-27, on this very screen signed out:
+            "Images below for the advertised apartments?" The same cards the
+            PoeTech front door and the first tab show, from the same reading
+            of the same rows (vacancyUnits), with the same privacy line: the
+            town and the area, never the street (DR-0933). Apply on a card
+            opens the applicant step with that door chosen. The hero above
+            stays Darrell's own entryway photograph / the porch (DR-1176):
+            the real pictures of each door are the cards' own, right here. */}
+        <AdvertisedNow
+          read={shelfRead}
+          why={shelfWhy}
+          units={units}
+          lists={lists}
+          listsRead={listsRead}
+          onApply={(rentalId) => { setWho('applicant'); applyFor(rentalId); }}
+          onTryAgain={() => setShelfAsk((n) => n + 1)}
+        />
       </div>
     );
   }
@@ -554,9 +619,18 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
         {wanted && !scanned && vacancies !== null && !shared.matched && (
           <p className="pp-panel-note" data-testid="listing-gone">{shared.reason}</p>
         )}
-        {vacancies === null && <p className="pp-panel-note">Checking…</p>}
-        {vacancies !== null && vacancies.length === 0 && (
-          <p className="pp-panel-note">
+        {shelfRead === 'loading' && <p className="pp-panel-note">Checking…</p>}
+        {shelfRead === 'failed' && (
+          <div className="pp-panel-note" data-testid="front-door-unreadable">
+            <p>The list of homes could not be loaded just now. This is us, not you.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => setShelfAsk((n) => n + 1)} data-testid="front-door-try-again" className={`pp-back min-h-[44px] ${FOCUS_RING}`}>Try again</button>
+              <span className="text-[0.6875rem] break-all" data-testid="front-door-unreadable-why">{shelfWhy}</span>
+            </div>
+          </div>
+        )}
+        {shelfRead === 'ok' && vacancies !== null && vacancies.length === 0 && (
+          <p className="pp-panel-note" data-testid="front-door-none">
             Nothing is listed right now. Only units the landlord has listed appear here — an empty unit is never advertised automatically.
           </p>
         )}
@@ -567,45 +641,13 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
             except this is places to live... without an account" (Darrell). */}
         {(vacancies || []).length > 0 && (
           <ul className="pp-shelf grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(vacancies || []).map((v) => (
+            {units.map((u) => (
               <VacancyCard
-                key={v.id}
-                unit={{
-                  id: String(v.id),
-                  rentalId: v.id,
-                  label: String(v.label || '').trim(),
-                  where: [v.city, v.state].filter(Boolean).join(', '),
-                  unit: String(v.unit || '').trim(),
-                  rent: Number(v.rent) > 0 ? Number(v.rent) : null,
-                  beds: Number(v.bedrooms) > 0 ? Number(v.bedrooms) : null,
-                  baths: Number(v.bathrooms) > 0 ? Number(v.bathrooms) : null,
-                  offering: String(v.offering || 'long-term'),
-                  nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
-                  // ANY CADENCE (DR-1003): NULL from the database is "not
-                  // offered that way", and stays null here, never 0.
-                  weekly: Number(v.weekly_rate) > 0 ? Number(v.weekly_rate) : null,
-                  biweekly: Number(v.biweekly_rate) > 0 ? Number(v.biweekly_rate) : null,
-                  buildingNote: String(v.building_note || '').trim() || null,
-                  note: String(v.note || '').trim(),
-                  addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
-                  area: areaOf(v),
-                  street: String(v.street || '').trim(),
-                  city: String(v.city || '').trim(),
-                  state: String(v.state || '').trim(),
-                  nearby: Array.isArray(v.nearby) ? v.nearby : [],
-                  // WHAT IS ACTUALLY BEING RENTED (DR-0952). A bed or a room
-                  // in a shared home is not a one-bedroom apartment, and the
-                  // card said it was.
-                  sharedHome: Boolean(v.shared_home),
-                  rentableLevel: String(v.rentable_level || '') || null,
-                  // Three states, not two: true, false, and NOT YET SAID.
-                  // undefined/null must stay null so the card says nothing
-                  // rather than inventing an answer.
-                  utilities: v.utilities_included === null || v.utilities_included === undefined
-                    ? null : Boolean(v.utilities_included),
-                }}
+                key={u.id}
+                unit={u}
+                photos={listsRead === 'loading' ? null : (lists[u.rentalId] || [])}
                 onApply={applyFor}
-                openPictures={wanted && v.id === wanted ? 1 : 0}
+                openPictures={wanted && u.rentalId === wanted ? 1 : 0}
               />
             ))}
           </ul>
@@ -722,6 +764,40 @@ export function SignedOutDoor({ left = false, onReturn, preview = false, onEdit 
       )}
       </div>
     </>
+  );
+}
+
+/**
+ * The advertised apartments under the portals of the branded door, signed out
+ * (DR-1236): the same cards, the same pictures, the same privacy line. Three
+ * states, said plainly; a read that failed is never "nothing is listed".
+ */
+function AdvertisedNow({ read, why, units, lists = {}, listsRead = 'ok', onApply, onTryAgain }) {
+  if (read === 'ok' && units.length === 0) return null; // nothing advertised: the portals already say what this door is
+  return (
+    <section className="pp-step" aria-labelledby="pp-advertised-heading" data-testid="advertised-now">
+      <div className="pp-panel">
+        <span className="pp-kicker">Available now</span>
+        <h2 id="pp-advertised-heading" className="pp-panel-title">
+          {read === 'ok' ? `${units.length} ${units.length === 1 ? 'place' : 'places'} to live — no account needed to look` : 'Places to live'}
+        </h2>
+        {read === 'loading' && <p className="pp-panel-note" data-testid="front-door-loading">Finding what is open…</p>}
+        {read === 'failed' && (
+          <div className="pp-panel-note" data-testid="front-door-unreadable">
+            <p>The list of homes could not be loaded just now. This is us, not you.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={onTryAgain} data-testid="front-door-try-again" className={`pp-back min-h-[44px] ${FOCUS_RING}`}>Try again</button>
+              <span className="text-[0.6875rem] break-all" data-testid="front-door-unreadable-why">{why}</span>
+            </div>
+          </div>
+        )}
+        {read === 'ok' && units.length > 0 && (
+          <ul className="pp-shelf grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="advertised-now-shelf">
+            {units.map((u) => <VacancyCard key={u.id} unit={u} photos={listsRead === 'loading' ? null : (lists[u.rentalId] || [])} onApply={onApply} />)}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 
