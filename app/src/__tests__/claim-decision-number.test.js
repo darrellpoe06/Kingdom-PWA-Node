@@ -12,7 +12,7 @@
 // counts as a claim. The git-walking half is proven on the LIVE repo below,
 // because a fixture cannot show that the scan finds a real branch.
 import { describe, it, expect } from 'vitest';
-import { numbersInPaths, lowestFree, onDisk, claimedInFlight, SCAN_LIMIT } from '../../../scripts/claim-decision-number.mjs';
+import { numbersInPaths, lowestFree, onDisk, onBase, claimedInFlight, SCAN_LIMIT } from '../../../scripts/claim-decision-number.mjs';
 
 describe('what counts as a claimed number', () => {
   it('reads the number out of a decision file path, wherever it sits', () => {
@@ -86,5 +86,45 @@ describe('PROVEN ON THE LIVE REPO — a fixture cannot show this', () => {
       expect(Number.isInteger(n)).toBe(true);
     }
     expect(disk.size).toBeGreaterThan(0);
+  });
+});
+
+describe('what MAIN holds, read from the ref and not from this tree (DR-1247)', () => {
+  // The comment on the case above -- "a merged branch holds nothing, its
+  // numbers are already on disk" -- is true ONLY of a tree that has merged
+  // main. That premise is what broke: asked from the sov51 branch on
+  // 2026-10-27, this tool answered DR-1244, which main had already landed.
+  // Main's records were counted NOWHERE: absent from a stale disk, and
+  // skipped by the in-flight scan as already-merged.
+  it('reads main through the ref, so a stale checkout cannot hide a landed number', () => {
+    const base = onBase();
+    expect(base.size, 'origin/main returned no decision files at all').toBeGreaterThan(0);
+    // Every number main holds is taken, whatever this tree looks like.
+    const taken = new Set([...onDisk(), ...base]);
+    for (const n of base) expect(taken.has(n), `main holds DR-${n} but it reads free`).toBe(true);
+  });
+
+  it('an unreadable base is reported as empty, never as "nothing is taken"', () => {
+    // git() swallows failure and returns '', so a bad ref yields an empty set.
+    // That must not be mistaken for a clean ledger -- it is why main() takes
+    // the HIGHER of disk and base rather than base alone.
+    expect(onBase('refs/heads/no-such-ref-exists-here').size).toBe(0);
+  });
+
+  it('PROVEN TO CATCH: the old arithmetic lands inside main; the new one clears it', () => {
+    // A tree cut before main's two newest records landed.
+    const stale = new Set([1, 2, 3]);
+    const base = new Set([1, 2, 3, 4, 5]);
+
+    // What the tool did: floor and taken-set from disk alone.
+    const oldWay = lowestFree(Math.max(...stale) + 1, new Set([...stale]));
+    expect(oldWay).toBe(4);
+    expect(base.has(oldWay), 'the regression this case exists for').toBe(true);
+
+    // What it does now: the floor is disk OR base, whichever is higher, and
+    // base is in the taken set.
+    const newWay = lowestFree(Math.max(...stale, ...base) + 1, new Set([...stale, ...base]));
+    expect(newWay).toBe(6);
+    expect(base.has(newWay)).toBe(false);
   });
 });

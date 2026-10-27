@@ -82,6 +82,32 @@ export function onDisk() {
 }
 
 /**
+ * Numbers the BASE holds, read from the base ref and not from this tree.
+ *
+ * onDisk() reads the working tree, which is only main-inclusive when the
+ * branch has merged main. Run from a branch cut days ago, the tree is MISSING
+ * every record main has landed since -- and those numbers were counted nowhere
+ * else, because claimedInFlight() skips merged refs on the grounds that disk
+ * already has them. So the one number a stale branch must never be handed is
+ * exactly the number it got handed.
+ *
+ * MEASURED, 2026-10-27: asked from the sov51 branch (pre-merge), this tool
+ * answered DR-1244 -- a number main had already landed. Taking it would have
+ * put two decisions on one number, which is the collision
+ * resolve-ledger-conflicts.mjs refuses rather than folds (DR-0644), because
+ * folding silently DELETED a real decision twice on 2026-10-06. The tool
+ * written to prevent the renumber was recommending one.
+ *
+ * Reading the base ref costs one `ls-tree` and does not care what the tree
+ * has checked out.
+ */
+export function onBase(base = 'origin/main') {
+  return numbersInPaths(
+    git(['ls-tree', '--name-only', base, 'docs/decisions/']).split('\n').map((s) => s.trim()).filter(Boolean),
+  );
+}
+
+/**
  * Numbers claimed by branches whose work has NOT landed on main.
  * Returns a Map of number -> branch that holds it (first one wins).
  */
@@ -109,15 +135,26 @@ export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {
 
 export function main() {
   const disk = onDisk();
+  const base = onBase();
   const inFlight = claimedInFlight();
-  const taken = new Set([...disk, ...inFlight.keys()]);
-  // What a session would take today (disk only), and what is actually free.
-  const diskNext = Math.max(0, ...disk) + 1;
+  const taken = new Set([...disk, ...base, ...inFlight.keys()]);
+  // What a session would take today, and what is actually free. The landed
+  // floor is disk OR base, whichever is higher: a stale tree is behind main,
+  // and main's numbers are taken whether or not this tree can see them.
+  const diskNext = Math.max(0, ...disk, ...base) + 1;
   const free = lowestFree(diskNext, taken);
+  const unseen = [...base].filter((n) => !disk.has(n)).sort((a, b) => a - b);
 
   const pad = (n) => `DR-${String(n).padStart(4, '0')}`;
   console.log(`next free decision number: ${pad(free)}`);
   console.log(`  on disk:   ${disk.size} record(s), highest ${pad(Math.max(...disk))}`);
+  console.log(`  on ${'origin/main'}: ${base.size} record(s), highest ${base.size ? pad(Math.max(...base)) : 'none read'}`);
+  if (unseen.length) {
+    // Say it plainly: this tree is behind main, and that is the condition under
+    // which this tool used to hand out a number main already held.
+    console.log(`  NOTE: this tree has not merged main — it cannot see ${unseen.length} landed record(s): ${unseen.map(pad).join(', ')}`);
+    console.log('        They are counted as taken anyway. Merge main to make the tree agree.');
+  }
 
   if (inFlight.size === 0) {
     console.log('  in flight: none — no unmerged branch holds a decision number.');
