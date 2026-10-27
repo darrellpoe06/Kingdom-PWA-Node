@@ -113,10 +113,9 @@ the top. On both lists.
 
 ## Not done, and why
 
-- The guide walked step by step without the reader does not name its version
-  (the finish is "version not recorded", and every version is offered). The
-  lesson space could note its version on the place when it opens; measured
-  against the cost of a place write per open, left for the live numbers.
-  `re-review: 2026-11-10`.
+- ~~The guide walked step by step without the reader does not name its
+  version.~~ Closed the same day by **DR-1257**: every write of the place from
+  the lesson space names the version it serves, and an older read is
+  attributed to the band's version.
 - The Class Record panel and `lessons-walked.js` still read the band, not the
   versions; the column is on the row and ready for them. `re-review: 2026-11-10`.

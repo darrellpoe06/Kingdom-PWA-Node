@@ -124,7 +124,7 @@ import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT } from '../lib/learn-resume.js';
-import { versionRead, deckVersion } from '../lib/lesson-read-mark.js';
+import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -1811,11 +1811,18 @@ function CourseView({
   // segment begins. This adds a second, always-visible view of the same real
   // state - never a second source of it.
   const [liveStep, setLiveStep] = useState(null);
+  // THE VERSION IS RECORDED NATURALLY (Darrell 2026-10-27: "The version read
+  // should be recorded naturally.... obviously!!!!!!"; DR-1257). Every write
+  // of the place from this space — a start, a step, a part, the end door —
+  // names the words the space serves that lesson at this band, so a finish by
+  // any road counts its version without the reader having to say it.
   const savePlace = (patch) => {
     if (patch && Number.isFinite(patch.step) && Number.isFinite(patch.totalSteps)) {
       setLiveStep({ lessonId: patch.lessonId || null, step: patch.step, total: patch.totalSteps });
     }
-    return recordPlace({ courseKey: course.key, ...patch });
+    const m = patch && patch.lessonId ? (schedule || []).find((x) => x && x.id === patch.lessonId) : null;
+    const version = m ? versionRead(m, ageBand, levelOverride) : null;
+    return recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
   };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
@@ -4857,6 +4864,7 @@ export default function ChurchLearn({
             onContinue={continueAndRead}
             recordFor={myRecordFor}
             onReadVersion={readVersion}
+            ageBand={ageBand}
           />
         )}
         {/* ONE COURSE ON A DEPARTMENT TAB (DR-1182): the places offered here are
@@ -5182,7 +5190,7 @@ export default function ChurchLearn({
                     </li>
                   )
                 ) : (
-                  <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
+                  <li key={m.id} data-lesson-id={m.id} className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => open(m.id)}
@@ -5203,14 +5211,20 @@ export default function ChurchLearn({
                     </button>
                     {/* The lesson's own state, on its own row (DR-0631):
                         Continue on a lesson begun, Finished on one done. */}
-                    <RowContinue
-                      place={activePlaces[m.id] || null}
-                      record={typeof myRecordFor === 'function' ? myRecordFor(m.id) : null}
-                      versions={lessonVersions(m)}
-                      title={m.title}
-                      onContinue={continueAndRead}
-                      onReadVersion={(v) => readVersion(active.key, m.id, v)}
-                    />
+                    {(() => {
+                      const record = typeof myRecordFor === 'function' ? myRecordFor(m.id) : null;
+                      return (
+                        <RowContinue
+                          place={activePlaces[m.id] || null}
+                          record={record}
+                          versions={lessonVersions(m)}
+                          attributed={bandVersion(m, (record && record.ageBand) || ageBand)}
+                          title={m.title}
+                          onContinue={continueAndRead}
+                          onReadVersion={(v) => readVersion(active.key, m.id, v)}
+                        />
+                      );
+                    })()}
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
                         you. The title still opens the lesson's space; this opens

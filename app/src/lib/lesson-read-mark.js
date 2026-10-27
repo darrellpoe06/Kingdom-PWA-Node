@@ -75,7 +75,7 @@ export function deckVersion(module, presentAge = null) {
  * @returns {{ read:boolean, times:number, fromRecord:boolean, readIds:string[],
  *   unreadIds:string[], versions:string[], known:boolean }}
  */
-export function readMark({ place = null, record = null, versions = null } = {}) {
+export function readMark({ place = null, record = null, versions = null, attributed = null } = {}) {
   const times = placeFinishes(place);
   const fromRecord = !!(record && record.completedAt);
   const ids = new Set(versionsRead(place));
@@ -85,9 +85,18 @@ export function readMark({ place = null, record = null, versions = null } = {}) 
   const all = (Array.isArray(versions) ? versions : []).filter((v) => VERSION_LABEL[v]);
   let readIds = READ_VERSION_IDS.filter((id) => ids.has(id));
   const read = times > 0 || fromRecord || readIds.length > 0;
+  let byBand = false;
   // ONE VERSION, ONE ANSWER: a lesson written once has only those words, so
   // a read with no version recorded was a read of them — nothing is offered.
   if (read && !readIds.length && all.length === 1) readIds = all.slice();
+  // A READ FROM BEFORE THE VERSION WAS RECORDED IS THE BAND'S VERSION
+  // (Darrell 2026-10-27: "2x... if I don't know what I read... or which
+  // version... how can I read the others?!"). The words a reading served
+  // are decided by the reader's age band, and the band is on the record
+  // (age_band, written as it was filed) or on the device; so a finish with
+  // no version named is attributed to the version that band is served, and
+  // the other versions are offered. Said so in the sentence, never hidden.
+  if (read && !readIds.length && attributed && all.includes(attributed)) { readIds = [attributed]; byBand = true; }
   return {
     read,
     times,
@@ -96,7 +105,13 @@ export function readMark({ place = null, record = null, versions = null } = {}) 
     unreadIds: all.filter((id) => !readIds.includes(id)),
     versions: all,
     known: readIds.length > 0,
+    byBand,
   };
+}
+
+/** The version a reader's band is served on this lesson, for an unversioned read. */
+export function bandVersion(module, ageBand) {
+  return module && ageBand ? versionRead(module, ageBand) : null;
 }
 
 /** The versions a lesson really carries, by id — the row's own list. */
@@ -121,7 +136,7 @@ export function readMarkSays(mark, title = 'this lesson') {
   const where = mark.times > 0 ? (mark.fromRecord ? 'on this device and in your record' : 'on this device') : 'in your record';
   const names = (ids) => ids.map((id) => VERSION_LABEL[id]).join(', ');
   const head = mark.readIds.length && mark.versions.length > 1
-    ? `You read the ${names(mark.readIds)} ${mark.readIds.length === 1 ? 'version' : 'versions'} of ${title} ${where}`
+    ? `You read the ${names(mark.readIds)} ${mark.readIds.length === 1 ? 'version' : 'versions'} of ${title} ${where}${mark.byBand ? ' (the version your age band is served; it was not recorded at the time)' : ''}`
     : `You read ${title} ${where}${mark.versions.length > 1 ? '; which version was not recorded' : ''}`;
   const tail = mark.unreadIds.length
     ? `. Not read yet: ${names(mark.unreadIds)} — tap one to read it.`

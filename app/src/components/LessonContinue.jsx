@@ -161,8 +161,8 @@ export function ContinueChip({ item, onContinue }) {
  * really carries (lib/learn-organize.js lessonVersions); `record` is the
  * learner's row for this lesson (learner_lesson_records), or null.
  */
-export function RowContinue({ place, title, onContinue, versions = null, record = null, onReadVersion = null }) {
-  const mark = readMark({ place, record, versions });
+export function RowContinue({ place, title, onContinue, versions = null, record = null, onReadVersion = null, attributed = null }) {
+  const mark = readMark({ place, record, versions, attributed });
   if (mark.read) {
     // HOW MANY TIMES, NOT WHETHER (Darrell 2026-10-10: "Some say finished
     // should be how many times I've finished it..."), and now WHICH WORDS
@@ -170,8 +170,17 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
     // read!!!!!!"). The count and the versions ride the place and ratchet
     // (lib/learn-resume.js); the record carries them across his devices.
     const says = readMarkSays(mark, title);
+    // THE LOOK (Darrell 2026-10-27, screenshot: five version taps beside the
+    // title squeezed it to one word per line): with taps to offer, the mark
+    // takes its own full line under the title, right-aligned, so the title,
+    // Continue and ▶ Play keep theirs. The row is flex-wrap for exactly this.
+    const taps = onReadVersion && mark.unreadIds.length > 0;
     return (
-      <span className="shrink min-w-0 flex items-center justify-end gap-1 flex-wrap" data-testid="row-read-mark">
+      <span
+        className={`flex items-center justify-end gap-1 flex-wrap ${taps ? 'order-last basis-full' : 'shrink-0'}`}
+        data-testid="row-read-mark"
+        data-own-line={taps ? 'true' : 'false'}
+      >
         <span
           className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1"
           data-testid="row-finished"
