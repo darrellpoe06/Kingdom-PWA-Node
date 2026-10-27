@@ -118,15 +118,28 @@ export const PREVIEW_ACTIONS = {
     ],
   },
   'review-as-user': {
-    label: 'Review as a user',
-    what: 'See this live build exactly as a signed-in user outside the family sees it — the review pass after a push to production.',
+    label: 'Review as yourself, privileges hidden',
+    what: 'See this live build signed in as yourself with every family, Governor and staff privilege hidden — the review pass after a push to production. Your own doors, vault, contacts and research still show, because they are yours.',
     danger: false,
     confirmLabel: 'Enter reviewer mode',
     preview: [
       'The app reloads once into Reviewer mode on THIS device: every steward surface (Admin, Center, CRM, Relationships, Inventory, Forecast, staff boards) disappears, and the books open as a fresh user’s own empty world at the user’s real tier.',
+      'Your OWN rows still show — Properties, Vault, Messages and Research read your doors, vault, contacts and research as you, through the same database rules. To see what a person with no invite gets, use “Review as a new user” instead; the strip can switch between the two without leaving the lens.',
       'Your real data is safe by construction: while reviewing, nothing writes to this device’s saved books, your saved profile, or the family cloud snapshot.',
       'You stay signed in as yourself — anything you deliberately submit through a module (feedback, an entry) still lands in your own account, exactly as it would for any user.',
       'A dark “Reviewer mode” strip stays pinned across the top with the one-tap Exit that brings the steward view back.',
+    ],
+  },
+  'review-as-new-user': {
+    label: 'Review as a new user',
+    what: 'See this live build as a person with no invite sees it — no doors, no vault, no contacts, no research of yours — the stranger’s face on every surface.',
+    danger: false,
+    confirmLabel: 'Enter as a new user',
+    preview: [
+      'The app reloads once into Reviewer mode on THIS device as a NEW USER: every steward surface disappears, the books open empty, and Properties, Vault, Messages and Research never read your own rows — each shows its nothing-here-yet face with a line saying your own are hidden.',
+      'Nothing of yours is touched or written; the Vault’s create is off in this mode because it would write over your own vault.',
+      'You stay signed in as yourself underneath — anything you deliberately submit still lands in your own account.',
+      'The pinned “Reviewer mode” strip names the mode, switches to “as yourself” in one tap, and carries the one-tap Exit.',
     ],
   },
   'reset-seed': {

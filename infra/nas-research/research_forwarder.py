@@ -63,7 +63,20 @@ VANE_UPSTREAM_DEFAULT = "http://127.0.0.1:3017"
 CORS_ALLOWED_ORIGINS = ("https://poetech.us",)
 
 MAX_INFLIGHT = 1
-MAX_QUERY_CHARS = 500
+# 4000, raised from 500 on 2026-10-27. MEASURED: a real research question sent
+# from the app came back 413 "query is longer than 500 characters" — 500 chars is
+# about eighty words, shorter than the questions this road actually carries, while
+# the same file lets a READ take 24000 (MAX_READ_CHARS). The cap was bounding the
+# wrong thing: the point of a per-question cap is to keep one caller from handing
+# the tower's GPU an unbounded prompt, and 4000 chars is roughly a thousand tokens
+# — nothing for a local model — so the brake still brakes.
+# It stays well under MAX_BODY_BYTES ON PURPOSE. If the two met, an over-long
+# question would be refused by the BODY check instead, and the self-test below
+# (which sends MAX_QUERY_CHARS + 1) would still pass while no longer proving the
+# thing it names. Keep this at most half of MAX_BODY_BYTES so the two bounds stay
+# separately provable. `re-review: 2026-12-27` — raise again only on a measured
+# refusal, not on a guess.
+MAX_QUERY_CHARS = 4000
 MAX_BODY_BYTES = 8192
 ASK_TIMEOUT = 180
 HEALTH_TIMEOUT = 6
@@ -774,6 +787,15 @@ def _selftest():
     check(s == 400, "CATCHES an empty question: 400")
     s, _, _ = req("POST", "/ask", body={"query": "x" * (MAX_QUERY_CHARS + 1)})
     check(s == 413, "CATCHES a question over the length cap: 413")
+    # The cap was 500 and refused real questions (2026-10-27). Over-cap alone does
+    # not prove a raise worked, so a question AT the cap must be ACCEPTED, and the
+    # two bounds must stay separately provable: if MAX_QUERY_CHARS ever grew past
+    # the body limit, the check above would pass on the BODY refusal and silently
+    # stop testing the length cap at all.
+    check(MAX_QUERY_CHARS * 2 <= MAX_BODY_BYTES,
+          f"the length cap ({MAX_QUERY_CHARS}) stays provable under the body cap ({MAX_BODY_BYTES})")
+    s, _, _ = req("POST", "/ask", body={"query": "x" * MAX_QUERY_CHARS})
+    check(s == 200, f"a question AT the cap ({MAX_QUERY_CHARS} chars) is answered, not refused")
     s, _, _ = req("POST", "/ask", body={"query": "ok", "mode": "turbo"})
     check(s == 400, "CATCHES an unknown mode: 400")
     s, _, _ = req("POST", "/ask", body={"query": "ok", "sources": ["web", "files"]})

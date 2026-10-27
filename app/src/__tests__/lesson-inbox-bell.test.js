@@ -15,7 +15,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseWaiting, decide, formatComment, lastRungKeys, waitingKeys, ringsToday, MARKER, MAX_PER_DAY,
-  milestone, progressOf, formatStatus, parseVersions, parsePrs, humanSeconds, staleAlarms } from '../../../scripts/lesson-inbox-bell.mjs';
+  milestone, progressOf, formatStatus, parseVersions, parsePrs, humanSeconds, staleAlarms,
+  shippedButUnmarked } from '../../../scripts/lesson-inbox-bell.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..', '..');
@@ -381,5 +382,79 @@ describe('the app rings the bell by saving the lesson row', () => {
     // the bell reads tags only, never a body
     expect(py).toContain('SELECT tags FROM public.agent_inbox WHERE id = CAST(:id AS uuid)');
     expect(py).toMatch(/"SELECT id::text, tags FROM public\.agent_inbox WHERE tags \? 'lesson'/);
+  });
+});
+
+describe('a shipped lesson does not go on waiting (DR-1250)', () => {
+  // MEASURED 2026-10-27: the bell said "12 waiting", oldest 110h, and FOUR were
+  // already built, merged and live -- their `lesson-captured` tag was never
+  // written, and that tag IS the builder's lock, so the NAS builder re-claimed
+  // and rebuilt each one every hour. These are the real ids and records.
+  const row = (id, tags) => ({ id, created_by: 'c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc', tags });
+  const WAITING = ['lesson', 'build:failed@2026-10-27T03:31:12Z'];
+  const REAL = [
+    ['031a898a-b98b-484e-8d06-0962dede6316', 'DR-1234-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written-l261.md'],
+    ['bee78650-c5bc-4701-9cb9-85a8faef8770', 'DR-1234-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written-l261.md'],
+    ['0593ae29-1547-46d8-b608-34ae8b09953e', 'DR-1223-nicaea-did-not-invent-him-the-word-said-it-first-l262.md'],
+    ['6130c486-a7c0-4a8e-978d-a37ad1533b79', 'DR-1227-not-one-stone-the-word-jesus-spoke-over-jerusalem-l263.md'],
+  ];
+  const records = REAL.map(([id, file]) => ({ file: `docs/decisions/${file}`, text: `built from agent_inbox row \`${id}\`` }));
+
+  it('names every waiting row whose teaching is already recorded', () => {
+    const rows = REAL.map(([id]) => row(id, WAITING));
+    const found = shippedButUnmarked(rows, records);
+    expect(found.map((f) => f.id).sort()).toEqual(REAL.map(([id]) => id).sort());
+    // and it says WHICH record, so the tag call needs no second search
+    expect(found.find((f) => f.id.startsWith('0593ae29')).record).toMatch(/^DR-1223-/);
+  });
+
+  it('says nothing about a row that is genuinely unbuilt', () => {
+    expect(shippedButUnmarked([row('60972a31-db63-4959-8a50-ee58a28643d4', WAITING)], records)).toEqual([]);
+  });
+
+  it('a prefix is not a match — a false positive would strand a teaching forever', () => {
+    // A record that quotes only the first hex block must NOT count. Reporting a
+    // teaching as already shipped is how one never gets built at all.
+    const partial = [{ file: 'docs/decisions/DR-0001-x.md', text: 'see 0593ae29 and 6130c486' }];
+    expect(shippedButUnmarked(REAL.map(([id]) => row(id, WAITING)), partial)).toEqual([]);
+  });
+
+  it('only the WAITING queue counts — a build holding a row is not this defect', () => {
+    const held = row(REAL[0][0], ['lesson', 'lesson-building']);
+    const reviewed = row(REAL[2][0], ['lesson', 'awaiting-review']);
+    expect(shippedButUnmarked([held, reviewed], records)).toEqual([]);
+  });
+
+  it('a malformed id is ignored rather than guessed at', () => {
+    expect(shippedButUnmarked([row('not-a-uuid', WAITING), row('', WAITING)], records)).toEqual([]);
+    expect(shippedButUnmarked([row(REAL[0][0], WAITING)], [])).toEqual([]);
+    expect(shippedButUnmarked([], records)).toEqual([]);
+  });
+
+  it('the comment names them, with the remedy, above the generic advice', () => {
+    const rows = [row(REAL[0][0], WAITING), row('60972a31-db63-4959-8a50-ee58a28643d4', WAITING)];
+    const out = formatComment(rows, [], { records });
+    expect(out).toMatch(/1 of these ALREADY SHIPPED and was never tagged/);
+    expect(out).toMatch(/Tag it with/); // singular reads as English, not as a template
+
+    expect(out).toContain(REAL[0][0]);
+    expect(out).toContain('DR-1234-');
+    expect(out).toMatch(/inbox-lesson-tag\.yml/);
+    // the duplicate hazard is stated, not just the waste
+    expect(out).toMatch(/duplicate/);
+    // and it sits ABOVE the generic "rows waiting" advice
+    expect(out.indexOf('ALREADY SHIPPED')).toBeLessThan(out.indexOf('Rows waiting for the intake'));
+  });
+
+  it('reads as English for more than one, because the real case was four', () => {
+    const rows = [row(REAL[0][0], WAITING), row(REAL[2][0], WAITING)];
+    const out = formatComment(rows, [], { records });
+    expect(out).toMatch(/2 of these ALREADY SHIPPED and were never tagged/);
+    expect(out).toMatch(/Tag each with/);
+  });
+
+  it('with no records given, the comment is exactly what it was before', () => {
+    const rows = [row(REAL[0][0], WAITING)];
+    expect(formatComment(rows, [])).not.toMatch(/ALREADY SHIPPED/);
   });
 });

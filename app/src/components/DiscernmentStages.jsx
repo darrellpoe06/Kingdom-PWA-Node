@@ -34,6 +34,8 @@ const CLAIM_STYLE = {
   'call-to-action': { label: 'Call to action', border: 'border-[#B85838]', tint: 'bg-[#B85838]/[0.08]', accent: 'text-[#7A1F1F]' },
 };
 
+const LATEST_STANDING_LABEL = { field: 'the field', vendor: 'the vendor', institution: 'an institution' };
+
 const STATUS_STYLE = {
   documented: { label: 'Documented', accent: 'text-[#5A6E3D]', border: 'border-[#5A6E3D]' },
   'partly-documented': { label: 'Partly documented', accent: 'text-[#7A1F1F]', border: 'border-[#7A1F1F]' },
@@ -61,6 +63,8 @@ export default function DiscernmentStages({ issue }) {
 
   const claims = issue.claims || [];
   const verifiable = issue.verifiable || [];
+  // The newest word (2026-10-27): dated, named, weighed by the standing of who says it.
+  const latest = Array.isArray(issue.latest?.items) ? issue.latest.items : [];
   const interpretation = issue.interpretation || [];
   const perspectives = issue.perspectives || [];
   const lens = issue.lens || {};
@@ -159,6 +163,26 @@ export default function DiscernmentStages({ issue }) {
           <p className="text-[0.625rem] text-[#5A5751] mb-2" style={serif}>
             Documented fact (checkable against primary sources, with dates) kept apart from interpretation.
           </p>
+          {latest.length > 0 && (
+            <section aria-label="What is being said now" className="mb-3 border border-[#E8E4DC] bg-white p-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+                What is being said now{issue.latest.asOf ? <span style={mono} className="normal-case tracking-normal"> (as of {issue.latest.asOf})</span> : null}
+              </div>
+              {issue.latest.frame && <p className="text-[0.625rem] text-[#5A5751] italic mt-0.5 mb-1" style={serif}>{issue.latest.frame}</p>}
+              <ul className="space-y-1">
+                {latest.map((it, idx) => (
+                  <li key={idx} className="text-xs text-[#1A1815] border-l-2 border-[#5A6E3D] pl-2" style={serif}>
+                    {it.said}
+                    <span className="block text-[0.625rem] text-[#5A5751]">
+                      — {it.url ? <a href={it.url} target="_blank" rel="noopener noreferrer" className="text-[#5A6E3D] underline hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">{it.by}</a> : it.by}
+                      {it.standing ? <span style={mono}> · {LATEST_STANDING_LABEL[it.standing] || it.standing}</span> : null}
+                      {it.asOf ? <span style={mono}> (as of {it.asOf})</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What is documented</div>
           <ul className="space-y-2 mb-3">
             {verifiable.map((v) => {

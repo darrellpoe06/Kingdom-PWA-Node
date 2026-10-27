@@ -248,11 +248,15 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     lastTrip,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
     setSkipHandlers,
+    // Where the device voice stopped on a fault (DR-1251; optional in mocks).
+    engineHeldAt,
     setNotice,
     noticeAction,
     standInWhy,
     myVoice,
   } = useReadAloud({ isOwner });
+  const engineHeldRef = useRef(null);
+  engineHeldRef.current = engineHeldAt != null ? engineHeldAt : null;
   // A JUMP IN FLIGHT IS A READING IN FLIGHT (2026-10-07; Darrell: "can't be
   // pushed again before it reads the exact same paragraph"). Between a step
   // and the voice's first word — seconds, on the NAS voice — isReading is
@@ -862,6 +866,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // A jump-in-progress is not an ended piece — the new read is about to
     // start; touching the run or the prepared surface here would double-read.
     if (jumpingRef.current) return;
+    // A FAULT IS NOT AN ENDED PIECE (DR-1251). The device engine stopped on
+    // an error it could not retry past and is holding the sentence; moving
+    // on here is how one hiccup skipped the rest of a lesson. The run and
+    // the prepared surface are kept: the next press of play continues the
+    // same piece from its bookmark, and the run goes on from there.
+    if (engineHeldRef.current != null) return;
     const prepared = preparedRef.current;
     // A run that is still live means the piece ENDED on its own (Stop clears
     // the run). Ask the surface for the next piece and keep reading.

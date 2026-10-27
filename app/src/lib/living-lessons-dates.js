@@ -348,11 +348,67 @@ export const LIVING_LESSONS_ADDED = {
   // L257 (DR-1165): a recorded street interview captured inside the app on
   // 2026-10-21 and built the same day. The speakers are not identified; every
   // figure in the clip is the speaker's own claim and this catalog asserts none.
-  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',  // L258 (DR-1181): Darrell's spoken teaching of 2026-10-21 -- He gave us
+  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',
+  // L258 (DR-1181): Darrell's spoken teaching of 2026-10-21 -- He gave us
   // everything we need to fulfill what He wants; until we want what He wants
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
+  // L259 (DR-1221): the EVIDENTIAL half of the house rule on the name. Darrell
+  // sent a link into the app's own lesson queue with one word on it, Lesson;
+  // the research road fetched the whole reading on our own machines, and the
+  // row waited about eighty-eight hours before it was built. The date here is
+  // the day the lesson JOINED THE COURSE, which is what this file records --
+  // the row was sent about three and a half days earlier, and that is stated in
+  // the record rather than guessed at here. It takes the next free number above
+  // L258; the repo allows no held numbers (numbers-are-unique pins KNOWN_GAPS).
+  'll259-his-name-kept-in-stone-and-silver': '2026-10-27',
+  // L260 (DR-1220): Darrell sent a video on the Amarna letters into the app's
+  // research road; the row waited about ninety hours in the queue before a
+  // builder reached it, and the lesson was built on 2026-10-27, which is the
+  // day it joined the course. The exact send timestamp was not re-read from
+  // the database by this builder, so the build day is what is recorded here.
+  'll260-the-letters-of-frightened-kings-the-amarna-tablets-and-the-word': '2026-10-27',
+  // ll261 -- two links Darrell sent INSIDE the app down the research road, both on
+  // Genesis 6 and the giants of Canaan, pulling opposite ways. The two sendings sat
+  // in the queue roughly 87 hours before this build, so the exact send day is known
+  // only to within a day; the build day is recorded rather than an estimate dressed
+  // up as a date. Taught from the Word's own usage against ONE measure, add not and
+  // diminish not (Deuteronomy 4:2).
+  // 2026-10-27, not the 10-26 this branch was authored on: eight sibling lessons
+  // were built from the same waiting queue and all land the same day, and
+  // living-lessons-order.test.jsx holds that in number order the days never go
+  // backwards. L259 and L260 carry 10-27, so leaving this one on 10-26 would put
+  // L261 a day BEHIND the two lessons below it and break that order. Dating by the
+  // day the id lands is the precedent already recorded there for L254/L255, and it
+  // is the honest one here: the teaching waited ~87 hours in the queue, so the
+  // send day is not knowable from the row either way.
+  'll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written': '2026-10-27',
+  // L262 (DR-1223): a link Darrell sent into the research road inside the app,
+  // which waited about 87 hours in the lesson queue and was built out -- the
+  // Council of Nicaea did not invent the deity of the Son and voted no canon;
+  // the Word had already said it in the first century. The day recorded is the
+  // day the lesson joined the course, not the day the link was sent.
+  'll262-nicaea-did-not-invent-him-the-word-said-it-first': '2026-10-27',
+  // L263 (DR-1227): the research road's own intake -- a link Darrell sent into
+  // the app with one word on it, whose reading step never completed, so a
+  // video's machine-made captions about the fall of Jerusalem in AD 70 were the
+  // whole of the research. The lesson is taught from Jesus' own recorded
+  // speech; no line of Josephus or Tacitus is quoted anywhere in it, and the
+  // speaker in that video is not named in anything that reached us, so the
+  // lesson names none. Built 2026-10-27, the day the row was worked.
+  'll263-not-one-stone-the-word-jesus-spoke-over-jerusalem-and-the-year-it-came-true': '2026-10-27',
+  // L264 (DR-1225): Darrell sent a link into the app's own research road on
+  // 2026-10-22; the row waited in the lesson queue and the reading was built
+  // into a lesson on 2026-10-27, so this is the day it JOINED the course, not
+  // the day he sent it (the sending day is in the record and in the lesson).
+  'll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
+  // L265 (DR-1226): a link about Jericho that Darrell sent in for a lesson on
+  // the research road; the row waited in the queue and the lesson was built on
+  // 2026-10-27, which is the day recorded here. The speaker in the material is
+  // nowhere identified, the captions are a machine's hearing rather than his own
+  // text, and nothing he claims is asserted on his authority.
+  'll265-jerichos-barred-gates-a-citys-fear-and-one-womans-faith': '2026-10-27',
   // L266 (DR-1229): a Wes Huff conference lecture on archaeological and
   // manuscript corroboration of the New Testament, which Darrell sent into the
   // app's research road for a lesson and which then waited about 91 hours in
