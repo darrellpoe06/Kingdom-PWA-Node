@@ -149,6 +149,121 @@ describe('NOT ONE WORD CHANGES — the reconstruction still holds', () => {
   });
 });
 
+// =============================================================================
+// EVERY lesson's own numbers, not just the newest one's (DR-1256)
+// =============================================================================
+// The check below ("a single-text caller is unaffected") walks the catalog in
+// REVERSE and tests the FIRST lesson with more than three sections, so the
+// newest qualifying lesson inherits the seat and every earlier one goes
+// unexamined. Its own comment already names that hazard for a different
+// reason. MEASURED 2026-10-27, when ll267 landed and took the seat: five
+// lessons ALREADY SHIPPED whose own numbers skip, and the one-subject check
+// had never looked at any of them.
+//
+// WHAT THE RULE IS, and why it is not "contiguous 1..N". The formatter derives
+// numbers from markers the AUTHOR wrote -- its own words: "The author's number
+// is the number." So a lesson carrying TWO enumerated lists legitimately reads
+// 1,2,3,4 then 1,2: the second list restarts, which is ordinary English and
+// what three live lessons do (ll46, ll123, ll128). Demanding contiguity across
+// the catalog would have forced prose rewrites on those three for no reader
+// benefit -- a gate dictating style rather than catching a defect.
+//
+// A SKIP is the defect. 3 -> 5 is not a new list and not the next point; the
+// reader sees the lesson's own count jump, as though a section were missing.
+// Verified it is the text and not the formatter: ll135 contains no "FOUR",
+// "SEVEN" or "NINE" anywhere, and ll165 no "SECOND", "SIXTH" or "SEVENTH" --
+// the markers are absent, not merely undetected.
+//
+// So: a heading number must be the previous one plus one, or 1 (a new list),
+// and the first must be 1.
+const SKIPPED_NUMBERS_ON_DISK = [
+  // Each of these five numbers its own points with gaps, in the author's own
+  // text. They are NOT fixed here: renumbering an ordinal rewrites prose that
+  // each lesson's own spec pins by literal string (proven on ll267 the same
+  // day -- rewording three of its sentences turned its own gate red), and the
+  // ordinals are cross-referenced from the age bands. Each needs its own pass
+  // with its spec in hand, which is work, not a line here.
+  // SHRINK-ONLY: a new offender fails below even though the count is unchanged,
+  // and a fixed one must be struck from this list. re-review: 2026-11-17.
+  'll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated',
+  'll136-touched-with-the-feeling-the-high-priest-who-felt-the-whole-weight-and-why-his-judgment-never-needed-your-experience-to-be-true',
+  'll165-i-always-had-love-gratitude-measured-against-a-real-lack-and-suffering-with-him-before-reigning-with-him',
+  'll166-life-is-disrespectful-so-think-on-these-things-self-against-the-servant-king-and-the-one-who-bought-you-twice',
+  'll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel',
+];
+
+/** Every number a reader would see, in order, for one lesson's own text. */
+export function headingNumbers(lessonText) {
+  return formatLessonText(lessonText).items.filter((i) => i.kind === 'heading').map((h) => h.n);
+}
+
+/** '' when the sequence is legal; otherwise what a reader would see go wrong. */
+export function skipFault(ns) {
+  if (!ns.length) return '';
+  if (ns[0] !== 1) return `starts at ${ns[0]}, not 1`;
+  for (let i = 1; i < ns.length; i += 1) {
+    if (ns[i] === ns[i - 1] + 1) continue;
+    if (ns[i] === 1) continue; // a second enumerated list, which is legitimate
+    return `${ns[i - 1]} -> ${ns[i]}`;
+  }
+  return '';
+}
+
+describe('every lesson numbers its own points without skipping (DR-1256)', () => {
+  const subjects = LIVING_LESSONS_MODULES.filter(
+    (m) => typeof m.lesson === 'string' && formatLessonText(m.lesson).sectionCount > 3,
+  );
+
+  it('finds enough lessons to be worth checking (the sweep is not vacuous)', () => {
+    expect(subjects.length).toBeGreaterThan(120);
+  });
+
+  it('no lesson outside the pinned list skips a number', () => {
+    const faults = subjects
+      .map((m) => ({ id: m.id, fault: skipFault(headingNumbers(m.lesson)) }))
+      .filter((x) => x.fault);
+    const unknown = faults.filter((x) => !SKIPPED_NUMBERS_ON_DISK.includes(x.id));
+    expect(
+      unknown.map((x) => `${x.id}: ${x.fault}`),
+      'a lesson skips a point number a reader can see',
+    ).toEqual([]);
+  });
+
+  it('the pinned debt may only SHRINK, never grow', () => {
+    const faults = subjects.filter((m) => skipFault(headingNumbers(m.lesson)));
+    expect(faults.length).toBeLessThanOrEqual(SKIPPED_NUMBERS_ON_DISK.length);
+    // And every pin must still be a real offender, so a fixed lesson cannot sit
+    // here forever pretending the debt is larger than it is.
+    const ids = faults.map((m) => m.id);
+    const stale = SKIPPED_NUMBERS_ON_DISK.filter((id) => !ids.includes(id));
+    expect(stale, 'pinned as skipping but no longer does — strike it from the list').toEqual([]);
+  });
+
+  it('a second enumerated list is LEGITIMATE and is not reported', () => {
+    // ll46 reads 1,2,3,4 then 1,2: two lists, the author's own numbering.
+    expect(skipFault([1, 2, 3, 4, 1, 2])).toBe('');
+    expect(skipFault([1, 1, 2, 3, 4])).toBe('');
+    expect(skipFault([1, 2, 1, 2, 3])).toBe('');
+    // and the three live lessons that do it are not in the pinned list
+    for (const p of ['ll46-', 'll123-', 'll128-']) {
+      const m = LIVING_LESSONS_MODULES.find((x) => x.id.startsWith(p));
+      expect(skipFault(headingNumbers(m.lesson)), `${p} must read as legitimate`).toBe('');
+      expect(SKIPPED_NUMBERS_ON_DISK.some((id) => id.startsWith(p))).toBe(false);
+    }
+  });
+
+  it('PROVEN TO CATCH: the five real shapes, and a skip after a restart', () => {
+    expect(skipFault([1, 2, 3, 5, 6, 8, 10, 11])).toBe('3 -> 5');      // ll135
+    expect(skipFault([1, 2, 3, 4, 7, 8, 10, 11, 12])).toBe('4 -> 7');  // ll136
+    expect(skipFault([1, 3, 4, 5, 8])).toBe('1 -> 3');                 // ll165
+    expect(skipFault([1, 2, 5, 6, 7])).toBe('2 -> 5');                 // ll166
+    expect(skipFault([1, 2, 3, 4, 6, 7, 8])).toBe('4 -> 6');           // ll167
+    expect(skipFault([2, 3, 4])).toBe('starts at 2, not 1');
+    // a restart is legal, but a skip INSIDE the second list is still caught
+    expect(skipFault([1, 2, 1, 3])).toBe('1 -> 3');
+  });
+});
+
 describe('a single-text caller is unaffected', () => {
   it('formats a whole lesson exactly as it always did when no plan is passed', () => {
     // THIS CHECK NOW FINDS ITS EXAMPLE RATHER THAN PINNING THE NEWEST LESSON.
