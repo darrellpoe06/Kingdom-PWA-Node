@@ -6,7 +6,7 @@
 **Type:** curriculum
 **Area:**
 - `app/src/lib/sovereign-ai-class.js` (sov50, the fiftieth week of Sovereign A.I.)
-- `app/src/__tests__/sovereign-ai-sov50-verses.test.js` (15 cases, 4 proven to catch)
+- `app/src/__tests__/sovereign-ai-sov50-verses.test.js` (16 cases, 4 proven to catch)
 - `scripts/sov50-fill.mjs` (the generator: every verse filled from `app/public/bible/kjv` at build time, never typed)
 - `app/src/lib/course-band-coverage-baseline.json` (the debt pin moves 430/256 → 431/257; the sovereign-ai gap stays at 21)
 - `app/src/lib/lesson-dates.json` (one derived row)
@@ -74,7 +74,7 @@ All four bands carry the TALK ABOUT IT TOGETHER close in the lesson's own words,
 
 ## Proven to catch
 
-Four of the fifteen cases are demonstrated breaks, not assertions:
+Four of the sixteen cases are demonstrated breaks, not assertions:
 
 1. **An altered quotation.** "thou art mine." changed to "thou art ours." inside the quoted Isaiah 43:1 → `child: Isaiah 43:1 — But now thus saith the LORD that created thee…: expected false to be true`. Restored: 15/15 green.
 2. **A straight apostrophe where the corpus has a curly one** (the sov47 defect). `Ahab’s` → `Ahab's` in one place → two cases fail, one of them naming the reference. The check also asserts that at least five pins really do carry `’`, so it cannot become theatre.
@@ -89,6 +89,6 @@ The one claim this page makes about the house itself was checked against the rep
 
 ## Decision
 
-Ship sov50 as the fiftieth week of Sovereign A.I., built from **Darrell's own forwarded summary** with the newsletter named as the occasion; Word-first in ten movements; four authored bands passing the full house band suite; 54 verses filled from the corpus by a generator and pinned by a test with four demonstrated catches; and the three limits of the comparison said out loud and held there by the gate.
+Ship sov50 as the fiftieth week of Sovereign A.I., built from **Darrell's own forwarded summary** with the newsletter named as the occasion; Word-first in ten movements; four authored bands passing the full house band suite; 54 verses filled from the corpus by a generator and pinned by a test with four demonstrated catches, plus the renderer-drops-nothing check this course would otherwise never have run; and the three limits of the comparison said out loud and held there by the gate.
 
 **Perpetual improvement (DR-0075).** One thing found and deliberately not fixed here: `fourBandGateFaults` is red for sov46, sov47 and sov48 (shares under floor, and sov47's senior/teen ladder inverted), because `course-four-bands-group-a.test.js` holds only ten sovereign-ai lessons to that suite (`PARTIAL`). Widening that list is a course-wide authoring pass, not this lesson's work, and doing it inside this PR would mean rewriting three other builders' bands. **`re-review: 2026-11-24`** — measure the whole course against `fourBandGateFaults`, then add sovereign-ai weeks to `PARTIAL` in the order they can be brought to the floor.
