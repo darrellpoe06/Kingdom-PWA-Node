@@ -348,7 +348,8 @@ export const LIVING_LESSONS_ADDED = {
   // L257 (DR-1165): a recorded street interview captured inside the app on
   // 2026-10-21 and built the same day. The speakers are not identified; every
   // figure in the clip is the speaker's own claim and this catalog asserts none.
-  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',  // L258 (DR-1181): Darrell's spoken teaching of 2026-10-21 -- He gave us
+  'll257-ten-christmases-left-counting-our-days-the-way-yahweh-counts-them': '2026-10-21',
+  // L258 (DR-1181): Darrell's spoken teaching of 2026-10-21 -- He gave us
   // everything we need to fulfill what He wants; until we want what He wants
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
@@ -402,4 +403,10 @@ export const LIVING_LESSONS_ADDED = {
   // into a lesson on 2026-10-27, so this is the day it JOINED the course, not
   // the day he sent it (the sending day is in the record and in the lesson).
   'll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
+  // L265 (DR-1226): a link about Jericho that Darrell sent in for a lesson on
+  // the research road; the row waited in the queue and the lesson was built on
+  // 2026-10-27, which is the day recorded here. The speaker in the material is
+  // nowhere identified, the captions are a machine's hearing rather than his own
+  // text, and nothing he claims is asserted on his authority.
+  'll265-jerichos-barred-gates-a-citys-fear-and-one-womans-faith': '2026-10-27',
 };
