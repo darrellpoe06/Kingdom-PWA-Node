@@ -33,7 +33,7 @@ async function readDoor(browser, url, { tapLookingForAPlace = false } = {}) {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(scrub(m.text())); });
   const out = [];
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     if (tapLookingForAPlace) {
       const tap = page.getByRole('button', { name: /Looking for a place/i }).first();
       if (await tap.count().catch(() => 0)) await tap.click({ timeout: 10000 }).catch(() => {});

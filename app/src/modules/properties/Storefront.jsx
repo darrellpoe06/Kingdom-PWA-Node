@@ -31,6 +31,8 @@ import { addressLine } from './area.js';
 import { cadenceChoice } from './cadence.js';
 
 const ACCENT = '#2F5D50';
+// How many pictures the swipeable row shows before "+N" (DR-1236).
+const STRIP_MAX = 8;
 const serif = { fontFamily: '"Fraunces", serif' };
 
 /**
@@ -108,6 +110,20 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
     if (cur && !cur.storage_path) ask(cur, 'thumb');
     if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
   }, [shots, i, ask]);
+  // The strip's thumbnails, asked for when the row is on screen (or at once
+  // where the browser cannot say — a test, an old WebView).
+  const stripRef = React.useRef(null);
+  useEffect(() => {
+    if (shots.length < 2) return undefined;
+    const askStrip = () => { for (const row of shots.slice(0, STRIP_MAX)) if (row && !row.storage_path) ask(row, 'thumb'); };
+    const el = stripRef.current;
+    if (!el || typeof IntersectionObserver !== 'function') { askStrip(); return undefined; }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { askStrip(); io.disconnect(); }
+    }, { rootMargin: '120px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shots, ask]);
   useEffect(() => {
     if (open == null || !shots.length) return;
     // The open picture's full image first, then the rest in order so a swipe
@@ -223,6 +239,54 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
           >
             ›
           </button>
+        </div>
+      )}
+      {/* A SWIPEABLE ROW OF THE PICTURES (DR-1236). Darrell, 2026-10-27,
+          signed out: "if you don't have an account you should be able to just
+          see the images". The arrows above walk one picture at a time; this
+          row shows the first few at once, a thumb-sized tap each (44px),
+          scroll-snapped so a swipe lands on a picture, and the rest behind
+          one "+N" that opens the whole set. Each thumbnail is asked for ONLY
+          once the row is on screen (DR-1016: the list never carries the
+          bytes), so a card below the fold costs nothing until it is reached. */}
+      {shots.length > 1 && (
+        <div
+          ref={stripRef}
+          className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory px-1.5 py-1.5 border-b border-[#F0EDE6]"
+          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+          role="list"
+          aria-label={`${shots.length} photos`}
+          data-testid="vacancy-picture-strip"
+        >
+          {shots.slice(0, STRIP_MAX).map((row, n) => (
+            <button
+              key={row.id || n}
+              type="button"
+              role="listitem"
+              onClick={() => setI(n)}
+              aria-label={`Show photo ${n + 1} of ${shots.length}`}
+              aria-current={n === i ? 'true' : undefined}
+              className={`snap-start shrink-0 w-[72px] h-[54px] min-w-[44px] min-h-[44px] rounded-md overflow-hidden bg-[#FAF8F4] border-2 ${n === i ? 'border-[#B85838]' : 'border-transparent'} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}
+            >
+              {srcOf(row) ? (
+                <img src={srcOf(row)} alt={row.caption || `${placeName} photo ${n + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              ) : (
+                <span className="block w-full h-full" aria-hidden="true" />
+              )}
+            </button>
+          ))}
+          {shots.length > STRIP_MAX && (
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setOpen(STRIP_MAX)}
+              aria-label={`See the other ${shots.length - STRIP_MAX} photos`}
+              data-testid="vacancy-picture-strip-more"
+              className="snap-start shrink-0 w-[72px] h-[54px] min-w-[44px] min-h-[44px] rounded-md bg-[#F0EDE6] text-[#2F5D50] text-[0.75rem] font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            >
+              {`+${shots.length - STRIP_MAX}`}
+            </button>
+          )}
         </div>
       )}
       {open != null && (
