@@ -337,6 +337,55 @@ class Writers(unittest.TestCase):
         p = lw.schema_problems(bad)
         self.assertTrue(any("teen" in x for x in p) and any("movements" in x for x in p))
 
+    def test_bad_verdict_says_what_it_received(self):
+        """DR-1249. Four rows sat for ~100h carrying only "verdict must be
+        lesson | test-only | not-a-lesson", which cannot tell a wrong WORD
+        from a missing field from the extractor taking the wrong object -- and
+        the prompt was already confirmed to offer all three words, so there
+        was nothing left to read without opening the row's body."""
+        # A wrong word: the refusal must quote it.
+        bad = make_lesson()
+        bad["verdict"] = "not a lesson"
+        p = lw.schema_problems(bad)
+        self.assertEqual(len(p), 1, p)
+        self.assertIn("'not a lesson'", p[0])
+        self.assertIn("verdict must be lesson | test-only | not-a-lesson", p[0])
+
+        # Missing entirely: None must be distinguishable from an empty string.
+        gone = make_lesson()
+        del gone["verdict"]
+        pg = lw.schema_problems(gone)
+        self.assertIn("None", pg[0])
+        empty = make_lesson()
+        empty["verdict"] = ""
+        self.assertIn("''", lw.schema_problems(empty)[0])
+
+        # The key list is what separates a truncated/alien object from a full
+        # lesson object that merely used the wrong word.
+        self.assertIn("title", p[0])
+        thin = {"verdict": "nope", "foo": 1}
+        pt = lw.schema_problems(thin)
+        self.assertIn("2 key(s)", pt[0])
+        self.assertIn("foo", pt[0])
+        self.assertNotIn("title", pt[0])
+
+        # NEVER a body: no value from any other field may appear.
+        bad2 = make_lesson()
+        bad2["verdict"] = "nope"
+        bad2["bigIdea"] = "SECRETSENTENCE the words a person spoke"
+        self.assertNotIn("SECRETSENTENCE", lw.schema_problems(bad2)[0])
+
+        # A prose-stuffed verdict is bounded rather than echoed whole.
+        long_v = make_lesson()
+        long_v["verdict"] = "x" * 400
+        self.assertLess(len(lw.schema_problems(long_v)[0]), 300)
+
+        # The three good words still pass clean.
+        for w in ("lesson", "test-only", "not-a-lesson"):
+            ok = make_lesson()
+            ok["verdict"] = w
+            self.assertEqual([x for x in lw.schema_problems(ok) if "verdict" in x], [])
+
     def test_cli_envelope(self):
         text, usage = lw.parse_cli_reply(json.dumps({"type": "result", "subtype": "success", "is_error": False,
                                                      "result": "{}", "usage": {"input_tokens": 3, "output_tokens": 4},
