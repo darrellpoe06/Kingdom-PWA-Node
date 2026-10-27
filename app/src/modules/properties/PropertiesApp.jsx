@@ -56,6 +56,7 @@ import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
 import { loadJobVideo, setWorkOrderProof } from './cloud.js';
 import { loadMyLandlordSeat, addRental } from './cloud.js';
 import { seatIsOwner } from './own-space.js';
+import { isReviewerStranger, reviewerLensLine } from '../../lib/reviewer-lens.js';
 import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
@@ -64,7 +65,7 @@ import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
 import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
-import { areaOf } from './area.js';
+import { vacancyUnits } from './vacancy-unit.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
@@ -75,7 +76,7 @@ import {
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
-import { tenancyRowForDoor, tenancyForTenantInvite } from './staging.js';
+import { tenancyRowForDoor, tenancyForTenantInvite, advertisedPriceFollows } from './staging.js';
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
@@ -170,7 +171,9 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
     { id: 'systems', n: kit.length, one: 'system', many: 'systems' },
   ].filter((c) => tabs.some((t) => t.id === c.id && !t.locked));
 
-  const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
+  // The door's own figure before the frozen advertised copy — see DoorTabs for
+  // the measurement. The header said $750 while the form held 1000.
+  const rent = Number(active?.monthly_rent) || Number(rental?.monthly_rent) || Number(rental?.listed_rent) || 0;
   // A CO-LIVING DOOR SAYS SO (DR-0968). Derived from rentable_level and from
   // whether the door actually has a sibling at its apartment number -- never
   // a checkbox, because "make sure this happens each time we co-live a place"
@@ -293,7 +296,15 @@ const KIND_LABEL = {
 // reads. Only the FACE changes: anything sent from a preview is still recorded
 // as the person really signed in (realRole), never as the tenant.
 export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null, stranger = null }) {
+  // THE LENS HAS TWO MODES (DR-1240). 'self' changes nothing here: the steward
+  // reviewing as himself with privileges hidden still reads his own seat and
+  // doors through RLS as him, and the banner says so. 'stranger' — "as a new
+  // user" — is this flag: the module never reads the signed-in person's own
+  // seat, doors, grants, household, properties, invites or pictures, and
+  // boots as a person with no invite. The shell hands it in; a mount that
+  // does not (the Poe Properties App) asks the one flag read itself.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const [loading, setLoading] = useState(true);
   const [rawDoors, setDoors] = useState([]);
   const [rawGrants, setGrants] = useState([]);
@@ -407,6 +418,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // The claim gets a SHORT ceiling of its own: it is an optional courtesy
     // (turning "invited" into "recognized") and must never spend the reads'
     // time. The reads then start from a full, untouched deadline.
+    if (lens) {
+      // A STRANGER UNDER THE LENS (DR-1240): no claim, no seat, no doors, no
+      // grants, no household, no rentals, no invites, no pictures. Only what
+      // a person with no invite is shown — the public vacancies — and who is
+      // signed in (the lens keeps the reviewer signed in as themselves).
+      setClaim(null); setSeat(null); setDoors([]); setGrants([]); setHousehold([]); setRentals([]);
+      setPhotoOrders({}); setArchives({ channels: {}, heldAt: {} }); setInvites([]); setDoorPhotos([]);
+      const open = deadlineIn();
+      const [vac, sess] = await Promise.all([
+        boundedRead(loadPublicVacancies(), open()),
+        boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), open(), null),
+      ]);
+      setVacancies(vac.ok ? vac.vacancies : []);
+      setMe(sess && sess.user ? sess.user.id : null);
+      setUnreachedWhy([]); setUnreached(false); setLoading(false); booted.current = true;
+      return;
+    }
     const claimed = await boundedRead(claimPropertyAccess(), CLAIM_TIMEOUT_MS);
     setClaim(claimed);
     const spine = deadlineIn();
@@ -516,7 +544,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         setUnreached([d2, g2, h2, r2].some((x) => !x.ok));
       }
     }
-  }, []);
+  }, [lens]);
   useEffect(() => { boot(); }, [boot]);
 
   // The TENANCY on the door in hand, or none. A door picked by its rentals id is
@@ -1140,7 +1168,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   };
 
   const editRental = async (id, patch, summary) => {
-    const res = await updateRental(id, patch, { summary });
+    // The advertised price follows the rent (staging.js advertisedPriceFollows).
+    // Applied HERE, at the single save, rather than in the form that happens to
+    // be open — every door edit goes through this one door.
+    const door = rentals.find((r) => r.id === id) || null;
+    const written = advertisedPriceFollows(door, patch);
+    const res = await updateRental(id, written, { summary });
     say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
     // TELL THE OTHER TAB (2026-08-28). Darrell: "I edited the addresses in
     // property and they did not update Real Estate.... fix it! perpetually."
@@ -1149,10 +1182,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // door showed two different addresses depending on which tab you opened.
     // Announced only on a REAL success — telling the other tab about a write
     // that did not land is how the two stores would drift the other way.
-    if (res.ok) {
-      const door = rentals.find((r) => r.id === id);
-      announceRentalChange({ slug: door?.slug || null, uuid: id, patch });
-    }
+    // The OTHER tab hears what was actually written, advertised price and all —
+    // announcing the form's patch would hand it the same stale figure.
+    if (res.ok) announceRentalChange({ slug: door?.slug || null, uuid: id, patch: written });
     boot();
   };
 
@@ -1288,7 +1320,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // door, no grant — and the owner of a landlord-type space. The places to
   // live are not theirs to be offered; the empty board with Add a door is.
   if (!doors.length && !rentals.length && !grants.length && !seatIsOwner(seat)) {
-    return <PlacesToLive vacancies={vacancies} claim={claim} />;
+    return <PlacesToLive vacancies={vacancies} claim={claim} reviewer={lens} />;
   }
 
   return (
@@ -1827,7 +1859,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 // Address, unit, rent, and availability only; the public RPC is column-safe (no
 // tenant name, no mortgage), so it is safe for a prospective renter and a
 // non-user alike, and the street address is handed over by a person, not here.
-function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
+function PlacesToLive({ vacancies = [], claim, onSignIn = null, reviewer = false }) {
   // ==========================================================================
   // THE STOREFRONT. Darrell, 2026-08-28: "It should have the Apartments shown
   // in the Properties Tab... like the MooreDivahs App has except this is places
@@ -1847,49 +1879,23 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
   // never for looking at it.
   // ==========================================================================
   const notEnabled = claim && claim.ok === false && claim.reason === 'not-enabled-yet';
-  const rows = (Array.isArray(vacancies) ? vacancies : [])
-    .map((v) => {
-      const address = String(v.address || v.label || v.property_label || v.name || '').trim();
-      if (!address) return null;
-      const cityState = [v.city, v.state].map((x) => String(x || '').trim()).filter(Boolean).join(', ');
-      const rent = Number(v.monthly_rent ?? v.rent ?? v.listed_rent);
-      const beds = Number(v.bedrooms);
-      const baths = Number(v.bathrooms);
-      const nightly = Number(v.nightly_rate);
-      const weekly = Number(v.weekly_rate);
-      const biweekly = Number(v.biweekly_rate);
-      return {
-        id: String(v.id || v.rental_id || address),
-        rentalId: v.id || null,
-        label: address,
-        where: cityState,
-        unit: String(v.unit || v.unit_label || '').trim(),
-        rent: Number.isFinite(rent) && rent > 0 ? rent : null,
-        beds: Number.isFinite(beds) && beds > 0 ? beds : null,
-        baths: Number.isFinite(baths) && baths > 0 ? baths : null,
-        offering: String(v.offering || 'long-term'),
-        nightly: Number.isFinite(nightly) && nightly > 0 ? nightly : null,
-        // ANY CADENCE (DR-1003), the same three the public door reads.
-        weekly: Number.isFinite(weekly) && weekly > 0 ? weekly : null,
-        biweekly: Number.isFinite(biweekly) && biweekly > 0 ? biweekly : null,
-        buildingNote: String(v.building_note || '').trim() || null,
-        note: String(v.listed_note || v.note || v.blurb || '').trim(),
-        // Undefined (an older RPC) reads as SHOWN, because that is what the old
-        // behaviour actually was — claiming a door is protected when the
-        // database has not been migrated yet would be the same lie in reverse.
-        addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
-        area: areaOf(v),
-        street: String(v.street || '').trim(),
-        city: String(v.city || '').trim(),
-        state: String(v.state || '').trim(),
-        nearby: Array.isArray(v.nearby) ? v.nearby : [],
-      };
-    })
-    .filter(Boolean);
+  // ONE READING OF THE ROW FOR EVERY DOOR (DR-1236): this tab, the branded
+  // door and the PoeTech front door all read vacancyUnits(); the third copy
+  // of this mapping was the one that never named rentalId, so its cards
+  // never asked for their pictures.
+  const rows = vacancyUnits(vacancies);
 
   return (
     <div className="p-1">
       <Card title="Poe Properties — Places to Live">
+        {/* THE HONEST LINE (DR-1240): the steward reviewing as a user is never
+            left thinking a stranger sees his doors. His are hidden; this is
+            the face a person with no invite gets. */}
+        {reviewer && (
+          <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif} role="status" data-testid="properties-reviewer-lens">
+            {reviewerLensLine('doors')}
+          </p>
+        )}
         {rows.length > 0 ? (
           <>
             <p className="text-sm text-[#1A1815] mb-1" style={serif}>

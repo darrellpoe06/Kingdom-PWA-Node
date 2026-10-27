@@ -41,6 +41,7 @@ import React, { useEffect, useState } from 'react';
 import PasswordAuth from './PasswordAuth.jsx';
 import { loadPublicVacancies } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
+import { vacancyUnits, readFailureLine } from '../modules/properties/vacancy-unit.js';
 import UiIcon from './UiIcon.jsx';
 
 // FULL WIDTH, NO max-w WRAPPER (CONSISTENCY-STANDARD rule 1, DR-0246).
@@ -169,19 +170,33 @@ export default function PublicFrontDoor({ brand = null }) {
   // and "I could not ask" are different things, and the last one must never
   // render as the middle one on the page that sells the homes.
   const [read, setRead] = useState('loading');
+  // WHAT FAILED, in one plain line (DR-1236). Darrell met "The list of homes
+  // could not be loaded just now" on 2026-10-27 and nothing on the screen —
+  // or anywhere else — could say what had failed. The visitor's words stay;
+  // under them, the ops line names the read and the error code so the next
+  // time it happens the cause is on the screen and in the probe's reading.
+  const [why, setWhy] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (churchDoor) return undefined;      // nothing to fetch for a church visitor
     let live = true;
+    setRead('loading');
+    // A failure is said with its reason; "Try again" (below) asks once more
+    // by the visitor's own hand, which is honest where a silent retry loop
+    // would only hide a road that is down.
     loadPublicVacancies()
       .then((r) => {
         if (!live) return;
-        if (r && r.ok) { setVacancies(r.vacancies || []); setRead('ok'); }
-        else setRead('failed');
+        if (r && r.ok) { setVacancies(r.vacancies || []); setWhy(''); setRead('ok'); return; }
+        setWhy(readFailureLine(r)); setRead('failed');
       })
-      .catch(() => { if (live) setRead('failed'); });
+      .catch((e) => {
+        if (!live) return;
+        setWhy(readFailureLine({ reason: 'threw', error: e && e.message })); setRead('failed');
+      });
     return () => { live = false; };
-  }, [churchDoor]);
+  }, [churchDoor, attempt]);
 
   // Acted on here, below every hook (see the note at the top).
   if (churchDoor) return <PasswordAuth brand={brand} />;
@@ -237,6 +252,18 @@ export default function PublicFrontDoor({ brand = null }) {
           <p className="text-[0.8125rem] text-[#5A5751] mt-1">
             This is us, not you. Please try again in a moment — or call and we will tell you what is open.
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAttempt((n) => n + 1)}
+              data-testid="front-door-try-again"
+              className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl border border-[#2F5D50] text-[#2F5D50] text-[0.75rem] uppercase tracking-wider"
+            >
+              Try again
+            </button>
+            {/* The ops line: the read and the code, never a street or a key. */}
+            <span className="text-[0.6875rem] text-[#5A5751] break-all" data-testid="front-door-unreadable-why">{why}</span>
+          </div>
         </div>
       )}
 
@@ -249,12 +276,16 @@ export default function PublicFrontDoor({ brand = null }) {
         </div>
       )}
 
+      {/* THE SAME CARD, FROM THE SAME READING OF THE ROW, AS THE FIRST TAB
+          AND THE BRANDED DOOR (DR-1236). The raw row carried no rentalId, so
+          the card never asked for its pictures: two cards, zero pictures,
+          measured signed out. vacancyUnits() is the one mapping. */}
       {read === 'ok' && count > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {vacancies.map((v) => (
-            <VacancyCard key={v.id} unit={v} />
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none p-0 m-0" data-testid="front-door-shelf">
+          {vacancyUnits(vacancies).map((u) => (
+            <VacancyCard key={u.id} unit={u} />
           ))}
-        </div>
+        </ul>
       )}
 
       {/* SIGN-IN IS ONE TAP, AND IT IS NOT THE FIRST THING. Everyone who

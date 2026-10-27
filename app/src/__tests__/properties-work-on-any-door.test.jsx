@@ -505,6 +505,30 @@ describe('the board says when an advertised door has no listing pictures', () =>
   });
 });
 
+// THE BOARD SHOWS THE RENT THAT WAS SAVED (DR-1239). Darrell, 2026-10-27, on
+// 805 North Prospect Apt 4: "the $750 will not update to $1000 even after
+// saving it". The save landed in `monthly_rent`; the board read the frozen
+// `listed_rent` first and went on showing the advertised-at figure forever.
+//
+// This is the drifted state itself, on the real board — not the helper.
+describe('an advertised door shows the rent that was saved, not the one it was advertised at', () => {
+  const DRIFTED = {
+    ...APT2, unit: 'Apt 4', display_name: '805 North Prospect Avenue Apt 4',
+    listed_at: '2026-10-20T00:00:00Z', listed_rent: 750, monthly_rent: 1000,
+  };
+  it('PROVEN TO CATCH: shows $1000, never the stale $750', async () => {
+    H.rentals = [DRIFTED]; H.doors = []; H.doorPhotos = [];
+    await mount({ surface: 'poetech' });
+    expect(container.textContent).toMatch(/\$1000\/mo/);
+    expect(container.textContent, 'the board is still quoting the advertised-at price').not.toMatch(/\$750\/mo/);
+  });
+  it('a door with no rent anywhere still says so rather than showing $0', async () => {
+    H.rentals = [{ ...DRIFTED, monthly_rent: null, listed_rent: null }]; H.doors = []; H.doorPhotos = [];
+    await mount({ surface: 'poetech' });
+    expect(container.textContent).toMatch(/no rent on record/);
+  });
+});
+
 // WHO SEES WHAT, ON THE PEOPLE TAB (DR-1198): the family reads the evaluated
 // matrix where they invite people; a tenant's face carries no such thing.
 describe('the People tab carries the access matrix for the family', () => {

@@ -31,6 +31,8 @@ import { addressLine } from './area.js';
 import { cadenceChoice } from './cadence.js';
 
 const ACCENT = '#2F5D50';
+// How many pictures the swipeable row shows before "+N" (DR-1236).
+const STRIP_MAX = 8;
 const serif = { fontFamily: '"Fraunces", serif' };
 
 /**
@@ -63,9 +65,18 @@ const serif = { fontFamily: '"Fraunces", serif' };
  * loaded, the card scrolls into view and opens them (DR-1006: a shared link
  * lands with that unit's pictures open). 0 = the ordinary card.
  */
-export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
+/**
+ * `photos` — the unit's picture list when the caller already read it (the
+ * branded door reads every door's list once for its cards AND its hero
+ * carousel, DR-1236); undefined means the card reads its own.
+ */
+export function VacancyCard({ unit, onApply = null, openPictures = 0, photos = undefined }) {
   const rootRef = React.useRef(null);
-  const [shots, setShots] = useState([]);
+  const [shots, setShots] = useState(Array.isArray(photos) ? photos : []);
+  // null = the caller is reading the list and has not got it yet: the card
+  // says "loading", asks nothing, and never prints "Photographs coming" over
+  // pictures that are on their way.
+  const listPending = photos === null;
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
   // A short-stay door takes a stay through its own short form (DR-0930):
@@ -73,11 +84,12 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
   const [booking, setBooking] = useState(false);
 
   useEffect(() => {
-    if (!unit.rentalId) return undefined;
+    if (Array.isArray(photos)) { setShots(photos); return undefined; }
+    if (photos === null || !unit.rentalId) return undefined;
     let on = true;
     loadVacancyPhotos(unit.rentalId).then((r) => { if (on && r.ok) setShots(r.photos || []); });
     return () => { on = false; };
-  }, [unit.rentalId]);
+  }, [unit.rentalId, photos]);
 
   // ONE PICTURE AT A TIME (DR-1016). The list above carries no bytes; the
   // picture on the card (and the next one, so a swipe does not wait) is asked
@@ -108,6 +120,23 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
     if (cur && !cur.storage_path) ask(cur, 'thumb');
     if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
   }, [shots, i, ask]);
+  // The strip's thumbnails, asked for ONLY once the row is seen on screen.
+  // Where the browser cannot say (no IntersectionObserver: a test, an old
+  // WebView) nothing extra is asked — DR-1016's budget stands: the first
+  // picture and the next, and the strip shows the tiles it already has; a
+  // tap on a blank tile selects it and the main picture asks for it.
+  const stripRef = React.useRef(null);
+  useEffect(() => {
+    if (shots.length < 2) return undefined;
+    const askStrip = () => { for (const row of shots.slice(0, STRIP_MAX)) if (row && !row.storage_path) ask(row, 'thumb'); };
+    const el = stripRef.current;
+    if (!el || typeof IntersectionObserver !== 'function') return undefined;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { askStrip(); io.disconnect(); }
+    }, { rootMargin: '120px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shots, ask]);
   useEffect(() => {
     if (open == null || !shots.length) return;
     // The open picture's full image first, then the rest in order so a swipe
@@ -171,11 +200,11 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
               className="w-full h-full object-cover"
             />
           </button>
-        ) : shot ? (
+        ) : shot || listPending ? (
           /* The list is here and this picture is on its way (DR-1016): one
-             small read, not a broken frame. */
+             small read, not a broken frame. Or the list itself is on its way. */
           <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] px-2 text-center" role="status" data-testid="vacancy-photo-loading">
-            {`Loading picture ${i + 1} of ${shots.length}`}
+            {shot ? `Loading picture ${i + 1} of ${shots.length}` : 'Loading pictures'}
           </span>
         ) : (
           /* Said plainly rather than shown as a broken frame or a stock photo of
@@ -223,6 +252,54 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
           >
             ›
           </button>
+        </div>
+      )}
+      {/* A SWIPEABLE ROW OF THE PICTURES (DR-1236). Darrell, 2026-10-27,
+          signed out: "if you don't have an account you should be able to just
+          see the images". The arrows above walk one picture at a time; this
+          row shows the first few at once, a thumb-sized tap each (44px),
+          scroll-snapped so a swipe lands on a picture, and the rest behind
+          one "+N" that opens the whole set. Each thumbnail is asked for ONLY
+          once the row is on screen (DR-1016: the list never carries the
+          bytes), so a card below the fold costs nothing until it is reached. */}
+      {shots.length > 1 && (
+        <div
+          ref={stripRef}
+          className="flex gap-1.5 overflow-x-auto snap-x snap-mandatory px-1.5 py-1.5 border-b border-[#F0EDE6]"
+          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+          role="list"
+          aria-label={`${shots.length} photos`}
+          data-testid="vacancy-picture-strip"
+        >
+          {shots.slice(0, STRIP_MAX).map((row, n) => (
+            <button
+              key={row.id || n}
+              type="button"
+              role="listitem"
+              onClick={() => setI(n)}
+              aria-label={`Show photo ${n + 1} of ${shots.length}`}
+              aria-current={n === i ? 'true' : undefined}
+              className={`snap-start shrink-0 w-[72px] h-[54px] min-w-[44px] min-h-[44px] rounded-md overflow-hidden bg-[#FAF8F4] border-2 ${n === i ? 'border-[#B85838]' : 'border-transparent'} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}
+            >
+              {srcOf(row) ? (
+                <img src={srcOf(row)} alt={row.caption || `${placeName} photo ${n + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              ) : (
+                <span className="block w-full h-full" aria-hidden="true" />
+              )}
+            </button>
+          ))}
+          {shots.length > STRIP_MAX && (
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => setOpen(STRIP_MAX)}
+              aria-label={`See the other ${shots.length - STRIP_MAX} photos`}
+              data-testid="vacancy-picture-strip-more"
+              className="snap-start shrink-0 w-[72px] h-[54px] min-w-[44px] min-h-[44px] rounded-md bg-[#F0EDE6] text-[#2F5D50] text-[0.75rem] font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            >
+              {`+${shots.length - STRIP_MAX}`}
+            </button>
+          )}
         </div>
       )}
       {open != null && (

@@ -32,6 +32,7 @@ import { useVoiceDictation } from '../lib/voice-dictation.js';
 import UiIcon from './UiIcon.jsx';
 import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import { getInstanceId } from '../lib/table-sync.js';
+import { isReviewerStranger, reviewerLensLine } from '../lib/reviewer-lens.js';
 import {
   GROUP_ROSTERS, loadGroupMessages, sendGroupMessage, threadsByRoster,
 } from '../lib/group-messages.js';
@@ -52,7 +53,7 @@ const fmtTime = (iso) => {
   catch { return ''; }
 };
 
-function GroupsPanel({ session }) {
+function GroupsPanel({ session, stranger = false }) {
   const [instanceId, setInstanceId] = useState(null);
   const [roster, setRoster] = useState('members');
   const [rows, setRows] = useState([]);
@@ -68,7 +69,8 @@ function GroupsPanel({ session }) {
   });
   useEffect(() => { autoGrow(taRef.current); }, [draft]);
 
-  useEffect(() => { getInstanceId().then(setInstanceId).catch(() => setInstanceId(null)); }, []);
+  // A stranger has no space (DR-1240): under the lens the instance is never asked for.
+  useEffect(() => { if (stranger) { setInstanceId(null); return; } getInstanceId().then(setInstanceId).catch(() => setInstanceId(null)); }, [stranger]);
 
   const refresh = React.useCallback(() => {
     if (!instanceId) return;
@@ -161,7 +163,7 @@ function GroupsPanel({ session }) {
 // install the PoeTech App"). Reuses the proven Admin invite lane exactly
 // (inviteToSpace; two-party confirm per DR-0187, now surfaced here too) and
 // turns the invite into a ready-to-send text (share sheet / sms / copy).
-function AddContact({ onInvited, roster = [] }) {
+function AddContact({ onInvited, roster = [], stranger = false }) {
   const [spaces, setSpaces] = useState([]);
   const [spaceId, setSpaceId] = useState('');
   const [name, setName] = useState('');
@@ -180,13 +182,16 @@ function AddContact({ onInvited, roster = [] }) {
   const refreshSaved = () => { try { setSaved(readContacts()); } catch { setSaved([]); } };
 
   useEffect(() => {
+    // A stranger under the lens (DR-1240): no spaces he leads, no claims
+    // waiting on him, no address book on this device, nothing pulled back.
+    if (stranger) { setSpaces([]); setPending([]); setSaved([]); return undefined; }
     listMyAdminInstances().then((s) => { setSpaces(s); if (s[0]) setSpaceId(s[0].instanceId); }).catch(() => setSpaces([]));
     listPendingClaims().then((r) => setPending(r.ok ? r.claims : [])).catch(() => {});
     refreshSaved();
     let alive = true;
     pullMyContacts().then((r) => { if (!alive) return; setKeeper(r); refreshSaved(); }).catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [stranger]);
 
   // Keep every added contact in the returnable address book (name + phone +
   // email), so you can go back to them, text/call/email again, and complete
@@ -408,8 +413,13 @@ function AddContact({ onInvited, roster = [] }) {
 export default function Messages({
   voiceOps = {}, setVoiceOpsConfig = () => {},
   addIncident, addInquiry, addProject, entities = [], setView,
-  openWithUserId,
+  openWithUserId, stranger = null,
 } = {}) {
+  // THE LENS'S 'stranger' MODE (DR-1240): reviewing "as a new user" the
+  // surface never publishes his key or reads his contacts, invites, spaces,
+  // claims or group threads — a person nobody has added yet sees this.
+  // 'self' mode reads them as him, and the banner says so.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState('direct');
   // The person a notification tap named, taken ONCE from the boot snapshot
@@ -424,7 +434,7 @@ export default function Messages({
 
   useEffect(() => onAuthChange(setSession), []);
   useEffect(() => {
-    if (!session) { setContacts([]); setInvited([]); return; }
+    if (!session || lens) { setContacts([]); setInvited([]); return; }
     // Publish this device's public key so others can encrypt TO us, then load
     // the people the server says we may message (list_dm_contacts mirrors
     // users_can_dm — the surface never invents access) AND the open invites
@@ -433,7 +443,7 @@ export default function Messages({
     publishDmPublicKey().catch(() => {});
     loadDmContacts().then(setContacts).catch(() => setContacts([]));
     loadDmInvited().then(setInvited).catch(() => setInvited([]));
-  }, [session]);
+  }, [session, lens]);
 
   if (!session) {
     return (
@@ -468,6 +478,9 @@ export default function Messages({
       </div>
       {tab === 'direct' && (
         <>
+          {lens && (
+            <p className="text-xs text-[#5A5751]" role="status" data-testid="messages-reviewer-lens">{reviewerLensLine('contacts, spaces and threads')}</p>
+          )}
           {contacts.length === 0 && invited.length === 0 && (
             <p className="text-xs text-[#5A5751]">
               No one to message yet — add someone below with their email, or
@@ -475,13 +488,13 @@ export default function Messages({
             </p>
           )}
           <DirectMessages roster={contacts} invited={invited} title="Direct messages" openWithUserId={deepLinkPeer} />
-          <AddContact roster={contacts} onInvited={() => {
+          <AddContact roster={contacts} stranger={lens} onInvited={() => {
             loadDmContacts().then(setContacts).catch(() => {});
             loadDmInvited().then(setInvited).catch(() => {});
           }} />
         </>
       )}
-      {tab === 'groups' && <GroupsPanel session={session} />}
+      {tab === 'groups' && <GroupsPanel session={session} stranger={lens} />}
       {tab === 'voicemail' && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
