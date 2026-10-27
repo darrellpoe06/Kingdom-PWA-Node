@@ -264,10 +264,25 @@ describe('L267 tells the truth about its own road and its own limits', () => {
     expect(L.lesson).toContain('costly signalling');
     expect(L.lesson).toContain('Ara Norenzayan');
     expect(/we have not read it, and we attach no motive to a living man/.test(L.lesson)).toBe(true);
-    // the three tiers are worked by name, and the correction is of THAT claim
-    expect(/FIRST, what is real in it is kept/.test(L.lesson)).toBe(true);
-    expect(/SECOND, what is genuinely open stays open and narrow/.test(L.lesson)).toBe(true);
-    expect(/THIRD, and this is the part the Word corrects/.test(L.lesson)).toBe(true);
+    // The three tiers are worked by name, in order, and the correction is of
+    // THAT claim. What is pinned is the TIER, not the ordinal word in front of
+    // it: these three read "The first part:" / "The second part:" / "The third
+    // part, and this is where the Word corrects it:" and MUST NOT be returned
+    // to a sentence-initial "FIRST," / "SECOND," / "THIRD,".
+    //
+    // WHY, measured 2026-10-27: formatLessonText reads a sentence-initial
+    // ordinal as a SECTION HEADING, so the earlier wording made the reader's
+    // point numbers run 1..8, then 1, 2, 3, then 9, 10 — the count restarting
+    // mid-lesson in front of a reader, and the-points-are-numbered-once-per-
+    // lesson went red on exactly that. The tiers are unchanged; only the words
+    // that the formatter mistakes for headings are. Reverting the prose would
+    // reintroduce the numbering break, so the two constraints are recorded
+    // together here rather than left to collide again.
+    expect(/The first part: what is real in it is kept/.test(L.lesson)).toBe(true);
+    expect(/The second part: what is genuinely open stays open and narrow/.test(L.lesson)).toBe(true);
+    expect(/The third part, and this is where the Word corrects it/.test(L.lesson)).toBe(true);
+    // and the prose must not drift back into the heading-shaped form
+    expect(/(^|\s)(FIRST|SECOND|THIRD), /.test(L.lesson)).toBe(false);
     // no "two views, you decide"
     expect(/you decide|make up your own mind|both sides/i.test(whole)).toBe(false);
   });
