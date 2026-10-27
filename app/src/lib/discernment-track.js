@@ -132,9 +132,25 @@ export function normalizeIssue(issue) {
         publisher: s?.publisher || '',
         url: s?.url || '',
         asOf: s?.asOf || '',
+        // The record itself (the vendor's own announcement, the court file,
+        // our own repository search), not a report about it.
+        primary: !!s?.primary,
       })),
       note: v?.note || '',
     })),
+    // THE NEWEST WORD (2026-10-27): what is being said now, dated, named, with
+    // the standing of who says it — field | vendor | institution.
+    latest: {
+      asOf: i.latest?.asOf || '',
+      frame: i.latest?.frame || '',
+      items: arr(i.latest?.items).map((it) => ({
+        said: it?.said || '',
+        by: it?.by || '',
+        standing: it?.standing || '',
+        asOf: it?.asOf || '',
+        url: it?.url || '',
+      })),
+    },
     interpretation: arr(i.interpretation).map((n, idx) => ({
       id: n?.id || `interp-${idx}`,
       statement: n?.statement || '',
@@ -423,8 +439,44 @@ export function lintOneLessonWordFirst(issue) {
   return out;
 }
 
+// THE NEWEST WORD, NOT ONLY THE INSTITUTIONS' (2026-10-27). Darrell, on World
+// Issues 22: "World issues did not have the latest information... just the
+// latest in institutions... which are usually behind the main stream... like we
+// don't take epstein seriously anymore and the institutions are trustworthy when
+// historical events say otherwise for Africa Americans." Lesson 22's first
+// draft carried only what the institutions had confirmed, days after the field
+// had logged the attack. Three checks, errors for lessons researched from this
+// date and warnings (held by a shrink-only baseline) for the 21 before it:
+//   latest/missing          — the lesson carries a dated latest section
+//   latest/only-institutions — at least one item of it comes from the field
+//   documented/one-word     — a documented fact rests on two distinct publishers
+//                             or on the record itself (a source marked primary)
+export const LATEST_SINCE = '2026-10-27';
+export const LATEST_STANDINGS = ['field', 'vendor', 'institution'];
+export function lintLatestNotOnlyInstitutions(issue) {
+  const i = normalizeIssue(issue);
+  // Held as errors from the date on, and for any lesson that already carries a
+  // latest section (once a lesson carries the newest word it is held whole).
+  const bound = (i.source.asOf && i.source.asOf >= LATEST_SINCE) || isNonEmptyStr(i.latest.asOf);
+  const severity = bound ? 'error' : 'warn';
+  const out = [];
+  const items = i.latest.items.filter((it) => isNonEmptyStr(it.said) && isNonEmptyStr(it.by) && isNonEmptyStr(it.asOf));
+  if (!isNonEmptyStr(i.latest.asOf) || !items.length) {
+    out.push({ code: 'latest/missing', severity, message: 'No dated "what is being said now" section (latest.asOf + items with said/by/asOf). The lesson carries the newest word, not only what the institutions have confirmed.' });
+  } else if (!items.some((it) => it.standing === 'field')) {
+    out.push({ code: 'latest/only-institutions', severity, message: 'Every item in the latest section stands on an institution. Institutions usually trail the field; carry at least one dated word from the people closest to it (standing: "field").' });
+  }
+  i.verifiable.filter((v) => v.status === 'documented').forEach((v) => {
+    const publishers = new Set(v.sources.map((s) => s.publisher.trim()).filter(Boolean));
+    if (publishers.size < 2 && !v.sources.some((s) => s.primary)) {
+      out.push({ code: 'documented/one-word', severity, message: `"${v.id}" is marked documented on one publisher's word. Two distinct publishers, or the record itself (a source marked primary) — an institution's word is weighed by its record, never taken as the top tier by its name.` });
+    }
+  });
+  return out;
+}
+
 export const ISSUE_LINTERS = [
-  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate, lintSourceNamesWhoNotWhatTheyBelieve, lintOneLessonWordFirst,
+  lintClaimsLabeled, lintSourcesCited, lintEvenhanded, lintNoOneSidedPersuasion, lintAgeAppropriate, lintSourceNamesWhoNotWhatTheyBelieve, lintOneLessonWordFirst, lintLatestNotOnlyInstitutions,
 ];
 
 // auditIssue — run every safeguard. ok === true only when NO error-severity

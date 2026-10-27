@@ -55,6 +55,7 @@ describe('file inputs never force camera-only', () => {
     'modules/properties/PropertiesApp.jsx': 'the work-order "Take a picture" buttons, each beside "Choose pictures" (DR-0936/DR-0937)',
     'modules/properties/DocSigning.jsx': 'the tenant\'s "Take a picture of a paper", beside "Choose pictures" and "Choose files" (DR-0936)',
     'modules/properties/StayWall.jsx': 'the Life wall\'s "Take a picture", beside "Choose pictures" (DR-1010)',
+    'components/WorkOrderPictures.jsx': 'the work-order triage\'s "Take a picture", beside "Choose from this phone" (DR-1235)',
   });
 
   it('no capture attribute on any file input anywhere in app/src, except a camera that stands beside a chooser', () => {
