@@ -68,7 +68,13 @@ Rendered output checked directly: both lines now read `48 weekly sessions`.
 Also green: `church-classes` and `sovereign-ai-class` (38 tests), lint exit 0,
 `verify:gates` exit 0.
 
-## Limits, named rather than left
+## Impact — what this obligates, and the limits named rather than left
+
+A reader of the exported course document was told two different lengths two
+lines apart, and the wrong one was the headline. What the fix obligates is
+small and permanent: the count is now derived, so **no new lesson may
+reintroduce a literal there** — and the gate holds that for every course, not
+just the one that broke. The limits:
 
 - The count moves with the array, so when sov51 (#2432) lands this reads 49 with
   nothing edited — which is the point. The `~75 min each` and the prose around it
