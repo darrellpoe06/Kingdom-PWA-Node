@@ -87,7 +87,7 @@ describe('curriculum shape', () => {
     // hole on disk. MEASURED, not assumed -- the branch was listed from the
     // remote before this entry was written, which is the whole discipline this
     // list exists for. DELETE the 49 when that branch merges; do not widen it.
-    const HELD_IN_FLIGHT = [49];
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
