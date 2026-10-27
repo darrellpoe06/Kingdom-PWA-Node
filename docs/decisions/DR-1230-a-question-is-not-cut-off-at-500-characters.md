@@ -27,9 +27,35 @@ The purpose of a per-question cap is to stop one caller handing the tower's GPU 
 unbounded prompt. Four thousand characters is roughly a thousand tokens — nothing
 for a local model — so the brake still brakes at the raised value.
 
+## The cap is written in THREE places, and a raise is three edits or it is not a raise
+
+This is the part worth recording, because the first attempt at this change got it
+wrong and CI caught it. One cap, three implementations:
+
+| where | what it does |
+| --- | --- |
+| `app/src/lib/research.js` — `MAX_QUERY_CHARS` | `queryProblem()` refuses the question **in the app, before any request is sent**. This is the one the reader actually meets. |
+| `infra/nas-research/research_forwarder.py` — `MAX_QUERY_CHARS` | the NAS door's own 413, for anything arriving by another path |
+| `.github/workflows/research-ask.yml` — `[ "$LEN" -gt … ]` | the shell cap on the dispatch road |
+
+The first commit raised **only the forwarder**. Every local check passed — lint,
+28 gates, the forwarder's own self-test — and the full suite in CI went red on
+`research-road.test.jsx`, which asserts the forwarder's constant **equals the
+app's**. That assertion is why the mistake was caught rather than shipped, and
+the mistake mattered: with the app still at 500, `queryProblem()` would have gone
+on refusing every long question before the request was even made, so the
+user-visible defect this record exists to fix would have been **entirely
+unfixed** while the record claimed otherwise.
+
+Three test sites had the number spelled as a literal `500`, which is how a
+one-sided raise could ever look green. They now derive it from the app constant:
+`research-road`'s cap case and its 413-message case, and the build-tool test's
+workflow check, which reads the cap out of `app/src/lib/research.js` and requires
+the workflow to match it.
+
 ## The decision
 
-`MAX_QUERY_CHARS` is **4000**, raised from 500.
+`MAX_QUERY_CHARS` is **4000**, raised from 500, **in all three places**.
 
 It is deliberately at most **half of `MAX_BODY_BYTES` (8192)**, and that
 relationship is now asserted rather than left as a coincidence. The reason is the
@@ -50,6 +76,13 @@ the raise exists for:
 
 ## Impact — what this obligates
 
+- **A later raise is three edits.** The app, the NAS door and the dispatch
+  workflow must all carry the same number, and two tests now fail if they
+  diverge. The durable fix would be one source the other two read; that is not
+  done here, because a shell workflow, a NAS Python file and an app module do not
+  share a module boundary, and inventing a generated constant across all three is
+  a larger change than this record's subject. The gates hold them equal in the
+  meantime. `re-review: 2026-11-24`.
 - A later raise must keep the cap at or under half the body cap, or the
   self-test fails and says why. Raise it on a **measured refusal**, never a
   guess; `re-review: 2026-12-27`.
@@ -89,3 +122,12 @@ again when restored:
 
 `python3 infra/nas-research/research_forwarder.py --selftest` → **OK** on the
 shipped values.
+
+And the three-places agreement, each partial raise shown to fail:
+
+- the **workflow** left at 500 while the app is 4000 → *"expected ... to match
+  `/-gt 4000/`"* **FAIL** (1 of 14);
+- the **forwarder** left at 500 while the app is 4000 — the exact mistake this
+  record describes — → *"expected ... to match `/^MAX_QUERY_CHARS = 4000$/m`"*
+  **FAIL** (1 of 16);
+- all three at 4000 → **30 passed**.
