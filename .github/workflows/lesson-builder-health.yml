@@ -22,7 +22,11 @@ on:
   workflow_dispatch:
     inputs:
       probe_waiting:
-        description: 'Also print, per waiting lesson row, the last gate verdict the builder recorded (counts, codes, refs; never a body), and ask the primary writer once, the way the builder asks it (DR-1222)'
+        description: 'Also print, per waiting lesson row, the last gate verdict the builder recorded (counts, codes, refs; never a body), and ask the primary writer once, the way the builder asks it (DR-1232)'
+        type: boolean
+        default: false
+      reoffer_rate_limited:
+        description: 'Also offer again every waiting row whose last recorded failure was the model''s rate limit (HTTP 429) but whose tag lost that status to the 200-character cut: one tag per row, idempotent, the builder rings on it (DR-1232)'
         type: boolean
         default: false
 
@@ -118,7 +122,7 @@ jobs:
           EOS
           cat /tmp/witness.json
 
-      # ON REQUEST (DR-1222): WHY the builder hands rows back, read from what
+      # ON REQUEST (DR-1232): WHY the builder hands rows back, read from what
       # the gates recorded, by a runner over the tailnet (DR-1159 road 1).
       # On 2026-10-26 fifteen rows sat four days with "handed back (last:
       # failed)" and nothing outside the NAS could say what failed: the
@@ -168,7 +172,7 @@ jobs:
               j = json.loads(out)
               print("stdout: one JSON document; keys:", sorted(j.keys()) if isinstance(j, dict) else type(j).__name__)
               if isinstance(j, dict):
-                  for k in ("type", "subtype", "is_error", "num_turns", "duration_ms", "stop_reason"):
+                  for k in ("type", "subtype", "is_error", "api_error_status", "num_turns", "duration_ms", "stop_reason"):
                       if k in j: print("  {} = {}".format(k, j[k]))
                   if "result" in j: print("  result =", elide(json.dumps(str(j["result"])[:200])))
           except Exception as e:  # noqa: BLE001
@@ -177,6 +181,21 @@ jobs:
           PY
           cd /; rm -rf "$W"
           EOS
+
+      # ON REQUEST (DR-1232): the rows the 200-character cut mis-filed as
+      # failed lessons are offered again under the rate-limit rule. One tag
+      # each, idempotent; the count is the whole output.
+      - name: "Offer again (on request): waiting rows whose recorded failure was the model's rate limit"
+        if: steps.gate.outputs.go == 'true' && inputs.reoffer_rate_limited == true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-waiting-reoffer-rate-limited.sql); then
+            echo "::error::the live database could not be written -- nothing was offered again"; exit 1
+          fi
+          echo "waiting | due (rate-limited by the record, not by the tag) | offered again = $out"
+          echo "### Offered again under the rate-limit rule: waiting | due | tagged = $out" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'

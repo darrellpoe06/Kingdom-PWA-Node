@@ -1,5 +1,5 @@
 // =============================================================================
-// scripts/live-sql.sh -- the SQL rides stdin, never ssh's command line (DR-1222)
+// scripts/live-sql.sh -- the SQL rides stdin, never ssh's command line (DR-1232)
 // =============================================================================
 // research-inbox run 40430070416 (2026-10-27, job "backlog") failed to file a
 // lesson from a research item: `scripts/live-sql.sh: line 89: /usr/bin/ssh:
@@ -124,7 +124,7 @@ function oldFormCopy() {
   return file;
 }
 
-describe('live-sql.sh carries SQL of any size (DR-1222)', () => {
+describe('live-sql.sh carries SQL of any size (DR-1232)', () => {
   it('the SQL rides stdin ahead of the remote half, never the command line', () => {
     const src = readFileSync(LIVE_SQL, 'utf8');
     expect(src).toContain(NEW_TRANSPORT);

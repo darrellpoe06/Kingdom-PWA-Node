@@ -1,5 +1,5 @@
 -- lesson-waiting-last-verdict.sql -- for each waiting lesson row, what the
--- gates recorded on its LAST build (DR-1222). Read by lesson-builder-health.yml
+-- gates recorded on its LAST build (DR-1232). Read by lesson-builder-health.yml
 -- on request (workflow_dispatch input probe_waiting), so the question "why
 -- does the builder hand these back?" is answered from the live database by a
 -- runner over the tailnet (DR-1159), never from memory and never by a hand.

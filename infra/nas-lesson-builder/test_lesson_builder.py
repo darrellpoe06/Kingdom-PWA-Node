@@ -875,6 +875,44 @@ class Stages(unittest.TestCase):
         self.assertFalse(ok, "PROVEN TO CATCH: the retries are bounded, never a loop")
         self.assertIn("rate-limited 4 times", why)
 
+    def test_the_rate_limit_signal_survives_the_200_character_cut(self):
+        """DR-1232, measured 2026-10-27 on fifteen rows (lesson_versions.error, read
+        over the tailnet): the CLI's envelope puts api_error_status ~250 characters
+        into its 400-byte tail, so after reason_tag's 200-character cut the tag
+        ended at `"killed":{"parent"` and rate_limited() saw nothing. The rows
+        were counted as two failed lessons with nothing wrong in them. The real
+        400-byte tail is used here, byte for byte."""
+        tail = ('ailed":0,"killed":{"parent":0,"user":0,"system":0},"refused":{"depth_limit":0,'
+                '"concurrency_limit":0,"budget":0},"by_type":{}},"is_error":true,"num_turns":1,'
+                '"subtype":"success","api_error_status":429,"result":"You have hit your limit",'
+                '"type":"result","duration_ms":465,"uuid":"0f6d1c2e-aaaa-bbbb-cccc-1234567890ab","queued_turn_count":0}')
+        why = "no version passed every gate (1 written): cli-local cli-local exit 1: " + tail
+        self.assertGreater(why.index("429"), 200, "the fixture reproduces the cut: 429 sits past 200 characters")
+        tag = lb.reason_tag(why)
+        self.assertTrue(tag.startswith("build-reason:rate-limited: no version passed"), tag)
+        self.assertLessEqual(len(tag), len("build-reason:") + 200)
+        self.assertTrue(lb.rate_limited(["lesson", tag]))
+        # PROVEN TO CATCH: the old cut alone loses the signal
+        old = "build-reason:" + why[:200]
+        self.assertFalse(lb.rate_limited(["lesson", old]), "the old tag ends before 429 and reads as a plain failure")
+        # a reason that is not a rate limit is untouched
+        self.assertEqual(lb.reason_tag("verse gate: Numbers 35:11 not verbatim"),
+                         "build-reason:verse gate: Numbers 35:11 not verbatim")
+        # and one that already says so is not prefixed twice
+        self.assertEqual(lb.reason_tag("rate-limited: HTTP 429"), "build-reason:rate-limited: HTTP 429")
+
+    def test_a_failed_cli_run_names_its_status_first(self):
+        """DR-1232: the writer's error opens with HTTP <status> so a reader (and
+        the 200-character tag) sees the rate limit before the envelope's noise."""
+        out = ('{"type":"result","subtype":"success","is_error":true,"num_turns":1,'
+               '"api_error_status":429,"result":"You have hit your limit","duration_ms":465,'
+               '"usage":{},"total_cost_usd":0}').encode("utf-8")
+        said = lw.cli_failure_tail(out, b"")
+        self.assertTrue(said.startswith("HTTP 429 (success): You have hit your limit"), said)
+        self.assertTrue(lb.rate_limited([lb.reason_tag("cli-local exit 1: " + said)]))
+        # not an envelope: the old tail, unchanged
+        self.assertEqual(lw.cli_failure_tail(b"", b"claude: command not found"), "claude: command not found")
+
     def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
         tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",
                 "build-reason:no version passed every gate (1 written): verse gate: Numbers 35:11 not verbatim"]

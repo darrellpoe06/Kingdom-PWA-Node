@@ -172,7 +172,18 @@ def last_failed_at(tags):
 
 
 def reason_tag(text):
-    return "build-reason:" + re.sub(r"\s+", " ", str(text)).strip()[:200]
+    """The row's own why, as a tag. 200 characters, so a reader's list stays
+    readable -- and the ONE signal eligibility() reads back from it is kept
+    at the FRONT (DR-1232). Measured 2026-10-27 on fifteen rows: the CLI's
+    429 sat ~250 characters into its JSON tail, after "no version passed
+    every gate (1 written): cli-local cli-local exit 1: ", so the cut tag read
+    `..."killed":{"parent"` and rate_limited() saw nothing; the rows were
+    counted as two failed lessons and left for the hourly Routine with
+    nothing wrong in them. A rate-limited failure now names itself first."""
+    why = re.sub(r"\s+", " ", str(text)).strip()
+    if _RATE_LIMITED.search(why) and not why.lower().startswith("rate-limited"):
+        why = "rate-limited: " + why
+    return "build-reason:" + why[:200]
 
 
 # =============================================================================

@@ -154,7 +154,7 @@ fi
 # 3. WRITE
 SQL_B64=$(base64 -w0 < "$WORK/updates.sql")
 # SQL_B64 rides stdin ahead of the script, never the command line: one ssh
-# argument is capped at 128 KiB on Linux (DR-1222, the same class live-sql.sh
+# argument is capped at 128 KiB on Linux (DR-1232, the same class live-sql.sh
 # died of), and a day's placements can be larger than that.
 OUT=$({ printf 'SQL_B64=%s\n' "$SQL_B64"; cat "$REMOTE_SCRIPT"; } | $SSH "NAS_ENV='$NAS_ENV' MODE=write bash -s" 2>"$WORK/err")
 rc=$?

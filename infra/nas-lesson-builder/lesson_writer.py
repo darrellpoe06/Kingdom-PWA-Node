@@ -379,6 +379,25 @@ def _read_key(cfg, env, default_env="", default_file=""):
     return ""
 
 
+def cli_failure_tail(stdout, stderr):
+    """What a failed `claude -p` run said, with its STATUS FIRST (DR-1232).
+    The CLI prints one JSON envelope even when it fails; its api_error_status
+    (429 = the model's rate limit) sat ~250 characters into the 400-byte
+    tail, past the 200 characters the row's build-reason tag keeps, so the
+    builder could not tell a rate limit from a broken lesson. Now the tail
+    opens with `HTTP <status>` and the envelope's own words."""
+    out = (stdout or b"").decode("utf-8", "replace")
+    err = (stderr or b"").decode("utf-8", "replace")
+    try:
+        env = json.loads(out)
+    except ValueError:
+        env = None
+    if isinstance(env, dict) and env.get("api_error_status"):
+        return "HTTP {} ({}): {}".format(env.get("api_error_status"), env.get("subtype", "error"),
+                                        (str(env.get("result") or "") + " " + err).strip()[:300])
+    return (out + err)[-400:]
+
+
 def parse_cli_reply(stdout):
     """`claude -p --output-format json` prints one envelope: {"type":"result",
     "is_error":bool,"result":"<text>","usage":{...},"total_cost_usd":n,...}.
@@ -527,8 +546,7 @@ class CliLocal(Writer):
             r = self.run(self._prefix() + [b] + cli_args(self.cfg, self.env), input=wire.encode("utf-8"),
                          capture_output=True, timeout=timeout, cwd=cwd, env=_clean_env())
         if r.returncode != 0:
-            raise RuntimeError("cli-local exit {}: {}".format(
-                r.returncode, ((r.stdout or b"") + (r.stderr or b""))[-400:].decode("utf-8", "replace")))
+            raise RuntimeError("cli-local exit {}: {}".format(r.returncode, cli_failure_tail(r.stdout, r.stderr)))
         return parse_cli_reply(r.stdout.decode("utf-8", "replace"))
 
 
@@ -569,8 +587,7 @@ class CliSsh(Writer):
         r = self.run(self._ssh() + [self._remote()] + cli_args(self.cfg, self.env, remote=True), input=wire.encode("utf-8"),
                      capture_output=True, timeout=timeout)
         if r.returncode != 0:
-            raise RuntimeError("cli-ssh exit {}: {}".format(
-                r.returncode, ((r.stdout or b"") + (r.stderr or b""))[-400:].decode("utf-8", "replace")))
+            raise RuntimeError("cli-ssh exit {}: {}".format(r.returncode, cli_failure_tail(r.stdout, r.stderr)))
         return parse_cli_reply(r.stdout.decode("utf-8", "replace"))
 
 
