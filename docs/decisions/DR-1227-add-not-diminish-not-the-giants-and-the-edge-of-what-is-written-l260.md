@@ -1,13 +1,13 @@
-# DR-1227: Add not, diminish not — the giants, and the edge of what is written (ll261)
+# DR-1227: Add not, diminish not — the giants, and the edge of what is written (ll260)
 
 **Date:** 2026-10-26
 **Status:** accepted
 **Tier:** A (additive curriculum: one new Living Lessons module, dated, with its own proven-to-catch gate)
 **Type:** curriculum
 **Area:**
-- `app/src/lib/living-lessons-class.js` (`ll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written`, appended after ll258)
-- `app/src/lib/living-lessons-dates.js` (ll261's line, with why the build day rather than an estimated send day)
-- `app/src/__tests__/living-lessons-ll261-add-not-diminish-not.test.js` (its gate, 116 cases, 7 proven-to-catch)
+- `app/src/lib/living-lessons-class.js` (`ll260-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written`, appended after ll258)
+- `app/src/lib/living-lessons-dates.js` (ll260's line, with why the build day rather than an estimated send day)
+- `app/src/__tests__/living-lessons-ll260-add-not-diminish-not.test.js` (its gate, 116 cases, 7 proven-to-catch)
 - `app/src/lib/lesson-dates.json` (regenerated, 841 of 841 dated)
 
 **Amends:** nothing. **Grounds:** DR-0098 (teach the Word, do not debate it — this record's own hardest requirement, and the DR whose worked example IS Genesis 6 "sons of God"), DR-0076 (every verse verbatim from the repository's own KJV; proven-to-catch gates), DR-0100 (established fact stated plainly; under-claiming is its own failure of truth), DR-0192 (the trust-but-verify pass runs BEFORE first ship on a research-sourced lesson), DR-0210 (Yahweh in our own voice; quotations untouched), DR-0097 (the Word capitalized), DR-0610 (one teaching, one lesson), DR-1206 (the witness belongs to the road), DR-0795 (all three directions in EVERY band), CLAUDE.md typographic theology (senior to the source).
@@ -64,13 +64,13 @@ The dispute is **named** — both sendings are described in the lesson's own ope
 - **Named but NOT taught, because outside the Word:** the Ugaritic `rapi'uma` lexical argument the second sending rests on, and the Plato / Atlantis and Zep Tepi parallels the first one rests on. The lesson teaches what **Scripture itself** does with the word Rephaim, which is the Word explaining the Word; an outside lexicon is not the measure here, and ll73 already holds the borrowed-parallel work.
 - **No faith label, affiliation or motive is attached to either named man**, which the World Issues 21 correction made a standing rule, and the second speaker is **not named** because the road did not return a name — the lesson says so rather than guessing.
 
-**Numbers claimed:** `LIVING_LESSONS_MODULES` read at 255 modules with highest ll258 on `origin/main`; ll261 taken and verified free across every remote branch. `scripts/claim-decision-number.mjs` reported DR-1219 as next free on disk with 0 in-flight numbers at or above it; DR-1227 was the assigned number and is free on disk and in flight.
+**Numbers claimed, and the number that had to be corrected twice.** `LIVING_LESSONS_MODULES` read at 255 modules with highest **ll258** on `origin/main`. The id assigned to this build was **ll252**, which has been taken since 2026-10-18 ("This Life Is the Curriculum", DR-1100) — caught before a line was written. It was then reassigned to **ll261**, which `living-lessons-numbers-are-unique` rejects: `KNOWN_GAPS` is frozen at two entries, so taking 261 while 259 and 260 are unclaimed is a NEW hole, and CI's `lint + vitest` went red on it by name. **A lesson number is not a reservation; it is the lowest free number above the catalog's top.** Measured across every pushed branch: siblings hold **ll259** (`claude/ll259-his-name-kept-in-stone-and-silver`) and **ll264** (`claude/ll264-the-judgment-seat-and-the-reward`), so the lowest free id is **ll260**, and this lesson is ll260. `scripts/claim-decision-number.mjs` reported DR-1219 as next free on disk with 0 in-flight numbers at or above it; DR-1227 was the assigned number, is free on disk and in flight, and did not change.
 
 ## The decision
 
 **Two sendings on one passage become ONE lesson, taught from the Word's own usage, held to one measure that cuts in both directions — never a both-sides piece.**
 
-`ll261` is appended to Living Lessons (`app/src/lib/living-lessons-class.js`) because that is the course that carries the Word-first teaching the congregation reads, in four age bands, and because the subject is a reading discipline rather than a topic: it belongs beside ll29, ll72, ll73 and ll76, which it extends rather than restates.
+`ll260` is appended to Living Lessons (`app/src/lib/living-lessons-class.js`) because that is the course that carries the Word-first teaching the congregation reads, in four age bands, and because the subject is a reading discipline rather than a topic: it belongs beside ll29, ll72, ll73 and ll76, which it extends rather than restates.
 
 Eleven movements: the measure and why it cuts both ways; who the "sons of God" are by the Word's own usage; the giants were real and shaving them down is also a lie; and the Word makes them outliers, not a race; **the edge, said out loud**; First Enoch, placed honestly; what an unclean spirit is from the Word's own account; the darkness was worship, and He said so Himself; evidence, and the trap of friendly proof; how a giant actually falls; the practice. Every band carries all eleven in its own register and closes on the same line: "for the battle is the LORD’s, and he will give you into our hands" (1 Samuel 17:47).
 
@@ -83,13 +83,14 @@ A reader who has met this subject only through a video now has it from the text:
 - **The send day is known only to within a day.** The two rows waited roughly 87 hours; the recorded date is the **build day** (2026-10-26), with the reason written beside it in `living-lessons-dates.js`. An estimate dressed as a date would have been worse than an honest build day. `re-review: 2026-11-26` — if the intake ever carries an exact `created_at` into the builder's hands, the date convention for research-road lessons should be settled once rather than per lesson.
 - **The second speaker is unnamed.** The research road returned no name, so the lesson says the road did not name him. If the name is recovered later, the lesson should name him plainly — `re-review: 2026-11-26`.
 - **The transcripts are machine hearing.** Auto-generated captions with no timestamps. That is why **not one sentence is quoted from either man**; their positions are summarised from the road's own summary plus the transcript, and a summary can misplace emphasis even when it does not misstate. A reader who wants either man's exact words must go to the source.
+- **This PR cannot merge before ll259's, and that is the gate working rather than a defect.** The contiguity rule means a catalog of `…258, 260` is a hole; so `ll260` is only legal once `ll259` has landed. The merge order is the lane's, not this record's, and nothing here should be "fixed" by taking a lower number that a sibling already holds — that would trade a gap for a collision. If `ll259` is abandoned rather than merged, this lesson renumbers to 259; `re-review: 2026-11-02`.
 - **The house canon decision is still open.** `THE-ROOT-POSITIONS-AND-INQUIRY.md` records the Genesis 6 divine-beings reading at HIGH confidence and marks the 1 Enoch demon mechanism as **pending the house's formal canon decision** (`THE-CANON.md`). This lesson does not settle that and does not pretend to; it teaches what the Word says and stops, and if the canon decision later lands, this lesson needs no edit for it — which is the point of stopping at the edge.
 - **The Deuteronomy 32:8 manuscript question is not reopened here.** ll29 already names it honestly. This lesson does not need it and so does not touch it.
 - **What this lesson does not do:** it does not catalogue the Rephaim outside Scripture, does not adjudicate the Aramaic loan-word argument about nephilim, and does not say where unclean spirits came from. Each of those is a place the Word is reticent or the question is outside it, and the lesson says so rather than leaving a reader to assume it was covered.
 
 ## Proven to catch
 
-`app/src/__tests__/living-lessons-ll261-add-not-diminish-not.test.js` — **116 cases, all green**, seven of which are breaks performed in the test rather than claims about it:
+`app/src/__tests__/living-lessons-ll260-add-not-diminish-not.test.js` — **116 cases, all green**, seven of which are breaks performed in the test rather than claims about it:
 
 1. **An altered quotation.** Softening Deuteronomy 4:2 in the child band ("and do not take anything away either") makes the verbatim check name Deuteronomy 4:2. So does substituting "Yahweh" into Matthew 22:29 — the DR-0210 bright line, pinned as a break.
 2. **A trimmed band.** Cutting the teen band to 600 characters makes `shortBands` report `teen`.
@@ -97,6 +98,6 @@ A reader who has met this subject only through a video now has it from the text:
 4. **The generic "God" in our own voice.** Appending "Then God was glad." to the child band fires the check.
 5. **A capital smuggled in from the source.** Appending "The Watchers descended on Mount Hermon." fires the typography check — the break that actually happened in the draft.
 6. **A both-sides invitation.** "Here are two views; you decide" fires; "We are not going to pick a side" does not. Both directions pinned, because the first version of this check could not tell them apart.
-7. **The catalog pins are deliberately one-sided.** "Is the last lesson" and "262 is absent" are NOT pinned — L256's and L257's equivalents both broke when the catalog grew. The pins are a floor (`>= 261`) plus an assertion that 259 and 260 are not this lesson's to fill.
+7. **The catalog pins are deliberately one-sided.** "Is the last lesson" and "the next number is absent" are NOT pinned — L256's and L257's equivalents both broke when the catalog grew. The pins are a count (260 claimed exactly once), a floor (`>= 260`) and a uniqueness check, and they say nothing about which numbers are absent.
 
 Also green, unchanged: `lesson-completeness`, `every-catalog-quotes-the-verse`, `every-anchor-is-named-in-the-lesson`, `four-band-ladder`, `band-differentiation-gate`, `course-band-coverage`, `a-coloring-page-for-every-lesson` (the page is derived, so this lesson got one for free), `full-context-before-the-lesson`, `lesson-dates`, `adversary-is-never-capitalized`, `one-teaching-one-lesson-guard` (0 pairs), and `derive-lesson-dates --check` (841 of 841 dated).

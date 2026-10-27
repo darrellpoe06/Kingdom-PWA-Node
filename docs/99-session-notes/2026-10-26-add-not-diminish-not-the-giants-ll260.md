@@ -1,8 +1,8 @@
-# 2026-10-26 — L261, "Add Not, Diminish Not — the Giants, and the Edge of What Is Written" (DR-1227)
+# 2026-10-26 — L260, "Add Not, Diminish Not — the Giants, and the Edge of What Is Written" (DR-1227)
 
-**Module id:** `ll261`
+**Module id:** `ll260`
 
-**What changed.** Two links Darrell sent **inside the app** down the research road, hours apart, both on Genesis 6 and the giants of Canaan, became **one** Living Lesson, `ll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written`, dated 2026-10-26:
+**What changed.** Two links Darrell sent **inside the app** down the research road, hours apart, both on Genesis 6 and the giants of Canaan, became **one** Living Lesson, `ll260-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written`, dated 2026-10-26:
 
 - the adult lesson in eleven movements;
 - four age bands, each carrying all eleven in its own register;
@@ -24,7 +24,7 @@ The two sendings: `agent_inbox` row `031a898a-b98b-484e-8d06-0962dede6316` (rese
 - **The edge is stated, not filled.** No verse ties Og or Goliath to Genesis 6, and the lesson says so (Deuteronomy 29:29; Colossians 2:18). First Enoch is reported, never taught as the Word — Jude 1:14-15 honours a prophecy, which is not a canon decision (2 Timothy 3:16). The claim that a demon is the spirit of a dead giant is not in Scripture and is not taught, while the appointed time that **is** in the text is kept (Matthew 8:29; 2 Peter 2:4).
 - **And the size is not softened.** Deuteronomy 2:10-11 binds "accounted giants" to "tall, as the Anakims" in one breath. Numbers 13:33 is handled exactly: the Word calls that report evil (13:32; 14:36), the lie was the verdict (13:31), and the stature still carries calm witnesses (Joshua 14:12; Deuteronomy 9:2). Under-claiming a plain statement is its own failure of truth.
 - **Verified, not relayed.** The viral claim that a national museum destroyed thousands of giant skeletons under court order traces to a 2014 article on a site that publishes fiction and satire, has no ruling in the public record, is denied by the museum, and carries a misattributed photograph of a man with gigantism who died in 1904 — stated plainly in the lesson. The Enoch "many mansions" derivation and the Ugaritic lexical argument are named here and deliberately **not** taught.
-- The gate, `app/src/__tests__/living-lessons-ll261-add-not-diminish-not.test.js`, runs **116 cases** and is proven to catch seven breaks, including a both-sides invitation that fires while the refusal of one stays quiet — the first version of that check could not tell them apart and flagged the child band for saying "We are not going to pick a side."
+- The gate, `app/src/__tests__/living-lessons-ll260-add-not-diminish-not.test.js`, runs **116 cases** and is proven to catch seven breaks, including a both-sides invitation that fires while the refusal of one stays quiet — the first version of that check could not tell them apart and flagged the child band for saying "We are not going to pick a side."
 
 **The increment, checked.** `ll29` already teaches the "sons of God" through Job and already places 1 Enoch as context; `ll72`, `ll73` and `ll76` hold the Berean habit, the borrowed parallel and the don't-go-past-the-Word test; the `genesis-6` timeline entry carries the house position. None of them touches the Rephaim, Og, Goliath, Numbers 13:33, 2 Samuel 21, or what the Word does and does not say a demon is. The whole ll240–ll258 block was read too, after a mid-build id correction: the only hits were believers' sonship (John 1:12 / 1 John 3:1) and Noah finishing the ark (Genesis 6:22) — different teachings on the same words.
 
