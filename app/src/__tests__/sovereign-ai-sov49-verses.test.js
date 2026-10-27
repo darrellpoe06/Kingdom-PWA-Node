@@ -21,8 +21,19 @@
 // Genesis 23 (any verse) 0, "Machpelah" 0, "Ephron" 0, Ruth 4 0, "Boaz" 0,
 // Jeremiah 32 0, "Hanameel" 0, Luke 19:8 0, "Zacchaeus" 0, Mark 12:41-44 0,
 // "two mites" 0, Matthew 10:29-30 0, 2 Samuel 24:24 0, "Araunah" 0,
-// Isaiah 55:1 0, Psalms 49:7-8 0, 1 Corinthians 6:20 0, Acts 20:28 0,
+// Isaiah 52:3 0, Psalms 49:7-8 0, 1 Corinthians 6:20 0, Acts 20:28 0,
 // Revelation 5:9 0, "bought with a price" 0, Proverbs 20:14 0, Proverbs 22:1 0.
+// MEASURED AT THE WRONG SCOPE ONCE, AND THAT IS WHY THE LAST CASE IN THIS FILE
+// EXISTS. The first draft stood on Isaiah 55:1, which is free in this course and
+// free on 43 of the catalog's 44 courses — and the Appraisal course claims it
+// EXCLUSIVELY against the WHOLE catalog (appraisal-course.test.js, "shares NOT
+// ONE verse with the rest of the catalog either"). CI caught it on vitest shard
+// 2/4; no local measurement could, because it had been run inside one course
+// file while the rule it had to satisfy was catalog-wide. Isaiah 52:3 — redeemed
+// without money — is free catalog-wide and is the better verse for the movement.
+// The catalog-wide check now runs HERE, so the next lesson on this course does
+// not have to learn it from a red shard.
+//
 // So the untaught seam is THE NAMED, SPOKEN, WITNESSED, RECORDED PURCHASE —
 // which is exactly what the article's own confession says disappears ("payment
 // is no longer a form of identification"; "there is nobody to contact after the
@@ -37,7 +48,7 @@
 //     exactly that defect.
 //   * the DR-0210 bright line in BOTH directions: "Yahweh" in OUR prose, and
 //     "God" / "the LORD" ONLY ever inside a quotation. Ruth 4:11, Jeremiah
-//     32:14, 2 Samuel 24:24, Isaiah 55:1, Psalms 49:7, 1 Corinthians 6:20,
+//     32:14, 2 Samuel 24:24, Isaiah 52:3, Psalms 49:7, 1 Corinthians 6:20,
 //     Acts 20:28, John 1:29, John 3:16 and Hebrews 1:8 all carry "God" or "the
 //     LORD" inside the quotation, which is exactly where they stay. The first
 //     draft of the tenth movement had "unto Yahweh of that which doth cost me
@@ -51,10 +62,13 @@
 //   * that TALK ABOUT IT TOGETHER sends the reader all three ways on the lesson
 //     AND on every single band (DR-0795), by the directions' literal text —
 //     because a reader reads ONE band.
+//   * that no verse it cites is one an EXCLUSIVITY-CLAIMING course holds against
+//     the whole catalog — the defect CI caught, now checked here.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SOVEREIGN_AI_MODULES } from '../lib/sovereign-ai-class.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { hasAllThree, placesMissingDirections, hasAllThreeEverywhere, missingDirections } from '../lib/talk-together.js';
 
 const CORPUS = join(process.cwd(), 'public', 'bible', 'kjv');
@@ -93,7 +107,7 @@ const PINNED = {
   'Matthew 10:29': 'Are not two sparrows sold for a farthing? and one of them shall not fall on the ground without your Father.',
   'Matthew 10:30': 'But the very hairs of your head are all numbered.',
   '2 Samuel 24:24': 'And the king said unto Araunah, Nay; but I will surely buy it of thee at a price: neither will I offer burnt offerings unto the LORD my God of that which doth cost me nothing. So David bought the threshingfloor and the oxen for fifty shekels of silver.',
-  'Isaiah 55:1': 'Ho, every one that thirsteth, come ye to the waters, and he that hath no money; come ye, buy, and eat; yea, come, buy wine and milk without money and without price.',
+  'Isaiah 52:3': 'For thus saith the LORD, Ye have sold yourselves for nought; and ye shall be redeemed without money.',
   'Psalms 49:7': 'None of them can by any means redeem his brother, nor give to God a ransom for him:',
   'Psalms 49:8': '(For the redemption of their soul is precious, and it ceaseth for ever:)',
   '1 Corinthians 6:20': 'For ye are bought with a price: therefore glorify God in your body, and in your spirit, which are God’s.',
@@ -362,5 +376,71 @@ describe('sov49 — the verses are the corpus, verbatim', () => {
       expect(q.answer).toBeLessThan(q.options.length);
       expect(String(q.explain).length).toBeGreaterThan(80);
     }
+  });
+
+  // PROVEN TO CATCH, by a red CI shard before this case existed. This lesson's
+  // first draft stood on Isaiah 55:1. It is free in this course and free on 43
+  // of the catalog's 44 courses, and the Appraisal course claims it EXCLUSIVELY
+  // against the whole catalog — so `appraisal-course.test.js > shares NOT ONE
+  // verse with the rest of the catalog either` went red on shard 2/4 while every
+  // local measurement was green. The measurement had been run inside one course
+  // file; the rule it had to satisfy was catalog-wide.
+  //
+  // So the catalog-wide rule is checked HERE, at the scope it actually has, and
+  // by the SAME collection the claiming course uses — parenthesised references
+  // anywhere in a lesson's strings, plus the anchor, ranges expanded — because a
+  // check that collects differently from the gate it is protecting against is
+  // not a check. Only courses that make the catalog-wide claim are consulted;
+  // sharing a verse with living-lessons or kingdom-economics is ordinary and
+  // forbidden by nothing, and 2 Samuel 24:24 (Insurance and Risk) and the
+  // Jeremiah 32 verses (property-principle) are shared exactly that way.
+  it('PROVEN TO CATCH: cites no verse an exclusivity-claiming course holds against the whole catalog', () => {
+    const CLAIMANTS = ['appraisal'];
+    const refsIn = (t) => [...String(t || '').matchAll(/\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*\s+\d+:[\d\-,\s]+)\)/g)].map((x) => x[1].trim());
+    const expand = (ref) => {
+      const m = String(ref).match(/^(.*?)\s*(\d+):([\d\-,\s]+)$/);
+      if (!m) return [];
+      const out = [];
+      for (const part of m[3].split(',')) {
+        const r = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+        if (!r) continue;
+        const a = Number(r[1]); const b = r[2] ? Number(r[2]) : a;
+        for (let v = a; v <= b && v - a < 80; v += 1) out.push(`${m[1].trim()} ${m[2]}:${v}`);
+      }
+      return out;
+    };
+    const walkStrings = (node, fn) => {
+      if (typeof node === 'string') { fn(node); return; }
+      if (!node || typeof node !== 'object') return;
+      for (const v of Object.values(node)) walkStrings(v, fn);
+    };
+    const cited = (root, anchorRefs) => {
+      const set = new Set();
+      walkStrings(root, (t) => { for (const r of refsIn(t)) for (const v of expand(r)) set.add(v); });
+      for (const r of String(anchorRefs || '').split(';')) for (const v of expand(r.trim())) set.add(v);
+      return set;
+    };
+    const ours = cited(lesson, lesson.anchor.ref);
+    expect(ours.size, 'the collection read nothing; this case would pass on an empty set').toBeGreaterThan(30);
+
+    const claimants = LEARN_CATALOG.filter((c) => CLAIMANTS.includes(c.key) && c.buildScheduleRows);
+    expect(claimants.length, `the claiming course(s) ${CLAIMANTS.join(', ')} are no longer in the catalog under that key`).toBe(CLAIMANTS.length);
+
+    const clashes = [];
+    for (const c of claimants) {
+      const theirs = new Set();
+      for (const row of c.buildScheduleRows()) {
+        for (const v of cited(row, (row.anchor || {}).ref)) theirs.add(v);
+      }
+      for (const r of String(((c.meta || {}).wordFirst || {}).ref || '').split(';')) for (const v of expand(r.trim())) theirs.add(v);
+      expect(theirs.size, `${c.key} cited nothing; the comparison is empty`).toBeGreaterThan(20);
+      for (const v of ours) if (theirs.has(v)) clashes.push(`${v} <- ${c.key}`);
+    }
+    expect(clashes.sort(), `sov49 cites a verse an exclusivity-claiming course holds against the whole catalog:\n${clashes.join('\n')}`).toEqual([]);
+
+    // And the one that actually bit, named so a later edit cannot quietly
+    // reintroduce it: Isaiah 55:1 is the Appraisal course's, not ours.
+    expect(ours.has('Isaiah 55:1'), 'Isaiah 55:1 belongs to the Appraisal course').toBe(false);
+    expect(ours.has('Isaiah 52:3'), 'the replacement verse is missing from the page').toBe(true);
   });
 });
