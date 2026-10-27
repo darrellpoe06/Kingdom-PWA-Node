@@ -4270,6 +4270,20 @@ export default function ChurchLearn({
   // which is the surface he was looking at. Whether it should extend to a
   // department tab is his call and is dated in DR-1183.
   const courseOpen = courseChosen || !!dept;
+  // ONE WAY TO OPEN A COURSE, shared by the select and the quick-link chips
+  // (DR-1222). A course that only SERVES this department lives somewhere else
+  // (DR-0516: one home, one credit). Leaving the department filter on would
+  // hide the course the reader just picked, because it is not in this
+  // department's own list -- so opening one drops the filter, exactly as the
+  // old shelf did before it moved into the picker.
+  const openCourseKey = (k) => {
+    if (!k) return;
+    if (gatheredCourses.some((r) => r.courseKey === k)) {
+      setDeptId('all');
+      setResumeOpenGuide(false);
+    }
+    setActiveKey(k);
+  };
   const totalLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
   // BOTH NUMBERS (DR-0715): one per lesson, and every age version those
   // lessons really carry (lib/learn-organize.js lessonVersions), so the scale
@@ -4568,6 +4582,60 @@ export default function ChurchLearn({
             a course at all (DR-0598). */}
         {visibleCourses.length >= 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
+            {/* THE COURSES ARE QUICK LINKS TOO (DR-1222). Darrell 2026-10-27, from
+                his phone on Learn: "Need the courses options to be quick links
+                too... fix it". The departments above are tappable chips; the
+                courses were reachable only through the native select below —
+                two taps and a picker wheel for a thing a department got in one.
+                So the same chip row (SectionTabs variant="sub", the primitive
+                the department row and every course's sections already use)
+                sits under the departments and above the select: every course
+                this view offers, in the same order the select lists them, one
+                tap to open. The select STAYS (the phone's own picker, the sort,
+                the count the tests pin); the chips are the fast road beside it.
+                A tap runs the SAME handler the select runs (openCourseKey). */}
+            <div className="basis-full min-w-0" data-testid="learn-course-quick-links">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+                Quick links · {visibleCourses.length} {visibleCourses.length === 1 ? 'course' : 'courses'}
+              </div>
+              <SectionTabs
+                variant="sub"
+                ariaLabel="Course quick links"
+                idBase="learn-course-quick"
+                allowNone
+                chipClassName="min-h-[36px]"
+                activeId={courseOpen ? active.key : ''}
+                onActiveChange={openCourseKey}
+                sections={organizeCourses(visibleCourses, sortNow, sortCtx).flatMap((g) => g.courses).map((c) => ({
+                  id: c.key, label: `${c.code} · ${c.meta.title}`, render: () => null,
+                }))}
+              />
+              {/* COURSES THAT SERVE THIS DEPARTMENT, as quick links in their own
+                  labelled group — the chip twin of the select's "Also serves"
+                  optgroup. Each is a POINTER to a course that lives elsewhere
+                  (DR-0516): tapping one drops the department filter and opens
+                  it in its home, so the count and the credit never fork. None
+                  is ever the open course on this tab, so none is highlighted. */}
+              {dept && gatheredCourses.length > 0 && (
+                <div className="mt-2" data-testid="learn-course-quick-serves">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+                    Also serves {dept.label} · taught elsewhere · {gatheredCourses.length}
+                  </div>
+                  <SectionTabs
+                    variant="sub"
+                    ariaLabel={`Courses that serve ${dept.label}`}
+                    idBase="learn-course-quick-serves"
+                    allowNone
+                    chipClassName="min-h-[36px]"
+                    activeId={active.key}
+                    onActiveChange={openCourseKey}
+                    sections={gatheredCourses.map((r) => ({
+                      id: r.courseKey, label: `${r.courseTitle} · ${r.homeDepartment}`, render: () => null,
+                    }))}
+                  />
+                </div>
+              )}
+            </div>
             <div className="grow min-w-[14rem]">
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
                   obvious that this is a selection of courses... not a titled
@@ -4594,21 +4662,7 @@ export default function ChurchLearn({
                 // go somewhere else.
                 value={''}
                 data-chosen={courseChosen ? 'true' : 'false'}
-                onChange={(e) => {
-                  const k = e.target.value;
-                  if (!k) return;
-                  // A course that only SERVES this department lives somewhere
-                  // else (DR-0516: one home, one credit). Leaving the
-                  // department filter on would hide the course the reader just
-                  // picked, because it is not in this department's own list —
-                  // so opening one drops the filter, exactly as the old shelf
-                  // did before it moved in here.
-                  if (gatheredCourses.some((r) => r.courseKey === k)) {
-                    setDeptId('all');
-                    setResumeOpenGuide(false);
-                  }
-                  setActiveKey(k);
-                }}
+                onChange={(e) => openCourseKey(e.target.value)}
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
