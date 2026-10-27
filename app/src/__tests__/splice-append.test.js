@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spliceAppend, LEDGER_FILES } from '../../../scripts/splice-append.mjs';
+import { spliceAppend, syntaxFault, LEDGER_FILES } from '../../../scripts/splice-append.mjs';
 
 // ===========================================================================
 // THE CATALOG MERGE RESOLVES ITSELF, OR IT REFUSES.
@@ -174,5 +174,66 @@ describe('a non-catalog append file needs no lesson id', () => {
     expect(r.ok, r.ok ? '' : r.reason).toBe(true);
     expect(r.text).toContain("'ll259-theirs'");
     expect(r.text).toContain("'ll260-ours'");
+  });
+});
+
+describe('a result that will not parse is refused, not written (DR-1248)', () => {
+  // The splice is pure prefix/suffix arithmetic over three strings and does no
+  // parsing -- that is what makes the union exactly computable. But the SEAM it
+  // creates is the one part of the output that is new, and arithmetic says
+  // nothing about whether the seam is legal JavaScript.
+  //
+  // MEASURED 2026-10-27, the SECOND live use: landing ll263 onto ll262 emitted
+  // `}` / comment / `{` with no comma between the two lesson objects and wrote
+  // it, so the catalog held 260 lessons and imported as
+  // `SyntaxError: Unexpected token '{'`. The first live use, one merge earlier,
+  // produced a valid file from the same code path -- whether the separating
+  // comma falls inside the common prefix or inside our block depends on where
+  // git put the hunk boundary. It was lucky once, not right once.
+  it('names the real ll262 -> ll263 seam as a fault', () => {
+    // The exact shape that shipped broken: two objects, no comma between them.
+    const broken = [
+      'export const LIVING_LESSONS_MODULES = [',
+      '  {',
+      '    "id": "ll262-nicaea"',
+      '  }',
+      '  // ll263 - Not One Stone (research road, 2026-10-27)',
+      '  {',
+      '    "id": "ll263-not-one-stone"',
+      '  },',
+      '];',
+    ].join('\n');
+    const fault = syntaxFault(CATALOG, broken);
+    expect(fault, 'the broken seam read as fine').not.toBe('');
+    expect(fault).toMatch(/does not parse/);
+    // It should point at the seam rather than leaving the reader to hunt.
+    expect(fault).toMatch(/comma/);
+  });
+
+  it('passes the same pair once the comma is there', () => {
+    const fixed = [
+      'export const LIVING_LESSONS_MODULES = [',
+      '  {',
+      '    "id": "ll262-nicaea"',
+      '  },',
+      '  // ll263 - Not One Stone (research road, 2026-10-27)',
+      '  {',
+      '    "id": "ll263-not-one-stone"',
+      '  },',
+      '];',
+    ].join('\n');
+    expect(syntaxFault(CATALOG, fixed)).toBe('');
+  });
+
+  it('checks only files whose syntax it can judge', () => {
+    // The dates map is JS too, but a markdown or JSON path must not be run
+    // through a JS parser and called broken.
+    expect(syntaxFault('docs/decisions/NOTES.md', 'this is { not ( javascript')).toBe('');
+    expect(syntaxFault('app/src/lib/living-lessons-dates.js', 'export const D = { "ll1": "2026-01-01" };')).toBe('');
+  });
+
+  it('a missing brace is caught too, not only a missing comma', () => {
+    const unclosed = 'export const A = [\n  { "id": "ll1" },\n';
+    expect(syntaxFault(CATALOG, unclosed)).toMatch(/does not parse/);
   });
 });
