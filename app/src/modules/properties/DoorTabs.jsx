@@ -38,6 +38,8 @@ import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
+import { mergePictureNames, isNewPictureName } from '../../lib/work-order-pictures.js';
+import { NAMES_OPS } from './picture-names.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
 import Lightbox from '../../components/Lightbox.jsx';
 import { useDocumentViewer } from '../../components/DocumentViewer.jsx';
@@ -1608,17 +1610,28 @@ export const FULL_MAX_WIDTH = 1920;
 export const FULL_QUALITY = 0.85;
 
 /** Type-or-speak for one caption box: the mic appears only where the browser can hear. */
-function CaptionField({ value, onChange, placeholder, label, className = '' }) {
+// THE NAMES ALREADY GIVEN (DR-1235). Darrell, 2026-10-27: "when adding a
+// new name for an image it should be automatically one of the options moving
+// forward". `options` are the names this instance has typed before (the
+// picture_names table, 0310), offered under the box on every device; a name
+// typed here is remembered once a picture carrying it is saved.
+function CaptionField({ value, onChange, placeholder, label, className = '', options = null }) {
   const mic = useVoiceDictation({
     onTranscript: (t) => onChange(value ? `${value} ${t}` : t),
   });
+  const listId = options && options.length ? `caption-names-${label.replace(/[^a-z0-9]+/gi, '-')}` : null;
   return (
     <div className={`flex items-start gap-1 ${className}`}>
       <input
         type="text" value={value} onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder} aria-label={label}
+        placeholder={placeholder} aria-label={label} list={listId || undefined}
         className="flex-1 min-w-0 border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
       />
+      {listId && (
+        <datalist id={listId} data-testid="caption-names">
+          {options.map((n) => <option key={n} value={n} />)}
+        </datalist>
+      )}
       {mic.supported && (
         <button
           type="button" onClick={mic.toggle} aria-pressed={mic.listening}
@@ -1864,6 +1877,10 @@ export function GalleryTab({
   // which NAS pictures it has already filed ({source: photo id}); null when
   // that read failed -- unknown, never "none".
   archive = '', nasFiled = null,
+  // THE NAMES THIS INSTANCE GIVES ITS PICTURES (DR-1235): read once when the
+  // tab opens, offered under every caption box, and a new one remembered when
+  // a picture carrying it is saved. Injected in tests.
+  namesOps = NAMES_OPS,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1871,6 +1888,13 @@ export function GalleryTab({
   const doorId = door ? door.id : null;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);
   const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '', takenOn: nowLocalInput() }));
+  const [knownNames, setKnownNames] = useState([]);
+  useEffect(() => {
+    let live = true;
+    if (!namesOps || typeof namesOps.load !== 'function') return undefined;
+    Promise.resolve(namesOps.load()).then((r) => { if (live && r && r.ok) setKnownNames(mergePictureNames([], r.names || [])); }).catch(() => {});
+    return () => { live = false; };
+  }, [namesOps]);
   const [saving, setSaving] = useState(false);
   const [savedSoFar, setSaved] = useState(null);
   const [report, setReport] = useState(null);
@@ -2101,7 +2125,8 @@ export function GalleryTab({
         lost.push({ pic, why: res.reason || 'could not be saved' });
         kept.push(pic);
       } else {
-        done.push({ name: pic.name });
+        // The set's UNNUMBERED caption is the name given; "(2 of 5)" is not.
+        done.push({ name: pic.name, caption: own || setCaption });
       }
       setSaved({ done: i + 1, total });
     }
@@ -2134,6 +2159,17 @@ export function GalleryTab({
     //
     // The saves still happen one at a time; only the REFRESH is hoisted out.
     await onDone?.();
+    // A NAME TYPED ONCE IS OFFERED AFTER (DR-1235): every caption a SAVED
+    // picture carries (its own, or the set's unnumbered one) joins the
+    // instance's names; a numbered "(2 of 5)" is not a name anyone gave.
+    if (namesOps && typeof namesOps.remember === 'function' && door?.instance_id) {
+      const given = new Set();
+      for (const d of done) if (d.caption) given.add(d.caption);
+      for (const name of given) {
+        if (!isNewPictureName(name, knownNames)) continue;
+        try { const r = await namesOps.remember(door.instance_id, name); if (r && r.ok) setKnownNames((k) => mergePictureNames([], k.concat([name]))); } catch { /* the picture is saved; the name is offered next read */ }
+      }
+    }
     // THE FINALIZE LIST (DR-0908). Darrell asked for it by name: "a finalize
     // list of uploaded images and a where to store". A toast cannot be that —
     // it is gone in six seconds and fourteen of them overwrite each other.
@@ -2213,6 +2249,7 @@ export function GalleryTab({
               <CaptionField
                 value={f.caption} onChange={(v) => setF((p) => ({ ...p, caption: v }))}
                 placeholder="What these show, if one line covers them all" label="the caption for the set"
+                options={knownNames}
               />
             </div>
             <label><span className={lbl}>What is it</span>
@@ -2320,6 +2357,7 @@ export function GalleryTab({
                     <CaptionField
                       value={pic.caption} onChange={(v) => captionOf(pic.key, v)}
                       placeholder="Say or type what this one shows" label={`the caption for ${pic.name}`}
+                      options={knownNames}
                     />
                     <span className="block leading-snug mt-0.5">{pic.name} — about {Math.round(pic.bytes / 1024)}KB{pic.takenAt ? ' · taken just now' : ''}</span>
                   </div>
