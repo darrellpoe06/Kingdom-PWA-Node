@@ -397,4 +397,9 @@ export const LIVING_LESSONS_ADDED = {
   // speaker in that video is not named in anything that reached us, so the
   // lesson names none. Built 2026-10-27, the day the row was worked.
   'll263-not-one-stone-the-word-jesus-spoke-over-jerusalem-and-the-year-it-came-true': '2026-10-27',
+  // L264 (DR-1225): Darrell sent a link into the app's own research road on
+  // 2026-10-22; the row waited in the lesson queue and the reading was built
+  // into a lesson on 2026-10-27, so this is the day it JOINED the course, not
+  // the day he sent it (the sending day is in the record and in the lesson).
+  'll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
 };
