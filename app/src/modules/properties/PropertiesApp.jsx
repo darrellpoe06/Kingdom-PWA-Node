@@ -56,6 +56,7 @@ import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
 import { loadJobVideo, setWorkOrderProof } from './cloud.js';
 import { loadMyLandlordSeat, addRental } from './cloud.js';
 import { seatIsOwner } from './own-space.js';
+import { isReviewerStranger, reviewerLensLine } from '../../lib/reviewer-lens.js';
 import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
@@ -293,7 +294,15 @@ const KIND_LABEL = {
 // reads. Only the FACE changes: anything sent from a preview is still recorded
 // as the person really signed in (realRole), never as the tenant.
 export const PREVIEW_ROLES = Object.freeze(['tenant', 'household', 'field_worker', 'manager']);
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null, viewAs = null, addEvent = null, stranger = null }) {
+  // THE LENS HAS TWO MODES (DR-1240). 'self' changes nothing here: the steward
+  // reviewing as himself with privileges hidden still reads his own seat and
+  // doors through RLS as him, and the banner says so. 'stranger' — "as a new
+  // user" — is this flag: the module never reads the signed-in person's own
+  // seat, doors, grants, household, properties, invites or pictures, and
+  // boots as a person with no invite. The shell hands it in; a mount that
+  // does not (the Poe Properties App) asks the one flag read itself.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const [loading, setLoading] = useState(true);
   const [rawDoors, setDoors] = useState([]);
   const [rawGrants, setGrants] = useState([]);
@@ -407,6 +416,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // The claim gets a SHORT ceiling of its own: it is an optional courtesy
     // (turning "invited" into "recognized") and must never spend the reads'
     // time. The reads then start from a full, untouched deadline.
+    if (lens) {
+      // A STRANGER UNDER THE LENS (DR-1240): no claim, no seat, no doors, no
+      // grants, no household, no rentals, no invites, no pictures. Only what
+      // a person with no invite is shown — the public vacancies — and who is
+      // signed in (the lens keeps the reviewer signed in as themselves).
+      setClaim(null); setSeat(null); setDoors([]); setGrants([]); setHousehold([]); setRentals([]);
+      setPhotoOrders({}); setArchives({ channels: {}, heldAt: {} }); setInvites([]); setDoorPhotos([]);
+      const open = deadlineIn();
+      const [vac, sess] = await Promise.all([
+        boundedRead(loadPublicVacancies(), open()),
+        boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), open(), null),
+      ]);
+      setVacancies(vac.ok ? vac.vacancies : []);
+      setMe(sess && sess.user ? sess.user.id : null);
+      setUnreachedWhy([]); setUnreached(false); setLoading(false); booted.current = true;
+      return;
+    }
     const claimed = await boundedRead(claimPropertyAccess(), CLAIM_TIMEOUT_MS);
     setClaim(claimed);
     const spine = deadlineIn();
@@ -516,7 +542,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         setUnreached([d2, g2, h2, r2].some((x) => !x.ok));
       }
     }
-  }, []);
+  }, [lens]);
   useEffect(() => { boot(); }, [boot]);
 
   // The TENANCY on the door in hand, or none. A door picked by its rentals id is
@@ -1288,7 +1314,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // door, no grant — and the owner of a landlord-type space. The places to
   // live are not theirs to be offered; the empty board with Add a door is.
   if (!doors.length && !rentals.length && !grants.length && !seatIsOwner(seat)) {
-    return <PlacesToLive vacancies={vacancies} claim={claim} />;
+    return <PlacesToLive vacancies={vacancies} claim={claim} reviewer={lens} />;
   }
 
   return (
@@ -1827,7 +1853,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 // Address, unit, rent, and availability only; the public RPC is column-safe (no
 // tenant name, no mortgage), so it is safe for a prospective renter and a
 // non-user alike, and the street address is handed over by a person, not here.
-function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
+function PlacesToLive({ vacancies = [], claim, onSignIn = null, reviewer = false }) {
   // ==========================================================================
   // THE STOREFRONT. Darrell, 2026-08-28: "It should have the Apartments shown
   // in the Properties Tab... like the MooreDivahs App has except this is places
@@ -1890,6 +1916,14 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
   return (
     <div className="p-1">
       <Card title="Poe Properties — Places to Live">
+        {/* THE HONEST LINE (DR-1240): the steward reviewing as a user is never
+            left thinking a stranger sees his doors. His are hidden; this is
+            the face a person with no invite gets. */}
+        {reviewer && (
+          <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif} role="status" data-testid="properties-reviewer-lens">
+            {reviewerLensLine('doors')}
+          </p>
+        )}
         {rows.length > 0 ? (
           <>
             <p className="text-sm text-[#1A1815] mb-1" style={serif}>
