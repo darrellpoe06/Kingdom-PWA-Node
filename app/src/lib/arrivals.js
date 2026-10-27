@@ -55,7 +55,7 @@ export const SCREEN_KINDS = Object.freeze({
   decide: ['review-queue'],
   feedback: ['feedback'],
   learn: ['lesson-new'],
-  // The lesson itself, opened from its link (DR-1252): a published lesson's
+  // The lesson itself, opened from its link (DR-1253): a published lesson's
   // arrival is looked at when the lesson is, not only when Your lessons is.
   lesson: ['lesson-published'],
 });
@@ -155,7 +155,7 @@ export function lessonArrivals(items, { owner = false } = {}) {
     }
     if (it.published) {
       const label = [it.published.number, it.published.title].filter(Boolean).join(' ') || it.published.lessonId || '';
-      // THE LESSON ITSELF, NOT THE WORK THAT MADE IT (DR-1252; Darrell
+      // THE LESSON ITSELF, NOT THE WORK THAT MADE IT (DR-1253; Darrell
       // 2026-10-27, the Arrivals card for L265: "These lessons should go to
       // the actual lesson... not the research road work lesson... The links
       // need to be changed to go to the correct page... to read or have a
@@ -315,7 +315,7 @@ export function newSince(items, knownIds) {
  * The URL a tap on an arrival opens, IN THE DOOR THE PERSON IS ALREADY IN
  * (app-doors.js, DR-0444): a message opens its thread; a lesson that is
  * written or answered opens Your lessons; a lesson that is PUBLISHED opens the
- * lesson itself in Learn (DR-1252); the Governor's queue opens Lessons to
+ * lesson itself in Learn (DR-1253); the Governor's queue opens Lessons to
  * decide. Feedback has no
  * URL: its replies live in the Feedback sheet the footer button opens, so the
  * bell presses that button instead (null here).

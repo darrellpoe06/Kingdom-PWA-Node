@@ -1,4 +1,4 @@
-# DR-1252: A published lesson opens the lesson, not the work that made it
+# DR-1253: A published lesson opens the lesson, not the work that made it
 
 **Date:** 2026-10-27
 **Status:** Accepted

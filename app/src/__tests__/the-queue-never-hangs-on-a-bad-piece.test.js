@@ -123,7 +123,7 @@ describe('a piece that never begins', () => {
     due[0].fn(); await tick();
     expect(fetchFresh).not.toHaveBeenCalled();
   });
-  it('data arriving stands the watch down: a slow road is not a dead one (DR-1253)', async () => {
+  it('data arriving stands the watch down: a slow road is not a dead one (DR-1254)', async () => {
     const { q, audio, due, cancelled } = stuckQueue();
     await q.start(); await tick();
     expect(cancelled).toEqual([]);

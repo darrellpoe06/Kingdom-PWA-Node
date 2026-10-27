@@ -99,7 +99,7 @@ export function overallFraction(chunks, index, pieceFraction) {
  */
 /**
  * A piece that has not even LOADED this long after play() was accepted is
- * taken as stuck (DR-1251; widened by DR-1253): asked for again once, then
+ * taken as stuck (DR-1251; widened by DR-1254): asked for again once, then
  * handed on. Data arriving ('loadeddata', 'canplay'), a 'playing' event or a
  * moving clock all stand the watch down, so a slow road is given its time and
  * only a piece that never comes is caught.
@@ -208,7 +208,7 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
   listen('error', () => { if (!stopped && index >= 0) recover(index, 'piece-unplayable'); });
   listen('playing', () => { if (!stopped && index >= 0 && playFrom == null) playFrom = now(); clearStall(); });
   // Data arriving is life, not a stall: a slow road is given its time, and
-  // only a piece that never loads at all is taken as stuck (DR-1253).
+  // only a piece that never loads at all is taken as stuck (DR-1254).
   listen('loadeddata', () => clearStall());
   listen('canplay', () => clearStall());
   listen('timeupdate', () => { if (stallTimer != null && timeNow() > 0) clearStall(); });

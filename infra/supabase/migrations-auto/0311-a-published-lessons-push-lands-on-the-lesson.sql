@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0311 — a published lesson's push lands on the lesson, not on the work that
---        made it (DR-1252)
+--        made it (DR-1253)
 -- =============================================================================
 -- Darrell, 2026-10-27, with the Arrivals card for L265 on screen: "These
 -- lessons should go to the actual lesson... not the research road work
@@ -52,7 +52,7 @@ BEGIN
    LIMIT 1;
   v_root := coalesce(nullif(v_root, ''), NEW.id::text);
 
-  -- THE LESSON ITSELF (DR-1252): the published row names its lesson as
+  -- THE LESSON ITSELF (DR-1253): the published row names its lesson as
   -- lesson-id:<id>; the push lands there, in Learn, where it is read or read
   -- aloud. No id, no guess: Your lessons, as before.
   SELECT substr(t, 11) INTO v_lesson

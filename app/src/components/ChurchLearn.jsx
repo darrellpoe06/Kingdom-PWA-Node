@@ -4340,7 +4340,7 @@ export default function ChurchLearn({
       // guide open, scrolled to the top.
       setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
-      // A published lesson's arrival lands here now (DR-1252): opening the
+      // A published lesson's arrival lands here now (DR-1253): opening the
       // lesson is looking at it, so the bell stops counting it.
       markArrivalsSeen(SCREEN_KINDS.lesson);
       if (shared) {

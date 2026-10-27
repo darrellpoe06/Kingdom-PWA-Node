@@ -198,7 +198,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const liteAudioRef = useRef(null);
   const liteMissRef = useRef('');
   const heldLiteRef = useRef('');
-  // WHERE THE TEXT NOW PLAYING SITS IN THE READING (DR-1253; Darrell
+  // WHERE THE TEXT NOW PLAYING SITS IN THE READING (DR-1254; Darrell
   // 2026-10-27: "It cuts off the reader while I was in the lesson and then
   // starts me from the beginning instead of the 13 part!!!"). A hand-off —
   // the NAS voice failing a piece, a reading held in the dark and resumed —
@@ -791,7 +791,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       onFallback: (rest, i, reason) => {
         if (queueRef.current !== q) return;
         // The rest begins at piece i of THIS run: whatever plays it next
-        // counts from 0, so the offset grows by i (DR-1253).
+        // counts from 0, so the offset grows by i (DR-1254).
         pieceOffsetRef.current += Math.max(0, Number(i) || 0);
         setPieceOffset(pieceOffsetRef.current);
         queueRef.current = null; audioRef.current = null;
@@ -889,7 +889,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     pin.uri = pick.uri; pin.matched = pick.matched;
     if (rest) tts.speak(rest, pick.uri);
     const man = pin.gender === 'male';
-    // THE BETTER ROAD IS OFFERED, NOT ONLY DESCRIBED (DR-1253; Darrell
+    // THE BETTER ROAD IS OFFERED, NOT ONLY DESCRIBED (DR-1254; Darrell
     // 2026-10-27: "the male voice changes mid-lesson to a female voice... are
     // we using the same solutions or researching better options based on our
     // experiences?"). The same man's voice the NAS reads in (Piper, Ryan)
@@ -1088,7 +1088,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // step below can ask whether it is still the reading that owns the voice.
     readGenRef.current += 1;
     const gen = readGenRef.current;
-    // A read's own pieces count from its start (DR-1253).
+    // A read's own pieces count from its start (DR-1254).
     pieceOffsetRef.current = 0;
     setPieceOffset(0);
     // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
@@ -1412,7 +1412,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     isPaused: tts.isPaused || cloudPaused,
     // Where the device voice stopped on a fault (DR-1251); null otherwise.
     engineHeldAt: tts.heldAt != null ? tts.heldAt : null,
-    // How many pieces of this reading come before the text now playing (DR-1253).
+    // How many pieces of this reading come before the text now playing (DR-1254).
     pieceOffset,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,

@@ -1,4 +1,4 @@
-# DR-1253: The reader keeps its place through a hand-off, and the place never walks backwards on its own
+# DR-1254: The reader keeps its place through a hand-off, and the place never walks backwards on its own
 
 **Date:** 2026-10-27
 **Status:** Accepted

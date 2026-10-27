@@ -232,7 +232,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // How many pieces of this reading come before the text now playing
-    // (DR-1253; optional in mocks): a hand-off's pieces count from 0 again.
+    // (DR-1254; optional in mocks): a hand-off's pieces count from 0 again.
     pieceOffset = 0,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
     // broke the engine's own guarantee at its very last hop. tts.js runs a
@@ -511,7 +511,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // is honest rather than a lint silencer.
   const rememberSentence = useCallback((absIndex, text) => {
     if (!text) return;
-    // THE PLACE NEVER WALKS BACKWARDS ON ITS OWN (DR-1253). Within one run
+    // THE PLACE NEVER WALKS BACKWARDS ON ITS OWN (DR-1254). Within one run
     // the sentences only move forward; a write far behind the furthest one
     // reached is a run that lost its count (a hand-off, a restarted engine),
     // never the listener, and it is refused. A new run (beginRun — Start, a
@@ -573,7 +573,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       return;
     }
     // A hand-off's engine counts from 0 again; the pieces before it are
-    // added (DR-1253), so the sentence lit and kept is the one being heard.
+    // added (DR-1254), so the sentence lit and kept is the one being heard.
     const local = pieceOffsetRef.current + Math.max(0, segmentIndex);
     runLocalRef.current = local;
     const r = followRef.current.ranges[local] || null;
@@ -599,7 +599,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
     if (piece < 0) return;
     // A resumed or handed-off rest counts its pieces from 0 again; the pieces
-    // before it are added (DR-1253).
+    // before it are added (DR-1254).
     const idx = pieceOffsetRef.current + piece;
     if (idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
@@ -652,7 +652,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       // spoken segment, and a span is enough to find the word. The DR-0722
       // downloaded-lesson read is the second kind, and it ran with no word
       // highlight at all until 2026-10-09.
-      const local = pieceOffsetRef.current + segIdx; // a hand-off counts from 0 again (DR-1253)
+      const local = pieceOffsetRef.current + segIdx; // a hand-off counts from 0 again (DR-1254)
       const span = f.spans ? f.spans[local] : null;
       const r = f.spans
         ? (span ? wordRangeIn(f.follow, span, charIndex) : null)

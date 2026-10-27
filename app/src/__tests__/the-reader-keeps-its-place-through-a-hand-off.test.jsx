@@ -1,6 +1,6 @@
 // =============================================================================
 // The reader keeps its place through a hand-off, and the place never walks
-// backwards on its own (DR-1253)
+// backwards on its own (DR-1254)
 // =============================================================================
 // Darrell 2026-10-27, L263 at paragraph 13, the panel offering "Resume ·
 // paragraph 2 of 224": "It cuts off the reader while I was in the lesson and
