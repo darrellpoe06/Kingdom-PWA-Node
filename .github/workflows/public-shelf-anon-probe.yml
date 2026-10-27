@@ -61,12 +61,15 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write # one line on the witness's rolling run log, every run
 
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
       SB_URL: ${{ github.event.inputs.base || 'https://poetech.tail5a2f35.ts.net/sb' }}
       FRONT: ${{ github.event.inputs.front || 'https://poetech.us/' }}
       BRANDED: ${{ github.event.inputs.branded || 'https://poetech.us/properties/app/' }}
@@ -211,3 +214,16 @@ jobs:
           node public-shelf-anon-probe.mjs "$FRONT" "$BRANDED" | tee /tmp/doors.txt
           { echo "## Reading three — the signed-out doors in Chromium"; echo '```'; cat /tmp/doors.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           while IFS= read -r line; do echo "::notice title=browser::$line"; done < /tmp/doors.txt
+
+      # A WITNESS WHOSE SILENCE IS AMBIGUOUS IS NOT A WITNESS (public-shelf-
+      # witness.yml says why). One line, every run, pass or fail — states,
+      # counts and the run link; never a street, a name or a key.
+      - name: Record the run (the witness's rolling log, every run)
+        if: always()
+        run: |
+          set -uo pipefail
+          summary=$(grep -E '^door=' /tmp/doors.txt 2>/dev/null | tr '\n' ' ' | cut -c1-400 || true)
+          line="$(date -u +%FT%TZ) — anon probe: ${{ job.status }}. ${summary:-no browser reading}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          num=$(gh issue list --repo "$REPO" --state open --search "in:title public shelf witness run log" --json number --jq '.[0].number // ""' 2>/dev/null || echo "")
+          if [ -n "$num" ]; then gh issue comment "$num" --repo "$REPO" --body "$line" || echo "::warning::could not append to the rolling log"; else echo "::warning::no rolling log issue found; the line stays in this run"; fi
+          echo "$line"

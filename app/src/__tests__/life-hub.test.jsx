@@ -51,6 +51,7 @@ import {
 } from '../lib/home-view-prefs.js';
 import { HUB_TILES, HUB_ACTIONS, HOST_VIEWS, hubTiles, actionsFor, overlappingActions, hasRealCount, openProjectCount, doorCount } from '../lib/life-hub.js';
 import { surfaceById } from '../surfaces.js';
+import { CAMERAS_TILE } from '../lib/cameras-tile.js';
 import { surfaceAccess } from '../lib/surface-access.js';
 import { PROJECT_STATUSES_ACTIVE } from '../lib/opportunity-capacity.js';
 import { DM_UNREAD_EVENT } from '../lib/notify-readiness.js';
@@ -411,7 +412,9 @@ describe('her three looks all ship, as density', () => {
     const labels = [...s.querySelectorAll('button')].map((b) => (b.textContent || '').trim());
     expect(labels).toHaveLength(16);
     expect(labels).toContain('Open the Vault');
-    expect(labels).toContain('See the cameras');
+    // The cameras are a TILE under the welcome now (DR-1237), so no action
+    // opens them (DR-1196: no two doors to one place).
+    expect(labels).not.toContain('See the cameras');
     act(() => setHubDensity('airy'));
   });
 
@@ -419,6 +422,10 @@ describe('her three looks all ship, as density', () => {
     // Darrell, 2026-10-21: "Have more options, none that overlap, so we have
     // more options and advertise the other tabs."
     expect(overlappingActions(HUB_ACTIONS, HUB_TILES)).toEqual([]);
+    // The Cameras tile (DR-1237) counts as a tile: an action to 'cameras' would duplicate it.
+    expect(overlappingActions(HUB_ACTIONS, [...HUB_TILES, CAMERAS_TILE])).toEqual([]);
+    expect(overlappingActions([...HUB_ACTIONS, { key: 'cams2', label: 'See the cameras', view: 'cameras', churchView: null }], [...HUB_TILES, CAMERAS_TILE]))
+      .toEqual([{ key: 'cams2', destination: 'cameras', same: 'tile cameras' }]);
     // PROVEN TO CATCH: a door to Money duplicates the Money tile; a second
     // door to Notes duplicates the first.
     const dupTile = [...HUB_ACTIONS, { key: 'money', label: 'Open Money', view: 'books', churchView: null }];
@@ -448,16 +455,18 @@ describe('her three looks all ship, as density', () => {
     expect(signedIn).toContain('library');
     expect(signedIn).not.toContain('crm');
     const family = keys({ signedIn: true, isFamilyMember: true });
-    expect(family).toContain('cameras');
+    // The cameras are the tile under the welcome (DR-1237), never an action.
+    expect(family).not.toContain('cameras');
+    expect(HUB_ACTIONS.some((a) => a.view === 'cameras')).toBe(false);
     expect(family).toHaveLength(16);
-    // The family-only doors (CRM, Inventory, Forecast, Academy, Scribe) sit
-    // past the sixteenth for the family, so they are open but not drawn at any
+    // The family-only doors (Inventory, Forecast, Academy, Scribe) sit past
+    // the sixteenth for the family, so they are open but not drawn at any
     // density today: the density is the cut, never the key.
-    expect(surfaceAccess(surfaceById.crm, { signedIn: true, isFamilyMember: true }).allowed).toBe(true);
-    expect(HUB_ACTIONS.findIndex((a) => a.key === 'crm')).toBeGreaterThanOrEqual(16);
-    // Reviewer mode is not a key (DR-0104): the family's camera door leaves with it.
+    expect(surfaceAccess(surfaceById.inventory, { signedIn: true, isFamilyMember: true }).allowed).toBe(true);
+    expect(HUB_ACTIONS.findIndex((a) => a.key === 'inventory')).toBeGreaterThanOrEqual(16);
+    // Reviewer mode is not a key (DR-0104): the family's CRM door leaves with it.
     const reviewer = keys({ signedIn: true, isFamilyMember: true, reviewerMode: true });
-    expect(reviewer).not.toContain('cameras');
+    expect(reviewer).not.toContain('crm');
     expect(reviewer).toContain('vault');
   });
 

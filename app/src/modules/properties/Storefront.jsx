@@ -110,14 +110,17 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
     if (cur && !cur.storage_path) ask(cur, 'thumb');
     if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
   }, [shots, i, ask]);
-  // The strip's thumbnails, asked for when the row is on screen (or at once
-  // where the browser cannot say — a test, an old WebView).
+  // The strip's thumbnails, asked for ONLY once the row is seen on screen.
+  // Where the browser cannot say (no IntersectionObserver: a test, an old
+  // WebView) nothing extra is asked — DR-1016's budget stands: the first
+  // picture and the next, and the strip shows the tiles it already has; a
+  // tap on a blank tile selects it and the main picture asks for it.
   const stripRef = React.useRef(null);
   useEffect(() => {
     if (shots.length < 2) return undefined;
     const askStrip = () => { for (const row of shots.slice(0, STRIP_MAX)) if (row && !row.storage_path) ask(row, 'thumb'); };
     const el = stripRef.current;
-    if (!el || typeof IntersectionObserver !== 'function') { askStrip(); return undefined; }
+    if (!el || typeof IntersectionObserver !== 'function') return undefined;
     const io = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) { askStrip(); io.disconnect(); }
     }, { rootMargin: '120px' });

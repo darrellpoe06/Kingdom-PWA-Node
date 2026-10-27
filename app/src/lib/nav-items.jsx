@@ -23,6 +23,7 @@ import { DmUnreadBadge } from '../components/shared.jsx';
 import { tierMeets } from './tiers.js';
 import { canSeeHealthTab } from './health-actions.js';
 import { isPublicHost } from './access-gate.js';
+import { canSeeCameras } from './surface-access.js';
 
 /**
  * The top-level tabs as [id, label] pairs, gated exactly as the shell gated
@@ -106,7 +107,9 @@ export function navItems({
     // asks for help with the data already in hand (2026-08-04).
     ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
     ['databack', <><UiIcon name="landmark" /> Your Data</>],
-    ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
+    // Cameras — the family, or a device holding a grant the owner gave (one
+    // predicate with the shell gate and the front-page tile, DR-1237).
+    ...(canSeeCameras({ isFamilyMember, reviewerMode }) ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
     ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
     // Darrell's Study — private to the circle (Darrell/Christina/BG).
     // Spread so the entry is absent from the DOM entirely for everyone

@@ -18,6 +18,25 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+// The strip asks for its thumbnails only once it is ON SCREEN (DR-1016's
+// budget otherwise). jsdom has no IntersectionObserver; this one says "seen"
+// the moment a row is observed, which is what a stranger scrolling to a
+// card gets.
+// Only the strip is "seen", and each strip once: other observers on the page
+// (the header hideaway, tab rows) must not be fed a synchronous loop.
+const seen = new WeakSet();
+class SeenAtOnce {
+  constructor(cb) { this.cb = cb; }
+  observe(el) {
+    if (!el || el.getAttribute?.('data-testid') !== 'vacancy-picture-strip' || seen.has(el)) return;
+    seen.add(el);
+    this.cb([{ isIntersecting: true, target: el }], this);
+  }
+  disconnect() {}
+  unobserve() {}
+  takeRecords() { return []; }
+}
+globalThis.IntersectionObserver = SeenAtOnce;
 
 const DOOR = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
 const ROW = { id: DOOR, label: 'Bed in a shared multi-family in Champaign, Illinois', unit: '', city: 'Champaign', state: 'Illinois', property_type: 'multi-family', rent: 500, offering: 'long-term', address_shown: false, shared_home: true, rentable_level: 'bed' };

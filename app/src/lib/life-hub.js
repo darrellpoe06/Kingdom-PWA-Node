@@ -104,6 +104,8 @@ export const HOST_VIEWS = ['overview', 'church', 'books', 'messages', 'rentals',
 //     page's own records, not on a tab;
 //   - every other action is a door to ONE tab, and no two actions, and no
 //     action and tile, open the same place (pinned: `overlappingActions`);
+//     the Cameras tile under the welcome (lib/cameras-tile.js, DR-1237) is a
+//     door too, so no action opens the cameras;
 //   - every door names its `surface` in surfaces.js, and `actionsFor` keeps
 //     only the doors this viewer may open, by the SAME rule the nav uses
 //     (lib/surface-access.js) — a door nobody can walk through is not drawn
@@ -128,7 +130,6 @@ export const HUB_ACTIONS = [
   { key: 'library', label: 'Open the Library', view: 'library', churchView: null, surface: 'library' },
   { key: 'vault', label: 'Open the Vault', view: 'vault', churchView: null, surface: 'vault' },
   { key: 'research', label: 'Research', view: 'research', churchView: null, surface: 'research' },
-  { key: 'cameras', label: 'See the cameras', view: 'cameras', churchView: null, surface: 'cameras' },
   { key: 'databack', label: 'Your Data', view: 'databack', churchView: null, surface: 'databack' },
   { key: 'markets', label: 'Markets', view: 'markets', churchView: null, surface: 'markets' },
   { key: 'advocacy', label: 'Advocacy', view: 'advocacy', churchView: null, surface: 'advocacy' },
