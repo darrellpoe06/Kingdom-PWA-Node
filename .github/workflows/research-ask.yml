@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       question:
-        description: 'One question for the research road (max 500 chars, the forwarder cap)'
+        description: 'One question for the research road (max 4000 chars, the forwarder cap)'
         required: true
       mode:
         description: 'speed | balanced | quality'
@@ -79,11 +79,14 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           umask 077
-          # 500 is the forwarder's own cap (lib/research.js MAX_QUERY_CHARS);
+          # 4000 is the forwarder's own cap (lib/research.js MAX_QUERY_CHARS),
+          # raised from 500 on 2026-10-27. This is the THIRD place the one cap is
+          # written -- app, NAS door, and here -- so a raise is three edits or it
+          # is not a raise. research-road and the build-tool test hold them equal.
           # refuse here rather than have the road refuse after the round trip.
           LEN=$(printf '%s' "$QUESTION" | wc -c)
-          if [ "$LEN" -gt 500 ]; then
-            echo "::error::The question is $LEN characters; the road's cap is 500."
+          if [ "$LEN" -gt 4000 ]; then
+            echo "::error::The question is $LEN characters; the road's cap is 4000."
             exit 1
           fi
           case "$MODE" in speed|balanced|quality) : ;; *) echo "::error::mode must be speed, balanced or quality (got '$MODE')"; exit 1 ;; esac
