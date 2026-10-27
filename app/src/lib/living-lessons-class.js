@@ -25025,7 +25025,7 @@ export const LIVING_LESSONS_MODULES = [
       ]
     }
   },
-  // ll260 - Add not, diminish not: the giants, and the edge of what is written
+  // ll261 - Add not, diminish not: the giants, and the edge of what is written
   // (two research-road sendings, 2026-10-26). Darrell sent two links INSIDE the
   // PoeTech app, hours apart, both on Genesis 6 and the giants of Canaan, and they
   // pull opposite ways. agent_inbox row 031a898a-b98b-484e-8d06-0962dede6316
@@ -25066,9 +25066,9 @@ export const LIVING_LESSONS_MODULES = [
   // inside Matthew 25:41 / Hebrews 2:14 stands exactly as written.
   //
   // Every verse verbatim from app/public/bible/kjv, pinned in
-  // app/src/__tests__/living-lessons-ll260-add-not-diminish-not.test.js.
+  // app/src/__tests__/living-lessons-ll261-add-not-diminish-not.test.js.
   {
-    "id": "ll260-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written",
+    "id": "ll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written",
     "stories": [
       {
         "kind": "parable",

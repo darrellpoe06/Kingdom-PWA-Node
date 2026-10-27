@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L260 — "Add Not, Diminish Not — the Giants, and the Edge of What Is Written"
+// L261 — "Add Not, Diminish Not — the Giants, and the Edge of What Is Written"
 // =============================================================================
 // TWO SENDINGS, ONE LESSON. Darrell sent two links INSIDE the PoeTech app,
 // hours apart, both on Genesis 6 and the giants of Canaan, and they pull
@@ -101,7 +101,7 @@ const verbatimFaults = (L) => {
   return bad;
 };
 
-const ID = 'll260-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written';
+const ID = 'll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written';
 const PREV = 'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants';
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
@@ -168,7 +168,7 @@ const ELSEWHERE = [
   ['iron sharpeneth iron', 'Proverbs', 27, 17, 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend'],
 ];
 
-describe('L260 exists, is numbered, and sits after L258', () => {
+describe('L261 exists, is numbered, and sits after L258', () => {
   // DELIBERATELY NOT "is the last lesson" and NOT "262 is absent": a pin on the
   // catalog never growing is the one pin certain to break (L256's did, and
   // L257's "258 is absent" had to be amended the day L258 landed).
@@ -177,7 +177,7 @@ describe('L260 exists, is numbered, and sits after L258', () => {
     const at = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     const prev = LIVING_LESSONS_MODULES.findIndex((m) => m.id === PREV);
     expect(prev, 'L258 is in the catalog').toBeGreaterThan(-1);
-    expect(at, 'L260 follows L258 in reading order').toBeGreaterThan(prev);
+    expect(at, 'L261 follows L258 in reading order').toBeGreaterThan(prev);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
   // THE NUMBER IS NOT A RESERVATION. `living-lessons-numbers-are-unique`
@@ -230,7 +230,7 @@ describe('L260 exists, is numbered, and sits after L258', () => {
   });
 });
 
-describe('L260 teaches the Word and never stages a debate (DR-0098)', () => {
+describe('L261 teaches the Word and never stages a debate (DR-0098)', () => {
   it('refuses the pick-a-side posture in so many words', () => {
     expect(L.lesson).toContain('will not set them opposite each other and ask you to choose');
     expect(L.bigIdea).toContain('does not set them side by side and ask you to choose');
@@ -272,7 +272,7 @@ describe('L260 teaches the Word and never stages a debate (DR-0098)', () => {
   });
 });
 
-describe('L260 — the house typography is senior to both sources', () => {
+describe('L261 — the house typography is senior to both sources', () => {
   // BOTH transcripts capitalise "Watchers", and the first capitalises "Satan"
   // and "Lucifer". None of it is copied through. Quoted Scripture is untouched:
   // the KJV on disk already renders "satan" lower case in Job 1:6.
@@ -306,7 +306,7 @@ describe('L260 — the house typography is senior to both sources', () => {
   });
 });
 
-describe('L260 — every quoted span is the verse', () => {
+describe('L261 — every quoted span is the verse', () => {
   it.each([...IN_EVERY_BAND, ...ELSEWHERE])('%s — %s %s:%s', (_why, book, ch, n, span) => {
     const v = verse(book, ch, n);
     expect(v, `${book} ${ch}:${n} resolves`).toBeTruthy();
@@ -353,7 +353,7 @@ describe('L260 — every quoted span is the verse', () => {
   });
 });
 
-describe('L260 — four bands, each carrying the whole message', () => {
+describe('L261 — four bands, each carrying the whole message', () => {
   const measured = measureFullness(L);
   it.each(BANDS)('%s clears its floor', (b) => {
     expect(measured.bands[b].share).toBeGreaterThanOrEqual(FULL_FLOOR[b]);
@@ -393,7 +393,7 @@ describe('L260 — four bands, each carrying the whole message', () => {
   });
 });
 
-describe('L260 — two stories and the full teaching shape', () => {
+describe('L261 — two stories and the full teaching shape', () => {
   it('carries two real stories, one light and one solemn, with no double-quoted span', () => {
     const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
     expect(real.length).toBeGreaterThanOrEqual(2);

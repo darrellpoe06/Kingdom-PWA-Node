@@ -353,11 +353,11 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // ll260 -- two links Darrell sent INSIDE the app down the research road, both on
+  // ll261 -- two links Darrell sent INSIDE the app down the research road, both on
   // Genesis 6 and the giants of Canaan, pulling opposite ways. The two sendings sat
   // in the queue roughly 87 hours before this build, so the exact send day is known
   // only to within a day; the build day is recorded rather than an estimate dressed
   // up as a date. Taught from the Word's own usage against ONE measure, add not and
   // diminish not (Deuteronomy 4:2).
-  'll260-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written': '2026-10-26',
+  'll261-add-not-diminish-not-the-giants-and-the-edge-of-what-is-written': '2026-10-26',
 };
