@@ -285,6 +285,45 @@ export function tenancyForTenantInvite({ door = null, instanceId = null, rental 
 }
 
 /**
+ * THE ADVERTISED PRICE FOLLOWS THE RENT. Darrell, 2026-10-27, on 805 North
+ * Prospect Apt 4: "The rent amounts don't update appropriately... the $750 will
+ * not update to $1000 even after saving it."
+ *
+ * MEASURED, not guessed. The door editor writes `monthly_rent` and nothing
+ * else (DoorTabs EditRental's field list). Every surface that prices an
+ * ADVERTISED door reads `listed_rent` FIRST:
+ *
+ *   * the board row — DoorTabs: `Number(tenancy?.monthly_rent) ||
+ *     Number(r.listed_rent) || Number(r.monthly_rent)`;
+ *   * the open door's header — PropertiesApp, the same order;
+ *   * and server-side, EVERY public_vacancies() view back to migration 0152:
+ *     `coalesce(v.listed_rent, v.monthly_rent) AS rent` — so the PUBLIC shelf
+ *     quoted the stale figure too, to people deciding whether to apply.
+ *
+ * `listed_rent` is written in exactly ONE place — setListing, the moment a door
+ * is first advertised — and NO screen can edit it. So an advertised door froze
+ * its price at the hour it went up, and the owner's edit landed in a column
+ * that nothing he was looking at was reading. The rent really did save. The
+ * price on the screen was a different column.
+ *
+ * A second price the owner can neither see nor set is not a feature, it is a
+ * shadow. While one rent field is the only way to price a door, the advertised
+ * price moves with it — including to blank, because an advertised door with no
+ * rent recorded should say so rather than keep quoting last month's.
+ *
+ * It follows for a door whose listing is merely WITHDRAWN as well: setListing
+ * keeps `listed_rent` on the way down, so leaving it behind would re-advertise
+ * the old price the next time the door goes up.
+ */
+export function advertisedPriceFollows(rental = {}, patch = {}) {
+  if (!patch || !Object.prototype.hasOwnProperty.call(patch, 'monthly_rent')) return patch;
+  const everListed = Boolean(rental?.listed_at)
+    || (rental?.listed_rent !== null && rental?.listed_rent !== undefined);
+  if (!everListed) return patch;
+  return { ...patch, listed_rent: patch.monthly_rent };
+}
+
+/**
  * The fields a person may edit on a tenancy or a door, and what changed.
  * Returns the patch plus a human sentence for the record — an edit that leaves
  * no trace is how two people end up disagreeing about what the lease said.
