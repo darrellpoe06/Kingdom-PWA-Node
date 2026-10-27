@@ -107,6 +107,60 @@ And DR-0210 gains its receipts. The rule was never phonetic and never antiquaria
 - **Three of the five witnesses were verified through secondary literature, not primary publication.** The *BASOR* 334 article, the Soleb excavation report and the Qumran scribal studies were reached through scholarly summaries and abstracts rather than the articles themselves. The citations are given so a reader with library access can go further, and the lesson's claims are pitched at what those summaries actually support.
 - **No band teaches how to read Egyptian or Moabite.** A reader cannot check the inscriptions personally, and the lesson says the limit out loud rather than implying a competence nobody in the room has. `re-review: 2026-11-10` — read L259 on the live app in each band and record whether the Soleb honesty reads as strength or as hedging to the first reader who says either.
 
+## The reader's numbering, found red by CI and fixed at its real cause
+
+CI shard 3/4 failed `the-points-are-numbered-once-per-lesson.test.js` on this
+lesson: it deliberately *finds* its subject (the newest lesson with more than
+three sections, so its evidence cannot expire — DR-1025), ll259 became that
+subject, and the adult lesson's eleven movements rendered as **1, 2, 5, 9, 10,
+11**. A reader would have met mis-numbered points. The gate was right.
+
+**Two plausible theories were offered and BOTH were wrong**, which is why this
+was determined empirically against `formatLessonText` rather than reasoned about
+(DR-0076 §4, §5). It is not the length of the lead clause and not the
+punctuation inside it: `FIVE. THE THIRD WITNESS: SILVER, WORN AT THE THROAT.`
+carries a colon, a comma and eight words and is detected, while
+`THREE. THE FIRST WITNESS: SOLEB, AND THE ONE THAT IS HONESTLY ARGUED.` carries
+the same features and is not. Word count fails too: `TEN.` is detected at eleven
+words and `SIX.` is missed at eight.
+
+**The real cause is the PRECEDING paragraph.** `sentences()` cuts only after
+terminal punctuation, so a movement that ends on a parenthetical verse
+reference — `...for ever" (Deuteronomy 29:29)` with no full stop — cannot be
+cut, and the next movement's marker is swallowed into that sentence instead of
+starting one. Measured across all eleven: every movement whose predecessor ended
+in a full stop was detected (ONE, TWO, FIVE, NINE, TEN, ELEVEN); every movement
+whose predecessor ended on `)` was missed (THREE, FOUR, SIX, SEVEN, EIGHT). The
+correlation is exact, eleven for eleven.
+
+So the fix is **not** to shorten the five clauses, which would have changed the
+author's words and fixed nothing. It is **five full stops**, each placed after
+our own parenthetical reference — outside every quotation mark, touching no
+verse, no clause and no meaning. Five characters. House precedent already writes
+it this way (ll258 closes `"...added unto you" (Matthew 6:33).`).
+
+**The senior band had the same defect plus one of its own**, found by measuring
+every band rather than only the one CI named: it numbered **1, 2, 3, 4, 6, 10**.
+Its twelve movements were Roman numerals, and `MARKER_RES`'s Roman pattern stops
+at X, so XI and XII could never be seen at all, while five of its paragraphs
+ended on `)`. Both are closed: the twelve numerals are spelled (`ONE.`–`TWELVE.`,
+which `SPELLED` covers), and the same five full stops are added. Only the numeral
+token changed; every word of every clause stands.
+
+Measured after the fix, on all five places a reader reads: adult 1-11, child 1-7,
+youth 1-4, teen 1-2, senior 1-12 — every one consecutive. Content unchanged and
+re-measured: 233 referenced spans, 0 verbatim faults; fullness 0.60 / 0.87 / 0.96
+/ 1.13; grades 1.09 / 6.02 / 9.41 / 11.11, rising, child under 5.0; 0 generic
+"God" in our prose; no place short of a direction.
+
+### What this leaves for somebody else
+
+`MARKER_RES`'s Roman pattern reaching only X is a real limit in the formatter,
+not in this lesson: any author who numbers past ten in Roman will be mis-numbered
+the same way, silently. This lesson routed around it rather than widening a
+shared pattern mid-fix. Worth its own change with its own proof.
+`re-review: 2026-11-10`, with the band read live.
+
 ## Proven to catch
 
 `living-lessons-ll259-his-name-kept-in-stone-and-silver.test.js` is the lesson's own gate. It does not merely assert the lesson is fine; four of its cases break the lesson on purpose and require the failure:
