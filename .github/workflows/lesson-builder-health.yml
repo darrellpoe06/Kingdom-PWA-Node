@@ -86,6 +86,13 @@ jobs:
           # from the live database close that: waiting | oldest hours | shipped
           # in the last day. A read that fails leaves this EMPTY on purpose,
           # which the judge turns into UNKNOWN rather than a pass.
+          #
+          # THIS READ CANNOT SUCCEED FROM HERE (DR-1232): live-sql.sh is the
+          # RUNNER's road (tailnet -> ssh -> psql) and needs NAS_SSH_KEY, which
+          # the NAS does not hold for itself -- so from the day DR-1219 landed
+          # every run read UNKNOWN and failed (runs 40423587612, 40425627048,
+          # 40431353829). It is kept as the honest fallback; the runner-side
+          # step below is the read that answers.
           REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
           OUTCOME="$(cd "$REPO" && timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"
           export UNIT STATUS OUTCOME
@@ -174,7 +181,10 @@ jobs:
               if isinstance(j, dict):
                   for k in ("type", "subtype", "is_error", "api_error_status", "num_turns", "duration_ms", "stop_reason"):
                       if k in j: print("  {} = {}".format(k, j[k]))
-                  if "result" in j: print("  result =", elide(json.dumps(str(j["result"])[:200])))
+                  # The answer to OUR fixed one-word question: the CLI's own
+                  # error sentence or "ok" -- never a person's words. Its first
+                  # 160 characters are printed so a failure says WHY.
+                  if "result" in j: print("  result =", json.dumps(str(j["result"])[:160]))
           except Exception as e:  # noqa: BLE001
               print("stdout is not one JSON document ({}); tail: {}".format(type(e).__name__, elide(out[-400:]).replace("\n", " ")))
           print("stderr tail:", elide(err[-400:]).replace("\n", " ") or "(empty)")
@@ -196,6 +206,33 @@ jobs:
           fi
           echo "waiting | due (rate-limited by the record, not by the tag) | offered again = $out"
           echo "### Offered again under the rate-limit rule: waiting | due | tagged = $out" >> "$GITHUB_STEP_SUMMARY"
+
+      # THE OUTCOME, READ BY THE RUNNER (DR-1232). The runner holds the key
+      # and has joined the tailnet; this is the same road every monitor walks
+      # (DR-0618). Three numbers or nothing -- never a guessed 0 (DR-1186).
+      - name: Read the outcome from the runner (the road the NAS cannot walk to itself)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          OUTCOME="$(timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/tmp/outcome.err || true)"
+          echo "outcome (waiting | oldest hours | shipped in a day): ${OUTCOME:-<not read: $(head -c 200 /tmp/outcome.err | tr '\n' ' ')>}"
+          export OUTCOME
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          raw = (os.environ.get("OUTCOME") or "").strip()
+          fields = [p.strip() for p in raw.splitlines()[0].split("|")] if raw else []
+          if len(fields) == 3:
+              try:
+                  w["waiting"], w["oldest_wait_hours"], w["shipped_last_day"] = (int(f) for f in fields)
+                  w["outcome_read_by"] = "runner"
+              except ValueError:
+                  pass
+          json.dump(w, open("/tmp/witness.json", "w"))
+          print("witness now carries: waiting=%s oldest_wait_hours=%s shipped_last_day=%s" % (w.get("waiting"), w.get("oldest_wait_hours"), w.get("shipped_last_day")))
+          PY
 
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'
