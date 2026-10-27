@@ -58,16 +58,21 @@ import { undatedReason } from '../lib/lesson-dates.js';
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import { getPlaceFor } from '../lib/learn-resume.js';
 import { RowContinue } from './LessonContinue.jsx';
+import { bandVersion } from '../lib/lesson-read-mark.js';
 
 /** The fold memory's key for this list: one list, every course. */
 export const LATEST_FOLD_KEY = 'latest:every-course';
 
-export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, recordFor = null, onReadVersion = null, scope = 'every course' }) {
+export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, recordFor = null, onReadVersion = null, ageBand = null, scope = 'every course' }) {
   const [folded, setFolded] = useState(() => rememberedFolds(LATEST_FOLD_KEY));
   const setFolds = (next) => { setFolded(next); rememberFolds(LATEST_FOLD_KEY, next); };
   const latest = latestLessons(courses);
   const { rows } = latest;
   if (!rows.length) return null;
+  // The lesson behind each row, for the version a band is served (an older
+  // read, filed before the version was recorded, is attributed to it).
+  const moduleOf = new Map();
+  for (const c of courses || []) for (const m of c.schedule || []) moduleOf.set(`${c.key}::${m.id}`, m);
   const items = withMonthHeadings(rows);
   const scale = catalogReadings(courses);
   const perMonth = monthReadings(items);
@@ -137,7 +142,7 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
             </button>
           </li>
         ) : (
-          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added} className="flex items-center gap-2">
+          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added} className="flex flex-wrap items-center gap-2">
             {/* The title opens the lesson's own space — first in the row, as
                 the course list has it, so the same tap means the same thing. */}
             <button
@@ -169,16 +174,20 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
                 from this device's own record, never painted. */}
             {/* ...and WHICH VERSION (DR-1255): read on this device or in the
                 learner's own record, with a tap for each version not read. */}
-            {onContinue ? (
-              <RowContinue
-                place={getPlaceFor(r.courseKey, r.lessonId)}
-                record={recordFor ? recordFor(r.lessonId) : null}
-                versions={r.versionIds}
-                title={r.title}
-                onContinue={onContinue}
-                onReadVersion={onReadVersion ? (v) => onReadVersion(r.courseKey, r.lessonId, v) : null}
-              />
-            ) : null}
+            {onContinue ? (() => {
+              const record = recordFor ? recordFor(r.lessonId) : null;
+              return (
+                <RowContinue
+                  place={getPlaceFor(r.courseKey, r.lessonId)}
+                  record={record}
+                  versions={r.versionIds}
+                  attributed={bandVersion(moduleOf.get(`${r.courseKey}::${r.lessonId}`), (record && record.ageBand) || ageBand)}
+                  title={r.title}
+                  onContinue={onContinue}
+                  onReadVersion={onReadVersion ? (v) => onReadVersion(r.courseKey, r.lessonId, v) : null}
+                />
+              );
+            })() : null}
             {/* THE SAME ▶ PLAY the course list carries: the big full-screen
                 reader on this one lesson — read it yourself, or read to you. */}
             {onPlay ? (
