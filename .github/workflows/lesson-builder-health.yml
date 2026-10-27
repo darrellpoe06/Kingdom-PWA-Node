@@ -19,7 +19,16 @@ name: lesson-builder-health
 on:
   schedule:
     - cron: '3 14 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      probe_waiting:
+        description: 'Also print, per waiting lesson row, the last gate verdict the builder recorded (counts, codes, refs; never a body), and ask the primary writer once, the way the builder asks it (DR-1232)'
+        type: boolean
+        default: false
+      reoffer_rate_limited:
+        description: 'Also offer again every waiting row whose last recorded failure was the model''s rate limit (HTTP 429) but whose tag lost that status to the 200-character cut: one tag per row, idempotent, the builder rings on it (DR-1232)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -77,6 +86,13 @@ jobs:
           # from the live database close that: waiting | oldest hours | shipped
           # in the last day. A read that fails leaves this EMPTY on purpose,
           # which the judge turns into UNKNOWN rather than a pass.
+          #
+          # THIS READ CANNOT SUCCEED FROM HERE (DR-1232): live-sql.sh is the
+          # RUNNER's road (tailnet -> ssh -> psql) and needs NAS_SSH_KEY, which
+          # the NAS does not hold for itself -- so from the day DR-1219 landed
+          # every run read UNKNOWN and failed (runs 40423587612, 40425627048,
+          # 40431353829). It is kept as the honest fallback; the runner-side
+          # step below is the read that answers.
           REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
           OUTCOME="$(cd "$REPO" && timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"
           export UNIT STATUS OUTCOME
@@ -112,6 +128,111 @@ jobs:
           PY
           EOS
           cat /tmp/witness.json
+
+      # ON REQUEST (DR-1232): WHY the builder hands rows back, read from what
+      # the gates recorded, by a runner over the tailnet (DR-1159 road 1).
+      # On 2026-10-26 fifteen rows sat four days with "handed back (last:
+      # failed)" and nothing outside the NAS could say what failed: the
+      # build-reason tag is cut at 200 characters and the daily witness judged
+      # readiness only. This prints, per waiting row, the newest
+      # lesson_versions verdict -- writer, elapsed, draft or none, each gate's
+      # counts, the fault refs, the error with every long quoted string elided
+      # -- and then asks the primary writer ONE short question with the exact
+      # flags the builder uses, printing the exit code and the JSON's shape.
+      # Never a body, never a prompt, never a model's reply beyond a word.
+      - name: "Probe (on request): why each waiting row was handed back, as the gates recorded it"
+        if: steps.gate.outputs.go == 'true' && inputs.probe_waiting == true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          echo "== the last recorded verdict per waiting row (counts, codes, refs; never a body) =="
+          echo "row id | attempts | last version at | writer | elapsed ms | draft | gates passed | verse passed | spans | verbatim | verse faults | fault refs | structure problems | quotation problems | voice problems | depth problems | repo gates failed | error (elided) | the CLI's own error sentence (100 chars) | build-reason tags (elided)"
+          if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-waiting-last-verdict.sql); then
+            echo "::error::the live database could not be read -- this is NOT 'nothing waiting'"; exit 1
+          fi
+          n=$(printf '%s' "$out" | grep -c . || true)
+          echo "waiting rows: $n"
+          printf '%s\n' "$out"
+          { echo "### Waiting rows, the last verdict each: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          echo
+          echo "== the primary writer asked NOW, with the builder's own flags (exit code and JSON shape only) =="
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' | tee -a "$GITHUB_STEP_SUMMARY" || echo "the NAS did not answer the writer probe"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          HOME_DIR=$(getent passwd dpoe 2>/dev/null | cut -d: -f6); [ -n "$HOME_DIR" ] || HOME_DIR=/var/services/homes/dpoe
+          B="$HOME_DIR/.local/bin/claude"; [ -x "$B" ] || B=$(command -v claude 2>/dev/null || true)
+          [ -n "$B" ] || { echo "claude CLI: ABSENT"; exit 0; }
+          echo "claude: $B ($("$B" --version 2>&1 | head -1 | cut -c1-80))"
+          W=$(mktemp -d 2>/dev/null || echo "/tmp/lesson-probe.$$"); mkdir -p "$W"; cd "$W" || exit 0
+          unset ANTHROPIC_API_KEY
+          printf 'Reply with the single word ok.' | timeout 180 "$B" -p --output-format json --no-session-persistence --tools "" > "$W/out.json" 2> "$W/err.txt"
+          echo "exit=$?  stdout=$(wc -c < "$W/out.json" | tr -d ' ') bytes  stderr=$(wc -c < "$W/err.txt" | tr -d ' ') bytes"
+          python3 - "$W/out.json" "$W/err.txt" <<'PY'
+          import sys, re, json
+          def elide(s): return re.sub(r'"[^"\n]{25,}"', '"<elided>"', s)
+          out = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          err = open(sys.argv[2], encoding="utf-8", errors="replace").read()
+          try:
+              j = json.loads(out)
+              print("stdout: one JSON document; keys:", sorted(j.keys()) if isinstance(j, dict) else type(j).__name__)
+              if isinstance(j, dict):
+                  for k in ("type", "subtype", "is_error", "api_error_status", "num_turns", "duration_ms", "stop_reason"):
+                      if k in j: print("  {} = {}".format(k, j[k]))
+                  # The answer to OUR fixed one-word question: the CLI's own
+                  # error sentence or "ok" -- never a person's words. Its first
+                  # 160 characters are printed so a failure says WHY.
+                  if "result" in j: print("  result =", json.dumps(str(j["result"])[:160]))
+          except Exception as e:  # noqa: BLE001
+              print("stdout is not one JSON document ({}); tail: {}".format(type(e).__name__, elide(out[-400:]).replace("\n", " ")))
+          print("stderr tail:", elide(err[-400:]).replace("\n", " ") or "(empty)")
+          PY
+          cd /; rm -rf "$W"
+          EOS
+
+      # ON REQUEST (DR-1232): the rows the 200-character cut mis-filed as
+      # failed lessons are offered again under the rate-limit rule. One tag
+      # each, idempotent; the count is the whole output.
+      - name: "Offer again (on request): waiting rows whose recorded failure was the model's rate limit"
+        if: steps.gate.outputs.go == 'true' && inputs.reoffer_rate_limited == true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-waiting-reoffer-rate-limited.sql); then
+            echo "::error::the live database could not be written -- nothing was offered again"; exit 1
+          fi
+          echo "waiting | due (rate-limited by the record, not by the tag) | offered again = $out"
+          echo "### Offered again under the rate-limit rule: waiting | due | tagged = $out" >> "$GITHUB_STEP_SUMMARY"
+
+      # THE OUTCOME, READ BY THE RUNNER (DR-1232). The runner holds the key
+      # and has joined the tailnet; this is the same road every monitor walks
+      # (DR-0618). Three numbers or nothing -- never a guessed 0 (DR-1186).
+      - name: Read the outcome from the runner (the road the NAS cannot walk to itself)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          OUTCOME="$(timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/tmp/outcome.err || true)"
+          echo "outcome (waiting | oldest hours | shipped in a day): ${OUTCOME:-<not read: $(head -c 200 /tmp/outcome.err | tr '\n' ' ')>}"
+          export OUTCOME
+          python3 - <<'PY'
+          import json, os
+          w = json.load(open("/tmp/witness.json"))
+          raw = (os.environ.get("OUTCOME") or "").strip()
+          fields = [p.strip() for p in raw.splitlines()[0].split("|")] if raw else []
+          if len(fields) == 3:
+              try:
+                  w["waiting"], w["oldest_wait_hours"], w["shipped_last_day"] = (int(f) for f in fields)
+                  w["outcome_read_by"] = "runner"
+              except ValueError:
+                  pass
+          json.dump(w, open("/tmp/witness.json", "w"))
+          print("witness now carries: waiting=%s oldest_wait_hours=%s shipped_last_day=%s" % (w.get("waiting"), w.get("oldest_wait_hours"), w.get("shipped_last_day")))
+          PY
 
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'

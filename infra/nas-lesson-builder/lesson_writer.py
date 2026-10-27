@@ -379,6 +379,63 @@ def _read_key(cfg, env, default_env="", default_file=""):
     return ""
 
 
+class one_at_a_time:
+    """A file lock around one call (fcntl.flock: released by the kernel if the
+    holder dies, so a crashed build never wedges the next). Where the lock
+    cannot be made the call still runs -- the lock is a courtesy to the CLI's
+    sign-in, never a reason a lesson is not written."""
+
+    def __init__(self, path):
+        self.path, self.fh = path, None
+
+    def __enter__(self):
+        try:
+            import fcntl
+            os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+            self.fh = open(self.path, "a+")
+            fcntl.flock(self.fh.fileno(), fcntl.LOCK_EX)
+        except Exception:  # noqa: BLE001 -- no fcntl, no dir: run unlocked
+            if self.fh:
+                self.fh.close()
+            self.fh = None
+        return self
+
+    def __exit__(self, *exc):
+        if self.fh:
+            try:
+                import fcntl
+                fcntl.flock(self.fh.fileno(), fcntl.LOCK_UN)
+            except Exception:  # noqa: BLE001
+                pass
+            self.fh.close()
+        return False
+
+
+def cli_failure_tail(stdout, stderr):
+    """What a failed `claude -p` run said, with its STATUS FIRST (DR-1232).
+    The CLI prints one JSON envelope even when it fails; its api_error_status
+    (429 = the model's rate limit) sat ~250 characters into the 400-byte
+    tail, past the 200 characters the row's build-reason tag keeps, so the
+    builder could not tell a rate limit from a broken lesson. Now the tail
+    opens with `HTTP <status>` and the envelope's own words."""
+    out = (stdout or b"").decode("utf-8", "replace")
+    err = (stderr or b"").decode("utf-8", "replace")
+    try:
+        env = json.loads(out)
+    except ValueError:
+        env = None
+    if isinstance(env, dict) and env.get("api_error_status"):
+        return "HTTP {} ({}): {}".format(env.get("api_error_status"), env.get("subtype", "error"),
+                                        (str(env.get("result") or "") + " " + err).strip()[:300])
+    if isinstance(env, dict) and (env.get("is_error") or env.get("subtype", "success") != "success"):
+        # No HTTP status, but the CLI said why in its result ("Failed to refresh
+        # OAuth token: another Claude Code process is refreshing it", measured
+        # 2026-10-27 on six builds the re-offer started at once). That
+        # sentence is what a reader and the row's tag need first.
+        return "cli error ({}): {}".format(env.get("subtype", "error"), (str(env.get("result") or "") + " " + err).strip()[:300])
+    return (out + err)[-400:]
+
+
 def parse_cli_reply(stdout):
     """`claude -p --output-format json` prints one envelope: {"type":"result",
     "is_error":bool,"result":"<text>","usage":{...},"total_cost_usd":n,...}.
@@ -520,15 +577,26 @@ class CliLocal(Writer):
                 r.returncode, (r.stderr or b"")[-200:].decode("utf-8", "replace").strip())
         return signed_in(self.run, self._prefix() + [b], "claude at {}".format(b))
 
+    def lock_path(self):
+        """ONE `claude -p` AT A TIME ON THIS BOX (DR-1232). Measured 2026-10-27:
+        a re-offer rang twelve rows at once, the builder started their builds
+        in parallel, and six writers died in seven seconds each with "Failed
+        to refresh OAuth token: another Claude Code process is refreshing it
+        or exited mid-refresh" -- the CLI's sign-in is one file, and parallel
+        processes race its refresh. Builds are separate processes, so the
+        serializer is a file lock, held only around the call."""
+        base = (self.cfg.get("lock_dir") or self.env.get("LESSON_BUILDER_DATA") or tempfile.gettempdir())
+        return os.path.join(base, "cli-local.lock")
+
     def transmit(self, wire, timeout):
         b = find_cli(self.cfg, self.env, self.which)
         with tempfile.TemporaryDirectory(prefix="lesson-writer-") as cwd:
             os.chmod(cwd, 0o777)  # the signed-in user writes here, with no repo in reach
-            r = self.run(self._prefix() + [b] + cli_args(self.cfg, self.env), input=wire.encode("utf-8"),
-                         capture_output=True, timeout=timeout, cwd=cwd, env=_clean_env())
+            with one_at_a_time(self.lock_path()):
+                r = self.run(self._prefix() + [b] + cli_args(self.cfg, self.env), input=wire.encode("utf-8"),
+                             capture_output=True, timeout=timeout, cwd=cwd, env=_clean_env())
         if r.returncode != 0:
-            raise RuntimeError("cli-local exit {}: {}".format(
-                r.returncode, ((r.stdout or b"") + (r.stderr or b""))[-400:].decode("utf-8", "replace")))
+            raise RuntimeError("cli-local exit {}: {}".format(r.returncode, cli_failure_tail(r.stdout, r.stderr)))
         return parse_cli_reply(r.stdout.decode("utf-8", "replace"))
 
 
@@ -569,8 +637,7 @@ class CliSsh(Writer):
         r = self.run(self._ssh() + [self._remote()] + cli_args(self.cfg, self.env, remote=True), input=wire.encode("utf-8"),
                      capture_output=True, timeout=timeout)
         if r.returncode != 0:
-            raise RuntimeError("cli-ssh exit {}: {}".format(
-                r.returncode, ((r.stdout or b"") + (r.stderr or b""))[-400:].decode("utf-8", "replace")))
+            raise RuntimeError("cli-ssh exit {}: {}".format(r.returncode, cli_failure_tail(r.stdout, r.stderr)))
         return parse_cli_reply(r.stdout.decode("utf-8", "replace"))
 
 
