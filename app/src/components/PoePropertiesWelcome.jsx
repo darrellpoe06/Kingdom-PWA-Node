@@ -36,6 +36,8 @@
 import React from 'react';
 
 /** The hero photograph, under the door's own scope (app/public/properties/). */
+import HeroCarousel from './HeroCarousel.jsx';
+
 export const WELCOME_PHOTO_SRC = '/properties/welcome-entry.jpg';
 
 /**
@@ -117,6 +119,16 @@ export const WELCOME_CSS = `
 .pp-cam-open{position:absolute;bottom:calc(0.6 * var(--ts-fixed,1rem));left:calc(0.6 * var(--ts-fixed,1rem));z-index:2;font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;padding:calc(0.5 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));min-height:calc(2.25 * var(--ts-fixed,1rem));border:1px solid var(--pp-red);border-radius:999px;background:var(--pp-card);color:var(--pp-red);cursor:pointer;box-shadow:var(--pp-shadow)}
 .pp-cam-open:hover{background:var(--pp-red-tint)}
 .pp-cam-open:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-slides{position:absolute;inset:0;width:100%;height:100%}
+.pp-slides img{display:block;width:100%;height:100%;object-fit:cover}
+.pp-slide-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted)}
+.pp-slide-cap{position:absolute;left:0;right:0;bottom:calc(1.6 * var(--ts-fixed,1rem));z-index:2;padding:calc(0.5 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));font-family:var(--pp-sans);font-size:.8125rem;line-height:1.3;color:#FFFFFF;background:linear-gradient(180deg,rgba(17,17,17,0) 0%,rgba(17,17,17,.78) 100%);text-shadow:0 1px 2px rgba(17,17,17,.6);pointer-events:none}
+.pp-segments{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:calc(0.25 * var(--ts-fixed,1rem));padding:0 calc(0.6 * var(--ts-fixed,1rem))}
+.pp-seg{flex:1;min-width:calc(0.75 * var(--ts-fixed,1rem));min-height:44px;padding:0;border:0;background:transparent;cursor:pointer;display:flex;align-items:flex-end}
+.pp-seg-bar{display:block;width:100%;height:calc(0.25 * var(--ts-fixed,1rem));border-radius:999px;background:rgba(255,255,255,.45);margin-bottom:calc(0.5 * var(--ts-fixed,1rem))}
+.pp-seg.is-on .pp-seg-bar{background:var(--pp-red)}
+.pp-seg:focus-visible{outline:2px solid var(--pp-red);outline-offset:-2px}
+.pp-hero-why{display:block;font-family:var(--pp-sans);font-size:.6875rem;line-height:1.4;color:var(--pp-muted);margin-top:calc(0.35 * var(--ts-fixed,1rem));word-break:break-word}
 .pp-cam-note{font-family:var(--pp-sans);font-size:.75rem;line-height:1.5;color:var(--pp-muted);margin:calc(0.4 * var(--ts-fixed,1rem)) 0 0}
 .pp-cam-story{background:var(--pp-card);border:1px solid var(--pp-line);border-radius:calc(1 * var(--ts-fixed,1rem));padding:calc(0.9 * var(--ts-fixed,1rem)) calc(1 * var(--ts-fixed,1rem));box-shadow:var(--pp-shadow)}
 .pp-cam-story-h{font-family:var(--pp-serif);font-weight:700;font-size:.9375rem;line-height:1.3;color:var(--pp-ink);margin:0}
@@ -383,8 +395,8 @@ export function SignedOutNotice({ onReturn }) {
  * this file stays presentation only: it knows nothing about cameras, grants or
  * the NAS, and with no `bigPicture` the hero is exactly what it was.
  */
-export function WelcomeHero({ left = false, onReturn, bigPicture = null } = {}) {
-  const photo = (
+export function WelcomeHero({ left = false, onReturn, bigPicture = null, slides = null, why = '', autoplay = true } = {}) {
+  const entry = (
     <img
       src={WELCOME_PHOTO_SRC}
       width="530"
@@ -393,6 +405,12 @@ export function WelcomeHero({ left = false, onReturn, bigPicture = null } = {}) 
       decoding="async"
     />
   );
+  // THE BIG PICTURE ADVERTISES THE REAL APARTMENTS (DR-1236). When the door
+  // hands over slides (the advertised doors' own listing pictures, in the
+  // owners' order), the frame rotates them with the home's name on each;
+  // with none, the entryway photograph above stands in and `why` says so.
+  // This file stays presentation: it composes the carousel, it reads nothing.
+  const photo = slides ? <HeroCarousel slides={slides} fallback={entry} why={why} autoplay={autoplay} /> : entry;
   return (
     <section className="pp-hero" aria-labelledby="pp-welcome-heading">
       <div className="pp-hero-copy">

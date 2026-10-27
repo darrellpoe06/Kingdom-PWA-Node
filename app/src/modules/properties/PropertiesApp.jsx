@@ -65,7 +65,7 @@ import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
 import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
-import { areaOf } from './area.js';
+import { vacancyUnits } from './vacancy-unit.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
@@ -1879,45 +1879,11 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null, reviewer = false
   // never for looking at it.
   // ==========================================================================
   const notEnabled = claim && claim.ok === false && claim.reason === 'not-enabled-yet';
-  const rows = (Array.isArray(vacancies) ? vacancies : [])
-    .map((v) => {
-      const address = String(v.address || v.label || v.property_label || v.name || '').trim();
-      if (!address) return null;
-      const cityState = [v.city, v.state].map((x) => String(x || '').trim()).filter(Boolean).join(', ');
-      const rent = Number(v.monthly_rent ?? v.rent ?? v.listed_rent);
-      const beds = Number(v.bedrooms);
-      const baths = Number(v.bathrooms);
-      const nightly = Number(v.nightly_rate);
-      const weekly = Number(v.weekly_rate);
-      const biweekly = Number(v.biweekly_rate);
-      return {
-        id: String(v.id || v.rental_id || address),
-        rentalId: v.id || null,
-        label: address,
-        where: cityState,
-        unit: String(v.unit || v.unit_label || '').trim(),
-        rent: Number.isFinite(rent) && rent > 0 ? rent : null,
-        beds: Number.isFinite(beds) && beds > 0 ? beds : null,
-        baths: Number.isFinite(baths) && baths > 0 ? baths : null,
-        offering: String(v.offering || 'long-term'),
-        nightly: Number.isFinite(nightly) && nightly > 0 ? nightly : null,
-        // ANY CADENCE (DR-1003), the same three the public door reads.
-        weekly: Number.isFinite(weekly) && weekly > 0 ? weekly : null,
-        biweekly: Number.isFinite(biweekly) && biweekly > 0 ? biweekly : null,
-        buildingNote: String(v.building_note || '').trim() || null,
-        note: String(v.listed_note || v.note || v.blurb || '').trim(),
-        // Undefined (an older RPC) reads as SHOWN, because that is what the old
-        // behaviour actually was — claiming a door is protected when the
-        // database has not been migrated yet would be the same lie in reverse.
-        addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
-        area: areaOf(v),
-        street: String(v.street || '').trim(),
-        city: String(v.city || '').trim(),
-        state: String(v.state || '').trim(),
-        nearby: Array.isArray(v.nearby) ? v.nearby : [],
-      };
-    })
-    .filter(Boolean);
+  // ONE READING OF THE ROW FOR EVERY DOOR (DR-1236): this tab, the branded
+  // door and the PoeTech front door all read vacancyUnits(); the third copy
+  // of this mapping was the one that never named rentalId, so its cards
+  // never asked for their pictures.
+  const rows = vacancyUnits(vacancies);
 
   return (
     <div className="p-1">

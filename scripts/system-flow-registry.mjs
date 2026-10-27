@@ -1014,6 +1014,26 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: '--label incident' }],
     seeds: ['ops-surface'],
   }),
+  // THE STRANGER'S READ, MEASURED THE WAY A SIGNED-OUT BROWSER ASKS (DR-1236).
+  // The witness above judges the cards it can read; when the shelf said "could
+  // not be loaded" nothing could say WHY — the sandbox has no route, the
+  // deploy's share-page step reads with no Origin, site-health GETs the auth
+  // road. Dispatch-only (and a push to a probe/** branch), read-only: the
+  // cross-origin anon RPCs with every header supabase-js sends, the database's
+  // own clock under the anon role over the tailnet, and both signed-out doors
+  // in Chromium. It prints statuses, counts and ms, and appends one line to the
+  // witness's rolling run log so a missing line is itself the finding.
+  wf('public-shelf-anon-probe.yml', {
+    id: 'public-shelf-anon-probe', name: 'Public shelf anon probe',
+    purpose: 'Measures what a signed-out browser gets from the public shelf and its pictures: the RPC statuses, the database clock under anon, and the rendered doors.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us/' },
+      { res: 'db:rentals', token: 'public.public_vacancies()' },
+      { res: 'http:funnel', token: 'poetech.tail5a2f35.ts.net/sb' },
+    ],
+    writes: [{ res: 'gh:incident', token: 'gh issue comment' }],
+    seeds: ['ops-surface'],
+  }),
   app('app/src/lib/site-health.js', {
     id: 'ops-surface', name: 'OpsBoard uptime + incident ledger',
     purpose: 'Every outage and stall the witnesses recorded, with its duration.',
