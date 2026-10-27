@@ -109,8 +109,12 @@ describe('the family token never leaves the NAS, and free text never reaches a s
   });
 
   it('and refuses a question past the road\'s own cap before spending the trip', () => {
-    expect(ROAD).toMatch(/MAX_QUERY_CHARS = 500/);
-    expect(codeOnly(ASK)).toMatch(/-gt 500/);
+    // The ONE cap, read from the app and required of the other two places it is
+    // written. Spelled as a literal here before, which is how a raise of the
+    // forwarder alone passed this case while the reader was still refused at 500.
+    const cap = /MAX_QUERY_CHARS = (\d+)/.exec(ROAD)?.[1];
+    expect(cap, 'the app must state the cap').toBeTruthy();
+    expect(codeOnly(ASK)).toMatch(new RegExp(`-gt ${cap}`));
   });
 });
 
