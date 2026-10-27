@@ -362,4 +362,10 @@ export const LIVING_LESSONS_ADDED = {
   // the record rather than guessed at here. It takes the next free number above
   // L258; the repo allows no held numbers (numbers-are-unique pins KNOWN_GAPS).
   'll259-his-name-kept-in-stone-and-silver': '2026-10-27',
+  // L260 (DR-1220): Darrell sent a video on the Amarna letters into the app's
+  // research road; the row waited about ninety hours in the queue before a
+  // builder reached it, and the lesson was built on 2026-10-27, which is the
+  // day it joined the course. The exact send timestamp was not re-read from
+  // the database by this builder, so the build day is what is recorded here.
+  'll260-the-letters-of-frightened-kings-the-amarna-tablets-and-the-word': '2026-10-27',
 };
