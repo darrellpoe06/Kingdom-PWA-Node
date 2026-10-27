@@ -180,7 +180,9 @@ export function AddPictures({ w, instanceId = null, names = [], save, remember =
       <div className="flex flex-wrap gap-1.5">
         <label className={lbl}>
           Take a picture
-          <input type="file" accept="image/*" capture="environment" multiple className="sr-only" aria-label="Take a picture with the camera" data-testid="work-order-picture-camera"
+          {/* The camera returns one shot (the upload-inputs gate); the chooser
+              beside it takes several, so no source is hidden (DR-0339). */}
+          <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Take a picture with the camera" data-testid="work-order-picture-camera"
             onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
         </label>
         <label className={lbl}>

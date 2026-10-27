@@ -246,16 +246,18 @@ describe('the triage detail of a work order, with its pictures', () => {
     const cam = q('work-order-picture-camera');
     expect(cam.getAttribute('capture')).toBe('environment');
     expect(cam.getAttribute('accept')).toBe('image/*');
-    expect(cam.hasAttribute('multiple')).toBe(true);
+    // The camera returns one shot; the chooser beside it takes several (the upload-inputs gate, DR-0339).
+    expect(cam.hasAttribute('multiple')).toBe(false);
     expect(cam.closest('label').className).toMatch(/min-h-\[44px\]/);
     expect(q('work-order-picture-choose').hasAttribute('capture')).toBe(false);
+    expect(q('work-order-picture-choose').hasAttribute('multiple')).toBe(true);
   });
 
   it('a new name typed once is saved on the picture, remembered for the instance, and the note the pictures ride carries the id they name', async () => {
     const { photoOps, requestOps, calls } = ops();
     await mount(WorkOrderTriage, { incidents: [], rentals: [], load: loadReq, useTasks: noTasks, photoOps, requestOps, compress });
     await click(q('work-order-title').closest('button'));
-    await feed(q('work-order-picture-camera'), ['fan.jpg', 'bracket.jpg']);
+    await feed(q('work-order-picture-choose'), ['fan.jpg', 'bracket.jpg']);
     expect(q('work-order-picture-queue').querySelectorAll('img').length).toBe(2);
     // The remembered name is already a chip, beside the defaults.
     const chips = qa('picture-name-option').map((b) => b.textContent);
