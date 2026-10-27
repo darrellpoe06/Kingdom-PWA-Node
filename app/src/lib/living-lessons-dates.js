@@ -353,9 +353,9 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // L259 (DR-1224): Darrell sent a link into the app's own research road on
+  // L260 (DR-1224): Darrell sent a link into the app's own research road on
   // 2026-10-22; the row waited in the lesson queue and the reading was built
   // into a lesson on 2026-10-27, so this is the day it JOINED the course, not
   // the day he sent it (the sending day is in the record and in the lesson).
-  'll259-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
+  'll260-the-judgment-seat-and-the-reward-salvation-settled-service-measured': '2026-10-27',
 };

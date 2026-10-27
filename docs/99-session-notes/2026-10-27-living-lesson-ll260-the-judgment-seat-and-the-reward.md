@@ -1,9 +1,9 @@
-# 2026-10-27 — Living Lesson ll259: The Judgment Seat and the Reward
+# 2026-10-27 — Living Lesson ll260: The Judgment Seat and the Reward
 
-**Module id:** `ll259-the-judgment-seat-and-the-reward-salvation-settled-service-measured`
+**Module id:** `ll260-the-judgment-seat-and-the-reward-salvation-settled-service-measured`
 **Record:** DR-1224
 **Course:** Living Lessons from the Word (`app/src/lib/living-lessons-class.js`)
-**Branch:** `claude/ll259-the-judgment-seat-and-the-reward`
+**Branch:** `claude/ll260-the-judgment-seat-and-the-reward`
 
 ## The road
 
@@ -26,7 +26,7 @@ Measured before writing, because ll65 is genuinely close.
 - **ll65** (*Processed for Righteousness*) read in full: the Son as Judge (John 5:22), works AND words as the evidence, the heart as the single root, 2 Corinthians 5:10 cited twice in passing. Its frame is the **salvation verdict**.
 - **ll61** carries Romans 14:12 in an accountability frame; **ll245–ll258** read, none on this subject; **DR-0171 / DR-0130** hold the two-courts frame, which is accountability for wrongdoing and lives in `economics-class.js`.
 
-| taught anywhere in `app/src/lib` before ll259 | count |
+| taught anywhere in `app/src/lib` before ll260 | count |
 |---|---|
 | `1 Corinthians 3:15` | **0** |
 | `1 Corinthians 3:11` / `3:14` | 0 |
@@ -67,7 +67,7 @@ Every verse fetched from `app/public/bible/kjv` before a sentence was written. T
 
 ## The gate
 
-`app/src/__tests__/living-lessons-ll259-the-judgment-seat-and-the-reward.test.js` — **173 cases, all passing.** 71 pinned spans; 342 referenced spans verified verbatim; `anchor.ref` complete.
+`app/src/__tests__/living-lessons-ll260-the-judgment-seat-and-the-reward.test.js` — **173 cases, all passing.** 71 pinned spans; 342 referenced spans verified verbatim; `anchor.ref` complete.
 
 **Proven to catch on the live catalog file**, three mutations applied to `living-lessons-class.js` itself and each restored:
 
@@ -81,15 +81,15 @@ Two more are asserted in-file: a child band trimmed to 600 characters is named s
 
 ## Judgment calls Darrell should know about
 
-1. **The lesson shipped as ll259, not the assigned ll264, and the number was MEASURED rather than argued.** Lesson numbers must run contiguously — `living-lessons-numbers-are-unique.test.js` allows gaps only at 211 and 212. ll264 was renumbered to ll260 first, and the gate answered `expected [ 259 ] to deeply equal []`: *a lesson number nobody claims is a hole a reader can fall into*. ll260 was therefore unmergeable too, so the id became the lowest free one above ll258 on merged main, **ll259**. Module id, dates key, gate filename and constants, record filename and body, INDEX link, this note and the branch all moved together; `grep -rn "ll264\|ll260"` over `app/src` returns zero.
-   **Flagged, because two instructions could not both hold:** this build was told ll259 was already taken by a sibling, while nothing on merged main and nothing on any pushed branch held it (`git ls-remote` showed only ll257, ll261 — PR #2412 — and this one). ll259 was taken because a duplicate id is a recoverable collision the same gate catches and the merge-order tiebreak settles by renumbering, whereas a deliberate hole is a red PR this branch cannot clear by any action of its own. If a sibling lands ll259 first, this lesson renumbers to the next free id and nothing else changes.
-2. **The DR number was taken as assigned (DR-1224), not the claim script's lowest free (DR-1220).** DR-1220–DR-1223 were assigned to sibling builders running in parallel on ll259–ll263; taking 1220 would have manufactured the collision the script exists to prevent. DR-1224 was verified free on disk and in flight first.
+1. **The lesson shipped as ll260, not the assigned ll264, and the number was MEASURED three times rather than argued.** Lesson numbers must run contiguously — `living-lessons-numbers-are-unique.test.js` allows gaps only at 211 and 212, so there is no “reserve a number” convention. ll264 → **ll260**: the gate answered `expected [ 259 ] to deeply equal []`. ll260 → **ll259**, the lowest free id on merged main: lesson gate + numbering gate + dates gate green together, 201 cases. Then the re-check immediately before pushing found a sibling had pushed `claude/ll259-his-name-kept-in-stone-and-silver` as **PR #2414 with auto-merge armed**, so ll259 → **ll260**, which nothing on merged main and no pushed branch holds. Module id, dates key, gate filename and constants, record filename and body, INDEX link, this note and the branch moved together each time.
+   **Ordering to hold:** ll260 is contiguous only once PR #2414 lands ll259. Until then this PR correctly reports a hole at 259, and it clears when #2414 merges; both carry auto-merge, so the lane resolves the order. If #2414 is abandoned, this lesson renumbers to ll259 and nothing else changes.
+2. **The DR number was taken as assigned (DR-1224), not the claim script's lowest free (DR-1220).** DR-1220–DR-1223 were assigned to sibling builders running in parallel on ll260–ll263; taking 1220 would have manufactured the collision the script exists to prevent. DR-1224 was verified free on disk and in flight first.
 3. **`added` is 2026-10-27, the day the lesson JOINED the course**, not 2026-10-22 when the link was sent. The field's own definition is the day it joined, and `datesFollowNumbers` requires the days to rise with the numbers — a 10-22 date here would break against siblings numbered lower and dated later. The sending day is in the record and in the lesson prose.
 4. **The Egyptian material was dropped rather than hedged.** It was the only part of the reading that would have required relaying a contested reconstruction on a teaching surface.
 
 ## Open, with dates
 
-- `re-review: 2026-11-03` — read L259 on the live app in each band; record the first reader who can state, unprompted, the difference between losing a reward and losing salvation.
-- `re-review: 2026-11-10` — verify the bema's civic-honours use from a primary source and teach it, or leave the flag standing permanently; and decide whether ll65 and ll259 should cross-link.
+- `re-review: 2026-11-03` — read L260 on the live app in each band; record the first reader who can state, unprompted, the difference between losing a reward and losing salvation.
+- `re-review: 2026-11-10` — verify the bema's civic-honours use from a primary source and teach it, or leave the flag standing permanently; and decide whether ll65 and ll260 should cross-link.
 - `re-review: 2026-11-24` — whether a Strong's / lexicon corpus belongs on disk, which would close this class of lexical claim for every future lesson.
 - **Owed:** the parallel-timelines feature item from this row, captured as its own entry.
