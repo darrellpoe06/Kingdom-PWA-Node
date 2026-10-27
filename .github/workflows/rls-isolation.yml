@@ -26,7 +26,7 @@
 #
 # Fired by db-migrate's explicit workflow_dispatch call after every migration
 # apply (workflow_run from token-driven runs is suppressed — the DR-0107
-# class), by hand, and ONCE A DAY on its own clock (DR-1239). Measured
+# class), by hand, and ONCE A DAY on its own clock (DR-1241). Measured
 # 2026-10-27: the withdraw-my-words leg was red on five consecutive dispatches
 # (runs 342-346, 2026-10-20 to 2026-10-22) and nothing said so anywhere a
 # person reads — this file had no schedule, so a red stayed exactly as red as
@@ -49,7 +49,7 @@ on:
 
 permissions:
   contents: read
-  issues: write   # the rolling incident record (DR-1239)
+  issues: write   # the rolling incident record (DR-1241)
 
 concurrency:
   group: rls-isolation
@@ -434,7 +434,7 @@ jobs:
           done
           echo "isolation smoke(s) completed without a leak for ${{ matrix.feature }}"
 
-  # THE WITNESS WRITES WHAT IT SAW (DR-1239). Runs after every leg, pass or
+  # THE WITNESS WRITES WHAT IT SAW (DR-1241). Runs after every leg, pass or
   # fail. A red run opens (or comments on) ONE rolling issue labelled
   # `incident` + `rls-isolation-incident` with the count of red legs and
   # their matrix names -- never a row, a body, or an id from the database --
@@ -459,7 +459,7 @@ jobs:
             const label = 'rls-isolation-incident';
             for (const name of ['incident', label]) {
               try { await github.rest.issues.getLabel({ owner, repo, name }); }
-              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The RLS isolation witness ledger (DR-1239)' : 'The downtime ledger' }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: 'D93F0B', description: name === label ? 'The RLS isolation witness ledger (DR-1241)' : 'The downtime ledger' }); }
             }
             const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, { owner, repo, run_id: context.runId, per_page: 100 });
             const legs = jobs.filter((j) => j.name.startsWith('isolate'));

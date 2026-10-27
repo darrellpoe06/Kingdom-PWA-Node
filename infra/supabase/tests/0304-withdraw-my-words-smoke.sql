@@ -17,7 +17,7 @@
 --   exclusion is the tag, nothing else), and the undo stamps restored@<time>.
 -- The sweep's result is read for THIS smoke's house only: on the hosted
 -- database other houses' waiting lessons alarm too, and they are not the
--- subject (DR-1239; see pg_temp.swept below).
+-- subject (DR-1241; see pg_temp.swept below).
 -- PASS prints 'WITHDRAW MY WORDS SMOKE: PASS'; any leak or miss RAISES.
 -- =============================================================================
 BEGIN;
@@ -83,7 +83,7 @@ END $$;
 CREATE OR REPLACE FUNCTION pg_temp.tags_of(_row uuid) RETURNS jsonb LANGUAGE sql AS $$
   SELECT tags FROM public.agent_inbox WHERE id = _row $$;
 
--- THE SWEEP IS READ FOR THIS HOUSE ONLY (DR-1239). lesson_inbox_stale_sweep()
+-- THE SWEEP IS READ FOR THIS HOUSE ONLY (DR-1241). lesson_inbox_stale_sweep()
 -- walks the WHOLE inbox: in ci.yml (withdraw-walls) the inbox is empty but
 -- for these five rows, and in rls-isolation.yml it is the hosted database,
 -- which holds real people's waiting lessons. Measured on runs 342-346

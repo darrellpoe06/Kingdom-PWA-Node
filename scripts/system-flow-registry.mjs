@@ -1076,7 +1076,7 @@ const NODES = [
     reads: [{ res: 'gh:main', token: 'main' }], writes: [{ res: 'gh:migrate-heal', token: 'gh workflow run db-migrate.yml' }], seeds: ['db-migrate'],
   }),
   wf('rls-isolation.yml', {
-    id: 'rls-isolation', name: 'RLS isolation matrix (DR-1239: daily, and it writes its ledger)',
+    id: 'rls-isolation', name: 'RLS isolation matrix (DR-1241: daily, and it writes its ledger)',
     purpose: 'Proves on the real database that no tenant reads another’s rows: 27 legs, each a migration chain and its smoke, after every migration merge and once a day; a red leg is filed on the rolling incident issue (counts and leg names only) and the next green run closes it.',
     reads: [{ res: 'gh:rls-dispatch', token: 'workflow_run' }, { res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [{ res: 'gh:incident', token: 'rls-isolation-incident' }], seeds: ['ops-surface'],

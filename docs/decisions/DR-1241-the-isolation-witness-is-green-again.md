@@ -1,4 +1,4 @@
-# DR-1239: The isolation witness is green again — a smoke read the whole hosted inbox as if it were its fixture, and the witness had no clock and no ledger
+# DR-1241: The isolation witness is green again — a smoke read the whole hosted inbox as if it were its fixture, and the witness had no clock and no ledger
 
 **Date:** 2026-10-27
 **Status:** Accepted
