@@ -190,7 +190,7 @@ export function latestLessons(courses) {
     const added = lessonAdded(m);
     if (!added) { undated += 1; undatedLessons.push({ courseKey: c.key, lessonId: m.id }); return null; }
     const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
-    const row = { courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, versions: lessonVersions(m).length, everyAge: forEveryAge(m), alsoIn: [], sameTitleIn: [], ci, mi };
+    const row = { courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, versions: lessonVersions(m).length, versionIds: lessonVersions(m), everyAge: forEveryAge(m), alsoIn: [], sameTitleIn: [], ci, mi };
     rows.push(row);
     return row;
   };

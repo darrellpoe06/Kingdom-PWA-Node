@@ -66,7 +66,10 @@ describe('a lesson played to the end is read', () => {
     for (let i = 0; i < 60 && !toggleModule.mock.calls.length; i += 1) key('ArrowRight');
     expect(getPlaceFor('living-lessons', id)?.done, 'the place is finished').toBe(true);
     expect(toggleModule).toHaveBeenCalledTimes(1);
-    expect(toggleModule).toHaveBeenCalledWith(id, 'living-lessons');
+    // ...and WHICH VERSION (DR-1255): the deck's parts are the lesson's own
+    // words, the adult version, so that is what was read and filed.
+    expect(getPlaceFor('living-lessons', id)?.versions).toEqual({ adult: 1 });
+    expect(toggleModule).toHaveBeenCalledWith(id, 'living-lessons', { versionsRead: ['adult'] });
     key('ArrowRight');
     key('Escape');
     expect(toggleModule, 'walking on, or closing, does not file it twice').toHaveBeenCalledTimes(1);
@@ -78,10 +81,10 @@ describe('a lesson played to the end is read', () => {
     const { id } = openFromLatest();
     expect(toggleModule).not.toHaveBeenCalled();
     // What TTSControl does when the last sentence is spoken (TTSControl.jsx finishPlace()).
-    act(() => { finishPlace({ courseKey: 'living-lessons', lessonId: id }); });
+    act(() => { finishPlace({ courseKey: 'living-lessons', lessonId: id, version: 'teen' }); });
     expect(toggleModule).toHaveBeenCalledTimes(1);
-    expect(toggleModule).toHaveBeenCalledWith(id, 'living-lessons');
-    act(() => { finishPlace({ courseKey: 'living-lessons', lessonId: id }); });
+    expect(toggleModule).toHaveBeenCalledWith(id, 'living-lessons', { versionsRead: ['teen'] });
+    act(() => { finishPlace({ courseKey: 'living-lessons', lessonId: id, version: 'teen' }); });
     expect(toggleModule, 'a second finish of the same lesson is not a second file').toHaveBeenCalledTimes(1);
   });
 

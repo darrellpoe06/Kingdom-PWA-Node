@@ -97,7 +97,7 @@ describe('the Latest list on screen', () => {
     const onContinue = vi.fn();
     act(() => root.render(createElement(LatestLessons, { courses: courses(), onOpen: () => {}, onPlay: () => {}, onContinue })));
     expect(li(L2.id).querySelector('[data-testid="row-continue"]')).toBeTruthy();
-    expect(li(EW.id).querySelector('[data-testid="row-finished"]').textContent).toMatch(/FINISHED/);
+    expect(li(EW.id).querySelector('[data-testid="row-finished"]').textContent).toMatch(/READ/);
     expect(li(L1.id).querySelector('[data-testid="row-continue"], [data-testid="row-finished"]')).toBe(null);
     act(() => { li(L2.id).querySelector('[data-testid="row-continue"]').click(); });
     expect(onContinue).toHaveBeenCalledTimes(1);
