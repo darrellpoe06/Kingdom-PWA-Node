@@ -15,7 +15,7 @@ The row waited about **110 hours**. The NAS builder claimed it over and over and
 
 ## The hard part, which is the opposite of ll267's
 
-ll267 handled a fact that appears to **undercut** Scripture. This one handles a claim that appears to **support** it, and that is harder, because nobody checks a flattering claim. A lesson could quote all 187 of its spans perfectly and still pass an uncited seabed assertion through as evidence, and it would clear every other gate in the house. So the gate checks the three unverified claims are carried as the video's rather than asserted, that the lesson says out loud what its own source could not establish, and that the counter-argument is stated fairly rather than sneered at.
+ll267 handled a fact that appears to **undercut** Scripture. This one handles a claim that appears to **support** it, and that is harder, because nobody checks a flattering claim. A lesson could quote all 190 of its spans perfectly and still pass an uncited seabed assertion through as evidence, and it would clear every other gate in the house. So the gate checks the three unverified claims are carried as the video's rather than asserted, that the lesson says out loud what its own source could not establish, and that the counter-argument is stated fairly rather than sneered at.
 
 The spine is an omission: having drowned an army in reachable water, Yahweh commanded nobody to recover anything. He commanded a mouth (Exodus 13:8-9; Deuteronomy 6:20-21). A relic can be stolen, faked or hauled away — which is precisely what the video fears — and a telling cannot. And where He *does* give a marker, the twelve stones at the Jordan, the purpose clause is interrogative rather than argumentative: they prompt a child's question so the answer can be a telling (Joshua 4:6-7, 4:24).
 
@@ -23,7 +23,7 @@ The spine is an omission: having drowned an army in reachable water, Yahweh comm
 
 | measure | value |
 | --- | --- |
-| referenced quoted spans / corpus faults | **187 / 0** (module-wide sweep ≥150, asserting its own count) |
+| referenced quoted spans / corpus faults | **190 / 0** (module-wide sweep ≥150, asserting its own count) |
 | bands (chars) | 8,920 · 15,980 · 22,898 · 28,364 |
 | prose-word shares (floors 0.50 / 0.60 / 0.60 / 0.60) | **0.54 · 0.82 · 1.10 · 1.36** |
 | authored reading grades (adult 6.8) | **0.7 · 6.1 · 12.3 · 13.9**, not inverted |
@@ -32,7 +32,7 @@ The spine is an omission: having drowned an army in reachable water, Yahweh comm
 | doubled words · ordinals · generic names in our voice · Yahweh in a quote | 0 · 0 · 0 · 0 |
 | `anchor.ref` | 47, every one resolving |
 | stories · quiz | 2 (290 / 260 words) · 8 |
-| cases | **31** |
+| cases | **34** |
 
 ## Four things the measurements corrected, all of them mine
 
@@ -43,6 +43,8 @@ The spine is an omission: having drowned an army in reachable water, Yahweh comm
 **DR-1258's figures were overstated, and DR-1259 records the correction rather than rewriting the record.** Measured on the shipped text, the naive quote-pairing regex and the split agree everywhere except sov52's child band (8 spans against 9), with no false alarms anywhere. The *"five false alarms, 104 against 112"* in DR-1258 came from the draft while the flaw was being found.
 
 **But the mechanism turned out to be better than the claim it replaced.** What saves the verbatim sweep is the **reference anchor**: requiring `(Book c:v)` after the closing mark re-anchors the pairing at every citation, so a parity shift heals itself by the next verse. The check with **no** anchor is the one that inverts — and a Yahweh-in-a-quotation check is exactly that shape. Insert one short quotation into ll268's lesson and the unanchored scan returns 50 spans of which all 50 are prose that was never quoted, 10 of them naming Yahweh. Ten false bright-line breaches. Splitting reports none.
+
+**A fifth, found by CI rather than here: eight elided quotations.** The first push went green on lint and 14 jobs and was refused by the curriculum NAS copy job — `FRESH quotation :: lesson 0 -> 3`, `youth 0 -> 3`, `teen 0 -> 2`. My own checker had passed them, because it accepts an ellipsis-joined excerpt when every piece appears in the verse in order; this house's rule (DR-0459) is never an elision at all. Repaired by DR-0459's own remedy — quote a little MORE: Deuteronomy 13:2-3 and Exodus 13:17-18 are contiguous and are now whole, which restores the clause the cut had removed, and Luke 1:2/1:4 became two separately cited quotations. The senior band was the only one of the five that had none, and it supplied the replacements for the other three.
 
 ## Still waiting when this shipped
 

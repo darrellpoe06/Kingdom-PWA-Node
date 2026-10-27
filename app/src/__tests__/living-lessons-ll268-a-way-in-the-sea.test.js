@@ -51,6 +51,7 @@ import { NEW_LESSON_CHILD_CEILING, measureLesson, isInverted } from '../../../sc
 import { measureDifferentiation, duplicatedBands, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { placesMissingDirections, hasAllThree } from '../lib/talk-together.js';
 import { formatLessonText } from '../lib/lesson-format.js';
+import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 
 const ID = 'll268-a-way-in-the-sea-the-witness-we-do-not-need-to-invent';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
@@ -317,6 +318,47 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
     const insides = quotedPairs(tampered).filter((p) => /\bYahweh\b/.test(p.inside));
     expect(insides.length).toBeGreaterThan(0);
     expect(verbatimFaults([tampered]).length).toBeGreaterThan(0);
+  });
+});
+
+describe('no quotation is cut, and no bookkeeping reaches the reader', () => {
+  // ADDED AFTER THIS LESSON WENT RED IN CI, which is the honest reason it is
+  // here. The curriculum gate (scripts/quotation-integrity.mjs, run by the
+  // "curriculum NAS copy" job) refused the first push: FRESH quotation, lesson
+  // 0 -> 3, levels.youth 0 -> 3, levels.teen 0 -> 2. Eight quoted spans carried
+  // an ellipsis across three distinct citations, and that ratchet is shrink-only
+  // -- a new offender fails the build.
+  //
+  // My own prose checker had allowed them, because it was written to ACCEPT an
+  // ellipsis-joined excerpt as long as every piece appeared in the verse in
+  // order. That is a reasonable thing for a verbatim check to do and the wrong
+  // thing for this house, whose rule (DR-0459) is "always a shorter genuinely
+  // verbatim span, never an elision" -- reachable, as the module says, "usually
+  // by quoting a little MORE of the verse rather than a little less."
+  //
+  // The repair followed that remedy exactly. Deuteronomy 13:2-3 and Exodus
+  // 13:17-18 are contiguous, so each is now quoted whole, which restores the
+  // clause the elision had cut out: in Deuteronomy, the reason the sign must be
+  // refused. Luke 1:2 and 1:4 are NOT adjacent and no contiguous span covers
+  // both, so they became two separately cited quotations, which is what the
+  // senior band had already done -- the senior band was the only one of the five
+  // with no elisions, and it supplied the replacements for the other three.
+  it('no quoted span anywhere in a reader-facing field carries an ellipsis', () => {
+    expect(elidedQuotations(L)).toEqual([]);
+  });
+
+  it('and no reader-facing field prints a DR identifier', () => {
+    expect(recitedRecords(L)).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: putting one ellipsis back inside a quotation is seen', () => {
+    const whole = 'And the sign or the wonder come to pass, whereof he spake unto thee, saying, Let us go after other gods, which thou hast not known, and let us serve them; Thou shalt not hearken';
+    expect(L.lesson).toContain(whole);
+    const cut = { ...L, lesson: L.lesson.replace(whole, 'And the sign or the wonder come to pass... Thou shalt not hearken') };
+    expect(cut.lesson).not.toBe(L.lesson);
+    const found = elidedQuotations(cut);
+    expect(found.length).toBe(1);
+    expect(found[0].where).toBe('lesson');
   });
 });
 
