@@ -4271,7 +4271,7 @@ export default function ChurchLearn({
   // department tab is his call and is dated in DR-1183.
   const courseOpen = courseChosen || !!dept;
   // ONE WAY TO OPEN A COURSE, shared by the select and the quick-link chips
-  // (DR-1222). A course that only SERVES this department lives somewhere else
+  // (DR-1233). A course that only SERVES this department lives somewhere else
   // (DR-0516: one home, one credit). Leaving the department filter on would
   // hide the course the reader just picked, because it is not in this
   // department's own list -- so opening one drops the filter, exactly as the
@@ -4582,7 +4582,7 @@ export default function ChurchLearn({
             a course at all (DR-0598). */}
         {visibleCourses.length >= 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
-            {/* THE COURSES ARE QUICK LINKS TOO (DR-1222). Darrell 2026-10-27, from
+            {/* THE COURSES ARE QUICK LINKS TOO (DR-1233). Darrell 2026-10-27, from
                 his phone on Learn: "Need the courses options to be quick links
                 too... fix it". The departments above are tappable chips; the
                 courses were reachable only through the native select below —

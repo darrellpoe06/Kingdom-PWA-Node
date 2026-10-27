@@ -60,7 +60,7 @@ export default function SectionTabs({
   // below `sm`, where a bottom bar drives the same active id). The tablist
   // stays in the DOM and keyboard-reachable; only its box is styled.
   stripClassName = '',
-  // A row of QUICK LINKS may have NO current tab (DR-1222: the Learn course
+  // A row of QUICK LINKS may have NO current tab (DR-1233: the Learn course
   // chips before any course is chosen, and the chips of courses that only
   // SERVE a department, none of which is the open one). Opt-in: with it, a
   // controlled activeId that matches no section selects nothing instead of

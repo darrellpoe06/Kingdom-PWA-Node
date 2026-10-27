@@ -1,4 +1,4 @@
-# DR-1222: The courses are quick links too — a tappable chip row of every course above the select
+# DR-1233: The courses are quick links too — a tappable chip row of every course above the select
 
 **Date:** 2026-10-27
 **Status:** accepted

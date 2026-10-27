@@ -1,5 +1,5 @@
 // =============================================================================
-// THE COURSES ARE QUICK LINKS TOO — tappable chips beside the select (DR-1222)
+// THE COURSES ARE QUICK LINKS TOO — tappable chips beside the select (DR-1233)
 // =============================================================================
 // Darrell, 2026-10-27, from his phone on Church → Learn: "Need the courses
 // options to be quick links too... fix it". The department row was already a
