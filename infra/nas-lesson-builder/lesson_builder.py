@@ -153,11 +153,19 @@ def failed_attempts(tags):
 RATE_LIMIT_COOLDOWN_SECONDS = int(os.environ.get("LESSON_RATE_LIMIT_COOLDOWN_SECONDS", "1800"))
 RATE_LIMIT_RETRIES = int(os.environ.get("LESSON_RATE_LIMIT_RETRIES", "2"))
 _RATE_LIMITED = re.compile(r'api_error_status\\?"?\s*:\s*429|\bHTTP 429\b|\b429 Too Many|rate[ _-]?limit|overloaded', re.I)
+# A PASSING MOMENT, NOT A FAILED LESSON (DR-1232, measured 2026-10-27): six
+# builds started at once and the CLI's sign-in refresh raced -- "Failed to
+# refresh OAuth token: another Claude Code process is refreshing it or exited
+# mid-refresh". The writer now takes one call at a time (lesson_writer.py), and
+# a row that met this is waited out like a rate limit, never blamed for it.
+_TRANSIENT = re.compile(r"Failed to refresh OAuth token|another Claude Code process is refreshing|\btransient:", re.I)
 
 
 def rate_limited(tags):
-    """Did this row's builds fail because the model's rate limit had not passed?"""
-    return any(str(t).startswith("build-reason:") and _RATE_LIMITED.search(str(t)) for t in tags or [])
+    """Did this row's builds fail on a limit or a passing moment (a rate limit,
+    a sign-in refresh race) the next try can pass? Waited out, never blamed."""
+    return any(str(t).startswith("build-reason:") and (_RATE_LIMITED.search(str(t)) or _TRANSIENT.search(str(t)))
+               for t in tags or [])
 
 
 def last_failed_at(tags):
@@ -183,6 +191,8 @@ def reason_tag(text):
     why = re.sub(r"\s+", " ", str(text)).strip()
     if _RATE_LIMITED.search(why) and not why.lower().startswith("rate-limited"):
         why = "rate-limited: " + why
+    elif _TRANSIENT.search(why) and not why.lower().startswith("transient"):
+        why = "transient: " + why
     return "build-reason:" + why[:200]
 
 

@@ -957,6 +957,47 @@ class Stages(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 git.fetch()
 
+    def test_a_sign_in_refresh_race_is_a_passing_moment_and_the_cli_runs_one_at_a_time(self):
+        """DR-1232, measured 2026-10-27 01:55Z: six builds started at once; each
+        writer died in ~7 s with the CLI's own sentence below. The row is waited
+        out like a rate limit, and the CLI is called under one lock per box."""
+        out = ('{"type":"result","subtype":"success","subagent_stats":{"total":0,"failed":0,"killed":{"parent":0,"user":0,'
+               '"system":0},"refused":{"depth_limit":0,"concurrency_limit":0,"budget":0},"by_type":{}},"is_error":true,'
+               '"num_turns":1,"session_id":"0f6d1c2e-aaaa-bbbb-cccc-1234567890ab","permission_denials":[],"api_error_status":null,'
+               '"result":"Failed to refresh OAuth token: another Claude Code process is refreshing it or exited mid-refresh. Try again.",'
+               '"duration_ms":7157,"uuid":"1a2b3c4d-aaaa-bbbb-cccc-1234567890ab","queued_turn_count":0,"result_index":0}').encode("utf-8")
+        said = lw.cli_failure_tail(out, b"")
+        self.assertTrue(said.startswith("cli error (success): Failed to refresh OAuth token"), said)
+        tag = lb.reason_tag("no version passed every gate (1 written): cli-local cli-local exit 1: " + said)
+        self.assertTrue(tag.startswith("build-reason:transient: no version passed"), tag)
+        self.assertTrue(lb.rate_limited(["lesson", tag]))
+        # PROVEN TO CATCH: the shape that shipped blamed the teaching
+        old_tail = (b"" + out)[-400:].decode("utf-8")
+        self.assertGreater(old_tail.index("Failed to refresh"), 127, "the fixture reproduces the cut: the sentence sits past it")
+        old_tag = "build-reason:" + ("no version passed every gate (1 written): cli-local cli-local exit 1: " + old_tail)[:200]
+        self.assertFalse(lb.rate_limited(["lesson", old_tag]), "the old tag ends before the sentence and reads as a plain failure")
+        # the lock: two writers on one box take turns; a crashed holder never wedges the next
+        d = tempfile.mkdtemp()
+        held = []
+        def run(argv, **kw):
+            import fcntl
+            fh = open(os.path.join(d, "cli-local.lock"), "a+")
+            try:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                held.append("free")   # the lock was NOT held during the call
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                held.append("held")
+            fh.close()
+            class R: returncode, stdout, stderr = 0, b'{"type":"result","subtype":"success","is_error":false,"result":"ok","usage":{}}', b""
+            return R()
+        w = lw.CliLocal({"bin": "/bin/true", "lock_dir": d}, env={}, run=run, which=lambda x: "/bin/true")
+        w.transmit("hello", 10)
+        self.assertEqual(held, ["held"], "the call ran under the box-wide lock")
+        self.assertFalse(os.path.exists(os.path.join(d, "cli-local.lock.locked")))
+        with lw.one_at_a_time(os.path.join(d, "cli-local.lock")):
+            pass  # a second take after release does not block
+
     def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
         tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",
                 "build-reason:no version passed every gate (1 written): verse gate: Numbers 35:11 not verbatim"]
