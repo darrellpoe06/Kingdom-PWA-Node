@@ -76,7 +76,7 @@ import {
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
-import { tenancyRowForDoor, tenancyForTenantInvite } from './staging.js';
+import { tenancyRowForDoor, tenancyForTenantInvite, advertisedPriceFollows } from './staging.js';
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
@@ -171,7 +171,9 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
     { id: 'systems', n: kit.length, one: 'system', many: 'systems' },
   ].filter((c) => tabs.some((t) => t.id === c.id && !t.locked));
 
-  const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
+  // The door's own figure before the frozen advertised copy — see DoorTabs for
+  // the measurement. The header said $750 while the form held 1000.
+  const rent = Number(active?.monthly_rent) || Number(rental?.monthly_rent) || Number(rental?.listed_rent) || 0;
   // A CO-LIVING DOOR SAYS SO (DR-0968). Derived from rentable_level and from
   // whether the door actually has a sibling at its apartment number -- never
   // a checkbox, because "make sure this happens each time we co-live a place"
@@ -1166,7 +1168,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   };
 
   const editRental = async (id, patch, summary) => {
-    const res = await updateRental(id, patch, { summary });
+    // The advertised price follows the rent (staging.js advertisedPriceFollows).
+    // Applied HERE, at the single save, rather than in the form that happens to
+    // be open — every door edit goes through this one door.
+    const door = rentals.find((r) => r.id === id) || null;
+    const written = advertisedPriceFollows(door, patch);
+    const res = await updateRental(id, written, { summary });
     say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
     // TELL THE OTHER TAB (2026-08-28). Darrell: "I edited the addresses in
     // property and they did not update Real Estate.... fix it! perpetually."
@@ -1175,10 +1182,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // door showed two different addresses depending on which tab you opened.
     // Announced only on a REAL success — telling the other tab about a write
     // that did not land is how the two stores would drift the other way.
-    if (res.ok) {
-      const door = rentals.find((r) => r.id === id);
-      announceRentalChange({ slug: door?.slug || null, uuid: id, patch });
-    }
+    // The OTHER tab hears what was actually written, advertised price and all —
+    // announcing the form's patch would hand it the same stale figure.
+    if (res.ok) announceRentalChange({ slug: door?.slug || null, uuid: id, patch: written });
     boot();
   };
 
