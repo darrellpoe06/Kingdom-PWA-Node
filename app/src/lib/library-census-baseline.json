@@ -1,0 +1,12 @@
+{
+  "note": "The library ratchet (DR-1261). Counted by lib/library-census.js over the catalog the tests mount (buildCatalogCourseDescriptors). readings, whole, allVersions and exams may only RISE; waiting may only FALL. A lesson that lands incomplete, or a version that is lost, fails the build. When the library improves, the test says so and this file is re-frozen BY HAND to the new counts, in the PR that improved it, never by a script.",
+  "frozen": "2026-10-27",
+  "counts": {
+    "lessons": 691,
+    "readings": 3057,
+    "whole": 317,
+    "allVersions": 417,
+    "exams": 676,
+    "waiting": 374
+  }
+}
