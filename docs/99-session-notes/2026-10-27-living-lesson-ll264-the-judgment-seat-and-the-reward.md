@@ -1,7 +1,7 @@
 # 2026-10-27 — Living Lesson ll264: The Judgment Seat and the Reward
 
 **Module id:** `ll264-the-judgment-seat-and-the-reward-salvation-settled-service-measured`
-**Record:** DR-1224
+**Record:** DR-1225
 **Course:** Living Lessons from the Word (`app/src/lib/living-lessons-class.js`)
 **Branch:** `claude/ll264-the-judgment-seat-and-the-reward`
 
@@ -17,7 +17,7 @@ Because there is no name and no minute marks, the lesson ascribes the teaching t
 
 ## The second item on the row — NOT built, and it needs its own entry
 
-Above the link, Darrell asked for a product capability: connections between historical events and Scripture locations, plus **parallel timelines** — one for the people who lived in the Word, another for when a scroll or other corroborating find appears. That is Project Management / app feature work, not teaching. It is named in the lesson's own provenance paragraph as product work that is not being taught, it is recorded in DR-1224, and **none of it was built**. It is still owed an item of its own.
+Above the link, Darrell asked for a product capability: connections between historical events and Scripture locations, plus **parallel timelines** — one for the people who lived in the Word, another for when a scroll or other corroborating find appears. That is Project Management / app feature work, not teaching. It is named in the lesson's own provenance paragraph as product work that is not being taught, it is recorded in DR-1225, and **none of it was built**. It is still owed an item of its own.
 
 ## Was there a real increment? (DR-0610)
 
@@ -83,7 +83,7 @@ Two more are asserted in-file: a child band trimmed to 600 characters is named s
 
 1. **The lesson id ll264 is assigned centrally and is deliberately NOT the lowest unclaimed number.** The numbering gate requires contiguity (`KNOWN_GAPS` is `[211, 212]`), so while ll261–ll263 sit on unlanded sibling branches the `unclaimedNumbers` check will flag ids below this one. That is expected; holds are registered and retired centrally, and this lesson holds ll264 exclusively.
    **What it cost to learn that, recorded so nobody repeats it:** this build first followed a lowest-free-id protocol and moved ll264 → ll260 → ll259 → ll260 → ll262, every step forced by a measurement — the gate answering `expected [ 259 ] to deeply equal []`, then PR #2414 taking ll259, then PR #2415 taking ll260 and PR #2412 ll261. Each move was one scripted renumber across module id, dates key, gate filename and constants, record, INDEX link, note and branch. **The structural finding: with many builders self-assigning against a contiguity gate, “lowest free” is invalidated by a sibling push seconds after it is read — contiguity and concurrent self-assignment cannot both hold.** Central assignment is the fix, and it is now what governs.
-2. **The DR number was taken as assigned (DR-1224), not the claim script's lowest free (DR-1220).** DR-1220–DR-1223 were assigned to sibling builders running in parallel on ll264–ll263; taking 1220 would have manufactured the collision the script exists to prevent. DR-1224 was verified free on disk and in flight first.
+2. **The DR number was taken as assigned (DR-1225), not the claim script's lowest free (DR-1220).** DR-1220–DR-1223 were assigned to sibling builders running in parallel on ll264–ll263; taking 1220 would have manufactured the collision the script exists to prevent. DR-1225 was verified free on disk and in flight first.
 3. **`added` is 2026-10-27, the day the lesson JOINED the course**, not 2026-10-22 when the link was sent. The field's own definition is the day it joined, and `datesFollowNumbers` requires the days to rise with the numbers — a 10-22 date here would break against siblings numbered lower and dated later. The sending day is in the record and in the lesson prose.
 4. **The Egyptian material was dropped rather than hedged.** It was the only part of the reading that would have required relaying a contested reconstruction on a teaching surface.
 

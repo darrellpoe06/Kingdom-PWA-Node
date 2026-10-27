@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // L264 — "The Judgment Seat and the Reward": the teaching Darrell sent INSIDE
-// the PoeTech app, down the app's own research road, on 2026-10-22. DR-1224.
+// the PoeTech app, down the app's own research road, on 2026-10-22. DR-1225.
 // =============================================================================
 // WHAT CAME IN. Darrell sent a link into the app's research road; the road
 // fetched the whole reading (4,465 words) on our own machines. It is one
