@@ -109,7 +109,18 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(256); // 256 on 2026-10-22: World Issues issue 22 (the broken seal and the sure foundation -- PHP's critical release and eight compromised eMudhra intermediate keys, checked with their owners and taught Word first, DR-1217), built from the forum post Darrell pasted with one word on it, carries all four age bands from the first commit; regenerated from the real catalog by course-band-baseline-write.mjs (was 255); 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
+    expect(baseline.allFour).toBe(257); // 257 on 2026-10-27: sov51 (the office that does not transfer -- what no contract can compel,
+    // and the hireling who leaves, DR-1235), built from the TLDR technology digest Darrell forwarded on 2026-09-30 with one word
+    // above it, "Lessons" -- no item named and no question asked, which the lesson states rather than inventing an intent for him.
+    // It carries all four age bands from the first commit, so adultOnly did NOT move with it, and the sovereign-ai row reads
+    // {lessons: 49, allFour: 28}. Its ground was chosen by measurement TWICE OVER, because the first two candidates were taken: the
+    // obvious seam of a fast-building digest -- speed against foundations, the house on the rock, counting the cost -- is sov34's
+    // whole subject and sov38's (Luke 14:28 in 8 anchors, Matthew 7:24/26/27 in 3 each, Proverbs 24:3-4 in 10), and the second
+    // candidate, the delegation blueprint, is sov45's and sov42's (Acts 6:2-4, Exodus 18:21-22/26). What was FREE, counted and not
+    // guessed at: 2 Chronicles 26 (Uzziah's censer), 1 Samuel 13:11-13 (Gilgal), Numbers 18:7, Numbers 16:10, Zechariah 11:17,
+    // Galatians 6:5 and John 10:11-14 were all at zero anchors in this course, so it stands on the OFFICE that does not transfer and
+    // the two failures around it -- taking one up, and resting one on a hand with no stake. Regenerated from the real catalog by
+    // course-band-baseline-write.mjs (was 256); 256 on 2026-10-22: World Issues issue 22 (the broken seal and the sure foundation -- PHP's critical release and eight compromised eMudhra intermediate keys, checked with their owners and taught Word first, DR-1217), built from the forum post Darrell pasted with one word on it, carries all four age bands from the first commit; regenerated from the real catalog by course-band-baseline-write.mjs (was 255); 255 on 2026-10-22: 254 was sov48, and this is World Issues issue 21 (the way was 45 minutes
     // long -- on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached, DR-1205),
     // the FIRST lesson built through the research road DR-1202 opened: Darrell sent an Instagram reel with one word on it, the NAS wrote
     // its words with a local Whisper model, and the lesson was built from the transcript. It carries all four age bands from the first
