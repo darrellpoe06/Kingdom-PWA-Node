@@ -1,4 +1,4 @@
-# DR-1223: Not One Stone — a waiting research-road row becomes the house's direct treatment of AD 70, taught from His own speech and quoting no historian at all
+# DR-1227: Not One Stone — a waiting research-road row becomes the house's direct treatment of AD 70, taught from His own speech and quoting no historian at all
 
 **Date:** 2026-10-27
 **Status:** accepted
@@ -133,10 +133,10 @@ Two claims in the final message were checked rather than taken on trust, and bot
   reason that tool exists (DR-1136, DR-1147). Taking DR-1224 would have been the nineteenth collision
   of the week.
 
-So this record stays on **DR-1223** — confirmed free on disk *and* in flight by the same tool, and this
+So this record stays on **DR-1227** — confirmed free on disk *and* in flight by the same tool, and this
 build's first assignment — and the DR-1224 collision is **reported rather than resolved unilaterally**,
 which is what the instruction itself asked for. If the central register wants this record on another
-number, `node scripts/renumber-decision-record.mjs 1223 <to> --file DR-1223-not-one-stone-the-word-jesus-spoke-over-jerusalem-l263.md`
+number, `node scripts/renumber-decision-record.mjs 1223 <to> --file DR-1227-not-one-stone-the-word-jesus-spoke-over-jerusalem-l263.md`
 is the four-edit move DR-1021 made a tool.
 
 **This gate asserts no contiguity and no neighbour's number**, on purpose: a pin on "nothing comes

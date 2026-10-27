@@ -1,7 +1,7 @@
 # 2026-10-27 — Living Lesson ll263, "Not One Stone — the Word Jesus Spoke Over Jerusalem, and the Year It Came True"
 
 **Module id:** `ll263-not-one-stone-the-word-jesus-spoke-over-jerusalem-and-the-year-it-came-true` (`ll263`)
-**Decision record:** DR-1223
+**Decision record:** DR-1227
 **Source:** a link Darrell sent into the PoeTech app's own **research road** with one word on it — `agent_inbox`
 row `6130c486-a7c0-4a8e-978d-a37ad1533b79` (his own phone account), research item
 `a32f4cc4-c46b-40a0-bde1-bc2e882ce229`. The row had waited roughly **90 hours**. The road fetched the
@@ -44,7 +44,7 @@ loud why it stops there. The child band carries **no casualty figure and no fami
 while still refusing to pretend nothing happened. Philippians 4:8 was run against our own prose here
 specifically, on HONORABLE and PURE.
 
-**Four things from the captions were dropped**, each for a stated reason in DR-1223: the "ninth of Av"
+**Four things from the captions were dropped**, each for a stated reason in DR-1227: the "ninth of Av"
 date (unverifiable here, and Josephus's own text gives a different day in that month), the
 Eusebius/Pella flight tradition (a source two centuries later, not an eyewitness), the Missler
 pattern-versus-prediction frame (man-agreement used to settle how prophecy works — DR-0098), and any
@@ -115,11 +115,11 @@ message that carried them:
 - **`DR-1224` was assigned as final, and it is held by an unlanded sibling branch**
   (`origin/claude/ll260-the-judgment-seat-and-the-reward`), which `node scripts/claim-decision-number.mjs`
   reports and a local `grep` cannot see. Per the instruction's own terms — confirm, and report rather
-  than pick a replacement — this record stays on **DR-1223**, which the same tool confirms is free on
+  than pick a replacement — this record stays on **DR-1227**, which the same tool confirms is free on
   disk and in flight and which was this build's first assignment. The collision is reported, not
   resolved unilaterally.
 
-So: **ll263**, the id first assigned; **DR-1223**, verified free. Zero residual `ll260` references.
+So: **ll263**, the id first assigned; **DR-1227**, verified free. Zero residual `ll260` references.
 
 ## Suites run
 

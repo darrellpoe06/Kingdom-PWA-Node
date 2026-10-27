@@ -2,7 +2,7 @@
 // =============================================================================
 // L263 — "Not One Stone": the Word's own answer to a link Darrell sent into the
 // research road inside the PoeTech app, on the fall of Jerusalem in AD 70.
-// DR-1223.
+// DR-1227.
 // =============================================================================
 // WHAT THE SOURCE IS, and the honesty it demands:
 //

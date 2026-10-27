@@ -353,7 +353,7 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
-  // L263 (DR-1223): the research road's own intake -- a link Darrell sent into
+  // L263 (DR-1227): the research road's own intake -- a link Darrell sent into
   // the app with one word on it, whose reading step never completed, so a
   // video's machine-made captions about the fall of Jerusalem in AD 70 were the
   // whole of the research. The lesson is taught from Jesus' own recorded
