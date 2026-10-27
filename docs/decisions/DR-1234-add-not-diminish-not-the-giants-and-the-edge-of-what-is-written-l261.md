@@ -1,4 +1,4 @@
-# DR-1222: Add not, diminish not — the giants, and the edge of what is written (ll261)
+# DR-1234: Add not, diminish not — the giants, and the edge of what is written (ll261)
 
 **Date:** 2026-10-26
 **Status:** accepted
@@ -64,7 +64,7 @@ The dispute is **named** — both sendings are described in the lesson's own ope
 - **Named but NOT taught, because outside the Word:** the Ugaritic `rapi'uma` lexical argument the second sending rests on, and the Plato / Atlantis and Zep Tepi parallels the first one rests on. The lesson teaches what **Scripture itself** does with the word Rephaim, which is the Word explaining the Word; an outside lexicon is not the measure here, and ll73 already holds the borrowed-parallel work.
 - **No faith label, affiliation or motive is attached to either named man**, which the World Issues 21 correction made a standing rule, and the second speaker is **not named** because the road did not return a name — the lesson says so rather than guessing.
 
-**Numbers, and what measuring them cost.** `LIVING_LESSONS_MODULES` read at 255 modules with highest **ll258** on `origin/main` at the start of the build. This lesson is **ll261**, assigned exclusively and verified held by no one else; the record is **DR-1222**, free on disk and in flight.
+**Numbers, and what measuring them cost.** `LIVING_LESSONS_MODULES` read at 255 modules with highest **ll258** on `origin/main` at the start of the build. This lesson is **ll261**, assigned exclusively and verified held by no one else; the record is **DR-1234**, free on disk and in flight.
 
 The route there is worth recording, because it is a measurement finding rather than an inconvenience. The build was first assigned **ll252** — taken since 2026-10-18 ("This Life Is the Curriculum", DR-1100) — caught before a line was written. It was reassigned to ll261, then to "the lowest free id", which `living-lessons-numbers-are-unique` rejected: `KNOWN_GAPS` is frozen at two, so a number out of sequence is a NEW hole and CI's `lint + vitest` went red on it by name. But **"lowest free" is not computable in parallel**: eight builders ran it against their own trees at the same moment and five got the same answer, and a local `grep app/src/lib/` cannot see a number held by an unlanded branch at all. Measured directly across every pushed branch while this was being settled: **two live branches both held ll260**. So contiguity is held centrally (the convention in `app/src/__tests__/living-lessons-id-collision.test.js`), ids are assigned exclusively, and `scripts/claim-decision-number.mjs` — which reads unlanded branches — is the instrument for checking an assignment rather than choosing one.
 

@@ -1,4 +1,4 @@
-# 2026-10-26 — L261, "Add Not, Diminish Not — the Giants, and the Edge of What Is Written" (DR-1222)
+# 2026-10-26 — L261, "Add Not, Diminish Not — the Giants, and the Edge of What Is Written" (DR-1234)
 
 **Module id:** `ll261`
 
@@ -28,4 +28,4 @@ The two sendings: `agent_inbox` row `031a898a-b98b-484e-8d06-0962dede6316` (rese
 
 **The increment, checked.** `ll29` already teaches the "sons of God" through Job and already places 1 Enoch as context; `ll72`, `ll73` and `ll76` hold the Berean habit, the borrowed parallel and the don't-go-past-the-Word test; the `genesis-6` timeline entry carries the house position. None of them touches the Rephaim, Og, Goliath, Numbers 13:33, 2 Samuel 21, or what the Word does and does not say a demon is. The whole ll240–ll258 block was read too, after a mid-build id correction: the only hits were believers' sonship (John 1:12 / 1 John 3:1) and Noah finishing the ark (Genesis 6:22) — different teachings on the same words.
 
-**Open, with dates.** The exact send day is known only to within a day (the rows waited ~87 hours), so the build day is recorded with its reason; and the second speaker is unnamed because the road returned no name. Both carry `re-review: 2026-11-26` in DR-1222. The house's formal canon decision on the 1 Enoch mechanism stays open in `THE-CANON.md`; this lesson needs no edit either way, which is the point of stopping at the edge.
+**Open, with dates.** The exact send day is known only to within a day (the rows waited ~87 hours), so the build day is recorded with its reason; and the second speaker is unnamed because the road returned no name. Both carry `re-review: 2026-11-26` in DR-1234. The house's formal canon decision on the 1 Enoch mechanism stays open in `THE-CANON.md`; this lesson needs no edit either way, which is the point of stopping at the edge.
