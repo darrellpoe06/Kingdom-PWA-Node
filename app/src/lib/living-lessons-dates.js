@@ -416,4 +416,9 @@ export const LIVING_LESSONS_ADDED = {
   // 2026-10-27, so this is the BUILD day, not the day he sent it; the exact
   // send timestamp was not read by this session and is not asserted here.
   'll266-the-manuscripts-and-the-names-the-word-testified-first': '2026-10-27',
+  // L267: a research-road item Darrell sent into the app as a link -- the 1929
+  // excavation of Ugarit, the thirty-sign alphabet, and the lotan/leviathan
+  // parallel. The row waited roughly ninety-one hours in the queue; the date is
+  // the day the lesson was built, not the day the link was sent.
+  'll267-ugarit-and-the-words-we-read-yahweh-is-not-of-that-pantheon-he-is-its-judge': '2026-10-27',
 };

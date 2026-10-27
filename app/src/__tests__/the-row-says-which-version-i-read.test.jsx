@@ -67,7 +67,7 @@ describe('the Latest list says which ones I read, and which version', () => {
     expect(mark(L2.id).textContent, 'a one-version lesson names no version').toBe('✓ READ');
     expect(mark(L2.id).getAttribute('data-from-record')).toBe('true');
     expect(chips(L2.id), 'nothing left to offer on a one-version lesson').toEqual([]);
-    expect(mark(L3.id).textContent, 'a record that never said which version says so').toBe('✓ READ · version not recorded');
+    expect(mark(L3.id).textContent, 'a record that never said which version, with no band to go by, says so').toBe('✓ READ · version not recorded');
     expect(chips(L3.id), 'and every version is offered').toEqual(['child', 'youth', 'teen', 'adult', 'senior']);
   });
 
