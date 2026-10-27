@@ -230,7 +230,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // THE SOUND SHAPED ONTO THIS VOICE (DR-0801): pitch is kept per voice.
     pitch, setPitch, stepPitch,
     catalog, voiceId, setVoiceId, currentItem,
-    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
+    segmentIndex: enginePiece, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // How many pieces of this reading come before the text now playing
     // (DR-1254; optional in mocks): a hand-off's pieces count from 0 again.
     pieceOffset = 0,
@@ -572,20 +572,20 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
       return;
     }
-    // A hand-off's engine counts from 0 again; the pieces before it are
-    // added (DR-1254), so the sentence lit and kept is the one being heard.
-    const local = pieceOffsetRef.current + Math.max(0, segmentIndex);
-    runLocalRef.current = local;
-    const r = followRef.current.ranges[local] || null;
+    // A hand-off's engine counts its pieces from 0 again; the pieces before
+    // it are added (DR-1254), so the sentence lit and kept is the one heard.
+    const segmentIndex = pieceOffsetRef.current + Math.max(0, enginePiece);
+    runLocalRef.current = segmentIndex;
+    const r = followRef.current.ranges[segmentIndex] || null;
     lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
     scrollToVoice(r);
     // The sentence just reached IS the place. `base` is the offset this run
     // started at, so the stored index is absolute within the lesson.
     const st = followRef.current;
-    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + local] : null;
-    if (seg && seg.text) rememberSentence(st.base + local, seg.text);
-  }, [segmentIndex, pieceOffset, isReading, deviceRead, rememberSentence]);
+    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + segmentIndex] : null;
+    if (seg && seg.text) rememberSentence(st.base + segmentIndex, seg.text);
+  }, [enginePiece, pieceOffset, isReading, deviceRead, rememberSentence]);
   // CLOUD (cloned-voice) sentence-follow (DR-0265): the clip has no word
   // timings, but playback fraction → character position → sentence works at
   // sentence granularity. Only re-highlights when the sentence changes.
