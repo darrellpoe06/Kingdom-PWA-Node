@@ -2699,6 +2699,8 @@ const BROKEN_SEAL_QUOTES = [
   { ref: '2 Timothy 2:19', book: '2Timothy', ch: 2, v: 19, fragments: ['the foundation of God standeth sure, having this seal, The Lord knoweth them that are his', 'The Lord knoweth them that are his'] },
   { ref: 'Psalms 118:8', book: 'Psalms', ch: 118, v: 8, fragments: ['It is better to trust in the LORD than to put confidence in man'] },
   { ref: 'Psalms 121:4', book: 'Psalms', ch: 121, v: 4, fragments: ['he that keepeth Israel shall neither slumber nor sleep'] },
+  { ref: 'Psalms 146:3', book: 'Psalms', ch: 146, v: 3, fragments: ['Put not your trust in princes, nor in the son of man, in whom there is no help'] },
+  { ref: 'Proverbs 14:15', book: 'Proverbs', ch: 14, v: 15, fragments: ['The simple believeth every word: but the prudent man looketh well to his going'] },
   { ref: 'Esther 8:8', book: 'Esther', ch: 8, v: 8, fragments: ['the writing which is written in the king’s name, and sealed with the king’s ring, may no man reverse', 'may no man reverse'] },
   { ref: 'Daniel 6:17', book: 'Daniel', ch: 6, v: 17, fragments: ['the king sealed it with his own signet, and with the signet of his lords; that the purpose might not be changed', 'that the purpose might not be changed'] },
   { ref: 'Jeremiah 32:10', book: 'Jeremiah', ch: 32, v: 10, fragments: ['I subscribed the evidence, and sealed it, and took witnesses'] },
@@ -2820,8 +2822,50 @@ describe('Issue 22 — The broken seal and the sure foundation: every fragment v
     expect(issue.verifiable.find((v) => v.id === 'f-emudhra-keys').statement).toMatch(/below 256/);
     for (const v of issue.verifiable) {
       expect(v.sources.length, v.id).toBeGreaterThan(0);
-      for (const s of v.sources) expect(s.asOf, v.id).toBe('2026-10-22');
+      // Read on the two research days: the first draft (10-22) and the day the
+      // newest word was added (10-27).
+      for (const s of v.sources) expect(['2026-10-22', '2026-10-27'], v.id).toContain(s.asOf);
     }
+  });
+
+  // THE NEWEST WORD (2026-10-27). Darrell: "World issues did not have the latest
+  // information... just the latest in institutions... which are usually behind
+  // the main stream." The lesson carries a dated latest section from the field,
+  // names the institutions' record plainly, and teaches it in every band.
+  it('carries the newest word from the field, dated, not only what the institutions confirmed', () => {
+    expect(issue.latest.asOf).toBe('2026-10-27');
+    expect(issue.latest.items.length).toBeGreaterThanOrEqual(5);
+    for (const it of issue.latest.items) {
+      expect(it.said.length, it.by).toBeGreaterThan(40);
+      expect(it.by.length).toBeGreaterThan(5);
+      expect(it.asOf).toBe('2026-10-27');
+      expect(['field', 'vendor', 'institution']).toContain(it.standing);
+    }
+    expect(issue.latest.items.filter((it) => it.standing === 'field').length).toBeGreaterThanOrEqual(3);
+    const ahead = issue.verifiable.find((v) => v.id === 'f-field-ahead-of-the-office');
+    expect(ahead.status).toBe('documented');
+    expect(ahead.statement).toMatch(/October 17, four days before/);
+    expect(new Set(ahead.sources.map((x) => x.publisher)).size).toBeGreaterThanOrEqual(2);
+    expect(issue.limits.some((l) => l.id === 'lim-institutions-trail' && /first draft/i.test(l.text))).toBe(true);
+  });
+
+  it('weighs an institution by its documented record — Tuskegee and the 2025 Epstein memo — in every band', () => {
+    const rec = issue.verifiable.find((v) => v.id === 'f-the-record-of-institutions');
+    expect(rec.status).toBe('documented');
+    expect(rec.statement).toMatch(/399 Black men/);
+    expect(rec.statement).toMatch(/1932/);
+    expect(rec.statement).toMatch(/1972/);
+    expect(rec.statement).toMatch(/May 16, 1997/);
+    expect(rec.statement).toMatch(/July 7, 2025/);
+    expect(rec.statement).toMatch(/no further disclosure would be appropriate or warranted/);
+    expect(new Set(rec.sources.map((x) => x.publisher)).size).toBeGreaterThanOrEqual(3);
+    expect(issue.lens.stewardship).toMatch(/weigh an institution’s word by its record/);
+    expect(issue.lens.stewardship).toContain('"Put not your trust in princes, nor in the son of man, in whom there is no help" (Psalms 146:3)');
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(issue.levels[band], band).toMatch(/record|really looked/);
+    }
+    expect(issue.levels.child).not.toMatch(/Epstein|syphilis/);
+    for (const band of ['youth', 'teen', 'senior']) expect(issue.levels[band], band).toMatch(/syphilis/);
   });
 
   it('says what it could not open, what is open, and never names the poster', () => {
