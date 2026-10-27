@@ -15,10 +15,48 @@
 // NOTHING must never read as healthy, and an unread queue must never read as
 // an empty one.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   verdictOf, exitCodeOf, problemsOf,
   HEALTHY, DARK_IN_EFFECT, UNKNOWN, NOT_READY, ALARM_HOURS,
 } from '../../../scripts/loop-produces-or-it-is-dark.mjs';
+
+// AND THE WIRING, because judging well on numbers nobody fetched is worth
+// nothing (DR-1231). MEASURED 2026-10-27, run 40431353829: the judgement above
+// was right and the witness still said UNKNOWN with all three counts null,
+// because the queue read had been placed INSIDE the NAS ssh heredoc. There it
+// cannot work by construction -- scripts/live-sql.sh needs NAS_SSH_KEY and
+// opens its OWN connection to the NAS, so on the NAS, in a non-interactive
+// shell, it exits 10 at its first line. The 15 cases below covered the verdict
+// function and NOTHING covered what feeds it, which is exactly how the broken
+// wiring shipped green. These two checks are that missing half.
+const WF_PATH = join(process.cwd(), '..', '.github', 'workflows', 'lesson-builder-health.yml');
+
+/** Split a workflow's steps on the step indent, so a claim can be made about ONE step. */
+export function stepsOf(text) {
+  return text.split(/\n {6}- (?=name:|uses:)/).slice(1);
+}
+/**
+ * Comment lines removed, because this file EXPLAINS the wiring in prose and a
+ * check that counts the explanation as a second read is measuring the wrong
+ * thing -- it did, the first time it ran.
+ */
+const commandsOnly = (s) => s.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+/** An invocation, not a mention. */
+const INVOKES = /(^|[\s;&|(])(bash|sh|\.\/)\s*scripts\/live-sql\.sh/m;
+/** Where the queue read sits: on the runner (right) or inside the NAS session (wrong). */
+export function queueReadWiring(text) {
+  const steps = stepsOf(text).map(commandsOnly);
+  const reads = steps.filter((s) => INVOKES.test(s));
+  const nasSession = steps.filter((s) => s.includes("'sh -s'"));
+  return {
+    readSteps: reads.length,
+    readHasKey: reads.length > 0 && reads.every((s) => s.includes('NAS_SSH_KEY')),
+    readInsideNasSession: reads.some((s) => s.includes("'sh -s'")),
+    nasSessionReads: nasSession.some((s) => INVOKES.test(s)),
+  };
+}
 
 /** The live shape on 2026-10-26, from the witness log and the bell. */
 const THE_REAL_FOUR_DAYS = {
@@ -137,6 +175,44 @@ describe('exitCodeOf — "producing nothing" is not "cannot build", and neither 
     for (const v of ['HEALTHY', 'pass', 'ok', '', null, undefined, 'passed']) {
       expect(exitCodeOf(v), `${String(v)} must not read as healthy`).not.toBe(0);
     }
+  });
+});
+
+describe('the queue read runs where its key is — the wiring, not only the judgement (DR-1231)', () => {
+  const wf = readFileSync(WF_PATH, 'utf8');
+
+  it('the live-sql read is a RUNNER step that carries NAS_SSH_KEY, and is not in the NAS session', () => {
+    const w = queueReadWiring(wf);
+    expect(w.readSteps, 'exactly one step reads the queue').toBe(1);
+    expect(w.readHasKey, 'the reading step must have NAS_SSH_KEY in its own env').toBe(true);
+    expect(w.readInsideNasSession, 'the read must NOT sit inside the ssh heredoc').toBe(false);
+    expect(w.nasSessionReads, 'the NAS session step must not call live-sql.sh').toBe(false);
+  });
+
+  it('the read keeps its reason: stderr is captured, not sent to /dev/null', () => {
+    const read = stepsOf(wf).map(commandsOnly).find((s) => INVOKES.test(s));
+    expect(read).toBeTruthy();
+    expect(read).toContain('/tmp/outcome.err');
+    expect(read, 'a swallowed error is why the first failure said nothing').not.toMatch(/live-sql\.sh[^\n]*2>\/dev\/null/);
+  });
+
+  it('PROVEN-TO-CATCH: the exact 2026-10-27 shape — the read inside the NAS heredoc — is flagged', () => {
+    const broken = [
+      '',
+      "      - name: Ask the builder for its own status",
+      '        run: |',
+      "          $SSH 'sh -s' <<'EOS' > /tmp/witness.json",
+      '          OUTCOME="$(cd "$REPO" && bash scripts/live-sql.sh \'|\' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"',
+      '          EOS',
+      '',
+      '      - name: Judge and report',
+      '        run: |',
+      '          echo judging',
+    ].join('\n');
+    const w = queueReadWiring(broken);
+    expect(w.readInsideNasSession, 'this is the break that shipped green').toBe(true);
+    expect(w.nasSessionReads).toBe(true);
+    expect(w.readHasKey, 'and it had no key on that side').toBe(false);
   });
 });
 

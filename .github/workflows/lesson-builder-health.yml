@@ -71,32 +71,24 @@ jobs:
           SRC=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder
           UNIT="$(systemctl is-active poetech-lesson-builder 2>/dev/null || echo unknown)"
           STATUS="$(cd "$SRC" && LESSON_BUILDER_DATA=/volume1/PoeTech/lesson-builder timeout 120 python3 lesson_builder.py --status 2>&1 || true)"
-          # THE OUTCOME, not only the readiness (DR-1219). `--status` above
-          # reports the unit, the kill state, each writer and the credential --
-          # and nothing about whether a lesson has ever come out. Three counts
-          # from the live database close that: waiting | oldest hours | shipped
-          # in the last day. A read that fails leaves this EMPTY on purpose,
-          # which the judge turns into UNKNOWN rather than a pass.
-          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
-          OUTCOME="$(cd "$REPO" && timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"
-          export UNIT STATUS OUTCOME
+          # The three OUTCOME counts are NOT read here. They used to be, and it
+          # could never have worked: scripts/live-sql.sh requires NAS_SSH_KEY and
+          # SSHes to the NAS ITSELF, so it is a RUNNER-side tool. Run from inside
+          # this heredoc -- already on the NAS, with no key in a non-interactive
+          # shell -- it exits 10 at its first line, "NAS_SSH_KEY is not set", and
+          # `2>/dev/null || true` swallowed even that. Measured 2026-10-27, run
+          # 40431353829: the witness reported UNKNOWN with all three counts null.
+          # The read now lives in its own runner step below (DR-1231).
+          export UNIT STATUS
           python3 - <<'PY'
           import json, os, time
           out = {"reachable": True, "at": int(time.time()), "unit": os.environ.get("UNIT"), "status_read": False,
                  "state": None, "stopped": None, "why": None, "push_credential": None, "writers": [], "error": None,
                  "waiting": None, "oldest_wait_hours": None, "shipped_last_day": None}
-          # The three outcome counts. Left as None when the read failed or the
-          # line was not the three numbers we asked for -- never guessed at,
-          # and never defaulted to 0, because a 0 here would read as a real
-          # measurement of an empty queue (DR-1186: an unread queue is not an
-          # empty one).
-          fields = [p.strip() for p in (os.environ.get("OUTCOME") or "").strip().splitlines()[:1][0].split("|")] \
-              if (os.environ.get("OUTCOME") or "").strip() else []
-          if len(fields) == 3:
-              try:
-                  out["waiting"], out["oldest_wait_hours"], out["shipped_last_day"] = (int(f) for f in fields)
-              except ValueError:
-                  pass
+          # The three outcome counts stay None HERE and are filled in by the
+          # runner, which is the only side holding the key the queue read needs.
+          # They are never defaulted to 0: a 0 would read as a real measurement
+          # of an empty queue (DR-1186: an unread queue is not an empty one).
           raw = os.environ.get("STATUS", "")
           try:
               st = json.loads(raw)
@@ -113,12 +105,52 @@ jobs:
           EOS
           cat /tmp/witness.json
 
+      # DR-1231. The queue read belongs on THIS side of the SSH boundary:
+      # scripts/live-sql.sh needs NAS_SSH_KEY and opens its own connection to
+      # the NAS. Its stderr is KEPT, not discarded, so a failed read says WHY on
+      # the next run instead of only "could not be read" -- the whole value of
+      # this witness is that it explains itself (DR-0076 section 8).
+      - name: Ask the live queue whether the loop PRODUCES (three counts)
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          : > /tmp/outcome.txt
+          : > /tmp/outcome.err
+          timeout 90 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql \
+            > /tmp/outcome.txt 2> /tmp/outcome.err || true
+          echo "exit-marker: read finished"
+          echo "--- counts (waiting|oldest_hours|shipped_in_day) ---"
+          cat /tmp/outcome.txt
+          echo "--- why, if it failed ---"
+          cut -c1-300 /tmp/outcome.err
+
       - name: Judge and report
         if: steps.gate.outputs.go == 'true'
         run: |
           python3 - <<'PY'
           import json, os
           w = json.load(open("/tmp/witness.json"))
+          # Merge the three counts the runner read (DR-1231). Three integers on
+          # one line, or nothing: anything else leaves them None, and None is
+          # what the outcome check turns into UNKNOWN rather than a pass. The
+          # read's own stderr is carried so the report names the cause.
+          def _read(p):
+              try:
+                  return open(p).read().strip()
+              except OSError:
+                  return ""
+          counts = _read("/tmp/outcome.txt").splitlines()
+          fields = [c.strip() for c in counts[0].split("|")] if counts else []
+          if len(fields) == 3:
+              try:
+                  w["waiting"], w["oldest_wait_hours"], w["shipped_last_day"] = (int(f) for f in fields)
+              except ValueError:
+                  pass
+          if w.get("waiting") is None:
+              why = _read("/tmp/outcome.err")
+              w["queue_read_error"] = (why[-300:].replace("\n", " ") if why else "the read produced no output and no error")
           problems = []
           if not w.get("reachable"):
               problems.append("the NAS did not answer over SSH")
@@ -153,7 +185,8 @@ jobs:
           # words, INCLUDING an unknown -- the whole point is that silence
           # here stops reading as health.
           if p.returncode != 0 and w.get("reachable"):
-              problems.append(w["outcome_verdict"])
+              note = w.get("queue_read_error")
+              problems.append(w["outcome_verdict"] + (f" [the queue read said: {note}]" if note else ""))
           verdict = "PASS" if not problems else "FAIL"
           lines = [f"## lesson-builder loop: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
           if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
