@@ -421,4 +421,11 @@ export const LIVING_LESSONS_ADDED = {
   // parallel. The row waited roughly ninety-one hours in the queue; the date is
   // the day the lesson was built, not the day the link was sent.
   'll267-ugarit-and-the-words-we-read-yahweh-is-not-of-that-pantheon-he-is-its-judge': '2026-10-27',
+  // L268: a research-road item Darrell sent into the app as a link under one
+  // word, asking that maps, timeline, Scripture and historical context be
+  // joined -- a narrated video claiming Pharaoh's chariot corps lies on a shelf
+  // in the Gulf of Aqaba. The row waited roughly a hundred and ten hours in the
+  // queue while the NAS builder was dark; the date is the day the lesson was
+  // built, not the day the link was sent.
+  'll268-a-way-in-the-sea-the-witness-we-do-not-need-to-invent': '2026-10-27',
 };
