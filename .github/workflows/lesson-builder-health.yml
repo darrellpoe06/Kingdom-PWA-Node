@@ -34,6 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
+      # Needed since DR-1219: the outcome check is a tested script in this
+      # repository rather than logic inlined in the judge step, so the judge
+      # needs the tree. Before that this job read nothing but the NAS.
+      - uses: actions/checkout@v4
+
       - name: Check secrets (no-op with instructions when absent)
         id: gate
         env:
@@ -66,11 +71,32 @@ jobs:
           SRC=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder
           UNIT="$(systemctl is-active poetech-lesson-builder 2>/dev/null || echo unknown)"
           STATUS="$(cd "$SRC" && LESSON_BUILDER_DATA=/volume1/PoeTech/lesson-builder timeout 120 python3 lesson_builder.py --status 2>&1 || true)"
-          export UNIT STATUS
+          # THE OUTCOME, not only the readiness (DR-1219). `--status` above
+          # reports the unit, the kill state, each writer and the credential --
+          # and nothing about whether a lesson has ever come out. Three counts
+          # from the live database close that: waiting | oldest hours | shipped
+          # in the last day. A read that fails leaves this EMPTY on purpose,
+          # which the judge turns into UNKNOWN rather than a pass.
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          OUTCOME="$(cd "$REPO" && timeout 60 bash scripts/live-sql.sh '|' < scripts/lesson-loop-outcome.sql 2>/dev/null || true)"
+          export UNIT STATUS OUTCOME
           python3 - <<'PY'
           import json, os, time
           out = {"reachable": True, "at": int(time.time()), "unit": os.environ.get("UNIT"), "status_read": False,
-                 "state": None, "stopped": None, "why": None, "push_credential": None, "writers": [], "error": None}
+                 "state": None, "stopped": None, "why": None, "push_credential": None, "writers": [], "error": None,
+                 "waiting": None, "oldest_wait_hours": None, "shipped_last_day": None}
+          # The three outcome counts. Left as None when the read failed or the
+          # line was not the three numbers we asked for -- never guessed at,
+          # and never defaulted to 0, because a 0 here would read as a real
+          # measurement of an empty queue (DR-1186: an unread queue is not an
+          # empty one).
+          fields = [p.strip() for p in (os.environ.get("OUTCOME") or "").strip().splitlines()[:1][0].split("|")] \
+              if (os.environ.get("OUTCOME") or "").strip() else []
+          if len(fields) == 3:
+              try:
+                  out["waiting"], out["oldest_wait_hours"], out["shipped_last_day"] = (int(f) for f in fields)
+              except ValueError:
+                  pass
           raw = os.environ.get("STATUS", "")
           try:
               st = json.loads(raw)
@@ -108,6 +134,26 @@ jobs:
                       problems.append("no writer is ready: " + "; ".join(f"{x.get('writer')}: {x.get('why')}" for x in (w.get("writers") or [])))
                   if w.get("push_credential") != "present":
                       problems.append("the push credential is missing, so a built lesson cannot be shipped")
+          # READINESS IS NOT PRODUCTION (DR-1219). Everything above this line
+          # judges whether the loop CAN build. This judges whether it DOES,
+          # from the three counts, in one tested place rather than inline here
+          # -- scripts/loop-produces-or-it-is-dark.mjs, 15 cases, proven to
+          # catch the exact four days this was added for.
+          import subprocess
+          ready = any(x.get("ok") for x in (w.get("writers") or [])) if w.get("status_read") else None
+          argv = ["node", "scripts/loop-produces-or-it-is-dark.mjs",
+                  "--writer-ready", "true" if ready else ("false" if ready is False else ""),
+                  "--waiting", "" if w.get("waiting") is None else str(w["waiting"]),
+                  "--oldest-hours", "" if w.get("oldest_wait_hours") is None else str(w["oldest_wait_hours"]),
+                  "--shipped", "" if w.get("shipped_last_day") is None else str(w["shipped_last_day"])]
+          p = subprocess.run(argv, capture_output=True, text=True)
+          out_first = (p.stdout or "").strip().splitlines()
+          w["outcome_verdict"] = out_first[0] if out_first else "UNKNOWN: the outcome check did not report"
+          # Exit 0 is the only pass. Anything else is a problem in its own
+          # words, INCLUDING an unknown -- the whole point is that silence
+          # here stops reading as health.
+          if p.returncode != 0 and w.get("reachable"):
+              problems.append(w["outcome_verdict"])
           verdict = "PASS" if not problems else "FAIL"
           lines = [f"## lesson-builder loop: {verdict}", "", "```json", json.dumps(w, indent=2), "```"]
           if problems: lines += ["", "**Why:**"] + [f"- {p}" for p in problems]
