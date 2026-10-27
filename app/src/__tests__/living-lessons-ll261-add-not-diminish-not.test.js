@@ -180,16 +180,18 @@ describe('L261 exists, is numbered, and sits after L258', () => {
     expect(at, 'L261 follows L258 in reading order').toBeGreaterThan(prev);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
-  // THE NUMBER IS NOT A RESERVATION. `living-lessons-numbers-are-unique`
-  // forbids a NEW hole in the sequence (KNOWN_GAPS is frozen at two), so a
-  // lesson takes the LOWEST free number above the catalog's top, never a
-  // number assigned in advance. This one was built as 261 and renumbered to
-  // 260 when that gate caught the gap — which is why the pin below is a count
-  // and a floor and says nothing about which numbers are absent.
-  it('claims 260 exactly once, and never pins the catalog as finished', () => {
+  // THE PIN IS NUMBER-AGNOSTIC ON PURPOSE, and it took three goes to earn
+  // that. This lesson was assigned ll252 (taken), then ll261, then "the
+  // lowest free id" — and the first pin asserted which neighbouring numbers
+  // were ABSENT, which was wrong every time the assignment moved. Contiguity
+  // is held centrally (living-lessons-id-collision), so while ll259 and ll260
+  // are mid-flight `unclaimedNumbers` names them as gaps beneath this lesson;
+  // those holes are not this lesson's to fill. So this pin is a count, a
+  // floor and a uniqueness check, and says nothing about what is missing.
+  it('claims 261 exactly once, and never pins the catalog as finished', () => {
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(claimed.filter((n) => n === 260)).toHaveLength(1);
-    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(260); // a floor, never an equality
+    expect(claimed.filter((n) => n === 261)).toHaveLength(1);
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(261); // a floor, never an equality
     expect(new Set(claimed).size, 'no number is claimed twice').toBe(claimed.length);
   });
   it('carries the build day, at or after L258’s', () => {
