@@ -353,4 +353,12 @@ export const LIVING_LESSONS_ADDED = {
   // our desires do not change; till we get Him right we do not get right.
   // Built the same session, so the spoken day and the commit day agree.
   'll258-he-gave-us-everything-we-need-until-we-want-what-he-wants': '2026-10-21',
+  // L263 (DR-1223): the research road's own intake -- a link Darrell sent into
+  // the app with one word on it, whose reading step never completed, so a
+  // video's machine-made captions about the fall of Jerusalem in AD 70 were the
+  // whole of the research. The lesson is taught from Jesus' own recorded
+  // speech; no line of Josephus or Tacitus is quoted anywhere in it, and the
+  // speaker in that video is not named in anything that reached us, so the
+  // lesson names none. Built 2026-10-27, the day the row was worked.
+  'll263-not-one-stone-the-word-jesus-spoke-over-jerusalem-and-the-year-it-came-true': '2026-10-27',
 };
