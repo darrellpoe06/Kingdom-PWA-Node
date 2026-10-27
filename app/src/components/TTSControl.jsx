@@ -509,6 +509,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // only when the sentence changes. It closes over nothing from this render --
   // the guard is re-read from the registry each call -- so the empty dep list
   // is honest rather than a lint silencer.
+  const versionNotedRef = useRef('');
   const rememberSentence = useCallback((absIndex, text) => {
     if (!text) return;
     // THE PLACE NEVER WALKS BACKWARDS ON ITS OWN (DR-1254). Within one run
@@ -546,6 +547,13 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       const t = getReadTarget();
       const place = getPlace();
       if (!t || !t.owner || !place || !place.lessonId || t.owner !== place.lessonId) return;
+      // WHICH VERSION IS BEING READ (DR-1255): the target names the words it
+      // serves; noted on the place once per reading (and again when the
+      // level is switched mid-read), so the finish below counts the version.
+      if (t.version && versionNotedRef.current !== `${t.owner}:${t.version}`) {
+        versionNotedRef.current = `${t.owner}:${t.version}`;
+        recordPlace({ version: t.version });
+      }
       recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text) });
       // IF IT IS OVER, IT IS OVER (Darrell 2026-09-16, from his phone at part
       // 7/7: "can't re-listen to the lesson after the lesson is over because

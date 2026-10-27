@@ -123,7 +123,8 @@ import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
-import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, PLACE_FINISHED_EVENT } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT } from '../lib/learn-resume.js';
+import { versionRead, deckVersion } from '../lib/lesson-read-mark.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -1279,6 +1280,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         text,
         preferText: sameReading,
         elementId: `learn-read-${module.id}`,
+        // WHICH WORDS (DR-1255): the version this reading serves, so the
+        // reader can note it on the place and a finish counts the version.
+        version: versionRead(module, ageBand, levelOverride),
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
         // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15, DR-0426).
@@ -1687,6 +1691,10 @@ function CourseView({
   signedIn = true, // DR-0698: false for a signed-out visitor — reading and ▶ Play stay open, downloads ask for an account
   progress = {},
   toggleModule = null,
+  // DR-1255: the learner's own cloud record for a lesson, and the door that
+  // reads one version of it (courseKey, lessonId, versionId).
+  myRecordFor = null,
+  onReadVersion = null,
   isGovernor = false,
   onLaunch = null,
   interestSent = false,
@@ -1906,15 +1914,29 @@ function CourseView({
   // unmarked: `toggleModule` toggles, so a lesson the record already holds is
   // skipped, and each is sent at most once per session. No loop — a filed
   // lesson lands in `progress` and is skipped from then on.
+  //
+  // AND WHICH VERSION (DR-1255): a finished place names the versions read to
+  // the end; the record is told them, and told again whenever the place
+  // holds a version the record has not got (a reading on this device of a
+  // version another device never read). A lesson finished and then opened
+  // again (which clears `done`) still counts: the finish count is the
+  // evidence, not the flag.
   const filedReads = React.useRef(new Set());
   const fileFinishedPlaces = React.useCallback(() => {
     if (!signedIn || typeof toggleModule !== 'function') return;
     for (const p of listPlaces({ courseKey: course.key })) {
-      if (!placeIsFinished(p) || progress[p.lessonId] || filedReads.current.has(p.lessonId)) continue;
-      filedReads.current.add(p.lessonId);
-      try { toggleModule(p.lessonId, course.key); } catch (_) { /* the reading stands either way */ }
+      if (!placeIsFinished(p) && !placeFinishes(p)) continue;
+      const read = versionsRead(p);
+      const rec = typeof myRecordFor === 'function' ? myRecordFor(p.lessonId) : null;
+      const have = new Set(rec && Array.isArray(rec.versionsRead) ? rec.versionsRead : []);
+      const missing = read.filter((v) => !have.has(v));
+      if (progress[p.lessonId] && !missing.length) continue;
+      const key = `${p.lessonId}:${read.join(',')}`;
+      if (filedReads.current.has(key)) continue;
+      filedReads.current.add(key);
+      try { toggleModule(p.lessonId, course.key, { versionsRead: read }); } catch (_) { /* the reading stands either way */ }
     }
-  }, [signedIn, toggleModule, course.key, progress]);
+  }, [signedIn, toggleModule, course.key, progress, myRecordFor]);
   React.useEffect(() => { fileFinishedPlaces(); }, [fileFinishedPlaces]);
   // ... and the moment any reader finishes a place (DR-1251): the in-space
   // reader's last sentence, the guide's last unit, the deck's last part.
@@ -2329,8 +2351,8 @@ function CourseView({
         // record never saw it. The deck now says so once, the place is
         // finished the same way the in-space reader finishes it, and the read
         // is filed to the record at once rather than on the next sign-in.
-        onFinished={() => {
-          try { finishPlace({ courseKey: course.key, lessonId: presentLesson.id }); } catch (_) { /* the reading stands either way */ }
+        onFinished={(end) => {
+          try { finishPlace({ courseKey: course.key, lessonId: presentLesson.id, version: deckVersion(presentLesson, end && end.age) }); } catch (_) { /* the reading stands either way */ }
           fileFinishedPlaces();
         }}
       />
@@ -4450,6 +4472,24 @@ export default function ChurchLearn({
     resumeNow(place);
     if (place && place.lessonId) requestRead(place.lessonId);
   };
+  // THE LEARNER'S OWN RECORD FOR A LESSON (DR-1255): his row, never another
+  // learner's (the Governor's list carries everyone's), so a lesson read on
+  // his phone is marked read on his tablet too.
+  const myRecordFor = React.useCallback((lessonId) => {
+    if (!lessonId || !Array.isArray(learnerRecords)) return null;
+    return learnerRecords.find((r) => r && r.lessonId === lessonId && (!currentUserId || r.userId === currentUserId)) || null;
+  }, [learnerRecords, currentUserId]);
+  // READ THE VERSION I HAVE NOT READ (Darrell 2026-10-27: "which version so
+  // I can try the one I didn't read"): the band becomes that version's (the
+  // ids are the same), a standing depth override is lifted so the band's own
+  // words are served, and the reading begins at the top — the other
+  // version's saved sentence is not this one's.
+  const readVersion = (courseKey, lessonId, versionId) => {
+    if (typeof setAgeBand === 'function' && versionId) setAgeBand(versionId);
+    if (learnLevel && learnLevel !== 'auto' && typeof setLearnLevel === 'function') setLearnLevel('auto');
+    resumeNow({ courseKey, lessonId });
+    requestRead(lessonId, { startSentence: 0 });
+  };
   const resumeNowRef = React.useRef(resumeNow);
   resumeNowRef.current = resumeNow;
   React.useEffect(() => {
@@ -4486,7 +4526,7 @@ export default function ChurchLearn({
   // DR-0754 — the record needs to know WHICH course a lesson belongs to, so
   // the active course rides along with every mark-read and every exam result.
   const toggleModuleInCourse = toggleModule
-    ? (moduleId) => toggleModule(moduleId, active.key)
+    ? (moduleId, _courseKey, opts) => (opts ? toggleModule(moduleId, active.key, opts) : toggleModule(moduleId, active.key))
     : null;
   const recordQuizInCourse = recordQuiz
     ? (moduleId, result) => recordQuiz(moduleId, result, active.key)
@@ -4815,6 +4855,8 @@ export default function ChurchLearn({
                buttons"). */
             onPlay={playLesson}
             onContinue={continueAndRead}
+            recordFor={myRecordFor}
+            onReadVersion={readVersion}
           />
         )}
         {/* ONE COURSE ON A DEPARTMENT TAB (DR-1182): the places offered here are
@@ -5162,9 +5204,12 @@ export default function ChurchLearn({
                     {/* The lesson's own state, on its own row (DR-0631):
                         Continue on a lesson begun, Finished on one done. */}
                     <RowContinue
-                      place={activePlaces[m.id] && (activePlaces[m.id].done || placeInProgress(activePlaces[m.id])) ? activePlaces[m.id] : null}
+                      place={activePlaces[m.id] || null}
+                      record={typeof myRecordFor === 'function' ? myRecordFor(m.id) : null}
+                      versions={lessonVersions(m)}
                       title={m.title}
                       onContinue={continueAndRead}
+                      onReadVersion={(v) => readVersion(active.key, m.id, v)}
                     />
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
@@ -5533,6 +5578,8 @@ export default function ChurchLearn({
         signedIn={signedIn}
         progress={progress}
         toggleModule={toggleModuleInCourse}
+        myRecordFor={myRecordFor}
+        onReadVersion={readVersion}
         isGovernor={isGovernor}
         onLaunch={onLaunch}
         interestSent={!!interestSent[active.key]}

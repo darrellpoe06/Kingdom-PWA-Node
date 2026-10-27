@@ -56,13 +56,13 @@ import { latestLessons, latestCountLine, catalogReadings, readingsLine, readings
 import { formatAdded, withMonthHeadings } from '../lib/lesson-order.js';
 import { undatedReason } from '../lib/lesson-dates.js';
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
-import { getPlaceFor, placeInProgress } from '../lib/learn-resume.js';
+import { getPlaceFor } from '../lib/learn-resume.js';
 import { RowContinue } from './LessonContinue.jsx';
 
 /** The fold memory's key for this list: one list, every course. */
 export const LATEST_FOLD_KEY = 'latest:every-course';
 
-export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, scope = 'every course' }) {
+export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, recordFor = null, onReadVersion = null, scope = 'every course' }) {
   const [folded, setFolded] = useState(() => rememberedFolds(LATEST_FOLD_KEY));
   const setFolds = (next) => { setFolded(next); rememberFolds(LATEST_FOLD_KEY, next); };
   const latest = latestLessons(courses);
@@ -167,11 +167,18 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
             {/* THE LESSON'S OWN STATE, as the course list shows it (DR-0631):
                 Continue on a lesson begun, FINISHED on one read to the end —
                 from this device's own record, never painted. */}
-            {(() => {
-              const place = getPlaceFor(r.courseKey, r.lessonId);
-              const shown = place && (place.done || placeInProgress(place)) ? place : null;
-              return shown && onContinue ? <RowContinue place={shown} title={r.title} onContinue={onContinue} /> : null;
-            })()}
+            {/* ...and WHICH VERSION (DR-1255): read on this device or in the
+                learner's own record, with a tap for each version not read. */}
+            {onContinue ? (
+              <RowContinue
+                place={getPlaceFor(r.courseKey, r.lessonId)}
+                record={recordFor ? recordFor(r.lessonId) : null}
+                versions={r.versionIds}
+                title={r.title}
+                onContinue={onContinue}
+                onReadVersion={onReadVersion ? (v) => onReadVersion(r.courseKey, r.lessonId, v) : null}
+              />
+            ) : null}
             {/* THE SAME ▶ PLAY the course list carries: the big full-screen
                 reader on this one lesson — read it yourself, or read to you. */}
             {onPlay ? (

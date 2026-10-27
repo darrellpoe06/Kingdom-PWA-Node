@@ -2,7 +2,7 @@
 -- 0250 LEARNER RECORD SMOKE — a learner keeps his own record, the Governor sees
 -- every learner's, and no learner sees another's (DR-0754)
 -- =============================================================================
--- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql and 0250, in a
+-- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql, 0250 and 0312, in a
 -- transaction that ROLLS BACK. The Governor's email list is swapped for a test
 -- address INSIDE the transaction only, so no real account is touched.
 -- PROVES:
@@ -54,6 +54,8 @@ DECLARE
   n   int;
   pct int;
   att int;
+  vr  text[];
+  done boolean;
 BEGIN
   -- 1. The learner keeps his own record and reads it back.
   PERFORM pg_temp.as_user(son);
@@ -127,6 +129,41 @@ BEGIN
     IF n <> 0 THEN RAISE EXCEPTION 'LEAK: anon read % learner records', n; END IF;
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
+
+  -- 8. WHICH VERSIONS WERE READ, and a version read stays read (0312, DR-1255).
+  --    The son files the adult version from one device; his tablet, which has
+  --    not seen that yet, files the child version alone — the row keeps both,
+  --    in the picker's order, each once; an empty update keeps them too.
+  PERFORM pg_temp.as_user(son);
+  INSERT INTO public.learner_lesson_records (lesson_id, course_key, completed_at, versions_read)
+  VALUES ('L104', 'living-lessons', now(), ARRAY['adult','adult']);
+  SELECT versions_read INTO vr FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
+  IF vr <> ARRAY['adult'] THEN RAISE EXCEPTION 'FAIL: an insert did not normalise the versions (%)', vr; END IF;
+  UPDATE public.learner_lesson_records SET versions_read = ARRAY['child'], updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L104';
+  SELECT versions_read INTO vr FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
+  IF vr <> ARRAY['child','adult'] THEN RAISE EXCEPTION 'FAIL: a later device''s subset shrank the versions read (%)', vr; END IF;
+  UPDATE public.learner_lesson_records SET versions_read = '{}', updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L104';
+  SELECT versions_read INTO vr FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
+  IF vr <> ARRAY['child','adult'] THEN RAISE EXCEPTION 'FAIL: an empty update erased the versions read (%)', vr; END IF;
+  -- An exam filed by column leaves the read and its versions alone.
+  INSERT INTO public.learner_lesson_records (lesson_id, quiz_pct, quiz_passed, quiz_attempts, quiz_at)
+  VALUES ('L104', 90, true, 1, now())
+  ON CONFLICT (user_id, lesson_id) DO UPDATE
+    SET quiz_pct = excluded.quiz_pct, quiz_passed = excluded.quiz_passed,
+        quiz_attempts = excluded.quiz_attempts, quiz_at = excluded.quiz_at, updated_at = now();
+  SELECT versions_read, (completed_at IS NOT NULL) INTO vr, done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
+  IF vr <> ARRAY['child','adult'] OR NOT done THEN RAISE EXCEPTION 'FAIL: an exam erased the read (versions=%, completed=%)', vr, done; END IF;
+
+  -- 9. A version the app cannot show is refused by the wall.
+  BEGIN
+    INSERT INTO public.learner_lesson_records (lesson_id, versions_read) VALUES ('L105', ARRAY['grown-up']);
+    RAISE EXCEPTION 'LEAK: an unknown version was accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  DELETE FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
 
   PERFORM pg_temp.as_postgres();
   RAISE NOTICE 'LEARNER RECORD SMOKE: PASS';
