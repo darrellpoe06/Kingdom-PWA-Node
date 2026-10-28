@@ -1,5 +1,5 @@
 {
-  "probe-figures": [
+  "probe-context": [
     {
       "publisher": "Morgan Stanley",
       "title": "3Q 2026 earnings release PDF",
@@ -7,26 +7,22 @@
       "read": "2026-10-28",
       "format": "pdf",
       "says": [
-        "$232 billion",
-        "232 billion",
-        "net new assets",
-        "Net new assets",
-        "$10.5 trillion",
-        "10.5 trillion",
-        "$9.1 billion",
-        "9.1 billion",
-        "$8.2 billion",
-        "$5.8 billion",
-        "5.8 billion",
-        "41%",
-        "Ted Pick",
-        "Wealth Management",
-        "Investment Management",
-        "Third Quarter 2026",
-        "Sharon Yeshaya",
-        "$81 billion",
-        "9,138",
-        "10.5"
+        "net new assets of $232 billion",
+        "Net new assets of $232 billion",
+        "net new assets were $232 billion",
+        "client assets of $10.5 trillion",
+        "$10.5 trillion of client assets",
+        "$10.5 trillion in client assets",
+        "net revenues of $9.1 billion",
+        "revenues of $9.1 billion",
+        "compared with $8.2 billion",
+        "from $8.2 billion",
+        "up 41%",
+        "increased 41%",
+        "Equity net revenues",
+        "5,8",
+        "Wealth Management Net New Assets",
+        "Ted Pick, Chairman and Chief Executive Officer"
       ],
       "claim": "probe"
     }
