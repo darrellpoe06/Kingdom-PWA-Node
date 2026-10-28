@@ -1,6 +1,6 @@
 // =============================================================================
 // LibraryCensus — the library, counted: what every course holds, what each
-// lesson still waits for, and how the library is managed (DR-1262)
+// lesson still waits for, and how the library is managed (DR-1266)
 // =============================================================================
 // Darrell 2026-10-27: "Make sure we are filling the course library perpetually
 // with all levels and necessary components and information and understanding

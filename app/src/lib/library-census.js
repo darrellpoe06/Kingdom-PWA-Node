@@ -1,6 +1,6 @@
 // =============================================================================
 // library-census — what the course library holds, lesson by lesson, and what
-// is still to be written (DR-1262)
+// is still to be written (DR-1266)
 // =============================================================================
 // Darrell 2026-10-27: "Make sure we are filling the course library perpetually
 // with all levels and necessary components and information and understanding

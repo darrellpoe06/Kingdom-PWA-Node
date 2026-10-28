@@ -417,7 +417,7 @@ const NODES = [
     ],
     seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
   }),
-  // DR-1262: the fill lane writes a lesson's MISSING age versions on the NAS,
+  // DR-1266: the fill lane writes a lesson's MISSING age versions on the NAS,
   // newest lesson first, two per run, through the same writers and gates as
   // the builder, and lands them as claude/fill-* branches the lane opens. It
   // ships inactive (services.json enabled:false, with its why and date); the

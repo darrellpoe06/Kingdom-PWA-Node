@@ -1,5 +1,5 @@
 """The fill lane's brakes and roads, proven without a network, a writer or git
-(DR-1262). Run: python3 -m unittest infra/nas-lesson-builder/test_fill_versions.py"""
+(DR-1266). Run: python3 -m unittest infra/nas-lesson-builder/test_fill_versions.py"""
 import json
 import os
 import shutil
@@ -170,7 +170,7 @@ class RunTest(unittest.TestCase):
         self.assertEqual([(w["lesson"], w["band"]) for w in rep["written"]], [("ll9-new", "youth"), ("ll8-older", "child")])
         self.assertEqual([c[0] for c in git.calls], ["ensure", "worktree_add", "commit", "push", "worktree_remove", "worktree_add", "commit", "push", "worktree_remove"])
         self.assertTrue(git.calls[1][1].startswith("claude/fill-youth-ll9-new"))
-        self.assertIn("(DR-1262)", git.calls[2][1])
+        self.assertIn("(DR-1266)", git.calls[2][1])
         with open(os.path.join(self.data, "fill-versions-ledger.json")) as f:
             led = json.load(f)
         self.assertEqual(sum(led["days"].values()), 2)
