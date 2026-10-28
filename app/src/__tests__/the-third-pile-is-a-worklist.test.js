@@ -141,7 +141,7 @@ const REPO = join(HERE, '..', '..', '..');
 // federalreserve.gov the same day, after this sandbox failed even to resolve
 // the host. So wm9's "could read the EIA projection" is a method that exists
 // and has been exercised, not a hope.
-// 2 -> 3 CHECKED on 2026-10-28 (DR-1277), and the GAP does not move. bank9
+// 2 -> 3 CHECKED on 2026-10-28 (DR-1279), and the GAP does not move. bank9
 // (the moat that moves) is built from The Daily Upside edition Darrell
 // forwarded to himself with one word on it (Gmail thread 1a1541f1da7acd58),
 // and it took the FIRST branch this test's verdict offers: it arrived carrying
