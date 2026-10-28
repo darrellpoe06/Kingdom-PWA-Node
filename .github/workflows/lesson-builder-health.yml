@@ -46,7 +46,7 @@ jobs:
       # Needed since DR-1219: the outcome check is a tested script in this
       # repository rather than logic inlined in the judge step, so the judge
       # needs the tree. Before that this job read nothing but the NAS.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check secrets (no-op with instructions when absent)
         id: gate

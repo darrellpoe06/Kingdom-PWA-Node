@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The commit this run's workflow file came from: main for every
           # automatic fire (dispatches name --ref main; schedules and pushes run
@@ -119,7 +119,7 @@ jobs:
           # The push credential. LANE_PUSH_TOKEN when the secret exists (its
           # pushes fire CI and may carry workflow-file changes); else GITHUB_TOKEN.
           token: ${{ secrets.LANE_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
 

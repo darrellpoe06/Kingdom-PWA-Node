@@ -41,7 +41,7 @@ jobs:
     name: apply the migrations the sovereign database is missing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Join the tailnet
         uses: tailscale/github-action@v3

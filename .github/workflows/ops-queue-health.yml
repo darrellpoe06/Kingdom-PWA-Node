@@ -74,7 +74,7 @@ jobs:
       # queue holds the real history. The hosted project is read below only as
       # a side-by-side line until the 2026-09-26 re-review removes it; it can
       # never fail the run or raise the alarm.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Join the tailnet (to read the live database)
         continue-on-error: true
         uses: tailscale/github-action@v3

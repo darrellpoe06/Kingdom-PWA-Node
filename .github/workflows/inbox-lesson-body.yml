@@ -38,7 +38,7 @@ jobs:
     env:
       ROW_ID: ${{ inputs.row_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate the input
         run: |
           [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
