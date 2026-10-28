@@ -550,9 +550,44 @@ describe('the reader meets numbered points, in order, with nothing skipped', () 
 
   it('carries two real stories and six benefits, the shape every lesson of this course has', () => {
     expect(L.stories).toHaveLength(2);
-    expect(L.stories.map((s) => s.kind).sort()).toEqual(['parable', 'testimony']);
     for (const s of L.stories) expect(s.body.split(/\s+/).length, s.title).toBeGreaterThan(120);
     expect(L.benefits.length).toBeGreaterThanOrEqual(6);
     expect(L.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('NEITHER STORY TELLS THE READER AN INVENTION IS A TRUE STORY — the defect this lesson shipped in draft', () => {
+    // THE FAULT, RECORDED BECAUSE IT WAS MINE. "Two of Every Five Dollars" went
+    // in as `kind: 'testimony'` and in the first person — "I am sixty-one. For
+    // about eleven years I..." — about a man who does not exist. story-truth.js
+    // renders a testimony with a footnote in words: "A true story: this
+    // happened, told with the person's consent." So the page would have told a
+    // reader that a real person lived an invented account and consented to its
+    // telling. The label was the lie, not the story. CI caught it on
+    // a-true-story-names-whose-life-it-was, whose unattributed count would have
+    // gone 88 -> 89; the fix was the label AND the prose, never the pin.
+    //
+    // Both blocks are parables now, which claim nothing about a real life, and
+    // the body is third person about a named illustrative figure. Attributing it
+    // to somebody to make it pass would have been worse than the original fault:
+    // the five attributed testimonies in this repo are Darrell's own and are his
+    // to give.
+    expect(L.stories.map((s) => s.kind)).toEqual(['parable', 'parable']);
+    for (const s of L.stories) {
+      // A testimony here would need a source, and no source may be invented.
+      if (s.kind === 'testimony') expect(String(s.source || ''), s.title).not.toBe('');
+      // And no block claims personal experience in our illustrative voice.
+      expect(s.body, `${s.title} opens a sentence in the first person`)
+        .not.toMatch(/(?:^|[.!?]\s+)I\s/);
+      expect(s.body, `${s.title} asserts biography`).not.toMatch(/\bI am \w|\bmy (?:father|wife|son|daughter|brother)\b/i);
+    }
+  });
+
+  it('PROVEN TO CATCH: the label alone is the difference, and this gate sees it', () => {
+    const asTestimony = { ...L.stories[1], kind: 'testimony' };
+    expect([L.stories[0], asTestimony].map((s) => s.kind)).not.toEqual(['parable', 'parable']);
+    expect(String(asTestimony.source || '')).toBe('');
+    // And the first-person check genuinely fires on first-person prose.
+    expect(/(?:^|[.!?]\s+)I\s/.test('It was not eight percent. I sat with that a while.')).toBe(true);
+    expect(/(?:^|[.!?]\s+)I\s/.test(L.stories[1].body)).toBe(false);
   });
 });

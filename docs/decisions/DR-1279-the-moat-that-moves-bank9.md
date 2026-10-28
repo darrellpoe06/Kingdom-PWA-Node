@@ -75,6 +75,24 @@ DR-1275 recorded one version of this trap: it pinned `367,000` for legacy8's dis
 
 **Proven to catch, on the real file rather than on fixtures:** a child-band figure typo (token set), a deleted disclosure terminator in the senior band (disclosure pin), the teen band's friend line removed (per-band talk-together names teen and only teen while the pooled check still reads green), and a quotation's opening capital lowercased to fit a sentence (both the course-wide verbatim sweep and the lesson's own). Each break was reverted and the suite re-run green.
 
+## The fault this lesson shipped in draft, and it was the worst kind
+
+The second story, **Two of Every Five Dollars**, went in as `kind: 'testimony'` and in the **first person** — *"I am sixty-one. For about eleven years I had been telling anybody who would sit still that I was diversified"* — about a man who **does not exist**. He was invented to illustrate a newsletter item.
+
+`story-truth.js` renders a testimony with a footnote in words: *"A true story: this happened, told with the person's consent."* With no `source` it still says it, substituting "the person's" for a name. So the page would have told a reader that a real person lived that account and consented to its telling, while the data recorded neither who nor that they had. **The label was the lie, not the story.** That is fabrication under DR-0076, and `PARABLE-AND-TESTIMONY-METHOD.md` is explicit: a testimony requires that it actually happened, with explicit consent, or it stays out.
+
+`a-true-story-names-whose-life-it-was` caught it. Its pin is the **88** shipped testimony blocks that name no source, measured on 2026-10-20 and allowed only to fall; this lesson would have made it **89**, and of the 52 already in the first person it would have been the 53rd. **The pin was not touched.** The fix was the label AND the prose:
+
+1. `kind` is now `parable`, which claims nothing about a real life — that alone returns the count to 88 of 93.
+2. The body is recast in the **third person** about a named, plainly illustrative figure, the way the first story already handles Marcus and his machining shop. Every sentence asserting biography is gone.
+3. **It was not attributed to anybody to make it pass.** The five attributed testimonies in this repo are Darrell's own and are his to give; inventing a source would have been worse than the original fault.
+
+Measured after the fix: **93 testimony blocks, 88 unattributed, 5 attributed** — exactly the recorded baseline, with none of them bank9's. Both of this lesson's stories are parables.
+
+And the rule is now machinery rather than memory for this lesson: its own gate asserts both blocks are parables, that any testimony would need a non-empty `source`, and that neither body opens a sentence in the first person or asserts biography — with a proven-to-catch case showing the label alone is the whole difference.
+
+**The eight testimony blocks in bank1 to bank8 are among the 88 and are pre-existing debt, not touched here.** Whether any of them is somebody's real account is not a machine's call and is Darrell's to answer (DR-0550); the list that reaches him is `docs/99-session-notes/2026-10-20-whose-life-is-this.md`.
+
 ## What CI caught that the author did not
 
 `app/src/__tests__/arrivals-new-lessons.test.js` went red on the first full CI run, and it was a real finding rather than a nuisance. That file pinned **two lesson ids by name** — `sov46` and `pm13` — as its proof that the arrivals bell reads the real catalog rather than a fixture. `catalogArrivals` caps the list at `CATALOG_MAX = 20`, newest first, which is a deliberate bound: a bell that lists everything ever written is not a bell.
