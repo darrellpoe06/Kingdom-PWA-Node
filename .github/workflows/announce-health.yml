@@ -113,7 +113,7 @@ jobs:
           EOS
           cat /tmp/witness.json
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.go == 'true' && inputs.ring == true
         with:
           sparse-checkout: |

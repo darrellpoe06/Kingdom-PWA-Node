@@ -195,7 +195,13 @@ describe('the witness can read its own repository, and says so when it cannot', 
     // Match the IMPORT STATEMENT, not any prose mention of the file: the first
     // mention is the checkout step's own comment, and an index-based check that
     // matches a comment proves nothing about the step order.
-    const checkout = LOOPS.indexOf('- uses: actions/checkout@v4');
+    // VERSION-AGNOSTIC 2026-10-28 (DR-1262). This pinned `@v4`, so bumping
+    // actions/checkout to v7 turned the index to -1 and failed the gate on a
+    // change that did not touch what the gate protects. The intent stated above
+    // is to match the STEP rather than a prose mention and prove the checkout
+    // precedes the import; the major version is incidental to that, and
+    // `- uses: actions/checkout@` still cannot match a comment.
+    const checkout = LOOPS.indexOf('- uses: actions/checkout@');
     const imp = LOOPS.indexOf('await import(');
     expect(checkout, 'loops-health must check out the repo it imports from').toBeGreaterThan(0);
     expect(imp, 'the import must come after the checkout').toBeGreaterThan(checkout);
