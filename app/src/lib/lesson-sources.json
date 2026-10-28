@@ -51,7 +51,7 @@
   "PROBE-fed-scf-do-not-merge": [
     {
       "publisher": "Federal Reserve",
-      "title": "press release (CONFIRMED last run)",
+      "title": "press release (CONFIRMED)",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/other20261009a.htm",
       "read": "2026-10-28",
       "says": [
@@ -61,27 +61,80 @@
     },
     {
       "publisher": "Federal Reserve",
-      "title": "SCF bulletin candidate scf25.pdf",
-      "url": "https://www.federalreserve.gov/publications/files/scf25.pdf",
-      "read": "2026-10-28",
-      "format": "pdf",
-      "says": [
-        "504,900",
-        "1,962,200",
-        "431,300"
-      ],
-      "claim": "PROBE: age-group medians/means"
-    },
-    {
-      "publisher": "Federal Reserve",
-      "title": "SCF bulletin candidate scf26.pdf",
+      "title": "scf26.pdf candidate 504.9",
       "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
       "read": "2026-10-28",
       "format": "pdf",
       "says": [
-        "504,900"
+        "504.9"
       ],
-      "claim": "PROBE: alternate filename"
+      "claim": "PROBE format 504.9"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 1,962.2",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "1,962.2"
+      ],
+      "claim": "PROBE format 1,962.2"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 431.3",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "431.3"
+      ],
+      "claim": "PROBE format 431.3"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 367.2",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "367.2"
+      ],
+      "claim": "PROBE format 367.2"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 12.2",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "12.2"
+      ],
+      "claim": "PROBE format 12.2"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 37",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "37"
+      ],
+      "claim": "PROBE format 37"
+    },
+    {
+      "publisher": "Federal Reserve",
+      "title": "scf26.pdf candidate 23",
+      "url": "https://www.federalreserve.gov/publications/files/scf26.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "23"
+      ],
+      "claim": "PROBE format 23"
     }
   ]
 }
