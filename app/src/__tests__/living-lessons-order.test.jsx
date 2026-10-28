@@ -150,12 +150,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // across several days, the exact send day is not knowable from the rows,
     // and dating by the landing day is what keeps THIS check true rather than
     // leaving nine dates to go backwards against nine ascending numbers.
-    // The highest is now L268 (A Way in the Sea), built the same day from a
-    // research-road link that had waited about a hundred and ten hours. The
-    // asserted DATE does not move as the batch lands - every lesson in it
-    // carries 2026-10-27 - but this comment does, so it never names a lesson
-    // that is no longer the highest.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-27'); // L268
+    // The highest is now L270 (The Progress of Revelation), built 2026-10-28
+    // from two photographed chart pages sent into the app the evening before;
+    // L269 was claimed by another branch that same evening, so the date moves
+    // on by one day here and this comment moves with it, so it never names a
+    // lesson that is no longer the highest.
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-28'); // L270
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
