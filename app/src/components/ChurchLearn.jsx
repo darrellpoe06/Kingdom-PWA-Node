@@ -147,6 +147,8 @@ import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import { useScreenAwake } from '../lib/screen-awake.js';
 import { useFlowMode, useChromeAutoHide, announceStep, landStep, stepInView, FLOW_WORDS, STEP_LANDING_GAP } from '../lib/lesson-room.js';
 import LearnersPanel from './LearnersPanel.jsx';
+import RecordStrip from './RecordStrip.jsx';
+import { recordHeadline } from '../lib/record-headline.js';
 import { aggregateLearnerRecords } from '../lib/learner-records.js';
 
 const fmtDate = formatClassDate;
@@ -4121,7 +4123,15 @@ export default function ChurchLearn({
   // lesson brings its Continue straight back — the old banner was read once
   // on mount and nulled on its first use, and measured, it did not return
   // until Learn remounted. `placesTick` re-renders after a place is forgotten.
-  const [, setPlacesTick] = useState(0);
+  const [placesTick, setPlacesTick] = useState(0);
+  // ...and after a reading finishes anywhere (DR-1251's event), so the record
+  // strip (DR-1261) counts it the same moment, not on the next mount.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const bump = () => setPlacesTick((n) => n + 1);
+    window.addEventListener(PLACE_FINISHED_EVENT, bump);
+    return () => window.removeEventListener(PLACE_FINISHED_EVENT, bump);
+  }, []);
   // The lesson CourseView should open + scroll to after a resume tap.
   const [resumeLessonId, setResumeLessonId] = useState(null);
   // Rises on every open() — see resumeNonce on the inner component: re-opening
@@ -4309,6 +4319,18 @@ export default function ChurchLearn({
     const who = isGovernor && learners.length > 1 ? `${learners.length} learners, ` : '';
     return `${who}${totals.lessonsRead} lesson${totals.lessonsRead === 1 ? '' : 's'} read${score}`;
   }, [signedIn, learnerRecords, courseLessonTotals, isGovernor]);
+  // THE RECORD, ANNOUNCED (DR-1261): one headline for THIS learner from his
+  // own rows, the device's places, the shell's merged maps and the mounted
+  // catalog — read under the lessons bar on every area, and on the Record
+  // tab's own label. Recomputed when a row arrives, a place changes, or the
+  // catalog mounts; never while signed out (the record is his account's).
+  const [devicePlaces, setDevicePlaces] = useState(() => listPlaces());
+  React.useEffect(() => { setDevicePlaces(listPlaces()); }, [placesTick]);
+  const recordHead = React.useMemo(() => {
+    if (!signedIn) return null;
+    const rows = (Array.isArray(learnerRecords) ? learnerRecords : []).filter((r) => r && (!currentUserId || r.userId === currentUserId));
+    return recordHeadline({ records: rows, places: devicePlaces, courses, progress, quizState, ageBand });
+  }, [signedIn, learnerRecords, currentUserId, courses, progress, quizState, ageBand, devicePlaces]);
   const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
     ? chosenCourse
     : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
@@ -4809,7 +4831,7 @@ export default function ChurchLearn({
             { id: 'continue', label: continueCount ? `Continue · ${continueCount}` : 'Continue', explain: continueCount ? `${continueCount} ${continueCount === 1 ? 'lesson' : 'lessons'} begun and not finished${dept ? ' in this course' : ''}, newest first.` : `Nothing begun and left${dept ? ' in this course' : ''} yet.`, render: () => null },
             { id: 'latest', label: 'Latest', explain: dept ? 'This course’s newest lessons, by the day each was added.' : 'The newest lessons of every course, by the day each was added.', render: () => null },
             { id: 'find', label: 'Find', explain: dept ? 'Search this course by title, topic, or verse.' : 'Search every course by title, topic, or verse, or browse the whole shelf.', render: () => null },
-            { id: 'record', label: 'Record', explain: classRecordSummary, render: () => null },
+            { id: 'record', label: recordHead && recordHead.lessonsRead > 0 ? `Record · ${recordHead.lessonsRead}` : 'Record', explain: classRecordSummary, render: () => null },
             { id: 'downloads', label: 'Downloads', explain: dept ? (courseOpen ? `Download ${active.meta.title}, every lesson at the levels chosen.` : 'Downloads of a chosen course.') : 'This course’s download, and every finished lesson in the PoeTech App, counted live, in one download.', render: () => null },
           ];
           return (
@@ -5532,6 +5554,19 @@ export default function ChurchLearn({
               : <>{courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span></>}
           </span>
         </div>
+      )}
+
+      {/* THE RECORD, ANNOUNCED (DR-1261; Darrell 2026-10-27: "so users can be
+          motivated to do more or finish more tests and reading"). Under the
+          bar, on every area, while no lesson is open: how much is read, what
+          the exams prove, and the one next step as a tap. */}
+      {signedIn && courses.length > 1 && !lessonFocus && recordHead && (
+        <RecordStrip
+          headline={recordHead}
+          onOpenRecord={() => setLearnArea('record')}
+          onOpenLesson={(courseKey, lessonId) => resumeNow({ courseKey, lessonId })}
+          onReadVersion={readVersion}
+        />
       )}
 
       {/* WORD-FIRST (DR-0127): every knowledge space opens with Yahweh's
