@@ -109,11 +109,21 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(265); // measured by scripts/course-band-baseline-write.mjs after the merge,
+    expect(baseline.allFour).toBe(266); // RESOLVED BY MEASUREMENT, not by picking a side. bank9 and
+    // sov55 landed the same day and BOTH raise allFour, so each side of this merge said 265 and NEITHER
+    // was right -- each had counted only the lesson it could see. Re-measured by a fresh
+    // scripts/course-band-baseline-write.mjs run on the MERGED catalog: total 440, allFour 266, adultOnly 0,
+    // 174 still pinned. Never hand-merged: that is how a wrong number ships, and it is why DR-0692 made this
+    // a script. Both sides' measurements are kept below, neither edited to suit the other.
+    // measured by scripts/course-band-baseline-write.mjs after the merge,
     // never hand-written: every lesson that lands raises this, and that script's own header
     // warns that hand-merging the number after a merge is how a wrong one ships.
     //
     // Each lesson's own measurement, kept as it recorded it:
+    // // 265 on 2026-10-28: sov55 (the czar and the charge, and the desk
+    // above the desk, DR-1273), the fifty-fifth week of Sovereign A.I. Measured by a fresh
+    // scripts/course-band-baseline-write.mjs run (total 439, allFour 265, adultOnly 0, 174 still pinned),
+    // never hand-written. All four bands from its first commit; sovereign-ai reads {lessons: 55}.
     // // 265 on 2026-10-28: bank9 (the moat that moves -- the bank changed its ground,
     // DR-1277), the NINTH lesson of the Banking course and the FIRST lesson of that course to carry all four age
     // bands, built from The Daily Upside edition Darrell forwarded to himself with one word on it (Gmail thread

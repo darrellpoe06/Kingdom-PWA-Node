@@ -109,9 +109,25 @@ describe('rollup is summed + honest about gaps', () => {
     const d = derivePortfolio(rentals, ENTITIES);
     expect(d.portfolioCount).toBe(3);
     expect(d.missingDebt).toBe(1); // the nodebt property
+    expect(d.missingPI).toBe(1);   // the nodebt property has no monthly note either
     expect(d.missingRent).toBe(1); // the norent property
     expect(d.mortgageDebt).toBe(130000); // present figures still summed, not zeroed
     expect(d.monthlyRent).toBe(1900);
+  });
+
+  it('counts missing monthly P&I separately from a missing balance', () => {
+    // A door can carry an owed balance but no monthly note yet (or vice versa);
+    // the "Mortgage a month" cell leans on missingPI, the "Still owed" cell on
+    // missingDebt, so they are tracked independently (DR-0076 §8).
+    const rentals = [
+      prop({ id: 'full', rent: 1000, mortgage: { balance: 80000, monthlyPI: 500 } }),
+      prop({ id: 'bal-no-pi', rent: 1000, mortgage: { balance: 60000, monthlyPI: 0 } }),
+      prop({ id: 'none', rent: 1000, mortgage: { balance: 0, monthlyPI: 0 } }),
+    ];
+    const d = derivePortfolio(rentals, ENTITIES);
+    expect(d.missingPI).toBe(2);   // bal-no-pi and none
+    expect(d.missingDebt).toBe(1); // only none
+    expect(d.monthlyPI).toBe(500); // present notes summed, blanks not zeroed in
   });
 
   it('collection rate is 0 (not NaN) when there is no expected rent', () => {
