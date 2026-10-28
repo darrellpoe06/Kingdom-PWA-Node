@@ -68,4 +68,6 @@ Ship dsi15 as the fifteenth module of PoeTech Data Systems & Infrastructure, wit
 
 ## A note on the number
 
-This record is DR-1278, not DR-1277. `INDEX.md` pointed at DR-1277 and `claim-decision-number.mjs` agreed it was free on disk; a sibling lesson branch building in `banking-course.js` holds it in flight, which no tool reading the repo can see. DR-1273 and DR-1274 are likewise held by unlanded branches. This is the condition DR-1021 describes, avoided rather than cleaned up afterwards.
+This record is DR-1278, not DR-1277. `INDEX.md` pointed at DR-1277 and `claim-decision-number.mjs` agreed it was free **on disk**, which is all a file and a repo-reading tool can know. It is not free: PR **#2478** (`claude/rentals-merge-no-zero-erase`, a blank cloud value never erasing a typed rent, currently carrying the `hold` label) holds it in flight. DR-1274 is likewise held by an unlanded branch; DR-1273 landed with sov55 while this branch was building. This is the condition DR-1021 describes, avoided rather than cleaned up afterwards.
+
+Corrected before merge: this note first attributed DR-1277 to a sibling branch in `banking-course.js`, which is where the number was expected to go when this build started. The open pull requests say otherwise, and a record that names the wrong holder is worse than one that names none (DR-0239 — a surface says true things). The holder above was read off the live PR list, not assumed.
