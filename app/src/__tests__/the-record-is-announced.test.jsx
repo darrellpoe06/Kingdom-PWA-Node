@@ -1,6 +1,6 @@
 // =============================================================================
 // THE RECORD IS ANNOUNCED — how much was consumed, what the exams prove, and
-// the next thing to do, at the top of Learn (DR-1260)
+// the next thing to do, at the top of Learn (DR-1261)
 // =============================================================================
 // Darrell 2026-10-27, with his Class Record open: "The record should be more
 // announced so it can be used and known for how much knowledge has been

@@ -118,6 +118,6 @@ the top. On both lists.
   the lesson space names the version it serves, and an older read is
   attributed to the band's version.
 - ~~The Class Record panel still reads the band, not the versions.~~ Closed
-  by **DR-1260**: the panel shows "Versions read" and the record strip counts
+  by **DR-1261**: the panel shows "Versions read" and the record strip counts
   versions of five. `lessons-walked.js` still reads the band; the column is on
   the row and ready for it. `re-review: 2026-11-10`.

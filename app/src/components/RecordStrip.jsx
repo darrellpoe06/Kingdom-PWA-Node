@@ -1,5 +1,5 @@
 // =============================================================================
-// RecordStrip — the record, announced at the top of Learn (DR-1260)
+// RecordStrip — the record, announced at the top of Learn (DR-1261)
 // =============================================================================
 // Darrell 2026-10-27: "The record should be more announced so it can be used
 // and known for how much knowledge has been consumed and how many test

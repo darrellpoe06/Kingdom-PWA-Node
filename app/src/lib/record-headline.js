@@ -1,6 +1,6 @@
 // =============================================================================
 // record-headline — the learner's record, announced: how much has been
-// consumed, what the exams prove, and the next thing to do (DR-1260)
+// consumed, what the exams prove, and the next thing to do (DR-1261)
 // =============================================================================
 // Darrell 2026-10-27, with his Class Record open (54 lessons read, average
 // 100%, 3 exams passed, folded under one Learn area): "The record should be

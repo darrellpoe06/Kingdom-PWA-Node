@@ -3,7 +3,7 @@
 **Date:** 2026-10-27
 **Status:** Accepted
 **Area:** `app/src/lib/library-census.js`, `app/src/lib/library-census-baseline.json`, `app/src/components/LibraryCensus.jsx`, `app/src/components/ChurchLearn.jsx`, `scripts/library-gaps.mjs`, `scripts/splice-lesson-level.mjs`, `scripts/register-json-imports.mjs` + `scripts/json-loader-hooks.mjs`, `infra/nas-lesson-builder/fill_versions.py` + `test_fill_versions.py`, `poetech-fill-versions.service` + `.timer`, `install-fill-versions.sh`, `infra/nas-loops/services.json` (fill-versions, enabled:false)
-**Follows:** DR-0418 (every age version is the full message), DR-0484 (four versions or one repeated), DR-0715 (lessons beside readings), DR-0754 (the record), DR-1255 / DR-1257 / DR-1260 (which version, the record announced), DR-0075 (perpetual improvement), DR-0076 (measure, then change), DR-0108 (review our Ways)
+**Follows:** DR-0418 (every age version is the full message), DR-0484 (four versions or one repeated), DR-0715 (lessons beside readings), DR-0754 (the record), DR-1255 / DR-1257 / DR-1261 (which version, the record announced), DR-0075 (perpetual improvement), DR-0076 (measure, then change), DR-0108 (review our Ways)
 
 ## Context
 

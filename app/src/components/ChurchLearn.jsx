@@ -4127,7 +4127,7 @@ export default function ChurchLearn({
   // until Learn remounted. `placesTick` re-renders after a place is forgotten.
   const [placesTick, setPlacesTick] = useState(0);
   // ...and after a reading finishes anywhere (DR-1251's event), so the record
-  // strip (DR-1260) counts it the same moment, not on the next mount.
+  // strip (DR-1261) counts it the same moment, not on the next mount.
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const bump = () => setPlacesTick((n) => n + 1);
@@ -4323,7 +4323,7 @@ export default function ChurchLearn({
     const who = isGovernor && learners.length > 1 ? `${learners.length} learners, ` : '';
     return `${who}${totals.lessonsRead} lesson${totals.lessonsRead === 1 ? '' : 's'} read${score}`;
   }, [signedIn, learnerRecords, courseLessonTotals, isGovernor]);
-  // THE RECORD, ANNOUNCED (DR-1260): one headline for THIS learner from his
+  // THE RECORD, ANNOUNCED (DR-1261): one headline for THIS learner from his
   // own rows, the device's places, the shell's merged maps and the mounted
   // catalog — read under the lessons bar on every area, and on the Record
   // tab's own label. Recomputed when a row arrives, a place changes, or the
@@ -5560,7 +5560,7 @@ export default function ChurchLearn({
         </div>
       )}
 
-      {/* THE RECORD, ANNOUNCED (DR-1260; Darrell 2026-10-27: "so users can be
+      {/* THE RECORD, ANNOUNCED (DR-1261; Darrell 2026-10-27: "so users can be
           motivated to do more or finish more tests and reading"). Under the
           bar, on every area, while no lesson is open: how much is read, what
           the exams prove, and the one next step as a tap. */}

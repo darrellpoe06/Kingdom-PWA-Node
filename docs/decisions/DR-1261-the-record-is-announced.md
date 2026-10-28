@@ -1,4 +1,4 @@
-# DR-1260: The record is announced — how much was consumed, what the exams prove, and the next thing to do, at the top of Learn
+# DR-1261: The record is announced — how much was consumed, what the exams prove, and the next thing to do, at the top of Learn
 
 **Date:** 2026-10-27
 **Status:** Accepted
