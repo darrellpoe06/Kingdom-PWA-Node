@@ -505,6 +505,26 @@ function forScope(data, sc, asOf, settings, opts) {
     if (cash < 0 && !overdraftDate) overdraftDate = date;
   }
   const sum = (pred) => round2(items.filter(pred).reduce((s, it) => s + Math.abs(it.amount), 0));
+  // THE SIMPLE BREAKDOWN RECONCILES WITH THE WALK (Christina 2026-10-28): the
+  // sums THROUGH the lowest day are the walk's own terms, so
+  //   availableCash + incomeToLow − outflowsToLow − accruedToLow = lowest
+  // holds to the cent by construction, and lowest − cushion (floored) = safe.
+  const lowIdx = Math.max(0, timeline.findIndex((t) => t.date === lowest.date));
+  const toLow = (pred) => round2(items.filter((it) => it.date <= lowest.date && pred(it)).reduce((s, it) => s + Math.abs(it.amount), 0));
+  const accruedDays = lowIdx; // day 0 accrues nothing
+  const toLowest = {
+    date: lowest.date, days: accruedDays,
+    income: toLow((it) => it.amount > 0),
+    bills: toLow((it) => it.amount < 0 && (it.kind === 'bill' || it.kind === 'scheduled' || it.kind === 'inferred-bill')),
+    debtMinimums: toLow((it) => it.amount < 0 && (it.kind === 'debt-min' || it.kind === 'mortgage')),
+    taxesDated: toLow((it) => it.amount < 0 && it.kind === 'tax'),
+    other: toLow((it) => it.amount < 0 && it.kind === 'incident'),
+    living: round2(dailyLiving * accruedDays),
+    taxes: round2(dailyTax * accruedDays),
+    savings: round2(dailySavings * accruedDays),
+  };
+  toLowest.reserves = round2(toLowest.living + toLowest.taxes + toLowest.savings + toLowest.taxesDated);
+  toLowest.obligations = round2(toLowest.bills + toLowest.debtMinimums + toLowest.other);
   const billsDue = sum((it) => it.kind === 'bill' || it.kind === 'scheduled' || it.kind === 'inferred-bill');
   const debtMinimums = sum((it) => it.kind === 'debt-min' || it.kind === 'mortgage');
   const taxesDated = sum((it) => it.kind === 'tax');
@@ -545,6 +565,7 @@ function forScope(data, sc, asOf, settings, opts) {
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
       minCushion, otherCommitments, expectedIncome,
       projectedLowest: lowest,
+      toLowest,
       nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred } : null,
       potentialDebtPayment: safeToSpendNow,
     },
@@ -587,6 +608,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),
       minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'),
       projectedLowest: { amount: lowestSum, date: null },
+      toLowest: ['income', 'bills', 'debtMinimums', 'taxesDated', 'other', 'living', 'taxes', 'savings', 'reserves', 'obligations'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + ((r.lines.toLowest || {})[k] || 0), 0)); return acc; }, { date: null, days: null }),
       nextIncome, potentialDebtPayment: safe,
     },
     monthly: null,

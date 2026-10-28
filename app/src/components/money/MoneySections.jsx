@@ -33,9 +33,10 @@ import HelpButton from '../HelpButton.jsx';
 import ReportActions from '../ReportActions.jsx';
 import BudgetPlanner from '../BudgetPlanner.jsx';
 import { buildSafeToSpend } from '../../lib/safe-to-spend.js';
+import { paycheckPeriods } from '../../lib/money-paychecks.js';
 import { moneySettings, patchMoneyPlan } from '../../lib/money-plan.js';
 import { deriveCategoryPlans, categoryStatus, dataConfidence } from '../../lib/budget-engine.js';
-import { compareStrategies, thisMonthPayments, STRATEGIES, INTEREST_METHODS } from '../../lib/debt-freedom.js';
+import { compareStrategies, STRATEGIES, INTEREST_METHODS } from '../../lib/debt-freedom.js';
 import { financePresets } from '../../lib/finance-reports.js';
 import { isTransferTxn, isBalanceAdjustment } from '../../lib/imported-view.js';
 import { fmt } from '../../lib/format.js';
@@ -65,6 +66,8 @@ export function MoneyBudget({ money }) {
   const settings = moneySettings(data);
   const [month, setMonth] = useState(monthKey(cd));
   const [threshold, setThreshold] = useState(0.15);
+  const [mode, setMode] = useState('month');
+  const paychecks = useMemo(() => (mode === 'paycheck' ? paycheckPeriods(data, { currentDate: cd, scope: settings.scope || 'personal', settings, visibleEntities, horizonDays: 90 }) : null), [mode, data, cd, settings, visibleEntities]);
   const asOf = useMemo(() => { const [y, m] = month.split('-').map(Number); const now = monthKey(cd) === month ? cd : new Date(y, m, 0); return now; }, [month, cd]);
   const plans = useMemo(() => (data.moneyPlan && data.moneyPlan.budgets && data.moneyPlan.budgets[month] ? data.moneyPlan.budgets[month].categories || {} : {}), [data.moneyPlan, month]);
   const rows = useMemo(() => {
@@ -90,18 +93,51 @@ export function MoneyBudget({ money }) {
     <div data-testid="money-budget" className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Title topic="books:budget">Budget</Title>
+        <div role="group" aria-label="Budget by" className="flex gap-1.5">
+          <button type="button" data-testid="budget-mode-month" onClick={() => setMode('month')} aria-pressed={mode === 'month'} className={`${CHIP} ${mode === 'month' ? CHIP_ON : CHIP_OFF}`}>By month</button>
+          <button type="button" data-testid="budget-mode-paycheck" onClick={() => setMode('paycheck')} aria-pressed={mode === 'paycheck'} className={`${CHIP} ${mode === 'paycheck' ? CHIP_ON : CHIP_OFF}`}>By paycheck</button>
+        </div>
         <span className="flex-1" />
-        <label className="text-[0.625rem] text-[#5A5751]">Month
+        {mode === 'month' && <label className="text-[0.625rem] text-[#5A5751]">Month
           <select value={month} onChange={(e) => setMonth(e.target.value)} className="block mt-0.5 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" aria-label="Budget month">
             {months.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
-        </label>
-        <label className="text-[0.625rem] text-[#5A5751]">Warn at
+        </label>}
+        {mode === 'month' && <label className="text-[0.625rem] text-[#5A5751]">Warn at
           <select value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="block mt-0.5 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" aria-label="Over-plan warning threshold">
             {[0.05, 0.1, 0.15, 0.25].map((t) => <option key={t} value={t}>{Math.round(t * 100)}% over</option>)}
           </select>
-        </label>
+        </label>}
       </div>
+      {mode === 'paycheck' && paychecks && (
+        <div data-testid="budget-paychecks" className="space-y-3">
+          <p className="text-[0.8125rem] text-[#5A5751] leading-relaxed">Each period runs from one paycheck to the next. Bills due <strong className="text-[#1A1815]">before the next paycheck</strong> come from cash already on hand (after the cushion); a paycheck counts only from its own day; a period that cannot cover its bills is named, and a shortfall never borrows from later income.{paychecks.status === 'estimate' ? ' The figures are an estimate (see the Overview for why).' : ''}</p>
+          {paychecks.missing.map((m) => <p key={m} className="bg-[#FBF7EC] border border-[#C9A227] rounded-2xl p-3 text-[0.8125rem] text-[#1A1815]">{m}</p>)}
+          {paychecks.periods.map((p) => (
+            <section key={p.index} data-testid={`paycheck-period-${p.index}`} data-sufficient={p.sufficient ? 'true' : 'false'} className={`${CARD} ${p.sufficient ? '' : 'border-[#B85838]'}`}>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <h3 className="text-sm text-[#1A1815] font-semibold" style={SERIF}>{p.index === 0 ? `Now until ${p.nextPayday || p.end}` : `${p.start} to ${p.end}`}</h3>
+                <span className="text-[0.6875rem] text-[#5A5751]">{p.source === 'cash-on-hand' ? 'funded from cash on hand' : `funded by the paycheck of ${p.start}${p.inferredIncome ? ' (inferred timing)' : ''}`}</span>
+                <span className="flex-1" />
+                <span className={`text-[0.75rem] font-semibold ${p.sufficient ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{p.sufficient ? 'Covered' : `Short by ${fmt(p.shortfall)}`}</span>
+              </div>
+              <dl className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[0.75rem]">
+                <div><dt className="text-[#5A5751]">{p.source === 'cash-on-hand' ? 'Cash on hand after cushion' : 'Paycheck'}</dt><dd className="text-[#1A1815]" style={SERIF}>{fmt(p.source === 'cash-on-hand' ? p.fromCash : p.income)}</dd></div>
+                <div><dt className="text-[#5A5751]">Carried in</dt><dd className="text-[#1A1815]" style={SERIF}>{fmt(p.carriedIn)}</dd></div>
+                <div><dt className="text-[#5A5751]">Bills in this period</dt><dd className="text-[#1A1815]" style={SERIF}>{fmt(p.obligations)}</dd></div>
+                <div><dt className="text-[#5A5751]">{p.sufficient ? 'Left over' : 'Shortfall'}</dt><dd className={p.sufficient ? 'text-[#5A6E3D]' : 'text-[#B85838]'} style={SERIF}>{fmt(p.sufficient ? p.leftover : p.shortfall)}</dd></div>
+              </dl>
+              {p.items.length > 0 && (
+                <ul className="mt-2 divide-y divide-[#E8E4DC] text-[0.8125rem]">
+                  {p.items.map((it, i) => <li key={`${it.refId || it.label}-${it.date}-${i}`} className="py-1 flex justify-between gap-2"><span className="min-w-0 truncate text-[#1A1815]">{it.date} <span aria-hidden="true">·</span> {it.label}{it.source === 'inferred' ? <span className="text-[#5A5751]"> (inferred)</span> : null}</span><span className="shrink-0 text-[#1A1815]" style={SERIF}>{fmt(Math.abs(it.amount))}</span></li>)}
+                </ul>
+              )}
+              <p className="mt-2 text-[0.625rem] text-[#5A5751]">{p.note}</p>
+            </section>
+          ))}
+        </div>
+      )}
+      {mode === 'month' && <>
       <p className="text-[0.8125rem] text-[#5A5751] leading-relaxed">Planned is your own number for the month; a blank plan falls back to the three-month average of real spending in that category. Actual is this month's ledger spending, with transfers, debt payments and balance adjustments left out so nothing is counted twice. {confidence.level !== 'high' ? `Ledger confidence is ${confidence.level}: ${confidence.message}` : 'The ledger looks complete and categorized.'}</p>
       <div className="grid grid-cols-3 gap-3">
         {[['Planned', totals.plan], ['Actual', totals.spent], ['Remaining', totals.remaining]].map(([l, v]) => (
@@ -138,6 +174,7 @@ export function MoneyBudget({ money }) {
         </dl>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751]">These are held by the engine, not by a category — a bill that is also a category plan is counted once, as the dated bill. {derivedDebts.length} debt{derivedDebts.length === 1 ? '' : 's'} carry minimums.</p>
       </div>
+      </>}
     </div>
   );
 }
@@ -263,7 +300,6 @@ export function MoneyDebtFreedom({ money }) {
   const comparison = useMemo(() => compareStrategies(derivedDebts, opts), [derivedDebts, opts]);
   const result = comparison[plan.strategy] || comparison.snowball;
   const sts = useMemo(() => buildSafeToSpend(data, { currentDate: cd, period: settings.defaultPeriod || 'next-paycheck', scope: settings.scope || 'personal', settings, visibleEntities }), [data, cd, settings, visibleEntities]);
-  const thisMonth = thisMonthPayments(result);
   const paceOf = (id) => { const d = derivedDebts.find((x) => x.id === id); return d && d.hasPayments ? d.payPace : null; };
   const orderIds = useMemo(() => { const ids = (plan.customOrder || []).filter((id) => result.debts.some((d) => d.id === id)); for (const d of result.debts) if (!ids.includes(d.id)) ids.push(d.id); return ids; }, [plan.customOrder, result.debts]);
   const move = (id, dir) => { const ids = [...orderIds]; const i = ids.indexOf(id); const j = i + dir; if (i < 0 || j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; savePlan({ customOrder: ids, strategy: 'custom' }); };
@@ -272,8 +308,58 @@ export function MoneyDebtFreedom({ money }) {
   const totalBalance = derivedDebts.reduce((s, d) => s + (Number(d.balance) || 0), 0);
   const label = (r) => (r.cleared ? `${r.debtFreeLabel} (${r.debtFreeMonth} mo)` : r.horizonExhausted ? 'not within 50 years' : '—');
   const months = showAll ? result.months : result.months.slice(0, 24);
+  const [planOpen, setPlanOpen] = useState(false);
+  const requiredMonthly = result.debts.reduce((s, d) => s + (Number(d.minPayment) || 0), 0);
+  const nextToClear = [...result.debts].filter((d) => d.cleared).sort((a, b) => a.payoffMonth - b.payoffMonth)[0] || null;
+  const firstMonth = result.months[0] || null;
+  const planRows = firstMonth ? firstMonth.payments.map((r) => { const d = result.debts.find((x) => x.id === r.debtId) || {}; return { ...r, total: Math.round((r.minimum + r.extra + r.lump) * 100) / 100, payoffLabel: d.payoffLabel, cleared: d.cleared, pace: paceOf(r.debtId) }; }) : [];
   return (
     <div data-testid="money-debt-freedom" className="space-y-4">
+      {/* THE SUMMARY BAND (Christina 2026-10-28): total debt, required monthly, extra, debt-free date, next payoff */}
+      <section aria-label="Debt summary" data-testid="debt-summary" className="bg-[#1F3A2E] text-[#F6F1E7] rounded-2xl p-4 sm:p-5">
+        <dl className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3 text-[0.75rem]">
+          {[
+            ['Total debt', fmt(totalBalance), 'ledger'],
+            ['Required monthly', fmt(requiredMonthly), 'entered minimums'],
+            ['Extra per month', fmt(Number(plan.extraMonthly) || 0), 'your plan'],
+            ['Debt-free', result.cleared ? result.debtFreeLabel : (result.debts.length ? 'not within 50 years' : '—'), 'projected'],
+            ['Next to clear', nextToClear ? `${nextToClear.name} · ${nextToClear.payoffLabel}` : '—', 'projected'],
+          ].map(([label, value, kind]) => (
+            <div key={label}>
+              <dt className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#C9A227] font-semibold">{label}</dt>
+              <dd className="text-base text-[#F6F1E7] break-words" style={SERIF}>{value}<span className="block text-[0.625rem] text-[#F6F1E7] opacity-80">{kind}</span></dd>
+            </div>
+          ))}
+        </dl>
+        <button type="button" data-testid="debt-plan-toggle" onClick={() => setPlanOpen(!planOpen)} aria-expanded={planOpen} className={`mt-4 w-full sm:w-auto min-h-[44px] px-4 py-2 text-[0.8125rem] font-semibold rounded-full bg-[#F6F1E7] text-[#1F3A2E] hover:bg-[#E8E4DC] ${FOCUS}`}>
+          {planOpen ? 'Hide my monthly payment plan' : 'Show my monthly payment plan'}
+        </button>
+        {planOpen && (
+          <div data-testid="debt-plan" className="mt-3 rounded-xl bg-[#F6F1E7] text-[#1F3A2E] p-3 overflow-x-auto">
+            <div className="text-[0.5625rem] uppercase tracking-[0.18em] font-semibold">{firstMonth ? firstMonth.label : 'This month'} <span aria-hidden="true">·</span> projected, never a payment already made</div>
+            {planRows.length === 0 ? <p className="mt-2 text-[0.8125rem]">No debt with known terms is in the plan. Add a rate and a minimum on the Debts tab.</p> : (
+              <table className="w-full text-[0.8125rem] mt-2">
+                <caption className="sr-only">This month's projected payment per debt, the projected balance after it, and the expected payoff date, beside the actual pace the ledger has seen</caption>
+                <thead><tr className="text-left text-[0.5625rem] uppercase tracking-[0.18em]"><th scope="col" className="py-1 pr-2">Debt</th><th scope="col" className="py-1 pr-2">Minimum</th><th scope="col" className="py-1 pr-2">Extra</th><th scope="col" className="py-1 pr-2">Pay this month</th><th scope="col" className="py-1 pr-2">Balance after</th><th scope="col" className="py-1 pr-2">Expected payoff</th><th scope="col" className="py-1">Actual pace seen</th></tr></thead>
+                <tbody>
+                  {planRows.map((r) => (
+                    <tr key={r.debtId} className="border-t border-[#E8E4DC]">
+                      <th scope="row" className="py-2 pr-2 font-normal">{r.name}</th>
+                      <td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(r.minimum)}</td>
+                      <td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(r.extra + r.lump)}{r.lump > 0 ? <span className="block text-[0.625rem]">incl. {fmt(r.lump)} one-time</span> : null}</td>
+                      <td className="py-2 pr-2 tabular-nums font-semibold" style={SERIF}>{fmt(r.total)}</td>
+                      <td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(r.endBalance)}{r.paidOff ? <span className="block text-[0.625rem] text-[#5A6E3D]">clears this month</span> : null}</td>
+                      <td className="py-2 pr-2">{r.cleared ? r.payoffLabel : 'beyond horizon'}</td>
+                      <td className="py-2 text-[#5A5751]">{r.pace != null ? `${fmt(r.pace)}/mo (ledger)` : 'no payments seen'}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-[#1F3A2E] font-semibold"><th scope="row" className="py-2 pr-2">Total this month</th><td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(planRows.reduce((s, r) => s + r.minimum, 0))}</td><td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(planRows.reduce((s, r) => s + r.extra + r.lump, 0))}</td><td className="py-2 pr-2 tabular-nums" style={SERIF}>{fmt(planRows.reduce((s, r) => s + r.total, 0))}</td><td colSpan={3} /></tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </section>
       <div className="flex flex-wrap items-center gap-2">
         <Title topic="books:debt-freedom">Debt Freedom</Title>
         <span className="flex-1" />
@@ -332,29 +418,6 @@ export function MoneyDebtFreedom({ money }) {
               </li>
             ); })}
           </ol>
-        </div>
-      )}
-
-      {/* This month: what to pay toward each debt */}
-      {thisMonth.length > 0 && (
-        <div className={`${CARD} overflow-x-auto`} data-testid="debt-this-month">
-          <div className={EYEBROW}>{result.months[0].label} <span aria-hidden="true">·</span> what to pay toward each debt (projected)</div>
-          <table className="w-full text-[0.8125rem] mt-2">
-            <caption className="sr-only">This month's projected payment per debt beside the actual pace seen in the ledger</caption>
-            <thead><tr className="text-left text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751]"><th scope="col" className="py-1 pr-2">Debt</th><th scope="col" className="py-1 pr-2">Minimum</th><th scope="col" className="py-1 pr-2">Extra</th><th scope="col" className="py-1 pr-2">One-time</th><th scope="col" className="py-1 pr-2">Pay this month</th><th scope="col" className="py-1">Actual pace seen</th></tr></thead>
-            <tbody>
-              {thisMonth.map((r) => (
-                <tr key={r.debtId} className="border-t border-[#E8E4DC]">
-                  <th scope="row" className="py-2 pr-2 font-normal text-[#1A1815]">{r.name}{r.paidOff ? <span className="text-[#5A6E3D]"> · clears this month</span> : null}</th>
-                  <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{fmt(r.minimum)}</td>
-                  <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{fmt(r.extra)}</td>
-                  <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{fmt(r.lump)}</td>
-                  <td className="py-2 pr-2 text-[#1A1815] font-semibold" style={SERIF}>{fmt(r.total)}</td>
-                  <td className="py-2 text-[#5A5751]">{paceOf(r.debtId) != null ? `${fmt(paceOf(r.debtId))}/mo (ledger)` : 'no payments seen'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
 
@@ -420,10 +483,11 @@ export function MoneyDebtFreedom({ money }) {
         </div>
       </div>
 
-      {/* Schedule */}
+      {/* Schedule — for advanced use, behind a disclosure */}
       {result.months.length > 0 && (
-        <div className={`${CARD} overflow-x-auto`} data-testid="debt-schedule">
-          <div className="flex items-center justify-between gap-2"><div className={EYEBROW}>Month-by-month schedule (projected)</div>{result.months.length > 24 && <button type="button" onClick={() => setShowAll(!showAll)} className={`${CHIP} ${CHIP_OFF}`}>{showAll ? 'Show the first 24 months' : `Show all ${result.months.length} months`}</button>}</div>
+        <details className={`${CARD} overflow-x-auto`} data-testid="debt-schedule">
+          <summary className={`cursor-pointer min-h-[36px] inline-flex items-center ${EYEBROW} ${FOCUS}`}>Month-by-month amortization schedule (projected, {result.months.length} months)</summary>
+          <div className="mt-2 flex items-center justify-end gap-2">{result.months.length > 24 && <button type="button" onClick={() => setShowAll(!showAll)} className={`${CHIP} ${CHIP_OFF}`}>{showAll ? 'Show the first 24 months' : `Show all ${result.months.length} months`}</button>}</div>
           <table className="w-full text-[0.75rem] mt-2">
             <caption className="sr-only">Projected payments per month</caption>
             <thead><tr className="text-left text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751]"><th scope="col" className="py-1 pr-2">Month</th><th scope="col" className="py-1 pr-2">Paid</th><th scope="col" className="py-1 pr-2">Interest</th><th scope="col" className="py-1 pr-2">Balance after</th><th scope="col" className="py-1">Per debt</th></tr></thead>
@@ -439,7 +503,7 @@ export function MoneyDebtFreedom({ money }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </details>
       )}
       <button type="button" onClick={() => setBooksView && setBooksView('debts')} className={`min-h-[36px] px-3 py-1.5 text-[0.75rem] font-semibold rounded-full bg-[#1A1815] text-white hover:bg-[#B85838] ${FOCUS}`}>Edit debts, rates and minimums</button>
     </div>

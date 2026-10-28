@@ -101,7 +101,8 @@ describe('every Money section renders something real (never blank)', () => {
   it('Debt Freedom shows the corrected engine: this month\'s payment per debt, the comparison and the schedule', async () => {
     const { bag } = moneyBag(fixture());
     const el = await mount(createElement(MoneySurfaces, { section: 'debt-freedom', money: bag }));
-    expect(el.querySelector('[data-testid="debt-this-month"]').textContent).toContain('Visa');
+    await act(async () => { el.querySelector('[data-testid="debt-plan-toggle"]').click(); });
+    expect(el.querySelector('[data-testid="debt-plan"]').textContent).toContain('Visa');
     expect(el.querySelector('[data-testid="debt-schedule"]')).toBeTruthy();
     expect(el.querySelector('[data-testid="debt-sts"]').textContent).toMatch(/could go to debt/);
     await act(async () => { el.querySelector('[data-testid="strategy-custom"]').click(); });
@@ -151,5 +152,72 @@ describe('the navigation: nine sections, every legacy tab inside one, three taps
     await act(async () => { el.querySelector('[data-testid="dock-money-budget"]').click(); });
     expect(seen).toEqual(['budget']);
     window.matchMedia = orig;
+  });
+});
+
+describe('Christina\'s refinements (2026-10-28): phone-first card, simple breakdown, plan button, paycheck budget, guided setup', () => {
+  it('the amount, its reliability label and the simple breakdown come BEFORE any selector or period control in the document', async () => {
+    const { bag } = moneyBag(fixture());
+    const el = await mount(createElement(MoneyOverview, { money: bag }));
+    const order = (sel) => { const n = el.querySelector(sel); return n ? Array.prototype.indexOf.call(el.querySelectorAll('*'), n) : -1; };
+    const amount = order('[data-testid="sts-amount"]'); const status = order('[data-testid="sts-status"]'); const source = order('[data-testid="sts-source"]');
+    const simple = order('[data-testid="sts-simple"]'); const scope = order('[data-testid="money-scope-select"]'); const periods = order('[data-testid="money-period-7d"]');
+    expect(amount).toBeGreaterThan(-1); expect(simple).toBeGreaterThan(-1); expect(scope).toBeGreaterThan(-1);
+    expect(amount).toBeLessThan(status); expect(status).toBeLessThan(source); expect(source).toBeLessThan(simple);
+    expect(simple).toBeLessThan(scope); expect(scope).toBeLessThan(periods);
+    expect(el.querySelector('[data-testid="money-scope-select"]').tagName).toBe('SELECT');
+  });
+  it('the simple breakdown shows the engine\'s own terms and the same safe amount the card shows', async () => {
+    const { bag } = moneyBag(fixture());
+    const el = await mount(createElement(MoneyOverview, { money: bag }));
+    const simple = el.querySelector('[data-testid="sts-simple"]').textContent;
+    for (const w of ['Available cash now', 'Income received by', 'Bills and payments due by then', 'Reserves set aside by then', 'Lowest projected balance', 'Minimum cash cushion kept', 'Safe to spend now']) expect(simple).toContain(w);
+    const shown = el.querySelector('[data-testid="sts-amount"]').textContent;
+    expect(el.querySelector('[data-testid="sts-simple-safe"]').textContent).toContain(shown);
+    expect(simple).toMatch(/ledger/); expect(simple).toMatch(/projected/); expect(simple).toMatch(/entered/);
+  });
+  it('one-tap shortcuts to Bills, Budget and Debt Freedom sit under the card', async () => {
+    const seen = [];
+    const { bag } = moneyBag(fixture(), { setBooksView: (v) => seen.push(v) });
+    const el = await mount(createElement(MoneyOverview, { money: bag }));
+    for (const id of ['bills', 'budget', 'debt-freedom']) expect(el.querySelector(`[data-testid="money-shortcut-${id}"]`), id).toBeTruthy();
+    await act(async () => { el.querySelector('[data-testid="money-shortcut-debt-freedom"]').click(); });
+    expect(seen).toEqual(['debt-freedom']);
+  });
+  it('Debt Freedom: the summary band, then "Show my monthly payment plan" opens the per-debt plan in place', async () => {
+    const { bag } = moneyBag(fixture());
+    const el = await mount(createElement(MoneySurfaces, { section: 'debt-freedom', money: bag }));
+    const band = el.querySelector('[data-testid="debt-summary"]').textContent;
+    for (const w of ['Total debt', 'Required monthly', 'Extra per month', 'Debt-free', 'Next to clear']) expect(band).toContain(w);
+    expect(el.querySelector('[data-testid="debt-plan"]')).toBeNull();
+    await act(async () => { el.querySelector('[data-testid="debt-plan-toggle"]').click(); });
+    const plan = el.querySelector('[data-testid="debt-plan"]');
+    expect(plan).toBeTruthy();
+    for (const w of ['Visa', 'Minimum', 'Extra', 'Pay this month', 'Balance after', 'Expected payoff', 'Actual pace seen', 'projected, never a payment already made']) expect(plan.textContent).toContain(w);
+    expect(el.querySelector('[data-testid="debt-schedule"]').tagName).toBe('DETAILS');
+  });
+  it('Budget by paycheck: periods come from the pay schedule, bills before the next paycheck come from cash on hand, a short period is named', async () => {
+    const data = fixture();
+    data.accounts[0].openingBalance = -4160; // derived checking = 300: not enough for the 1,500 rent due 11-01
+    data.moneyPlan = patchMoneyPlan(null, { settings: { incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06' } }, minCushion: 100 } });
+    const { bag } = moneyBag(data);
+    const el = await mount(createElement(MoneySurfaces, { section: 'budget', money: bag }));
+    await act(async () => { el.querySelector('[data-testid="budget-mode-paycheck"]').click(); });
+    const p0 = el.querySelector('[data-testid="paycheck-period-0"]');
+    expect(p0).toBeTruthy();
+    expect(p0.getAttribute('data-sufficient')).toBe('false');
+    expect(p0.textContent).toContain('Rent');
+    expect(p0.textContent).toMatch(/Short by/);
+    expect(p0.textContent).toContain('funded from cash on hand');
+    const p1 = el.querySelector('[data-testid="paycheck-period-1"]');
+    expect(p1.textContent).toContain('funded by the paycheck of 2026-11-06');
+  });
+  it('the guided setup marks Required and Optional, shows progress, and names the essentials state', async () => {
+    const { bag } = moneyBag(fixture());
+    const el = await mount(createElement(MoneySurfaces, { section: 'settings', money: bag }));
+    expect(el.querySelector('[data-testid="setup-progress"] [role="progressbar"]')).toBeTruthy();
+    expect(el.querySelector('[data-testid="setup-essentials"]').getAttribute('data-complete')).toBe('false');
+    expect(el.querySelector('[data-testid="setup-step-paychecks"]').textContent).toContain('Required');
+    expect(el.querySelector('[data-testid="setup-step-taxes"]').textContent).toContain('Optional');
   });
 });

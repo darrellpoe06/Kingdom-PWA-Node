@@ -43,7 +43,7 @@ function SetupStep({ st, id, isOpen, toggle, children }) {
         <span aria-hidden="true" className={`w-7 h-7 rounded-full border-2 grid place-items-center text-[0.75rem] shrink-0 ${st.done ? 'bg-[#5A6E3D] border-[#5A6E3D] text-white' : 'border-[#B45309] text-[#B45309]'}`}><UiIcon name={st.done ? 'check' : 'pencil'} /></span>
         <span className="flex-1 min-w-0">
           <span className="block text-sm text-[#1A1815] font-semibold" style={SERIF}>{st.label}</span>
-          <span className="block text-[0.6875rem] text-[#5A5751]">{st.applies ? (st.done ? 'Entered' : `Missing: ${st.missing.join(', ')}`) : 'Does not apply to these books yet'} <span aria-hidden="true">·</span> {st.why}</span>
+          <span className="block text-[0.6875rem] text-[#5A5751]"><span className={`inline-block px-1.5 rounded border text-[0.5625rem] uppercase tracking-[0.12em] mr-1 ${st.required ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{st.required ? 'Required' : 'Optional'}</span>{st.applies ? (st.done ? 'Entered' : `Missing: ${st.missing.join(', ')}`) : 'Does not apply to these books yet'} <span aria-hidden="true">·</span> {st.why}</span>
         </span>
         <span aria-hidden="true" className="text-[#5A5751]"><UiIcon name={isOpen ? 'chevronUp' : 'chevronDown'} /></span>
       </button>
@@ -90,6 +90,16 @@ export default function MoneySetup({ money }) {
         <span data-testid="setup-sync-status" data-state={sync.state} className={`inline-flex items-center gap-1.5 text-[0.6875rem] px-2.5 py-1 rounded-full border ${sync.state === 'synced' ? 'border-[#5A6E3D] text-[#5A6E3D]' : sync.state === 'pending' ? 'border-[#B45309] text-[#B45309]' : 'border-[#5A5751] text-[#5A5751]'}`} title={sync.detail}>
           <span aria-hidden="true"><UiIcon name={sync.state === 'synced' ? 'check' : 'pin'} /></span>{sync.label}
         </span>
+      </div>
+      <div data-testid="setup-progress" className="space-y-1">
+        <div className="h-2 rounded-full bg-[#E8E4DC] overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={setup.percent} aria-label="Guided setup progress">
+          <div className="h-full bg-[#5A6E3D]" style={{ width: `${setup.percent}%` }} />
+        </div>
+        <div data-testid="setup-essentials" data-complete={setup.essentialsComplete ? 'true' : 'false'} className="text-[0.75rem] text-[#1A1815]">
+          {setup.essentialsComplete
+            ? <span><span aria-hidden="true" className="text-[#5A6E3D]"><UiIcon name="check" /></span> The essentials are complete ({setup.essentialsDone} of {setup.essentials}). Safe to Spend has its shape; the optional steps sharpen it whenever you have the figures.</span>
+            : <span><strong>{setup.essentialsDone} of {setup.essentials}</strong> essential steps entered. The essentials are the paycheck schedule, your recurring bills and the cash cushion; everything else is optional.</span>}
+        </div>
       </div>
       <p className="text-[0.8125rem] text-[#5A5751] leading-relaxed">Safe to Spend lays every bill, payment and paycheck on the calendar. These are the dates and figures the books never held. Nothing here is guessed: a step left empty stays visibly missing on the Overview.</p>
       <p className="text-[0.6875rem] text-[#5A5751]">{sync.detail}</p>

@@ -221,3 +221,22 @@ describe('honesty — estimates, unavailable, and the pay schedule', () => {
     expect(inc.events[0]).toMatchObject({ date: '2026-11-05', amount: 1000 });
   });
 });
+
+describe('the simple breakdown reconciles with the walk (Christina 2026-10-28)', () => {
+  it('available cash + income to the low point − obligations − reserves = the lowest balance, and lowest − cushion floored = safe', () => {
+    for (const period of ['7d', '14d', '30d', 'next-paycheck']) {
+      const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period, scope: 'personal' });
+      const t = r.lines.toLowest;
+      const rebuilt = r.lines.availableCash + t.income - t.obligations - t.reserves;
+      expect(Math.abs(rebuilt - r.lines.projectedLowest.amount), period).toBeLessThan(0.02);
+      expect(r.safeToSpendNow).toBe(Math.max(0, Math.round((r.lines.projectedLowest.amount - r.lines.minCushion) * 100) / 100));
+      expect(t.date).toBe(r.lines.projectedLowest.date);
+    }
+  });
+  it('the consolidated breakdown is the sum of the per-entity terms and still reconciles', () => {
+    const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period: '14d', scope: 'consolidated' });
+    const t = r.lines.toLowest;
+    const rebuilt = r.lines.availableCash + t.income - t.obligations - t.reserves;
+    expect(Math.abs(rebuilt - r.lines.projectedLowest.amount)).toBeLessThan(0.02 * r.byEntity.length);
+  });
+});

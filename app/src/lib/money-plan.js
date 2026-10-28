@@ -96,9 +96,22 @@ export function setupSteps(data, opts = {}) {
     { id: 'savings', label: 'Savings contributions', done: s.savingsMonthly != null && s.savingsMonthly !== '', applies: true, missing: s.savingsMonthly != null && s.savingsMonthly !== '' ? [] : ['Planned savings per month'], why: 'Planned savings are reserved before anything is called spendable.' },
     { id: 'cushion', label: 'Minimum cash cushion', done: (s.minCushion != null && s.minCushion !== '') || (Number(data?.meta?.bufferTarget) || 0) > 0, applies: true, missing: (s.minCushion != null && s.minCushion !== '') || (Number(data?.meta?.bufferTarget) || 0) > 0 ? [] : ['Minimum cushion'], why: 'Safe to Spend keeps this floor on every projected day.' },
   ];
+  // REQUIRED vs OPTIONAL (Christina 2026-10-28): the essentials are the three
+  // without which the walk has no shape — paychecks (when income exists), the
+  // recurring bills, and the cushion. The rest sharpen it and may wait.
+  const REQUIRED = new Set(['paychecks', 'bills', 'cushion']);
+  for (const st of steps) st.required = REQUIRED.has(st.id);
   const applicable = steps.filter((st) => st.applies);
   const done = applicable.filter((st) => st.done).length;
-  return { steps, applicable: applicable.length, done, complete: applicable.length > 0 && done === applicable.length };
+  const essentials = applicable.filter((st) => st.required);
+  const essentialsDone = essentials.filter((st) => st.done).length;
+  return {
+    steps, applicable: applicable.length, done,
+    complete: applicable.length > 0 && done === applicable.length,
+    essentials: essentials.length, essentialsDone,
+    essentialsComplete: essentials.length > 0 && essentialsDone === essentials.length,
+    percent: applicable.length ? Math.round((done / applicable.length) * 100) : 0,
+  };
 }
 
 // ── balance labeling: bank-reported · ledger-calculated · projected ──────────
