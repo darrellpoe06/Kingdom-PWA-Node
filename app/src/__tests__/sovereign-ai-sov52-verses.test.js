@@ -84,10 +84,16 @@ function kjv(ref) {
 }
 
 describe('sov52 exists once, at its own week, with all four bands', () => {
-  it('is in the catalog exactly once and is the highest week', () => {
+  // FIXED WHEN sov53 LANDED (DR-1265), for the reason DR-1256 and DR-1260
+  // already recorded: this case asserted that sov52 is the HIGHEST week, which
+  // was true until the next week was written and would have reddened main the
+  // moment it merged. A lesson's own gate asserts what stays true of that
+  // lesson: it claims its number exactly once, and the course's numbering is
+  // contiguous.
+  it('is in the catalog exactly once and claims its number once; the course numbers contiguously', () => {
     expect(SOVEREIGN_AI_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     const nums = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)/.exec(m.id)[1]));
-    expect(Math.max(...nums)).toBe(52);
+    expect(nums.filter((n) => n === 52)).toEqual([52]);
     expect(nums).toEqual(nums.map((_, i) => i + 1));
   });
 

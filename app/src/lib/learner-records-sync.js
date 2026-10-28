@@ -106,15 +106,32 @@ export async function saveLearnerRecord(rec = {}, { client = defaultClient, demo
  * `governor` is not a permission here — it only widens the ORDER/limit for a
  * screen that shows many learners.
  */
+// The columns a record is read with. `quiz_history` arrived with 0313; a
+// backend the migration has not reached yet (the deploy and the migration
+// walk the same tailnet road, and a build can land before the column does)
+// refuses the whole select with PostgreSQL's 42703. The read then asks again
+// without that one column, so the record never goes dark for a column it
+// can live without — the ledger simply reads as empty until 0313 lands.
+const READ_COLUMNS = 'user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, quiz_history, updated_at';
+const READ_COLUMNS_BEFORE_0313 = READ_COLUMNS.replace(', quiz_history', '');
+
+export function isMissingColumn(error, column) {
+  if (!error) return false;
+  const text = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+  return (error.code === '42703' || /does not exist|column/i.test(text)) && text.includes(column);
+}
+
 export async function fetchLearnerRecords({ client = defaultClient, limit = 2000 } = {}) {
   const session = await sessionOf(client);
   if (!session) return { records: [], skipped: 'signed-out' };
+  const read = (columns) => client
+    .from(TABLE)
+    .select(columns)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
   try {
-    const { data, error } = await client
-      .from(TABLE)
-      .select('user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(limit);
+    let { data, error } = await read(READ_COLUMNS);
+    if (error && isMissingColumn(error, 'quiz_history')) ({ data, error } = await read(READ_COLUMNS_BEFORE_0313));
     if (error) return { records: [], error };
     const records = (data || []).map(rowToRecord).filter((r) => r.lessonId);
     return { records };

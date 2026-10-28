@@ -65,6 +65,24 @@ export function cleanVersionsRead(v) {
   return RECORD_VERSION_IDS.filter((id) => have.has(id));
 }
 
+// EVERY EXAM ATTEMPT (DR-1264): the wall keeps one entry per attempt in
+// quiz_history (0313) — { at, pct, passed, band } — appended by its own
+// trigger from the columns the row was written with. The client never sends
+// it. Only well-formed entries reach the app; a malformed one is dropped, not
+// guessed at.
+export function cleanQuizHistory(v) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((e) => e && typeof e === 'object' && e.at)
+    .map((e) => ({
+      at: iso(e.at),
+      pct: intOrNull(e.pct),
+      passed: e.passed === null || e.passed === undefined ? null : !!e.passed,
+      band: e.band ? String(e.band) : null,
+    }))
+    .filter((e) => e.at);
+}
+
 // One database row → the shape the app reads. Unknown columns are dropped; a
 // row with no lesson id is not a record and is discarded by the callers.
 export function rowToRecord(row = {}) {
@@ -82,6 +100,7 @@ export function rowToRecord(row = {}) {
     quizAttempts: intOrNull(row.quiz_attempts ?? row.quizAttempts) || 0,
     quizAt: iso(row.quiz_at || row.quizAt),
     versionsRead: cleanVersionsRead(row.versions_read ?? row.versionsRead),
+    quizHistory: cleanQuizHistory(row.quiz_history ?? row.quizHistory),
     updatedAt: iso(row.updated_at || row.updatedAt),
   };
 }
@@ -105,7 +124,53 @@ export function recordToRow(rec = {}) {
   // Only a record that names versions carries the column: the wall ratchets
   // the union (0312), and a row that says nothing leaves what is there.
   if (Array.isArray(rec.versionsRead)) row.versions_read = cleanVersionsRead(rec.versionsRead);
+  // quiz_history is never in the row the client writes: the wall appends each
+  // attempt itself and ignores anything sent (0313), so there is nothing to
+  // carry and nothing a device could rewrite.
   return row;
+}
+
+/**
+ * Every exam attempt across these rows, newest first, each with its lesson
+ * and course (DR-1264; Darrell: "How did I take 6 test and no know what
+ * happened and when?"). A row whose ledger is empty but whose columns say an
+ * exam was answered (a row written before 0313) yields that one attempt from
+ * the columns, marked `fromColumns`, so the count never reads lower than the
+ * record. `titleOf(lessonId, courseKey)` names the lesson when the build knows it.
+ */
+export function examAttempts(rows = [], { titleOf = () => null, userId = null } = {}) {
+  const records = (Array.isArray(rows) ? rows : [])
+    .map((r) => (r && r.lessonId !== undefined ? r : rowToRecord(r || {})))
+    .filter((r) => r && r.lessonId && (!userId || r.userId === userId));
+  const out = [];
+  for (const r of records) {
+    const history = Array.isArray(r.quizHistory) ? r.quizHistory : [];
+    const base = {
+      userId: r.userId || null, lessonId: r.lessonId, courseKey: r.courseKey || null,
+      title: titleOf(r.lessonId, r.courseKey) || r.lessonId,
+      bestPct: r.quizPct, bestPassed: r.quizPassed, attempts: r.quizAttempts || 0,
+    };
+    if (history.length) {
+      history.forEach((e, i) => out.push({ ...base, n: i + 1, at: e.at, pct: e.pct, passed: e.passed, band: e.band, fromColumns: false }));
+    } else if (r.quizAt) {
+      out.push({ ...base, n: r.quizAttempts || 1, at: r.quizAt, pct: r.quizPct, passed: r.quizPassed, band: r.ageBand || null, fromColumns: true });
+    }
+  }
+  return out.sort((a, b) => String(b.at).localeCompare(String(a.at)) || a.title.localeCompare(b.title));
+}
+
+/** The attempts grouped by lesson, newest lesson first, for a list a learner can act on. */
+export function examAttemptsByLesson(rows = [], opts = {}) {
+  const flat = examAttempts(rows, opts);
+  const byLesson = new Map();
+  for (const a of flat) {
+    const key = `${a.courseKey || 'unplaced'}:${a.lessonId}`;
+    if (!byLesson.has(key)) {
+      byLesson.set(key, { lessonId: a.lessonId, courseKey: a.courseKey, title: a.title, bestPct: a.bestPct, bestPassed: a.bestPassed, attempts: a.attempts, lastAt: a.at, tries: [] });
+    }
+    byLesson.get(key).tries.push(a);
+  }
+  return [...byLesson.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
 }
 
 // Fold a set of rows into the shell's two device-local maps, so a record
@@ -125,6 +190,8 @@ export function mergeRecordsIntoState(records = [], { progress = {}, quizState =
         passed: !!rec.quizPassed,
         pct: rec.quizPct === null ? 0 : rec.quizPct,
         at: rec.quizAt,
+        attempts: rec.quizAttempts || 0,
+        history: Array.isArray(rec.quizHistory) ? rec.quizHistory.map((e) => ({ at: e.at, pct: e.pct, passed: e.passed })) : [],
       };
     }
   }

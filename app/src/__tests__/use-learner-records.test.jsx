@@ -90,6 +90,20 @@ describe('answering an exam', () => {
     expect(saved[1].quiz).toMatchObject({ pct: 90, passed: true, attempts: 2 });
   });
 
+  it('EVERY ATTEMPT IS KEPT AND THE BEST STANDS (DR-1264): a lower retake does not lower the device, and the row is written with the attempt’s own score', () => {
+    mount();
+    act(() => { api.recordClassQuiz('L1', { pct: 100, passed: true, at: 'a' }, 'living-lessons'); });
+    act(() => { api.recordClassQuiz('L1', { pct: 40, passed: false, at: 'b' }, 'living-lessons'); });
+    // the device shows the best, keeps the pass, and holds both attempts
+    expect(store.classQuiz.L1.pct).toBe(100);
+    expect(store.classQuiz.L1.passed).toBe(true);
+    expect(store.classQuiz.L1.attempts).toBe(2);
+    expect(store.classQuiz.L1.history.map((e) => e.pct)).toEqual([100, 40]);
+    expect(store.classQuiz.L1.last).toMatchObject({ pct: 40, passed: false, at: 'b' });
+    // the row carries THIS attempt (the wall keeps the best itself, 0313)
+    expect(saved[1].quiz).toMatchObject({ pct: 40, passed: false, at: 'b', attempts: 2 });
+  });
+
   it('carries the course and a real moment even when the result names none', () => {
     mount();
     act(() => { api.recordClassQuiz('L2', { pct: 100, passed: true }, 'sovereign-ai'); });

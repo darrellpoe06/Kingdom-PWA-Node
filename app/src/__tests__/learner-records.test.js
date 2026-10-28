@@ -15,6 +15,7 @@
 // to hold.
 import { describe, it, expect } from 'vitest';
 import {
+  examAttempts, examAttemptsByLesson, cleanQuizHistory,
   rowToRecord, recordToRow, mergeRecordsIntoState,
   aggregateLearnerRecords, competencyBand, COMPETENCY_BANDS,
 } from '../lib/learner-records.js';
@@ -189,5 +190,86 @@ describe('what the record adds up to', () => {
     const fromRecords = aggregateLearnerRecords([rowToRecord(row())]);
     expect(fromRecords.totals.lessonsRead).toBe(fromRows.totals.lessonsRead);
     expect(fromRecords.learners[0].avgQuizPct).toBe(fromRows.learners[0].avgQuizPct);
+  });
+});
+
+// =============================================================================
+// EVERY EXAM ATTEMPT, AND THE BEST STANDS (DR-1264)
+// =============================================================================
+// Darrell 2026-10-28, with "5 exams taken · 6 attempts" on his record: "How
+// did I take 6 test and no know what happened and when?" The wall now keeps a
+// ledger (0313, quiz_history); this is the app's reading of it.
+
+describe('the exam ledger reaches the app (DR-1264)', () => {
+  const ledger = [
+    { at: '2026-10-28T01:00:00.000Z', pct: 60, passed: false, band: 'adult' },
+    { at: '2026-10-28T01:10:00.000Z', pct: 100, passed: true, band: 'adult' },
+    { at: '2026-10-28T01:20:00.000Z', pct: 40, passed: false, band: 'adult' },
+  ];
+
+  it('a row carries its ledger, cleaned: a malformed entry is dropped, never guessed at', () => {
+    const r = rowToRecord({ user_id: 'u', lesson_id: 'L1', quiz_history: [...ledger, { pct: 'nine' }, null, 'x'] });
+    expect(r.quizHistory).toHaveLength(3);
+    expect(r.quizHistory[2]).toEqual({ at: '2026-10-28T01:20:00.000Z', pct: 40, passed: false, band: 'adult' });
+    expect(cleanQuizHistory('not a list')).toEqual([]);
+  });
+
+  it('the client never writes the ledger: recordToRow carries no quiz_history', () => {
+    const row = recordToRow({ lessonId: 'L1', quizPct: 100, quizPassed: true, quizAt: '2026-10-28T01:10:00.000Z', quizHistory: ledger });
+    expect('quiz_history' in row).toBe(false);
+  });
+
+  it('every attempt is listed, newest first, with its lesson, its moment and its own score', () => {
+    const rows = [
+      { user_id: 'u', lesson_id: 'L1', course_key: 'living-lessons', quiz_pct: 100, quiz_passed: true, quiz_attempts: 3, quiz_at: ledger[2].at, quiz_history: ledger },
+      { user_id: 'u', lesson_id: 'L2', course_key: 'sovereign-ai', quiz_pct: 80, quiz_passed: true, quiz_attempts: 1, quiz_at: '2026-10-27T10:00:00.000Z',
+        quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 80, passed: true }] },
+    ];
+    const list = examAttempts(rows, { titleOf: (id) => ({ L1: 'Lesson one', L2: 'Lesson two' })[id] });
+    expect(list.map((a) => [a.title, a.pct, a.passed])).toEqual([
+      ['Lesson one', 40, false], ['Lesson one', 100, true], ['Lesson one', 60, false], ['Lesson two', 80, true],
+    ]);
+    // and each knows the record's best, which a lower retake did not lower
+    expect(list[0].bestPct).toBe(100);
+    expect(list[0].bestPassed).toBe(true);
+    expect(list[0].n).toBe(3);
+  });
+
+  it('a row written before the ledger existed still yields its one attempt from the columns, marked so', () => {
+    const list = examAttempts([{ user_id: 'u', lesson_id: 'L9', quiz_pct: 90, quiz_passed: true, quiz_attempts: 2, quiz_at: '2026-10-20T10:00:00.000Z' }]);
+    expect(list).toHaveLength(1);
+    expect(list[0].fromColumns).toBe(true);
+    expect(list[0].n).toBe(2);
+    expect(list[0].pct).toBe(90);
+  });
+
+  it('an untested row yields no attempt (PROVEN TO CATCH: no painted zero)', () => {
+    expect(examAttempts([{ user_id: 'u', lesson_id: 'L3', completed_at: '2026-10-20T10:00:00.000Z' }])).toEqual([]);
+  });
+
+  it('grouped by lesson, newest lesson first, each with its tries newest first', () => {
+    const rows = [
+      { user_id: 'u', lesson_id: 'L1', course_key: 'living-lessons', quiz_pct: 100, quiz_passed: true, quiz_attempts: 3, quiz_at: ledger[2].at, quiz_history: ledger },
+      { user_id: 'u', lesson_id: 'L2', course_key: 'sovereign-ai', quiz_pct: 80, quiz_passed: true, quiz_attempts: 1, quiz_at: '2026-10-27T10:00:00.000Z',
+        quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 80, passed: true }] },
+    ];
+    const g = examAttemptsByLesson(rows);
+    expect(g.map((x) => [x.lessonId, x.tries.length, x.bestPct])).toEqual([['L1', 3, 100], ['L2', 1, 80]]);
+    expect(g[0].tries.map((t) => t.pct)).toEqual([40, 100, 60]);
+  });
+
+  it('only the named learner’s attempts, when a user is given', () => {
+    const rows = [
+      { user_id: 'u', lesson_id: 'L1', quiz_pct: 100, quiz_passed: true, quiz_at: '2026-10-28T01:00:00.000Z', quiz_history: [ledger[1]] },
+      { user_id: 'v', lesson_id: 'L1', quiz_pct: 50, quiz_passed: false, quiz_at: '2026-10-28T01:00:00.000Z', quiz_history: [ledger[0]] },
+    ];
+    expect(examAttempts(rows, { userId: 'u' }).map((a) => a.userId)).toEqual(['u']);
+  });
+
+  it('merging rows into the device keeps the ledger and the attempts the device never saw', () => {
+    const merged = mergeRecordsIntoState([rowToRecord({ user_id: 'u', lesson_id: 'L1', quiz_pct: 100, quiz_passed: true, quiz_attempts: 3, quiz_at: ledger[2].at, quiz_history: ledger })], {});
+    expect(merged.quizState.L1.attempts).toBe(3);
+    expect(merged.quizState.L1.history.map((e) => e.pct)).toEqual([60, 100, 40]);
+    expect(merged.quizState.L1.pct).toBe(100);
   });
 });

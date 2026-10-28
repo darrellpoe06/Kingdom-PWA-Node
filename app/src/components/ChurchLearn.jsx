@@ -54,7 +54,7 @@ import {
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
-import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
+import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc, LESSON_ARC } from '../lib/lesson-flow.js';
 import { courseDuration, formatDuration } from '../lib/course-duration.js';
 import { formatLessonText, lessonPoints, lessonSectionPlan } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
@@ -4517,6 +4517,34 @@ export default function ChurchLearn({
   // ids are the same), a standing depth override is lifted so the band's own
   // words are served, and the reading begins at the top — the other
   // version's saved sentence is not this one's.
+  // TAKE THE EXAM AGAIN, READ IT AGAIN (DR-1264; Darrell 2026-10-28: "I also
+  // should be able to keep 100% by using that test again or read it again").
+  // A retake opens the lesson at its Apply stage, where the exam sits, by
+  // moving the lesson's own saved place there (the arc index is the course's
+  // own, lesson-flow.js LESSON_ARC); the record keeps the best, so nothing is
+  // risked. Reading again opens the lesson from its first sentence and
+  // begins the reading, the same door Continue uses.
+  const APPLY_STAGE = Math.max(0, LESSON_ARC.findIndex((a) => a.kind === 'apply'));
+  const retakeExam = (courseKey, lessonId) => {
+    if (!lessonId) return;
+    recordPlace({ courseKey: courseKey || active.key, lessonId, stage: APPLY_STAGE, step: 0, started: true });
+    resumeNow({ courseKey: courseKey || active.key, lessonId });
+  };
+  const readAgain = (courseKey, lessonId) => {
+    if (!lessonId) return;
+    recordPlace({ courseKey: courseKey || active.key, lessonId, stage: 0, step: 0, sentence: 0, sentenceKey: '', started: true });
+    resumeNow({ courseKey: courseKey || active.key, lessonId });
+    requestRead(lessonId, { startSentence: 0 });
+  };
+  // A lesson's title from the mounted catalog, for the record's attempts list.
+  const lessonTitleOf = React.useCallback((lessonId, courseKey) => {
+    const pool = courseKey ? courses.filter((c) => c.key === courseKey) : courses;
+    for (const c of (pool.length ? pool : courses)) {
+      const m = (c.schedule || []).find((x) => x && x.id === lessonId);
+      if (m) return m.title || null;
+    }
+    return null;
+  }, [courses]);
   const readVersion = (courseKey, lessonId, versionId) => {
     if (typeof setAgeBand === 'function' && versionId) setAgeBand(versionId);
     if (learnLevel && learnLevel !== 'auto' && typeof setLearnLevel === 'function') setLearnLevel('auto');
@@ -5617,6 +5645,9 @@ export default function ChurchLearn({
               isGovernor={isGovernor}
               signedIn={signedIn}
               courseTotals={courseLessonTotals}
+              titleOf={lessonTitleOf}
+              onRetake={retakeExam}
+              onReadAgain={readAgain}
             />
           </div>
         </details>

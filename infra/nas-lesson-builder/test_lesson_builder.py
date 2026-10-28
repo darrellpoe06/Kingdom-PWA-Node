@@ -470,6 +470,46 @@ class Writers(unittest.TestCase):
         self.assertIn(":generateContent?key=gk", op.requests[0].full_url)
         self.assertEqual(w.family, "gemini")
 
+    def test_api_caches_the_standard_prefix_and_reports_the_cache_fields(self):
+        """DR-1265: the house STANDARD goes on the wire as a cached system
+        block; the text is unchanged and the identical-prompt proof still
+        holds; a prompt that does not open with the STANDARD is sent as before;
+        the usage carries the cache fields the API reports."""
+        prompt = lw.build_prompt("the teaching", [], [], [("John 1:1", "In the beginning was the Word")])
+        op = FakeOpener([{"content": [{"type": "text", "text": "A"}],
+                          "usage": {"input_tokens": 40, "output_tokens": 2,
+                                    "cache_creation_input_tokens": 1500, "cache_read_input_tokens": 0}}])
+        w = lw.Api({"name": "a", "model": "m", "key_env": "K"}, env={"K": "secret"}, opener=op)
+        out = w.send(prompt, 5)
+        body = json.loads(op.requests[0].data)
+        self.assertEqual(body["system"][0]["cache_control"], {"type": "ephemeral"})
+        self.assertEqual(body["system"][0]["text"], lw.STANDARD.rstrip())
+        self.assertTrue(body["messages"][0]["content"].startswith("ROW RULES"))
+        # not one byte of text lost: the prompt is the system block, then only
+        # newlines (the seam build_prompt already makes), then the user block
+        sysb, userb = body["system"][0]["text"], body["messages"][0]["content"]
+        self.assertTrue(prompt.startswith(sysb) and prompt.endswith(userb))
+        self.assertEqual(prompt[len(sysb):len(prompt) - len(userb)].strip("\n"), "")
+        self.assertEqual(out["sent_sha256"], lw.sha256_text(prompt))
+        self.assertEqual(out["usage"]["cache_creation_input_tokens"], 1500)
+        self.assertEqual(out["usage"]["cache_read_input_tokens"], 0)
+        # a second identical prompt is what the API would read back; the field says so
+        op2 = FakeOpener([{"content": [{"type": "text", "text": "A"}],
+                           "usage": {"input_tokens": 40, "output_tokens": 2,
+                                     "cache_creation_input_tokens": 0, "cache_read_input_tokens": 1500}}])
+        w2 = lw.Api({"name": "a", "model": "m", "key_env": "K"}, env={"K": "secret"}, opener=op2)
+        self.assertEqual(w2.send(prompt, 5)["usage"]["cache_read_input_tokens"], 1500)
+        # PROVEN TO CATCH: a prompt that does not open with the STANDARD has no system block
+        op3 = FakeOpener([{"content": [{"type": "text", "text": "A"}], "usage": {}}])
+        w3 = lw.Api({"name": "a", "model": "m", "key_env": "K"}, env={"K": "secret"}, opener=op3)
+        w3.send("P", 5)
+        self.assertNotIn("system", json.loads(op3.requests[0].data))
+        # and the breakpoint can be switched off from NAS config without a code change
+        op4 = FakeOpener([{"content": [{"type": "text", "text": "A"}], "usage": {}}])
+        w4 = lw.Api({"name": "a", "model": "m", "key_env": "K", "cache": False}, env={"K": "secret"}, opener=op4)
+        w4.send(prompt, 5)
+        self.assertNotIn("system", json.loads(op4.requests[0].data))
+
     def test_gemini_cli_headless_on_stdin_without_p(self):
         run = FakeRun(json.dumps({"response": "R", "stats": {"models": {}}}).encode())
         w = lw.GeminiCli({"name": "gcli", "bin": sys.executable, "model": "m"}, env={}, run=run)

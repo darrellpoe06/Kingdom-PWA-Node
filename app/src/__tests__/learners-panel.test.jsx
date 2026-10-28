@@ -131,3 +131,82 @@ describe('the Governor sees every learner; a learner sees only himself', () => {
     expect(t).toMatch(/Your own record is not here/i);
   });
 });
+
+// =============================================================================
+// EVERY EXAM ATTEMPT, WITH ITS MOMENT AND ITS SCORE, AND THE TWO DOORS (DR-1264)
+// =============================================================================
+// Darrell 2026-10-28, on "5 exams taken · 6 attempts": "How did I take 6 test
+// and no know what happened and when? I also should be able to keep 100% by
+// using that test again or read it again make sense?" ... "Taking the test
+// again". Before this the panel had one number for all his attempts.
+describe('every exam attempt is listed, and the doors to retake and reread are his', () => {
+  const ledger = [
+    { at: '2026-10-28T01:00:00.000Z', pct: 60, passed: false, band: 'adult' },
+    { at: '2026-10-28T01:10:00.000Z', pct: 100, passed: true, band: 'adult' },
+    { at: '2026-10-28T01:20:00.000Z', pct: 40, passed: false, band: 'adult' },
+  ];
+  const withLedger = () => [
+    rec({ lesson_id: 'L1', quiz_pct: 100, quiz_passed: true, quiz_attempts: 3, quiz_at: ledger[2].at, quiz_history: ledger }),
+    rec({ lesson_id: 'L2', quiz_pct: 80, quiz_passed: true, quiz_attempts: 1, quiz_at: '2026-10-27T10:00:00.000Z', quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 80, passed: true }] }),
+  ];
+  const titleOf = (id) => ({ L1: 'A Way in the Sea', L2: 'The Manuscripts and the Names' })[id] || null;
+
+  it('shows each tested lesson by name with its best, and under it every attempt with its moment and its own score', () => {
+    const text = draw({ records: withLedger(), currentUserId: SON, titleOf });
+    expect(text).toContain('Every exam attempt');
+    expect(text).toContain('4 attempts on 2 lessons');
+    expect(host.querySelectorAll('[data-testid="exam-lesson"]')).toHaveLength(2);
+    expect(host.querySelectorAll('[data-testid="exam-attempt"]')).toHaveLength(4);
+    // the lesson with the newest attempt is first, and reads its best, not its last
+    const first = host.querySelector('[data-testid="exam-lesson"]');
+    expect(first.getAttribute('data-lesson')).toBe('L1');
+    expect(first.textContent).toContain('A Way in the Sea');
+    expect(first.textContent).toContain('best 100% · passed');
+    // its attempts, newest first, each with its own score and verdict
+    const tries = [...first.querySelectorAll('[data-testid="exam-attempt"]')].map((li) => li.textContent);
+    expect(tries[0]).toContain('40%');
+    expect(tries[0]).toContain('not yet');
+    expect(tries[1]).toContain('100%');
+    expect(tries[1]).toContain('passed');
+    expect(tries[2]).toContain('60%');
+    // and the moment is printed as a date and a time, not a bare ISO string
+    expect(tries[0]).toMatch(/\d/);
+    expect(tries[0]).not.toContain('T01:20');
+  });
+
+  it('PROVEN TO CATCH: a lower retake did not lower the headline — the card still reads the best', () => {
+    const text = draw({ records: withLedger(), currentUserId: SON, titleOf });
+    // average of the two lessons' BEST scores (100, 80) = 90, never of the last attempts (40, 80)
+    expect(text).toContain('90%');
+    expect(text).not.toContain('60%Not');
+  });
+
+  it('his own record carries the two doors, and each names its lesson and course back', () => {
+    const retook = []; const reread = [];
+    draw({ records: withLedger(), currentUserId: SON, titleOf, onRetake: (c, l) => retook.push([c, l]), onReadAgain: (c, l) => reread.push([c, l]) });
+    const first = host.querySelector('[data-testid="exam-lesson"]');
+    act(() => { first.querySelector('[data-testid="exam-retake"]').click(); });
+    act(() => { first.querySelector('[data-testid="exam-read-again"]').click(); });
+    expect(retook).toEqual([['living-lessons', 'L1']]);
+    expect(reread).toEqual([['living-lessons', 'L1']]);
+  });
+
+  it('the Governor sees another learner’s attempts but no doors into them (a record to read, not to act on)', () => {
+    const rows = [rec({ user_id: OTHER, learner_label: 'Other', lesson_id: 'L1', quiz_pct: 100, quiz_passed: true, quiz_attempts: 3, quiz_at: ledger[2].at, quiz_history: ledger })];
+    draw({ records: rows, currentUserId: SON, isGovernor: true, titleOf, onRetake: () => {}, onReadAgain: () => {} });
+    expect(host.querySelectorAll('[data-testid="exam-attempt"]')).toHaveLength(3);
+    expect(host.querySelectorAll('[data-testid="exam-retake"]')).toHaveLength(0);
+    expect(host.querySelectorAll('[data-testid="exam-read-again"]')).toHaveLength(0);
+  });
+
+  it('a row written before the ledger still shows its last attempt and says so, never a blank', () => {
+    const text = draw({ records: [rec({ lesson_id: 'L1', quiz_pct: 90, quiz_passed: true, quiz_attempts: 6, quiz_at: '2026-10-27T10:00:00.000Z' })], currentUserId: SON, titleOf });
+    expect(host.querySelectorAll('[data-testid="exam-attempt"]')).toHaveLength(1);
+    expect(text).toContain('this is the last of 6');
+  });
+
+  it('an untested learner has no attempts list at all (no painted history)', () => {
+    draw({ records: [rec({ quiz_pct: null, quiz_passed: null, quiz_attempts: 0, quiz_at: null })], currentUserId: SON, titleOf });
+    expect(host.querySelector('[data-testid="exam-history"]')).toBeNull();
+  });
+});

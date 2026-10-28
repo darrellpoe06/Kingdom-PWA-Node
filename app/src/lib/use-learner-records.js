@@ -75,12 +75,31 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       // Attempts are counted from the real record, not guessed: each answered
       // exam adds one to whatever this device already knew.
       const attempts = Number(prior?.attempts || 0) + 1;
-      const next = { ...(result || {}), attempts };
+      // EVERY ATTEMPT, AND THE BEST STANDS (DR-1264). The device keeps the
+      // same ledger the wall keeps (0313): this attempt joins `history`, and
+      // `pct`/`passed` on the device are the BEST so far, so a lower retake
+      // never lowers what the learner sees. The attempt's own score is in
+      // `last` and in the ledger.
+      const at = (result && result.at) || new Date().toISOString();
+      const thisTry = { at, pct: result?.pct ?? null, passed: result?.passed ?? null };
+      const history = [...(Array.isArray(prior?.history) ? prior.history : []), thisTry];
+      const bestPct = Math.max(Number.isFinite(prior?.pct) ? prior.pct : -1, Number.isFinite(thisTry.pct) ? thisTry.pct : -1);
+      const next = {
+        ...(result || {}),
+        at,
+        pct: bestPct < 0 ? (result?.pct ?? null) : bestPct,
+        passed: !!(prior?.passed || thisTry.passed),
+        last: thisTry,
+        history,
+        attempts,
+      };
+      // The row is written with THIS attempt's own score and moment; the wall
+      // appends it to the ledger and keeps the best itself (0313).
       keep(moduleId, courseKey, {
         quiz: {
-          pct: next.pct ?? null,
-          passed: next.passed ?? null,
-          at: next.at || new Date().toISOString(),
+          pct: thisTry.pct,
+          passed: thisTry.passed,
+          at,
           attempts,
         },
       });
