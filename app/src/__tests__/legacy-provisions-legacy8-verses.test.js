@@ -232,6 +232,9 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     for (const k of ['adult', 'youth', 'teen', 'senior']) {
       expect(TEXTS[k], k).toMatch(/aged 75 or older are now the wealthiest in the United States/);
     }
+    // The child band carries the same claim in a nine-year-old's words rather
+    // than the adult clause — plainly, with the reporter still named.
+    expect(L.levels.child).toMatch(/families led by someone over 75 now hold more wealth than any other age group in America/);
   });
 
   it('says in its own prose, and in every band, exactly what was NOT verified', () => {
@@ -305,7 +308,7 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
     );
     expect(broken).not.toBe(L.lesson);
     expect(verbatimFaults([broken])).toEqual([
-      '(2 Corinthians 12:14) is not the verse: The children ought not to lay up for the parents, but the p',
+      '(2 Corinthians 12:14) is not the verse: The children ought not to lay up for the parents, but the parents for ',
     ]);
   });
 
@@ -427,7 +430,10 @@ describe('the reader meets numbered points, in order, with nothing skipped', () 
   });
 
   it('PROVEN TO CATCH: an explicit ordinal marker dropped into the prose restarts the count and is seen', () => {
-    const broken = L.lesson.replace('HOLDING IS NOT NEUTRAL.', 'FIRST, HOLDING IS NOT NEUTRAL.');
+    // An explicit marker switches the capitalised-lead pass off entirely
+    // (lesson-format's `hasExplicit`), so the whole lesson collapses to the one
+    // number the marker names — here a THIRD with no first or second before it.
+    const broken = L.lesson.replace('HOLDING IS NOT NEUTRAL.', 'THIRD, HOLDING IS NOT NEUTRAL.');
     expect(broken).not.toBe(L.lesson);
     const ns = formatLessonText(broken).items.filter((i) => i.kind === 'heading').map((h) => h.n);
     const contiguousFromOne = ns.length > 0 && ns[0] === 1 && ns.every((v, i) => i === 0 || v === ns[i - 1] + 1);
