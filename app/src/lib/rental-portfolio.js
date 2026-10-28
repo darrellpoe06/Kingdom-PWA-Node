@@ -57,10 +57,11 @@ export function derivePortfolio(rentals = [], entities = []) {
       a.monthlyRent += rent;
       a.actualRent += actual;
       if (!(bal > 0)) a.missingDebt += 1;
+      if (!(pi > 0)) a.missingPI += 1;
       if (!(rent > 0)) a.missingRent += 1;
       return a;
     },
-    { mortgageDebt: 0, monthlyPI: 0, monthlyRent: 0, actualRent: 0, missingDebt: 0, missingRent: 0 }
+    { mortgageDebt: 0, monthlyPI: 0, monthlyRent: 0, actualRent: 0, missingDebt: 0, missingPI: 0, missingRent: 0 }
   );
 
   // Rent gap = expected rent − rent actually collected (the established app
@@ -78,6 +79,7 @@ export function derivePortfolio(rentals = [], entities = []) {
     monthlyRent: acc.monthlyRent,
     actualRent: acc.actualRent,
     missingDebt: acc.missingDebt,
+    missingPI: acc.missingPI,
     missingRent: acc.missingRent,
     rentGap,
     collectionRate,
