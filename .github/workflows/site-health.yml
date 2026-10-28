@@ -97,7 +97,7 @@ jobs:
       # requests to poetech.us and reads nothing from the tree. The bell at
       # the end needs the repo because its decision now lives in a tested
       # script instead of a `curl` line that could not fail.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Probe the live site
         id: probe
         run: |

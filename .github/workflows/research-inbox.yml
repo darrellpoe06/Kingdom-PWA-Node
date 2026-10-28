@@ -103,7 +103,7 @@ jobs:
       go: ${{ steps.gate.outputs.go }}
       items: ${{ steps.claim.outputs.items }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check the remote-hands channel is configured
         id: gate
@@ -183,7 +183,7 @@ jobs:
       matrix:
         id: ${{ fromJSON(needs.pick.outputs.items) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check the remote-hands channel is configured
         id: gate
@@ -646,7 +646,7 @@ jobs:
       group: research-inbox-backlog
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check the remote-hands channel is configured
         id: gate

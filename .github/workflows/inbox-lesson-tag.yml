@@ -80,7 +80,7 @@ jobs:
       PR: ${{ inputs.pr }}
       REASON: ${{ inputs.reason }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 400
       - name: Validate the inputs

@@ -45,7 +45,7 @@ jobs:
           fi
       # The fixture for the before/after step (checked out FIRST: a later
       # checkout would clean the workspace and take the probe's clip with it).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.go == 'true'
         with:
           sparse-checkout: infra/nas-voice-lite/fixtures
