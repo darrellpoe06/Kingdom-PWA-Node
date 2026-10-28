@@ -75,6 +75,16 @@ DR-1275 recorded one version of this trap: it pinned `367,000` for legacy8's dis
 
 **Proven to catch, on the real file rather than on fixtures:** a child-band figure typo (token set), a deleted disclosure terminator in the senior band (disclosure pin), the teen band's friend line removed (per-band talk-together names teen and only teen while the pooled check still reads green), and a quotation's opening capital lowercased to fit a sentence (both the course-wide verbatim sweep and the lesson's own). Each break was reverted and the suite re-run green.
 
+## What CI caught that the author did not
+
+`app/src/__tests__/arrivals-new-lessons.test.js` went red on the first full CI run, and it was a real finding rather than a nuisance. That file pinned **two lesson ids by name** — `sov46` and `pm13` — as its proof that the arrivals bell reads the real catalog rather than a fixture. `catalogArrivals` caps the list at `CATALOG_MAX = 20`, newest first, which is a deliberate bound: a bell that lists everything ever written is not a bell.
+
+**Measured the day bank9 landed: 21 lessons now carry a day on or after 2026-10-19, so the cap drops exactly one — pm13, the oldest of the 21.** bank9 was the twenty-first, and the assertion failed for a lesson that had simply fallen out of the far end of a window doing its job. `sov46` sat at position 15 and was next.
+
+A pin that must age out is a pin that will eventually block correct work, so the ids are now **derived from the same catalog**: the whole ordered head of the list is pinned against the real data, which catches a dropped lesson or a reordering that the two `toContain` checks could never see. The anti-fixture guarantee is kept and widened — the catalog must be genuinely large and the window genuinely full.
+
+**And the derived form has one blind spot, measured rather than assumed.** The expected list slices at `CATALOG_MAX`, so it moves with the constant: changing the cap from 20 to 19 in `arrivals.js` left all four checks **green** (measured on the real file, then restored). A derivation cannot witness the number it derives from. So the cap's value is pinned as a literal beside it, re-broken, and confirmed red. That one figure stays hand-written on purpose.
+
 ## What this does NOT claim
 
 It does not claim the newsletter's reading of the $9.1 billion or the $10.5 trillion. It does not claim the $81 billion, the $5.8 billion or the nearly 40 per cent at all beyond "The Daily Upside reported it on 19 October 2026", and no teaching in the lesson rests on any of them: were the ten largest holdings a third of the index rather than two fifths, every verse would read precisely as it reads now, because the parable concerns the shape of a foundation and not the arithmetic of one year. It does not read Morgan Stanley's financial supplement, its filings, or any analyst note. It gives no financial or legal advice, and the course's care note carries here as everywhere.
