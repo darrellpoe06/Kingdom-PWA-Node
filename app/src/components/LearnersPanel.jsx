@@ -19,7 +19,8 @@
 // =============================================================================
 
 import React from 'react';
-import { aggregateLearnerRecords, COMPETENCY_BANDS } from '../lib/learner-records.js';
+import { aggregateLearnerRecords, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
+import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
 
@@ -73,8 +74,16 @@ function LearnerCard({ learner, mine, showWho }) {
         <BandChip band={learner.competency} />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Figure label="Lessons read" value={learner.lessonsRead} />
+        {/* WHICH VERSIONS (DR-1255, closed DR-1261): the same Word is written
+            for five readers; the record says which of them this learner has
+            read in, and how many are still to read. */}
+        <Figure
+          label="Versions read"
+          value={learner.versionsRead?.length ? learner.versionsRead.map((v) => VERSION_LABEL[v] || v).join(', ') : 'Not recorded yet'}
+          hint={learner.versionsRead?.length ? `${learner.versionsRead.length} of ${RECORD_VERSION_IDS.length} — ${RECORD_VERSION_IDS.length - learner.versionsRead.length} still to read` : 'A lesson read from now on records its version.'}
+        />
         <Figure label="Exams taken" value={learner.examsTaken} />
         <Figure label="Exams passed" value={learner.examsPassed} hint={`${learner.quizAttempts} attempt${learner.quizAttempts === 1 ? '' : 's'}`} />
         <Figure
