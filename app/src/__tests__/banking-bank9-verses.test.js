@@ -550,7 +550,26 @@ describe('the reader meets numbered points, in order, with nothing skipped', () 
 
   it('carries two real stories and six benefits, the shape every lesson of this course has', () => {
     expect(L.stories).toHaveLength(2);
-    expect(L.stories.map((s) => s.kind).sort()).toEqual(['parable', 'testimony']);
+    // CORRECTED 2026-10-28. This line used to demand exactly
+    // ['parable', 'testimony'], and that demand is what produced a defect:
+    // `kind: 'testimony'` renders to the reader as "A TRUE STORY", this lesson
+    // is built from a newspaper article about a bank rather than from anybody's
+    // life, so satisfying the shape meant inventing a first-person account --
+    // an age, eleven years, a relative, a Wednesday table -- and labelling the
+    // invention true. `a-true-story-names-whose-life-it-was` caught it: the
+    // corpus count moved 93 -> 94 and this would have been the 53rd
+    // unattributed first-person "true story" in the catalog.
+    //
+    // A shape that can only be met by fabricating is not a standard, so the
+    // rule is now the one that actually matters (DR-0811 / DR-0550 / DR-0076):
+    // both stories are real story kinds, and a testimony must name whose life
+    // it was. A lesson with no testimony to tell honestly carries two parables.
+    for (const s of L.stories) expect(['parable', 'testimony']).toContain(s.kind);
+    for (const s of L.stories) {
+      if (s.kind === 'testimony') {
+        expect(s.source && s.source.trim(), `${s.title} is told as a true story and must name whose life it was`).toBeTruthy();
+      }
+    }
     for (const s of L.stories) expect(s.body.split(/\s+/).length, s.title).toBeGreaterThan(120);
     expect(L.benefits.length).toBeGreaterThanOrEqual(6);
     expect(L.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(5);
