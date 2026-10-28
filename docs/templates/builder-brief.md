@@ -50,6 +50,8 @@ REPORT: what changed, the evidence, and anything left with its named blocker.
 
 ```
 WHO TAUGHT (DR-0719): Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught.
+ALREADY SHIPPED (DR-1250 / DR-1270 / DR-0610): before building ANY inbox row, run `node scripts/lesson-row-shipped-sweep.mjs <row-id>...`. It exits 1 and names the decision record when a row is already a shipped lesson. A SHIPPED or SHIPPED? row is NOT built - read the record it names and report. Seen doing real work 2026-10-28 (P66): swept 22 rows, named 20 already live, agreeing with an independent sweep by hand.
+THE WAITING LIST COMES FROM THE NAS ROAD ONLY (DR-1270 / DR-1249): `inbox-lessons-waiting.yml`. The hosted Supabase project is a DIFFERENT, divergent store - measured 2026-10-28, it listed 22 rows as waiting of which 20 were already live lessons, and showed a row still `lesson-building` that the NAS road had already built and tagged. Never take a waiting list, a tag or a body from it. A read that FAILS is UNKNOWN, never an empty queue.
 ```
 
 Being at the weekly 1 p.m. Bible study at The Church of the Living God does not by itself mean Bishop Gwin taught. Where someone else taught, name them as the recording does; where no one is identified, say so.
