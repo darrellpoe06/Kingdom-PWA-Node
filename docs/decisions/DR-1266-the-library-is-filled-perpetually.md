@@ -1,4 +1,4 @@
-# DR-1262: The library is filled perpetually — the census, the queue, the ratchet, and how the record and the learning are managed
+# DR-1266: The library is filled perpetually — the census, the queue, the ratchet, and how the record and the learning are managed
 
 **Date:** 2026-10-27
 **Status:** Accepted

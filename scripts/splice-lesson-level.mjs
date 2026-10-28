@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // =============================================================================
 // splice-lesson-level — write one version of one lesson INTO its source file,
-// by the file's own syntax tree, never by a regex (DR-1262)
+// by the file's own syntax tree, never by a regex (DR-1266)
 // =============================================================================
 // The 45 course files are not one shape: Living Lessons holds 227 `levels`
 // objects inline, Sovereign A.I. 36 for 52 lessons, some lessons carry no

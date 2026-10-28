@@ -4301,7 +4301,7 @@ export default function ChurchLearn({
   }, [courses]);
   // The fold's own summary is LIVE (DR-0381): it says what the record holds
   // before anyone opens it, and says plainly when it holds nothing.
-  // The library's own live summary line (DR-1262), on the fold before it opens.
+  // The library's own live summary line (DR-1266), on the fold before it opens.
   const libraryLine = React.useMemo(() => censusLine(censusLibrary(courses)), [courses]);
   const classRecordSummary = React.useMemo(() => {
     if (!signedIn) return 'sign in and your record is kept here';
@@ -5653,7 +5653,7 @@ export default function ChurchLearn({
         </details>
       )}
 
-      {/* THE LIBRARY, COUNTED (DR-1262; Darrell 2026-10-27: "filling the
+      {/* THE LIBRARY, COUNTED (DR-1266; Darrell 2026-10-27: "filling the
           course library perpetually with all levels and necessary
           components"). Beside the record, for everyone: what every course
           holds, what each lesson still waits for, and how the library and the
