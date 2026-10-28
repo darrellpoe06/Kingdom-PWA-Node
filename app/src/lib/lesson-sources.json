@@ -1,52 +1,33 @@
 {
-  "probe-a-ir-landing": [
-    {
-      "publisher": "Morgan Stanley",
-      "title": "Earnings releases landing",
-      "url": "https://www.morganstanley.com/about-us-ir/earnings-releases",
-      "read": "2026-10-28",
-      "says": ["3Q 2026"],
-      "claim": "probe"
-    }
-  ],
-  "probe-b-press-release": [
-    {
-      "publisher": "Morgan Stanley",
-      "title": "3Q 2026 earnings results press release",
-      "url": "https://www.morganstanley.com/press-releases/3q-2026-earnings-results",
-      "read": "2026-10-28",
-      "says": ["232"],
-      "claim": "probe"
-    }
-  ],
-  "probe-c-shareholder-pdf": [
+  "probe-figures": [
     {
       "publisher": "Morgan Stanley",
       "title": "3Q 2026 earnings release PDF",
       "url": "https://www.morganstanley.com/content/dam/msdotcom/en/about-us-ir/shareholder/3q2026.pdf",
       "read": "2026-10-28",
       "format": "pdf",
-      "says": ["232"],
-      "claim": "probe"
-    }
-  ],
-  "probe-d-sec-submissions": [
-    {
-      "publisher": "U.S. Securities and Exchange Commission",
-      "title": "EDGAR submissions index for Morgan Stanley (CIK 895421)",
-      "url": "https://data.sec.gov/submissions/CIK0000895421.json",
-      "read": "2026-10-28",
-      "says": ["8-K"],
-      "claim": "probe"
-    }
-  ],
-  "probe-e-sec-fts": [
-    {
-      "publisher": "U.S. Securities and Exchange Commission",
-      "title": "EDGAR full-text search for Morgan Stanley net new assets",
-      "url": "https://efts.sec.gov/LATEST/search-index?q=%22net+new+assets%22&forms=8-K&ciks=0000895421",
-      "read": "2026-10-28",
-      "says": ["morganstanley"],
+      "says": [
+        "$232 billion",
+        "232 billion",
+        "net new assets",
+        "Net new assets",
+        "$10.5 trillion",
+        "10.5 trillion",
+        "$9.1 billion",
+        "9.1 billion",
+        "$8.2 billion",
+        "$5.8 billion",
+        "5.8 billion",
+        "41%",
+        "Ted Pick",
+        "Wealth Management",
+        "Investment Management",
+        "Third Quarter 2026",
+        "Sharon Yeshaya",
+        "$81 billion",
+        "9,138",
+        "10.5"
+      ],
       "claim": "probe"
     }
   ]
