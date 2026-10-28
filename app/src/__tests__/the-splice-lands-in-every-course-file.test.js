@@ -16,7 +16,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
-import { censusLibrary } from '../lib/library-census.js';
 import { locateModule, spliceLevel, literal } from '../../../scripts/splice-lesson-level.mjs';
 import { fileOfLesson } from '../../../scripts/library-gaps.mjs';
 
