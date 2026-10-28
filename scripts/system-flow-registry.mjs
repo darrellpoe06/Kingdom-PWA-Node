@@ -1308,7 +1308,7 @@ const NODES = [
   }),
   wf('loops-health.yml', {
     id: 'loops-health', name: 'Loops witness (the services-sync clock, on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: over the tailnet, reads what services-sync said of each loop’s last run and what each loop’s own ledger says (lesson-voice, lesson-parity, church-mail, family-key, agent-consumer, db-backup, choir-dates, stream-length, worship-song-harvest); judges only on what is written; on a failure says where the install stands per loop.',
-    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }],
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'cron-services-sync.log' }, { res: 'nas:sovereign-replay', file: '.github/workflows/loops-health.yml', token: 'sovereign-replay/status.json' }],
     writes: [{ res: 'gh:incident', token: 'loops-incident' }], seeds: ['ops-surface'],
   }),
   // DR-1140: the census of our own jobs. Reads the Actions API for every
@@ -1756,6 +1756,12 @@ const NODES = [
     reads: [{ res: 'http:supabase', token: 'pg_dump' }, { res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'db-backup' }],
     writes: [{ res: 'nas:db-backup', token: 'status.json' }],
     seeds: ['nas-health'],
+  }),
+  rider('service:sovereign-replay', 'infra/nas-supabase/replay-on-clock.sh', {
+    id: 'sovereign-replay-clock', name: 'The database replays its own mirror', purpose: 'Every services-sync cycle the NAS applies the migrations its mirror already holds, on its own clock, without the runner, the tailnet or a hand; the second road to the sovereign database beside db-migrate (DR-1269).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'sovereign-replay' }, { res: 'nas:mirror', token: 'POETECH_REPO' }],
+    writes: [{ res: 'db:_sovereign_replay', file: 'infra/nas-supabase/replay_migrations.sh', token: 'INSERT INTO public._sovereign_replay' }, { res: 'nas:sovereign-replay', token: 'status.json' }],
+    seeds: ['loops-health'],
   }),
   app('app/src/lib/supabase.js', {
     id: 'app-client', name: 'The app’s database client', purpose: 'Every screen reads and writes through it.',

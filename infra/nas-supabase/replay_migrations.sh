@@ -26,6 +26,21 @@ DATA="${SUPABASE_DATA:-/volume1/docker/supabase}"
 ENV_FILE="$DATA/.env"
 MAX_PER_RUN="${REPLAY_MAX_PER_RUN:-50}"
 
+# ONE REPLAY AT A TIME (DR-1269). Two roads now run this script -- db-migrate
+# over the tailnet and replay-on-clock.sh on the NAS's own clock -- and the
+# ledger makes a second application a no-op, but two at the same moment could
+# race on one file. A lock directory keeps them apart; it clears itself after
+# 30 minutes so a killed run can never hold the road shut.
+RLOCK="$DATA/.replay.lock"
+if [ -d "$RLOCK" ] && [ -n "$(find "$RLOCK" -maxdepth 0 -mmin +30 2>/dev/null)" ]; then
+  rmdir "$RLOCK" 2>/dev/null
+fi
+if ! mkdir "$RLOCK" 2>/dev/null; then
+  echo "replay: BUSY - another replay holds $RLOCK; not running twice (the lock clears itself after 30 min)"
+  exit 0
+fi
+trap 'rmdir "$RLOCK" 2>/dev/null' EXIT INT TERM
+
 # RESOLVE DOCKER BEFORE CALLING IT. DSM does not put docker on the PATH of a
 # non-login ssh shell, so the old two-liner here ("DOCKER=docker; docker ps ||
 # DOCKER='sudo -n docker'") could only ever pick a binary that does not exist:

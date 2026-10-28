@@ -105,6 +105,7 @@ jobs:
           LV="$(rd /volume1/PoeTech/lesson-voice/last-run.json | head -c 2000)"; LV_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || date +%s) ))"
           LP="$(rd /volume1/PoeTech/lesson-parity/last-measure.json | head -c 600)"; LP_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/lesson-parity/last-measure.json 2>/dev/null || date +%s) ))"
           DB="$(rd /volume1/PoeTech/backups/db/status.json | head -c 600)"; DB_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/backups/db/status.json 2>/dev/null || date +%s) ))"
+          SR="$(rd /volume1/PoeTech/sovereign-replay/status.json | head -c 600)"; SR_AGE="$(( $(date +%s) - $(stat -c %Y /volume1/PoeTech/sovereign-replay/status.json 2>/dev/null || date +%s) ))"
           CM="$(rd "$REPO/infra/nas-church-mail/out/.church-mail.state.json" | head -c 600)"; CM_AGE="$(( $(date +%s) - $(cat "$REPO/infra/nas-church-mail/out/.church-mail.last" 2>/dev/null || date +%s) ))"
           # NOT under the repo: this reader keeps its state in its own home
           # (LESSON_MAIL_HOME, /volume1/PoeTech/lesson-mail), the way lesson-voice
@@ -114,11 +115,11 @@ jobs:
           LM="$(rd /volume1/PoeTech/lesson-mail/.lesson-mail.state.json | head -c 600)"; LM_AGE="$(( $(date +%s) - $(cat /volume1/PoeTech/lesson-mail/.lesson-mail.last 2>/dev/null || date +%s) ))"
           CMG="$(tail -n 2 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null | head -c 1200)"
           if [ -s /volume1/PoeTech/secrets/supabase.json ] || sudo -n test -s /volume1/PoeTech/secrets/supabase.json 2>/dev/null; then CRED=present; else CRED=absent; fi
-          export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE LM LM_AGE CMG CRED REPO
+          export CRON_FILE EV CHECKOUT LV LV_AGE LP LP_AGE DB DB_AGE CM CM_AGE LM LM_AGE CMG CRED REPO SR SR_AGE
           python3 - <<'PY'
           import json, os, re, time
           from datetime import datetime, timezone
-          loops = ["lesson-voice","lesson-parity","church-mail","lesson-mail","family-key","agent-consumer","db-backup","choir-dates","stream-length","worship-song-harvest"]
+          loops = ["lesson-voice","lesson-parity","church-mail","lesson-mail","family-key","agent-consumer","db-backup","sovereign-replay","choir-dates","stream-length","worship-song-harvest"]
           try:
               with open(os.environ["CRON_FILE"], encoding="utf-8", errors="replace") as fh: cron = fh.read().splitlines()
           except OSError: cron = []
@@ -152,6 +153,7 @@ jobs:
               "lesson-voice": (jl(os.environ.get("LV", "")), int(os.environ.get("LV_AGE") or 0)),
               "lesson-parity": (jl(os.environ.get("LP", "")), int(os.environ.get("LP_AGE") or 0)),
               "db-backup": (jl(os.environ.get("DB", "")), int(os.environ.get("DB_AGE") or 0)),
+              "sovereign-replay": (jl(os.environ.get("SR", "")), int(os.environ.get("SR_AGE") or 0)),
               "church-mail": (jl(os.environ.get("CM", "")), int(os.environ.get("CM_AGE") or 0)),
               "lesson-mail": (jl(os.environ.get("LM", "")), int(os.environ.get("LM_AGE") or 0)),
           }
@@ -161,6 +163,7 @@ jobs:
                   "church-mail": "infra/nas-church-mail/install.sh", "lesson-mail": "infra/nas-lesson-mail/install.sh",
                   "family-key": "infra/nas-bridge-publish/install.sh",
                   "agent-consumer": "infra/nas-agent/install.sh", "db-backup": "infra/nas-db-backup/install.sh",
+                  "sovereign-replay": "infra/nas-supabase/replay-on-clock.sh",
                   "choir-dates": "infra/church-media-golive/choir_dates_install.sh", "stream-length": "infra/church-media-golive/stream_length_install.sh",
                   "worship-song-harvest": "infra/church-media-golive/worship_song_harvest_install.sh"}[name]))}
               f, d = named_in(failed_sec, name), named_in(degraded_sec, name)
@@ -179,7 +182,7 @@ jobs:
               # reads "lesson-mail dormant: ..." while its worked line reads
               # "lesson-mail: seen ...", and the quiet no-op is the line most worth
               # seeing before the credential is placed.
-              prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "lesson-mail": "lesson-mail", "db-backup": "db-backup:",
+              prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "lesson-mail": "lesson-mail", "db-backup": "db-backup:", "sovereign-replay": "sovereign-replay:",
                           "worship-song-harvest": "worship-song-harvest", "lesson-voice": "lesson-voice", "lesson-parity": "lesson-parity",
                           "choir-dates": "choir", "stream-length": "stream-length"}
               own = [l[:240] for l in cron if l.startswith(prefixes[name])]
@@ -215,6 +218,10 @@ jobs:
                       problems.append(f"{name}: last run {e.get('last_run')}: {e.get('why')}")
                   if name == "db-backup" and isinstance(e.get("ledger"), dict) and e["ledger"].get("ok") is False:
                       problems.append(f"db-backup: its own status.json says ok:false: {e['ledger'].get('error')}")
+                  if name == "sovereign-replay" and isinstance(e.get("ledger"), dict) and e["ledger"].get("ok") is False:
+                      # A migration the box could not apply is the deploy-side
+                      # regression DR-0107 names, now visible from the box (DR-1269).
+                      problems.append(f"sovereign-replay: its own status.json says ok:false (rc {e['ledger'].get('rc')}): {e['ledger'].get('frontier')}")
                   if name == "lesson-voice" and isinstance(e.get("ledger"), dict):
                       # queue-drained / item-budget / time-budget / locked-skip are the
                       # loop's normal ends; "did not run" and a missing credential are not.
@@ -376,6 +383,7 @@ jobs:
               lesson-voice) ls -la /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null; (cat /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null) | head -c 600; echo ;;
               lesson-parity) ls -la /volume1/PoeTech/lesson-parity/ 2>/dev/null | head -8; tail -n 5 /volume1/PoeTech/lesson-parity/fix.log 2>/dev/null | cut -c1-200 ;;
               db-backup) (cat /volume1/PoeTech/backups/db/status.json 2>/dev/null || sudo -n cat /volume1/PoeTech/backups/db/status.json 2>/dev/null); ls -la /volume1/PoeTech/backups/db 2>/dev/null | tail -4 ;;
+              sovereign-replay) (cat /volume1/PoeTech/sovereign-replay/status.json 2>/dev/null || sudo -n cat /volume1/PoeTech/sovereign-replay/status.json 2>/dev/null); tail -n 6 /volume1/PoeTech/sovereign-replay/replay.log 2>/dev/null | cut -c1-200 ;;
               church-mail) ls -la "$REPO/infra/nas-church-mail/out" 2>/dev/null | head -6; (cat "$REPO/infra/nas-church-mail/out/.church-mail.state.json" 2>/dev/null | head -c 400); echo ;;
               lesson-mail) ls -la /volume1/PoeTech/lesson-mail 2>/dev/null | head -6; (cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null) | head -c 400; echo
                 # The one thing that decides whether this loop can work at all, said
