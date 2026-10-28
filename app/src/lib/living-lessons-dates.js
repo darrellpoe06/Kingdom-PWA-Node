@@ -434,4 +434,11 @@ export const LIVING_LESSONS_ADDED = {
   // Eden lies under the Persian Gulf. The row waited roughly twenty hours; the
   // date is the day the lesson was built, not the day the link was sent.
   'll269-where-the-garden-was-and-the-gate-the-search-walks-past': '2026-10-27',
+  // L270: two photographed pages Darrell sent into the app -- a study Bible's
+  // chart "The Progress of Revelation" (the sixty-six books in writing order,
+  // each with an approximate date and an author) -- with the words "Timelines
+  // for the bible? Lesson /s Word first...". Sent 2026-10-27 23:52 UTC, built
+  // 2026-10-28; this is the BUILD day, the day the id landed. L269 was claimed
+  // by another branch the same evening, so this lesson took the next number.
+  'll270-the-progress-of-revelation-the-word-came-in-order-and-stands-forever': '2026-10-28',
 };
