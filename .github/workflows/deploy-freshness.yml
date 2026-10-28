@@ -124,6 +124,9 @@ jobs:
           # it stops the moment it dispatches.
           WATCH_TRIES: ${{ github.event_name == 'workflow_run' && '5' || '1' }}
           WATCH_GAP: '45'
+          # One re-dispatch per tip per window, so a build that is genuinely
+          # broken cannot loop on the healer's clock (DR-1271).
+          RETRY_AFTER_MIN: '30'
         run: |
           set -euo pipefail
           # Return codes, because three outcomes are genuinely different:
@@ -158,17 +161,49 @@ jobs:
             # Nothing broke, but two Cloudflare Pages builds ran for one merge
             # and would have on every merge from here. auto-merge's own heal
             # already avoids this ("a run already queued/running for this same
-            # tip is a no-op") and the same gate belongs here. ANY run for
-            # main's exact tip counts, whatever its status — queued, running or
-            # failed — because a failed deploy for this tip is the deploy
-            # workflow's problem to report, not a reason for this healer to
-            # stack another build on top of it.
-            in_flight=$(gh api \
-              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?head_sha=$main_sha&per_page=1" \
-              --jq '.total_count // 0' 2>/dev/null || echo "0")
-            if [ "${in_flight:-0}" != "0" ]; then
-              echo "ALREADY IN FLIGHT: a deploy run exists for main $main_sha; not dispatching."
+            # tip is a no-op") and the same gate belongs here.
+            #
+            # NARROWED 2026-10-28 (DR-1267 / DR-1271). This counted a run of ANY
+            # status as in flight, failed included, on the reasoning that "a
+            # failed deploy for this tip is the deploy workflow's problem to
+            # report, not a reason for this healer to stack another build on top
+            # of it". That is RIGHT for a build that failed on its own merits
+            # and WRONG for one that failed on a transient cause outside it. On
+            # 2026-10-28 the runner's Tailscale auth key was refused (DR-1269)
+            # and seven deploys died at the same step; this healer then fired
+            # six times, read ALREADY IN FLIGHT off those corpses and reported
+            # SUCCESS while the site sat five commits behind for over two hours.
+            # A green healer above a stale site is the disarmed-check shape.
+            #
+            # The original hazard is untouched, because #1157/#1158 was a
+            # RUNNING deploy, not a failed one: queued, in_progress and success
+            # all still count as in flight, so one merge can still only ever
+            # produce one build. Only a tip whose runs have ALL finished without
+            # a success becomes dispatchable again.
+            #
+            # BOUNDED so a genuinely broken build cannot loop (DR-0247 budget):
+            # the newest run for this tip must be older than RETRY_AFTER_MIN, so
+            # a tip gets at most one re-dispatch per window however often this
+            # fires. Stateless on purpose — the runs list is the state.
+            live=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?head_sha=$main_sha&per_page=30" \
+              --jq '[.workflow_runs[] | select(.status != "completed" or .conclusion == "success")] | length' \
+              2>/dev/null || echo "1")
+            if [ "${live:-1}" != "0" ]; then
+              echo "ALREADY IN FLIGHT: a queued, running or successful deploy exists for main $main_sha; not dispatching."
               return 2
+            fi
+            newest_age=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?head_sha=$main_sha&per_page=30" \
+              --jq '[.workflow_runs[].created_at] | max // ""' 2>/dev/null \
+              | awk 'NF{cmd="date -d \""$0"\" +%s"; cmd|getline t; close(cmd); print t}')
+            if [ -n "${newest_age:-}" ]; then
+              age_min=$(( ( $(date +%s) - newest_age ) / 60 ))
+              if [ "$age_min" -lt "$RETRY_AFTER_MIN" ]; then
+                echo "FAILED BUT RECENT: every deploy for main $main_sha has failed, newest ${age_min}m ago; waiting out the ${RETRY_AFTER_MIN}m retry window."
+                return 2
+              fi
+              echo "RETRYING A FAILED TIP: every deploy for main $main_sha failed, newest ${age_min}m ago (DR-1271)."
             fi
             echo "STALE: main $main_sha has no successful deploy — dispatching deploy."
             gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
