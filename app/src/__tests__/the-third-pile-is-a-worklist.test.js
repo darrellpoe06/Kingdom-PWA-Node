@@ -74,8 +74,28 @@ const REPO = join(HERE, '..', '..', '..');
 // re-review: 2026-11-27 -- if a runner with web access can read a scholarly
 // source on the bema's civic use, either cite it in the lesson and lower this
 // pin to 10, or drop the sentence.
+//
+// 1 -> 2 CHECKED on 2026-10-28 (DR-1275). legacy8 is built from a Morning Brew
+// edition reporting the Federal Reserve's 2025 Survey of Consumer Finances, so
+// its figures have a primary publisher and did not have to stay admitted. The
+// GAP does not move: legacy8 arrived carrying disclosures AND left the gap in
+// the same change, because it gained a source row rather than an apology.
+//
+// The road matters more than the row (DR-0108). This sandbox cannot resolve
+// federalreserve.gov at all -- not a 403, a DNS refusal -- so the first reading
+// of "we cannot check this" was about ONE agent's reach, not the team's. A
+// GitHub runner reaches it, and lesson-sources-witness.mjs is keyed by lesson
+// id, so widening it was DATA. Three probe runs on a throwaway branch found
+// what no amount of reasoning would have: the bulletin is scf26.pdf, not
+// scf25.pdf, and it prints dollars in THOUSANDS, so the newsletter's $505,000
+// reads back as 504.9. Measured, runs 40765563536 / 40765786504 / 40766904379.
+//
+// What did NOT read back is on the row's own note and is not smoothed over:
+// the $367,000 previous median is absent from the bulletin, and the 37/23
+// percent changes are unmatchable as bare two-digit strings, so they are left
+// as the newsletter's claims rather than dressed up as verified.
 const GAP = 11;
-const CHECKED_LESSONS = 1;
+const CHECKED_LESSONS = 2;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {

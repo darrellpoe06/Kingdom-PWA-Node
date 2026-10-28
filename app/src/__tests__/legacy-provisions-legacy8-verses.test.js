@@ -238,18 +238,41 @@ describe('the newsletter is the source, said out loud, and never worn as our own
   });
 
   it('says in its own prose, and in every band, exactly what was NOT verified', () => {
+    // CORRECTED 2026-10-28, and the correction is the point of the lesson.
+    // This block used to pin the OPPOSITE claim -- that every band says the
+    // Federal Reserve release went unopened -- and that claim stopped being
+    // true the moment a GitHub runner opened the Fed's own bulletin and read
+    // four of these figures straight back off it (lesson-sources.json carries
+    // the row; witness runs 40765563536 / 40765786504 / 40766904379). The
+    // sandbox cannot resolve federalreserve.gov, which is what made "we did
+    // not open it" look permanent; the team's reach is wider than one agent's
+    // (DR-0108). A gate that pinned the stale sentence would have held the
+    // lesson at a falsehood, so the LESSON was corrected and the gate follows
+    // it (DR-0239 a surface says true things; the witness's own rule).
     for (const k of PLACES) {
-      expect(TEXTS[k], `${k}: names the unopened Federal Reserve release`).toMatch(/did not (open|read) the Federal Reserve|never read the Federal Reserve/);
-      expect(TEXTS[k], `${k}: names the unread newspaper piece`).toMatch(/Wall Street Journal|newspaper story/);
+      expect(TEXTS[k], `${k}: must NOT still claim the Fed release went unopened`)
+        .not.toMatch(/did not open the Federal Reserve|never read the Federal Reserve paper|never opened the Fed/);
+      expect(TEXTS[k], `${k}: names the newspaper piece that is STILL unread`).toMatch(/Wall Street Journal|newspaper story/);
+      // NOT "367,000" on its own: that figure also appears in the bands' own
+      // list of reported numbers, so pinning it would have passed even with
+      // the disclosure deleted. The strip proof below found that. These two
+      // phrases occur ONLY in the disclosure paragraph.
+      expect(TEXTS[k], `${k}: names the one figure the bulletin does not carry`)
+        .toMatch(/not in that bulletin|not in the paper at all/);
     }
     expect(L.lesson).toMatch(/Reported is not verified/);
-    expect(L.levels.child).toMatch(/every number here belongs to them, not to us/);
+    expect(L.levels.child).toMatch(/still belong to the news email, not to us/);
   });
 
   it('PROVEN TO CATCH: deleting the not-verified paragraph from one band is seen', () => {
+    // Follows the corrected pin above: what must survive in every band is the
+    // figure the Fed's bulletin does NOT carry, so that is what the strip must
+    // destroy. Pinned against the live band, not a copy, so a reworded
+    // paragraph cannot leave this proving nothing.
     const stripped = L.levels.youth.replace(/WHAT WE DID NOT VERIFY\.[\s\S]*?checked by us\./, '');
     expect(stripped).not.toBe(L.levels.youth);
-    expect(/did not (open|read) the Federal Reserve|never read the Federal Reserve/.test(stripped)).toBe(false);
+    expect(/not in that bulletin/.test(L.levels.youth)).toBe(true);
+    expect(/not in that bulletin/.test(stripped)).toBe(false);
   });
 
   it('teaches none of the newsletter’s advertising — the ads are named as ads and nothing else', () => {
