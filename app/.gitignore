@@ -16,3 +16,6 @@ vite.config.js.timestamp-*.mjs
 android/
 native/www/
 capacitor.config.json
+
+# the splice proof writes a copy beside each course file and removes it (DR-1262)
+src/lib/.splice-proof-*

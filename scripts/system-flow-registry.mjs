@@ -417,6 +417,24 @@ const NODES = [
     ],
     seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
   }),
+  // DR-1266: the fill lane writes a lesson's MISSING age versions on the NAS,
+  // newest lesson first, two per run, through the same writers and gates as
+  // the builder, and lands them as claude/fill-* branches the lane opens. It
+  // ships inactive (services.json enabled:false, with its why and date); the
+  // graph places it so the day it is armed its road is already drawn.
+  rider('service:fill-versions', 'infra/nas-lesson-builder/fill_versions.py', {
+    id: 'fill-versions', name: 'The NAS fill lane (a lesson gains the versions it still waits for)',
+    purpose: 'Reads the library census queue (newest lesson first, what each still waits for), asks the primary writer for ONE band whole with the lesson’s verses verbatim, gates it, splices it into the lesson’s own file by its parse tree, runs the local gates, and pushes a claude/fill-* branch the lane opens; budget, lock and the kill state are deterministic brakes.',
+    reads: [
+      { res: 'nas:claude-signin', token: 'probe' },
+      { res: 'code:lessons', token: 'library-gaps' },
+    ],
+    writes: [
+      { res: 'nas:lesson-builder', token: 'fill-versions-status' },
+      { res: 'code:lessons', token: 'splice-lesson-level' },
+    ],
+    seeds: ['learn'],
+  }),
   wf('voice-intake-health.yml', {
     id: 'voice-intake-health', name: 'Voice intake witness',
     purpose: 'Proves on the live database that a spoken recording becomes words: voice rows in, transcripts out, and which Whisper rung wrote each.',

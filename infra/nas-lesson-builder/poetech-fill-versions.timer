@@ -1,0 +1,10 @@
+[Unit]
+Description=PoeTech NAS fill-versions timer (DR-1262): four passes a day while services.json says fill-versions enabled
+
+[Timer]
+OnCalendar=*-*-* 01,07,13,19:17:00
+RandomizedDelaySec=600
+Persistent=false
+
+[Install]
+WantedBy=timers.target

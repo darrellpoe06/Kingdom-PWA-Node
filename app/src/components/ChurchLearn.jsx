@@ -114,6 +114,7 @@ import { searchItOutFor } from '../lib/search-it-out.js';
 // functionality and flow"). The study surface is unchanged; it is mounted
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
+import { censusLibrary, censusLine } from '../lib/library-census.js';
 import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords, lessonVersions, monthReadings } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
@@ -128,6 +129,7 @@ import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.j
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
+import LibraryCensus from './LibraryCensus.jsx';
 // THE ONE LIST YOU CHOOSE FROM (DR-1183) — shown instead of a course while no
 // course has been chosen, so Learn never opens as a title page for a course
 // nobody picked.
@@ -4299,6 +4301,8 @@ export default function ChurchLearn({
   }, [courses]);
   // The fold's own summary is LIVE (DR-0381): it says what the record holds
   // before anyone opens it, and says plainly when it holds nothing.
+  // The library's own live summary line (DR-1266), on the fold before it opens.
+  const libraryLine = React.useMemo(() => censusLine(censusLibrary(courses)), [courses]);
   const classRecordSummary = React.useMemo(() => {
     if (!signedIn) return 'sign in and your record is kept here';
     const rows = Array.isArray(learnerRecords) ? learnerRecords : [];
@@ -5614,6 +5618,23 @@ export default function ChurchLearn({
               signedIn={signedIn}
               courseTotals={courseLessonTotals}
             />
+          </div>
+        </details>
+      )}
+
+      {/* THE LIBRARY, COUNTED (DR-1266; Darrell 2026-10-27: "filling the
+          course library perpetually with all levels and necessary
+          components"). Beside the record, for everyone: what every course
+          holds, what each lesson still waits for, and how the library and the
+          learning are managed. From the mounted catalog, never typed. */}
+      {learnArea === 'record' && !lessonFocus && (
+        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-library-census" open>
+          <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+            The library
+            <span className="normal-case tracking-normal text-[#1A1815]">{' — '}{libraryLine}</span>
+          </summary>
+          <div className="px-3 pb-3">
+            <LibraryCensus courses={courses} />
           </div>
         </details>
       )}
