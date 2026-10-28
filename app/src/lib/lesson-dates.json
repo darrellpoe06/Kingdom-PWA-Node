@@ -399,7 +399,8 @@
    "wm5-what-a-central-bank-can-and-cannot-do": ["2026-09-20", "26662721"],
    "wm6-why-the-reserve-question-reaches-your-street": ["2026-09-20", "26662721"],
    "wm7-when-the-pipes-get-closed": ["2026-09-20", "26662721"],
-   "wm8-the-just-weight-across-a-border": ["2026-09-20", "26662721"]
+   "wm8-the-just-weight-across-a-border": ["2026-09-20", "26662721"],
+   "wm9-the-cost-of-staying-warm": ["2026-10-28", "89b746d7"]
   },
   "investing": {
    "inv1-what-investing-actually-is": ["2026-09-20", "26662721"],
@@ -506,6 +507,7 @@
    "legacy4-forced-production": ["2026-09-02", "e4982c64"],
    "legacy5-heir-under-governors": ["2026-09-02", "e4982c64"],
    "legacy7-how-we-got-here": ["2026-09-03", "5f0cb973"],
+   "legacy8-the-hoary-head-holds-the-harvest": ["2026-10-28", "10a275ca"],
    "legacy6-hand-it-forward": ["2026-09-02", "e4982c64"]
   },
   "kingdom-economics": {

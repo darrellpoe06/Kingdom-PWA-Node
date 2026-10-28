@@ -107,8 +107,8 @@ const SPAN = /"([^"]{6,})"\s*\(([1-3]?\s?[A-Z][a-zA-Z]+)\s+(\d+):(\d+)(?:-(\d+))
 const whole = (m) => m.lesson + m.levels.teen + m.levels.senior;
 
 describe('the course is built and it is real', () => {
-  it('carries eight lessons, each with the whole contract', () => {
-    expect(WORLD_MARKET_MODULES).toHaveLength(8);
+  it('carries nine lessons, each with the whole contract', () => {
+    expect(WORLD_MARKET_MODULES).toHaveLength(9);
     for (const m of WORLD_MARKET_MODULES) {
       expect(m.id).toBeTruthy();
       expect(m.title.length, `${m.id} has no title`).toBeGreaterThan(10);
@@ -148,7 +148,7 @@ describe('the course is built and it is real', () => {
   });
 
   it('builds a schedule, a progress summary and an export without throwing', () => {
-    expect(buildWorldMarketSchedule(null)).toHaveLength(8);
+    expect(buildWorldMarketSchedule(null)).toHaveLength(9);
     expect(worldMarketProgressSummary({})).toBeTruthy();
     expect(exportWorldMarketCurriculumMarkdown(null).length).toBeGreaterThan(2000);
     expect(WORLD_MARKET_SESSION_MINUTES).toBe(WORLD_MARKET_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0));
@@ -158,7 +158,7 @@ describe('the course is built and it is real', () => {
     const row = LEARN_CATALOG.find((e) => e.key === 'world-market');
     expect(row, 'the course is built but not surfaced').toBeTruthy();
     expect(row.meta.category).toBe('Stock Market');
-    expect(row.buildScheduleRows()).toHaveLength(8);
+    expect(row.buildScheduleRows()).toHaveLength(9);
     expect(row.interestTag).toBe(WORLD_MARKET_INTEREST_TAG);
     expect(row.helperTag).toBe(WORLD_MARKET_HELPER_TAG);
   });
