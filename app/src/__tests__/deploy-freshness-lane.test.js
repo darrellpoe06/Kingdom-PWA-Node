@@ -17,6 +17,7 @@
 // build rather than quietly re-opening a gap whose only symptom is a stale site.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -112,15 +113,40 @@ describe('deploy-freshness hears the merge, not a timer', () => {
     expect(FRESH).toMatch(/ALREADY IN FLIGHT/);
   });
 
-  it('counts a run of ANY status as in flight, not only a successful one', () => {
-    // A queued, running or even failed deploy for this tip is the deploy
-    // workflow's business to report; it is never a reason for this healer to
-    // stack a second build on top of it. So the in-flight query carries no
-    // status filter, while the freshness comparison above still uses one.
-    const at = FRESH.indexOf('runs?head_sha=$main_sha');
-    const query = FRESH.slice(at, at + 80);
-    expect(query, 'the in-flight query must not filter by status').not.toMatch(/status=/);
+  // NARROWED 2026-10-28 (DR-1267 / DR-1271). This case used to assert the
+  // OPPOSITE -- that the in-flight query must not filter by status, so a run of
+  // ANY status counted, failed included. That was right for a build that failed
+  // on its own merits and wrong for one killed by a transient cause: on
+  // 2026-10-28 a refused Tailscale key (DR-1269) left seven failed deploys on
+  // the tip, and this healer read ALREADY IN FLIGHT off those corpses and
+  // reported SUCCESS while the site sat five commits behind for two hours.
+  it('counts queued, running and successful runs as in flight -- but NOT a failed one', () => {
+    expect(FRESH).toMatch(/select\(\.status != "completed" or \.conclusion == "success"\)/);
+    expect(FRESH).toMatch(/ALREADY IN FLIGHT: a queued, running or successful deploy exists/);
     expect(FRESH).toMatch(/runs\?status=success/);
+  });
+
+  it('still cannot produce two builds for one merge -- the #1157/#1158 hazard', () => {
+    // The incident that put the gate here was a RUNNING deploy, not a failed
+    // one, and a running deploy is still in flight. The filter keeps anything
+    // whose status is not yet completed, so a queued or in-progress run for
+    // main's tip blocks the dispatch exactly as before.
+    const at = FRESH.indexOf('select(.status != "completed"');
+    expect(at, 'the in-flight filter must exist').toBeGreaterThan(0);
+    const block = FRESH.slice(at, at + 160);
+    expect(block).toMatch(/length/);
+    expect(FRESH).toMatch(/#1157/);
+  });
+
+  it('a failed tip is retried at most once per window, so a broken build cannot loop', () => {
+    expect(FRESH).toMatch(/RETRY_AFTER_MIN: '(\d+)'/);
+    const mins = Number(FRESH.match(/RETRY_AFTER_MIN: '(\d+)'/)[1]);
+    expect(mins).toBeGreaterThanOrEqual(15);
+    expect(FRESH).toMatch(/FAILED BUT RECENT/);
+    expect(FRESH).toMatch(/waiting out the \$\{RETRY_AFTER_MIN\}m retry window|RETRY_AFTER_MIN\}m retry window/);
+    // the retry path must announce itself, so a log reader can see WHY a
+    // second build exists for one tip
+    expect(FRESH).toMatch(/RETRYING A FAILED TIP/);
   });
 
   it('treats already-handled as DONE, never as something to keep waiting on', () => {
@@ -156,5 +182,59 @@ describe('deploy-freshness hears the merge, not a timer', () => {
     // replacement for the one that works most of the time.
     expect(AUTOMERGE).toMatch(/^ {2}heal-deploy:/m);
     expect(AUTOMERGE).toMatch(/gh workflow run deploy-cloudflare-pages\.yml/);
+  });
+});
+
+// THE FILTER IS EXERCISED, NOT JUST QUOTED (DR-0076 section 3). Every other case
+// in this file asserts the workflow's TEXT, which proves the words are present
+// and nothing about what they do. These run the filter LIFTED FROM THE FILE
+// against the payload shapes GitHub actually returns, so an edit that keeps the
+// words and breaks the behaviour fails here.
+describe('the in-flight filter, run against real payload shapes', () => {
+  const FILTER = '[.workflow_runs[] | select(.status != "completed" or .conclusion == "success")] | length';
+
+  it('is the filter the workflow actually carries', () => {
+    expect(FRESH).toContain(FILTER);
+  });
+
+  const live = (runs) => {
+    const r = spawnSync('jq', [FILTER], { input: JSON.stringify({ workflow_runs: runs }), encoding: 'utf8' });
+    // jq is pre-installed on the GitHub-hosted runners and gh carries its own.
+    // If it were missing this must FAIL rather than skip, because a skipped
+    // behaviour check reads as a passing one.
+    expect(r.error, 'jq must be available to exercise the filter').toBeUndefined();
+    expect(r.status, r.stderr).toBe(0);
+    return Number(r.stdout.trim());
+  };
+
+  const done = (conclusion) => ({ status: 'completed', conclusion });
+  const running = (status) => ({ status, conclusion: null });
+
+  it('ALL FAILED is not in flight -- the outage, and the whole point of the change', () => {
+    expect(live([done('failure'), done('failure')])).toBe(0);
+  });
+
+  it('a cancelled-only tip is not in flight either', () => {
+    expect(live([done('cancelled')])).toBe(0);
+  });
+
+  it('a tip with no runs at all is not in flight', () => {
+    expect(live([])).toBe(0);
+  });
+
+  it('QUEUED is in flight -- the #1157/#1158 double-build hazard stays closed', () => {
+    expect(live([running('queued')])).toBe(1);
+  });
+
+  it('IN_PROGRESS is in flight', () => {
+    expect(live([running('in_progress')])).toBe(1);
+  });
+
+  it('SUCCESS is in flight, so a deployed tip is never redeployed', () => {
+    expect(live([done('success')])).toBe(1);
+  });
+
+  it('a failed run beside a running one is still in flight', () => {
+    expect(live([done('failure'), running('in_progress')])).toBe(1);
   });
 });
