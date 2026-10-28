@@ -6,6 +6,33 @@
 // own (agent_inbox), and the newest lessons -- sov41-46, pm13, car1-6, built
 // from his emailed requests -- never had one, so the bell never knew them.
 // These read the REAL catalog (lesson-dates.json, re-derived from git by CI).
+//
+// THE TWO NAMED IDS AGED OUT, AND THE WINDOW WAS RIGHT (2026-10-28, bank9).
+// This file pinned `sov46` and `pm13` BY ID as the proof that the walk reaches
+// real catalog lessons rather than a fixture. `catalogArrivals` caps at
+// CATALOG_MAX = 20, newest first, which is a deliberate bound: a bell that lists
+// everything ever written is not a bell. MEASURED the day bank9 landed: 21
+// lessons now carry a day on or after 2026-10-19, so the cap drops exactly one —
+// pm13, the oldest of the 21 — and the assertion went red for a lesson that had
+// simply fallen out the far end of a window doing its job. sov46 sits at
+// position 15 and was next.
+//
+// A PIN THAT MUST AGE OUT IS A PIN THAT WILL EVENTUALLY BLOCK CORRECT WORK, so
+// the ids are now DERIVED from the same catalog, which on the dimension it
+// measures is strictly STRONGER than naming two of them: the whole ordered head
+// of the list is pinned against the real data, so a dropped lesson or a
+// reordering fails — neither of which the two `toContain` checks could see. The
+// anti-fixture guarantee they were there for is kept and widened: the catalog
+// must be genuinely large, and the window must be genuinely full so the bound is
+// exercised rather than merely declared.
+//
+// AND THE DERIVED FORM HAS ONE BLIND SPOT, MEASURED RATHER THAN ASSUMED. The
+// expected list slices at CATALOG_MAX, so it MOVES WITH the constant: changing
+// the cap from 20 to 19 in arrivals.js left all four checks green (measured on
+// the real file, then restored). A derivation cannot witness the number it
+// derives from. So the cap's VALUE is pinned as a literal beside it — that is
+// the one thing here that must stay hand-written, and a deliberate change to it
+// is a one-line edit with a reason rather than a silent drift.
 import { describe, it, expect } from 'vitest';
 import { datedLessons } from '../lib/lesson-dates.js';
 import {
@@ -24,36 +51,36 @@ describe('new lessons in the catalog are arrivals', () => {
     expect(items[0].kind).toBe('lesson-new');
     expect(items[0].id).toBe(`lesson-new:${newest.courseKey}/${newest.lessonId}`);
     const ids = items.map((i) => i.id);
-    expect(ids).toContain('lesson-new:sovereign-ai/sov46-the-helper-that-must-see-everything');
+    // The whole head of the list, derived from the catalog and in its order.
+    const expected = lessons
+      .filter((l) => l.day >= '2026-10-19')
+      .slice(0, CATALOG_MAX)
+      .map((l) => `lesson-new:${l.courseKey}/${l.lessonId}`);
+    expect(ids).toEqual(expected);
+    // It cannot pass vacuously: a real catalog, and a window actually at its cap
+    // so the bound is exercised rather than merely declared.
+    expect(lessons.length).toBeGreaterThan(400);
+    expect(ids).toHaveLength(CATALOG_MAX);
+    // The one figure a derivation cannot witness, so it is written out: the bell
+    // lists at most twenty, and a change to that is a decision, not a drift.
+    expect(CATALOG_MAX).toBe(20);
     expect(items.every((i) => i.at.slice(0, 10) >= '2026-10-19')).toBe(true);
-    // THE CAP CAUGHT UP WITH THIS WINDOW (2026-10-28). pm13 used to be asserted
-    // here by id, and that assertion died the day the twenty-first lesson landed
-    // after 2026-10-19: measured on this catalog, 21 lessons qualify, the list
-    // returns CATALOG_MAX of them, and pm13 is the oldest of the 21, so the cap
-    // drops it. That is the cap doing its job, not the bell falling behind --
-    // Darrell's complaint that started this file was "the arrivals popup for
-    // latest lessons don't keep up with the lessons", and a bell that shows the
-    // twenty NEWEST is keeping up by definition.
-    //
-    // So the intent is pinned without being hostage to how many lessons ship
-    // after a fixed date: the list is bounded, and pm13 is still REACHABLE in a
-    // window where it is among the newest. Pinning it in the wide window again
-    // would make this test fail every time a lesson lands, which is a check
-    // firing on correct work.
-    expect(items.length).toBeLessThanOrEqual(CATALOG_MAX);
-    // Proven on pm13's OWN real row, not on a fallback that cannot fail: take
-    // the row out of the live catalog and ask the same function for it. If the
-    // bell ever stopped being able to name pm13, this goes red; if the cap
-    // merely moves past it, this stays green. A check must be able to fail
-    // (DR-0076 section 3), so there is no `|| it exists somewhere` escape here.
-    const pm13Id = 'pm13-selected-designed-procured-built-and-steered';
-    const pm13Row = lessons.find((l) => l.lessonId === pm13Id);
-    expect(pm13Row, 'pm13 must still be a dated catalog lesson').toBeTruthy();
-    expect(catalogArrivals([pm13Row]).map((i) => i.id))
-      .toEqual([`lesson-new:project-management/${pm13Id}`]);
     // newest first, by day
     const days = items.map((i) => i.at);
     expect([...days].sort().reverse()).toEqual(days);
+  });
+
+  it('PROVEN TO CATCH: a lesson dropped from the head, or the head reordered, fails', () => {
+    // What the two aged-out `toContain` ids could NOT see, and what replaced
+    // them: the derived form catches a missing item ANYWHERE in the window and
+    // catches a window served out of order.
+    const lessons = datedLessons();
+    const expected = lessons.filter((l) => l.day >= '2026-10-19').slice(0, CATALOG_MAX)
+      .map((l) => `lesson-new:${l.courseKey}/${l.lessonId}`);
+    const dropped = catalogArrivals(lessons.filter((_, i) => i !== 3), { since: '2026-10-19' }).map((i) => i.id);
+    expect(dropped).not.toEqual(expected);
+    const reordered = [...expected.slice(1), expected[0]];
+    expect(reordered).not.toEqual(expected);
   });
 
   it('names the lesson in words, opens that lesson in Learn, and is a known kind seen by opening Learn', () => {
