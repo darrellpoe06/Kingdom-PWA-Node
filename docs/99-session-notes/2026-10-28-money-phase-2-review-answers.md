@@ -9,9 +9,9 @@ Run as CI runs it, four disjoint shards (`vitest run --shard=i/4`), after a sing
 | Shard | Files | Tests | First run | After the two fixes |
 |---|---|---|---|---|
 | 1 | 435 | 8,077 | green | — |
-| 2 | 435 | 7,388 | 1 failed | fixed, green (rerun in progress at the time of writing; the failing file passes 7/7 alone) |
+| 2 | 435 | 7,388 | 1 failed | fixed; full rerun green: 435 files, 7,388 tests |
 | 3 | 435 | 7,356 | green | — |
-| 4 | 433 | 8,995 | 1 failed | fixed, green (rerun in progress; the failing file passes 13/13 alone) |
+| 4 | 433 | 8,995 | 1 failed | fixed; full rerun green: 433 files, 8,995 tests |
 
 The two failures were pins of the previous state, not defects in the new code: `demo-param-survives-nav.test.jsx` booted its nav harness on the old `calendar` default (now `overview`), and `completion.test.js` requires `app/src/lib/persistent-share.json` to match the shell's frozen budget, which the ratchet had just lowered from 5193 to 5192 (regenerated with `python3 scripts/persistent-share.py`). No expectation was changed to hide a result. Four further consistency tests were added to `debt-freedom.test.js` (§5), 27/27 passing.
 
