@@ -9,7 +9,7 @@
 // a sync that writes anyway (demo mode writes nothing, ever).
 import { describe, it, expect, vi } from 'vitest';
 import {
-  saveLearnerRecord, fetchLearnerRecords, subscribeLearnerRecords,
+  saveLearnerRecord, fetchLearnerRecords, subscribeLearnerRecords, isMissingColumn,
 } from '../lib/learner-records-sync.js';
 
 const ME = 'b0000000-0000-4000-a000-000000000250';
@@ -127,6 +127,49 @@ describe('reading the records this account may read', () => {
     const { records, error } = await fetchLearnerRecords({ client: fakeClient({ selectError: { message: 'boom' } }) });
     expect(records).toEqual([]);
     expect(error).toBeTruthy();
+  });
+
+  it('a backend 0313 has not reached yet refuses quiz_history (42703); the read asks again without it and the record still arrives', async () => {
+    const selects = [];
+    const row = { user_id: ME, lesson_id: 'L1', quiz_pct: 100, quiz_passed: true, quiz_attempts: 2 };
+    const chain = {
+      select: vi.fn((cols) => { selects.push(cols); return chain; }),
+      order: vi.fn(() => chain),
+      limit: vi.fn(() => Promise.resolve(
+        selects[selects.length - 1].includes('quiz_history')
+          ? { data: null, error: { code: '42703', message: 'column learner_lesson_records.quiz_history does not exist' } }
+          : { data: [row], error: null },
+      )),
+    };
+    const client = {
+      auth: { getSession: vi.fn(() => Promise.resolve({ data: { session: { user: { id: ME } } } })) },
+      from: vi.fn(() => chain),
+    };
+    const { records, error } = await fetchLearnerRecords({ client });
+    expect(error).toBeUndefined();
+    expect(selects).toHaveLength(2);
+    expect(selects[0]).toContain('quiz_history');
+    expect(selects[1]).not.toContain('quiz_history');
+    expect(selects[1]).toContain('quiz_attempts');
+    expect(records).toHaveLength(1);
+    expect(records[0].quizHistory).toEqual([]);
+    expect(records[0].quizPct).toBe(100);
+  });
+
+  it('any other refusal is not retried: one select, the error handed back', async () => {
+    const client = fakeClient({ selectError: { code: '42501', message: 'permission denied for table learner_lesson_records' } });
+    const { records, error } = await fetchLearnerRecords({ client });
+    expect(records).toEqual([]);
+    expect(error.code).toBe('42501');
+    expect(client.calls.selects).toBe(1);
+  });
+
+  it('isMissingColumn names the column, not any 42703', () => {
+    expect(isMissingColumn({ code: '42703', message: 'column x.quiz_history does not exist' }, 'quiz_history')).toBe(true);
+    expect(isMissingColumn({ message: 'column learner_lesson_records.quiz_history does not exist' }, 'quiz_history')).toBe(true);
+    expect(isMissingColumn({ code: '42703', message: 'column x.versions_read does not exist' }, 'quiz_history')).toBe(false);
+    expect(isMissingColumn({ message: 'boom' }, 'quiz_history')).toBe(false);
+    expect(isMissingColumn(null, 'quiz_history')).toBe(false);
   });
 });
 

@@ -41,6 +41,7 @@ His two sentences name two facts: the record must show *what happened and when*,
 
 ## Verification
 
+- `learner-records-sync.test.js` — a backend 0313 has not reached yet refuses `quiz_history` with PostgreSQL's 42703; the read asks again without that one column and the record still arrives, the ledger empty until the migration lands (proven to catch: with the retry removed the case fails); any other refusal is handed back after one select. Written 2026-10-28 02:20 UTC when the deploy and the migration both lost the tailnet road (the runner's Tailscale key was refused from 01:46), so a build may land before the column does.
 - `infra/supabase/tests/0250-learner-records-smoke.sql` §10 — PASS locally on PostgreSQL 16; the same file runs in CI's learner-record-walls job after 0313 (wired in `ci.yml`).
 - `learner-records.test.js` — the ledger cleaned, never written by the client, every attempt listed newest first with its best, pre-ledger rows from columns, no painted zero, grouped by lesson, one learner only, merged into the device.
 - `use-learner-records.test.jsx` — a lower retake does not lower the device's best; both attempts held; the row carries the attempt's own score.
