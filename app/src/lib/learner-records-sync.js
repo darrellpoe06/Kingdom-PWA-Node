@@ -112,7 +112,7 @@ export async function fetchLearnerRecords({ client = defaultClient, limit = 2000
   try {
     const { data, error } = await client
       .from(TABLE)
-      .select('user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, updated_at')
+      .select('user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, quiz_history, updated_at')
       .order('updated_at', { ascending: false })
       .limit(limit);
     if (error) return { records: [], error };

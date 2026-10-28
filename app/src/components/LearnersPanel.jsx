@@ -19,7 +19,7 @@
 // =============================================================================
 
 import React from 'react';
-import { aggregateLearnerRecords, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
+import { aggregateLearnerRecords, examAttemptsByLesson, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
@@ -32,6 +32,78 @@ function when(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+}
+
+function whenAt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+// EVERY EXAM ATTEMPT (DR-1264). Darrell 2026-10-28, on "5 exams taken · 6
+// attempts": "How did I take 6 test and no know what happened and when? I
+// also should be able to keep 100% by using that test again or read it
+// again." So each lesson he has tested is listed, newest first, with its
+// best, and under it every attempt with its moment and its own score; the
+// record keeps the best (the wall, 0313), so a retake is never a risk. His
+// own record carries the two doors — the exam again, the reading again;
+// another learner's, seen by the Governor, is a record to read, not to act on.
+function ExamHistory({ rows, userId, titleOf, onRetake, onReadAgain, mine }) {
+  const lessons = examAttemptsByLesson(rows, { titleOf, userId });
+  if (!lessons.length) return null;
+  const total = lessons.reduce((n, l) => n + l.tries.length, 0);
+  return (
+    <div className="mt-3 border-t border-[#E8E4DC] pt-2" data-testid="exam-history">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">
+        Every exam attempt
+        <span className="normal-case tracking-normal text-[#1A1815]">{' — '}{total} attempt{total === 1 ? '' : 's'} on {lessons.length} lesson{lessons.length === 1 ? '' : 's'}; the best score stands</span>
+      </div>
+      <ul className="space-y-2">
+        {lessons.map((l) => (
+          <li key={`${l.courseKey || 'unplaced'}:${l.lessonId}`} className="border border-[#E8E4DC] p-2" data-testid="exam-lesson" data-lesson={l.lessonId}>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{l.title}</span>
+              <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${l.bestPassed ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#B85838] text-[#B85838]'}`}>
+                best {pct(l.bestPct)}{l.bestPassed ? ' · passed' : ''}
+              </span>
+              {mine && typeof onRetake === 'function' && (
+                <button
+                  type="button"
+                  onClick={() => onRetake(l.courseKey, l.lessonId)}
+                  data-testid="exam-retake"
+                  className="ml-auto text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  Take the exam again
+                </button>
+              )}
+              {mine && typeof onReadAgain === 'function' && (
+                <button
+                  type="button"
+                  onClick={() => onReadAgain(l.courseKey, l.lessonId)}
+                  data-testid="exam-read-again"
+                  className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  Read it again
+                </button>
+              )}
+            </div>
+            <ol className="mt-1 space-y-0.5" aria-label={`Attempts on ${l.title}`}>
+              {l.tries.map((t) => (
+                <li key={`${t.at}-${t.n}`} className="flex flex-wrap items-baseline gap-2 text-[0.6875rem] text-[#5A5751]" data-testid="exam-attempt">
+                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{whenAt(t.at)}</span>
+                  <span className="text-[#1A1815]">{pct(t.pct)}</span>
+                  <span className={t.passed ? 'text-[#5A6E3D]' : t.passed === false ? 'text-[#B85838]' : ''}>{t.passed ? 'passed' : t.passed === false ? 'not yet' : ''}</span>
+                  {t.band ? <span>· {t.band}</span> : null}
+                  {t.fromColumns ? <span>· recorded before each attempt was kept; this is the last of {t.n}</span> : null}
+                </li>
+              ))}
+            </ol>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 const BAND_TONE = {
@@ -61,7 +133,7 @@ function Figure({ label, value, hint }) {
   );
 }
 
-function LearnerCard({ learner, mine, showWho }) {
+function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain }) {
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
     <li className="border border-[#E8E4DC] p-3">
@@ -120,6 +192,7 @@ function LearnerCard({ learner, mine, showWho }) {
               ))}
             </tbody>
           </table>
+          <ExamHistory rows={rows} userId={learner.userId} titleOf={titleOf} onRetake={onRetake} onReadAgain={onReadAgain} mine={mine} />
           {unknownCompletion && (
             <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
               A dash under Completion means this screen does not yet know how many lessons that course holds, so no rate is shown rather than a guessed one. Open the course once and its real count comes with it.
@@ -145,7 +218,11 @@ export default function LearnersPanel({
   isGovernor = false,
   courseTotals = null,
   signedIn = true,
+  titleOf = null,        // (lessonId, courseKey) => title, from the mounted catalog
+  onRetake = null,       // (courseKey, lessonId) => opens the lesson at its exam
+  onReadAgain = null,    // (courseKey, lessonId) => opens the reading from the top
 }) {
+  const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
   if (!signedIn) {
     return (
       <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -186,8 +263,8 @@ export default function LearnersPanel({
       )}
 
       <ul className="space-y-3">
-        {mine ? <LearnerCard key={mine.userId} learner={mine} mine showWho={showWho} /> : null}
-        {isGovernor ? others.map((l) => <LearnerCard key={l.userId} learner={l} mine={false} showWho />) : null}
+        {mine ? <LearnerCard key={mine.userId} learner={mine} mine showWho={showWho} rows={rows} titleOf={nameOf} onRetake={onRetake} onReadAgain={onReadAgain} /> : null}
+        {isGovernor ? others.map((l) => <LearnerCard key={l.userId} learner={l} mine={false} showWho rows={rows} titleOf={nameOf} />) : null}
       </ul>
 
       {isGovernor && !mine && others.length ? (
@@ -197,7 +274,7 @@ export default function LearnersPanel({
       ) : null}
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-        The pass line is {PASS_LINE}%, the same line the exam itself uses. “Not yet tested” means no exam has been answered — it is not a score of zero.
+        The pass line is {PASS_LINE}%, the same line the exam itself uses. “Not yet tested” means no exam has been answered — it is not a score of zero. Every attempt is kept with its moment and its score, and the record keeps your best, so taking an exam again can only help.
       </p>
     </div>
   );

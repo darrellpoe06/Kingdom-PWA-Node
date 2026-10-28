@@ -2,7 +2,7 @@
 -- 0250 LEARNER RECORD SMOKE — a learner keeps his own record, the Governor sees
 -- every learner's, and no learner sees another's (DR-0754)
 -- =============================================================================
--- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql, 0250 and 0312, in a
+-- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql, 0250, 0312 and 0313, in a
 -- transaction that ROLLS BACK. The Governor's email list is swapped for a test
 -- address INSIDE the transaction only, so no real account is touched.
 -- PROVES:
@@ -164,6 +164,42 @@ BEGIN
   EXCEPTION WHEN check_violation THEN NULL;
   END;
   DELETE FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L104';
+
+  -- 10. EVERY EXAM ATTEMPT IS KEPT, AND THE BEST SCORE STANDS (0313, DR-1264).
+  --     A fail, then a pass, then a lower retake: three entries in the ledger,
+  --     the row's score is the best, the pass stays, attempts never shrink, and
+  --     a history the client sends is ignored.
+  INSERT INTO public.learner_lesson_records (lesson_id, course_key, age_band, quiz_pct, quiz_passed, quiz_attempts, quiz_at)
+  VALUES ('L106', 'living-lessons', 'adult', 60, false, 1, '2026-10-28 01:00:00+00');
+  SELECT jsonb_array_length(quiz_history), quiz_pct INTO n, pct
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
+  IF n <> 1 OR pct <> 60 THEN RAISE EXCEPTION 'FAIL: the first attempt was not entered in the ledger (entries=%, pct=%)', n, pct; END IF;
+  INSERT INTO public.learner_lesson_records (lesson_id, quiz_pct, quiz_passed, quiz_attempts, quiz_at)
+  VALUES ('L106', 100, true, 2, '2026-10-28 01:10:00+00')
+  ON CONFLICT (user_id, lesson_id) DO UPDATE
+    SET quiz_pct = excluded.quiz_pct, quiz_passed = excluded.quiz_passed,
+        quiz_attempts = excluded.quiz_attempts, quiz_at = excluded.quiz_at, updated_at = now();
+  INSERT INTO public.learner_lesson_records (lesson_id, quiz_pct, quiz_passed, quiz_attempts, quiz_at, quiz_history)
+  VALUES ('L106', 40, false, 1, '2026-10-28 01:20:00+00', '[]'::jsonb)
+  ON CONFLICT (user_id, lesson_id) DO UPDATE
+    SET quiz_pct = excluded.quiz_pct, quiz_passed = excluded.quiz_passed,
+        quiz_attempts = excluded.quiz_attempts, quiz_at = excluded.quiz_at,
+        quiz_history = excluded.quiz_history, updated_at = now();
+  SELECT jsonb_array_length(quiz_history), quiz_pct, quiz_attempts, quiz_passed INTO n, pct, att, done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
+  IF n <> 3 THEN RAISE EXCEPTION 'FAIL: the ledger holds % entries after three attempts (expected 3; a client-sent history must be ignored)', n; END IF;
+  IF pct <> 100 OR NOT done THEN RAISE EXCEPTION 'FAIL: a lower retake lowered the record (pct=%, passed=%)', pct, done; END IF;
+  IF att <> 3 THEN RAISE EXCEPTION 'FAIL: attempts read % (expected 3, never below the ledger)', att; END IF;
+  SELECT (quiz_history -> 2 ->> 'pct')::int, (quiz_history -> 0 ->> 'pct')::int INTO pct, n
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
+  IF pct <> 40 OR n <> 60 THEN RAISE EXCEPTION 'FAIL: the ledger is not in order (first=%, last=%)', n, pct; END IF;
+  -- A mark-read that names no exam leaves the ledger, the best and the moment alone.
+  UPDATE public.learner_lesson_records SET completed_at = now(), updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L106';
+  SELECT jsonb_array_length(quiz_history), quiz_pct INTO n, pct
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
+  IF n <> 3 OR pct <> 100 THEN RAISE EXCEPTION 'FAIL: a read touched the exam ledger (entries=%, pct=%)', n, pct; END IF;
+  DELETE FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
 
   PERFORM pg_temp.as_postgres();
   RAISE NOTICE 'LEARNER RECORD SMOKE: PASS';
