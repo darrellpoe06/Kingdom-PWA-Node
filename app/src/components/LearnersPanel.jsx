@@ -72,7 +72,7 @@ function ExamHistory({ rows, userId, titleOf, onRetake, onReadAgain, mine }) {
                   type="button"
                   onClick={() => onRetake(l.courseKey, l.lessonId)}
                   data-testid="exam-retake"
-                  className="ml-auto text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  className="ml-auto text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 >
                   Take the exam again
                 </button>
@@ -82,7 +82,7 @@ function ExamHistory({ rows, userId, titleOf, onRetake, onReadAgain, mine }) {
                   type="button"
                   onClick={() => onReadAgain(l.courseKey, l.lessonId)}
                   data-testid="exam-read-again"
-                  className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 >
                   Read it again
                 </button>
