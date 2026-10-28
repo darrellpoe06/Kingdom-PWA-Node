@@ -141,7 +141,52 @@ const REPO = join(HERE, '..', '..', '..');
 // federalreserve.gov the same day, after this sandbox failed even to resolve
 // the host. So wm9's "could read the EIA projection" is a method that exists
 // and has been exercised, not a hope.
-const GAP = 12;
+// 12 -> 13 on 2026-10-28 (dsi15, weighed into named hands), and the reason is on
+// the record rather than in a wording change. The lesson is the fifteenth module
+// of the Data Systems course, built from the IT Brew edition "The ghost of assets
+// past" that Darrell forwarded to himself on 2026-10-06 with one word above the
+// body. Its subject is an inventory list that still carries what the house no
+// longer has, so a lesson that quietly omitted its own limit would be teaching
+// the exact defect it names. It does not: the adult text AND all four bands say
+// the newsletter is the only source, that the full article was never opened, and
+// that nobody telephoned IT Brew, Ivanti or Saviynt to verify the two
+// quotations.
+//
+// It takes the SECOND branch this test's own verdict offers ("say plainly why it
+// cannot be checked"), and the why is NARROWER and firmer than wm9's rather than
+// a repeat of it. THERE IS NO FIGURE IN THIS LESSON TO READ BACK. The germane
+// item -- the lead story, the only part of that email which is not advertising --
+// prints no statistic at all: it is a definition and four causes, carried in two
+// named men's attributed words. Every number in that edition belongs to the
+// HUMAN Security sponsor copy (an agentic-traffic percentage, two Adobe shopper
+// percentages, a conversion multiple) or to a different story's patch-note stat
+// ($6 trillion, Bain & Company, on data-centre buildout), and none of it is
+// germane or taught (Darrell's standing rule on ads). So lesson-sources.json has
+// nothing to point at: a row for dsi15 would necessarily be a 0-figure row, and
+// a 0-figure row makes `checked()` count a lesson whose figures nobody read,
+// which is the anti-theatre rule in DR-0076 section 3. The lesson says this of
+// itself in its own words -- it stakes no statistic, so no figure in it can be
+// wrong -- and its teaching rests on Ezra 8, Numbers 4, Exodus 38, 1 Chronicles
+// 9 and Luke 15, every span of which was read verbatim off the corpus on disk
+// and is read back by the lesson's own pinned test.
+//
+// THE ROAD WAS TRIED, not assumed shut (DR-0108, the team's reach). Two
+// independent attempts to reach the publisher from this build both failed, and
+// they failed differently: curl to www.itbrew.com got a 403 to the CONNECT from
+// the agent proxy (policy denial, the same shape sov45 recorded for
+// slack.engineering), and the open-web fetch answered ENOTFOUND -- the host is
+// outside this session's allowed network domains. A GitHub runner reaches hosts
+// this sandbox cannot, which legacy8 proved on federalreserve.gov the same day,
+// so the road exists. What it has no input for is a PROBE: legacy8's probe runs
+// worked because the newsletter printed figures to ask the publisher's page
+// about, and here there are none, so there is no candidate `says` string that
+// could be written without inventing one.
+// re-review: 2026-11-28 -- from a runner with web access, open the full IT Brew
+// article. If the body carries a germane figure this module should teach, teach
+// it, give dsi15 a row in lesson-sources.json and lower this pin to 12; if the
+// article prints no figure either, drop the "did not read the full article"
+// clause for an accurate one and lower the pin.
+const GAP = 13;
 const CHECKED_LESSONS = 2;
 
 describe('both sides of the honesty gap are counted', () => {
