@@ -54,7 +54,16 @@ function haystack() {
   let h = ''; for (const b of BIBLE_INDEX) { const bk = book(b.file); if (bk) h += ' ' + bk.chapters.flat().join(' '); }
   HAY = fold(h).toLowerCase(); return HAY;
 }
-const lessonText = (x) => fold([x.lesson, x.bigIdea, x.anchor?.theme, x.levels?.child, x.levels?.teen, x.levels?.senior, ...(x.benefits || [])].join(' '));
+// YOUTH ADDED 2026-10-28 (DR-1260). This fold omitted `levels.youth` from the
+// day it was written, so an anchor taught ONLY in the youth band read as
+// unnamed — youth is a real band (16,317 characters in ll269 alone), and a
+// lesson that teaches a reference there has named it. Adding it can only ever
+// find MORE names, never fewer, so no lesson's debt can rise from this; what
+// it CAN do is make a recorded allowance too generous, which the
+// `owed list is exact, not padded` check below then refuses until the number
+// is lowered. That refusal is the gate working, and it is why this is one
+// change and not two.
+const lessonText = (x) => fold([x.lesson, x.bigIdea, x.anchor?.theme, x.levels?.child, x.levels?.youth, x.levels?.teen, x.levels?.senior, ...(x.benefits || [])].join(' '));
 const anchorsOf = (x) => [...new Set((fold(x.anchor?.ref).match(REF) || []))];
 
 /** Is `ref` named in `text`? Exactly, or by any reference of the same book+chapter
