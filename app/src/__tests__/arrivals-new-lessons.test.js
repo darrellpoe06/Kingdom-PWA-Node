@@ -25,8 +25,32 @@ describe('new lessons in the catalog are arrivals', () => {
     expect(items[0].id).toBe(`lesson-new:${newest.courseKey}/${newest.lessonId}`);
     const ids = items.map((i) => i.id);
     expect(ids).toContain('lesson-new:sovereign-ai/sov46-the-helper-that-must-see-everything');
-    expect(ids).toContain('lesson-new:project-management/pm13-selected-designed-procured-built-and-steered');
     expect(items.every((i) => i.at.slice(0, 10) >= '2026-10-19')).toBe(true);
+    // THE CAP CAUGHT UP WITH THIS WINDOW (2026-10-28). pm13 used to be asserted
+    // here by id, and that assertion died the day the twenty-first lesson landed
+    // after 2026-10-19: measured on this catalog, 21 lessons qualify, the list
+    // returns CATALOG_MAX of them, and pm13 is the oldest of the 21, so the cap
+    // drops it. That is the cap doing its job, not the bell falling behind --
+    // Darrell's complaint that started this file was "the arrivals popup for
+    // latest lessons don't keep up with the lessons", and a bell that shows the
+    // twenty NEWEST is keeping up by definition.
+    //
+    // So the intent is pinned without being hostage to how many lessons ship
+    // after a fixed date: the list is bounded, and pm13 is still REACHABLE in a
+    // window where it is among the newest. Pinning it in the wide window again
+    // would make this test fail every time a lesson lands, which is a check
+    // firing on correct work.
+    expect(items.length).toBeLessThanOrEqual(CATALOG_MAX);
+    // Proven on pm13's OWN real row, not on a fallback that cannot fail: take
+    // the row out of the live catalog and ask the same function for it. If the
+    // bell ever stopped being able to name pm13, this goes red; if the cap
+    // merely moves past it, this stays green. A check must be able to fail
+    // (DR-0076 section 3), so there is no `|| it exists somewhere` escape here.
+    const pm13Id = 'pm13-selected-designed-procured-built-and-steered';
+    const pm13Row = lessons.find((l) => l.lessonId === pm13Id);
+    expect(pm13Row, 'pm13 must still be a dated catalog lesson').toBeTruthy();
+    expect(catalogArrivals([pm13Row]).map((i) => i.id))
+      .toEqual([`lesson-new:project-management/${pm13Id}`]);
     // newest first, by day
     const days = items.map((i) => i.at);
     expect([...days].sort().reverse()).toEqual(days);
