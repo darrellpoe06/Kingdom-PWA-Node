@@ -16,8 +16,11 @@
 // client — they genuinely need the session.
 // =============================================================================
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { resolveSupabaseConfig, currentHostname } from './preview-isolation.js';
+// Same preview isolation as lib/supabase.js: a preview host gets a stub that reaches nothing.
+const PUBLIC_RPC_CONFIG = resolveSupabaseConfig({ hostname: currentHostname(), url: import.meta.env.VITE_SUPABASE_URL, key: import.meta.env.VITE_SUPABASE_ANON_KEY });
+const SUPABASE_URL = PUBLIC_RPC_CONFIG.url;
+const SUPABASE_ANON_KEY = PUBLIC_RPC_CONFIG.key;
 
 export const PUBLIC_RPC_TIMEOUT_MS = 12000;
 
