@@ -19,6 +19,10 @@ So two things are true at once:
 1. **The cloud holds almost no financial figures.** The typed rents/mortgages are not reaching durable storage for most doors (a write/durability problem — gated on being signed in, or failing silently — tracked separately; not this DR).
 2. **The merge was letting those cloud zeros win.** `mergeRemoteRentals` (DR-0394) already refused to let a *blank* remote erase a real local value — but only at **equal/unknown age** (`cmp === 0`). When a cloud row was **newer** than the device edit (a fresh insert, a structure-only write from the Properties tab, or an instance quirk — all of which stamp a recent `updated_at` while carrying `monthly_rent 0`), the overlay applied the zero and wiped the typed value. In this app `0` is "not entered", never a deliberate $0 — every "X of N entered" / `missing*` rollup keys off `> 0` — so a blank money value is never information worth propagating.
 
+## Impact
+
+Stops silent loss of the family's real financial figures: a cloud zero can no longer overwrite a rent or mortgage a steward actually typed, so the Real Estate portfolio stops reverting to blanks on a sync/refresh. This is the "reverts on this device" half only — the deeper durability gap (typed figures not reaching the cloud for most doors, measured above) is named in Verification and tracked separately, **not** closed here. One accepted constraint: a deliberate $0 cannot propagate cross-device (see the tradeoff below), which is in-model because vacancy is carried by `status`, not a `0` rent.
+
 ## Decision
 
 For money fields — `rent`, `actual`, and every mortgage sub-field (`balance`, `rate`, `monthlyPI`, `escrow`) — **a blank (0 / empty) remote value never erases a real local value, at any recency.** Non-money fields keep the recency rule unchanged (a genuinely newer remote blank — e.g. a tenant name cleared on another device — is still a real clear). A newer remote carrying a *real* money value still propagates normally. The local `estimated` flag on the mortgage is still preserved.
