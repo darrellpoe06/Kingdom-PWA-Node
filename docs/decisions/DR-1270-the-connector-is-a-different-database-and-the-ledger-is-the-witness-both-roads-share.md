@@ -35,9 +35,11 @@ So a session with only the connector available sees a twenty-deep backlog that d
 **Two defects in that guard, both found by its own tests, both in a direction worth naming:**
 
 1. **A false UNKNOWN.** The first version searched the full uuid only. The ledger conventionally cites a row by its first eight characters, so `c3285321` (DR-0771) and `7ce13700` (DR-0768) came back unknown though both were long since handled. That is the dangerous direction — it permits rebuilding a live lesson, the exact harm this guard exists to stop. Fixed by searching the prefix too, and reporting a prefix-only hit as `SHIPPED?` so the weaker match is visible rather than silently equal.
-2. **A false SHIPPED, introduced by that fix.** A bare 8-character prefix is a substring, and the fabricated test id `00000000-…` matched DR-1235, whose text carries the epoch `1761500000000`. A false SHIPPED blocks a teaching nobody has built. Fixed with a hex boundary — the prefix must stand alone, which the ledger's real citation form (a backticked `` `c3285321` ``) satisfies and a digit inside a timestamp does not.
+2. **A false SHIPPED, introduced by that fix.** A bare 8-character prefix is a substring, and the fabricated test id an all-zeros fabricated id matched DR-1235, whose text carries the epoch `17615an all-zeros prefix`. A false SHIPPED blocks a teaching nobody has built. Fixed with a hex boundary — the prefix must stand alone, which the ledger's real citation form (a backticked `` `c3285321` ``) satisfies and a digit inside a timestamp does not.
 
 The tool and the by-hand sweep now return the same 20 of 22. **That agreement is the verification**, not the tool's own say-so.
+
+**A third defect, and it is a property of the design rather than a slip: a decision record that QUOTES a row id thereby marks that row shipped.** The first draft of this record quoted the fabricated id its own tests use, and the sweep immediately found it — correctly, by its own rule — turning two passing cases red. The guard reads the ledger, so the ledger is now an input to it, and writing a row id into a record is an assertion about that row. Two consequences kept: a record must DESCRIBE a fabricated or example id rather than print one (this record says "an all-zeros fabricated id"), and a record that legitimately discusses a row it did not ship — a withdrawal, a not-a-lesson, a comparison — is still making that row unbuildable by this guard, which is the safe direction but must be read as deliberate. The sweep reads only `docs/decisions/`, so the tool's own comments and tests may quote ids freely.
 
 ## Impact
 
@@ -55,7 +57,7 @@ Build the ledger sweep DR-1250 asked for, and use it rather than the tags to ans
 ## Verification
 
 - **14 cases green**, run against the REAL ledger rather than a fixture, because a fixture would not have caught either failure: the three rows shipped last night are found with their records and flagged `exact`; the two prefix-only rows are found and flagged NOT exact; a fabricated uuid comes back unknown; an id shorter than 8 characters is refused, not answered; a non-hex id is refused rather than compiled into a regex; and the exit code is 1 for a shipped row, 1 for a mixed batch, 0 for unknown only.
-- **Proven to catch, twice, on itself:** the full-uuid-only version returned unknown for `c3285321` and `7ce13700` (false unknown); the bare-prefix version returned SHIPPED for `00000000-…` via DR-1235's epoch (false shipped). Both are pinned by name so neither can return.
+- **Proven to catch, twice, on itself:** the full-uuid-only version returned unknown for `c3285321` and `7ce13700` (false unknown); the bare-prefix version returned SHIPPED for an all-zeros fabricated id via DR-1235's epoch (false shipped). Both are pinned by name so neither can return.
 - The divergence measured directly: `has_captured`/`has_published` false for all three rows on the hosted project, with `b97aa626` still carrying `lesson-building` — a tag the waiting query excludes, so the NAS road could not have listed it had it carried that tag there.
 - The 20-of-22 figure produced twice by different methods — `git grep` by hand and the tool — in agreement.
 - `lint` clean; `business-systems-guard`, `decision-citation-guard`, `decision-record-guard`, `his-hand-guard`, `interconnect-guard` all OK.
