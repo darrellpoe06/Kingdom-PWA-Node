@@ -228,3 +228,56 @@ describe('honesty: unknown terms, the horizon, paid-off flags, actual vs project
     expect(p.months.every((m) => m.payments.every((r) => r.endBalance >= 0))).toBe(true);
   });
 });
+
+describe('the schedule, the payoff dates and the rollover agree with each other (one engine, one truth)', () => {
+  const debts = () => [
+    { id: 'A', name: 'A', balance: 300, rate: 0, rateKnown: true, minPayment: 100 },
+    { id: 'B', name: 'B', balance: 2500, rate: 12, minPayment: 75, interestMethod: 'monthly' },
+    { id: 'C', name: 'C', balance: 900, rate: 20, minPayment: 40, interestMethod: 'daily' },
+  ];
+  it('each debt\'s payoff month is the first schedule month where its balance reaches zero', () => {
+    const p = run(debts(), { extraMonthly: 60, strategy: 'avalanche' });
+    for (const d of p.debts) {
+      const first = p.months.find((m) => m.payments.some((r) => r.debtId === d.id && r.paidOff));
+      expect(first, d.id).toBeTruthy();
+      expect(first.offset).toBe(d.payoffMonth);
+      expect(first.month).toBe(d.payoffKey);
+      expect(first.payments.find((r) => r.debtId === d.id).endBalance).toBe(0);
+      // and it never appears with a balance afterwards
+      expect(p.months.slice(first.offset).every((m) => !m.payments.some((r) => r.debtId === d.id && r.endBalance > 0))).toBe(true);
+    }
+  });
+  it('the per-debt totals equal the schedule\'s sums, and every month\'s rows balance to the cent', () => {
+    const p = run(debts(), { extraMonthly: 60 });
+    for (const d of p.debts) {
+      const rows = p.months.flatMap((m) => m.payments.filter((r) => r.debtId === d.id));
+      const paid = rows.reduce((s, r) => s + r.minimum + r.extra + r.lump, 0);
+      const interest = rows.reduce((s, r) => s + r.interest, 0);
+      expect(Math.abs(paid - d.totalPaid)).toBeLessThan(0.01);
+      expect(Math.abs(interest - d.interestPaid)).toBeLessThan(0.01);
+      expect(Math.abs(d.startBalance + interest + d.feesPaid - paid - d.endBalance)).toBeLessThan(0.02);
+      for (const r of rows) expect(Math.abs(r.startBalance + r.interest + r.fees - r.minimum - r.extra - r.lump - r.endBalance)).toBeLessThan(0.02);
+    }
+    expect(Math.abs(p.months.reduce((s, m) => s + m.totalPaid, 0) - p.totalPaid)).toBeLessThan(0.01);
+  });
+  it('the month after a debt clears, its full minimum shows up as extra on the next debt in order', () => {
+    const p = run(debts(), { extraMonthly: 60, strategy: 'snowball' });
+    const a = p.debts.find((d) => d.id === 'A');
+    const next = p.months[a.payoffMonth]; // the month AFTER A clears (offset is 1-based)
+    const rowsNext = next.payments.filter((r) => r.extra > 0);
+    expect(rowsNext.length).toBeGreaterThan(0);
+    // snowball: C (900) is next; it receives the recurring 60 + A's rolled 100
+    expect(rowsNext[0].debtId).toBe('C');
+    expect(rowsNext[0].extra).toBe(160);
+  });
+  it('the Debt Freedom screen\'s comparison is the same function the plan uses (compareStrategies ⊃ planDebtFreedom)', () => {
+    const opts = { startDate: START, extraMonthly: 60 };
+    const c = compareStrategies(debts(), opts);
+    for (const s of ['snowball', 'avalanche', 'custom']) {
+      const direct = planDebtFreedom(debts(), { ...opts, strategy: s });
+      expect(c[s].debtFreeKey).toBe(direct.debtFreeKey);
+      expect(c[s].totalInterest).toBe(direct.totalInterest);
+      expect(c[s].months.length).toBe(direct.months.length);
+    }
+  });
+});

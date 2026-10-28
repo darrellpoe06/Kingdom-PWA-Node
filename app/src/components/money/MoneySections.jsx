@@ -17,9 +17,9 @@
 //                   by kind (essential · debt · subscription · business ·
 //                   property), with a month view and a list view.
 //   · Goals       — the existing BudgetPlanner (goals + guidance), reused whole.
-//   · Debt Freedom — snowball vs avalanche vs hybrid vs minimums-only, from the
-//                   existing projectors (lib/lifecycle-and-flow.js), with the
-//                   extra-per-month the Debts tab already holds.
+//   · Debt Freedom — snowball vs avalanche vs custom vs minimums-only, from the
+//                   CORRECTED engine (lib/debt-freedom.js, DR-1270), never the
+//                   legacy projectors the Debts tab still reads.
 //   · Reports     — the finance report library (lib/finance-reports.js) over the
 //                   ledger, CSV / print through the existing ReportActions.
 //
