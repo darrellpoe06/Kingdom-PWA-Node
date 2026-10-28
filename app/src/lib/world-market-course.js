@@ -684,7 +684,13 @@ export const WORLD_MARKET_MODULES = [
     ],
     stories: [
       {
-        kind: 'testimony', tone: 'serious',
+        // A PARABLE, DELIBERATELY, and the choice is the honesty. A testimony
+        // on this platform claims on the page that a real person lived this
+        // and consented to its telling; nobody here has that person or that
+        // consent, so calling it one would be the exact false claim the
+        // true-story gate exists to stop. It teaches the same thing as a
+        // story told to teach, which is what it is.
+        kind: 'parable', tone: 'serious',
         title: 'The Tank Was Filled In August',
         body: 'A woman who had kept the books for a small heating-oil firm for nineteen years said the thing she could never get customers to believe was how little of the bill was about the house and how much was about the calendar. The people who called in August were not cleverer and mostly were not richer; they were the ones who had been caught once. She said the pattern repeated so exactly that she could name the January callers from the summer order book. What stayed with her was a widow who rang in the first week of a cold snap, asked the price, went quiet, and then asked whether she could have a hundred litres instead of a full tank. She said the firm had no mechanism for that conversation and she had invented one on the spot, badly, and had thought about it every autumn since. She said she started telling every new customer the same sentence in July, whether they wanted it or not, and that about a third of them listened and that a third was worth saying it to the other two.',
       },
