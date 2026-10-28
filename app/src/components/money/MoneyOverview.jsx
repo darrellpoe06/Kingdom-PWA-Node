@@ -176,12 +176,12 @@ export default function MoneyOverview({ money }) {
 
         {/* Controls below the breakdown: scope (one control on a phone), then the period */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <label className="sm:hidden flex-1 text-[0.625rem] text-[#C9A227] uppercase tracking-[0.18em] font-semibold">Whose money
+          <label className="lg:hidden flex-1 text-[0.625rem] text-[#C9A227] uppercase tracking-[0.18em] font-semibold">Whose money
             <select data-testid="money-scope-select" value={scope} onChange={(e) => save({ scope: e.target.value })} aria-label="Whose money" className="block mt-0.5 w-full min-h-[36px] px-2 rounded-lg border border-[#C9A227] bg-[#F6F1E7] text-[#1F3A2E] text-[0.8125rem] normal-case tracking-normal font-normal">
               {scopeOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
           </label>
-          <div role="group" aria-label="Whose money" className="hidden sm:flex flex-wrap items-center gap-1.5">
+          <div role="group" aria-label="Whose money" className="hidden lg:flex flex-wrap items-center gap-1.5">
             {scopeOptions.map((o) => (
               <button key={o.id} type="button" data-testid={`money-scope-${o.id}`} onClick={() => save({ scope: o.id })} aria-pressed={scope === o.id} className={`${ON_CARD} ${scope === o.id ? ON_CARD_ON : ON_CARD_OFF}`}>{o.label}</button>
             ))}

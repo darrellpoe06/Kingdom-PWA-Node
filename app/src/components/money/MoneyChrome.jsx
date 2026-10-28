@@ -40,28 +40,16 @@ const RAIL_FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:o
 const RAIL_KEY = 'poe-money-rail-collapsed';
 
 /** The header strip: sections below lg; the section's name at lg+. */
-export function MoneyNavStrip({ booksView = 'overview', setBooksView }) {
+export function MoneyNavStrip({ booksView = 'overview' }) {
+  // The sideways section strip is GONE (Christina 2026-10-28, on her Samsung:
+  // the 640–1023px band showed it scrolling "like a desktop application").
+  // Below the laptop rail the ONE bottom bar carries the sections
+  // (ChromeDock, MONEY_PHONE_QUERY); at the rail the rail does. The header
+  // keeps only the current-section label, at every width.
   const current = sectionFor(booksView) || MONEY_SECTIONS[0];
   return (
-    <div data-testid="money-nav-strip" className="flex items-center" role="tablist" aria-label="Money sections">
-      {MONEY_SECTIONS.map((s) => {
-        const active = current.id === s.id;
-        return (
-          <button
-            key={s.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            data-testid={`money-section-${s.id}`}
-            onClick={() => setBooksView && setBooksView(s.id)}
-            className={`hidden sm:inline-flex lg:hidden px-2.5 sm:px-3 py-2 min-h-[36px] items-center gap-1.5 whitespace-nowrap border-b-2 transition-colors ${FOCUS} ${active ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}
-          >
-            <span aria-hidden="true" className="text-[0.875rem] leading-none"><UiIcon name={s.icon} /></span>
-            <span>{s.label}</span>
-          </button>
-        );
-      })}
-      <span data-testid="money-strip-current" className="inline-flex sm:hidden lg:inline-flex items-center gap-2 px-3 py-2 text-[0.75rem] uppercase tracking-[0.2em] text-[#5A5751]">
+    <div data-testid="money-nav-strip" className="flex items-center" aria-label="Money section">
+      <span data-testid="money-strip-current" aria-current="page" data-section={current.id} className="inline-flex items-center gap-2 px-3 py-2 text-[0.75rem] uppercase tracking-[0.2em] text-[#5A5751]">
         <span aria-hidden="true" className="text-[#B85838]"><UiIcon name="coins" /></span>
         Money <span aria-hidden="true">·</span> <span className="text-[#1A1815] font-semibold">{current.label}</span>
       </span>

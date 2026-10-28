@@ -135,14 +135,19 @@ describe('the navigation: nine sections, every legacy tab inside one, three taps
       act(() => root.unmount()); host.remove(); root = null; host = null;
     }
   });
-  it('the header strip marks the current section', async () => {
+  it('the header names the current section and carries NO sideways section strip (Christina 2026-10-28, her Samsung at 640–1023px showed it scrolling)', async () => {
     const el = await mount(createElement(MoneyNavStrip, { booksView: 'imported', setBooksView: () => {} }));
-    expect(el.querySelector('[data-testid="money-section-transactions"]').getAttribute('aria-selected')).toBe('true');
+    const cur = el.querySelector('[data-testid="money-strip-current"]');
+    expect(cur.getAttribute('data-section')).toBe('transactions');
+    expect(cur.textContent).toContain('Transactions');
+    expect(el.querySelector('[data-testid^="money-section-"]')).toBeNull();
+    expect(el.querySelector('[role="tablist"]')).toBeNull();
   });
   it('on a phone inside Money the one bottom bar shows Overview · Transactions · Budget · Goals, and More leads with the rest of Money', async () => {
     window.innerWidth = 390;
     const orig = window.matchMedia;
-    window.matchMedia = (q) => ({ matches: /max-width: 639/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+    // At 390px BOTH queries match on a real phone: the bar's 639.98px rule and Money's 1023.98px rule.
+    window.matchMedia = (q) => ({ matches: /max-width: (639|1023)/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
     const seen = [];
     const nav = { groups: [], view: 'books', homeView: 'current', onNavigate: () => {}, money: { booksView: 'overview', setBooksView: (v) => seen.push(v) } };
     const el = await mount(createElement(ChromeDock, { onFeedback: () => {}, nav }));
@@ -151,6 +156,27 @@ describe('the navigation: nine sections, every legacy tab inside one, three taps
     for (const k of ['accounts', 'bills', 'debt-freedom', 'reports', 'settings']) expect(el.querySelector(`[data-testid="dock-more-money-${k}"]`), k).toBeTruthy();
     await act(async () => { el.querySelector('[data-testid="dock-money-budget"]').click(); });
     expect(seen).toEqual(['budget']);
+    window.matchMedia = orig;
+  });
+  it('between 640px and the laptop rail (a Fold\'s inner screen, a small tablet, a phone held sideways) Money STILL rides the one bar with More — and outside Money the bar keeps its 640px rule', async () => {
+    window.innerWidth = 900;
+    const orig = window.matchMedia;
+    // 900px: the phone query (639.98) does NOT match; Money's query (1023.98) does.
+    window.matchMedia = (q) => ({ matches: /max-width: 1023/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+    const inMoney = { groups: [], view: 'books', homeView: 'current', onNavigate: () => {}, money: { booksView: 'bills', setBooksView: () => {} } };
+    const el = await mount(createElement(ChromeDock, { onFeedback: () => {}, nav: inMoney }));
+    expect(el.querySelector('[data-testid="chrome-dock"]').getAttribute('data-money-mode')).toBe('true');
+    for (const k of ['overview', 'transactions', 'budget', 'goals']) expect(el.querySelector(`[data-testid="dock-money-${k}"]`), k).toBeTruthy();
+    expect(el.querySelector('[data-testid="dock-more"]').className).toContain('lg:hidden');
+    expect(el.querySelector('[data-testid="dock-more"]').className).not.toContain('sm:hidden');
+    expect(el.querySelector('[data-testid="dock-items"]').className).toContain('lg:static');
+    for (const k of ['accounts', 'bills', 'debt-freedom', 'reports', 'settings']) expect(el.querySelector(`[data-testid="dock-more-money-${k}"]`), k).toBeTruthy();
+    act(() => root.unmount()); host.remove(); root = null; host = null;
+    const outside = { groups: [], view: 'learn', homeView: 'current', onNavigate: () => {}, money: null };
+    const el2 = await mount(createElement(ChromeDock, { onFeedback: () => {}, nav: outside }));
+    expect(el2.querySelector('[data-testid="chrome-dock"]').getAttribute('data-money-mode')).toBe('false');
+    expect(el2.querySelector('[data-testid="dock-tabs"]')).toBeNull();
+    expect(el2.querySelector('[data-testid="dock-more"]').className).toContain('sm:hidden');
     window.matchMedia = orig;
   });
 });
@@ -188,7 +214,12 @@ describe('Christina\'s refinements (2026-10-28): phone-first card, simple breakd
     const { bag } = moneyBag(fixture());
     const el = await mount(createElement(MoneySurfaces, { section: 'debt-freedom', money: bag }));
     const band = el.querySelector('[data-testid="debt-summary"]').textContent;
-    for (const w of ['Total debt', 'Required monthly', 'Extra per month', 'Debt-free', 'Next to clear']) expect(band).toContain(w);
+    // The band leads with the four figures Christina named (2026-10-28): total debt, monthly payment, extra payment, projected payoff — then next to clear.
+    for (const w of ['Total debt', 'Monthly payment', 'required minimums', 'Extra payment', 'Projected payoff', 'Next to clear']) expect(band).toContain(w);
+    // The strategy comparison sits BELOW the per-debt terms, not above them.
+    const html = el.innerHTML;
+    expect(html.indexOf('Repayment strategies compared')).toBeGreaterThan(html.indexOf('Each debt under'));
+    expect(html.indexOf('Repayment strategies compared')).toBeLessThan(html.indexOf('data-testid="debt-schedule"'));
     expect(el.querySelector('[data-testid="debt-plan"]')).toBeNull();
     await act(async () => { el.querySelector('[data-testid="debt-plan-toggle"]').click(); });
     const plan = el.querySelector('[data-testid="debt-plan"]');

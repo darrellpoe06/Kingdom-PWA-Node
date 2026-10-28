@@ -317,20 +317,20 @@ export function MoneyDebtFreedom({ money }) {
     <div data-testid="money-debt-freedom" className="space-y-4">
       {/* THE SUMMARY BAND (Christina 2026-10-28): total debt, required monthly, extra, debt-free date, next payoff */}
       <section aria-label="Debt summary" data-testid="debt-summary" className="bg-[#1F3A2E] text-[#F6F1E7] rounded-2xl p-4 sm:p-5">
-        <dl className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3 text-[0.75rem]">
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4 text-[0.75rem]">
           {[
             ['Total debt', fmt(totalBalance), 'ledger'],
-            ['Required monthly', fmt(requiredMonthly), 'entered minimums'],
-            ['Extra per month', fmt(Number(plan.extraMonthly) || 0), 'your plan'],
-            ['Debt-free', result.cleared ? result.debtFreeLabel : (result.debts.length ? 'not within 50 years' : '—'), 'projected'],
-            ['Next to clear', nextToClear ? `${nextToClear.name} · ${nextToClear.payoffLabel}` : '—', 'projected'],
+            ['Monthly payment', fmt(requiredMonthly + (Number(plan.extraMonthly) || 0)), `${fmt(requiredMonthly)} required minimums + extra`],
+            ['Extra payment', fmt(Number(plan.extraMonthly) || 0), 'your plan, per month'],
+            ['Projected payoff', result.cleared ? result.debtFreeLabel : (result.debts.length ? 'not within 50 years' : '—'), 'debt-free, projected'],
           ].map(([label, value, kind]) => (
             <div key={label}>
               <dt className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#C9A227] font-semibold">{label}</dt>
-              <dd className="text-base text-[#F6F1E7] break-words" style={SERIF}>{value}<span className="block text-[0.625rem] text-[#F6F1E7] opacity-80">{kind}</span></dd>
+              <dd className="text-2xl sm:text-3xl leading-tight text-[#F6F1E7] break-words" style={SERIF}>{value}<span className="block mt-0.5 text-[0.625rem] font-sans text-[#F6F1E7] opacity-80">{kind}</span></dd>
             </div>
           ))}
         </dl>
+        <p className="mt-3 text-[0.8125rem] text-[#F6F1E7]"><span className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#C9A227] font-semibold mr-2">Next to clear</span>{nextToClear ? `${nextToClear.name} · ${nextToClear.payoffLabel}` : '—'} <span className="opacity-80 text-[0.625rem]">projected</span></p>
         <button type="button" data-testid="debt-plan-toggle" onClick={() => setPlanOpen(!planOpen)} aria-expanded={planOpen} className={`mt-4 w-full sm:w-auto min-h-[44px] px-4 py-2 text-[0.8125rem] font-semibold rounded-full bg-[#F6F1E7] text-[#1F3A2E] hover:bg-[#E8E4DC] ${FOCUS}`}>
           {planOpen ? 'Hide my monthly payment plan' : 'Show my monthly payment plan'}
         </button>
@@ -380,28 +380,6 @@ export function MoneyDebtFreedom({ money }) {
 
       <div role="group" aria-label="Repayment strategy" className="flex flex-wrap gap-1.5">
         {STRATEGIES.map((st) => <button key={st.id} type="button" data-testid={`strategy-${st.id}`} onClick={() => savePlan({ strategy: st.id })} aria-pressed={plan.strategy === st.id} className={`${CHIP} ${plan.strategy === st.id ? CHIP_ON : CHIP_OFF}`}>{st.label}</button>)}
-      </div>
-
-      {/* Comparison */}
-      <div className={`${CARD} overflow-x-auto`}>
-        <table className="w-full text-[0.8125rem]">
-          <caption className="sr-only">Repayment strategies compared</caption>
-          <thead><tr className="text-left text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751]"><th scope="col" className="py-1 pr-2">Strategy</th><th scope="col" className="py-1 pr-2">Debt-free (projected)</th><th scope="col" className="py-1 pr-2">Projected interest</th><th scope="col" className="py-1 pr-2">Total paid</th><th scope="col" className="py-1">Order</th></tr></thead>
-          <tbody>
-            {[...STRATEGIES.map((st) => [st.id, st.label, st.note]), ['minimums-only', 'Minimums only', 'No extra, nothing rolled.']].map(([id, lbl, note]) => { const r = comparison[id]; return (
-              <tr key={id} className={`border-t border-[#E8E4DC] ${plan.strategy === id ? 'bg-[#FAF8F4]' : ''}`}>
-                <th scope="row" className="py-2 pr-2 font-normal text-[#1A1815]">{lbl}</th>
-                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? label(r) : '—'}</td>
-                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? fmt(r.totalInterest) : '—'}</td>
-                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? fmt(r.totalPaid) : '—'}</td>
-                <td className="py-2 text-[#5A5751]">{note}</td>
-              </tr>
-            ); })}
-          </tbody>
-        </table>
-        {comparison.avalanche.cleared && comparison.snowball.cleared && (
-          <p className="mt-2 text-[0.6875rem] text-[#5A5751]">Avalanche saves {fmt(Math.max(0, comparison.snowball.totalInterest - comparison.avalanche.totalInterest))} of interest over snowball on these debts; snowball clears its first debt sooner.</p>
-        )}
       </div>
 
       {/* Custom order */}
@@ -482,6 +460,29 @@ export function MoneyDebtFreedom({ money }) {
           <button type="button" onClick={addLump} className={`min-h-[36px] px-3 py-1.5 text-[0.75rem] font-semibold rounded-full bg-[#1A1815] text-white hover:bg-[#B85838] ${FOCUS}`}>Add payment</button>
         </div>
       </div>
+
+      {/* Comparison — the detail, below the plan and each debt's terms (Christina 2026-10-28: "place detailed comparisons farther down the page") */}
+      <div className={`${CARD} overflow-x-auto`}>
+        <table className="w-full text-[0.8125rem]">
+          <caption className="sr-only">Repayment strategies compared</caption>
+          <thead><tr className="text-left text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751]"><th scope="col" className="py-1 pr-2">Strategy</th><th scope="col" className="py-1 pr-2">Debt-free (projected)</th><th scope="col" className="py-1 pr-2">Projected interest</th><th scope="col" className="py-1 pr-2">Total paid</th><th scope="col" className="py-1">Order</th></tr></thead>
+          <tbody>
+            {[...STRATEGIES.map((st) => [st.id, st.label, st.note]), ['minimums-only', 'Minimums only', 'No extra, nothing rolled.']].map(([id, lbl, note]) => { const r = comparison[id]; return (
+              <tr key={id} className={`border-t border-[#E8E4DC] ${plan.strategy === id ? 'bg-[#FAF8F4]' : ''}`}>
+                <th scope="row" className="py-2 pr-2 font-normal text-[#1A1815]">{lbl}</th>
+                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? label(r) : '—'}</td>
+                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? fmt(r.totalInterest) : '—'}</td>
+                <td className="py-2 pr-2 text-[#1A1815]" style={SERIF}>{result.debts.length ? fmt(r.totalPaid) : '—'}</td>
+                <td className="py-2 text-[#5A5751]">{note}</td>
+              </tr>
+            ); })}
+          </tbody>
+        </table>
+        {comparison.avalanche.cleared && comparison.snowball.cleared && (
+          <p className="mt-2 text-[0.6875rem] text-[#5A5751]">Avalanche saves {fmt(Math.max(0, comparison.snowball.totalInterest - comparison.avalanche.totalInterest))} of interest over snowball on these debts; snowball clears its first debt sooner.</p>
+        )}
+      </div>
+
 
       {/* Schedule — for advanced use, behind a disclosure */}
       {result.months.length > 0 && (

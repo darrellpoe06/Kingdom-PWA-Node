@@ -281,3 +281,57 @@ describe('the schedule, the payoff dates and the rollover agree with each other 
     }
   });
 });
+
+describe('realistic household debts with due dates (Christina 2026-10-28): snowball vs avalanche', () => {
+  // Four debts a family actually carries. Expectations fixed BEFORE running: the
+  // snowball order is by balance (medical → card → car → student), the avalanche
+  // order by rate (card → car → student → medical); avalanche never pays more
+  // interest than snowball; nothing is ever paid beyond what is owed; every
+  // month's outlay is exactly the minimums of open debts plus the extra, until
+  // the last debt clears; due days ride through to the result untouched.
+  const household = () => [
+    { id: 'card', name: 'Visa', balance: 4800, rate: 18.99, rateKnown: true, minPayment: 120, dueDay: 15, interestMethod: 'monthly' },
+    { id: 'car', name: 'Car loan', balance: 12400, rate: 6.5, rateKnown: true, minPayment: 340, dueDay: 1, interestMethod: 'monthly' },
+    { id: 'medical', name: 'Medical bill', balance: 2100, rate: 0, rateKnown: true, minPayment: 50, dueDay: 20, interestMethod: 'none' },
+    { id: 'student', name: 'Student loan', balance: 18000, rate: 5.5, rateKnown: true, minPayment: 190, dueDay: 28, interestMethod: 'monthly' },
+  ];
+  it('snowball clears smallest balance first and avalanche clears highest rate first', () => {
+    const snow = run(household(), { strategy: 'snowball', extraMonthly: 400 });
+    const aval = run(household(), { strategy: 'avalanche', extraMonthly: 400 });
+    const order = (p) => [...p.debts].sort((a, b) => a.payoffMonth - b.payoffMonth).map((d) => d.id);
+    expect(snow.cleared).toBe(true); expect(aval.cleared).toBe(true);
+    expect(order(snow)).toEqual(['medical', 'card', 'car', 'student']);
+    expect(order(aval)[0]).toBe('card');
+    expect(aval.totalInterest).toBeLessThanOrEqual(snow.totalInterest);
+    expect(aval.debtFreeMonth).toBeLessThanOrEqual(snow.debtFreeMonth);
+  });
+  it('no payment ever exceeds what is owed, and each month pays exactly the open minimums plus the extra', () => {
+    for (const strategy of ['snowball', 'avalanche']) {
+      const p = run(household(), { strategy, extraMonthly: 400 });
+      for (const m of p.months) {
+        for (const r of m.payments) {
+          const paid = r.minimum + r.extra + r.lump;
+          expect(paid).toBeLessThanOrEqual(r.startBalance + r.interest + r.fees + 0.01);
+          expect(r.endBalance).toBeGreaterThanOrEqual(0);
+        }
+        // The family's outlay is CONSTANT until the last debt clears: $700 of
+        // minimums + $400 extra = $1,100, because a cleared debt's minimum rolls
+        // to the next target (the unused part the month it clears, the whole
+        // minimum thereafter) — capped only by what is still owed.
+        const owedNow = m.payments.reduce((s, r) => s + r.startBalance + r.interest + r.fees, 0);
+        expect(m.totalPaid).toBeCloseTo(Math.min(700 + 400, owedNow), 0);
+      }
+      expect(p.totalPaid).toBeCloseTo(37300 + p.totalInterest, 0);
+    }
+  });
+  it('due days and terms ride through to the result, and the $0 medical bill costs no interest under either strategy', () => {
+    for (const strategy of ['snowball', 'avalanche']) {
+      const p = run(household(), { strategy, extraMonthly: 400 });
+      expect(p.debts.find((d) => d.id === 'card').dueDay).toBe(15);
+      expect(p.debts.find((d) => d.id === 'student').dueDay).toBe(28);
+      const medicalInterest = p.months.reduce((s, m) => s + ((m.payments.find((r) => r.debtId === 'medical') || { interest: 0 }).interest), 0);
+      expect(medicalInterest).toBe(0);
+      expect(p.excluded).toEqual([]);
+    }
+  });
+});

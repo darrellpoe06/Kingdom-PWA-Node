@@ -50,7 +50,7 @@ import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import {
   DOCK_BTN, DOCK_BTN_ON, DOCK_HEIGHT_PX, DOCK_ICON, DOCK_LABEL,
-  scrollPageToTop, setDockSlot, useScrolledDeep, usePhoneWidth, useReaderLive,
+  scrollPageToTop, setDockSlot, useScrolledDeep, usePhoneWidth, useMoneyPhoneWidth, useReaderLive,
 } from '../lib/chrome-dock.js';
 
 export function DockLabel({ children }) {
@@ -137,12 +137,17 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // Top). Inside a lesson NOTHING here changes: the one-row reader bar is
   // measured law (DR-0716 / DR-0744). Wider than a phone the tab strip or the
   // sidebar is the nav and the bar stays what it was.
-  const tabsMode = !!nav && phone && !inReader;
   // INSIDE MONEY the four tabs are Money's own (Christina 2026-10-28: "Use a
   // simplified bottom navigation system ... Overview, Transactions, Budget,
   // Goals, More") — the app's ONE bar (DR-0716), never a second bar. More then
   // leads with the rest of Money, above every other section as before.
-  const moneyNav = tabsMode && nav.money ? nav.money : null;
+  // Money rides the bar at EVERY width below the laptop rail (MONEY_PHONE_QUERY,
+  // 1024px): her Samsung's 640–1023px screen got the sideways strip instead.
+  // Outside Money the bar's tabs keep the 640px phone rule exactly as before.
+  const underLg = useMoneyPhoneWidth();
+  const moneyMode = !!nav && !!nav.money && underLg && !inReader;
+  const tabsMode = (!!nav && phone && !inReader) || moneyMode;
+  const moneyNav = moneyMode ? nav.money : null;
   const moneySection = moneyNav ? (sectionFor(moneyNav.booksView) || { id: 'overview' }).id : null;
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
@@ -220,6 +225,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
         data-testid="chrome-dock"
         data-in-reader={inReader ? 'true' : 'false'}
         data-one-row={oneRow ? 'true' : 'false'}
+        data-money-mode={moneyMode ? 'true' : 'false'}
         data-read-skip
         data-reading-chrome
         data-read-no-expand
@@ -283,7 +289,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               aria-haspopup="true"
               aria-label={moreLabel}
               title="More"
-              className={`sm:hidden ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+              className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
             >
               <span aria-hidden="true" className={DOCK_ICON}>⋯</span>
               <DockLabel>More</DockLabel>
@@ -299,7 +305,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               data-testid="dock-items"
               role="group"
               aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
+              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto ${moneyMode ? 'lg:static lg:flex lg:mb-0 lg:p-0 lg:border-0 lg:shadow-none lg:min-w-0 lg:bg-transparent' : 'sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent'}`}
             >
               {moneyNav && (
                 <div data-testid="dock-more-group-money" className="w-full flex flex-wrap items-center gap-[4px]">
@@ -337,7 +343,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               <NetworkStatus variant="dock" onHealthChange={onHealthChange} />
               {/* On a phone Top also rides in the menu, so it is reachable
                   even while the reader's mini-bar fills the line. */}
-              <button type="button" onClick={toTop} data-testid="dock-more-top" aria-label="Back to the top of the page" title="Back to top" className={`sm:hidden ${DOCK_BTN} ${FOCUS}`}>
+              <button type="button" onClick={toTop} data-testid="dock-more-top" aria-label="Back to the top of the page" title="Back to top" className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${DOCK_BTN} ${FOCUS}`}>
                 <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>
                 <DockLabel>Top</DockLabel>
               </button>
