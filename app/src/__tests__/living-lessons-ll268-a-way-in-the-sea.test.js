@@ -184,10 +184,22 @@ describe('L268 is in the catalog, numbered, dated and whole', () => {
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims 268 and nothing else, and is the highest Living Lesson', () => {
+  // FIXED WHEN ll269 LANDED, and it is worth saying why rather than quietly
+  // editing it. This case originally also asserted
+  // `expect(Math.max(...numbers)).toBe(268)` -- that ll268 is the HIGHEST
+  // Living Lesson. That assertion was true for about an hour and then became a
+  // time bomb: the very next lesson makes it false, and it would have reddened
+  // ll269's branch and then main. It is precisely the defect DR-1256 was
+  // written about, where a check hands a permanent role to whichever lesson
+  // happens to be newest, and I committed it again in a lesson spec one day
+  // later. A lesson's own gate should assert what is true about that lesson
+  // for good -- that it claims its number exactly once -- and leave "which is
+  // newest" to living-lessons-order.test.jsx, which owns that question and has
+  // a comment moved deliberately each time the answer changes.
+  it('claims 268 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(numbers.filter((n) => n === 268)).toHaveLength(1);
-    expect(Math.max(...numbers)).toBe(268);
+    expect(numbers.filter((n) => n === 268)).toEqual([268]);
   });
 
   it('carries its build day', () => {
