@@ -29,9 +29,9 @@ const corpus = [
 ].filter(Boolean).join('\n\n');
 
 describe('legacy provisions course: structure', () => {
-  it('has a keyed meta and seven real lessons', () => {
+  it('has a keyed meta and eight real lessons', () => {
     expect(LEGACY_PROVISIONS_META.key).toBe('legacy-provisions');
-    expect(LEGACY_PROVISIONS_MODULES.length).toBe(7);
+    expect(LEGACY_PROVISIONS_MODULES.length).toBe(8);
     expect(LEGACY_PROVISIONS_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0))
       .toBe(LEGACY_PROVISIONS_SESSION_MINUTES);
   });

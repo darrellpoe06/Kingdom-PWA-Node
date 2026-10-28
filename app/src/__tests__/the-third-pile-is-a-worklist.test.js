@@ -106,8 +106,43 @@ const REPO = join(HERE, '..', '..', '..');
 // re-review: 2026-11-28 -- from a runner with web access, read the EIA
 // projection and the Food & Water Watch figure back off their publishers' own
 // pages, give wm9 a row in lesson-sources.json, and lower this pin to 11.
+//
+//
+// 1 -> 2 CHECKED on 2026-10-28 (DR-1275). legacy8 is built from a Morning Brew
+// edition reporting the Federal Reserve's 2025 Survey of Consumer Finances, so
+// its figures have a primary publisher and did not have to stay admitted. The
+// GAP does not move: legacy8 arrived carrying disclosures AND left the gap in
+// the same change, because it gained a source row rather than an apology.
+//
+// The road matters more than the row (DR-0108). This sandbox cannot resolve
+// federalreserve.gov at all -- not a 403, a DNS refusal -- so the first reading
+// of "we cannot check this" was about ONE agent's reach, not the team's. A
+// GitHub runner reaches it, and lesson-sources-witness.mjs is keyed by lesson
+// id, so widening it was DATA. Three probe runs on a throwaway branch found
+// what no amount of reasoning would have: the bulletin is scf26.pdf, not
+// scf25.pdf, and it prints dollars in THOUSANDS, so the newsletter's $505,000
+// reads back as 504.9. Measured, runs 40765563536 / 40765786504 / 40766904379.
+//
+// What did NOT read back is on the row's own note and is not smoothed over:
+// the $367,000 previous median is absent from the bulletin, and the 37/23
+// percent changes are unmatchable as bare two-digit strings, so they are left
+// as the newsletter's claims rather than dressed up as verified.
+//
+// BOTH LANDED THE SAME DAY, and the resolution is not a split difference.
+// wm9 took the second branch (its figures arrived inside an email, and an email
+// is not a page a runner can read a number back off) so it ADDS to the gap:
+// 11 -> 12. legacy8 took the first branch and LEAVES the gap, so it does not
+// subtract from wm9's increment -- it was never counted in the 11. Hence
+// GAP = 12 with CHECKED_LESSONS = 2, and neither lesson's reasoning is edited
+// to suit the other's.
+//
+// Standing note for wm9's own re-review, now that it is not hypothetical: a
+// runner CAN read a publisher's page back -- legacy8 proved it on
+// federalreserve.gov the same day, after this sandbox failed even to resolve
+// the host. So wm9's "could read the EIA projection" is a method that exists
+// and has been exercised, not a hope.
 const GAP = 12;
-const CHECKED_LESSONS = 1;
+const CHECKED_LESSONS = 2;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {
