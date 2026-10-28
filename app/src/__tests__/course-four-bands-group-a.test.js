@@ -25,7 +25,15 @@ import { formatLessonText } from '../lib/lesson-format.js';
 
 const COURSES = ['ai', 'little-learners', 'mathematics', 'development', 'rent-to-own-business'];
 // sovereign-ai is banded lesson by lesson; its banded lessons are held here.
-const PARTIAL = { 'sovereign-ai': ['sov1-', 'sov2-', 'sov3-', 'sov4-', 'sov5-', 'sov6-', 'sov7-', 'sov8-', 'sov14-', 'sov16-'] };
+// sov54 (DR-1272) JOINS THIS LIST IN THE COMMIT THAT BUILDS IT, which is the
+// point of the list. Its own build measured `fourBandGateFaults` and found
+// four faults -- every band failed `namesItsLesson`, because a twelve-keyword
+// title cannot be half-named inside a 200-character opening. The title was
+// shortened to the slug the id already carried and each band's first sentence
+// rewritten in its own register; the faults went to zero. Being measured and
+// not watched is a claim (DR-0076 sec.3), so the week is listed here rather
+// than left to the measurement in its record.
+const PARTIAL = { 'sovereign-ai': ['sov1-', 'sov2-', 'sov3-', 'sov4-', 'sov5-', 'sov6-', 'sov7-', 'sov8-', 'sov14-', 'sov16-', 'sov54-'] };
 
 const lessonsOf = (key) => {
   const c = LEARN_CATALOG.find((x) => x.key === key);

@@ -461,7 +461,7 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       .toEqual(['Deuteronomy 24', 'Leviticus 25', 'Matthew 18', 'Micah 2']);
   });
 
-  it('shares exactly FOUR verses with courses OUTSIDE the department, and names them', () => {
+  it('shares exactly SIX verses with courses OUTSIDE the department, and names them', () => {
     // The department pin above is verse-level zero. This is the wider picture,
     // pinned so the narrower claim cannot be mistaken for a catalog-wide one.
     //
@@ -485,7 +485,19 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
     // same verse this course cites for the boundary a landlord may not move.
     // Two courses meeting on the one verse that names the crime is the
     // catalog agreeing with itself; re-pinned, not loosened.
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
+    //
+    // And to SIX on 2026-10-28 when wm9 (the cost of staying warm, DR-1276)
+    // landed in The World Market: it quotes Job 24:7 — "They cause the naked
+    // to lodge without clothing, that they have no covering in the cold" — for
+    // the cold named as a wrong DONE TO A PERSON rather than a preference,
+    // which is the same reading this course gives it for a household put out
+    // of its shelter. One is the cold of eviction and one the cold of a bill
+    // that cannot be paid, and Job 24 names both in one breath. Two courses
+    // meeting on the one verse that names the injury is the catalog agreeing
+    // with itself, so the list is re-pinned rather than loosened — and the
+    // title of this case now says SIX, because a case that counts five while
+    // calling itself FOUR is a surface telling a reader something untrue.
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {
