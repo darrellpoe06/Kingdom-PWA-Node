@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 fill_versions.py -- the library is filled perpetually: the lane that writes a
-lesson's MISSING age versions on the NAS, newest lesson first (DR-1261).
+lesson's MISSING age versions on the NAS, newest lesson first (DR-1262).
 Darrell 2026-10-27: "Make sure we are filling the course library perpetually
 with all levels and necessary components..."
 
@@ -325,7 +325,7 @@ class Run:
                 if ok is False:
                     self.report["refused"].append({"lesson": q["lessonId"], "band": band, "why": "local gates: " + why[-300:]})
                     return False
-            subject = "{} gains its {} version, written whole in that reader's words (DR-1261)".format(q["title"][:70], band.capitalize())
+            subject = "{} gains its {} version, written whole in that reader's words (DR-1262)".format(q["title"][:70], band.capitalize())
             body = ("The library census listed this lesson as waiting for the {} version; the fill lane wrote it from the adult "
                     "lesson with the same Scriptures verbatim, gated it (verse scan, the band's share of the adult lesson, "
                     "the child ceiling, differentiation) and spliced it into {} by the file's parse tree. Writer: {}. "

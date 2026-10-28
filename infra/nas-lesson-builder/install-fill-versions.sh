@@ -1,5 +1,5 @@
 #!/bin/sh
-# fill-versions -- the library is filled perpetually (DR-1261). Rides the
+# fill-versions -- the library is filled perpetually (DR-1262). Rides the
 # ALREADY-ARMED services-sync clock as an idempotent installer. Installs the
 # oneshot service and its timer; the timer is ENABLED only while services.json
 # says fill-versions enabled:true (the registry is the switch, DR-0248), and

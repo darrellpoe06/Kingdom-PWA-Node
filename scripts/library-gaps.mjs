@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// library-gaps — the fill lane's work list, from the catalog, as JSON (DR-1261)
+// library-gaps — the fill lane's work list, from the catalog, as JSON (DR-1262)
 // =============================================================================
 // Prints the gap queue the app's own census derives (lib/library-census.js),
 // newest first, each entry naming what it waits for; `--lesson <id>` prints
