@@ -109,7 +109,21 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(265); // measured by scripts/course-band-baseline-write.mjs after `git merge origin/main`,
+    expect(baseline.allFour).toBe(266); // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
+    // raise allFour, so each side of this merge said 265 and NEITHER was right. sov55 (the czar and the
+    // charge, and the desk above the desk, DR-1273) measured 264 -> 265 on its own base, and dsi15
+    // (weighed into named hands, DR-1278) measured 264 -> 265 on its. On the MERGED catalog both are
+    // present, so the answer is 266. Re-measured by scripts/course-band-baseline-write.mjs AFTER
+    // `git merge origin/main`, which is exactly the failure that script's own header warns about:
+    // hand-merging these numbers after a merge is how a wrong number ships, and taking either side's
+    // 265 would have shipped one. sovereign-ai reads {lessons: 55}; datasystems {lessons: 15, allFour: 1}.
+    //
+    // Both lessons' own measurements, kept as each recorded them:
+    // // 265 on 2026-10-28: sov55 (the czar and the charge, and the desk
+    // above the desk, DR-1273), the fifty-fifth week of Sovereign A.I. Measured by a fresh
+    // scripts/course-band-baseline-write.mjs run (total 439, allFour 265, adultOnly 0, 174 still pinned),
+    // never hand-written. All four bands from its first commit; sovereign-ai reads {lessons: 55}.
+    // measured by scripts/course-band-baseline-write.mjs after `git merge origin/main`,
     // never hand-written: every lesson that lands raises this, and that script's own header
     // warns that hand-merging the number after a merge is how a wrong one ships.
     //
