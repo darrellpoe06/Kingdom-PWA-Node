@@ -174,6 +174,19 @@ const SYNCED_FIELDS = [
   'tenantName', 'entityId',
 ];
 
+// Money fields where 0 means "not entered", NEVER a deliberate $0 — every
+// "X of N entered" / missing* rollup keys off `> 0`, so the app has no concept
+// of a real $0 rent here. For these a blank remote never erases a real local
+// value EVEN WHEN THE REMOTE ROW IS NEWER: a fresher cloud row carrying 0 is a
+// fresh insert, a structure-only write, or an instance quirk — not a landlord
+// zeroing the rent. Losing a typed figure is unrecoverable; keeping a stale
+// real value is not ("a false drop costs the record itself"). This closes the
+// "it keeps updating to zero" data loss: measured 2026-10-28 the cloud held 0
+// on every door but one, and a newer-remote overlay was wiping values typed on
+// the device. Non-money fields keep the recency rule (a newer remote blank is a
+// real clear, e.g. a tenant name removed on another device). DR-1277.
+const MONEY_SYNCED_FIELDS = new Set(['rent', 'actual']);
+
 // Structure fields (0160): they overlay from remote like the rest, EXCEPT that
 // a blank remote value never erases a local one — the twelve doors that predate
 // these columns hold their labels locally and must not be flattened by a row
@@ -327,20 +340,36 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       next.updatedAt = localNewer ? local.updatedAt : remote.updatedAt;
       for (const f of SYNCED_FIELDS) {
         if (localNewer) continue;                                        // fresher local edit wins
-        if (cmp === 0 && isBlankValue(remote[f]) && !isBlankValue(local[f])) continue; // blank remote never erases a real local value
+        // A blank remote never erases a real local value. For MONEY fields this
+        // holds at any age (0 = "not entered", never a real $0 — DR-1277); for
+        // the rest only at equal/unknown age, where a genuinely newer remote
+        // blank is still a real clear (e.g. a tenant name removed elsewhere).
+        if (isBlankValue(remote[f]) && !isBlankValue(local[f]) && (cmp === 0 || MONEY_SYNCED_FIELDS.has(f))) continue;
         next[f] = remote[f];                                             // remote is newer, or has a real value to apply
       }
       for (const f of FILL_FIELDS) if (remote[f]) next[f] = remote[f];
       for (const f of STRUCTURE_FIELDS) if (remote[f]) next[f] = remote[f];
-      // The whole mortgage object syncs now (v2.13 added rate / P&I /
-      // escrow columns); only the local 'estimated' flag is preserved. A
-      // fresher local edit keeps its own mortgage object rather than being
-      // overwritten by a stale remote one.
-      next.mortgage = (localNewer && local.mortgage)
-        ? local.mortgage
-        : (local.mortgage
-          ? { ...remote.mortgage, estimated: local.mortgage.estimated }
-          : remote.mortgage);
+      // The whole mortgage object syncs now (v2.13 added rate / P&I / escrow
+      // columns). A fresher local edit keeps its own mortgage object; otherwise
+      // we overlay per sub-field so a blank remote money value (balance / rate /
+      // P&I / escrow — all 0 = "not entered") NEVER erases a real local one,
+      // even from a newer cloud row. Same 0-is-unentered rule as the money
+      // fields above; the local 'estimated' flag is always preserved. DR-1277.
+      if (localNewer && local.mortgage) {
+        next.mortgage = local.mortgage;
+      } else if (local.mortgage || remote.mortgage) {
+        const lm = local.mortgage || {};
+        const rm = remote.mortgage || {};
+        const keep = (lv, rv) => (isBlankValue(rv) && !isBlankValue(lv) ? lv : (rv !== undefined ? rv : lv));
+        next.mortgage = {
+          ...rm,
+          balance:   keep(lm.balance, rm.balance),
+          rate:      keep(lm.rate, rm.rate),
+          monthlyPI: keep(lm.monthlyPI, rm.monthlyPI),
+          escrow:    keep(lm.escrow, rm.escrow),
+          estimated: lm.estimated !== undefined ? lm.estimated : rm.estimated,
+        };
+      }
       merged.push(next);
     } else if (!local.remoteUuid) {
       merged.push(local);
