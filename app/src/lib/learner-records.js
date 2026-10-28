@@ -146,7 +146,7 @@ function summarize(records) {
     .filter(Boolean)
     .sort()
     .pop() || null;
-  // WHICH VERSIONS (DR-1255 / DR-1260): every version this learner read to
+  // WHICH VERSIONS (DR-1255 / DR-1261): every version this learner read to
   // the end across these rows, in the picker's order, each once.
   const seen = new Set();
   for (const r of records) for (const v of (Array.isArray(r.versionsRead) ? r.versionsRead : [])) seen.add(v);

@@ -76,7 +76,7 @@ function LearnerCard({ learner, mine, showWho }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Figure label="Lessons read" value={learner.lessonsRead} />
-        {/* WHICH VERSIONS (DR-1255, closed DR-1260): the same Word is written
+        {/* WHICH VERSIONS (DR-1255, closed DR-1261): the same Word is written
             for five readers; the record says which of them this learner has
             read in, and how many are still to read. */}
         <Figure
