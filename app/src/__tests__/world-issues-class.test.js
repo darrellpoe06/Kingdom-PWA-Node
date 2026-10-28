@@ -5,7 +5,8 @@ import {
   buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
   auditWorldIssues, resolveWorldIssuesCohort, WORLD_ISSUES_TUTOR_META,
 } from '../lib/world-issues-class.js';
-import { buildDiscernmentModules, auditIssue } from '../lib/discernment-track.js';
+import { buildDiscernmentModules, auditIssue, lintLatestNotOnlyInstitutions, LATEST_SINCE } from '../lib/discernment-track.js';
+import LATEST_BASELINE from '../lib/world-issues-latest-baseline.json';
 
 describe('the published World Issues track passes every safeguard (the gate)', () => {
   it('every issue audits clean — no error-severity violations', () => {
@@ -252,5 +253,73 @@ describe('one lesson, Word first (2026-10-22: "two lessons in one... What happen
       if (claim > -1) expect(word, band).toBeLessThan(claim);
       expect(t, band).not.toMatch(/\bNAS\b|Whisper|the row (itself )?records/);
     }
+  });
+});
+
+// THE NEWEST WORD, NOT ONLY THE INSTITUTIONS' (2026-10-27). Darrell, on World
+// Issues 22: "World issues did not have the latest information... just the
+// latest in institutions... which are usually behind the main stream... like we
+// don't take epstein seriously anymore and the institutions are trustworthy
+// when historical events say otherwise for Africa Americans." The lint holds a
+// lesson to a dated latest section with at least one word from the field, and
+// holds every documented fact to two publishers or the record itself. Proven
+// to catch below; the 21 earlier issues are held by a baseline that only
+// shrinks.
+describe('the newest word, not only the institutions’ (2026-10-27)', () => {
+  const seal = WORLD_ISSUES.find((i) => i.id === 'wi-the-broken-seal-and-the-sure-foundation');
+  const codes = (issue) => lintLatestNotOnlyInstitutions(issue).map((v) => `${v.code}:${v.severity}`);
+  const fresh = (over = {}) => ({
+    ...seal,
+    source: { ...seal.source, asOf: LATEST_SINCE },
+    ...over,
+  });
+
+  it('lesson 22 carries the newest word from the field and audits clean', () => {
+    expect(codes(seal)).toEqual([]);
+    expect(auditIssue(seal).ok).toBe(true);
+  });
+
+  it('CATCHES a new lesson with no dated latest section', () => {
+    expect(codes(fresh({ latest: undefined }))).toEqual(['latest/missing:error']);
+    expect(codes(fresh({ latest: { asOf: '2026-10-27', items: [] } }))).toEqual(['latest/missing:error']);
+    expect(auditIssue(fresh({ latest: undefined })).ok).toBe(false);
+  });
+
+  it('CATCHES a latest section that stands only on institutions', () => {
+    const only = { asOf: '2026-10-27', items: [{ said: 'The agency confirmed the flaw in its weekly bulletin.', by: 'the agency', standing: 'institution', asOf: '2026-10-27' }] };
+    expect(codes(fresh({ latest: only }))).toEqual(['latest/only-institutions:error']);
+  });
+
+  it('CATCHES a documented fact that rests on one publisher’s word, and accepts two publishers or the record itself', () => {
+    const oneWord = { id: 'f-x', statement: 'A thing happened.', status: 'documented', sources: [{ title: 't', publisher: 'One Office', asOf: '2026-10-27' }] };
+    expect(codes(fresh({ verifiable: [...seal.verifiable, oneWord] }))).toEqual(['documented/one-word:error']);
+    const two = { ...oneWord, sources: [...oneWord.sources, { title: 't2', publisher: 'A Second Desk', asOf: '2026-10-27' }] };
+    expect(codes(fresh({ verifiable: [...seal.verifiable, two] }))).toEqual([]);
+    const primary = { ...oneWord, sources: [{ ...oneWord.sources[0], primary: true }] };
+    expect(codes(fresh({ verifiable: [...seal.verifiable, primary] }))).toEqual([]);
+  });
+
+  it('an earlier lesson gets warnings, never errors, so the published track still audits clean', () => {
+    const older = fresh({ source: { ...seal.source, asOf: '2026-09-01' }, latest: undefined });
+    expect(codes(older)).toEqual(['latest/missing:warn']);
+    expect(auditIssue(older).ok).toBe(true);
+  });
+
+  it('a lesson that already carries a latest section is held whole, whatever its date', () => {
+    const dated = fresh({ source: { ...seal.source, asOf: '2026-09-01' }, latest: { asOf: '2026-09-01', items: [{ said: 'Only the office spoke, and it spoke late.', by: 'the office', standing: 'institution', asOf: '2026-09-01' }] } });
+    expect(codes(dated)).toEqual(['latest/only-institutions:error']);
+  });
+
+  it('the baseline of earlier issues only shrinks (an issue brought up to the rule leaves it)', () => {
+    const now = {};
+    for (const i of WORLD_ISSUES) {
+      const c = lintLatestNotOnlyInstitutions(i).map((v) => v.code).sort();
+      if (c.length) now[i.id] = c;
+    }
+    const grew = Object.entries(now).filter(([id, c]) => c.length > (LATEST_BASELINE[id] || []).length).map(([id]) => id);
+    expect(grew, 'an issue carries MORE latest/documented warnings than the baseline allows').toEqual([]);
+    const stale = Object.keys(LATEST_BASELINE).filter((id) => !now[id] || now[id].length < LATEST_BASELINE[id].length);
+    expect(stale, 'now cleaner than the baseline, shrink world-issues-latest-baseline.json:\n' + stale.join('\n')).toEqual([]);
+    expect(now['wi-the-broken-seal-and-the-sure-foundation']).toBeUndefined();
   });
 });

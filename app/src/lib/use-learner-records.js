@@ -48,10 +48,20 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     })).catch(() => { /* offline, or a wall said no — the read stands */ });
   }, []);
 
-  const toggleClassModule = useCallback((moduleId, courseKey) => {
+  // A tap toggles. A READING FILES (DR-1255): called with `{ versionsRead }`
+  // it marks the lesson read if it is not, never unmarks it, and sends the
+  // versions read to the end — the wall keeps the union across his devices
+  // (0312), so a version read on the phone is still read on the tablet.
+  const toggleClassModule = useCallback((moduleId, courseKey, opts = null) => {
     if (typeof setData !== 'function') return;
+    const versionsRead = opts && Array.isArray(opts.versionsRead) ? opts.versionsRead.filter(Boolean) : null;
     setData((d) => {
       const p = { ...(d.classProgress || {}) };
+      if (versionsRead) {
+        if (!p[moduleId]) p[moduleId] = new Date().toISOString();
+        keep(moduleId, courseKey, { completedAt: p[moduleId], versionsRead });
+        return { ...d, classProgress: p };
+      }
       if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
       keep(moduleId, courseKey, { completedAt: p[moduleId] || null });
       return { ...d, classProgress: p };

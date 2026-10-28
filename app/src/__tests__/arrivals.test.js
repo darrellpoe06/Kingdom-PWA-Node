@@ -24,6 +24,7 @@ describe('every kind, read from the rows each screen already reads', () => {
     expect(ARRIVAL_KINDS).toEqual(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
     expect(SCREEN_KINDS.learn).toEqual(['lesson-new']);
     expect(SCREEN_KINDS['your-lessons']).toEqual(['lesson-ready', 'lesson-review', 'lesson-published']);
+    expect(SCREEN_KINDS.lesson, 'opening the lesson itself is looking at its arrival (DR-1253)').toEqual(['lesson-published']);
     expect(SCREEN_KINDS.decide).toEqual(['review-queue']);
     expect(SCREEN_KINDS.feedback).toEqual(['feedback']);
   });
@@ -49,7 +50,8 @@ describe('every kind, read from the rows each screen already reads', () => {
   it('a published lesson is its own arrival, with the lesson named', () => {
     const out = lessonArrivals([item({ published: { number: 'L205', title: 'Grace', lessonId: 'll205', href: '?view=church&lesson=ll205' } })]);
     expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({ kind: 'lesson-published', id: 'lesson-published:r1', detail: 'L205 Grace', href: '?view=church&lesson=ll205' });
+    // ... and it lands on the LESSON, in Learn (DR-1253), never on the lane's Your lessons panel.
+    expect(out[0]).toMatchObject({ kind: 'lesson-published', id: 'lesson-published:r1', detail: 'L205 Grace', href: '?view=church&lesson=ll205', screen: 'learn', courseKey: 'living-lessons', lessonId: 'll205' });
   });
 
   it('the Governor’s decision on a member’s request is an arrival for the member only', () => {
@@ -158,6 +160,12 @@ describe('where a tap lands, in the door the person is already in', () => {
     const peer = '11111111-2222-3333-4444-555555555555';
     expect(arrivalLanding({ pathname: '/lovecorner/app/', item: { kind: 'message', peerUserId: peer } })).toBe(`/lovecorner/app/?view=messages&dm=${peer}`);
     expect(arrivalLanding({ pathname: '/lovecorner/app/', item: { kind: 'lesson-ready', screen: 'your-lessons' } })).toBe('/lovecorner/app/?view=create&panel=your-lessons');
+    // A published lesson opens the lesson itself, in the door the person is in (DR-1253).
+    expect(arrivalLanding({ pathname: '/poetech-app/', item: { kind: 'lesson-published', screen: 'learn', courseKey: 'living-lessons', lessonId: 'll265-jerichos-barred-gates' } }))
+      .toBe('/poetech-app/?view=church&sub=learn&course=living-lessons&lesson=ll265-jerichos-barred-gates');
+    expect(arrivalLanding({ pathname: '/lovecorner/app/', item: { kind: 'lesson-published', screen: 'learn', courseKey: 'living-lessons', lessonId: 'll265-jerichos-barred-gates' } }))
+      .toBe('/lovecorner/app/?view=church&sub=learn&course=living-lessons&lesson=ll265-jerichos-barred-gates');
+    // Proven-to-catch: the old shape (screen your-lessons) is the panel, which is the confusion.
     expect(arrivalLanding({ pathname: '/poetech-app/', item: { kind: 'lesson-published', screen: 'your-lessons' } })).toBe('/poetech-app/?view=create&panel=your-lessons');
     expect(arrivalLanding({ pathname: '/poetech-app/', item: { kind: 'review-queue', screen: 'decide' } })).toBe('/poetech-app/?view=create&panel=decide');
   });

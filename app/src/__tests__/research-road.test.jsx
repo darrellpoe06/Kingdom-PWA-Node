@@ -52,7 +52,10 @@ describe('the question and its sources', () => {
   it('mirrors the forwarder’s length cap and refuses an empty question', () => {
     expect(queryProblem('  ')).toMatch(/Type a question/);
     expect(queryProblem('x'.repeat(MAX_QUERY_CHARS))).toBe(null);
-    expect(queryProblem('x'.repeat(MAX_QUERY_CHARS + 1))).toMatch(/under 500/);
+    // Derived from the constant, not spelled 500: a hardcoded number here means
+    // the message and the cap can drift apart silently, and the whole point of
+    // this case is that the two sides agree.
+    expect(queryProblem('x'.repeat(MAX_QUERY_CHARS + 1))).toMatch(new RegExp(`under ${MAX_QUERY_CHARS}`));
     const fwd = read('infra/nas-research/research_forwarder.py');
     expect(fwd).toMatch(new RegExp(`^MAX_QUERY_CHARS = ${MAX_QUERY_CHARS}$`, 'm'));
   });
@@ -107,7 +110,7 @@ describe('asking', () => {
     expect(r.sources.map((s) => s.url)).toEqual(['https://s.example']);
   });
   it('turns the road’s refusals into plain words', async () => {
-    for (const [code, re] of [[401, /family key/], [503, /busy/], [504, /three minutes/], [413, /under 500/]]) {
+    for (const [code, re] of [[401, /family key/], [503, /busy/], [504, /three minutes/], [413, new RegExp(`under ${MAX_QUERY_CHARS}`)]]) {
       const r = await askResearch('q', { token: 'k', fetchImpl: async () => json(code, { error: 'x' }) });
       expect(r.ok).toBe(false);
       expect(r.error).toMatch(re);

@@ -77,7 +77,7 @@ import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
-import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
+import { isReviewerModeOn, isReviewerStranger, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
@@ -165,7 +165,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection,
-  surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
+  surfaceById, canSeeCameras, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
@@ -967,7 +967,7 @@ export default function PoeFinancialSystem() {
   // Reviewer mode (lib/reviewer-mode.jsx) — the steward reviews this build exactly
   // as a signed-in user sees it. STRICTLY NARROWING: it only hides privilege, and
   // every write path to the steward's real data is suppressed while it is on.
-  const reviewerMode = isReviewerModeOn();
+  const reviewerMode = isReviewerModeOn(); const reviewerStranger = isReviewerStranger(); // two modes, one value (DR-1240): 'self' keeps his own rows, 'stranger' hides them
 
   // First-time landing: when someone hits the bare URL (poetech.us with no
   // query params), no saved profile, no landing-seen flag — show the
@@ -4330,7 +4330,7 @@ ${THEME_CSS}
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
         {/* Properties: the module the Poe Properties App also mounts (DR-0313; `books` only here — the books live in this app). */}
-        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" books={{ postEntry: (entry) => addTransaction(entry), transactions: data.transactions || [] }} addEvent={addEvent} onFeedback={(areaKey, where) => setFeedbackOpen(where ? { area: areaKey, ...where } : areaKey)} /></SectionBoundary>}
+        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" stranger={reviewerStranger} books={{ postEntry: (entry) => addTransaction(entry), transactions: data.transactions || [] }} addEvent={addEvent} onFeedback={(areaKey, where) => setFeedbackOpen(where ? { area: areaKey, ...where } : areaKey)} /></SectionBoundary>}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -4731,7 +4731,7 @@ ${THEME_CSS}
             Access model server-enforced (users_can_dm / user_in_group). */}
         {view === 'messages' && (
           <SectionBoundary name="Messages">
-            <Messages voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
+            <Messages stranger={reviewerStranger} voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
           </SectionBoundary>
         )}
         {view === 'tvtime' && (
@@ -4739,9 +4739,9 @@ ${THEME_CSS}
             <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
-        {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
-        {view === 'vault' && <SectionBoundary name="Vault"><Vault /></SectionBoundary>}
-        {view === 'research' && <SectionBoundary name="Research"><ResearchSection /></SectionBoundary>}
+        {view === 'cameras' && canSeeCameras(surfaceViewer) && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
+        {view === 'vault' && <SectionBoundary name="Vault"><Vault stranger={reviewerStranger} /></SectionBoundary>}
+        {view === 'research' && <SectionBoundary name="Research"><ResearchSection stranger={reviewerStranger} /></SectionBoundary>}
         {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
             students and families document situations as they happen so the data
             supporting their perspective is in hand when they ask for help.

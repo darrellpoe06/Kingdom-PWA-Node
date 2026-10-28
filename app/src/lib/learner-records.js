@@ -55,6 +55,16 @@ function intOrNull(v) {
   return Number.isFinite(n) ? Math.round(n) : null;
 }
 
+// WHICH VERSIONS WERE READ (DR-1255): the lesson's age versions this learner
+// read to the end, by id, in the picker's order, each once. Unknown ids are
+// dropped here and refused by the wall (0312), so a row never carries a word
+// the app cannot show.
+export const RECORD_VERSION_IDS = ['child', 'youth', 'teen', 'adult', 'senior'];
+export function cleanVersionsRead(v) {
+  const have = new Set(Array.isArray(v) ? v : []);
+  return RECORD_VERSION_IDS.filter((id) => have.has(id));
+}
+
 // One database row → the shape the app reads. Unknown columns are dropped; a
 // row with no lesson id is not a record and is discarded by the callers.
 export function rowToRecord(row = {}) {
@@ -71,6 +81,7 @@ export function rowToRecord(row = {}) {
       : !!row.quiz_passed,
     quizAttempts: intOrNull(row.quiz_attempts ?? row.quizAttempts) || 0,
     quizAt: iso(row.quiz_at || row.quizAt),
+    versionsRead: cleanVersionsRead(row.versions_read ?? row.versionsRead),
     updatedAt: iso(row.updated_at || row.updatedAt),
   };
 }
@@ -91,6 +102,9 @@ export function recordToRow(rec = {}) {
     quiz_at: iso(rec.quizAt),
     updated_at: new Date().toISOString(),
   };
+  // Only a record that names versions carries the column: the wall ratchets
+  // the union (0312), and a row that says nothing leaves what is there.
+  if (Array.isArray(rec.versionsRead)) row.versions_read = cleanVersionsRead(rec.versionsRead);
   return row;
 }
 
@@ -132,9 +146,15 @@ function summarize(records) {
     .filter(Boolean)
     .sort()
     .pop() || null;
+  // WHICH VERSIONS (DR-1255 / DR-1261): every version this learner read to
+  // the end across these rows, in the picker's order, each once.
+  const seen = new Set();
+  for (const r of records) for (const v of (Array.isArray(r.versionsRead) ? r.versionsRead : [])) seen.add(v);
+  const versionsReadAll = RECORD_VERSION_IDS.filter((v) => seen.has(v));
   return {
     lessons: records.length,
     lessonsRead,
+    versionsRead: versionsReadAll,
     examsTaken: tested.length,
     examsPassed: passed,
     quizAttempts: attempts,

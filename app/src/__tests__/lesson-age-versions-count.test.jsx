@@ -25,7 +25,7 @@ import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.
 import { buildSchedule } from '../lib/church-classes.js';
 import {
   lessonVersions, countReadings, catalogReadings, readingsLine, readingsMeaning, monthReadings, countWords,
-  READING_VERSIONS,
+  READING_VERSIONS, latestLessons,
 } from '../lib/learn-organize.js';
 import { AGE_BANDS } from '../lib/learn-framework.js';
 
@@ -157,7 +157,11 @@ describe('the Latest lessons month heading stays at the top of the scroll, carri
     expect(container.querySelector('[data-testid="learn-latest-list"]').className).not.toMatch(/overflow-y-auto/);
     const btn = fold('month-2026-09');
     expect(btn.getAttribute('aria-expanded')).toBe('true');
-    expect(btn.getAttribute('aria-label')).toBe('September 2026, 4 lessons, 10 readings — fold this month');
+    // ... and the third number both lists carry (a1-five is the one lesson
+    // written for every age; the course list's heading says the same).
+    expect(btn.getAttribute('aria-label')).toBe('September 2026, 4 lessons, 10 readings, 1 written for every age — fold this month');
+    expect(heading('month-2026-09').querySelector('[data-month-aged]').getAttribute('data-month-aged')).toBe('1');
+    expect(heading('month-2026-08').querySelector('[data-month-aged]')).toBe(null);
     expect(btn.className).toMatch(/min-h-\[44px\]/);
   });
 
@@ -226,14 +230,30 @@ describe('on the real catalog, the header equals the computed total', () => {
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     });
     const list = container.querySelector('[data-testid="learn-latest-lessons"]');
-    expect(list.querySelector('[data-testid="learn-latest-count"]').textContent).toBe(String(lessons));
+    // The Latest list lists a lesson carried whole into a second course ONCE,
+    // at home, and says so; the Courses tab counts it for both courses. So the
+    // list's own numbers are the catalog's less the carried copies.
+    // (Learn keys a descriptor by its meta.key; the raw descriptors carry none.)
+    const latest = latestLessons([...CATALOG.map((c) => ({ ...c, key: c.key || c.meta?.key })), { key: 'ai', schedule: aiSchedule }]);
+    expect(latest.carried.length).toBe(1);
+    const listed = lessons - latest.carried.length;
+    // The once-listed copy's own versions are the only readings the list
+    // leaves out: the catalog's total less the carried copies' versions.
+    const carriedVersions = latest.carried.reduce((t, k) => {
+      const course = CATALOG.find((c) => (c.key || c.meta?.key) === k.courseKey);
+      return t + lessonVersions(course.schedule.find((m) => m.id === k.lessonId)).length;
+    }, 0);
+    expect(carriedVersions).toBeGreaterThan(0);
+    const listedReadings = measured.readings - carriedVersions;
+    expect(list.querySelector('[data-testid="learn-latest-count"]').textContent).toBe(String(listed));
     const readings = list.querySelector('[data-testid="learn-latest-readings"]');
     expect(Number(readings.getAttribute('data-readings'))).toBe(measured.readings);
     expect(readings.textContent).toBe(`${readingsLine(measured)}.`);
-    // Every month's two numbers add up to the header's two numbers.
+    expect(list.querySelector('[data-testid="learn-latest-line"]').textContent).toMatch(/One lesson carried whole into a second course is listed once, at home\.$/);
+    // Every month's numbers add up to the list's numbers.
     const months = [...list.querySelectorAll('li[data-month-heading]')];
     const sum = (attr) => months.reduce((t, li) => t + Number(li.querySelector(`[${attr}]`).getAttribute(attr) || 0), 0);
-    expect(sum('data-month-readings')).toBe(measured.readings);
-    expect(months.reduce((t, li) => t + parseInt(li.querySelector('[data-month-lessons]').textContent, 10), 0)).toBe(lessons);
+    expect(sum('data-month-readings')).toBe(listedReadings);
+    expect(months.reduce((t, li) => t + parseInt(li.querySelector('[data-month-lessons]').textContent, 10), 0)).toBe(listed);
   });
 });

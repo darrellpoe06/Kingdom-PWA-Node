@@ -1134,6 +1134,29 @@ export async function loadAllPhotos(client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * THE PICTURES ON THE WORK ORDERS (DR-1235, 0310). Every picture filed on a
+ * Poe Properties work order (request_id) or a Real Estate incident
+ * (incident_ref), metadata only — the list never carries the bytes
+ * (DR-0303); a thumbnail is fetched by id when a tile is on screen. RLS
+ * decides whose: the owner's, the assigned worker's job, the tenant's door.
+ * A read that fails is reported, never returned as "no pictures".
+ */
+export const WORK_ORDER_PHOTO_COLUMNS = `${PHOTO_LIST_COLUMNS}, note_id, incident_ref`;
+
+export async function loadWorkOrderPhotos(client = supabase) {
+  try {
+    const { data, error } = await client
+      .from('property_photos')
+      .select(WORK_ORDER_PHOTO_COLUMNS)
+      .or('request_id.not.is.null,incident_ref.not.is.null')
+      .is('archived_at', null)
+      .order('uploaded_at', { ascending: true });
+    if (error) return no('read-failed', error);
+    return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** File a photo against a door (and optionally a room / tenancy). */
 /**
  * A WRITE THAT NEVER ANSWERS IS NOT A WRITE (DR-0908). Darrell, 2026-10-10,

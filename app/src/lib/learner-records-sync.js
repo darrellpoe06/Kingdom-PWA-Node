@@ -74,7 +74,20 @@ export async function saveLearnerRecord(rec = {}, { client = defaultClient, demo
     quizPassed: quiz.passed ?? rec.quizPassed ?? null,
     quizAt: quiz.at ?? rec.quizAt ?? null,
     quizAttempts: quiz.attempts ?? rec.quizAttempts ?? 0,
+    versionsRead: rec.versionsRead,
   });
+  // ONLY WHAT WAS SAID IS WRITTEN (DR-1255, measured in this file): the row
+  // is one per lesson and the upsert merges by column, so a mark-read that
+  // carried `quiz_pct: null` erased the exam the learner had passed, and an
+  // exam that carried `completed_at: null` erased the read. A fact not named
+  // in the call is left as the row has it.
+  const saidQuiz = rec.quiz !== undefined || rec.quizPct !== undefined || rec.quizPassed !== undefined
+    || rec.quizAt !== undefined || rec.quizAttempts !== undefined;
+  if (!saidQuiz) { delete payload.quiz_pct; delete payload.quiz_passed; delete payload.quiz_attempts; delete payload.quiz_at; }
+  if (rec.completedAt === undefined) delete payload.completed_at;
+  if (rec.learnerLabel === undefined) delete payload.learner_label;
+  if (rec.ageBand === undefined) delete payload.age_band;
+  if (rec.courseKey === undefined) delete payload.course_key;
 
   try {
     const { error } = await client
@@ -99,7 +112,7 @@ export async function fetchLearnerRecords({ client = defaultClient, limit = 2000
   try {
     const { data, error } = await client
       .from(TABLE)
-      .select('user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, updated_at')
+      .select('user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, updated_at')
       .order('updated_at', { ascending: false })
       .limit(limit);
     if (error) return { records: [], error };

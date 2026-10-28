@@ -53,7 +53,7 @@ function notify() {
  * says there is no next — or until Stop.
  *
  * @param {string} owner - opaque key (e.g. the lesson/module id)
- * @param {{label?:string, text:string, elementId?:string, prepare?:Function, next?:Function}} target
+ * @param {{label?:string, text:string, elementId?:string, prepare?:Function, next?:Function, version?:string}} target
  *   label like "this lesson", the FULL text (the fallback reading), the DOM id
  *   of the element that renders it, prepare(on) → show/restore every part, and
  *   next() → advance to the following piece (true when it advanced).
@@ -84,6 +84,9 @@ export function setReadTarget(owner, target) {
     // and re-read the new level's words from the same place.
     level: target && typeof target.level === 'string' ? target.level : null,
     levels: target && Array.isArray(target.levels) ? target.levels : null,
+    // WHICH WORDS (DR-1255): the lesson's version this reading serves (child,
+    // youth, teen, adult, senior), so a finish counts the version read.
+    version: target && typeof target.version === 'string' && target.version ? target.version : null,
     setLevel: target && typeof target.setLevel === 'function' ? target.setLevel : null,
     open: text ? null : open,
     // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722): speak `text` itself,

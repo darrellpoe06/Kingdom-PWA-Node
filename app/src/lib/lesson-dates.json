@@ -83,7 +83,11 @@
    "sov45-no-single-witness-and-the-office-of-the-critic": ["2026-10-20", "867c399c"],
    "sov46-the-helper-that-must-see-everything": ["2026-10-20", "9d05df19"],
    "sov47-the-purse-opens-after-the-wall-falls": ["2026-10-21", "86349d03"],
-   "sov48-the-bread-they-brought-was-mouldy": ["2026-10-21", "8189cbaa"]
+   "sov48-the-bread-they-brought-was-mouldy": ["2026-10-21", "8189cbaa"],
+   "sov49-there-is-nobody-to-contact": ["2026-10-27", "ea27819e"],
+   "sov50-whose-name-do-you-carry": ["2026-10-27", "75b1c1d1"],
+   "sov51-the-office-that-does-not-transfer": ["2026-10-27", "2640572f"],
+   "sov52-a-just-weight-and-the-validator-that-checks-the-file": ["2026-10-27", "82c0d65f"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
@@ -269,7 +273,8 @@
    "wi-apa-2021-apology-and-the-one-blood": ["2026-09-29", "67e85cfd"],
    "wi-higher-ed-aid-2026-and-the-student-in-the-gap": ["2026-09-29", "f499e7c5"],
    "wi-the-wage-that-no-longer-buys-the-day": ["2026-10-15", "41dcb412"],
-   "wi-the-way-was-45-minutes-long": ["2026-10-22", "f7e0fab4"]
+   "wi-the-way-was-45-minutes-long": ["2026-10-22", "f7e0fab4"],
+   "wi-the-broken-seal-and-the-sure-foundation": ["2026-10-22", "426e137f"]
   },
   "datasystems": {
    "dsi1-what-poetech-is": ["2026-06-29", "c94cec85"],

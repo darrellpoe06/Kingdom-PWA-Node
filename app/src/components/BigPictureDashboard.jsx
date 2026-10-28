@@ -23,6 +23,7 @@ import { CapacityPanel } from './CapacityPanel.jsx';
 import { LifeGallery } from './LifeGallery.jsx';
 import { PhoneBackup } from './PhoneBackup.jsx';
 import HomeAccounts from './HomeAccounts.jsx';
+import CamerasTile from './CamerasTile.jsx';
 import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
@@ -107,7 +108,7 @@ export function TryLifeHubButton() {
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, updateIncident = null, sendToPoeTech = null, addChurchVoice = null, addPrayerRequest = null, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, addNote = null }) {
+export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, updateIncident = null, sendToPoeTech = null, addChurchVoice = null, addPrayerRequest = null, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, addNote = null, viewer = null }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -294,6 +295,9 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           </div>
         </section>
       )}
+
+      {/* THE CAMERAS OPTION, first after the welcome on this home too (DR-1237). */}
+      <CamerasTile viewer={viewer} setView={setView} />
 
       {/* THE WAY IN, offered once and easy to ignore: it rides at the end of
           the Overview tab row rather than on a line of its own (Darrell

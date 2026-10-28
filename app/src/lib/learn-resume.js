@@ -55,6 +55,30 @@ const MAP_KEY = 'poe-learn-places';     // { v, last, mirror, byLesson: { 'cours
 /** How many lessons' places a device keeps; the oldest untouched fall off first. */
 export const PLACES_CAP = 60;
 
+// WHICH VERSION WAS READ (DR-1255). Darrell 2026-10-27, on the lesson list:
+// "Why can't I tell which ones I've already read?! Even which version so I can
+// try the one I didn't read!!!!!!" A lesson is written in up to five versions
+// (child, youth, teen, adult, senior — lib/learn-organize.js READING_VERSIONS,
+// the same ids as the age bands), and a finish used to count the LESSON only,
+// so a lesson read as an adult and a lesson read to the children looked the
+// same. The place now carries `version` (the words being read, noted by the
+// reader from its registered target) and `versions` (how many times each
+// version was read to the end, ratcheting like `finishes`). Ids only, never
+// text — the bright line above holds.
+export const READ_VERSION_IDS = ['child', 'youth', 'teen', 'adult', 'senior'];
+function cleanVersion(v) {
+  return typeof v === 'string' && READ_VERSION_IDS.includes(v) ? v : '';
+}
+function cleanVersions(o) {
+  const out = {};
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return out;
+  for (const id of READ_VERSION_IDS) {
+    const n = Number(o[id]);
+    if (Number.isFinite(n) && n > 0) out[id] = Math.min(Math.floor(n), 999);
+  }
+  return out;
+}
+
 function defaultStorage() {
   try { return typeof window !== 'undefined' ? window.localStorage : null; }
   catch { return null; }
@@ -166,6 +190,11 @@ function normPlace(p) {
       ? Math.floor(Number(p.finishes))
       : (p.done === true ? 1 : 0),
     lastFinishedAt: typeof p.lastFinishedAt === 'number' ? p.lastFinishedAt : null,
+    // THE VERSION BEING READ, AND THE VERSIONS READ TO THE END (DR-1255).
+    // Absent in every place written before this shipped: an older finish is
+    // still a finish, of a version the device did not record.
+    version: cleanVersion(p.version),
+    versions: cleanVersions(p.versions),
     // STARTED — the reader pressed Start/Continue/Play on this lesson, or
     // moved inside it. Merely glancing at a lesson's card (a title tap) is
     // not starting it, so a browse never shows up as "in progress" beside
@@ -350,8 +379,21 @@ export function listPlaces(opts = {}) {
  * apart from a Stop pressed on the final words. Either way the listener heard
  * it all, and either way the next start belongs at the top.
  */
+export const PLACE_FINISHED_EVENT = 'poe:place-finished';
 export function finishPlace(patch = {}, opts = {}) {
   recordPlace({ ...patch, done: true }, opts);
+  // THE RECORD HEARS IT AT ONCE (DR-1251). The course view files a finished
+  // place to the learner's record, and it used to look only when it mounted
+  // or when the record changed — so a lesson read to its end sat unfiled
+  // until the next sign-in. Every finisher (the in-space reader's last
+  // sentence, the guide's last unit, the deck's last part) says so here, and
+  // the view that is listening files it in the same breath.
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      const place = getPlace(opts);
+      window.dispatchEvent(new CustomEvent(PLACE_FINISHED_EVENT, { detail: { courseKey: (patch && patch.courseKey) || (place && place.courseKey) || null, lessonId: (patch && patch.lessonId) || (place && place.lessonId) || null } }));
+    }
+  } catch (_) { /* a listener that is not there never breaks a finish */ }
 }
 
 /**
@@ -386,6 +428,27 @@ export function finishedLabel(place) {
   return n === 1 ? 'FINISHED' : `FINISHED ×${n}`;
 }
 
+function countVersion(versions, id) {
+  if (!id) return versions;
+  return { ...versions, [id]: (versions[id] || 0) + 1 };
+}
+
+/**
+ * The versions of this lesson read to the end on this device, in the
+ * picker's order (child … senior). Empty when none was recorded — which an
+ * older finish, or a finish the reader could not name, honestly is.
+ */
+export function versionsRead(place) {
+  const v = place && typeof place === 'object' ? cleanVersions(place.versions) : {};
+  return READ_VERSION_IDS.filter((id) => v[id] > 0);
+}
+
+/** How many times ONE version was read to the end on this device; 0 when never. */
+export function versionReads(place, id) {
+  const v = place && typeof place === 'object' ? cleanVersions(place.versions) : {};
+  return v[cleanVersion(id)] || 0;
+}
+
 /**
  * Record (merge) the learner's place for ONE lesson and make it the latest.
  *
@@ -397,7 +460,7 @@ export function finishedLabel(place) {
  * starting it over (the defect DR-0631 closes). A lesson with no saved place
  * starts at 0 — a stale "step 5" never leaks into a freshly opened lesson.
  * @param {{courseKey?:string, lessonId?:string, stage?:number, step?:number,
- *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean}} patch
+ *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean, version?:string}} patch
  */
 export function recordPlace(patch, opts = {}) {
   const storage = opts.storage || defaultStorage();
@@ -420,7 +483,7 @@ export function recordPlace(patch, opts = {}) {
   const k = placeKey(courseKey, lessonId);
   // A lesson with no record starts unfinished: `done` belongs to the lesson
   // that was heard, and must never carry onto the next one.
-  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0 };
+  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0, version: '', versions: {} };
   const moves = patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined;
   const nextDone = patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true);
   const next = {
@@ -457,6 +520,13 @@ export function recordPlace(patch, opts = {}) {
     // `done`, and nothing lowers it, starting over included.
     finishes: idx(base.finishes) + (nextDone && base.done !== true ? 1 : 0),
     lastFinishedAt: (nextDone && base.done !== true) ? now : (base.lastFinishedAt || null),
+    // WHICH VERSION (DR-1255): the words being read, as the reader noted
+    // them from its target (or as the deck names them at its end), kept
+    // until another version is read. On the same false→true edge the
+    // version read is counted, and like `finishes` nothing lowers it.
+    version: patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version),
+    versions: countVersion(cleanVersions(base.versions),
+      (nextDone && base.done !== true) ? (patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version)) : ''),
     at: now,
   };
   writeMap(storage, { ...map, last: k, byLesson: { ...map.byLesson, [k]: next } });
