@@ -65,7 +65,7 @@ jobs:
       # `continue-on-error`, so it reported success and the witness silently
       # stopped publishing. The checkout costs about two seconds; a witness that
       # cannot read its own repository is the more expensive thing.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.go == 'true'
 
       - name: Join the tailnet (ephemeral)
