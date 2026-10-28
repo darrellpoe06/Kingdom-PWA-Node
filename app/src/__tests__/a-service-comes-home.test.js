@@ -93,6 +93,11 @@ const LOOPS_ON_THE_WAY = {
   'family-key': { witness: 'loops-health.yml' },
   'agent-consumer': { witness: 'loops-health.yml' },
   'db-backup': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1269, 2026-10-28): the second road to the sovereign
+  // database, replaying the mirror on the NAS's own clock. loops-health reads
+  // its status.json in its own home, its install path, its cron lines, and
+  // reds on its own ok:false before this entry was allowed to exist.
+  'sovereign-replay': { witness: 'loops-health.yml' },
   'choir-dates': { witness: 'loops-health.yml' },
   'stream-length': { witness: 'loops-health.yml' },
   'worship-song-harvest': { witness: 'loops-health.yml' },

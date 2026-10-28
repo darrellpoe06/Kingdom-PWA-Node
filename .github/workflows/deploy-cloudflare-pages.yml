@@ -108,9 +108,12 @@ jobs:
       - name: Join the tailnet (repoint armed only)
         if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
         uses: tailscale/github-action@v3
+        # A refused key must not end the job here: the next step has a second
+        # road to the same public value and verifies its shape (DR-1269).
+        continue-on-error: true
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Fetch the sovereign anon key from the NAS (repoint armed only)
+      - name: Fetch the sovereign anon key from the NAS, or read it back from the served site (repoint armed only)
         if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
         working-directory: .
         env:
@@ -122,14 +125,34 @@ jobs:
             dpoe@poetech.tail5a2f35.ts.net \
             "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
           rm -f /tmp/nas_key
+          ROAD="nas-over-tailnet"
           case "$KEY" in
             eyJ*.eyJ*.*) : ;;
             *)
-              echo "::error::REPOINT-ARMED but the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT — failing this deploy rather than shipping half a backend (DR-0107). The live site keeps its current build."
+              # THE SECOND ROAD (DR-1269). The anon key is public by nature:
+              # every browser that opens poetech.us downloads it inside the
+              # served bundle. When the NAS road is closed (the runner's
+              # Tailscale key refused on 2026-10-28, a ~5-hour stale site)
+              # the served site itself speaks the key, read the way
+              # site-health reads which backend the app truly calls. The
+              # selector refuses an un-armed build, no key, or two keys.
+              echo "anon key: the NAS did not answer over the tailnet (${#KEY} bytes); asking the served site, which already ships the public client key (DR-1269)"
+              KEY=$(python3 scripts/served-anon-key.py 2>/tmp/served-key.err | tr -d '[:space:]') || true
+              cat /tmp/served-key.err 2>/dev/null || true
+              rm -f /tmp/served-key.err
+              ROAD="served-site"
+              ;;
+          esac
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *)
+              echo "::error::REPOINT-ARMED but no sovereign ANON_KEY came by either road (the NAS over the tailnet, then the served site; ${#KEY} bytes) — failing this deploy rather than shipping half a backend (DR-0107). The live site keeps its current build."
               exit 1
               ;;
           esac
           echo "::add-mask::$KEY"
+          echo "anon key road: $ROAD"
+          echo "- anon key road: **$ROAD**" >> "$GITHUB_STEP_SUMMARY"
           {
             # ===================================================================
             # TEMPORARY UNLOCK, 2026-10-09 — A DELIBERATE, SURFACED DEVIATION
