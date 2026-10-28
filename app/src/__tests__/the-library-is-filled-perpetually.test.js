@@ -92,8 +92,14 @@ describe('the real library never shrinks (the ratchet)', () => {
     expect(victim).toBeTruthy();
     const broken = courses.map((c) => ({ ...c, schedule: (c.schedule || []).map((m) => (m === victim ? { ...m, levels: { ...m.levels, youth: '' } } : m)) }));
     const counts = censusCounts(censusLibrary(broken));
-    expect(counts.readings).toBeLessThan(b.readings);
-    expect(counts.whole).toBeLessThan(b.whole);
-    expect(counts.waiting).toBeGreaterThan(b.waiting);
+    // Against the LIVE counts, not the frozen ones: the library grows between
+    // freezes, so a loss of one version can still sit above an older baseline
+    // (measured 2026-10-28: live 3061 readings against a baseline of 3057, and
+    // this proof read green on a catalog that had lost a version). The ratchet
+    // above compares live to baseline; this proof shows the measure itself
+    // moves when a version is lost.
+    expect(counts.readings).toBeLessThan(live.readings);
+    expect(counts.whole).toBeLessThan(live.whole);
+    expect(counts.waiting).toBeGreaterThan(live.waiting);
   });
 });
