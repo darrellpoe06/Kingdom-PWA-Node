@@ -48,7 +48,7 @@ jobs:
       PUSH_SEND_TOKEN: ${{ secrets.PUSH_SEND_TOKEN }}  # DR-0334 sender auth, if set
       NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Join the tailnet
         uses: tailscale/github-action@v3
         with:
