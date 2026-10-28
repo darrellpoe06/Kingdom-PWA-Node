@@ -1,6 +1,6 @@
 # Money Phase 2 — answers to Christina's review (2026-10-28)
 
-Companion to DR-1272 and the preservation checklist. Three proposals here wait on Christina's approval before anything is implemented: blocking the merge lane before a push (§2), switching the legacy Debts tab and Big Picture to the corrected engine (§3), and the settings-only snapshot publish (§4).
+Companion to DR-1280 and the preservation checklist. Three proposals here wait on Christina's approval before anything is implemented: blocking the merge lane before a push (§2), switching the legacy Debts tab and Big Picture to the corrected engine (§3), and the settings-only snapshot publish (§4).
 
 ## 1. The full test suite — final results
 

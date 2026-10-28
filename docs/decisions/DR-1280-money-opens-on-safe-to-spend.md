@@ -1,4 +1,4 @@
-# DR-1272 — Money opens on Safe to Spend: nine sections over the twelve tabs, a chronological spending engine, a corrected debt engine, and settings that say where they are saved
+# DR-1280 — Money opens on Safe to Spend: nine sections over the twelve tabs, a chronological spending engine, a corrected debt engine, and settings that say where they are saved
 
 **Status:** accepted (Phase 2, development branch only; held out of the merge lane until Christina approves)
 **Tier:** B (the family's money surface; no schema, no sync change, no production record touched)

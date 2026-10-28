@@ -18,7 +18,7 @@
 //                   property), with a month view and a list view.
 //   · Goals       — the existing BudgetPlanner (goals + guidance), reused whole.
 //   · Debt Freedom — snowball vs avalanche vs custom vs minimums-only, from the
-//                   CORRECTED engine (lib/debt-freedom.js, DR-1272), never the
+//                   CORRECTED engine (lib/debt-freedom.js, DR-1280), never the
 //                   legacy projectors the Debts tab still reads.
 //   · Reports     — the finance report library (lib/finance-reports.js) over the
 //                   ledger, CSV / print through the existing ReportActions.

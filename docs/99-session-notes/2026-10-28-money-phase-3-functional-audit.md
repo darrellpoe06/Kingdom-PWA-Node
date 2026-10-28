@@ -63,7 +63,7 @@ Four debts (Visa 22.99 %, auto 6.5 %, medical 0 %, personal loan 11.9 %) with du
 | 2.9 Inputs untouched; the ledger-derived debt list unchanged after planning | PASS |
 | 2.10 Custom order honoured; a debt left out is paid last | PASS |
 
-Also green: `debt-freedom.test.js` (30 cases incl. the realistic household with due dates) and `debt-engine-audit.test.js` (the legacy engine's four measured defects, still present in the legacy Debts tab and Big Picture — the switch awaits approval, DR-1272 item 6).
+Also green: `debt-freedom.test.js` (30 cases incl. the realistic household with due dates) and `debt-engine-audit.test.js` (the legacy engine's four measured defects, still present in the legacy Debts tab and Big Picture — the switch awaits approval, DR-1280 item 6).
 
 ## TEST 3 · Budget by paycheck
 
@@ -136,7 +136,7 @@ All nine sections and all twelve legacy tabs: 0 px horizontal overflow, the five
 | 1 | DEFECT-4 | Settings-only households never publish `moneyPlan` to the cloud; a second device starts blank | MEDIUM–HIGH, lost data | shell `remainderIsSeed`; proposal §4 of the review answers |
 | 2 | DEFECT-2 | Semimonthly second payday lands on the 16th, not the 15th | MEDIUM, wrong timing by one day | `expandOccurrences('semimonthly')` |
 | 2 | GAP-1 | No partial-payment status or amount on a bill occurrence | MEDIUM | Bills screen + engine |
-| 2 | legacy | The Debts tab and Big Picture still use the old engine with its four measured defects; they can disagree with Debt Freedom | MEDIUM, contradictory numbers | DR-1272 item 6, awaiting approval |
+| 2 | legacy | The Debts tab and Big Picture still use the old engine with its four measured defects; they can disagree with Debt Freedom | MEDIUM, contradictory numbers | DR-1280 item 6, awaiting approval |
 | 2 | DEFECT-5 | Live-service bar covers 36 % of a cover screen and intercepts taps while open | HIGH during service windows; church module | Darrell's call |
 | 3 | DEFECT-3 | "Saved on this device" shown in sample mode | LOW | `MoneySetup` / `syncStatus` |
 | 3 | tiny | Three sub-24 px tap targets on the legacy Debts tab | LOW | `Debts.jsx` |

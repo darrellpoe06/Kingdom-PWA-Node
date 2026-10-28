@@ -1001,7 +1001,7 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: 'gh issue comment 2057' }],
     seeds: ['ops-surface'],
   }),
-  // PREVIEW ISOLATION (DR-1272 item 10). Measured 2026-10-28: a family member on
+  // PREVIEW ISOLATION (DR-1280 item 10). Measured 2026-10-28: a family member on
   // the Vercel branch preview was in production. The code closes it; this
   // dispatch-only, read-only probe proves the LIVE preview from a runner (the
   // sandbox has no route to vercel.app): a real Chromium arrives with planted

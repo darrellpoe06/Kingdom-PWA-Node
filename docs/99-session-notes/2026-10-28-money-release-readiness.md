@@ -1,6 +1,6 @@
 # Money redesign — release readiness (2026-10-28)
 
-**Decision record:** DR-1272 (items 1–10). **PR:** #2464, branch `money/phase-2-safe-to-spend`, Draft + `hold` until Christina's final approval.
+**Decision record:** DR-1280 (items 1–10). **PR:** #2464, branch `money/phase-2-safe-to-spend`, Draft + `hold` until Christina's final approval.
 **Ask (Christina, 2026-10-28):** *"Please prepare the Money redesign for production release... Once these checks pass, provide a concise release summary identifying any remaining risks and ask for my final approval to merge and deploy."*
 
 Every line below is a measurement on the real artifact or a `file:line` in this branch (DR-0076). Nothing here is a claim on the agent's word.
@@ -62,7 +62,7 @@ What reaches the family cloud, and when (unchanged by this PR; read from the she
 | report usage ranking, recurring-payment decisions, learned import de-duplication, the Money rail collapsed state | **this device only** (localStorage) | never synchronized — by design, these are per-device conveniences |
 | the preview test household | this device only, under its own key | never synchronized, never on production hosts |
 
-**Clearly identified, does not synchronize for a settings-only household (DEFECT-4):** a brand-new household whose only entries are in Settings (no real recurring obligation, tax item, event or capex row) never publishes its snapshot, so its Money settings stay on the device. The Poe family is not in that state. A one-line fix exists (treat `moneyPlan.updatedAt` as a real row) and awaits separate approval (DR-1272 item 6).
+**Clearly identified, does not synchronize for a settings-only household (DEFECT-4):** a brand-new household whose only entries are in Settings (no real recurring obligation, tax item, event or capex row) never publishes its snapshot, so its Money settings stay on the device. The Poe family is not in that state. A one-line fix exists (treat `moneyPlan.updatedAt` as a real row) and awaits separate approval (DR-1280 item 6).
 
 ### 8. Recoverable backup and rollback
 
@@ -82,6 +82,6 @@ What reaches the family cloud, and when (unchanged by this PR; read from the she
 1. **The live site's data road.** `main`'s deploy still points the bundle at the absolute Tailscale Funnel URL (the 2026-10-09 stopgap, `deploy-cloudflare-pages.yml`), which the browser now refuses cross-origin — Darrell's Properties storefront read fails with "Failed to fetch". Money's signed-in sync and the self-fetching tabs ride the same client. The one-line revert to `poetech.us/sb` is committed on `fix/sb-same-origin-road` (not pushed: it auto-merges and deploys, and touches a shared workflow). **Recommended first step.**
 2. **DEFECT-1** (paid bills still projected → Safe to Spend can read low). Small fix, separate approval.
 3. **DEFECT-4** (settings-only households never publish). Does not affect the family. One line, separate approval.
-4. **The legacy Debts tab and Big Picture** still read the old debt engine; Debt Freedom reads the corrected one. The two can disagree on a payoff date until the switch is approved (DR-1272 item 6 / re-review 2026-11-11).
+4. **The legacy Debts tab and Big Picture** still read the old debt engine; Debt Freedom reads the corrected one. The two can disagree on a payoff date until the switch is approved (DR-1280 item 6 / re-review 2026-11-11).
 5. **The Test Debt row** stays in production until Christina approves its deletion.
 6. **Vercel's preview cap** can turn the `Vercel` commit status red; it is cosmetic (measured 2026-10-21) and never evidence about the live site.
