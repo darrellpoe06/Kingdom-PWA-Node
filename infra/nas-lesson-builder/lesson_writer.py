@@ -685,16 +685,52 @@ class Api(Writer):
             return self.not_configured("API key present but no model set for this writer in lesson-writers.json")
         return True, "api key present"
 
+    # PROMPT CACHING ON THE STABLE PREFIX (DR-1265; Darrell 2026-10-28: "LLM
+    # Prompt Caching Versus Semantic Caching... how can we use this in our
+    # development systems?"). Every prompt this house sends opens with the same
+    # STANDARD (the house rules, several thousand tokens) and only then names
+    # the teaching. The API caches by EXACT prefix: the identical bytes, in the
+    # same position, within the cache's lifetime, are read back at a fraction of
+    # the price instead of being processed again. So the STANDARD goes on the
+    # wire as the system block with a cache breakpoint, and the rest follows as
+    # the user message. The TEXT on the wire is unchanged -- render() still
+    # returns the whole prompt and the identical-prompt proof still hashes it --
+    # only its shape is split at the seam the prompt already has.
+    #
+    # SEMANTIC caching (answering a near-enough question with a stored answer)
+    # is deliberately NOT used here and never will be for a lesson: the Word is
+    # quoted verbatim and every lesson is its own; "near enough" is the one
+    # thing this writer may not say (Proverbs 30:6). What the house does keep
+    # is EXACT reuse: lesson_versions stores each prompt's sha256 beside its
+    # body, so the identical prompt is recognised, never re-asked.
+    @staticmethod
+    def split_at_standard(wire):
+        """(system, user) when the wire opens with the house STANDARD, else
+        (None, wire). The split is at the seam build_prompt already makes."""
+        head = STANDARD.rstrip()
+        rest = wire[len(head):]
+        if wire.startswith(head) and rest.startswith("\n") and rest.lstrip("\n") != rest:
+            return head, rest.lstrip("\n")
+        return None, wire
+
     def transmit(self, wire, timeout):
-        data = _post_json(self.opener, self.cfg.get("url") or self.URL, {
-            "model": self.cfg["model"], "max_tokens": int(self.cfg.get("max_tokens", 32000)),
-            "messages": [{"role": "user", "content": wire}]},
-            {"x-api-key": self._key(), "anthropic-version": "2023-06-01"}, timeout)
+        system, user = self.split_at_standard(wire)
+        payload = {"model": self.cfg["model"], "max_tokens": int(self.cfg.get("max_tokens", 32000)),
+                   "messages": [{"role": "user", "content": user}]}
+        if system is not None and self.cfg.get("cache", True):
+            payload["system"] = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+        data = _post_json(self.opener, self.cfg.get("url") or self.URL, payload,
+                          {"x-api-key": self._key(), "anthropic-version": "2023-06-01"}, timeout)
         text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
         if not text.strip():
             raise RuntimeError("api returned no text (stop_reason {})".format(data.get("stop_reason")))
         u = data.get("usage") or {}
-        return text, {"input_tokens": u.get("input_tokens"), "output_tokens": u.get("output_tokens")}
+        # The cache fields are the only ground truth that caching worked: a
+        # read of 0 across repeated calls means the prefix moved. They ride
+        # into lesson_versions.usage with the rest (measure, never claim).
+        return text, {"input_tokens": u.get("input_tokens"), "output_tokens": u.get("output_tokens"),
+                      "cache_creation_input_tokens": u.get("cache_creation_input_tokens"),
+                      "cache_read_input_tokens": u.get("cache_read_input_tokens")}
 
 
 class Ollama(Writer):

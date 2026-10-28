@@ -1,0 +1,44 @@
+# DR-1265: Prompt caching versus semantic caching (sov53) — the exact memory on our own writer, the approximate one kept away from the Word
+
+**Date:** 2026-10-28
+**Status:** Accepted
+**Tier:** A (additive curriculum: one new Sovereign A.I. week with its own pinned gate) + a small change to the NAS writer's wire shape, proven by the builder's own tests, with an off-switch in NAS config
+**Type:** curriculum + build
+**Area:** Sovereign A.I. · NAS lesson builder (`infra/nas-lesson-builder/lesson_writer.py`)
+**Sent in by:** Darrell, 2026-10-28, typed into the session: **"LLM Prompt Caching Versus Semantic Caching... lesson and how can we use this in our development systems?"**
+**Pairs with:** DR-0669 (one writing stage; every writer gets the identical prompt, proven by hash), DR-1261/DR-1262 (the record and the library, the writers this bears on), DR-0098 (teach the Word, never a near word), DR-0459 (never an elision), DR-0076 (§1 evidence, §3 proven to catch, §4 measure don't claim, §8 honest uncertainty), DR-0100 (established fact stated plainly; the open flagged narrowly), DR-1256 / DR-1260 (a lesson's gate never claims to be the newest; sov52's pin defused here the same way), DR-0733 / DR-0795 (every band sends the reader all three ways)
+
+## Context
+
+Two techniques share a word and almost nothing else. **Prompt caching** is the model service keeping its own reading of a prompt's exact prefix for a short time, so an identical prefix is read back at a fraction of the price while the answer is still computed fresh. **Semantic caching** is one's own code answering a new question with the stored answer to an old one that a vector judged close enough, never calling the model. The Word drew the line first: *"He that answereth a matter before he heareth it, it is folly and shame unto him"* (Proverbs 18:13), and for a stored word the standard is exactness, *"he that hath my word, let him speak my word faithfully. What is the chaff to the wheat? saith the LORD"* (Jeremiah 23:28), while the exact saving is blessed outright, *"Gather up the fragments that remain, that nothing be lost"* (John 6:12).
+
+**Our own system, measured before changing it.** The NAS lesson writer builds every prompt the same way (`build_prompt`): the house STANDARD first (Word first, King James verbatim, the voice that says Yahweh, every band a full telling, the exact JSON shape), then the row rules, the verses fetched for this teaching, the teaching. The STANDARD is identical on every call and several thousand words long; the vendor adapter sent the whole prompt as one user message with no cache mark, so the STANDARD was processed and billed in full on every call. The fill lane (DR-1262) sends two such prompts per run; the builder sends one identical prompt to several writers for the comparison view. No semantic cache exists anywhere in the house, and none should sit in front of a surface that quotes the Word.
+
+## What was measured
+
+**The vendor service's documented rules, read on the build day** (the house's bundled API reference, which cites the service's own prompt-caching page): the match is the exact prefix, any byte change before the mark discards everything after it; an entry lives about five minutes from the start of the request that wrote or read it, each read refreshing it, with a one-hour option at a higher write price; a write costs about a quarter more than plain input at the short lifetime and about double at the long one, a read a small fraction of the full price, about a tenth on most models and less on the newest; a per-model minimum prefix beneath which nothing is cached, silently; at most four marks per request; and two usage fields on every reply, `cache_creation_input_tokens` and `cache_read_input_tokens`, which are the only proof caching happened. The lesson gives these as fractions in words and names the fields, because prices and lifetimes move and a printed percentage would age into a lie; the gate refuses any percentage in the module.
+
+**The change to the writer.** `Api.transmit` now splits the wire at the seam the prompt already has: when the wire opens with the STANDARD, the STANDARD goes as the `system` block with `cache_control: ephemeral` and the rest as the user message; otherwise the request is unchanged. `render()` still returns the whole prompt, so the identical-prompt hash (DR-0669) is unchanged. The two cache fields ride into `usage`, which the builder already stores beside each version in `lesson_versions`, so whether the cache was read is measured per lesson. A `cache: false` key in the writer's NAS config entry removes the mark without a code change. **Proven:** `test_api_caches_the_standard_prefix_and_reports_the_cache_fields` — the system block equals the STANDARD to the byte; the user block begins where the row rules begin; nothing lies between them but the newlines the prompt already carried; the hash of the whole is unchanged; the two fields come through on a write and on a read; a prompt that does not open with the STANDARD has no system block; `cache: false` has none. The full builder suite is green, **115 cases**, and `test_fill_versions` green.
+
+**Not changed, and said:** the tower writers (Ollama, OpenAI-compatible, command) are not the vendor service and take no mark; our own `keep_alive: 0` unloads the tower model after each lesson to free its memory, so it starts cold by our choice, and whether to keep it warm between the two lessons of a fill run is a measurement still to make. **Not built, and said:** a semantic cache, anywhere. The one surface where one could ever be considered is the class tutor, under three conditions the lesson names (the lesson pinned exactly; the stored answer shown as stored; a tight threshold), and none of it is built.
+
+**The exact reuse the house already kept:** every version is stored with the sha256 of the prompt that produced it (DR-0669), so the identical prompt is recognisable before it is sent again. Exact is the only reuse a lesson is allowed.
+
+**The week, measured on the module:** lesson 14,565 characters; bands 5,199 / 11,224 / 13,241 / 14,285, rising; referenced quoted spans 20 / 11 / 17 / 19 / 25 across lesson and bands, 0 corpus faults, every span carrying a reference; 19 anchors, all named in the lesson; 2 stories quoting the Word inside; 12 quiz questions; 10 benefits; 10 talking points; 10 prompts; every register carries Proverbs 18:13 and the chaff and the wheat, names what was not built, and sends the reader all three ways with the course's rhythm (once today; one friend this week; listening; Galatians 5:22; Hebrews 3:13). **sov52's "is the highest week" pin was defused** with the DR-1256 rule: a lesson's gate asserts that it claims its number once, never that it is newest.
+
+## Impact
+
+- **The next lessons the builder and the fill lane write carry the measurement.** The second identical-prefix call inside five minutes should show a cache read; if `cache_read_input_tokens` stays zero across the fill lane's two prompts per run, the prefix moved and that is a finding, not a shrug. `re-review: 2026-11-11` — read the stored usage on the first real runs and record the read count.
+- **No answer changes.** The exact cache cannot alter a lesson; the gates that bear on every version are untouched.
+- **The approximate memory stays unbuilt by decision,** with the conditions written down for the one surface where it could be considered.
+- **Honest limit:** the vendor facts are as documented on the build day; the lesson says so in its own `inApp` and the record names the page class rather than quoting a price.
+
+## Decision
+
+Sovereign A.I. week **53**, `sov53-prompt-caching-versus-semantic-caching-the-answer-before-the-question`, eleven numbered movements, all four bands, two stories, the course's rpe, with `app/src/__tests__/sovereign-ai-sov53-verses.test.js` as its pinned gate; `lesson_writer.py` `Api.split_at_standard` + the cached system block + the two usage fields, with `cache: false` as the config off-switch; `lesson-dates.json` carries the week.
+
+## Verification
+
+- `sovereign-ai-sov53-verses.test.js` — every quoted span in every string verbatim and referenced; the spine pinned; proven to catch a quotation that is nearly the verse; no percentage, no record id, no elision; the two usage fields named; the unbuilt thing named in every band; all three directions and the course's rhythm in every register; sov52's pin defused.
+- `infra/nas-lesson-builder/test_lesson_builder.py` — 115 green, including the cache case; `test_fill_versions.py` green.
+- The course gates on the mounted catalog: every-catalog-quotes-the-verse, course-band-coverage (baseline regenerated by its script: one more all-four lesson), lesson-completeness, quotation-integrity, title-in-narrative, curriculum-diversity, doubled-word, lesson-flow; `lesson-dates` written; lint clean.
