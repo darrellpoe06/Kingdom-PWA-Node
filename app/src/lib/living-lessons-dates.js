@@ -428,6 +428,12 @@ export const LIVING_LESSONS_ADDED = {
   // queue while the NAS builder was dark; the date is the day the lesson was
   // built, not the day the link was sent.
   'll268-a-way-in-the-sea-the-witness-we-do-not-need-to-invent': '2026-10-27',
+  // L269: the last of the three research-road items that had waited while the
+  // NAS builder was dark -- a link sent in under one word asking for maps,
+  // timelines, connections to the Word, and games, proposing that the garden of
+  // Eden lies under the Persian Gulf. The row waited roughly twenty hours; the
+  // date is the day the lesson was built, not the day the link was sent.
+  'll269-where-the-garden-was-and-the-gate-the-search-walks-past': '2026-10-27',
   // L270: two photographed pages Darrell sent into the app -- a study Bible's
   // chart "The Progress of Revelation" (the sixty-six books in writing order,
   // each with an approximate date and an author) -- with the words "Timelines
