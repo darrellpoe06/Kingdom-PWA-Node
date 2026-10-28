@@ -148,4 +148,4 @@ export function isChurchLinkVisit({ route = false, view = '' } = {}) {
   return !!route && view === 'church';
 }
 // Preview isolation (2026-10-28): re-exported here so the frozen shell reaches them through its existing access-gate import line.
-export { isPreviewHost, isIsolatedPreview, previewSamplePersona } from './preview-isolation.js';
+export { isPreviewHost, isIsolatedPreview, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './preview-isolation.js';

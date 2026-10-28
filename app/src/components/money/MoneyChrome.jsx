@@ -34,6 +34,7 @@
 import React, { useState } from 'react';
 import UiIcon from '../UiIcon.jsx';
 import { MONEY_SECTIONS, sectionFor, sectionTabs } from '../../lib/money-nav.js';
+import { isIsolatedPreview, PREVIEW_STORAGE_KEY } from '../../lib/preview-isolation.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const RAIL_FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#C9A227]';
@@ -147,9 +148,37 @@ export default function MoneyLayout({ booksView = 'overview', setBooksView, impo
     <div data-testid="money-layout" data-section={current.id} className="flex items-start w-full">
       <MoneySideNav booksView={booksView} setBooksView={setBooksView} />
       <div className="flex-1 min-w-0">
+        {isIsolatedPreview() && <TestHouseholdBanner />}
         <MoneyTabRow booksView={booksView} setBooksView={setBooksView} importedAllowed={importedAllowed} />
         {children}
       </div>
     </div>
+  );
+}
+
+/** The preview TEST HOUSEHOLD's own banner (lib/preview-isolation.js). On a
+ *  preview host the household is fictional, what the tester enters is saved
+ *  only on this device under the test key, no session exists and the data
+ *  client reaches nothing — the banner says so, and offers the one control a
+ *  tester needs: start the household over from the fictional seed. */
+export function TestHouseholdBanner() {
+  const [resetting, setResetting] = useState(false);
+  const reset = async () => {
+    setResetting(true);
+    try { await window.storage?.remove?.(PREVIEW_STORAGE_KEY); } catch (_) { /* best effort */ }
+    try { window.location.reload(); } catch (_) { setResetting(false); }
+  };
+  return (
+    <section data-testid="preview-test-household" role="note" aria-label="Test household" className="mb-3 rounded-2xl border border-[#C9A227] bg-[#FBF7EC] px-4 py-3 text-[#1A1815]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#B85838] font-semibold">Test household · fictional data</div>
+          <p className="mt-0.5 text-[0.8125rem] leading-snug">Everything here is made up. What you enter is saved only on this device. Your family's real records are not connected, and nothing can sign in.</p>
+        </div>
+        <button type="button" onClick={reset} disabled={resetting} data-testid="preview-test-household-reset" className={`shrink-0 min-h-[44px] rounded-xl border border-[#1A1815] px-4 text-[0.8125rem] font-semibold ${FOCUS}`}>
+          {resetting ? 'Starting over…' : 'Start over'}
+        </button>
+      </div>
+    </section>
   );
 }

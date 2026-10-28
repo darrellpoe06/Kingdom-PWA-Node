@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { isPreviewHost, resolveSupabaseConfig, previewSamplePersona, PREVIEW_STUB_URL, PREVIEW_STUB_KEY, PRODUCTION_HOSTS } from '../lib/preview-isolation.js';
+import { isPreviewHost, resolveSupabaseConfig, previewSamplePersona, previewStorageKey, purgePreviewForeignState, purgePreviewSnapshots, PREVIEW_STUB_URL, PREVIEW_STUB_KEY, PRODUCTION_HOSTS, PREVIEW_STORAGE_KEY, PREVIEW_TEST_OWNER, PREVIEW_REAL_SNAPSHOT_KEYS } from '../lib/preview-isolation.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -45,19 +45,68 @@ describe('the data client on a preview reaches nothing', () => {
   });
 });
 
-describe('a preview is ALWAYS the sample, and offers no sign-in', () => {
-  it('previewSamplePersona forces the family sample on a preview and passes the URL through elsewhere', () => {
-    expect(previewSamplePersona('x.vercel.app', null)).toBe('family-of-4');
+describe('a preview is the TEST HOUSEHOLD: fictional, device-only, no sign-in', () => {
+  it('previewSamplePersona passes the URL persona through and otherwise boots the app path (null)', () => {
+    expect(previewSamplePersona('x.vercel.app', null)).toBeNull();
     expect(previewSamplePersona('x.vercel.app', 'landlord')).toBe('landlord');
     expect(previewSamplePersona('poetech.us', null)).toBeNull();
     expect(previewSamplePersona('localhost', 'family-of-4')).toBe('family-of-4');
   });
-  it('the shell boots its persona through previewSamplePersona, hides the header sign-in on an isolated preview, and passes sample mode to the four self-fetching tabs', () => {
+  it('a preview saves under its OWN key; production and private hosts keep the real key', () => {
+    expect(previewStorageKey('x.vercel.app')).toBe(PREVIEW_STORAGE_KEY);
+    expect(PREVIEW_STORAGE_KEY).not.toBe('poe-financial-v28');
+    expect(PREVIEW_REAL_SNAPSHOT_KEYS).not.toContain(PREVIEW_STORAGE_KEY);
+    expect(previewStorageKey('poetech.us')).toBe('poe-financial-v28');
+    expect(previewStorageKey('localhost')).toBe('poe-financial-v28');
+    expect(PREVIEW_TEST_OWNER).toBe('preview-test-household');
+  });
+  it('the shell boots its persona through previewSamplePersona, hides the header sign-in on an isolated preview, opens the gate for the test household, saves under the preview key, purges real snapshots first, and passes the four self-fetching tabs their mode', () => {
     const shell = read('src/poe-financial-mvp-v28.jsx');
     expect(shell).toContain("if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null)");
     expect(shell).toContain('{!isIsolatedPreview() && <HeaderAuthButton />}');
-    for (const tag of ['<Obligations demo={isAnyDemoMode || reviewerMode} />', '<FamilyPlan demo={isAnyDemoMode || reviewerMode} />', '<BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode} />', '<Contractors1099 demo={isAnyDemoMode || reviewerMode}']) {
+    expect(shell).toContain("if (isAnyDemoMode || isIsolatedPreview()) return 'family';");
+    expect(shell).toContain('if ((isPublicHost() && !isIsolatedPreview()) || reviewerMode) {');
+    expect(shell).toContain('if (isIsolatedPreview()) await purgePreviewSnapshots(window.storage); await loadSavedSnapshot();');
+    expect(shell).toContain('let saved = await window.storage.get(previewStorageKey(window.location.hostname));');
+    expect(shell).toContain("for (const k of (isIsolatedPreview() ? [] : ['poe-financial-v27',");
+    expect(shell).toContain('if (isPublicHost() && !isIsolatedPreview() && !(authSession && authHydrated)) return;');
+    expect(shell).toContain('owner: authSession?.user?.id || (isIsolatedPreview() ? PREVIEW_TEST_OWNER : undefined),');
+    expect(shell).toContain("persistSnapshot((k, v) => window.storage.set(k, v), previewStorageKey(window.location.hostname), envelope, data)");
+    expect(shell).toContain('isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession });');
+    for (const tag of ['<Obligations demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<FamilyPlan demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<Contractors1099 demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()}']) {
       expect(shell, tag).toContain(tag);
     }
+    // the real key is read and written in exactly one place each, both through previewStorageKey
+    expect((shell.match(/window\.storage\.get\('poe-financial-v28'\)/g) || []).length).toBe(0);
+    expect((shell.match(/'poe-financial-v28', envelope/g) || []).length).toBe(0);
+  });
+  it('the data client module purges foreign state before the client is built', () => {
+    const src = read('src/lib/supabase.js');
+    expect(src.indexOf('purgePreviewForeignState(')).toBeGreaterThan(0);
+    expect(src.indexOf('purgePreviewForeignState(')).toBeLessThan(src.indexOf('createClient(SUPABASE_URL'));
+  });
+});
+
+describe('the purges: every leftover of an earlier sign-in is removed, nothing else is', () => {
+  function fakeLocalStorage(init) {
+    const m = new Map(Object.entries(init));
+    return { get length() { return m.size; }, key: (i) => [...m.keys()][i] ?? null, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _keys: () => [...m.keys()] };
+  }
+  it('purgePreviewForeignState removes session tokens (any ref), the bridge token, the profile and the marker; keeps the rest', () => {
+    const ls = fakeLocalStorage({ 'sb-mjjlevhdufpaplypnqrv-auth-token': '{}', 'sb-poetech-auth-token': '{}', 'poetech-chat-bridge-token': 'x', 'poe-current-profile': 'darrell', 'poe-snapshot-marker': '2026', 'poe-landing-seen': '1', 'poetech.help.tour.v1': '1', 'poe-money-rail-collapsed': '0' });
+    const gone = purgePreviewForeignState(ls);
+    expect(gone.sort()).toEqual(['poe-current-profile', 'poe-snapshot-marker', 'poetech-chat-bridge-token', 'sb-mjjlevhdufpaplypnqrv-auth-token', 'sb-poetech-auth-token']);
+    expect(ls._keys().sort()).toEqual(['poe-landing-seen', 'poe-money-rail-collapsed', 'poetech.help.tour.v1']);
+    expect(purgePreviewForeignState(null)).toEqual([]);
+    expect(purgePreviewForeignState({ get length() { throw new Error('blocked'); } })).toEqual([]);
+  });
+  it('purgePreviewSnapshots removes every REAL snapshot key the loader could fall back to, never the test key', async () => {
+    const store = new Map([['poe-financial-v28', '{"owner":"u1"}'], ['poe-financial-v25', '{}'], [PREVIEW_STORAGE_KEY, '{"owner":"preview-test-household"}'], ['other', 'x']]);
+    const shim = { get: async (k) => (store.has(k) ? { value: store.get(k) } : null), set: async () => {}, remove: async (k) => { store.delete(k); } };
+    const removed = await purgePreviewSnapshots(shim);
+    expect(removed).toEqual(['poe-financial-v28', 'poe-financial-v25']);
+    expect([...store.keys()]).toEqual([PREVIEW_STORAGE_KEY, 'other']);
+    expect(await purgePreviewSnapshots(null)).toEqual([]);
+    expect(await purgePreviewSnapshots({ get: async () => null, set: async () => {} })).toEqual([]); // a shim without remove() purges nothing, and never throws
   });
 });

@@ -29,7 +29,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PublicFrontDoor from './components/PublicFrontDoor.jsx';
-import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, previewSamplePersona } from './lib/access-gate.js';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -751,7 +751,7 @@ import {
 function getDemoPersona() {
   try {
     const sp = new URLSearchParams(window.location.search);
-    if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null); // a preview host is ALWAYS the sample (lib/preview-isolation.js)
+    if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null); // null = the app's own path; on a preview host that is the TEST HOUSEHOLD (lib/preview-isolation.js)
     const p = (sp.get('demo') || '').toLowerCase().trim();
     // Bare `?demo` (no value) lands in the universal start: a family
     // financial system. The app then teaches the viewer as they explore.
@@ -1175,7 +1175,7 @@ export default function PoeFinancialSystem() {
   // Layer B (workflow 21 + session token) will add real auth on top. See
   // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
   const [currentProfile, setCurrentProfile] = useState(() => {
-    if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
+    if (isAnyDemoMode || isIsolatedPreview()) return 'family'; // Demo + picker + the preview test household skip the profile picker.
     if (isPublicHost() || reviewerMode) return null; // SECURITY: public host never reads saved profile; a reviewer boots the public flow.
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
@@ -1654,12 +1654,12 @@ export default function PoeFinancialSystem() {
     // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
     // get the demo sample + no hydration. (Signed-in hydration is handled by
     // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
-    if (isPublicHost() || reviewerMode) {
+    if ((isPublicHost() && !isIsolatedPreview()) || reviewerMode) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
     }
-    (async () => { await loadSavedSnapshot(); setLoaded(true); })();
+    (async () => { if (isIsolatedPreview()) await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); // a preview first drops any REAL snapshot its origin kept, then loads the test household's own key
     // Run-once boot hydration by design; isAnyDemoMode is URL-derived and
     // fixed for the page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1678,20 +1678,14 @@ export default function PoeFinancialSystem() {
   // pass no forUserId — the device-trust model there is unchanged.
   const loadSavedSnapshot = async (forUserId = null) => {
       try {
-        let saved = await window.storage.get('poe-financial-v28');
+        let saved = await window.storage.get(previewStorageKey(window.location.hostname)); // 'poe-financial-v28', or the test household's own key on a preview
         if (saved && saved.value && forUserId) {
           try {
             const ownerCheck = JSON.parse(saved.value);
             if (ownerCheck.owner && ownerCheck.owner !== forUserId) return false;
           } catch (_) { /* unparseable → treated as not found below */ }
         }
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v26');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v25');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v24');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v23');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v22');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v21');
+        for (const k of (isIsolatedPreview() ? [] : ['poe-financial-v27', 'poe-financial-v26', 'poe-financial-v25', 'poe-financial-v24', 'poe-financial-v23', 'poe-financial-v22', 'poe-financial-v21'])) { if (saved && saved.value) break; saved = await window.storage.get(k); } // legacy keys; never on a preview
         if (saved && saved.value) {
           const parsed = JSON.parse(saved.value);
           // v17: defensive merge — ensure all required fields exist even if saved data is from an older version
@@ -1921,7 +1915,7 @@ export default function PoeFinancialSystem() {
     // visitors. 2026-06-11: a signed-in owner persists on their own device —
     // but only AFTER their hydration completes, so a demo snapshot can never
     // overwrite their real saved data in the sign-in race window.
-    if (isPublicHost() && !(authSession && authHydrated)) return;
+    if (isPublicHost() && !isIsolatedPreview() && !(authSession && authHydrated)) return; // a preview TEST HOUSEHOLD saves on its device, under its own key, with no session
     (async () => {
       try {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
@@ -1929,9 +1923,9 @@ export default function PoeFinancialSystem() {
         // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
         // Keep the FULL snapshot (photos) when it fits; fall back to slim (photo bytes
         // stripped) ONLY on quota overflow — a photo never costs the family their books, yet photos stay when there's room (2026-07-18).
-        const envelope = { owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
+        const envelope = { owner: authSession?.user?.id || (isIsolatedPreview() ? PREVIEW_TEST_OWNER : undefined), savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
         const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
-        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), 'poe-financial-v28', envelope, data);
+        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), previewStorageKey(window.location.hostname), envelope, data);
         const bannerMsg = storageBannerMessage(savedMode, cloudSafe);
         setPersistIssue(bannerMsg ? { kind: 'storage', message: bannerMsg } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
         // v2.15 family snapshot push — the non-table-synced remainder follows
@@ -3532,7 +3526,7 @@ export default function PoeFinancialSystem() {
     );
   }
 
-  const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
+  const __gate = accessState({ isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession }); // a preview test household opens without a session: its client reaches nothing
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
@@ -4311,8 +4305,8 @@ ${THEME_CSS}
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
             {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} addAccounts={addAccounts} deleteAccount={deleteAccount} updateRental={updateRental} recategorizePayee={recategorizePayee} />}
-            {booksView === 'owed' && <SectionBoundary name="Owed"><Obligations demo={isAnyDemoMode || reviewerMode} /></SectionBoundary>}
-            {booksView === 'plan' && <SectionBoundary name="Family Plan"><FamilyPlan demo={isAnyDemoMode || reviewerMode} /></SectionBoundary>}
+            {booksView === 'owed' && <SectionBoundary name="Owed"><Obligations demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
+            {booksView === 'plan' && <SectionBoundary name="Family Plan"><FamilyPlan demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
@@ -4320,9 +4314,9 @@ ${THEME_CSS}
             {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} /> : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
-            {booksView === 'k1099' && <Contractors1099 demo={isAnyDemoMode || reviewerMode} contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
+            {booksView === 'k1099' && <Contractors1099 demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
-            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode} /></SectionBoundary>}
+            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} addEvent={addEvent} />}
           </MoneyLayout></SectionBoundary>
           </PrivateGate>
