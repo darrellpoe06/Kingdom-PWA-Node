@@ -84,13 +84,13 @@ describe('initialBooksView — Books deep-links resolve, unknown subs stay safe'
     }
   });
   it('an unknown ?sub= falls back to the default, never a dead branch', () => {
-    expect(initialBooksView('?view=books&sub=bogus')).toBe('calendar');
-    expect(initialBooksView('?view=books')).toBe('calendar');
+    expect(initialBooksView('?view=books&sub=bogus')).toBe('overview');
+    expect(initialBooksView('?view=books')).toBe('overview');
   });
   it('a ?sub= only counts when the view is actually books', () => {
     // church also writes ?sub=; it must not leak into booksView.
-    expect(initialBooksView('?view=church&sub=engagement')).toBe('calendar');
-    expect(initialBooksView('')).toBe('calendar');
+    expect(initialBooksView('?view=church&sub=engagement')).toBe('overview');
+    expect(initialBooksView('')).toBe('overview');
   });
 });
 
@@ -98,7 +98,7 @@ describe('initialBooksView — Books deep-links resolve, unknown subs stay safe'
 
 describe('nav-history pure helpers', () => {
   it('serializes the default view to a clean (empty) query', () => {
-    expect(serializeNav({ view: 'overview', booksView: 'calendar', churchView: 'home' })).toBe('');
+    expect(serializeNav({ view: 'overview', booksView: 'overview', churchView: 'home' })).toBe('');
   });
 
   it('serializes a top-level view', () => {
@@ -115,7 +115,7 @@ describe('nav-history pure helpers', () => {
   });
 
   it('parses an unknown view back to overview (no dead-end)', () => {
-    expect(parseNav('?view=does-not-exist')).toEqual({ view: 'overview', booksView: 'calendar', churchView: 'home' });
+    expect(parseNav('?view=does-not-exist')).toEqual({ view: 'overview', booksView: 'overview', churchView: 'home' });
   });
 
   // ?tab= IS AN ALIAS (2026-09-16, DR-0444). Every message notification this
@@ -134,11 +134,11 @@ describe('nav-history pure helpers', () => {
   });
 
   it('honors legacy church deep-links (?view=engagement)', () => {
-    expect(parseNav('?view=engagement')).toEqual({ view: 'church', booksView: 'calendar', churchView: 'engagement' });
+    expect(parseNav('?view=engagement')).toEqual({ view: 'church', booksView: 'overview', churchView: 'engagement' });
   });
 
   it('parses the canonical church form (?view=church&sub=choir)', () => {
-    expect(parseNav('?view=church&sub=choir')).toEqual({ view: 'church', booksView: 'calendar', churchView: 'choir' });
+    expect(parseNav('?view=church&sub=choir')).toEqual({ view: 'church', booksView: 'overview', churchView: 'choir' });
   });
 
   it('round-trips every known location through serialize -> parse', () => {
@@ -159,7 +159,7 @@ describe('nav-history pure helpers', () => {
 
   it('navKey ignores an inactive tab\'s retained sub-state', () => {
     // Same active view+sub, different (irrelevant) inactive sub -> equal keys
-    const a = { view: 'church', churchView: 'choir', booksView: 'calendar' };
+    const a = { view: 'church', churchView: 'choir', booksView: 'overview' };
     const b = { view: 'church', churchView: 'choir', booksView: 'transactions' };
     expect(navKey(a)).toBe(navKey(b));
     // Different active sub -> different keys
@@ -174,7 +174,7 @@ describe('nav-history pure helpers', () => {
 // the current view/sub so the test can assert what's shown.
 function NavHarness() {
   const [view, setView] = useState('overview');
-  const [booksView, setBooksView] = useState('calendar');
+  const [booksView, setBooksView] = useState('overview');
   const [churchView, setChurchView] = useState('home');
   const nav = useBrowserHistoryNav({ view, setView, booksView, setBooksView, churchView, setChurchView });
   return createElement('div', null,

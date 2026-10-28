@@ -76,7 +76,7 @@ import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
 import { isReviewerModeOn, isReviewerStranger, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
@@ -145,7 +145,7 @@ import UiIcon from './components/UiIcon.jsx';
 import SideNav from './components/shell/SideNav.jsx';
 import { navItems, navGroups } from './lib/nav-items.jsx';
 import { useHomePrefs, setHomeView } from './lib/home-view-prefs.js';
-import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
+import { BooksUploadButton, BooksUploadMount, MoneyLayout, MoneyNavStrip } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -163,7 +163,7 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchMinistriesTab,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
-  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
+  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library, MoneySurfaces,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection,
   surfaceById, canSeeCameras, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
@@ -1048,7 +1048,7 @@ export default function PoeFinancialSystem() {
     try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
     setSelfServeWelcomeDismissed(true);
   };
-  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'calendar' : initialBooksView(window.location.search); } catch (e) { return 'calendar'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
+  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'overview' : initialBooksView(window.location.search); } catch (e) { return 'overview'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
   const [churchView, setChurchView] = useState(getInitialChurchView());
   // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
   // Whole TLC App... one single tab that holds all of it"). One office, three
@@ -1253,7 +1253,7 @@ export default function PoeFinancialSystem() {
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
   const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
   const { homeView } = useHomePrefs();
-  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); } };
+  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
@@ -4270,9 +4270,7 @@ ${THEME_CSS}
           <div className="border-t border-[#E8E4DC] bg-white flex items-center">
             {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
-                  <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-                ))}
+                <MoneyNavStrip booksView={booksView} setBooksView={setBooksView} legacy={[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed))} />
             </TabScroll>
             <BooksUploadButton />
           </div>
@@ -4308,7 +4306,8 @@ ${THEME_CSS}
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
           <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
-          <SectionBoundary key={booksView} name="Financial">
+          <SectionBoundary key={booksView} name="Financial"><MoneyLayout booksView={booksView} setBooksView={setBooksView} importedAllowed={importedAllowed}>
+            {(booksView === 'overview' || NEW_MONEY_SUBS.includes(booksView)) && <MoneySurfaces section={booksView} money={{ data, setData, currentDate, derivedDebts, totals, entityRollups, reserves, bufferCurrent: bufferCurrentReal, visibleEntities, accountReconciliation, debtSnowball, debtMinOnly, debtSnowballExtra, cloud: !!authSession && !isAnyDemoMode && !reviewerMode, setBooksView, setView, addRecurring, updateRecurring, importedAllowed }} />}
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
             {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} addAccounts={addAccounts} deleteAccount={deleteAccount} updateRental={updateRental} recategorizePayee={recategorizePayee} />}
@@ -4325,7 +4324,7 @@ ${THEME_CSS}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
             {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} addEvent={addEvent} />}
-          </SectionBoundary>
+          </MoneyLayout></SectionBoundary>
           </PrivateGate>
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
@@ -5052,7 +5051,7 @@ ${THEME_CSS}
 function ImportedDemoGuard({ setBooksView }) {
   useEffect(() => {
     // Redirect any direct landing on the imported subview away from real data.
-    setBooksView('calendar');
+    setBooksView('overview');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (

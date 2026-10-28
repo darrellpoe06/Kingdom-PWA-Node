@@ -23,6 +23,7 @@
 // (src/__tests__/nav-history.test.jsx — the Verification-Doctrine proof).
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { ALL_SUBS as MONEY_SUBS, DEFAULT_SUB as MONEY_DEFAULT } from './money-nav.js';
 
 // ── pure location <-> URL helpers (no DOM; unit-testable) ───────────────────
 
@@ -56,7 +57,10 @@ const CHURCH_ALIASES = [
 
 // Defaults the shell boots with; a location equal to default writes a clean URL.
 const DEFAULT_VIEW = 'overview';
-const DEFAULT_BOOKS = 'calendar';
+// The Money section opens on its Overview (Christina 2026-10-28): the default
+// and the valid list are owned by lib/money-nav.js so the nav, the deep-link
+// resolver and the reachability test cannot disagree.
+const DEFAULT_BOOKS = MONEY_DEFAULT;
 const DEFAULT_CHURCH = 'home';
 
 // Serialize a nav location -> query string ('' when fully default => clean home
@@ -101,9 +105,7 @@ export function parseNav(search) {
 // resolves through ONE validated source. An unknown sub must fall back to the
 // default, never route to a branch that renders nothing (the "blank Books tab"
 // class this module exists to prevent).
-export const VALID_BOOKS_SUBS = [
-  'entities', 'accounts', 'debts', 'owed', 'plan', 'transactions', 'imported', 'cart', 'k1099', 'taxes', 'calendar', 'legal',
-];
+export const VALID_BOOKS_SUBS = [...MONEY_SUBS];
 
 // initialBooksView — the Books sub-tab a URL deep-links to, validated. The shell
 // boots booksView from THIS (getInitialBooksView), restoring the parity that view

@@ -161,6 +161,7 @@ export const SURFACES = [
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
   { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  requires: 'instance-owner-admin', whenDenied: 'lock', gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: () => import('./components/Obligations.jsx') },
   { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  requires: 'signed-in', whenDenied: 'lock', gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
+  { id: 'money-overview', label: 'Money Overview', nav: 'books', view: 'books', sub: 'overview', load: () => import('./components/money/MoneySurfaces.jsx') },
 ];
 
 // Derive each lazy component ONCE from its loader and hang it on the entry.
@@ -243,3 +244,4 @@ export const Cart             = surfaceById['cart'].component;
 export const Contractors1099  = surfaceById['k1099'].component;
 export const FamilyPlan       = surfaceById['plan'].component;
 export const Obligations      = surfaceById['owed'].component;
+export const MoneySurfaces    = surfaceById['money-overview'].component;

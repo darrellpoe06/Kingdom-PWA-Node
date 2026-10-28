@@ -45,6 +45,7 @@ import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
+import { MONEY_BOTTOM_NAV, moneyMoreSections, sectionFor } from '../lib/money-nav.js';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import {
@@ -137,6 +138,12 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // measured law (DR-0716 / DR-0744). Wider than a phone the tab strip or the
   // sidebar is the nav and the bar stays what it was.
   const tabsMode = !!nav && phone && !inReader;
+  // INSIDE MONEY the four tabs are Money's own (Christina 2026-10-28: "Use a
+  // simplified bottom navigation system ... Overview, Transactions, Budget,
+  // Goals, More") — the app's ONE bar (DR-0716), never a second bar. More then
+  // leads with the rest of Money, above every other section as before.
+  const moneyNav = tabsMode && nav.money ? nav.money : null;
+  const moneySection = moneyNav ? (sectionFor(moneyNav.booksView) || { id: 'overview' }).id : null;
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
   const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
@@ -235,7 +242,20 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
           )}
           {tabsMode && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-tabs" role="group" aria-label="Sections">
-              {BOTTOM_NAV.map((t) => (
+              {moneyNav ? MONEY_BOTTOM_NAV.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  data-testid={`dock-money-${t.key}`}
+                  onClick={() => { setMoreOpen(false); moneyNav.setBooksView(t.sub); }}
+                  aria-current={moneySection === t.sub ? 'page' : undefined}
+                  title={t.words}
+                  className={`${moneySection === t.sub ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                >
+                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
+                  <DockLabel>{t.words}</DockLabel>
+                </button>
+              )) : BOTTOM_NAV.map((t) => (
                 <button
                   key={t.key}
                   type="button"
@@ -281,6 +301,17 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
               className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
             >
+              {moneyNav && (
+                <div data-testid="dock-more-group-money" className="w-full flex flex-wrap items-center gap-[4px]">
+                  <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">Money</span>
+                  {moneyMoreSections().map((s) => (
+                    <button key={s.id} type="button" data-testid={`dock-more-money-${s.id}`} onClick={() => { setMoreOpen(false); moneyNav.setBooksView(s.id); }} aria-current={moneySection === s.id ? 'page' : undefined} title={s.label} className={`${moneySection === s.id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
+                      <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={s.icon} /></span>
+                      <DockLabel>{s.label}</DockLabel>
+                    </button>
+                  ))}
+                </div>
+              )}
               {tabsMode && nav.groups && nav.groups.map((g) => (
                 <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
                   {g.label && <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>}

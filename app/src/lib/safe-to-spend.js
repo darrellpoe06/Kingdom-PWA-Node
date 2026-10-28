@@ -306,13 +306,14 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
 
   // 4) Tax calendar items that land inside the window (dated; the rest accrue).
   for (const tx of (data?.taxCalendar || [])) {
-    if (!tx || !tx.applies || !(Number(tx.amount) > 0)) continue;
+    const taxAmt = taxAmount(tx, settings);
+    if (!tx || !tx.applies || !(taxAmt > 0)) continue;
     const ids = Array.isArray(tx.entityIds) ? tx.entityIds : [];
     if (ids.length && !ids.some((id) => inScope(sc, id))) continue;
     if (!ids.length && !sc.includeUnassigned) continue;
     for (const y of [start.getFullYear(), start.getFullYear() + 1]) {
       const at = new Date(y, (Number(tx.month) || 1) - 1, Number(tx.day) || 1);
-      if (at >= start && at <= end) events.push({ date: isoDay(at), amount: -round2(tx.amount), label: tx.name || 'Tax item', kind: 'tax', source: 'tax-calendar', refId: tx.id, entityId: ids[0] || null, assumed: false });
+      if (at >= start && at <= end) events.push({ date: isoDay(at), amount: -round2(taxAmt), label: tx.name || 'Tax item', kind: 'tax', source: 'tax-calendar', refId: tx.id, entityId: ids[0] || null, assumed: false });
     }
   }
 
@@ -357,6 +358,16 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   return { events, assumptions, inferredMonthly };
 }
 
+// The annual amount of a tax-calendar item: the family's entered figure (guided
+// setup, settings.taxAmounts) beats the seed's, and an absent figure is 0 — never
+// invented.
+export function taxAmount(tx, settings = {}) {
+  if (!tx) return 0;
+  const entered = settings.taxAmounts && settings.taxAmounts[tx.id];
+  if (entered != null && entered !== '' && isFinite(Number(entered))) return Number(entered);
+  return Number(tx.amount) || 0;
+}
+
 function looksLikeDebtPayment(label) {
   return /\b(payment|autopay|auto ?pay|card ?member|cardmember|credit crd|epay|loan pmt|mortgage)\b/i.test(String(label || ''));
 }
@@ -368,7 +379,7 @@ export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) 
   const hasRentals = (data?.inflows?.rentals || []).some((r) => inScope(sc, r.entityId) && (Number(r.rent) || 0) > 0);
   for (const [bucket, v] of Object.entries(outflows)) {
     const amt = Number(v) || 0; if (amt <= 0 || COVERED_BY_DATED_ITEMS.has(bucket)) continue;
-    let counts = false;
+    let counts;
     if (sc.kind === 'consolidated') counts = true;
     else if (PROPERTY_BUCKETS.has(bucket)) counts = hasRentals && sc.kind !== 'personal';
     else if (PERSONAL_BUCKETS.has(bucket)) counts = sc.kind === 'personal';
@@ -382,12 +393,13 @@ export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) 
   // Tax set-aside for items NOT dated inside the window.
   let annual = 0;
   for (const tx of (data?.taxCalendar || [])) {
-    if (!tx || !tx.applies || !(Number(tx.amount) > 0)) continue;
+    const taxAmt = taxAmount(tx, settings);
+    if (!tx || !tx.applies || !(taxAmt > 0)) continue;
     const ids = Array.isArray(tx.entityIds) ? tx.entityIds : [];
     if (ids.length && !ids.some((id) => inScope(sc, id))) continue;
     if (!ids.length && !sc.includeUnassigned) continue;
     const inWindow = [start.getFullYear(), start.getFullYear() + 1].some((y) => { const at = new Date(y, (Number(tx.month) || 1) - 1, Number(tx.day) || 1); return at >= start && at <= end; });
-    if (!inWindow) annual += Number(tx.amount);
+    if (!inWindow) annual += taxAmt;
   }
   out.tax = round2(annual / 12);
   // Planned savings: the family's number first, else the goals' required pace.
