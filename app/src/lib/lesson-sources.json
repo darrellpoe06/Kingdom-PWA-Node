@@ -47,5 +47,31 @@
       ],
       "claim": "CEO-to-worker pay 290-to-1 in 2023 against 21-to-1 in 1965; CEO pay up 1,085 percent since 1978, a typical worker’s up 24 percent"
     }
+  ],
+  "PROBE-fed-scf-do-not-merge": [
+    {
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "title": "Federal Reserve Board releases results of the 2025 Survey of Consumer Finances",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/other20261009a.htm",
+      "read": "2026-10-28",
+      "says": [
+        "215,900"
+      ],
+      "claim": "PROBE: overall real median net worth 215,900"
+    },
+    {
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "title": "Changes in U.S. Family Finances from 2022 to 2025",
+      "url": "https://www.federalreserve.gov/publications/changes-in-us-family-finances-from-2022-to-2025.htm",
+      "read": "2026-10-28",
+      "says": [
+        "215,900",
+        "504,900",
+        "1,962,200",
+        "431,300",
+        "12.2"
+      ],
+      "claim": "PROBE: the age-group medians and means legacy8 teaches"
+    }
   ]
 }
