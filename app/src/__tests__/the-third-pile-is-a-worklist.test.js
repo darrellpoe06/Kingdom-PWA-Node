@@ -74,6 +74,39 @@ const REPO = join(HERE, '..', '..', '..');
 // re-review: 2026-11-27 -- if a runner with web access can read a scholarly
 // source on the bema's civic use, either cite it in the lesson and lower this
 // pin to 10, or drop the sentence.
+// 11 -> 12 on 2026-10-28 (wm9, the cost of staying warm), and the reason is on
+// the record rather than in a wording change. The lesson is built from a
+// Morning Brew newsletter Darrell forwarded, and its whole teaching is HOW TO
+// TREAT a borrowed number: a dated, attributed reading of what one named source
+// reported on one named day is a different object from a price spoken as
+// current, and the reader leaves with the two questions it reduces to, who said
+// it and on what day. It therefore could not quietly omit its own limit, and it
+// does not: the adult text AND all four bands name the newsletter, name the day,
+// and say plainly that nobody here opened the Energy Information
+// Administration's projection, the Food & Water Watch study, the weatherization
+// interview or the heating-assistance reporting.
+//
+// It takes the SECOND branch this test's own verdict offers ("say plainly why it
+// cannot be checked"), and the why is specific rather than general. THE SOURCE
+// IS AN EMAIL, not a page: the figures reached us inside a newsletter, and a
+// newsletter is not a publisher's page a runner can fetch and read a number back
+// off, so there is nothing for lesson-sources.json to point at for the
+// newsletter itself. Writing a row anyway — or a 0-figure row — would make
+// `checked()` count a lesson whose figures nobody read, which is the
+// anti-theatre rule in DR-0076 section 3.
+//
+// What IS checkable, and is owed: the EIA's winter heating-oil projection is
+// published on eia.gov, so a runner with web access could read the per-gallon
+// figure and the year-on-year change back off the agency's own page, and the
+// Food & Water Watch study is likewise published. Neither was reachable from
+// this build. No teaching in wm9 rests on either number — the lesson's point
+// stands whatever the price turns out to be, which is itself the thing it
+// teaches — and every figure is labelled as the newsletter's report on every
+// adult surface and in every band.
+// re-review: 2026-11-28 -- from a runner with web access, read the EIA
+// projection and the Food & Water Watch figure back off their publishers' own
+// pages, give wm9 a row in lesson-sources.json, and lower this pin to 11.
+//
 //
 // 1 -> 2 CHECKED on 2026-10-28 (DR-1275). legacy8 is built from a Morning Brew
 // edition reporting the Federal Reserve's 2025 Survey of Consumer Finances, so
@@ -94,7 +127,21 @@ const REPO = join(HERE, '..', '..', '..');
 // the $367,000 previous median is absent from the bulletin, and the 37/23
 // percent changes are unmatchable as bare two-digit strings, so they are left
 // as the newsletter's claims rather than dressed up as verified.
-const GAP = 11;
+//
+// BOTH LANDED THE SAME DAY, and the resolution is not a split difference.
+// wm9 took the second branch (its figures arrived inside an email, and an email
+// is not a page a runner can read a number back off) so it ADDS to the gap:
+// 11 -> 12. legacy8 took the first branch and LEAVES the gap, so it does not
+// subtract from wm9's increment -- it was never counted in the 11. Hence
+// GAP = 12 with CHECKED_LESSONS = 2, and neither lesson's reasoning is edited
+// to suit the other's.
+//
+// Standing note for wm9's own re-review, now that it is not hypothetical: a
+// runner CAN read a publisher's page back -- legacy8 proved it on
+// federalreserve.gov the same day, after this sandbox failed even to resolve
+// the host. So wm9's "could read the EIA projection" is a method that exists
+// and has been exercised, not a hope.
+const GAP = 12;
 const CHECKED_LESSONS = 2;
 
 describe('both sides of the honesty gap are counted', () => {
