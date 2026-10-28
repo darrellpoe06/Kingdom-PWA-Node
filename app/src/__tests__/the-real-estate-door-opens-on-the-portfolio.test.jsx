@@ -54,9 +54,28 @@ describe('the door reads the real rows', () => {
     expect(by.pi.value).toBe(556 + 570 + 695 + 506);
     expect(by.debt.value).toBe(88000 + 90000 + 110000 + 80000);
     expect(by.net.value).toBe(by.rent.value - by.pi.value);
-    // One door has no mortgage figure, so the debt cell says what it counted.
+    // One door has no mortgage figure, so BOTH the owed-balance and the
+    // monthly-note cells say what they counted rather than letting the blank
+    // pass as a confident $0 (the bug on Darrell's phone: 11 doors read
+    // "Mortgage a month $0" with no caveat — see DR-0076 §8).
     expect(by.debt.sub).toBe('4 of 5 entered');
+    expect(by.pi.sub).toBe('4 of 5 entered');
     expect(by.rent.sub).toBe(null); // every door has a rent
+    // "Left after the note" is overstated while a mortgage is missing (the
+    // missing note sums as $0), so it flags that it is a before-the-figures
+    // number instead of presenting the inflated net as final.
+    expect(by.net.sub).toBe('before every figure is in');
+  });
+
+  it('drops the caveats once every mortgage figure is in (honest, not noisy)', () => {
+    const complete = ROWS.map((r) => (r.id === 'e'
+      ? { ...r, mortgage: { balance: 75000, rate: 6.5, monthlyPI: 475, escrow: 150 } }
+      : r));
+    const s = doorState({ rentals: complete, entities: ENTITIES });
+    const by = Object.fromEntries(s.holds.map((h) => [h.key, h]));
+    expect(by.pi.sub).toBe(null);   // all five mortgages entered
+    expect(by.debt.sub).toBe(null);
+    expect(by.net.sub).toBe(null);  // the net is now a real figure
   });
 
   it('counts what wants a person off the rows themselves', () => {

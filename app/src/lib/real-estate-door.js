@@ -130,10 +130,17 @@ export function doorState({ rentals = [], entities = [], paidRollup = null, inci
   // are missing one, the sub-line says how many are counted rather than
   // letting a blank pass as a zero.
   const counted = (missing) => (missing > 0 ? `${p.portfolioCount - missing} of ${p.portfolioCount} entered` : null);
+  // "Left after the note" subtracts the monthly note from the rent. When a
+  // door's P&I is not entered it sums as $0, so the net reads HIGHER than the
+  // truth — the single most misleading number here if left unflagged. So the
+  // net carries the same honest caveat the other gaps do: it says it is a
+  // before-the-figures-are-in number rather than presenting an overstated net
+  // as final (DR-0076 §8 — unknown is never rendered as a confident figure).
+  const figuresIncomplete = p.missingPI > 0 || p.missingRent > 0;
   const holds = [
     { key: 'rent', label: 'Rent a month', value: p.monthlyRent, sub: counted(p.missingRent), tone: 'green' },
-    { key: 'pi', label: 'Mortgage a month', value: p.monthlyPI, sub: null, tone: 'ink' },
-    { key: 'net', label: 'Left after the note', value: p.monthlyRent - p.monthlyPI, sub: null, tone: (p.monthlyRent - p.monthlyPI) < 0 ? 'rust' : 'green' },
+    { key: 'pi', label: 'Mortgage a month', value: p.monthlyPI, sub: counted(p.missingPI), tone: 'ink' },
+    { key: 'net', label: 'Left after the note', value: p.monthlyRent - p.monthlyPI, sub: figuresIncomplete ? 'before every figure is in' : null, tone: (p.monthlyRent - p.monthlyPI) < 0 ? 'rust' : 'green' },
     { key: 'debt', label: 'Still owed', value: p.mortgageDebt, sub: counted(p.missingDebt), tone: 'rust' },
   ];
 
