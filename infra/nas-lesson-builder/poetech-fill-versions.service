@@ -1,0 +1,17 @@
+[Unit]
+Description=PoeTech NAS fill-versions (DR-1261): one pass writing a lesson's missing age versions, newest first
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dpoe
+EnvironmentFile=-/volume1/PoeTech/secrets/lesson-builder.env
+Environment=POETECH_REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+Environment=LESSON_BUILDER_DATA=/volume1/PoeTech/lesson-builder
+# The brakes: 2 versions per run, 6 per day, 30 minutes of wall clock, one instance.
+Environment=FILL_VERSIONS_PER_RUN=2
+Environment=FILL_VERSIONS_PER_DAY=6
+Environment=FILL_VERSIONS_MAX_SECONDS=1800
+ExecStart=/usr/bin/python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder/fill_versions.py --once
+Nice=10

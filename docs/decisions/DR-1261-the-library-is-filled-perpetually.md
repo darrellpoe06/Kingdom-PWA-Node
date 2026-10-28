@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-27
 **Status:** Accepted
-**Area:** `app/src/lib/library-census.js` (new), `app/src/lib/library-census-baseline.json` (new), `app/src/components/LibraryCensus.jsx` (new), `app/src/components/ChurchLearn.jsx`, `app/src/__tests__/the-library-is-filled-perpetually.test.js` (new)
+**Area:** `app/src/lib/library-census.js`, `app/src/lib/library-census-baseline.json`, `app/src/components/LibraryCensus.jsx`, `app/src/components/ChurchLearn.jsx`, `scripts/library-gaps.mjs`, `scripts/splice-lesson-level.mjs`, `scripts/register-json-imports.mjs` + `scripts/json-loader-hooks.mjs`, `infra/nas-lesson-builder/fill_versions.py` + `test_fill_versions.py`, `poetech-fill-versions.service` + `.timer`, `install-fill-versions.sh`, `infra/nas-loops/services.json` (fill-versions, enabled:false)
 **Follows:** DR-0418 (every age version is the full message), DR-0484 (four versions or one repeated), DR-0715 (lessons beside readings), DR-0754 (the record), DR-1255 / DR-1257 / DR-1260 (which version, the record announced), DR-0075 (perpetual improvement), DR-0076 (measure, then change), DR-0108 (review our Ways)
 
 ## Context
@@ -64,15 +64,27 @@ a new lesson adds to the wait. A gain re-freezes the baseline by hand in
 the PR that earned it (the DR-0418 pattern). Proven-to-catch on one lost
 version.
 
-**The filling lane works the queue, newest first.** The queue is the work
-list; the builder on the NAS, which already writes all bands for a NEW
-lesson through the band gates, is the writer. Writing a missing version
-INTO an existing lesson is a splice into the course's own source file, and
-the 45 course files are not one shape (living-lessons holds 227 `levels`
-objects inline; sovereign-ai 36 for 52 lessons; healthy-living one): the
-splice must be proven per file before a job runs it unattended. That job is
-built next, with budget, lock and the band gates, shipped inactive, and
-activated on proof (DR-0225). `re-review: 2026-11-03`.
+**The filling lane works the queue, newest first — built, proven, shipped
+inactive.** `infra/nas-lesson-builder/fill_versions.py` is a oneshot the
+NAS timer fires four times a day: it reads the same queue the app shows
+(`scripts/library-gaps.mjs`, through `scripts/register-json-imports.mjs` so
+plain node can import the catalog), takes a lesson's missing band (child,
+youth, teen, senior), asks the primary writer for THAT band whole with the
+lesson's own verses verbatim, gates it (the verse scan, the band's share of
+the adult lesson, the child ceiling, differentiation; shortness already in
+OTHER bands is not this write's fault), splices it into the course file by
+the file's parse tree (`scripts/splice-lesson-level.mjs`, acorn; a result
+that would not parse is refused, never written), runs the local ratchet,
+and pushes a `claude/fill-*` branch the lane opens as a PR — CI is the
+brake. A lesson waiting for the ADULT text is the lesson, not a version,
+and is reported, not written; the 26 lessons of healthy-living and
+who-he-is are built from data with no literal to splice, and are named and
+skipped. Brakes: 2 per run, 6 per day (a ledger that survives restarts),
+30 minutes of wall clock, one instance (O_EXCL), and the registry switch
+`fill-versions` in `infra/nas-loops/services.json`, SHIPPED `enabled:false`
+(DR-0225, the AI-class rule: a writer spends). The installer arms and
+disarms the timer from that flag each services-sync cycle; the job re-reads
+it before every run. Activation is the flip, with the first passes watched.
 
 **How the record and the learning are managed (the Way, DR-0108).**
 Three answers, one place: the RECORD says what a learner did (read to the
@@ -89,10 +101,25 @@ gap is counted, queued, and worked down.
 - Anyone can see what the library holds and what it still waits for, in the
   app, counted live.
 - A lost version or an incomplete new lesson cannot merge.
-- 374 waits are named and ordered; the writer job is the next build.
+- 374 waits are named and ordered; the fill lane is installed on the NAS,
+  off until the registry says on; each pass it writes two versions through
+  the gates and the lane, and the ratchet counts them in.
 
 ## Verification
 
+- `the-splice-lands-in-every-course-file.test.js` (4): every placed lesson
+  located by the parse tree; a marker version spliced into a copy of every
+  course file that declares lessons imports back as that lesson's version
+  (added-band, replaced, added-levels); the two data-built courses are the
+  only unplaced ones; a foreign lesson or band is refused.
+- `test_fill_versions.py` (14): the plan skips the adult text and data-built
+  lessons and stops at the tighter budget; the prompt asks for one band
+  whole with the verses; a reply that is not that band is refused; the gate
+  judges only this band and refuses a verse fault, a short band, a child
+  over the ceiling and alike bands; a run writes within budget, splices,
+  commits, pushes and keeps the ledger; the kill switch, the lock, the day
+  budget across runs, a refused band, a refused splice, failing local gates
+  and no reachable writer each stop the push.
 - `the-library-is-filled-perpetually.test.js` (7): a whole lesson; a lesson
   naming each missing version and part, and short; the ids match the
   picker; the totals, the per-course order, the queue newest first with
