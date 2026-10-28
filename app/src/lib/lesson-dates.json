@@ -294,7 +294,8 @@
    "dsi11-adding-content-no-json": ["2026-06-29", "c94cec85"],
    "dsi12-voice-and-help": ["2026-06-29", "c94cec85"],
    "dsi13-roles-and-permissions": ["2026-06-29", "c94cec85"],
-   "dsi14-your-onboarding-path": ["2026-06-29", "c94cec85"]
+   "dsi14-your-onboarding-path": ["2026-06-29", "c94cec85"],
+   "dsi15-weighed-into-named-hands": ["2026-10-28", "504a681f"]
   },
   "handed-forward": {
    "succ1-mission-not-map": ["2026-07-06", "d9097ed8"],
