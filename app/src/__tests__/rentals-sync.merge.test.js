@@ -191,6 +191,48 @@ describe('mergeRemoteRentals — a fresh local edit survives a stale/blank remot
     expect(m.rent).toBe(1250);                 // the real remote update lands
     expect(m.tenantName).toBe('New Tenant');
   });
+
+  it('PROVEN-TO-CATCH (DR-1277): a NEWER remote with blank MONEY never erases a typed rent/mortgage', () => {
+    // The 2026-10-28 data loss ("it keeps updating to zero"): measured, the
+    // cloud held 0 on every door but one, and a cloud row newer than the device
+    // edit was overlaying those zeros onto rents the landlord had typed. 0 means
+    // "not entered" here, so a blank money value from a newer row must not win.
+    const localTyped = {
+      ...localSeed, remoteUuid: 'uuid-1',
+      rent: 1150, actual: 1150,
+      mortgage: { balance: 92000, rate: 6.5, monthlyPI: 581, escrow: 200, estimated: false },
+      updatedAt: '2026-10-20T00:00:00Z',        // typed on the device
+    };
+    const newerBlank = {
+      ...remoteTwin,
+      rent: 0, actual: 0,
+      mortgage: { balance: 0, rate: 0, monthlyPI: 0, escrow: 0, estimated: false },
+      updatedAt: '2026-10-28T00:00:00Z',        // a fresher cloud row carrying zeros
+    };
+    const [m] = mergeRemoteRentals([localTyped], [newerBlank]);
+    expect(m.rent).toBe(1150);                  // the typed rent is NOT wiped
+    expect(m.actual).toBe(1150);
+    expect(m.mortgage.balance).toBe(92000);     // nor the typed mortgage
+    expect(m.mortgage.monthlyPI).toBe(581);
+    expect(m.mortgage.rate).toBe(6.5);
+  });
+
+  it('a NEWER remote with a REAL money value still updates (a deliberate change still propagates)', () => {
+    const localOld = {
+      ...localSeed, remoteUuid: 'uuid-1', rent: 1000,
+      mortgage: { balance: 90000, rate: 6.5, monthlyPI: 560, escrow: 180, estimated: false },
+      updatedAt: '2026-06-01T00:00:00Z',
+    };
+    const remoteNewReal = {
+      ...remoteTwin, rent: 1300,
+      mortgage: { balance: 85000, rate: 6.0, monthlyPI: 540, escrow: 170, estimated: false },
+      updatedAt: '2026-10-28T00:00:00Z',
+    };
+    const [m] = mergeRemoteRentals([localOld], [remoteNewReal]);
+    expect(m.rent).toBe(1300);                  // a real newer value lands
+    expect(m.mortgage.balance).toBe(85000);
+    expect(m.mortgage.monthlyPI).toBe(540);
+  });
 });
 
 describe('status / property-type vocab (live table has no CHECKs; app vocab stores as-is)', () => {
