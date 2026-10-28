@@ -15,6 +15,18 @@ Run as CI runs it, four disjoint shards (`vitest run --shard=i/4`), after a sing
 
 The two failures were pins of the previous state, not defects in the new code: `demo-param-survives-nav.test.jsx` booted its nav harness on the old `calendar` default (now `overview`), and `completion.test.js` requires `app/src/lib/persistent-share.json` to match the shell's frozen budget, which the ratchet had just lowered from 5193 to 5192 (regenerated with `python3 scripts/persistent-share.py`). No expectation was changed to hide a result. Four further consistency tests were added to `debt-freedom.test.js` (§5), 27/27 passing.
 
+**Final run on the refined branch** (commit `6f480a33`, after Christina's usability refinements; 14:09–14:52 UTC, same four shards, run to completion with no intervention):
+
+| Shard | Files | Tests | Result |
+|---|---|---|---|
+| 1 | 435 | 8,080 | green |
+| 2 | 435 | 7,386 | green |
+| 3 | 435 | 7,322 | green |
+| 4 | 434 | 9,044 | green |
+| **Total** | **1,739** | **31,832** | **0 failed** |
+
+(The per-shard counts shift between runs because vitest shards by file hash and the refinement commit added `money-paychecks.test.js` and new cases; the total is what holds.) Nothing was pushed; the seven commits stay local until the lane is blocked (§2).
+
 ## 2. Blocking the automatic merge BEFORE a push — proposal
 
 **The lane as it stands** (`auto-open-pr.yml`, `auto-merge.yml`, read this session): a push to any `ccr-**` branch opens a PR and enables native auto-merge unless the PR already carries the `hold` label; `auto-merge.yml` additionally arms every open, non-draft, non-hold PR on each check-suite completion and disarms every hold-labeled one. A label cannot be attached before a PR exists, and a PR cannot be opened before the commits are pushed — so "push, then hold" is a race, which Christina has rightly refused.
