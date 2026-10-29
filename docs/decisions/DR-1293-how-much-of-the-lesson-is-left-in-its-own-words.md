@@ -1,4 +1,4 @@
-# DR-1288: How much of the lesson is left, in its own words, by two witnesses
+# DR-1293: How much of the lesson is left, in its own words, by two witnesses
 
 **Date:** 2026-10-29
 **Status:** Accepted
