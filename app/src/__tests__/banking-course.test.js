@@ -7,7 +7,7 @@
 // together: a person looking for this course is thinking the word BANK, not the
 // word stewardship.
 //
-// THE EIGHT THINGS THIS COURSE COULD MOST EASILY HAVE GOT WRONG:
+// THE NINE THINGS THIS COURSE COULD MOST EASILY HAVE GOT WRONG:
 //
 //   1. THE STORAGE PICTURE LEFT INTACT. A reader who thinks a deposit sits in a
 //      drawer cannot reason about deposit insurance, reserve requirements, or a
@@ -37,6 +37,14 @@
 //      and NOT hedged; the specific national percentage is refused because those
 //      figures circulate detached from their studies; and the over-reach is
 //      corrected while every bit of the data under it stands (DR-0100).
+//   9. A BORROWED NUMBER WORN AS OUR OWN, or the opposite failure of hedging a
+//      reported one into nothing. Lesson 9 is built from a newsletter, so its
+//      figures sit in two declared piles: the five a GitHub runner read back
+//      off Morgan Stanley's own third-quarter release, and the three that
+//      remain The Daily Upside's report and are labelled as such in the adult
+//      text and in every band. It also refuses to turn a real improvement into
+//      a sneer: fee income on held assets genuinely IS steadier, and the lesson
+//      says so before it asks what the new ground is made of.
 //
 // WHAT THIS COURSE'S OWN GATES CAUGHT WHILE IT WAS BEING WRITTEN, recorded
 // because it is the more useful half. Lesson 1 lowercased the opening "And" of
@@ -186,7 +194,16 @@ describe('it teaches something its siblings did not', () => {
 
   it('anchors on the chapters this course was built from', () => {
     const chapters = [...new Set(bankingRefs().map((r) => r.split(':')[0].trim()))].sort();
-    expect(chapters).toEqual(['1 Timothy 6', '2 Kings 12', 'Amos 8', 'Exodus 22', 'Genesis 41', 'Nehemiah 5', 'Proverbs 6']);
+    // The six added 2026-10-28 are bank9's, and every one was measured against
+    // the live sibling-chapter set BEFORE it was chosen rather than after:
+    // Deuteronomy 8, Ecclesiastes 11, Jeremiah 9, Matthew 7, Proverbs 23 and
+    // Psalms 62 were all absent from every other course in this department, and
+    // the check above proves it still.
+    expect(chapters).toEqual([
+      '1 Timothy 6', '2 Kings 12', 'Amos 8', 'Deuteronomy 8', 'Ecclesiastes 11',
+      'Exodus 22', 'Genesis 41', 'Jeremiah 9', 'Matthew 7', 'Nehemiah 5',
+      'Proverbs 23', 'Proverbs 6', 'Psalms 62',
+    ]);
   });
 });
 
@@ -238,8 +255,8 @@ describe('the line this course holds (DR-0098 / DR-0100)', () => {
 });
 
 describe('the shape every course in this catalog has (DR-0509)', () => {
-  it('carries eight lessons, each with both bands, six benefits and two stories', () => {
-    expect(BANKING_MODULES).toHaveLength(8);
+  it('carries nine lessons, each with both bands, six benefits and two stories', () => {
+    expect(BANKING_MODULES).toHaveLength(9);
     for (const m of BANKING_MODULES) {
       expect(m.levels.teen, `${m.id} has no teen band`).toBeTruthy();
       expect(m.levels.senior, `${m.id} has no senior band`).toBeTruthy();
@@ -257,12 +274,21 @@ describe('the shape every course in this catalog has (DR-0509)', () => {
 
   it('builds a schedule, a progress summary and a markdown export', () => {
     const rows = buildBankingSchedule(null);
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
     expect(rows[0].week).toBe(1);
     expect(bankingProgressSummary({}).done).toBe(0);
     const md = exportBankingCurriculumMarkdown(null);
     expect(md).toContain(BANKING_META.title);
     expect(md.length).toBeGreaterThan(2000);
+  });
+
+  it('says how long it really is — the format line and weeks follow the modules', () => {
+    // bank9 landed 2026-10-28 and this course states its count in prose rather
+    // than deriving it (BANKING_META is declared above BANKING_MODULES), so the
+    // drift this gate prevents is the one a-course-says-how-long-it-really-is
+    // caught in sovereign-ai: a literal two lines from the array it describes.
+    expect(BANKING_META.format).toContain(`${BANKING_MODULES.length} lessons`);
+    expect(BANKING_META.weeks).toBe(BANKING_MODULES.length);
   });
 
   it('declares the session flow and its total', () => {
@@ -277,11 +303,11 @@ describe('the shape every course in this catalog has (DR-0509)', () => {
 });
 
 describe('it is registered and reachable — built means surfaced (DR-0065)', () => {
-  it('is in the catalog, under its department, with all eight lessons', () => {
+  it('is in the catalog, under its department, with all nine lessons', () => {
     const row = LEARN_CATALOG.find((e) => e.key === 'banking');
     expect(row, 'banking is not registered in LEARN_CATALOG').toBeTruthy();
     expect(row.meta.category).toBe('Kingdom Life & Stewardship');
-    expect(row.buildScheduleRows()).toHaveLength(8);
+    expect(row.buildScheduleRows()).toHaveLength(9);
     expect(row.tutorCourseMeta).toBe(BANKING_TUTOR_META);
   });
 
