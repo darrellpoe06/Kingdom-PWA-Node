@@ -131,11 +131,19 @@ jobs:
       # does (deploy-cloudflare-pages.yml; DR-0108: no human paste). Both land
       # as Worker secrets, never in the bundle and never in a log; a missing
       # key fails LOUD here rather than shipping a road that cannot answer.
+      # A REFUSED KEY MUST NOT CLOSE THE SECOND DOOR (2026-10-29, DR-1286).
+      # The anon key has had two roads since DR-1269 and this job only ever had
+      # one, so a refused Tailscale key stopped the Worker deploy dead -- the
+      # very deploy that answers the paths Pages Functions stopped serving on
+      # 2026-10-09. `continue-on-error` here is the same shape the Pages deploy
+      # carries: the join may fail, because the next step has another road to
+      # the same public value and verifies its shape either way.
       - name: Join the tailnet (for the anon key)
         uses: tailscale/github-action@v3
+        continue-on-error: true
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Fetch the sovereign anon key from the NAS
+      - name: Fetch the sovereign anon key from the NAS, or read it back from the served site
         id: anon
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
@@ -146,11 +154,30 @@ jobs:
             dpoe@poetech.tail5a2f35.ts.net \
             "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
           rm -f /tmp/nas_key
+          ROAD="nas-over-tailnet"
           case "$KEY" in
             eyJ*.eyJ*.*) : ;;
-            *) echo "::error::the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT; the Edge Guard gate cannot be armed (DR-0107)"; exit 1 ;;
+            *)
+              # THE SECOND ROAD (DR-1269), reused rather than rebuilt. The anon
+              # key is public by nature: every browser that opens poetech.us
+              # downloads it inside the served bundle, and the selector refuses
+              # an un-armed build, no key, or two keys rather than guessing. The
+              # NAS is still asked FIRST, because only it can speak a ROTATED
+              # key -- the served site can only ever repeat what is shipped.
+              echo "anon key: the NAS did not answer over the tailnet (${#KEY} bytes); asking the served site, which already ships the public client key (DR-1269)"
+              KEY=$(python3 scripts/served-anon-key.py 2>/tmp/served-key.err | tr -d '[:space:]') || true
+              cat /tmp/served-key.err 2>/dev/null || true
+              rm -f /tmp/served-key.err
+              ROAD="served-site"
+              ;;
+          esac
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *) echo "::error::the sovereign ANON_KEY came by neither road (the NAS over the tailnet, then the served site; ${#KEY} bytes, not a JWT); the Edge Guard gate cannot be armed (DR-0107)"; exit 1 ;;
           esac
           echo "::add-mask::$KEY"
+          echo "anon key road: $ROAD"
+          echo "- anon key road: **$ROAD**" >> "$GITHUB_STEP_SUMMARY"
           echo "key=$KEY" >> "$GITHUB_OUTPUT"
       - name: Put the Worker secrets (CF_API_TOKEN, SB_ANON_KEY)
         working-directory: infra/cf-roads-worker
