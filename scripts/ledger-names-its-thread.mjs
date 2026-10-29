@@ -114,7 +114,36 @@ export const ROW_ID = new RegExp(`\\b${UUID}\\b`);
 export const RESEARCH_ROAD_WORDS = ['agent_inbox', 'research road', 'research lane'];
 
 /** The one word Darrell writes over a teaching he sends in, in record shapes. */
-const INSTRUCTION = /["“*]\s*Lesson\.?\s*["”*]/g;
+// WIDENED 2026-10-29 (DR-1288) to the UNQUOTED form after a colon, because a
+// record that wrote the instruction bare fell OUTSIDE the population this rule
+// governs, so nothing ever asked it for a thread id.
+//
+// WHAT IT COST. DR-0763 wrote "wrote one word above it: Lesson." with no quotes
+// anywhere in the file. It was never classified as intake-built, its provenance
+// stayed prose-only, and `lesson-row-shipped-sweep` -- which searches for the
+// ID -- answered `unknown` for a thread that was built. A second lesson was
+// written from that same thread before the builder's own anchor check caught it.
+//
+// MEASURED BEFORE THIS COMMIT'S EDITS: the quoted-only pattern classified 37
+// records; the widened one 42. Of the 5 it added, THREE already named a thread
+// id and were simply never asked (DR-0860, DR-0863, DR-0864), and TWO named
+// none -- DR-0759 and DR-0763.
+//
+// BOTH IDS WERE RECOVERED IN THIS SAME COMMIT, each confirmed twice rather than
+// matched once: by Gmail subject and date, and by DR-1288's subject probe naming
+// that record alone (DR-0759 at weight 1.167, "innovation" appearing in exactly
+// one record). So the outstanding list does not grow -- this is the shrink-only
+// rule honoured as it is written, "recovering an id means deleting its entry in
+// the same commit", rather than a detector left blind to keep a count small.
+//
+// MEASURED AFTER: tight 38, wide 42, and every one of the 4 the widening adds
+// now names an id. Tight rose by one because DR-0763's recovered provenance also
+// quotes the instruction, which brings it into the population under the original
+// pattern too -- belt and braces on the one record that proved the hole.
+// `ledger-names-its-thread` reports 47 intake records and the same 3 naming no
+// witness: the two permanent road-founding false positives and DR-0505, whose
+// provenance line names no publication to match a thread on.
+const INSTRUCTION = /(["“*]\s*Lesson\.?\s*["”*])|(:\s*Lesson\b)/g;
 
 /**
  * Pure. Does any of `words` sit within `window` characters of the quoted
