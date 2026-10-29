@@ -75,6 +75,9 @@ done
 # property_photos.note_id / incident_ref and picture_names, and a chain that
 # stopped at 0309 would hand the journeys a database production has left.
 #
+# 0314 IS IN THIS LIST (DR-1290): the open shelf now shows the building
+# pictures a door was given, and the journeys walk that shelf.
+#
 # NOTE FOR THE NEXT EDITOR: these are backslash-continued words, not separate
 # lines. A `#` comment placed BETWEEN them is not a comment on one entry -- it
 # comments out the remainder of the logical line, silently dropping every file
@@ -107,7 +110,8 @@ for f in \
   0290-a-listing-list-never-carries-the-bytes.sql \
   0291-borrowing-goes-both-ways.sql \
   0309-a-door-shows-its-pictures-to-its-people.sql \
-  0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql; do
+  0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql \
+  0314-the-building-shares-one-picture-pool.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 
