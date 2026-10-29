@@ -32,7 +32,10 @@ const SECTIONS = [
     page.on('request', (r) => {
       const u = r.url(); const m = r.method();
       if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) return;
-      if (/\/rest\/v1\/rpc\/public_/.test(u)) { publicReads++; return; }
+      // Functions (rpc/*) are read calls here: the sample world calls lookups
+      // such as has_user_pin. A WRITE is a table insert/update/delete or an
+      // upload -- the only way a sample session could change a real record.
+      if (/\/rest\/v1\/rpc\//.test(u)) { publicReads++; return; }
       if (/\/rest\/v1\/|\/storage\/v1\/object/.test(u)) writes.push(m + ' ' + u.replace(/\?.*$/, '').slice(-70));
     });
     for (const [sub, label] of SECTIONS) {
@@ -52,7 +55,7 @@ const SECTIONS = [
       console.log(`${ok ? 'PASS' : 'FAIL'} ${s.name} ${sub}: shows "${r.current}" · layout ${r.layout} · sideways overflow ${r.overflow}px · page errors ${errors.length - errBefore}${sub === 'overview' ? ` · Safe to Spend "${r.sts}"` : ''}${r.build ? ` · build ${r.build}` : ''}`);
       await page.screenshot({ path: `${OUT}/${s.name}-${sub}.png` });
     }
-    console.log(`${s.name}: public read calls ${publicReads} · database writes attempted ${writes.length}${writes.length ? ' -> ' + writes.join(', ') : ''}`);
+    console.log(`${s.name}: function calls (reads) ${publicReads} · database writes attempted ${writes.length}${writes.length ? ' -> ' + writes.join(', ') : ''}`);
     if (writes.length) failures++;
     if (errors.length) console.log(`${s.name} errors: ${errors.join(' | ')}`);
     await ctx.close();
