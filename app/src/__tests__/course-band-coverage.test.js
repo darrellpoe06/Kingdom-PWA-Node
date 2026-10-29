@@ -109,7 +109,17 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(270); // on 2026-10-29, mgmt9 (nobody is coming to define your
+    expect(baseline.allFour).toBe(271); // on 2026-10-29, sov57 (the code can be rebuilt but the
+    // register cannot, DR-1285) merged onto mgmt9's tree, and it is the SEVENTH lesson in a queue where
+    // every branch was right about its own increment and wrong about the total. sov57 measured 268 -> 269
+    // on the base it was built on, then 270 on the tree that also carried wm10, then THIS number on the
+    // tree that also carries mgmt9 -- three numbers, each true of a real tree at a real moment, and only
+    // the last true of this one. sov57 carries all four authored bands from its first commit, so the
+    // sovereign-ai row reads {lessons: 57} and the DEBT does not move, which is the shape this pin exists
+    // to prove. READ from a fresh scripts/course-band-baseline-write.mjs run after the merge (total 445,
+    // allFour 271, adultOnly 0, adultRegister 0), never computed.
+    //
+    // THE PREVIOUS ENTRY, kept as it recorded itself: on 2026-10-29, mgmt9 (nobody is coming to define your
     // work, DR-1281) merged onto wm10's tree. SIX lessons landed across 2026-10-28/29 and every one of
     // them raises this figure, so every branch in the queue was right about its own increment and wrong
     // about the total. mgmt9 measured 266 -> 267 on the base it was built on, then 269 on the tree that
