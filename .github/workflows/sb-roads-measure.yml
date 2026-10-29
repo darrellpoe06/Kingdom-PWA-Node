@@ -1,0 +1,75 @@
+# One-off, read-only measurement: can the app sign in, save and sync over the
+# road the live build uses today (the Funnel /sb), and over poetech.us/sb?
+# Lives only on probe/sb-roads-measure: no PR, no CI, no deploy, no merge.
+# Writes nothing except door_capture_selfcheck, the self-deleting round trip
+# site-health already runs every hour. The insert probe sends an invalid uuid,
+# so it can never create a row whatever the policy says.
+name: sb roads measure (read-only, one-off)
+
+on:
+  push:
+    branches: ['probe/sb-roads-measure']
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the public anon key back from the served bundle (masked)
+        id: key
+        run: |
+          set +e
+          K=$(timeout 120 python3 scripts/served-anon-key.py 2>key.err); rc=$?
+          cat key.err
+          echo "served-anon-key exit: $rc"
+          [ -n "$K" ] && echo "::add-mask::$K"
+          printf '%s' "$K" > /tmp/anon
+          [ "$rc" = "0" ]
+      - name: Measure both roads from the poetech.us origin
+        run: |
+          set -u
+          K=$(cat /tmp/anon)
+          O='https://poetech.us'
+          UA='Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+          for BASE in https://poetech.tail5a2f35.ts.net/sb https://poetech.us/sb; do
+            echo "================ $BASE"
+            echo "-- health: $(curl -sS -A "$UA" -o /dev/null -w '%{http_code} %{content_type} %{time_total}s' --max-time 20 -H "apikey: $K" "$BASE/auth/v1/health")"
+            for P in auth/v1/token rest/v1/accounts rest/v1/debts rest/v1/transactions; do
+              for M in POST PATCH DELETE; do
+                H=$(mktemp)
+                c=$(curl -sS -A "$UA" -o /dev/null -D "$H" -w '%{http_code}' --max-time 20 -X OPTIONS \
+                  -H "Origin: $O" -H "Access-Control-Request-Method: $M" \
+                  -H 'Access-Control-Request-Headers: apikey,authorization,content-type,prefer,x-client-info' \
+                  "$BASE/$P")
+                ao=$(grep -i '^access-control-allow-origin:' "$H" | tr -d '\r' | cut -d' ' -f2-)
+                am=$(grep -i '^access-control-allow-methods:' "$H" | tr -d '\r' | cut -d' ' -f2-)
+                ah=$(grep -i '^access-control-allow-headers:' "$H" | tr -d '\r' | cut -d' ' -f2-)
+                echo "-- preflight $M $P: $c origin=[$ao] methods=[$am] headers=[$ah]"
+              done
+            done
+            echo "-- sign-in POST x10 (wrong password, expect 400 JSON every time):"
+            for i in $(seq 1 10); do
+              B=$(mktemp)
+              c=$(curl -sS -A "$UA" -o "$B" -w '%{http_code} %{time_total}s' --max-time 20 -X POST \
+                -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' \
+                -d '{"email":"nobody-probe@example.invalid","password":"wrong-password-probe"}' \
+                "$BASE/auth/v1/token?grant_type=password")
+              echo "   $i: $c bytes=$(wc -c < "$B") $(head -c 120 "$B" | tr -d '\n')"
+            done
+            B=$(mktemp)
+            echo "-- REST read accounts (anon, RLS hides rows): $(curl -sS -A "$UA" -o "$B" -w '%{http_code}' --max-time 20 -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" "$BASE/rest/v1/accounts?select=id&limit=1") $(head -c 160 "$B")"
+            B=$(mktemp)
+            echo "-- REST insert accounts (anon, invalid uuid, can never write): $(curl -sS -A "$UA" -o "$B" -w '%{http_code}' --max-time 20 -X POST -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' -H 'Prefer: return=minimal' -d '[{"id":"not-a-uuid"}]' "$BASE/rest/v1/accounts") $(head -c 200 "$B")"
+            B=$(mktemp)
+            echo "-- write round trip door_capture_selfcheck (self-deleting): $(curl -sS -A "$UA" -o "$B" -w '%{http_code}' --max-time 20 -X POST -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' -d '{"p_instance_slug":"moore-divahs","p_pipeline":"moore-orders"}' "$BASE/rest/v1/rpc/door_capture_selfcheck") $(head -c 200 "$B")"
+            H=$(mktemp)
+            c=$(curl -sS -A "$UA" -o /dev/null -D "$H" -w '%{http_code}' --http1.1 --max-time 8 \
+              -H "Origin: $O" -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
+              -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+              "$BASE/realtime/v1/websocket?apikey=$K&vsn=1.0.0" 2>/dev/null)
+            echo "-- realtime websocket upgrade: $c $(grep -i '^upgrade:' "$H" | tr -d '\r')"
+          done
