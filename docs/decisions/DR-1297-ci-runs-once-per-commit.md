@@ -1,4 +1,4 @@
-# DR-1295: CI runs once per commit
+# DR-1297: CI runs once per commit
 
 **Date:** 2026-10-29
 **Status:** Accepted

@@ -1,5 +1,5 @@
 // =============================================================================
-// CI runs once per commit (DR-1295)
+// CI runs once per commit (DR-1297)
 // =============================================================================
 // THE WASTE (measured 2026-10-29). ci.yml fired on `pull_request` AND on
 // `push`, and the two runs carry different refs, so the superseded-run cancel
@@ -61,7 +61,7 @@ export function pushBranches(text) {
   return null;
 }
 
-describe('CI runs once per commit, on every branch (DR-1295)', () => {
+describe('CI runs once per commit, on every branch (DR-1297)', () => {
   it('fires on push, merge_group and workflow_dispatch, and never on pull_request', () => {
     const events = triggerEvents(CI);
     expect(events).not.toContain('pull_request');

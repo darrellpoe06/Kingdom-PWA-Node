@@ -18,7 +18,7 @@
 name: CI
 
 on:
-  # ONE RUN PER COMMIT (DR-1295). This workflow used to fire on `pull_request`
+  # ONE RUN PER COMMIT (DR-1297). This workflow used to fire on `pull_request`
   # AND on `push`, so every commit pushed to a branch with an open PR ran the
   # whole suite twice on the same SHA (DR-0645 measured it; 2026-10-29: #2490's
   # 29c84ff3 had push run 40816305549 and pull_request run 40816309086, ~19 jobs
@@ -45,7 +45,7 @@ on:
 # A newer commit on the same branch (or PR) supersedes the older run: the old
 # run's legs are cancelled so they stop holding runners the new commit needs
 # (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Every run of a
-# branch shares its ref now (DR-1295), and main is never cancelled — every main
+# branch shares its ref now (DR-1297), and main is never cancelled — every main
 # commit keeps its full run.
 concurrency:
   group: ci-${{ github.ref }}
