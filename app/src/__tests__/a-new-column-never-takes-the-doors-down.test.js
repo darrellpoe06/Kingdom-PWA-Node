@@ -62,8 +62,9 @@ describe('the rentals read', () => {
     expect(missingOptionalColumns({ message: 'permission denied' })).toEqual([]);
     expect(missingOptionalColumns(null)).toEqual([]);
   });
+  // In order after 0291 and 0310; later migrations may follow (0314, DR-1290).
   it('the end-to-end chain replays 0309, so the journeys run where production is', () => {
     const sh = readFileSync(join(ROOT, 'scripts', 'e2e', 'build-door-db.sh'), 'utf8');
-    expect(sh).toMatch(/0291-borrowing-goes-both-ways\.sql \\\n\s+0309-a-door-shows-its-pictures-to-its-people\.sql \\\n\s+0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after\.sql; do/);
+    expect(sh).toMatch(/0291-borrowing-goes-both-ways\.sql \\\n\s+0309-a-door-shows-its-pictures-to-its-people\.sql \\\n\s+0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after\.sql(?: \\\n\s+\S+\.sql)*; do/);
   });
 });
