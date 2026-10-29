@@ -168,9 +168,11 @@ describe('the data wall (0310)', () => {
     expect(ci).toMatch(new RegExp(`for i in 1 2; do psql[^\\n]*${MIG}; done\\n\\s+psql[^\\n]*tests/${SMOKE}`));
     expect(ci).toMatch(/grep -q 'WORK ORDER PICTURES SMOKE: PASS'/);
     const rls = read('.github', 'workflows', 'rls-isolation.yml');
-    expect(rls).toMatch(new RegExp(`0309-a-door-shows-its-pictures-to-its-people\\.sql ${MIG}"`));
-    expect(rls).toMatch(new RegExp(`0309-door-pictures-smoke\\.sql ${SMOKE}"`));
-    expect(read('scripts', 'e2e', 'build-door-db.sh')).toMatch(new RegExp(`\\n  ${MIG}; do`));
+    // In the list, in order after 0309; later migrations may follow it
+    // (0314, DR-1290), so the list's end is not pinned here.
+    expect(rls).toMatch(new RegExp(`0309-a-door-shows-its-pictures-to-its-people\\.sql ${MIG}[ "]`));
+    expect(rls).toMatch(new RegExp(`0309-door-pictures-smoke\\.sql ${SMOKE}[ "]`));
+    expect(read('scripts', 'e2e', 'build-door-db.sh')).toMatch(new RegExp(`\\n  ${MIG}(?: \\\\\\n  [^\\n]+)*; do`));
   });
 });
 
