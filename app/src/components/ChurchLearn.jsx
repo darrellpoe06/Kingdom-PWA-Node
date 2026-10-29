@@ -142,6 +142,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
+import LessonFigures from './LessonFigures.jsx';
 import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
 import { useTextToSpeech } from '../lib/tts.js';
@@ -1388,6 +1389,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
+            {/* The chart / steps / quadrant the reading talks about (DR-1280). */}
+            <LessonFigures module={module} />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
@@ -3179,6 +3182,12 @@ function CourseView({
                   </ul>
                 </div>
               )}
+              {/* THE PICTURE THE LESSON TALKS ABOUT (DR-1280). The family,
+                  2026-10-29, on L270: "We need to see images in the lessons if
+                  we need a diagram or workflows timelines etc..." The lesson
+                  asked what changed when you saw the chart and showed none.
+                  Drawn from data (lib/lesson-figures.js), never painted. */}
+              <LessonFigures module={m} />
               {/* THE CODE IN THIS LESSON (DR-0729). Darrell, 2026-10-01, on
                   Numbers 27:20: the clause where the Word says what a command is
                   FOR is a code, and "leaders need to follow the code of conduct
