@@ -41,6 +41,25 @@ const THREAD_IN_TEXT = /`([0-9a-f]{12,})`/g;
 // must exist in the later record before the pair is listed.
 export const KNOWN_SHARED_THREADS = [
   {
+    thread: '1a112049320caa4a',
+    drs: ['DR-0763', 'DR-1288'],
+    why: 'NOT two lessons. DR-0763 built L213 from this thread; DR-1288 cites it as the case that '
+      + 'proved a hole in the shipped-sweep, because that record named its source in prose and no '
+      + 'id, so an id-only search answered "unknown" for a built teaching and a second lesson was '
+      + 'written before a builder\'s own anchor check caught it. DR-1288 teaches nothing and ships '
+      + 'no lesson. This guard reads the first 4000 characters as front matter, which is a sound '
+      + 'approximation and cannot tell PROVENANCE from CITATION when a record discusses an intake '
+      + 'incident in its opening — these two entries are the first instances of that. Worth a '
+      + 'sharper rule only if the pattern recurs; re-review: 2026-11-29.',
+  },
+  {
+    thread: '1a10bf98e21775dd',
+    drs: ['DR-1273', 'DR-1288'],
+    why: 'NOT two lessons, same shape as above. DR-1273 built sov55 from this thread; DR-1288 cites '
+      + 'it as the first of the two threads handed out as "unbuilt" in one night — the one the id '
+      + 'check would have caught and was never asked. Citation, not provenance.',
+  },
+  {
     thread: '1a0f23b12bf2ca45',
     drs: ['DR-1246', 'DR-1285'],
     why: 'One fourteen-item TLDR digest, two teachings, measured as complementary rather than '

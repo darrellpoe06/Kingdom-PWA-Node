@@ -6,7 +6,7 @@
 - **Date:** 2026-10-06
 - **Scope:** `app/src/lib/living-lessons-class.js` (L210, the 209th module of Living Lessons); `app/src/lib/living-lessons-dates.js` (its day); `app/src/__tests__/living-lessons-l210-verses.test.js` (new); `docs/decisions/INDEX.md` (the pointer and one row).
 - **Principles:** WORD-FIRST, SPOKEN-TEACHINGS-ARE-BUILD-INPUT, THE-APP-IS-THE-PRIMARY-ARTIFACT (DR-0065), VERIFICATION-DOCTRINE (DR-0076), DR-0098 (teach the Word, do not debate it), DR-0100 (speak established fact; the three tiers), DR-0210 (Yahweh in our voice, Scripture quoted verbatim), DR-0331 (render his words for meaning), DR-0530 (the Resources), DR-0733 (the talk-together rule), DR-0734 (anchor.ref carries every verse).
-- **Grounds:** Darrell forwarded a retail-industry newsletter to himself by email on 2026-10-06 and wrote his own instruction over it: Lesson or lessons, Word first, researched, and he wants to use His Ways inside our apps. His word is the teaching; the newsletter is only the material. Attributed to Darrell (DP); no one else taught it.
+- **Grounds:** Darrell forwarded a retail-industry newsletter to himself by email on 2026-10-06 (thread `1a1124ca5cfef558`, subject `FW: What's really driving retail innovation?`; the id was recovered 2026-10-29 by DR-1288 and is recorded here so the ledger's own grep can answer whether this teaching is built) and wrote his own instruction over it: Lesson or lessons, Word first, researched, and he wants to use His Ways inside our apps. His word is the teaching; the newsletter is only the material. Attributed to Darrell (DP); no one else taught it.
 
 ## Context
 
