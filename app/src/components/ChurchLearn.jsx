@@ -142,6 +142,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
+import { countWords as countReadingWords, wordsBefore, wordsIn, fractionOf, seenFraction, leftLabel, witnessLabel, minutesLeft, timeLeftLabel, READER_PROGRESS_EVENT } from '../lib/reading-progress.js';
 import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
 import { useTextToSpeech } from '../lib/tts.js';
@@ -906,8 +907,59 @@ export function LessonLevelControl({
 // component with a real multi-step plan. Reaching it through the full ChurchLearn
 // tree meant the assertion depended on which course/session view happened to
 // mount, which is how the first draft of that test passed while proving nothing.
-export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null }) {
+export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null, onSeen = null }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
+  // HOW MUCH OF THE READING HAS BEEN ON SCREEN (Darrell 2026-10-29: "what
+  // percentage of the lesson is left in each so that I and users can verify
+  // the full reading"). Counted in the lesson's own words, never steps: the
+  // steps before this one, plus the share of this step's paragraphs whose
+  // last line has been in view. Reported as a fraction of the whole reading
+  // (onSeen), only when it rises; the place keeps the furthest
+  // (lib/reading-progress.js, lib/learn-resume.js).
+  const measureRef = useRef(null);
+  const onSeenRef = useRef(onSeen);
+  onSeenRef.current = onSeen;
+  const seenRef = useRef(-1);
+  // The plan is rebuilt on every render, so its IDENTITY changes constantly;
+  // keying on it would reset the counter on each render, report again, save
+  // the place, re-render, and loop. Key on what the plan IS: the version and
+  // how it is cut.
+  const planKey = plan && Array.isArray(plan.segments)
+    ? `${plan.levelId || ''}:${plan.segments.length}:${wordsIn(plan.segments)}`
+    : '';
+  React.useEffect(() => { seenRef.current = -1; }, [planKey]);
+  React.useEffect(() => {
+    const segs = plan && Array.isArray(plan.segments) ? plan.segments : [];
+    if (!onSeenRef.current || !segs.length || typeof window === 'undefined') return undefined;
+    const total = wordsIn(segs);
+    if (!total) return undefined;
+    const paced = !showAll && segs.length > 1;
+    const at = Math.min(idx, segs.length - 1);
+    const before = paced ? wordsBefore(segs, at) : 0;
+    const span = paced ? countReadingWords(segs[at]) : total;
+    let raf = null;
+    const look = () => {
+      raf = null;
+      const root = measureRef.current;
+      if (!root || !onSeenRef.current) return;
+      const blocks = Array.from(root.querySelectorAll('[data-reading-words] p')).map((el) => ({
+        words: countReadingWords(el.textContent),
+        bottom: el.getBoundingClientRect().bottom,
+      }));
+      const f = fractionOf(before + seenFraction(blocks, window.innerHeight) * span, total);
+      const mille = Math.floor(f * 1000);
+      if (mille > seenRef.current) { seenRef.current = mille; onSeenRef.current(f); }
+    };
+    const onMove = () => { if (raf === null) raf = window.requestAnimationFrame(look); };
+    window.addEventListener('scroll', onMove, { passive: true });
+    window.addEventListener('resize', onMove);
+    look();
+    return () => {
+      window.removeEventListener('scroll', onMove);
+      window.removeEventListener('resize', onMove);
+      if (raf !== null) window.cancelAnimationFrame(raf);
+    };
+  }, [idx, showAll, planKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const firedRef = useRef(false);
   // A MID-LESSON LEVEL CHANGE KEEPS THE LEARNER'S PLACE (DR-0418).
   //
@@ -1010,14 +1062,14 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // versa.
   if (showAll && totalSegments > 1) {
     return (
-      <div className={`${box} space-y-2`} ref={allRef}>
+      <div className={`${box} space-y-2`} ref={(el) => { allRef.current = el; measureRef.current = el; }}>
         {control}
         {segments.map((s, i) => (
           <div key={i} data-step-index={i}>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
               Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
             </span>
-            <div className="mt-1"><LessonProse text={s} plan={sectionPlan} /></div>
+            <div className="mt-1" data-reading-words><LessonProse text={s} plan={sectionPlan} /></div>
           </div>
         ))}
       </div>
@@ -1037,7 +1089,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // Adult/single-segment: just show the whole lesson, no stepper.
   if (totalSegments <= 1) {
     return (
-      <div className="mb-2">{control}<LessonProse text={segments[0]} plan={sectionPlan} /></div>
+      <div className="mb-2" ref={measureRef}>{control}<div data-reading-words><LessonProse text={segments[0]} plan={sectionPlan} /></div></div>
     );
   }
 
@@ -1057,7 +1109,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const showCheckHint = (cur + 1) >= checkAfterSegments;
 
   return (
-    <div className={box} ref={stepBoxRef} data-testid="paced-step-box">
+    <div className={box} ref={(el) => { stepBoxRef.current = el; measureRef.current = el; }} data-testid="paced-step-box">
       {control}
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
@@ -1067,7 +1119,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
           <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
         </div>
       </div>
-      <div aria-live="polite"><LessonProse text={segments[cur]} plan={sectionPlan} /></div>
+      <div aria-live="polite" data-reading-words><LessonProse text={segments[cur]} plan={sectionPlan} /></div>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}
@@ -1382,6 +1434,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
               initialIndex={savedHere ? savedHere.step : 0}
               onStepChange={onPlace ? (i, total) => onPlace({ lessonId: module.id, step: i, totalSteps: total }) : null}
+              onSeen={onPlace ? (seen) => onPlace({ lessonId: module.id, seen }) : null}
               showAll={showEverything}
               flush={flush}
               // The row lives on the stage header now (stageLevelRow below);
@@ -1815,6 +1868,31 @@ function CourseView({
   // segment begins. This adds a second, always-visible view of the same real
   // state - never a second source of it.
   const [liveStep, setLiveStep] = useState(null);
+  // HOW MUCH IS LEFT, BY BOTH WITNESSES (Darrell 2026-10-29). `liveRead` is
+  // the open lesson's place as stored (seen + heard, each only rising), read
+  // back after every write so the strip shows what the device actually keeps;
+  // `liveReader` is the reader's own report (words heard, words in its
+  // reading, the speed, and the pace it measured at that speed).
+  const [liveRead, setLiveRead] = useState(null);
+  const [liveReader, setLiveReader] = useState(null);
+  const refreshLiveRead = (lessonId) => {
+    if (!lessonId) return;
+    const p = getPlaceFor(course.key, lessonId);
+    const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
+    // Only a real change re-renders: the same marks read back again are not news.
+    setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
+  };
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onReader = (e) => {
+      const d = e && e.detail;
+      if (!d || !d.lessonId) return;
+      setLiveReader(d);
+      refreshLiveRead(d.lessonId);
+    };
+    window.addEventListener(READER_PROGRESS_EVENT, onReader);
+    return () => window.removeEventListener(READER_PROGRESS_EVENT, onReader);
+  }, [course.key]); // eslint-disable-line react-hooks/exhaustive-deps
   // THE VERSION IS RECORDED NATURALLY (Darrell 2026-10-27: "The version read
   // should be recorded naturally.... obviously!!!!!!"; DR-1257). Every write
   // of the place from this space — a start, a step, a part, the end door —
@@ -1826,7 +1904,9 @@ function CourseView({
     }
     const m = patch && patch.lessonId ? (schedule || []).find((x) => x && x.id === patch.lessonId) : null;
     const version = m ? versionRead(m, ageBand, levelOverride) : null;
-    return recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
+    const out = recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
+    if (patch && patch.lessonId) refreshLiveRead(patch.lessonId);
+    return out;
   };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
@@ -1867,6 +1947,9 @@ function CourseView({
   // own sentence anyway. A finished lesson is left finished: looking back
   // over it is not starting it again.
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  // The open lesson's witnesses, as the device keeps them, from the moment
+  // it opens (a lesson half-read yesterday says so today).
+  React.useEffect(() => { if (focusId) refreshLiveRead(focusId); }, [focusId]); // eslint-disable-line react-hooks/exhaustive-deps
   // THE ROOM IS THE LESSON (DR-0749). Darrell 2026-10-02: "after the user
   // chooses the lesson we want that space cleared from clutter... the top
   // staying the same after we already read it while the bottom moves makes
@@ -2755,6 +2838,55 @@ function CourseView({
               </div>
             </div>
           )}
+          {/* HOW MUCH OF THE LESSON IS LEFT, IN ITS OWN WORDS (Darrell
+              2026-10-29: "what percentage of the lesson is left in each so
+              that I and users can verify the full reading", "timed perfectly
+              with the words... no matter the speed", "merged version of both
+              so it can be accurate both ways"). One number from two
+              witnesses: the furthest share of the words that has been on
+              screen and the furthest the reader has spoken; both are named
+              beneath it so either can be checked. Minutes appear only once
+              the reader has MEASURED its pace at this speed. Renders only for
+              the open lesson and only once something has been measured. */}
+          {(() => {
+            const w = liveRead && liveRead.lessonId === focusModule.id ? liveRead : null;
+            const reached = w ? Math.max(w.seen || 0, w.heard || 0) : 0;
+            if (!w || reached <= 0) return null;
+            const r = liveReader && liveReader.lessonId === focusModule.id ? liveReader : null;
+            const mins = r && !r.done ? minutesLeft((r.wordsTotal || 0) - (r.wordsHeard || 0), r.wpm) : null;
+            const time = timeLeftLabel(mins, r && r.rate);
+            const pct = Math.round(reached * 1000) / 10;
+            return (
+              <div
+                data-testid="lesson-reading-left"
+                data-seen={w.seen || 0}
+                data-heard={w.heard || 0}
+                className="ts-chrome-region border border-t-0 border-[#1A1815] px-2 sm:px-3 py-1 bg-[#FAF8F4]"
+              >
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-[0.6875rem] uppercase tracking-wider text-[#1A1815] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-reading-left-label">
+                    {leftLabel(reached)}
+                  </span>
+                  <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    {witnessLabel(w)}
+                  </span>
+                </div>
+                {time && (
+                  <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-reading-time-left">{time}</div>
+                )}
+                <div
+                  className="h-1 mt-1 bg-[#E8E4DC]"
+                  role="progressbar"
+                  aria-valuenow={Math.floor(reached * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`How much of this lesson has been read: ${leftLabel(reached)}`}
+                >
+                  <div className="h-full bg-[#5A6E3D]" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })()}
           {/* WHERE A CONTINUE LANDED, SAID PLAINLY (DR-0631) — for a few
               seconds, then gone. When the exact sentence could not be found
               (the lesson was updated, say), it says only that rather than letting a
