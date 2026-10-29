@@ -3186,8 +3186,13 @@ function CourseView({
                   2026-10-29, on L270: "We need to see images in the lessons if
                   we need a diagram or workflows timelines etc..." The lesson
                   asked what changed when you saw the chart and showed none.
-                  Drawn from data (lib/lesson-figures.js), never painted. */}
-              <LessonFigures module={m} />
+                  Drawn from data (lib/lesson-figures.js), never painted.
+                  ONLY IN THE LESSON'S OWN SPACE: with no lesson open this card
+                  renders for every lesson in the course at once, and drawing
+                  the five figures there (verse chips and all) on every one of
+                  those renders held ~585 MB per mount in jsdom and ran CI's
+                  vitest worker out of heap (continue-a-lesson-numbers, 3 runs). */}
+              {focusModule && <LessonFigures module={m} />}
               {/* THE CODE IN THIS LESSON (DR-0729). Darrell, 2026-10-01, on
                   Numbers 27:20: the clause where the Word says what a command is
                   FOR is a code, and "leaders need to follow the code of conduct
