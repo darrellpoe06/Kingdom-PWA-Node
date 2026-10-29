@@ -1462,6 +1462,17 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0310-work-order-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/work-order-pictures.txt"
           grep -q 'WORK ORDER PICTURES SMOKE: PASS' "$RUNNER_TEMP/work-order-pictures.txt"
+          # 0314 (DR-1290): the building shares one picture pool. A door may
+          # place any picture filed on another door of its BUILDING (same
+          # instance, same building_key); the apartment stays automatic and
+          # the building is opt-in. A placed listing picture reaches the open
+          # shelf while THIS door is listed and empty, even when the door
+          # holding it is let; a placed record never does; another building,
+          # another family and a stranger are refused; taking it off takes it
+          # off the shelf.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0314-the-building-shares-one-picture-pool.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0314-building-picture-pool-smoke.sql 2>&1 | tee "$RUNNER_TEMP/building-pool.txt"
+          grep -q 'BUILDING PICTURE POOL SMOKE: PASS' "$RUNNER_TEMP/building-pool.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
