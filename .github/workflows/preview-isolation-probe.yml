@@ -1,0 +1,76 @@
+# =============================================================================
+# Preview isolation probe — prove a preview build cannot reach the family's
+# real data, from OUTSIDE, with a browser that arrives "signed in" (read-only)
+# =============================================================================
+# MEASURED 2026-10-28: a family member on the Vercel branch preview was in
+# production (real obligations rendered in the "sample"; a test debt written to
+# the live accounts table). lib/preview-isolation.js closes it in code; this
+# probe measures the LIVE preview the way a tester meets it (DR-0076 §7: an
+# independent method, not the code's own pins). The cloud sandbox has no route
+# to *.vercel.app, so the runner is the team's eye (the site-health precedent).
+#
+# DISPATCH-ONLY, READ-ONLY. It opens a URL in Chromium with a PLANTED fake
+# production session, a planted bridge token and a planted "real" snapshot, and
+# watches every request. It deploys nothing, changes no setting, writes no row.
+# No schedule: it spawns nothing on a clock and carries no budget/lock/kill
+# (DR-0247 governs timer-driven compute; this is a person pressing a button).
+# No secret is used or printed. A run is identified by its own id, never by its
+# place in a list (LESSONS P62 / P64).
+#
+# HOW IT FIRES. GitHub dispatches only workflows that exist on the default
+# branch (a dispatch of this file from its own branch answered 404), so on the
+# Money branch it fires on push and first WAITS for Vercel's deployment of the
+# exact pushed commit (the `Vercel` commit status) — probing the previous build
+# would prove nothing about this one. The dispatch stays for after it lands.
+name: Preview isolation probe (read-only)
+
+on:
+  push:
+    branches: ['money/**']
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'The preview app root to probe (ends in /poetech-app/)'
+        required: true
+        default: 'https://kingdom-pwa-node-git-money-phase-7b032e-darrellpoe06s-projects.vercel.app/poetech-app/'
+
+permissions:
+  contents: read
+  statuses: read
+
+env:
+  PREVIEW_URL: ${{ inputs.url || 'https://kingdom-pwa-node-git-money-phase-7b032e-darrellpoe06s-projects.vercel.app/poetech-app/' }}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for Vercel to serve THIS commit (the `Vercel` commit status; up to 12 minutes)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 48); do
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" --jq '[.statuses[] | select(.context | test("vercel"; "i"))] | map(.state) | first // "none"')
+            echo "attempt $i: Vercel status for ${GITHUB_SHA} = ${state}"
+            if [ "$state" = "success" ]; then exit 0; fi
+            if [ "$state" = "failure" ] || [ "$state" = "error" ]; then echo "Vercel reported ${state} for this commit (the Hobby cap, measured 2026-10-21, turns it red); the preview is NOT this commit — refusing to probe a stale build"; exit 1; fi
+            sleep 15
+          done
+          echo "Vercel never reported success for this commit within 12 minutes"; exit 1
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Probe the preview with planted sign-in leftovers
+        run: node scripts/preview-isolation-probe.mjs --url "${PREVIEW_URL}" --out probe-out
+      - name: Keep the screenshots and the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-isolation-probe
+          path: probe-out
+          if-no-files-found: ignore

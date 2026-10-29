@@ -1001,6 +1001,18 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: 'gh issue comment 2057' }],
     seeds: ['ops-surface'],
   }),
+  // PREVIEW ISOLATION (DR-1280 item 10). Measured 2026-10-28: a family member on
+  // the Vercel branch preview was in production. The code closes it; this
+  // dispatch-only, read-only probe proves the LIVE preview from a runner (the
+  // sandbox has no route to vercel.app): a real Chromium arrives with planted
+  // sign-in leftovers and every request is watched. It deploys nothing, writes
+  // no row; its artifact is the screenshots and the report.
+  wf('preview-isolation-probe.yml', {
+    id: 'preview-isolation-probe', name: 'Preview isolation probe (read-only)',
+    purpose: 'Opens a branch preview in Chromium with a planted production session, bridge token and real-looking snapshot, and proves no request reaches production and no planted token survives.',
+    reads: [{ res: 'site:preview', token: 'vercel.app' }],
+    writes: [], seeds: [], // read-only by design: its whole output is the run's own log and artifact, read by the person who pressed the button
+  }),
   // THE SECOND DOOR (DR-1068). #2057 has held every Pages Function dark since
   // 2026-10-09 and nothing in this repository reaches that fault; what the
   // repository CAN do is answer the same paths one layer above Pages. This
@@ -2136,6 +2148,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
+  'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can
   // write it, which is exactly why #2057 ran five days on inference: the
   // ledger re-measured the symptom 35 times and never asked the authority.

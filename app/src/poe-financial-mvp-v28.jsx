@@ -29,7 +29,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PublicFrontDoor from './components/PublicFrontDoor.jsx';
-import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost } from './lib/access-gate.js';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -76,7 +76,7 @@ import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
 import { isReviewerModeOn, isReviewerStranger, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
@@ -145,7 +145,7 @@ import UiIcon from './components/UiIcon.jsx';
 import SideNav from './components/shell/SideNav.jsx';
 import { navItems, navGroups } from './lib/nav-items.jsx';
 import { useHomePrefs, setHomeView } from './lib/home-view-prefs.js';
-import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
+import { BooksUploadButton, BooksUploadMount, MoneyLayout, MoneyNavStrip } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -163,7 +163,7 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchMinistriesTab,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
-  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
+  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library, MoneySurfaces,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection,
   surfaceById, canSeeCameras, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
@@ -751,7 +751,7 @@ import {
 function getDemoPersona() {
   try {
     const sp = new URLSearchParams(window.location.search);
-    if (!sp.has('demo')) return null;
+    if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null); // null = the app's own path; on a preview host that is the TEST HOUSEHOLD (lib/preview-isolation.js)
     const p = (sp.get('demo') || '').toLowerCase().trim();
     // Bare `?demo` (no value) lands in the universal start: a family
     // financial system. The app then teaches the viewer as they explore.
@@ -1048,7 +1048,7 @@ export default function PoeFinancialSystem() {
     try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
     setSelfServeWelcomeDismissed(true);
   };
-  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'calendar' : initialBooksView(window.location.search); } catch (e) { return 'calendar'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
+  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'overview' : initialBooksView(window.location.search); } catch (e) { return 'overview'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
   const [churchView, setChurchView] = useState(getInitialChurchView());
   // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
   // Whole TLC App... one single tab that holds all of it"). One office, three
@@ -1175,7 +1175,7 @@ export default function PoeFinancialSystem() {
   // Layer B (workflow 21 + session token) will add real auth on top. See
   // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
   const [currentProfile, setCurrentProfile] = useState(() => {
-    if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
+    if (isAnyDemoMode || isIsolatedPreview()) return 'family'; // Demo + picker + the preview test household skip the profile picker.
     if (isPublicHost() || reviewerMode) return null; // SECURITY: public host never reads saved profile; a reviewer boots the public flow.
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
@@ -1253,7 +1253,7 @@ export default function PoeFinancialSystem() {
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
   const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
   const { homeView } = useHomePrefs();
-  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); } };
+  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
@@ -1652,8 +1652,8 @@ export default function PoeFinancialSystem() {
     // family's own device — the Big Picture dashboard then surfaced real
     // entity names, property addresses, project titles to whatever tab was
     // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
-    // get the demo sample + no hydration. (Signed-in hydration is handled by
-    // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
+    // get the demo sample + no hydration. (Signed-in hydration is handled by the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
+    if (isIsolatedPreview() && !reviewerMode) { (async () => { await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); return; } // the preview TEST HOUSEHOLD: drop any REAL snapshot the origin kept, then load its own key (lib/preview-isolation.js)
     if (isPublicHost() || reviewerMode) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
@@ -1678,20 +1678,14 @@ export default function PoeFinancialSystem() {
   // pass no forUserId — the device-trust model there is unchanged.
   const loadSavedSnapshot = async (forUserId = null) => {
       try {
-        let saved = await window.storage.get('poe-financial-v28');
+        let saved = await window.storage.get(previewStorageKey(window.location.hostname)); // 'poe-financial-v28', or the test household's own key on a preview
         if (saved && saved.value && forUserId) {
           try {
             const ownerCheck = JSON.parse(saved.value);
             if (ownerCheck.owner && ownerCheck.owner !== forUserId) return false;
           } catch (_) { /* unparseable → treated as not found below */ }
         }
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v27');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v26');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v25');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v24');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v23');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v22');
-        if (!saved || !saved.value) saved = await window.storage.get('poe-financial-v21');
+        for (const k of (isIsolatedPreview() ? [] : ['poe-financial-v27', 'poe-financial-v26', 'poe-financial-v25', 'poe-financial-v24', 'poe-financial-v23', 'poe-financial-v22', 'poe-financial-v21'])) { if (saved && saved.value) break; saved = await window.storage.get(k); } // legacy keys; never on a preview
         if (saved && saved.value) {
           const parsed = JSON.parse(saved.value);
           // v17: defensive merge — ensure all required fields exist even if saved data is from an older version
@@ -1921,7 +1915,7 @@ export default function PoeFinancialSystem() {
     // visitors. 2026-06-11: a signed-in owner persists on their own device —
     // but only AFTER their hydration completes, so a demo snapshot can never
     // overwrite their real saved data in the sign-in race window.
-    if (isPublicHost() && !(authSession && authHydrated)) return;
+    if (isPublicHost() && !isIsolatedPreview() && !(authSession && authHydrated)) return; // a preview TEST HOUSEHOLD saves on its device, under its own key, with no session
     (async () => {
       try {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
@@ -1929,9 +1923,9 @@ export default function PoeFinancialSystem() {
         // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
         // Keep the FULL snapshot (photos) when it fits; fall back to slim (photo bytes
         // stripped) ONLY on quota overflow — a photo never costs the family their books, yet photos stay when there's room (2026-07-18).
-        const envelope = { owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
+        const envelope = { owner: authSession?.user?.id || (isIsolatedPreview() ? PREVIEW_TEST_OWNER : undefined), savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
         const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
-        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), 'poe-financial-v28', envelope, data);
+        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), previewStorageKey(window.location.hostname), envelope, data);
         const bannerMsg = storageBannerMessage(savedMode, cloudSafe);
         setPersistIssue(bannerMsg ? { kind: 'storage', message: bannerMsg } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
         // v2.15 family snapshot push — the non-table-synced remainder follows
@@ -3532,7 +3526,7 @@ export default function PoeFinancialSystem() {
     );
   }
 
-  const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
+  const __gate = accessState({ isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession }); // a preview test household opens without a session: its client reaches nothing
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
@@ -4172,7 +4166,7 @@ ${THEME_CSS}
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
-              <HeaderAuthButton />
+              {!isIsolatedPreview() && <HeaderAuthButton />}{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
               <AuthBanner />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
               {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
@@ -4270,9 +4264,7 @@ ${THEME_CSS}
           <div className="border-t border-[#E8E4DC] bg-white flex items-center">
             {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
-                  <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-                ))}
+                <MoneyNavStrip booksView={booksView} setBooksView={setBooksView} legacy={[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed))} />
             </TabScroll>
             <BooksUploadButton />
           </div>
@@ -4308,12 +4300,13 @@ ${THEME_CSS}
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
           <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
-          <SectionBoundary key={booksView} name="Financial">
+          <SectionBoundary key={booksView} name="Financial"><MoneyLayout booksView={booksView} setBooksView={setBooksView} importedAllowed={importedAllowed}>
+            {(booksView === 'overview' || NEW_MONEY_SUBS.includes(booksView)) && <MoneySurfaces section={booksView} money={{ data, setData, currentDate, derivedDebts, totals, entityRollups, reserves, bufferCurrent: bufferCurrentReal, visibleEntities, accountReconciliation, debtSnowball, debtMinOnly, debtSnowballExtra, cloud: !!authSession && !isAnyDemoMode && !reviewerMode, setBooksView, setView, addRecurring, updateRecurring, importedAllowed }} />}
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
             {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} addAccounts={addAccounts} deleteAccount={deleteAccount} updateRental={updateRental} recategorizePayee={recategorizePayee} />}
-            {booksView === 'owed' && <SectionBoundary name="Owed"><Obligations /></SectionBoundary>}
-            {booksView === 'plan' && <SectionBoundary name="Family Plan"><FamilyPlan /></SectionBoundary>}
+            {booksView === 'owed' && <SectionBoundary name="Owed"><Obligations demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
+            {booksView === 'plan' && <SectionBoundary name="Family Plan"><FamilyPlan demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
@@ -4321,11 +4314,11 @@ ${THEME_CSS}
             {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} /> : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
-            {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
+            {booksView === 'k1099' && <Contractors1099 demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
-            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
+            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} /></SectionBoundary>}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} addEvent={addEvent} />}
-          </SectionBoundary>
+          </MoneyLayout></SectionBoundary>
           </PrivateGate>
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
@@ -5052,7 +5045,7 @@ ${THEME_CSS}
 function ImportedDemoGuard({ setBooksView }) {
   useEffect(() => {
     // Redirect any direct landing on the imported subview away from real data.
-    setBooksView('calendar');
+    setBooksView('overview');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (

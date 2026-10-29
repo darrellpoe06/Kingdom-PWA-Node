@@ -17,6 +17,7 @@ import { useInstanceRole } from '../lib/instance-role.js';
 import LegacyProvisions from './LegacyProvisions.jsx';
 import { aboutFor } from '../lib/surface-help.js';
 import SectionTabs from './SectionTabs.jsx';
+import SampleModeNotice from './money/SampleModeNotice.jsx';
 
 // LIGHT inline self-explanation — declared centrally in surface-help.js so the
 // Help-freshness gate can verify the DEEP Help entry (help-content.js
@@ -149,13 +150,15 @@ export function planFetchError(e) {
   return (e && e.message) || 'load failed';
 }
 
-function usePlan() {
+function usePlan(demo = false) {
   const { instanceId } = useInstanceRole();
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState({ loading: true, plan: null, title: '', updatedAt: null, error: null });
+  const [state, setState] = useState({ loading: !demo, plan: null, title: '', updatedAt: null, error: null, sample: !!demo });
 
   useEffect(() => {
     let alive = true;
+    // SAMPLE MODE never reads the family's plan (Christina 2026-10-28): no query, no session use.
+    if (demo) { setState({ loading: false, plan: null, title: '', updatedAt: null, error: null, sample: true }); return () => { alive = false; }; }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PLAN_FETCH_TIMEOUT_MS);
     setState((cur) => ({ ...cur, loading: true, error: null }));
@@ -175,7 +178,7 @@ function usePlan() {
       }
     })();
     return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
-  }, [instanceId, attempt]);
+  }, [instanceId, attempt, demo]);
 
   const retry = () => setAttempt((n) => n + 1);
   return { ...state, retry };
@@ -185,6 +188,7 @@ function usePlan() {
 // the document rather than in it. Returns an element, or null when there is a
 // real plan to show.
 function planNotice(state) {
+  if (state.sample) return <SampleModeNotice what="family plan" testId="sample-mode-plan" />;
   if (state.loading) {
     return <div className="text-xs text-[#5A5751] p-4" style={serif}>Loading the family plan…</div>;
   }
@@ -467,8 +471,8 @@ function planSections(state) {
 
 // The document on its own, still a single export for anywhere that wants the
 // plan without the trust system beside it.
-function PlanDocument() {
-  const state = usePlan();
+function PlanDocument({ demo = false } = {}) {
+  const state = usePlan(demo);
   const notice = planNotice(state);
   if (notice) return notice;
   return <SectionTabs variant="sub" idBase="plan-doc" ariaLabel="Plan sections" sections={planSections(state)} />;
@@ -507,8 +511,8 @@ function PlanAbout() {
   );
 }
 
-function FamilyPlan() {
-  const state = usePlan();
+function FamilyPlan({ demo = false } = {}) {
+  const state = usePlan(demo);
   const notice = planNotice(state);
   // When there is no document to show, the strip still stands: one tab holding
   // the honest word about the plan, and the trust system beside it.

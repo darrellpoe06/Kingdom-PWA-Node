@@ -25,11 +25,26 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { resolveAuthSession, isPossibleLogout } from './auth-session-guard.js';
+import { resolveSupabaseConfig, currentHostname, purgePreviewForeignState } from './preview-isolation.js';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// PREVIEW ISOLATION (2026-10-28, lib/preview-isolation.js): on a preview host
+// (*.vercel.app, a Pages branch alias) the client is built against a stub that
+// reaches nothing, so no sign-in, pull, push or RPC can touch the family's
+// real data from a preview — whatever the URL says and whoever signed in.
+const SUPABASE_CONFIG = resolveSupabaseConfig({ hostname: currentHostname(), url: import.meta.env.VITE_SUPABASE_URL, key: import.meta.env.VITE_SUPABASE_ANON_KEY });
+export const SUPABASE_ISOLATED = SUPABASE_CONFIG.isolated;
+export const SUPABASE_URL = SUPABASE_CONFIG.url;
+export const SUPABASE_ANON_KEY = SUPABASE_CONFIG.key;
+if (SUPABASE_ISOLATED) {
+  console.info('[supabase] ' + SUPABASE_CONFIG.reason);
+  // Before the client is built: drop every token this preview origin may still
+  // hold from before the rule (a production session, the NAS bridge bearer, the
+  // saved profile), so readPersistedSession below and every by-shape reader
+  // find nothing — "still signed in" on a preview is impossible by construction.
+  try { const gone = purgePreviewForeignState(typeof window !== 'undefined' ? window.localStorage : null); if (gone.length) console.info('[supabase] preview isolation removed ' + gone.join(', ')); } catch (_) { /* storage blocked */ }
+}
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!SUPABASE_ISOLATED && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
   // Fail loud during dev so a missing .env.local is caught immediately,
   // not silently as "Royalty Link clicks don't work."
   console.error(

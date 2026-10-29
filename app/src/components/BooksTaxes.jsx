@@ -18,6 +18,7 @@ import { fetchTaxArchive, fetchTaxFile, printableUrl } from '../lib/tax-archive.
 import { useDocumentViewer } from './DocumentViewer.jsx';
 import { taxDocRecord, shelfReport } from '../lib/document-record.js';
 import ReportActions from './ReportActions.jsx';
+import SampleModeNotice from './money/SampleModeNotice.jsx';
 import ShelfLedger from './ShelfLedger.jsx';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
 import { ARCHIVE_REASON } from '../lib/tax-archive.js';
@@ -71,7 +72,7 @@ const KIND_OPTION_LABEL = {
 const fieldCls = 'text-sm border border-[#1A1815] px-2 py-1.5 min-h-[36px] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const labelCls = 'block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1';
 
-export default function BooksTaxes({ entities = [] }) {
+export default function BooksTaxes({ entities = [], demo = false }) {
   const [archive, setArchive] = useState({ documents: [], served_at: null, source: 'loading', reason: null });
   const [form, setForm] = useState({ file: null, entityId: '', year: '', kind: 'return' });
   const [busy, setBusy] = useState(false);
@@ -104,9 +105,11 @@ export default function BooksTaxes({ entities = [] }) {
   const refresh = () => readArchive().then((a) => setArchive(a));
   useEffect(() => {
     let live = true;
+    // SAMPLE MODE never asks for the family key or reads the NAS archive (Christina 2026-10-28).
+    if (demo) { setArchive({ documents: [], served_at: null, source: 'sample', reason: null }); return () => { live = false; }; }
     readArchive().then((a) => { if (live) setArchive(a); });
     return () => { live = false; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [demo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A return opens INSIDE the app, fetched with the family key (a plain link
   // cannot carry it), with its record beside it (DR-1085).
@@ -131,6 +134,7 @@ export default function BooksTaxes({ entities = [] }) {
   // with anything wrong says exactly what, in words.
   const doUpload = async () => {
     if (busy) return;
+    if (demo) { say('Sample mode: nothing is uploaded to your NAS from the sample.', 'error'); return; }
     if (!gate.ok) { say(gate.errors.join(' '), 'error'); return; }
     setBusy(true); say('Uploading to your NAS…', 'info');
     // Ask for the key before the first post, never after a refusal.
@@ -174,6 +178,7 @@ export default function BooksTaxes({ entities = [] }) {
 
   return (
     <section className="space-y-5">
+      {demo && <SampleModeNotice what="tax returns and payments" testId="sample-mode-taxes" />}
       {viewer.element}
       {docs.length > 0 && (() => {
         const model = () => shelfReport(docs.map((d) => taxDocRecord({ ...d, kindLabel: KIND_LABEL[d.kind] || d.kind, entityName: entityName(d.entityId) }, { admin: true })), { title: 'Tax returns' });

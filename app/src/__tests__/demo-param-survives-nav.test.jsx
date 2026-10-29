@@ -44,7 +44,7 @@ const SHELL = readFileSync(
 // The same three nav holders the shell owns, wired to the real hook.
 function Harness() {
   const [view, setView] = useState('overview');
-  const [booksView, setBooksView] = useState('calendar');
+  const [booksView, setBooksView] = useState('overview');
   const [churchView, setChurchView] = useState('home');
   useBrowserHistoryNav({ view, setView, booksView, setBooksView, churchView, setChurchView });
   return createElement('div', null,
