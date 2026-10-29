@@ -445,7 +445,7 @@ describe('the source is named for what it is, not dressed as an argument', () =>
   it('the lesson says the issue is a newsletter and which items carried teaching', () => {
     expect(L.lesson).toContain('one issue of a daily technology newsletter');
     expect(L.lesson).toContain('It is not a study and it is not an argument');
-    expect(L.lesson).toContain('One item carries the teaching this lesson is built on');
+    expect(L.lesson).toContain('ONE item carries the teaching this lesson is built on');
     expect(L.lesson).toContain('A second item is germane and is used');
   });
 
@@ -563,7 +563,7 @@ describe('the Word is quoted AND reasoned, not pasted onto a headline (DR-0281)'
 
   it('states the makers’ admission PLAINLY and refuses the sneer (DR-0100)', () => {
     expect(L.lesson).toContain('This house states that plainly');
-    expect(L.lesson).toContain('refuses to sneer at it');
+    expect(L.lesson).toContain('it also refuses to sneer, because the makers said it themselves');
     expect(L.lesson).toContain('saying it was honest');
     expect(L.lesson).toContain('the less the world keeps faith with itself');
   });
