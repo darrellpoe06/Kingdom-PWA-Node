@@ -7,14 +7,15 @@
 // 2026-10-28 the key began answering `backend error: invalid key`, and every
 // one of them went red-and-SILENT. Two consequences, both measured:
 //
-//   1. The LIVE database fell behind the repo and nothing said so. db-migrate
-//      applies to the hosted project first and then replays onto the sovereign
-//      database -- the one the app actually reads (REPOINT-ARMED, DR-0317).
-//      The replay needs the tailnet. Migration
-//      0313-every-exam-attempt-is-kept-and-the-best-score-stands.sql merged
-//      2026-10-28 02:38 and had still not reached the live database 22 hours
-//      later: a column, a CHECK and a trigger on public.learner_lesson_records
-//      that the shipped code writes against.
+//   1. The isolation proofs stopped, and the reason had nothing to do with the
+//      road that was shut. db-migrate's `Dispatch the isolation proofs` carried
+//      `if: success()`, which reads the JOB's status -- and the job is red
+//      whenever the SOVEREIGN replay fails, however well the hosted half went.
+//      Measured on run 40795511412's step conclusions: `Apply migrations` and
+//      `Witness the LIVE definitions` both SUCCEEDED, the replay failed, and
+//      the dispatch read `skipped`. Last isolation run: 2026-10-27 19:35.
+//      Twenty-nine hours of DR-0060-class proofs not running, because a shut
+//      road on one database switched off the proofs for the other.
 //   2. node-availability.yml -- the witness built for exactly the question
 //      "how often does this happen" -- files its rolling incident only when
 //      its PROBE returns 1. A refused key fails the join step BEFORE the probe
@@ -25,6 +26,21 @@
 // So the outage was loud in the Actions tab and absent from every ledger. That
 // is DR-0125's exact lesson applied one layer down: unknown freshness must
 // never READ as fresh, and a red check nobody queries is not an observation.
+//
+// WHAT THIS IS *NOT*, because the first draft of this file said it and it was
+// wrong (corrected 2026-10-29 before merge). It is NOT a claim that the live
+// database is behind. DR-1269 built the replay a SECOND ROAD on 2026-10-28 --
+// `infra/nas-supabase/replay-on-clock.sh`, registered `enabled` in
+// infra/nas-loops/services.json, active by merge -- which runs the SAME
+// replay_migrations.sh against the SAME ledger on the NAS's own clock, needing
+// no runner and no tailnet, with a shared lock so the two roads never collide.
+// A refused key shuts the RUNNER's road; whether a migration has landed is a
+// question only the NAS's own `/volume1/PoeTech/sovereign-replay/status.json`
+// answers, and `loops-health.yml` is the reader. The first draft inferred the
+// live schema from db-migrate's last SUCCESSFUL run -- a lane's record read as
+// the database's state, which is the false-measurement class REPOINT-ARMED
+// warns about in capitals. So the body below points a reader AT that ledger
+// instead of telling them what it would have said.
 //
 // ONE ROAD, CALLED BY MANY LANES. Every health workflow in this repo inlines
 // its own `gh issue list || gh issue create` block. A 65th copy pasted into
@@ -102,11 +118,13 @@ export function body({ workflow, runUrl, measured, at }) {
     said,
     '```',
     '',
-    'While this holds, **the sovereign database can fall behind the repo without any other signal.**',
-    'db-migrate applies to the hosted project and then replays onto the database the app actually',
-    'reads (`infra/nas-supabase/REPOINT-ARMED`, DR-0317); the replay is the half that needs the',
-    'tailnet. Check `infra/supabase/migrations-auto` against the live ledger before assuming the',
-    'live schema is current.',
+    'This shuts the **runner\'s** road to the NAS. It does not say the live database is behind:',
+    'DR-1269 gave the replay a second road, `replay-on-clock.sh`, which applies the mirror\'s',
+    'migrations on the NAS\'s own clock against the same ledger. **Nor does it say the live database',
+    'is current** — that question is answered only by the box\'s own',
+    '`/volume1/PoeTech/sovereign-replay/status.json` (`ok`, `applied`, `ledger`, `frontier`, `head`),',
+    'which `loops-health.yml` reads over this same closed road. So while this holds, the live schema',
+    'state is **unknown from CI**, and unknown never reads as current (DR-0076 §8).',
     '',
     'The one value that closes this: a fresh Tailscale auth key (**Reusable + Ephemeral**) stored as',
     'the repo secret `TS_AUTHKEY`. 64 workflows read it.',

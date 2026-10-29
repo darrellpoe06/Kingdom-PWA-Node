@@ -189,14 +189,18 @@ jobs:
 
       # A SHUT SOVEREIGN ROAD IS NEVER ONLY A RED CHECK (2026-10-29, DR-1283).
       #
-      # The step above is the only thing that lands a merged migration on the
-      # database the app READS. When the tailnet key is refused it fails for a
-      # reason no re-run can heal, and before this step the whole signal was a
-      # red check in the Actions tab. Measured: migration 0313 merged
-      # 2026-10-28 02:38 and had not reached the live database 22 hours later,
-      # with no entry in any ledger -- while migrate-freshness.yml correctly
-      # re-dispatched this workflow on every fire, each one failing the same
-      # way. Re-dispatching was right; being quiet about it was not.
+      # When the tailnet key is refused this step fails for a reason no re-run
+      # can heal, and the whole signal was a red check in the Actions tab --
+      # while migrate-freshness.yml correctly re-dispatched this workflow on
+      # every fire, each one failing the same way. Re-dispatching was right;
+      # being quiet about it was not.
+      #
+      # It does NOT mean the live database is behind: DR-1269 gave the replay a
+      # second road the same day (replay-on-clock.sh, the NAS's own clock, same
+      # ledger, shared lock). It does not mean it is current either. The entry
+      # says so and points a reader at the box's own status.json, which is the
+      # only thing that answers it -- and which loops-health reads over this
+      # same closed road.
       #
       # So the outage writes itself down, once per cooldown window, on the one
       # rolling entry the whole fleet shares. The run still goes red: this adds
