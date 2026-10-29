@@ -17,13 +17,20 @@
 
 **Pairs with:** DR-1280 (lesson figures), DR-0098 (teach the Word, do not debate it), DR-0076 (verify every verse), DR-0089 / DR-0111 (a stated requirement is done, not re-asked)
 
-## The requirement
+## Context
+
+The family asked for pictures in the lessons (DR-1280). While that was being built, Darrell set the requirement for who the pictures and stories show. Until now no lesson picture existed, and nothing in the house said who a lesson's people look like. Western religious art has long drawn the people of the Word as pale Europeans, which none of the verses below describe.
+
+## Decision
+
 
 1. **The main character of a lesson's stories is African American.** The family should meet themselves in the stories they read.
 2. **The biblical Israelites are drawn as people of color**, so the community sees its ancestors in the Word, from His perspective.
 3. **Character comes first, and the Word explains it.** The point is never colour for its own sake: the stories teach character, the way the Word does.
 
-## The Word under it (verbatim, KJV, from the app's own text)
+## What was measured
+
+Every verse below was read from the app's own KJV text (`app/public/bible/kjv/`), not from memory.
 
 **KJV — Exodus 12:38:** *"And a mixed multitude went up also with them; and flocks, and herds, even very much cattle."*
 
@@ -75,7 +82,13 @@ Darrell: *"all the Fred Price references show the melanin in the Word of Yahweh.
 - **Fred Price Jr.** is not yet in the repo. His teaching is brought in the same way: cited to his real work, never paraphrased from memory (DR-0076). **re-review: 2026-11-05**, with the re-casting.
 - Living Lessons already teaches Jesus over the superhero in two lessons: **L73 "The House of El — the Borrowed Name and the Only Saviour"** and **L101 "The Real Champion"**. The movies-and-the-Word thread Darrell named (Fred Price Jr.'s lesson on superheroes and movies) extends those two. It is not a new course.
 
-## How it is held
+## Impact
+
+- Every future lesson picture of a person passes this gate, or it is not drawn.
+- Every new lesson story leads with an African American main character.
+- The existing stories are re-cast in batches through the same lesson gates (Open, below), so no lesson loses its verified verses on the way.
+
+## Verification
 
 - **Lesson pictures, gated now.** An `image` figure must say whether it shows people (`depictsPeople`). When it does, `peopleShown` must be `'African American'` (`LESSON_PEOPLE_SHOWN`). A picture that is silent on this, or shows people drawn otherwise, is refused by `figureProblems` and never drawn. Proven to catch in `lesson-figures.test.jsx`.
 - **Every Canva or generated illustration** of a lesson character or of the Israelites is made to this requirement before it is exported into `app/public/lesson-figures/`.

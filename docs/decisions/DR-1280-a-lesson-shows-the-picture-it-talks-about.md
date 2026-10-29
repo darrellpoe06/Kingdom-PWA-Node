@@ -20,7 +20,7 @@ L270 asks the room *"Which book did you assume was written first, and what chang
 4. **Canva is for illustration only.** A Canva export or a generated drawing enters as an `image` figure: exported, committed under `app/public/lesson-figures/`, and served by the app, so no lesson depends on a third-party cloud when it is read. Charts and timelines are never images, because their data must stay checkable.
 5. **Every figure names its source.** One built from an outside record carries the lesson's own disclosure about it. L270's figure carries *"We did not check the chart against any other chart."*, the lesson's own sentence.
 
-## What now shows a picture (the sweep)
+## What was measured
 
 Every Living Lesson string was searched for a chart, map, diagram, timeline or workflow the reader is pointed at. Story props ("a chart on the fridge") and metaphors ("speed without a map") were not counted. Five lessons pointed at a picture the reader could not see, and each now carries one:
 
@@ -34,7 +34,15 @@ Every Living Lesson string was searched for a chart, map, diagram, timeline or w
 
 L201 already renders its own dated `timeline` block and is not counted. L30, L133 and L196 point to in-app surfaces that exist (the Timeline, the Torah pattern map).
 
-## Held by the gate (`lesson-figures.test.jsx`, 32 tests)
+## Impact
+
+- Five lessons now show the picture their own text points to. On a 360px phone, measured in a real Chromium against the dev build, every figure is 336px wide, and the page overflows sideways by 0px in the light and midnight themes. L270's chart is 2,339px tall at 360px, so each testament folds away with one tap.
+- Nothing changes for a lesson with no figure: `LessonFigures` renders nothing (tested).
+- No new dependency, no network call at read time, no schema.
+
+## Verification
+
+Held by the gate (`lesson-figures.test.jsx`, 32 tests):
 
 - Each of the five lessons carries its figure; every registry key is a real lesson; every registered figure passes `figureProblems`.
 - **L270 is the chart.** 66 rows, 39 and 27, in the chart's order; every date equals `chartDateOf` and every author `chartAuthorOf`; Job has no date and no bar; Unknown, Anonymous and the two "(?)" are kept exactly; the disclosure is the lesson's own words.
