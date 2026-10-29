@@ -141,6 +141,37 @@ const REPO = join(HERE, '..', '..', '..');
 // federalreserve.gov the same day, after this sandbox failed even to resolve
 // the host. So wm9's "could read the EIA projection" is a method that exists
 // and has been exercised, not a hope.
+// 2 -> 3 CHECKED on 2026-10-28 (DR-1279), and the GAP does not move. bank9
+// (the moat that moves) is built from The Daily Upside edition Darrell
+// forwarded to himself with one word on it (Gmail thread 1a1541f1da7acd58),
+// and it took the FIRST branch this test's verdict offers: it arrived carrying
+// disclosures AND a source row in the same change, so it was never counted in
+// the 12.
+//
+// The road again, and it is the same finding as legacy8's (DR-0108): this
+// sandbox cannot reach morganstanley.com at all -- the agent proxy answers 403
+// to the CONNECT -- so "its figures arrived inside an email and an email is not
+// a page" would have been WRONG here, because the firm publishes its own
+// quarterly release and a GitHub runner can read it. Three probe runs on a
+// throwaway branch found what no reasoning would have: the press-release URL
+// 404s, the release lives at .../shareholder/3q2026.pdf, and the phrasings a
+// writer would guess at are not the phrasings it prints -- it says "net new
+// assets were $232 billion", never "net new assets of $232 billion".
+// Measured, runs 40776657937 / 40777096354 / 40777425081.
+//
+// What did NOT read back is on the row's own note and is not smoothed over: the
+// $81 billion of net new assets a year earlier and the $5.8 billion from stock
+// trading are absent from that release, and the nearly 40 percent S&P 500
+// top-ten concentration has no row at all because no index document was opened
+// for it. A 0-figure row would have made `checked()` count a figure nobody
+// read, which is the anti-theatre rule in DR-0076 section 3. Those three stay
+// The Daily Upside's report, labelled as such in the adult text and in all four
+// bands, and no teaching in bank9 rests on any of them.
+//
+// wm9's standing note (above) is now exercised twice rather than once: a runner
+// CAN read a publisher's page back, proven on federalreserve.gov and again on
+// morganstanley.com. Its own re-review on 2026-11-28 should ask the EIA the
+// same way.
 // 12 -> 13 on 2026-10-28 (dsi15, weighed into named hands), and the reason is on
 // the record rather than in a wording change. The lesson is the fifteenth module
 // of the Data Systems course, built from the IT Brew edition "The ghost of assets
@@ -186,8 +217,17 @@ const REPO = join(HERE, '..', '..', '..');
 // it, give dsi15 a row in lesson-sources.json and lower this pin to 12; if the
 // article prints no figure either, drop the "did not read the full article"
 // clause for an accurate one and lower the pin.
+//
+// BOTH SIDES OF THIS MERGE WERE RIGHT ABOUT THEMSELVES AND WRONG ABOUT THE
+// TOTAL, which is the same shape as the band pin the same day. dsi15 took the
+// SECOND branch and ADDS to the gap (12 -> 13). bank9 took the FIRST branch and
+// LEAVES the gap, so it does not subtract from dsi15's increment -- it was never
+// counted in the 12 -- while raising CHECKED_LESSONS (2 -> 3). So the merged
+// answer is GAP = 13 with CHECKED_LESSONS = 3, and neither lesson's reasoning is
+// edited to suit the other's. Verified by running scripts/unchecked-claims.mjs on
+// the merged tree rather than by adding the two sides together.
 const GAP = 13;
-const CHECKED_LESSONS = 2;
+const CHECKED_LESSONS = 3;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {

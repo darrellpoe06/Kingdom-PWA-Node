@@ -372,7 +372,8 @@
    "bank5-saving-that-is-not-hoarding": ["2026-09-19", "653cbb9a"],
    "bank6-the-measure-that-reports-wrong": ["2026-09-19", "653cbb9a"],
    "bank7-the-chest-with-a-hole-in-the-lid": ["2026-09-19", "653cbb9a"],
-   "bank8-who-actually-holds-it": ["2026-09-19", "653cbb9a"]
+   "bank8-who-actually-holds-it": ["2026-09-19", "653cbb9a"],
+   "bank9-the-moat-that-moves": ["2026-10-28", "a63c5791"]
   },
   "stocks": {
    "stk1-a-share-is-a-piece-of-a-company": ["2026-09-20", "26662721"],
