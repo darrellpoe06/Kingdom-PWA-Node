@@ -1389,7 +1389,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
-            {/* The chart / steps / quadrant the reading talks about (DR-1289). */}
+            {/* The chart / steps / quadrant the reading talks about (DR-1296). */}
             <LessonFigures module={module} />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
@@ -3182,7 +3182,7 @@ function CourseView({
                   </ul>
                 </div>
               )}
-              {/* THE PICTURE THE LESSON TALKS ABOUT (DR-1289). The family,
+              {/* THE PICTURE THE LESSON TALKS ABOUT (DR-1296). The family,
                   2026-10-29, on L270: "We need to see images in the lessons if
                   we need a diagram or workflows timelines etc..." The lesson
                   asked what changed when you saw the chart and showed none.

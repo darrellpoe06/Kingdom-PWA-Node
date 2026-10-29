@@ -1,6 +1,6 @@
 // =============================================================================
 // LessonFigures — the chart, the steps, the quadrant or the picture a lesson
-// talks about, drawn where the reader is (DR-1289)
+// talks about, drawn where the reader is (DR-1296)
 // =============================================================================
 // Everything here is drawn from data (lib/lesson-figures.js) in plain HTML,
 // not a canvas or a baked image, so: the words are real text a screen reader,

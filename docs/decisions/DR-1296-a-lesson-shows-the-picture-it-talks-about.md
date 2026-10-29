@@ -1,4 +1,4 @@
-# DR-1289: A lesson shows the picture it talks about, and the picture is data
+# DR-1296: A lesson shows the picture it talks about, and the picture is data
 
 **Date:** 2026-10-29
 **Status:** Accepted

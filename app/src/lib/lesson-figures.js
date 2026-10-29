@@ -1,5 +1,5 @@
 // =============================================================================
-// lesson-figures — the pictures a lesson talks about, as data (DR-1289)
+// lesson-figures — the pictures a lesson talks about, as data (DR-1296)
 // =============================================================================
 // The family, 2026-10-29, with two phone screenshots of L270: "We need to see
 // images in the lessons if we need a diagram or workflows timelines etc..."
