@@ -142,9 +142,11 @@ def job_resume_transcripts(params):
 # because services-sync kills its whole tree at the 600 s cycle ceiling and a
 # dump can outlast what is left of a cycle. It then waits up to
 # BACKUP_WAIT_S for the verdict so a short dump answers on the same row; a
-# longer one answers on 'db-backup-status'. The restore drill stays the nightly
-# job's (weekly); an on-request run is the dump and its verification, which is
-# what db_backup.sh refuses to call good without (pg_restore --list must read it).
+# longer one answers on 'db-backup-status'. An on-request run ALWAYS includes the
+# restore drill (BACKUP_DRILL=always): the dump is restored into a scratch
+# database, its auth.users and public tables are counted against the live
+# database, and the scratch database is dropped -- a backup asked for before a
+# release must be shown restorable, not assumed so (Christina, 2026-10-29).
 # The script's own lock makes a second request -- or the nightly run -- a no-op,
 # and it never writes to the live database: pg_dump reads.
 BACKUP_DIR = os.environ.get("BACKUP_DIR", "/volume1/PoeTech/backups/db")
@@ -173,7 +175,7 @@ def job_db_backup(params):
     os.makedirs(BACKUP_DIR, exist_ok=True)
     log_path = os.path.join(BACKUP_DIR, "backup.log")
     stamp = os.path.join(BACKUP_DIR, ".last-ok")
-    inner = f"BACKUP_DRILL=never timeout {BACKUP_WALL_S} sh '{BACKUP_SCRIPT}' >> '{log_path}' 2>&1 && touch '{stamp}'"
+    inner = f"BACKUP_DRILL=always timeout {BACKUP_WALL_S} sh '{BACKUP_SCRIPT}' >> '{log_path}' 2>&1 && touch '{stamp}'"
     # nohup + & from a throwaway shell: the backup is re-parented away from this
     # process tree, so the services-sync ceiling cannot cut a dump short.
     subprocess.run(["sh", "-c", f"nohup sh -c \"{inner}\" >/dev/null 2>&1 &"], timeout=30)

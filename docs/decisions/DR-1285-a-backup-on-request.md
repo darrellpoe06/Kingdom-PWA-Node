@@ -30,9 +30,9 @@ Asked to use the roads already built rather than hand the step to a person (Darr
 
 ## Decision
 
-1. **`db-backup`** starts `db_backup.sh` detached (`BACKUP_DRILL=never`, its own `timeout 3600` wall), then waits up to 240 s for a NEW `status.json` (a different `at` than before the request). A new verdict returns on the row: `done` when `ok:true`, `error` when not. A dump still running after 240 s returns `done` with `ok: null` and says to ask `db-backup-status` — never a claimed verdict.
+1. **`db-backup`** starts `db_backup.sh` detached (`BACKUP_DRILL=always`, so every on-request backup is also restored into a scratch database and counted against the live one; its own `timeout 3600` wall), then waits up to 240 s for a NEW `status.json` (a different `at` than before the request). A new verdict returns on the row: `done` when `ok:true`, `error` when not. A dump still running after 240 s returns `done` with `ok: null` and says to ask `db-backup-status` — never a claimed verdict.
 2. **`db-backup-status`** returns the newest verdict and whether a run holds the lock.
-3. **A run already in progress is refused, not doubled** (the `.lock` directory `db_backup.sh` itself takes). The restore drill stays the nightly job's (weekly); an on-request run is the dump and its own verification.
+3. **A run already in progress is refused, not doubled** (the `.lock` directory `db_backup.sh` itself takes). Christina asked that the backup taken before the Money release be shown restorable, so the on-request run always drills; the nightly keeps its weekly drill.
 4. **Triggered by a request, drained on the NAS clock.** An instant wake (a Postgres `LISTEN/NOTIFY` listener on the NAS's own database) is possible because the database is local to the runner, but it is a long-lived process — the class that died for eight weeks once already (ops-queue-health's own history) and that the three-brakes rule governs. Not built here; re-review: 2026-11-12, with the measured latency of real requests as the input.
 
 ## Verification
