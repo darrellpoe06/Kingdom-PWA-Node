@@ -109,7 +109,17 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(266); // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
+    expect(baseline.allFour).toBe(267); // measured by scripts/course-band-baseline-write.mjs after `git merge origin/main`,
+    // never hand-written: every lesson that lands raises this, and that script's own header
+    // warns that hand-merging the number after a merge is how a wrong one ships.
+    //
+    // Each lesson's own measurement, kept as it recorded it:
+    // // 266 on 2026-10-28: sov56 (oversight is a charge, not a
+    // ceremony, DR-1274), the fifty-sixth week of Sovereign A.I. Measured by a fresh
+    // scripts/course-band-baseline-write.mjs run (total 440, allFour 266, adultOnly 0, 174 still
+    // pinned), never hand-written. All four bands from its first commit; sovereign-ai {lessons: 56}. // 265 on 2026-10-28: sov55 (the czar and the charge, and the desk
+    //
+    // // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
     // raise allFour, so each side of this merge said 265 and NEITHER was right. sov55 (the czar and the
     // charge, and the desk above the desk, DR-1273) measured 264 -> 265 on its own base, and dsi15
     // (weighed into named hands, DR-1278) measured 264 -> 265 on its. On the MERGED catalog both are
