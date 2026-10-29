@@ -60,11 +60,13 @@ jobs:
     permissions:
       contents: read
       actions: write   # to dispatch the isolation proof below
+      issues: write    # the rolling tailnet-key entry when the sovereign road is shut
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
       - name: Apply migrations (resilient, idempotent, ledger-tracked)
+        id: hosted
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: bash scripts/db-migrate-apply.sh
@@ -108,6 +110,7 @@ jobs:
       # one last read after it ends). A finding with no isolation run in motion
       # fails at once, as before; a plumbing fault never retries.
       - name: Witness the LIVE definitions (not the ledger)
+        id: witness
         if: success()
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -169,13 +172,57 @@ jobs:
           authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: Replay onto the sovereign database
+        id: replay
         if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: bash scripts/sovereign-replay-over-tailnet.sh
+        # Captured to a file and printed, NOT piped. A pipe here would hand the
+        # step tee's exit status instead of the replay's, which is the same
+        # read-without-a-pipe discipline the repo's own gate runs carry. The
+        # `|| rc=$?` is what keeps `bash -e` from ending the step before the
+        # output is shown and the real code re-raised.
+        run: |
+          rc=0
+          bash scripts/sovereign-replay-over-tailnet.sh > /tmp/replay-output.txt 2>&1 || rc=$?
+          cat /tmp/replay-output.txt
+          exit $rc
 
+      # A SHUT SOVEREIGN ROAD IS NEVER ONLY A RED CHECK (2026-10-29, DR-1283).
+      #
+      # The step above is the only thing that lands a merged migration on the
+      # database the app READS. When the tailnet key is refused it fails for a
+      # reason no re-run can heal, and before this step the whole signal was a
+      # red check in the Actions tab. Measured: migration 0313 merged
+      # 2026-10-28 02:38 and had not reached the live database 22 hours later,
+      # with no entry in any ledger -- while migrate-freshness.yml correctly
+      # re-dispatched this workflow on every fire, each one failing the same
+      # way. Re-dispatching was right; being quiet about it was not.
+      #
+      # So the outage writes itself down, once per cooldown window, on the one
+      # rolling entry the whole fleet shares. The run still goes red: this adds
+      # a reader-facing record, it does not soften the status.
+      - name: Say so in the ledger when the sovereign road is shut
+        if: ${{ always() && steps.replay.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/tailnet-key-incident.mjs \
+            --workflow "db-migrate (sovereign replay)" \
+            --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --measured-file /tmp/replay-output.txt
+
+      # KEYED ON THE HOSTED HALF, NOT ON THE WHOLE JOB (2026-10-29, DR-1283).
+      #
+      # This was `if: success()`, which reads the job's status -- and the job is
+      # red whenever the SOVEREIGN replay above fails. So a refused tailnet key
+      # silently switched off all six isolation proofs: measured, they had not
+      # run since 2026-10-27 19:35, twenty-nine hours. The proofs run against
+      # SUPABASE_DB_URL (the hosted project, as this file's own comment at the
+      # dispatch has always said), so they do not depend on the sovereign road
+      # in any way and must not be suppressed by it. They are now gated on the
+      # two steps whose success they actually require.
       - name: Dispatch the isolation proofs (all features, one matrix)
-        if: success()
+        if: ${{ !cancelled() && steps.hosted.outcome == 'success' && steps.witness.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
