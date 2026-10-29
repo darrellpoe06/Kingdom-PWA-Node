@@ -226,7 +226,43 @@ const REPO = join(HERE, '..', '..', '..');
 // answer is GAP = 13 with CHECKED_LESSONS = 3, and neither lesson's reasoning is
 // edited to suit the other's. Verified by running scripts/unchecked-claims.mjs on
 // the merged tree rather than by adding the two sides together.
-const GAP = 13;
+// sov57 ADDS to the gap (13 -> 14), and it takes the second branch for the
+// same reason dsi15 did, measured rather than assumed. The source is one issue
+// of the TLDR newsletter (2026-09-30). Exactly ONE of its items carries a
+// thesis -- a four-sentence summary of a piece titled "Data is the application"
+// -- and that thesis carries NO FIGURE. Every number in the issue belongs to an
+// advertisement (a projected market, a share price, an Azure credit) or to an
+// unrelated story (a plan multiplier, a count of advertisers, a browser
+// version), so there is no germane figure to stake and none is staked. That is
+// not a claim on the author's word: sovereign-ai-sov57-verses.test.js refuses a
+// currency symbol, a percentage and a number wearing a magnitude word in any of
+// the five reader texts, and proves the refusal by planting "$2 billion" and
+// "37%" and watching the shapes fire. A 0-figure row in lesson-sources.json is
+// forbidden (DR-0076 section 3) because it would make checked() count a lesson
+// whose figures nobody read, so the honest place for sov57 is HERE.
+//
+// THE ROAD WAS TRIED (DR-0108). The one article worth reading is at
+// ma.ttias.be, and the open-web fetch answered ENOTFOUND -- the host is outside
+// this session's allowed network domains, which is a measured failure and is
+// what all five reader texts tell the reader in their own words. A GitHub
+// runner reaches hosts this sandbox cannot. What it has no input for is a
+// PROBE: lesson-sources.json rows exist to read a FIGURE back off a publisher's
+// page, and this lesson stakes none, so there is no candidate `says` string
+// that could be written without inventing one.
+// re-review: 2026-11-28 -- from a runner with web access (or once ma.ttias.be
+// is allowed in the session's network settings), open the full article. If its
+// body carries a germane figure this lesson should teach, teach it, give sov57
+// a row in lesson-sources.json and lower this pin to 13; if the article prints
+// no figure either, replace the "did not read the article" clause in all five
+// reader texts with an accurate one and lower the pin.
+//
+// GAP/CHECKED ARE SHRINK-ONLY AND SIBLING BRANCHES MOVE THEM CONCURRENTLY. This
+// number was re-read off `node scripts/unchecked-claims.mjs` on the tree that
+// actually holds sov57 (16 lessons admitting, 98 disclosures, 3 checked, 14 in
+// the gap), not arrived at by adding one to what main said. If a sibling lands
+// first, re-read it the same way on the merged tree and keep BOTH sides'
+// reasoning in full rather than editing one to suit the other (DR-1136).
+const GAP = 14;
 const CHECKED_LESSONS = 3;
 
 describe('both sides of the honesty gap are counted', () => {

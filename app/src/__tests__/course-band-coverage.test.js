@@ -109,7 +109,19 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(268); // RESOLVED BY MEASUREMENT, FOUR TIMES OVER, never by arithmetic.
+    expect(baseline.allFour).toBe(269); // RESOLVED BY MEASUREMENT, never by arithmetic.
+    // 2026-10-29: sov57 (the code can be rebuilt but the register cannot, DR-1282) carries all four
+    // authored bands from its first commit, so allFour rises 268 -> 269 with total (442 -> 443) and the
+    // sovereign-ai row reads {lessons: 57}; adultOnly and adultRegister both stay 0, which is the shape
+    // this pin exists to prove -- the total may grow, the DEBT may not. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that actually holds the lesson, never
+    // computed by adding one to what main said.
+    // THREE BRANCHES CLAIM 269 FROM MAIN'S 268 and only one of them can be right about the total:
+    // wm10 (origin/claude/wm10-the-name-and-the-proof) and mgmt9
+    // (origin/claude/mgmt9-define-your-work) are both in flight with their own +1, so whichever of the
+    // three lands SECOND and THIRD must re-run that script on the MERGED tree rather than keeping its
+    // own number -- the identical failure the four-way merge below records, and the reason this is a
+    // script and not a sum (DR-1136). Each lesson's own measurement is kept as it recorded it.
     // FOUR lessons landed across 2026-10-28/29 and every one of them raises allFour, so each measured
     // 264 -> 265 on its own base and every side of every merge in the queue was right about its own
     // increment and wrong about the total: sov55 (the czar and the charge, DR-1273), dsi15 (weighed into
