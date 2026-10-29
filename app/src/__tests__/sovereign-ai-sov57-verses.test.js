@@ -7,6 +7,25 @@
 // above it: Lessons. The thread is a single message — one issue of the TLDR
 // daily technology newsletter, sent to his university address and forwarded on.
 //
+// THIS THREAD WAS ALREADY BUILT ONCE, and the correction belongs at the top of
+// the file rather than buried. The brief for this lesson asserted the thread was
+// "the oldest of his forwarded teachings still unbuilt". That was FALSE. The
+// repository's own instrument says so:
+//
+//   $ node scripts/lesson-row-shipped-sweep.mjs 1a0f23b12bf2ca45
+//   SHIPPED   1a0f23b12bf2ca45  ->  DR-1246, DR-1285
+//
+// sov51 (DR-1246) built it on 2026-09-30, and it did NOT declare this item a
+// leave-out: the item is one of its five SERVING items, and sov51 calls its
+// sentence "the sentence this lesson turns on". So sov57 is the SECOND teaching
+// from one forward, and the checks below require every reader text to SAY so.
+// Measured, not asserted: 0 shared anchor verses, 0 shared chapters, and across
+// sov51's whole module `record` 0, `register` 0, `rebuild` 0, `irreplaceable` 0
+// -- it states the asymmetry as its premise and nowhere teaches it. Whether the
+// two should be one lesson is Darrell's editorial call, not this file's (see
+// one-teaching-one-lesson-guard.mjs:13-16). The gap that let it happen is closed
+// by scripts/one-thread-one-record-guard.mjs; the full comparison is in DR-1285.
+//
 // THE FIRST DANGER IS PRETENDING THE ISSUE HELD AN ARGUMENT IT DID NOT. A
 // newsletter is not a study. This issue is a run of short items, each one a
 // paragraph compressing somebody else's longer article, with three paid
@@ -425,6 +444,40 @@ describe('the source is named for what it is, not dressed as an argument', () =>
     expect(L.lesson).toContain('a measured failure and not a figure of speech');
   });
 
+  it('SAYS THE THREAD WAS ALREADY BUILT ONCE, on the lesson and all four bands, each pin unique', () => {
+    // The brief for this lesson asserted the thread was "the oldest of his
+    // forwarded teachings still unbuilt". That was FALSE -- the sweep reports it
+    // SHIPPED as sov51 / DR-1246 on 2026-09-30 -- and the reader is told so here
+    // rather than only in the ledger. sov51's own convention is to name the
+    // weeks it does not re-teach; this returns the courtesy.
+    const pins = {
+      adult: 'This digest has ALREADY produced a week of this course.',
+      child: 'This same email already gave us a lesson once.',
+      youth: 'AND ONE MORE THING ABOUT THE SOURCE, because it was nearly got wrong.',
+      teen: 'AND THE SOURCE HAS ALREADY BEEN BUILT ONCE, which was nearly got wrong here',
+      senior: 'AND THE SOURCE HAS ALREADY BEEN BUILT ONCE, which this lesson nearly failed to say.',
+    };
+    for (const [place, pin] of Object.entries(pins)) {
+      const carriers = PLACES.filter((p) => TEXTS[p].includes(pin));
+      expect(carriers, `"${pin}" should witness for ${place} alone`).toEqual([place]);
+    }
+  });
+
+  it('and every place sends the reader to that week by name, not by record id', () => {
+    for (const place of PLACES) {
+      expect(TEXTS[place], `${place} does not name the earlier week`).toContain('week fifty-one');
+      expect(TEXTS[place], `${place} does not name its title`).toContain('the office that does not transfer');
+      // case-insensitive: the adult lesson shouts it (SECOND teaching), the
+      // child band says it plainly (second lesson).
+      expect(TEXTS[place], `${place} does not say it is the second`).toMatch(/second (?:teaching|lesson)/i);
+      // A reader-facing surface never prints an internal record id. recitedRecords
+      // enforces this and CAUGHT a first draft of these very paragraphs, which
+      // printed DR-1246 in four of the five places.
+      expect(TEXTS[place], `${place} prints a record id`).not.toMatch(/DR-\d{4}/);
+    }
+    expect(recitedRecords(L)).toEqual([]);
+  });
+
   it('refuses every advertiser and every other story a foothold anywhere in the module', () => {
     const found = [];
     for (const t of EVERY_STRING) {
@@ -678,6 +731,21 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
     expect(PLACES.filter((p) => TEXTS[p].includes(pin))).toEqual(['senior']);
     const stripped = L.levels.senior.replace(`${pin}.`, '');
     expect(stripped.includes(pin), 'the senior disclosure was deleted and nothing noticed').toBe(false);
+  });
+
+  it('deleting the ALREADY-BUILT provenance from one band is caught by that band’s name', () => {
+    const pin = 'This same email already gave us a lesson once.';
+    expect(PLACES.filter((p) => TEXTS[p].includes(pin))).toEqual(['child']);
+    const stripped = L.levels.child.replace(pin, '');
+    expect(stripped.includes(pin), 'the child provenance was deleted and nothing noticed').toBe(false);
+    // and no sibling band can cover for it, which is what makes the pin a witness
+    for (const p of PLACES.filter((x) => x !== 'child')) expect(TEXTS[p].includes(pin)).toBe(false);
+  });
+
+  it('printing the record id in reader prose is caught, which a first draft did', () => {
+    const bent = { ...L, levels: { ...L.levels, teen: `${L.levels.teen} See DR-1246 for that week.` } };
+    expect(recitedRecords(bent).map((r) => r.where)).toContain('levels.teen');
+    expect(recitedRecords(L)).toEqual([]);
   });
 
   it('a band shortened to a summary is caught by the share floor', () => {

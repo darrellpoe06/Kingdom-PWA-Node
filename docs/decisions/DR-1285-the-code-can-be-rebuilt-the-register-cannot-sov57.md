@@ -5,7 +5,16 @@
 **Tier:** A (additive curriculum: one new Sovereign A.I. lesson with its own pinned gate, all four age bands from the first commit, no new source row, the honesty gap pin raised with a reason and a date)
 **Type:** curriculum
 **Area:** Learn · A.I. The Way · Sovereign A.I.: Why We Build Local (`app/src/lib/sovereign-ai-class.js`)
-**Sent in by:** Darrell, Gmail thread `1a0f23b12bf2ca45` — the TLDR newsletter of 30 September 2026, "OpenAI DevDay, Apple's reorg, data is the app", forwarded from his university address to himself with one word at the top of the body: **"Lessons"**. That word is the whole of the request. It is the oldest of his forwarded teachings still unbuilt.
+**Sent in by:** Darrell, Gmail thread `1a0f23b12bf2ca45` — the TLDR newsletter of 30 September 2026, "OpenAI DevDay, Apple's reorg, data is the app", forwarded from his university address to himself with one word at the top of the body: **"Lessons"**. That word is the whole of the request.
+
+> **CORRECTION, and it is the most important line in this record.** An earlier draft of this record said the thread was *"the oldest of his forwarded teachings still unbuilt."* **That sentence was false, and it is withdrawn.** The claim came to this work as an assertion in a brief, taken from a Gmail search rather than from the repository's own instrument, and it was repeated here without being measured. Measured now, with the instrument that exists for exactly this question:
+>
+> ```
+> $ node scripts/lesson-row-shipped-sweep.mjs 1a0f23b12bf2ca45
+> SHIPPED   1a0f23b12bf2ca45  ->  DR-1246, DR-1285
+> ```
+>
+> **This thread was already built.** `DR-1246-the-office-that-does-not-transfer.md:14` names it exactly — *"Gmail thread `1a0f23b12bf2ca45`, from `dpoe@illinois.edu`, subject 'OpenAI DevDay, Apple's reorg, data is the app'"* — and built **sov51** from it on 2026-09-30, under the title *"what a fourteen-item digest is actually one lesson about."* sov57 is therefore the **second** teaching drawn from one forward, not the first, and the comparison that justifies a second is below rather than assumed. **Whether the two should be one lesson is Darrell's call, not this record's and not a gate's** (the reason is quoted in "Relationship to sov51" below).
 **Pairs with:** DR-0312 (the forwarded-teaching intake), DR-0610 (the capture lock), DR-1126 (the third pile is a worklist, and it is counted), DR-0750 (a runner reads every researched figure back off its publisher's own page — and why there is nothing here for it to read), DR-0108 / DR-1159 (the order of roads; the team's reach, never one agent's), DR-0076 (§1 evidence, §3 proven-to-catch, §4 measure don't claim, §8 provenance and honest uncertainty), DR-0100 (established fact plainly; the open flagged narrowly), DR-0098 (teach the Word, do not debate it), DR-0281 (the Word quoted AND reasoned), DR-0210 / DR-0076 bright line (Yahweh in our voice, never substituted into a quotation), DR-0459 (never an elision), DR-0692 / DR-0697 (all four bands on new work), DR-0733 / DR-0795 (every band sends the reader all three ways), DR-0734 (`anchor.ref` names every verse the lesson stands on), DR-0521 (the plain meaning comes first), DR-0811 (a true story names whose life it was), DR-0677 (a course count is derived, never typed), DR-1136 (merge order decides a shared number), DR-0239 (a surface says true things)
 
 ## Context
@@ -61,6 +70,45 @@ Ladder strictly ascending. Worst band-pair overlap **0.17** (teen~senior) agains
 **The honesty accounting, pinned as unique.** Three disclosures — the article unread, nobody telephoned, the fetch failure measured — are carried on the lesson **and all four bands**, fifteen pins in all, and **each was asserted to occur in exactly one reader text**. Two prior records (DR-1275's bare `367,000`, DR-1278's bare `Mitch Berk`) passed with the disclosure deleted because the pinned string also occurred elsewhere. **Proven to catch:** deleting the teen disclosure leaves no carrier and no sibling covers for it; the same for the senior telephone disclosure.
 
 **Both stories are parables, in the third person.** A lesson built from a newsletter has nobody's life in it, so `kind: 'testimony'` — which renders as a true story told with a named person's consent — would be a lie on the page (DR-0811). A check forbids it and asserts no `source` is borrowed.
+
+## Relationship to sov51 / DR-1246 — the comparison, measured
+
+**The principle, cited for what it says rather than for a paraphrase of it.** `DR-0610` §3 reads: *"Before building an in-app row, the reader searches the lesson catalogs for a lesson already made from the same words (the same spoken sentences in its grounds). If one exists, it builds nothing new: it writes the comparison (what each door carried, and whether any content, verse or provenance was lost) to Darrell, and tags the row `lesson-captured` and `parallel-compared`."* Two things follow honestly. Its **scope** is the two in-app lesson doors running in parallel, not two lessons from one emailed newsletter, so it is the right principle to reason from but not a rule this case sits inside. Its **remedy** is *the comparison*, not folding. And folding is not available to this record in any case: `scripts/one-teaching-one-lesson-guard.mjs:13-16` states why in its own header — *"It does NOT fail on the recorded one: folding two lessons built from his own spoken teaching is an editorial call about Yahweh's Word on a COLG-facing surface, and that is his, not a gate's."* So what is owed here is the measurement and the comparison. The call is Darrell's.
+
+**sov51 did NOT declare this item a leave-out, and the record must not imply it did.** DR-1246 names nine of the digest's fourteen items as left out; **this item is not among them**. It is one of the **five that serve** sov51's through-line, and DR-1246 calls it *"the programming item, which draws the line out loud and is the digest's own statement of the seam."* sov51's own prose calls it *"the sentence this lesson turns on."* Any account of sov57 that implies the item was untouched is wrong.
+
+**What each lesson carried, measured on the shipped modules:**
+
+| | **sov51** (DR-1246, 2026-09-30) | **sov57** (this record, 2026-10-29) |
+| --- | --- | --- |
+| Reads the digest as | ONE lesson across five serving items | ONE item, the only one carrying a thesis |
+| Teaches | The **office** that does not transfer — whether a duty transfers at all, and who answers once work is handed over | The **asymmetry** the same sentence reports — what can be rebuilt against what cannot — and the four practices that follow |
+| Uses this item as | Its statement of the seam: *"let agents iterate over the code and leave the data to humans"* — the digest drawing the line about what may be handed over | Its whole subject: *"none of that speed applies to the data; lose the data people gave you and you begin again"* |
+| Half of the sentence taken | The **delegation** half (handing the code over) | The **irreplaceability** half (what cannot be handed back) |
+| Anchor verses | **23** | **9** |
+| **Shared anchor verses** | **0** | |
+| **Shared anchor chapters** | **0** | |
+| Spine | 2 Chronicles 26 (Uzziah), 1 Samuel 13 (Gilgal), Numbers 18 / 16, Zechariah 11, Galatians 6, John 10 (the hireling) | Psalms 102, Ezra 2, Deuteronomy 31, Job 19, Ezra 6, 1 Chronicles 9 |
+| Title's opening three words | "the office that" | "the code can" |
+
+**Whether anything is repeated.** Measured across sov51's entire module (87,822 characters, every string including bands, quiz, benefits and facilitator notes): `record` **0**, `register` **0**, `rebuild` **0**, `irreplaceable` **0**, `archive` **0**. sov51 **states** the asymmetry as the reported premise of its seam; it nowhere **teaches** it, and it tells a reader nothing about what to do with records. The practice sov57 exists to give — name the irreplaceable in writing, keep it where its survival does not depend on what produced it, keep it legible to a stranger, hold rather than invent when it is missing — appears nowhere in sov51.
+
+**Whether anything is lost.** Nothing. sov51 keeps its whole subject; sov57 re-teaches none of its ground and, following sov51's own convention of naming the weeks it does not re-teach, **sov57 names sov51 in all five reader texts** — the lesson and every band — so a reader who wants the who-answers question is sent there instead of being served it again. The reader-facing text names it as *"week fifty-one, the office that does not transfer"*; the record id stays out of reader prose, which `recitedRecords` enforces and which caught a first draft that printed it.
+
+**The verdict this record asserts, and its limit.** On the measurement above these are **complementary**: one source sentence, two halves, two disjoint spines, no shared verse, and no overlap in what is taught. That is what the measurement supports and it is as far as this record goes. It does **not** assert that two lessons from one forward is the right editorial shape for a COLG-facing surface — that judgement is Darrell's, and this comparison exists so he can make it in a line rather than an investigation.
+
+## The gate gap this exposed — an open finding
+
+**Nothing in `verify:gates` asked the one instrument that knew.** The two checks involved and why each was silent:
+
+- `scripts/one-teaching-one-lesson-guard.mjs` keys on **same course + the same opening three words of the title + ≥ `MIN_SHARED_VERSES` shared verses**. sov51 and sov57 share a course and nothing else it inspects — 0 shared verses, 0 shared chapters, "the office that" against "the code can" — so it passed, **correctly on its own terms**. It has no notion of a source thread.
+- `scripts/lesson-row-shipped-sweep.mjs` **does** know, and reports this thread SHIPPED. But it is called with row ids by the intake, and nothing ever ran it against the thread a **new decision record names**. The instrument existed; it was never asked.
+
+**Closed, cheaply, and proven to catch:** `scripts/one-thread-one-record-guard.mjs` (new) reads the thread id each record names in its own front matter and fails when two records name the same thread unless the pair is recorded. It is wired into `verify:gates` after `one-teaching-one-lesson-guard`. **Proven twice:** removing this pair from `KNOWN_SHARED_THREADS` makes it report *"thread 1a0f23b12bf2ca45 is named by DR-1246 and DR-1285"* and exit 1 — it would have caught sov57 before a word was written; and a baseline entry that no longer collides is refused as stale, so the list cannot rot.
+
+**It deliberately does not decide anything.** A recorded pair passes with its comparison cited, for the same reason `one-teaching-one-lesson-guard` does not fail on its own recorded pair: the editorial call is Darrell's. All the gate asserts is that nobody built twice from one source **without noticing**.
+
+**Six collisions already existed, and they are debt rather than a clean bill.** Measured 2026-10-29 across the whole ledger: `1a0a5a12db9c6a62` (DR-0412/0413/0416), `1a0a5a4e540b4fde` (DR-0412/0413/0414/0415), `1a11668e8023cd3e` (DR-0793/0863), `1a11be8ea0e58748` (DR-0834/0864), `1a135f165fe391e3` (DR-1005/1051), `a30e4942e161b7833c6cef051b8ab6fd` (DR-0711/0739). **Not one has been investigated.** A record may legitimately name several threads, so some are probably not duplicate lessons at all — but saying which would mean reading six pairs of records, and asserting they are fine without reading them is the hollowing-out DR-0076 §3 forbids. They sit in `UNEXAMINED_BASELINE` as a shrink-only list. `re-review: 2026-11-28` — read the six, move each into `KNOWN_SHARED_THREADS` with a comparison or out of the ledger as a genuine duplicate for Darrell to fold, and lower the list as each clears.
 
 ## Impact
 
