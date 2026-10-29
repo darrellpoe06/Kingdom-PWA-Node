@@ -22,6 +22,9 @@ import {
 } from '../lib/reading-progress.js';
 import { recordPlace, finishPlace, getPlaceFor, placeReached } from '../lib/learn-resume.js';
 import { RowContinue } from '../components/LessonContinue.jsx';
+import { AgePacedLesson } from '../components/ChurchLearn.jsx';
+import { lessonPlanForAge } from '../lib/learn-framework.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -183,5 +186,31 @@ describe('each lesson row says how much is left', () => {
     const el = render(<RowContinue place={{ ...base, seen: 0, heard: 0 }} title="L1" onContinue={() => {}} />);
     expect(el.querySelector('[data-testid="row-continue"]').textContent).toBe('Continue');
     expect(el.querySelector('[data-testid="row-left"]')).toBeNull();
+  });
+});
+
+describe('the seen meter settles: a plan rebuilt every render never loops', () => {
+  // THE BUG THIS PINS (found 2026-10-29 before it shipped): the host rebuilds
+  // the plan on every render, so keying the meter on the plan's identity reset
+  // it each render, reported again, saved the place, re-rendered, and looped.
+  // The real lesson screen hung its test for sixteen minutes. Proven to catch:
+  // keying the reset on `plan` again sends the report count past the bound.
+  let root; let host;
+  afterEach(() => { if (root) act(() => root.unmount()); host?.remove(); root = null; });
+  it('reports a bounded number of times while its host re-renders on every report', () => {
+    const lesson = LIVING_LESSONS_MODULES[0];
+    let reports = 0;
+    function Host() {
+      const [, bump] = React.useState(0);
+      const plan = lessonPlanForAge(lesson, 'adult');
+      // Capped at 20 so the old loop FAILS with a count instead of hanging.
+      return <AgePacedLesson plan={plan} onSeen={() => { reports += 1; if (reports < 20) bump((n) => n + 1); }} />;
+    }
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => root.render(<Host />));
+    expect(reports).toBeGreaterThanOrEqual(1);
+    expect(reports, 'the meter re-reported on every render').toBeLessThanOrEqual(3);
   });
 });

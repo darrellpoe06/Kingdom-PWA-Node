@@ -1,5 +1,5 @@
 // =============================================================================
-// reading-progress — how much of a lesson is left, counted in its own words (DR-1282)
+// reading-progress — how much of a lesson is left, counted in its own words (DR-1288)
 // =============================================================================
 // Darrell 2026-10-29: "I would also like to know what percentage of the lesson
 // is left in each so that I and users can verify the full reading of each

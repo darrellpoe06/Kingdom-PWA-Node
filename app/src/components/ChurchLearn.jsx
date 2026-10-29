@@ -920,7 +920,14 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const onSeenRef = useRef(onSeen);
   onSeenRef.current = onSeen;
   const seenRef = useRef(-1);
-  React.useEffect(() => { seenRef.current = -1; }, [plan]);
+  // The plan is rebuilt on every render, so its IDENTITY changes constantly;
+  // keying on it would reset the counter on each render, report again, save
+  // the place, re-render, and loop. Key on what the plan IS: the version and
+  // how it is cut.
+  const planKey = plan && Array.isArray(plan.segments)
+    ? `${plan.levelId || ''}:${plan.segments.length}:${wordsIn(plan.segments)}`
+    : '';
+  React.useEffect(() => { seenRef.current = -1; }, [planKey]);
   React.useEffect(() => {
     const segs = plan && Array.isArray(plan.segments) ? plan.segments : [];
     if (!onSeenRef.current || !segs.length || typeof window === 'undefined') return undefined;
@@ -952,7 +959,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
       window.removeEventListener('resize', onMove);
       if (raf !== null) window.cancelAnimationFrame(raf);
     };
-  }, [idx, showAll, plan]);
+  }, [idx, showAll, planKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const firedRef = useRef(false);
   // A MID-LESSON LEVEL CHANGE KEEPS THE LEARNER'S PLACE (DR-0418).
   //
@@ -1871,7 +1878,9 @@ function CourseView({
   const refreshLiveRead = (lessonId) => {
     if (!lessonId) return;
     const p = getPlaceFor(course.key, lessonId);
-    setLiveRead(p ? { lessonId, seen: p.seen || 0, heard: p.heard || 0 } : { lessonId, seen: 0, heard: 0 });
+    const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
+    // Only a real change re-renders: the same marks read back again are not news.
+    setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
   };
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;

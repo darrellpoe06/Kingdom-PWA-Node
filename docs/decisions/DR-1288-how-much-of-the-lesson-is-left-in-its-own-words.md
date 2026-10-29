@@ -1,4 +1,4 @@
-# DR-1282: How much of the lesson is left, in its own words, by two witnesses
+# DR-1288: How much of the lesson is left, in its own words, by two witnesses
 
 **Date:** 2026-10-29
 **Status:** Accepted
@@ -42,7 +42,7 @@ A reader could see "Step 4 of 10", and only in the paced bands. Steps are uneven
 
 ## Verification
 
-`reading-progress.test.jsx` (17 tests), proven to catch:
+`reading-progress.test.jsx` (18 tests), proven to catch:
 
 - **Words:** words are counted the way a reader counts them, and a lesson is never "0% left" before its last word.
 - **Seen:** weighted by words; paragraphs above the screen count.
@@ -55,6 +55,7 @@ A reader could see "Step 4 of 10", and only in the paced bands. Steps are uneven
   - a new reading starts fresh;
   - a place written before this shipped reads as nothing measured.
 - **The row:** "Continue · 62% left" with both witnesses in the title; plain "Continue" when nothing was measured.
+- **The meter settles.** Found before this shipped: the lesson rebuilds its plan on every render, and the first draft keyed the meter on the plan's identity. Each render reset it and reported again, which saved the place, re-rendered, and looped; the real lesson screen hung its test for sixteen minutes. The meter now keys on what the plan is (version, cut, words), and the host only re-renders on a real change. The new test rebuilds the plan on every render the way the real host does. Proven to catch: with the old keys restored it fails with "expected 20 to be ≤ 3", and with the fix it passes.
 
 The existing pins on the sticky step bar (`the-place-is-visible-and-continue-stays`, `lesson-chrome-is-capped`) still pass.
 
