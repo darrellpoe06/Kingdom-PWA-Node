@@ -28,7 +28,8 @@
 //                     ones begun, a quiet "Finished" on the ones done.
 // =============================================================================
 import React from 'react';
-import { placeAgo, placeWhere, placeInProgress } from '../lib/learn-resume.js';
+import { placeAgo, placeWhere, placeInProgress, placeReached } from '../lib/learn-resume.js';
+import { leftLabel, witnessLabel } from '../lib/reading-progress.js';
 import { readMark, readMarkLabel, readMarkSays, VERSION_LABEL } from '../lib/lesson-read-mark.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { unitLabels } from '../lib/learn-units.js';
@@ -211,16 +212,23 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
     );
   }
   if (!place || !placeInProgress(place)) return null;
+  // HOW MUCH IS LEFT, ON THE ROW (Darrell 2026-10-29: "what percentage of the
+  // lesson is left in each"). The furthest either witness reached, seen on
+  // screen or heard from the reader (lib/reading-progress.js); said only once
+  // something was measured, never painted.
+  const reached = placeReached(place);
+  const left = reached > 0 ? leftLabel(reached) : '';
   return (
     <button
       type="button"
       onClick={() => onContinue(place)}
       data-testid="row-continue"
-      aria-label={`Continue ${title}, ${placeWhere(place)}`}
-      title={`Continue — ${placeWhere(place)}`}
+      data-reached={reached}
+      aria-label={`Continue ${title}, ${placeWhere(place)}${left ? `, ${left}` : ''}`}
+      title={`Continue — ${placeWhere(place)}${left ? ` — ${left} (${witnessLabel(place)})` : ''}`}
       className={`shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white font-semibold hover:bg-[#4a5a31] ${FOCUS}`}
     >
-      Continue
+      Continue{left ? <span className="font-normal" data-testid="row-left">{` · ${left}`}</span> : null}
     </button>
   );
 }
