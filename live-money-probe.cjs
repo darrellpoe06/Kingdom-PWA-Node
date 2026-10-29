@@ -25,7 +25,16 @@ const SECTIONS = [
     const page = await ctx.newPage();
     await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', '1'); localStorage.setItem('poe-landing-seen', '1'); } catch (e) {} });
     const errors = []; page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 160)));
-    const writes = []; page.on('request', (r) => { if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method()) && /\/sb\/|supabase|ts\.net/.test(r.url())) writes.push(r.method() + ' ' + r.url().slice(0, 100)); });
+    // A WRITE is a table insert/update/delete or a non-public RPC, wherever the
+    // app's backend lives. Public read RPCs (the front screen's vacancy board,
+    // POSTed by PostgREST convention) are reads and are counted separately.
+    const writes = []; let publicReads = 0;
+    page.on('request', (r) => {
+      const u = r.url(); const m = r.method();
+      if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) return;
+      if (/\/rest\/v1\/rpc\/public_/.test(u)) { publicReads++; return; }
+      if (/\/rest\/v1\/|\/storage\/v1\/object/.test(u)) writes.push(m + ' ' + u.replace(/\?.*$/, '').slice(-70));
+    });
     for (const [sub, label] of SECTIONS) {
       const errBefore = errors.length;
       await page.goto(`${BASE}?demo=family-of-4&view=books&sub=${sub}`, { waitUntil: 'networkidle', timeout: 60000 }).catch((e) => errors.push('goto: ' + e.message.slice(0, 100)));
@@ -43,7 +52,7 @@ const SECTIONS = [
       console.log(`${ok ? 'PASS' : 'FAIL'} ${s.name} ${sub}: shows "${r.current}" · layout ${r.layout} · sideways overflow ${r.overflow}px · page errors ${errors.length - errBefore}${sub === 'overview' ? ` · Safe to Spend "${r.sts}"` : ''}${r.build ? ` · build ${r.build}` : ''}`);
       await page.screenshot({ path: `${OUT}/${s.name}-${sub}.png` });
     }
-    console.log(`${s.name}: database writes attempted ${writes.length}${writes.length ? ' -> ' + writes.join(', ') : ''}`);
+    console.log(`${s.name}: public read calls ${publicReads} · database writes attempted ${writes.length}${writes.length ? ' -> ' + writes.join(', ') : ''}`);
     if (writes.length) failures++;
     if (errors.length) console.log(`${s.name} errors: ${errors.join(' | ')}`);
     await ctx.close();
