@@ -1,4 +1,4 @@
-# DR-1285: The second door opens without the key — the Worker deploy gets DR-1269's other road, so a parked decision is ready for the day it is taken
+# DR-1286: The second door opens without the key — the Worker deploy gets DR-1269's other road, so a parked decision is ready for the day it is taken
 
 **Date:** 2026-10-29
 **Status:** Accepted

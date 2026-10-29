@@ -1,5 +1,5 @@
 // =============================================================================
-// The second door opens without the key (2026-10-29, DR-1285)
+// The second door opens without the key (2026-10-29, DR-1286)
 // =============================================================================
 // MEASURED. `cf-roads-worker.yml` is the only deployer of the poetech-roads
 // Worker — DR-1068's second same-origin door, built because no Cloudflare Pages
