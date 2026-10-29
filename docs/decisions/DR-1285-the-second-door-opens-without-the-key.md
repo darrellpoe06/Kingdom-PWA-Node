@@ -1,4 +1,4 @@
-# DR-1285: The second door opens without the key — the Worker deploy gets DR-1269's other road, and the door DR-1068 decided on has never been opened
+# DR-1285: The second door opens without the key — the Worker deploy gets DR-1269's other road, so a parked decision is ready for the day it is taken
 
 **Date:** 2026-10-29
 **Status:** Accepted
@@ -6,7 +6,7 @@
 **Type:** verification
 **Area:** `.github/workflows/cf-roads-worker.yml` (the anon-key step and its join), `app/src/__tests__/the-second-door-opens-without-the-key.test.js`
 **Found by:** the agent, following a fault wm10's builder measured and correctly refused to widen its curriculum PR into.
-**Pairs with:** DR-1068 (the roads have a second door — the Worker this deploys), DR-1067 (the Edge Guard on `/edge/*`, and §3's two Worker secrets), DR-1269 (the second road to the anon key, reused here), DR-0107 (a green upload is not a served road), DR-0108 / DR-1159 (the order of roads), DR-1284 (verify your join — and why this lane is a legitimate exemption), DR-0076 (§1 evidence, §3 proven-to-catch, §8 what is not measured is said so), DR-0621 (a flag is where the work starts)
+**Pairs with:** DR-1180 (the second door is optional while the first is open — the decision this record serves and nearly trampled), DR-1068 (the roads have a second door — the Worker this deploys), DR-1067 (the Edge Guard on `/edge/*`, and §3's two Worker secrets), DR-1269 (the second road to the anon key, reused here), DR-0107 (a green upload is not a served road), DR-0108 / DR-1159 (the order of roads), DR-1284 (verify your join — and why this lane is a legitimate exemption), DR-0076 (§1 evidence, §3 proven-to-catch, §8 what is not measured is said so), DR-0621 (a flag is where the work starts)
 
 ## Context
 
@@ -28,13 +28,17 @@ So **the door DR-1068 decided on has never been opened.** Its `deploy: yes` — 
 
 And it could not have run tonight even if dispatched. DR-1067 §3 rides two Worker secrets on the deploy job, and `SB_ANON_KEY` was fetched from the NAS over the tailnet by a **single** road that `exit 1`s when the value is not a JWT. With the Tailscale key refused since 2026-10-28 that step is a hard stop — while DR-1269 built a second road to that same **public** value on that same day and wired it into the Pages deploy only.
 
-**Not measured, and said so.** The probe run `40801041610` completed successfully, and its first step prints the zone's actual Workers routes — but this sandbox cannot fetch a job-log blob (403 through the egress proxy), so **that route list is unread.** The conclusion that the Worker is not on the zone is an **inference** from two measured facts: the live `/edge/whoami` reading, and the deploy job having been skipped on every run. It is not a direct reading of the zone, and a steward opening that run's log can confirm or correct it in one glance.
+**Why the Worker is not on the zone, measured by someone else and not inferred by me.** My own probe run `40801041610` completed successfully, but this sandbox cannot fetch a job-log blob (403 through the egress proxy), so its route list is unread and I drew an inference from the live `/edge/whoami` reading plus six skipped deploys. That inference was unnecessary: **DR-1180 had already measured the cause directly** — the repository token sees zero zones and zero Workers scripts (run 39508087503). The deploys were skipped because the token cannot deploy, not because nobody thought to dispatch them. Reading the record first would have saved the inference and corrected its framing.
 
 ## Impact
 
-Two shipped surfaces have most likely been dark since the day they were built: the **Edge Guard** and the **Admin visitor count**, the only readers of `/edge/*`. DR-1067's own promise — that the 930k requests get a breakdown "the first time the Traffic card opens after the Worker is deployed" — has never come due, because the Worker was never deployed.
+**This is readiness work on a parked decision, not the repair of an outage, and the first draft of this record said otherwise.**
 
-Wider: the same unopened door is why `/sb` and the other NAS-backed roads still answer the shell, and therefore why the deploy still builds the client against the **absolute Funnel origin** — the 2026-10-09 unlock that breaks CLAUDE.md Layer 0 on purpose and carries a written hazard about the Funnel throttling under real family load.
+**DR-1180 (2026-10-21) already measured all of it and decided what to do.** It states the rule in its title: *a second door is optional while the first is open*. The site is up and serving every road the family uses through Pages; a Worker that is not deployed beside a signed Pages road is a **reading, not a fault**. It measured the repository token's reach on `cf-roads-worker` run **39508087503** — **zero zones and zero Workers scripts** — and named the six scopes a working token needs (Zone:Read, Analytics:Read, Firewall Services:Edit, Bot Management:Edit, Workers Scripts:Edit, Workers Routes:Edit). It recorded that **no road in this repository, on the NAS or on a runner can mint a Cloudflare API token**; the dashboard is the only minter, which makes it a genuine last-road value under DR-1159. And it decided, on Darrell's own words that morning — *"I hate having to deal with this cloudflare issues!!!!!!!!!!!"* — that he is asked **once**, with the reason, and then **the system stops asking**: no daily note, no run going red, no surface nagging. `re-review: 2026-11-18`.
+
+So the honest impact of this change is narrow and worth stating plainly: **the day that token is minted, `deploy: yes` will no longer also need the tailnet.** Before this, it would have failed at the anon-key step even with a perfect token. That is the whole of what this record buys.
+
+The Edge Guard and the Admin visitor count are not "dark" in the sense of a defect. They are **parked by Darrell's choice**, and `app/src/lib/edge-guard.js` already tells a steward exactly that — the site is fine, every road the family uses is open through Pages, and bots/traffic/blocks wait on a token with those six scopes. That surface was written by DR-1180 precisely so nobody would re-open this as a bug.
 
 ## Decision
 
@@ -57,4 +61,5 @@ Wider: the same unopened door is why `/sb` and the other NAS-backed roads still 
 - The mask is asserted to be **one** call after the selection, not one per road, because a per-road mask is how a road added later gets forgotten and prints the key.
 - DR-1068's own last step — the custom-domain read-back requiring `x-poetech-road: worker` — is asserted still present, so nothing here weakens the proof that a green upload is not a served road.
 - `npm run lint` and `npm run verify:gates`, each read without a pipe.
-- **Not verified:** neither road has run in this job yet; the first `deploy: yes` dispatch is the measurement of record. The served-site road itself is proven on a fixture and in the Pages deploy (DR-1269's six cases), not yet in this workflow.
+- **Not verified:** neither road has run in this job yet; the first `deploy: yes` dispatch — on the day the token exists — is the measurement of record.
+- **The correction this record owes.** Its first draft, its commit message and the report sent to Darrell presented a parked decision as a newly found fault ("has never been opened", "dark since the day it was built") and re-raised the Cloudflare token DR-1180 had closed eight days earlier. It also told him the token "works" because `cf-roads-worker.yml` succeeded — false: that run is a read-only probe whose job is to report the token's reach, and the reach it reports is zero. DR-1180 exists to stop exactly this re-asking (DR-0111: "not now" is a decision), and the citation was the first thing that was wrong: the numbers came from a `wrangler.toml` comment and a commit subject, not from the records. The served-site road itself is proven on a fixture and in the Pages deploy (DR-1269's six cases), not yet in this workflow.
