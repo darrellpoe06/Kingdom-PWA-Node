@@ -369,7 +369,7 @@ const REPO = join(HERE, '..', '..', '..');
 // tree (18 lessons admitting, 102 disclosures, 4 checked, 15 in the gap), never a
 // sum of the branches. All three lessons' reasoning is kept in full, none edited
 // to suit another (DR-1136).
-// 15 -> 16 GAP on 2026-10-29 (sov58, the world that does not drift; DR-1292).
+// 15 -> 16 GAP on 2026-10-29 (sov58, the world that does not drift; DR-1295).
 // CHECKED does not move. sov58 takes the SECOND branch, and the reason is
 // measured rather than asserted. The source is one issue of a daily technology
 // newsletter (2026-10-28). ONE item carries the teaching -- a company's own

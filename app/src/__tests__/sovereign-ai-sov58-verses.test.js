@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // sov58 — The world that does not drift: a rehearsal is a gift, and a rehearsal
-// is not the world (DR-1292)
+// is not the world (DR-1295)
 // =============================================================================
 // Darrell forwarded Gmail thread 1a18262cf26c9f77 on 2026-10-28 from his
 // university address to himself, with two sentences above the forward: "Lessons
@@ -776,7 +776,7 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
   });
 
   it('printing a record id in reader prose is caught', () => {
-    const bent = { ...L, levels: { ...L.levels, teen: `${L.levels.teen} See DR-1292 for the record.` } };
+    const bent = { ...L, levels: { ...L.levels, teen: `${L.levels.teen} See DR-1295 for the record.` } };
     expect(recitedRecords(bent).map((r) => r.where)).toContain('levels.teen');
     expect(recitedRecords(L)).toEqual([]);
   });

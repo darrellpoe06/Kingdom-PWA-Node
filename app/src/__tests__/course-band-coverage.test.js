@@ -110,7 +110,7 @@ describe('the debt, recorded as it actually is', () => {
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
     expect(baseline.allFour).toBe(272); // on 2026-10-29, sov58 (the world that does not drift -- a
-    // rehearsal is a gift, and a rehearsal is not the world, DR-1292) raises it one more, from the
+    // rehearsal is a gift, and a rehearsal is not the world, DR-1295) raises it one more, from the
     // 271 sov57 left. READ from a fresh scripts/course-band-baseline-write.mjs run on the tree that
     // holds the lesson (total 446, allFour 272, adultOnly 0, adultRegister 0), never computed and
     // never hand-merged. sov58 carries all four authored bands from its first commit and the full

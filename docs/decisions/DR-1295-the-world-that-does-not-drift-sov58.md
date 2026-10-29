@@ -1,4 +1,4 @@
-# DR-1292: The world that does not drift (sov58) — a rehearsal is a gift, a rehearsal is not the world, and the collision key that now fails on purpose
+# DR-1295: The world that does not drift (sov58) — a rehearsal is a gift, a rehearsal is not the world, and the collision key that now fails on purpose
 
 **Date:** 2026-10-29
 **Status:** Accepted
