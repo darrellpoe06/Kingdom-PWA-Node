@@ -50,7 +50,19 @@ The ant is the argument. *"Go to the ant, thou sluggard; consider her ways, and 
 2. **The reading ladder was INVERTED between youth and teen** — youth 4.8 against teen 4.0 — which no amount of reading the prose would have revealed, because both bands read fluently and the fault is only visible as two numbers side by side. The youth band's sentences were shortened until it read at 2.5.
 3. **The senior band read at grade 11.0, over this course's 10.0 ceiling.** Its long em-dashed sentences were split into shorter ones; it now reads 6.1, which is still clearly above the teen band and comfortably inside the ceiling.
 
-**Proven-to-catch, on the live artifact and not only on an in-test fixture (DR-0076 §3).** Seventeen deliberate breaks, applied one at a time, run, and restored: a word altered inside Proverbs 6:7; a verbatim span hung on Proverbs 6:8 instead of 6:7; a typographic apostrophe replaced with a straight one in a corpus span from the same shelf; the disclosure deleted from the teen band; `$2 billion` planted in the youth band; `37%` planted, which a currency-only check would miss; another story's name (Ken Griffin) reaching the teaching; the child band's friend line removed, which leaves `hasAllThree` green and must still be named by band; the youth band's title opening replaced; the teen band cut to a four-sentence stub; the youth band replaced by the teen band; an anchor reference the lesson never names; a chapter borrowed back from the footing course; a generic "God" dropped into our prose; a `testimony` label on an invented story; the second story removed; and the senior band's elder-direction wording checked to count rather than assumed.
+**Proven-to-catch, and the two kinds of proof are reported separately rather than blended (DR-0076 §3).**
+
+**FIVE BREAKS WERE APPLIED TO THE SHIPPED FILE ITSELF**, one at a time, each with the lesson's own gate run against the broken file and the file restored before the next. Every one went red, and the file was confirmed **byte-identical** to the shipped one afterwards:
+
+| break, applied to `management-stewardship-course.js` | caught by |
+|---|---|
+| `ruler` → `master` inside Proverbs 6:7 | the whole-module verbatim sweep |
+| the teen band's disclosure sentence deleted | the per-place disclosure pin, **naming the teen band**, and its own strip proof |
+| `$2 billion` planted in the teen band | the stakes-no-figure check |
+| `Ken Griffin` reaching the teaching | the other-stories check and its own strip proof |
+| the child band's friend line deleted | `placesMissingDirections`, **naming the child band**, while `hasAllThree` stayed green |
+
+**TWELVE FURTHER CHECKS ARE PROVEN AGAINST THE LIVE SHIPPED STRINGS WITH ONE ELEMENT CHANGED IN-PROCESS**, which is a weaker proof than a file break and is named as such: a verbatim span hung on Proverbs 6:8 instead of 6:7; a typographic apostrophe replaced with a straight one in a corpus span from the same shelf (this lesson's own spans are apostrophe-free, and the gate asserts that rather than assuming it); `37%` planted, which a currency-only check would miss; the youth band's title opening replaced; the teen band cut to a four-sentence stub; the youth band replaced by the teen band; an anchor reference the lesson never names; a chapter borrowed back from the footing course; a generic "God" dropped into our prose; a `testimony` label on an invented story; the second story removed; and the senior band's elder-direction wording asserted to count rather than assumed.
 
 ## Decision
 
@@ -75,7 +87,8 @@ Ship mgmt9 as the ninth lesson of Management Is Stewardship, with all four age b
 
 - `npm run lint` — exit 0.
 - `npm run verify:gates` — exit 0, including `lesson-dates:check` and `one-teaching-one-lesson-guard`.
-- The lesson's own gate, the course's gate, `the-third-pile-is-a-worklist`, `course-band-coverage`, `talk-together`, `the-plain-meaning-comes-first`, `a-true-story-names-whose-life-it-was`, `lesson-completeness`, `lesson-dates`, `decision-chain` and `the-pointer-line-stops-doubling` all green; the full suite via CI's four `--shard=i/4` legs, whose union is the suite (a local full run measured at hours on this box and the machine's two vitest slots were held by sibling builders for most of this session).
+- The lesson's own gate and the course's gate run together: **103 tests, 103 passed** (54 + 49), measured on the merged tree.
+- The full suite rides CI's four `--shard=i/4` legs, whose union is the suite. A local full run measures in hours on this box and the machine's two vitest slots (`/tmp/kingdom-vitest-slots`) were held by sibling builders for most of this session — one of this build's runs waited ten minutes for a slot and then took 745s wall-clock for two files. Hand-picking a few files and calling that the gates is exactly what that substitution would be, so it is not done: the shards are the authoritative run.
 - `scripts/unchecked-claims.mjs` run directly: **14** lessons admit unchecked material with no source row, which is the pin, and **2** have a figure read back.
 - The independent verbatim sweep described above: 56 referenced spans, 0 faults.
 
