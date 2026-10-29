@@ -124,6 +124,21 @@ const readStorage = () => page.evaluate(async () => {
 await page.goto(base + '?view=books&sub=overview', { waitUntil: 'networkidle', timeout: 90000 });
 await page.waitForTimeout(1200); await dismiss(); await page.waitForTimeout(400);
 await page.screenshot({ path: join(OUT, '01-overview.png') });
+// WHERE DID THE BROWSER LAND? A preview behind Vercel Deployment Protection
+// answers with Vercel's sign-in page (vercel.com, accounts.google.com), not
+// the app. Every check below would then be measuring the wrong page, so name
+// it and stop: that is a finding about the preview's access, not about the app.
+const landed = new URL(page.url());
+const title = await page.title().catch(() => '');
+const appMounted = await page.evaluate(() => { const r = document.getElementById('root'); return !!(r && r.children.length); }).catch(() => false);
+console.log(`landed on: ${landed.origin}${landed.pathname} · title: "${title}" · app root mounted: ${appMounted}`);
+if (landed.hostname !== new URL(base).hostname || !appMounted) {
+  check('the browser reached the app on the preview host (not a sign-in wall)', false, `landed on ${landed.hostname}${landed.pathname}, title "${title}", app root mounted: ${appMounted}. If this is vercel.com, the preview is behind Vercel Deployment Protection: the runner cannot reach the app, and nothing below can be measured from outside.`);
+  writeFileSync(join(OUT, 'report.json'), JSON.stringify({ url: URL_BASE, landed: page.url(), title, appMounted, checks, hostsSeen: [...new Set(requests.map((r) => r.host))].sort() }, null, 2));
+  await browser.close();
+  process.exit(1);
+}
+check('the browser reached the app on the preview host (not a sign-in wall)', true, `${landed.hostname}, title "${title}"`);
 const bodyText = await page.evaluate(() => document.body.innerText);
 check('test-household banner is shown', await page.locator('[data-testid="preview-test-household"]').count() > 0);
 check('no sign-in control is offered', !/sign in|create your profile/i.test(bodyText.slice(0, 20000)) || (await page.locator('[data-testid="preview-test-household"]').count() > 0 && !(await page.locator('button:has-text("Sign in")').count())), 'no "Sign in" button');

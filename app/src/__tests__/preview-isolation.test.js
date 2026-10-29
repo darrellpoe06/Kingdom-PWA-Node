@@ -65,8 +65,9 @@ describe('a preview is the TEST HOUSEHOLD: fictional, device-only, no sign-in', 
     expect(shell).toContain("if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null)");
     expect(shell).toContain('{!isIsolatedPreview() && <HeaderAuthButton />}');
     expect(shell).toContain("if (isAnyDemoMode || isIsolatedPreview()) return 'family';");
-    expect(shell).toContain('if ((isPublicHost() && !isIsolatedPreview()) || reviewerMode) {');
-    expect(shell).toContain('if (isIsolatedPreview()) await purgePreviewSnapshots(window.storage); await loadSavedSnapshot();');
+    expect(shell).toContain('if (isIsolatedPreview() && !reviewerMode) { (async () => { await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); return; }');
+    // the public-host / reviewer boot line is pinned word-for-word by reviewer-mode.test.js; the preview branch sits ABOVE it, so it never runs on a preview
+    expect(shell.indexOf('if (isIsolatedPreview() && !reviewerMode) {')).toBeLessThan(shell.indexOf('if (isPublicHost() || reviewerMode) {'));
     expect(shell).toContain('let saved = await window.storage.get(previewStorageKey(window.location.hostname));');
     expect(shell).toContain("for (const k of (isIsolatedPreview() ? [] : ['poe-financial-v27',");
     expect(shell).toContain('if (isPublicHost() && !isIsolatedPreview() && !(authSession && authHydrated)) return;');

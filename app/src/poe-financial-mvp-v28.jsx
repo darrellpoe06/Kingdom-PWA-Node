@@ -1652,14 +1652,14 @@ export default function PoeFinancialSystem() {
     // family's own device — the Big Picture dashboard then surfaced real
     // entity names, property addresses, project titles to whatever tab was
     // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
-    // get the demo sample + no hydration. (Signed-in hydration is handled by
-    // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
-    if ((isPublicHost() && !isIsolatedPreview()) || reviewerMode) {
+    // get the demo sample + no hydration. (Signed-in hydration is handled by the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
+    if (isIsolatedPreview() && !reviewerMode) { (async () => { await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); return; } // the preview TEST HOUSEHOLD: drop any REAL snapshot the origin kept, then load its own key (lib/preview-isolation.js)
+    if (isPublicHost() || reviewerMode) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
     }
-    (async () => { if (isIsolatedPreview()) await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); // a preview first drops any REAL snapshot its origin kept, then loads the test household's own key
+    (async () => { await loadSavedSnapshot(); setLoaded(true); })();
     // Run-once boot hydration by design; isAnyDemoMode is URL-derived and
     // fixed for the page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
