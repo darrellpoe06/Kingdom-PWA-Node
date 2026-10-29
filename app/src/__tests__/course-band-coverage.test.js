@@ -109,7 +109,55 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(269); // RESOLVED BY MEASUREMENT, FIVE TIMES OVER, never by arithmetic.
+    expect(baseline.allFour).toBe(270); // on 2026-10-29, mgmt9 (nobody is coming to define your
+    // work, DR-1281) merged onto wm10's tree. SIX lessons landed across 2026-10-28/29 and every one of
+    // them raises this figure, so every branch in the queue was right about its own increment and wrong
+    // about the total. mgmt9 measured 266 -> 267 on the base it was built on, then 269 on the tree that
+    // also carried sov56 and bank9, and this number on the tree that also carries wm10. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run AFTER each merge, never computed -- which is exactly the
+    // failure that script's own header warns about, and three of those numbers were true of some real
+    // tree at some real moment.
+    //
+    // The management-stewardship row moves {lessons: 8, allFour: 8} -> {lessons: 9, allFour: 9}: the
+    // course already carried four bands on every lesson, so mgmt9 could not have shipped short.
+    // DR-1281), the NINTH lesson of Management Is Stewardship, built from the SmartBrief for the Higher Ed
+    // Leader edition Darrell forwarded to himself on 2026-10-06 with one word above the body. It is the
+    // FIFTH lesson in a queue of five across 2026-10-28/29 that each raise this figure, and it measured
+    // 266 -> 267 on the base it was built on (main at 0be3abf58). On the MERGED tree, which also carries
+    // sov56 and bank9, the answer is 269. READ from a fresh scripts/course-band-baseline-write.mjs run
+    // AFTER the merge, never computed: 267 was true of this branch's own tree and would have shipped a
+    // wrong number here, which is the failure that script's own header warns about.
+    // The whole course already carried four bands, so the management-stewardship row moves
+    // {lessons: 8, allFour: 8} -> {lessons: 9, allFour: 9} and the lesson could not have shipped short.
+    // mgmt9's own measurement, RE-TAKEN after its spine was sent back TWICE for colliding with sibling
+    // Real Estate courses (Exodus 31/35 with maintenance-trades, caught by CI shard 4/4; Proverbs 6 with
+    // buying-terms, caught by the whole-shelf gate written in answer to the first). It now stands on
+    // Proverbs 30:24-27, Exodus 36:1, 1 Chronicles 25:8 and 1 Chronicles 22:16: adult prose 1,393 words;
+    // shares child 0.61 / youth 0.65 / teen 0.74 / senior 0.66 against floors 0.50 / 0.60 / 0.60 / 0.60;
+    // ladder 1.3 / 2.5 / 4.2 / 6.0, strictly ascending, child under the 5.0 new-lesson ceiling and teen
+    // under this course's own 6.0; worst band-pair overlap 0.09. allFour does not move with a verse
+    // change -- the course already carried four bands on all nine lessons -- so the 269 above stands, and
+    // it was re-read from the script rather than assumed after every one of those rewrites.
+    //
+    // Every earlier lesson's own measurement is kept below exactly as it recorded it, none edited to suit
+    // another. The chain reads 265 -> 266 -> 267 -> 268 -> 269 as each of the five landed.
+    // DR-1281), the NINTH lesson of Management Is Stewardship, built from the SmartBrief for the Higher Ed
+    // Leader edition Darrell forwarded to himself on 2026-10-06 with one word above the body. MEASURED on
+    // the real catalog by a fresh scripts/course-band-baseline-write.mjs run (total 440 -> 441, allFour
+    // 266 -> 267, adultOnly 0, adultRegister 0, 174 still pinned), never hand-written. The whole course
+    // already carried four bands, so the management-stewardship row moves {lessons: 8, allFour: 8} ->
+    // {lessons: 9, allFour: 9} and the lesson could not have shipped short. Its own measurement, kept as
+    // this build recorded it: adult prose 1,247 words; shares child 0.59 / youth 0.65 / teen 0.72 /
+    // senior 0.65 against floors 0.50 / 0.60 / 0.60 / 0.60; ladder 1.4 / 2.5 / 4.3 / 6.1, strictly
+    // ascending, child under the 5.0 new-lesson ceiling and teen under this course's own 6.0; worst
+    // band-pair overlap 0.09. (This block's share and overlap figures were RE-MEASURED after a two-word
+    // edit to the senior band and two of them had gone stale -- teen read 0.70 and the overlap 0.11
+    // before the teen band's own limits passage was rewritten. A measurement is only true of the text it
+    // was taken on, so it is re-taken rather than carried forward: DR-0076 section 4.)
+    //
+    // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
+    // RESOLVED BY MEASUREMENT, FOUR TIMES OVER, never by arithmetic.
+    // RESOLVED BY MEASUREMENT, FIVE TIMES OVER, never by arithmetic.
     // THE FIFTH TIME, 2026-10-29: wm10 (the name and the proof, DR-1282) merged onto the tree the note
     // below describes, and BOTH SIDES OF THAT MERGE READ 268 -- main's 268 because it holds the four
     // lessons named below, and wm10's 268 because it measured 267 + itself on a base that predated
