@@ -109,19 +109,28 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(269); // RESOLVED BY MEASUREMENT, never by arithmetic.
-    // 2026-10-29: sov57 (the code can be rebuilt but the register cannot, DR-1282) carries all four
-    // authored bands from its first commit, so allFour rises 268 -> 269 with total (442 -> 443) and the
-    // sovereign-ai row reads {lessons: 57}; adultOnly and adultRegister both stay 0, which is the shape
-    // this pin exists to prove -- the total may grow, the DEBT may not. READ from a fresh
-    // scripts/course-band-baseline-write.mjs run on the tree that actually holds the lesson, never
-    // computed by adding one to what main said.
-    // THREE BRANCHES CLAIM 269 FROM MAIN'S 268 and only one of them can be right about the total:
-    // wm10 (origin/claude/wm10-the-name-and-the-proof) and mgmt9
-    // (origin/claude/mgmt9-define-your-work) are both in flight with their own +1, so whichever of the
-    // three lands SECOND and THIRD must re-run that script on the MERGED tree rather than keeping its
-    // own number -- the identical failure the four-way merge below records, and the reason this is a
-    // script and not a sum (DR-1136). Each lesson's own measurement is kept as it recorded it.
+    expect(baseline.allFour).toBe(270); // RESOLVED BY MEASUREMENT, SIX TIMES OVER, never by arithmetic.
+    // THE SIXTH TIME, 2026-10-29, and the same trap one merge later: sov57 (the code can be rebuilt but
+    // the register cannot, DR-1285) was built in parallel with wm10 against main's 268, and BOTH wrote
+    // 269 -- sov57's 269 because it measured 268 + itself, wm10's 269 because it measured the same way
+    // on the same base. Two identical numbers meaning two different catalogs, exactly as the note below
+    // records for the merge before it. The merged catalog holds BOTH, so it is 270, read from a fresh
+    // scripts/course-band-baseline-write.mjs run on the merged tree (total 444, allFour 270, adultOnly
+    // 0, adultRegister 0) and never computed. sov57 carries all four authored bands from its first
+    // commit, so the sovereign-ai row reads {lessons: 57} and the DEBT does not move -- which is the
+    // shape this pin exists to prove. mgmt9 is still in flight with its own +1, so whichever lands next
+    // re-runs the script on ITS merged tree rather than keeping this number (DR-1136).
+    //
+    // THE FIFTH TIME, 2026-10-29: wm10 (the name and the proof, DR-1282) merged onto the tree the note
+    // below describes, and BOTH SIDES OF THAT MERGE READ 268 -- main's 268 because it holds the four
+    // lessons named below, and wm10's 268 because it measured 267 + itself on a base that predated
+    // bank9. Two identical numbers meaning two different catalogs is the most dangerous shape this pin
+    // has met, because a textual merge of the two agrees and is wrong: the merged catalog holds all
+    // FIVE, so it is 269. Read from a fresh scripts/course-band-baseline-write.mjs run on the merged
+    // tree (total 443, allFour 269, adultOnly 0), never computed, and the world-market row reads
+    // {lessons: 10, allFour: 10}.
+    //
+    // measured by scripts/course-band-baseline-write.mjs after `git merge origin/main`,
     // FOUR lessons landed across 2026-10-28/29 and every one of them raises allFour, so each measured
     // 264 -> 265 on its own base and every side of every merge in the queue was right about its own
     // increment and wrong about the total: sov55 (the czar and the charge, DR-1273), dsi15 (weighed into
@@ -138,6 +147,24 @@ describe('the debt, recorded as it actually is', () => {
     // warns that hand-merging the number after a merge is how a wrong one ships.
     //
     // Each lesson's own measurement, kept as it recorded it:
+    // // 268 on 2026-10-29: wm10 (the name and the proof -- crossing the counter: what a
+    // seller's name is worth, and the weight the BUYER holds too, DR-1280), the TENTH lesson
+    // of The World Market, built from a Retail Dive newsletter Darrell forwarded to himself on
+    // 2026-10-08 with one word above the body. It carries all four age bands from its first
+    // commit, so adultOnly did NOT move with it and stays 0; the world-market row moves from
+    // {lessons: 9, allFour: 9} to {lessons: 10, allFour: 10} and the total from 441 to 442.
+    // Measured on the module rather than claimed: adult prose 1,996 words; band shares child
+    // 0.55 / youth 0.69 / teen 0.91 / senior 1.04 against floors 0.50 / 0.60 / 0.60 / 0.60;
+    // reading ladder 0.8 / 6.5 / 8.1 / 11.4, strictly ascending with the child band far under
+    // the 5.0 new-lesson ceiling; worst band-pair overlap 0.26 against a ceiling of 0.50; 105
+    // referenced quoted spans, 105 verbatim off the corpus on disk, 0 faults; 21 anchors, every
+    // one named in the adult lesson and every quoted reference covered by anchor.ref, both
+    // directions exact. Regenerated by scripts/course-band-baseline-write.mjs, never
+    // hand-written -- three PRs the previous night each hand-wrote this number and two were
+    // wrong. The first measurement of this lesson had the CHILD band short at 0.47, and it was
+    // fixed the right way round: the child band gained the three concrete actions and the
+    // unread-report disclosure it was genuinely missing, rather than adult teaching being cut
+    // to flatter a ratio.
     // // 266 on 2026-10-28: sov56 (oversight is a charge, not a
     // ceremony, DR-1274), the fifty-sixth week of Sovereign A.I. Measured by a fresh
     // scripts/course-band-baseline-write.mjs run (total 440, allFour 266, adultOnly 0, 174 still

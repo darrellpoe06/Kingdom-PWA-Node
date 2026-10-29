@@ -1,4 +1,4 @@
-# DR-1282: The code can be rebuilt; the register cannot (sov57) — the priests who lost their record, the roll that outlived the king who signed it, and a collision check that was passing vacuously
+# DR-1285: The code can be rebuilt; the register cannot (sov57) — the priests who lost their record, the roll that outlived the king who signed it, and a collision check that was passing vacuously
 
 **Date:** 2026-10-29
 **Status:** Accepted

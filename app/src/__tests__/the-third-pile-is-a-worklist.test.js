@@ -226,44 +226,92 @@ const REPO = join(HERE, '..', '..', '..');
 // answer is GAP = 13 with CHECKED_LESSONS = 3, and neither lesson's reasoning is
 // edited to suit the other's. Verified by running scripts/unchecked-claims.mjs on
 // the merged tree rather than by adding the two sides together.
-// sov57 ADDS to the gap (13 -> 14), and it takes the second branch for the
-// same reason dsi15 did, measured rather than assumed. The source is one issue
-// of the TLDR newsletter (2026-09-30). Exactly ONE of its items carries a
-// thesis -- a four-sentence summary of a piece titled "Data is the application"
-// -- and that thesis carries NO FIGURE. Every number in the issue belongs to an
-// advertisement (a projected market, a share price, an Azure credit) or to an
-// unrelated story (a plan multiplier, a count of advertisers, a browser
-// version), so there is no germane figure to stake and none is staked. That is
-// not a claim on the author's word: sovereign-ai-sov57-verses.test.js refuses a
-// currency symbol, a percentage and a number wearing a magnitude word in any of
+//
+// AND IT HAPPENED AGAIN ONE MERGE LATER, 3 -> 4 on 2026-10-29. wm10 (below) and
+// bank9 (above) were built in parallel and BOTH wrote CHECKED_LESSONS = 3, each
+// correct against the tree it could see and each wrong about the merged total:
+// both took the FIRST branch, so the merged count is ll207 + legacy8 + bank9 +
+// wm10 = 4. Neither 3 was right, and the number here was NOT arrived at by
+// adding the two sides -- it is what scripts/unchecked-claims.mjs printed on the
+// merged tree (GAP 13, CHECKED 4, figures 10 / 6 / 5 / 5). The GAP is untouched
+// by either, because a lesson that gains a source row was never counted in it.
+// 2 -> 3 CHECKED on 2026-10-29 (wm10, the name and the proof; DR-1282). THE GAP
+// DOES NOT MOVE, and that is the whole shape of this entry: wm10 arrived carrying
+// disclosures AND left the gap untouched in the same change, because it gained a
+// source row rather than an apology. It is the first lesson of the three to take
+// the FIRST branch on its first commit -- legacy8 did it the same way a day
+// earlier, and wm9 and dsi15 both had to take the second.
+//
+// The road is the reason it was possible (DR-0108). The figures reached us inside
+// an email -- which is what made wm9 unable to point lesson-sources.json at
+// anything -- but this email is a SPONSOR PLACEMENT, and a sponsor's whole
+// purpose is to send the reader to the sponsor's own page. So the publisher page
+// exists, it is named in the email, and a runner reaches it: this sandbox gets
+// 403 to the CONNECT from the agent proxy for www.kearney.com (policy, the same
+// shape DR-1146 recorded for slack.engineering), and a GitHub runner read the
+// page in under two seconds. Two probe runs on a throwaway branch found what no
+// amount of reasoning would have: the page says "86 percent" and NOT the email's
+// "86%", and it carries neither "proven performance" nor "up for grabs" as
+// strings, both of which are the email's copy rather than the publisher's.
+//
+// AND THE LESSON TEACHES THE LIMIT OF ITS OWN ROW, which is why this entry is
+// not simply a win. A read-back proves ATTRIBUTION. It proves the publisher
+// asserts the figure on its own page, and it proves nothing about whether the
+// study is sound, the sample real, or the inference good -- and here the
+// publisher is also the party SELLING the report, so the witness is the seller.
+// That distinction is the lesson's spine, stated in its adult text and in all
+// four bands: we asked the name whether the name said it, and we did not test
+// the works.
+//
+// What did NOT read back is on the row's own note and is not smoothed over: the
+// email's "additional 80 minutes a day" is absent from the page, so it stays the
+// email's claim, labelled as such on every surface.
+// 13 -> 14 GAP on 2026-10-29 (sov57, the code can be rebuilt but the register
+// cannot; DR-1285). CHECKED does not move. sov57 takes the SECOND branch for the
+// same reason dsi15 and wm9 had to, and the reason is measured rather than
+// asserted. The source is one issue of the TLDR newsletter (2026-09-30). Exactly
+// ONE of its items carries a thesis -- a four-sentence summary of a piece titled
+// "Data is the application" -- and that thesis carries NO FIGURE. Every number in
+// the issue belongs to an advertisement (a projected market, a share price, an
+// Azure credit) or to an unrelated story (a plan multiplier, a count of
+// advertisers, a browser version), so there is no germane figure to stake and
+// none is staked.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov57-verses.test.js refuses
+// a currency symbol, a percentage and a number wearing a magnitude word in any of
 // the five reader texts, and proves the refusal by planting "$2 billion" and
-// "37%" and watching the shapes fire. A 0-figure row in lesson-sources.json is
-// forbidden (DR-0076 section 3) because it would make checked() count a lesson
-// whose figures nobody read, so the honest place for sov57 is HERE.
+// "37%" and watching the shapes fire -- the second of which a currency check
+// alone would miss. A 0-figure row in lesson-sources.json is forbidden (DR-0076
+// section 3) because it would make checked() count a lesson whose figures nobody
+// read, so the honest place for sov57 is HERE and not in that file.
 //
-// THE ROAD WAS TRIED (DR-0108). The one article worth reading is at
-// ma.ttias.be, and the open-web fetch answered ENOTFOUND -- the host is outside
-// this session's allowed network domains, which is a measured failure and is
-// what all five reader texts tell the reader in their own words. A GitHub
-// runner reaches hosts this sandbox cannot. What it has no input for is a
-// PROBE: lesson-sources.json rows exist to read a FIGURE back off a publisher's
-// page, and this lesson stakes none, so there is no candidate `says` string
-// that could be written without inventing one.
-// re-review: 2026-11-28 -- from a runner with web access (or once ma.ttias.be
-// is allowed in the session's network settings), open the full article. If its
-// body carries a germane figure this lesson should teach, teach it, give sov57
-// a row in lesson-sources.json and lower this pin to 13; if the article prints
-// no figure either, replace the "did not read the article" clause in all five
-// reader texts with an accurate one and lower the pin.
+// THE ROAD WAS TRIED, not assumed shut (DR-0108). The one article worth reading
+// is at ma.ttias.be, and the open-web fetch answered ENOTFOUND -- the host is
+// outside this session's allowed network domains, which is a measured failure and
+// is what all five reader texts tell the reader in their own words rather than a
+// polite "we did not read it". No further hosts were tried after the first
+// denial. A GitHub runner reaches hosts this sandbox cannot, which wm10 proved on
+// www.kearney.com the same day, so the road exists. What it has no input for is a
+// PROBE: a row exists to read a FIGURE back off a publisher's page, and this
+// lesson stakes none, so there is no candidate `says` string that could be
+// written without inventing one.
+// re-review: 2026-11-28 -- from a runner with web access, or once ma.ttias.be is
+// allowed in the session's network settings, open the full article. If its body
+// carries a germane figure this lesson should teach, teach it, give sov57 a row
+// and lower this pin to 13; if the article prints no figure either, replace the
+// "did not read the article" clause in all five reader texts with an accurate one
+// and lower the pin.
 //
-// GAP/CHECKED ARE SHRINK-ONLY AND SIBLING BRANCHES MOVE THEM CONCURRENTLY. This
-// number was re-read off `node scripts/unchecked-claims.mjs` on the tree that
-// actually holds sov57 (16 lessons admitting, 98 disclosures, 3 checked, 14 in
-// the gap), not arrived at by adding one to what main said. If a sibling lands
-// first, re-read it the same way on the merged tree and keep BOTH sides'
-// reasoning in full rather than editing one to suit the other (DR-1136).
+// AND THE THREE-WAY MERGE WAS MEASURED, NOT ADDED, which is this file's whole
+// discipline. sov57 was built in parallel with wm10 against main's GAP 13 /
+// CHECKED 3, and wrote GAP 14 / CHECKED 3 -- correct against the tree it could
+// see and wrong about the merged total, because wm10 raised CHECKED to 4 in the
+// same window. The numbers here are what scripts/unchecked-claims.mjs printed on
+// the MERGED tree (17 lessons admitting, 99 disclosures, 4 checked, 14 in the
+// gap), never a sum of the two sides. Both lessons' reasoning is kept in full
+// above and here, neither edited to suit the other (DR-1136).
 const GAP = 14;
-const CHECKED_LESSONS = 3;
+const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {

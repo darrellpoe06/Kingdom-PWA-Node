@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // sov57 — The code can be rebuilt; the register cannot: the priests who lost
-// their record, and the roll that outlived the king who signed it (DR-1282)
+// their record, and the roll that outlived the king who signed it (DR-1285)
 // =============================================================================
 // Darrell forwarded Gmail thread 1a0f23b12bf2ca45 on 2026-09-30 with one word
 // above it: Lessons. The thread is a single message — one issue of the TLDR
