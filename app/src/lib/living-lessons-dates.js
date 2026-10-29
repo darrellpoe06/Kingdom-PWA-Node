@@ -441,4 +441,15 @@ export const LIVING_LESSONS_ADDED = {
   // 2026-10-28; this is the BUILD day, the day the id landed. L269 was claimed
   // by another branch the same evening, so this lesson took the next number.
   'll270-the-progress-of-revelation-the-word-came-in-order-and-stands-forever': '2026-10-28',
+  // L271: a teaching Darrell spoke into the app 2026-10-29 -- why do we care
+  // what people think over what Yahweh thinks; let Yahweh defend me; let them
+  // set you up so He can set you up. Spoken 2026-10-29, built 2026-10-29
+  // (DR-1291).
+  'll271-let-yahweh-defend-me': '2026-10-29',
+  // L272: the follow-up word he spoke minutes later the same evening -- you
+  // cannot say what He says if you do not know what He says; study, not only
+  // reading; faith is the evidence of things not seen. Spoken 2026-10-29,
+  // built 2026-10-29, as its own lesson at his word "It can also be a follow
+  // up to the lesson" (DR-1291).
+  'll272-study-to-know-his-thoughts': '2026-10-29',
 };
