@@ -217,6 +217,48 @@ const REPO = join(HERE, '..', '..', '..');
 // it, give dsi15 a row in lesson-sources.json and lower this pin to 12; if the
 // article prints no figure either, drop the "did not read the full article"
 // clause for an accurate one and lower the pin.
+// 13 -> 14 on 2026-10-29 (mgmt9, nobody is coming to define your work), and the
+// reason is on the record rather than in a wording change. The lesson is the
+// ninth of Management Is Stewardship, built from the SmartBrief for the Higher Ed
+// Leader edition of 2026-10-05 that Darrell forwarded to himself on 2026-10-06
+// with one word above the body. Its whole subject is a steward who will not act
+// until somebody else defines his work, so a lesson that quietly left its own
+// edges unstated would be performing the defect it names. It does not: the adult
+// text AND all four bands say the newsletter is the only source, that the full
+// guest column behind its link was never opened, and that nobody telephoned
+// SmartBrief, Riipen or Ms Woody to confirm a line of it.
+//
+// It takes the SECOND branch this test's own verdict offers ("say plainly why it
+// cannot be checked"), and the why is dsi15's, narrowed to this edition. THERE IS
+// NO FIGURE IN THIS LESSON TO READ BACK. The germane item -- the single guest
+// column, the only part of that issue which is neither another outlet's headline
+// nor advertising -- prints no statistic at all: it is a reported remark, a
+// question and a claim about the history of a sector. Every number in that
+// edition belongs to a DIFFERENT story (a campus gift, a privately funded
+// academy, a national housing shortfall) or to the sponsor copy, and none of it
+// is germane or taught (Darrell's standing rule on ads). So lesson-sources.json
+// has nothing to point at: a row for mgmt9 would necessarily be a 0-figure row,
+// and a 0-figure row makes `checked()` count a lesson whose figures nobody read,
+// which is the anti-theatre rule in DR-0076 section 3. The lesson says the
+// positive half out loud rather than leaving a reader to guess which number is
+// soft -- it stakes no figure, so no number in it can be wrong -- and its own
+// pinned gate enforces that claim by refusing any currency symbol, percentage or
+// magnitude-word figure in any of its five reader texts.
+//
+// What it stands on instead was read verbatim off the corpus on disk and is read
+// back by management-stewardship-mgmt9-verses.test.js: Proverbs 30:24-27,
+// 1 Thessalonians 4:11, Ecclesiastes 9:10, Exodus 36:1, 1 Chronicles 25:8,
+// 1 Chronicles 12:32, 2 Timothy 2:2, Proverbs 12:24 and 1 Chronicles 22:16 -- 60
+// referenced quoted spans, 0 faults, measured by a sweep independent of the
+// gate's own pairing. (Two earlier spines were sent back for colliding with
+// sibling Real Estate courses -- Exodus 31/35 with maintenance-trades, caught by
+// CI, and Proverbs 6 with buying-terms, caught by the new whole-shelf gate. The
+// chapters changed; the teaching and the gap reasoning here did not.)
+// re-review: 2026-11-29 -- from a runner with web access, open the full guest
+// column behind the forward's link. If its body carries a germane figure this
+// lesson should teach, teach it, give mgmt9 a row in lesson-sources.json and
+// lower this pin to 13; if the column prints no figure either, replace the "did
+// not open the full column" clause with an accurate one and lower the pin.
 //
 // BOTH SIDES OF THIS MERGE WERE RIGHT ABOUT THEMSELVES AND WRONG ABOUT THE
 // TOTAL, which is the same shape as the band pin the same day. dsi15 took the
@@ -227,6 +269,14 @@ const REPO = join(HERE, '..', '..', '..');
 // edited to suit the other's. Verified by running scripts/unchecked-claims.mjs on
 // the merged tree rather than by adding the two sides together.
 //
+// MERGED 2026-10-29, AND THE TWO SIDES ARE HELD TO EACH OTHER RATHER THAN ADDED
+// UP. bank9 (above) raised CHECKED_LESSONS 2 -> 3 and LEFT the gap at 13,
+// because a lesson that gains a source row was never counted in the gap. mgmt9
+// took the SECOND branch and ADDS to the gap, and its increment is measured on
+// the base it was built on (13 -> 14). On the MERGED tree both are present, so
+// the answer is GAP = 14 with CHECKED_LESSONS = 3 -- neither lesson's reasoning
+// edited to suit the other's. VERIFIED by running scripts/unchecked-claims.mjs
+// on the merged tree, not by arithmetic on the two branches.
 // AND IT HAPPENED AGAIN ONE MERGE LATER, 3 -> 4 on 2026-10-29. wm10 (below) and
 // bank9 (above) were built in parallel and BOTH wrote CHECKED_LESSONS = 3, each
 // correct against the tree it could see and each wrong about the merged total:
@@ -266,16 +316,24 @@ const REPO = join(HERE, '..', '..', '..');
 // What did NOT read back is on the row's own note and is not smoothed over: the
 // email's "additional 80 minutes a day" is absent from the page, so it stays the
 // email's claim, labelled as such on every surface.
-// 13 -> 14 GAP on 2026-10-29 (sov57, the code can be rebuilt but the register
-// cannot; DR-1285). CHECKED does not move. sov57 takes the SECOND branch for the
-// same reason dsi15 and wm9 had to, and the reason is measured rather than
-// asserted. The source is one issue of the TLDR newsletter (2026-09-30). Exactly
-// ONE of its items carries a thesis -- a four-sentence summary of a piece titled
-// "Data is the application" -- and that thesis carries NO FIGURE. Every number in
-// the issue belongs to an advertisement (a projected market, a share price, an
-// Azure credit) or to an unrelated story (a plan multiplier, a count of
-// advertisers, a browser version), so there is no germane figure to stake and
-// none is staked.
+//
+// MERGED AGAIN 2026-10-29 (mgmt9 onto wm10), and once more the two sides are
+// held to each other rather than added up. wm10 took the FIRST branch and raised
+// CHECKED_LESSONS to 4 while LEAVING the gap at 13. mgmt9 took the SECOND branch
+// and raises the GAP, measured on the base it was built on (13 -> 14). On the
+// MERGED tree both are present, so the answer is GAP = 14 with
+// CHECKED_LESSONS = 4 -- and neither lesson's reasoning is edited to suit the
+// other's. VERIFIED by running scripts/unchecked-claims.mjs on the merged tree,
+// never by arithmetic on the two branches.
+// 14 -> 15 GAP on 2026-10-29 (sov57, the code can be rebuilt but the register
+// cannot; DR-1285). CHECKED does not move. sov57 takes the SECOND branch, and
+// the reason is measured rather than asserted. The source is one issue of the
+// TLDR newsletter (2026-09-30). Exactly ONE of its items carries a thesis -- a
+// four-sentence summary of a piece titled "Data is the application" -- and that
+// thesis carries NO FIGURE. Every number in the issue belongs to an
+// advertisement (a projected market, a share price, an Azure credit) or to an
+// unrelated story (a plan multiplier, a count of advertisers, a browser
+// version), so there is no germane figure to stake and none is staked.
 //
 // THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov57-verses.test.js refuses
 // a currency symbol, a percentage and a number wearing a magnitude word in any of
@@ -298,19 +356,20 @@ const REPO = join(HERE, '..', '..', '..');
 // re-review: 2026-11-28 -- from a runner with web access, or once ma.ttias.be is
 // allowed in the session's network settings, open the full article. If its body
 // carries a germane figure this lesson should teach, teach it, give sov57 a row
-// and lower this pin to 13; if the article prints no figure either, replace the
+// and lower this pin to 14; if the article prints no figure either, replace the
 // "did not read the article" clause in all five reader texts with an accurate one
 // and lower the pin.
 //
-// AND THE THREE-WAY MERGE WAS MEASURED, NOT ADDED, which is this file's whole
-// discipline. sov57 was built in parallel with wm10 against main's GAP 13 /
-// CHECKED 3, and wrote GAP 14 / CHECKED 3 -- correct against the tree it could
-// see and wrong about the merged total, because wm10 raised CHECKED to 4 in the
-// same window. The numbers here are what scripts/unchecked-claims.mjs printed on
-// the MERGED tree (17 lessons admitting, 99 disclosures, 4 checked, 14 in the
-// gap), never a sum of the two sides. Both lessons' reasoning is kept in full
-// above and here, neither edited to suit the other (DR-1136).
-const GAP = 14;
+// MERGED TWICE IN ONE DAY, AND MEASURED BOTH TIMES. sov57 was built against
+// main's GAP 13 / CHECKED 3 and wrote 14 / 3; wm10 then landed and raised CHECKED
+// to 4, so sov57 re-measured to 14 / 4; mgmt9 then landed and raised the GAP to
+// 14, so sov57 re-measured again to 15 / 4. Every one of those three numbers was
+// true of a real tree at a real moment, and only the last is true of this one.
+// The figures here are what scripts/unchecked-claims.mjs printed on THIS merged
+// tree (18 lessons admitting, 102 disclosures, 4 checked, 15 in the gap), never a
+// sum of the branches. All three lessons' reasoning is kept in full, none edited
+// to suit another (DR-1136).
+const GAP = 15;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
