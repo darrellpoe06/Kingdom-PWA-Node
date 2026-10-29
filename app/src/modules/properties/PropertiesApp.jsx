@@ -67,7 +67,7 @@ import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import { vacancyUnits } from './vacancy-unit.js';
 import {
-  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadDoorTenancies,
+  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadBuildingPool, placeBuildingPhoto, unplaceBuildingPhoto, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
@@ -633,7 +633,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
     // RLS returns [] to anyone who is not owner/admin/member, so a tenant or a
     // field worker gets nothing here without this file deciding anything.
-    const [rm, ph, sp, tn, dc, sy, se, pn, ns] = await Promise.all([
+    const [rm, ph, sp, tn, dc, sy, se, pn, ns, bp] = await Promise.all([
       loadRooms(rentalId), loadDoorPhotos(rentalId),
       // THE REST OF THE APARTMENT (DR-0963). A bed or a room in a shared home
       // borrows nothing on this screen without it, which is how Bed B read
@@ -644,6 +644,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
       // Which NAS pictures this door already filed (DR-1002); its own read.
       loadDoorPhotoSources(rentalId),
+      // THE BUILDING'S PICTURE POOL (DR-1290): the other apartments of this
+      // door's building, and which of their pictures this door uses.
+      loadBuildingPool(rentalId),
     ]);
     // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
     //
@@ -669,6 +672,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       !rm.ok && 'rooms', !ph.ok && 'photos', !tn.ok && 'tenancies', !dc.ok && 'documents',
       !sy.ok && 'systems', !se.ok && 'system history', !pn.ok && 'notes',
       !sp.ok && 'the rest of the apartment',
+      !bp.ok && 'the rest of the building',
     ].filter(Boolean);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
@@ -685,6 +689,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       sharedPhotos: sp.ok ? sp.photos : [],
       sharedDoors: sp.ok ? sp.siblings : [],
       sharedOrder: sp.ok ? (sp.order || {}) : {},
+      // A failed read joins `unreadable`, never "no building pictures" (DR-0946).
+      buildingPhotos: bp.ok ? bp.photos : [],
+      buildingDoors: bp.ok ? bp.doors : [],
+      buildingPlaced: bp.ok ? (bp.placed || {}) : {},
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -1543,6 +1551,25 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 loadDoorData(); boot();
               }}
               sharedUnread={(doorData.unreadable || []).includes('the rest of the apartment')}
+              // THE BUILDING'S PICTURE POOL (DR-1290): use any picture of the
+              // building on this door; 0314 refuses anything outside it.
+              buildingPhotos={doorData.buildingPhotos || []}
+              buildingDoors={doorData.buildingDoors || []}
+              buildingPlaced={doorData.buildingPlaced || {}}
+              buildingUnread={(doorData.unreadable || []).includes('the rest of the building')}
+              onPlaceBuilding={async (photoId, position) => {
+                const instanceId = activeRental?.instance_id || activeDoor?.instance_id;
+                const r = await placeBuildingPhoto(rentalId, instanceId, photoId, position);
+                say(r.ok ? 'On this door now.' : `Not saved: ${r.reason}`);
+                loadDoorData();
+                return r;
+              }}
+              onUnplaceBuilding={async (photoId) => {
+                const r = await unplaceBuildingPhoto(rentalId, photoId);
+                say(r.ok ? 'Off this door; it stays on its own apartment.' : `Not saved: ${r.reason}`);
+                loadDoorData();
+                return r;
+              }}
               // "I could not read these" is never "there are none" (DR-0946).
               unread={(doorData.unreadable || []).includes('photos')}
               canManage={role === 'owner' || role === 'manager'}
