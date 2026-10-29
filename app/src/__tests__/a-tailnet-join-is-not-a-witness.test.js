@@ -41,8 +41,14 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 
 // Shrink-only. A joiner that neither verifies nor declares a second road.
 // 2026-10-29: 64 joiners, 16 verify, 4 carry a second road, 44 left.
+// LOWERED TO 43 the same night, by DR-1286: `cf-roads-worker.yml`'s join gained
+// `continue-on-error` when the Worker deploy got a second road to the anon key,
+// so it moved from this debt into the exempt set below. The number fell because
+// a lane got a second road, which is the only honest way for it to fall — not
+// because the pin was relaxed to make a run green. It may fall again; it may
+// never rise.
 // re-review: 2026-11-29 — take the next bite, deploy-adjacent lanes last.
-const UNVERIFIED = 44;
+const UNVERIFIED = 43;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
 // one of these loses its verify the gate must say WHICH, because a silent
@@ -84,12 +90,22 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
     // Anti-vacuity: the sweep must be looking at the real fleet (DR-0076 §3).
     expect(joiners.length, 'the sweep found almost no joiners — it is measuring nothing').toBeGreaterThan(50);
     expect(verified.length + secondRoad.length + unverified.length).toBe(joiners.length);
+    // PINNED EXACTLY, not as a ceiling. Measured 2026-10-29: written first as
+    // `toBeLessThanOrEqual(UNVERIFIED)`, and its own proven-to-catch run showed
+    // that raising the pin from 43 back to 44 left the suite GREEN — so the
+    // "may never rise" half of a shrink-only pin was unenforceable, and the
+    // slack would have let the debt creep back a lane at a time with nothing
+    // red. An exact pin catches all three directions: a new unverified lane, a
+    // pin raised without reality moving, and a lane fixed without the pin
+    // lowered (which is a one-line edit with a reason, as it should be).
     expect(
       unverified.length,
-      `unverified tailnet joins rose to ${unverified.length} (pinned ${UNVERIFIED}). `
-      + 'A new lane must verify its own join; this number may fall and may never rise. New: '
+      `unverified tailnet joins are ${unverified.length} but the pin says ${UNVERIFIED}. `
+      + 'If a lane now verifies its join, LOWER the pin to '
+      + `${unverified.length} and say why. If a lane stopped verifying, fix the lane — `
+      + 'this number may fall and may never rise. Current: '
       + unverified.join(', '),
-    ).toBeLessThanOrEqual(UNVERIFIED);
+    ).toBe(UNVERIFIED);
   });
 
   it('PROVEN TO CATCH: each lane carrying his lesson intake verifies its join and says so in the ledger', () => {
@@ -119,6 +135,12 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
     // another way to the same value or reports DEGRADED rather than dying.
     // Listed so that a lane quietly joining this set is visible in a diff.
     expect(secondRoad.sort()).toEqual([
+      // DR-1286: the Worker deploy's join may fail because the anon key has a
+      // second road (the served site ships that public key). This list caught
+      // it joining the set, on its first CI run after the change and before a
+      // reader could have noticed — which is exactly what naming the lanes
+      // instead of counting them is for.
+      'cf-roads-worker.yml',
       'deploy-cloudflare-pages.yml',
       'harvest-health.yml',
       'loops-health.yml',
