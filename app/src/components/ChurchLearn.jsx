@@ -142,6 +142,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
+import LessonFigures from './LessonFigures.jsx';
 import { countWords as countReadingWords, wordsBefore, wordsIn, fractionOf, seenFraction, leftLabel, witnessLabel, minutesLeft, timeLeftLabel, READER_PROGRESS_EVENT } from '../lib/reading-progress.js';
 import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
@@ -1441,6 +1442,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
+            {/* The chart / steps / quadrant the reading talks about (DR-1296). */}
+            <LessonFigures module={module} />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
@@ -3311,6 +3314,17 @@ function CourseView({
                   </ul>
                 </div>
               )}
+              {/* THE PICTURE THE LESSON TALKS ABOUT (DR-1296). The family,
+                  2026-10-29, on L270: "We need to see images in the lessons if
+                  we need a diagram or workflows timelines etc..." The lesson
+                  asked what changed when you saw the chart and showed none.
+                  Drawn from data (lib/lesson-figures.js), never painted.
+                  ONLY IN THE LESSON'S OWN SPACE: with no lesson open this card
+                  renders for every lesson in the course at once, and drawing
+                  the five figures there (verse chips and all) on every one of
+                  those renders held ~585 MB per mount in jsdom and ran CI's
+                  vitest worker out of heap (continue-a-lesson-numbers, 3 runs). */}
+              {focusModule && <LessonFigures module={m} />}
               {/* THE CODE IN THIS LESSON (DR-0729). Darrell, 2026-10-01, on
                   Numbers 27:20: the clause where the Word says what a command is
                   FOR is a code, and "leaders need to follow the code of conduct
