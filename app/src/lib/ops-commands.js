@@ -38,6 +38,18 @@ export const OPS_JOBS = {
     description: 'Clears the loader’s kill-switch once the IP block has cooled, so fetching can continue.',
     defaults: {},
   },
+  // DR-1285: a backup of the family's whole database, asked for from here. The
+  // nightly one still runs on its own; this is the one taken before a release.
+  'db-backup': {
+    label: 'Back up the database now',
+    description: 'One full, verified backup of the family database on the home server (the nightly one still runs). The verdict comes back here in a few minutes.',
+    defaults: {},
+  },
+  'db-backup-status': {
+    label: 'Read the last backup',
+    description: 'Shows when the newest backup was taken, its size, and whether it verified.',
+    defaults: {},
+  },
 };
 
 // --- Pure mappers / helpers ---------------------------------------------------
