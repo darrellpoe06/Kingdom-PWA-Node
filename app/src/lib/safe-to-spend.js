@@ -73,7 +73,7 @@ export const PERIODS = [
 export const INCOME_FREQUENCIES = [
   { id: 'weekly', label: 'Weekly', days: 7 },
   { id: 'biweekly', label: 'Every 2 weeks', days: 14 },
-  { id: 'semimonthly', label: 'Twice a month (1st & 15th)' },
+  { id: 'semimonthly', label: 'Twice a month (e.g. 1st & 15th)' },
   { id: 'monthly', label: 'Monthly' },
 ];
 
@@ -109,6 +109,34 @@ export function addMonthsClamped(date, n, dayOfMonth) {
 }
 export function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / DAY_MS); }
 
+// ── twice a month: two FIXED days of the month (DEFECT-2, 2026-10-29) ─────────
+// "Twice a month (1st & 15th)" used to step the anchor + 15, so pay on the 1st
+// landed its second payday on the 16th. A semimonthly schedule is two days of
+// the month, not a fifteen-day stride: anchored on the 1st or the 15th it is the
+// 1st & 15th; on the 28th or later it is the 15th & the last day; any other day
+// d is d & d+14 (or d-14 & d past the 14th). Clamped to the month's last day.
+export function semimonthlyDays(anchorDay) {
+  const d = Number(anchorDay) || 1;
+  if (d === 1 || d === 15) return [1, 15];
+  if (d >= 28) return [15, 31];
+  return d <= 14 ? [d, d + 14] : [d - 14, d];
+}
+function semimonthlyAt(first, i) {
+  const [a, b] = semimonthlyDays(first.getDate());
+  // the i-th payday at or after `first`, walking month by month through the two days
+  const out = [];
+  let y = first.getFullYear(); let m = first.getMonth();
+  while (out.length <= i) {
+    const last = new Date(y, m + 1, 0).getDate();
+    for (const day of [a, b]) {
+      const at = new Date(y, m, Math.min(day, last));
+      if (at >= first && !out.some((x) => x.getTime() === at.getTime())) out.push(at);
+    }
+    m += 1; if (m > 11) { m = 0; y += 1; }
+  }
+  return out[i];
+}
+
 // ── occurrences of a cadence inside [start, end], rolling forward from `first`
 // (this is the roll-forward the Tx Upcoming view never had: a next-due date in
 // the past advances to its next occurrence instead of dropping out) ──────────
@@ -121,12 +149,7 @@ export function expandOccurrences(first, frequency, start, end, maxGuard = 400) 
     switch (frequency) {
       case 'weekly': return addDays(due, 7 * i);
       case 'biweekly': return addDays(due, 14 * i);
-      case 'semimonthly': {
-        // alternate between the anchor day and the anchor day + ~15
-        const k = Math.floor(i / 2);
-        const base = addMonthsClamped(d, k, anchorDay);
-        return i % 2 === 0 ? base : addMonthsClamped(base, 0, Math.min(anchorDay + 15, new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate()));
-      }
+      case 'semimonthly': return semimonthlyAt(due, i);
       default: {
         const months = freqToMonths(frequency) || (frequency === 'monthly' ? 1 : 0);
         if (!months) return null;
@@ -355,7 +378,87 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (inferredMonthly.items.length) assumptions.push(`${inferredMonthly.items.length} recurring payment${inferredMonthly.items.length === 1 ? '' : 's'} inferred from the ledger (not confirmed) — confirm or cancel them in Money → Bills.`);
   }
 
-  return { events, assumptions, inferredMonthly };
+  // 7) SETTLED OCCURRENCES (DEFECT-1, GAP-1; Christina 2026-10-29: "I do not
+  //    want incorrect calculations influencing my financial decisions").
+  const settledOut = settleOccurrences(events, data, asOf);
+  assumptions.push(...settledOut.assumptions);
+  return { events: settledOut.events, assumptions, inferredMonthly, settled: settledOut.settled, waitingOnLedger: settledOut.waitingOnLedger };
+}
+
+// ── what has already been paid (DEFECT-1, GAP-1) ──────────────────────────────
+// The walk starts from LEDGER cash, so the only question for a bill occurrence is
+// whether its money has already left that cash:
+//   * a payment to the same payee is in the ledger, dated today or earlier and
+//     inside the occurrence's own cycle (no earlier than half a cycle before its
+//     due date): that much is already gone from cash, so that much leaves the
+//     projection. All of it -> the occurrence is settled; part of it -> only the
+//     remainder is projected (a partial payment). Each ledger row pays once.
+//   * the family marked it PAID (Money -> Bills) but no such payment is in the
+//     ledger yet: the cash shown still includes that money, so the occurrence
+//     STAYS counted until the payment posts -- removing it would count money the
+//     balance has not lost yet (Safe to Spend would read HIGH). Said so, by name.
+//   * PAID OUTSIDE (from an account these books do not hold) or CANCELED: the
+//     money never touches these balances, so the occurrence leaves.
+//   * PARTLY PAID OUTSIDE with an amount: that amount leaves; the rest stays.
+// Matching is automatic for hand-entered obligations (a named payee); a debt
+// minimum, tax item or inferred bill is settled only by the family's own status.
+const HALF_CYCLE_DAYS = { weekly: 3, biweekly: 7, semimonthly: 7, monthly: 15, quarterly: 45, semiannual: 90, annual: 180, yearly: 180 };
+export const BILL_STATUSES = ['scheduled', 'paid', 'paid-outside', 'partial-outside', 'canceled', 'overdue', 'needs-review'];
+export function occurrenceKey(ev) { return `${ev.refId || ev.label}:${ev.date}`; }
+function samePayee(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 4 && long.startsWith(short + ' ');
+}
+export function settleOccurrences(events, data, asOf) {
+  const statuses = (data && data.moneyPlan && data.moneyPlan.billStatus) || {};
+  const obligationsById = new Map((data?.recurringObligations || []).map((o) => [o.id, o]));
+  const debits = (data?.transactions || [])
+    .filter((t) => t && t.date && Number(t.amount) < 0 && !isTransferTxn(t) && !isBalanceAdjustment(t))
+    .map((t) => ({ id: t.id, d: parseDay(t.date), key: payeeKey(t.description || ''), left: -Number(t.amount) }))
+    .filter((x) => x.d && x.d <= asOf)
+    .sort((a, b) => a.d - b.d);
+  const out = []; const settled = []; const waiting = [];
+  for (const ev of [...events].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (!(ev.amount < 0)) { out.push(ev); continue; }
+    const key = occurrenceKey(ev);
+    const note = statuses[key] || null;
+    const due = round2(-ev.amount);
+    if (note && (note.status === 'paid-outside' || note.status === 'canceled')) {
+      settled.push({ ...ev, key, settled: note.status, paidSoFar: note.status === 'canceled' ? 0 : due, remaining: 0 });
+      continue;
+    }
+    let paid = 0; const ledgerIds = [];
+    if (note && note.status === 'partial-outside') paid = Math.min(due, Math.max(0, Number(note.paid) || 0));
+    if (ev.source === 'obligation') {
+      const o = obligationsById.get(ev.refId);
+      const half = HALF_CYCLE_DAYS[(o && o.frequency) || 'monthly'] ?? 15;
+      const from = addDays(parseDay(ev.date), -half);
+      const k = payeeKey((o && o.name) || ev.label || '');
+      for (const x of debits) {
+        if (paid >= due - 0.005) break;
+        if (x.left <= 0.005 || x.d < from || !samePayee(x.key, k)) continue;
+        const take = Math.min(x.left, due - paid);
+        x.left = round2(x.left - take); paid = round2(paid + take); ledgerIds.push(x.id);
+      }
+    }
+    paid = round2(paid);
+    if (paid >= due - 0.005) {
+      settled.push({ ...ev, key, settled: ledgerIds.length ? 'paid-in-ledger' : 'partial-outside', paidSoFar: due, remaining: 0, ledgerIds });
+      continue;
+    }
+    const markedPaid = !!(note && note.status === 'paid');
+    if (markedPaid) waiting.push(ev.label);
+    if (paid > 0) {
+      out.push({ ...ev, key, amount: -round2(due - paid), fullAmount: -due, paidSoFar: paid, remaining: round2(due - paid), partial: true, ledgerIds, markedPaid });
+      continue;
+    }
+    out.push(markedPaid ? { ...ev, key, markedPaid: true } : ev);
+  }
+  const assumptions = [];
+  if (waiting.length) assumptions.push(`${waiting.length} bill${waiting.length === 1 ? ' is' : 's are'} marked paid but the payment is not in the ledger yet (${[...new Set(waiting)].slice(0, 3).join(', ')}): still counted, because the balance here has not lost that money yet. It drops off by itself when the payment posts.`);
+  return { events: out.sort((a, b) => a.date.localeCompare(b.date)), settled, waitingOnLedger: waiting.length, assumptions };
 }
 
 // The annual amount of a tax-calendar item: the family's entered figure (guided
@@ -545,6 +648,7 @@ function forScope(data, sc, asOf, settings, opts) {
     if (freshness.stale) { status = 'estimate'; reasons.push(freshness.ledgerAsOf ? `The ledger's newest entry is ${freshness.staleDays} days old (older than ${freshness.staleAfter}).` : 'No ledger entries on the spendable accounts yet.'); }
     if (income.events.some((e) => e.inferred)) { if (status === 'verified') status = 'estimate'; reasons.push('Some income timing is inferred, not entered.'); }
     if (obligations.events.some((e) => e.assumed && e.kind !== 'inferred-bill')) { if (status === 'verified') status = 'estimate'; reasons.push('Some payment due days are assumed.'); }
+    if (obligations.waitingOnLedger) { if (status === 'verified') status = 'estimate'; reasons.push(`${obligations.waitingOnLedger} bill${obligations.waitingOnLedger === 1 ? ' is' : 's are'} marked paid but not in the ledger yet; still counted until the payment posts.`); }
   }
 
   const explanation = [
@@ -571,6 +675,7 @@ function forScope(data, sc, asOf, settings, opts) {
     },
     monthly: { living: accrual.living, livingParts: accrual.livingParts, tax: accrual.tax, savings: accrual.savings, inferredBills: obligations.inferredMonthly },
     items, timeline, explanation, assumptions,
+    settled: obligations.settled || [],
   };
 }
 
@@ -618,6 +723,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       ...byEntity.map((r) => `${r.scope.label}: lowest $${r.lines.projectedLowest.amount.toLocaleString()} on ${r.lines.projectedLowest.date}, cushion $${r.lines.minCushion.toLocaleString()} → safe $${r.safeToSpendNow.toLocaleString()}.`),
     ],
     assumptions: [...new Set(byEntity.flatMap((r) => r.assumptions))],
+    settled: byEntity.flatMap((r) => r.settled || []),
     byEntity,
   };
 }

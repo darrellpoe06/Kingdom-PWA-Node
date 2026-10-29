@@ -32,7 +32,7 @@ import UiIcon from '../UiIcon.jsx';
 import HelpButton from '../HelpButton.jsx';
 import ReportActions from '../ReportActions.jsx';
 import BudgetPlanner from '../BudgetPlanner.jsx';
-import { buildSafeToSpend } from '../../lib/safe-to-spend.js';
+import { buildSafeToSpend, BILL_STATUSES } from '../../lib/safe-to-spend.js';
 import { paycheckPeriods } from '../../lib/money-paychecks.js';
 import { moneySettings, patchMoneyPlan } from '../../lib/money-plan.js';
 import { deriveCategoryPlans, categoryStatus, dataConfidence } from '../../lib/budget-engine.js';
@@ -183,7 +183,12 @@ export function MoneyBudget({ money }) {
 const BILL_GROUPS = [
   ['essential', 'Essential bills'], ['debt', 'Debt payments'], ['subscription', 'Subscriptions'], ['business', 'Business expenses'], ['property', 'Property expenses'], ['transfer', 'Transfers'], ['other', 'Other'],
 ];
-const STATUSES = ['scheduled', 'paid', 'overdue', 'canceled', 'needs-review'];
+// The family's own word on an occurrence (lib/safe-to-spend.js settleOccurrences
+// reads it): 'paid' drops a bill once its payment is in the ledger; 'paid
+// outside' / 'partly paid outside' cover money from an account these books do
+// not hold; a payment already in the ledger is matched automatically.
+const STATUSES = BILL_STATUSES;
+const STATUS_LABEL = { scheduled: 'scheduled', paid: 'paid', 'paid-outside': 'paid outside these accounts', 'partial-outside': 'partly paid outside', canceled: 'canceled', overdue: 'overdue', 'needs-review': 'needs review', 'paid-in-ledger': 'paid (in the ledger)' };
 function groupOf(it, data) {
   if (it.kind === 'debt-min') return 'debt';
   if (it.kind === 'mortgage') return 'property';
@@ -205,13 +210,15 @@ export function MoneyBills({ money }) {
   const result = useMemo(() => buildSafeToSpend(data, { currentDate: cd, period: 'custom', customEnd: end, scope: 'consolidated', settings, visibleEntities }), [data, cd, end, settings, visibleEntities]);
   const statuses = useMemo(() => (data.moneyPlan && data.moneyPlan.billStatus) || {}, [data.moneyPlan]);
   const today = `${cd.getFullYear()}-${String(cd.getMonth() + 1).padStart(2, '0')}-${String(cd.getDate()).padStart(2, '0')}`;
-  const items = useMemo(() => result.items.filter((it) => it.kind !== 'income').map((it) => {
-    const key = `${it.refId || it.label}:${it.date}`;
+  // Settled occurrences (paid in the ledger, paid outside, canceled) leave the
+  // projection but stay on this list, so a status can always be seen and changed.
+  const items = useMemo(() => [...result.items.filter((it) => it.kind !== 'income'), ...(result.settled || [])].map((it) => {
+    const key = it.key || `${it.refId || it.label}:${it.date}`;
     const note = statuses[key];
-    const status = note ? note.status : (it.date < today ? 'overdue' : 'scheduled');
+    const status = note ? note.status : (it.settled === 'paid-in-ledger' ? 'paid-in-ledger' : (it.date < today ? 'overdue' : 'scheduled'));
     return { ...it, key, status, group: groupOf(it, data), confirmed: it.source !== 'inferred' };
-  }), [result.items, statuses, today, data]);
-  const setStatus = (key, status) => setData && setData((d) => ({ ...d, moneyPlan: patchMoneyPlan(d.moneyPlan, { billStatus: { [key]: { status, at: new Date().toISOString() } } }) }));
+  }).sort((a, b) => a.date.localeCompare(b.date)), [result.items, result.settled, statuses, today, data]);
+  const setStatus = (key, status, extra = {}) => setData && setData((d) => ({ ...d, moneyPlan: patchMoneyPlan(d.moneyPlan, { billStatus: { [key]: { status, ...extra, at: new Date().toISOString() } } }) }));
   const accountName = (id) => ((data.accounts || []).find((a) => a.id === id) || {}).name || '';
   const entityName = (id) => ((data.entities || []).find((e) => e.id === id) || {}).name || '—';
   const byGroup = BILL_GROUPS.map(([id, label]) => [id, label, items.filter((it) => it.group === id)]).filter(([, , list]) => list.length);
@@ -237,9 +244,14 @@ export function MoneyBills({ money }) {
               <li key={it.key} className="py-2 flex flex-wrap items-center gap-2 text-[0.8125rem]">
                 <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{it.date}</span>
                 <span className="min-w-0 flex-1 truncate text-[#1A1815]">{it.label}<span className="block text-[0.625rem] text-[#5A5751]">{it.confirmed ? 'confirmed' : 'inferred'}{it.cadence ? ` · ${it.cadence}` : ''} <span aria-hidden="true">·</span> {entityName(it.entityId)}{it.accountId ? ` · ${accountName(it.accountId)}` : ''}</span></span>
-                <span className="shrink-0 text-[#1A1815]" style={SERIF}>{fmt(Math.abs(it.amount))}</span>
+                <span className="shrink-0 text-[#1A1815]" style={SERIF}>{fmt(Math.abs(it.fullAmount != null ? it.fullAmount : it.amount))}{(it.partial || it.settled) && <span data-testid="bill-paid-so-far" className="block text-[0.625rem] text-[#5A5751]">{it.settled ? (it.settled === 'canceled' ? 'not counted' : 'paid · not counted') : `${fmt(it.paidSoFar)} paid · ${fmt(it.remaining)} left`}</span>}{it.markedPaid && !it.partial && <span data-testid="bill-waiting-on-ledger" className="block text-[0.625rem] text-[#5A5751]">still counted until the payment shows in the ledger</span>}</span>
+                {it.status === 'partial-outside' && (
+                  <label className="shrink-0 flex items-center gap-1 text-[0.6875rem] text-[#5A5751]">paid
+                    <input type="number" min="0" step="0.01" inputMode="decimal" defaultValue={(statuses[it.key] && statuses[it.key].paid) || ''} onBlur={(e) => setStatus(it.key, 'partial-outside', { paid: Math.max(0, Number(e.target.value) || 0) })} aria-label={`Amount already paid on ${it.label} from an account not in these books`} className="w-20 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[0.75rem]" />
+                  </label>
+                )}
                 <select value={it.status} onChange={(e) => setStatus(it.key, e.target.value)} aria-label={`Status of ${it.label} on ${it.date}`} className={`min-h-[36px] px-2 rounded-lg border text-[0.75rem] bg-white ${it.status === 'overdue' ? 'border-[#B85838] text-[#B85838]' : it.status === 'paid' ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#E8E4DC] text-[#1A1815]'}`}>
-                  {STATUSES.map((s) => <option key={s} value={s}>{s.replace('-', ' ')}</option>)}
+                  {[...STATUSES, ...(it.status === 'paid-in-ledger' ? ['paid-in-ledger'] : [])].map((s) => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
                 </select>
               </li>
             ))}

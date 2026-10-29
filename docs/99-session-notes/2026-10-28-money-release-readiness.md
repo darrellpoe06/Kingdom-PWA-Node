@@ -46,7 +46,7 @@ Every line below is a measurement on the real artifact or a `file:line` in this 
 
 - `lib/safe-to-spend.js:541-547`: status is `verified` only when every input is; `estimate` when the ledger is stale (newest entry older than `staleDays`, default 14: `ledgerFreshness` lines 425-435), when any income timing is inferred, or when any due day is assumed; `unavailable` with the reason when the scope has no spendable account. Every reason is a sentence on the card (`confidence.reasons`), and the amount's label and source line carry the status (`MoneyOverview.jsx`, `sts-simple`).
 - Missing figures are named, never invented: the guided setup lists what is missing (Required / Optional), and the engine's breakdown reconciles to the cent (`safe-to-spend.test.js`, 26 cases; `money-functional-audit.test.js` cases 1.1–1.7).
-- **Known gap (DEFECT-1, Phase 3 audit):** a bill marked *paid* or paid early on the Bills tab is still projected by the engine (`obligationEvents` does not read `moneyPlan.billStatus`), so the number can be LOW (never high). Fixing it is a small, separately approved change.
+- **Fixed 2026-10-29 (DR-1280 item 11):** a bill paid in the ledger (early or partly) is settled automatically and never counted twice; a bill marked paid before its payment posts stays counted and is named, so Safe to Spend never reads high; twice-a-month pay lands on the 1st & 15th; partial payments show what is paid and what is left.
 
 ### 6. Adding, editing, deleting works
 

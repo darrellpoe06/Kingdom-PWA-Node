@@ -123,30 +123,60 @@ describe('TEST 1 · Safe to Spend recalculates (30-day window from 2026-10-28)',
     const w = anchorWorld(); w.recurringObligations.find((o) => o.id === 'ro-ins').enabled = false;
     expect(run(w).safeToSpendNow - base.safeToSpendNow).toBe(150);
   });
-  it('1.1d DEFECT-1 — a bill MARKED PAID in Money → Bills is still subtracted by the engine', () => {
-    // TESTED: billStatus["ro-ins:2026-10-30"] = paid. EXPECTED: the 10-30
-    // occurrence leaves the walk (safe rises by 150). ACTUAL: the engine never
-    // reads moneyPlan.billStatus (obligationEvents, safe-to-spend.js), so the
-    // paid bill is still projected. The Bills screen shows "paid" while the
-    // Overview still reserves the money — the same bill counted twice once the
-    // real payment posts to the ledger (see 1.1e). Severity: HIGH.
+  it('1.1d FIXED (DEFECT-1) — a bill MARKED PAID whose payment is NOT in the ledger yet stays counted, and says so, because the balance has not lost that money', () => {
+    // Removing it would count money the ledger balance still holds: Safe to
+    // Spend would read HIGH by the bill. It stays, is flagged, and the result
+    // turns to an estimate with the reason named.
     const base = run(anchorWorld());
     const w = anchorWorld(); w.moneyPlan.billStatus = { 'ro-ins:2026-10-30': { status: 'paid', at: '2026-10-28T12:00:00Z' } };
     const r = run(w);
-    expect(r.safeToSpendNow).toBe(base.safeToSpendNow); // measured: unchanged (expected +150)
-    expect(r.items.some((it) => it.refId === 'ro-ins' && it.date === '2026-10-30')).toBe(true);
+    expect(r.safeToSpendNow).toBe(base.safeToSpendNow);
+    const occ = r.items.find((it) => it.refId === 'ro-ins' && it.date === '2026-10-30');
+    expect(occ.markedPaid).toBe(true);
+    expect(r.status).toBe('estimate');
+    expect(r.confidence.reasons.join(' ')).toMatch(/marked paid but not in the ledger yet/);
   });
-  it('1.1e DEFECT-1 (second face) — paying a bill EARLY through the ledger double-counts it until nextDue is edited by hand', () => {
-    // TESTED: the car insurance is paid today (ledger row −150 dated 10-28);
-    // nextDue still reads 10-30. EXPECTED: cash is 150 lower AND the 10-30
-    // occurrence is gone (net effect on safe: 0). ACTUAL: cash is 150 lower
-    // and the 10-30 occurrence remains → safe drops by 150 for a bill already
-    // paid. Severity: HIGH (understates spendable money; a family that pays
-    // bills early is penalised twice until they hand-edit the due date).
+  it('1.1d FIXED — marked PAID and the payment IS in the ledger: cash is lower and the occurrence is settled, net effect 0 (no double count)', () => {
+    const base = run(anchorWorld());
+    const w = anchorWorld(); w.moneyPlan.billStatus = { 'ro-ins:2026-10-30': { status: 'paid' } };
+    w.transactions.push({ id: 't-paid', date: '2026-10-28', accountId: 'chk', amount: -150, description: 'Car insurance', category: 'insurance' });
+    const r = run(w);
+    expect(r.safeToSpendNow).toBe(base.safeToSpendNow);
+    expect(r.items.some((it) => it.refId === 'ro-ins' && it.date === '2026-10-30')).toBe(false);
+    expect(r.settled.find((it) => it.refId === 'ro-ins').settled).toBe('paid-in-ledger');
+  });
+  it('1.1e FIXED (DEFECT-1) — a bill paid EARLY through the ledger (no status set) is matched automatically: net effect 0', () => {
     const base = run(anchorWorld());
     const w = anchorWorld(); w.transactions.push({ id: 't-paid', date: '2026-10-28', accountId: 'chk', amount: -150, description: 'Car insurance', category: 'insurance' });
     const r = run(w);
-    expect(base.safeToSpendNow - r.safeToSpendNow).toBe(150); // measured double count (expected 0)
+    expect(r.safeToSpendNow).toBe(base.safeToSpendNow);
+    expect(r.items.some((it) => it.refId === 'ro-ins' && it.date === '2026-10-30')).toBe(false);
+  });
+  it('1.1e PROVEN TO CATCH — LAST cycle\'s payment (before half a cycle ahead of the due date) is NOT taken as this cycle\'s', () => {
+    // due 10-30 monthly: only payments from 10-15 on can be this cycle's. A
+    // payment dated 10-05 is last month's; matching it would drop a bill that
+    // is still owed and read Safe to Spend HIGH.
+    const base = run(anchorWorld());
+    const w = anchorWorld(); w.transactions.push({ id: 't-old', date: '2026-10-05', accountId: 'chk', amount: -150, description: 'Car insurance', category: 'insurance' });
+    const r = run(w);
+    expect(r.items.some((it) => it.refId === 'ro-ins' && it.date === '2026-10-30')).toBe(true);
+    expect(base.safeToSpendNow - r.safeToSpendNow).toBe(150); // the old payment lowered cash; the bill is still owed
+  });
+  it('1.1e PROVEN TO CATCH — a different payee is never matched', () => {
+    const base = run(anchorWorld());
+    const w = anchorWorld(); w.transactions.push({ id: 't-other', date: '2026-10-28', accountId: 'chk', amount: -150, description: 'Car wash', category: 'auto' });
+    const r = run(w);
+    expect(r.items.some((it) => it.refId === 'ro-ins' && it.date === '2026-10-30')).toBe(true);
+    expect(base.safeToSpendNow - r.safeToSpendNow).toBe(150);
+  });
+  it('1.1f a bill PAID OUTSIDE these accounts, or CANCELED, leaves the walk (its money never touches these balances)', () => {
+    const base = run(anchorWorld());
+    for (const status of ['paid-outside', 'canceled']) {
+      const w = anchorWorld(); w.moneyPlan.billStatus = { 'ro-ins:2026-10-30': { status } };
+      const r = run(w);
+      expect(r.safeToSpendNow - base.safeToSpendNow, status).toBe(150);
+      expect(r.settled.find((it) => it.refId === 'ro-ins').settled).toBe(status);
+    }
   });
 
   it('1.2a a paycheck ADDED (schedule entered) counts only ON its day — never before', () => {
@@ -397,7 +427,7 @@ describe('TEST 3 · Budget by paycheck', () => {
   });
   it('3.3 SEMIMONTHLY (1st & 15th) and MONTHLY cut the periods on those days and carry the right bills', () => {
     const semi = periodsFor({ 's-c': { frequency: 'semimonthly', nextDate: '2026-11-01' } });
-    expect(semi.paydays.slice(0, 3)).toEqual(['2026-11-01', '2026-11-16', '2026-12-01']); // DEFECT-2 if 11-16 (see audit note): anchor 1 + 15 = 16
+    expect(semi.paydays.slice(0, 3)).toEqual(['2026-11-01', '2026-11-15', '2026-12-01']); // DEFECT-2 FIXED 2026-10-29: two fixed days of the month, the 1st & 15th
     const monthly = periodsFor({ 's-d': { frequency: 'monthly', nextDate: '2026-11-01' } });
     expect(monthly.paydays.slice(0, 2)).toEqual(['2026-11-01', '2026-12-01']);
     // the 11-05 auto payment and 11-12 electric land in the paycheck period that opens 11-01
@@ -457,14 +487,31 @@ describe('TEST 4 · Bills and recurring payments', () => {
     // a leap year keeps the 29th
     expect(expandOccurrences('2028-01-29', 'monthly', new Date(2028, 0, 1), new Date(2028, 2, 1)).map((x) => `${x.getMonth() + 1}/${x.getDate()}`)).toEqual(['1/29', '2/29']);
   });
-  it('4.3 STATUSES: an occurrence dated before today reads overdue, today-or-later reads scheduled (Bills screen rule); PARTIAL payment has no status and no engine effect — GAP-1', () => {
-    // The Bills screen derives status from moneyPlan.billStatus or the date; the
-    // engine ignores both (DEFECT-1). There is no "partially paid" status and no
-    // way to record an amount paid against an occurrence. Severity: MEDIUM.
+  it('4.3 FIXED (GAP-1) — a PARTIAL payment in the ledger leaves only the remainder projected: net effect 0, and the row says what is left', () => {
     const w = anchorWorld(); w.transactions.push({ id: 't-part', date: '2026-10-28', accountId: 'chk', amount: -75, description: 'Car insurance (half)', category: 'insurance' });
     const base = run(anchorWorld()); const r = run(w);
-    expect(base.safeToSpendNow - r.safeToSpendNow).toBe(75); // the half payment lowers cash; the full 150 is still projected
-    expect(r.items.find((it) => it.refId === 'ro-ins').amount).toBe(-150);
+    expect(r.safeToSpendNow).toBe(base.safeToSpendNow); // 75 left cash, 75 left the projection
+    const occ = r.items.find((it) => it.refId === 'ro-ins');
+    expect(occ.amount).toBe(-75);
+    expect(occ.partial).toBe(true);
+    expect(occ.paidSoFar).toBe(75);
+    expect(occ.remaining).toBe(75);
+  });
+  it('4.3 FIXED (GAP-1) — PARTLY PAID OUTSIDE with an amount: that amount leaves, the rest stays; never more than the bill', () => {
+    const base = run(anchorWorld());
+    const w = anchorWorld(); w.moneyPlan.billStatus = { 'ro-ins:2026-10-30': { status: 'partial-outside', paid: 40 } };
+    const r = run(w);
+    expect(r.safeToSpendNow - base.safeToSpendNow).toBe(40);
+    expect(r.items.find((it) => it.refId === 'ro-ins').remaining).toBe(110);
+    const over = anchorWorld(); over.moneyPlan.billStatus = { 'ro-ins:2026-10-30': { status: 'partial-outside', paid: 999 } };
+    expect(run(over).safeToSpendNow - base.safeToSpendNow).toBe(150); // capped at the bill
+  });
+  it('4.3 one ledger payment pays ONE occurrence, never two', () => {
+    const w = anchorWorld(); w.recurringObligations.push({ id: 'ro-ins2', name: 'Car insurance', amount: 150, frequency: 'monthly', nextDue: '2026-11-02', entityId: 'e-personal', category: 'insurance', enabled: true });
+    w.transactions.push({ id: 't-paid', date: '2026-10-28', accountId: 'chk', amount: -150, description: 'Car insurance', category: 'insurance' });
+    const r = run(w);
+    const left = r.items.filter((it) => /Car insurance/.test(it.label) && it.date <= '2026-11-02');
+    expect(left).toHaveLength(1);
   });
   it('4.4 NO DUPLICATES: a debt minimum already entered as an obligation, a scheduled row, or seen as an inferred autopay counts once', () => {
     const sc = resolveScope(household(), 'personal');
