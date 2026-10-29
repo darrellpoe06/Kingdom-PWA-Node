@@ -325,7 +325,51 @@ const REPO = join(HERE, '..', '..', '..');
 // CHECKED_LESSONS = 4 -- and neither lesson's reasoning is edited to suit the
 // other's. VERIFIED by running scripts/unchecked-claims.mjs on the merged tree,
 // never by arithmetic on the two branches.
-const GAP = 14;
+// 14 -> 15 GAP on 2026-10-29 (sov57, the code can be rebuilt but the register
+// cannot; DR-1285). CHECKED does not move. sov57 takes the SECOND branch, and
+// the reason is measured rather than asserted. The source is one issue of the
+// TLDR newsletter (2026-09-30). Exactly ONE of its items carries a thesis -- a
+// four-sentence summary of a piece titled "Data is the application" -- and that
+// thesis carries NO FIGURE. Every number in the issue belongs to an
+// advertisement (a projected market, a share price, an Azure credit) or to an
+// unrelated story (a plan multiplier, a count of advertisers, a browser
+// version), so there is no germane figure to stake and none is staked.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov57-verses.test.js refuses
+// a currency symbol, a percentage and a number wearing a magnitude word in any of
+// the five reader texts, and proves the refusal by planting "$2 billion" and
+// "37%" and watching the shapes fire -- the second of which a currency check
+// alone would miss. A 0-figure row in lesson-sources.json is forbidden (DR-0076
+// section 3) because it would make checked() count a lesson whose figures nobody
+// read, so the honest place for sov57 is HERE and not in that file.
+//
+// THE ROAD WAS TRIED, not assumed shut (DR-0108). The one article worth reading
+// is at ma.ttias.be, and the open-web fetch answered ENOTFOUND -- the host is
+// outside this session's allowed network domains, which is a measured failure and
+// is what all five reader texts tell the reader in their own words rather than a
+// polite "we did not read it". No further hosts were tried after the first
+// denial. A GitHub runner reaches hosts this sandbox cannot, which wm10 proved on
+// www.kearney.com the same day, so the road exists. What it has no input for is a
+// PROBE: a row exists to read a FIGURE back off a publisher's page, and this
+// lesson stakes none, so there is no candidate `says` string that could be
+// written without inventing one.
+// re-review: 2026-11-28 -- from a runner with web access, or once ma.ttias.be is
+// allowed in the session's network settings, open the full article. If its body
+// carries a germane figure this lesson should teach, teach it, give sov57 a row
+// and lower this pin to 14; if the article prints no figure either, replace the
+// "did not read the article" clause in all five reader texts with an accurate one
+// and lower the pin.
+//
+// MERGED TWICE IN ONE DAY, AND MEASURED BOTH TIMES. sov57 was built against
+// main's GAP 13 / CHECKED 3 and wrote 14 / 3; wm10 then landed and raised CHECKED
+// to 4, so sov57 re-measured to 14 / 4; mgmt9 then landed and raised the GAP to
+// 14, so sov57 re-measured again to 15 / 4. Every one of those three numbers was
+// true of a real tree at a real moment, and only the last is true of this one.
+// The figures here are what scripts/unchecked-claims.mjs printed on THIS merged
+// tree (18 lessons admitting, 102 disclosures, 4 checked, 15 in the gap), never a
+// sum of the branches. All three lessons' reasoning is kept in full, none edited
+// to suit another (DR-1136).
+const GAP = 15;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
