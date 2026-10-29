@@ -26,7 +26,7 @@ The family asked for pictures in the lessons (DR-1280). While that was being bui
 
 1. **The main character of a lesson's stories is African American.** The family should meet themselves in the stories they read.
 2. **The biblical Israelites are drawn as people of color**, so the community sees its ancestors in the Word, from His perspective.
-3. **Character comes first, and the Word explains it.** The point is never colour for its own sake: the stories teach character, the way the Word does.
+3. **Character comes first, and the Word explains it.** The point is never color for its own sake: the stories teach character, the way the Word does.
 
 ## What was measured
 
@@ -60,7 +60,7 @@ A picture of Him follows what is written, word for word, and adds nothing the te
 
 **KJV — Daniel 10:6:** *"His body also was like the beryl, and his face as the appearance of lightning, and his eyes as lamps of fire, and his arms and his feet like in colour to polished brass, and the voice of his words like the voice of a multitude."*
 
-So an illustration of the glorified Son, Jesus, the Son of man of Revelation 1:13, shows what these verses say. His hair is like wool, white as snow. His eyes are a flame of fire. His feet are like fine brass, as if they burned in a furnace. His arms and feet are the colour of polished brass (Daniel 10:6). He wears a garment down to the foot with a golden girdle. The picture never shows Him as the pale European figure of Western art, which none of these verses describe. Where the Word gives no detail, the picture adds none and the caption says so.
+So an illustration of the glorified Son, Jesus, the Son of man of Revelation 1:13, shows what these verses say. His hair is like wool, white as snow. His eyes are a flame of fire. His feet are like fine brass, as if they burned in a furnace. His arms and feet are the color of polished brass (Daniel 10:6). He wears a garment down to the foot with a golden girdle. The picture never shows Him as the pale European figure of Western art, which none of these verses describe. Where the Word gives no detail, the picture adds none and the caption says so.
 
 ## What else the Word says, in His own words (Darrell, the same evening: "All the Solomon saying dark and lovely etc... Song of Solomon"; "David is ruddy")
 

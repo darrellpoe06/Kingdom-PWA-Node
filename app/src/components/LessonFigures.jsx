@@ -4,7 +4,7 @@
 // =============================================================================
 // Everything here is drawn from data (lib/lesson-figures.js) in plain HTML,
 // not a canvas or a baked image, so: the words are real text a screen reader,
-// the TTS and Big Print all reach (rem sizes, Pattern 2b); the colours are the
+// the TTS and Big Print all reach (rem sizes, Pattern 2b); the colors are the
 // app's themed classes, so every theme, midnight included, repaints them; and
 // nothing is wider than its column, so a 360px Fold cover screen never scrolls
 // sideways. The bars and arrows are decoration (aria-hidden); every fact they
