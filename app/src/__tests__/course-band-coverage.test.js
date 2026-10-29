@@ -120,9 +120,9 @@ describe('the debt, recorded as it actually is', () => {
     // The whole course already carried four bands, so the management-stewardship row moves
     // {lessons: 8, allFour: 8} -> {lessons: 9, allFour: 9} and the lesson could not have shipped short.
     // mgmt9's own measurement, kept as this build recorded it: adult prose 1,247 words; shares child 0.59
-    // / youth 0.65 / teen 0.70 / senior 0.65 against floors 0.50 / 0.60 / 0.60 / 0.60; ladder 1.4 / 2.5 /
+    // / youth 0.65 / teen 0.72 / senior 0.65 against floors 0.50 / 0.60 / 0.60 / 0.60; ladder 1.4 / 2.5 /
     // 4.3 / 6.1, strictly ascending, child under the 5.0 new-lesson ceiling and teen under this course's
-    // own 6.0; worst band-pair overlap 0.11.
+    // own 6.0; worst band-pair overlap 0.09.
     //
     // Every earlier lesson's own measurement is kept below exactly as it recorded it, none edited to suit
     // another. The chain reads 265 -> 266 -> 267 -> 268 -> 269 as each of the five landed.
@@ -132,10 +132,13 @@ describe('the debt, recorded as it actually is', () => {
     // 266 -> 267, adultOnly 0, adultRegister 0, 174 still pinned), never hand-written. The whole course
     // already carried four bands, so the management-stewardship row moves {lessons: 8, allFour: 8} ->
     // {lessons: 9, allFour: 9} and the lesson could not have shipped short. Its own measurement, kept as
-    // this build recorded it: adult prose 1,247 words; shares child 0.59 / youth 0.65 / teen 0.70 /
+    // this build recorded it: adult prose 1,247 words; shares child 0.59 / youth 0.65 / teen 0.72 /
     // senior 0.65 against floors 0.50 / 0.60 / 0.60 / 0.60; ladder 1.4 / 2.5 / 4.3 / 6.1, strictly
     // ascending, child under the 5.0 new-lesson ceiling and teen under this course's own 6.0; worst
-    // band-pair overlap 0.11.
+    // band-pair overlap 0.09. (This block's share and overlap figures were RE-MEASURED after a two-word
+    // edit to the senior band and two of them had gone stale -- teen read 0.70 and the overlap 0.11
+    // before the teen band's own limits passage was rewritten. A measurement is only true of the text it
+    // was taken on, so it is re-taken rather than carried forward: DR-0076 section 4.)
     //
     // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
     // RESOLVED BY MEASUREMENT, FOUR TIMES OVER, never by arithmetic.
