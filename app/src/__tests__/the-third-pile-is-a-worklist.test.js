@@ -246,10 +246,14 @@ const REPO = join(HERE, '..', '..', '..');
 // magnitude-word figure in any of its five reader texts.
 //
 // What it stands on instead was read verbatim off the corpus on disk and is read
-// back by management-stewardship-mgmt9-verses.test.js: Proverbs 6:6-8,
-// 1 Thessalonians 4:11, Ecclesiastes 9:10, Exodus 31:3, Exodus 35:34,
-// 1 Chronicles 12:32, 2 Timothy 2:2 and Proverbs 12:24 -- 56 referenced quoted
-// spans, 0 faults, measured by a sweep independent of the gate's own pairing.
+// back by management-stewardship-mgmt9-verses.test.js: Proverbs 30:24-27,
+// 1 Thessalonians 4:11, Ecclesiastes 9:10, Exodus 36:1, 1 Chronicles 25:8,
+// 1 Chronicles 12:32, 2 Timothy 2:2, Proverbs 12:24 and 1 Chronicles 22:16 -- 60
+// referenced quoted spans, 0 faults, measured by a sweep independent of the
+// gate's own pairing. (Two earlier spines were sent back for colliding with
+// sibling Real Estate courses -- Exodus 31/35 with maintenance-trades, caught by
+// CI, and Proverbs 6 with buying-terms, caught by the new whole-shelf gate. The
+// chapters changed; the teaching and the gap reasoning here did not.)
 // re-review: 2026-11-29 -- from a runner with web access, open the full guest
 // column behind the forward's link. If its body carries a germane figure this
 // lesson should teach, teach it, give mgmt9 a row in lesson-sources.json and

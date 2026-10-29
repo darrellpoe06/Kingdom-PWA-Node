@@ -49,6 +49,7 @@ import {
   MANAGEMENT_STEWARDSHIP_MODULES, MANAGEMENT_STEWARDSHIP_META,
 } from '../lib/management-stewardship-course.js';
 import { propertyPrincipleRefs } from '../lib/property-principle-course.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { measureFullness, shortBands, FULL_FLOOR } from '../../../scripts/full-levels.mjs';
 import { NEW_LESSON_CHILD_CEILING, measureLesson } from '../../../scripts/reading-level.mjs';
 import { measureDifferentiation, duplicatedBands, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
@@ -126,24 +127,55 @@ export function verbatimFaults(texts) {
 const referencedCount = (texts) => texts.reduce((n, t) => n + quotedPairs(t).filter((p) => p.ref).length, 0);
 
 // THE SPINE, pinned by literal text. Every span was read out of
-// app/public/bible/kjv/*.json before it was written. The spine is new to BOTH
-// courses of this department, counted rather than themed: Proverbs 6,
-// 1 Thessalonians 4, Ecclesiastes 9, Exodus 31, Exodus 35, 1 Chronicles 12,
-// 2 Timothy 2 and Proverbs 12 appear in no anchor of mgmt1 to mgmt8 and in none
-// of the footing course's. Proverbs 27:17 was the obvious friend-prompt verse
-// and was DELIBERATELY not used, because the footing course already stands on
-// Proverbs 27.
+// app/public/bible/kjv/*.json before it was written.
+//
+// IT IS FREE ACROSS THE REAL ESTATE SHELF, WHICH IS THE QUESTION THE DEPARTMENT
+// ACTUALLY ASKS, AND TWO DRAFTS WERE NOT. Several of these chapters are held by
+// lessons in OTHER departments (Deuteronomy 6, Malachi 4, 2 Timothy 2,
+// Proverbs 12, Proverbs 30 and 1 Thessalonians 4 all are), which the department's
+// rule does not forbid and this gate does not claim otherwise. The first draft
+// stood on Exodus 31:3 and Exodus 35:34 -- Bezaleel filled with the spirit of
+// God, and the heart put in him that he may teach -- and CI caught it on shard
+// 4/4: maintenance-trades-course.test.js asserts that course shares no
+// book-and-chapter with ANY of the other four Real Estate courses, and the
+// maintenance course already stands on Exodus 31 and Exodus 35, because the
+// first Spirit-filled man in Scripture is a craftsman and that is its own
+// lesson 2. My counting had been against the FOOTING course and mgmt1-mgmt8
+// only, which is a narrower question than the department asks (DR-0076 s.4: a
+// measurement answers only the question it was taken on).
+//
+// The teaching did not change; the chapters did. Exodus 36:1 keeps the same
+// builders with the know-how put IN the man, and 1 Chronicles 25:8 carries the
+// teach-half better than the first draft did: the roll that cast lots for the
+// trained singers counted "the teacher as the scholar", so teaching sits inside
+// the work rather than above it. 1 Chronicles 22:16 was added in the same pass
+// because it is the lesson's own thesis in six words.
+//
+// THEN THE SECOND DRAFT FAILED THE SAME WAY ON ITS CENTRAL IMAGE, and this gate
+// is what caught it rather than CI. The lesson stood on Proverbs 6:6-8, the ant
+// with no guide, overseer or ruler -- and the BUYING-TERMS course holds
+// Proverbs 6 for its surety lesson (buy4). Writing the check below is what
+// surfaced it; reasoning about it twice had not. The remedy is better than what
+// it replaced: Proverbs 30 carries the ant AND the locusts in one passage, and
+// Proverbs 30:27 says what Proverbs 6:7 could not -- the locusts have no king
+// "yet go they forth all of them by bands", which is ORDER without a ruler and
+// not merely motion without one.
+//
+// Proverbs 27:17 was the obvious friend-prompt verse and was DELIBERATELY not
+// used, because the footing course already stands on Proverbs 27 -- so every
+// band's friend prompt carries no verse rather than a borrowed chapter.
 const SPINE = [
-  ['Proverbs 6:6', 'Go to the ant, thou sluggard; consider her ways, and be wise:'],
-  ['Proverbs 6:7', 'Which having no guide, overseer, or ruler,'],
-  ['Proverbs 6:8', 'Provideth her meat in the summer, and gathereth her food in the harvest.'],
+  ['Proverbs 30:24', 'There be four things which are little upon the earth, but they are exceeding wise:'],
+  ['Proverbs 30:25', 'The ants are a people not strong, yet they prepare their meat in the summer;'],
+  ['Proverbs 30:27', 'The locusts have no king, yet go they forth all of them by bands;'],
   ['1 Thessalonians 4:11', 'your own business, and to work with your own hands, as we commanded you;'],
   ['Ecclesiastes 9:10', 'Whatsoever thy hand findeth to do, do it with thy might;'],
-  ['Exodus 31:3', 'in wisdom, and in understanding, and in knowledge, and in all manner of workmanship,'],
-  ['Exodus 35:34', 'put in his heart that he may teach'],
+  ['Exodus 36:1', 'in whom the LORD put wisdom and understanding to know how to work all manner of work'],
+  ['1 Chronicles 25:8', 'as well the small as the great, the teacher as the scholar'],
   ['1 Chronicles 12:32', 'had understanding of the times, to know what Israel ought to do;'],
   ['2 Timothy 2:2', 'to faithful men, who shall be able to teach others also.'],
   ['Proverbs 12:24', 'The hand of the diligent shall bear rule: but the slothful shall be under tribute.'],
+  ['1 Chronicles 22:16', 'Arise therefore, and be doing, and the LORD be with thee.'],
   ['Deuteronomy 6:7', 'teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way'],
   ['Malachi 4:6', 'he shall turn the heart of the fathers to the children, and the heart of the children to their fathers'],
 ];
@@ -270,8 +302,9 @@ describe('His words, read off the corpus rather than remembered', () => {
 });
 
 describe('the anchor and the lesson name each other, both directions', () => {
-  it('anchor.ref holds the twelve verses the lesson stands on', () => {
+  it('anchor.ref holds exactly the verses the lesson stands on, in order', () => {
     expect(anchorRefs(L)).toEqual(SPINE.map(([r]) => r));
+    expect(anchorRefs(L)).toHaveLength(13);
   });
 
   it('every anchor reference is named in the lesson text', () => {
@@ -296,6 +329,47 @@ describe('the anchor and the lesson name each other, both directions', () => {
     // the chapter this lesson had to decline for its friend prompt.
     expect(first.has('Proverbs 27'), 'the footing course no longer cites Proverbs 27 - re-pin this').toBe(true);
     expect(mine).not.toContain('Proverbs 27');
+  });
+
+  // THE CHECK THAT WOULD HAVE CAUGHT THE FIRST DRAFT, and the reason it exists.
+  // The first draft stood on Exodus 31 and Exodus 35 and passed everything in
+  // this file, because the two chapter checks either side of this one ask only
+  // about the FOOTING course and about mgmt1-mgmt8. The department asks a wider
+  // question: maintenance-trades-course.test.js requires THAT course to share no
+  // book-and-chapter with any of the other four Real Estate courses, and it
+  // already stands on Exodus 31 and Exodus 35 -- so the collision was mine to
+  // avoid and only CI shard 4/4 could see it. A finding that leaves no gate
+  // behind recurs (DR-0239), so the gate is here now, DERIVED from the catalog
+  // rather than listing the sibling courses by hand.
+  it('shares no chapter with ANY other Real Estate course, derived from the catalog', () => {
+    const shelf = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'Real Estate');
+    expect(shelf.length, 'the Real Estate shelf is empty - this check is measuring nothing').toBeGreaterThanOrEqual(5);
+    const others = new Set();
+    for (const course of shelf) {
+      let rows;
+      try { rows = course.buildScheduleRows() || []; } catch { continue; }
+      for (const row of rows) {
+        const m = row && (row.module || row);
+        if (!m || !m.id || m.id === ID) continue;
+        for (const r of anchorRefs(m)) others.add(r.split(':')[0].trim());
+      }
+    }
+    expect(others.size, 'the sibling refs are empty - this check is measuring nothing').toBeGreaterThan(40);
+    const mine = anchorRefs(L).map((r) => r.split(':')[0].trim());
+    const shared = mine.filter((bc) => others.has(bc));
+    expect(shared, `mgmt9 re-uses a Real Estate sibling's passages: ${shared.join(', ')}`).toEqual([]);
+    // PROVEN TO CATCH on the real shelf: the two chapters the first draft used
+    // are genuinely held by a sibling, so this is not a rule nobody can break.
+    // PROVEN TO CATCH on the real shelf: all THREE chapters the two earlier
+    // drafts used are genuinely held by siblings, so this is not a rule nobody
+    // can break. Exodus 31 and Exodus 35 are the maintenance course's (its
+    // lesson 2 is the craftsman); Proverbs 6 is the buying course's (its lesson
+    // 4 is surety). Each is asserted by name so a sibling dropping one makes
+    // this check say so rather than quietly weaken.
+    for (const bc of ['Exodus 31', 'Exodus 35', 'Proverbs 6']) {
+      expect(others.has(bc), `a sibling no longer holds ${bc} - re-pin this`).toBe(true);
+      expect(mine, `${bc} is a sibling's chapter`).not.toContain(bc);
+    }
   });
 
   it('reuses no chapter from mgmt1 to mgmt8 either', () => {
@@ -499,29 +573,38 @@ describe('every band sends the reader all three ways (DR-0733 / DR-0795)', () =>
 // ===========================================================================
 describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () => {
   it('a quotation that drifted by one word is caught', () => {
-    const bent = 'He wrote it. "Which having no guide, overseer, or master," (Proverbs 6:7).';
+    const bent = 'He wrote it. "The locusts have no ruler, yet go they forth all of them by bands;" (Proverbs 30:27).';
     expect(verbatimFaults([bent]).join(' ')).toMatch(/is not the verse/);
-    expect(verbatimFaults(['He wrote it. "Which having no guide, overseer, or ruler," (Proverbs 6:7).'])).toEqual([]);
+    expect(verbatimFaults(['He wrote it. "The locusts have no king, yet go they forth all of them by bands;" (Proverbs 30:27).'])).toEqual([]);
   });
 
   it('a verbatim span hung on the WRONG reference is caught', () => {
-    const bent = 'He wrote it. "Which having no guide, overseer, or ruler," (Proverbs 6:8).';
+    const bent = 'He wrote it. "The locusts have no king, yet go they forth all of them by bands;" (Proverbs 30:25).';
     expect(verbatimFaults([bent]).join(' ')).toMatch(/is not the verse/);
   });
 
-  it('a straight apostrophe where the corpus carries a typographic one would be caught', () => {
-    // The fault class a sibling hit twelve times in one draft. None of this
-    // lesson's spans carries an apostrophe at all, so the case is proven on a
-    // corpus span that does, from the same shelf.
-    const real = corpusText('Exodus 31:2');
+  it('a straight apostrophe where the corpus carries a typographic one IS caught', () => {
+    // The fault class a sibling hit twelve times in one draft: our own prose
+    // writes `organisation's` with a straight mark and the corpus writes
+    // `father’s` with a typographic one, so a span copied by hand drifts in a
+    // way no reader sees.
+    //
+    // THIS CASE WAS HOLLOW ON ITS FIRST WRITING and is recorded rather than
+    // quietly fixed. It probed Exodus 31:2, which carries NO apostrophe at all,
+    // so the break was guarded by `if (withStraight !== real)` and never ran --
+    // a proof that proves nothing is the anti-theatre case (DR-0076 s.3). It now
+    // probes Proverbs 30:28, which is in the very chapter this lesson stands on
+    // and really does carry `kings’`, and the break is asserted unconditionally.
+    const real = corpusText('Proverbs 30:28');
     expect(real).toBeTruthy();
+    expect(real, 'the probe verse must actually carry a typographic apostrophe').toMatch(/’/);
+    expect(verbatimFaults([`He said "${real}" (Proverbs 30:28).`])).toEqual([]);
     const withStraight = real.replace(/’/g, "'");
-    expect(verbatimFaults([`He said "${real}" (Exodus 31:2).`])).toEqual([]);
-    if (withStraight !== real) {
-      expect(verbatimFaults([`He said "${withStraight}" (Exodus 31:2).`]).join(' ')).toMatch(/is not the verse/);
-    }
-    // And the span this lesson actually ships is apostrophe-free, measured.
-    for (const [, span] of SPINE) expect(/['’]/.test(span)).toBe(false);
+    expect(withStraight).not.toBe(real);
+    expect(verbatimFaults([`He said "${withStraight}" (Proverbs 30:28).`]).join(' ')).toMatch(/is not the verse/);
+    // And every span this lesson actually ships is apostrophe-free, measured
+    // rather than assumed, which is why none of them could carry this fault.
+    for (const [ref, span] of SPINE) expect(/['’]/.test(span), ref).toBe(false);
   });
 
   it('deleting the disclosure from ONE band is caught, and by that band’s name', () => {
@@ -589,14 +672,15 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
 
   it('a chapter borrowed back from the footing course is caught', () => {
     const first = new Set(propertyPrincipleRefs().map((r) => r.split(':')[0].trim()));
-    const pretend = ['Proverbs 6:7', 'Proverbs 27:17'].map((r) => r.split(':')[0].trim());
+    const pretend = ['Proverbs 30:27', 'Proverbs 27:17'].map((r) => r.split(':')[0].trim());
     expect(pretend.filter((bc) => first.has(bc))).toEqual(['Proverbs 27']);
   });
 
   it('a generic God or "the LORD" drifting into our own prose is caught', () => {
     const ours = (t) => String(t).replace(/"[^"]*"/g, ' ').replace(/\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/g, ' ');
     expect(/\bGod\b/.test(ours('We teach that God requires faithfulness.'))).toBe(true);
-    expect(/\bGod\b/.test(ours('The Word says "with the spirit of God," (Exodus 31:3).'))).toBe(false);
+    expect(/\bGod\b/.test(ours('The Word says "Thy word is a lamp unto my feet" (Psalms 119:105), and God is not in our prose there.'))).toBe(true);
+    expect(/\bthe LORD\b/.test(ours('The men were those "in whom the LORD put wisdom and understanding" (Exodus 36:1).'))).toBe(false);
   });
 
   it('a testimony label on an invented story is caught', () => {
