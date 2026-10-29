@@ -87,6 +87,14 @@ export const KNOWN_OUTAGES = [
     // stops the carve-out working and the witness goes loud.
     tail: 'and no code change reaches it',
     since: '2026-10-09T15:46:45Z',
+    // EXPIRED, AND THE OUTAGE IT NAMES IS MEASURED OVER (2026-10-29, DR-1291).
+    // cf-pages-diagnose run 40810753037, 2026-10-29T03:16Z, on the live custom
+    // domain: /sb/auth/v1/health 200 signed pages-function (real GoTrue JSON),
+    // /cams/health 200 signed (real go2rtc JSON), /nas-photos/healthz 200
+    // signed. The Pages Function layer is UP. The entry stays, past its date
+    // and matching nothing, as the record of what 2026-10-09 was; it is not
+    // renewed, because renewing a carve-out for an outage that ended is how a
+    // suppression list starts lying.
     until: '2026-10-26',
     what: 'every Cloudflare Pages Function stopped being invoked',
     reach: 'Cloudflare-side — no code change in this repository reaches it',
@@ -113,9 +121,30 @@ export const KNOWN_OUTAGES = [
     signature: 'THE WORKER ROADS ARE DARK TOO',
     tail: "the wrangler zone route or the Worker's own deploy is the place to look",
     since: '2026-10-20T22:20:24Z',
-    // Sized to the hand step: a week for the token to land. Past this the
-    // reading is loud again, which is the only safe direction (note 1).
-    until: '2026-10-28',
+    // 2026-10-29, DR-1291: MOVED FROM '2026-10-28' TO THE DATE OF THE DECISION
+    // THAT GOVERNS THIS READING, not because it was noisy.
+    //
+    // The old date was sized on 2026-10-20 to "a week for the token to land".
+    // The NEXT DAY, DR-1180 decided the token is asked for ONCE and then the
+    // system stops asking, and set its own re-review at 2026-11-18 — four
+    // weeks. The carve-out kept the death date of a premise that had been
+    // replaced, so on 2026-10-29T00:00Z it expired into exactly the shape
+    // DR-1180:39 predicted it would ("four notes in eight hours, the shape
+    // DR-0975 ended"): 4 runs, each writing 🆕 "A FAULT NOT ALREADY ON RECORD"
+    // to #2404 and ringing the family's phones at priority 5, about the one
+    // thing Darrell had said to stop raising.
+    //
+    // DR-1180:71 expected this entry to be nearly dead code — "the only case
+    // that can still produce it" being both doors dark. That was wrong, and the
+    // reason is fixed in site-health.yml this same change: the Worker arm now
+    // reads the first-door VERDICT instead of one proxy road's header. With
+    // that fix this entry really is the both-doors safety net it was described
+    // as, and its date should expire with the decision, not three weeks early.
+    //
+    // It still expires. 2026-11-18 is DR-1180's own re-review, where the
+    // question becomes whether the Edge Guard is wanted at all; whichever way
+    // that goes is a record, and this entry dies with it.
+    until: '2026-11-18',
     what: 'the poetech-roads Worker is not deployed on its zone route (/edge/* answers the SPA shell)',
     reach: 'needs a Cloudflare token with Workers Scripts:Edit and Workers Routes:Edit for poetech.us, which only Darrell can mint; the repository token sees zero zones and zero scripts (cf-roads-worker run 39508087503)',
   },
