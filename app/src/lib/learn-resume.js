@@ -50,6 +50,8 @@
 // The bright line above is unchanged: keys and indexes only, this device only.
 // =============================================================================
 
+import { mergeWitness } from './reading-progress.js';
+
 const KEY = 'poe-learn-place';          // legacy single record — migrated, then mirrored
 const MAP_KEY = 'poe-learn-places';     // { v, last, mirror, byLesson: { 'course::lesson': place } }
 /** How many lessons' places a device keeps; the oldest untouched fall off first. */
@@ -200,8 +202,17 @@ function normPlace(p) {
     // not starting it, so a browse never shows up as "in progress" beside
     // the lessons a person is actually working through.
     started: p.started === true,
+    // HOW MUCH OF IT, BY EACH WITNESS (2026-10-29). Absent before this
+    // shipped, which honestly reads as nothing measured yet.
+    seen: frac(p.seen),
+    heard: frac(p.heard),
     at: typeof p.at === 'number' ? p.at : 0,
   };
+}
+
+function frac(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0;
 }
 
 /** The map key for one lesson's place. */
@@ -449,6 +460,19 @@ export function versionReads(place, id) {
   return v[cleanVersion(id)] || 0;
 }
 
+function witnessesFor(base, patch, moves) {
+  const rereading = base.done === true && moves;
+  const prev = rereading ? {} : { seen: base.seen, heard: base.heard };
+  const merged = mergeWitness(prev, { seen: patch.seen, heard: patch.heard });
+  return { seen: merged.seen, heard: merged.heard };
+}
+
+/** How far a saved place has reached, by either witness: 0..1. */
+export function placeReached(place) {
+  if (!place || typeof place !== 'object') return 0;
+  return mergeWitness({ seen: place.seen, heard: place.heard }).reached;
+}
+
 /**
  * Record (merge) the learner's place for ONE lesson and make it the latest.
  *
@@ -460,7 +484,8 @@ export function versionReads(place, id) {
  * starting it over (the defect DR-0631 closes). A lesson with no saved place
  * starts at 0 — a stale "step 5" never leaks into a freshly opened lesson.
  * @param {{courseKey?:string, lessonId?:string, stage?:number, step?:number,
- *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean, version?:string}} patch
+ *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean, version?:string,
+ *   seen?:number, heard?:number}} patch
  */
 export function recordPlace(patch, opts = {}) {
   const storage = opts.storage || defaultStorage();
@@ -483,7 +508,7 @@ export function recordPlace(patch, opts = {}) {
   const k = placeKey(courseKey, lessonId);
   // A lesson with no record starts unfinished: `done` belongs to the lesson
   // that was heard, and must never carry onto the next one.
-  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0, version: '', versions: {} };
+  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0, version: '', versions: {}, seen: 0, heard: 0 };
   const moves = patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined;
   const nextDone = patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true);
   const next = {
@@ -524,6 +549,14 @@ export function recordPlace(patch, opts = {}) {
     // them from its target (or as the deck names them at its end), kept
     // until another version is read. On the same false→true edge the
     // version read is counted, and like `finishes` nothing lowers it.
+    // HOW MUCH OF IT, BY EACH WITNESS (Darrell 2026-10-29: "what percentage of
+    // the lesson is left... so I and users can verify the full reading", and
+    // "merged version of both so it can be accurate both ways"). `seen` is the
+    // furthest share of the words that has been on screen, `heard` the furthest
+    // the reader has spoken; each only rises (lib/reading-progress.js). A new
+    // reading of a finished lesson starts both again, so every reading is
+    // verified on its own and a past one never stands in for this one.
+    ...witnessesFor(base, patch, moves),
     version: patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version),
     versions: countVersion(cleanVersions(base.versions),
       (nextDone && base.done !== true) ? (patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version)) : ''),
