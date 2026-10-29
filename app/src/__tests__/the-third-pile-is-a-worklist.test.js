@@ -369,7 +369,50 @@ const REPO = join(HERE, '..', '..', '..');
 // tree (18 lessons admitting, 102 disclosures, 4 checked, 15 in the gap), never a
 // sum of the branches. All three lessons' reasoning is kept in full, none edited
 // to suit another (DR-1136).
-const GAP = 15;
+// 15 -> 16 GAP on 2026-10-29 (sov58, the world that does not drift; DR-1295).
+// CHECKED does not move. sov58 takes the SECOND branch, and the reason is
+// measured rather than asserted. The source is one issue of a daily technology
+// newsletter (2026-10-28). ONE item carries the teaching -- a company's own
+// account of an early research version of a world model -- and ONE further item
+// is germane, a short reading list of five studies on whether these tools leave
+// their users better at their work. NEITHER reached us as anything but a
+// newsletter paragraph, and the lesson stakes NO figure: every number in the
+// issue (an operating margin, a quarterly revenue, a vendor discount, a
+// valuation, a share of surveyed workers, a slowdown measured in a trial)
+// arrived second hand inside somebody's summary of somebody else's report.
+//
+// THE ROAD WAS TRIED TWICE, not assumed shut (DR-0108). The publisher page for
+// the world model is at deepmind.google and the one study worth a figure is at
+// metr.org. BOTH answered ENOTFOUND -- the hosts are outside this session's
+// allowed network domains -- and the tool's own guidance is to stop after a
+// second host fails the same way, so no further hosts were tried. That is a
+// measured failure, and it is what all five reader texts tell the reader in
+// their own words rather than a polite "we did not read it". A GitHub runner
+// reaches hosts this sandbox cannot, which wm10 proved on www.kearney.com, so
+// the road exists; what it lacks is a candidate `says` string, because this
+// lesson stakes no figure and inventing one to probe would be the fabrication
+// the row exists to prevent.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov58-verses.test.js
+// refuses a currency symbol, a percentage and a number wearing a magnitude word
+// in any of the five reader texts, and proves the refusal by planting
+// "$2 billion" and "87%" and watching the shapes fire -- the second of which a
+// currency check alone would miss. A 0-figure row in lesson-sources.json is
+// forbidden (DR-0076 section 3) because it would make checked() count a lesson
+// whose figures nobody read, so the honest place for sov58 is HERE.
+// re-review: 2026-11-29 -- from a runner with web access, or once those two
+// hosts are allowed in the session's network settings, open the publisher page
+// and the study. If either carries a germane figure this lesson should teach,
+// teach it, give sov58 a row and lower this pin to 15; if neither prints a
+// figure the lesson needs, replace the "did not read" clause in all five reader
+// texts with an accurate one and lower the pin.
+//
+// MEASURED ON THIS TREE, never by arithmetic on a branch: scripts/unchecked-
+// claims.mjs prints 19 lessons admitting, 119 disclosures, 4 checked, 16 in the
+// gap. sov58 contributes 17 of those disclosures, which is the most of any
+// lesson in the list, because the limits are carried on the lesson AND all four
+// bands rather than once in an adult paragraph.
+const GAP = 16;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {

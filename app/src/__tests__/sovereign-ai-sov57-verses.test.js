@@ -236,24 +236,44 @@ const FIGURE_SHAPES = [
   /\b\d[\d,.]*\s*(?:million|billion|trillion|thousand)\b/i,
 ];
 
+// BY ORDINAL, NOT BY POSITION (2026-10-29). These three cases pinned the
+// COURSE's size — `toHaveLength(57)`, ids `1..57`, `weeks === 57`, `'57 weekly
+// sessions'` — and asserted sov57 was the LAST module. All of that was true the
+// day it was written and false the moment sov58 landed: CI shard 2/4 failed on
+// #2498 with `expected 58 to be 57` and a diff whose only entry was `+ 58`.
+//
+// Nothing about sov57 had changed. The gate was measuring the course by
+// POSITION, which is P62 exactly — decide by exact identity, never by position.
+// A lesson's own gate must assert what is true of THAT LESSON, or every lesson
+// in the course breaks its predecessor on the day it ships, forever.
+//
+// So: sov57 is the fifty-seventh module, at index 56, whatever comes after it;
+// the course's ids are a gapless 1..N with N DERIVED from the course; and the
+// meta still follows its own count, which is the real DR-0677 property the
+// typed `57` was only standing in for.
 describe('sov57 is in the course, fifty-seventh, and whole', () => {
-  it('exists exactly once as the last lesson with all four bands', () => {
+  const ORDINAL = 57;
+
+  it('exists exactly once, as the fifty-seventh lesson, with all four bands', () => {
     expect(L, `${ID} is not in the course`).toBeTruthy();
     expect(SOVEREIGN_AI_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(57);
-    expect(SOVEREIGN_AI_MODULES[SOVEREIGN_AI_MODULES.length - 1].id).toBe(ID);
+    expect(SOVEREIGN_AI_MODULES.length).toBeGreaterThanOrEqual(ORDINAL);
+    expect(
+      SOVEREIGN_AI_MODULES[ORDINAL - 1].id,
+      'sov57 must sit at the fifty-seventh position, whatever follows it',
+    ).toBe(ID);
     for (const b of BANDS) expect(typeof L.levels[b], b).toBe('string');
   });
 
-  it('the course ids run sov1 to sov57 with no gap and no repeat', () => {
+  it('the course ids run sov1 upward with no gap and no repeat, counting the course itself', () => {
     const numbers = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)-/.exec(m.id)[1])).sort((a, b) => a - b);
-    expect(numbers).toEqual(Array.from({ length: 57 }, (_, i) => i + 1));
+    expect(numbers).toEqual(Array.from({ length: SOVEREIGN_AI_MODULES.length }, (_, i) => i + 1));
+    expect(numbers, 'and 57 is one of them').toContain(ORDINAL);
   });
 
   it('the course meta follows its own module count rather than a hand-typed number', () => {
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
-    expect(SOVEREIGN_AI_META.weeks).toBe(57);
-    expect(SOVEREIGN_AI_META.format).toContain('57 weekly sessions');
+    expect(SOVEREIGN_AI_META.format).toContain(`${SOVEREIGN_AI_MODULES.length} weekly sessions`);
   });
 
   it('carries its build day from a real commit, not from the working tree', () => {
