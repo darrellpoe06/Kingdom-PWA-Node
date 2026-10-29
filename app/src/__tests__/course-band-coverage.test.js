@@ -109,7 +109,19 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(266); // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
+    expect(baseline.allFour).toBe(267); // 267 on 2026-10-29: mgmt9 (nobody is coming to define your work,
+    // DR-1281), the NINTH lesson of Management Is Stewardship, built from the SmartBrief for the Higher Ed
+    // Leader edition Darrell forwarded to himself on 2026-10-06 with one word above the body. MEASURED on
+    // the real catalog by a fresh scripts/course-band-baseline-write.mjs run (total 440 -> 441, allFour
+    // 266 -> 267, adultOnly 0, adultRegister 0, 174 still pinned), never hand-written. The whole course
+    // already carried four bands, so the management-stewardship row moves {lessons: 8, allFour: 8} ->
+    // {lessons: 9, allFour: 9} and the lesson could not have shipped short. Its own measurement, kept as
+    // this build recorded it: adult prose 1,247 words; shares child 0.59 / youth 0.65 / teen 0.70 /
+    // senior 0.65 against floors 0.50 / 0.60 / 0.60 / 0.60; ladder 1.4 / 2.5 / 4.3 / 6.1, strictly
+    // ascending, child under the 5.0 new-lesson ceiling and teen under this course's own 6.0; worst
+    // band-pair overlap 0.11.
+    //
+    // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
     // raise allFour, so each side of this merge said 265 and NEITHER was right. sov55 (the czar and the
     // charge, and the desk above the desk, DR-1273) measured 264 -> 265 on its own base, and dsi15
     // (weighed into named hands, DR-1278) measured 264 -> 265 on its. On the MERGED catalog both are
