@@ -5,7 +5,7 @@
 **Tier:** A for the gate on lesson pictures; the re-casting of existing lesson stories is content work tracked below
 **Type:** curriculum · representation
 **Area:** Learn · every course's stories, lesson pictures (`app/src/lib/lesson-figures.js`) and future illustrations
-**Declared by:** Darrell, 2026-10-29, in four messages during the DR-1280 build:
+**Declared by:** Darrell, 2026-10-29, in four messages during the DR-1289 build:
 
 > "We want people of color actually African Americans as the main character in these lessons and as the biblical Israelites so the community can see their ancestors in the Word from His Perspectives..."
 >
@@ -15,11 +15,11 @@
 >
 > "However the Israelites were mixed multitude like the African Americans of today... mixed with surrounding communities... so it makes sense from our communities perspective and we want it to be authentic to us... period."
 
-**Pairs with:** DR-1280 (lesson figures), DR-0098 (teach the Word, do not debate it), DR-0076 (verify every verse), DR-0089 / DR-0111 (a stated requirement is done, not re-asked)
+**Pairs with:** DR-1289 (lesson figures), DR-0098 (teach the Word, do not debate it), DR-0076 (verify every verse), DR-0089 / DR-0111 (a stated requirement is done, not re-asked)
 
 ## Context
 
-The family asked for pictures in the lessons (DR-1280). While that was being built, Darrell set the requirement for who the pictures and stories show. Until now no lesson picture existed, and nothing in the house said who a lesson's people look like. Western religious art has long drawn the people of the Word as pale Europeans, which none of the verses below describe.
+The family asked for pictures in the lessons (DR-1289). While that was being built, Darrell set the requirement for who the pictures and stories show. Until now no lesson picture existed, and nothing in the house said who a lesson's people look like. Western religious art has long drawn the people of the Word as pale Europeans, which none of the verses below describe.
 
 ## Decision
 

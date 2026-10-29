@@ -5,7 +5,7 @@
 // images in the lessons if we need a diagram or workflows timelines etc..."
 // L270 asked "what changed when you saw the chart?" and showed no chart.
 //
-// THREE THINGS THIS GATE HOLDS (DR-1280):
+// THREE THINGS THIS GATE HOLDS (DR-1289):
 //   1. Every lesson the sweep found pointing at a picture the reader could not
 //      see now carries one, and a figure that would not render cannot pass.
 //   2. Nothing on a figure is invented. L270's sixty-six rows are derived from
