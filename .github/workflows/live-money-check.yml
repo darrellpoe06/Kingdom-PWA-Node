@@ -1,0 +1,30 @@
+# One-off, read-only: open poetech.us in the app's sample mode (?demo — no
+# sign-in, no storage, no saves) on the Galaxy Z Fold 7 cover and inner screens
+# and check every Money section. Lives only on probe/live-money-check: no PR,
+# no CI, no deploy. Re-run by pushing an empty change to this branch.
+name: live money check (read-only, one-off)
+on:
+  push:
+    branches: ['probe/live-money-check']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright-core@1
+      - name: Every Money section on the live site, Fold 7 cover + inner
+        env:
+          PW_CHANNEL: chrome
+        run: node live-money-probe.cjs https://poetech.us/poetech-app/ live-out
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-money-check
+          path: live-out
+          if-no-files-found: ignore
