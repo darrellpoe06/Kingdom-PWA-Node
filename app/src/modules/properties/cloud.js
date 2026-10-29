@@ -783,7 +783,7 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
 // advertising another family's door. The unit is normalised; the street is
 // only cleaned.
 export { unitKey, streetKey, sameApartment } from './apartment.js';
-import { sameApartment } from './apartment.js';
+import { sameApartment, buildingKey } from './apartment.js';
 
 /**
  * The pictures of the OTHER doors in the same apartment (DR-0963).
@@ -902,6 +902,86 @@ export async function saveDoorPhotoOrder(rentalId, instanceId, patches = [], cli
     const { error } = await client.from('door_photo_order').upsert(rows, { onConflict: 'rental_id,photo_id' });
     if (error) return no('write-failed', error);
     return ok({ saved: rows.length });
+  } catch (e) { return no('unexpected', e); }
+}
+
+// ---------------------------------------------------------------------------
+// THE BUILDING'S PICTURE POOL (DR-1290, 0314)
+// ---------------------------------------------------------------------------
+// Darrell, 2026-10-29, on a door at 805: "Need to be able to show images of
+// the entry on all doors in 805!!!!! All pictures for any apartment should be
+// available from the same images pool... we can add which apt... however we
+// should be able to use anything it's the same building!!!!!"
+//
+// The apartment (loadSiblingPhotos above) is shared automatically and stays
+// exactly as it was. The rest of the BUILDING is a pool the family picks
+// from: every picture filed on another door with the same building key
+// (apartment.js buildingKey, the database's building_key, 0283), in the same
+// instance, each still on its own door and saying which. Placing one on this
+// door is one door_photo_order row; 0314's trigger refuses anything outside
+// the building, and RLS decides who reads or writes at all. The same rule as
+// the sibling read: no tenancy filter here, the instance check is a
+// correctness refinement on rows RLS already returned.
+
+/**
+ * The pictures on the OTHER apartments of this door's building, and which of
+ * them this door already uses. Metadata only (DR-0955).
+ * @returns {{ok:true, photos:object[], doors:object[], placed:Object<string,number>}|{ok:false}}
+ */
+export async function loadBuildingPool(rentalId, client = supabase) {
+  if (!rentalId) return ok({ photos: [], doors: [], placed: {} });
+  try {
+    const { data: me, error: meErr } = await client
+      .from('rentals').select('id, slug, instance_id, address, unit').eq('id', rentalId).single();
+    if (meErr) return no('read-failed', meErr);
+    const mine = me ? buildingKey(me.address, me.unit) : '';
+    if (!mine) return ok({ photos: [], doors: [], placed: {} });
+    const { data: all, error: allErr } = await client
+      .from('rentals').select('id, slug, display_name, instance_id, address, unit');
+    if (allErr) return no('read-failed', allErr);
+    const doors = (all || []).filter((r) => (
+      r.id !== rentalId
+      && r.instance_id === me.instance_id
+      && !sameApartment(r, me)
+      && buildingKey(r.address, r.unit) === mine
+    ));
+    const refs = doors.map((r) => r.id).filter(Boolean);
+    if (!refs.length) return ok({ photos: [], doors: [], placed: {} });
+    const { data, error } = await client
+      .from('property_photos').select(PHOTO_LIST_COLUMNS)
+      .in('rental_ref', refs)
+      .is('archived_at', null)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('taken_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    const { data: rows, error: rowsErr } = await client
+      .from('door_photo_order').select('photo_id, position').eq('rental_id', rentalId);
+    if (rowsErr) return no('read-failed', rowsErr);
+    const inPool = new Set((data || []).map((p) => p.id));
+    const placed = {};
+    for (const row of rows || []) if (inPool.has(row.photo_id)) placed[row.photo_id] = row.position;
+    return ok({ photos: data || [], doors, placed });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Put a picture from elsewhere in the building on this door, at `position`. */
+export async function placeBuildingPhoto(rentalId, instanceId, photoId, position, client = supabase) {
+  if (!rentalId || !instanceId || !photoId) return no('no-door');
+  try {
+    const row = { rental_id: rentalId, photo_id: photoId, instance_id: instanceId, position: Math.round(Number(position) || 0) };
+    const { error } = await client.from('door_photo_order').upsert([row], { onConflict: 'rental_id,photo_id' });
+    if (error) return no('write-failed', error);
+    return ok({ saved: 1 });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Take a building picture off this door. The picture itself stays on its own door. */
+export async function unplaceBuildingPhoto(rentalId, photoId, client = supabase) {
+  if (!rentalId || !photoId) return no('no-door');
+  try {
+    const { error } = await client.from('door_photo_order').delete().eq('rental_id', rentalId).eq('photo_id', photoId);
+    if (error) return no('write-failed', error);
+    return ok({ removed: 1 });
   } catch (e) { return no('unexpected', e); }
 }
 
