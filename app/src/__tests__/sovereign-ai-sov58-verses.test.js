@@ -282,24 +282,40 @@ const OWN_IMAGE = {
 };
 const uniqueCarrier = (pin) => PLACES.filter((p) => TEXTS[p].includes(pin));
 
+// BY ORDINAL, NOT BY POSITION — written this way from the start, because this
+// lesson is the one that proved the cost. Shipping sov58 broke sov57's gate:
+// its cases pinned the COURSE's size and called sov57 the LAST module, so CI
+// shard 2/4 on #2498 failed with `expected 58 to be 57` while nothing about
+// sov57 had changed. That is P62 — decide by exact identity, never by position.
+//
+// The same pins were in this file's first draft. Had they shipped, sov59 would
+// have broken this gate on the day it landed, which is minting the defect the
+// same PR had just paid for. So sov58 asserts what is true of SOV58 — it is the
+// fifty-eighth module, at index 57, whatever follows it — and the course's size
+// is derived from the course.
 describe('sov58 is in the course, fifty-eighth, and whole', () => {
-  it('exists exactly once as the last lesson with all four bands', () => {
+  const ORDINAL = 58;
+
+  it('exists exactly once, as the fifty-eighth lesson, with all four bands', () => {
     expect(L, `${ID} is not in the course`).toBeTruthy();
     expect(SOVEREIGN_AI_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(58);
-    expect(SOVEREIGN_AI_MODULES[SOVEREIGN_AI_MODULES.length - 1].id).toBe(ID);
+    expect(SOVEREIGN_AI_MODULES.length).toBeGreaterThanOrEqual(ORDINAL);
+    expect(
+      SOVEREIGN_AI_MODULES[ORDINAL - 1].id,
+      'sov58 must sit at the fifty-eighth position, whatever follows it',
+    ).toBe(ID);
     for (const b of BANDS) expect(typeof L.levels[b], b).toBe('string');
   });
 
-  it('the course ids run sov1 to sov58 with no gap and no repeat', () => {
+  it('the course ids run sov1 upward with no gap and no repeat, counting the course itself', () => {
     const numbers = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)-/.exec(m.id)[1])).sort((a, b) => a - b);
-    expect(numbers).toEqual(Array.from({ length: 58 }, (_, i) => i + 1));
+    expect(numbers).toEqual(Array.from({ length: SOVEREIGN_AI_MODULES.length }, (_, i) => i + 1));
+    expect(numbers, 'and 58 is one of them').toContain(ORDINAL);
   });
 
   it('the course meta follows its own module count rather than a hand-typed number', () => {
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
-    expect(SOVEREIGN_AI_META.weeks).toBe(58);
-    expect(SOVEREIGN_AI_META.format).toContain('58 weekly sessions');
+    expect(SOVEREIGN_AI_META.format).toContain(`${SOVEREIGN_AI_MODULES.length} weekly sessions`);
   });
 
   it('carries its build day from a real commit, not from the working tree', () => {
