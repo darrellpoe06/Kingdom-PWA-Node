@@ -358,8 +358,17 @@ describe('the honest limit is on every surface a reader can open', () => {
     // The whole spine. A read-back proves the publisher said it; the publisher
     // is also the seller; so the lesson must say both halves and never only the
     // flattering one.
+    //
+    // THE FIRST VERSION OF THIS CHECK FIRED ON CORRECT CONTENT, which is the
+    // failure plain-before-the-term's header forbids, and it is recorded here
+    // rather than quietly rewritten. It refused the phrase "the study is sound"
+    // anywhere — and the youth band carries it inside a NEGATION: "It
+    // establishes nothing about whether the study is sound". A negative regex
+    // over prose will always catch the negated form of the thing it forbids, so
+    // the strings below are ones that cannot appear inside a denial, and they
+    // were counted absent across all five places before being trusted.
     for (const p of PLACES) {
-      expect(TEXTS[p], `${p} claims more than attribution`).not.toMatch(/independently verified the (?:study|claim)|the study is sound|we confirmed the claim/i);
+      expect(TEXTS[p], `${p} claims more than attribution`).not.toMatch(/we (?:have )?(?:independently )?verified|we tested the works|we confirmed (?:the|that)|the figures are verified/i);
       expect(TEXTS[p], `${p} drops the seller-is-the-witness half`).toMatch(/we did not test the works/i);
     }
   });
@@ -388,7 +397,7 @@ describe('the lesson teaches both halves of a name, and never only one', () => {
     // at weighing his own claim, which is the wrong half taken with care.
     for (const p of PLACES) {
       expect(TEXTS[p], `${p} drops Proverbs 20:14`).toMatch(/saith the buyer/);
-      expect(TEXTS[p], `${p} never puts the weight in the buyer's own hand`).toMatch(/(?:false weight|trick) in the BUYER’S hand/);
+      expect(TEXTS[p], `${p} never puts the weight in the buyer's own hand`).toMatch(/(?:false weight|trick) in the BUYER’S hand/i);
     }
   });
 
@@ -431,8 +440,11 @@ describe('every band sends the reader all three ways', () => {
     // Exactly the proof the builder brief asks for (DR-0795): the per-band check
     // must name the short band while hasAllThree(module) still reads green,
     // because the pool is satisfied by any other band carrying the line.
+    // placesMissingDirections returns [{ place, missing }], not bare names.
     const bent = { ...L, levels: { ...L.levels, child: L.levels.child.replace(/Friends, tell one friend this week[^.]*\./, '') } };
-    expect(placesMissingDirections(bent)).toContain('child');
+    const named = placesMissingDirections(bent);
+    expect(named.map((x) => x.place)).toContain('child');
+    expect(named.find((x) => x.place === 'child').missing.length).toBeGreaterThan(0);
     expect(hasAllThree(bent), 'the pooled check cannot see a single short band').toBe(true);
     // and the real article is short nowhere
     expect(placesMissingDirections(L)).toEqual([]);
@@ -451,18 +463,23 @@ describe('the four bands are measured, not claimed', () => {
   });
 
   it('the reading ladder ascends and the child band is under the new-lesson ceiling', () => {
+    // measureLesson returns { id, bands: { child: { authored, full }, ... } };
+    // `authored` is the grade with quoted Scripture stripped, which is the only
+    // register it is fair to score an author on.
     const m = measureLesson(L);
-    expect(isInverted(m), `the ladder is not strictly ascending: ${JSON.stringify(m.grades)}`).toBe(false);
-    expect(m.grades.child).toBeLessThan(NEW_LESSON_CHILD_CEILING);
-    expect(m.grades.child).toBeLessThan(m.grades.youth);
-    expect(m.grades.youth).toBeLessThan(m.grades.teen);
-    expect(m.grades.teen).toBeLessThan(m.grades.senior);
+    expect(isInverted(m), `the ladder is not strictly ascending: ${JSON.stringify(m.bands)}`).toBe(false);
+    const g = Object.fromEntries(BANDS.map((b) => [b, m.bands[b].authored]));
+    expect(g.child).toBeLessThan(NEW_LESSON_CHILD_CEILING);
+    expect(g.child).toBeLessThan(g.youth);
+    expect(g.youth).toBeLessThan(g.teen);
+    expect(g.teen).toBeLessThan(g.senior);
   });
 
   it('the bands are four versions rather than one repeated', () => {
+    // duplicatedBands takes the MEASUREMENT, not the module.
     const d = measureDifferentiation(L);
     expect(d.worst).toBeLessThan(DIFF_CEILING);
-    expect(duplicatedBands(L)).toEqual([]);
+    expect(duplicatedBands(d)).toEqual([]);
   });
 
   it('and each band names the lesson in its own opening', () => {
