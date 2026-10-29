@@ -45,38 +45,56 @@ describe('the id question still answers exactly as it did', () => {
     expect(shipped.get('1a10bf98e21775dd').exact).toBe(true);
   });
 
-  it('the defect is that DR-0763 never writes the id, and that is what is pinned', () => {
-    // THIS ASSERTION USED TO READ `anyShipped(sweep([L213_THREAD])) === false`
-    // -- the sweep is blind to this thread -- and DR-1288 BROKE IT, because
-    // DR-1288 names the thread in its own table of what went wrong. Writing the
-    // record closed the hole for this one thread.
-    //
-    // That is worth more than the assertion it replaced. Pinning "the sweep
-    // cannot see this" pinned a SYMPTOM that any later record mentioning the
-    // id would erase. The cause is that the record which BUILT the teaching
-    // does not name its source by id, and that is still true and still the
-    // reason the second question has to exist. It is also the whole premise of
-    // the sequenced other half: make records name their thread, and the id
-    // check stops having holes -- demonstrated here by accident, on itself.
-    const built = LIVE.find((r) => r.dr === 'DR-0763');
-    expect(built, 'DR-0763 must be in the ledger for this to measure anything').toBeTruthy();
-    expect(built.text, 'the record that built L213 names its source in prose, not by id')
-      .not.toContain(L213_THREAD);
-    expect(built.text, 'and it does name the source in prose, which is what the subject probe reads')
-      .toMatch(/snag/i);
-    // So an id-only sweep, given only that record, is blind to the teaching.
-    const idOnly = sweep([L213_THREAD], [built]);
-    expect(anyShipped(idOnly), 'the id question cannot answer from the record that built it').toBe(false);
-  });
-
   it('it still refuses a prefix too short to search safely', () => {
     expect(() => sweep(['abc'], LIVE)).toThrow(/too short/);
     expect(MIN_ID).toBe(8);
   });
 
   it('the ledger it reads is genuinely the ledger', () => {
-    // Anti-vacuity: every measurement below is a share of this number.
+    // ANTI-VACUITY, and this assertion was deleted by accident once already:
+    // a careless slice while rewriting the test above removed it along with the
+    // short-prefix refusal, and `lint` caught the orphaned MIN_ID import rather
+    // than any test noticing its own anti-vacuity guard had gone. Without this,
+    // every rarity measurement below would pass on an empty ledger.
     expect(LIVE.length).toBeGreaterThan(900);
+  });
+
+  it('DR-0763 now names its thread id, and this assertion has been rewritten twice to say so', () => {
+    // THIS ONE ASSERTION HAS BEEN WRITTEN THREE TIMES IN ONE SESSION, each time
+    // because the thing it described stopped being true -- which is what a test
+    // pinned to a defect rather than to a behaviour always does:
+    //
+    //   1. "the sweep is blind to this thread" -- broken by DR-1288 itself,
+    //      which names the thread in its own table of what went wrong.
+    //   2. "DR-0763's text does not contain the id" -- the CAUSE, which was the
+    //      right thing to pin while it held, and broken by this commit
+    //      recovering the id into that record.
+    //   3. This: DR-0763 NAMES its thread id. That is the repair, it is
+    //      durable, and a regression would be a record losing its provenance.
+    //
+    // The history stays in this comment because the lesson is about tests, not
+    // about DR-0763: pin the behaviour you want, and keep the defect in prose.
+    const built = LIVE.find((r) => r.dr === 'DR-0763');
+    expect(built, 'DR-0763 must be in the ledger for this to measure anything').toBeTruthy();
+    expect(built.text, 'the record that built L213 must name the thread it was built from')
+      .toContain(L213_THREAD);
+    // And the id question can now answer from that record alone, which is the
+    // whole point of recovering it rather than widening a detector around it.
+    expect(anyShipped(sweep([L213_THREAD], [built]))).toBe(true);
+  });
+
+  it('the subject probe stands on its own, not on DR-0763 being unfixed', () => {
+    // The capability must not depend on one record's state. On a synthetic
+    // ledger whose only record names its source in prose and no id, the id
+    // question is blind and the subject question is not.
+    const prose = [{
+      dr: 'DR-9001',
+      file: 'DR-9001-x.md',
+      text: 'Grounds: forwarded by email, a Big Think piece titled "quadrotriticale harvests of Sherman" with no id anywhere.',
+    }];
+    expect(anyShipped(sweep(['1a99999999999999'], prose)), 'the id question cannot see it').toBe(false);
+    const { hits } = sweepSubject('quadrotriticale harvests of Sherman', prose);
+    expect(hits.map((h) => h.dr), 'the subject question can').toEqual(['DR-9001']);
   });
 });
 
