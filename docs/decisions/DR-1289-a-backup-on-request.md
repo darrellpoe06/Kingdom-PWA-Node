@@ -1,4 +1,4 @@
-# DR-1285 — A backup on request: the family database is backed up when a steward asks, through the queue that needs no tailnet key
+# DR-1289 — A backup on request: the family database is backed up when a steward asks, through the queue that needs no tailnet key
 
 **Date:** 2026-10-29
 **Status:** Accepted

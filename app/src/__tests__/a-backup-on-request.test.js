@@ -1,5 +1,5 @@
 // a-backup-on-request.test.js — a steward can ask for a database backup from the
-// app, and the verdict comes back on the request row (DR-1285).
+// app, and the verdict comes back on the request row (DR-1289).
 // Measured 2026-10-29: the runner's tailnet key had been refused for a day, so no
 // nightly backup could be confirmed from outside while a release waited on one.
 // The ops queue (DR-0088) is the road that needs neither that key nor Cloudflare.

@@ -128,7 +128,7 @@ def job_resume_transcripts(params):
     return "done", "loader was not paused (no flags found)", {"cleared": 0}
 
 
-# --- the database backup, on request (DR-1285) ---------------------------------
+# --- the database backup, on request (DR-1289) ---------------------------------
 # The sovereign database already backs itself up every night on the services-sync
 # clock (infra/nas-db-backup, DR-1113). These two jobs let a steward ask for one
 # NOW, from the app, through this same queue -- the road that needs neither the
