@@ -91,5 +91,24 @@
       "claim": "a global study of 21,500 consumers; $20 trillion in spending could become contestable as trust shifts from brand name to proven performance; 86 percent of consumers care more about whether something works than the brand behind it",
       "note": "Read back by machine on a GitHub runner, 2026-10-29 (this cloud sandbox cannot reach www.kearney.com at all -- the agent proxy answers 403 to the CONNECT by policy; a runner reaches it. DR-0108, the team's reach, not one agent's). Two probe runs on a throwaway branch found the page's own wording rather than the email's: the page says '86 percent', NOT the email's '86%', and it does not carry 'proven performance' or 'up for grabs' as strings at all. WHAT THIS ROW PROVES, AND THE LIMIT IS THE POINT OF THE LESSON: the publisher asserts these things on its own page. It proves NOTHING about whether the study is methodologically sound, whether 21,500 people were in fact surveyed, what question produced that 86, or whether a quantity the size of $20 trillion carries a meaning anyone can act on -- and the publisher here is also the party SELLING the report, so this is an attribution read back from the seller, never an independent test of the works. The lesson says exactly that in its adult text and in all four bands. NOT read back, and said rather than smoothed over: the email's 'additional 80 minutes a day' is absent from the page (the probe asked for '80 minutes a day' and 'additional 80 minutes' and the page says neither), so it stays the email's claim, labelled as such on every surface. '86 percent' is the weakest of the five strings here -- two tokens, where the other four are distinctive -- and it is carried because the lesson states that figure and a stated figure should not go unwitnessed. Nobody here read the report itself, which is sold rather than given."
     }
+  ],
+  "bank9-the-moat-that-moves": [
+    {
+      "publisher": "Morgan Stanley",
+      "title": "Morgan Stanley Reports Third Quarter 2026 (the firm's own earnings release)",
+      "url": "https://www.morganstanley.com/content/dam/msdotcom/en/about-us-ir/shareholder/3q2026.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "net new assets were $232 billion",
+        "net revenues of $9.1 billion",
+        "compared with $8.2 billion",
+        "up 41%",
+        "$10.5 trillion",
+        "Ted Pick, Chairman and Chief Executive Officer"
+      ],
+      "claim": "the firm's own third-quarter 2026 release states that net new assets were $232 billion, gives net revenues of $9.1 billion compared with $8.2 billion, reports an increase of 41%, prints $10.5 trillion, and names Ted Pick as Chairman and Chief Executive Officer",
+      "note": "Read back by machine on a GitHub runner, 2026-10-28: this sandbox cannot reach morganstanley.com at all (the agent proxy answers 403 to the CONNECT), a runner can -- DR-0108, the team's reach, not one agent's. Found by three probe runs on a throwaway branch: 40776657937 located the release at .../shareholder/3q2026.pdf after /press-releases/3q-2026-earnings-results answered 404; 40777096354 established which figure strings the PDF prints; 40777425081 established the CONTEXT each one sits in. Phrasings the release does NOT use, and which are therefore not claimed: 'net new assets of $232 billion', 'client assets of $10.5 trillion', 'from $8.2 billion', 'increased 41%'. NOT read back, and said rather than smoothed over: the $81 billion of net new assets a year earlier and the $5.8 billion from stock trading are absent from this release, and 'Sharon Yeshaya' does not appear in it, so those stay The Daily Upside's report. The nearly 40 percent S&P 500 top-ten concentration has no row at all: no index document was opened for it, and a 0-figure row would make checked() count a lesson whose figure nobody read (DR-0076 section 3). The LABELS are held apart from the FIGURES: the release prints $9.1 billion and $10.5 trillion, but the segment description the newsletter attached to each was not verified adjacent to the figure, and the lesson says so in its own text and in all four bands."
+    }
   ]
 }
