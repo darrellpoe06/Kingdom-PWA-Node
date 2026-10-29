@@ -74,5 +74,24 @@
       "claim": "families headed by someone 75 or older: median net worth $504,900 and mean $1,962,200; the 65-to-74 group's median $431,300; 12.2 percent of families late on a loan payment in 2022",
       "note": "The bulletin prints dollars in THOUSANDS, so the figures read back as 504.9, 1,962.2 and 431.3 rather than the newsletter's rounded $505,000 / $1.96 million / $431,300. Read back by machine on a GitHub runner, 2026-10-28 (the cloud sandbox cannot resolve federalreserve.gov at all; the runner can -- DR-0108, the team's reach, not one agent's). NOT read back, and said rather than smoothed over: the $367,000 the newsletter gives as the 75-and-over group's PREVIOUS median is absent from this bulletin (the witness asked for '367.2' and the PDF does not say it), and the 37 percent and 23 percent CHANGES cannot be honoured here -- bare '37' and '23' occur all over a long PDF, so matching them would be theatre, not a read-back (DR-0076 section 3). Those three figures remain the newsletter's claims, labelled as such in the lesson and in all four bands."
     }
+  ],
+  "bank9-the-moat-that-moves": [
+    {
+      "publisher": "Morgan Stanley",
+      "title": "Morgan Stanley Reports Third Quarter 2026 (the firm's own earnings release)",
+      "url": "https://www.morganstanley.com/content/dam/msdotcom/en/about-us-ir/shareholder/3q2026.pdf",
+      "read": "2026-10-28",
+      "format": "pdf",
+      "says": [
+        "net new assets were $232 billion",
+        "net revenues of $9.1 billion",
+        "compared with $8.2 billion",
+        "up 41%",
+        "$10.5 trillion",
+        "Ted Pick, Chairman and Chief Executive Officer"
+      ],
+      "claim": "the firm's own third-quarter 2026 release states that net new assets were $232 billion, gives net revenues of $9.1 billion compared with $8.2 billion, reports an increase of 41%, prints $10.5 trillion, and names Ted Pick as Chairman and Chief Executive Officer",
+      "note": "Read back by machine on a GitHub runner, 2026-10-28: this sandbox cannot reach morganstanley.com at all (the agent proxy answers 403 to the CONNECT), a runner can -- DR-0108, the team's reach, not one agent's. Found by three probe runs on a throwaway branch: 40776657937 located the release at .../shareholder/3q2026.pdf after /press-releases/3q-2026-earnings-results answered 404; 40777096354 established which figure strings the PDF prints; 40777425081 established the CONTEXT each one sits in. Phrasings the release does NOT use, and which are therefore not claimed: 'net new assets of $232 billion', 'client assets of $10.5 trillion', 'from $8.2 billion', 'increased 41%'. NOT read back, and said rather than smoothed over: the $81 billion of net new assets a year earlier and the $5.8 billion from stock trading are absent from this release, and 'Sharon Yeshaya' does not appear in it, so those stay The Daily Upside's report. The nearly 40 percent S&P 500 top-ten concentration has no row at all: no index document was opened for it, and a 0-figure row would make checked() count a lesson whose figure nobody read (DR-0076 section 3). The LABELS are held apart from the FIGURES: the release prints $9.1 billion and $10.5 trillion, but the segment description the newsletter attached to each was not verified adjacent to the figure, and the lesson says so in its own text and in all four bands."
+    }
   ]
 }
