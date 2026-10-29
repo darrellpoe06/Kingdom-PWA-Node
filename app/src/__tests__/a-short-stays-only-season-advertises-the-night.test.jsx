@@ -21,6 +21,9 @@ vi.mock('../modules/properties/cloud.js', () => ({
   loadVacancyPhotos: async () => ({ ok: true, photos: [] }),
   loadPhotoImages: async () => ({ ok: true, images: {} }),
   loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
+  // The building's picture pool (DR-1290), empty: a door with no other apartments.
+  loadBuildingPool: async () => ({ ok: true, photos: [], doors: [], placed: {} }),
+  placeBuildingPhoto: async () => ({ ok: true, saved: 1 }), unplaceBuildingPhoto: async () => ({ ok: true, removed: 1 }),
   loadBookedNights: async () => ({ ok: true, ranges: [] }),
   requestAStay: async () => ({ ok: true }),
   loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }),
