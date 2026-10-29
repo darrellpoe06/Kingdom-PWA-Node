@@ -186,8 +186,39 @@ const REPO = join(HERE, '..', '..', '..');
 // it, give dsi15 a row in lesson-sources.json and lower this pin to 12; if the
 // article prints no figure either, drop the "did not read the full article"
 // clause for an accurate one and lower the pin.
+// 2 -> 3 CHECKED on 2026-10-29 (wm10, the name and the proof; DR-1280). THE GAP
+// DOES NOT MOVE, and that is the whole shape of this entry: wm10 arrived carrying
+// disclosures AND left the gap untouched in the same change, because it gained a
+// source row rather than an apology. It is the first lesson of the three to take
+// the FIRST branch on its first commit -- legacy8 did it the same way a day
+// earlier, and wm9 and dsi15 both had to take the second.
+//
+// The road is the reason it was possible (DR-0108). The figures reached us inside
+// an email -- which is what made wm9 unable to point lesson-sources.json at
+// anything -- but this email is a SPONSOR PLACEMENT, and a sponsor's whole
+// purpose is to send the reader to the sponsor's own page. So the publisher page
+// exists, it is named in the email, and a runner reaches it: this sandbox gets
+// 403 to the CONNECT from the agent proxy for www.kearney.com (policy, the same
+// shape DR-1146 recorded for slack.engineering), and a GitHub runner read the
+// page in under two seconds. Two probe runs on a throwaway branch found what no
+// amount of reasoning would have: the page says "86 percent" and NOT the email's
+// "86%", and it carries neither "proven performance" nor "up for grabs" as
+// strings, both of which are the email's copy rather than the publisher's.
+//
+// AND THE LESSON TEACHES THE LIMIT OF ITS OWN ROW, which is why this entry is
+// not simply a win. A read-back proves ATTRIBUTION. It proves the publisher
+// asserts the figure on its own page, and it proves nothing about whether the
+// study is sound, the sample real, or the inference good -- and here the
+// publisher is also the party SELLING the report, so the witness is the seller.
+// That distinction is the lesson's spine, stated in its adult text and in all
+// four bands: we asked the name whether the name said it, and we did not test
+// the works.
+//
+// What did NOT read back is on the row's own note and is not smoothed over: the
+// email's "additional 80 minutes a day" is absent from the page, so it stays the
+// email's claim, labelled as such on every surface.
 const GAP = 13;
-const CHECKED_LESSONS = 2;
+const CHECKED_LESSONS = 3;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {
