@@ -22,7 +22,7 @@
 //               into the repo so nothing depends on a third-party cloud when
 //               the lesson is read.
 //
-// THE PEOPLE IN A LESSON PICTURE (DR-1281, Darrell 2026-10-29, a requirement,
+// THE PEOPLE IN A LESSON PICTURE (DR-1287, Darrell 2026-10-29, a requirement,
 // not a question): "We want people of color actually African Americans as the
 // main character in these lessons and as the biblical Israelites so the
 // community can see their ancestors in the Word from His Perspectives." And:
@@ -49,7 +49,7 @@ export const FIGURE_KINDS = ['span-chart', 'sequence', 'quadrant', 'image'];
 /** Where an image figure's file must live: the app's own public folder. */
 export const FIGURE_IMAGE_ROOT = '/lesson-figures/';
 
-/** How the people in a lesson picture are drawn (DR-1281). */
+/** How the people in a lesson picture are drawn (DR-1287). */
 export const LESSON_PEOPLE_SHOWN = 'African American';
 
 const L270 = 'll270-the-progress-of-revelation-the-word-came-in-order-and-stands-forever';
@@ -190,7 +190,7 @@ export function figureProblems(f) {
     if (typeof f.src !== 'string' || !f.src.startsWith(FIGURE_IMAGE_ROOT)) out.push(`image src must live under ${FIGURE_IMAGE_ROOT}`);
     if (!f.alt) out.push('image without alt text');
     if (typeof f.depictsPeople !== 'boolean') out.push('image must say whether it shows people (depictsPeople)');
-    if (f.depictsPeople === true && f.peopleShown !== LESSON_PEOPLE_SHOWN) out.push(`the people in a lesson picture are drawn as ${LESSON_PEOPLE_SHOWN} (DR-1281)`);
+    if (f.depictsPeople === true && f.peopleShown !== LESSON_PEOPLE_SHOWN) out.push(`the people in a lesson picture are drawn as ${LESSON_PEOPLE_SHOWN} (DR-1287)`);
   }
   return out;
 }

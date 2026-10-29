@@ -6,7 +6,7 @@
 **Type:** surface
 **Area:** Learn · Living Lessons (`app/src/lib/lesson-figures.js`, `app/src/components/LessonFigures.jsx`, `app/src/components/ChurchLearn.jsx`)
 **Sent in by:** the family, 2026-10-29, with two phone screenshots of L270 "The Progress of Revelation": *"We need to see images in the lessons if we need a diagram or workflows timelines etc... we have connected to canvas correct?"* (Canva.)
-**Pairs with:** DR-0076 (§1 evidence, §3 proven-to-catch, §8 provenance), DR-0098, DR-0100, DR-0061 / DR-0065 (the app is the primary artifact), DR-0340 (a reference opens the Word in place), DR-0381 (a surface does not promise what it does not do), DR-1281 (the people in a lesson picture)
+**Pairs with:** DR-0076 (§1 evidence, §3 proven-to-catch, §8 provenance), DR-0098, DR-0100, DR-0061 / DR-0065 (the app is the primary artifact), DR-0340 (a reference opens the Word in place), DR-0381 (a surface does not promise what it does not do), DR-1287 (the people in a lesson picture)
 
 ## Context
 
@@ -52,5 +52,5 @@ Held by the gate (`lesson-figures.test.jsx`, 32 tests):
 
 ## Open
 
-- No lesson carries an `image` figure yet. The first illustration will be made in Canva under DR-1281, exported into `app/public/lesson-figures/`, and pass the same gate. **re-review: 2026-11-12.**
+- No lesson carries an `image` figure yet. The first illustration will be made in Canva under DR-1287, exported into `app/public/lesson-figures/`, and pass the same gate. **re-review: 2026-11-12.**
 - The hand-coded `DIAGRAMS` in `MediaList` (broadcast course) could move onto these kinds. Not needed for this change. **re-review: 2026-11-26.**

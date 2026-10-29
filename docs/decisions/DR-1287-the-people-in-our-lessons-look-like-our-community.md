@@ -1,4 +1,4 @@
-# DR-1281: The people in our lessons look like our community, and the Israelites are drawn as the mixed multitude they were
+# DR-1287: The people in our lessons look like our community, and the Israelites are drawn as the mixed multitude they were
 
 **Date:** 2026-10-29
 **Status:** Accepted (a requirement, declared by Darrell)

@@ -169,7 +169,7 @@ describe('the gate catches a broken figure (proven-to-catch)', () => {
     [{ id: 'x', kind: 'span-chart', title: 't', source: 's', groups: [{ id: 'g', era: 'BC', rows: [{ label: 'X', from: 400, to: 1445 }] }] }, /backwards/],
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: 'https://cdn.example.com/x.png', alt: 'a', depictsPeople: false }, /lesson-figures/],
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: '', depictsPeople: false }, /alt text/],
-    // DR-1281: an image silent on who it shows, or showing people drawn otherwise, is refused.
+    // DR-1287: an image silent on who it shows, or showing people drawn otherwise, is refused.
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a' }, /depictsPeople/],
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true }, /African American/],
     [{ id: 'q', kind: 'quadrant', title: 't', source: 's', axes: { x: { label: 'x' }, y: { label: 'y' } }, cells: [{ x: 'low', y: 'low' }, { x: 'high', y: 'low' }, { x: 'low', y: 'high' }] }, /four distinct cells/],
@@ -180,7 +180,7 @@ describe('the gate catches a broken figure (proven-to-catch)', () => {
       expect(figuresFor({ id: 'none', figures: [f] })).toEqual([]);
     });
   }
-  it('a picture of people drawn as the requirement says passes (DR-1281)', () => {
+  it('a picture of people drawn as the requirement says passes (DR-1287)', () => {
     const img = { id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true, peopleShown: 'African American' };
     expect(figureProblems(img)).toEqual([]);
   });
