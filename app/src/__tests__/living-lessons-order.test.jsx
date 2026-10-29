@@ -152,7 +152,7 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // leaving nine dates to go backwards against nine ascending numbers.
     // The highest is now L272 (Study to Know His Thoughts), the follow-up word
     // Darrell spoke minutes after the teaching behind L271 (Let Yahweh Defend
-    // Me); both were spoken and built 2026-10-29 (DR-1291), so the date moves
+    // Me); both were spoken and built 2026-10-29 (DR-1294), so the date moves
     // on by one day here and this comment moves with it, so it never names a
     // lesson that is no longer the highest.
     expect(byNum[byNum.length - 1].added).toBe('2026-10-29'); // L272

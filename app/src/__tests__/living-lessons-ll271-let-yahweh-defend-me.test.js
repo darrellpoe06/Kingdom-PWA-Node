@@ -8,7 +8,7 @@
 // knows our thoughts afar off ... Let God defend me ... and let God be true,
 // and let every man be a liar ... Obviously, I believe in speaking up ... in
 // situations where the setup has been set up ... let them set you up so he can
-// set you up. So see what he's doing and pay attention." (DR-1291.)
+// set you up. So see what he's doing and pay attention." (DR-1294.)
 //
 // THIS LESSON'S DANGERS are two, and both are about his framing, not only the
 // verses. (1) Turning "let Yahweh defend me" into a teaching that silence is

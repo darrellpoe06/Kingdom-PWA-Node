@@ -10,7 +10,7 @@
 // either ... faith is the substance of things hoped for, the evidence of
 // things not seen ... It's actually crazy not to believe God." Then: "It can
 // also be a follow up to the lesson..." -- so it is its own lesson, the next
-// one in the catalog, and both name each other (DR-1291).
+// one in the catalog, and both name each other (DR-1294).
 //
 // THIS LESSON'S DANGERS. (1) Teaching "study" as reading -- he said the
 // opposite, so every band must say study is not just reading. (2) Inventing
