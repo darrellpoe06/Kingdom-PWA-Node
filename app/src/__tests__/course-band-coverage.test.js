@@ -109,17 +109,43 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(267); // RESOLVED BY MEASUREMENT, THREE WAYS, not by picking a side.
-    // THREE lessons landed on 2026-10-28 and every one of them raises allFour, so every side of every
-    // merge that day was wrong about the total while being right about its own increment. sov55 (the czar
-    // and the charge, DR-1273) measured 264 -> 265 on its base; dsi15 (weighed into named hands, DR-1278)
-    // measured 264 -> 265 on its; bank9 (the moat that moves, DR-1279) measured 264 -> 265 on its. On the
-    // catalog that holds all three the answer is 267, and it was READ from a fresh
-    // scripts/course-band-baseline-write.mjs run after the merge, never computed. That is exactly the
-    // failure the script's own header warns about: hand-merging these numbers is how a wrong one ships,
-    // and taking any side's 265 -- or the 266 that could see only two of the three -- would have shipped
-    // one. Each lesson's own measurement is kept below as it recorded it, none edited to suit another.
-    // sovereign-ai reads {lessons: 55}; datasystems {lessons: 15, allFour: 1}; banking {lessons: 9, allFour: 1}.
+    expect(baseline.allFour).toBe(268); // RESOLVED BY MEASUREMENT, FOUR TIMES OVER, never by arithmetic.
+    // FOUR lessons landed across 2026-10-28/29 and every one of them raises allFour, so each measured
+    // 264 -> 265 on its own base and every side of every merge in the queue was right about its own
+    // increment and wrong about the total: sov55 (the czar and the charge, DR-1273), dsi15 (weighed into
+    // named hands, DR-1278), sov56 (oversight is a charge, not a ceremony, DR-1274) and bank9 (the moat
+    // that moves, DR-1279). The figure went 265 -> 266 -> 267 -> 268 as each landed, and bank9 is last in
+    // the queue, so 268 is the catalog that holds all four. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run after the merge, never computed -- which is exactly the
+    // failure that script's own header warns about. Taking any side's 265, or the 266 that could see two
+    // of the four, or the 267 that could see three, would each have shipped a wrong number, and three of
+    // those four numbers were true of some real tree at some real moment. That is why this is a script.
+    // Each lesson's own measurement is kept below as it recorded it, none edited to suit another.
+    // sovereign-ai reads {lessons: 56}; datasystems {lessons: 15, allFour: 1}; banking {lessons: 9, allFour: 1}.
+    // never hand-written: every lesson that lands raises this, and that script's own header
+    // warns that hand-merging the number after a merge is how a wrong one ships.
+    //
+    // Each lesson's own measurement, kept as it recorded it:
+    // // 266 on 2026-10-28: sov56 (oversight is a charge, not a
+    // ceremony, DR-1274), the fifty-sixth week of Sovereign A.I. Measured by a fresh
+    // scripts/course-band-baseline-write.mjs run (total 440, allFour 266, adultOnly 0, 174 still
+    // pinned), never hand-written. All four bands from its first commit; sovereign-ai {lessons: 56}. // 265 on 2026-10-28: sov55 (the czar and the charge, and the desk
+    //
+    // // 266 on 2026-10-28: TWO lessons landed the same day and BOTH
+    // raise allFour, so each side of this merge said 265 and NEITHER was right. sov55 (the czar and the
+    // charge, and the desk above the desk, DR-1273) measured 264 -> 265 on its own base, and dsi15
+    // (weighed into named hands, DR-1278) measured 264 -> 265 on its. On the MERGED catalog both are
+    // present, so the answer is 266. Re-measured by scripts/course-band-baseline-write.mjs AFTER
+    // `git merge origin/main`, which is exactly the failure that script's own header warns about:
+    // hand-merging these numbers after a merge is how a wrong number ships, and taking either side's
+    // 265 would have shipped one. sovereign-ai reads {lessons: 55}; datasystems {lessons: 15, allFour: 1}.
+    //
+    // Both lessons' own measurements, kept as each recorded them:
+    // // 265 on 2026-10-28: sov55 (the czar and the charge, and the desk
+    // above the desk, DR-1273), the fifty-fifth week of Sovereign A.I. Measured by a fresh
+    // scripts/course-band-baseline-write.mjs run (total 439, allFour 265, adultOnly 0, 174 still pinned),
+    // never hand-written. All four bands from its first commit; sovereign-ai reads {lessons: 55}.
+    // measured by scripts/course-band-baseline-write.mjs after `git merge origin/main`,
     // never hand-written: every lesson that lands raises this, and that script's own header
     // warns that hand-merging the number after a merge is how a wrong one ships.
     //
