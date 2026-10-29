@@ -1,0 +1,38 @@
+# One-off, read-only: where does the live data road stop answering? Measures
+# each layer separately, three rounds a minute apart, with timings. Writes
+# nothing except door_capture_selfcheck (self-deleting; site-health runs it
+# hourly). Branch-only: no PR, no CI, no deploy.
+name: nas road now (read-only, one-off)
+on:
+  push:
+    branches: ['probe/nas-road-now']
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Public anon key from the served bundle (masked)
+        run: |
+          K=$(timeout 120 python3 scripts/served-anon-key.py 2>/dev/null); [ -n "$K" ] && echo "::add-mask::$K"; printf '%s' "$K" > /tmp/anon; [ -n "$K" ] && echo "key read" || echo "KEY NOT READ"
+      - name: Each layer, three rounds
+        run: |
+          K=$(cat /tmp/anon); O='https://poetech.us'
+          t() { curl -sS -o /tmp/b -w '%{http_code} %{time_total}s' --max-time 30 "$@" 2>&1 | tr '\n' ' '; printf ' | %s\n' "$(head -c 140 /tmp/b 2>/dev/null | tr '\n' ' ')"; }
+          for round in 1 2 3; do
+            echo "======== round $round $(date -u +%T)"
+            for BASE in https://poetech.tail5a2f35.ts.net/sb https://poetech.us/sb; do
+              echo "--- $BASE"
+              echo "routing+auth service  GET auth/v1/health:    $(t -H "apikey: $K" "$BASE/auth/v1/health")"
+              echo "sign-in (wrong pw)    POST auth/v1/token:     $(t -X POST -H "Origin: $O" -H "apikey: $K" -H 'Content-Type: application/json' -d '{"email":"nobody@example.invalid","password":"x"}' "$BASE/auth/v1/token?grant_type=password")"
+              echo "API gateway -> REST   GET rest/v1/ (root):    $(t -H "apikey: $K" -H "Authorization: Bearer $K" "$BASE/rest/v1/")"
+              echo "database read (fn)    POST rpc/public_vacancies: $(t -X POST -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' -d '{}' "$BASE/rest/v1/rpc/public_vacancies")"
+              echo "database write+delete POST rpc/door_capture_selfcheck: $(t -X POST -H "Origin: $O" -H "apikey: $K" -H "Authorization: Bearer $K" -H 'Content-Type: application/json' -d '{"p_instance_slug":"moore-divahs","p_pipeline":"moore-orders"}' "$BASE/rest/v1/rpc/door_capture_selfcheck")"
+            done
+            echo "--- other NAS services through the same Funnel"
+            echo "photos   $(t https://poetech.tail5a2f35.ts.net/nas-photos/healthz)"
+            echo "bell     $(t https://poetech.tail5a2f35.ts.net/announce/healthz)"
+            [ "$round" = 3 ] || sleep 50
+          done
