@@ -18,12 +18,21 @@
 name: CI
 
 on:
-  pull_request:
+  # ONE RUN PER COMMIT (DR-1295). This workflow used to fire on `pull_request`
+  # AND on `push`, so every commit pushed to a branch with an open PR ran the
+  # whole suite twice on the same SHA (DR-0645 measured it; 2026-10-29: #2490's
+  # 29c84ff3 had push run 40816305549 and pull_request run 40816309086, ~19 jobs
+  # each). `pull_request` is gone. A push to ANY branch of this repository runs
+  # CI on that commit, and its checks attach to that SHA, which is every PR's
+  # head: the way token-opened PRs have always passed (see auto-open-pr.yml;
+  # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows). '**' and
+  # not the old lane list, because PRs from branches outside it (money/*,
+  # dependabot/*) had only the pull_request run to give them the required check.
+  # What was given up: CI no longer tests GitHub's trial merge with main, only
+  # the branch head; keep-prs-current (DR-0644) keeps live PRs current with main.
+  # Fork PRs get no run; this repository takes none.
   push:
-    # main, plus the release lanes — a push to a lane runs CI on that commit so
-    # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
-    # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
-    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**', 'ccr-**']  # ccr-**: DR-0773
+    branches: ['**']
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
@@ -35,9 +44,9 @@ on:
 
 # A newer commit on the same branch (or PR) supersedes the older run: the old
 # run's legs are cancelled so they stop holding runners the new commit needs
-# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Push runs and
-# pull_request runs have different refs, so they never cancel each other, and
-# main is never cancelled — every main commit keeps its full run.
+# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Every run of a
+# branch shares its ref now (DR-1295), and main is never cancelled — every main
+# commit keeps its full run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
