@@ -583,7 +583,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       const wordsTotal = prefix ? prefix[prefix.length - 1] : 0;
       const wordsHeard = prefix ? prefix[Math.max(0, Math.min(prefix.length - 1, absIndex))] : 0;
       const heard = fractionOf(wordsHeard, wordsTotal);
-      recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text), heard });
+      recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text) });
+      // Its own write, so the sentence write above stays exactly what it was:
+      // a patch carrying only `heard` is not a move (learn-resume.js).
+      recordPlace({ heard });
       const wpm = paceRef.current.mark(wordsHeard, Date.now(), rateRef.current);
       announceReaderProgress({ lessonId: t.owner, wordsHeard, wordsTotal, rate: rateRef.current, wpm });
       // IF IT IS OVER, IT IS OVER (Darrell 2026-09-16, from his phone at part
@@ -602,9 +605,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       // through the ref, so this keeps its empty dependency list honest.
       const st = followRef.current;
       const total = st && st.follow && st.follow.segments ? st.follow.segments.length : 0;
+      if (total > 0 && absIndex >= total - 1) finishPlace();
       // The last sentence is heard to the end: every word of the reading.
       if (total > 0 && absIndex >= total - 1) {
-        finishPlace({ heard: 1 });
+        recordPlace({ heard: 1 });
         announceReaderProgress({ lessonId: t.owner, wordsHeard: wordsTotal, wordsTotal, rate: rateRef.current, wpm: null, done: true });
       }
     } catch { /* a place that cannot be written never breaks a read */ }
