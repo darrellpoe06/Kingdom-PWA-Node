@@ -78,7 +78,7 @@ The last witness that actually reached the box was recovered from the archived l
 
 One case reproduces the live output of run 41456015879 from the old judge exactly — the forwarder sentence, the `priority:cameras` label, `{"reachable":false}` in the ledger, and the half-hourly comment — so this record's account of the damage is executable, not a memory.
 
-Full suite green from inside `app/` (the only correct invocation; running vitest from the repo root with `--root app` mis-resolves paths and manufactures failures).
+`npm run lint` clean. The three suites this touches are green, run from inside `app/` — the only correct invocation, since running vitest from the repo root with `--root app` mis-resolves paths and manufactures failures. **The whole-suite proof is CI's four vitest shards on this branch's head, not a claim made here**: a local full run was started and had not reported when this record was written, and a record that says "full suite green" before a run has finished is the kind of claim DR-0076 §1 exists to stop. If a shard goes red, the fix lands on this branch before it merges.
 
 ## What this does not close
 
