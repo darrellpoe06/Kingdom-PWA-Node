@@ -47,8 +47,21 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 // a lane got a second road, which is the only honest way for it to fall — not
 // because the pin was relaxed to make a run green. It may fall again; it may
 // never rise.
-// re-review: 2026-11-29 — take the next bite, deploy-adjacent lanes last.
-const UNVERIFIED = 43;
+// LOWERED TO 42 on 2026-11-02 by DR-1298: `camera-health.yml` gained the verify
+// step. The bite was taken early, ahead of this pin's own re-review date,
+// because that lane was measured doing something worse than this note knew. The
+// harm written above is that a shut road "surfaces the real fault further
+// down" -- late, but true. camera-health published a DIFFERENT fault: run
+// 41456015879 wrote `the forwarder on the NAS did not answer /health` onto the
+// family's rolling camera ledger (#2011) with the fix-now `priority:cameras`
+// label, while the forwarder had never been asked and the real fault was the
+// revoked key. So the debt has two tiers, and the ones that write an incident
+// issue from inside the unverified set are the loud tier. 14 lanes join the
+// tailnet without verifying AND write to an issue; camera-health was one, 13
+// remain, and they are the order the next bites should be taken in.
+// re-review: 2026-11-29 — next bite from the 13 issue-writing lanes first,
+// then the quiet ones, deploy-adjacent lanes last.
+const UNVERIFIED = 42;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
 // one of these loses its verify the gate must say WHICH, because a silent
