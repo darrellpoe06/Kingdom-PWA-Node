@@ -27,7 +27,7 @@
 // pair. So a recorded pair passes with its comparison cited, and an UNRECORDED
 // collision fails, which is the only thing a gate can honestly assert here:
 // that nobody built twice from one source without noticing.
-import { readLedger, DECISIONS } from './lesson-row-shipped-sweep.mjs';
+import { readLedger, consideredNotBuilt, DECISIONS } from './lesson-row-shipped-sweep.mjs';
 import { fileURLToPath } from 'node:url';
 
 // A thread id as the ledger cites it in front matter: a backticked hex run of
@@ -79,9 +79,19 @@ export function threadClaims(ledger = readLedger()) {
     // Front matter only: the thread a record claims is named where it states its
     // grounds, not wherever a hex string happens to appear in a later table.
     const head = rec.text.slice(0, 4000).toLowerCase();
+    // A thread the record DECLARES it considered and did not build is a
+    // citation, never a claim (DR-1305). This is the sharper rule the
+    // KNOWN_SHARED_THREADS note above asked for: the comment there says this
+    // 4000-character approximation "cannot tell PROVENANCE from CITATION when a
+    // record discusses an intake incident in its opening", and the declaration
+    // is how a record says which it means. `consideredNotBuilt` refuses to
+    // exempt an id the record's own `**Intake:**` line names, so a record can
+    // never disown its own source this way.
+    const declared = consideredNotBuilt(rec.text);
     THREAD_IN_TEXT.lastIndex = 0;
     for (let m = THREAD_IN_TEXT.exec(head); m; m = THREAD_IN_TEXT.exec(head)) {
       const id = m[1];
+      if (declared.has(id)) continue;
       if (!byThread.has(id)) byThread.set(id, new Set());
       byThread.get(id).add(rec.dr);
     }

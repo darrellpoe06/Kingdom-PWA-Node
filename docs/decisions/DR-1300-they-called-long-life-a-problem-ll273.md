@@ -14,6 +14,8 @@ The Gmail intake lane was asked for the **oldest genuinely-unbuilt lesson send**
 
 Fifty-nine threads matched `{from:darrellpoe06@gmail.com from:dpoe@illinois.edu} Lesson -label:Lesson-Captured newer_than:365d`. Narrowing by date found **eight** threads older than 2026-10-06 and only **two** older than 2026-09-20, which are the two oldest sends in the lane. Both were sent on 2026-09-16 within 41 seconds of each other:
 
+**Considered, not built:** `1a0aaaf7d6952b4b` — named in the table below only to show which of the two 2026-09-16 sends was already a lesson. It was built as sov54 by **DR-1272**, which names it in its own `Sent in by` line; this record built `1a0aab01a0b1746e` instead. Added 2026-11-03: without the declaration the 4000-character front-matter window read this table as a second claim, and `one-thread-one-record-guard.mjs` had been FAILING on `main` ever since with `thread 1a0aaaf7d6952b4b is named by DR-1272 and DR-1300` — the exact PROVENANCE-versus-CITATION limit that guard’s own note records. See DR-1305.
+
 | thread | sent (UTC) | body's intake word | sweep by id | built? |
 |---|---|---|---|---|
 | `1a0aaaf7d6952b4b` | 14:46:57 | `Lessons.` / `Research first.` | **SHIPPED → DR-1272** | already built |
