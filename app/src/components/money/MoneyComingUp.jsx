@@ -118,7 +118,7 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
           ledger-calculated figure never wears that word (DR-0076). */}
       <Line id="cash" label={allChecked ? 'Current verified cash' : 'Current cash — not bank-checked'} value={show(L.availableCash)} note={allChecked ? 'checked against the bank' : (counted.some((b) => b.verifiedOn) ? 'not every account is bank-checked yet' : 'from the ledger; enter a bank balance to verify it')}>
         <ul className="space-y-1">
-          {counted.map((b) => <li key={b.id}>{b.name}: {show(b.balance)} {b.verifiedOn ? `· bank-checked ${b.verifiedOn}${b.basis ? ` (${b.basis})` : ''}` : '· ledger figure, not bank-checked'}</li>)}
+          {counted.map((b) => <li key={b.id}>{b.name}: {show(b.balance)} {b.verifiedOn ? `· bank-checked ${b.verifiedOn}${b.basis ? ` (${b.basis})` : ''}` : (b.provisional ? `· your approximate figure from ${b.provisionalOn}, not bank-checked` : '· ledger figure, not bank-checked')}</li>)}
           {left.map((b) => <li key={b.id}>{b.name}: {show(b.balance)} · left out until checked against the bank</li>)}
         </ul>
       </Line>

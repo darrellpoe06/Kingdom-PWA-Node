@@ -53,6 +53,9 @@ const STATUS_WORDS = {
   verified: { label: 'Bank-checked projection', cls: 'text-[#5A6E3D] border-[#5A6E3D]', icon: 'check' },
   estimate: { label: 'Estimate · unverified', cls: 'text-[#B45309] border-[#B45309]', icon: 'alert' },
   unavailable: { label: 'Unavailable', cls: 'text-[#B85838] border-[#B85838]', icon: 'alert' },
+  // Christina 2026-11-03: until every account is checked against the bank,
+  // Safe to Spend is $0 and says why.
+  reconcile: { label: 'UNVERIFIED — RECONCILIATION REQUIRED', cls: 'text-[#B45309] border-[#B45309]', icon: 'alert' },
 };
 
 function readMarker() { try { return localStorage.getItem('poe-snapshot-marker'); } catch (_) { return null; } }
@@ -86,7 +89,7 @@ export default function MoneyOverview({ money }) {
   const source = balanceSource({ ledgerAsOf: result.freshness && result.freshness.ledgerAsOf });
 
   const show = (n) => (privacy ? '••••' : fmt(n));
-  const status = STATUS_WORDS[result.status] || STATUS_WORDS.estimate;
+  const status = result.reconciliationRequired && result.status !== 'unavailable' ? STATUS_WORDS.reconcile : (STATUS_WORDS[result.status] || STATUS_WORDS.estimate);
   const entities = useMemo(() => visibleEntities || data.entities || [], [visibleEntities, data.entities]);
   const L = result.lines;
   const T = L.toLowest || {};

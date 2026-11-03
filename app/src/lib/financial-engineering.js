@@ -180,7 +180,7 @@ export function latestCheckpoints(data, asOf = new Date()) {
 //                 untouched (moving it would double-apply the correction).
 //  · noop       — entered equals what is already displayed; nothing to record.
 // -----------------------------------------------------------------------------
-export function applyManualBalance(data, accountId, entered, asOf = new Date()) {
+export function applyManualBalance(data, accountId, entered, asOf = new Date(), { provisional = false } = {}) {
   const amount = round2(entered);
   const hasCleared = (data?.transactions || []).some((t) => {
     if (!t || t.accountId !== accountId) return false;
@@ -195,7 +195,10 @@ export function applyManualBalance(data, accountId, entered, asOf = new Date()) 
   // is only right while the history before it stays exactly as it was: import
   // older rows afterwards and "now" moves by their sum again. A checkpoint is
   // true at the end of its day whatever is imported before it later.
-  return { mode: 'adjustment', adjustment: balanceCheckpointRow(accountId, amount, asOf, { source: 'entered by hand' }) };
+  // An APPROXIMATE figure ("about $6,000") is recorded as provisional: it
+  // replaces the ledger's arithmetic, but it is never a bank check, so Safe to
+  // Spend stays at $0 until the exact balance is entered (Christina 2026-11-03).
+  return { mode: 'adjustment', adjustment: balanceCheckpointRow(accountId, amount, asOf, provisional ? { basis: 'provisional', source: 'entered by hand, approximate' } : { source: 'entered by hand' }) };
 }
 
 // The one shape of a verified-balance row: $0, so no total moves; the balance
@@ -223,10 +226,11 @@ export function balanceCheckpointRow(accountId, balance, asOf = new Date(), { ba
 // -----------------------------------------------------------------------------
 export function resolveAccountUpdates(data, accountId, updates, asOf = new Date(), postTx = () => {}) {
   if (!updates || updates.balance === undefined) return updates;
-  const manual = applyManualBalance(data, accountId, parseFloat(updates.balance) || 0, asOf);
-  if (manual.mode === 'anchor') return updates;
+  const { balanceProvisional, ...rest } = updates;
+  const manual = applyManualBalance(data, accountId, parseFloat(rest.balance) || 0, asOf, { provisional: !!balanceProvisional });
+  if (manual.mode === 'anchor') return rest;
   if (manual.mode === 'adjustment') postTx(manual.adjustment);
-  return { ...updates, balance: undefined };
+  return { ...rest, balance: undefined };
 }
 
 // -----------------------------------------------------------------------------

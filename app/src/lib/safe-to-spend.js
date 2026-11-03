@@ -800,11 +800,18 @@ function forScope(data, sc, asOf, settings, opts) {
   const balanceOf = (a) => (balances[a.id] != null ? balances[a.id] : (Number(a.balance) || 0));
   const balanceSources = spendable.map((a) => {
     const cp = checked[a.id];
+    // A PROVISIONAL balance is the family's own approximate figure ("about
+    // $6,000"): it replaces the ledger's arithmetic as the cash figure, but it
+    // is never a bank check (Christina 2026-11-03: "Use my approximately
+    // $6,000 figure only as a provisional amount until I provide the exact
+    // current balance").
+    const provisional = !!cp && cp.basis === 'provisional';
     return {
       id: a.id, name: a.name || a.id,
       balance: balanceOf(a),
-      verifiedOn: cp ? cp.day : null, verifiedBalance: cp ? cp.balance : null, basis: cp ? cp.basis : null,
-      verifiedDaysAgo: cp ? daysBetween(parseDay(cp.day), asOf) : null,
+      verifiedOn: cp && !provisional ? cp.day : null, verifiedBalance: cp && !provisional ? cp.balance : null, basis: cp ? cp.basis : null,
+      verifiedDaysAgo: cp && !provisional ? daysBetween(parseDay(cp.day), asOf) : null,
+      provisional, provisionalOn: provisional ? cp.day : null,
       counted: anyChecked ? !!cp : true,
     };
   });
@@ -881,7 +888,17 @@ function forScope(data, sc, asOf, settings, opts) {
   const livingReserved = round2(accrual.living * periodFraction);
   const taxReserved = round2(accrual.tax * periodFraction + taxesDated);
   const savingsReserved = round2(accrual.savings * periodFraction);
-  const safeToSpendNow = round2(Math.max(0, lowest.amount - minCushion));
+  // NOTHING IS SPENDABLE UNTIL THE CASH IS RECONCILED (Christina 2026-11-03:
+  // "If the actual bank balance is unknown or unverified, DO NOT display a
+  // positive Safe-to-Spend amount as though it is accurate ... display SAFE TO
+  // SPEND: $0, STATUS: UNVERIFIED — RECONCILIATION REQUIRED"). The projection
+  // still runs and stays visible as `unreconciledSafe`, labeled not usable;
+  // only the spendable figure is held at $0 while any counted account lacks a
+  // bank check within CHECKPOINT_FRESH_DAYS (a provisional figure is not one).
+  const notReconciled = balanceSources.filter((b) => b.counted && (!b.verifiedOn || b.verifiedDaysAgo > CHECKPOINT_FRESH_DAYS));
+  const reconciliationRequired = spendable.length > 0 && notReconciled.length > 0;
+  const unreconciledSafe = round2(Math.max(0, lowest.amount - minCushion));
+  const safeToSpendNow = reconciliationRequired ? 0 : unreconciledSafe;
   const shortfall = round2(Math.max(0, minCushion - lowest.amount));
   const nextIncome = income.events.filter((e) => e.date > isoDay(asOf)).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
 
@@ -910,15 +927,20 @@ function forScope(data, sc, asOf, settings, opts) {
     `Start with ${balanceSources.filter((b) => b.counted).every((b) => b.verifiedOn) ? 'bank-checked' : 'ledger-calculated (not every account bank-checked)'} cash on ${spendable.length} spendable account${spendable.length === 1 ? '' : 's'}: $${availableCash.toLocaleString()}. Every ledger row dated ${isoDay(asOf)} or earlier is already inside this number, so pending rows are not subtracted again.`,
     `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of expected income on the days it is expected.`,
     `Accrue the undated reserves day by day: $${accrual.living.toLocaleString()}/mo living expenses, $${accrual.tax.toLocaleString()}/mo tax set-aside, $${accrual.savings.toLocaleString()}/mo planned savings.`,
-    `The lowest projected balance is $${lowest.amount.toLocaleString()} on ${lowest.date}. Keep the $${minCushion.toLocaleString()} cash cushion: ${lowest.amount - minCushion >= 0 ? `$${safeToSpendNow.toLocaleString()} can be spent today without any projected balance dropping below the cushion.` : `the cushion is short by $${shortfall.toLocaleString()}, so nothing is safely spendable today.`}`,
+    `The lowest projected balance is $${lowest.amount.toLocaleString()} on ${lowest.date}. Keep the $${minCushion.toLocaleString()} cash cushion: ${lowest.amount - minCushion >= 0 ? `$${unreconciledSafe.toLocaleString()} could be spent today without any projected balance dropping below the cushion${reconciliationRequired ? ' IF the balances were right' : ''}.` : `the cushion is short by $${shortfall.toLocaleString()}, so nothing is safely spendable today.`}`,
   ];
+  if (reconciliationRequired) {
+    explanation.unshift(`SAFE TO SPEND: $0. UNVERIFIED — RECONCILIATION REQUIRED. Not checked against the bank: ${notReconciled.map((b) => `${b.name} (${b.provisional ? `your approximate $${b.balance.toLocaleString()}` : (b.verifiedOn ? `last checked ${b.verifiedOn}` : `ledger arithmetic $${b.balance.toLocaleString()}`)})`).join(', ')}. Nothing is shown as spendable until every account is checked against the bank.`);
+    reasons.unshift(`Reconciliation required: ${notReconciled.map((b) => b.name).join(', ')} not checked against the bank.`);
+    if (status === 'verified') status = 'estimate';
+  }
 
   return {
     scope: { id: sc.id, label: sc.label, kind: sc.kind },
     period: { id: period.id, label: period.label, start: isoDay(start), end: isoDay(end), days },
     status, confidence: { level: status, reasons },
     freshness, balanceSources, windows,
-    safeToSpendNow, shortfall, overdraftDate,
+    safeToSpendNow, shortfall, overdraftDate, reconciliationRequired, unreconciledSafe,
     lines: {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
@@ -969,7 +991,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     period: first ? first.period : { id: opts.period || 'next-paycheck', label: 'Until next paycheck', start: isoDay(asOf), end: isoDay(asOf), days: 0 },
     status, confidence: { level: status, reasons: [...new Set(byEntity.flatMap((r) => r.confidence.reasons))] },
     freshness: freshest,
-    safeToSpendNow: safe, shortfall, overdraftDate,
+    safeToSpendNow: safe, shortfall, overdraftDate, reconciliationRequired: byEntity.some((r) => r.reconciliationRequired), unreconciledSafe: round2(byEntity.reduce((s, r) => s + (r.unreconciledSafe || 0), 0)),
     lines: {
       availableCash: sumLine('availableCash'), investmentsHeldApart: sumLine('investmentsHeldApart'), pendingHolds: 0,
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),

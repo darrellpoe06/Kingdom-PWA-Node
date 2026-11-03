@@ -312,6 +312,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               <div>
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Balance</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} />
+                <label className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-[#5A5751]"><input type="checkbox" checked={!!form.balanceProvisional} onChange={e => setForm({ ...form, balanceProvisional: e.target.checked })} data-testid="account-balance-provisional" />Approximate — not yet checked against the bank</label>
               </div>
               <div>
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label>
@@ -439,7 +440,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                   <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Fragment</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="...8168" value={form.fragment} onChange={e => setForm({ ...form, fragment: e.target.value })} /></div>
-                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Balance</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Balance</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} /><label className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-[#5A5751]"><input type="checkbox" checked={!!form.balanceProvisional} onChange={e => setForm({ ...form, balanceProvisional: e.target.checked })} data-testid="account-balance-provisional" />Approximate — not yet checked against the bank</label></div>
                   <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityId} onChange={e => setForm({ ...form, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
                 </div>
                 <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />

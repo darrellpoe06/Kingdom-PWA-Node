@@ -69,7 +69,8 @@ describe('Money Overview — the first screen', () => {
     const el = await mount(createElement(MoneyOverview, { money: bag }));
     expect(el.querySelector('[data-testid="safe-to-spend-card"]')).toBeTruthy();
     expect(el.querySelector('[data-testid="sts-amount"]').textContent).toMatch(/^\$[\d,]+$/);
-    expect(el.querySelector('[data-testid="sts-status"]').textContent).toMatch(/Estimate/); // inferred pay dates → never "verified"
+    expect(el.querySelector('[data-testid="sts-status"]').textContent).toMatch(/UNVERIFIED — RECONCILIATION REQUIRED/); // no account checked against the bank → nothing spendable
+    expect(el.querySelector('[data-testid="sts-amount"]').textContent).toBe('$0');
     expect(el.querySelector('[data-testid="sts-source"]').textContent).toMatch(/Ledger-calculated \(bank balance unavailable\)/);
     const lines = el.querySelector('[data-testid="sts-lines"]').textContent;
     for (const w of ['Current available cash', 'Bills due', 'Minimum debt payments', 'Living expenses reserved', 'Taxes reserved', 'Savings reserved', 'Minimum cash cushion', 'Other commitments', 'Projected lowest balance', 'Next expected income', 'Potential extra debt payment']) expect(lines).toContain(w);

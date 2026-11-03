@@ -88,7 +88,11 @@ function household(overrides = {}) {
   };
   return { ...base, ...overrides };
 }
-const run = (data, opts = {}) => buildSafeToSpend(data, { ...d30, ...opts });
+// The household's accounts are checked against the bank on the run date at the
+// balance the ledger already shows, so every number below is the projection
+// itself (Safe to Spend holds at $0 until the cash is reconciled; that hold is
+// pinned in money-reconciliation.test.js, not here).
+const run = (data, opts = {}) => buildSafeToSpend(bankCheckAll({ ...data, transactions: [...(data.transactions || [])] }, '2026-10-28'), { ...d30, ...opts });
 const cashOn = (r, date) => (r.timeline.find((t) => t.date === date) || {}).cash;
 
 // A world with NO undated accruals, so every number is hand-computable.
@@ -301,12 +305,15 @@ describe('TEST 1 · Safe to Spend recalculates (30-day window from 2026-10-28)',
   });
 
   it('PROJECTED INCOME IS NEVER MONEY ALREADY AVAILABLE: available cash equals the ledger; income appears only on the timeline, on its date', () => {
-    const r = run(anchorWorld());
+    const r = buildSafeToSpend(anchorWorld(), d30); // NOT bank-checked
     expect(r.lines.availableCash).toBe(11115);
+    expect(r.safeToSpendNow).toBe(0); // nothing spendable until the cash is reconciled
+    expect(r.reconciliationRequired).toBe(true);
     expect(r.lines.expectedIncome).toBeGreaterThan(0);
     for (const it of r.items.filter((x) => x.kind === 'income')) expect(it.date > '2026-10-28').toBe(true);
     // the explanation says so in words: a ledger figure is never called bank-checked
-    expect(r.explanation[0]).toMatch(/ledger-calculated/i);
+    expect(r.explanation[0]).toMatch(/^SAFE TO SPEND: \$0\. UNVERIFIED — RECONCILIATION REQUIRED/);
+    expect(r.explanation[1]).toMatch(/ledger-calculated/i);
     expect(run(bankCheckAll(anchorWorld(), '2026-10-28')).explanation[0]).toMatch(/bank-checked cash/i);
   });
 });
@@ -606,7 +613,8 @@ describe('TEST 5 · Accounts, transactions and entity separation', () => {
     expect(combined.lines.availableCash).toBe(11115 + 5500 + 2400 + 4100);
   });
   it('5.5 a business shortfall never subsidises personal money in the combined view (each entity floored at $0)', () => {
-    const w = household(); w.accounts.find((a) => a.id === 'pp-chk').openingBalance = 100; // Properties cannot cover its 830 mortgage + 240 insurance
+    const w0 = household(); w0.accounts.find((a) => a.id === 'pp-chk').openingBalance = 100; // Properties cannot cover its 830 mortgage + 240 insurance
+    const w = bankCheckAll(w0, '2026-10-28'); // every entity reconciled, so each one's own figure is real
     const props = buildSafeToSpend(w, { ...d30, scope: 'e-props' });
     expect(props.safeToSpendNow).toBe(0); expect(props.shortfall).toBeGreaterThan(0);
     const combined = buildSafeToSpend(w, { ...d30, scope: 'consolidated' });
