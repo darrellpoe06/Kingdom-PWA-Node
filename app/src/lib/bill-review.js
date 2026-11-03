@@ -53,6 +53,12 @@ const OWN_ACCOUNTS = /\bTLC\b|POE PROPERT|ONLINE TRANSFER|P2PEXT|TRANSFER TO|CAS
 const FAMILY = /\bBG\b|BG & MOM|\bMOM\b/i;
 const RENTAL = /PROPERT|RENTAL|709 COMMERCIAL|\b805\b|HOLLY HILL|KOEHN|WILLIAMSBURG/i;
 
+// Money moved between the family's own accounts (Personal, Poe Properties,
+// TLC, a credit-union share): never spending, never income.
+export function isOwnAccountTransfer(label = '') {
+  return OWN_ACCOUNTS.test(String(label)) || /\bXFR\b/i.test(String(label));
+}
+
 export function suggestGroup(label = '', category = '') {
   const s = `${label} ${category}`;
   if (COLLECTION.test(s)) return 'arrangement';
@@ -165,7 +171,7 @@ export function suggestBills(data, asOf = new Date(), { lookbackDays = 120 } = {
       rentalId: owner ? owner.rentalId : null,
       paidFromEntityId: acct ? acct.entityId ?? null : null,
       nextDue: '', payOn: '', balance: '', pastDue: '',
-      evidence: { payments: list.length, months: months.size, usualDay, total: round2(list.reduce((s, t) => s - Number(t.amount), 0)), lastPaid: String(list.map((t) => t.date).sort().pop()).slice(0, 10), how: source },
+      evidence: { payments: list.length, months: months.size, usualDay, days: [...dayCount.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([d]) => d), total: round2(list.reduce((s, t) => s - Number(t.amount), 0)), lastPaid: String(list.map((t) => t.date).sort().pop()).slice(0, 10), how: source },
     });
   };
   // The detector reads the merged payee name, so one payee spelled two ways

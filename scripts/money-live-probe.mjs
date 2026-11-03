@@ -91,8 +91,8 @@ try {
     check(`${label}: Bills Review is on the live build`, await page.locator('[data-testid="money-bill-review"]').count() === 1);
     if (await page.locator('[data-testid="money-bill-review"]').count() !== 1) await whereAmI('Bills Review');
     const tabs = await page.locator('[data-testid^="bill-review-entity-tab-"]').allTextContents();
-    check(`${label}: entity filter shows ALL / PERSONAL / POE PROPERTIES / TLC THERAPY / NEEDS REVIEW`,
-      ['ALL', 'PERSONAL', 'POE PROPERTIES', 'TLC THERAPY', 'NEEDS REVIEW'].every((w, i) => (tabs[i] || '').includes(w)), tabs.join(' | '));
+    check(`${label}: entity filter shows ALL / PERSONAL / POE PROPERTIES / TLC THERAPY / POETECH / NEEDS REVIEW`,
+      ['ALL', 'PERSONAL', 'POE PROPERTIES', 'TLC THERAPY', 'POETECH', 'NEEDS REVIEW'].every((w) => tabs.some((t) => t.includes(w))), tabs.join(' | '));
     const rows = await page.locator('[data-testid^="bill-review-row-"]').count();
     const chips = await page.locator('[data-testid^="bill-review-entity-chip-"]').count();
     check(`${label}: every bill card carries its entity label`, rows > 0 && chips === rows, `${chips} labels on ${rows} cards`);

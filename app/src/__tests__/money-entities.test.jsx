@@ -54,7 +54,8 @@ describe('the three labels', () => {
     expect(entityLabel(w.entities, 'e-personal')).toMatchObject({ kind: 'personal', icon: '🏠', label: 'PERSONAL' });
     expect(entityLabel(w.entities, 'e-poeprops')).toMatchObject({ kind: 'poe', icon: '🏘️', label: 'POE PROPERTIES' });
     expect(entityLabel(w.entities, 'e-tlc')).toMatchObject({ kind: 'tlc', icon: '💼', label: 'TLC THERAPY' });
-    expect(entityLabel(w.entities, 'e-poetech')).toMatchObject({ kind: 'other', label: 'POETECH LLC' });
+    expect(entityLabel(w.entities, 'e-poetech')).toMatchObject({ kind: 'poetech', icon: '💻', label: 'POETECH' });
+    expect(entityLabel([{ id: 'e-x', name: 'Smith Farm LLC', type: 'business' }], 'e-x')).toMatchObject({ kind: 'other', label: 'SMITH FARM LLC' });
     expect(entityLabel(w.entities, null)).toMatchObject({ kind: 'review', label: 'NEEDS REVIEW' });
     expect(entityLabel(w.entities, 'e-gone')).toMatchObject({ kind: 'review' }); // an id with no entity is not guessed
     expect(entityKind({ id: 'x', name: 'Poe Properties LLC', type: 'business' })).toBe('poe');
@@ -168,7 +169,7 @@ describe('the Bills Review screen shows the label on every bill and filters by e
   it('the filter row shows ALL / PERSONAL / POE PROPERTIES / TLC THERAPY / NEEDS REVIEW, each with its count', async () => {
     const el = await mount(createElement(MoneyBillReview, { money: { data: saved(), setData: () => {}, currentDate: TODAY, addRecurring: vi.fn(), updateRecurring: vi.fn() } }));
     const tab = (id) => el.querySelector(`[data-testid="bill-review-entity-tab-${id}"]`);
-    expect(['all', 'personal', 'poe', 'tlc', 'review'].map((id) => tab(id).textContent)).toEqual(['ALL (4)', '🏠 PERSONAL (1)', '🏘️ POE PROPERTIES (1)', '💼 TLC THERAPY (1)', '⚠️ NEEDS REVIEW (1)']);
+    expect(['all', 'personal', 'poe', 'tlc', 'poetech', 'review'].map((id) => tab(id).textContent)).toEqual(['ALL (4)', '🏠 PERSONAL (1)', '🏘️ POE PROPERTIES (1)', '💼 TLC THERAPY (1)', '💻 POETECH (0)', '⚠️ NEEDS REVIEW (1)']);
     await act(async () => { tab('poe').click(); });
     expect(rows(el).map(chipOf)).toEqual([expect.stringMatching(/POE PROPERTIES/)]);
     await act(async () => { tab('review').click(); });

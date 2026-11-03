@@ -1,6 +1,6 @@
 // =============================================================================
-// entity-labels — which of the family's three money worlds a record belongs to
-// (Christina, 2026-11-03): PERSONAL, POE PROPERTIES, TLC THERAPY SOLUTIONS.
+// entity-labels — which of the family's four money worlds a record belongs to
+// (Christina, 2026-11-03): PERSONAL, POE PROPERTIES, TLC THERAPY SOLUTIONS, POETECH.
 // =============================================================================
 // "The payment account and the entity responsible for the expense are two
 // different things." So a record's entity is ONLY its own `entityId` — never
@@ -18,6 +18,7 @@ export const ENTITY_KINDS = [
   { id: 'personal', icon: '🏠', label: 'PERSONAL' },
   { id: 'poe', icon: '🏘️', label: 'POE PROPERTIES' },
   { id: 'tlc', icon: '💼', label: 'TLC THERAPY' },
+  { id: 'poetech', icon: '💻', label: 'POETECH' },
 ];
 export const NEEDS_REVIEW = { id: 'review', icon: '⚠️', label: 'NEEDS REVIEW' };
 
@@ -36,6 +37,7 @@ export function entityKind(e) {
   const name = String(e.name || '').toLowerCase();
   if (e.id === 'e-poeprops' || /poe propert/.test(name)) return 'poe';
   if (e.id === 'e-tlc' || /\btlc\b|therapy solutions/.test(name)) return 'tlc';
+  if (e.id === 'e-poetech' || /poetech/.test(name)) return 'poetech';
   if (e.id === 'e-personal' || isPersonalType(e)) return 'personal';
   return 'other';
 }

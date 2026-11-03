@@ -35,6 +35,7 @@ const CHIP_TONE = {
   personal: 'bg-[#F0F4EA] border-[#1F3A2E] text-[#1F3A2E]',
   poe: 'bg-white border-[#2A5A8E] text-[#2A5A8E]',
   tlc: 'bg-white border-[#7A5A8E] text-[#7A5A8E]',
+  poetech: 'bg-white border-[#8A6510] text-[#8A6510]',
   other: 'bg-[#F0ECE4] border-[#5A5751] text-[#5A5751]',
   review: 'bg-[#FBF7EC] border-[#B45309] text-[#B45309]',
 };
