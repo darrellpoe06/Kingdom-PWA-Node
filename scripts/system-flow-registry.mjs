@@ -1105,7 +1105,7 @@ const NODES = [
     id: 'deploy', name: 'Deploy to Cloudflare Pages', purpose: 'Main becomes the live site.',
     reads: [{ res: 'gh:main', token: 'branches' }, { res: 'gh:deploy-heal', token: 'workflow_dispatch' }],
     writes: [{ res: 'site:poetech.us', token: 'wrangler' }, { res: 'gh:incident', token: '--label incident' }],
-    seeds: ['site-health', 'install-health', 'live-link-probe', 'level-witness'],
+    seeds: ['site-health', 'install-health', 'live-link-probe', 'level-witness', 'money-live-probe'],
   }),
   wf('deploy-freshness.yml', {
     id: 'deploy-freshness', name: 'Deploy freshness heal', purpose: 'A merge that never deployed is deployed.',
@@ -1156,6 +1156,10 @@ const NODES = [
   }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
+  }),
+  wf('money-live-probe.yml', {
+    id: 'money-live-probe', name: 'Money live probe (Fold 7)', purpose: 'A real browser opens the live Money Overview and Bills Review at both Fold 7 sizes.',
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
   }),
   wf('level-witness.yml', {
