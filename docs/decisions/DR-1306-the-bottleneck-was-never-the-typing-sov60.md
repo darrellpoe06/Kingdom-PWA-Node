@@ -77,35 +77,39 @@ Third, **a mechanical edit to authored prose is not available to us, and this bu
 - **TWO MECHANICAL EDITS TO AUTHORED PROSE WERE WRITTEN, RUN, AND THROWN AWAY. Both are recorded because both are findings, and the second one is the more dangerous.** The teen band's reading grade had to land between youth and the 6.0 ceiling, and a script was written to move it.
   1. **The first attempt joined short sentences by lowercasing the following word.** It hit the grade exactly (5.49) and it produced, in the live module, the sentence **`he calls the false gods into court; he does not raise His voice`** — a lowercase *he* for **Yahweh**, with the capitalised *His* still standing beside it in the same clause. That is a direct violation of Layer 0's typographic theology, manufactured by a script, in the one direction a reading-grade number will never report. It was reverted whole and the band was written by hand instead. **This is the blind-sweep failure CLAUDE.md forbids for the God→Yahweh case, arriving from the direction of arithmetic**: the rule is not about which word is swept, it is about a machine editing authored prose where only judgment can tell right from wrong.
   2. **The second attempt split sentences at connectives**, which cannot damage capitalisation because a sentence start is capitalised whatever it refers to. It hit the grade and left **eleven fragments** — *"The mathematicians who could confirm it still going over the work."*, *"A real property and not a poem:"*, *"That they did not agree."*, a list broken into *"a jobs board. A sponsor's advertisement..."*, a question with its mark gone — and, worst, it **mangled the gated TALK ABOUT IT TOGETHER block** into *"Teach you one verse back"* and *"We all get healthy together"*, which still passed `placesMissingDirections` because the direction words survived. **A gate on the presence of a phrase does not notice that the phrase stopped being a sentence.** All eleven were repaired by hand and the block restored. The shipped teen band is hand-written prose with 48 hand-reviewed splits; its grade is **5.6**.
-- **Proven to catch — twenty-four cases, each applied to the live shipped strings, run, seen red, and restored.** Per the standing correction, **each break is made at EVERY site the string occurs, not at one convenient anchor**, and where a break is deliberately scoped to one band the pin is first asserted unique to that band by `uniqueCarrier`:
+- **Proven to catch — twenty-four cases, each applied PHYSICALLY to the live shipped strings in `sovereign-ai-class.js`, run, seen red, and restored byte-identical.** Baseline before and after the whole run: **89 passed**. `restored=true` after every single one, and **not one break reported NO SITES** — the failure mode DR-1303 paid for, where a band-scoping helper matched sov1's key instead of the lesson's and ten breaks silently did nothing, which is indistinguishable from a gate that cannot fail. The harness anchors on this lesson's own `"id"` line first and walks each band's value by its closing quote. Per the standing correction, **each break is made at EVERY site the string occurs**, and where a break is deliberately scoped to one band the pin is first asserted unique to that band by `uniqueCarrier`:
 
-  | break | sites | what fires |
-  |---|---|---|
-  | one word changed inside a quotation (`except` → `unless`, Amos 3:3) | 1 | the verbatim sweep names the reference |
-  | a verbatim span hung on the WRONG reference (Mark 14:59 → 14:58) | 1 | the verbatim sweep |
-  | `Yahweh` substituted into a quotation (Micah 4:4, asserted to occur in more than one place first) | 5 | bright-line pin AND verbatim sweep, at every site |
-  | an ellipsis cutting a quotation (Isaiah 41:22) | 1 | `elidedQuotations` |
-  | a British spelling planted in our voice, while a quote's own `labour` stays legal | 2 | `findBritish` fires on ours and not on the quote |
-  | a currency figure planted in a band | 5 | the figure shapes, in every reader text |
-  | a percentage planted in a band | 5 | a currency check alone would miss it |
-  | a number wearing a magnitude word (`300 thousand`) | 5 | both the others would miss it |
-  | a vendor or person from the issue reaching the teaching | 3 | and `lamp`, `contain`, `shepherd` do NOT trip the matchers |
-  | the unread-page disclosure deleted from ONE band | 5 | names that band and only that band |
-  | the telephone disclosure deleted from ONE band | 5 | names that band alone |
-  | the measured fetch failure deleted from ONE band | 5 | names that band alone |
-  | `unchecked` → `confirmed` in ONE band, every site in it | 5 | names that band alone |
-  | a record id printed in reader prose | 1 | `recitedRecords` |
-  | a band shortened to a summary | 4 | the share floor names it |
-  | a band replaced wholesale by its sibling (a true near copy) | 1 | the near-copy line and `fourBandFaults` |
-  | a band that loses its title opening | 4 | `unnamedBands` |
-  | one band's friend line stripped alone | 4 | `placesMissingDirections` names it while pooled `hasAllThree` still reads green (the DR-0795 shape) |
-  | a story relabelled as a testimony | 1 | the parable assertion |
-  | an anchor chapter measured SPENT adopted (Deuteronomy 19, 9 lessons) | 1 | the free-ground check, and the real set still reads clean |
-  | the Lamb-and-Eternal-Son confession removed from ONE band, every site | 5 | both pins |
-  | the hinge softened (the typing *used to be* the bottleneck) | 5 | the hinge pin, in every reader text |
-  | the DR-0100 concession about a second reader removed | 2 | the adult pin and the senior under-claiming pin, which is asserted unique to senior |
-  | either half of the local argument dropped | 10 | the Micah 4:4 and Hosea 8:6 pins, in every reader text |
+  | break | result |
+  |---|---|
+  | one word changed inside a quotation (`except` → `unless`, Amos 3:3), every site | **2 failed**, 87 passed |
+  | `Yahweh` substituted into a quotation (Micah 4:4), every site | **4 failed**, 85 passed — bright-line pin and verbatim sweep both fire |
+  | an ellipsis cutting a quotation (Isaiah 41:22) | **4 failed**, 85 passed |
+  | an anchor chapter measured SPENT adopted (Deuteronomy 19, 9 lessons) | **2 failed**, 87 passed |
+  | the Lamb-and-Eternal-Son confession removed, every site | **2 failed**, 87 passed |
+  | the hinge softened — the typing *used to be* the bottleneck, every site | **2 failed**, 87 passed |
+  | the DR-0100 concession about a second reader deleted (adult) | **2 failed**, 87 passed |
+  | the senior under-claiming principle deleted (senior alone) | **2 failed**, 87 passed |
+  | a currency figure planted in the ADULT lesson | **2 failed**, 87 passed |
+  | a percentage planted in the SENIOR band | **2 failed**, 87 passed — a currency check alone would miss it |
+  | a vendor name from the issue reaching the teaching (`Nvidia`) | **1 failed**, 88 passed |
+  | the title opening removed from the SENIOR band | **2 failed**, 87 passed |
+  | the TEEN band replaced wholesale by the SENIOR band (a true near copy) | **11 failed**, 78 passed |
+  | `unchecked` → `confirmed` in the SENIOR band alone, every site in it | **2 failed**, 87 passed — names senior and only senior |
+  | the unread-page disclosure stripped from the YOUTH band | **2 failed**, 87 passed |
+  | the telephone disclosure stripped from the CHILD band | **2 failed**, 87 passed |
+  | the measured fetch failure stripped from the TEEN band | **2 failed**, 87 passed |
+  | the friend line stripped from the TEEN band alone | **3 failed**, 86 passed — `placesMissingDirections` names teen while pooled `hasAllThree` still reads green (the DR-0795 shape) |
+  | a British spelling planted in OUR voice (adult) | **2 failed**, 87 passed, while Ecclesiastes 4:9's own *labour* stays legal |
+  | the local AFFIRMATION (Micah 4:4) stripped from the CHILD band | **3 failed**, 86 passed |
+  | the local GUARD (Hosea 8:6) stripped from the YOUTH band | **2 failed**, 87 passed |
+  | a record id printed in reader prose (`inApp`) | **2 failed**, 87 passed |
+  | a story relabelled as a testimony | **2 failed**, 87 passed |
+  | the claim it must answer removed from the CHILD band (*replacing the human*) | **1 failed**, 88 passed |
 
+  Three further cases in the file are self-contained rather than physical, because their subject is the matcher and not the prose: a verbatim span hung on the wrong reference, the word-boundary matchers refusing `lamp`, `contain` and `shepherd` while catching `Nvidia`, `Bain` and `Google`, and a number wearing a magnitude word (`300 thousand`) which both the currency and percentage shapes would miss.
+
+- **The full suite found a real failure, in a file this lesson does not touch, and it was the right one.** Shard 4 of 4 reported **1 failed | 9,293 passed**, in `a-record-that-considered-a-thread-does-not-claim-it.test.js` — DR-1305's own suite — with `expected [ 'DR-1306' ] to deeply equal []`. That is the suite doing exactly what its own note instructed: *"Both are STILL UNBUILT: if either ever becomes a lesson, that record names it in its own Intake line and these two cases must be updated deliberately, with the lesson cited."* So `1a11bdbce29bab3e` was moved out of the blocked list, deliberately, citing sov60 — because it is no longer unbuilt and the sweep **should** answer DR-1306 for it. `1a11bea0b4de78e0` stays, now named by three records and claimed by none, which makes it the stronger case: it proves the exemption holds when more than one record names a thread. **A new case was added for the other half of the rule**, because an exemption that also hid a real lesson would be worse than the bug it fixed — the built thread must read SHIPPED by DR-1306 and must NOT read DR-1303 or DR-1305, the two that only considered it. Both cases assert a non-empty list first so neither can pass vacuously, and `DR1303_DECLARED` keeps both ids for the two cases that read DR-1303's OWN text, since those are the evidence for DR-1305's account of the damage and must not drift with today's build state. 14 tests pass.
+- **The sweep's two answers are the loop closing on itself, measured not asserted:** `node scripts/lesson-row-shipped-sweep.mjs 1a11bdbce29bab3e 1a11bea0b4de78e0` now prints `SHIPPED 1a11bdbce29bab3e -> named in DR-1306` and `unknown 1a11bea0b4de78e0 -> no decision record names it`. The first is the thread this record built; the second is the one it only considered, and the declaration is what keeps it visible.
 - `npm run lint` clean (`eslint src --max-warnings 0`). **The full suite was run from inside `app/`** — the only correct invocation, since vitest from the repo root with `--root app` mis-resolves paths and manufactures failures — and the result is recorded in the merge commit rather than claimed here before it reported.
 - **Two single-file pins moved, each with the measurement that moved it:** `course-band-coverage.test.js` allFour **273 → 274** (total 448, adultOnly 0, adultRegister 0, the sovereign-ai row `{lessons: 60, allFour: 39}`), regenerated by `course-band-baseline-write.mjs` on the tree that holds the lesson and never hand-edited; and `the-third-pile-is-a-worklist.test.js` GAP **17 → 18** with CHECKED unchanged at 4, because three roads to the publisher were refused, no figure is read back, and a 0-figure row in `lesson-sources.json` is forbidden (DR-0076 §3). `lesson-dates.json` records sov60 → `2026-11-03` at commit `20a532be`, derived from git and not from the working tree.
 - `scripts/voice-clarity-corpus.mjs --write` was run; it selected the same 56 pieces of 42,808 and **the file did not change**. That is reported as measured rather than claimed as a regenerated file.
