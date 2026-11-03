@@ -452,4 +452,13 @@ export const LIVING_LESSONS_ADDED = {
   // built 2026-10-29, as its own lesson at his word "It can also be a follow
   // up to the lesson" (DR-1294).
   'll272-study-to-know-his-thoughts': '2026-10-29',
+  // L273: the oldest genuinely-unbuilt send in the Gmail lesson-intake lane --
+  // a Morning Brew issue Darrell forwarded 2026-09-16 14:47 UTC under the one
+  // word Lessons, with a single instruction, that the adverts be left out
+  // unless they bore on the teaching. The one item in it carrying a teaching
+  // called a nation's record number of people past a hundred a problematic age
+  // gap and said the surge is straining the country's resources. Sent
+  // 2026-09-16, BUILT 2026-11-03: this is the build day, the day the id landed,
+  // not the day it was sent, and the row waited about seven weeks (DR-1300).
+  'll273-they-called-long-life-a-problem': '2026-11-03',
 };

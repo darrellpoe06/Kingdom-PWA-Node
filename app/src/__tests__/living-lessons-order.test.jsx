@@ -155,7 +155,14 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // Me); both were spoken and built 2026-10-29 (DR-1294), so the date moves
     // on by one day here and this comment moves with it, so it never names a
     // lesson that is no longer the highest.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-29'); // L272
+    //
+    // The highest is now L273 (They Called Long Life a Problem), built from the
+    // oldest genuinely-unbuilt send in the Gmail intake lane: a newsletter
+    // forwarded 2026-09-16 and built 2026-11-03 (DR-1300). It carries its BUILD
+    // day for the same reason recorded above - the send day is seven weeks
+    // earlier than the id's landing day, and dating by the send day would make
+    // this very check false by putting L273 before every lesson from L212 on.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-03'); // L273
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
