@@ -213,8 +213,8 @@ describe('it renders as real text', () => {
     expect(cells[0].textContent).toContain('Savoring');
     expect(cells[0].textContent).toContain('low information, high relationship');
   });
-  it('a lesson without a figure renders nothing at all', () => {
-    const el = render(<LessonFigures module={LIVING_LESSONS_MODULES[0]} />);
+  it('a lesson with no figure and no book quoted renders nothing at all', () => {
+    const el = render(<LessonFigures module={{ ...LIVING_LESSONS_MODULES[0], anchor: { ref: '' } }} />);
     expect(el.innerHTML).toBe('');
   });
   it('the share text carries every row and the disclosure', () => {

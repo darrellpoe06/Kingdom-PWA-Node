@@ -28,6 +28,10 @@ import { castScript } from '../lib/scripture-voice-cast.js';
 import { useCastRead } from '../lib/use-cast-read.js';
 import { momentsForChapter, personOf } from '../lib/scripture-godhead-moments.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
+import { SpanChart, FigureFrame } from './LessonFigures.jsx';
+import { bookTimelineFigure } from '../lib/lesson-figures.js';
+import { chartDateOf, chartAuthorOf } from '../lib/progress-of-revelation.js';
+import { takeBibleTimelineRequest } from '../lib/bible-timeline-link.js';
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -222,9 +226,76 @@ function ThemesIndex({ onOpenRef }) {
   );
 }
 
+// WHEN EACH BOOK WAS WRITTEN — the writing-order timeline, in the Bible itself
+// (Darrell 2026-11-03: "I want this to be inside the bible we already have so
+// users can see the timeline with or without the lesson so it's accessible to
+// all users"). The same chart L270 teaches from, drawn from the same data
+// (lib/progress-of-revelation.js via bookTimelineFigure), so the Bible and the
+// lesson can never disagree. Every book is a button that opens it here, and
+// the book being read is marked "reading now". Folded until asked for, like the
+// themes index: the reading comes first.
+const BIBLE_TIMELINE = bookTimelineFigure({ id: 'bible-timeline' });
+
+function BookTimeline({ open, setOpen, current, onPick }) {
+  const boxRef = React.useRef(null);
+  // Opened (by a tap, or on arrival from a lesson): bring the book being read
+  // into view, so a long chart starts where the reader is.
+  useEffect(() => {
+    if (!open || !boxRef.current) return;
+    const row = boxRef.current.querySelector('[data-current="true"]');
+    if (row && typeof row.scrollIntoView === 'function') {
+      try { row.scrollIntoView({ block: 'center' }); } catch (e) { /* older engines: no options */ }
+    }
+  }, [open]);
+  return (
+    <div className="mb-3 border border-[#E8E4DC]" data-testid="bible-timeline" ref={boxRef}>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+        className="w-full flex items-center justify-between px-3 py-2 min-h-[44px] text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        data-testid="bible-timeline-toggle">
+        <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">When each book was written — all 66 on one timeline</span>
+        <span className="text-sm text-[#5A5751] leading-none" style={mono}>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="px-2 pb-2">
+          <p className="text-[0.6875rem] text-[#5A5751] px-1 mb-1" style={serif}>
+            Tap a book to open it here.
+          </p>
+          <FigureFrame figure={BIBLE_TIMELINE}>
+            <SpanChart figure={BIBLE_TIMELINE} current={current} onPick={onPick} />
+          </FigureFrame>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One line under the chapter heading: this book's place on the timeline, with
+// the chart's own words ("Unknown", "Anonymous", "(?)") kept exactly.
+function BookWritten({ book, onShow }) {
+  const date = chartDateOf(book);
+  const author = chartAuthorOf(book);
+  if (!date && !author) return null;
+  const when = date === 'Unknown' ? 'The chart gives no date' : `Written ${date}`;
+  return (
+    <p className="text-[0.75rem] text-[#5A5751] mb-2 flex flex-wrap items-center gap-x-1.5" style={serif} data-testid="bible-book-written">
+      <span>{when}{author ? ` · ${author}` : ''}</span>
+      <button type="button" onClick={onShow}
+        className="text-[0.6875rem] min-h-[44px] px-1.5 text-[#5A6E3D] underline underline-offset-2 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        data-testid="bible-book-written-show">
+        On the timeline
+      </button>
+    </p>
+  );
+}
+
 export default function BibleReader({ email = null }) {
-  const [book, setBook] = useState('Genesis');
+  // Opened from a lesson's "See all 66 books on the timeline": the wish is read
+  // once, here, and cleared (lib/bible-timeline-link.js). A named book opens at
+  // that book; any other wish opens the timeline over the usual first page.
+  const [arrival] = useState(() => takeBibleTimelineRequest());
+  const [book, setBook] = useState(() => (arrival && chartDateOf(arrival) ? arrival : 'Genesis'));
   const [chapter, setChapter] = useState(1);
+  const [timelineOpen, setTimelineOpen] = useState(arrival !== null);
   // THE SECOND READABLE EDITION (Darrell 2026-09-06: "we want kjv and esv" —
   // the ESV cannot be carried, so the modern-English public-domain WEB already
   // on disk is the second). Remembered per device; the chapter reloads from the
@@ -456,6 +527,14 @@ export default function BibleReader({ email = null }) {
       {/* Study by theme — the inductive markers across the whole Word. */}
       <ThemesIndex onOpenRef={goToRef} />
 
+      {/* When each book was written — the timeline, for every reader. */}
+      <BookTimeline
+        open={timelineOpen}
+        setOpen={setTimelineOpen}
+        current={book}
+        onPick={(bk) => { setTimelineOpen(false); setOpenVerse(null); openAt(bk, 1); }}
+      />
+
       {/* Current book + chapter nav. */}
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>{book} {chapter}</h3>
@@ -476,6 +555,7 @@ export default function BibleReader({ email = null }) {
             className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] disabled:opacity-40 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Next ›</button>
         </div>
       </div>
+      <BookWritten book={book} onShow={() => setTimelineOpen(true)} />
 
       {/* Chapter number grid. */}
       <div className="flex flex-wrap gap-1 mb-3">
