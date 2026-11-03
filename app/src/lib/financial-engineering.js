@@ -28,6 +28,7 @@
 // =============================================================================
 
 import { deriveApr, debtPayoffInsight, looksLikeDebtAccount, linkedDebtPaymentStats, estimatePayoff } from './debt-payments.js';
+import { balanceCheckpoint } from './imported-view.js';
 
 const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -87,19 +88,67 @@ export function monthsBetween(from, to) {
 // from here, so a transaction entered OR imported moves every balance in
 // lockstep (no static seed, no painted number — DR-0076). Returns a plain map
 // { [accountId]: balance } (credit/loan included; callers filter by type).
+//
+// A VERIFIED BALANCE CHECKPOINT outranks the anchor (Christina's Chase 7206,
+// 2026-11-03). The anchor is only true at the START of the ledger, so a current
+// balance typed into it — or older history imported after it was typed — moved
+// "now" by the whole history: $4,350.42 entered on 2026-07-31 was read as the
+// 2025-11-17 opening, and $26,428.38 was shown against the bank's $8,346.51.
+// A checkpoint ($0 row, category 'balance-checkpoint', see balanceCheckpoint in
+// imported-view.js) is true at the END of its own day, so once an account has
+// one the anchor is ignored: the balance on any date counts forward from the
+// latest checkpoint on or before it, or back from the earliest one after it.
+// Rows imported later for days before a checkpoint can no longer move it.
 // -----------------------------------------------------------------------------
 export function deriveAccountBalances(data, asOf = new Date()) {
   const clearedByAccount = {};
+  const rowsByAccount = {};
+  const checkpointsByAccount = {};
   for (const t of data?.transactions || []) {
     if (!t || !t.accountId) continue;
+    const cp = balanceCheckpoint(t);
+    if (cp) { (checkpointsByAccount[t.accountId] ||= []).push(cp); continue; }
     const d = new Date(t.date);
-    if (isNaN(d.getTime()) || d > asOf) continue; // only settled history
+    if (isNaN(d.getTime())) continue;
+    (rowsByAccount[t.accountId] ||= []).push({ day: String(t.date).slice(0, 10), amount: Number(t.amount) || 0, cleared: d <= asOf });
+    if (d > asOf) continue; // only settled history
     clearedByAccount[t.accountId] = (clearedByAccount[t.accountId] || 0) + (Number(t.amount) || 0);
   }
+  const asOfDay = localDay(asOf);
   const out = {};
   for (const a of data?.accounts || []) {
+    const cps = (checkpointsByAccount[a.id] || []).slice().sort((x, y) => x.day.localeCompare(y.day));
+    if (cps.length) { out[a.id] = round2(balanceFromCheckpoints(cps, rowsByAccount[a.id] || [], asOfDay)); continue; }
     const opening = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
     out[a.id] = round2(opening + (clearedByAccount[a.id] || 0));
+  }
+  return out;
+}
+
+function localDay(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function balanceFromCheckpoints(cps, rows, asOfDay) {
+  const before = cps.filter((c) => c.day <= asOfDay);
+  if (before.length) {
+    const cp = before[before.length - 1]; // latest on or before asOf; ties: last recorded wins
+    return cp.balance + rows.reduce((s, r) => (r.day > cp.day && r.cleared ? s + r.amount : s), 0);
+  }
+  const cp = cps[0]; // asOf is before every checkpoint: count back from the earliest
+  return cp.balance - rows.reduce((s, r) => (r.day > asOfDay && r.day <= cp.day ? s + r.amount : s), 0);
+}
+
+// Every account that has a verified checkpoint, with its latest one on or before
+// asOf — what Safe to Spend and the Accounts list use to say "verified" vs
+// "ledger estimate".
+export function latestCheckpoints(data, asOf = new Date()) {
+  const asOfDay = localDay(asOf);
+  const out = {};
+  for (const t of data?.transactions || []) {
+    const cp = t && t.accountId ? balanceCheckpoint(t) : null;
+    if (!cp || cp.day > asOfDay) continue;
+    if (!out[t.accountId] || cp.day >= out[t.accountId].day) out[t.accountId] = cp;
   }
   return out;
 }
@@ -142,16 +191,26 @@ export function applyManualBalance(data, accountId, entered, asOf = new Date()) 
   const derivedNow = deriveAccountBalances(data, asOf)[accountId] ?? 0;
   const delta = round2(amount - derivedNow);
   if (Math.abs(delta) < 0.005) return { mode: 'noop' };
+  // The entry is recorded as a CHECKPOINT, not a delta (2026-11-03). A delta row
+  // is only right while the history before it stays exactly as it was: import
+  // older rows afterwards and "now" moves by their sum again. A checkpoint is
+  // true at the end of its day whatever is imported before it later.
+  return { mode: 'adjustment', adjustment: balanceCheckpointRow(accountId, amount, asOf, { source: 'entered by hand' }) };
+}
+
+// The one shape of a verified-balance row: $0, so no total moves; the balance
+// rides in `reconciliation`, which transactions-sync carries both ways.
+export function balanceCheckpointRow(accountId, balance, asOf = new Date(), { basis = null, source = null } = {}) {
+  const amount = round2(balance);
+  const day = asOf instanceof Date ? localDay(asOf) : String(asOf).slice(0, 10);
   return {
-    mode: 'adjustment',
-    adjustment: {
-      date: asOf.toISOString().slice(0, 10),
-      accountId,
-      amount: delta,
-      description: `Balance set to ${amount.toFixed(2)} — manual adjustment`,
-      category: 'balance-adjustment',
-      isBalanceAdjustment: true,
-    },
+    date: day,
+    accountId,
+    amount: 0,
+    description: `Verified balance ${amount.toFixed(2)}${basis ? ` (${basis})` : ''}${source ? ` — ${source}` : ''}`,
+    category: 'balance-checkpoint',
+    isBalanceAdjustment: true,
+    reconciliation: { kind: 'balance-checkpoint', balance: amount, basis, source, recordedAt: new Date().toISOString() },
   };
 }
 

@@ -52,7 +52,7 @@ describe('addAccount', () => {
 });
 
 describe('updateAccount — the manual-balance interception rides the peel intact', () => {
-  it('a ledgered account: the entered balance becomes an adjustment row via postTx, the anchor never moves', () => {
+  it('a ledgered account: the entered balance becomes a verified-balance checkpoint via postTx, the anchor never moves', () => {
     const posted = [];
     const data = {
       accounts: [{ id: 'chk', type: 'checking', balance: 4350.42, remoteUuid: 'uuid-9' }],
@@ -65,7 +65,9 @@ describe('updateAccount — the manual-balance interception rides the peel intac
     const { crud, box } = crudFor(data, { syncEnabled: true, accountsSync: sync, postTx: (t) => posted.push(t) });
     crud.updateAccount('chk', { balance: 4350.42 });
     expect(posted).toHaveLength(1);
-    expect(posted[0].amount).toBe(-12602.58);
+    expect(posted[0].category).toBe('balance-checkpoint'); // a $0 row carrying the bank figure (2026-11-03)
+    expect(posted[0].amount).toBe(0);
+    expect(posted[0].reconciliation.balance).toBe(4350.42);
     expect(box.state.accounts[0].balance).toBe(4350.42); // anchor untouched
     expect(sync.updateRow).not.toHaveBeenCalled();        // empty patch → no cloud write
   });

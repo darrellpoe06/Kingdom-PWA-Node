@@ -8,9 +8,22 @@ import MoneyOverview from '../components/money/MoneyOverview.jsx';
 import MoneySurfaces from '../components/money/MoneySurfaces.jsx';
 import MoneyLayout, { MoneyNavStrip } from '../components/money/MoneyChrome.jsx';
 import ChromeDock from '../components/ChromeDock.jsx';
-import { deriveDebts } from '../lib/financial-engineering.js';
+import { deriveDebts, deriveAccountBalances, balanceCheckpointRow } from '../lib/financial-engineering.js';
 import { NEW_SUBS, LEGACY_SUBS, MONEY_SECTIONS } from '../lib/money-nav.js';
 import { patchMoneyPlan } from '../lib/money-plan.js';
+
+// Every spendable account checked against the bank on `day` at the balance the
+// ledger already shows, so the numbers do not move: "verified" now means
+// bank-checked (2026-11-03), and these fixtures are the verified case.
+function bankCheckAll(data, day) {
+  const at = new Date(`${day}T12:00:00`);
+  const bal = deriveAccountBalances(data, at);
+  for (const a of data.accounts || []) {
+    if (['checking', 'savings', 'cash'].includes(a.type)) data.transactions = [...(data.transactions || []), { id: `cp-${a.id}`, ...balanceCheckpointRow(a.id, bal[a.id], day) }];
+  }
+  return data;
+}
+
 
 const TODAY = new Date(2026, 9, 28);
 
@@ -81,11 +94,11 @@ describe('Money Overview — the first screen', () => {
   });
   it('a stored plan survives a round trip through the snapshot shape (settings persist after a reload)', async () => {
     const saved = patchMoneyPlan(null, { settings: { minCushion: 750, incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06' } }, debtDueDays: {} } });
-    const data = { ...fixture(), moneyPlan: JSON.parse(JSON.stringify(saved)) }; // the device snapshot is JSON
+    const data = bankCheckAll({ ...fixture(), moneyPlan: JSON.parse(JSON.stringify(saved)) }, '2026-10-28'); // the device snapshot is JSON
     const { bag } = moneyBag(data);
     const el = await mount(createElement(MoneyOverview, { money: bag }));
     expect(el.querySelector('[data-testid="sts-lines"]').textContent).toContain('$750');
-    expect(el.querySelector('[data-testid="sts-status"]').textContent).toMatch(/Ledger-verified projection/);
+    expect(el.querySelector('[data-testid="sts-status"]').textContent).toMatch(/Bank-checked projection/);
   });
 });
 

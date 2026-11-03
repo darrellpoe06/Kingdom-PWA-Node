@@ -15,8 +15,21 @@ import { describe, it, expect } from 'vitest';
 import { buildSafeToSpend, expandOccurrences, obligationEvents, resolveScope } from '../lib/safe-to-spend.js';
 import { paycheckPeriods } from '../lib/money-paychecks.js';
 import { planDebtFreedom, compareStrategies, normalizeDebt } from '../lib/debt-freedom.js';
-import { deriveAccountBalances, deriveDebts } from '../lib/financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, balanceCheckpointRow } from '../lib/financial-engineering.js';
 import { reconcileAccounts } from '../lib/imported-view.js';
+
+// Every spendable account checked against the bank on `day` at the balance the
+// ledger already shows, so the numbers do not move: "verified" now means
+// bank-checked (2026-11-03), and these fixtures are the verified case.
+function bankCheckAll(data, day) {
+  const at = new Date(`${day}T12:00:00`);
+  const bal = deriveAccountBalances(data, at);
+  for (const a of data.accounts || []) {
+    if (['checking', 'savings', 'cash'].includes(a.type)) data.transactions = [...(data.transactions || []), { id: `cp-${a.id}`, ...balanceCheckpointRow(a.id, bal[a.id], day) }];
+  }
+  return data;
+}
+
 
 const TODAY = new Date(2026, 9, 28); // 2026-10-28
 const d30 = { currentDate: TODAY, period: '30d' };
@@ -95,7 +108,7 @@ describe('TEST 1 · Safe to Spend recalculates (30-day window from 2026-10-28)',
     //   11-05: auto min −310 → 11,705      11-06: Darrell 1,938.46 (4200·12/26) → 13,643.46
     //   11-12: electric −180 → 13,463.46   11-15: Christina 1,300 → 14,763.46; visa min −60 → 14,703.46
     //   11-20: internet −89, Darrell 1,938.46 → 16,552.92 ... lowest = 10,715 on 10-30; safe = 10,715 − 1,000.
-    const r = run(anchorWorld());
+    const r = run(bankCheckAll(anchorWorld(), '2026-10-28'));
     expect(r.lines.availableCash).toBe(11115);
     expect(cashOn(r, '2026-10-30')).toBe(10715);
     expect(cashOn(r, '2026-11-01')).toBe(12015);
@@ -292,8 +305,9 @@ describe('TEST 1 · Safe to Spend recalculates (30-day window from 2026-10-28)',
     expect(r.lines.availableCash).toBe(11115);
     expect(r.lines.expectedIncome).toBeGreaterThan(0);
     for (const it of r.items.filter((x) => x.kind === 'income')) expect(it.date > '2026-10-28').toBe(true);
-    // the explanation says so in words
-    expect(r.explanation[0]).toMatch(/verified available cash/i);
+    // the explanation says so in words: a ledger figure is never called bank-checked
+    expect(r.explanation[0]).toMatch(/ledger-calculated/i);
+    expect(run(bankCheckAll(anchorWorld(), '2026-10-28')).explanation[0]).toMatch(/bank-checked cash/i);
   });
 });
 

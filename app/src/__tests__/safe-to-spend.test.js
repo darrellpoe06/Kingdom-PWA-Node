@@ -2,6 +2,20 @@
 // Every case is a rule the engine's header states; each one was written to FAIL
 // against a naive "income minus expenses" model before the engine existed.
 import { describe, it, expect } from 'vitest';
+import { deriveAccountBalances, balanceCheckpointRow } from '../lib/financial-engineering.js';
+
+// Every spendable account checked against the bank on `day` at the balance the
+// ledger already shows, so the numbers do not move: "verified" now means
+// bank-checked (2026-11-03), and these fixtures are the verified case.
+function bankCheckAll(data, day) {
+  const at = new Date(`${day}T12:00:00`);
+  const bal = deriveAccountBalances(data, at);
+  for (const a of data.accounts || []) {
+    if (['checking', 'savings', 'cash'].includes(a.type)) data.transactions = [...(data.transactions || []), { id: `cp-${a.id}`, ...balanceCheckpointRow(a.id, bal[a.id], day) }];
+  }
+  return data;
+}
+
 import {
   buildSafeToSpend, expandOccurrences, resolveScope, incomeEvents, obligationEvents,
   monthlyAccruals, ledgerFreshness,
@@ -186,8 +200,25 @@ describe('honesty — estimates, unavailable, and the pay schedule', () => {
     expect(r.status).toBe('estimate');
     expect(r.confidence.reasons.join(' ')).toMatch(/days old/);
   });
+  it('NEVER VERIFIED WITHOUT A BANK CHECK: a ledger-only balance is an estimate, and the account is named', () => {
+    const settings = { incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06' } }, minCushion: 500 };
+    const data = fixture(); data.accounts[2].dueDay = 20;
+    const r = buildSafeToSpend(data, { currentDate: TODAY, period: '14d', scope: 'personal', settings });
+    expect(r.status).toBe('estimate');
+    expect(r.confidence.reasons.join(' ')).toMatch(/Not checked against the bank/);
+    expect(r.balanceSources.every((b) => b.verifiedOn === null)).toBe(true);
+    const checked = bankCheckAll(fixture(), '2026-10-28'); checked.accounts[2].dueDay = 20;
+    expect(buildSafeToSpend(checked, { currentDate: TODAY, period: '14d', scope: 'personal', settings }).status).toBe('verified');
+  });
+  it('a bank check more than two weeks old no longer counts as current', () => {
+    const settings = { incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06' } }, minCushion: 500 };
+    const data = bankCheckAll(fixture(), '2026-10-01'); data.accounts[2].dueDay = 20;
+    const r = buildSafeToSpend(data, { currentDate: TODAY, period: '14d', scope: 'personal', settings });
+    expect(r.status).toBe('estimate');
+    expect(r.confidence.reasons.join(' ')).toMatch(/more than 14 days ago/);
+  });
   it('an entered pay schedule beats inference and makes the result verified', () => {
-    const data = fixture();
+    const data = bankCheckAll(fixture(), '2026-10-28');
     data.accounts[2].dueDay = 20;
     const r = buildSafeToSpend(data, { currentDate: TODAY, period: '14d', scope: 'personal', settings: { incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06' } }, minCushion: 500 } });
     const pay = r.items.filter((i) => i.kind === 'income');
