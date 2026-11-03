@@ -61,7 +61,31 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 // remain, and they are the order the next bites should be taken in.
 // re-review: 2026-11-29 — next bite from the 13 issue-writing lanes first,
 // then the quiet ones, deploy-adjacent lanes last.
-const UNVERIFIED = 42;
+// LOWERED TO 41 on 2026-11-03 by DR-1302: `public-shelf-witness.yml` gained
+// the verify step, and the bite was taken early for the same reason -- that
+// lane was MEASURED doing worse than this note knew. Six consecutive runs
+// (2026-10-28 to 11-02) filed the bolded "the public shelf disagrees with what
+// the doors are called" onto the `incident`-labelled ledger #2127 while
+// neither reading had been taken: the database was unreachable and `Read the
+// shelf in a real browser` was SKIPPED on all six.
+//
+// AND THE "LOUD TIER" COUNT ABOVE IS CORRECTED, because it was a proxy. The
+// predicate "joins without verifying AND writes to an issue" measured 15 lanes
+// on 2026-11-03, not 13 -- but only THREE of them write when the road is shut
+// (an issue-writing step carrying `if: always()` / `failure()`), and of those
+// three only ONE published a cause it had not measured:
+//   - public-shelf-witness.yml  -- six false findings. FIXED HERE.
+//   - public-shelf-anon-probe.yml -- honest: `anon probe: <job.status>` plus
+//     "no browser reading" on a rolling run log, and no timer at all
+//     (workflow_dispatch / probe/** only), so it cannot do this daily.
+//   - openclaw-tower.yml -- honest already: it passes `reachable` explicitly,
+//     derives `modelPresent: null` when unreachable (DR-1186), sets an
+//     explicit `reason`, and reds separately at the key.
+// So the real worklist is smaller and sharper than "13 loud lanes": the
+// question is not whether a lane writes to an issue, it is whether a lane
+// NAMES A CAUSE IT DID NOT MEASURE. The remaining 41 are to be read for that,
+// and the honest ones are to be left alone rather than churned.
+const UNVERIFIED = 41;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
 // one of these loses its verify the gate must say WHICH, because a silent

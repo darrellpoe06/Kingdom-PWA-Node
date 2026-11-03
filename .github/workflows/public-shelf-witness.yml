@@ -87,6 +87,28 @@ jobs:
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
 
+      # A JOIN STEP IS NOT A WITNESS OF THE JOIN (DR-1284). `tailscale up` can
+      # be refused five times and the action still closes
+      # `outcome=success; conclusion=success`. Measured on this very lane:
+      # runs 40757911515 / 40943512224 / 41116974336 / 41230844184 /
+      # 41340322457 / 41540819357 all show step 4 SUCCESS and step 5 failing
+      # with no route to the NAS. This step asks, so a shut road fails HERE,
+      # at the key, with the key's name on it — before one word is published
+      # about the shelf.
+      - name: Verify the tailnet actually joined
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). This is NOT a shelf finding: neither the database nor the page was read."
+            node scripts/tailnet-key-incident.mjs \
+              --workflow "public-shelf-witness (tailnet join)" \
+              --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --measured-file /tmp/ts-join.txt || true
+            exit 1
+          fi
+          tailscale status --peers=false
+
       - name: What each advertised door IS, by its own labels (labels only)
         id: doors
         env:
@@ -138,16 +160,41 @@ jobs:
       # bedroom count is the 2026-10-11 bug, and it is the one thing a
       # DOM-only reading can never see.
       # ---------------------------------------------------------------------
+      # A COMPARISON THAT NEVER RAN IS NOT A DISAGREEMENT (DR-1186).
+      #
+      # This step's OUTCOME used to be the ledger's trigger, and it is the
+      # wrong question. `exit 1` here means two different things: "the two
+      # readings disagree" (a shelf finding) and "a reading never happened"
+      # (an UNKNOWN, and never a statement about the shelf). DR-1023 already
+      # narrowed the ledger from the JOB's status to this step's — a real
+      # improvement that stopped the 2026-10-14 false line — but a step
+      # outcome is still a proxy. So the step now says WHICH it is, in
+      # `verdict`, and the ledger reads that word instead of an outcome.
       - name: Do the two readings agree?
         id: compare
         if: always()
         run: |
           set -uo pipefail
-          [ -f /tmp/doors.txt ] || { echo "::error::no database reading — cannot compare"; exit 1; }
+          if [ ! -f /tmp/doors.txt ]; then
+            echo "verdict=unknown-no-database-reading" >> "$GITHUB_OUTPUT"
+            echo "::error::no database reading — nothing was compared, so NOTHING is being said about the shelf (DR-1186: a failed read is UNKNOWN, never a finding)"
+            exit 1
+          fi
+          if [ "${{ steps.shelf.outcome }}" != 'success' ]; then
+            echo "verdict=unknown-no-browser-reading" >> "$GITHUB_OUTPUT"
+            echo "::error::the shelf was not read in a browser — nothing was compared, so NOTHING is being said about the shelf (DR-1186)"
+            exit 1
+          fi
           # The decision lives in scripts/public-shelf-rules.mjs, unit-tested
           # against the founding incident. This step only feeds it the rows.
-          node scripts/public-shelf-compare.mjs /tmp/doors.txt | tee /tmp/compare.txt
+          rc=0
+          node scripts/public-shelf-compare.mjs /tmp/doors.txt | tee /tmp/compare.txt || rc=$?
           echo "DOORS_CHECKED=$(grep -oE 'shared doors checked: [0-9]+' /tmp/compare.txt | grep -oE '[0-9]+' || echo unknown)" >> "$GITHUB_ENV"
+          if [ "$rc" -ne 0 ]; then
+            echo "verdict=disagree" >> "$GITHUB_OUTPUT"
+            exit "$rc"
+          fi
+          echo "verdict=agree" >> "$GITHUB_OUTPUT"
 
       - name: Upload what a stranger saw
         if: always()
@@ -169,7 +216,7 @@ jobs:
         if: always()
         run: |
           set -uo pipefail
-          line="$(date -u +%FT%TZ) — shelf: ${{ job.status }}. Base: ${BASE}. Shared doors checked: ${DOORS_CHECKED:-unknown}. Cards read: ${CARDS_READ:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          line="$(date -u +%FT%TZ) — shelf: ${{ job.status }}, verdict: ${{ steps.compare.outputs.verdict || 'unknown-not-compared' }}. Base: ${BASE}. Shared doors checked: ${DOORS_CHECKED:-unknown}. Cards read: ${CARDS_READ:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           num=$(gh issue list --repo "$REPO" --state open --search "in:title public shelf witness run log" --json number --jq '.[0].number // ""')
           if [ -n "$num" ]; then
             gh issue comment "$num" --repo "$REPO" --body "$line"
@@ -179,18 +226,29 @@ jobs:
             gh issue create --repo "$REPO" --title "public shelf witness run log" --body-file /tmp/runlog-body.md
           fi
 
-      # The finding is the COMPARISON's, not the job's. Measured 2026-10-14
-      # (run 38597741280): both readings agreed (40 pictures on each bed, the
-      # shelf as the doors are called), then GitHub answered the run-log write
-      # with a GraphQL error, the job went red, and this step — keyed on the
-      # job — filed "the public shelf disagrees" on the incident ledger. A log
-      # line that could not be written is the run-log's own silence (the job
-      # stays red so it is seen); it is never a shelf finding.
+      # The finding is the COMPARISON'S VERDICT, not the job's status and not
+      # the compare step's outcome. Two measured corrections live in this
+      # guard, and both were a step outcome standing in for a question:
+      #
+      #   2026-10-14, run 38597741280 (fixed by DR-1023): both readings agreed,
+      #   then GitHub answered the run-log write with a GraphQL error, the JOB
+      #   went red, and this step — keyed on the job — filed "the public shelf
+      #   disagrees". So the guard moved to the compare step's own outcome.
+      #
+      #   2026-10-28 → 11-02, runs 40757911515 / 40943512224 / 41116974336 /
+      #   41230844184 / 41340322457 / 41540819357 (DR-1302): the tailnet key
+      #   was refused, the database was never asked, `Read the shelf in a real
+      #   browser` was SKIPPED on every one of the six — and the compare step
+      #   still exited 1 (for a missing file), so this guard passed and filed
+      #   the bolded "the public shelf disagrees with what the doors are
+      #   called" six times onto #2127. Not one card had been loaded. A step
+      #   outcome cannot tell "they disagree" from "nothing was read"; only a
+      #   verdict can, so the verdict is what this reads.
       - name: File the finding on the incident ledger
-        if: failure() && steps.compare.outcome != 'success'
+        if: failure() && steps.compare.outputs.verdict == 'disagree'
         run: |
           set -uo pipefail
-          body="$(date -u +%FT%TZ) — **the public shelf disagrees with what the doors are called**, or could not be read. Base: ${BASE}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} (DR-0973)."
+          body="$(date -u +%FT%TZ) — **the public shelf disagrees with what the doors are called.** Both readings were taken and they do not match. Base: ${BASE}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} (DR-0973)."
           num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title shelf" --json number --jq '.[0].number // ""')
           if [ -n "$num" ]; then
             gh issue comment "$num" --repo "$REPO" --body "$body"
