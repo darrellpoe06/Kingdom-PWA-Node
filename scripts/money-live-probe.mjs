@@ -38,6 +38,13 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 160)));
     const settle = async () => {
+      // As live-link-probe learned on this site: let the app finish booting,
+      // then clear the live-only prompts (install / notifications) before reading.
+      await page.waitForTimeout(3000);
+      for (const text of ['Maybe later', "Don't show again", 'Hide']) {
+        const b = page.locator(`button:has-text("${text}")`).first();
+        if (await b.count() && await b.isVisible().catch(() => false)) { await b.click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(400); }
+      }
       // The sample's welcome card and the live-service player sit over the page.
       const welcome = page.locator('[aria-labelledby="demo-welcome-h"] button', { hasText: /show me around/i }).first();
       if (await welcome.count()) await welcome.click({ force: true }).catch(() => {});
@@ -46,6 +53,18 @@ try {
       await page.waitForTimeout(600);
     };
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    // What the browser actually landed on — printed whenever a screen is missing,
+    // so a red run carries its own evidence (DR-0076 §8), not a guess.
+    const whereAmI = async (what) => {
+      const seen = await page.evaluate(() => ({
+        url: location.href,
+        build: (() => { try { return globalThis.__PT_BUILD__ || null; } catch (e) { return null; } })(),
+        worker: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+        testids: [...new Set([...document.querySelectorAll('[data-testid]')].map((n) => n.getAttribute('data-testid')))].slice(0, 25),
+        text: (document.body.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400),
+      })).catch((e) => ({ error: String(e).slice(0, 160) }));
+      console.log(`  ${label} ${what} — landed on: ${JSON.stringify(seen)}`);
+    };
 
     // 1) Money Overview: the "what you have, what is due" panel.
     await page.goto(`${BASE}?demo=family-of-4&view=books&sub=overview`, { waitUntil: 'networkidle', timeout: 60000 });
@@ -53,6 +72,7 @@ try {
     const panel = page.locator('[data-testid="money-coming-up"]');
     await panel.first().waitFor({ timeout: 20000 }).catch(() => {});
     check(`${label}: Overview panel is on the live build`, await panel.count() === 1);
+    if (await panel.count() !== 1) await whereAmI('Overview');
     const lines = await page.locator('[data-testid^="coming-up-"][data-testid$="-value"]').count();
     check(`${label}: Overview shows its nine numbers`, lines === 9, `${lines} found`);
     if (await panel.count()) {
@@ -69,6 +89,7 @@ try {
     if (await reviewTab.count()) await reviewTab.first().click({ force: true }).catch(() => {});
     await page.locator('[data-testid="money-bill-review"]').first().waitFor({ timeout: 20000 }).catch(() => {});
     check(`${label}: Bills Review is on the live build`, await page.locator('[data-testid="money-bill-review"]').count() === 1);
+    if (await page.locator('[data-testid="money-bill-review"]').count() !== 1) await whereAmI('Bills Review');
     const tabs = await page.locator('[data-testid^="bill-review-entity-tab-"]').allTextContents();
     check(`${label}: entity filter shows ALL / PERSONAL / POE PROPERTIES / TLC THERAPY / NEEDS REVIEW`,
       ['ALL', 'PERSONAL', 'POE PROPERTIES', 'TLC THERAPY', 'NEEDS REVIEW'].every((w, i) => (tabs[i] || '').includes(w)), tabs.join(' | '));
