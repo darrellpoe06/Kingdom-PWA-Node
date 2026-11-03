@@ -33,7 +33,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import UiIcon from '../UiIcon.jsx';
 import HelpButton from '../HelpButton.jsx';
-import { buildSafeToSpend, PERIODS } from '../../lib/safe-to-spend.js';
+import { buildSafeToSpend, extraDebtCapacity, PERIODS } from '../../lib/safe-to-spend.js';
+import MoneyComingUp from './MoneyComingUp.jsx';
 import { moneySettings, patchMoneyPlan, setupSteps, syncStatus, balanceSource } from '../../lib/money-plan.js';
 import { goalsSync } from '../../lib/goals-sync.js';
 import { loadRecurringDecisions } from '../../lib/recurring-decisions.js';
@@ -77,6 +78,9 @@ export default function MoneyOverview({ money }) {
     currentDate, period, scope, customEnd: customEnd || settings.customEnd, settings, visibleEntities, goals, recurringDecisions: decisions, goalMeta: data.moneyPlan && data.moneyPlan.goalMeta,
   }), [data, currentDate, period, scope, customEnd, settings, visibleEntities, goals, decisions]);
 
+  const extra = useMemo(() => extraDebtCapacity(data, {
+    currentDate, period, scope, customEnd: customEnd || settings.customEnd, settings, visibleEntities, goals, recurringDecisions: decisions, goalMeta: data.moneyPlan && data.moneyPlan.goalMeta,
+  }), [data, currentDate, period, scope, customEnd, settings, visibleEntities, goals, decisions]);
   const setup = useMemo(() => setupSteps(data, { debts: derivedDebts }), [data, derivedDebts]);
   const sync = syncStatus({ cloud, marker: readMarker(), updatedAt: data.moneyPlan && data.moneyPlan.updatedAt });
   const source = balanceSource({ ledgerAsOf: result.freshness && result.freshness.ledgerAsOf });
@@ -256,6 +260,8 @@ export default function MoneyOverview({ money }) {
           <div className="mt-2 text-[0.6875rem]">Books last updated {data.meta && data.meta.lastUpdated ? data.meta.lastUpdated : '—'}.</div>
         </details>
       </section>
+
+      {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }} />}
 
       {/* Shortcuts — one tap to the three Christina named */}
       <nav aria-label="Money shortcuts" data-testid="money-shortcuts" className="grid grid-cols-3 gap-2">

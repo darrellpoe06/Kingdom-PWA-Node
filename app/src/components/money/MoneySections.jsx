@@ -40,6 +40,9 @@ import { compareStrategies, STRATEGIES, INTEREST_METHODS } from '../../lib/debt-
 import { financePresets } from '../../lib/finance-reports.js';
 import { isTransferTxn, isBalanceAdjustment } from '../../lib/imported-view.js';
 import { fmt } from '../../lib/format.js';
+import MoneyBillReview from './MoneyBillReview.jsx';
+import MoneyHomeMortgage from './MoneyHomeMortgage.jsx';
+import MoneyArrangements from './MoneyArrangements.jsx';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5';
@@ -205,7 +208,9 @@ export function MoneyBills({ money }) {
   const { data = {}, setData, currentDate, visibleEntities = null } = money || {};
   const cd = useMemo(() => (currentDate instanceof Date ? currentDate : new Date()), [currentDate]);
   const settings = moneySettings(data);
-  const [view, setView] = useState('list');
+  // The review screen opens first while no bill has been saved yet (Christina
+  // 2026-11-03: "Please show me the bill-review screen"); afterwards the list.
+  const [view, setView] = useState(() => ((data.recurringObligations || []).some(Boolean) ? 'list' : 'review'));
   const end = useMemo(() => { const d = new Date(cd); d.setDate(d.getDate() + 60); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }, [cd]);
   const result = useMemo(() => buildSafeToSpend(data, { currentDate: cd, period: 'custom', customEnd: end, scope: 'consolidated', settings, visibleEntities }), [data, cd, end, settings, visibleEntities]);
   const statuses = useMemo(() => (data.moneyPlan && data.moneyPlan.billStatus) || {}, [data.moneyPlan]);
@@ -230,13 +235,15 @@ export function MoneyBills({ money }) {
         <Title topic="books:bills">Bills and recurring payments</Title>
         <span className="flex-1" />
         <div role="group" aria-label="Bills view" className="flex gap-1.5">
+          <button type="button" data-testid="bills-view-review" onClick={() => setView('review')} aria-pressed={view === 'review'} className={`${CHIP} ${view === 'review' ? CHIP_ON : CHIP_OFF}`}>Review &amp; confirm</button>
           <button type="button" onClick={() => setView('list')} aria-pressed={view === 'list'} className={`${CHIP} ${view === 'list' ? CHIP_ON : CHIP_OFF}`}>List</button>
           <button type="button" onClick={() => setView('calendar')} aria-pressed={view === 'calendar'} className={`${CHIP} ${view === 'calendar' ? CHIP_ON : CHIP_OFF}`}>Calendar</button>
         </div>
       </div>
-      <p className="text-[0.8125rem] text-[#5A5751] leading-relaxed">The next 60 days, every entity. <strong className="text-[#1A1815]">Confirmed</strong> items come from your recurring obligations, debt minimums, mortgages and the tax calendar; <strong className="text-[#1A1815]">inferred</strong> items are rhythms detected in the ledger and stay labeled until you confirm them on the Calendar. A mortgage or utility is never filed as a subscription. {inferredCount ? `${inferredCount} inferred.` : ''}</p>
-      {items.length === 0 && <p className={`${CARD} text-[0.8125rem] text-[#5A5751]`}>Nothing is due in the next 60 days from what the books hold. Add recurring obligations on the Calendar tab, or set due days in Settings so debt minimums land on their day.</p>}
-      {view === 'list' ? byGroup.map(([id, label, list]) => (
+      {view !== 'review' && (<p className="text-[0.8125rem] text-[#5A5751] leading-relaxed">The next 60 days, every entity. <strong className="text-[#1A1815]">Confirmed</strong> items come from your recurring obligations, debt minimums, mortgages and the tax calendar; <strong className="text-[#1A1815]">inferred</strong> items are rhythms detected in the ledger and stay labeled until you confirm them on the Calendar. A mortgage or utility is never filed as a subscription. {inferredCount ? `${inferredCount} inferred.` : ''}</p>)}
+      {view === 'review' && <MoneyBillReview money={money} />}
+      {view !== 'review' && items.length === 0 && <p className={`${CARD} text-[0.8125rem] text-[#5A5751]`}>Nothing is due in the next 60 days from what the books hold. Add recurring obligations on the Calendar tab, or set due days in Settings so debt minimums land on their day.</p>}
+      {view === 'review' ? null : view === 'list' ? byGroup.map(([id, label, list]) => (
         <section key={id} aria-labelledby={`bills-${id}`} className={CARD}>
           <h3 id={`bills-${id}`} className={EYEBROW}>{label} <span aria-hidden="true">·</span> {fmt(list.reduce((s, it) => s + Math.abs(it.amount), 0))}</h3>
           <ul className="mt-2 divide-y divide-[#E8E4DC]">
@@ -327,6 +334,8 @@ export function MoneyDebtFreedom({ money }) {
   const planRows = firstMonth ? firstMonth.payments.map((r) => { const d = result.debts.find((x) => x.id === r.debtId) || {}; return { ...r, total: Math.round((r.minimum + r.extra + r.lump) * 100) / 100, payoffLabel: d.payoffLabel, cleared: d.cleared, pace: paceOf(r.debtId) }; }) : [];
   return (
     <div data-testid="money-debt-freedom" className="space-y-4">
+      <MoneyHomeMortgage money={money} />
+      <MoneyArrangements money={money} />
       {/* THE SUMMARY BAND (Christina 2026-10-28): total debt, required monthly, extra, debt-free date, next payoff */}
       <section aria-label="Debt summary" data-testid="debt-summary" className="bg-[#1F3A2E] text-[#F6F1E7] rounded-2xl p-4 sm:p-5">
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4 text-[0.75rem]">
