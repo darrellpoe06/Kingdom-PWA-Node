@@ -56,7 +56,8 @@
 import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints } from './financial-engineering.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
-import { cleanName } from './bill-review.js';
+import { cleanName, suggestBills, isOwnAccountTransfer } from './bill-review.js';
+import { isSampleSalary, isSampleOutflows, isSampleHousehold } from './sample-markers.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAYS_PER_MONTH = 365.25 / 12;
@@ -207,11 +208,22 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
     && inScope(sc, accountEntity.get(t.accountId)));
   const inferred = payrollRows.length ? detectRecurring(payrollRows, { direction: 'in', nowMs: asOf.getTime() }) : [];
   const usedInferred = new Set();
+  let unmatchedSchedule = false;
   for (const s of salaries) {
+    // The shipped sample household's income ("Regional University salary
+    // (Adam)") is never counted as the family's own (Christina 2026-11-03).
+    if (isSampleSalary(s) && !isSampleHousehold(data)) { assumptions.push(`"${s.source} (${s.who})" is the app's sample income, not yours, so it is not counted.`); continue; }
     const amount = Number(s.actual != null ? s.actual : s.expected) || 0;
     if (amount <= 0) continue;
     const sched = schedule[s.id];
     if (sched && sched.frequency && sched.nextDate) {
+      // The entered schedule IS this salary's deposits: they are claimed here
+      // so the paycheck pass below never counts them a second time. One that
+      // cannot be matched by name stops that pass altogether (it cannot tell
+      // a second job from this one).
+      const words = `${s.source || ''} ${s.who || ''}`.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+      const own = inferred.find((g) => !usedInferred.has(g.key) && words.some((w) => g.label.toLowerCase().includes(w)));
+      if (own) usedInferred.add(own.key); else unmatchedSchedule = true;
       const first = parseDay(sched.nextDate);
       const per = sched.amount != null ? Number(sched.amount) : perPaycheck(amount, sched.frequency);
       for (const at of expandOccurrences(first, sched.frequency, start, end)) {
@@ -235,6 +247,23 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
       continue;
     }
     assumptions.push(`${s.source || 'Salary'}: no pay dates known, so $${Math.round(amount).toLocaleString()}/mo expected income is LEFT OUT. Add its pay schedule in Money → Settings.`);
+  }
+  // Paychecks the ledger SHOWS but no income entry names (or only the sample's
+  // did): counted under the real payer's name, flagged as not confirmed. A
+  // rhythm whose last deposit is more than two pay periods old has stopped
+  // and is not projected.
+  for (const g of (unmatchedSchedule ? [] : inferred)) {
+    if (usedInferred.has(g.key)) continue;
+    const last = g.lastDate instanceof Date ? g.lastDate : null;
+    if (!last || (asOf.getTime() - last.getTime()) > (2 * g.cadenceDays + 7) * 86400000) continue;
+    let next = new Date(g.nextExpected.getFullYear(), g.nextExpected.getMonth(), g.nextExpected.getDate());
+    let guard = 0;
+    while (next < start && guard++ < 60) next = addDays(next, g.cadenceDays);
+    const payer = cleanName(g.label || '') || 'Paycheck';
+    for (const at of expandOccurrences(next, cadenceToFrequency(g.cadence), start, end)) {
+      events.push({ date: isoDay(at), amount: round2(g.amount), label: `Paycheck · ${payer}`, kind: 'income', source: 'inferred', inferred: true, entityId: null });
+    }
+    assumptions.push(`Paycheck from ${payer}: about $${Math.round(g.amount).toLocaleString()} ${g.cadenceLabel}, seen in ${g.count} deposits; not confirmed. Set its pay dates in Money → Settings.`);
   }
   // Rental income.
   const rentDay = Number(settings.rentDueDay) || 1;
@@ -394,6 +423,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     const decisions = opts.recurringDecisions || {};
     const rows = (data?.transactions || []).filter((t) => t && Number(t.amount) < 0 && !isTransferTxn(t) && !isBalanceAdjustment(t)
       && String(t.category || '') !== 'debt-payment' && String(t.category || '') !== 'transfer'
+      && !isOwnAccountTransfer(t.description || '') // money moved to their own accounts is not a bill (Christina 2026-11-03)
       && inScope(sc, accountEntity.get(t.accountId)) && !!accountsById.get(t.accountId) && SPENDABLE_TYPES.includes(accountsById.get(t.accountId).type));
     const patterns = rows.length ? detectRecurring(rows, { direction: 'out', nowMs: asOf.getTime() }) : [];
     // A bill confirmed on the review screen carries the payee exactly as the
@@ -419,6 +449,49 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       inferredMonthly.items.push({ key: p.key, label: p.label, monthly });
     }
     if (inferredMonthly.items.length) assumptions.push(`${inferredMonthly.items.length} recurring payment${inferredMonthly.items.length === 1 ? '' : 's'} inferred from the ledger (not confirmed) — confirm or cancel them in Money → Bills.`);
+
+    // 6b) Bills the review screen finds in the family's own payments that the
+    //     pass above skips: debt and mortgage payments, collection-agency
+    //     arrangements and family obligations paid by Zelle (Christina
+    //     2026-11-03: "Make sure all actual bills, debts, payment arrangements,
+    //     and my personal mortgage are included"). The pass above assumes a
+    //     debt account's minimum carries every debt-looking payment; with no
+    //     such account the payment vanished from the projection. Each one is
+    //     counted from its own history (median amount, the days it is usually
+    //     paid), flagged as not confirmed, and never alongside a confirmed bill,
+    //     a debt minimum or a guess above for the same payee.
+    const norm = (x) => cleanName(x || '').toLowerCase().slice(0, 40);
+    const counted = new Set(events.flatMap((e) => [payeeKey(e.label || ''), norm(e.label)]));
+    const debtWords = new Set(events.filter((e) => e.kind === 'debt-min' || e.kind === 'mortgage')
+      .flatMap((e) => cleanName(e.label || '').toLowerCase().split(/\W+/).filter((w) => w.length > 3)));
+    const debtMins = events.filter((e) => e.kind === 'debt-min' || e.kind === 'mortgage').map((e) => -Number(e.amount)).filter((m) => m > 0);
+    let added = 0;
+    for (const s of suggestBills(data, asOf)) {
+      if (!['home-mortgage', 'arrangement', 'past-due', 'family', 'rental', 'business', 'household'].includes(s.group)) continue; // never a transfer between own accounts
+      if (decisions[s.key] === 'cancel') continue;
+      const key = payeeKey(s.name || '');
+      if (counted.has(key) || counted.has(norm(s.name)) || seenPayees.has(key) || scheduledKeys.has(key)) continue;
+      if (confirmedNames.has(cleanName(s.name || '').toLowerCase())) continue;
+      if (cleanName(s.name || '').toLowerCase().split(/\W+/).some((w) => w.length > 3 && debtWords.has(w))) continue; // a debt minimum already carries it
+      if (looksLikeDebtPayment(s.name) && debtMins.some((m) => Math.abs(m - Number(s.amount)) <= m * 0.05)) continue; // an autopay of that debt's minimum
+      const acct = accountsById.get(s.accountId);
+      if (!acct || !SPENDABLE_TYPES.includes(acct.type) || !inScope(sc, accountEntity.get(s.accountId))) continue;
+      const amount = Number(s.amount) || 0; if (!(amount > 0)) continue;
+      const days = (s.evidence && s.evidence.days && s.evidence.days.length ? s.evidence.days : [s.evidence ? s.evidence.usualDay : 1]).slice(0, s.frequency === 'semimonthly' ? 2 : 1);
+      for (const day of days) {
+        const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
+        const first = anchor < start ? addMonthsClamped(anchor, 1, day) : anchor;
+        for (const at of expandOccurrences(first, 'monthly', start, end)) {
+          events.push({ date: isoDay(at), amount: -round2(amount), label: s.name, kind: 'inferred-bill', obligationType: s.group === 'arrangement' ? 'arrangement' : (s.group === 'past-due' ? 'past-due' : null), source: 'inferred', refId: s.key, entityId: null, assumed: true, cadence: s.frequency === 'semimonthly' ? 'twice a month' : 'monthly' });
+        }
+      }
+      counted.add(key); counted.add(norm(s.name));
+      const monthly = round2(amount * days.length);
+      inferredMonthly.total = round2(inferredMonthly.total + monthly);
+      inferredMonthly.items.push({ key: s.key, label: s.name, monthly });
+      added += 1;
+    }
+    if (added) assumptions.push(`${added} more bill${added === 1 ? '' : 's'} seen in your own payments (debt, mortgage, arrangement or family payments) counted on the days they are usually paid; not confirmed — confirm them in Money → Bills → Review.`);
   }
 
   // 7) SETTLED OCCURRENCES (DEFECT-1, GAP-1; Christina 2026-10-29: "I do not
@@ -528,10 +601,61 @@ function looksLikeDebtPayment(label) {
   return /\b(payment|autopay|auto ?pay|card ?member|cardmember|credit crd|epay|loan pmt|mortgage)\b/i.test(String(label || ''));
 }
 
+// Everyday spending measured from the ledger: the last 90 days of money out of
+// spendable accounts in scope, through the newest ledger row (a ledger that
+// stops early is not read as spending nothing), per month of 30.44 days.
+// Leaves out transfers, balance checks, debt payments and every payee already
+// counted as a dated item (countedNames: cleaned, lower-case, 40 chars).
+export function measuredEverydaySpending(data, sc, asOf, countedNames = new Set()) {
+  const accountsById = new Map((data?.accounts || []).map((a) => [a.id, a]));
+  const from = isoDay(addDays(asOf, -90));
+  const rows = (data?.transactions || []).filter((t) => {
+    if (!t || !(Number(t.amount) < 0) || isTransferTxn(t) || isBalanceAdjustment(t)) return false;
+    const day = String(t.date || '').slice(0, 10);
+    if (day < from || day > isoDay(asOf)) return false;
+    const a = accountsById.get(t.accountId);
+    if (!a || !SPENDABLE_TYPES.includes(a.type) || a.inLegal || !inScope(sc, a.entityId ?? null)) return false;
+    const cat = String(t.category || '');
+    if (cat === 'transfer' || cat === 'debt-payment') return false;
+    if (isOwnAccountTransfer(t.description || '')) return false;
+    return !countedNames.has(cleanName(t.description || '').toLowerCase().slice(0, 40));
+  });
+  // A payment of $500 or more to a payee seen only once in the window (a county
+  // tax bill, tuition, a trip) is not everyday spending: spreading it over
+  // every month would hold back money that is not going anywhere. It is listed.
+  const seen = new Map();
+  for (const t of rows) { const k = cleanName(t.description || '').toLowerCase(); seen.set(k, (seen.get(k) || 0) + 1); }
+  const oneOffs = rows.filter((t) => -Number(t.amount) >= 500 && seen.get(cleanName(t.description || '').toLowerCase()) === 1);
+  const everyday = rows.filter((t) => !oneOffs.includes(t));
+  if (!everyday.length) return null;
+  const through = rows.map((t) => String(t.date).slice(0, 10)).sort().pop();
+  const days = Math.max(1, daysBetween(parseDay(from), parseDay(through)) + 1);
+  const total = everyday.reduce((s, t) => s - Number(t.amount), 0);
+  return {
+    monthly: round2(total / days * DAYS_PER_MONTH), days, through, rows: everyday.length,
+    oneOffs: oneOffs.map((t) => ({ date: String(t.date).slice(0, 10), label: cleanName(t.description || ''), amount: round2(-Number(t.amount)) })),
+  };
+}
+
 // ── undated reserves, accrued daily ──────────────────────────────────────────
 export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) {
   const out = { living: 0, livingParts: {}, tax: 0, savings: 0, notes: [] };
-  const outflows = data?.outflows || {};
+  const sampleOutflows = isSampleOutflows(data?.outflows) && !isSampleHousehold(data);
+  const outflows = sampleOutflows ? {} : (data?.outflows || {});
+  if (sampleOutflows && sc.kind !== 'business') {
+    // The figures on file are the shipped sample household's, never the
+    // family's. Everyday spending is MEASURED from the family's own last 90
+    // days instead: money out of spendable accounts in scope, leaving out
+    // transfers between their own accounts, balance checks, and every payment
+    // already counted as a dated bill (so nothing is counted twice).
+    const measured = measuredEverydaySpending(data, sc, start, opts.countedNames || new Set());
+    if (measured) {
+      out.livingParts.household = measured.monthly; out.living += measured.monthly;
+      out.notes.push(`The household figures on file are the app's sample, not yours, so everyday spending is measured from your own payments instead: $${Math.round(measured.monthly).toLocaleString()}/mo over the ${measured.days} days to ${measured.through} (bills, transfers between your own accounts and debt payments left out)${measured.oneOffs.length ? `; ${measured.oneOffs.length} one-time payment${measured.oneOffs.length === 1 ? '' : 's'} of $500 or more not spread over the month (largest: ${measured.oneOffs.slice().sort((a, b) => b.amount - a.amount).slice(0, 3).map((o) => `${o.label} $${Math.round(o.amount).toLocaleString()}`).join(', ')})` : ''}.`);
+    } else {
+      out.notes.push('The household figures on file are the app’s sample, not yours, and there is no recent spending in your records to measure, so no everyday spending is reserved.');
+    }
+  }
   const hasRentals = (data?.inflows?.rentals || []).some((r) => inScope(sc, r.entityId) && (Number(r.rent) || 0) > 0);
   for (const [bucket, v] of Object.entries(outflows)) {
     const amt = Number(v) || 0; if (amt <= 0 || COVERED_BY_DATED_ITEMS.has(bucket)) continue;
@@ -542,8 +666,9 @@ export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) 
     else counts = sc.kind === 'personal'; // an unknown bucket is household-side
     if (counts) { out.livingParts[bucket] = amt; out.living += amt; }
   }
-  // Inferred recurring payments are carved out of the household figure so they count once.
-  const carve = Math.min(out.livingParts.household || 0, Number(opts.inferredMonthlyTotal) || 0);
+  // Inferred recurring payments are carved out of the household figure so they
+  // count once (a MEASURED figure already leaves them out).
+  const carve = sampleOutflows ? 0 : Math.min(out.livingParts.household || 0, Number(opts.inferredMonthlyTotal) || 0);
   if (carve > 0) { out.livingParts.household = round2(out.livingParts.household - carve); out.living = round2(out.living - carve); out.notes.push(`$${Math.round(carve).toLocaleString()}/mo of itemized recurring payments carved out of the household figure so they are counted once.`); }
   out.living = round2(out.living);
   // Tax set-aside for items NOT dated inside the window.
@@ -690,7 +815,8 @@ function forScope(data, sc, asOf, settings, opts) {
 
   const income = incomeEvents(data, sc, start, end, settings, asOf);
   const obligations = obligationEvents(data, sc, start, end, settings, { asOf, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
-  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta });
+  const countedNames = new Set([...obligations.events.filter((e) => e.amount < 0), ...(obligations.settled || [])].map((e) => cleanName(e.label || '').toLowerCase().slice(0, 40)));
+  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta, countedNames });
   assumptions.push(...income.assumptions, ...obligations.assumptions, ...accrual.notes);
   // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
