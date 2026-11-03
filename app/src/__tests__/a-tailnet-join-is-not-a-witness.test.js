@@ -101,6 +101,51 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 // into a step summary, a `::notice` or an Actions log is NOT covered, because
 // that is not a surface a reader later trusts as a finding. If that turns out
 // to matter it is a new measurement, not something DR-1302 settled.
+//
+// THAT MEASUREMENT WAS THEN TAKEN, 2026-11-03, and the answer is NO -- it does
+// not rise above this pin, so no lane is churned for it. Of the 41, SEVEN emit
+// an `::error::` after the join that names a SERVICE when the cause may be the
+// shut road:
+//
+//   announce-bearer-sync.yml      "the bell did not ring with the bearer..."
+//   apt2-photos-probe.yml         "could not read the live database - that is
+//                                  itself the finding"
+//   church-video-witness.yml      "could not read the live database"
+//   family-books-probe.yml        "could not read the live database"
+//   push-sender-credentials.yml   "The sovereign REST did not answer"
+//   research-ask.yml              "the NAS did not answer"
+//   research-inbox.yml            "could not read the live database"
+//
+// Why that is NOT a second camera-health, measured rather than reasoned:
+//
+//   SIX OF THE SEVEN ARE `workflow_dispatch` ONLY -- no cron at all. A person
+//   pressed the button seconds earlier and is reading the whole log; the wrong
+//   sentence is corrected by the next line, nothing accumulates, and no
+//   ledger, label or row carries it forward. The cry-wolf cost that made
+//   camera-health and public-shelf-witness serious is simply absent.
+//
+//   THE ONE TIMER LANE, `research-inbox.yml` (`7,22,37,52`), WRITES NOTHING ON
+//   A SHUT ROAD. Measured on run 41561786873 (2026-11-03T01:45Z): job `pick`
+//   joined "success", `Claim every waiting item` FAILED, job `work` was
+//   SKIPPED entirely, and every downstream filing/writing step -- including
+//   `File what it was sent for`, which carries `if: always()` -- was SKIPPED,
+//   because each is additionally gated on `steps.look.outputs.verdict`. That
+//   lane already does what DR-1302 had to add to public-shelf-witness: it
+//   gates its writes on a VERDICT, not on a step outcome (DR-1202 got it
+//   right). So it fails in the right place and only mis-names the cause.
+//
+// Also note its real cadence: DR-1301 measured `research-inbox` delivering 3
+// scheduled runs a day against the 96 its cron asks for, so even the log-line
+// cost is three sentences a day, not ninety-six.
+//
+// CONCLUSION, so the next session inherits evidence and not an open question:
+// a wrong sentence in a log a human is already reading is DR-1284's ORIGINAL
+// harm -- "surfaces the real fault further down" -- which is exactly what the
+// pin below tracks. Adding seven verify steps (eleven joins, one of them in a
+// deploy-adjacent lane, DR-0107) to improve a log line is churn, not
+// improvement. The verify is still the right fix WHEN one of these lanes gains
+// a timer or starts writing somewhere persistent; that is the trigger to watch
+// for, not the calendar. `re-review: 2026-11-29` with the rest of the debt.
 const UNVERIFIED = 41;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
