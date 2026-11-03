@@ -84,6 +84,22 @@
 // written in, and the collision check below is keyed on BOOK AND CHAPTER and
 // runs in BOTH directions — the repair sov57 paid for and sov58 recorded.
 //
+// AND A DEPARTMENT-SCOPED CENSUS IS NOT ENOUGH, WHICH THIS LESSON PAID FOR.
+// The chapter census above scans the "A.I. The Way" department, which is what
+// the previous weeks' gates do — and it passed. The full suite then went RED on
+// a gate belonging to somebody else: `appraisal-course.test.js` asserts the
+// appraisal course shares NOT ONE verse with any other course in the catalog,
+// and it already holds Genesis 25:29, 25:30, 25:32, 25:34 and Isaiah 55:1 and
+// 55:2 — it teaches Esau's trade for valuation under duress and Isaiah 55 for
+// pricing. This lesson's first draft quoted four of those six. The fix was to
+// move, not to weaken another course's gate: Genesis 25:31 and 25:33 and
+// Isaiah 55:3, 55:6 and 55:7 are free, and they carry THIS teaching better —
+// 25:33 says "this day" a second time and reports the sale in Esau's own verbs,
+// and 55:3's everlasting covenant is the exact contrary of a door that shuts
+// tonight. The standing lesson for the next builder is in the check below: a
+// chapter free in your department can still hold a verse another course owns,
+// so the census runs at VERSE granularity across the whole catalog too.
+//
 // THE FOURTH DANGER IS A DISCLOSURE PIN THAT IS NOT UNIQUE. Earlier records
 // passed with a disclosure DELETED because the pinned string also occurred
 // elsewhere in the module. So every pin below is asserted to occur in EXACTLY
@@ -99,6 +115,7 @@ import { join } from 'node:path';
 import { SOVEREIGN_AI_MODULES, SOVEREIGN_AI_META } from '../lib/sovereign-ai-class.js';
 import { MODULES } from '../lib/church-classes.js';
 import { AI_LEGAL_BLUEPRINT_MODULES } from '../lib/ai-legal-blueprint-class.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { lessonCreatedDay } from '../lib/lesson-dates.js';
 import { measureFullness, shortBands, FULL_FLOOR } from '../../../scripts/full-levels.mjs';
 import { NEW_LESSON_CHILD_CEILING, measureLesson, isInverted } from '../../../scripts/reading-level.mjs';
@@ -186,12 +203,11 @@ export function chapterOf(ref) {
 // THE SPINE, pinned by literal text. Every span was read out of the corpus on
 // disk before it was written into the lesson, and each must still be there.
 const SPINE = [
-  ['Isaiah 55:1', 'come ye, buy, and eat; yea, come, buy wine and milk without money and without price'],
-  ['Isaiah 55:2', 'Wherefore do ye spend money for that which is not bread? and your labour for that which satisfieth not?'],
+  ['Isaiah 55:3', 'Incline your ear, and come unto me: hear, and your soul shall live; and I will make an everlasting covenant with you'],
   ['Isaiah 55:6', 'Seek ye the LORD while he may be found, call ye upon him while he is near'],
+  ['Isaiah 55:7', 'let him return unto the LORD, and he will have mercy upon him; and to our God, for he will abundantly pardon'],
   ['Genesis 25:31', 'Sell me this day thy birthright'],
-  ['Genesis 25:32', 'Behold, I am at the point to die: and what profit shall this birthright do to me?'],
-  ['Genesis 25:34', 'thus Esau despised his birthright'],
+  ['Genesis 25:33', 'And Jacob said, Swear to me this day; and he sware unto him: and he sold his birthright unto Jacob'],
   ['Genesis 27:20', 'How is it that thou hast found it so quickly, my son?'],
   ['Exodus 32:1', 'And when the people saw that Moses delayed to come down out of the mount'],
   ['Numbers 14:41', 'Wherefore now do ye transgress the commandment of the LORD? but it shall not prosper'],
@@ -341,7 +357,7 @@ describe('sov59 is in the course, fifty-ninth, and whole', () => {
 describe('the anchors were chosen by COUNTING, and the key is book-and-chapter', () => {
   it('every anchor reference resolves in the corpus on disk', () => {
     const refs = anchorRefs(L);
-    expect(refs.length).toBeGreaterThanOrEqual(21);
+    expect(refs.length).toBeGreaterThanOrEqual(20);
     for (const r of refs) expect(corpusText(r), `${r} does not resolve`).toBeTruthy();
   });
 
@@ -390,6 +406,50 @@ describe('the anchors were chosen by COUNTING, and the key is book-and-chapter',
       expect(taken.has(spent), `${spent} was declined as spent but is anchored nowhere`).toBe(true);
     }
   });
+
+  // THE CENSUS RUNS AT VERSE GRANULARITY ACROSS THE WHOLE CATALOG TOO, because
+  // a chapter free in this department can still hold a verse another course
+  // owns and gates. That is exactly what happened here (see the header): the
+  // appraisal course claims 34 verses and asserts it shares not one of them
+  // with any other course, and this lesson's first draft took four.
+  it('shares NOT ONE verse with any course that claims verse exclusivity', () => {
+    const refsIn = (t) => [...String(t || '').matchAll(/\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*\s+\d+:[\d\-,\s]+)\)/g)].map((x) => x[1].trim());
+    const expand = (ref) => {
+      const m = String(ref).match(/^(.*?)\s*(\d+):([\d\-,\s]+)$/);
+      if (!m) return [];
+      const out = [];
+      for (const part of m[3].split(',')) {
+        const r = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+        if (!r) continue;
+        const a = Number(r[1]);
+        const b = r[2] ? Number(r[2]) : a;
+        for (let v = a; v <= b && v - a < 80; v += 1) out.push(`${m[1].trim()} ${m[2]}:${v}`);
+      }
+      return out;
+    };
+    const mine = new Set();
+    for (const t of EVERY_STRING) for (const r of refsIn(t)) for (const v of expand(r)) mine.add(v);
+    for (const r of anchorRefs(L)) for (const v of expand(r)) mine.add(v);
+    // An empty `mine` would make this pass vacuously.
+    expect(mine.size).toBeGreaterThanOrEqual(20);
+    const appraisal = LEARN_CATALOG.find((c) => c.key === 'appraisal');
+    expect(appraisal, 'the appraisal course is the one that gates verse exclusivity').toBeTruthy();
+    const theirs = new Set();
+    const eat = (t) => { for (const r of refsIn(t)) for (const v of expand(r)) theirs.add(v); };
+    for (const row of appraisal.buildScheduleRows()) {
+      for (const t of strings(row)) eat(t);
+      for (const r of String((row.anchor && row.anchor.ref) || '').split(';')) for (const v of expand(r.trim())) theirs.add(v);
+    }
+    expect(theirs.size, 'an empty claimed set cannot fake a pass').toBeGreaterThanOrEqual(30);
+    const clash = [...mine].filter((v) => theirs.has(v)).sort();
+    expect(clash, `the appraisal course already owns: ${clash.join(', ')}`).toEqual([]);
+    // AND THE OTHER DIRECTION: the four verses the first draft took must each
+    // be detected as owned, or this check is matching nothing.
+    for (const owned of ['Genesis 25:32', 'Genesis 25:34', 'Isaiah 55:1', 'Isaiah 55:2']) {
+      expect(theirs.has(owned), `${owned} should be detected as claimed`).toBe(true);
+      expect(mine.has(owned), `${owned} must not be in this lesson`).toBe(false);
+    }
+  });
 });
 
 describe('every verse is the corpus on disk, and the sweep cannot pass vacuously', () => {
@@ -431,6 +491,7 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
     // Isaiah 55:6 and Numbers 14:41 carry "the LORD" and Isaiah 55:7 "our God"
     // in the corpus; we quote them as written and the corpus is left untouched.
     expect(corpusText('Isaiah 55:6')).toContain('Seek ye the LORD');
+    expect(corpusText('Isaiah 55:7')).toContain('and to our God');
     expect(corpusText('Numbers 14:41')).toContain('the commandment of the LORD');
     expect(corpusText('Psalms 37:7')).toContain('Rest in the LORD');
   });
@@ -528,15 +589,17 @@ describe('the source is named for what it is: an advertisement, not a study', ()
 });
 
 describe('the Word is quoted AND reasoned, not pasted onto a headline (DR-0281)', () => {
-  it('reads what Isaiah 55:1 DOES to the language of a market, not just the picture', () => {
-    expect(L.lesson).toMatch(/He uses the language of a market - come, buy, eat - and then removes the two things every market runs on/);
+  it('reads the TERM of the instrument in Isaiah 55:3, not just the invitation', () => {
+    expect(L.lesson).toMatch(/An everlasting covenant\. Not a window\./);
   });
 
-  it('turns on Isaiah 55:2’s actual question, which is substance and not affordability', () => {
-    expect(L.lesson).toMatch(/Not: can you pay\. But: is it bread\./);
+  it('turns on the one adverb in Isaiah 55:7 that a closing-door pitch cannot survive', () => {
+    expect(L.lesson).toMatch(/abundance is the one thing a closing-door pitch cannot survive/);
   });
 
-  it('presses the VERDICT of Genesis 25:34, which is consent and not theft', () => {
+  it('presses the VERBS of Genesis 25:33, which report consent and not theft', () => {
+    expect(L.lesson).toMatch(/He sware\. He sold\./);
+    expect(L.lesson).toMatch(/It records him as the seller\./);
     expect(L.lesson).toMatch(/A manufactured urgency does not steal from you\. It persuades you to sell\./);
   });
 
