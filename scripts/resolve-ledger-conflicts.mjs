@@ -203,6 +203,85 @@ export function nextIdAnnotations(line) {
   return groups;
 }
 
+/**
+ * Render the pointer line from its annotation lists, AND PROVE THE LINE READS
+ * BACK AS WHAT WAS WRITTEN (2026-10-29, DR-1292).
+ *
+ * MEASURED, not reasoned. CI shard 1/4 went red on PR #2487 with
+ * `the-pointer-line-stops-doubling` reporting 42 segments and 41 unique. The
+ * merge was reproduced exactly (`git worktree add --detach … b134a6e6b` then
+ * `git merge --no-commit 9497057c2`) and the conflicted file measured:
+ *
+ *   pointer line 0 (the branch's side)   42 segments, 41 unique
+ *   pointer line 1 (main's side)         45 segments, 45 unique
+ *   unionAnnotations of the two          48 segments, 48 unique   <- CORRECT
+ *   re-parse of `union.join(' ')`        43 segments, 42 unique   <- what landed
+ *
+ * So `unionAnnotations` was never the bug: its answer is right and then the
+ * RENDERING destroys it. `nextIdAnnotations(ann.join(' ')) !== ann` whenever
+ * the prose is unbalanced, because `splitUnbalancedTail` splits only on
+ * `(DR-NNNN = ` markers — a segment that does not begin with one is absorbed
+ * into the segment before it. Five of the 48 were absorbed, and one absorption
+ * produced text identical to another segment. That is where the duplicate came
+ * from, and running the resolver again removed it (43/42 -> 42/42, and a third
+ * pass is byte-identical to the second, so there is a fixed point and it is one
+ * pass away).
+ *
+ * WHY CONVERGE RATHER THAN FIX THE WRITER. Making every segment
+ * self-delimiting means rewriting historical annotation prose — balancing
+ * parens somebody actually typed into the record. The annotations ARE the
+ * record (DR-0011: append-only), so the writer does not get to edit them. What
+ * it can do is refuse to leave a line that does not read back cleanly.
+ *
+ * SO: fold, render, re-read, and fold again until the line is a fixed point.
+ * Two guards, both loud, because a quiet repair here is how the 25.7 MB line
+ * grew in the first place:
+ *   1. If it has not converged within `maxPasses`, THROW with the counts. A
+ *      line that cannot be rendered faithfully is not written at all.
+ *   2. Every segment of the first union must still be present VERBATIM in the
+ *      final line, or THROW. Convergence may merge segmentation; it must never
+ *      lose a word of the record. Measured on the real case: 0 of 48 missing,
+ *      and the line shrank by 513 chars, which is the one repeated segment
+ *      going away.
+ *
+ * @param {string} pointer the `**Next ID:** DR-NNNN.` prefix
+ * @param {Array<string[]>} lists annotation lists, in the order they were read
+ * @param {{maxPasses?: number}} opts
+ * @returns {{line: string, passes: number, segments: number}}
+ */
+export function renderPointerLine(pointer, lists, { maxPasses = 6 } = {}) {
+  const first = unionAnnotations(lists);
+  if (!first.length) return { line: pointer, passes: 0, segments: 0 };
+
+  let ann = first;
+  let line = `${pointer} ${ann.join(' ')}`;
+  let passes = 1;
+  for (; passes <= maxPasses; passes += 1) {
+    const readBack = nextIdAnnotations(line);
+    if (readBack.length === new Set(readBack).size) break;
+    ann = unionAnnotations([readBack]);
+    line = `${pointer} ${ann.join(' ')}`;
+  }
+
+  const readBack = nextIdAnnotations(line);
+  if (readBack.length !== new Set(readBack).size) {
+    throw new Error(
+      `renderPointerLine: the pointer line still reads back with duplicate segments after ${maxPasses} passes `
+      + `(${readBack.length} segments, ${new Set(readBack).size} unique). The line was NOT written. `
+      + 'Fix the annotation prose by hand rather than letting a doubling line ship.',
+    );
+  }
+  const lost = first.filter((g) => !line.includes(g));
+  if (lost.length) {
+    throw new Error(
+      `renderPointerLine: converging the pointer line would drop ${lost.length} annotation segment(s) `
+      + `of ${first.length}, the first being "${lost[0].slice(0, 120)}". The line was NOT written. `
+      + 'The annotations are the record (DR-0011); segmentation may merge, prose may never be lost.',
+    );
+  }
+  return { line, passes, segments: readBack.length };
+}
+
 /** Union annotation lists: the first list's order, then each later list's new
  * groups — the ones that come BEFORE its first shared group go to the front
  * (they are the newest, as every PR prepends), the rest to the end.
@@ -326,9 +405,18 @@ export function normalizeLedger(text, { nextId } = {}) {
   const id = nextId ?? maxRowId(text) + 1;
   const pointer = `**Next ID:** DR-${String(id).padStart(4, '0')}.`;
   if (nextAt === -1) throw new Error('normalizeLedger: INDEX.md has no "**Next ID:**" line');
-  const ann = unionAnnotations(annotationLists);
-  out[nextAt] = ann.length ? `${pointer} ${ann.join(' ')}` : pointer;
-  return { text: out.join('\n'), removedRows, foldedNextIdLines: annotationLists.length };
+  // Rendered through renderPointerLine, which proves the line reads back as
+  // what was written instead of trusting that join is the inverse of the
+  // parse. It is not, and PR #2487's red shard was the proof (DR-1292).
+  const rendered = renderPointerLine(pointer, annotationLists);
+  out[nextAt] = rendered.line;
+  return {
+    text: out.join('\n'),
+    removedRows,
+    foldedNextIdLines: annotationLists.length,
+    pointerPasses: rendered.passes,
+    pointerSegments: rendered.segments,
+  };
 }
 
 /** The whole INDEX resolution: union the hunks, then normalize. */

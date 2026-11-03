@@ -47,6 +47,7 @@ import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, findExactDuplic
 import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel, autoCategorizeSuggestions } from '../lib/categorize.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import { isIsolatedPreview } from '../lib/preview-isolation.js';
 import {
   normalizePicks, togglePick, rowMatchesPicks, splitDimension, splitSections,
   initialPicks, saveStoredPicks, searchWithPicks,
@@ -128,6 +129,7 @@ function isImportedViewAuthorized() {
   try {
     if (typeof window === 'undefined') return false;
     if (new URLSearchParams(window.location.search).has('demo')) return false;
+    if (isIsolatedPreview()) return true; // the preview TEST HOUSEHOLD: fictional rows from app state, no session, no network (lib/preview-isolation.js)
     if (!localStorage.getItem('poe-current-profile')) return false;
     if (isPublicHostBrowser() && !hasOwnerSession()) return false;
     return true;

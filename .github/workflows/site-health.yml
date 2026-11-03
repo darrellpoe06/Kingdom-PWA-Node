@@ -546,13 +546,32 @@ jobs:
             FN_HDRS=$(curl -sS -o "$FN_BODY" -D - -A "$UA" --max-time 20 "https://poetech.us/automation-status" 2>/dev/null | tr -d '\r')
             FN_ROAD=$(printf '%s' "$FN_HDRS" | awk -F': ' 'tolower($1)=="x-poetech-road"{print $2}' | tail -1)
             FN_CT=$(printf '%s' "$FN_HDRS" | awk -F': ' 'tolower($1)=="content-type"{print $2}' | tail -1)
+            # The STATUS was never written down, and it is the reading that
+            # explains the other two. Measured 2026-10-28: this road answers
+            # 502 on poetech.us, unsigned, `error code: 502` in text/plain —
+            # the zone's own error page — while the SAME road on
+            # poetech-app.pages.dev answers a SIGNED 502 JSON saying
+            # "automation-status proxy upstream unreachable". The Function runs;
+            # its upstream does not. Without the code in the note, seven days of
+            # readings looked like a signature mystery instead of a 502.
+            # The last status line wins, so a redirect chain reports where it
+            # ended rather than where it began.
+            FN_CODE=$(printf '%s' "$FN_HDRS" | awk '/^HTTP\//{c=$2} END{print c}')
             if grep -q '/poetech-app/assets/' "$FN_BODY" 2>/dev/null; then FN_IS_SHELL=yes; else FN_IS_SHELL=no; fi
             rm -f "$FN_BODY"
-            note "- \`GET /automation-status\` -> signed \`${FN_ROAD:-<unsigned>}\`, our own SPA shell: **${FN_IS_SHELL}**, content-type \`${FN_CT:-unknown}\` (the content type is a NOTE here, never the verdict — this road is a proxy)"
+            note "- \`GET /automation-status\` -> **${FN_CODE:-000}**, signed \`${FN_ROAD:-<unsigned>}\`, our own SPA shell: **${FN_IS_SHELL}**, content-type \`${FN_CT:-unknown}\` (the content type is a NOTE here, never the verdict — this road is a proxy)"
+            # THE CLASS VERDICT IS A VARIABLE, NOT A HEADER (2026-10-29, DR-1291).
+            # Everything below that wants to know "is the Pages Function layer
+            # up?" reads FN_DARK, which is set ONLY where this probe actually
+            # declares the outage. It is NOT the same question as "did this one
+            # road carry a signature", and reading the header as if it were cost
+            # sixty consecutive red runs — see the Worker arm below.
+            FN_DARK=no
             case "${FN_ROAD:-}" in
               pages-function|worker) : ;;
               *)
                 if [ "$FN_IS_SHELL" = "yes" ]; then
+                  FN_DARK=yes
                   add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status came back with no \`x-poetech-road\` signature AND the body is our own SPA shell (it carries /poetech-app/assets/). Only code running at the edge can set that header, so the road is dark and every NAS-backed path is dark with it: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Both halves had to agree before this fired: the content type is deliberately NOT the evidence, because this road proxies the NAS and returns the NAS's own content type, which is exactly what made the 2026-10-09 reading wrong"
                 else
                   note "- /automation-status is **unsigned but is NOT our SPA shell**, so a Function did answer and this build simply predates the signature (DR-1092). Not an outage; it clears on the next deploy."
@@ -598,9 +617,34 @@ jobs:
                 # had a death date. A reading, written to the notes, never a
                 # failure. BOTH doors dark is still the loud fault below, in
                 # the same words, because then the family IS locked out.
-                case "${FN_ROAD:-}" in
-                  pages-function|worker)
-                    note "- the poetech-roads WORKER is **not deployed** (\`/edge/whoami\` -> ${EDGE_CODE} \`${EDGE_CT:-nothing}\`), and that is a parked decision, not a fault: the Pages Function road above is signed, so every road the family uses is open through Pages. Only the Edge Guard (Admin -> Bots & blocks) waits, on a Cloudflare token with Workers Scripts:Edit, Workers Routes:Edit, Zone:Read, Analytics:Read, Firewall Services:Edit and Bot Management:Edit for poetech.us, which only the dashboard can mint (DR-1180). No daily note, no deadline." ;;
+                #
+                # IT ASKS FN_DARK, NOT FN_ROAD (2026-10-29, DR-1291). This arm
+                # used to test whether /automation-status carried a signature
+                # and treat an absent one as "the first door is dark too". Those
+                # are different questions, and the gap between them is MEASURED:
+                #
+                #   site-health runs, 2026-10-22T07:00Z .. 2026-10-29T03:00Z  60
+                #   of those that failed                                      60
+                #   failures carrying any reason but this one                  0
+                #   /sb/auth/v1/health, /cams/health, /nas-photos/healthz      200, signed
+                #     (cf-pages-diagnose run 40810753037, 2026-10-29T03:16Z,      pages-function
+                #      reproducing run 40746439480 of the night before)
+                #   /automation-status on poetech.us                          502 unsigned
+                #   the same road on poetech-app.pages.dev                    502 SIGNED json
+                #
+                # So Pages was up the whole week, and the signature was absent
+                # for a THIRD reason the comment above does not list: the zone's
+                # own `error code: 502` page replaced the Function's answer, and
+                # a Cloudflare error page signs nothing. The first-door probe
+                # read that correctly and declined to cry outage (its "unsigned
+                # but NOT our SPA shell" note); this arm then read the same empty
+                # variable as both doors dark and fired anyway. DR-1180's own
+                # note arm — the one directly below — never ran once, and
+                # DR-1180:49 says in so many words that this reading "no longer
+                # fires while Pages is up." It fired sixty times.
+                case "${FN_DARK:-no}" in
+                  no)
+                    note "- the poetech-roads WORKER is **not deployed** (\`/edge/whoami\` -> ${EDGE_CODE} \`${EDGE_CT:-nothing}\`), and that is a parked decision, not a fault: the Pages Function probe above did not find the layer dark (it read \`${FN_ROAD:-<unsigned>}\`, our SPA shell: ${FN_IS_SHELL}), so every road the family uses is open through Pages. Only the Edge Guard (Admin -> Bots & blocks) waits, on a Cloudflare token with Workers Scripts:Edit, Workers Routes:Edit, Zone:Read, Analytics:Read, Firewall Services:Edit and Bot Management:Edit for poetech.us, which only the dashboard can mint (DR-1180). No daily note, no deadline." ;;
                   *)
                     add_fail "THE WORKER ROADS ARE DARK TOO — GET poetech.us/edge/whoami answered ${EDGE_CODE} with '${EDGE_CT:-nothing}' instead of the JSON 401 edge.js returns to any unauthenticated caller. This is a DIFFERENT layer from the Pages Functions above: /edge/* is the poetech-roads Worker on a zone route, and it is the only road the Edge Guard and the Admin visitor count ride. If the Function probe above is failing too, the outage is wider than Pages and the wrangler zone route or the Worker's own deploy is the place to look" ;;
                 esac ;;

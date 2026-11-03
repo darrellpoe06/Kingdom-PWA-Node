@@ -95,6 +95,131 @@ export function sweep(ids, ledger = readLedger()) {
   return out;
 }
 
+// =============================================================================
+// THE SECOND QUESTION (2026-10-29, DR-1288)
+// =============================================================================
+// WHY, MEASURED TWICE IN ONE NIGHT. The id check above asks the ledger ONE
+// question: does any record name this row id. A record that names its source in
+// PROSE is invisible to it, and two threads were handed to builders as "unbuilt"
+// on the strength of that single question:
+//
+//   1a10bf98e21775dd -> built as sov55 (DR-1273). The id check DID catch this
+//                       one; it was never run.
+//   1a112049320caa4a -> built as L213 (DR-0763), which names its source as
+//                       "a Big Think piece by Dirk Schulze-Makuch and Tony
+//                       Reichhardt, 'The leading theory of how life began just
+//                       hit a snag'" and writes the thread id NOWHERE. Measured:
+//                       `grep -c 1a112049320caa4a` on that record is 0. The id
+//                       check reported `unknown` and was right about the id and
+//                       wrong about the teaching. A builder wrote the whole
+//                       lesson before its own anchor check found L213.
+//
+// So the id is necessary and not sufficient, and a second question costs almost
+// nothing: does any record talk about THIS SUBJECT.
+//
+// WHY IT SCORES RARITY RATHER THAN MATCHING WORDS. A naive word match is
+// useless and worse than useless: measured on this ledger, "Monolith" appears in
+// 79 records and "Uber" in 6, so a hit on a common word would stop every build
+// and train a caller to ignore the check -- the crying-wolf failure DR-0975
+// records. A word is only evidence if FEW records carry it. So each content word
+// is scored by how many records contain it, the counts are PRINTED so a human
+// can see why a record was named, and a record is surfaced only when it shares
+// enough rare words to be worth reading.
+//
+// IT IS A WEAKER SIGNAL AND SAYS SO. An id match means SHIPPED. A subject match
+// means READ THIS RECORD BEFORE BUILDING -- it may be the same teaching, or a
+// record that merely discusses the same field. It is reported under its own
+// label and never as SHIPPED, because conflating them would make the strong
+// signal untrustworthy. The exit code still stops the caller, per this file's
+// own stated bias: a false stop costs one read, a false clear costs a duplicate
+// lesson on a COLG-facing surface.
+
+// Words that carry no signal in a newsletter subject line. Deliberately short:
+// the rarity score does the real work, and a long hand-made list is a thing to
+// maintain and get wrong.
+export const SUBJECT_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'of', 'in', 'on', 'at', 'to', 'for', 'from',
+  'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'it', 'its', 'this', 'that',
+  'these', 'those', 'how', 'why', 'what', 'when', 'where', 'who', 'which', 'you',
+  'your', 'we', 'our', 'they', 'their', 'just', 'new', 'now', 'can', 'will', 'has',
+  'have', 'not', 'all', 'more', 'most', 'about', 'into', 'out', 'up', 'down', 'fw',
+  'fwd', 're', 'lessons', 'lesson',
+]);
+
+// A word in more than this share of the ledger is treated as common and scored
+// zero, however long it is. 0.05 of ~1180 records is ~59, which puts "Monolith"
+// (79) out and keeps "snag" in.
+export const COMMON_SHARE = 0.05;
+
+// RARITY IS WEIGHTED, NOT COUNTED, and the first version of this probe counted.
+// MEASURED on the real case: counting words at >= 2 surfaced DR-0763 correctly
+// AND six unrelated records, because "leading" (36 records) and "theory" (18)
+// both sat under the common ceiling and any two of them qualified a record. A
+// probe that names seven records every time is the crying-wolf failure this
+// file's own comment warns about -- the caller learns to skip it, and then the
+// one real hit is skipped with the rest.
+//
+// So each shared word is worth 1/records: a word in 2 records is worth 0.50, one
+// in 36 is worth 0.03. A record is worth reading when its weights sum past the
+// bar, which means ONE genuinely rare word qualifies it and a handful of
+// mid-frequency words do not. The weights are printed beside the counts so a
+// reader can see exactly why a record was named or passed over.
+export const RARITY_BAR = 0.2;
+
+/** The content words of a subject line, lowercased, de-duplicated, in order. */
+export function subjectWords(subject) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of String(subject || '').toLowerCase().split(/[^a-z0-9']+/)) {
+    const w = raw.replace(/^'+|'+$/g, '');
+    if (w.length < 4) continue;              // "AI", "of", "hit" carry nothing alone
+    if (SUBJECT_STOPWORDS.has(w)) continue;
+    if (seen.has(w)) continue;
+    seen.add(w);
+    out.push(w);
+  }
+  return out;
+}
+
+/**
+ * Which records talk about this subject, and why. Returns
+ * { words: [{ word, records }], hits: [{ dr, file, words }] } where `records` is
+ * how many records carry that word (the rarity score, printed for the reader)
+ * and `hits` is sorted by how many distinctive words each record shares.
+ */
+export function sweepSubject(subject, ledger = readLedger(), opts = {}) {
+  const bar = opts.rarityBar ?? RARITY_BAR;
+  const commonShare = opts.commonShare ?? COMMON_SHARE;
+  const words = subjectWords(subject);
+  const ceiling = Math.max(1, Math.floor(ledger.length * commonShare));
+  const lower = ledger.map((r) => ({ ...r, lc: r.text.toLowerCase() }));
+
+  const scored = words.map((word) => {
+    const carriers = lower.filter((r) => r.lc.includes(word));
+    return { word, records: carriers.length, carriers, distinctive: carriers.length > 0 && carriers.length <= ceiling };
+  });
+
+  const per = new Map();
+  for (const { word, distinctive, carriers, records } of scored) {
+    if (!distinctive) continue;
+    for (const r of carriers) {
+      if (!per.has(r.dr)) per.set(r.dr, { dr: r.dr, file: r.file, words: [], weight: 0 });
+      const e = per.get(r.dr);
+      e.words.push(word);
+      e.weight += 1 / records;
+    }
+  }
+  const hits = [...per.values()]
+    .map((h) => ({ ...h, weight: Math.round(h.weight * 1000) / 1000 }))
+    .filter((h) => h.weight >= bar)
+    .sort((a, b) => b.weight - a.weight || a.dr.localeCompare(b.dr));
+
+  const scoredWords = scored.map(({ word, records, distinctive }) => ({
+    word, records, distinctive, weight: distinctive ? Math.round((1 / records) * 1000) / 1000 : 0,
+  }));
+  return { words: scoredWords, hits, ceiling, bar };
+}
+
 /** True when any id is already named in the ledger, by full id or by prefix. */
 export function anyShipped(found) {
   for (const hit of found.values()) if (hit.drs.length) return true;
@@ -102,10 +227,15 @@ export function anyShipped(found) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const ids = process.argv.slice(2).filter(Boolean);
-  if (!ids.length) {
-    console.error('usage: lesson-row-shipped-sweep.mjs <row-id> [row-id...]');
+  const argv = process.argv.slice(2).filter(Boolean);
+  const si = argv.indexOf('--subject');
+  const subject = si >= 0 ? argv[si + 1] : '';
+  const ids = (si >= 0 ? [...argv.slice(0, si), ...argv.slice(si + 2)] : argv);
+  if (!ids.length && !subject) {
+    console.error('usage: lesson-row-shipped-sweep.mjs <row-id> [row-id...] [--subject "<subject line>"]');
     console.error('  prints SHIPPED/unknown per id; exit 1 if any is already shipped.');
+    console.error('  --subject also asks whether any record TALKS ABOUT this subject,');
+    console.error('  which catches a record that names its source in prose and no id (DR-1288).');
     process.exit(2);
   }
   let found;
@@ -121,9 +251,35 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     else console.log(`unknown   ${id}  ->  no decision record names it`);
   }
   const n = [...found.values()].filter((h) => h.drs.length).length;
+
+  let subjectHits = 0;
+  if (subject) {
+    const { words, hits, ceiling, bar } = sweepSubject(subject);
+    console.log('');
+    console.log(`subject probe: "${subject}"`);
+    if (!words.length) {
+      console.log('  no content words in that subject -- the id check above is all this run measured');
+    } else {
+      console.log(`  words, with how many records carry each and what that is worth (a word in more than ${ceiling} is common and worth 0):`);
+      for (const w of words) console.log(`    ${w.distinctive ? '*' : ' '} ${w.word} -> ${w.records} record(s), worth ${w.weight}`);
+      console.log(`  a record is worth reading at ${bar} or more`);
+    }
+    for (const h of hits) {
+      console.log(`  READ FIRST  ${h.dr}  weight ${h.weight} from ${h.words.join(', ')}  (${h.file})`);
+    }
+    subjectHits = hits.length;
+    if (!subjectHits) console.log('  no record shares enough distinctive words with this subject');
+  }
+
   if (n) {
     console.error(`\n${n} of ${found.size} row(s) are ALREADY SHIPPED -- do not build them (DR-1250, DR-0610).`);
     process.exit(1);
   }
-  console.error(`\nnone of ${found.size} row(s) is named in a decision record.`);
+  if (subjectHits) {
+    console.error(`\nNo id is named, but ${subjectHits} record(s) talk about this subject. READ THEM before building:`);
+    console.error('a record may name its source in prose and never write the row id -- DR-0763 does exactly');
+    console.error('that, and a whole lesson was written against it before anything noticed (DR-1288).');
+    process.exit(1);
+  }
+  if (ids.length) console.error(`\nnone of ${found.size} row(s) is named in a decision record.`);
 }

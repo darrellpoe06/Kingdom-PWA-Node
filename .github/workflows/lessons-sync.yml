@@ -38,6 +38,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write  # the rolling tailnet-key entry (DR-1283)
 
 jobs:
   sync:
@@ -71,6 +72,29 @@ jobs:
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
+      # THE JOIN STEP IS NOT A WITNESS OF THE JOIN (2026-10-29, DR-1284).
+      #
+      # MEASURED tonight on db-migrate run 40795511412: the action printed
+      # `backend error: invalid key` five times and `Tailscale up failed`, and
+      # its own step still closed `outcome=success; conclusion=success`. The
+      # failure then surfaced further down as an unrelated-looking error, so the
+      # step conclusions said the road was open while it was shut. 64 workflows
+      # in this repo join the tailnet and only 12 verified it; this is one of
+      # the four carrying Darrell's own lesson intake, so it verifies first and
+      # writes the outage to the fleet's one rolling entry (DR-1283).
+      - name: Verify the tailnet actually joined
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            node scripts/tailnet-key-incident.mjs \
+              --workflow "lessons-sync (tailnet join)" \
+              --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --measured-file /tmp/ts-join.txt || true
+            exit 1
+          fi
+          tailscale status --peers=false
       - name: Sync to the NAS, read back, prove parity
         if: steps.armed.outputs.armed == 'true'
         env:

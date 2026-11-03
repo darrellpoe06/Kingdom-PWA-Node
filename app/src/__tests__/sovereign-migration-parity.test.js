@@ -99,3 +99,56 @@ describe('the migration lane reaches the database the app reads', () => {
     }
   });
 });
+
+// =============================================================================
+// The stack's own page says which database is live (2026-10-29, DR-0239)
+// =============================================================================
+// infra/nas-supabase/README.md carried the sentence "Nothing points at this yet
+// -- deliberately ... The app still talks to the hosted project" for SEVENTY-ONE
+// DAYS after REPOINT-ARMED merged and made the opposite true, and its "What is
+// NOT done yet" list still named backups and a witness as holes after both were
+// built (DR-1113; loops-health). A reader following that page would measure the
+// wrong database, which is DR-0374's whole incident class.
+//
+// These are the two claims that cannot be allowed to drift again. They are
+// cheap, and the thing they guard is "which database did you just read?"
+describe('the sovereign stack page does not contradict the switch beside it', () => {
+  const README = join(ROOT, 'infra', 'nas-supabase', 'README.md');
+  const ARMED = join(ROOT, 'infra', 'nas-supabase', 'REPOINT-ARMED');
+
+  it('while REPOINT-ARMED exists, the page never says the app still talks to hosted', () => {
+    if (!existsSync(ARMED)) return; // reverting the record is the sanctioned off-switch
+    const page = readFileSync(README, 'utf8');
+    // The STANDING claim was a heading, and that is what a reader skimmed.
+    // The sentence itself may still appear -- it is quoted in the correction,
+    // because deleting what misled people is not how this repo records a miss
+    // (DR-0011, append-only). So the check is: the heading is gone, and every
+    // place the sentence survives, it is marked false within the same breath.
+    expect(page, 'the heading that made the false claim must not stand')
+      .not.toMatch(/^##\s+Nothing points at this yet/m);
+    expect(page, 'the page must name which database is live').toMatch(/This IS the live database/);
+    const QUOTED = 'The app still talks to the';
+    let at = page.indexOf(QUOTED);
+    while (at !== -1) {
+      const near = page.slice(Math.max(0, at - 400), at + 400);
+      expect(near, 'this sentence may only appear as a quoted, corrected claim')
+        .toMatch(/has been false since/);
+      at = page.indexOf(QUOTED, at + 1);
+    }
+  });
+
+  it('and it points the reader at REPOINT-ARMED before they measure anything', () => {
+    if (!existsSync(ARMED)) return;
+    const page = readFileSync(README, 'utf8');
+    expect(page).toMatch(/Read `REPOINT-ARMED` before measuring anything/);
+    expect(page, 'naming the mirror by id is what stops the wrong read').toMatch(/mjjlevhdufpaplypnqrv/);
+  });
+
+  it('the backup and the witness are not still listed as unbuilt with nothing said', () => {
+    const page = readFileSync(README, 'utf8');
+    // The original list is kept verbatim on purpose; what must exist beside it
+    // is the re-measurement, or the page reads as four open holes again.
+    expect(page).toMatch(/what of that list is now BUILT/);
+    expect(page, 'the backup is built and the page must say where it stands').toMatch(/DR-1113/);
+  });
+});

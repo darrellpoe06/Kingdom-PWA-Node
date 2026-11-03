@@ -52,6 +52,16 @@ function idbGet(key) {
   }));
 }
 
+function idbDelete(key) {
+  return openDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('indexedDB delete failed'));
+    tx.onabort = () => reject(tx.error || new Error('indexedDB delete aborted'));
+  }));
+}
+
 function idbSet(key, value) {
   return openDb().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -83,5 +93,12 @@ export const storage = {
       // IndexedDB unavailable — the old behavior, quota throw and all.
       localStorage.setItem(key, value);
     }
+  },
+  // Remove a key from BOTH homes (IndexedDB and the localStorage twin). Used
+  // by the preview test household to drop a real snapshot the origin kept
+  // from before preview isolation (lib/preview-isolation.js). Best-effort.
+  async remove(key) {
+    try { await idbDelete(key); } catch (_) { /* IndexedDB unavailable */ }
+    try { localStorage.removeItem(key); } catch (_) { /* non-fatal */ }
   },
 };

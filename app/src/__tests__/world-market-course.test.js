@@ -107,8 +107,10 @@ const SPAN = /"([^"]{6,})"\s*\(([1-3]?\s?[A-Z][a-zA-Z]+)\s+(\d+):(\d+)(?:-(\d+))
 const whole = (m) => m.lesson + m.levels.teen + m.levels.senior;
 
 describe('the course is built and it is real', () => {
-  it('carries nine lessons, each with the whole contract', () => {
-    expect(WORLD_MARKET_MODULES).toHaveLength(9);
+  it('carries ten lessons, each with the whole contract', () => {
+    // 9 -> 10 with wm10 (the name and the proof, DR-1282), the lesson that
+    // crosses the counter and asks what a seller's name is worth.
+    expect(WORLD_MARKET_MODULES).toHaveLength(10);
     for (const m of WORLD_MARKET_MODULES) {
       expect(m.id).toBeTruthy();
       expect(m.title.length, `${m.id} has no title`).toBeGreaterThan(10);
@@ -148,7 +150,7 @@ describe('the course is built and it is real', () => {
   });
 
   it('builds a schedule, a progress summary and an export without throwing', () => {
-    expect(buildWorldMarketSchedule(null)).toHaveLength(9);
+    expect(buildWorldMarketSchedule(null)).toHaveLength(WORLD_MARKET_MODULES.length);
     expect(worldMarketProgressSummary({})).toBeTruthy();
     expect(exportWorldMarketCurriculumMarkdown(null).length).toBeGreaterThan(2000);
     expect(WORLD_MARKET_SESSION_MINUTES).toBe(WORLD_MARKET_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0));
@@ -158,7 +160,7 @@ describe('the course is built and it is real', () => {
     const row = LEARN_CATALOG.find((e) => e.key === 'world-market');
     expect(row, 'the course is built but not surfaced').toBeTruthy();
     expect(row.meta.category).toBe('Stock Market');
-    expect(row.buildScheduleRows()).toHaveLength(9);
+    expect(row.buildScheduleRows()).toHaveLength(WORLD_MARKET_MODULES.length);
     expect(row.interestTag).toBe(WORLD_MARKET_INTEREST_TAG);
     expect(row.helperTag).toBe(WORLD_MARKET_HELPER_TAG);
   });
@@ -348,7 +350,7 @@ describe('THE LINES THIS COURSE HOLDS', () => {
     expect(WORLD_MARKET_TUTOR_META.blurb).toMatch(/no country is named here as a villain or a model/i);
   });
 
-  it('the tutor posture carries all five limits a teacher could break', () => {
+  it('the tutor posture carries all six limits a teacher could break', () => {
     const p = WORLD_MARKET_TUTOR_META.posture;
     expect(p).toMatch(/TRADE DEFICIT IS NOT A DEBT/);
     expect(p).toMatch(/gain spread thinly across a country and a loss concentrated in one town/i);
@@ -356,6 +358,16 @@ describe('THE LINES THIS COURSE HOLDS', () => {
     expect(p).toMatch(/justified AND land where it was not aimed/i);
     expect(p).toMatch(/narrowness is the lesson/i);
     expect(p).toMatch(/lesson one and lesson seven/i);
+    // THE SIXTH, added with wm10 (DR-1282). A limit the posture states but no
+    // gate checked would be a limit on paper only, so it is pinned the same way
+    // the other five are -- both halves of a name, and the distinction the
+    // lesson turns on, which is the one a tutor is most likely to flatten.
+    expect(p).toMatch(/six limits/i);
+    expect(p).toMatch(/A good name is real property/i);
+    expect(p).toMatch(/self-praise is not the witness/i);
+    expect(p).toMatch(/verified ATTRIBUTION is not a verified CLAIM/i);
+    expect(p).toMatch(/the buyer carries a weight too/i);
+    expect(p).toMatch(/Name no company, brand, product or firm as trustworthy or untrustworthy/i);
   });
 
   it('carries the care note, and it refuses to be advice', () => {

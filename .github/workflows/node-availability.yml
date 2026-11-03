@@ -87,11 +87,29 @@ jobs:
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
 
+      # A REFUSED KEY USED TO LEAVE NOTHING BEHIND (2026-10-29, DR-1283).
+      #
+      # This step exited 1 and the job stopped, so the "File the incident" step
+      # below -- gated on steps.probe.outputs.code == '1' -- never ran, because
+      # the probe it reads never ran either. The witness built to answer "how
+      # often does this happen" therefore recorded nothing on the one failure
+      # that blinds every NAS-side lane at once. Measured on 2026-10-28: the key
+      # was refused for 29 hours and no ledger held an entry for it.
+      #
+      # The outage now writes itself down BEFORE this step re-raises, on the
+      # same rolling entry db-migrate's shut sovereign road uses, so the fleet
+      # has one thread rather than 64 red checks. The exit 1 is unchanged.
       - name: Verify the tailnet actually joined
         if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if ! tailscale status --peers=false >/dev/null 2>&1; then
+          if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
             echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            node scripts/tailnet-key-incident.mjs \
+              --workflow "node-availability (tailnet join)" \
+              --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --measured-file /tmp/ts-join.txt || true
             exit 1
           fi
 

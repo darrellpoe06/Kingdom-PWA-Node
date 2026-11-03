@@ -30,6 +30,7 @@ const CHURCH_SUBS = [
 const BOOKS_SUBS = [
   'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart',
   'k1099', 'calendar', 'legal', 'plan', 'taxes',
+  'overview', 'budget', 'bills', 'goals', 'debt-freedom', 'reports', 'settings',
 ];
 
 const PLACEHOLDER = /\b(todo|tbd|fixme|lorem ipsum|coming soon|placeholder|xxx)\b/i;

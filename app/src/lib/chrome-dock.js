@@ -75,6 +75,37 @@ export function useReaderLive(el) {
 
 /** The phone breakpoint the bar folds at: below Tailwind's sm (640px). */
 export const PHONE_QUERY = '(max-width: 639.98px)';
+/** MONEY's phone-first breakpoint (Christina 2026-10-28, tested on her Samsung:
+ *  the 640–1023px band — a Fold's inner screen, a small tablet, a phone held
+ *  sideways — showed a sideways-scrolling section strip and no bottom bar,
+ *  "like a desktop application"). Inside Money the ONE bar carries the four
+ *  tabs + More at every width below the laptop rail (lg, 1024px); the strip is
+ *  gone. Other sections keep PHONE_QUERY — nothing outside Money changes. */
+export const MONEY_PHONE_QUERY = '(max-width: 1023.98px)';
+
+/** React hook: does this media query match right now? false where matchMedia is missing. */
+export function useMediaMatch(query) {
+  const read = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try { return !!window.matchMedia(query).matches; } catch (_) { return false; }
+  };
+  const [on, setOn] = useState(read);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    let mq = null;
+    try { mq = window.matchMedia(query); } catch (_) { return undefined; }
+    if (!mq) return undefined;
+    const sync = () => setOn(!!mq.matches);
+    sync();
+    if (typeof mq.addEventListener === 'function') { mq.addEventListener('change', sync); return () => mq.removeEventListener('change', sync); }
+    if (typeof mq.addListener === 'function') { mq.addListener(sync); return () => mq.removeListener(sync); }
+    return undefined;
+  }, [query]);
+  return on;
+}
+
+/** React hook: true below the laptop rail — where Money rides the bar. */
+export function useMoneyPhoneWidth() { return useMediaMatch(MONEY_PHONE_QUERY); }
 
 /** One synchronous read: true on a phone-width screen right now; false where matchMedia is missing. */
 export function isPhoneWidth() {

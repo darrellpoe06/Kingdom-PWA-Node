@@ -23,6 +23,11 @@ import UiIcon from './UiIcon.jsx';
 
 const BooksUpload = lazy(() => import('./BooksUpload.jsx'));
 
+// The Money header row's own chrome (the section strip beside this button, the
+// rail and tab row around the content) rides this module's import line in the
+// frozen shell, the same re-export trim DR-0291 documents.
+export { default as MoneyLayout, MoneyNavStrip } from './money/MoneyChrome.jsx';
+
 export const OPEN_EVENT = 'poetech:books-upload-open';
 export const COUNT_EVENT = 'poetech:books-upload-count';
 let pendingOpen = false;

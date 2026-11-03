@@ -7,7 +7,7 @@
 --   Bed B, borrowing, leads with the bedroom it chose; Bed A still leads
 --     with the kitchen                                                      ✔
 --   a door placing its OWN picture here                                     ✘
---   a door of ANOTHER apartment placing a picture                           ✘
+--   a door in ANOTHER building placing a picture                            ✘
 --   a stranger to the family placing one                                    ✘
 --   a stranger reading the orders                                           ✘ (sees none)
 -- =============================================================================
@@ -25,11 +25,14 @@ INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Apt 4 holds Bed A (the pictures) and Bed B (none; the unit typed into its
--- address, as on his own door). Apt 2 is another apartment at the same street.
+-- address, as on his own door). Apt 2 is an apartment in ANOTHER building:
+-- since 0314 (DR-1290) a door may place any picture from its own building, so
+-- the refusal this smoke holds is the one that still stands under both rules,
+-- a picture from somewhere else (0314's smoke holds the same-building case).
 INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, property_type, status, city, state, listed_at, rentable_level) VALUES
   ('00000000-0000-4000-c000-0000000a0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-a000-0000000a0282', 'PO-BED-A', 'Bed A', '9820 Order Smoke Way', 'Apt 4', 'multi-family', 'vacant', 'Champaign', 'Illinois', now(), 'bed'),
   ('00000000-0000-4000-c000-0000000b0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-a000-0000000a0282', 'PO-BED-B', 'Bed B', '9820 Order Smoke Way Apt 4', 'Apt 4', 'multi-family', 'vacant', 'Champaign', 'Illinois', now(), 'bed'),
-  ('00000000-0000-4000-c000-0000000c0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-a000-0000000a0282', 'PO-APT-2', 'Apt 2', '9820 Order Smoke Way', 'Apt 2', 'multi-family', 'vacant', 'Champaign', 'Illinois', now(), 'unit');
+  ('00000000-0000-4000-c000-0000000c0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-a000-0000000a0282', 'PO-APT-2', 'Apt 2', '9830 Order Smoke Way', 'Apt 2', 'multi-family', 'vacant', 'Champaign', 'Illinois', now(), 'unit');
 INSERT INTO property_photos (id, instance_id, rental_ref, kind, caption, storage_path, sort_order, taken_at) VALUES
   ('00000000-0000-4000-d000-0000000a0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-c000-0000000a0282', 'listing', 'kitchen',  'data:image/jpeg;base64,a', 10, now() - interval '3 days'),
   ('00000000-0000-4000-d000-0000000b0282', '00000000-0000-4000-b000-000000010282', '00000000-0000-4000-c000-0000000a0282', 'listing', 'living',   'data:image/jpeg;base64,b', 20, now() - interval '2 days'),
@@ -103,7 +106,7 @@ BEGIN
 
   -- 3. Refusals.
   PERFORM pg_temp.runs(o, format('INSERT INTO door_photo_order (rental_id, photo_id, instance_id, position) VALUES (%L, %L, %L, 10)', bedA, kitchen, inst), 'a door placing its own picture here', false);
-  PERFORM pg_temp.runs(o, format('INSERT INTO door_photo_order (rental_id, photo_id, instance_id, position) VALUES (%L, %L, %L, 10)', apt2, kitchen, inst), 'another apartment placing Apt 4''s picture', false);
+  PERFORM pg_temp.runs(o, format('INSERT INTO door_photo_order (rental_id, photo_id, instance_id, position) VALUES (%L, %L, %L, 10)', apt2, kitchen, inst), 'a door in another building placing Apt 4''s picture', false);
   PERFORM pg_temp.runs(s, format('INSERT INTO door_photo_order (rental_id, photo_id, instance_id, position) VALUES (%L, %L, %L, 20)', bedB, kitchen, inst), 'a stranger placing a picture', false);
   PERFORM pg_temp.runs(s, format('DELETE FROM door_photo_order WHERE rental_id = %L', bedB), 'a stranger taking Bed B''s cover away', false);
 

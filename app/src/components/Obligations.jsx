@@ -25,6 +25,7 @@
 // =============================================================================
 import React, { useEffect, useState, useMemo } from 'react';
 import SectionTabs from './SectionTabs.jsx';
+import SampleModeNotice from './money/SampleModeNotice.jsx';
 import { listObligations } from '../lib/obligations-sync.js';
 import {
   DIRECTIONS, AGING_BUCKETS, money, agingReport, netPosition, dueWithin,
@@ -439,12 +440,14 @@ function DaysPost() {
 }
 
 // ---------------------------------------------------------------------------
-export default function Obligations() {
+export default function Obligations({ demo = false }) {
   const [state, setState] = useState({ loading: true, rows: [], lines: {}, error: null });
   const today = todayIso();
 
   useEffect(() => {
     let alive = true;
+    // SAMPLE MODE never reads the family's ledger (Christina 2026-10-28).
+    if (demo) { setState({ loading: false, rows: [], lines: {}, error: null }); return () => { alive = false; }; }
     (async () => {
       const res = await listObligations();
       if (!alive) return;
@@ -454,8 +457,9 @@ export default function Obligations() {
       setState({ loading: false, rows: res.rows, lines, error: null });
     })();
     return () => { alive = false; };
-  }, []);
+  }, [demo]);
 
+  if (demo) return <SampleModeNotice what="receivables and payables" testId="sample-mode-owed" />;
   if (state.loading) return <div className="text-xs text-[#5A5751] p-4" style={SERIF}>Reading the ledger…</div>;
 
   if (state.error) {

@@ -128,9 +128,83 @@ def job_resume_transcripts(params):
     return "done", "loader was not paused (no flags found)", {"cleared": 0}
 
 
+# --- the database backup, on request (DR-1289) ---------------------------------
+# The sovereign database already backs itself up every night on the services-sync
+# clock (infra/nas-db-backup, DR-1113). These two jobs let a steward ask for one
+# NOW, from the app, through this same queue -- the road that needs neither the
+# runner's tailnet key nor Cloudflare: the app writes the row through its own
+# /sb door, this box drains it on its own clock, and the verdict comes back on
+# the row. Measured 2026-10-29: the runner's TS_AUTHKEY had been refused for a
+# day, so nothing outside could confirm a nightly backup, and a release was
+# waiting on one.
+#
+# It launches db_backup.sh DETACHED, exactly as the nightly installer does,
+# because services-sync kills its whole tree at the 600 s cycle ceiling and a
+# dump can outlast what is left of a cycle. It then waits up to
+# BACKUP_WAIT_S for the verdict so a short dump answers on the same row; a
+# longer one answers on 'db-backup-status'. An on-request run ALWAYS includes the
+# restore drill (BACKUP_DRILL=always): the dump is restored into a scratch
+# database, its auth.users and public tables are counted against the live
+# database, and the scratch database is dropped -- a backup asked for before a
+# release must be shown restorable, not assumed so (Christina, 2026-10-29).
+# The script's own lock makes a second request -- or the nightly run -- a no-op,
+# and it never writes to the live database: pg_dump reads.
+BACKUP_DIR = os.environ.get("BACKUP_DIR", "/volume1/PoeTech/backups/db")
+BACKUP_SCRIPT = os.path.join(_DIR, "..", "nas-db-backup", "db_backup.sh")
+BACKUP_WAIT_S = 240
+BACKUP_WALL_S = 3600
+
+
+def _backup_verdict():
+    path = os.path.join(BACKUP_DIR, "status.json")
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def job_db_backup(params):
+    """Start one verified backup of the whole database now, and report its verdict."""
+    if not os.path.exists(BACKUP_SCRIPT):
+        return "error", f"backup script not found at {BACKUP_SCRIPT}", {"started": False}
+    if os.path.isdir(os.path.join(BACKUP_DIR, ".lock")):
+        v = _backup_verdict()
+        return "error", "a backup is already running (the nightly run or an earlier request); ask for 'db-backup-status' in a few minutes", {"started": False, "last": v}
+    before = (_backup_verdict() or {}).get("at")
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    log_path = os.path.join(BACKUP_DIR, "backup.log")
+    stamp = os.path.join(BACKUP_DIR, ".last-ok")
+    inner = f"BACKUP_DRILL=always timeout {BACKUP_WALL_S} sh '{BACKUP_SCRIPT}' >> '{log_path}' 2>&1 && touch '{stamp}'"
+    # nohup + & from a throwaway shell: the backup is re-parented away from this
+    # process tree, so the services-sync ceiling cannot cut a dump short.
+    subprocess.run(["sh", "-c", f"nohup sh -c \"{inner}\" >/dev/null 2>&1 &"], timeout=30)
+    waited = 0
+    while waited < BACKUP_WAIT_S:
+        time.sleep(10)
+        waited += 10
+        v = _backup_verdict()
+        if v and v.get("at") and v.get("at") != before:
+            ok = bool(v.get("ok"))
+            text = json.dumps(v)
+            return ("done" if ok else "error"), text, {"started": True, "ok": ok, "verdict": v}
+    return "done", f"started; still running after {BACKUP_WAIT_S}s -- ask for 'db-backup-status' to read its verdict", {"started": True, "ok": None}
+
+
+def job_db_backup_status(params):
+    """Read the newest backup verdict (status.json) and say whether one is running."""
+    v = _backup_verdict()
+    running = os.path.isdir(os.path.join(BACKUP_DIR, ".lock"))
+    if v is None:
+        return "error", "no backup verdict on this box yet (status.json absent)", {"running": running}
+    return ("done" if v.get("ok") else "error"), json.dumps(v), {"running": running, "verdict": v}
+
+
 JOBS = {
     "transcript-backfill": job_transcript_backfill,
     "resume-transcripts": job_resume_transcripts,
+    "db-backup": job_db_backup,
+    "db-backup-status": job_db_backup_status,
 }
 
 

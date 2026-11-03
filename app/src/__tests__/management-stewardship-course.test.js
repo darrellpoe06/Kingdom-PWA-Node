@@ -130,7 +130,11 @@ const REF_PARENS = /\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/g;
 const ours = (text) => String(text || '').replace(ALL_SPANS, ' ').replace(REF_PARENS, ' ');
 
 describe('the capstone exists, and it is shaped like a course', () => {
-  it('carries eight lessons in the order the argument runs', () => {
+  // NINE, not eight, since DR-1281. The eight-move argument still CLOSES at
+  // mgmt8 — mgmt9 is appended because a forwarded newsletter asked the question
+  // that arrives before lesson one, not because the arc grew a step. Its own
+  // gate is management-stewardship-mgmt9-verses.test.js.
+  it('carries nine lessons in the order the argument runs', () => {
     expect(M.map((m) => m.id)).toEqual([
       'mgmt1-faithful-is-the-measurement',
       'mgmt2-entrusted-by-ability-judged-by-action',
@@ -140,6 +144,7 @@ describe('the capstone exists, and it is shaped like a course', () => {
       'mgmt6-their-portion-in-due-season',
       'mgmt7-when-management-became-extraction-restore-this-day',
       'mgmt8-the-account-given-with-joy-and-not-with-grief',
+      'mgmt9-nobody-is-coming-to-define-your-work',
     ]);
     expect(MANAGEMENT_STEWARDSHIP_META.weeks).toBe(M.length);
   });
@@ -369,11 +374,13 @@ describe('it is wired into the school, in the department course one opened', () 
 
   it('builds a real schedule, summarises progress, and exports its curriculum', () => {
     const rows = row.buildScheduleRows();
-    expect(rows).toHaveLength(8);
+    // DERIVED, not re-pinned by hand: the count follows the module list above,
+    // which is the one place a new lesson is declared (DR-1281 made it nine).
+    expect(rows).toHaveLength(M.length);
     for (const r of rows) expect(r.dateISO == null || r.dateISO === '').toBe(true);
     const done = managementStewardshipProgressSummary({ [M[0].id]: true });
     expect(done.done).toBe(1);
-    expect(done.total).toBe(8);
+    expect(done.total).toBe(M.length);
     const md = exportManagementStewardshipCurriculumMarkdown(null);
     expect(md).toContain('Management Is Stewardship');
     expect(md).toContain('battlement');

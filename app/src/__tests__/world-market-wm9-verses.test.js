@@ -112,15 +112,29 @@ describe('wm9 is in the World Market course, with all four bands', () => {
     expect(WORLD_MARKET_MODULES.filter((x) => /^wm9-/.test(x.id))).toHaveLength(1);
     expect(WORLD_MARKET_MODULES.indexOf(m)).toBe(8);
     expect(WORLD_MARKET_META.weeks).toBe(WORLD_MARKET_MODULES.length);
-    expect(WORLD_MARKET_META.format).toContain('9 lessons');
+    // DERIVED, not a literal, after wm10 (DR-1282) made the literal '9 lessons'
+    // false. The intent of this line was always "the header count is the real
+    // one", and a hand-written literal could only ever be true until the next
+    // lesson landed. `format` is authored prose and `MODULES.length` is counted
+    // from the catalog, so the two are genuinely independent -- this is the same
+    // check the line above it makes on `weeks`, not a tautology.
+    expect(WORLD_MARKET_META.format).toContain(`${WORLD_MARKET_MODULES.length} lessons`);
   });
 
-  it('the lessons run in numeric order and wm9 is the last of them', () => {
+  it('the lessons run in numeric order and wm9 sits at nine', () => {
+    // wm9 IS NO LONGER THE LAST LESSON and this block no longer says it is.
+    // wm10 (the name and the proof, DR-1282) took the tenth place, which made
+    // `Math.max(...nums) === 9` and `last.id === WM9_ID` false -- the exact
+    // trap this file's own next block records wm8 falling into when wm9 landed.
+    // What wm9 actually needs pinned is that it sits at NINE, uniquely, in a
+    // course whose numbers have no gap; being last was never the claim worth
+    // keeping, and wm10's own gate pins the end of the list.
     const nums = WORLD_MARKET_MODULES.map((m) => Number(/^wm(\d+)-/.exec(m.id)[1]));
     expect(nums).toEqual([...nums].sort((a, b) => a - b));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(9);
-    expect(WORLD_MARKET_MODULES[WORLD_MARKET_MODULES.length - 1].id).toBe(WM9_ID);
+    expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
+    expect(nums[8]).toBe(9);
+    expect(WORLD_MARKET_MODULES[8].id).toBe(WM9_ID);
   });
 
   it('wm8 no longer calls itself the last lesson of the course, because it is not', () => {

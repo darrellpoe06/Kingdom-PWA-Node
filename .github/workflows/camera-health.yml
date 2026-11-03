@@ -57,11 +57,38 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/checkout@v7
+        if: steps.gate.outputs.go == 'true'
+
       - name: Join the tailnet (ephemeral)
         if: steps.gate.outputs.go == 'true'
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
+
+      # A JOIN STEP IS NOT A WITNESS OF THE JOIN (DR-1284). Measured on this
+      # lane 2026-11-02, run 41456015879: `Join the tailnet (ephemeral)` closed
+      # SUCCESS while TS_AUTHKEY k17y78NVwb11CNTRL was revoked, the SSH fell
+      # through to `{"reachable": false}`, and the judge below published `the
+      # forwarder on the NAS did not answer /health` with `priority:cameras` on
+      # issue #2011 -- fix-now, pointed at the family's cameras, for a key
+      # fault. The forwarder was never asked. This step is the brake: it fails
+      # the run at the true cause, before anything can be written about the
+      # cameras, and escalates to the fleet's rolling key entry (DR-1283).
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). This is NOT a camera fault: nothing on the camera road was asked."
+            node scripts/tailnet-key-incident.mjs \
+              --workflow "camera-health (tailnet join)" \
+              --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --measured-file /tmp/ts-join.txt || true
+            exit 1
+          fi
+          tailscale status --peers=false
 
       - name: Ask the NAS (read-only, scrubbed)
         if: steps.gate.outputs.go == 'true'
@@ -189,7 +216,18 @@ jobs:
             const now = new Date().toISOString();
             const probedN = (w.probed || []).length;
             const reasons = [];
-            if (!w.reachable || !w.health || w.health.ok !== true) reasons.push('the forwarder on the NAS did not answer /health');
+            // AN UNREACHABLE RUNNER IS NOT A DARK FORWARDER (2026-11-02; the
+            // shape DR-1291 fixed on the site witness, one lane over). These
+            // two were one condition, so a runner that never got onto the
+            // tailnet published `the forwarder on the NAS did not answer
+            // /health` -- a sentence about the family's cameras -- and carried
+            // the fix-now label with it. Transport faults and camera faults are
+            // now two findings: BOTH fail the run, only a camera fault earns
+            // `priority:cameras`, because a fix-now label aimed at the wrong
+            // box sends the next steward to the wrong box.
+            const transport = [];
+            if (!w.reachable) transport.push('the runner never reached the NAS, so nothing on the camera road was asked — look at the tailnet key and the box, NOT at the cameras');
+            else if (!w.health || w.health.ok !== true) reasons.push('the forwarder on the NAS did not answer /health');
             if (w.health && w.health.forwarder && w.health.on_disk && w.health.forwarder !== w.health.on_disk) reasons.push(`the forwarder runs ${w.health.forwarder} but ${w.health.on_disk} is on disk (services-sync did not restart it)`);
             if (w.sampler_age_s != null && w.sampler_age_s > 120) reasons.push(`the stream sampler is silent (${w.sampler_age_s} s since its last sample)`);
             // Compare like with like (run 37725930156, 04:07 UTC: a 2-camera pass read "1 of 2 answer; 11 did last time"
@@ -207,6 +245,15 @@ jobs:
             const FLOOR = 0.5;
             if (w.probe_all && probedN >= 4 && w.answering < Math.ceil(probedN * FLOOR)) reasons.push(`only ${w.answering} of the ${probedN} cameras give a frame on an every-camera pass (the floor is half); dark: ${(w.silent || []).join(', ')}`);
             const regression = reasons.length > 0;
+            const blocked = transport.length > 0;
+            // A FAILED READ IS RECORDED AS UNKNOWN, NEVER AS ZERO (DR-1186).
+            // `{"reachable": false}` was being written into the ledger as the
+            // new last witness, which ERASED the state the next run compares
+            // itself with -- measured on #2011, whose fenced block today holds
+            // nothing but `{"reachable":false}`, so the stream count and the
+            // per-camera memory were both gone. A run that could not reach the
+            // box keeps the last witness that did.
+            const keep = blocked && last ? last : w;
             const summary = w.reachable ? `${w.answering}/${probedN} probed cameras answer${w.first_ask != null ? ` (${w.first_ask} on the first ask)` : ''} · ${w.streams} streams · ${w.resting} resting · forwarder ${w.health ? w.health.forwarder : '?'} · live ${w.health ? w.health.live_open : '?'} open, ${w.health ? Math.round((w.health.live_bytes_per_s || 0) * 8 / 1000) : '?'} kb/s` : 'the NAS was not reachable from the runner';
             const body = [
               `# Camera road witness (DR-0806)`,
@@ -215,8 +262,9 @@ jobs:
               ``,
               `**Now:** ${summary}`,
               w.probe_all ? `\n**Every camera probed.** Dark now (${(w.silent || []).length}): ${(w.silent || []).join(', ') || 'none'}\n` : ``,
-              regression ? `\n**REGRESSION:**\n${reasons.map((r) => `- ${r}`).join('\n')}\n` : `\n**No regression against the last witness.**\n`,
-              '```json', JSON.stringify(w), '```',
+              blocked ? `\n**THE ROAD TO THE BOX WAS SHUT — this says nothing about the cameras:**\n${transport.map((r) => `- ${r}`).join('\n')}\n\nThe witness below is the last one that actually reached the box; it is kept, not overwritten.\n` : ``,
+              regression ? `\n**REGRESSION:**\n${reasons.map((r) => `- ${r}`).join('\n')}\n` : (blocked ? `` : `\n**No regression against the last witness.**\n`),
+              '```json', JSON.stringify(keep), '```',
               ``, `---`, `_Generated by [Claude Code](https://claude.ai/code)_`,
             ].join('\n');
             if (!issue) {
@@ -228,8 +276,12 @@ jobs:
               if (!regression && has) { try { await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: prio }); } catch {} }
               if (regression) await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `Regression at ${now} (run ${context.runId}):\n${reasons.map((r) => `- ${r}`).join('\n')}\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_` });
             }
-            core.summary.addHeading('Camera road witness').addRaw(summary + (regression ? `\n\nREGRESSION: ${reasons.join('; ')}` : '\n\nno regression')).write();
+            core.summary.addHeading('Camera road witness').addRaw(summary + (regression ? `\n\nREGRESSION: ${reasons.join('; ')}` : (blocked ? `\n\nROAD SHUT: ${transport.join('; ')}` : '\n\nno regression'))).write();
+            // Both fail the run. Only the camera fault calls itself a camera
+            // fault, and only it carries the fix-now label (added above when
+            // `regression`, removed above when not).
             if (regression) core.setFailed('camera road regression: ' + reasons.join('; '));
+            else if (blocked) core.setFailed('the road to the box was shut, not a camera fault: ' + transport.join('; '));
 
       # When the road regresses, say WHERE THE INSTALL STANDS first (THE-WAY-A-
       # SERVICE-COMES-HOME, step 6; 2026-10-20, the audit of the services born

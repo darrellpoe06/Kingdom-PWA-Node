@@ -21,6 +21,7 @@ import { SectionTitle } from './shared.jsx';
 import { getAssignments } from '../lib/assignments.js';
 import { ENGAGEMENTS, engagementOf, engagementFindings } from '../lib/engagement-guard.js';
 import SectionTabs from './SectionTabs.jsx';
+import SampleModeNotice from './money/SampleModeNotice.jsx';
 import { smsHref } from '../lib/dispatch.js';
 import { uploadFeedback, subscribeFeedback } from '../lib/feedback-sync.js';
 import { onAuthChange } from '../lib/supabase.js';
@@ -360,7 +361,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
 // swallowed: the draft clears ONLY on a confirmed upload (the Engagement
 // MessageThread rule from the 2026-07-03 claims audit).
 // -----------------------------------------------------------------------------
-function WorkerVoice({ workers = [], incidents }) {
+function WorkerVoice({ workers = [], incidents, demo = false }) {
   const incidentsProvided = Array.isArray(incidents);
   const [signedIn, setSignedIn] = useState(false);
   const [me, setMe] = useState(null);
@@ -380,14 +381,16 @@ function WorkerVoice({ workers = [], incidents }) {
   }), []);
 
   useEffect(() => {
-    if (!signedIn) { setRemote([]); return undefined; }
+    // SAMPLE MODE never subscribes to the family's stream (Christina 2026-10-28).
+    if (!signedIn || demo) { setRemote([]); return undefined; }
     return subscribeFeedback((items) => setRemote(items.filter(isWorkerVoice)));
-  }, [signedIn]);
+  }, [signedIn, demo]);
 
   const entries = voiceEntries([...localEntries, ...remote]);
   const openIncidents = incidentsProvided ? incidents.filter(i => i && i.status !== 'resolved') : [];
 
   const submit = async () => {
+    if (demo) { setError('Sample mode: a worker\'s words are not recorded from the sample.'); return; }
     const contractor = workers.find(w => w.id === workerId);
     const incident = openIncidents.find(i => i.id === incidentId) || null;
     const record = buildWorkerVoiceRecord({ contractor, said, incident });
@@ -409,6 +412,8 @@ function WorkerVoice({ workers = [], incidents }) {
   };
 
   return (
+    <>
+      {demo && <SampleModeNotice what="workers' records" testId="sample-mode-1099" />}
     <section>
       <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Worker voice · operations</h3>
       <div className="bg-white border border-[#1A1815] p-4 space-y-2">
@@ -476,10 +481,11 @@ function WorkerVoice({ workers = [], incidents }) {
         )}
       </div>
     </section>
+    </>
   );
 }
 
-export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents, currentDate, transactions = [] }) {
+export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents, currentDate, transactions = [], demo = false }) {
   // TAX YEAR drives the 1099-NEC threshold ($600 for 2024-2025; $2,000 for 2026+
   // under the OBBBA). The advisory + threshold calls MUST be told the year — the
   // library defaults to the latest known (2026/$2,000), so filing a PRIOR year
@@ -671,7 +677,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             id: 'voice',
             label: 'Worker voice',
             icon: 'mic',
-            render: () => <WorkerVoice workers={outbound} incidents={incidents} />,
+            render: () => <WorkerVoice workers={outbound} incidents={incidents} demo={demo} />,
           },
           {
             id: 'engagement',

@@ -18,12 +18,21 @@
 name: CI
 
 on:
-  pull_request:
+  # ONE RUN PER COMMIT (DR-1297). This workflow used to fire on `pull_request`
+  # AND on `push`, so every commit pushed to a branch with an open PR ran the
+  # whole suite twice on the same SHA (DR-0645 measured it; 2026-10-29: #2490's
+  # 29c84ff3 had push run 40816305549 and pull_request run 40816309086, ~19 jobs
+  # each). `pull_request` is gone. A push to ANY branch of this repository runs
+  # CI on that commit, and its checks attach to that SHA, which is every PR's
+  # head: the way token-opened PRs have always passed (see auto-open-pr.yml;
+  # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows). '**' and
+  # not the old lane list, because PRs from branches outside it (money/*,
+  # dependabot/*) had only the pull_request run to give them the required check.
+  # What was given up: CI no longer tests GitHub's trial merge with main, only
+  # the branch head; keep-prs-current (DR-0644) keeps live PRs current with main.
+  # Fork PRs get no run; this repository takes none.
   push:
-    # main, plus the release lanes — a push to a lane runs CI on that commit so
-    # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
-    # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
-    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**', 'ccr-**']  # ccr-**: DR-0773
+    branches: ['**']
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
@@ -35,9 +44,9 @@ on:
 
 # A newer commit on the same branch (or PR) supersedes the older run: the old
 # run's legs are cancelled so they stop holding runners the new commit needs
-# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Push runs and
-# pull_request runs have different refs, so they never cancel each other, and
-# main is never cancelled — every main commit keeps its full run.
+# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Every run of a
+# branch shares its ref now (DR-1297), and main is never cancelled — every main
+# commit keeps its full run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -1462,6 +1471,17 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0310-work-order-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/work-order-pictures.txt"
           grep -q 'WORK ORDER PICTURES SMOKE: PASS' "$RUNNER_TEMP/work-order-pictures.txt"
+          # 0314 (DR-1290): the building shares one picture pool. A door may
+          # place any picture filed on another door of its BUILDING (same
+          # instance, same building_key); the apartment stays automatic and
+          # the building is opt-in. A placed listing picture reaches the open
+          # shelf while THIS door is listed and empty, even when the door
+          # holding it is let; a placed record never does; another building,
+          # another family and a stranger are refused; taking it off takes it
+          # off the shelf.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0314-the-building-shares-one-picture-pool.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0314-building-picture-pool-smoke.sql 2>&1 | tee "$RUNNER_TEMP/building-pool.txt"
+          grep -q 'BUILDING PICTURE POOL SMOKE: PASS' "$RUNNER_TEMP/building-pool.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

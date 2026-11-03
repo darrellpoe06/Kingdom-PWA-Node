@@ -1870,6 +1870,120 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
   );
 }
 
+// THE BUILDING'S PICTURES (DR-1290). Darrell, 2026-10-29, on a door at 805:
+// "Need to be able to show images of the entry on all doors in 805!!!!! All
+// pictures for any apartment should be available from the same images
+// pool... we can add which apt... however we should be able to use anything
+// it's the same building!!!!!"
+//
+// One pool for the building, every picture saying which apartment holds it.
+// "Use on this door" places it here (one door_photo_order row, nothing
+// copied); "Stop using" takes it off. A listing picture placed here shows on
+// this door's open listing while this door is advertised and empty, even when
+// the apartment that holds it is let -- which is why the card asks for the
+// shared spaces. A record (move-in, inspection, work) placed here shows in
+// this gallery only, never to a stranger (0314).
+const POOL_PAGE = 24;
+function doorName(d) {
+  return (d && (d.display_name || d.unit || d.address)) || 'another door';
+}
+function BuildingPool({ photos = [], doors = [], placed = {}, unread = false, loadImage, loadThumb, onPlace, onUnplace, nextPosition = 10 }) {
+  const [which, setWhich] = useState('all');
+  const [limit, setLimit] = useState(POOL_PAGE);
+  const [busy, setBusy] = useState(null);
+  const [said, setSaid] = useState('');
+  const byDoor = useMemo(() => Object.fromEntries((doors || []).map((d) => [d.id, d])), [doors]);
+  const counts = useMemo(() => {
+    const c = {};
+    for (const p of photos || []) c[p.rental_ref] = (c[p.rental_ref] || 0) + 1;
+    return c;
+  }, [photos]);
+  const list = useMemo(() => (which === 'all' ? photos : photos.filter((p) => p.rental_ref === which)), [photos, which]);
+  const inUse = Object.keys(placed || {}).length;
+  const move = async (p, use) => {
+    if (busy) return;
+    setBusy(p.id); setSaid('');
+    const r = use ? await onPlace?.(p.id, nextPosition) : await onUnplace?.(p.id);
+    setBusy(null);
+    const name = p.caption || p.kind.replace(/-/g, ' ');
+    if (r && r.ok === false) setSaid(`Not saved: ${r.reason || 'the database refused it'}.`);
+    else setSaid(use ? `${name} is on this door now.` : `${name} is off this door; it stays on ${doorName(byDoor[p.rental_ref])}.`);
+  };
+  return (
+    <Card title={`The rest of the building (${photos.length})`}>
+      {unread ? (
+        <p className="text-sm text-[#8C2F2F]" data-testid="building-pool-unreadable">
+          The rest of this building could not be read just now &mdash; this is not the same as there being none. Pull down to try again.
+        </p>
+      ) : (
+        <div data-testid="building-pool" data-in-use={inUse}>
+          <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="building-pool-note">
+            Every picture on the other apartments of this building, each saying which apartment holds it.
+            {' '}<strong>Use one on this door</strong> and it shows here and on this door&rsquo;s listing, in this door&rsquo;s own order, with nothing copied.
+            {' '}<strong>Choose the shared spaces</strong> &mdash; the entry, the halls, the laundry, the outside &mdash; because a listing picture
+            used here is shown while this door is advertised, even if the apartment it came from is lived in.
+            A record (move-in, inspection, work) used here stays in this gallery and is never shown on the listing.
+          </p>
+          <div className="flex flex-wrap items-end gap-2 mb-2">
+            {/* Full width on a phone: a select sizes itself to its longest
+                option ("805 North Prospect Avenue Room 1 - Bed A"), which
+                ran 15px off a 360px screen (measured). */}
+            <label className="text-[0.75rem] text-[#5A5751] min-w-0 w-full sm:w-auto">Which apartment
+              <select
+                className="block w-full sm:w-auto border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px] max-w-full"
+                value={which} data-testid="building-pool-door"
+                onChange={(e) => { setWhich(e.target.value); setLimit(POOL_PAGE); }}
+              >
+                <option value="all">{`Every apartment (${photos.length})`}</option>
+                {(doors || []).filter((d) => counts[d.id]).map((d) => (
+                  <option key={d.id} value={d.id}>{`${doorName(d)} (${counts[d.id]})`}</option>
+                ))}
+              </select>
+            </label>
+            <span className="text-[0.75rem] text-[#6B665E] pb-2" data-testid="building-pool-in-use">{`${inUse} in use on this door`}</span>
+          </div>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {list.slice(0, limit).map((p) => {
+              const used = Object.prototype.hasOwnProperty.call(placed || {}, p.id);
+              const record = p.kind !== 'listing';
+              return (
+                <li key={p.id} className="border border-[#E8E4DC] bg-white p-2 min-w-0" data-testid={`building-pool-${p.id}`} data-used={used ? 'true' : 'false'}>
+                  <div className="relative">
+                    <SharpPicture photo={p} loadImage={loadImage} loadThumb={loadThumb} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
+                    {used && <span className="absolute bottom-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">In use here</span>}
+                  </div>
+                  <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug break-words">
+                    {p.caption || <em className="text-[#6B665E]">No caption</em>}
+                  </div>
+                  <div className="text-[0.6875rem] text-[#6B665E] break-words" data-testid={`building-pool-from-${p.id}`}>
+                    {`${p.kind.replace(/-/g, ' ')} · from ${doorName(byDoor[p.rental_ref])}`}
+                  </div>
+                  {record && <div className="text-[0.6875rem] text-[#6B665E]">a record: this gallery only, never the listing</div>}
+                  {used ? (
+                    <Btn onClick={() => move(p, false)} disabled={busy === p.id} aria-label={`Stop using ${p.caption || p.kind} on this door`}>
+                      {busy === p.id ? 'Saving…' : 'Stop using here'}
+                    </Btn>
+                  ) : (
+                    <Btn onClick={() => move(p, true)} disabled={busy === p.id || !onPlace} aria-label={`Use ${p.caption || p.kind} on this door`}>
+                      {busy === p.id ? 'Saving…' : 'Use on this door'}
+                    </Btn>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {list.length > limit && (
+            <div className="mt-2">
+              <Btn onClick={() => setLimit((n) => n + POOL_PAGE)}>{`Show ${Math.min(POOL_PAGE, list.length - limit)} more of ${list.length - limit}`}</Btn>
+            </div>
+          )}
+          {said && <p className="text-sm mt-2" aria-live="polite" data-testid="building-pool-said">{said}</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
   onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
@@ -1878,11 +1992,18 @@ export function GalleryTab({
   // apartment, and a gallery that quietly folded them in would be telling
   // this door it owns pictures it does not — the same invented fact DR-0946
   // was written about, pointing the other way.
-  sharedPhotos = [], sharedDoors = [], sharedUnread = false,
+  sharedPhotos: apartmentShared = [], sharedDoors = [], sharedUnread = false,
   // THIS DOOR'S OWN ORDER of those pictures (DR-0984): {photo_id: position}.
   // Saved per door, so Bed B can lead with the bedroom while Bed A leads with
   // the kitchen; the pictures themselves stay on the door that owns them.
-  sharedOrder = {}, onArrangeShared = null,
+  sharedOrder: apartmentOrder = {}, onArrangeShared = null,
+  // THE BUILDING'S PICTURE POOL (DR-1290): every picture on the OTHER
+  // apartments of this door's building, which of them this door uses
+  // ({photo_id: position}), and the two moves. Placed ones join the shared
+  // card below (arranged in this door's order, like the apartment's); the
+  // pool card lists the rest by which apartment holds them.
+  buildingPhotos = [], buildingDoors = [], buildingPlaced = {}, buildingUnread = false,
+  onPlaceBuilding = null, onUnplaceBuilding = null,
   // FROM THE NAS (DR-1002): the door's archive name on its record (0284) and
   // which NAS pictures it has already filed ({source: photo id}); null when
   // that read failed -- unknown, never "none".
@@ -1897,6 +2018,15 @@ export function GalleryTab({
   // tags and logos". The stored original is never altered.
   const doorId = door ? door.id : null;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);
+  // What this door shows from other doors: its apartment's (automatic,
+  // DR-0963) and the building pictures it was given (DR-1290), one list in
+  // this door's own order, so the cover and the arrows work on all of them.
+  const placedBuilding = useMemo(
+    () => (buildingPhotos || []).filter((p) => Object.prototype.hasOwnProperty.call(buildingPlaced || {}, p.id)),
+    [buildingPhotos, buildingPlaced],
+  );
+  const sharedPhotos = useMemo(() => [...(apartmentShared || []), ...placedBuilding], [apartmentShared, placedBuilding]);
+  const sharedOrder = useMemo(() => ({ ...(buildingPlaced || {}), ...(apartmentOrder || {}) }), [buildingPlaced, apartmentOrder]);
   const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '', takenOn: nowLocalInput() }));
   const [knownNames, setKnownNames] = useState([]);
   useEffect(() => {
@@ -2785,7 +2915,7 @@ export function GalleryTab({
           which serves both doors at once, and that is the point of a shared
           home rather than a limitation of it. */}
       {canManage && (sharedUnread || sharedPhotos.length > 0) && (
-        <Card title={`Shared with this apartment (${sharedPhotos.length})`}>
+        <Card title={placedBuilding.length ? `Shared with this door (${sharedPhotos.length})` : `Shared with this apartment (${sharedPhotos.length})`}>
           {sharedUnread ? (
             /* A READ THAT FAILED IS NOT AN APARTMENT WITH NO PICTURES
                (DR-0946). Saying "none" here would be the same invented
@@ -2796,6 +2926,13 @@ export function GalleryTab({
             </p>
           ) : (
             <>
+              {placedBuilding.length > 0 && (
+                <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-building-note">
+                  <strong>{placedBuilding.length} {placedBuilding.length === 1 ? 'is' : 'are'} from elsewhere in the building</strong>,
+                  placed on this door from the building&rsquo;s pictures below. Each still lives on its own apartment&rsquo;s door.
+                </p>
+              )}
+              {apartmentShared.length > 0 && (
               <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-note">
                 These live on {sharedDoors.length === 1
                   ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
@@ -2807,6 +2944,7 @@ export function GalleryTab({
                 rooms before tapping anything. A caption or a tick changes the picture
                 itself, on both listings.
               </p>
+              )}
               <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {sharedArranged.map((p, i) => (
                   <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`gallery-shared-${p.id}`}>
@@ -2857,6 +2995,15 @@ export function GalleryTab({
             </>
           )}
         </Card>
+      )}
+
+      {canManage && (buildingUnread || buildingPhotos.length > 0) && (
+        <BuildingPool
+          photos={buildingPhotos} doors={buildingDoors} placed={buildingPlaced}
+          unread={buildingUnread} loadImage={loadImage} loadThumb={loadThumb}
+          onPlace={onPlaceBuilding} onUnplace={onUnplaceBuilding}
+          nextPosition={Math.max(0, ...Object.values(sharedOrder || {}).map(Number).filter(Number.isFinite)) + 10}
+        />
       )}
 
       {open !== null && viewable.length > 0 && (

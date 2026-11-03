@@ -289,13 +289,69 @@ describe('the Worker roads are on the record too (DR-1158)', () => {
     expect(r.knownIds).toEqual(['cf-roads-worker']);
   });
 
-  it('the entry dies on 2026-10-28, the date the token is re-reviewed, and the reading is loud again', () => {
+  // THE DATE IS READ OFF THE RECORD THAT GOVERNS IT (2026-10-29, DR-1291).
+  //
+  // This case used to pin the literal '2026-10-28' and call it "the date the
+  // token is re-reviewed". It was not. The carve was sized on 2026-10-20 to "a
+  // week for the token to land"; the NEXT DAY DR-1180 decided the token is
+  // asked for once and then the system stops asking, and set its own re-review
+  // at 2026-11-18. The entry kept the dead premise's date, expired three weeks
+  // early, and produced the exact four-notes-in-eight-hours shape the case
+  // above exists to prevent — this time with a priority-5 phone alarm on each.
+  //
+  // So the date is no longer a literal in two places. It is asserted EQUAL to
+  // DR-1180's own re-review, read from the record on disk, which is the only
+  // way these two stop drifting.
+  it("the entry dies on DR-1180's own re-review date, read from the record, not a literal", () => {
+    const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+    const dr = readFileSync(
+      join(REPO_ROOT, 'docs/decisions/DR-1180-the-second-door-is-optional-while-the-first-is-open.md'),
+      'utf8',
+    );
+    const governing = (dr.match(/re-review:\s*(\d{4}-\d{2}-\d{2})/) || [])[1];
+    expect(governing, 'DR-1180 must carry a re-review date for this entry to track').toBeTruthy();
     const entry = KNOWN_OUTAGES.find((k) => k.id === 'cf-roads-worker');
-    expect(entry.until).toBe('2026-10-28');
-    expect(classifyReasons(REAL_WORKER_REASON, { now: '2026-10-28T23:59:00Z' }).verdict).toBe('KNOWN');
-    const r = classifyReasons(REAL_WORKER_REASON, { now: '2026-10-29T00:00:01Z' });
+    expect(
+      entry.until,
+      `the carve-out must expire with the decision that governs it (DR-1180: ${governing}), not on a date of its own`,
+    ).toBe(governing);
+  });
+
+  it('it is still a real cliff: live to the end of its last day, loud the moment after', () => {
+    const entry = KNOWN_OUTAGES.find((k) => k.id === 'cf-roads-worker');
+    expect(classifyReasons(REAL_WORKER_REASON, { now: `${entry.until}T23:59:00Z` }).verdict).toBe('KNOWN');
+    const r = classifyReasons(REAL_WORKER_REASON, { now: '2026-11-19T00:00:01Z' });
     expect(r.verdict).toBe('NEW');
     expect(r.knownIds).toEqual([]);
+  });
+
+  // THE EXPIRY THAT ACTUALLY HAPPENED. Four site-health runs on 2026-10-29
+  // (01:17, 01:28, 01:50, 02:58) each read NEW on this unchanged seven-day-old
+  // reading and each rang the phone at priority 5. Pinned against the OLD date
+  // so the cost of the premature cliff stays measurable, not recalled.
+  it('PROVEN-TO-CATCH: with the old 2026-10-28 date, 2026-10-29 reads NEW and writes on every run', () => {
+    const stale = KNOWN_OUTAGES.map((k) => (k.id === 'cf-roads-worker' ? { ...k, until: '2026-10-28' } : k));
+    const FOUR = ['2026-10-29T01:17:00Z', '2026-10-29T01:28:30Z', '2026-10-29T01:50:53Z', '2026-10-29T02:58:44Z'];
+    let notes = 0;
+    let last = null;
+    for (const now of FOUR) {
+      const r = classifyReasons(REAL_WORKER_REASON, { now, known: stale });
+      expect(r.verdict).toBe('NEW');
+      const d = shouldWriteLedger({ anyNew: r.anyNew, lastKnownAt: last, now });
+      if (d.write) { notes += 1; last = now; }
+    }
+    expect(notes, 'a NEW fault is never throttled — four writes, four alarms').toBe(4);
+
+    // And with the date it has now, the same four runs are one note at most.
+    let kept = 0;
+    last = null;
+    for (const now of FOUR) {
+      const r = classifyReasons(REAL_WORKER_REASON, { now });
+      expect(r.verdict).toBe('KNOWN');
+      const d = shouldWriteLedger({ anyNew: r.anyNew, lastKnownAt: last, now });
+      if (d.write) { kept += 1; last = now; }
+    }
+    expect(kept, 'one note, then silence until a day has passed').toBe(1);
   });
 
   it('the head and tail are the words the workflow really writes, so a re-wording goes loud', () => {

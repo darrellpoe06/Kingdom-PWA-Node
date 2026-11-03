@@ -1,3 +1,4 @@
+import { resolveSupabaseConfig, currentHostname } from './preview-isolation.js';
 // =============================================================================
 // auth-providers — ask GoTrue which social logins are ACTUALLY switched on
 // =============================================================================
@@ -69,7 +70,7 @@
 // mock in the suite remembering to re-export a constant it never uses. Same
 // source of truth either way -- supabase.js reads this exact variable.
 const ENV = (typeof import.meta !== 'undefined' && import.meta.env) || {};
-const SUPABASE_URL = ENV.VITE_SUPABASE_URL || '';
+const SUPABASE_URL = resolveSupabaseConfig({ hostname: currentHostname(), url: ENV.VITE_SUPABASE_URL || '', key: '' }).url; // preview isolation: a stub on a preview host
 
 // Written WITHOUT a leading slash on purpose. This is a suffix appended to
 // SUPABASE_URL (which on the live host is `https://poetech.us/sb`), never a

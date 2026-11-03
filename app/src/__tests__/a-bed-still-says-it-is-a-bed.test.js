@@ -42,6 +42,7 @@ const F288 = '0288-a-short-stays-only-season-advertises-the-night-alone.sql'; //
 // 0291 (DR-1022) is the newest definer of public_vacancy_photos; the pre-fix
 // state this case reconstructs predates it too.
 const F291 = '0291-borrowing-goes-both-ways.sql';
+const F314 = '0314-the-building-shares-one-picture-pool.sql'; // and this one (DR-1290)
 
 // The label expression, read out of 0281 so these assertions are about the
 // shipped SQL and not about a copy of it.
@@ -154,7 +155,7 @@ describe('every chain that runs a shelf smoke converges on the newest definition
     const newest = newestDefiner(byFile);
     const leg = shellLegs().find((l) => l.job === 'door-work');
     const applied = leg.steps.filter((s) => s.kind === 'apply').map((s) => s.file)
-      .filter((f) => ![F278, F280, F281, F282, F283, F286, F288, F291].includes(f));
+      .filter((f) => ![F278, F280, F281, F282, F283, F286, F288, F291, F314].includes(f));
     const problems = checkChain(applied, shellSmokes().get('door-work'), 'ci.yml door-work', byFile, newest);
     expect(problems.length).toBeGreaterThanOrEqual(2);
     const all = problems.join('\n');

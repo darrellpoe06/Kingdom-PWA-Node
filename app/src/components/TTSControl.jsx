@@ -90,6 +90,7 @@ import { useTextSize } from '../lib/text-size.js';
 // A- / A+ beside the read-aloud button on every screen, so text size no
 // longer needs the reader opened (DR-0724). Same store as the panel's row.
 import { TextSizeQuick } from './TextSizeControl.jsx';
+import { countWords, fractionOf, createPaceMeter, announceReaderProgress } from '../lib/reading-progress.js';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
@@ -197,6 +198,16 @@ export function backgroundLine({ isReading, audioVoice, usesNasVoice = true, sav
 // three times" in Darrell's screenshot. Every reader registers; only the
 // chosen one renders. The app-level reader (handed the view) outranks one a
 // surface mounts for itself.
+// Running word counts for a reading's sentences, cached on its follow map:
+// prefix[i] is the words of sentences 0..i-1, prefix[n] the whole reading.
+function wordPrefixOf(f) {
+  if (f.wordPrefix && f.wordPrefix.length === f.follow.segments.length + 1) return f.wordPrefix;
+  const out = [0];
+  for (const sg of f.follow.segments) out.push(out[out.length - 1] + countWords(sg ? sg.text : ''));
+  f.wordPrefix = out;
+  return out;
+}
+
 export default function TTSControl(props) {
   const [id] = useState(newReaderId);
   const priority = props && (props.view !== undefined || typeof props.onOpenLearn === 'function') ? 1 : 0;
@@ -258,6 +269,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     standInWhy,
     myVoice,
   } = useReadAloud({ isOwner });
+  // The speed the words are being read at, for the pace meter (a ref, so the
+  // sentence callback keeps its empty dependency list honest).
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
+  const paceRef = useRef(null);
+  if (!paceRef.current) paceRef.current = createPaceMeter();
   const engineHeldRef = useRef(null);
   engineHeldRef.current = engineHeldAt != null ? engineHeldAt : null;
   const pieceOffsetRef = useRef(0);
@@ -554,7 +571,24 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         versionNotedRef.current = `${t.owner}:${t.version}`;
         recordPlace({ version: t.version });
       }
+      // HEARD, IN WORDS (Darrell 2026-10-29: "timed perfectly with the words
+      // in each lesson no matter the speed"). The sentences BEFORE this one
+      // have been spoken; their words over the reading's words is how much
+      // has been heard, the same at 0.75x as at 2x. Kept as the place's
+      // `heard` witness (it only rises), and announced with a pace measured
+      // from this reading at this speed, so the lesson can say how long is
+      // left without guessing (lib/reading-progress.js).
+      const fw = followRef.current;
+      const prefix = fw && fw.follow && fw.follow.segments ? wordPrefixOf(fw) : null;
+      const wordsTotal = prefix ? prefix[prefix.length - 1] : 0;
+      const wordsHeard = prefix ? prefix[Math.max(0, Math.min(prefix.length - 1, absIndex))] : 0;
+      const heard = fractionOf(wordsHeard, wordsTotal);
       recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text) });
+      // Its own write, so the sentence write above stays exactly what it was:
+      // a patch carrying only `heard` is not a move (learn-resume.js).
+      recordPlace({ heard });
+      const wpm = paceRef.current.mark(wordsHeard, Date.now(), rateRef.current);
+      announceReaderProgress({ lessonId: t.owner, wordsHeard, wordsTotal, rate: rateRef.current, wpm });
       // IF IT IS OVER, IT IS OVER (Darrell 2026-09-16, from his phone at part
       // 7/7: "can't re-listen to the lesson after the lesson is over because
       // it's allowing the lesson to keep starting at the end because it thinks
@@ -572,6 +606,11 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       const st = followRef.current;
       const total = st && st.follow && st.follow.segments ? st.follow.segments.length : 0;
       if (total > 0 && absIndex >= total - 1) finishPlace();
+      // The last sentence is heard to the end: every word of the reading.
+      if (total > 0 && absIndex >= total - 1) {
+        recordPlace({ heard: 1 });
+        announceReaderProgress({ lessonId: t.owner, wordsHeard: wordsTotal, wordsTotal, rate: rateRef.current, wpm: null, done: true });
+      }
     } catch { /* a place that cannot be written never breaks a read */ }
   }, []);
 
