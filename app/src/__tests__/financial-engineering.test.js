@@ -136,8 +136,10 @@ describe('applyManualBalance — a hand-entered balance IS the displayed balance
     // on the entered number.
     const res = applyManualBalance(data, 'chk', 4350.42, CD);
     expect(res.mode).toBe('adjustment');
-    expect(res.adjustment.amount).toBe(-12602.58); // 4350.42 − 16953
-    expect(res.adjustment.category).toBe('balance-adjustment');
+    // Recorded as a $0 verified-balance checkpoint (2026-11-03), not a delta.
+    expect(res.adjustment.amount).toBe(0);
+    expect(res.adjustment.category).toBe('balance-checkpoint');
+    expect(res.adjustment.reconciliation.balance).toBe(4350.42);
     data.transactions.push(res.adjustment);
     expect(deriveAccountBalances(data, CD).chk).toBe(4350.42);
   });
@@ -171,7 +173,9 @@ describe('applyManualBalance — a hand-entered balance IS the displayed balance
     expect(out.balance).toBeUndefined();       // stored anchor never moves
     expect(out.name).toBe('Chk');              // other edits pass through
     expect(posted).toHaveLength(1);
-    expect(posted[0].amount).toBe(round2Test(4350.42 - 1300));
+    expect(posted[0].reconciliation.balance).toBe(4350.42);
+    data.transactions.push(posted[0]);
+    expect(deriveAccountBalances(data, CD).a1).toBe(4350.42);
     // No-ledger account: direct anchor write, no row posted.
     const posted2 = [];
     const out2 = resolveAccountUpdates(data, 'a2', { balance: '900' }, CD, (t) => posted2.push(t));
@@ -179,7 +183,6 @@ describe('applyManualBalance — a hand-entered balance IS the displayed balance
     expect(posted2).toHaveLength(0);
   });
 });
-const round2Test = (x) => Math.round(x * 100) / 100;
 
 describe('deriveEntityRollups — Accounts/Entities/Big Picture share one derived source', () => {
   const entities = [

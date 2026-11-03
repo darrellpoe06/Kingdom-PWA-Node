@@ -53,7 +53,7 @@
 // Tests: src/__tests__/safe-to-spend.test.js.
 // =============================================================================
 
-import { deriveAccountBalances, deriveDebts, freqToMonths } from './financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints } from './financial-engineering.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 
@@ -539,6 +539,9 @@ export function ledgerFreshness(data, sc, asOf, settings = {}) {
 }
 
 // ── the engine ───────────────────────────────────────────────────────────────
+// A bank check older than this no longer counts as current.
+export const CHECKPOINT_FRESH_DAYS = 14;
+
 export function buildSafeToSpend(data, opts = {}) {
   const asOfRaw = opts.currentDate instanceof Date ? opts.currentDate : new Date();
   const asOf = new Date(asOfRaw.getFullYear(), asOfRaw.getMonth(), asOfRaw.getDate());
@@ -575,6 +578,16 @@ function forScope(data, sc, asOf, settings, opts) {
   const balances = deriveAccountBalances(data, asOf);
   const spendable = (data?.accounts || []).filter((a) => SPENDABLE_TYPES.includes(a.type) && !a.inLegal && !a.treatAsDebt && inScope(sc, a.entityId));
   const availableCash = round2(spendable.reduce((s, a) => s + (balances[a.id] != null ? balances[a.id] : (Number(a.balance) || 0)), 0));
+  const checked = latestCheckpoints(data, asOf);
+  const balanceSources = spendable.map((a) => {
+    const cp = checked[a.id];
+    return {
+      id: a.id, name: a.name || a.id,
+      balance: balances[a.id] != null ? balances[a.id] : (Number(a.balance) || 0),
+      verifiedOn: cp ? cp.day : null, verifiedBalance: cp ? cp.balance : null, basis: cp ? cp.basis : null,
+      verifiedDaysAgo: cp ? daysBetween(parseDay(cp.day), asOf) : null,
+    };
+  });
   const investments = round2((data?.accounts || []).filter((a) => a.type === 'investment' && !a.inLegal && inScope(sc, a.entityId)).reduce((s, a) => s + (balances[a.id] || 0), 0));
   const freshness = ledgerFreshness(data, sc, asOf, settings);
 
@@ -649,10 +662,19 @@ function forScope(data, sc, asOf, settings, opts) {
     if (income.events.some((e) => e.inferred)) { if (status === 'verified') status = 'estimate'; reasons.push('Some income timing is inferred, not entered.'); }
     if (obligations.events.some((e) => e.assumed && e.kind !== 'inferred-bill')) { if (status === 'verified') status = 'estimate'; reasons.push('Some payment due days are assumed.'); }
     if (obligations.waitingOnLedger) { if (status === 'verified') status = 'estimate'; reasons.push(`${obligations.waitingOnLedger} bill${obligations.waitingOnLedger === 1 ? ' is' : 's are'} marked paid but not in the ledger yet; still counted until the payment posts.`); }
+    // VERIFIED MEANS CHECKED AGAINST THE BANK (Christina 2026-11-03: "label Safe
+    // to Spend as unverified until we have reconciled current account balances").
+    // A ledger total is arithmetic, not a bank balance: the live ledger read
+    // $26,428 for an account the bank held at $8,346. So every spendable account
+    // needs a recent verified-balance checkpoint before the figure says verified.
+    const unchecked = balanceSources.filter((b) => !b.verifiedOn);
+    const aged = balanceSources.filter((b) => b.verifiedOn && b.verifiedDaysAgo > CHECKPOINT_FRESH_DAYS);
+    if (unchecked.length) { if (status === 'verified') status = 'estimate'; reasons.push(`Not checked against the bank: ${unchecked.map((b) => b.name).join(', ')}. ${unchecked.length === 1 ? 'Its balance is' : 'These balances are'} the ledger's arithmetic, not a bank figure.`); }
+    if (aged.length) { if (status === 'verified') status = 'estimate'; reasons.push(`Last checked against the bank more than ${CHECKPOINT_FRESH_DAYS} days ago: ${aged.map((b) => `${b.name} (${b.verifiedOn})`).join(', ')}.`); }
   }
 
   const explanation = [
-    `Start with verified available cash on ${spendable.length} spendable account${spendable.length === 1 ? '' : 's'}: $${availableCash.toLocaleString()}. Every ledger row dated ${isoDay(asOf)} or earlier is already inside this number, so pending rows are not subtracted again.`,
+    `Start with ${balanceSources.every((b) => b.verifiedOn) ? 'bank-checked' : 'ledger-calculated (not every account bank-checked)'} cash on ${spendable.length} spendable account${spendable.length === 1 ? '' : 's'}: $${availableCash.toLocaleString()}. Every ledger row dated ${isoDay(asOf)} or earlier is already inside this number, so pending rows are not subtracted again.`,
     `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of expected income on the days it is expected.`,
     `Accrue the undated reserves day by day: $${accrual.living.toLocaleString()}/mo living expenses, $${accrual.tax.toLocaleString()}/mo tax set-aside, $${accrual.savings.toLocaleString()}/mo planned savings.`,
     `The lowest projected balance is $${lowest.amount.toLocaleString()} on ${lowest.date}. Keep the $${minCushion.toLocaleString()} cash cushion: ${lowest.amount - minCushion >= 0 ? `$${safeToSpendNow.toLocaleString()} can be spent today without any projected balance dropping below the cushion.` : `the cushion is short by $${shortfall.toLocaleString()}, so nothing is safely spendable today.`}`,
@@ -662,7 +684,7 @@ function forScope(data, sc, asOf, settings, opts) {
     scope: { id: sc.id, label: sc.label, kind: sc.kind },
     period: { id: period.id, label: period.label, start: isoDay(start), end: isoDay(end), days },
     status, confidence: { level: status, reasons },
-    freshness,
+    freshness, balanceSources,
     safeToSpendNow, shortfall, overdraftDate,
     lines: {
       availableCash, investmentsHeldApart: investments, pendingHolds: 0,

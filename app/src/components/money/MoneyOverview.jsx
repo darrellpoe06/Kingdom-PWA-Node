@@ -49,8 +49,8 @@ const ON_CARD_ON = 'poe-selected bg-[#F6F1E7] text-[#1F3A2E] border-[#F6F1E7]';
 const ON_CARD_OFF = 'bg-[#1F3A2E] text-[#F6F1E7] border-[#C9A227] hover:bg-[#2B2F2D]';
 
 const STATUS_WORDS = {
-  verified: { label: 'Ledger-verified projection', cls: 'text-[#5A6E3D] border-[#5A6E3D]', icon: 'check' },
-  estimate: { label: 'Estimate', cls: 'text-[#B45309] border-[#B45309]', icon: 'alert' },
+  verified: { label: 'Bank-checked projection', cls: 'text-[#5A6E3D] border-[#5A6E3D]', icon: 'check' },
+  estimate: { label: 'Estimate · unverified', cls: 'text-[#B45309] border-[#B45309]', icon: 'alert' },
   unavailable: { label: 'Unavailable', cls: 'text-[#B85838] border-[#B85838]', icon: 'alert' },
 };
 

@@ -47,7 +47,23 @@ export function isTransferTxn(t) {
 export function isBalanceAdjustment(t) {
   if (!t) return false;
   if (t.isBalanceAdjustment === true) return true;
-  return String(t.category || '').toLowerCase() === 'balance-adjustment';
+  const c = String(t.category || '').toLowerCase();
+  return c === 'balance-adjustment' || c === 'balance-checkpoint';
+}
+
+// A balance CHECKPOINT records what the bank said an account held at the end of
+// a day ("Chase showed $8,346.51 available on 2026-10-29"). It is a $0 row, so
+// every total that sums amounts is untouched by it; the verified figure rides
+// in `reconciliation` (jsonb, synced both ways by transactions-sync) and
+// deriveAccountBalances (financial-engineering.js) counts forward and back from
+// it. isBalanceAdjustment above already keeps it out of In/Out/Net.
+export function balanceCheckpoint(t) {
+  if (!t || String(t.category || '').toLowerCase() !== 'balance-checkpoint') return null;
+  const r = t.reconciliation || {};
+  const balance = Number(r.balance);
+  const day = String(t.date || '').slice(0, 10);
+  if (!Number.isFinite(balance) || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  return { day, balance, basis: r.basis || null, source: r.source || null };
 }
 
 // Parse a transaction's posted date to epoch ms. Accepts 'YYYY-MM-DD' (treated
