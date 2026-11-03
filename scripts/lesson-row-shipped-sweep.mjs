@@ -71,8 +71,60 @@ export function readLedger(dir = DECISIONS) {
  * this side -- but the two are reported apart so nobody has to guess which
  * they are looking at.
  */
+// =============================================================================
+// A RECORD THAT MERELY CONSIDERED A THREAD MUST NOT BLOCK IT (2026-11-03)
+// =============================================================================
+// MEASURED, and it had already cost two of Darrell's sends. DR-1303 built sov59
+// from thread `1a0d92de3dba5e7e`. To show it had picked the OLDEST unbuilt send
+// it named the two it rejected -- `1a11bdbce29bab3e` and `1a11bea0b4de78e0`,
+// both from 2026-10-08, both swept `unknown` at the time -- as newer
+// alternatives it did not build. Honest, careful work. But from the moment that
+// record landed, the sweep answered `SHIPPED -> named in DR-1303` for both, and
+// DR-1303 is the ONLY record naming either. Two unbuilt teachings of his were
+// blocked from the lane by the record that proved they were unbuilt.
+//
+// This file's own doctrine above says a false SHIPPED is the safe direction
+// because it "only stops a build until someone reads the record named". That
+// reasoning holds for a person and FAILS for an unattended lane, where this
+// exit code IS the decision and nobody reads anything. A false SHIPPED there
+// drops his words silently, which is the one failure the Gmail lane exists to
+// prevent (DR-0312). So the bias is kept, and an EXPLICIT, declared exception
+// is added -- never a heuristic about where in a record an id sits, because
+// that is the false-UNKNOWN direction DR-1270 §37 calls dangerous.
+//
+// A record declares, on one line:
+//   **Considered, not built:** `<id>`, `<id>` — <why>
+// and the sweep stops counting THAT record as a hit for THOSE ids. Other
+// records still count. The declaration is a claim a reader can audit, and
+// writing it about a thread the record actually built would be a lie rather
+// than a drift.
+//
+// AND IT CANNOT UN-SHIP A RECORD'S OWN SOURCE. If a declared id also appears in
+// the record's `**Intake:**` line -- where the ledger states provenance -- the
+// exemption is REFUSED and the hit stands. That is the guard on the dangerous
+// direction: without it, a careless builder could write this line about its own
+// thread and make a live lesson look unbuilt.
+const CONSIDERED = /\*\*Considered,\s*not\s*built:?\*\*([^\n]*)/gi;
+const INTAKE_LINE = /\*\*Intake:?\*\*([^\n]*)/i;
+
+/** Ids a record declares it considered and did not build, minus any its Intake line names. */
+export function consideredNotBuilt(text) {
+  const declared = new Set();
+  for (const m of String(text || '').matchAll(CONSIDERED)) {
+    for (const hex of m[1].matchAll(/`([0-9a-f-]{8,})`/gi)) declared.add(hex[1].toLowerCase());
+  }
+  if (!declared.size) return declared;
+  // Provenance wins over a declaration, always.
+  const intake = (INTAKE_LINE.exec(String(text || '')) || [])[1] || '';
+  const own = intake.toLowerCase();
+  for (const id of [...declared]) if (own.includes(id)) declared.delete(id);
+  return declared;
+}
+
 export function sweep(ids, ledger = readLedger()) {
   const out = new Map();
+  const exempt = new Map();
+  for (const rec of ledger) exempt.set(rec.dr, consideredNotBuilt(rec.text));
   for (const raw of ids) {
     const id = String(raw || '').trim().toLowerCase();
     if (id.length < MIN_ID) throw new Error(`id too short to search safely (min ${MIN_ID}): ${raw}`);
@@ -86,6 +138,10 @@ export function sweep(ids, ledger = readLedger()) {
     const hits = new Set();
     let exact = false;
     for (const rec of ledger) {
+      const skip = exempt.get(rec.dr);
+      // Declared "considered, not built" by THIS record: it names the thread to
+      // show its work, so it is not a claim on the teaching.
+      if (skip && (skip.has(id) || [...skip].some((d) => d.startsWith(id.slice(0, MIN_ID))))) continue;
       const text = rec.text.toLowerCase();
       if (text.includes(id)) { hits.add(rec.dr); exact = true; continue; }
       if (prefix.test(text)) hits.add(rec.dr);
