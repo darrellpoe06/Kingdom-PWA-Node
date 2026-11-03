@@ -42,10 +42,25 @@ import { sweep, consideredNotBuilt, readLedger, DECISIONS } from '../../../scrip
 
 const REPO = resolve(import.meta.dirname, '../../..');
 
-// The two real threads this was found on. Both are STILL UNBUILT: if either
-// ever becomes a lesson, that record names it in its own Intake line and these
-// two cases must be updated deliberately, with the lesson cited.
-const BLOCKED = ['1a11bdbce29bab3e', '1a11bea0b4de78e0'];
+// The two real threads this was found on. UPDATED DELIBERATELY ON 2026-11-03,
+// as the note here required: `1a11bdbce29bab3e` is no longer unbuilt. It was
+// built as **sov60** (the bottleneck was never the typing) by **DR-1306**, which
+// names it in its own `Intake:` line, so the sweep now answers DR-1306 for it
+// and SHOULD. That is this whole fix working end to end: the thread went
+// unknown -> built -> SHIPPED by the record that actually built it, rather than
+// staying SHIPPED by the record that had only considered it.
+//
+// `1a11bea0b4de78e0` is STILL UNBUILT, and it is now declared `Considered, not
+// built` by DR-1306 as well as DR-1303 and DR-1305 — three records naming it,
+// none claiming it. It stays in STILL_BLOCKED below, which is the case that
+// proves the exemption still holds when more than one record names a thread.
+// If it ever becomes a lesson, move it the same way, citing that lesson.
+const STILL_BLOCKED = ['1a11bea0b4de78e0'];
+// The two ids DR-1303's OWN declaration names. That line has not changed and
+// must not: it is the evidence for this record's account of the damage, and the
+// two cases below read DR-1303's text rather than today's build state.
+const DR1303_DECLARED = ['1a11bdbce29bab3e', '1a11bea0b4de78e0'];
+const BUILT_SINCE = { '1a11bdbce29bab3e': 'DR-1306' };
 const DR1303_SOURCE = '1a0d92de3dba5e7e';
 
 const dr1303 = () => {
@@ -55,14 +70,31 @@ const dr1303 = () => {
 };
 
 describe('a decision record can name a thread it did not build without blocking it', () => {
-  it('the two sends DR-1303 proved were unbuilt sweep UNKNOWN again', () => {
-    const found = sweep(BLOCKED);
-    for (const id of BLOCKED) {
+  it('the send DR-1303 proved was unbuilt and nobody has built sweeps UNKNOWN again', () => {
+    const found = sweep(STILL_BLOCKED);
+    expect(STILL_BLOCKED.length, 'an empty list would make this pass vacuously').toBeGreaterThan(0);
+    for (const id of STILL_BLOCKED) {
       expect(
         found.get(id).drs,
         `${id} is one of Darrell's unbuilt sends (2026-10-08). A record naming it as a REJECTED `
-        + 'candidate must not claim it, or the lane skips his words for ever.',
+        + 'candidate must not claim it, or the lane skips his words for ever. Three records now '
+        + 'name this one (DR-1303, DR-1305, DR-1306) and not one of them built it.',
       ).toEqual([]);
+    }
+  });
+
+  it('and the one that HAS been built since is claimed by the record that built it, not by the one that considered it', () => {
+    // The other half of the same rule, and the reason this case exists: an
+    // exemption that also hid a real lesson would be worse than the bug.
+    const ids = Object.keys(BUILT_SINCE);
+    expect(ids.length, 'an empty map would make this pass vacuously').toBeGreaterThan(0);
+    const found = sweep(ids);
+    for (const id of ids) {
+      const drs = found.get(id).drs;
+      expect(drs, `${id} was built and must read SHIPPED`).toContain(BUILT_SINCE[id]);
+      // DR-1303 and DR-1305 only CONSIDERED it, and must still not claim it.
+      expect(drs, `${id}: DR-1303 only considered it`).not.toContain('DR-1303');
+      expect(drs, `${id}: DR-1305 only considered it`).not.toContain('DR-1305');
     }
   });
 
@@ -74,7 +106,7 @@ describe('a decision record can name a thread it did not build without blocking 
   it('DR-1303 carries the declaration, and says why rather than only listing ids', () => {
     const text = dr1303();
     expect(text).toMatch(/\*\*Considered, not built:\*\*/);
-    for (const id of BLOCKED) expect(text).toContain(id);
+    for (const id of DR1303_DECLARED) expect(text).toContain(id);
     expect(text, 'the declaration must state that these are still unbuilt').toMatch(/still unbuilt/i);
   });
 
@@ -117,8 +149,8 @@ describe('a decision record can name a thread it did not build without blocking 
     expect(stripped, 'the revert must actually remove the line, or this case proves nothing')
       .not.toMatch(/\*\*Considered, not built:\*\*/);
     const ledger = [{ dr: 'DR-1303', file: 'DR-1303.md', text: stripped }];
-    const found = sweep(BLOCKED, ledger);
-    for (const id of BLOCKED) {
+    const found = sweep(DR1303_DECLARED, ledger);
+    for (const id of DR1303_DECLARED) {
       expect(found.get(id).drs, `${id} must read SHIPPED once the declaration is gone`).toEqual(['DR-1303']);
     }
   });
