@@ -83,8 +83,24 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 //     explicit `reason`, and reds separately at the key.
 // So the real worklist is smaller and sharper than "13 loud lanes": the
 // question is not whether a lane writes to an issue, it is whether a lane
-// NAMES A CAUSE IT DID NOT MEASURE. The remaining 41 are to be read for that,
-// and the honest ones are to be left alone rather than churned.
+// NAMES A CAUSE IT DID NOT MEASURE.
+//
+// AND THE LOUD TIER IS NOW CLOSED, measured over all 41 in the same session
+// rather than left as a dated promise. Sharpened predicate -- writes to an
+// issue on a step that runs when the road is shut -- over every remaining
+// debt lane: TWO hits, `openclaw-tower.yml` and `public-shelf-anon-probe.yml`,
+// both read and both honest (see the table in DR-1302). **No lane remains
+// that can publish a cause it did not measure onto a ledger.** The count went
+// 13 -> 15 -> 1 -> 0 as the predicate got sharper, which is why the predicate
+// mattered more than the number.
+//
+// WHAT IS STILL OWED, and it is the debt below, not a scary tier: the other 39
+// carry DR-1284's ORIGINAL harm -- they fail confusingly and surface the real
+// fault further down. That is real and it is what this pin tracks. The sweep
+// above covered steps that write to an ISSUE; a lane that prints a wrong cause
+// into a step summary, a `::notice` or an Actions log is NOT covered, because
+// that is not a surface a reader later trusts as a finding. If that turns out
+// to matter it is a new measurement, not something DR-1302 settled.
 const UNVERIFIED = 41;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
