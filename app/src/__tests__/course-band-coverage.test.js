@@ -109,8 +109,18 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(272); // on 2026-10-29, sov58 (the world that does not drift -- a
-    // rehearsal is a gift, and a rehearsal is not the world, DR-1295) raises it one more, from the
+    expect(baseline.allFour).toBe(273); // on 2026-11-03, sov59 (last call -- the clock a seller
+    // sets, the year he cannot give, and the Now that is Yahweh's own) raises it one more, from the
+    // 272 sov58 left. READ from a fresh scripts/course-band-baseline-write.mjs run on the tree that
+    // holds the lesson (total 447, allFour 273, adultOnly 0, adultRegister 0), never computed and
+    // never hand-merged. sov59 carries all four authored bands from its first commit and the full
+    // fourBandFaults suite reads clean -- shares child 0.58, youth 0.72, teen 0.63, senior 0.91;
+    // ladder child 0.8 < youth 3.3 < teen 5.3 < senior 9.5 with the adult lesson at 6.5; worst
+    // band-pair overlap 0.12 (youth~teen) against the 0.25 near-copy line -- so the sovereign-ai row
+    // reads {lessons: 59, allFour: 38} and the DEBT does not move, which is the shape this pin
+    // exists to prove. The notes below are the reasoning sov58 and sov57 recorded for the same pin,
+    // kept because the merge-order warning is still live (DR-1136): sov58 (the world that does not
+    // drift -- a rehearsal is a gift, and a rehearsal is not the world, DR-1295) raised it from the
     // 271 sov57 left. READ from a fresh scripts/course-band-baseline-write.mjs run on the tree that
     // holds the lesson (total 446, allFour 272, adultOnly 0, adultRegister 0), never computed and
     // never hand-merged. sov58 carries all four authored bands from its first commit and the full

@@ -412,7 +412,50 @@ const REPO = join(HERE, '..', '..', '..');
 // gap. sov58 contributes 17 of those disclosures, which is the most of any
 // lesson in the list, because the limits are carried on the lesson AND all four
 // bands rather than once in an adult paragraph.
-const GAP = 16;
+// 16 -> 17 GAP on 2026-11-03 (sov59, last call -- the clock a seller sets, the
+// year he cannot give, and the Now that is Yahweh's own). CHECKED does not move.
+// sov59 takes the SECOND branch, and the reason is measured rather than
+// asserted. The source is an ADVERTISEMENT -- the whole forward is a sales
+// letter for a paid online course, which Darrell sent in under one word,
+// Lessons -- and the lesson stakes NO figure. Its two numbers (a twenty-four-
+// hour enrollment close and twelve months of access) are the letter's own
+// published terms of sale, written out as WORDS in every reader text so that no
+// digit does a claim's work, and they are the teaching's subject rather than
+// evidence for it.
+//
+// THE ROAD WAS TRIED THREE TIMES, not assumed shut (DR-0108). WebFetch on the
+// publisher's own post URL returned `getaddrinfo ENOTFOUND blog.bytebytego.com`,
+// and curl on that host and on the letter's own `substack.com` redirect each
+// returned `curl: (56) CONNECT tunnel failed, response 403`. Both hosts are
+// outside this session's allowed network domains, and the tool's own guidance is
+// to stop after a second host fails the same way, so no further hosts were
+// tried. That measured failure is what all five reader texts tell the reader in
+// their own words, with the refused number in each, rather than a polite "we did
+// not read it". A GitHub runner reaches hosts this sandbox cannot, so the road
+// exists; what it lacks is a candidate `says` string, because this lesson stakes
+// no figure and inventing one to probe would be the fabrication the row exists
+// to prevent.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov59-verses.test.js
+// refuses a currency symbol, a percentage and a number wearing a magnitude word
+// in any of the five reader texts, and proves the refusal by planting "$499"
+// and "90%" into EVERY reader text in turn and watching the shapes fire. A
+// 0-figure row in lesson-sources.json is forbidden (DR-0076 section 3) because
+// it would make checked() count a lesson whose figures nobody read, so the
+// honest place for sov59 is HERE.
+// re-review: 2026-12-03 -- from a runner with web access, or once
+// blog.bytebytego.com is allowed in the session's network settings, open the
+// course page. If it carries a germane figure this lesson should teach, teach
+// it, give sov59 a row and lower this pin to 16; if it prints no figure the
+// lesson needs, replace the "did not read" clause in all five reader texts with
+// an accurate one and lower the pin.
+//
+// MEASURED ON THIS TREE, never by arithmetic on a branch: scripts/unchecked-
+// claims.mjs prints 20 lessons admitting, 124 disclosures, 4 checked, 17 in the
+// gap. sov59 contributes 5 of those disclosures, one per reader text, because
+// the limit is carried on the lesson AND all four bands rather than once in an
+// adult paragraph.
+const GAP = 17;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
