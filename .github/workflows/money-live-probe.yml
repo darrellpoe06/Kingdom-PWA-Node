@@ -1,0 +1,72 @@
+# Money live probe — a REAL BROWSER opens the live Money Overview and Bills
+# Review on poetech.us at both Galaxy Z Fold 7 viewports.
+#
+# WHY (2026-11-03, Christina): "Once the code is deployed, verify that the
+# Money Overview works correctly on my Samsung Galaxy Z Fold 7." The cloud
+# session has no route to poetech.us; the runner is the team's eye (DR-0125).
+# site-health proves the site is up and serving main's tip; this proves the
+# shipped build actually renders the Money screens on her phone's two screens.
+#
+# SAMPLE MODE ONLY: no sign-in, no family data. It verifies the DEPLOY, never
+# anyone's numbers — those are verified separately, against the bank.
+#
+# THE THREE BRAKES (CLAUDE.md): dispatch-only (no schedule, no timer); one
+# browser session with a hard 10-minute job timeout; single-instance
+# (concurrency group, a new run waits). Read-only by construction: contents:
+# read, no issue, no dispatch, no push. Screenshots ride as an artifact.
+name: Money live probe (Fold 7, outside-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base URL to probe'
+        required: false
+        default: 'https://poetech.us/poetech-app/'
+
+concurrency:
+  group: money-live-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Installed OUTSIDE the checkout so nothing in the repo tree is touched.
+      - name: Install Playwright (chromium only)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.47.2
+          npx playwright install --with-deps chromium
+
+      # Run beside its node_modules so the bare `playwright` import resolves.
+      - name: Open Money on the live site at Fold 7 sizes
+        env:
+          BASE: ${{ github.event.inputs.base || 'https://poetech.us/poetech-app/' }}
+          OUT_DIR: ${{ github.workspace }}/shots
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          cp "$GITHUB_WORKSPACE/scripts/money-live-probe.mjs" "$RUNNER_TEMP/pw/probe.mjs"
+          node "$RUNNER_TEMP/pw/probe.mjs"
+
+      - name: Upload what the Fold 7 saw
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-live-fold7
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 30
