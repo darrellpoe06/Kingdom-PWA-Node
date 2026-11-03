@@ -1,4 +1,4 @@
-# DR-1299: They called long life a problem — the oldest unbuilt lesson send was a newsletter that filed a nation's hundred-year-olds under old news (L273)
+# DR-1300: They called long life a problem — the oldest unbuilt lesson send was a newsletter that filed a nation's hundred-year-olds under old news (L273)
 
 **Date:** 2026-11-03
 **Status:** Accepted
@@ -68,5 +68,5 @@ The oldest real send in the lane sat for **about seven weeks** and is now built 
   Restored: **41 passed** after each.
 - The ladder, the shares, the differentiation and the title-in-narrative numbers above are read from the live module by `measureFullness`, `measureLesson`, `measureDifferentiation` and `unnamedBands`, not estimated.
 - **Not verified, and stated rather than smoothed over:** the newsletter's figures themselves. The article could not be opened from this environment (`getaddrinfo ENOTFOUND links.morningbrew.com`; `403 Forbidden`), so the count of centenarians, the share who are women, the fifty-six-year run and the quarter-of-a-budget-request are the digest's claims, carried as claims. `re-review: 2026-12-01` — if `links.morningbrew.com` is allowed in the session's network settings by then, read the source and either confirm the figures in this record or strike them from the lesson's prose; the teaching stands either way, because it rests on the framing.
-- **The loop closes on the instrument that opened it.** Re-run after this record landed on disk, `node scripts/lesson-row-shipped-sweep.mjs 1a0aab01a0b1746e` reports `SHIPPED  ->  DR-1299` and exits 1, because this record names its thread id in its own Intake line. That is DR-1288’s repair honoured rather than restated: the id question has no hole for this thread, so the next builder handed it is stopped by the strong signal and not left to the subject probe.
+- **The loop closes on the instrument that opened it.** Re-run after this record landed on disk, `node scripts/lesson-row-shipped-sweep.mjs 1a0aab01a0b1746e` reports `SHIPPED  ->  DR-1300` and exits 1, because this record names its thread id in its own Intake line. That is DR-1288’s repair honoured rather than restated: the id question has no hole for this thread, so the next builder handed it is stopped by the strong signal and not left to the subject probe.
 - **Not verified:** whether the Gmail thread has been labelled `Lesson-Captured`. `label_thread` needs approval in the session that built this, so the thread id is reported to the coordinator for tagging after the push rather than claimed as done here.

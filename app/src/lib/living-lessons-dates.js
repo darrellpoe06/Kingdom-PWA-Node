@@ -459,6 +459,6 @@ export const LIVING_LESSONS_ADDED = {
   // called a nation's record number of people past a hundred a problematic age
   // gap and said the surge is straining the country's resources. Sent
   // 2026-09-16, BUILT 2026-11-03: this is the build day, the day the id landed,
-  // not the day it was sent, and the row waited about seven weeks (DR-1299).
+  // not the day it was sent, and the row waited about seven weeks (DR-1300).
   'll273-they-called-long-life-a-problem': '2026-11-03',
 };

@@ -6,7 +6,7 @@
 // forwarded a Morning Brew issue on 2026-09-16 14:47 UTC (thread
 // 1a0aab01a0b1746e) with one word typed above it, Lessons, and one instruction:
 // "Ignore ads of course unless they are related to the lessons." Built
-// 2026-11-03 (DR-1299).
+// 2026-11-03 (DR-1300).
 //
 // THE ONE ITEM THAT CARRIED A TEACHING. The issue held an interest-rate story,
 // a run of world headlines, a Canadian investment pitch, a cybersecurity share

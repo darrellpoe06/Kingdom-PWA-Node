@@ -1,7 +1,7 @@
 # 2026-11-03 — L273: They Called Long Life a Problem
 
 **Module id:** `ll273-they-called-long-life-a-problem`
-**Decision record:** `docs/decisions/DR-1299-they-called-long-life-a-problem-ll273.md`
+**Decision record:** `docs/decisions/DR-1300-they-called-long-life-a-problem-ll273.md`
 **Course:** Living Lessons from the Word (devotional; Word-first, non-denominational)
 **Intake:** Gmail lesson-intake lane (DR-0312), thread `1a0aab01a0b1746e`
 

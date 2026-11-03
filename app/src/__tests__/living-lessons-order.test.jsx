@@ -158,7 +158,7 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     //
     // The highest is now L273 (They Called Long Life a Problem), built from the
     // oldest genuinely-unbuilt send in the Gmail intake lane: a newsletter
-    // forwarded 2026-09-16 and built 2026-11-03 (DR-1299). It carries its BUILD
+    // forwarded 2026-09-16 and built 2026-11-03 (DR-1300). It carries its BUILD
     // day for the same reason recorded above - the send day is seven weeks
     // earlier than the id's landing day, and dating by the send day would make
     // this very check false by putting L273 before every lesson from L212 on.
