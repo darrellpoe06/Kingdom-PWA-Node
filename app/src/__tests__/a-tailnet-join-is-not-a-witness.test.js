@@ -61,7 +61,92 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 // remain, and they are the order the next bites should be taken in.
 // re-review: 2026-11-29 — next bite from the 13 issue-writing lanes first,
 // then the quiet ones, deploy-adjacent lanes last.
-const UNVERIFIED = 42;
+// LOWERED TO 41 on 2026-11-03 by DR-1302: `public-shelf-witness.yml` gained
+// the verify step, and the bite was taken early for the same reason -- that
+// lane was MEASURED doing worse than this note knew. Six consecutive runs
+// (2026-10-28 to 11-02) filed the bolded "the public shelf disagrees with what
+// the doors are called" onto the `incident`-labelled ledger #2127 while
+// neither reading had been taken: the database was unreachable and `Read the
+// shelf in a real browser` was SKIPPED on all six.
+//
+// AND THE "LOUD TIER" COUNT ABOVE IS CORRECTED, because it was a proxy. The
+// predicate "joins without verifying AND writes to an issue" measured 15 lanes
+// on 2026-11-03, not 13 -- but only THREE of them write when the road is shut
+// (an issue-writing step carrying `if: always()` / `failure()`), and of those
+// three only ONE published a cause it had not measured:
+//   - public-shelf-witness.yml  -- six false findings. FIXED HERE.
+//   - public-shelf-anon-probe.yml -- honest: `anon probe: <job.status>` plus
+//     "no browser reading" on a rolling run log, and no timer at all
+//     (workflow_dispatch / probe/** only), so it cannot do this daily.
+//   - openclaw-tower.yml -- honest already: it passes `reachable` explicitly,
+//     derives `modelPresent: null` when unreachable (DR-1186), sets an
+//     explicit `reason`, and reds separately at the key.
+// So the real worklist is smaller and sharper than "13 loud lanes": the
+// question is not whether a lane writes to an issue, it is whether a lane
+// NAMES A CAUSE IT DID NOT MEASURE.
+//
+// AND THE LOUD TIER IS NOW CLOSED, measured over all 41 in the same session
+// rather than left as a dated promise. Sharpened predicate -- writes to an
+// issue on a step that runs when the road is shut -- over every remaining
+// debt lane: TWO hits, `openclaw-tower.yml` and `public-shelf-anon-probe.yml`,
+// both read and both honest (see the table in DR-1302). **No lane remains
+// that can publish a cause it did not measure onto a ledger.** The count went
+// 13 -> 15 -> 1 -> 0 as the predicate got sharper, which is why the predicate
+// mattered more than the number.
+//
+// WHAT IS STILL OWED, and it is the debt below, not a scary tier: the other 39
+// carry DR-1284's ORIGINAL harm -- they fail confusingly and surface the real
+// fault further down. That is real and it is what this pin tracks. The sweep
+// above covered steps that write to an ISSUE; a lane that prints a wrong cause
+// into a step summary, a `::notice` or an Actions log is NOT covered, because
+// that is not a surface a reader later trusts as a finding. If that turns out
+// to matter it is a new measurement, not something DR-1302 settled.
+//
+// THAT MEASUREMENT WAS THEN TAKEN, 2026-11-03, and the answer is NO -- it does
+// not rise above this pin, so no lane is churned for it. Of the 41, SEVEN emit
+// an `::error::` after the join that names a SERVICE when the cause may be the
+// shut road:
+//
+//   announce-bearer-sync.yml      "the bell did not ring with the bearer..."
+//   apt2-photos-probe.yml         "could not read the live database - that is
+//                                  itself the finding"
+//   church-video-witness.yml      "could not read the live database"
+//   family-books-probe.yml        "could not read the live database"
+//   push-sender-credentials.yml   "The sovereign REST did not answer"
+//   research-ask.yml              "the NAS did not answer"
+//   research-inbox.yml            "could not read the live database"
+//
+// Why that is NOT a second camera-health, measured rather than reasoned:
+//
+//   SIX OF THE SEVEN ARE `workflow_dispatch` ONLY -- no cron at all. A person
+//   pressed the button seconds earlier and is reading the whole log; the wrong
+//   sentence is corrected by the next line, nothing accumulates, and no
+//   ledger, label or row carries it forward. The cry-wolf cost that made
+//   camera-health and public-shelf-witness serious is simply absent.
+//
+//   THE ONE TIMER LANE, `research-inbox.yml` (`7,22,37,52`), WRITES NOTHING ON
+//   A SHUT ROAD. Measured on run 41561786873 (2026-11-03T01:45Z): job `pick`
+//   joined "success", `Claim every waiting item` FAILED, job `work` was
+//   SKIPPED entirely, and every downstream filing/writing step -- including
+//   `File what it was sent for`, which carries `if: always()` -- was SKIPPED,
+//   because each is additionally gated on `steps.look.outputs.verdict`. That
+//   lane already does what DR-1302 had to add to public-shelf-witness: it
+//   gates its writes on a VERDICT, not on a step outcome (DR-1202 got it
+//   right). So it fails in the right place and only mis-names the cause.
+//
+// Also note its real cadence: DR-1301 measured `research-inbox` delivering 3
+// scheduled runs a day against the 96 its cron asks for, so even the log-line
+// cost is three sentences a day, not ninety-six.
+//
+// CONCLUSION, so the next session inherits evidence and not an open question:
+// a wrong sentence in a log a human is already reading is DR-1284's ORIGINAL
+// harm -- "surfaces the real fault further down" -- which is exactly what the
+// pin below tracks. Adding seven verify steps (eleven joins, one of them in a
+// deploy-adjacent lane, DR-0107) to improve a log line is churn, not
+// improvement. The verify is still the right fix WHEN one of these lanes gains
+// a timer or starts writing somewhere persistent; that is the trigger to watch
+// for, not the calendar. `re-review: 2026-11-29` with the rest of the debt.
+const UNVERIFIED = 41;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
 // one of these loses its verify the gate must say WHICH, because a silent

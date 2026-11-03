@@ -70,3 +70,17 @@ The oldest real send in the lane sat for **about seven weeks** and is now built 
 - **Not verified, and stated rather than smoothed over:** the newsletter's figures themselves. The article could not be opened from this environment (`getaddrinfo ENOTFOUND links.morningbrew.com`; `403 Forbidden`), so the count of centenarians, the share who are women, the fifty-six-year run and the quarter-of-a-budget-request are the digest's claims, carried as claims. `re-review: 2026-12-01` — if `links.morningbrew.com` is allowed in the session's network settings by then, read the source and either confirm the figures in this record or strike them from the lesson's prose; the teaching stands either way, because it rests on the framing.
 - **The loop closes on the instrument that opened it.** Re-run after this record landed on disk, `node scripts/lesson-row-shipped-sweep.mjs 1a0aab01a0b1746e` reports `SHIPPED  ->  DR-1300` and exits 1, because this record names its thread id in its own Intake line. That is DR-1288’s repair honoured rather than restated: the id question has no hole for this thread, so the next builder handed it is stopped by the strong signal and not left to the subject probe.
 - **Not verified:** whether the Gmail thread has been labelled `Lesson-Captured`. `label_thread` needs approval in the session that built this, so the thread id is reported to the coordinator for tagging after the push rather than claimed as done here.
+
+## Note on this record's number — the merge subject on `main` cites the wrong one
+
+**`git log` on `main` is wrong about this work, permanently, and this section is the only place that says so.** The squash commit that landed it reads:
+
+```
+L273: they called long life a problem, and the Word measures the city by both ends (DR-1299) (#2507)
+```
+
+This record is **DR-1300**, not DR-1299. DR-1299 is *the timeline lives in the Bible* — a different change, by a different builder, landed the same day. The wrong citation came from a mid-build number collision: the commit subject was written before `claim-decision-number.mjs` was re-run, the number moved, and the record was renumbered while the subject was not.
+
+A squashed subject on `main` cannot be corrected without rewriting published history, which is not done here. So the correction lives where a reader can find it. Anyone tracing this lesson back from `git log` lands on `(DR-1299)`, looks up a record about Bible timelines, and is misdirected. **The commit is #2507; the record is DR-1300; the lesson is `ll273-they-called-long-life-a-problem`.** The INDEX row carries the same note.
+
+This is recorded rather than shrugged off, because it is the same class of fault as DR-1302 one layer down: a surface stating something it did not measure, in the ledger's own history. There is no `re-review:` date — it is a permanent residue, and naming it where a reader will meet it is the whole fix.
