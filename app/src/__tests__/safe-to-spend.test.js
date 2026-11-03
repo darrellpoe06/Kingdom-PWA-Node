@@ -105,7 +105,7 @@ describe('scope — business money is never personal spending money', () => {
 
 describe('the chronological walk', () => {
   it('a row dated today is already in the balance and is not subtracted again', () => {
-    const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period: '7d', scope: 'personal' });
+    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '7d', scope: 'personal' });
     expect(r.items.find((i) => i.refId === 'pend')).toBeUndefined();
     expect(r.explanation[0]).toMatch(/pending rows are not subtracted again/);
   });
@@ -130,7 +130,7 @@ describe('the chronological walk', () => {
   });
   it('a positive period-end balance does not make money spendable today', () => {
     // Rent 1500 on 11-01 + water 200 on 11-03 drain the balance before the 11-06 paycheck lifts it.
-    const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period: '14d', scope: 'personal' });
+    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal' });
     const end = r.timeline[r.timeline.length - 1].cash;
     expect(end).toBeGreaterThan(r.lines.projectedLowest.amount);
     expect(r.safeToSpendNow).toBeLessThan(end - r.lines.minCushion);
@@ -256,7 +256,7 @@ describe('honesty — estimates, unavailable, and the pay schedule', () => {
 describe('the simple breakdown reconciles with the walk (Christina 2026-10-28)', () => {
   it('available cash + income to the low point − obligations − reserves = the lowest balance, and lowest − cushion floored = safe', () => {
     for (const period of ['7d', '14d', '30d', 'next-paycheck']) {
-      const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period, scope: 'personal' });
+      const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period, scope: 'personal' });
       const t = r.lines.toLowest;
       const rebuilt = r.lines.availableCash + t.income - t.obligations - t.reserves;
       expect(Math.abs(rebuilt - r.lines.projectedLowest.amount), period).toBeLessThan(0.02);
