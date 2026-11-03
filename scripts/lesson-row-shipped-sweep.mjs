@@ -246,9 +246,33 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(2);
   }
   for (const [id, { drs, exact }] of found) {
-    if (drs.length && exact) console.log(`SHIPPED   ${id}  ->  ${drs.join(', ')}`);
-    else if (drs.length) console.log(`SHIPPED?  ${id}  ->  ${drs.join(', ')}  (cited by prefix only -- read the record)`);
+    if (drs.length && exact) console.log(`SHIPPED   ${id}  ->  named in ${drs.join(', ')}`);
+    else if (drs.length) console.log(`SHIPPED?  ${id}  ->  named in ${drs.join(', ')}  (cited by prefix only -- read the record)`);
     else console.log(`unknown   ${id}  ->  no decision record names it`);
+  }
+  // WHAT THE WORD ABOVE DOES AND DOES NOT MEAN (2026-11-03, DR-1302's own
+  // lesson applied to the instrument that taught it). This sweep greps the
+  // ledger for a row id. A hit proves the ledger NAMES the row -- it does not
+  // prove that each record listed is the lesson built FROM it. DR-1270 §42
+  // already records why: "a decision record that QUOTES a row id thereby marks
+  // that row shipped." Measured on 2026-11-03, `8d290c20` printed
+  // `DR-0684, DR-0685`, and only DR-0684 is its lesson: DR-0685 is the Android
+  // dictation fix, which names the row as evidence of a bug. The same reading
+  // error was then published in a report, in the house style, as a table of
+  // lessons -- the exact failure DR-0250 names. So the line says `named in`,
+  // and this note says the rest.
+  //
+  // THE CONCLUSION IS UNCHANGED, and deliberately so: a named row is still a
+  // REFUSE-TO-BUILD (DR-1250 / DR-0610). Softening that would create the false
+  // UNKNOWN DR-1270 §37 calls the dangerous direction -- it permits rebuilding
+  // a live lesson. This relabels; it never weakens.
+  if ([...found.values()].some((h) => h.drs.length)) {
+    console.log('');
+    console.log('  SHIPPED means the ledger NAMES this row. It does NOT mean each record listed is');
+    console.log('  the lesson built from it -- a record may name a row as evidence of a bug, as the');
+    console.log('  input to a pipeline, or as a count on a screen (DR-1270 §42). That is enough to');
+    console.log('  REFUSE the build, and NOT enough to say which lesson a row became: to say that,');
+    console.log('  open the record and read where it names the row.');
   }
   const n = [...found.values()].filter((h) => h.drs.length).length;
 
@@ -273,6 +297,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
   if (n) {
     console.error(`\n${n} of ${found.size} row(s) are ALREADY SHIPPED -- do not build them (DR-1250, DR-0610).`);
+    console.error('(named in the ledger. Which lesson each became is a question only the record answers.)');
     process.exit(1);
   }
   if (subjectHits) {

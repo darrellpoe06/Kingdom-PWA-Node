@@ -148,3 +148,54 @@ describe('the exit code is what a build lane can refuse on (proven to catch)', (
     expect(DECISIONS).toBe(join(REPO, 'docs', 'decisions'));
   });
 });
+
+// =============================================================================
+// SHIPPED says the ledger NAMES the row, not that each record is its lesson
+// =============================================================================
+// Added 2026-11-03 after the label was MIS-READ in a report, by me, in the
+// house style. The sweep printed `8d290c20 -> DR-0684, DR-0685` and that went
+// into a table of "already built as" rows as though both were lessons. Only
+// DR-0684 is: DR-0685 is the Android dictation fix, whose own front matter says
+// of that row "the evidence; not modified here, another lane owns it". Three
+// more of the same shape were published in the same table (DR-0712 the
+// diarization pipeline, DR-0739 an L202 defect fix, DR-0741 the arrivals bell).
+//
+// DR-1270 §42 had ALREADY recorded the cause -- "a decision record that QUOTES
+// a row id thereby marks that row shipped" -- and I had read that line. So the
+// defect was never in the grep; it was in the one word the grep prints. The
+// word now carries its own limit, and these cases keep it there.
+//
+// THE REFUSAL IS NOT WEAKENED, and that is the point of the last case: a false
+// UNKNOWN is the direction DR-1270 §37 calls dangerous, because it permits
+// rebuilding a live lesson. This is a relabel, never a relaxation.
+describe('the sweep says what a ledger hit proves, and what it does not', () => {
+  it('names the records rather than implying each one is the lesson', () => {
+    const r = run(SHIPPED[0][0]);
+    expect(r.stdout, 'the line must read "named in <records>"').toMatch(/->\s+named in DR-\d{4}/);
+  });
+
+  it('prints the limit of the word, once, whenever anything was found', () => {
+    const r = run(SHIPPED[0][0]);
+    expect(r.stdout).toMatch(/SHIPPED means the ledger NAMES this row/);
+    expect(r.stdout, 'it must say plainly what the hit does NOT prove')
+      .toMatch(/does NOT mean each record listed is/);
+    expect(r.stdout, 'it must name the three innocent ways a record can carry a row id')
+      .toMatch(/evidence of a bug.*pipeline.*count on a screen/s);
+    expect(r.stdout, "it must cite where this was already recorded").toMatch(/DR-1270/);
+    expect(r.stdout, 'and it must point the reader at the one thing that answers it')
+      .toMatch(/open the record and read where it names the row/);
+  });
+
+  it('says nothing about the limit when nothing was found — a clean unknown stays clean', () => {
+    const r = run('00000000-dead-4bee-9999-ffffffffffff');
+    expect(r.status).toBe(0);
+    expect(r.stdout).not.toMatch(/SHIPPED means the ledger NAMES/);
+  });
+
+  it('PROVEN NOT TO WEAKEN: a named row still exits 1 and still says do not build', () => {
+    const r = run(SHIPPED[0][0]);
+    expect(r.status, 'relabelling must not turn a refusal into a pass').toBe(1);
+    expect(r.stderr).toMatch(/ALREADY SHIPPED -- do not build them/);
+    expect(r.stderr, 'the stderr line carries the same qualifier').toMatch(/named in the ledger/);
+  });
+});
