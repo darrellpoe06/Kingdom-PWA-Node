@@ -116,7 +116,18 @@ export const WELCOME_CSS = `
    photograph or the stream, and nothing on the page moves when it opens. */
 .pp-photo>div{position:absolute;inset:0;width:100%;height:100%}
 .pp-photo>div>video{width:100%;height:100%;object-fit:cover}
-.pp-cam-open{position:absolute;bottom:calc(0.6 * var(--ts-fixed,1rem));left:calc(0.6 * var(--ts-fixed,1rem));z-index:2;font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;padding:calc(0.5 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));min-height:calc(2.25 * var(--ts-fixed,1rem));border:1px solid var(--pp-red);border-radius:999px;background:var(--pp-card);color:var(--pp-red);cursor:pointer;box-shadow:var(--pp-shadow)}
+/* THE PORCH OPTION SITS IN THE TOP-LEFT CORNER, ABOVE EVERYTHING (DR-1304).
+   It used to sit bottom-left at z-index 2. The carousel's picture tabs
+   (.pp-segments, z-index 3) span the whole bottom edge 44px tall, so the
+   button's entire box was under the tabs and every tap opened a picture
+   instead of the porch (Darrell 2026-11-03: "user's can't open the camera
+   it's too close"). Measured in Chromium at 390 and 1440 wide: the tabs
+   received 5 of 5 sample points and a real click at the button's centre.
+   Top-left is the one corner nothing else claims: the band is top-right,
+   the caption and the tabs are the bottom edge, and the live player's chips
+   are bottom-left, top-right and bottom-right. z-index 4 keeps it above the
+   tabs even if the frame ever shrinks under it. */
+.pp-cam-open{position:absolute;top:calc(0.6 * var(--ts-fixed,1rem));left:calc(0.6 * var(--ts-fixed,1rem));z-index:4;font-family:var(--pp-sans);font-size:.6875rem;letter-spacing:.12em;text-transform:uppercase;padding:calc(0.5 * var(--ts-fixed,1rem)) calc(0.85 * var(--ts-fixed,1rem));min-height:calc(2.25 * var(--ts-fixed,1rem));border:1px solid var(--pp-red);border-radius:999px;background:var(--pp-card);color:var(--pp-red);cursor:pointer;box-shadow:var(--pp-shadow)}
 .pp-cam-open:hover{background:var(--pp-red-tint)}
 .pp-cam-open:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
 .pp-slides{position:absolute;inset:0;width:100%;height:100%}
