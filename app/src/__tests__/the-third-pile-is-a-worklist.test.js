@@ -455,7 +455,52 @@ const REPO = join(HERE, '..', '..', '..');
 // gap. sov59 contributes 5 of those disclosures, one per reader text, because
 // the limit is carried on the lesson AND all four bands rather than once in an
 // adult paragraph.
-const GAP = 17;
+// 17 -> 18 GAP on 2026-11-03 (sov60, the bottleneck was never the typing --
+// machines set to distrust each other, and the one who must still give an
+// answer). CHECKED does not move. sov60 takes the SECOND branch for the same
+// reason sov59 did, measured and not asserted. The source is a daily IT-trade
+// NEWSLETTER, forwarded under one word, Lessons -- not a study -- and the
+// lesson stakes NO figure at all. The issue prints several (a count of papers,
+// a count of proofs, the size of a seasonal retail team, a referral count) and
+// every one of them is LEFT IN THE ISSUE: the teaching rests on the SHAPE of
+// three plain statements printed there, and the relayed claim about mathematical
+// problems is used only because the claim finished travelling while the checking
+// was still running, which is a shape and not a number.
+//
+// THE ROAD WAS TRIED THREE TIMES, not assumed shut (DR-0108):
+//   curl https://www.morningbrew.com -> `curl: (56) CONNECT tunnel failed, response 403`
+//   curl https://www.itbrew.com     -> `curl: (56) CONNECT tunnel failed, response 403`
+//   WebFetch https://www.itbrew.com -> `getaddrinfo ENOTFOUND www.itbrew.com`
+// Both hosts are outside this session's allowed network domains, and the tool's
+// own guidance is to stop after a second host fails the same way, so no further
+// hosts were tried. That measured failure is what all five reader texts tell
+// the reader in their own words, with the refused number in each, rather than a
+// polite "we did not read it". A GitHub runner reaches hosts this sandbox
+// cannot, so the road exists; what it lacks is a candidate `says` string,
+// because this lesson stakes no figure and inventing one to probe would be the
+// fabrication the row exists to prevent.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov60-verses.test.js
+// refuses a currency symbol, a percentage and a number wearing a magnitude word
+// in any of the five reader texts, and proves the refusal three ways -- planting
+// "$4,000", "94%" and "300 thousand" into EVERY reader text in turn and watching
+// each shape fire, the third being one a currency-and-percentage check alone
+// would miss. A 0-figure row in lesson-sources.json is forbidden (DR-0076
+// section 3) because it would make checked() count a lesson whose figures nobody
+// read, so the honest place for sov60 is HERE.
+// re-review: 2026-12-03 -- from a runner with web access, or once www.itbrew.com
+// is allowed in the session's network settings, open the issue's own page and
+// the outside articles its reading list points at. If any carries a germane
+// figure this lesson should teach, teach it, give sov60 a row and lower this pin
+// to 17; if none prints a figure the lesson needs, replace the "did not read"
+// clause in all five reader texts with an accurate one and lower the pin.
+//
+// MEASURED ON THIS TREE, never by arithmetic on a branch: scripts/unchecked-
+// claims.mjs prints 21 lessons admitting, 129 disclosures, 4 checked, 18 in the
+// gap. sov60 contributes 5 of those disclosures, one per reader text, because
+// the limit is carried on the lesson AND all four bands rather than once in an
+// adult paragraph.
+const GAP = 18;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
