@@ -43,6 +43,7 @@
 // =============================================================================
 
 import { PROGRESS_OF_REVELATION, PROGRESS_OF_REVELATION_SOURCE, chartDateOf, chartAuthorOf } from './progress-of-revelation.js';
+import { bookMeta } from './bible-kjv.js';
 
 export const FIGURE_KINDS = ['span-chart', 'sequence', 'quadrant', 'image'];
 
@@ -58,8 +59,8 @@ const L47 = 'll47-navigating-the-age-faith-critical-thinking-identity';
 const L131 = 'll131-joy-is-not-happiness-three-days-one-strength-and-the-word-as-the-code-that-runs-each-of-them';
 const L140 = 'll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to';
 
-function writingOrderRows(testament) {
-  return PROGRESS_OF_REVELATION.filter((r) => r.testament === testament).map((r) => ({
+function writingOrderRows(testament, only = null) {
+  return PROGRESS_OF_REVELATION.filter((r) => r.testament === testament && (!only || only.has(r.book))).map((r) => ({
     n: r.order,
     label: r.book,
     from: r.from,
@@ -70,21 +71,91 @@ function writingOrderRows(testament) {
   }));
 }
 
+// THE ONE TIMELINE (Darrell 2026-11-03, on L270's chart: "I want this to be
+// inside the bible we already have so users can see the timeline with or
+// without the lesson so it's accessible to all users... also make it available
+// in a intuitive way so it makes the data and timelines clearer in each
+// lesson"). The same chart is drawn in three places, from this one builder: the
+// whole of it in L270 and in the Bible reader, and in every other lesson only
+// the books that lesson quotes. One source, so the three can never disagree.
+export const TIMELINE_DISCLOSURE = 'We did not check the chart against any other chart.';
+const TIMELINE_CAPTION = 'Each line is one book, in the chart’s writing order, with its approximate date and its author as the chart prints them. The bar shows where the date falls. Job has no bar because the chart gives it no date. Where the chart writes Unknown or Anonymous, or puts a (?) after a name, so does this one.';
+
+const bookCount = (n) => `${n} book${n === 1 ? '' : 's'}`;
+
+/** 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 11 -> "11th", 22 -> "22nd". */
+export function ordinal(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'}`;
+}
+
+/**
+ * The chart as a span-chart figure: all 66 books, or only `books` (canonical
+ * names). A part of the chart keeps the WHOLE testament's scale, so a book's
+ * bar sits where it sits on the full chart: drawn on its own scale, one book
+ * fills the width and looks as long as the whole Old Testament (measured on the
+ * first 360px shot). And its place is said in words, "2nd of 39 written",
+ * because a bare "2." over a two-row list reads as a list number.
+ */
+export function bookTimelineFigure({ books = null, id = 'progress-of-revelation', title, caption } = {}) {
+  const only = books ? new Set(books) : null;
+  const groups = [
+    { id: 'ot', testament: 'OT', era: 'BC', name: 'Old Testament' },
+    { id: 'nt', testament: 'NT', era: 'AD', name: 'New Testament' },
+  ].map((g) => {
+    const all = writingOrderRows(g.testament);
+    const rows = only
+      ? writingOrderRows(g.testament, only).map((r) => ({ ...r, n: null, place: `${ordinal(r.n)} of ${all.length} written` }))
+      : all;
+    const group = { id: g.id, label: `${g.name} — ${bookCount(rows.length)}`, era: g.era, rows };
+    if (only) group.scaleYears = all.filter((r) => r.from != null).flatMap((r) => [r.from, r.to]);
+    return group;
+  }).filter((g) => g.rows.length > 0);
+  return {
+    id,
+    kind: 'span-chart',
+    timeline: true,
+    title: title || 'The Progress of Revelation — the sixty-six books in the order they were written',
+    caption: caption || TIMELINE_CAPTION,
+    source: PROGRESS_OF_REVELATION_SOURCE,
+    disclosure: TIMELINE_DISCLOSURE,
+    groups,
+  };
+}
+
+/** The books a lesson quotes, read from its anchor references, as canonical names in writing order. */
+export function booksCitedBy(module) {
+  const refs = String((module && module.anchor && module.anchor.ref) || '').split(';').map((r) => r.trim()).filter(Boolean);
+  const found = new Set();
+  for (const ref of refs) {
+    const m = ref.match(/^(.+?)\s+\d/);
+    const meta = m && bookMeta(m[1]);
+    if (meta) found.add(meta.name);
+  }
+  return PROGRESS_OF_REVELATION.filter((r) => found.has(r.book)).map((r) => r.book);
+}
+
+/**
+ * In a lesson other than L270: when the books it quotes were written, on the
+ * same chart. Null when the lesson quotes no book, or for L270, which already
+ * carries the whole chart.
+ */
+export function lessonTimelineFor(module) {
+  if (!module || module.id === L270) return null;
+  const books = booksCitedBy(module);
+  if (!books.length) return null;
+  const one = books.length === 1;
+  return bookTimelineFigure({
+    books,
+    id: 'books-this-lesson-quotes',
+    title: `When the ${one ? 'book' : `${books.length} books`} this lesson quotes ${one ? 'was' : 'were'} written`,
+    caption: 'Each book this lesson quotes, on the same writing-order chart as the whole Bible, with its approximate date and its author as the chart prints them. The whole chart, all sixty-six books, is in the Bible.',
+  });
+}
+
 export const LESSON_FIGURES = {
-  [L270]: [
-    {
-      id: 'progress-of-revelation',
-      kind: 'span-chart',
-      title: 'The Progress of Revelation — the sixty-six books in the order they were written',
-      caption: 'Each line is one book, in the chart’s writing order, with its approximate date and its author as the chart prints them. The bar shows where the date falls. Job has no bar because the chart gives it no date. Where the chart writes Unknown or Anonymous, or puts a (?) after a name, so does this one.',
-      source: PROGRESS_OF_REVELATION_SOURCE,
-      disclosure: 'We did not check the chart against any other chart.',
-      groups: [
-        { id: 'ot', label: 'Old Testament — 39 books', era: 'BC', rows: writingOrderRows('OT') },
-        { id: 'nt', label: 'New Testament — 27 books', era: 'AD', rows: writingOrderRows('NT') },
-      ],
-    },
-  ],
+  [L270]: [bookTimelineFigure()],
   [L140]: [
     {
       id: 'judah-timeline-the-word-carries',
@@ -203,7 +274,11 @@ export function spanScale(group) {
   const dated = (group.rows || []).filter((r) => r.from != null);
   if (!dated.length) return null;
   const bc = group.era === 'BC';
-  const years = dated.flatMap((r) => [r.from, r.to]);
+  // A part of a larger chart carries the whole chart's years, so its bars sit
+  // where they sit on the whole (bookTimelineFigure).
+  const years = Array.isArray(group.scaleYears) && group.scaleYears.length
+    ? group.scaleYears
+    : dated.flatMap((r) => [r.from, r.to]);
   const start = bc ? Math.max(...years) : Math.min(...years);
   const end = bc ? Math.min(...years) : Math.max(...years);
   const width = Math.abs(end - start) || 1;
@@ -230,7 +305,7 @@ export function figureAsText(f) {
   if (f.kind === 'span-chart') {
     for (const g of f.groups) {
       lines.push(g.label);
-      for (const r of g.rows) lines.push(`${r.n ? `${r.n}. ` : ''}${r.label} — ${r.dateText || 'no date'}${r.detail ? ` — ${r.detail}` : ''}`);
+      for (const r of g.rows) lines.push(`${r.n ? `${r.n}. ` : ''}${r.label} — ${r.dateText || 'no date'}${r.detail ? ` — ${r.detail}` : ''}${r.place ? ` — ${r.place}` : ''}`);
     }
   } else if (f.kind === 'sequence') {
     f.steps.forEach((s, i) => lines.push(`${i + 1}. ${s.date ? `${s.date}: ` : ''}${s.label}${s.detail ? ` — ${s.detail}` : ''}${s.refs ? ` (${s.refs})` : ''}`));

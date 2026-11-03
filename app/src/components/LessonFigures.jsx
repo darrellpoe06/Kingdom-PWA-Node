@@ -13,12 +13,29 @@
 // =============================================================================
 
 import React from 'react';
-import { figuresFor, spanScale, spanTicks } from '../lib/lesson-figures.js';
+import { figuresFor, lessonTimelineFor, spanScale, spanTicks } from '../lib/lesson-figures.js';
+import { bibleHref, requestBibleTimeline } from '../lib/bible-timeline-link.js';
 import VerseChips from './VerseChips.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 
-function FigureFrame({ figure, children }) {
+// Every timeline in a lesson opens the whole one in the Bible, where it lives
+// for every reader with or without a lesson (Darrell 2026-11-03).
+function TimelineLink({ book }) {
+  return (
+    <a
+      href={bibleHref()}
+      onClick={() => requestBibleTimeline(book)}
+      className="mt-2 inline-flex items-center min-h-[44px] px-3 border border-[#5A6E3D] text-[#5A6E3D] text-xs font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      style={SERIF}
+      data-testid="lesson-figure-bible-link"
+    >
+      See all 66 books on the timeline in the Bible
+    </a>
+  );
+}
+
+export function FigureFrame({ figure, children, link = null }) {
   const titleId = `fig-${figure.id}-title`;
   return (
     <figure
@@ -37,6 +54,7 @@ function FigureFrame({ figure, children }) {
         <span className="block mt-1"><strong className="text-[#1A1815]">Source:</strong> {figure.source}</span>
         {figure.disclosure && <span className="block mt-1 italic" data-testid="lesson-figure-disclosure">{figure.disclosure}</span>}
       </figcaption>
+      {link}
     </figure>
   );
 }
@@ -50,7 +68,10 @@ function tickShift(t) {
 // One testament / one era. A <details> that starts OPEN: the chart is the point
 // of the lesson, so it is seen first; folding a long list away is the reader's
 // choice. It holds no verse, so it keeps its own state (Pattern 2h §5).
-function SpanGroup({ group }) {
+// In the Bible, `onPick` makes each book a button that opens it, and `current`
+// marks the book being read, so the chart is a way into the Word, not a picture
+// beside it.
+function SpanGroup({ group, onPick = null, current = null }) {
   const scale = spanScale(group);
   const ticks = spanTicks(scale, group.era);
   const fill = group.era === 'AD' ? 'bg-[#2A5A8E]' : 'bg-[#5A6E3D]';
@@ -75,22 +96,52 @@ function SpanGroup({ group }) {
           const dated = scale && r.from != null && r.to != null;
           const left = dated ? scale.at(r.from) : 0;
           const right = dated ? scale.at(r.to) : 0;
+          const here = current === r.label;
+          const words = (
+            <span className="block text-xs text-[#1A1815] leading-snug break-words" style={SERIF}>
+              {r.n != null && <span className="text-[#5A5751]">{r.n}. </span>}
+              <strong>{r.label}</strong>
+              <span className="text-[#5A5751]"> · {r.dateText || 'no date'}</span>
+              {r.detail && <span className="text-[#5A5751]"> · {r.detail}</span>}
+              {r.place && <span className="text-[#5A5751]"> · {r.place}</span>}
+              {here && <span className="text-[#5A6E3D] font-semibold"> · reading now</span>}
+            </span>
+          );
+          const bar = (
+            <span className="block relative h-1.5 mt-0.5 mx-1 bg-[#E8E4DC]" aria-hidden="true">
+              {dated && (
+                <span
+                  className={`absolute top-0 h-1.5 ${fill}`}
+                  style={{ left: `${left * 100}%`, width: `max(4px, ${(right - left) * 100}%)` }}
+                />
+              )}
+            </span>
+          );
           return (
-            <li key={`${group.id}-${r.n}-${r.label}`} className="min-w-0" data-row={r.label} data-dated={dated ? 'true' : 'false'}>
-              <div className="text-xs text-[#1A1815] leading-snug break-words" style={SERIF}>
-                {r.n != null && <span className="text-[#5A5751]">{r.n}. </span>}
-                <strong>{r.label}</strong>
-                <span className="text-[#5A5751]"> · {r.dateText || 'no date'}</span>
-                {r.detail && <span className="text-[#5A5751]"> · {r.detail}</span>}
-              </div>
-              <div className="relative h-1.5 mt-0.5 mx-1 bg-[#E8E4DC]" aria-hidden="true">
-                {dated && (
-                  <span
-                    className={`absolute top-0 h-1.5 ${fill}`}
-                    style={{ left: `${left * 100}%`, width: `max(4px, ${(right - left) * 100}%)` }}
-                  />
-                )}
-              </div>
+            <li
+              key={`${group.id}-${r.n}-${r.label}`}
+              className={`min-w-0 ${here ? 'bg-[#FAF8F4] border-l-2 border-[#5A6E3D] pl-1' : ''}`}
+              data-row={r.label}
+              data-dated={dated ? 'true' : 'false'}
+              data-current={here ? 'true' : undefined}
+            >
+              {onPick ? (
+                <button
+                  type="button"
+                  onClick={() => onPick(r.label)}
+                  aria-current={here ? 'true' : undefined}
+                  className="block w-full text-left min-h-[44px] py-1 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  data-testid="timeline-open-book"
+                >
+                  {words}
+                  {bar}
+                </button>
+              ) : (
+                <>
+                  {words}
+                  {bar}
+                </>
+              )}
             </li>
           );
         })}
@@ -99,8 +150,8 @@ function SpanGroup({ group }) {
   );
 }
 
-function SpanChart({ figure }) {
-  return figure.groups.map((g) => <SpanGroup key={g.id} group={g} />);
+export function SpanChart({ figure, onPick = null, current = null }) {
+  return figure.groups.map((g) => <SpanGroup key={g.id} group={g} onPick={onPick} current={current} />);
 }
 
 // A figure's references are chips, once each: the text form AND a chip row
@@ -181,14 +232,15 @@ function ImageFigure({ figure }) {
 const BODY = { 'span-chart': SpanChart, sequence: Sequence, quadrant: Quadrant, image: ImageFigure };
 
 export default function LessonFigures({ module }) {
-  const figures = figuresFor(module);
+  const timeline = lessonTimelineFor(module);
+  const figures = timeline ? [...figuresFor(module), timeline] : figuresFor(module);
   if (!figures.length) return null;
   return (
     <div data-testid="lesson-figures" data-count={figures.length}>
       {figures.map((f) => {
         const Body = BODY[f.kind];
         return (
-          <FigureFrame key={f.id} figure={f}>
+          <FigureFrame key={f.id} figure={f} link={f.timeline ? <TimelineLink /> : null}>
             <Body figure={f} />
           </FigureFrame>
         );
