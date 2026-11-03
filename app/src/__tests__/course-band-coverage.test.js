@@ -109,16 +109,24 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(273); // on 2026-11-03, sov59 (last call -- the clock a seller
-    // sets, the year he cannot give, and the Now that is Yahweh's own) raises it one more, from the
-    // 272 sov58 left. READ from a fresh scripts/course-band-baseline-write.mjs run on the tree that
-    // holds the lesson (total 447, allFour 273, adultOnly 0, adultRegister 0), never computed and
-    // never hand-merged. sov59 carries all four authored bands from its first commit and the full
-    // fourBandFaults suite reads clean -- shares child 0.58, youth 0.72, teen 0.63, senior 0.91;
-    // ladder child 0.8 < youth 3.3 < teen 5.3 < senior 9.5 with the adult lesson at 6.5; worst
-    // band-pair overlap 0.12 (youth~teen) against the 0.25 near-copy line -- so the sovereign-ai row
-    // reads {lessons: 59, allFour: 38} and the DEBT does not move, which is the shape this pin
-    // exists to prove. The notes below are the reasoning sov58 and sov57 recorded for the same pin,
+    expect(baseline.allFour).toBe(274); // on 2026-11-03, sov60 (the bottleneck was never the
+    // typing -- machines set to distrust each other, and the one who must still give an answer)
+    // raises it one more, from the 273 sov59 left the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 448,
+    // allFour 274, adultOnly 0, adultRegister 0), never computed and never hand-merged. sov60
+    // carries all four authored bands from its first commit and the full fourBandFaults suite reads
+    // clean -- adult prose 2,686 words; shares child 0.56, youth 0.63, teen 0.83, senior 0.97;
+    // ladder child 1.8 < youth 4.7 < teen 5.6 < senior 8.6 with the adult lesson at 6.4; worst
+    // band-pair overlap 0.13 (youth~teen) against the 0.25 near-copy line -- so the sovereign-ai row
+    // reads {lessons: 60, allFour: 39} and the DEBT does not move, which is the shape this pin
+    // exists to prove. AND THE TEEN BAND IS WHERE THIS LESSON PAID ITS TUITION: two mechanical
+    // attempts to move that band's reading grade were made and both were THROWN AWAY, the first
+    // because joining sentences by lowercasing the following word turned "He does not raise His
+    // voice" into "he does not raise His voice" -- a typographic-theology violation produced by a
+    // script, which is exactly the blind-sweep failure CLAUDE.md forbids -- and the second because
+    // splitting at connectives left eleven fragments, one of them inside the gated TALK ABOUT IT
+    // TOGETHER block. The band that shipped was written and then repaired by hand.
+    // The notes below are the reasoning sov59, sov58 and sov57 recorded for the same pin,
     // kept because the merge-order warning is still live (DR-1136): sov58 (the world that does not
     // drift -- a rehearsal is a gift, and a rehearsal is not the world, DR-1295) raised it from the
     // 271 sov57 left. READ from a fresh scripts/course-band-baseline-write.mjs run on the tree that
