@@ -32,11 +32,11 @@ function Field({ label, children, wide = false }) {
 // The entity chip, readable at a glance on a phone: icon + words, never color
 // alone. Tints are kept clear of true red (Color Theology, DR-0099).
 const CHIP_TONE = {
-  personal: 'bg-[#E6EFE8] border-[#1F3A2E] text-[#1F3A2E]',
-  poe: 'bg-[#E7EDF5] border-[#24476B] text-[#24476B]',
-  tlc: 'bg-[#EEE8F4] border-[#4B3470] text-[#4B3470]',
-  other: 'bg-[#F0ECE4] border-[#5A5751] text-[#3A3833]',
-  review: 'bg-[#FDF1E3] border-[#B45309] text-[#8A4A0B]',
+  personal: 'bg-[#F0F4EA] border-[#1F3A2E] text-[#1F3A2E]',
+  poe: 'bg-white border-[#2A5A8E] text-[#2A5A8E]',
+  tlc: 'bg-white border-[#7A5A8E] text-[#7A5A8E]',
+  other: 'bg-[#F0ECE4] border-[#5A5751] text-[#5A5751]',
+  review: 'bg-[#FBF7EC] border-[#B45309] text-[#B45309]',
 };
 export function EntityChip({ tag, testId }) {
   return (
@@ -75,8 +75,8 @@ function Row({ row, accounts, entities, homes, rentals, onSave, onDismiss, onPau
         <EntityChip tag={tag} testId={`bill-review-entity-chip-${id}`} />
         <span className="font-semibold text-[0.8125rem] text-[#1A1815] min-w-0 break-words">{d.name || 'Bill'}</span>
         <span className="text-[0.75rem] text-[#5A5751]">{Number(d.amount) > 0 ? fmt(Number(d.amount)) : 'amount ?'}{d.nextDue ? ` · due ${d.nextDue}` : ''}</span>
-        {tag.kind === 'poe' && d.rentalId && <span className="text-[0.6875rem] text-[#24476B]">· {(rentals.find((r) => r.id === d.rentalId) || {}).name}</span>}
-        {tag.kind === 'tlc' && d.tlcKind && <span className="text-[0.6875rem] text-[#4B3470]">· {TLC_KIND_LABEL[d.tlcKind]}</span>}
+        {tag.kind === 'poe' && d.rentalId && <span className="text-[0.6875rem] text-[#2A5A8E]">· {(rentals.find((r) => r.id === d.rentalId) || {}).name}</span>}
+        {tag.kind === 'tlc' && d.tlcKind && <span className="text-[0.6875rem] text-[#7A5A8E]">· {TLC_KIND_LABEL[d.tlcKind]}</span>}
       </div>
       {crossPaid && <p className="text-[0.6875rem] text-[#5A5751] mb-2" data-testid={`bill-review-crosspaid-${id}`}>Paid from {payer.name} ({payerTag.label.toLowerCase()}) for {tag.label.toLowerCase()} — the cash leaves {payer.name}; the bill belongs to {tag.label.toLowerCase()}.</p>}
       <div className="flex flex-wrap items-center gap-2 mb-2">

@@ -66,7 +66,7 @@ function ReserveEditor({ result, settings, onSaveReserve }) {
         <span className="block uppercase tracking-wider">Reserve for {result.scope.label} only</span>
         <input type="number" inputMode="decimal" min="0" value={v} onChange={(e) => setV(e.target.value)} placeholder="household reserve" aria-label={`Reserve for ${result.scope.label}`} data-testid="coming-up-reserve-input" className="mt-0.5 w-32 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" />
       </label>
-      <button type="button" disabled={!ok} onClick={() => onSaveReserve(id, num)} data-testid="coming-up-reserve-save" className="min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] disabled:opacity-40">Save reserve</button>
+      <button type="button" disabled={!ok} onClick={() => onSaveReserve(id, num)} data-testid="coming-up-reserve-save" className="min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Save reserve</button>
     </div>
   );
 }
@@ -82,8 +82,8 @@ function EntityTable({ result, show, entities }) {
     <div className="py-2 border-b border-[#E8E4DC]" data-testid="coming-up-entities">
       <p className="text-[0.75rem] text-[#5A5751] mb-1">Each entity on its own. Business cash is never counted as personal spending money.</p>
       <div className="overflow-x-auto">
-        <table className="w-full text-[0.75rem]">
-          <thead><tr className="text-left text-[#5A5751]"><th className="font-normal pr-2">Entity</th><th className="font-normal pr-2 text-right">Cash</th><th className="font-normal pr-2 text-right">Due 14 days</th><th className="font-normal pr-2 text-right">Overdue</th><th className="font-normal pr-2 text-right">Reserve</th><th className="font-normal text-right">Safe to Spend</th></tr></thead>
+        <table className="w-full text-[0.75rem]"><caption className="sr-only">Each entity: cash, bills due in 14 days, overdue, reserve and Safe to Spend</caption>
+          <thead><tr className="text-left text-[#5A5751]"><th scope="col" className="font-normal pr-2">Entity</th><th scope="col" className="font-normal pr-2 text-right">Cash</th><th scope="col" className="font-normal pr-2 text-right">Due 14 days</th><th scope="col" className="font-normal pr-2 text-right">Overdue</th><th scope="col" className="font-normal pr-2 text-right">Reserve</th><th scope="col" className="font-normal text-right">Safe to Spend</th></tr></thead>
           <tbody>
             {rows.map((r) => { const t = tag(r); return (
               <tr key={r.scope.id} data-testid={`coming-up-entity-${r.scope.id}`} className="border-t border-[#F0ECE4]">
@@ -137,7 +137,7 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       <Line id="extra" label="Available for extra debt payments" value={show(extra.amount)} note="never more than keeps the next 30 days above your reserve">
         <p>The smaller of: Safe to Spend {extra.chosen.label.toLowerCase()} ({show(extra.chosen.safe)}; lowest day {show(extra.chosen.lowest.amount)} on {extra.chosen.lowest.date}) and Safe to Spend for the {extra.month.label.toLowerCase()} ({show(extra.month.safe)}; lowest day {show(extra.month.lowest.amount)} on {extra.month.lowest.date}). Paying more than this toward debt today would put a projected day below your reserve.</p>
       </Line>
-      {onReview && <button type="button" onClick={onReview} data-testid="coming-up-review" className="my-2 min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">Review and confirm your bills</button>}
+      {onReview && <button type="button" onClick={onReview} data-testid="coming-up-review" className="my-2 min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Review and confirm your bills</button>}
     </section>
   );
 }

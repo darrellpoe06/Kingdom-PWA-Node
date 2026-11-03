@@ -65,7 +65,7 @@ export default function MoneyHomeMortgage({ money }) {
           {[['balance', 'Current balance'], ['rate', 'Interest rate (%)'], ['monthlyPI', 'Principal and interest per month'], ['escrow', 'Escrow per month']].map(([k, label]) => (
             <label key={k}><span className={LABEL}>{label}</span><input className={INPUT} inputMode="decimal" value={edit[k]} onChange={(e) => setEdit((x) => ({ ...x, [k]: e.target.value }))} data-testid={`home-mortgage-${k}`} /></label>
           ))}
-          <div className="sm:col-span-2 flex gap-2"><button type="button" className={BTN} onClick={save} data-testid="home-mortgage-save">Save to the home record</button><button type="button" className="min-h-[36px] px-3 text-[0.75rem]" onClick={() => setEdit(null)}>Cancel</button></div>
+          <div className="sm:col-span-2 flex gap-2"><button type="button" className={BTN} onClick={save} data-testid="home-mortgage-save">Save to the home record</button><button type="button" className="min-h-[36px] px-3 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]" onClick={() => setEdit(null)}>Cancel</button></div>
         </div>
       )}
       {scen && scen.base && (
@@ -76,8 +76,8 @@ export default function MoneyHomeMortgage({ money }) {
               {goal.alreadyOnTrack ? `Already on track to be paid off by ${monthName(HOME_GOAL.slice(0, 7))}.` : <>To be paid off by <strong>December 2030</strong>: add <strong>{fmt(goal.extra)}</strong> a month to principal (paid off {monthName(goal.payoffDate)}, saving {fmt(goal.interestSaved)} in interest).</>}
             </p>
           )}
-          <table className="w-full text-[0.75rem] mt-2">
-            <thead><tr className="text-left text-[#5A5751]"><th className="py-1">Extra each month</th><th>Paid off</th><th>Sooner by</th><th className="text-right">Interest saved</th></tr></thead>
+          <table className="w-full text-[0.75rem] mt-2"><caption className="sr-only">Extra principal each month: payoff month, months sooner and interest saved</caption>
+            <thead><tr className="text-left text-[#5A5751]"><th scope="col" className="py-1">Extra each month</th><th scope="col">Paid off</th><th scope="col">Sooner by</th><th scope="col" className="text-right">Interest saved</th></tr></thead>
             <tbody>{scen.rows.map((r) => (<tr key={r.extra} className="border-t border-[#F0ECE4]"><td className="py-1">{fmt(r.extra)}</td><td>{monthName(r.payoffDate)}</td><td>{months(r.monthsSaved)}</td><td className="text-right">{fmt(r.interestSaved)}</td></tr>))}</tbody>
           </table>
           <p className="text-[0.6875rem] text-[#5A5751] mt-1">Projections assume the rate stays the same and the extra goes straight to principal. Only pay extra from what Safe to Spend shows as available for extra debt payments.</p>
