@@ -16,6 +16,7 @@ import { BILL_GROUPS, REVIEW_FREQUENCIES, reviewRows, missingForConfirm, toOblig
 import { patchMoneyPlan } from '../../lib/money-plan.js';
 import { fmt } from '../../lib/format.js';
 import { isPrimaryHome } from '../../lib/mortgage-payoff.js';
+import { ENTITY_KINDS, NEEDS_REVIEW, TLC_KINDS, TLC_KIND_LABEL, entityLabel } from '../../lib/entity-labels.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const CARD = 'bg-white border border-[#E8E4DC] rounded-2xl p-3 sm:p-4';
@@ -28,24 +29,56 @@ function Field({ label, children, wide = false }) {
   return <label className={wide ? 'sm:col-span-2' : ''}><span className={LABEL}>{label}</span>{children}</label>;
 }
 
-function Row({ row, accounts, entities, homes, onSave, onDismiss, onPause }) {
+// The entity chip, readable at a glance on a phone: icon + words, never color
+// alone. Tints are kept clear of true red (Color Theology, DR-0099).
+const CHIP_TONE = {
+  personal: 'bg-[#E6EFE8] border-[#1F3A2E] text-[#1F3A2E]',
+  poe: 'bg-[#E7EDF5] border-[#24476B] text-[#24476B]',
+  tlc: 'bg-[#EEE8F4] border-[#4B3470] text-[#4B3470]',
+  other: 'bg-[#F0ECE4] border-[#5A5751] text-[#3A3833]',
+  review: 'bg-[#FDF1E3] border-[#B45309] text-[#8A4A0B]',
+};
+export function EntityChip({ tag, testId }) {
+  return (
+    <span data-testid={testId} data-kind={tag.kind} className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold tracking-wider px-2 py-0.5 rounded-full border ${CHIP_TONE[tag.kind] || CHIP_TONE.other}`}>
+      <span aria-hidden="true">{tag.icon}</span>{tag.label}
+    </span>
+  );
+}
+
+function Row({ row, accounts, entities, homes, rentals, onSave, onDismiss, onPause }) {
   const [d, setD] = useState(() => ({
     name: row.name || '', group: row.group || 'household', amount: row.amount ?? '', nextDue: row.nextDue || '', payOn: row.payOn || '',
     frequency: row.frequency || 'monthly', balance: row.balance ?? '', pastDue: row.pastDue ?? '', accountId: row.accountId || '', entityId: row.entityId ?? '',
     linkedMortgageId: row.linkedMortgageId || (homes[0] ? homes[0].id : ''),
     originalCreditor: row.originalCreditor || '', accountLast4: row.accountLast4 || '',
-    alsoPaidAs: row.alsoPaidAs || [],
+    alsoPaidAs: row.alsoPaidAs || [], rentalId: row.rentalId || '', tlcKind: row.tlcKind || '',
   }));
   const similar = row.similarTo || [];
   const collection = ['arrangement', 'past-due'].includes(d.group);
   const payoff = collection ? arrangementPayoff(d) : null;
   const set = (k) => (e) => setD((x) => ({ ...x, [k]: e.target.value }));
   const suggested = row.source === 'suggested';
-  const miss = missingForConfirm(d);
+  const miss = missingForConfirm(d, entities);
   const id = row.key.replace(/[^a-z0-9]/gi, '-');
   const verified = !suggested && row.verified;
+  const tag = entityLabel(entities, d.entityId);
+  const payer = accounts.find((a) => a.id === d.accountId);
+  const payerTag = payer ? entityLabel(entities, payer.entityId) : null;
+  const crossPaid = payerTag && tag.kind !== 'review' && payerTag.entityId !== tag.entityId;
+  const entityRentals = rentals.filter((r) => r.entityId === d.entityId);
   return (
     <li data-testid={`bill-review-row-${id}`} className={CARD}>
+      {/* The summary line: who owes it, what, how much, when — readable while
+          scrolling, without opening anything. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2" data-testid={`bill-review-summary-${id}`}>
+        <EntityChip tag={tag} testId={`bill-review-entity-chip-${id}`} />
+        <span className="font-semibold text-[0.8125rem] text-[#1A1815] min-w-0 break-words">{d.name || 'Bill'}</span>
+        <span className="text-[0.75rem] text-[#5A5751]">{Number(d.amount) > 0 ? fmt(Number(d.amount)) : 'amount ?'}{d.nextDue ? ` · due ${d.nextDue}` : ''}</span>
+        {tag.kind === 'poe' && d.rentalId && <span className="text-[0.6875rem] text-[#24476B]">· {(rentals.find((r) => r.id === d.rentalId) || {}).name}</span>}
+        {tag.kind === 'tlc' && d.tlcKind && <span className="text-[0.6875rem] text-[#4B3470]">· {TLC_KIND_LABEL[d.tlcKind]}</span>}
+      </div>
+      {crossPaid && <p className="text-[0.6875rem] text-[#5A5751] mb-2" data-testid={`bill-review-crosspaid-${id}`}>Paid from {payer.name} ({payerTag.label.toLowerCase()}) for {tag.label.toLowerCase()} — the cash leaves {payer.name}; the bill belongs to {tag.label.toLowerCase()}.</p>}
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <span className={`text-[0.6875rem] px-2 py-0.5 rounded-full border ${verified ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B45309] border-[#B45309]'}`} data-testid={`bill-review-status-${id}`}>
           {verified ? 'Verified' : 'Needs confirmation'}
@@ -106,12 +139,28 @@ function Row({ row, accounts, entities, homes, onSave, onDismiss, onPause }) {
             {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </Field>
-        <Field label="Belongs to">
-          <select className={INPUT} value={d.entityId ?? ''} onChange={set('entityId')} data-testid={`bill-review-entity-${id}`}>
-            <option value="">Not set</option>
-            {entities.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+        <Field label="Belongs to (who owes it — not who paid)">
+          <select className={INPUT} value={d.entityId ?? ''} onChange={(e) => setD((x) => ({ ...x, entityId: e.target.value, rentalId: '', tlcKind: '' }))} data-testid={`bill-review-entity-${id}`}>
+            <option value="">⚠️ Needs review — not chosen</option>
+            {entities.map((e) => { const t = entityLabel(entities, e.id); return <option key={e.id} value={e.id}>{t.icon} {t.kind === 'other' ? e.name : `${t.label} (${e.name})`}</option>; })}
           </select>
         </Field>
+        {tag.kind === 'poe' && (
+          <Field label="Which property (Poe Properties)">
+            <select className={INPUT} value={d.rentalId} onChange={set('rentalId')} data-testid={`bill-review-rental-${id}`}>
+              <option value="">Not tied to one property</option>
+              {entityRentals.map((r) => <option key={r.id} value={r.id}>{r.name || r.address}</option>)}
+            </select>
+          </Field>
+        )}
+        {tag.kind === 'tlc' && (
+          <Field label="TLC expense type">
+            <select className={INPUT} value={d.tlcKind} onChange={set('tlcKind')} data-testid={`bill-review-tlckind-${id}`}>
+              <option value="">Choose one</option>
+              {TLC_KINDS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
+          </Field>
+        )}
       </div>
       {payoff && <p className="text-[0.75rem] text-[#5A5751] mt-2" data-testid={`bill-review-payoff-${id}`}>At this payment: {payoff.payments} more payments, paid off around {payoff.payoffMonth}.</p>}
       <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -132,9 +181,11 @@ export default function MoneyBillReview({ money }) {
   const dismissed = useMemo(() => (data.moneyPlan && data.moneyPlan.billReview && data.moneyPlan.billReview.dismissed) || {}, [data.moneyPlan]);
   const { saved, suggested } = useMemo(() => reviewRows(data, cd, dismissed), [data, cd, dismissed]);
   const [groupFilter, setGroupFilter] = useState('all');
+  const [entityFilter, setEntityFilter] = useState('all');
   const accounts = (data.accounts || []).filter((a) => a && ['checking', 'savings', 'cash', 'credit'].includes(a.type));
   const entities = data.entities || [];
-  const homes = ((data.inflows && data.inflows.rentals) || []).filter(isPrimaryHome);
+  const rentals = ((data.inflows && data.inflows.rentals) || []).filter(Boolean);
+  const homes = rentals.filter(isPrimaryHome);
 
   const onSave = (row, draft) => {
     const ob = toObligation({ ...row, ...draft }, new Date());
@@ -143,8 +194,14 @@ export default function MoneyBillReview({ money }) {
   };
   const onDismiss = (row) => setData && setData((d) => ({ ...d, moneyPlan: patchMoneyPlan(d.moneyPlan, { billReview: { dismissed: { ...(((d.moneyPlan || {}).billReview || {}).dismissed || {}), [row.key]: new Date().toISOString() } } }) }));
   const onPause = (row) => updateRecurring && updateRecurring(row.id, { enabled: row.enabled === false });
-  const show = (rows) => (groupFilter === 'all' ? rows : rows.filter((r) => r.group === groupFilter));
+  const kindOf = (r) => entityLabel(entities, r.entityId).kind;
+  const show = (rows) => rows
+    .filter((r) => groupFilter === 'all' || r.group === groupFilter)
+    .filter((r) => entityFilter === 'all' || kindOf(r) === entityFilter);
   const verifiedCount = saved.filter((r) => r.verified && r.enabled !== false).length;
+  const all = [...saved, ...suggested];
+  const entityTabs = [{ id: 'all', icon: '', label: 'ALL' }, ...ENTITY_KINDS, NEEDS_REVIEW]
+    .map((t) => ({ ...t, count: t.id === 'all' ? all.length : all.filter((r) => kindOf(r) === t.id).length }));
 
   return (
     <section data-testid="money-bill-review" className="space-y-3">
@@ -153,7 +210,16 @@ export default function MoneyBillReview({ money }) {
         <p className="text-[#5A5751]">
           {verifiedCount} confirmed · {saved.length - verifiedCount} saved but not confirmed · {suggested.length} suggested from your records.
           Only confirmed, active bills count in Safe to Spend. Suggestions are never added on their own.
+          The account that paid a bill does not decide who owes it; a bill with no owner chosen says NEEDS REVIEW.
         </p>
+        <div role="group" aria-label="Whose bills" className="flex flex-wrap gap-1.5 mt-2" data-testid="bill-review-entity-filter">
+          {entityTabs.map((t) => (
+            <button key={t.id} type="button" aria-pressed={entityFilter === t.id} onClick={() => setEntityFilter(t.id)} data-testid={`bill-review-entity-tab-${t.id}`}
+              className={`min-h-[36px] px-2.5 py-1 rounded-full border text-[0.6875rem] font-bold tracking-wider ${FOCUS} ${entityFilter === t.id ? 'bg-[#1A1815] border-[#1A1815] text-white' : 'bg-white border-[#E8E4DC] text-[#1A1815]'}`}>
+              {t.icon && <span aria-hidden="true">{t.icon} </span>}{t.label} <span className="font-normal">({t.count})</span>
+            </button>
+          ))}
+        </div>
         <label className="block mt-2 max-w-sm">
           <span className={LABEL}>Show</span>
           <select className={INPUT} value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} data-testid="bill-review-filter">
@@ -165,13 +231,13 @@ export default function MoneyBillReview({ money }) {
       {show(saved).length > 0 && (
         <div>
           <h3 className="text-[0.75rem] uppercase tracking-wider text-[#5A5751] mb-2">Saved bills</h3>
-          <ul className="space-y-2">{show(saved).map((r) => <Row key={r.key} row={r} accounts={accounts} entities={entities} homes={homes} onSave={onSave} onDismiss={onDismiss} onPause={onPause} />)}</ul>
+          <ul className="space-y-2">{show(saved).map((r) => <Row key={r.key} row={r} accounts={accounts} entities={entities} homes={homes} rentals={rentals} onSave={onSave} onDismiss={onDismiss} onPause={onPause} />)}</ul>
         </div>
       )}
       {show(suggested).length > 0 && (
         <div>
           <h3 className="text-[0.75rem] uppercase tracking-wider text-[#5A5751] mb-2">Suggested from your records — please confirm or correct</h3>
-          <ul className="space-y-2">{show(suggested).map((r) => <Row key={r.key} row={r} accounts={accounts} entities={entities} homes={homes} onSave={onSave} onDismiss={onDismiss} onPause={onPause} />)}</ul>
+          <ul className="space-y-2">{show(suggested).map((r) => <Row key={r.key} row={r} accounts={accounts} entities={entities} homes={homes} rentals={rentals} onSave={onSave} onDismiss={onDismiss} onPause={onPause} />)}</ul>
         </div>
       )}
       {!saved.length && !suggested.length && <p className="text-[0.8125rem] text-[#5A5751]">No bills saved and nothing in your records looks like a repeating bill yet.</p>}

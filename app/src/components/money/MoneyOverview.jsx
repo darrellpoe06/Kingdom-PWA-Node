@@ -261,7 +261,7 @@ export default function MoneyOverview({ money }) {
         </details>
       </section>
 
-      {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} />}
+      {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }} />}
 
       {/* Shortcuts — one tap to the three Christina named */}
       <nav aria-label="Money shortcuts" data-testid="money-shortcuts" className="grid grid-cols-3 gap-2">

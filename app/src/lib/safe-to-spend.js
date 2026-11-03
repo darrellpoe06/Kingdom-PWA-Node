@@ -284,11 +284,19 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   //    never dropped — an unpaid bill is still owed.
   for (const o of (data?.recurringObligations || [])) {
     if (!o || o.enabled === false || !o.nextDue) continue;
-    if (!inScope(sc, o.entityId)) continue;
+    // The CASH leaves the account that pays the bill, so the bill is counted in
+    // that account's entity; who OWES it is carried as a label (Christina
+    // 2026-11-03: "The payment account and the entity responsible for the
+    // expense are two different things"). A Poe Properties bill paid from the
+    // personal Chase lowers PERSONAL Safe to Spend. With no paying account
+    // set, the bill's own entity decides; with neither, it rides Personal
+    // (the unassigned pocket) so it is never left out.
+    const paidBy = o.accountId && accountEntity.has(o.accountId) ? accountEntity.get(o.accountId) : (o.entityId || null);
+    if (!inScope(sc, paidBy)) continue;
     const amount = Number(o.amount) || 0; if (amount <= 0) continue;
     seenPayees.add(payeeKey(o.name || ''));
     const type = OBLIGATION_TYPES.includes(o.type) ? o.type : 'regular';
-    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId ?? null, assumed: false };
+    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId || null, paidByEntityId: paidBy, assumed: false };
     // A separate past-due amount on a regular bill or arrangement is owed now.
     const pastDue = Number(o.pastDue) || 0;
     if (pastDue > 0 && type !== 'past-due') {
@@ -593,7 +601,7 @@ function comingUp(data, sc, start, settings, opts) {
   const ob = obligationEvents(data, sc, start, end14, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const inc = incomeEvents(data, sc, addDays(start, 1), end14, settings, start);
   const out = ob.events.filter((e) => e.amount < 0);
-  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill' })) });
+  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
   return {
     next7: pick(in7),
@@ -684,8 +692,15 @@ function forScope(data, sc, asOf, settings, opts) {
   const obligations = obligationEvents(data, sc, start, end, settings, { asOf, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta });
   assumptions.push(...income.assumptions, ...obligations.assumptions, ...accrual.notes);
-  const minCushion = round2(settings.minCushion != null && settings.minCushion !== '' ? Number(settings.minCushion) : (Number(data?.meta?.bufferTarget) || 0));
+  // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
+  // keyed by scope id: 'personal' or the entity's id); otherwise the household
+  // reserve, as before.
+  const reserves = settings.reserveByEntity || {};
+  const ownReserve = reserves[sc.id] != null && reserves[sc.id] !== '' ? reserves[sc.id] : (sc.kind === 'personal' ? reserves.personal : undefined);
+  const hasOwnReserve = ownReserve != null && ownReserve !== '' && Number.isFinite(Number(ownReserve));
+  const minCushion = round2(hasOwnReserve ? Number(ownReserve) : (settings.minCushion != null && settings.minCushion !== '' ? Number(settings.minCushion) : (Number(data?.meta?.bufferTarget) || 0)));
   const windows = comingUp(data, sc, start, settings, opts);
+  windows.reserveSource = hasOwnReserve ? 'entity' : 'household';
 
   // Day-by-day walk.
   const items = [...income.events, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
@@ -796,8 +811,15 @@ function forScope(data, sc, asOf, settings, opts) {
 function consolidated(data, sc, asOf, settings, opts) {
   const entities = (opts.visibleEntities || data?.entities || []);
   const byEntity = [];
+  // The personal pocket is projected ONCE, with the same Personal scope the
+  // Overview shows (personal + joint + anything with no entity yet), so a
+  // NEEDS REVIEW bill is never dropped from the combined view.
+  let personalDone = false;
   for (const e of entities) {
-    const r = forScope(data, resolveScope(data, e.id, entities), asOf, settings, opts);
+    const personal = !e.type || e.type === 'personal' || e.type === 'joint';
+    if (personal && personalDone) continue;
+    if (personal) personalDone = true;
+    const r = forScope(data, personal ? { ...resolveScope(data, 'personal', entities), id: e.id, label: e.name || 'Personal' } : resolveScope(data, e.id, entities), asOf, settings, opts);
     if (r.status === 'unavailable') continue;
     byEntity.push(r);
   }
@@ -838,6 +860,18 @@ function consolidated(data, sc, asOf, settings, opts) {
     ],
     assumptions: [...new Set(byEntity.flatMap((r) => r.assumptions))],
     settled: byEntity.flatMap((r) => r.settled || []),
+    // The combined view lists every entity's bills and income side by side,
+    // each item tagged with the pocket it comes out of — a total of what is
+    // DUE, never a pool of who may spend what.
+    windows: ['next7', 'next14', 'overdue', 'arrangements', 'income14'].reduce((w, k) => {
+      const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
+      w[k] = {
+        total: round2(parts.reduce((s, { part }) => s + (Number(part.total) || 0), 0)),
+        items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))),
+      };
+      return w;
+    }, {}),
+    balanceSources: byEntity.flatMap((r) => (r.balanceSources || []).map((b) => ({ ...b, scopeLabel: r.scope.label }))),
     byEntity,
   };
 }

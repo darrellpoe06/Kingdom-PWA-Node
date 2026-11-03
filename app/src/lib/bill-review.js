@@ -21,6 +21,7 @@
 // =============================================================================
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
+import { entityLabel, TLC_KINDS } from './entity-labels.js';
 
 // The eight groups Christina named, in her order.
 export const BILL_GROUPS = [
@@ -101,6 +102,20 @@ export function similarKey(desc = '') {
     .filter((w) => w && !['and', 'the', 'to', 'of', 'llc', 'inc', 'co'].includes(w)).slice(0, 2).join(' ');
 }
 
+// The property a bank description names, by the first two words of a property
+// on file ("709 Commercial", "1213 Koehn"); it carries that record's entity.
+// Evidence from the family's own records, never a guess from the payer.
+export function propertyNamedIn(data, text = '') {
+  const hay = ` ${String(text).toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `;
+  for (const r of (data?.inflows?.rentals || [])) {
+    if (!r || !r.entityId) continue;
+    const words = String(r.name || r.address || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').slice(0, 2);
+    if (words.length < 2 || !/\d/.test(words[0])) continue;
+    if (hay.includes(` ${words.join(' ')} `)) return { entityId: r.entityId, rentalId: r.id };
+  }
+  return null;
+}
+
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : 0; };
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -135,12 +150,20 @@ export function suggestBills(data, asOf = new Date(), { lookbackDays = 120 } = {
     const category = String(list[list.length - 1].category || '');
     const transfer = list.every((t) => isTransferTxn(t));
     const group = transfer ? (FAMILY.test(label) ? 'family' : 'transfer') : suggestGroup(label, category);
+    const owner = propertyNamedIn(data, list.map((t) => t.description || '').join(' '));
     out.set(key, {
       key, source: 'suggested', verified: false,
       name: label.length > 48 ? label.slice(0, 48) : label,
       amount: round2(median(list.map((t) => Math.abs(Number(t.amount))))),
       frequency: perMonth >= 1.7 && frequency === 'monthly' ? 'semimonthly' : frequency,
-      group, accountId, entityId: acct ? acct.entityId ?? null : null,
+      group, accountId,
+      // WHO OWES IT is never read off the account that paid it (Christina
+      // 2026-11-03: "Sometimes I pay Poe Properties or TLC Therapy Solutions
+      // expenses from my personal account"). It is filled only when the payee
+      // names a property on file; otherwise NEEDS REVIEW.
+      entityId: owner ? owner.entityId : null,
+      rentalId: owner ? owner.rentalId : null,
+      paidFromEntityId: acct ? acct.entityId ?? null : null,
       nextDue: '', payOn: '', balance: '', pastDue: '',
       evidence: { payments: list.length, months: months.size, usualDay, total: round2(list.reduce((s, t) => s - Number(t.amount), 0)), lastPaid: String(list.map((t) => t.date).sort().pop()).slice(0, 10), how: source },
     });
@@ -182,10 +205,16 @@ export function reviewRows(data, asOf = new Date(), dismissed = {}) {
 
 // What a confirmed row stores. A row can only be confirmed with an amount and
 // an actual due date — the two things a bank export cannot tell us.
-export function missingForConfirm(row) {
+// And who it belongs to: an entity is chosen, never assumed from the payer. A
+// TLC Therapy Solutions bill also says whether it is an operating expense,
+// therapist compensation or business debt.
+export function missingForConfirm(row, entities = []) {
   const miss = [];
   if (!(Number(row.amount) > 0)) miss.push('amount');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(row.nextDue || ''))) miss.push('actual due date');
+  const tag = entityLabel(entities, row.entityId);
+  if (tag.kind === 'review') miss.push('who it belongs to');
+  else if (tag.kind === 'tlc' && !TLC_KINDS.some(([k]) => k === row.tlcKind)) miss.push('TLC expense type');
   return miss;
 }
 
@@ -201,7 +230,10 @@ export function toObligation(row, now = new Date()) {
     balance: num(row.balance),
     pastDue: num(row.pastDue),
     accountId: row.accountId || null,
-    entityId: row.entityId ?? null,
+    entityId: row.entityId || null,
+    // Poe Properties: which property the bill is for. TLC: what kind of spend.
+    rentalId: row.rentalId || null,
+    tlcKind: TLC_KINDS.some(([k]) => k === row.tlcKind) ? row.tlcKind : null,
     group,
     type: GROUP_TYPE[group],
     category: group,

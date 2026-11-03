@@ -61,7 +61,9 @@ describe('suggestions come from the records, and are never counted until confirm
     const before = buildSafeToSpend(w, { currentDate: TODAY, period: '14d', scope: 'personal' });
     expect(before.windows.next14.total).toBe(0);
     const zw = suggestBills(w, TODAY).find((x) => /ZWICKER/.test(x.name));
-    expect(missingForConfirm(zw)).toEqual(['actual due date']);
+    expect(zw.entityId).toBeNull(); // paid from the personal Chase, but never assumed personal
+    expect(zw.paidFromEntityId).toBe('e-p');
+    expect(missingForConfirm(zw, w.entities)).toEqual(['actual due date', 'who it belongs to']);
     w.recurringObligations.push({ id: 'ro1', enabled: true, ...toObligation({ ...zw, nextDue: '2026-11-05', frequency: 'semimonthly' }, TODAY) });
     const after = buildSafeToSpend(w, { currentDate: TODAY, period: '14d', scope: 'personal' });
     expect(after.windows.arrangements.items.map((i) => i.date)).toEqual(['2026-11-05']);
@@ -171,10 +173,16 @@ describe('the bill-review screen', () => {
     const save = row.querySelector('[data-testid^="bill-review-save-"]');
     expect(save.disabled).toBe(true);
     await setValue(row.querySelector('[data-testid^="bill-review-due-"]'), '2026-11-05');
+    // Paid from the personal Chase, yet NOT assumed personal: it waits on an owner.
+    expect(row.querySelector('[data-testid^="bill-review-entity-chip-"]').textContent).toMatch(/NEEDS REVIEW/);
+    expect(save.disabled).toBe(true);
+    expect(row.querySelector('[data-testid^="bill-review-missing-"]').textContent).toMatch(/who it belongs to/);
+    await setValue(row.querySelector('select[data-testid^="bill-review-entity-"]'), 'e-p');
+    expect(row.querySelector('[data-testid^="bill-review-entity-chip-"]').textContent).toMatch(/PERSONAL/);
     expect(save.disabled).toBe(false);
     await act(async () => { save.click(); });
     expect(addRecurring).toHaveBeenCalledTimes(1);
-    expect(addRecurring.mock.calls[0][0]).toMatchObject({ verified: true, nextDue: '2026-11-05', group: 'arrangement', type: 'arrangement' });
+    expect(addRecurring.mock.calls[0][0]).toMatchObject({ verified: true, nextDue: '2026-11-05', group: 'arrangement', type: 'arrangement', entityId: 'e-p' });
   });
   it('"Not a bill" hides a suggestion through the plan, touching no transaction', async () => {
     let state = world();
@@ -199,6 +207,16 @@ describe('the Overview panel and the mortgage section render what the engine com
     }
     expect(el.querySelector('[data-testid="coming-up-cash-value"]').textContent).toBe('$6236.18');
     expect(el.querySelector('[data-testid="coming-up-cash"]').textContent).toMatch(/Chase 3322.*left out until checked/);
+    expect(el.querySelector('[data-testid="coming-up-cash"] summary').textContent).toMatch(/Current verified cash/);
+  });
+  it('never calls cash "verified" when no account has been checked against the bank', async () => {
+    const w = world();
+    w.transactions = w.transactions.filter((t) => t.category !== 'balance-checkpoint');
+    const result = buildSafeToSpend(w, { currentDate: TODAY, period: '14d', scope: 'personal' });
+    const el = await mount(createElement(MoneyComingUp, { result, extra: extraDebtCapacity(w, { currentDate: TODAY, period: '14d', scope: 'personal' }), show: (n) => `$${Number(n || 0).toFixed(2)}` }));
+    const head = el.querySelector('[data-testid="coming-up-cash"] summary').textContent;
+    expect(head).not.toMatch(/verified/i);
+    expect(head).toMatch(/not bank-checked/);
   });
   it('the mortgage section names the home, says what is missing, and draws no table', async () => {
     const el = await mount(createElement(MoneyHomeMortgage, { money: { data: world(), currentDate: TODAY, updateRental: vi.fn() } }));
