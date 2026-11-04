@@ -515,7 +515,21 @@ const REPO = join(HERE, '..', '..', '..');
 // reader texts -- the publisher's page unread, the writer never telephoned, the
 // fetch failure with its refused number, and the children's-safety report never
 // read -- rather than once in an adult paragraph.
-const GAP = 19;
+// 19 -> 20 GAP on 2026-11-04 (sov62, nobody told it to go around: the reward
+// that taught it, and the finished task that is not an acquittal; DR-1309).
+// CHECKED does NOT move, and the reason is the most uncomfortable one this file
+// has recorded so far: the third road OPENED. Two roads were refused with
+// `CONNECT tunnel failed, response 403`, and the third -- the maker's own news
+// index -- returned HTTP 200 and 348,958 bytes, was read in full, and DID NOT
+// CONFIRM THE RELAY: 26 distinct /news/<slug> links, not one naming an incident
+// disclosure of the kind the issue describes. So no figure is read back, a
+// 0-figure row in lesson-sources.json is forbidden (DR-0076 sec.3), and the
+// lesson is unchecked AFTER A SUCCESSFUL READ rather than after a refusal --
+// which is said in all five reader texts. MEASURED ON THIS TREE, never by
+// arithmetic on a branch: scripts/unchecked-claims.mjs prints 23 lessons
+// admitting, 144 disclosures, 4 checked, 20 in the gap. sov62 contributes 5 of
+// those disclosures, one per reader text.
+const GAP = 20;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
