@@ -739,8 +739,13 @@ describe('sov64 — the teaching itself is pinned, in every place a reader meets
 
 describe('sov64 — the date is derived, never typed', () => {
   it('lesson-dates records this lesson, derived from git and not from the working tree', () => {
-    const d = lessonCreatedDay(ID);
+    // A PIN THAT CALLED THE FUNCTION WRONG, corrected: lessonCreatedDay takes
+    // the COURSE KEY and the lesson id, and a one-argument call returns null for
+    // every lesson in the catalog -- a check that could only ever fail.
+    const d = lessonCreatedDay('sovereign-ai', ID);
     expect(d, `${ID} has no lesson-dates entry; run npm run lesson-dates`).toBeTruthy();
     expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Derived from git, which is why it can only pass once the commit exists.
+    expect(d).toBe('2026-11-04');
   });
 });
