@@ -91,6 +91,20 @@ describe('curriculum shape', () => {
     // merged tree rather than taken from either side: 51 modules, weeks 1..51
     // strictly ascending, nothing missing below 51 -- so `[]`. Never widen this
     // list to make the assertion pass; a hole nobody recorded is a dropped week.
+    // 63 WAS HELD here, recorded 2026-11-04 (DR-1311). Sovereign A.I. week 63
+    // (let fall handfuls on purpose, DR-1310) was written on
+    // `claude/sov63-hardware-software-divide` as PR #2528 and had not landed when
+    // week 64 (lead on softly, DR-1311) was written off an origin/main whose
+    // highest week was 62. The two sources are four minutes apart in the same
+    // Gmail intake lane and landing is strictly serial, so week 64 took the next
+    // free number rather than one another branch already held, and this line read
+    // `[63]` on that branch -- correct there, and wrong the instant #2528 merged.
+    // SO THE ENTRY IS DISCHARGED HERE, IN THE MERGE THAT BROUGHT WEEK 63 IN, which
+    // is exactly what the assertion below forces: `[63]` fails `toEqual` the moment
+    // 63 is no longer missing. RECOMPUTED on the rebased tree rather than taken from
+    // either side: 64 modules, weeks 1..64 strictly ascending, nothing missing below
+    // 64 -- so `[]`. Never widen this list to make the assertion pass; a hole nobody
+    // recorded is a dropped or misfiled week.
     const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
