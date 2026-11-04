@@ -109,7 +109,22 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(274); // on 2026-11-03, sov60 (the bottleneck was never the
+    expect(baseline.allFour).toBe(275); // on 2026-11-04, sov61 (one thing I know -- the warrant
+    // nobody claimed, and the foothold you have to bring yourself) raises it one more, from the 274
+    // sov60 left the day before. READ from a fresh scripts/course-band-baseline-write.mjs run on
+    // the tree that holds the lesson (total 449, allFour 275, adultOnly 0, adultRegister 0), never
+    // computed and never hand-merged. sov61 carries all four authored bands from its first commit
+    // and the full fourBandFaults suite reads clean -- shares child 0.60, youth 0.66, teen 0.81,
+    // senior 1.00; ladder child 2.0 < youth 3.1 < teen 5.2 < senior 7.1 with the adult lesson at
+    // 7.2; worst band-pair overlap 0.15 against the 0.25 near-copy line -- so the sovereign-ai row
+    // reads {lessons: 61, allFour: 40} and the DEBT does not move. AND BOTH GRADE MOVES WERE MADE
+    // BY HAND, because DR-1306 measured what a script does to authored prose: twelve deliberate
+    // sentence splits brought the teen band from 6.07 to 5.2, and twenty deliberate joins brought
+    // the youth band from 2.6 to 3.1 so the child-to-youth rung is not a hair's breadth. Every one
+    // was read back for a lowercased pronoun for Yahweh, for a manufactured fragment, and for
+    // damage to the gated TALK ABOUT IT TOGETHER block. No script touched the prose.
+    //
+    // PREVIOUSLY, on 2026-11-03, sov60 (the bottleneck was never the
     // typing -- machines set to distrust each other, and the one who must still give an answer)
     // raises it one more, from the 273 sov59 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 448,

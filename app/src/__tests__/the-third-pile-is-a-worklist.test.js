@@ -500,7 +500,22 @@ const REPO = join(HERE, '..', '..', '..');
 // gap. sov60 contributes 5 of those disclosures, one per reader text, because
 // the limit is carried on the lesson AND all four bands rather than once in an
 // adult paragraph.
-const GAP = 18;
+//
+// 18 -> 19 GAP on 2026-11-04 (sov61, one thing I know: the warrant nobody
+// claimed, and the foothold you have to bring yourself; DR-1307). CHECKED does
+// NOT move, and that is the honest answer rather than the flattering one.
+// sov61 takes the SECOND branch: three roads to the publisher were refused
+// (two `CONNECT tunnel failed, response 403`, one `getaddrinfo ENOTFOUND`), so
+// no figure is read back, and a 0-figure row in lesson-sources.json is
+// forbidden (DR-0076 sec.3) -- a row that reads nothing back would make the
+// instrument lie in the direction of comfort. MEASURED ON THIS TREE, never by
+// arithmetic on a branch: scripts/unchecked-claims.mjs prints 22 lessons
+// admitting, 139 disclosures, 4 checked, 19 in the gap. sov61 contributes 10 of
+// those disclosures, because its limit is carried FOUR ways in each of the five
+// reader texts -- the publisher's page unread, the writer never telephoned, the
+// fetch failure with its refused number, and the children's-safety report never
+// read -- rather than once in an adult paragraph.
+const GAP = 19;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
