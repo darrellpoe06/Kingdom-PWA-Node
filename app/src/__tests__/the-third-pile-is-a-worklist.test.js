@@ -529,7 +529,54 @@ const REPO = join(HERE, '..', '..', '..');
 // arithmetic on a branch: scripts/unchecked-claims.mjs prints 23 lessons
 // admitting, 144 disclosures, 4 checked, 20 in the gap. sov62 contributes 5 of
 // those disclosures, one per reader text.
-const GAP = 20;
+// 20 -> 21 GAP on 2026-11-04 (sov63, let fall handfuls on purpose: a standing
+// provision is not a crisis measure, and nobody had hired them; DR-1310).
+// CHECKED does NOT move, and that is the honest answer rather than the
+// flattering one. sov63 takes the SECOND branch, measured and not asserted: the
+// source is a daily BUSINESS digest forwarded under one word, Lessons -- not a
+// study -- and the lesson stakes NO figure at all. The issue prints a great many
+// (a halved running price, a climbing compute rent, a restated revenue, a chip
+// index move, an employment share, a graduate-demand claim) and every one of
+// them is LEFT IN THE ISSUE: the teaching rests on one speaker's plain ARGUMENT
+// about standing policy, which is a shape and not a number, and on the Word.
+//
+// THE ROAD WAS TRIED THREE TIMES, not assumed shut (DR-0108):
+//   curl https://www.thedailyupside.com -> `curl: (56) CONNECT tunnel failed, response 403`
+//   curl https://thedailyupside.com     -> `curl: (56) CONNECT tunnel failed, response 403`
+//   WebFetch https://www.thedailyupside.com/technology/ais-hardware-software-divide/
+//                                       -> `getaddrinfo ENOTFOUND www.thedailyupside.com`
+// Both hosts are outside this session's allowed network domains, and the tool's
+// own guidance is to stop after a second host fails the same way, so no further
+// hosts were tried. That measured failure is what all five reader texts tell the
+// reader in their own words, with the refused number in each, rather than a
+// polite "we did not read it". A GitHub runner reaches hosts this sandbox
+// cannot, so the road exists; what it lacks is a candidate `says` string,
+// because this lesson stakes no figure and inventing one to probe would be the
+// fabrication the row exists to prevent.
+//
+// THAT CLAIM IS ENFORCED, NOT ASSERTED. sovereign-ai-sov63-verses.test.js
+// refuses a currency symbol, a percentage and a number wearing a magnitude word
+// in any of the five reader texts, and proves the refusal three ways -- planting
+// "$40", "40%" and "1.2 billion" into EVERY reader text in turn and watching
+// each shape fire, the third being one a currency-and-percentage check alone
+// would miss. A 0-figure row in lesson-sources.json is forbidden (DR-0076
+// section 3) because it would make checked() count a lesson whose figures nobody
+// read, so the honest place for sov63 is HERE.
+// re-review: 2026-12-04 -- from a runner with web access, or once
+// www.thedailyupside.com is allowed in the session's network settings, open the
+// issue's own page AND the international body's published transcript and
+// forecast tables, which this lesson quotes nobody from and verified nothing of.
+// If either carries a germane figure this lesson should teach, teach it, give
+// sov63 a row and lower this pin to 20; if neither prints a figure the lesson
+// needs, replace the "did not read" clause in all five reader texts with an
+// accurate one and lower the pin.
+//
+// MEASURED ON THIS TREE AFTER THE REBASE onto the main that carries sov62, never
+// by arithmetic on a branch: scripts/unchecked-claims.mjs prints 24 lessons
+// admitting, 150 disclosures, 4 checked, 21 in the gap. sov63 contributes 5 of
+// those disclosures, one per reader text, because the limit is carried on the
+// lesson AND all four bands rather than once in an adult paragraph.
+const GAP = 21;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
