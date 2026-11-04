@@ -180,6 +180,38 @@ jobs:
       # returns to app/src. Proven-to-catch in no-prompt-guard.test.js.
       - run: node ../scripts/no-prompt-guard.mjs
 
+      # ELEVEN GUARDS THAT LIVED IN `verify:gates` AND NEVER RAN HERE
+      # (2026-11-04, DR-1308). Measured: 26 guards in app/package.json's
+      # `verify:gates`, 15 named in this file, ELEVEN run only by a person who
+      # happened to type `npm run verify`. Two of the eleven are the ones that
+      # matter most to the lesson lane: `one-thread-one-record-guard` is the
+      # instrument that caught DR-1305's citation bug, which had two of
+      # Darrell's sends invisible to the Gmail lane for 27 days, and
+      # `one-teaching-one-lesson-guard` is the duplicate-lesson check. A guard
+      # CI never runs is not a guard (DR-0076 §3).
+      #
+      # `verify-covers-ci-guards.test.js` was supposed to prevent exactly this
+      # and could not: it asserted CI ⊆ verify, one direction only, so a guard
+      # could sit in `verify:gates` for ever without CI ever calling it. That
+      # test now asserts both directions, which is the repair; these eleven
+      # lines are only today's instance of it.
+      #
+      # Measured cost on this runner: the ten node guards total ~19s and
+      # `one-teaching-one-lesson-guard` ~37s, all exit 0 on `main` at 729b40f18.
+      - run: node ../scripts/workflow-list-order-guard.mjs
+      - run: node ../scripts/unknown-is-not-a-no-guard.mjs
+      - run: node ../scripts/stamp-carries-its-year-guard.mjs
+      - run: node ../scripts/surface-hollow-guard.mjs
+      - run: node ../scripts/constraint-allow-list-guard.mjs
+      - run: node ../scripts/inline-constraint-replay-guard.mjs
+      - run: node ../scripts/newest-definition-replay-guard.mjs
+      - run: node ../scripts/measurement-carries-no-identity-guard.mjs
+      - run: node ../scripts/migration-prose-guard.mjs
+      - run: node ../scripts/one-thread-one-record-guard.mjs
+      # This one needs vite-node, not node, because it imports the course
+      # modules. Its runner differs; its obligation does not.
+      - run: npx vite-node ../scripts/one-teaching-one-lesson-guard.mjs
+
   # The Vitest suite, split into disjoint shards that run at the same time.
   # fail-fast is OFF so a red shard still lets the others finish and report
   # every failing test, not just the first shard's.
