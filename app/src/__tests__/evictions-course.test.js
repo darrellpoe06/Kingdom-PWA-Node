@@ -461,7 +461,7 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       .toEqual(['Deuteronomy 24', 'Leviticus 25', 'Matthew 18', 'Micah 2']);
   });
 
-  it('shares exactly SIX verses with courses OUTSIDE the department, and names them', () => {
+  it('shares exactly SEVEN verses with courses OUTSIDE the department, and names them', () => {
     // The department pin above is verse-level zero. This is the wider picture,
     // pinned so the narrower claim cannot be mistaken for a catalog-wide one.
     //
@@ -497,7 +497,17 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
     // with itself, so the list is re-pinned rather than loosened — and the
     // title of this case now says SIX, because a case that counts five while
     // calling itself FOUR is a surface telling a reader something untrue.
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
+    //
+    // And to SEVEN on 2026-11-04 when sov63 (let fall handfuls on purpose,
+    // DR-1310) landed in Sovereign A.I.: it quotes Job 31:16 — "If I have
+    // withheld the poor from their desire, or have caused the eyes of the widow
+    // to fail" — for a standing provision owed BEFORE anyone has to ask, which
+    // is the same ground this course reads the NEXT verse on, Job 31:15, for the
+    // one who made the tenant in the womb. Job 31 names the withholding and the
+    // common making in one breath; a provision course and an evictions course
+    // meeting there is the catalog agreeing with itself. Re-pinned, not
+    // loosened, and the title says SEVEN.
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Job 31:16', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {

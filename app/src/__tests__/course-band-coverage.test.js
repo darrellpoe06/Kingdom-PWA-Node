@@ -109,7 +109,27 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(276); // on 2026-11-04, sov62 (nobody told it to go around --
+    expect(baseline.allFour).toBe(277); // on 2026-11-04, sov63 (let fall handfuls on purpose --
+    // a standing provision is not a crisis measure, and nobody had hired them) raises it one more,
+    // from the 276 sov62 left earlier the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 451,
+    // allFour 277, adultOnly 0, adultRegister 0), never computed and never hand-merged -- and
+    // re-derived AFTER the rebase onto the main that carries sov62, rather than carried over from
+    // the pre-rebase measurement. sov63 carries all four authored bands from its first commit and
+    // the full fourBandFaults suite reads clean -- shares child 0.58, youth 0.66, teen 0.87,
+    // senior 0.94; ladder child 1.73 < youth 4.62 < teen 5.27 < senior 8.02 with the adult lesson
+    // at 7.02; worst band-pair overlap 0.20 against the 0.25 near-copy line -- so the sovereign-ai
+    // row reads {lessons: 63, allFour: 42} and the DEBT does not move. AND THE TEEN BAND IS WHERE
+    // THIS LESSON PAID ITS TUITION, THREE TIMES: a first teen draft read 8.69, over its 6.0
+    // ceiling, AND overlapped the adult lesson at 0.234, a near-copy by any honest reading; a
+    // from-scratch rewrite in its own register dropped it to 4.08, which INVERTED the ladder below
+    // the youth band; thirty-three deliberate sentence joins took it to 6.72, over the ceiling
+    // again; twelve deliberate splits settled it at 5.27. Every pass was read back by hand for a
+    // lowercased pronoun for Yahweh, for a manufactured fragment, and for damage to the gated TALK
+    // ABOUT IT TOGETHER block, because DR-1306 measured what a script does to authored prose. No
+    // script touched the prose.
+    //
+    // PREVIOUSLY, on 2026-11-04, sov62 (nobody told it to go around --
     // the reward that taught it, and the finished task that is not an acquittal) raises it one
     // more, from the 275 sov61 left earlier the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 450,
