@@ -109,7 +109,22 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(275); // on 2026-11-04, sov61 (one thing I know -- the warrant
+    expect(baseline.allFour).toBe(276); // on 2026-11-04, sov62 (nobody told it to go around --
+    // the reward that taught it, and the finished task that is not an acquittal) raises it one
+    // more, from the 275 sov61 left earlier the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 450,
+    // allFour 276, adultOnly 0, adultRegister 0), never computed and never hand-merged. sov62
+    // carries all four authored bands from its first commit and the full fourBandFaults suite
+    // reads clean -- shares child 0.60, youth 0.71, teen 0.95, senior 1.00; ladder child 3.1 <
+    // youth 4.2 < teen 5.6 < senior 9.8 with the adult lesson at 6.6; worst band-pair overlap 0.06
+    // teen~senior against the 0.25 near-copy line, and worst band~adult 0.07 -- so the
+    // sovereign-ai row reads {lessons: 62, allFour: 41} and the DEBT does not move. THE NEAR-COPY
+    // LINE WENT RED FIVE WAYS ON THE FIRST DRAFT (teen~senior 0.44, senior~adult 0.49) and three
+    // bands were rewritten as independent compositions rather than re-registered; the teen grade
+    // was then moved BY HAND in both directions, 39 authored joins and 9 authored reversals, each
+    // read back for a lowercased pronoun for Yahweh, a manufactured fragment, and damage to the
+    // gated TALK ABOUT IT TOGETHER block. No script touched the prose (DR-1306).
+    // Previously 275 on 2026-11-04 with sov61 (one thing I know -- the warrant
     // nobody claimed, and the foothold you have to bring yourself) raises it one more, from the 274
     // sov60 left the day before. READ from a fresh scripts/course-band-baseline-write.mjs run on
     // the tree that holds the lesson (total 449, allFour 275, adultOnly 0, adultRegister 0), never
