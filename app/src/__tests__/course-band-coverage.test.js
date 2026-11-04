@@ -109,7 +109,26 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(277); // on 2026-11-04, sov63 (let fall handfuls on purpose --
+    expect(baseline.allFour).toBe(278); // on 2026-11-04, sov64 (lead on softly -- the tool was
+    // made for the man, and the quota that kept its number when the straw was taken away) raises
+    // it one more, from the 277 sov63 left the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run AFTER THE REBASE, on the tree that holds BOTH
+    // sov63 and sov64 (total 452, allFour 278, adultOnly 0, adultRegister 0), never computed and
+    // never hand-merged. sov64 was written off a main whose highest week was 62 and measured
+    // 451/277 there -- true of that tree, and wrong the instant PR #2528 merged sov63, which is
+    // why this number is re-derived rather than carried. sov64 carries all four authored bands
+    // from its first commit and the full fourBandFaults suite reads clean -- shares child 0.60,
+    // youth 0.71, teen 0.96, senior 1.05; ladder child 1.42 < youth 4.96 < teen 5.20 < senior
+    // 9.16 with the adult lesson at 7.34; worst band-pair overlap 0.138 adult~teen against the
+    // 0.25 near-copy line -- so the sovereign-ai row reads {lessons: 64, allFour: 43} and the
+    // DEBT does not move. THE TEEN GRADE WENT OVER ITS CEILING ON THE FIRST DRAFT at 7.53, and
+    // the 65 authored splits that fixed it overshot to 4.71, BELOW the youth band, inverting the
+    // ladder; 25 were reversed by hand, each read back one at a time, landing 5.20 -- because
+    // DR-1306 measured what a script does to authored prose. The child band was separately given
+    // 160 further words of its own closing summary, in child register, raising its share from
+    // 0.504 to 0.60.
+    // The sov63 record this replaces, kept because it is what the previous tree measured:
+    // on 2026-11-04, sov63 (let fall handfuls on purpose --
     // a standing provision is not a crisis measure, and nobody had hired them) raises it one more,
     // from the 276 sov62 left earlier the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 451,
