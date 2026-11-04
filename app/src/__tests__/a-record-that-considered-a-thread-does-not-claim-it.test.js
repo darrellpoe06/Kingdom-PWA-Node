@@ -50,17 +50,29 @@ const REPO = resolve(import.meta.dirname, '../../..');
 // unknown -> built -> SHIPPED by the record that actually built it, rather than
 // staying SHIPPED by the record that had only considered it.
 //
-// `1a11bea0b4de78e0` is STILL UNBUILT, and it is now declared `Considered, not
-// built` by DR-1306 as well as DR-1303 and DR-1305 — three records naming it,
-// none claiming it. It stays in STILL_BLOCKED below, which is the case that
-// proves the exemption still holds when more than one record names a thread.
-// If it ever becomes a lesson, move it the same way, citing that lesson.
-const STILL_BLOCKED = ['1a11bea0b4de78e0'];
+// UPDATED DELIBERATELY AGAIN ON 2026-11-04, for the same reason and in the same
+// way: `1a11bea0b4de78e0` is no longer unbuilt either. It was built as **sov61**
+// (one thing I know — the warrant nobody claimed) by **DR-1307**, which names it
+// in its own `Intake:` line. So BOTH of the sends DR-1303 blocked have now
+// arrived, and neither is claimed by a record that merely considered it.
+//
+// STILL_BLOCKED is therefore EMPTY, and the case that read it has been replaced
+// rather than deleted, because an empty list passing vacuously is precisely what
+// this file exists to refuse. What replaced it is STRICTER than what it covered:
+// each of the two threads is now named by FOUR records and must be claimed by
+// EXACTLY ONE — the one that built it. DR-1307 declares `1a11bdbce29bab3e` and
+// DR-1306 declares `1a11bea0b4de78e0`, so the two declarations now point at each
+// other, which is the hardest shape the exemption has had to hold and the reason
+// the stricter assertion is worth more than the old one.
+const STILL_BLOCKED = [];
 // The two ids DR-1303's OWN declaration names. That line has not changed and
 // must not: it is the evidence for this record's account of the damage, and the
 // two cases below read DR-1303's text rather than today's build state.
 const DR1303_DECLARED = ['1a11bdbce29bab3e', '1a11bea0b4de78e0'];
-const BUILT_SINCE = { '1a11bdbce29bab3e': 'DR-1306' };
+const BUILT_SINCE = { '1a11bdbce29bab3e': 'DR-1306', '1a11bea0b4de78e0': 'DR-1307' };
+// Every record that NAMES one of the two without having built it. Each must be
+// absent from both sweeps, or a citation is still reading as a claim.
+const ONLY_CONSIDERED = ['DR-1303', 'DR-1305'];
 const DR1303_SOURCE = '1a0d92de3dba5e7e';
 
 const dr1303 = () => {
@@ -70,16 +82,23 @@ const dr1303 = () => {
 };
 
 describe('a decision record can name a thread it did not build without blocking it', () => {
-  it('the send DR-1303 proved was unbuilt and nobody has built sweeps UNKNOWN again', () => {
-    const found = sweep(STILL_BLOCKED);
-    expect(STILL_BLOCKED.length, 'an empty list would make this pass vacuously').toBeGreaterThan(0);
-    for (const id of STILL_BLOCKED) {
+  it('each of the two sends DR-1303 blocked is claimed by EXACTLY ONE record, the one that built it', () => {
+    // This replaces the old STILL_BLOCKED case, which asserted that
+    // `1a11bea0b4de78e0` still swept UNKNOWN. It no longer does, because it was
+    // built, and pretending otherwise would be the lie this file is against.
+    // The stricter form keeps the coverage and adds to it: four records name
+    // each thread, and exactly one may claim it.
+    const ids = Object.keys(BUILT_SINCE);
+    expect(ids.length, 'an empty map would make this pass vacuously').toBeGreaterThan(1);
+    expect(STILL_BLOCKED, 'nothing DR-1303 blocked is still unbuilt; see the note above').toEqual([]);
+    const found = sweep(ids);
+    for (const id of ids) {
       expect(
         found.get(id).drs,
-        `${id} is one of Darrell's unbuilt sends (2026-10-08). A record naming it as a REJECTED `
-        + 'candidate must not claim it, or the lane skips his words for ever. Three records now '
-        + 'name this one (DR-1303, DR-1305, DR-1306) and not one of them built it.',
-      ).toEqual([]);
+        `${id} is one of Darrell's 2026-10-08 sends. FOUR records name it and only the one that `
+        + 'BUILT it may claim it; a record naming it as a considered candidate must not, or the '
+        + 'lane skips his words for ever.',
+      ).toEqual([BUILT_SINCE[id]]);
     }
   });
 
@@ -92,9 +111,16 @@ describe('a decision record can name a thread it did not build without blocking 
     for (const id of ids) {
       const drs = found.get(id).drs;
       expect(drs, `${id} was built and must read SHIPPED`).toContain(BUILT_SINCE[id]);
-      // DR-1303 and DR-1305 only CONSIDERED it, and must still not claim it.
-      expect(drs, `${id}: DR-1303 only considered it`).not.toContain('DR-1303');
-      expect(drs, `${id}: DR-1305 only considered it`).not.toContain('DR-1305');
+      // DR-1303 and DR-1305 only CONSIDERED both, and must still not claim either.
+      for (const dr of ONLY_CONSIDERED) {
+        expect(drs, `${id}: ${dr} only considered it`).not.toContain(dr);
+      }
+      // AND THE TWO LESSON RECORDS MUST NOT CLAIM EACH OTHER'S THREAD, which is
+      // the new shape as of 2026-11-04: DR-1307 declares DR-1306's source and
+      // DR-1306 declares DR-1307's, so each declaration is load-bearing.
+      const sibling = Object.values(BUILT_SINCE).find((d) => d !== BUILT_SINCE[id]);
+      expect(sibling, 'there must be a sibling record for this case to mean anything').toBeTruthy();
+      expect(drs, `${id}: ${sibling} only considered it`).not.toContain(sibling);
     }
   });
 
