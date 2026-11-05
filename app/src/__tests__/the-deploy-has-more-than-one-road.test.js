@@ -59,6 +59,9 @@ const shellOf = (srv) => `http://127.0.0.1:${srv.address().port}/poetech-app/`;
 // spawning case, not only the one seen to fail, and both ends are pinned as
 // named constants. `budgetsAreOrdered` below fails the suite if they ever meet
 // again -- a comment cannot fail a build, and this tie already shipped once.
+// The class is gated repo-wide by scripts/subprocess-budget-guard.mjs, which
+// found the same tie in a-backup-on-request.test.js; this file keeps its own
+// test because only the fixtures here know the per-case multipliers below.
 //
 // Sizing needs one measured fact per script, because neither inner budget is a
 // total wall clock:
