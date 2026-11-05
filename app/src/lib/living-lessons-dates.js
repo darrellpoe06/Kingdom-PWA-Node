@@ -527,4 +527,11 @@ export const LIVING_LESSONS_ADDED = {
   // somebody else was written for you, and comfort is what keeps it from
   // teaching you (DR-1325).
   'll281-though-thou-knewest-all-this': '2026-11-05',
+  // L282 (The Greater Work) is the fourth word Darrell spoke into the app on
+  // 2026-11-05, in two messages minutes apart read as one teaching: positions
+  // and titles may not interfere with the work of the Lord, the flock at home
+  // is the greater work, you war for peace, the second death is the key, and
+  // the inheritance you leave your children is the profile of the eternal
+  // King lived out in front of them (DR-1329). Built and dated the same day.
+  'll282-the-greater-work': '2026-11-05',
 };
