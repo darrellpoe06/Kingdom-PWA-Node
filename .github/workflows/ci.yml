@@ -175,6 +175,11 @@ jobs:
       # no other source file is born over 1,500 lines.
       - run: node ../scripts/record-length-guard.mjs
       - run: node ../scripts/file-budget-guard.mjs
+      # NO RUNTIME PAST ITS END OF LIFE (DR-1341, DR-1330 D12): every pinned
+      # Node, Python and PostgreSQL has a dated line in scripts/eol-register.json
+      # (dates read from the endoflife.date source at a named commit); a pin
+      # past its date, or a pin with no line, is red; a date within 120 days warns.
+      - run: node ../scripts/eol-register.mjs
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24'

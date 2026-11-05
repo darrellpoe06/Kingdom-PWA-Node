@@ -203,6 +203,40 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 6,
       "notes": "fb2343d push (18:10Z) to this push."
+    },
+    {
+      "id": "d11-three-closes",
+      "date": "2026-11-05",
+      "task": "Three small closes: constant-time token compare, no wildcard CORS, cross-origin writes refused at the proxy",
+      "drs": [
+        "DR-1340"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 3,
+      "notes": "d2929d2 push to this push, shared with D12."
+    },
+    {
+      "id": "d12-eol-register",
+      "date": "2026-11-05",
+      "task": "End-of-life register with dates read from the endoflife.date source, a guard over 57 pins",
+      "drs": [
+        "DR-1341"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 4,
+      "notes": "Shared window with D11; the feed was unreachable, the source repository was cloned instead."
     }
   ]
 }

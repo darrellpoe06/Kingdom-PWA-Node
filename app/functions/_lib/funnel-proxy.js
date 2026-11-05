@@ -69,6 +69,21 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
     const { request, params } = context;
     const url = new URL(request.url);
 
+    // A WRITE FROM ANOTHER ORIGIN IS REFUSED AT THE DOOR (DR-1340, DR-1330
+    // D11). The session rides a bearer header, so a cross-site form cannot
+    // forge a write; this is the second lock on the same door. A browser
+    // always sends Origin on a cross-origin POST; a rider or a workflow sends
+    // none and passes. Reads are not gated here — RLS and the upstream are.
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('origin');
+      if (origin && origin !== url.origin) {
+        return new Response(
+          JSON.stringify({ error: `${label} proxy refused a write from another origin`, code: 'cross-origin-write' }),
+          { status: 403, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
+        );
+      }
+    }
+
     // [[path]] catch-all -> array of segments after the route prefix (absent
     // entirely for single-path routes like /property-history).
     const segments = Array.isArray(params?.path) ? params.path : (params?.path ? [params.path] : []);
