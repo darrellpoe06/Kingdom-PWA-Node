@@ -31,6 +31,23 @@ no balances, no full account numbers. Verify anything dated before relying on it
 - Darrell's Overview on 2026-11-05: Total Outstanding Debt shown for 24 debts; Savings Progress against a $2,000 buffer. His intended Personal reserve is $10,000. The reserve the engine uses is `moneyPlan.settings.reserveByEntity.personal`, separate from `meta.bufferTarget`.
 - Per Darrell, Chase 3322 is Poe Properties business checking. Its entity assignment in the live database is what the census verifies; the hosted copy had it under `e-personal`.
 
+## Corrected 2026-11-05 (this thread; on PR #2540, held, NOT merged)
+
+Measured before the change with the new suite `app/src/__tests__/money-loans-grace.test.js`: 8 of 11 cases red on `main` df80128. After: 15 of 15 green; the 14 Money suites together 201 green; lint clean.
+
+1. **A missed loan payment is owed now, not rolled to next month.** `safe-to-spend.js obligationEvents` step 1: a recurring bill whose `nextDue` has passed is counted today, overdue, keeping its due date, when the record is TRACKED — it has a grace period on file (`graceDays`) or was confirmed (`verifiedAt`) with the due date already past. A merely stale record keeps the roll-forward and is named in the assumptions. Only the latest missed cycle is counted; earlier ones are named. A planned pay date on/after today carries it instead.
+2. **Grace states.** `graceDays` on the bill gives each missed occurrence `graceEndsOn` and `graceState` = `in-grace` (today <= due + grace) or `past-grace`. `billStatusOf` returns them; `BILL_DUE_STATUS_LABEL` labels them; Bills Due shows "grace ends <date>". Both states stay in Overdue so the money is reserved.
+3. **Paid and cleared matches from the due date.** `settleOccurrences` opens the ledger window half a cycle before the DUE date (not today), so an October payment settles the October occurrence.
+4. **Late fees owed now, once.** `lateFees` on the bill becomes one overdue line "· late fees".
+5. **A Cash App transfer landing in Chase is never income.** Step 2 (future-dated ledger rows) now skips `isOwnAccountTransfer` descriptions (`CASH APP*DARRELL`, `POE PROPERT`, `TRANSFER TO`, ...), the same rule the inferred-bill pass already used.
+6. **One loan, one line.** `toObligation` keeps `linkedMortgageId` for a rental bill marked "this is the mortgage on this property" (checkbox in Bills Review), so the property record's P&I line is not counted beside the confirmed loan bill. New loan fields on the bill: `lender`, `rate`, `graceDays`, `lateFees` (plus the existing `accountLast4` for the loan number, `balance` for principal, `pastDue`, `accountId` for the paying account, `rentalId` for the property).
+
+Unchanged and verified by the same run: Personal reserve floors Safe to Spend at $0 (`reserveByEntity.personal`), entity scoping keeps Poe Properties cash out of Personal.
+
+## How the six First State Bank loans are entered (Darrell, in the app, after the census)
+
+Money -> Bills -> Review & confirm -> add a bill, one per loan: group "Rental property mortgage or expense"; Lender "First State Bank"; Loan number last 4; Normal payment; Actual due date = the CONTRACTUAL due date (even if passed); Grace period 15; Late fees owed now if the bank shows one; Paid from = the account actually used; Belongs to = Poe Properties; Which property; tick "This bill is the mortgage on this property". The line of credit has no property: leave the property unset and the mortgage box unticked. Nothing is pre-filled by the agent: the figures come from the bank statements.
+
 ## The seven questions - what the engine can answer today
 
 | # | Question | Engine support | Blocked by |
@@ -65,11 +82,13 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Next unfinished task
 
-Darrell runs the read-only census from ConnectBot and pastes the rounded rows
-back; present verified current records beside the exact proposed corrections
-(items 2-4); wait for approval before any record change; then delete
-`scripts/money-records-read.sql`. No live records changed and nothing deployed
-by this thread.
+Darrell runs the read-only census from ConnectBot (`scripts/money-census.sh`,
+one line) and pastes the rounded rows back; present verified current records
+beside the exact proposed corrections (items 2-4); wait for approval before any
+record change; enter the six loans with the figures from the bank statements;
+compare Safe to Spend against the verified figures; then lift the hold on PR
+#2540 and delete `scripts/money-census.sh` + `scripts/money-records-read.sql`.
+No live records changed and nothing deployed by this thread.
 
 ## References
 

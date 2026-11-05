@@ -331,6 +331,11 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (pastDue > 0 && type !== 'past-due') {
       events.push({ ...base, amount: -round2(pastDue), label: `${o.name || 'Obligation'} · past due`, date: isoDay(start), overdue: true, dueDate: null, pastDuePart: true });
     }
+    // A separate late charge (a loan's late fee) is owed now, once.
+    const lateFees = Number(o.lateFees) || 0;
+    if (lateFees > 0) {
+      events.push({ ...base, amount: -round2(lateFees), label: `${o.name || 'Obligation'} · late fees`, date: isoDay(start), overdue: true, dueDate: null, pastDuePart: true });
+    }
     // When the family plans to pay on a different day than the due date, the
     // cash leaves on the planned day; overdue is still judged by the due date.
     const firstDue = parseDay(o.payOn) || parseDay(o.nextDue);
@@ -342,8 +347,51 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       if (at <= end) events.push({ ...base, date: isoDay(at), overdue, dueDate: isoDay(due) });
       continue;
     }
+    // A RECURRING payment whose due date passed unpaid is OWED NOW, never rolled
+    // to next month (Darrell 2026-11-05: loan 5312 due Oct 25 and 5342 due
+    // Oct 29, both unpaid on Nov 5; "Reserve money for unpaid obligations even
+    // during the grace period"). Before this, expandOccurrences skipped every
+    // date before today, so a missed loan payment left Bills Due and Safe to
+    // Spend unless a past-due amount was typed by hand.
+    //
+    // WHICH records are read that way — the evidence, not a guess:
+    //   · a loan with a grace period on file (graceDays): its due dates are
+    //     tracked on purpose, so a passed one is owed until a payment is found;
+    //   · a bill the family CONFIRMED (verifiedAt) with a due date already in
+    //     the past: they said "this was due then" knowing it had passed.
+    // Any other record whose nextDue simply went stale (never advanced) keeps
+    // the roll-forward: a stale date is not evidence of a missed payment, and
+    // it is named so the record gets fixed. Only the LATEST missed cycle is
+    // owed now — earlier ones are named, never stacked. The occurrence keeps its
+    // own due date so a ledger payment settles it (settleOccurrences matches
+    // from the due date) and its grace state is judged against dueDate +
+    // graceDays: within the grace period until that day, past it after. A
+    // planned pay date on or after today carries the missed payment instead.
+    const grace = Number(o.graceDays) > 0 ? Math.floor(Number(o.graceDays)) : null;
+    const contractualDue = parseDay(o.nextDue);
+    const confirmedOn = parseDay(String(o.verifiedAt || '').slice(0, 10));
+    if (contractualDue && contractualDue < start) {
+      const name = o.name || 'Obligation';
+      const tracked = grace != null || (!!confirmedOn && contractualDue <= confirmedOn);
+      const planned = parseDay(o.payOn);
+      if (!tracked) {
+        assumptions.push(`${name}: its due date on file (${isoDay(contractualDue)}) has passed, so the next one is projected; if that payment is still owed, confirm the bill in Money → Bills → Review.`);
+      } else if (planned && planned >= start) {
+        // the planned payment date carries it (the expansion below starts there)
+      } else {
+        const missed = expandOccurrences(contractualDue, o.frequency || 'monthly', contractualDue, addDays(start, -1), 400);
+        const due = missed[missed.length - 1];
+        if (due) {
+          const ev = { ...base, date: isoDay(start), overdue: true, dueDate: isoDay(due), missed: true };
+          if (grace != null) { const ends = addDays(due, grace); ev.graceDays = grace; ev.graceEndsOn = isoDay(ends); ev.graceState = start <= ends ? 'in-grace' : 'past-grace'; }
+          events.push(ev);
+          assumptions.push(`${name}: the payment due ${isoDay(due)} has not been found in the ledger; counted as owed today${grace != null ? ` (grace period ${grace} days, ends ${ev.graceEndsOn})` : ''}. Mark it paid in Bills Due if it was paid another way.`);
+        }
+        if (missed.length > 1) assumptions.push(`${name}: ${missed.length - 1} earlier due date${missed.length - 1 === 1 ? '' : 's'} also passed (${missed.slice(0, -1).map(isoDay).join(', ')}); only the latest is counted. Update the record, or add a past-due amount if those are still owed.`);
+      }
+    }
     for (const at of expandOccurrences(firstDue, o.frequency || 'monthly', start, end)) {
-      events.push({ ...base, date: isoDay(at) });
+      events.push({ ...base, date: isoDay(at), dueDate: isoDay(at) });
     }
   }
 
@@ -355,7 +403,11 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     const acct = accountsById.get(t.accountId);
     if (!acct || !SPENDABLE_TYPES.includes(acct.type) || acct.inLegal || acct.treatAsDebt) continue;
     if (!inScope(sc, acct.entityId)) continue;
-    if (isTransferTxn(t) || isBalanceAdjustment(t)) continue;
+    // Money moving between the family's own accounts is never income or spend:
+    // a pending Cash App transfer landing in Chase is the rent that already
+    // arrived in Cash App (Darrell 2026-11-05: "Never count the same money
+    // twice"), so it is skipped here like a flagged transfer.
+    if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
     const amt = Number(t.amount) || 0; if (!amt) continue;
     scheduledKeys.add(payeeKey(t.description || ''));
     events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, assumed: false });
@@ -676,7 +728,9 @@ export function settleOccurrences(events, data, asOf) {
     if (ev.source === 'obligation') {
       const o = obligationsById.get(ev.refId);
       const half = HALF_CYCLE_DAYS[(o && o.frequency) || 'monthly'] ?? 15;
-      const from = addDays(parseDay(ev.date), -half);
+      // A missed occurrence is dated today but was DUE earlier; the payment
+      // window opens half a cycle before the due date, not before today.
+      const from = addDays(parseDay(ev.dueDate || ev.date), -half);
       const k = payeeKey((o && o.name) || ev.label || '');
       for (const x of debits) {
         if (paid >= due - 0.005) break;
@@ -842,7 +896,7 @@ function comingUp(data, sc, start, settings, opts) {
   const ob = obligationEvents(data, sc, start, end14, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const inc = incomeEvents(data, sc, addDays(start, 1), end14, settings, start);
   const out = ob.events.filter((e) => e.amount < 0);
-  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
+  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
   // What is NOT subtracted, shown beside what is: payments already paid and
   // cleared (in the ledger, marked paid outside, or inside the bank-checked
@@ -868,12 +922,16 @@ function comingUp(data, sc, start, settings, opts) {
 // upcoming (a bill, debt minimum, mortgage or tax item on file), and inferred
 // from transaction history (not confirmed).
 export const BILL_DUE_STATUS_LABEL = {
+  'in-grace': 'Due, unpaid — within the grace period',
+  'past-grace': 'Past the grace period',
   overdue: 'Overdue',
   pending: 'Pending',
   confirmed: 'Confirmed upcoming',
   inferred: 'Inferred from history, not confirmed',
 };
 export function billStatusOf(e) {
+  // A loan with a grace period on file: within it, or past it (both still owed).
+  if (e.graceState) return e.graceState;
   if (e.overdue) return 'overdue';
   if (e.markedPaid || e.kind === 'scheduled') return 'pending';
   if (e.kind === 'inferred-bill') return 'inferred';
