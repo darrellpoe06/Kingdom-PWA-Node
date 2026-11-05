@@ -139,6 +139,10 @@ jobs:
       # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
       # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
       - run: node ../scripts/lessons-gate-coverage.mjs
+      # Journey coverage (DR-1332, DR-1330 D2): every nav family in surfaces.js
+      # and every app/src/modules/* has a registered journey, and a deferred
+      # one carries a why and a re-review date that has not passed.
+      - run: node ../scripts/journey-coverage-guard.mjs
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
@@ -782,6 +786,21 @@ jobs:
         working-directory: ${{ github.workspace }}
       - name: The sweep — every distinct route, phone and laptop widths
         run: node scripts/e2e/surface-sweep.mjs
+        working-directory: ${{ github.workspace }}
+      # THE JOURNEYS (DR-1332, from DR-1330 D2): a person's walks on the same
+      # build — a shared lesson link lands on the lesson, Learn opens a lesson
+      # by taps, the dock tabs and money sections open by taps, Create takes
+      # typed words, the feedback sheet opens. Registry: scripts/e2e/journeys.mjs;
+      # the coverage guard runs in the guards leg. The two planted faults run
+      # first and each must be caught (DR-0076 §3).
+      - name: Proven to catch — a shared link to a lesson that does not exist must fail its journey
+        run: node scripts/e2e/app-journeys.mjs --only=lesson-link-lands,create-takes-words --break=link
+        working-directory: ${{ github.workspace }}
+      - name: Proven to catch — taps that cannot land must fail every tapping journey
+        run: node scripts/e2e/app-journeys.mjs --break=taps
+        working-directory: ${{ github.workspace }}
+      - name: The journeys — every registered walk on the built app
+        run: node scripts/e2e/app-journeys.mjs
         working-directory: ${{ github.workspace }}
 
   # THE NAS COPY OF THE CURRICULUM (DR-0677). The lessons stay in the code;
