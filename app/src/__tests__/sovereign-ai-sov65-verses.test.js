@@ -316,43 +316,41 @@ describe('sov65 — the free ground, measured in both directions', () => {
     expect(all.size).toBeGreaterThan(460);
     expect(dept().length).toBeGreaterThan(75);
   });
+  // =========================================================================
+  // THE EXCLUSIVITY CASES ARE REMOVED (2026-11-05, DR-1323)
+  // =========================================================================
+  // This file asserted that every chapter the lesson stands on is FREE of every
+  // other lesson in the department, that NO OTHER LESSON may stand on one of its
+  // chapters, that the chapters it declined really are "SPENT", and that none of
+  // its references appears in another lesson's prose. All four enforced the
+  // spent-verse rule, which Darrell overturned on 2026-11-05 (DR-1317):
+  //
+  //   "How can we have only reference one scripture ever?! Doesn't make any
+  //    sense!"  and  "there would be overlapping at times however not the exact
+  //    same lesson... 8 points of this lesson does not end with the same message
+  //    it's close however another point entirely after explaining the
+  //    foundations of the eternal systems Yahweh created in us and outside of
+  //    us... How else would they connect?!"
+  //
+  // They also protected nothing. The only thing DR-0610 forbids is two lessons
+  // LANDING on the same message, and no assertion here ever looked at where a
+  // lesson lands. What they did instead was REFUSE HIS OWN FUTURE LESSONS: the
+  // backward case fails in THIS file when a later lesson touches any of these
+  // chapters, which is DR-1316's cost shape exactly -- a gate failing in a file
+  // the new build never touched. MEASURED: sov66 cited 2 Kings 18:21, this gate
+  // went red, and that builder had to route the teaching through Isaiah 36:6 --
+  // the Word's other witness, the same clause, word for word -- rather than drop
+  // the reading (DR-1317) or edit this file (not its to edit).
+  //
+  // What the census measured when this lesson was built is kept in the header
+  // above as HISTORY -- a measurement taken on a date, not a standing claim
+  // about what any other lesson may teach.
 
-  it('every chapter this lesson stands on is FREE of every OTHER lesson in the department', () => {
-    const others = chaptersOf(dept().filter((m) => m.id !== ID));
+  it('stands on exactly the chapters it declares, and its spine is whole', () => {
     const mine = [...new Set(SPINE.map(chapterKey))];
-    expect(mine.length).toBe(24);
-    const clash = mine.filter((c) => others.has(c)).map((c) => `${c} <- ${[...others.get(c)].join(', ')}`);
-    expect(clash, `chapter already spent:\n${clash.join('\n')}`).toEqual([]);
-  });
-
-  it('and in the OTHER direction: no other lesson stands on a chapter this one claims', () => {
-    const mine = new Set(SPINE.map(chapterKey));
-    const clash = [];
-    for (const m of dept()) {
-      if (m.id === ID) continue;
-      for (const r of anchorRefs(m)) if (mine.has(chapterKey(r))) clash.push(`${m.id} -> ${r}`);
-    }
-    expect(clash, clash.join('\n')).toEqual([]);
-  });
-
-  it('the chapters DECLINED AS SPENT really are spent, so the census cannot have been invented', () => {
-    const all = chaptersOf(dept().filter((m) => m.id !== ID));
-    // Each is a chapter a builder would reach for on a price, a scale or a vow,
-    // and each is already carried. If one ever reads FREE the census in this
-    // header is stale and must be re-measured, never deleted.
-    for (const c of ['Proverbs 11', 'Proverbs 16', 'Proverbs 20', 'Deuteronomy 25', 'Leviticus 19', 'Micah 6', 'Isaiah 55', '2 Kings 7', 'Luke 14', 'Ecclesiastes 5', 'Proverbs 25', 'John 19', 'Matthew 5', 'Joshua 9', '1 Samuel 1', 'Habakkuk 2', 'Luke 12', 'Hebrews 11']) {
-      expect(all.has(c), `${c} was declined as SPENT but reads FREE`).toBe(true);
-    }
-  });
-
-  it('THE PROSE-LEVEL CENSUS: not one of the 40 references appears anywhere in another department lesson', () => {
-    // Anchor-free is not prose-free — the finding sov63 lost a whole draft to.
-    // This is the check run BEFORE the writing, asserted here so it stays true.
-    const others = dept().filter((m) => m.id !== ID).map((m) => [m.id, JSON.stringify(m)]);
-    expect(others.length, 'the department read empty').toBeGreaterThan(75);
-    const hits = [];
-    for (const r of SPINE) for (const [id, json] of others) if (json.includes(r)) hits.push(`${r} <- ${id}`);
-    expect(hits, `reference carried in another lesson's prose:\n${hits.join('\n')}`).toEqual([]);
+    expect(mine.length, 'the declared chapter count for this lesson').toBe(24);
+    // Integrity of THIS lesson, which is what a lesson's own gate is for.
+    for (const r of SPINE) expect(mine).toContain(chapterKey(r));
   });
 
   it('THE ONE REFERENCE THE PROSE CENSUS DROPPED is really carried elsewhere, and is absent here', () => {
