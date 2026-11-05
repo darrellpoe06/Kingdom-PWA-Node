@@ -1,4 +1,4 @@
-# DR-1334: The subprocess budget must sit below the runner's — the tie that read as a flake three times, and the memory that had gone stale under it
+# DR-1347: The subprocess budget must sit below the runner's — the tie that read as a flake three times, and the memory that had gone stale under it
 
 **Date:** 2026-11-05
 **Status:** Accepted
