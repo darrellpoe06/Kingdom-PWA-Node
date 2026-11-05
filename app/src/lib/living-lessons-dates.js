@@ -461,4 +461,14 @@ export const LIVING_LESSONS_ADDED = {
   // 2026-09-16, BUILT 2026-11-03: this is the build day, the day the id landed,
   // not the day it was sent, and the row waited about seven weeks (DR-1300).
   'll273-they-called-long-life-a-problem': '2026-11-03',
+  // L274 came out of the Gmail lesson-intake lane too: an NPR Up First issue
+  // Darrell forwarded on 2026-10-13 with one word above it, Lessons, whose two
+  // lead items were a dispute over public money spent promoting an official and
+  // a judicially authorized search of a legislator's home. The lesson teaches
+  // neither as politics and names nobody; it teaches the trust underneath. Sent
+  // 2026-10-13, BUILT 2026-11-05: this is the build day, the day the id landed,
+  // not the day it was sent, and the row waited 23 days (DR-1312). The build ran
+  // across UTC midnight; the day recorded is the day its commit lands, not the
+  // day the writing started.
+  'll274-whose-silver-whose-name': '2026-11-05',
 };
