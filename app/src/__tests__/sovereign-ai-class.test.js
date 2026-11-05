@@ -105,6 +105,37 @@ describe('curriculum shape', () => {
     // either side: 64 modules, weeks 1..64 strictly ascending, nothing missing below
     // 64 -- so `[]`. Never widen this list to make the assertion pass; a hole nobody
     // recorded is a dropped or misfiled week.
+    // AND IT HAPPENED AGAIN, IDENTICALLY, ON 2026-11-05 (DR-1338), AND IS
+    // DISCHARGED HERE IN THE MERGE THAT BROUGHT WEEK 67 IN. Week 67 (the removing
+    // of those things that are made, DR-1332) sat on
+    // `claude/what-cannot-be-patched-is-removed` as PR #2552 and had not landed
+    // when week 68 (there shall be none in the field, DR-1338) was written off an
+    // origin/main whose highest week was 66. Both sources are Illinois StatusHub
+    // notices from the same week in the same Gmail intake lane, landing is
+    // strictly serial, so week 68 took the next free number rather than one
+    // another branch already held, and this line read `[67]` on that branch --
+    // correct there, and wrong the instant #2552 merged. #2552 merged, so the
+    // entry is gone, which is exactly what the assertion below forces: `[67]`
+    // fails `toEqual` the moment 67 is no longer missing, so a hold cannot
+    // outlive its week in silence. RECOMPUTED on the merged tree rather than
+    // taken from either side: 68 modules, weeks 1..68 strictly ascending, nothing
+    // missing -- so `[]`. Never widen this list to make the assertion pass; a
+    // hole nobody recorded is a dropped or misfiled week.
+    //
+    // WHAT THIS HOLD COST TODAY, AND THE ASYMMETRY BEHIND IT (DR-1338). While
+    // `[67]` was live and correct HERE, `sovereign-ai-sov54-verses` and
+    // `sovereign-ai-sov59-verses` both went red on their own assertion that
+    // `the course ids run sov1 upward with no gap and no repeat`, in two files
+    // week 68's build never touched -- the DR-1316 cost shape. THIS file has a
+    // hold mechanism for a week in flight; those two assert strict contiguity
+    // with no such allowance and know nothing about this list. Neither was
+    // edited, and sov68 was added to no other lesson's held list; both went
+    // green on their own the moment 67 landed, which is the proof that leaving
+    // them red was right. Whether the other course-shape gates share the
+    // asymmetry is NOT measured: it would take a scan of every `*-verses` and
+    // course-shape spec for a contiguity assertion over a module list, then a
+    // probe that mounts a deliberate one-week hole and records which specs go
+    // red. `re-review: 2026-12-05`.
     const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
