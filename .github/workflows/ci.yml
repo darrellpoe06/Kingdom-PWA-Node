@@ -169,6 +169,12 @@ jobs:
       # measured wall clock, the estimate without AI, tokens and dollars where
       # a meter exists); a record that lands without its line is red.
       - run: node ../scripts/ai-usage-ledger.mjs --check
+      # THE BLOAT RATCHETS (DR-1339, DR-1330 D9): a record from DR-1339 on
+      # stays within 60 lines and a 700-character INDEX row; a budgeted file
+      # (scripts/file-budgets.json, 16 today) never grows past its ceiling and
+      # no other source file is born over 1,500 lines.
+      - run: node ../scripts/record-length-guard.mjs
+      - run: node ../scripts/file-budget-guard.mjs
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24'

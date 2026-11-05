@@ -186,6 +186,23 @@
       "wallClockHours": 0.25,
       "estimateWithoutAiHours": 8,
       "notes": "17:53:16Z (D7 push) to this push. A Node ESM JSON-import attribute error split the rules from the file binding."
+    },
+    {
+      "id": "d9-bloat-ratchets",
+      "date": "2026-11-05",
+      "task": "Bloat ratchets: record length and INDEX row caps from DR-1339 on, per-file line ceilings for 16 files, new files under 1,500; lesson-content move measured and dated",
+      "drs": [
+        "DR-1339"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "fb2343d push (18:10Z) to this push."
     }
   ]
 }

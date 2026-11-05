@@ -1,0 +1,22 @@
+{
+  "_comment": "file-budget-guard (DR-1339, DR-1330 D9b). Every file here is over the 1,500-line line a new file may not cross; each ceiling is its measured size on 2026-11-05 and may only go DOWN (node scripts/file-budget-guard.mjs --generate re-freezes lower). To RAISE one, edit by hand with a one-line reason here, the way scripts/monolith-budget.json records its raises. The shell (poe-financial-mvp-v28.jsx) keeps its own ratchet in monolith-budget.json and is listed here too so one guard reads the whole picture.",
+  "raises": [],
+  "budgets": {
+    "app/src/lib/living-lessons-class.js": 29435,
+    "app/src/lib/sovereign-ai-class.js": 9048,
+    "app/src/lib/world-issues-class.js": 6729,
+    "app/src/components/ChurchLearn.jsx": 5884,
+    "app/src/modules/properties/DoorTabs.jsx": 3352,
+    "app/src/components/Rentals.jsx": 3220,
+    "app/src/modules/properties/PropertiesApp.jsx": 2682,
+    "app/src/components/TTSControl.jsx": 2630,
+    "app/src/lib/cameras.js": 2029,
+    "app/src/lib/godhead-study.js": 1993,
+    "app/src/modules/properties/cloud.js": 1991,
+    "app/src/components/Cameras.jsx": 1982,
+    "app/src/components/BooksTransactions.jsx": 1962,
+    "app/src/components/Projects.jsx": 1939,
+    "app/src/components/PracticeLearn.jsx": 1804,
+    "app/src/lib/presentable.js": 1527
+  }
+}
