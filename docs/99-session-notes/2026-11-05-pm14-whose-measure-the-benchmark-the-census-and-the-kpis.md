@@ -2,7 +2,7 @@
 
 **Module id:** `pm14-whose-measure-the-benchmark-the-census-and-the-kpis`
 **Course:** Project Management: Count the Cost (`app/src/lib/project-management-course.js`), lesson 14
-**Decision record:** DR-1348
+**Decision record:** DR-1349
 **Captured by:** the Gmail-lesson-intake Way (DR-0312)
 
 ## Where the word came from
@@ -175,7 +175,7 @@ Thread not labelled; deploy not claimed — both belong to the orchestrator.
 
 ---
 
-## The full decision narrative, moved here from DR-1348 (2026-11-05, DR-1339)
+## The full decision narrative, moved here from DR-1349 (2026-11-05, DR-1339)
 
 `record-length-guard` landed in #2553 while this lesson was in CI and caught the record at **159 lines**
 against a 60-line ratchet, and its INDEX row at **9,394 characters** against 700. The guard's own words are
@@ -206,7 +206,7 @@ Four separate measurements were run before a word of the lesson was written, and
 
 ### The preconditions, re-run as the brief required
 
-`node scripts/claim-decision-number.mjs` reported **DR-1348 free on disk AND in flight** (1225 records on disk, highest DR-1330; 1228 on `origin/main`, highest DR-1344; 50 numbers held by unlanded branches, DR-1345 held by `origin/ccr-335c2b3f-ttub1k`, so DR-1345 would have collided). `node scripts/lesson-row-shipped-sweep.mjs 1a163d58a4d068b6` exited 0: `no decision record names it`. The thread's own `labelIds` were re-read in the same fetch and are unchanged from the brief. Nothing was self-allocated.
+`node scripts/claim-decision-number.mjs` reported **DR-1349 free on disk AND in flight** (1225 records on disk, highest DR-1330; 1228 on `origin/main`, highest DR-1344; 50 numbers held by unlanded branches, DR-1345 held by `origin/ccr-335c2b3f-ttub1k`, so DR-1345 would have collided). `node scripts/lesson-row-shipped-sweep.mjs 1a163d58a4d068b6` exited 0: `no decision record names it`. The thread's own `labelIds` were re-read in the same fetch and are unchanged from the brief. Nothing was self-allocated.
 
 ### Which passages are genuinely unbuilt, measured repository-wide
 
