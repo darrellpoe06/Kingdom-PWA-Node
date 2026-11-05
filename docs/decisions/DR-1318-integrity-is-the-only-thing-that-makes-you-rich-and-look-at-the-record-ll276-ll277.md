@@ -1,4 +1,4 @@
-# DR-1317: Integrity Is the Only Thing That Makes You Rich (ll276), and its follow-up Look at the Record (ll277) — one morning's teaching, two lessons
+# DR-1318: Integrity Is the Only Thing That Makes You Rich (ll276), and its follow-up Look at the Record (ll277) — one morning's teaching, two lessons
 
 **Date:** 2026-11-05
 **Status:** Accepted

@@ -13,7 +13,7 @@
 // let your yay be yay and your nay be nay ... God will use your gift to make
 // room for you ... He's the shepherd of our souls. Let him do his job ... it's
 // his job to get him glory through me ... let the chips fall when they may.
-// God's got the rest promise." (DR-1317.)
+// God's got the rest promise." (DR-1318.)
 //
 // THIS LESSON'S DANGERS are three, and all are about his framing. (1) Turning
 // "I'll be quiet" into a teaching that never adjusts -- he said a critique of

@@ -173,7 +173,7 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     //
     // The highest is now L277 (Look at the Record), the follow-up word Darrell
     // spoke minutes after the teaching behind L276 (Integrity Is the Only Thing
-    // That Makes You Rich); both were spoken and built 2026-11-05 (DR-1317), the
+    // That Makes You Rich); both were spoken and built 2026-11-05 (DR-1318), the
     // same day L274 landed, so the date does not move and only this comment
     // does, so it never names a lesson that is no longer the highest.
     expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L277

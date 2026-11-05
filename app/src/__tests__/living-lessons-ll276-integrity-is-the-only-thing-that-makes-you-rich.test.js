@@ -9,7 +9,7 @@
 // nothing matters except ... Christ and him crucified ... having integrity is
 // more important than winning ... even if you do win, you lost ... what you do
 // behind closed doors ... Money can't make you rich. Having integrity is the
-// only thing that can make you rich ... how do you sustain a lie?" (DR-1317.)
+// only thing that can make you rich ... how do you sustain a lie?" (DR-1318.)
 //
 // THIS LESSON'S DANGERS are three, and all are about his framing. (1) Turning
 // "let the work speak" into a teaching that never speaks at all -- he said be
