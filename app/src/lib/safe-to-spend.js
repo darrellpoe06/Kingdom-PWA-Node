@@ -829,7 +829,11 @@ function forScope(data, sc, asOf, settings, opts) {
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
   // reserve, as before.
   const reserves = settings.reserveByEntity || {};
-  const ownReserve = reserves[sc.id] != null && reserves[sc.id] !== '' ? reserves[sc.id] : (sc.kind === 'personal' ? reserves.personal : undefined);
+  // Every personal pocket (the Personal view, the Personal row of the combined
+  // view) reads ONE key, 'personal', so the reserve she sets is the reserve
+  // every Money screen uses.
+  const hasKey = (k) => reserves[k] != null && reserves[k] !== '';
+  const ownReserve = sc.kind === 'personal' ? (hasKey('personal') ? reserves.personal : (hasKey(sc.id) ? reserves[sc.id] : undefined)) : (hasKey(sc.id) ? reserves[sc.id] : undefined);
   const hasOwnReserve = ownReserve != null && ownReserve !== '' && Number.isFinite(Number(ownReserve));
   const minCushion = round2(hasOwnReserve ? Number(ownReserve) : (settings.minCushion != null && settings.minCushion !== '' ? Number(settings.minCushion) : (Number(data?.meta?.bufferTarget) || 0)));
   const windows = comingUp(data, sc, start, settings, opts);
@@ -976,6 +980,30 @@ function consolidated(data, sc, asOf, settings, opts) {
   if (!entities.some((e) => !e.type || e.type === 'personal' || e.type === 'joint')) {
     const r = forScope(data, { id: 'unassigned', label: 'Unassigned', entityIds: [], includeUnassigned: true, kind: 'personal' }, asOf, settings, opts);
     if (r.status !== 'unavailable') byEntity.push(r);
+  }
+  // SAFE TO SPEND IS PERSONAL MONEY ONLY, in the combined view too (Christina
+  // 2026-11-05: "Business funds must never inflate my personal Safe to Spend
+  // amount"; the combined headline read $525, Poe Properties' own spendable,
+  // beside Personal's projected shortfall). The headline, its breakdown, the
+  // cash line and the due/overdue panel are the PERSONAL pocket's, so they
+  // agree with the Personal row of the per-entity table; each business keeps
+  // its own figures in that table, never added to hers. The bill list (items,
+  // settled) stays combined, tagged by pocket, for Money → Bills.
+  const personalPocket = byEntity.find((r) => r.scope.kind === 'personal');
+  if (personalPocket) {
+    const others = byEntity.filter((r) => r !== personalPocket);
+    return {
+      ...personalPocket,
+      scope: { id: 'consolidated', label: 'All entities', kind: 'consolidated' },
+      explanation: [
+        `Safe to Spend counts ${personalPocket.scope.label} money only. ${others.length ? `${others.map((r) => `${r.scope.label} ($${r.safeToSpendNow.toLocaleString()} of its own)`).join(', ')} ${others.length === 1 ? 'is' : 'are'} shown per entity and never added to it.` : ''}`.trim(),
+        ...personalPocket.explanation,
+      ],
+      assumptions: [...new Set(byEntity.flatMap((r) => r.assumptions))],
+      items: byEntity.flatMap((r) => r.items),
+      settled: byEntity.flatMap((r) => r.settled || []),
+      byEntity,
+    };
   }
   const sumLine = (k) => round2(byEntity.reduce((s, r) => s + (Number(r.lines[k]) || 0), 0));
   const safe = round2(byEntity.reduce((s, r) => s + r.safeToSpendNow, 0));

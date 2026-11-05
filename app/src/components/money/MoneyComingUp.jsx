@@ -53,18 +53,23 @@ function Items({ list, show, entities }) {
 // The reserve for the entity in view: its own when set (settings.reserveByEntity),
 // else the household reserve. Saved as the whole map, since settings merge
 // one level deep.
+// In the combined view the headline is Personal money only, so the reserve
+// edited there is the Personal reserve (the same 'personal' key the Personal
+// view saves), never a combined one.
 function ReserveEditor({ result, settings, onSaveReserve }) {
-  const id = result.scope && result.scope.id;
+  const inView = result.scope && result.scope.id;
+  const id = inView === 'consolidated' || (result.scope && result.scope.kind === 'personal') ? 'personal' : inView;
+  const label = id === 'personal' ? 'Personal' : result.scope && result.scope.label;
   const current = ((settings && settings.reserveByEntity) || {})[id];
   const [v, setV] = useState(current != null ? String(current) : '');
-  if (!onSaveReserve || !id || id === 'consolidated') return null;
+  if (!onSaveReserve || !id) return null;
   const num = v.trim() === '' ? null : Number(v);
   const ok = num === null || (Number.isFinite(num) && num >= 0);
   return (
     <div className="flex flex-wrap items-end gap-2 mt-2" data-testid="coming-up-reserve-editor">
       <label className="text-[0.6875rem]">
-        <span className="block uppercase tracking-wider">Reserve for {result.scope.label} only</span>
-        <input type="number" inputMode="decimal" min="0" value={v} onChange={(e) => setV(e.target.value)} placeholder="household reserve" aria-label={`Reserve for ${result.scope.label}`} data-testid="coming-up-reserve-input" className="mt-0.5 w-32 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" />
+        <span className="block uppercase tracking-wider">Reserve for {label} only</span>
+        <input type="number" inputMode="decimal" min="0" value={v} onChange={(e) => setV(e.target.value)} placeholder="household reserve" aria-label={`Reserve for ${label}`} data-testid="coming-up-reserve-input" className="mt-0.5 w-32 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" />
       </label>
       <button type="button" disabled={!ok} onClick={() => onSaveReserve(id, num)} data-testid="coming-up-reserve-save" className="min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Save reserve</button>
     </div>
@@ -112,7 +117,7 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
   const inferred14 = (W.next14 && W.next14.items || []).filter((i) => i.inferred).length;
   return (
     <section aria-labelledby="coming-up-h" data-testid="money-coming-up" className="bg-white border border-[#E8E4DC] rounded-2xl px-4 py-2 sm:px-5">
-      <h2 id="coming-up-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold pt-2">What you have, what is due, what is free{result.scope ? ` · ${result.scope.label}` : ''}</h2>
+      <h2 id="coming-up-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold pt-2">What you have, what is due, what is free{result.scope ? (result.scope.id === 'consolidated' ? ' · Personal money (each entity on its own row)' : ` · ${result.scope.label}`) : ''}</h2>
       {result.byEntity && <EntityTable result={result} show={show} entities={entities} />}
       {/* "Verified" only when every counted account carries a bank check; a
           ledger-calculated figure never wears that word (DR-0076). */}

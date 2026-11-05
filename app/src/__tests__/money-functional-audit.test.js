@@ -563,7 +563,9 @@ describe('TEST 4 · Bills and recurring payments', () => {
     const r = buildSafeToSpend(w, { ...d30, scope: 'consolidated' });
     const all = r.items.filter((it) => it.refId === 'ro-elec');
     expect(all).toHaveLength(1);
-    expect(r.lines.billsDue).toBe(run(w).lines.billsDue + 300 + 240); // personal + PoeTech software + property insurance
+    // The headline's bills are Personal's; each business counts its own once in its row.
+    expect(r.lines.billsDue).toBe(run(w).lines.billsDue);
+    expect(r.byEntity.reduce((s, e) => s + e.lines.billsDue, 0)).toBe(run(w).lines.billsDue + 300 + 240); // personal + PoeTech software + property insurance
   });
 });
 
@@ -583,7 +585,9 @@ describe('TEST 5 · Accounts, transactions and entity separation', () => {
     expect(personal.items.some((it) => it.kind === 'income' && /Transfer/.test(it.label))).toBe(false);
     expect(personal.lines.availableCash).toBe(run(household()).lines.availableCash + 2000);
     expect(poetech.lines.availableCash).toBe(5500 - 2000);
-    expect(all.lines.availableCash).toBe(buildSafeToSpend(household(), { ...d30, scope: 'consolidated' }).lines.availableCash);
+    const totalCash = (r) => r.byEntity.reduce((s, e) => s + e.lines.availableCash, 0);
+    expect(totalCash(all)).toBe(totalCash(buildSafeToSpend(household(), { ...d30, scope: 'consolidated' })));
+    expect(all.lines.availableCash).toBe(personal.lines.availableCash); // the headline's cash is Personal's only
   });
   it('5.3 RECONCILIATION: rows carrying bank balances form one chain; a missing row breaks it and is reported, never papered over', () => {
     const rows = [
@@ -610,16 +614,19 @@ describe('TEST 5 · Accounts, transactions and entity separation', () => {
     expect(tlc.lines.availableCash).toBe(4100); expect(tlc.items.filter((it) => it.amount < 0)).toHaveLength(0);
     const combined = buildSafeToSpend(w, { ...d30, scope: 'consolidated' });
     expect(combined.byEntity.map((r) => r.scope.id).sort()).toEqual(['e-personal', 'e-poetech', 'e-props', 'e-tlc']);
-    expect(combined.lines.availableCash).toBe(11115 + 5500 + 2400 + 4100);
+    expect(combined.byEntity.reduce((s, e) => s + e.lines.availableCash, 0)).toBe(11115 + 5500 + 2400 + 4100); // the whole picture, by entity
+    expect(combined.lines.availableCash).toBe(11115); // the headline never counts business cash as personal
   });
-  it('5.5 a business shortfall never subsidises personal money in the combined view (each entity floored at $0)', () => {
+  it('5.5 the combined view’s Safe to Spend is Personal’s alone: no business money added, no business shortfall taken', () => {
     const w0 = household(); w0.accounts.find((a) => a.id === 'pp-chk').openingBalance = 100; // Properties cannot cover its 830 mortgage + 240 insurance
     const w = bankCheckAll(w0, '2026-10-28'); // every entity reconciled, so each one's own figure is real
     const props = buildSafeToSpend(w, { ...d30, scope: 'e-props' });
     expect(props.safeToSpendNow).toBe(0); expect(props.shortfall).toBeGreaterThan(0);
     const combined = buildSafeToSpend(w, { ...d30, scope: 'consolidated' });
     const personal = run(w);
-    expect(combined.safeToSpendNow).toBe(personal.safeToSpendNow + buildSafeToSpend(w, { ...d30, scope: 'e-poetech' }).safeToSpendNow + buildSafeToSpend(w, { ...d30, scope: 'e-tlc' }).safeToSpendNow);
+    expect(buildSafeToSpend(w, { ...d30, scope: 'e-poetech' }).safeToSpendNow).toBeGreaterThan(0); // a business with money of its own
+    expect(combined.safeToSpendNow).toBe(personal.safeToSpendNow);
+    expect(combined.shortfall).toBe(personal.shortfall);
   });
   it('5.6 the MORTGAGE (P&I + escrow) is a dated Properties item on the mortgage due day, and the debtService/rentalMortgages buckets are never accrued on top of it', () => {
     const w = household();
