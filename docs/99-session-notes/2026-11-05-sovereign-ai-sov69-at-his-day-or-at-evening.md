@@ -148,8 +148,41 @@ This send is an explainer, not a statistics piece, so the load-bearing claims ar
 
 **The DR number was taken twice.** `claim-decision-number.mjs` reported DR-1350 free at the start of the build and, re-run immediately before the record was written, reported DR-1350 held by `origin/claude/a-status-read-is-filtered` and DR-1351 free. Took **DR-1351**. This is the renumber DR-1021 exists for, avoided by re-running the claim rather than trusting the earlier read.
 
+**Two CI reds after the first push, both mine, both closed.** Worth recording because neither is findable by running the lesson's own gate:
+
+1. **`curriculum gates FAIL`** with one FRESH finding — `course-quotation :: sov69-at-his-day-or-at-evening :: lesson :: elided quotations 0 -> 1`. The adult lesson quoted his line as `"Lessons... and potential systemic use?"`, and `quotation-integrity.mjs:63` matches `/\.\.\.|…/`, so the shrink-only elision ratchet reads **any** ellipsis inside a quotation as an elided Scripture and classifies it `kind: 'ours'`. sov68 hit the identical thing and its gate header records the remedy: render his pause for MEANING as a dash (DR-0331) and keep the raw form where a reviewer reads it. Done — `bigIdea` already carried the dash, so only the adult lesson needed it; the raw `Lessons…` form stays in this note, the record and the gate header. Verified locally: `elidedQuotations(M)` → `[]`, `curriculum gates: PASS`.
+2. **`business-systems-guard: FAIL`** — *"INDEX.md Next ID says DR-1350 but the newest decision on disk is DR-1351 — the pointer must read DR-1352."* Fixed by **running `scripts/resolve-ledger-conflicts.mjs`**, which owns that pointer and computes it from disk, rather than hand-editing it (DR-0644; DR-1021 notes two things computing one line is how they drift). It reported `pointer DR-1352, 1 Next-ID line(s) folded into one, no duplicate rows` and the guard went green. This is the step a lesson build must not skip after adding a record.
+
+**`format-guard` (DR-1343) flagged the new gate file** and `--fix` reformatted it; re-running the gate afterwards rather than trusting prettier to be behaviour-safe confirmed 35/35 still green.
+
+**The catalog band-coverage pin was raised 283 → 284**, read from a fresh `course-band-baseline-write.mjs` run on the merged tree (`total 458 allFour 284 adultOnly 0`) and never computed by hand — the same step sov67, sov68 and pm14 each took. **The frozen `library-census-baseline.json` was NOT touched and did not need to be:** its ratchet only requires readings/whole/allVersions/exams/lessons to rise and waiting to fall, and a complete five-version lesson moves every one of them the allowed way. `the-library-is-filled-perpetually.test.js` green without an edit.
+
+## THE BLOCKER — a neighbour's gate, reported rather than edited
+
+**`app/src/__tests__/sovereign-ai-sov68-verses.test.js:173` is red, and it is the only thing standing between this lesson and a green merge.**
+
+```js
+expect(SOVEREIGN_AI_MODULES[SOVEREIGN_AI_MODULES.length - 1].id, 'sov68 is not last').toBe(ID);
+```
+
+`AssertionError: sov68 is not last: expected 'sov69-at-his-day-or-at-evening' to be 'sov68-there-shall-be-none-in-the-field'`
+
+**This is exactly the fault DR-1316 is named for** — *"A lesson's gate may not claim to be the last lesson"* — and the irony is in the same file: sov68's own comment block, eight lines above the assertion, cites DR-1316 and declares itself *"FORWARD-SAFE AND GAP-SAFE ON PURPOSE … a lesson gate may not claim to be the last lesson."* The comment says one thing and line 173 does the opposite. It is a regression of a class that was closed on the same day sov68 landed.
+
+**Not edited, because it is a neighbour's gate and the brief says stop and report.** The fix is one line and it is already prescribed: DR-1316 rewrote pm13's pin as `expect(nums.indexOf(13), 'pm13 stays at the thirteenth place').toBe(12)`. The same shape for sov68 is `expect(SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID), 'sov68 stays at the sixty-eighth place').toBe(67)`. This lesson's own gate already uses that shape, so **week 70 will not be blocked by week 69**.
+
+**Measured further, unasked — the class is not closed anywhere.** Three other lesson gates carry the identical assertion and are a latent landmine for the next lesson in each of those courses:
+
+| file:line | course |
+|---|---|
+| `datasystems-dsi15-verses.test.js:152` | PoeTech Data Systems |
+| `management-stewardship-mgmt9-verses.test.js:218` | Management & Stewardship |
+| `world-market-wm10-verses.test.js:179` | World Market |
+
+(`living-lessons-l171` / `l172` / `ll256` mention the property only in comments describing the already-fixed version; `advocacy-cases`, `properties-timeline` and `tv-time` match on unrelated non-lesson lists.)
+
 ## Verification
 
 - `sovereign-ai-sov69-verses.test.js` — **35 cases green**, including: all 38 references pinned in 39 spans and each asserted verbatim against `app/public/bible/kjv`; each quoted in the adult lesson **with** its citation; proven-to-catch by bending every fragment; no straight apostrophe inside any quotation; Yahweh never substituted into a quoted verse; the DR-0210 confession in all five places; the DR-0795 proof that stripping the teen band's friend line alone is named by the per-band check while the pooled check stays green; and the DR-1317 census covering all 38 references exactly once (34 shared with a named holder, 4 untaught).
-- The whole Sovereign A.I. gate set run together against the new module.
+- The whole Sovereign A.I. gate set run together against the new module: **1,878 of 1,879 cases green**, the single failure being sov68:173 above.
 - `file-budget-guard` OK; `lesson-dates` regenerated (892 of 892 dated).
