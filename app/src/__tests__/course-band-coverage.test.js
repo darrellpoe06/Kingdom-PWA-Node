@@ -109,7 +109,23 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(281); // on 2026-11-05, sov67 (The removing of those things that
+    expect(baseline.allFour).toBe(282); // on 2026-11-05, sov68 (There shall be none in the field --
+    // the announced window, the portion that did not spoil, and the part no engine was holding)
+    // raises it one more, from the 281 sov67 left the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the MERGED tree that holds both lessons
+    // (total 456, allFour 282, adultOnly 0), never computed and never hand-merged. BOTH BRANCHES
+    // RAISED THIS LINE 280 -> 281 FROM THE SAME STARTING POINT, which was named in DR-1338 before
+    // either landed; sov67 landed first and took 281, so sov68 took 282 from the script rather
+    // than by adding one by hand. sov68 carries all four authored bands from its first commit and
+    // fourBandFaults reads clean -- adult prose 2,274 words; shares child 0.61, youth 0.64, teen
+    // 0.70, senior 0.99; ladder child 2.02 < youth 3.97 < teen 4.93 < senior 8.17, every band
+    // under its ceiling; worst band-pair overlap 0.215 senior~adult against the 0.25 near-copy
+    // line. ITS CHILD BAND MISSED THE 0.5 SHARE FLOOR ON THE FIRST DRAFT at 0.40, and its teen
+    // grade sat at 5.99 against the 6.00 ceiling -- one hundredth of a grade from red; both were
+    // authored out rather than waived, and the baseline was regenerated afterwards. Recorded as
+    // DR-1338.
+    // The sov67 note that stood on this line is kept below, for the chain.
+    // on 2026-11-05, sov67 (The removing of those things that
     // are made -- what cannot be patched is taken away, and the part nobody can lend you) raises it
     // one more, from the 280 sov66 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 455,
