@@ -9050,8 +9050,22 @@ export const SOVEREIGN_AI_MODULES = [
   //
   // WHO TAUGHT (DR-0719): NOBODY. A forwarded institutional maintenance notice
   // is not a recording. All five reader places say so; the gate forbids the
-  // bare phrase "the teacher" and forbids naming Bishop Gwin for a source that
-  // names nobody.
+  // bare phrase "the teacher" and forbids crediting the weekly study's teacher
+  // by name for a source that names nobody.
+  //
+  // HIS NAME IS DELIBERATELY NOT WRITTEN IN THIS FILE, and the reason is a
+  // measured defect worth knowing before the next lesson lands here.
+  // bible-study-session.js flags a lesson as a weekly-study lesson when one
+  // block carries all three of a church marker, "Bible study", and a weekly
+  // marker — and sessionLessonsInSource() cuts those blocks between one `id:`
+  // line and the NEXT, so a comment sitting above a lesson is attributed to the
+  // lesson BEFORE it. sov66's own quiz legitimately contains "a recording of
+  // the weekly Bible study", so naming him in this header put the third marker
+  // inside sov66's block and made sov66 read as a weekly-study lesson it is
+  // not. Measured: the four suites pass on origin/main (265) and
+  // bible-study-session-names-bishop-gwin went red naming sov66, not sov67.
+  // The rule itself is still enforced BY NAME inside
+  // sovereign-ai-sov67-verses.test.js, which that scanner does not read.
   //
   // Every verse is fetched from app/public/bible/kjv and pinned in
   // app/src/__tests__/sovereign-ai-sov67-verses.test.js. Recorded as DR-1332.
