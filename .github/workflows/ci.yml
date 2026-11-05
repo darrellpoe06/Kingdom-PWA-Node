@@ -1773,7 +1773,7 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, withdraw-walls, auth-events]
+    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
     runs-on: ubuntu-latest
     steps:
       - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
