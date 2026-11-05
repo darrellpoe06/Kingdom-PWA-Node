@@ -57,3 +57,43 @@ same day from the other newsletter of that morning.
 - `censusLesson` reports `whole: true`, `missingComponents: []`.
 - No company, person, nation, party or publication from the issue reaches a
   reader, and not one figure from it does either.
+
+## CORRECTED 2026-11-05 under DR-1326 / DR-0190 — read this before the lines above
+
+**The three-statement summary above is the version the digest printed, and it is
+wrong where it matters most.** This note is kept as written (it is the working
+record of that session) with the correction stated here; the authoritative
+account is the appended section of **DR-1325**, *"CORRECTED UNDER DR-1326: the
+independent check, and what it changed."*
+
+- **"Borrowing afterward reached a record" is BACKWARDS.** FINRA's own
+  margin-statistics table puts the all-time high at **June 2026 ($1,502,072M)**,
+  **before** the fall; **July 2026 fell $84,847M (−5.6%), the largest one-month
+  drop in the series**; and the latest month available on the issue's own date
+  was **September 2026 at $1,480,054M, about 1.5% below the record.**
+- **"Destroyed" over-states it** — the record describes a near-collapse and a
+  forced unwind of the public book, not a wind-up, and the loss magnitudes
+  conflict across sources.
+- **The equity-trading-revenue record is the NINE-MONTH cumulative, not the
+  quarter** — no bank's release calls its Q3 2026 equities line a record, and
+  the quarter was a sequential decline for two of the five.
+- **"The banks could absorb it"** rests on one CEO's public statement plus an
+  absence of disclosure searched under blocked primary access, so it is taught
+  attributed, with the costs that DID land named (SEC subpoenas to the banks,
+  one bank severing the prime-brokerage relationship, the Bank of England's
+  July 2026 record-balance warning, up ~40% year-on-year).
+- **Two things checked out STRONGER and are now stated plainly (DR-0100):**
+  three of the five took roughly four-fifths of the group's equities revenue
+  (~$17.2B of ~$21-22B), and **the lenders' financing business hit a record in
+  the very quarter the borrower nearly died** (Goldman's equities financing +96%
+  to a record $3.37B; JPMorgan's Equity Markets +49%).
+
+**The Word spine did not change — not one verse was dropped (DR-1317).** What
+changed is the real-world case it hangs on, and the true case lands harder: the
+market DID flinch, by the largest one-month drop in the series, and then undid
+the flinch inside two months at 98.5% of its all-time high. That is Jeremiah 3:7
+("saw it") and Zephaniah 3:7 ("but they rose early") with the warning visibly
+registering and then being undone in about sixty days.
+
+**The figures above are primary-document-DERIVED, not read** — the egress proxy
+refused `www.sec.gov`, `efts.sec.gov` and `www.finra.org`. `re-review: 2026-11-12`.

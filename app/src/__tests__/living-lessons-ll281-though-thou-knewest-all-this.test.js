@@ -250,6 +250,54 @@ describe('ll281 — though thou knewest all this', () => {
     }
   });
 
+  // --- DR-1326 / DR-0190 §5: the independent check, and what it changed ----
+  // The original build consulted no primary source and said so as a virtue.
+  // Three of its four load-bearing claims then failed primary-source checking,
+  // and the one the whole teaching turned on was BACKWARDS: the borrowing's
+  // all-time high came BEFORE the fall, the month after it was the largest
+  // one-month drop in the series, and the newest month published by the issue's
+  // own date still stood under the record. These are the sentences that may
+  // never come back.
+  const RETRACTED = [
+    /borrowing (?:in that trade |within that same trade )?(?:reached|climbed|went|hit)[^.]{0,80}highest level/i,
+    /highest level (?:ever recorded|that anybody has ever recorded|anyone has recorded)/i,
+    /climbed higher than it has ever been recorded/i,
+    /borrowed more (?:than ever|heavily than)/i,
+    /\bwas (?:destroyed|wiped out) (?:in|over) the summer/i,
+    /lost everything in the summer/i,
+    /was not checked from here|never checked here/i,
+    /smaller funds/i,
+  ];
+  it('never restates a claim the primary-source check retracted (DR-1326)', () => {
+    const hits = [];
+    for (const s of allStrings()) for (const re of RETRACTED) if (re.test(s)) hits.push(String(re));
+    expect([...new Set(hits)], 'a retracted claim is back in the lesson').toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: the retracted sentence is genuinely recognised', () => {
+    const planted = 'and afterward the borrowing reached the highest level ever recorded';
+    expect(RETRACTED.some((re) => re.test(planted))).toBe(true);
+    expect(RETRACTED.some((re) => re.test('one of them was destroyed in the summer doing exactly that'))).toBe(true);
+  });
+
+  it('carries its trust-but-verify note, with the source kind, the tier and the dated limit', () => {
+    for (const [where, t] of Object.entries(PLACES())) {
+      expect(t, `${where} never says the letter is a lead, not a citation`).toMatch(/is a lead[,.]? (?:and )?(?:it )?is never a primary source|never a primary source|is a clue/i);
+      // the source KIND, never a bank's name: the regulator's own monthly
+      // margin series and the lenders' own quarterly filings (the child band
+      // says the same thing in its own register — "the real papers", "the
+      // money list that the lenders must send in").
+      expect(t, `${where} never names what it was checked against`).toMatch(/primary record|original record|the real papers/i);
+      expect(t, `${where} never names the source kind`).toMatch(/monthly (?:margin series|borrowing table|borrowing series)|the money list that the lenders must send in/i);
+      expect(t, `${where} never names the lenders' own filings`).toMatch(/earnings filings|the real papers/i);
+      expect(t, `${where} never says what the checking changed`).toMatch(/did not (?:survive|hold up)|were wrong|was not true/i);
+      expect(t, `${where} hedges what checked out stronger (DR-0100)`).toMatch(/four-fifths|four parts out of five/);
+      expect(t, `${where} drops the lenders' own record`).toMatch(/financing business (?:hit|set) a record|lenders made more than ever/i);
+      expect(t, `${where} never states the honest limit`).toMatch(/refused us the filing hosts|would not let us/i);
+      expect(t, `${where} leaves no dated re-review`).toMatch(/re-review: 2026-11-12/);
+    }
+  });
+
   // --- who taught: NOBODY (DR-0719) ---------------------------------------
   it('names no teacher, and says in every place that a forward is not a recording', () => {
     for (const [where, t] of Object.entries(PLACES())) {
@@ -323,10 +371,11 @@ describe('ll281 — though thou knewest all this', () => {
   });
 
   it('the shares and the reading ladder are the measured numbers, not round ones', () => {
-    // MEASURED on this tree: adult prose 3,301 words; shares child 0.535,
-    // youth 0.634, teen 0.972, senior 1.116; authored grades 1.18 / 4.82 /
-    // 5.31 / 8.61 against the adult lesson's 6.52; worst band-pair overlap
-    // 0.160 (teen~senior) against the LADDER's 0.25 near-copy line.
+    // MEASURED on this tree AFTER the DR-1326 correction: adult prose 3,856
+    // words; shares child 0.531, youth 0.630, teen 0.973, senior 1.102;
+    // authored grades 1.10 / 5.21 / 5.41 / 9.03 against the adult lesson's
+    // 7.12; worst band-pair overlap 0.163 (teen~senior) against the LADDER's
+    // 0.25 near-copy line.
     const f = measureFullness(M);
     expect(f.bands.child.share).toBeGreaterThan(0.5);
     expect(f.bands.youth.share).toBeGreaterThan(0.6);
@@ -375,7 +424,10 @@ describe('ll281 — though thou knewest all this', () => {
       expect(p.headings.length, `${where} has no headings`).toBeGreaterThan(0);
       expect(p.headings.map((h) => h.n), `${where} headings do not number from one`).toEqual(p.headings.map((_, i) => i + 1));
     }
-    expect(lessonSectionPlan(M.lesson).headings).toHaveLength(19);
+    // 20 since the DR-1326 correction added WHAT WE CHECKED, AND WHAT IT
+    // CHANGED — the trust-but-verify note DR-0190 §5 requires, which is a
+    // section of the lesson and not a footnote.
+    expect(lessonSectionPlan(M.lesson).headings).toHaveLength(20);
   });
 
   it('every band opens on the lesson’s own title', () => {
