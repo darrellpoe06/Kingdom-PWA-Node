@@ -52,7 +52,13 @@ While this branch was in flight `origin/main` took **#2538**, which landed **ll2
 
 **The merge was resolved by regeneration, and the first attempt is recorded as wrong.** A blind theirs-then-ours swap of each conflict hunk produced a catalog that would not parse — the hunk boundaries cut through an object literal and spliced their lesson's `levels` into this one's `stories`. `acorn` named the line and nothing was pushed. Redone: main's code files taken wholesale, this lesson's entry re-spliced from its own generator, the corpus regenerated, `INDEX.md` handed to `resolve-ledger-conflicts.mjs`. **A generated entry must be RE-generated after a merge, never re-used** — the first re-splice reused one built before this build's four prose fixes, and the gate caught all three classes it reintroduced in a single run.
 
-## What CI caught that 41 local suites missed
+## What CI caught that the local subset missed
+
+**Two faults, two shards, both in prose rather than logic.**
+
+**Shard 4/4, `doubled-word-guard.test.js`** — *no reader-facing field in any lesson types a word twice* — `ll278-say-what-you-get: "THIS THIS"`. Four headings read **DO THIS THIS WEEK**: grammatical, and a stutter. Rewritten to **DO ONE THING THIS WEEK** (and **DO ONE OF THESE THIS WEEK** in the senior band), in the catalog **and** in the generator, so a regeneration cannot bring it back.
+
+**Shard 3/4, `decision-chain.test.js`**
 
 `app — vitest shard 3/4` went red on `decision-chain.test.js` — *every record from DR-0588 on carries all five steps* — reporting **`DR-1319 missing evidence`**, although the record **had** a `## What was measured` heading. `chainOf` in `app/src/lib/decision-chain.js` skips a section with `if (!s.body) continue`, and this record's heading went straight into a `###` sub-heading with no prose of its own, so the Decision → Outcome chain read as four steps. **Fixed in the prose, not by widening the gate:** the section now opens with its own paragraph naming the ORDER the measurements were taken in. `chainOf` reports `missing: []`, `complete: true`; the suite is 14 green. **A record that organises `## What was measured` into sub-headings must still say something under the heading itself.**
 
