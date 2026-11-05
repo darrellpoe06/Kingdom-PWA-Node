@@ -173,6 +173,24 @@ jobs:
       # property_photos and the rentals coordinates down with them).
       - run: node ../scripts/migration-return-type-guard.mjs
 
+      # Subprocess-budget guard (DR-1347; DR-0239 gate-the-class). A test that
+      # hands a spawned script a timeout budget at or above its own vitest
+      # ceiling is tied by construction: the runner KILLS the case rather than
+      # waiting for the script, so it dies as "Test timed out in Nms" on a
+      # loaded runner and passes when idle -- which reads as a flake and gets
+      # re-run instead of fixed. Measured three times across two files.
+      #
+      # It is HERE as well as in `verify:gates` because a guard CI never runs is
+      # not a guard (DR-0076 §3) -- and this line is the twelfth instance
+      # DR-1308 predicted. The guard shipped into `verify:gates` alone, and
+      # `verify-covers-ci-guards.test.js` caught it on the first CI run that
+      # reached vitest, in the reverse direction that record added. The eleven
+      # below were found by measurement; this one was found by their gate.
+      #
+      # Measured on the authoring container: ~1.8s warm, 2.8s cold, walking
+      # 1805 test files.
+      - run: node ../scripts/subprocess-budget-guard.mjs
+
       # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
       # new category button not working" report): window.prompt() is blocked /
       # a no-op in the installed standalone PWA, so any input flow built on it
