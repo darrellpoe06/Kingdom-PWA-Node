@@ -85,7 +85,37 @@ export const SPENDING_LANGUAGE = [
   /\bbelongs to [a-z]{2,4}\d+ and not\b/i,
   /\bmay not (?:use|stand on|carry) (?:this|that) (?:verse|chapter)\b/i,
   /\breserved for [a-z]{2,4}\d+\b/i,
+  // Added 2026-11-05 (DR-1333): the real phrasing seven Sovereign A.I. gates
+  // used, which none of the six patterns above matched.
+  /\banother week already stands on\b/i,
+  /\bdeclared? as spent\b/i,
+  /\bdeclined as spent\b/i,
 ];
+
+// THE WORD WAS HIDING IN AN IDENTIFIER (2026-11-05, DR-1333). DR-1326 widened
+// this guard from case titles to assertion MESSAGES, and it still missed the
+// class — because the overturned rule was not written in a sentence at all. It
+// was the NAME of a constant: `DECLINED_AS_SPENT`, carried by seven gates
+// (sov57 through sov63), copied forward lesson after lesson. A builder reading
+// any one of those files learns the spent-verse rule from the identifier
+// before it reads a word of prose.
+//
+// Measured: seven Sovereign A.I. gates carried a frozen chapter census, and
+// three of them blocked sov67 (DR-1332) outright — Psalms 102, Hebrews 12 and
+// Haggai 2. Hebrews 12 had NO route around it: "the removing of those things
+// that are shaken, as of things that are made" exists nowhere else in
+// Scripture, so unlike sov66's Isaiah 36:6 there was no second witness.
+export const SPENDING_IDENTIFIERS = [
+  /\bDECLINED_AS_SPENT\b/,
+  /\b[A-Z_]*_AS_SPENT\b/,
+  /\bSPENT_(?:CHAPTERS|VERSES|GROUND)\b/,
+  /\b(?:CHAPTERS|VERSES)_SPENT\b/,
+];
+
+/** `const NAME = …` / `let NAME = …` declarations in a file. */
+export function declaredNames(text) {
+  return [...String(text).matchAll(/^\s*(?:export\s+)?(?:const|let)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+}
 
 /** The string literals passed as an assertion's message, across a file. */
 export function assertionMessages(text) {
@@ -208,6 +238,61 @@ describe('no lesson gate claims a verse for itself (DR-1317 / DR-1323)', () => {
     for (const msg of FINE) {
       expect(SPENDING_LANGUAGE.some((re) => re.test(msg)), `wrongly flagged: ${msg}`).toBe(false);
     }
+  });
+
+  // ── DR-1333: the word was hiding in an identifier ─────────────────────────
+
+  it('the name scanner actually finds declarations (not vacuously empty)', () => {
+    const names = declaredNames(readFileSync(join(TESTS, 'sovereign-ai-sov62-verses.test.js'), 'utf8'));
+    expect(names.length, 'found no const/let names — re-anchor this gate').toBeGreaterThan(10);
+  });
+
+  it('NO test in the suite NAMES a constant for the spent-verse rule', () => {
+    const bad = [];
+    for (const f of files()) {
+      if (f === 'no-lesson-gate-claims-a-verse-for-itself.test.js') continue;
+      for (const name of declaredNames(readFileSync(join(TESTS, f), 'utf8'))) {
+        if (SPENDING_IDENTIFIERS.some((re) => re.test(name))) bad.push(`${f}: ${name}`);
+      }
+    }
+    expect(
+      bad,
+      'an identifier teaches the next builder before any prose does, and this one teaches the rule '
+      + 'Darrell overturned on 2026-11-05 (DR-1317). A verse is never spent. Name it for what the '
+      + "choice actually was — DECLINED_FOR_ANOTHER_LANDING — not for a claim on another lesson's "
+      + `ground:\n${bad.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: the real identifier seven gates carried', () => {
+    // The literal name on `main` until DR-1333, reconstructed rather than
+    // remembered. sov57 through sov63 each declared it.
+    expect(SPENDING_IDENTIFIERS.some((re) => re.test('DECLINED_AS_SPENT'))).toBe(true);
+    // And the real message those gates used, which DR-1326's six patterns all
+    // missed — the measurement that justifies widening them.
+    expect(SPENDING_LANGUAGE.some((re) => re.test('another week already stands on: Hebrews 12'))).toBe(true);
+    // The replacement name must NOT be flagged, or the fix is unshippable.
+    expect(SPENDING_IDENTIFIERS.some((re) => re.test('DECLINED_FOR_ANOTHER_LANDING'))).toBe(false);
+  });
+
+  it('PROVEN NOT TO OVER-REACH: ordinary gate identifiers pass', () => {
+    const FINE = ['SPINE', 'OURS', 'ANCHOR_BOOKS', 'DECLINED_FOR_ANOTHER_LANDING',
+      'DECLINED_AS_PROSE_BUILT', 'CONFESSION_CHAPTERS', 'SHARED_CHAPTERS', 'DEPT_SOURCES'];
+    for (const name of FINE) {
+      expect(SPENDING_IDENTIFIERS.some((re) => re.test(name)), `wrongly flagged: ${name}`).toBe(false);
+    }
+  });
+
+  it('the seven Sovereign A.I. gates are clean in all three directions now', () => {
+    const bad = [];
+    for (const n of [57, 58, 59, 60, 61, 62, 63]) {
+      const f = `sovereign-ai-sov${n}-verses.test.js`;
+      const text = readFileSync(join(TESTS, f), 'utf8');
+      for (const t of caseTitles(text)) if (EXCLUSIVITY.some((re) => re.test(t))) bad.push(`${f} title: ${t}`);
+      for (const m of assertionMessages(text)) if (SPENDING_LANGUAGE.some((re) => re.test(m))) bad.push(`${f} message: ${m}`);
+      for (const nm of declaredNames(text)) if (SPENDING_IDENTIFIERS.some((re) => re.test(nm))) bad.push(`${f} name: ${nm}`);
+    }
+    expect(bad).toEqual([]);
   });
 
   it('ll275 — the third instance — is clean in BOTH directions now', () => {

@@ -9055,7 +9055,7 @@ export const SOVEREIGN_AI_MODULES = [
   // A VERSE IS NEVER SPENT (DR-1317). Nothing was dropped for appearing
   // elsewhere. Exodus 16:19-20, Amos 3:7, Jeremiah 31:33, 2 Timothy 2:2,
   // Leviticus 19:36, Proverbs 11:1 and Deuteronomy 6:6 are carried in FULL here
-  // and are also carried elsewhere; the sharing is recorded in DR-1333 as a
+  // and are also carried elsewhere; the sharing is recorded in DR-1338 as a
   // MEASUREMENT, never as a veto. Two readings were refused on the LANDING
   // rather than on the Scripture - Matthew 9:17 and the Hebrews 8:13 /
   // Isaiah 40:8 / Matthew 24:35 chain - because taking them would pull this
@@ -9067,18 +9067,18 @@ export const SOVEREIGN_AI_MODULES = [
   // preacher to a source that identifies nobody.
   //
   // THAT PREACHER IS DELIBERATELY NOT NAMED IN THIS COMMENT, and the reason is
-  // a finding worth carrying (DR-1333): bible-study-session-names-bishop-gwin
+  // a finding worth carrying (DR-1338): bible-study-session-names-bishop-gwin
   // splits sovereign-ai-class.js into lesson-shaped blocks between consecutive
   // id lines, so a comment sitting BETWEEN two lessons is attributed to the
   // PRECEDING one. A first draft of this header named him here, which supplied
   // the missing church term to sov66's block -- sov66 already carries "weekly
   // Bible study" in its own text -- and turned that gate red in a lesson this
-  // build never touched. The name lives in the gate file and in DR-1333, where
+  // build never touched. The name lives in the gate file and in DR-1338, where
   // no block boundary can misattribute it.
   //
   // Every verse was fetched from app/public/bible/kjv BEFORE a word was written
   // and is pinned verbatim in
-  // app/src/__tests__/sovereign-ai-sov68-verses.test.js. Recorded as DR-1333.
+  // app/src/__tests__/sovereign-ai-sov68-verses.test.js. Recorded as DR-1338.
   // ---------------------------------------------------------------------------
   {
     "id": "sov68-there-shall-be-none-in-the-field",

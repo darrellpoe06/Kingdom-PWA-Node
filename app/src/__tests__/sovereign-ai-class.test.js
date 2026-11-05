@@ -105,10 +105,10 @@ describe('curriculum shape', () => {
     // either side: 64 modules, weeks 1..64 strictly ascending, nothing missing below
     // 64 -- so `[]`. Never widen this list to make the assertion pass; a hole nobody
     // recorded is a dropped or misfiled week.
-    // AND IT HAPPENED AGAIN, IDENTICALLY, ON 2026-11-05 (DR-1333). Week 67 (the
+    // AND IT HAPPENED AGAIN, IDENTICALLY, ON 2026-11-05 (DR-1338). Week 67 (the
     // removing of those things that are made, DR-1332) sits on
     // `claude/what-cannot-be-patched-is-removed` as PR #2552 and had not landed
-    // when week 68 (there shall be none in the field, DR-1333) was written off an
+    // when week 68 (there shall be none in the field, DR-1338) was written off an
     // origin/main whose highest week was 66. Both sources are Illinois StatusHub
     // notices from the same week in the same Gmail intake lane, landing is
     // strictly serial, and week 68 took the next free number rather than one

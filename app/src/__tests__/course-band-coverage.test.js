@@ -119,7 +119,7 @@ describe('the debt, recorded as it actually is', () => {
     // senior~adult against the 0.25 near-copy line. THE CHILD BAND MISSED ITS 0.5 SHARE FLOOR ON
     // THE FIRST DRAFT at 0.40, and the teen grade sat at 5.99 against a 6.00 ceiling -- one
     // hundredth of a grade from red; both were authored out rather than waived, and the baseline
-    // was regenerated afterwards. KNOWN COLLISION, NAMED (DR-1333): sov67 is in flight on PR #2552
+    // was regenerated afterwards. KNOWN COLLISION, NAMED (DR-1338): sov67 is in flight on PR #2552
     // and raises this same line 280 -> 281 from the same starting point. Whichever lands second
     // takes 282, from a fresh baseline run on the merged tree -- never by adding one by hand.
     expect(baseline.allFour).toBe(281); // on 2026-11-05, sov66 (They dwelt careless, and there was

@@ -50,10 +50,10 @@
 // rather than on the Scripture — Matthew 9:17's new bottles and the
 // Hebrews 8:13 / Isaiah 40:8 / Matthew 24:35 chain — because taking them would
 // pull this lesson onto sov24's message ("the Word is not a schema"), not
-// because any verse is spent. Both are named in DR-1333.
+// because any verse is spent. Both are named in DR-1338.
 //
 // EVERY LESSON STANDS ALONE AND WHOLE (DR-1317's second correction). No reader
-// text points at another lesson. The comparison above lives in DR-1333 and in
+// text points at another lesson. The comparison above lives in DR-1338 and in
 // this header, where a reviewer reads it and a reader does not.
 //
 // WHO TAUGHT (DR-0719): NOBODY. A forwarded institutional maintenance notice is
@@ -66,11 +66,11 @@
 // 67th MOUNTED module while carrying the number 68. The cases below assert
 // contiguity through 66 (durably true), that week 68 is mounted exactly once,
 // and that it sits last — never that 67 is absent, which would turn red the
-// moment the sibling lands. Recorded in DR-1333.
+// moment the sibling lands. Recorded in DR-1338.
 //
 // Every verse was fetched from app/public/bible/kjv by script BEFORE a word was
 // written, and SPINE_FRAGMENTS pins the exact span this lesson quotes for every
-// one of the 34 references. Recorded as DR-1333.
+// one of the 34 references. Recorded as DR-1338.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -163,7 +163,7 @@ describe('sov68 — the lesson is mounted and is the week it says it is', () => 
   it('is mounted as week 68, last in the series, with every reader field present', () => {
     expect(M, `${ID} is not mounted`).toBeTruthy();
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)[1]));
-    // FORWARD-SAFE AND GAP-SAFE ON PURPOSE (DR-1316 / DR-1333): a lesson gate
+    // FORWARD-SAFE AND GAP-SAFE ON PURPOSE (DR-1316 / DR-1338): a lesson gate
     // may not claim to be the last lesson, and it may not claim a sibling's
     // week is absent. What is durably true: week 68 exists, exactly once, it is
     // THIS lesson, it is the highest week mounted at the time of writing, it
@@ -318,7 +318,7 @@ describe('sov68 — WHO TAUGHT: NOBODY', () => {
 
 describe('sov68 — the lesson agrees with what we actually measured about standards', () => {
   it('never claims this platform uses an interchange standard, and never urges adopting one', () => {
-    // The measured truth (DR-1333): a search of app/src, docs/decisions and
+    // The measured truth (DR-1338): a search of app/src, docs/decisions and
     // docs/00-foundations for scorm|xapi|tincan|cmi5|lti returns NOTHING, and
     // the platform carries its own native record model instead.
     //
@@ -326,7 +326,7 @@ describe('sov68 — the lesson agrees with what we actually measured about stand
     // use SCORM or the process or something like it, if not, what?" (he typed an
 // ellipsis after "Lesson"; reader text renders that pause as a dash, DR-0331,
 // because the shrink-only elision ratchet reads an ellipsis inside a quotation
-// as an elided Scripture -- the raw form is kept in this header and in DR-1333)
+// as an elided Scripture -- the raw form is kept in this header and in DR-1338)
 // and the
     // lesson quotes him verbatim in all five places (DR-0331). Scanning for the
     // phrase without first removing his own words would flag the quotation of
