@@ -342,6 +342,23 @@
       "wallClockHours": 1.37,
       "estimateWithoutAiHours": 24,
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "pm14-whose-measure-the-benchmark-the-census-and-the-kpis",
+      "date": "2026-11-05",
+      "task": "Lesson pm14: whose measure — the benchmark, the census, and the KPIs the Word already gave us",
+      "drs": [
+        "DR-1348"
+      ],
+      "prs": [
+        2559
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 26,
+      "notes": "Measured first commit 19:37:26Z to the ledger commit on claude/measure-growth-yahwehs-way; the reading of the thread, the repository-wide unbuilt-passage measurement, the primary-source checking and the authoring before that first commit are NOT on the record, so 0.3 understates the real elapsed time. Estimate is this session's own, for a 14th course lesson carrying five reader versions (child 705, youth 1102, teen 1604, senior 2833, adult 1114 words), two authored stories, 51 pinned references fetched verbatim from the KJV corpus, a 43-case pinned gate proven to catch twice, a decision record, a session note, and a trust-but-verify audit of a benchmark newsletter whose primary sources were unreachable."
     }
   ]
 }
