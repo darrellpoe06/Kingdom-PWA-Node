@@ -3422,8 +3422,20 @@ function CourseView({
                         <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-search-question>{q}</li>
                       ))}
                     </ol>
+                    {/* THIS ROW OF LINKS IS NOT READ ALOUD (DR-1327). Measured
+                        2026-11-05 against the real buildFollowMap: the lesson
+                        TITLE sits inside a <button>, which the reader already
+                        skips as chrome, so the only thing that reached the
+                        voice was the trailing span — "— same ground: Galatians
+                        5:22" — the same reference the prose above had just
+                        named, now with no lesson attached to it. A headless
+                        repeat of a verse the listener just heard. The three
+                        questions above and the aim + verse below are prose and
+                        are still read; this is a row of links, and
+                        `data-read-skip` is the mechanism this app already has
+                        for saying so. */}
                     {search.next.length > 0 && (
-                      <ul className="mt-1 space-y-1" data-testid="search-it-out-next">
+                      <ul className="mt-1 space-y-1" data-testid="search-it-out-next" data-read-skip>
                         {search.next.map((n) => (
                           <li key={n.id} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }} data-search-next={n.id}>
                             <button
