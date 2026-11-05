@@ -21,7 +21,7 @@
 // drives it with thousands of synthetic rows across multi-year spans).
 // =============================================================================
 import { deriveAccountBalances } from './financial-engineering.js';
-import { totals as importedTotals, isTransferTxn, isBalanceAdjustment } from './imported-view.js';
+import { totals as importedTotals, isTransferTxn, isBalanceAdjustment, balanceCheckpoint } from './imported-view.js';
 
 // Integer-cents conversion — the same discipline reconciliation.js proved out:
 // compare money in cents so float noise can never flip a verdict.
@@ -40,17 +40,32 @@ const parseDate = (v) => {
 export function checkBalanceDerivation(data, asOf = new Date()) {
   const derived = deriveAccountBalances(data, asOf);
   const centsByAccount = {};
+  // A bank-verified checkpoint ($0 row, balance in `reconciliation`) is the
+  // balance at the END of its day; the independent sum starts from the latest one
+  // on or before asOf and counts only later cleared rows, the same rule the
+  // engine uses, recomputed here in integer cents.
+  const pad = (n) => String(n).padStart(2, '0');
+  const asOfDay = `${asOf.getFullYear()}-${pad(asOf.getMonth() + 1)}-${pad(asOf.getDate())}`;
+  const cpByAccount = {};
+  const dated = {};
   for (const t of data?.transactions || []) {
     if (!t || !t.accountId) continue;
+    const cp = balanceCheckpoint(t);
+    if (cp) { if (cp.day <= asOfDay && (!cpByAccount[t.accountId] || cp.day >= cpByAccount[t.accountId].day)) cpByAccount[t.accountId] = cp; continue; }
     const d = parseDate(t.date);
     if (!d || d > asOf) continue;
     centsByAccount[t.accountId] = (centsByAccount[t.accountId] || 0) + toCents(t.amount);
+    (dated[t.accountId] ||= []).push({ day: String(t.date).slice(0, 10), cents: toCents(t.amount) });
   }
   const mismatches = [];
   for (const a of data?.accounts || []) {
     if (!a || a.id == null) continue;
     const openingCents = toCents(a.openingBalance != null ? a.openingBalance : (a.balance || 0));
-    const independent = openingCents + (centsByAccount[a.id] || 0);
+    const cp = cpByAccount[a.id];
+    if (!cp && (data?.transactions || []).some((t) => t && t.accountId === a.id && balanceCheckpoint(t))) continue; // only later checkpoints: the engine counts back from them; not re-derived here
+    const independent = cp
+      ? toCents(cp.balance) + (dated[a.id] || []).reduce((s, r) => (r.day > cp.day ? s + r.cents : s), 0)
+      : openingCents + (centsByAccount[a.id] || 0);
     const engine = toCents(derived[a.id]);
     if (independent !== engine) {
       mismatches.push(`${a.name || a.id}: engine ${(engine / 100).toFixed(2)} vs independent ${(independent / 100).toFixed(2)}`);

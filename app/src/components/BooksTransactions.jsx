@@ -24,6 +24,7 @@ import { categorize, payeeKey, countPayeeMatches, categoryLabel } from '../lib/c
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import { runningBalanceByTxId } from '../lib/imported-view.js';
+import { deriveAccountBalances } from '../lib/financial-engineering.js';
 import { commitReadout } from '../lib/import-commit.js';
 import { reconcileStatement } from '../lib/statement-reconciliation.js';
 import { matchParty, needsPartyPrompt, learnParty, forgetParty, PARTY_TYPES, PARTY_AUTO_CONFIDENCE } from '../lib/payee-entity-learning.js';
@@ -570,7 +571,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     acc[t.accountId] = (acc[t.accountId] || 0) + (t.amount || 0);
     return acc;
   }, {});
-  const liveBalance = (a) => (a.openingBalance != null ? a.openingBalance : (a.balance || 0)) + (clearedByAccount[a.id] || 0);
+  // ONE balance rule for every Money screen (Christina, 2026-11-05): the
+  // Overview's deriveAccountBalances, which honors a bank-verified checkpoint.
+  // An account with no checkpoint gets exactly the sum above from it.
+  const derivedNow = deriveAccountBalances(data, currentDate);
+  const liveBalance = (a) => (derivedNow[a.id] != null ? derivedNow[a.id] : (a.openingBalance != null ? a.openingBalance : (a.balance || 0)) + (clearedByAccount[a.id] || 0));
   const balanceByAccount = (accounts || []).reduce((acc, a) => { acc[a.id] = liveBalance(a); return acc; }, {});
 
   // For Upcoming: walk transactions chronologically per account, tracking
