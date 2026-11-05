@@ -1,4 +1,4 @@
-# DR-1347: The subprocess budget must sit below the runner's — the tie that read as a flake three times, and the memory that had gone stale under it
+# DR-1348: The subprocess budget must sit below the runner's — the tie that read as a flake three times, and the memory that had gone stale under it
 
 **Date:** 2026-11-05
 **Status:** Accepted
@@ -52,14 +52,25 @@ This killed the obvious fix. Lowering the per-fetch value alone to 3 s still all
 
 **One Layer 0 memory corrected by measurement.** `feedback_no_coauthor_trailer` said this repo's commits carry no Claude co-author trailer. Measured: **49 of the last 51 commits carry `Co-Authored-By: Claude …` plus a `Claude-Session:` line**, consistently since `586e75d` (2026-10-29). The memory line is now marked superseded with the measurement and the date, rather than deleted, because it still loads and would otherwise be obeyed. This is exactly the staleness that section's own closing line warns about — *memories reflect what was true when written* — and it is the first time that warning has been exercised against one of its own bullets.
 
+## Impact
+
+**What this obligates.** The guard is wired into `verify:gates` AND `.github/workflows/ci.yml`, so this record touches the CI lane, and **P26 / DR-0107 binds: a merge/CI/deploy-lane change is not done until a real merge has produced a real deploy.** CI-green is not deploy-proof. The edit adds one step to an existing job and alters no trigger, no concurrency group and no deploy dispatch, so no downstream `push`-triggered effect changes shape — but the proof is the real merge, read by **exact `head_sha`** and never from the first row of a runs list (P62).
+
+**What this does NOT do, stated rather than discovered later.** The guard compares ONE declared budget against one ceiling. It cannot see how many times a case invokes the script, and neither inner budget here is a total wall clock — `--timeout` is per fetch, `SOVEREIGN_REPLAY_TIMEOUT` per invocation — so **a case can satisfy this guard and still be tied through a multiplier.** That residual is deliberately left with the fixtures that set the count, in `budgetsAreOrdered`; the guard is the floor, that test is the ceiling for its own fixtures. A guard that claimed to cover the multiplier would be the more dangerous artifact.
+
+**Two tooling findings left open rather than fixed here.** `claim-decision-number.mjs` answers confidently and wrongly when a branch's refs are not fetched locally, and says nothing about what it could not see — it reported `DR-1345` free while an unlanded branch held 1345 and 1346. And nothing prevents the number collision itself, which DR-1021 already dates as a Governor's call about the shared-pointer convention rather than a tooling change. Both are reported on the PR; neither is this record's to close. `re-review: 2026-12-05`.
+
+**What it cost to land.** Three base merges and two renumbers (DR-1334 → DR-1347 → DR-1348), which is DR-1021's measured renumber cost paid twice, and DR-1136's warning that a second repair yields to a merged one proved exactly right when #2553 landed holding DR-1347.
+
 ## Verification
 
 - `the-deploy-has-more-than-one-road.test.js`: **19/19**; **20/20** consecutive runs idle; **5/5** under 12 busy loops on 4 cores (3× oversubscription).
-- `a-backup-on-request.test.js`: **6/6**.
-- `subprocess-budget-guard.test.js`: **14/14**.
-- `npm run verify:gates`: the full chain green with the new gate in sequence. (`lesson-dates:check` reports a shallow-clone limitation on an untouched tree too, exit 0 — pre-existing, unrelated.)
-- `eslint --max-warnings 0` clean on every touched file.
-- `scripts/served-anon-key.py`, `replay-on-clock.sh`, `ops-runner.py` and the deploy lane are **untouched** — no production behavior changes.
+- `a-backup-on-request.test.js`: **6/6**. `subprocess-budget-guard.test.js`: **14/14**.
+- `verify-covers-ci-guards.test.js`: **9/9** — it is what caught the guard being in `verify:gates` and not in `ci.yml`, DR-1308's reverse direction finding its twelfth instance.
+- **222/222** across the 13 suites that read `ci.yml`, plus this branch's three.
+- `eslint --max-warnings 0` clean on every touched file; `ci.yml` parses; `workflow-list-order-guard` OK.
+- `npm run verify:gates`: every gate passes, including the new one in sequence, **with one honest exception** — the chain exits **2** on its last step, `lesson-dates:check`, because `derive-lesson-dates` needs full git history and the verifying container has a shallow clone. It exits 2 identically on clean `origin/main`, so it is environmental and pre-existing, not this change's. An earlier draft of this record called the chain "green ... exit 0"; that came from reading a `tail`'s exit code instead of npm's — the same mistake DR-1136 records making with a guard, repeated here a fortnight later, which is why the measured statement replaced it.
+- `scripts/served-anon-key.py`, `replay-on-clock.sh`, `ops-runner.py` and the deploy workflow are **untouched** — no product behavior changes.
 
 ## The rule, for the next session
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // =============================================================================
 // subprocess-budget-guard — a spawned script's own budget may not meet or
-// exceed the test runner's timeout (DR-1347; the tests it guards are DR-1269;
+// exceed the test runner's timeout (DR-1348; the tests it guards are DR-1269;
 // DR-0076 §3 proven-to-catch; DR-0239 gate-the-class)
 // =============================================================================
 // WHY THIS EXISTS. The runner KILLS a case rather than waiting for the script

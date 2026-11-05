@@ -173,7 +173,7 @@ jobs:
       # property_photos and the rentals coordinates down with them).
       - run: node ../scripts/migration-return-type-guard.mjs
 
-      # Subprocess-budget guard (DR-1347; DR-0239 gate-the-class). A test that
+      # Subprocess-budget guard (DR-1348; DR-0239 gate-the-class). A test that
       # hands a spawned script a timeout budget at or above its own vitest
       # ceiling is tied by construction: the runner KILLS the case rather than
       # waiting for the script, so it dies as "Test timed out in Nms" on a
