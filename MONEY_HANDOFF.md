@@ -25,7 +25,8 @@ no balances, no full account numbers. Verify anything dated before relying on it
 ## Verified 2026-11-05 (this thread)
 
 - PRs #2532 (one bank-verified balance across Overview / Transactions / Imported) and #2537 (Personal-only combined Safe to Spend, one Personal reserve key, Bills Due dedupe, cleared payments not re-subtracted) are merged on `main` and deployed (deploy run 2041 on `main` df80128, green).
-- Synchronization: Darrell's device (Samsung Fold 7) reports "Synchronized, last pushed 2026-11-05 12:08 UTC". That marker is written only after the server accepted the push, so the push reached the LIVE (NAS) database. A read-only census of the NAS records is the verification step (see `money-records-read.yml`, temporary).
+- Synchronization: Darrell's device (Samsung Fold 7) reports "Synchronized, last pushed 2026-11-05 12:08 UTC". That marker is written only after the server accepted the push, so the push reached the LIVE (NAS) database. A read-only census of the NAS records is the verification step: `scripts/money-records-read.sql` (BEGIN READ ONLY, rounded output).
+- The census could NOT run from a GitHub runner: `TS_AUTHKEY` has been rejected by Tailscale ("invalid key: API key does not exist") on every tailnet lane since 2026-10-28 (nas-health last green 2026-10-27 22:24 UTC; DR-1283 / DR-1298 / DR-1302 already record this and name the fix: a fresh Reusable + Ephemeral auth key, a value only Darrell can mint). And this repository is PUBLIC, so workflow logs are public: Money records must never be printed there. The temporary workflow was removed unrun. The fitting road is DR-1159 road 2: Darrell runs the same SQL from ConnectBot on his phone, and the output stays on his screen.
 - CORRECTION: this thread first read the HOSTED project and reported it stale (newest transaction 2026-08-12, zero checkpoints, `debts` and `obligations` empty, snapshot 2026-10-28 with no `moneyPlan`). That describes the hosted fossil, not the app. Treat none of those figures as the app's state.
 - Darrell's Overview on 2026-11-05: Total Outstanding Debt shown for 24 debts; Savings Progress against a $2,000 buffer. His intended Personal reserve is $10,000. The reserve the engine uses is `moneyPlan.settings.reserveByEntity.personal`, separate from `meta.bufferTarget`.
 - Per Darrell, Chase 3322 is Poe Properties business checking. Its entity assignment in the live database is what the census verifies; the hosted copy had it under `e-personal`.
@@ -54,7 +55,8 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Outstanding problems
 
-1. Verify the live (NAS) Money records with the read-only census; until then every "existing value" is unverified.
+1. Verify the live (NAS) Money records with the read-only census via ConnectBot; until then every "existing value" is unverified.
+1b. Fleet-wide: `TS_AUTHKEY` revoked since 2026-10-28; 60+ NAS lanes (nas-health, db-migrate's sovereign replay, sovereign-read, probes) are red until Darrell mints a new Reusable + Ephemeral key and updates the repository secret. The deploy still works (its anon key falls back to the served-site road, DR-1269).
 2. Chase 3322 entity assignment (Personal vs Poe Properties).
 3. Cash App and First State Bank checking accounts under Poe Properties, if absent.
 4. Personal reserve: save $10,000 under the `personal` key; today the Overview shows only the $2,000 buffer.
@@ -63,10 +65,11 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Next unfinished task
 
-Run the read-only census, present verified current records beside the exact
-proposed corrections (items 2-4), and wait for Darrell's approval before any
-record changes. Remove `money-records-read.yml` after the pass. No live records
-changed and nothing deployed by this thread.
+Darrell runs the read-only census from ConnectBot and pastes the rounded rows
+back; present verified current records beside the exact proposed corrections
+(items 2-4); wait for approval before any record change; then delete
+`scripts/money-records-read.sql`. No live records changed and nothing deployed
+by this thread.
 
 ## References
 
