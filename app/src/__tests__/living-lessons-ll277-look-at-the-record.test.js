@@ -144,7 +144,7 @@ const SPINE = [
   ['Psalms 37:7', 'fret not thyself because of him who prospereth in his way'],
 ];
 
-describe('L276 is in the catalog, numbered, dated and whole', () => {
+describe('L277 is in the catalog, numbered, dated and whole', () => {
   it('exists exactly once with all four bands', () => {
     expect(L, `${ID} is not in the catalog`).toBeTruthy();
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);

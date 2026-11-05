@@ -500,4 +500,12 @@ export const LIVING_LESSONS_ADDED = {
   // party. Sent 2026-10-20, BUILT 2026-11-05: this is the build day, the day the
   // id landed, not the day it was sent, and the row waited 16 days (DR-1319).
   'll278-say-what-you-get': '2026-11-05',
+  // L279 was SPOKEN into the app by Darrell on 2026-11-05, the third word of
+  // that day, after L276 and L277 had shipped, and built the same day (DR-1320):
+  // soul searching to see the gap between what He means by His Word and our
+  // souls' default ways, which may or may not need adjusting -- with his own
+  // emphasis, spoken separately, on the words or may not. The follow-up to
+  // L277's closing movement. Spoken and built the same day, so the day recorded
+  // is both the speaking day and the build day.
+  'll279-soul-searching': '2026-11-05',
 };
