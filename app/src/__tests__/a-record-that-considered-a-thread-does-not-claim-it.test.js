@@ -295,21 +295,50 @@ describe('the six unexamined collisions are read, and what they are is pinned', 
     expect(threadClaims(ledger).get('1a135f165fe391e3')).toContain('DR-1051');
   });
 
-  it('the two measured duplicates are RECORDED, so the guard stays green and stays loud', async () => {
-    const { EXAMINED_AWAITING_FOLD } = await guard();
-    expect(EXAMINED_AWAITING_FOLD).toHaveLength(2);
-    expect(EXAMINED_AWAITING_FOLD.map((p) => p.thread).sort())
+  // CORRECTED 2026-11-05 (DR-1317). These two pairs were recorded by DR-1313 as
+  // `EXAMINED_AWAITING_FOLD` -- "measured duplicates awaiting Darrell's fold" --
+  // and that was WRONG. Darrell: "there would be overlapping at times however not
+  // the exact same lesson... 8 points of this lesson does not end with the same
+  // message it's close however another point entirely after explaining the
+  // foundations of the eternal systems Yahweh created in us and outside of us...
+  // How else would they connect?!" and "How can we have only reference one
+  // scripture ever?! Doesn't make any sense!"
+  //
+  // A verse is never SPENT. Scripture is the foundation of what we teach, it is
+  // finite, and the eternal systems rest on common ground, so two lessons
+  // teaching from them SHOULD share it. "One teaching" is decided by WHERE A
+  // LESSON LANDS, never by the ground it stands on.
+  it('the two pairs are recorded as shared foundation, NOT as duplicates', async () => {
+    const { SHARED_FOUNDATION_DIFFERENT_POINT, ...rest } = await guard();
+    expect(rest.EXAMINED_AWAITING_FOLD, 'the false category must be gone, not renamed around')
+      .toBeUndefined();
+    expect(SHARED_FOUNDATION_DIFFERENT_POINT).toHaveLength(2);
+    expect(SHARED_FOUNDATION_DIFFERENT_POINT.map((p) => p.thread).sort())
       .toEqual(['1a11668e8023cd3e', '1a11be8ea0e58748']);
-    for (const p of EXAMINED_AWAITING_FOLD) {
-      expect(p.lessons, 'a duplicate entry must name the two lessons').toHaveLength(2);
-      expect(p.why.length, 'and must carry its comparison, not just a flag').toBeGreaterThan(200);
+    for (const p of SHARED_FOUNDATION_DIFFERENT_POINT) {
+      expect(p.lessons, 'each entry names the two lessons').toHaveLength(2);
+      expect(p.why.length, 'and carries its comparison, not just a flag').toBeGreaterThan(200);
+      // The comparison must say where each lesson LANDS, which is the whole test.
+      expect(p.why, 'the entry must state the different point, not only the shared ground')
+        .toMatch(/different point/i);
     }
   });
 
-  it('each duplicate pair is STILL a live collision, so the list cannot go stale', async () => {
-    const { threadClaims, EXAMINED_AWAITING_FOLD } = await guard();
+  it('nothing in the guard calls a lesson of his a duplicate or awaits a fold', async () => {
+    // The repo asserting a duplicate on a COLG-facing surface is the fault this
+    // case exists to keep out, so it reads the shipped source, not the exports.
+    const src = readFileSync(join(REPO, 'scripts', 'one-thread-one-record-guard.mjs'), 'utf8');
+    expect(src).not.toMatch(/AWAITING_FOLD/);
+    expect(src).not.toMatch(/awaiting Darrell's fold/);
+    expect(src).not.toMatch(/DUPLICATE awaiting/);
+    expect(src, 'and the corrected reading must be stated where a reader will meet it')
+      .toMatch(/shared foundation, different point/i);
+  });
+
+  it('each recorded pair is STILL a live naming collision, so the list cannot go stale', async () => {
+    const { threadClaims, SHARED_FOUNDATION_DIFFERENT_POINT } = await guard();
     const claims = threadClaims();
-    for (const p of EXAMINED_AWAITING_FOLD) {
+    for (const p of SHARED_FOUNDATION_DIFFERENT_POINT) {
       expect(claims.get(p.thread), `${p.thread} must still be named by both records`)
         .toEqual([...p.drs].sort());
     }
@@ -335,7 +364,7 @@ describe('the six unexamined collisions are read, and what they are is pinned', 
   // about the live catalog; here they are recomputed with the catalog's own
   // rule, so a drift in either direction fails rather than ages quietly.
   it('the claimed shared-verse counts are what the catalog actually holds', async () => {
-    const { EXAMINED_AWAITING_FOLD } = await guard();
+    const { SHARED_FOUNDATION_DIFFERENT_POINT: EXAMINED_AWAITING_FOLD } = await guard();
     const { sharedGround } = await import('../lib/one-teaching-one-lesson.js');
     const map = await catalog();
     for (const pair of EXAMINED_AWAITING_FOLD) {
@@ -354,7 +383,7 @@ describe('the six unexamined collisions are read, and what they are is pinned', 
     // ll221 "Owning the Light Instead of Renting It" and ll236 "The Bill You
     // Cannot Read" came from one utility-billing forward and share ONE verse.
     // If a future rule starts flagging these, it over-flags.
-    const { EXAMINED_AWAITING_FOLD } = await guard();
+    const { SHARED_FOUNDATION_DIFFERENT_POINT: EXAMINED_AWAITING_FOLD } = await guard();
     expect(EXAMINED_AWAITING_FOLD.map((p) => p.thread)).not.toContain('1a11be8188dbc2f6');
     const { sharedGround } = await import('../lib/one-teaching-one-lesson.js');
     const map = await catalog();
