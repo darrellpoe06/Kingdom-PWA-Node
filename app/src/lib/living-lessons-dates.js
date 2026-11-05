@@ -517,4 +517,14 @@ export const LIVING_LESSONS_ADDED = {
   // unbuilt: whose the answer in the night is, and the chaff-or-wheat test that
   // survives a sign coming to pass (DR-1324).
   'll280-whose-answer-comes-in-the-night': '2026-11-05',
+  // L281 records the BUILD day, not the source day. The source is a morning
+  // business digest of 2026-10-22, forwarded at 13:32:14 UTC with one typed
+  // word above the forwarded header: Lesson (singular). Nobody taught it
+  // (DR-0719: a forwarded newsletter is not a recording, so no teacher is
+  // identified). The lesson refuses the issue's war item outright on DR-0098
+  // grounds and its other items on their landings, and teaches the one
+  // reading that was genuinely unbuilt: a judgment you watched land on
+  // somebody else was written for you, and comfort is what keeps it from
+  // teaching you (DR-1325).
+  'll281-though-thou-knewest-all-this': '2026-11-05',
 };
