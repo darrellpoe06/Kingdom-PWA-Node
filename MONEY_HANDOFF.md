@@ -15,21 +15,20 @@ no balances, no full account numbers. Verify anything dated before relying on it
 
 ## Persistence model (matters for every "is it saved?" question)
 
+- **THE LIVE DATABASE IS THE SOVEREIGN SUPABASE ON THE NAS, NOT THE HOSTED PROJECT.** The deployed app has read the NAS since REPOINT-ARMED (2026-08-19, DR-0310); since 2026-10-09 the deploy workflow builds with `VITE_SUPABASE_URL` pointed at the Funnel `/sb` road (a surfaced, temporary deviation documented in `deploy-cloudflare-pages.yml`). The hosted Supabase project (`mjjlevhdufpaplypnqrv`) has not been written by the app since 2026-10-28 and must never be read as the app's current state.
+- The sandbox has no route to the NAS. Read the live database from a GitHub runner over the tailnet: `scripts/live-sql.sh` (BEGIN READ ONLY, tailnet -> ssh -> docker exec psql), as `sovereign-read.yml` and `family-books-probe.yml` do (DR-1159 road 1).
 - Local-first: the device snapshot (IndexedDB `poe-financial-v28`) holds the whole `data`.
-- Table sync (Supabase `accounts`, `debts`, `transactions`, `rentals`, `entities`) runs only when signed in AND `data.numericSyncVerifiedAt` is set (the verify-balances walkthrough).
-- Everything else (`moneyPlan`, `recurringObligations`, `inflows`, `taxCalendar`) rides one jsonb row per instance in `family_snapshots`, pushed on change once signed in.
-- Household instance: "Poe Family". A second instance, "Poe Properties", holds the 12 rental rows. Same three users are members of both.
+- Table sync (`accounts`, `debts`, `transactions`, `rentals`, `entities`) runs only when signed in AND `data.numericSyncVerifiedAt` is set (the verify-balances walkthrough).
+- Everything else (`moneyPlan`, `recurringObligations`, `inflows`, `taxCalendar`) rides one jsonb row per instance in `family_snapshots`, pushed on change once signed in. The Money -> Setup card's "Last pushed" reads the device marker written only after a push the server accepted.
+- Household instance: "Poe Family" (slug `poe-family`). A second instance, "Poe Properties" (`poe-properties`, type landlord), exists; the same three users are members of both. `join_default_instance` resolves the family users to `poe-family`.
 
 ## Verified 2026-11-05 (this thread)
 
 - PRs #2532 (one bank-verified balance across Overview / Transactions / Imported) and #2537 (Personal-only combined Safe to Spend, one Personal reserve key, Bills Due dedupe, cleared payments not re-subtracted) are merged on `main` and deployed (deploy run 2041 on `main` df80128, green).
-- Cloud copy of the household instance is STALE relative to the work described in the Nov 2026 handoff:
-  - `transactions`: newest row dated 2026-08-12; zero `balance-checkpoint` / `balance-adjustment` rows.
-  - `accounts`: three Chase checking rows plus a "Test Debt" credit row, last changed 2026-10-28. No Cash App account. No First State Bank checking account.
-  - `debts`: 0 rows. `obligations`: 0 rows.
-  - `family_snapshots` (household): last push 2026-10-28; `moneyPlan` absent (no reserve saved to the cloud), `recurringObligations` empty, all 12 rentals carry `mortgage.balance = 0`.
-- Consequence: the November balances, the Cash App rental receipt, the $10,000 reserve and the six First State Bank loans are either on one device only or not entered. Nothing in the cloud proves them.
-- Entity mismatch in the cloud row: "Chase Checking 3322" is assigned to `e-personal`. Per Darrell it is Poe Properties business checking. If the device agrees with the cloud, Personal Safe to Spend includes business cash and Poe Properties has no spendable account.
+- Synchronization: Darrell's device (Samsung Fold 7) reports "Synchronized, last pushed 2026-11-05 12:08 UTC". That marker is written only after the server accepted the push, so the push reached the LIVE (NAS) database. A read-only census of the NAS records is the verification step (see `money-records-read.yml`, temporary).
+- CORRECTION: this thread first read the HOSTED project and reported it stale (newest transaction 2026-08-12, zero checkpoints, `debts` and `obligations` empty, snapshot 2026-10-28 with no `moneyPlan`). That describes the hosted fossil, not the app. Treat none of those figures as the app's state.
+- Darrell's Overview on 2026-11-05: Total Outstanding Debt shown for 24 debts; Savings Progress against a $2,000 buffer. His intended Personal reserve is $10,000. The reserve the engine uses is `moneyPlan.settings.reserveByEntity.personal`, separate from `meta.bufferTarget`.
+- Per Darrell, Chase 3322 is Poe Properties business checking. Its entity assignment in the live database is what the census verifies; the hosted copy had it under `e-personal`.
 
 ## The seven questions - what the engine can answer today
 
@@ -55,17 +54,19 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Outstanding problems
 
-1. Current financial truth is not in the cloud: confirm on the signed-in device whether `numericSyncVerifiedAt` is set and whether Money -> Setup reads "Synchronized".
+1. Verify the live (NAS) Money records with the read-only census; until then every "existing value" is unverified.
 2. Chase 3322 entity assignment (Personal vs Poe Properties).
-3. No Cash App or First State Bank checking accounts under Poe Properties.
-4. Six First State Bank loans not on file; loan -> property mapping unknown.
-5. Loan fields (lender, loan ref, due day, grace, late fee, last paid, paying account) do not exist in the record shape.
+3. Cash App and First State Bank checking accounts under Poe Properties, if absent.
+4. Personal reserve: save $10,000 under the `personal` key; today the Overview shows only the $2,000 buffer.
+5. Six First State Bank loans and the loan -> property mapping (deferred by Darrell to a separate step).
+6. Loan fields (lender, loan ref, due day, grace, late fee, last paid, paying account) do not exist in the record shape.
 
 ## Next unfinished task
 
-Awaiting Darrell's approval (2026-11-05) on the record changes in "Outstanding
-problems" 2-4 and on the record-shape extension in 5. No live records changed
-and nothing deployed by this thread.
+Run the read-only census, present verified current records beside the exact
+proposed corrections (items 2-4), and wait for Darrell's approval before any
+record changes. Remove `money-records-read.yml` after the pass. No live records
+changed and nothing deployed by this thread.
 
 ## References
 
