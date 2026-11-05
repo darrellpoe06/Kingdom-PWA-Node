@@ -143,6 +143,39 @@ describe('a seat is taken from the lowest rank, and nothing a reader sees is reo
     expect(missing).toEqual([]);
   });
 
+  it('PROVEN-TO-CATCH (2026-11-05, DR-1329): a declaring course whose only row is a TITLE match keeps it', () => {
+    // The real failure: `work` put eternal-wisdom's one TITLE row at 38 of 40,
+    // three other declarers were owed seats, and the seat pass overwrote
+    // eternal-wisdom to seat one of them, because its sole-seat check looked
+    // only at plain-tier rows. The condition, built structurally: 35 flood
+    // title rows, then ONE declaring course whose only lesson matches by
+    // title (row 36), then six declaring courses with one body-only lesson
+    // each (rows 37-42, so two are owed). Seating from the back must step
+    // over the title row at 36, not through it.
+    const titleOnly = 'eternal-wisdom';
+    const bodyOnly = WORK_DECLARERS.filter((k) => k !== titleOnly);
+    const courses = catalog({ word: WORD, flood: 7, floodLessons: 5, claim: [] });
+    courses.push({
+      key: titleOnly,
+      meta: { title: titleOnly, plainWords: [WORD] },
+      schedule: [{ id: `${titleOnly}-1`, title: `Truth in the hidden part of the ${WORD}`, summary: 'x' }],
+    });
+    for (const key of bodyOnly) {
+      courses.push({
+        key,
+        meta: { title: key, plainWords: [WORD] },
+        schedule: [{ id: `${key}-1`, title: 'Something else entirely', summary: `about ${WORD}` }],
+      });
+    }
+    const rows = searchLessons(buildLessonIndex(courses), WORD, LIMIT) || [];
+    expect(rows.length).toBe(LIMIT);
+    // The condition really holds: the title row sits inside the window and
+    // more declarers exist than the tail can hold without seating.
+    expect(rows.findIndex((r) => r.courseKey === titleOnly)).toBe(35);
+    const keys = rows.map((r) => r.courseKey);
+    for (const k of WORK_DECLARERS) expect(keys, `${k} declared "${WORD}"`).toContain(k);
+  });
+
   it('when everything already fits, the result is untouched', () => {
     // The seat logic must be a no-op below the window, or it would reorder
     // results nobody asked it to touch.

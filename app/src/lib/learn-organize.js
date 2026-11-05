@@ -606,7 +606,10 @@ export function searchLessons(index, query, limit = 40) {
     // word, so a two-word query is never promoted by one incidental overlap.
     const rank = inTitle === tokens.length ? 4
       : (inRef > 0 ? 3 : (inPlain === tokens.length ? 2 : 1));
-    scored.push({ rank, i, e });
+    // `declared` is carried separately from `rank`: a declaring course's row
+    // can arrive by TITLE or anchor reference and still be that course's only
+    // seat in the window (see the seat pass below).
+    scored.push({ rank, i, e, declared: inPlain === tokens.length });
   }
   scored.sort((a, b) => (b.rank - a.rank) || (a.i - b.i));
 
@@ -684,11 +687,22 @@ export function searchLessons(index, query, limit = 40) {
     // Seat them from the back, over the lowest-ranked rows, never over another
     // declaring course's only row (which would just trade one broken promise
     // for another).
+    //
+    // A SOLE SEAT IS A SOLE SEAT WHATEVER TIER IT ARRIVED BY (2026-11-05,
+    // DR-1329). This check used to read `rank === PLAIN_TIER`, so a declaring
+    // course whose only row in the window was a TITLE match was not protected
+    // and was overwritten by the course being seated. Measured on the live
+    // catalog the day ll282 ("The Greater Work") landed: `work` put
+    // eternal-wisdom's one title row at 38 of 40, three declarers were owed
+    // seats, and the pass seated one of them ON TOP of eternal-wisdom —
+    // trading one broken promise for another, the exact thing this comment
+    // says it never does. Caught by a-declared-word-keeps-its-seat.test.js
+    // on the real registry, and pinned there with a structural case.
     let at = out.length - 1;
     for (const s of owed) {
       while (at >= 0) {
         const k = out[at].e.courseKey;
-        const soleSeat = out[at].rank === PLAIN_TIER
+        const soleSeat = out[at].declared
           && out.filter((o) => o.e.courseKey === k).length === 1;
         if (!soleSeat) break;
         at -= 1;
