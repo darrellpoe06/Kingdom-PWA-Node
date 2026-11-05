@@ -52,6 +52,10 @@ While this branch was in flight `origin/main` took **#2538**, which landed **ll2
 
 **The merge was resolved by regeneration, and the first attempt is recorded as wrong.** A blind theirs-then-ours swap of each conflict hunk produced a catalog that would not parse — the hunk boundaries cut through an object literal and spliced their lesson's `levels` into this one's `stories`. `acorn` named the line and nothing was pushed. Redone: main's code files taken wholesale, this lesson's entry re-spliced from its own generator, the corpus regenerated, `INDEX.md` handed to `resolve-ledger-conflicts.mjs`. **A generated entry must be RE-generated after a merge, never re-used** — the first re-splice reused one built before this build's four prose fixes, and the gate caught all three classes it reintroduced in a single run.
 
+## What CI caught that 41 local suites missed
+
+`app — vitest shard 3/4` went red on `decision-chain.test.js` — *every record from DR-0588 on carries all five steps* — reporting **`DR-1319 missing evidence`**, although the record **had** a `## What was measured` heading. `chainOf` in `app/src/lib/decision-chain.js` skips a section with `if (!s.body) continue`, and this record's heading went straight into a `###` sub-heading with no prose of its own, so the Decision → Outcome chain read as four steps. **Fixed in the prose, not by widening the gate:** the section now opens with its own paragraph naming the ORDER the measurements were taken in. `chainOf` reports `missing: []`, `complete: true`; the suite is 14 green. **A record that organises `## What was measured` into sub-headings must still say something under the heading itself.**
+
 ## Left open
 
 - **The thread is not tagged.** `Label_22` is not on `1a1594cdb35eb4e4`; that needs approval in the coordinating session. `re-review: 2026-11-06`.
