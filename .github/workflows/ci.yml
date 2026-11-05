@@ -143,7 +143,7 @@ jobs:
       # and every app/src/modules/* has a registered journey, and a deferred
       # one carries a why and a re-review date that has not passed.
       - run: node ../scripts/journey-coverage-guard.mjs
-      # DEPENDENCY AUDIT (DR-1333): a known high/critical is red unless deferred
+      # DEPENDENCY AUDIT (DR-1345): a known high/critical is red unless deferred
       # with a date in scripts/dependency-audit-allowlist.json; every workflow
       # pip install is pinned through infra/requirements-ci.txt (pip-audit reads it).
       - run: node ../scripts/dependency-audit-guard.mjs

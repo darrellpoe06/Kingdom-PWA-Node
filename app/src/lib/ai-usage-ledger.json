@@ -90,7 +90,7 @@
       "date": "2026-11-05",
       "task": "Dependency audit gate, first npm audit (21 → 10), pip pins, Dependabot pip+docker",
       "drs": [
-        "DR-1333"
+        "DR-1345"
       ],
       "prs": [
         2553
