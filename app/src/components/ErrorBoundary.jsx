@@ -5,23 +5,31 @@
 // person can recover from, while still logging the error for diagnosis.
 import React from 'react';
 import { recordError } from '../lib/error-journal.js';
+import { isReviewerModeOn } from '../lib/reviewer-lens.js';
+
+// A short reference that names this failure in the console and the journal,
+// and on the card the person sees (DR-1335). Never the message itself.
+export function errorRef() {
+  try { return crypto.randomUUID().slice(0, 8); } catch { return Math.random().toString(16).slice(2, 10); }
+}
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { error: null };
+    this.state = { error: null, ref: '' };
   }
 
   static getDerivedStateFromError(error) {
-    return { error };
+    return { error, ref: errorRef() };
   }
 
   componentDidCatch(error, info) {
+    const ref = this.state.ref || errorRef();
     // Keep the console signal for diagnosis; the boundary handles the UI.
-    console.error('App error caught by ErrorBoundary:', error, info?.componentStack);
+    console.error(`[${ref}] App error caught by ErrorBoundary:`, error, info?.componentStack);
     // And the durable signal: the journal keeps the failure visible afterward
     // on the Quality & Throughput board (DR-0092). Recording never throws.
-    recordError({ source: 'app-boundary', kind: 'render', message: error?.message || String(error) });
+    recordError({ source: 'app-boundary', kind: 'render', message: `[${ref}] ${error?.message || String(error)}` });
   }
 
   reset = () => this.setState({ error: null });
@@ -55,12 +63,22 @@ class ErrorBoundary extends React.Component {
               Reload app
             </button>
           </div>
-          <details className="mt-4">
-            <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer hover:text-[#1A1815]">Technical detail</summary>
-            <pre className="mt-2 text-[0.6875rem] text-[#5A5751] whitespace-pre-wrap break-words" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              {String(this.state.error?.message || this.state.error)}
-            </pre>
-          </details>
+          {/* The exception's own words are for the steward, not the person
+              (DR-1335): a message can carry a path, a host or a library's
+              internals. Everyone sees the reference, which names the journal
+              entry on the Quality board; the text itself shows only under
+              reviewer mode (DR-0104), where the steward reads the build. */}
+          <p className="mt-4 text-[0.6875rem] text-[#5A5751]" data-testid="error-reference" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            Reference {this.state.ref}
+          </p>
+          {isReviewerModeOn() && (
+            <details className="mt-2">
+              <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer hover:text-[#1A1815]">Technical detail (reviewer mode)</summary>
+              <pre className="mt-2 text-[0.6875rem] text-[#5A5751] whitespace-pre-wrap break-words" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                {String(this.state.error?.message || this.state.error)}
+              </pre>
+            </details>
+          )}
         </div>
       </div>
     );

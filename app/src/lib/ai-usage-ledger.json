@@ -1,0 +1,364 @@
+{
+  "schema": "ai-usage-ledger v1 (DR-1347, DR-1330 D8) — one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
+  "models": {
+    "claude-fable-5-1": {
+      "note": "The Claude Code session model (Anthropic). Per-task tokens are not exposed by the harness; the session's budget counter is recorded per session instead."
+    },
+    "claude-sonnet-4-6": {
+      "note": "Runner vendor calls (scripts/lib/vendors.mjs); tokens and dollars metered per call."
+    },
+    "local": {
+      "note": "Ollama on the NAS; no dollars."
+    },
+    "claude-opus-5": {
+      "note": "Another Claude Code session's model, read from its commit trailer (Co-Authored-By: Claude Opus 5); its tokens are not on the record."
+    }
+  },
+  "sessions": [
+    {
+      "id": "session-2026-11-05-ways-review-build",
+      "model": "claude-fable-5-1",
+      "startedAt": "2026-11-05T15:45:00Z",
+      "tokensBudgetAtStart": 15000000,
+      "tokensBudgetAtRead": 14589695,
+      "sessionTokensObserved": 410305,
+      "readAt": "2026-11-05T17:55:00Z",
+      "tasks": [
+        "ways-review-2026-11-05",
+        "d1-surface-sweep",
+        "d2-journeys",
+        "d3-dependency-audit",
+        "d4-secret-scan",
+        "d5-error-text",
+        "d6-sign-in-record",
+        "d7-endpoint-register"
+      ],
+      "note": "Harness budget counter, read at the D7 push. It counts the session's context budget consumed, not a bill; the bill for this session is not metered anywhere this ledger can read, and that is the open item the record names."
+    }
+  ],
+  "entries": [
+    {
+      "id": "ways-review-2026-11-05",
+      "date": "2026-11-05",
+      "task": "Ways review of the ITPF AI-development slides, report + proposed DR",
+      "drs": [
+        "DR-1330"
+      ],
+      "prs": [
+        2551
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.52,
+      "estimateWithoutAiHours": 24,
+      "notes": "Asked ~15:40Z, pushed 16:10:57Z (0.52 h), merged 16:36:59Z. Four parallel read-only sweeps plus independent re-reads."
+    },
+    {
+      "id": "d1-surface-sweep",
+      "date": "2026-11-05",
+      "task": "Registry-driven navigation sweep, CI leg, two dead routes fixed",
+      "drs": [
+        "DR-1331"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.39,
+      "estimateWithoutAiHours": 16,
+      "notes": "Ratified ~16:37Z, pushed 17:00:31Z. Includes a full 136-case browser sweep run (469 s) and two selftest misses fixed."
+    },
+    {
+      "id": "d2-journeys",
+      "date": "2026-11-05",
+      "task": "Journey registry, six app journeys, coverage guard",
+      "drs": [
+        "DR-1346"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 16,
+      "notes": "17:00:31Z → 17:15:13Z. Six runner fixes found by running, none in the app."
+    },
+    {
+      "id": "d3-dependency-audit",
+      "date": "2026-11-05",
+      "task": "Dependency audit gate, first npm audit (21 → 10), pip pins, Dependabot pip+docker",
+      "drs": [
+        "DR-1345"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.14,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:15:13Z → 17:23:34Z."
+    },
+    {
+      "id": "d4-secret-scan",
+      "date": "2026-11-05",
+      "task": "House secret scanner + gitleaks, two real credentials found and closed",
+      "drs": [
+        "DR-1334"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
+    },
+    {
+      "id": "d5-error-text",
+      "date": "2026-11-05",
+      "task": "Error-text policy, 26 sites rewritten, guard, reviewer-only detail",
+      "drs": [
+        "DR-1335"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.09,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:35:22Z → 17:40:37Z (D4's fixture fix landed in between)."
+    },
+    {
+      "id": "d6-sign-in-record",
+      "date": "2026-11-05",
+      "task": "GoTrue hook → audit_log login/failed-auth, migration 0315, smoke, CI leg, matrix",
+      "drs": [
+        "DR-1336"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:41:35Z → 17:47:50Z; proven on a local PostgreSQL 16 before CI."
+    },
+    {
+      "id": "d7-endpoint-register",
+      "date": "2026-11-05",
+      "task": "Generated endpoint + data-store register, --check guard, Admin tab with live sign-ins",
+      "drs": [
+        "DR-1337"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.09,
+      "estimateWithoutAiHours": 12,
+      "notes": "17:47:50Z → 17:53:16Z."
+    },
+    {
+      "id": "d8-ai-usage-ledger",
+      "date": "2026-11-05",
+      "task": "Per-task AI usage ledger with a guard, the slide's results table kept by the build, Admin panel",
+      "drs": [
+        "DR-1347"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:53:16Z (D7 push) to this push. A Node ESM JSON-import attribute error split the rules from the file binding."
+    },
+    {
+      "id": "d9-bloat-ratchets",
+      "date": "2026-11-05",
+      "task": "Bloat ratchets: record length and INDEX row caps from DR-1339 on, per-file line ceilings for 16 files, new files under 1,500; lesson-content move measured and dated",
+      "drs": [
+        "DR-1339"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "fb2343d push (18:10Z) to this push."
+    },
+    {
+      "id": "d11-three-closes",
+      "date": "2026-11-05",
+      "task": "Three small closes: constant-time token compare, no wildcard CORS, cross-origin writes refused at the proxy",
+      "drs": [
+        "DR-1340"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 3,
+      "notes": "d2929d2 push to this push, shared with D12."
+    },
+    {
+      "id": "d12-eol-register",
+      "date": "2026-11-05",
+      "task": "End-of-life register with dates read from the endoflife.date source, a guard over 57 pins",
+      "drs": [
+        "DR-1341"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 4,
+      "notes": "Shared window with D11; the feed was unreachable, the source repository was cloned instead."
+    },
+    {
+      "id": "d13-clean-workflows",
+      "date": "2026-11-05",
+      "task": "Shared probe harness, two callers, workflow register with brake counts in Admin, YAML ceiling",
+      "drs": [
+        "DR-1342"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.45,
+      "estimateWithoutAiHours": 10,
+      "notes": "7b58a63 push to this push."
+    },
+    {
+      "id": "d10-format-ratchet",
+      "date": "2026-11-05",
+      "task": "Prettier and ruff as a ratchet on files added since main; 28 of this session's files formatted",
+      "drs": [
+        "DR-1343"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": "Shared window with D13's push."
+    },
+    {
+      "id": "sov67-what-cannot-be-patched",
+      "date": "2026-11-05",
+      "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1347)",
+      "drs": [
+        "DR-1332"
+      ],
+      "prs": [
+        2552
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.23,
+      "estimateWithoutAiHours": 24,
+      "notes": "Measured first commit 17:01:19Z to merge 18:14:53Z on claude/what-cannot-be-patched-is-removed (7 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,309-line lesson with 55 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "seven-gates-not-two",
+      "date": "2026-11-05",
+      "task": "Seven lesson gates lose a frozen census; the class guard reads identifiers (another session's work, ledgered at the first merge after DR-1347)",
+      "drs": [
+        "DR-1333"
+      ],
+      "prs": [
+        2554
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.21,
+      "estimateWithoutAiHours": 6,
+      "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
+    },
+    {
+      "id": "a-proof-of-a-removed-refusal",
+      "date": "2026-11-05",
+      "task": "Five stale proofs of a removed refusal re-pointed (another session's work, ledgered at merge)",
+      "drs": [
+        "DR-1344"
+      ],
+      "prs": [
+        2556
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.23,
+      "estimateWithoutAiHours": 3,
+      "notes": "One commit 18:41:24Z on claude/stale-proofs-of-a-removed-refusal, merged 18:55:21Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 7 files, +110/-11, not the authoring session's own."
+    },
+    {
+      "id": "sov68-there-shall-be-none-in-the-field",
+      "date": "2026-11-05",
+      "task": "Lesson sov68: there shall be none in the field (another session's work, ledgered at merge)",
+      "drs": [
+        "DR-1338"
+      ],
+      "prs": [
+        2555
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.37,
+      "estimateWithoutAiHours": 24,
+      "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "subprocess-budget-tie-and-its-gate",
+      "date": "2026-11-05",
+      "task": "The subprocess budget tie: fixed in three cases across two test files, gated repo-wide, and the gate's own blind spot closed",
+      "drs": [
+        "DR-1348"
+      ],
+      "prs": [
+        2557
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 6,
+      "notes": "Measured first commit 18:52:48Z to the rename commit 19:44:28Z on claude/youthful-fermi-16yfq3; the diagnosis was handed to the session already measured, so the reading covers the fix, the gate, its proof suite and three base merges, not the root-cause work. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for finding two further latent ties by hand, writing a static-analysis guard with a proof suite, and paying two renumbers."
+    }
+  ]
+}

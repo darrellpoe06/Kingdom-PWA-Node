@@ -21,7 +21,7 @@
 # The fastapi stub below lets the REAL handler run, so this is a behavioural
 # test of shipped code rather than a source scan.
 # =============================================================================
-import sys, types, asyncio, json
+import sys, types, asyncio, json, re
 
 # --- minimal fastapi stub so the REAL server.py handler can be exercised ---
 fa = types.ModuleType("fastapi")
@@ -135,8 +135,10 @@ os.environ["PATH"] = "/nonexistent"
 r, f = run({"text":"hi","reference_audio":"data:audio/webm;base64," + base64.b64encode(b"x").decode()}, ["A"])
 os.environ["PATH"] = saved_path
 print("  status:", r.status_code, "| body:", r.content)
-assert r.status_code==400 and r.content["error"]=="bad-reference" and "ffmpeg" in r.content["detail"]
-print("  PASS - the studio says it needs ffmpeg")
+assert r.status_code==400 and r.content["error"]=="bad-reference"
+assert re.fullmatch(r"[0-9a-f]{12}", r.content.get("ref", "")), "a reference the log carries (DR-1335)"
+assert "ffmpeg" not in json.dumps(r.content), "the exception's words stay in the log, never in the body (DR-1335)"
+print("  PASS - a named refusal with a reference; the why (ffmpeg) is in the studio log under that reference")
 
 print("\n=== 9. /health says the studio clones ===")
 h = vs.health()

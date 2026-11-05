@@ -26,7 +26,7 @@ n8n + ntfy + Ollama are running on the DS1621xs at `192.168.1.26` (LAN only — 
   - `04 - Pushover Smoke Test (manual)` — parallel session's; ran once at end of session (Pushover branch errored as expected for missing app token, ntfy branch succeeded)
 - **SMTP credential** `6KL4rQH7O5dSqBHf` (Gmail + app password) bound to Path B Email Send node on all 5 production workflows.
 - **Env vars in n8n container** (verified via `docker exec n8n env`):
-  - `PUSHOVER_USER_KEY=upan72gdukpvmo49uet2jfyjgrrf3v`
+  - `PUSHOVER_USER_KEY=<the value lives in the NAS .env; it was a literal here until 2026-11-05, redacted by DR-1334>`
   - `PUSHOVER_EMAIL_GATEWAY=ikzf7xijr4@pomail.net`
   - `PUSHOVER_DEVICE_NAME=PoeTech`
   - `PUSHOVER_APP_TOKEN=` (empty — forces Path B via the If node)

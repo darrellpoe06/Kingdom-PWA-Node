@@ -139,6 +139,70 @@ jobs:
       # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
       # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
       - run: node ../scripts/lessons-gate-coverage.mjs
+      # Journey coverage (DR-1346, DR-1330 D2): every nav family in surfaces.js
+      # and every app/src/modules/* has a registered journey, and a deferred
+      # one carries a why and a re-review date that has not passed.
+      - run: node ../scripts/journey-coverage-guard.mjs
+      # DEPENDENCY AUDIT (DR-1345): a known high/critical is red unless deferred
+      # with a date in scripts/dependency-audit-allowlist.json; every workflow
+      # pip install is pinned through infra/requirements-ci.txt (pip-audit reads it).
+      - run: node ../scripts/dependency-audit-guard.mjs
+      # SECRET SCAN (DR-1334, DR-1330 D4), two independent methods (DR-0076 §7):
+      # the house guard (eleven specific shapes plus the two house rules, under
+      # two seconds, no download) and gitleaks, built by `go install` at a
+      # pinned version so the Go checksum database verifies what runs. The
+      # first runs found a probe PIN in a workflow and a Pushover user key in
+      # two docs; .gitleaks.toml records every allowlisted fixture by name.
+      - run: node ../scripts/secret-scan-guard.mjs
+      # ERROR TEXT (DR-1335, DR-1330 D5): no HTTP response carries an
+      # exception's own words; the person gets a code and a ref, the log gets
+      # the text under the ref. 26 sites rewritten on 2026-11-05.
+      - run: node ../scripts/error-text-guard.mjs
+      # THE REGISTER IS NEVER STALE (DR-1337, DR-1330 D7): every door and every
+      # store the app renders under Admin is read from the code; a committed
+      # copy that differs from the code is a red build.
+      - run: node ../scripts/endpoint-register.mjs --check
+      # WHAT THE AI COST (DR-1347, DR-1330 D8): every decision record from
+      # DR-1331 on carries a line in app/src/lib/ai-usage-ledger.json (model,
+      # measured wall clock, the estimate without AI, tokens and dollars where
+      # a meter exists); a record that lands without its line is red.
+      - run: node ../scripts/ai-usage-ledger.mjs --check
+      # THE BLOAT RATCHETS (DR-1339, DR-1330 D9): a record from DR-1339 on
+      # stays within 60 lines and a 700-character INDEX row; a budgeted file
+      # (scripts/file-budgets.json, 16 today) never grows past its ceiling and
+      # no other source file is born over 1,500 lines.
+      - run: node ../scripts/record-length-guard.mjs
+      - run: node ../scripts/file-budget-guard.mjs
+      # No runtime past its end of life; every pin has a dated line (DR-1341).
+      - run: node ../scripts/eol-register.mjs
+      # The workflow register is never stale and the YAML only shrinks (DR-1342).
+      - run: node ../scripts/workflow-register.mjs
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: gitleaks over the checkout (pinned, verified by the Go checksum database)
+        run: |
+          set -euo pipefail
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" dir . --no-banner --redact --config .gitleaks.toml
+        working-directory: ${{ github.workspace }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: pip-audit over the pinned workflow requirements (no installs)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check pip-audit==2.10.1 "$(grep '^ruff==' infra/requirements-ci.txt)"
+          python3 -m pip_audit --no-deps -r infra/requirements-ci.txt
+        working-directory: ${{ github.workspace }}
+      # Every file born into the repo is formatted; the old are not rewritten (DR-1343).
+      - name: format-guard over the files added since main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          node scripts/format-guard.mjs --base origin/main
+        working-directory: ${{ github.workspace }}
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
@@ -173,22 +237,10 @@ jobs:
       # property_photos and the rentals coordinates down with them).
       - run: node ../scripts/migration-return-type-guard.mjs
 
-      # Subprocess-budget guard (DR-1348; DR-0239 gate-the-class). A test that
-      # hands a spawned script a timeout budget at or above its own vitest
-      # ceiling is tied by construction: the runner KILLS the case rather than
-      # waiting for the script, so it dies as "Test timed out in Nms" on a
-      # loaded runner and passes when idle -- which reads as a flake and gets
-      # re-run instead of fixed. Measured three times across two files.
-      #
-      # It is HERE as well as in `verify:gates` because a guard CI never runs is
-      # not a guard (DR-0076 §3) -- and this line is the twelfth instance
-      # DR-1308 predicted. The guard shipped into `verify:gates` alone, and
-      # `verify-covers-ci-guards.test.js` caught it on the first CI run that
-      # reached vitest, in the reverse direction that record added. The eleven
-      # below were found by measurement; this one was found by their gate.
-      #
-      # Measured on the authoring container: ~1.8s warm, 2.8s cold, walking
-      # 1805 test files.
+      # Subprocess-budget guard (DR-1348): a test handing a spawned script a
+      # budget at or above its own vitest ceiling is tied by construction --
+      # the runner kills the case rather than waiting. Here as well as in
+      # `verify:gates`, because a guard CI never runs is not a guard (§3).
       - run: node ../scripts/subprocess-budget-guard.mjs
 
       # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
@@ -367,7 +419,7 @@ jobs:
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
       # containment or the read-back regresses. Gates merge.
       - name: Pillow for the photo server (so the listing-size road is exercised here, as on the NAS)
-        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
+        run: python3 -m pip install --quiet "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)" || python3 -m pip install --quiet --break-system-packages "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)"
       - name: sovereign photo server selftest
         working-directory: infra/nas-property-photos
         run: python3 photo_server.py --selftest
@@ -759,6 +811,58 @@ jobs:
         run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
 
+  # EVERY REGISTERED SURFACE OPENS (DR-1331, DR-1330 D1): surface-sweep.mjs
+  # reads app/src/surfaces.js and opens each route in Chromium at two widths on
+  # the built dist, failing on a page error, an error boundary, a fall-through
+  # to the Overview or a hollow main; its first run found two dead routes. The
+  # two planted faults run first and must be caught (DR-0076 §3). Own build.
+  surface-sweep:
+    name: app — every registered surface opens
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+        working-directory: ${{ github.workspace }}
+      - name: Proven to catch — a surface whose chunk throws must trip the boundary check
+        run: node scripts/e2e/surface-sweep.mjs --only=about,rentals --widths=390 --break=chunk:rentals
+        working-directory: ${{ github.workspace }}
+      - name: Proven to catch — an uncaught page error must trip the page-error check
+        run: node scripts/e2e/surface-sweep.mjs --only=about,rentals --widths=390 --break=pageerror
+        working-directory: ${{ github.workspace }}
+      - name: The sweep — every distinct route, phone and laptop widths
+        run: node scripts/e2e/surface-sweep.mjs
+        working-directory: ${{ github.workspace }}
+      # THE JOURNEYS (DR-1346, from DR-1330 D2): a person's walks on the same
+      # build — a shared lesson link lands on the lesson, Learn opens a lesson
+      # by taps, the dock tabs and money sections open by taps, Create takes
+      # typed words, the feedback sheet opens. Registry: scripts/e2e/journeys.mjs;
+      # the coverage guard runs in the guards leg. The two planted faults run
+      # first and each must be caught (DR-0076 §3).
+      - name: Proven to catch — a shared link to a lesson that does not exist must fail its journey
+        run: node scripts/e2e/app-journeys.mjs --only=lesson-link-lands,create-takes-words --break=link
+        working-directory: ${{ github.workspace }}
+      - name: Proven to catch — taps that cannot land must fail every tapping journey
+        run: node scripts/e2e/app-journeys.mjs --break=taps
+        working-directory: ${{ github.workspace }}
+      - name: The journeys — every registered walk on the built app
+        run: node scripts/e2e/app-journeys.mjs
+        working-directory: ${{ github.workspace }}
+
   # THE NAS COPY OF THE CURRICULUM (DR-0677). The lessons stay in the code;
   # the sovereign database holds a synchronized copy. This leg proves, on a real
   # PostgreSQL before anything merges: 0242 applies twice (idempotent); every
@@ -1051,6 +1155,52 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0304-your-words-can-be-withdrawn-and-sent-where-they-belong.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0304-withdraw-my-words-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'WITHDRAW MY WORDS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
+  # SIGN-INS AND FAILURES ARE ON THE RECORD (DR-1336, DR-1330 D6): 0315
+  # applies twice (idempotent); the smoke proves the hook writes 'login' and
+  # 'failed-auth' rows with the person's instance (or none), returns {} on a
+  # malformed event, owners read their instance's rows, members and anon read
+  # none, and the hook is not callable by the signed-in. PROVEN TO CATCH: the
+  # owners' read is revoked and the same smoke must FAIL; the migration
+  # restores it and the smoke passes again.
+  auth-events:
+    name: app — sign-in record walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0315 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          P() { psql -v ON_ERROR_STOP=1 -q --single-transaction "$@"; }
+          P -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql; do P -f "infra/supabase/$f"; done
+          for i in 1 2; do P -f infra/supabase/migrations-auto/0315-sign-ins-and-failures-are-on-the-record.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'AUTH EVENTS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+      - name: PROVEN TO CATCH — the owners' read revoked, the smoke must fail; restored, it passes
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -qc "REVOKE EXECUTE ON FUNCTION public.auth_events_recent(integer) FROM authenticated"
+          if psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | grep -q 'AUTH EVENTS SMOKE: PASS'; then
+            echo "::error::the smoke passed with the owners' read revoked — it cannot fail (DR-0076 §3)"; exit 1; fi
+          psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0315-sign-ins-and-failures-are-on-the-record.sql
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | grep -q 'AUTH EVENTS SMOKE: PASS'
 
   # THE VAULT HOLDS ONLY WHAT THE OWNER CAN OPEN: 0251'S WALLS, ON A REAL
   # POSTGRESQL (DR-0762). 0251 applies twice (idempotent), then the smoke
@@ -1600,7 +1750,7 @@ jobs:
       - name: The database, from the real chain
         run: scripts/e2e/build-door-db.sh
       - name: Pillow for the photo server (the NAS's listing road; a bare runner has neither Pillow nor convert)
-        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
+        run: python3 -m pip install --quiet "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)" || python3 -m pip install --quiet --break-system-packages "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)"
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
       - name: Build the app against the journeys' own stack
@@ -1629,10 +1779,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, withdraw-walls]
+    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

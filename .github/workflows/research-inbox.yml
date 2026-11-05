@@ -322,7 +322,7 @@ jobs:
               # NAS for the same ladder. One process, a second road in.
               LW_WHY=$(python3 -c "import json;print(json.load(open('/tmp/link_words.json')).get('why') or 'no result')" 2>/dev/null || echo "no result")
               echo "the NAS road gave no words ($LW_WHY); trying the runner's own address"
-              python3 -m pip install --quiet --disable-pip-version-check yt-dlp >/dev/null 2>&1 || true
+              python3 -m pip install --quiet --disable-pip-version-check "$(grep '^yt-dlp==' infra/requirements-ci.txt)" >/dev/null 2>&1 || true
               mkdir -p /tmp/lw-media && rm -f /tmp/lw-media/*
               LINK_CLEAN=$(python3 -c "import re;m=re.search(r'https?://[^\\s<>\"\x27]+',open('/tmp/item.txt').read());print(m.group(0).rstrip('.,;:)]}') if m else '')")
               if [ -n "$LINK_CLEAN" ] && python3 -m yt_dlp --no-playlist --no-warnings -J -- "$LINK_CLEAN" > /tmp/lw-meta.json 2>/tmp/lw-meta.err; then

@@ -59,7 +59,11 @@ export default {
 
       return cors(env, request, json({ error: 'not found' }, 404));
     } catch (e) {
-      return cors(env, request, json({ error: e.message || 'internal error' }, 500));
+      // A code and a ref to the caller; the message to the log under the ref
+      // (DR-1335). Vendor errors here can carry the RentCast or Twilio reply.
+      const ref = crypto.randomUUID().slice(0, 12);
+      console.error(`[${ref}] internal error:`, (e && e.message) || String(e));
+      return cors(env, request, json({ error: 'internal error', ref }, 500));
     }
   },
 };
@@ -253,7 +257,7 @@ function json(obj, status = 200) {
     headers: { 'content-type': 'application/json' },
   });
 }
-function cors(env, request, res) {
+export function cors(env, request, res) {
   const allowed = (env.PWA_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
   // 2026-06-12 fix (ship review): the old version always emitted the FIRST
   // allowed origin, so every other origin in the list - including localhost
@@ -263,7 +267,13 @@ function cors(env, request, res) {
   // which is exactly the blocked behavior we want).
   const reqOrigin = request && request.headers ? (request.headers.get('Origin') || '') : '';
   const headers = new Headers(res.headers);
-  headers.set('Access-Control-Allow-Origin', allowed.includes(reqOrigin) ? reqOrigin : (allowed[0] || '*'));
+  // NEVER '*' (DR-1340, DR-1330 D11): an empty allow list used to open the
+  // worker to every origin. Now a matched origin is echoed; an unmatched one
+  // gets the first allowed origin (a mismatch the browser blocks); and with no
+  // allow list at all, no CORS header is sent, so no browser origin is let in.
+  if (allowed.includes(reqOrigin)) headers.set('Access-Control-Allow-Origin', reqOrigin);
+  else if (allowed.length) headers.set('Access-Control-Allow-Origin', allowed[0]);
+  else headers.delete('Access-Control-Allow-Origin');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   headers.set('Vary', 'Origin');

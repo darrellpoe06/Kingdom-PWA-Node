@@ -63,6 +63,12 @@ jobs:
       max-parallel: 1
       matrix:
         include:
+          # Sign-ins and failures are on the record (DR-1336): the hook writes
+          # 'login' / 'failed-auth' rows, owners read their instance's, members
+          # and anon read none, the hook is not callable by the signed-in.
+          - feature: auth-events
+            migrations: "0315-sign-ins-and-failures-are-on-the-record.sql"
+            smokes: "0315-auth-events-smoke.sql"
           - feature: tv-sharing
             migrations: "0074-tv-circle-sharing.sql 0141-account-unification-person-links.sql"
             smokes: "0074-isolation-smoke.sql"
