@@ -14,20 +14,12 @@
 // Proven-to-catch (DR-0076): the checker is pure and the test feeds it a
 // fabricated unregistered view to prove it flags one.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { SURFACES } from '../surfaces.js';
+import { VALID_VIEWS } from '../lib/nav-history.js';
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
-const shellSrc = readFileSync(join(SRC, 'poe-financial-mvp-v28.jsx'), 'utf8');
-
-// The top-level routes the shell accepts, parsed from its VALID allow-list.
-export function parseValidViews(src) {
-  const m = src.match(/const VALID = \[([^\]]+)\]/);
-  if (!m) throw new Error('surface-registry-completeness: VALID not found in the shell');
-  return m[1].split(',').map((s) => s.trim().replace(/['"`]/g, '')).filter(Boolean);
-}
+// The top-level routes the shell accepts: lib/nav-history.js's VALID_VIEWS, the
+// ONE list since DR-1331 folded the shell's inline copy into it (the shell's
+// getInitialView reads it; nav-history.test.jsx pins that no second copy exists).
 
 // FROZEN allow-list — the top-level views that legitimately are NOT their own
 // registered module today: the home overview, the container views that hold sub-
@@ -50,7 +42,7 @@ export function unregisteredViews(validViews, surfaces, allow) {
 
 describe('every top-level nav view is a registered module (or an allow-listed container)', () => {
   it('no accepted route skipped being a surfaces.js module', () => {
-    const missing = unregisteredViews(parseValidViews(shellSrc), SURFACES, NON_MODULE_VIEWS);
+    const missing = unregisteredViews(VALID_VIEWS, SURFACES, NON_MODULE_VIEWS);
     expect(missing, `these views are routable but NOT registered modules — add them to surfaces.js (or, if genuinely a container, to NON_MODULE_VIEWS with a reason): ${missing.join(', ')}`).toEqual([]);
   });
 

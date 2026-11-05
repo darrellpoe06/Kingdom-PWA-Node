@@ -43,6 +43,13 @@ export const VALID_VIEWS = [
   'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
   'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
   'forecast', 'cohorts', 'tlc-assistant', 'health', 'cameras', 'vault', 'research',
+  // 'study' and 'moore' added 2026-11-05 (DR-1330 D1): both are registered
+  // surfaces with render branches in the shell, and neither was listed here
+  // nor in the shell's own copy of this list, so ?view=study and ?view=moore
+  // fell through to the Overview on every deep link. Found by the first run
+  // of scripts/e2e/surface-sweep.mjs; pinned by surface-sweep.test.js, which
+  // requires every top-level registry view to be routable.
+  'study', 'moore',
 ];
 
 // Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|...

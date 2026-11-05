@@ -28,6 +28,18 @@ import tempfile
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.responses import JSONResponse
 
+# A person gets a short code and a reference id; the exception's own words go
+# to the log under that id (DR-1335, DR-1330 D5). Never str(e) in a response.
+import logging as _logging
+import uuid as _uuid
+_errlog = _logging.getLogger(__name__)
+
+
+def _ref(e):
+    ref = _uuid.uuid4().hex[:12]
+    _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
+    return ref
+
 from faster_whisper import WhisperModel
 
 MODEL_SIZE = os.environ.get("WHISPER_MODEL", "large-v3-turbo")
@@ -90,7 +102,7 @@ async def transcribe(request: Request, file: UploadFile = File(default=None)):
         try:
             return _run(target)
         except Exception as e:  # noqa: BLE001
-            return JSONResponse({"error": "transcribe-failed", "detail": str(e)}, status_code=500)
+            return JSONResponse({"error": "transcribe-failed", "ref": _ref(e)}, status_code=500)
 
     # multipart upload -> transcribe a streamed file.
     if file is None:
@@ -102,7 +114,7 @@ async def transcribe(request: Request, file: UploadFile = File(default=None)):
             f.write(await file.read())
         return _run(tmp)
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "transcribe-failed", "detail": str(e)}, status_code=500)
+        return JSONResponse({"error": "transcribe-failed", "ref": _ref(e)}, status_code=500)
     finally:
         try:
             os.remove(tmp)
