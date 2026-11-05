@@ -160,6 +160,10 @@ jobs:
       # exception's own words; the person gets a code and a ref, the log gets
       # the text under the ref. 26 sites rewritten on 2026-11-05.
       - run: node ../scripts/error-text-guard.mjs
+      # THE REGISTER IS NEVER STALE (DR-1337, DR-1330 D7): every door and every
+      # store the app renders under Admin is read from the code; a committed
+      # copy that differs from the code is a red build.
+      - run: node ../scripts/endpoint-register.mjs --check
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24'

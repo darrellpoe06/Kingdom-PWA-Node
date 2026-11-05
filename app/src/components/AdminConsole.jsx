@@ -62,6 +62,7 @@ import MemberInspect from './MemberInspect.jsx';
 import PersonRecord from './PersonRecord.jsx';
 import ChatPane from './ChatPane.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
+import EndpointRegister from './EndpointRegister.jsx';
 import StandingNote from './StandingNote.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
@@ -754,6 +755,15 @@ export default function AdminConsole({
           <NetworkStatus variant="inline" />
         </div>
       ),
+    },
+    {
+      id: 'register',
+      label: 'Endpoints & stores',
+      icon: 'shield',
+      // DR-1337 (DR-1330 D7): every door and every store, read from the code
+      // by the build and never typed; the unwalled tables first; and the
+      // sign-ins of the last day, live through auth_events_recent (DR-1336).
+      render: () => <EndpointRegister />,
     },
     {
       id: 'proving',
