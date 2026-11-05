@@ -9,7 +9,7 @@
 //     third file are each built in a throwaway git repo and run through the
 //     real CLI end to end.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, copyFileSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, copyFileSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -336,5 +336,56 @@ describe('resolve-ledger-conflicts — end to end in a real merge', () => {
       expect(m.stdout + m.stderr).toMatch(/CONFLICT.*INDEX\.md/);
       expect(run(r.dir).status).toBe(0);
     } finally { r.cleanup(); }
+  });
+});
+
+// =============================================================================
+// EIGHT MARKERS, NOT SEVEN (2026-11-05, DR-1321)
+// =============================================================================
+// git writes EIGHT characters when it must disambiguate a path: a rename or a
+// DR renumber produces `<<<<<<<< HEAD:old/path.md` / `========` /
+// `>>>>>>>> origin/main:new/path.md`. MARKER_RE was `/^(<{7}|>{7}|\|{7})(?: |$)/`
+// -- seven brackets followed by a space or end of line -- so eight brackets read
+// as seven plus a bracket and matched NOTHING.
+//
+// This guard exists to keep conflict markers out of the ledger, and it was blind
+// to the one kind THIS ledger produces most (DR-1021 recorded nineteen renumbers
+// in one week). Measured on main at c6e86c52f: exactly one file carried them and
+// it was DR-1185-one-teaching-is-one-lesson.md -- the record defining the rule at
+// the centre of DR-1317 -- broken in its own title line since #2372, while every
+// run reported "zero conflict markers".
+describe('a rename conflict writes EIGHT markers and must still be caught', () => {
+  const EIGHT = [
+    '<<<<<<<< HEAD:docs/decisions/DR-1191-one-teaching-is-one-lesson.md',
+    '# DR-1191: One teaching is one lesson',
+    '========',
+    '# DR-1185: One teaching is one lesson',
+    '>>>>>>>> origin/main:docs/decisions/DR-1185-one-teaching-is-one-lesson.md',
+  ].join('\n');
+
+  it('finds the opening and closing markers of an eight-character hunk', () => {
+    expect(conflictMarkerLines(EIGHT)).toEqual([1, 5]);
+  });
+
+  it('PROVEN TO CATCH: the old seven-exact pattern saw nothing in it', () => {
+    const OLD = /^(<{7}|>{7}|\|{7})(?: |$)/;
+    const seen = EIGHT.split('\n').filter((l) => OLD.test(l));
+    expect(seen, 'the old pattern must be shown blind, or this proves nothing').toEqual([]);
+  });
+
+  it('still catches the ordinary seven-character hunk', () => {
+    const SEVEN = ['<<<<<<< HEAD', 'a', '=======', 'b', '>>>>>>> main'].join('\n');
+    expect(conflictMarkerLines(SEVEN)).toEqual([1, 5]);
+  });
+
+  it('a bare ======== is still legal Markdown and is not a marker', () => {
+    expect(conflictMarkerLines(['Title', '========', 'body'].join('\n'))).toEqual([]);
+  });
+
+  it('the real ledger carries no conflict marker at either width', () => {
+    const dir = join(REPO, 'docs', 'decisions');
+    const bad = readdirSync(dir).filter((f) => f.endsWith('.md'))
+      .filter((f) => conflictMarkerLines(readFileSync(join(dir, f), 'utf8')).length);
+    expect(bad, `these ledger files carry conflict markers: ${bad.join(', ')}`).toEqual([]);
   });
 });
