@@ -209,10 +209,24 @@ const SPINE = [
 ];
 
 describe('sov64 — the lesson is mounted and is the week it says it is', () => {
-  it('is mounted as week 64, the highest week, with every reader field present', () => {
+  it('is mounted as week 64, in its own place, with every reader field present', () => {
     expect(M, `${ID} is not mounted`).toBeTruthy();
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)[1]));
-    expect(Math.max(...weeks)).toBe(64);
+    // A PIN THAT OVER-CLAIMED, CORRECTED 2026-11-05 BY THE sov65 BUILD (DR-1314).
+    // This read `expect(Math.max(...weeks)).toBe(64)` -- "sov64 is the HIGHEST
+    // week" -- which was true of the tree it was written on and false the
+    // instant a week 65 landed. It is the ONE thing that turned sov65's CI red
+    // (vitest shard 4/4, 1 failed of 9,487), and nothing was wrong with sov64.
+    // It is NOT hollowed out: what this lesson can durably assert is that week
+    // 64 exists, that it is THIS lesson, and that the weeks are contiguous from
+    // one with no gap at 64 -- all of which a later week cannot falsify, and
+    // any of which a real regression would. sov63's gate never carried the
+    // over-claim, which is why it stayed green; this file now matches it.
+    expect(weeks).toContain(64);
+    expect(weeks.filter((w) => w === 64).length, 'week 64 is mounted twice').toBe(1);
+    expect(SOVEREIGN_AI_MODULES[63].id, 'sov64 is not in the 64th place').toBe(ID);
+    expect(Math.max(...weeks)).toBeGreaterThanOrEqual(64);
+    for (let w = 1; w <= 64; w += 1) expect(weeks, `week ${w} is missing`).toContain(w);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
     // A PIN WITH THE WRONG FLOOR, corrected: the title is 112 characters and
     // this line demanded 200 of every field including it.

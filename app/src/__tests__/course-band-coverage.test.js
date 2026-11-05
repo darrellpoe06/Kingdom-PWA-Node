@@ -109,7 +109,24 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(278); // on 2026-11-04, sov64 (lead on softly -- the tool was
+    expect(baseline.allFour).toBe(279); // on 2026-11-05, sov65 (I go, sir: and went not -- the full
+    // price today and the proof coming soon, and the One of whom not one thing hath failed) raises
+    // it one more, from the 278 sov64 left the day before. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 453,
+    // allFour 279, adultOnly 0, adultRegister 0), never computed and never hand-merged. sov65
+    // carries all four authored bands from its first commit and the full fourBandFaults suite reads
+    // clean -- adult prose 3,144 words; shares child 0.548, youth 0.658, teen 0.697, senior 0.893;
+    // ladder child 0.93 < youth 4.53 < teen 5.12 < senior 8.67 with the adult lesson at 7.02;
+    // worst band-pair overlap 0.111 teen~senior against the 0.25 near-copy line -- so the
+    // sovereign-ai row reads {lessons: 65, allFour: 44} and the DEBT does not move. THE TEEN GRADE
+    // WENT OVER ITS 6.0 CEILING ON THE FIRST DRAFT at 6.40, and the 36 authored sentence splits
+    // that fixed it overshot to 4.04, BELOW the youth band at 4.51 and inverting the ladder; 16
+    // were then reversed by hand, each read back and judged to read as choppy fragments rather than
+    // prose, landing 5.10 -- because DR-1306 measured what a script does to authored prose. The
+    // youth and teen bands were each given a further authored paragraph naming the NINE readings
+    // of this issue the course has already built, because a per-place sweep found that a youth or
+    // teen reader was never told the obvious readings were already taught.
+    // 2026-11-04, sov64 (lead on softly -- the tool was
     // made for the man, and the quota that kept its number when the straw was taken away) raises
     // it one more, from the 277 sov63 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run AFTER THE REBASE, on the tree that holds BOTH
