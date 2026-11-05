@@ -44,6 +44,14 @@ Read in full off `origin/claude/a-verse-is-never-spent` (it is not on `main`) be
 
 Ten on the first test run, every one real: three unresolved references from a `(Matthew 6:3, Matthew 6:4)` form the house grammar cannot parse; a ladder assertion reading `.grade` where `measureLesson` exposes `.authored` (it was passing vacuously); two British `favour`s in the senior band's own voice; the child band carrying the confession in two sentences instead of the asserted clause; four disclosure checks written over five bands that belong over three, because the child and youth bands carry no particulars by design; and a false positive matching `mine` inside Ruth 4:6's quotation. Separately, the corpus sweep caught **five straight apostrophes** where the KJV carries U+2019 — the DR-1273 fault class — and corrected **Proverbs 11:26**, whose real clause is *"but blessing shall be upon the head of him that selleth it"*, not what memory would have written.
 
+## The collision, and the renumber
+
+While this branch was in flight `origin/main` took **#2538**, which landed **ll276, ll277 and DR-1318** in one record — two lessons from two spoken teachings. **Their landings are not this one's** (integrity you can audit behind closed doors and what cannot be sustained; the record against the narrative and the gift that makes room), so there is no DR-0610 collision; the numbers simply moved. Their record was read in full before anything was renamed, because a number collision is cheap and a landing collision is not.
+
+`claim-decision-number.mjs` then reported **DR-1319** free on disk and in flight, and **ll278** is the next free lesson id. The record moved with **`scripts/renumber-decision-record.mjs 1318 1319 --file …`** as DR-1021 prescribes; the lesson id moved with a scoped replace. **The other builder's ll276, ll277 and DR-1318 are untouched.**
+
+**The merge was resolved by regeneration, and the first attempt is recorded as wrong.** A blind theirs-then-ours swap of each conflict hunk produced a catalog that would not parse — the hunk boundaries cut through an object literal and spliced their lesson's `levels` into this one's `stories`. `acorn` named the line and nothing was pushed. Redone: main's code files taken wholesale, this lesson's entry re-spliced from its own generator, the corpus regenerated, `INDEX.md` handed to `resolve-ledger-conflicts.mjs`. **A generated entry must be RE-generated after a merge, never re-used** — the first re-splice reused one built before this build's four prose fixes, and the gate caught all three classes it reintroduced in a single run.
+
 ## Left open
 
 - **The thread is not tagged.** `Label_22` is not on `1a1594cdb35eb4e4`; that needs approval in the coordinating session. `re-review: 2026-11-06`.

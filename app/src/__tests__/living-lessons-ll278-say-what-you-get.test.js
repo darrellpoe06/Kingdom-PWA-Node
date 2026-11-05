@@ -11,7 +11,7 @@
 // WHAT THIS GATE EXISTS TO HOLD, and what each check is paying for.
 //  (1) THE TEACHING IS THE HALO, NOT THE PROMISE. Three of the digest's four
 //      candidate items are refused by WHERE their teaching would LAND, never by
-//      the verses they would use. The promise/performance reading of
+//      the verses they would use (DR-1317). The promise/performance reading of
 //      the two gift-shaped announcements is sov65 (DR-1314), built the same day
 //      on Numbers 30:2, Deuteronomy 23:21-22 and Matthew 21:28-31; the
 //      market item read as a seller's clock is sov59; the steel item read as a
@@ -19,11 +19,11 @@
 //      ll236 and ll178. This lesson lands somewhere none of them do: on whether
 //      a man says out loud what HE gets. The checks below pin that landing by
 //      measurement rather than by prose.
-//  (2) A VERSE IS NEVER SPENT. 1 Samuel 13:19-22 is also ll215's
+//  (2) A VERSE IS NEVER SPENT (DR-1317). 1 Samuel 13:19-22 is also ll215's
 //      ground and Ruth 4:7, 9 is also prop5's. Both foundations are taught HERE
 //      in full, carried to a different point, and NOT ONE verse was dropped for
 //      being used elsewhere. The overlap is how lessons connect.
-//  (3) EVERY LESSON STANDS ALONE. No reader text points at another
+//  (3) EVERY LESSON STANDS ALONE (DR-1317). No reader text points at another
 //      lesson, because a reader may open exactly one. That is proven-to-catch:
 //      a planted cross-reference reddens the check.
 //  (4) NO SIDE, AND THE ABSENCE IS A MACHINE CHECK. The source is a business
@@ -330,7 +330,7 @@ describe('the spine: the anchor names every verse and every named verse is taugh
     }
   });
 
-  it('A VERSE IS NEVER SPENT: the two shared foundations are taught here in full', () => {
+  it('A VERSE IS NEVER SPENT (DR-1317): the two shared foundations are taught here in full', () => {
     // 1 Samuel 13:19-22 is also ll215's ground; Ruth 4:7, 9 is also prop5's.
     // Neither was dropped. Both are taught, with the Word quoted for them.
     expect(L.anchor.ref).toContain('1 Samuel 13:19');
@@ -340,7 +340,7 @@ describe('the spine: the anchor names every verse and every named verse is taugh
   });
 });
 
-describe('every lesson stands alone', () => {
+describe('every lesson stands alone (DR-1317)', () => {
   const POINTS_ELSEWHERE = /\b(ll\d{2,3}|sov\d{1,3}|prop\d{1,2}|L\d{2,3}\b)|another lesson in this course|this course already teaches|as taught in lesson/i;
 
   it('no reader text points the reader at another lesson', () => {
@@ -627,7 +627,7 @@ describe('the confession and the typographic theology (DR-0210 / CLAUDE.md)', ()
   });
 });
 
-describe('the landing is this lesson\'s own (DR-0610, read as where a lesson lands)', () => {
+describe('the landing is this lesson\'s own (DR-0610 as DR-1317 fixes it)', () => {
   it('the lesson lands on naming your own gain, and says so in every reader place', () => {
     for (const p of PLACES) {
       expect(TEXTS[p], `${p} loses the landing`).toMatch(/say what you get/i);
