@@ -159,10 +159,22 @@ const SPINE_FRAGMENTS = {
 const SPINE = Object.keys(SPINE_FRAGMENTS);
 
 describe('sov65 — the lesson is mounted and is the week it says it is', () => {
-  it('is mounted as week 65, the highest week, with every reader field present', () => {
+  it('is mounted as week 65, in its own place, with every reader field present', () => {
     expect(M, `${ID} is not mounted`).toBeTruthy();
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)[1]));
-    expect(Math.max(...weeks)).toBe(65);
+    // FORWARD-SAFE ON PURPOSE. The first version of this line read
+    // `expect(Math.max(...weeks)).toBe(65)`, which is the exact assertion in
+    // sov64's gate that turned this build's CI red -- "I am the highest week"
+    // is true of the tree it is written on and false the instant the next week
+    // lands, so it makes every future lesson edit a file it has no business in.
+    // What is durably true, and what a real regression would still break: week
+    // 65 exists, it is THIS lesson, it sits in the 65th place, and the weeks
+    // run contiguous from one with no gap.
+    expect(weeks).toContain(65);
+    expect(weeks.filter((w) => w === 65).length, 'week 65 is mounted twice').toBe(1);
+    expect(SOVEREIGN_AI_MODULES[64].id, 'sov65 is not in the 65th place').toBe(ID);
+    expect(Math.max(...weeks)).toBeGreaterThanOrEqual(65);
+    for (let w = 1; w <= 65; w += 1) expect(weeks, `week ${w} is missing`).toContain(w);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
     expect(String(M.title).length).toBeGreaterThan(80);
     for (const k of ['bigIdea', 'inApp', 'lesson']) expect(String(M[k]).length, k).toBeGreaterThan(200);
