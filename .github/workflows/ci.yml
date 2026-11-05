@@ -143,11 +143,9 @@ jobs:
       # and every app/src/modules/* has a registered journey, and a deferred
       # one carries a why and a re-review date that has not passed.
       - run: node ../scripts/journey-coverage-guard.mjs
-      # DEPENDENCY AUDIT (DR-1333, DR-1330 D3): a known high/critical in the
-      # shipped bundle or the build tools is red unless deferred with a why and
-      # a date in scripts/dependency-audit-allowlist.json; every workflow pip
-      # install is pinned through infra/requirements-ci.txt, and pip-audit
-      # reads that file without installing anything.
+      # DEPENDENCY AUDIT (DR-1333): a known high/critical is red unless deferred
+      # with a date in scripts/dependency-audit-allowlist.json; every workflow
+      # pip install is pinned through infra/requirements-ci.txt (pip-audit reads it).
       - run: node ../scripts/dependency-audit-guard.mjs
       # SECRET SCAN (DR-1334, DR-1330 D4), two independent methods (DR-0076 §7):
       # the house guard (eleven specific shapes plus the two house rules, under
@@ -175,11 +173,10 @@ jobs:
       # no other source file is born over 1,500 lines.
       - run: node ../scripts/record-length-guard.mjs
       - run: node ../scripts/file-budget-guard.mjs
-      # NO RUNTIME PAST ITS END OF LIFE (DR-1341, DR-1330 D12): every pinned
-      # Node, Python and PostgreSQL has a dated line in scripts/eol-register.json
-      # (dates read from the endoflife.date source at a named commit); a pin
-      # past its date, or a pin with no line, is red; a date within 120 days warns.
+      # No runtime past its end of life; every pin has a dated line (DR-1341).
       - run: node ../scripts/eol-register.mjs
+      # The workflow register is never stale and the YAML only shrinks (DR-1342).
+      - run: node ../scripts/workflow-register.mjs
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24'
@@ -196,8 +193,15 @@ jobs:
       - name: pip-audit over the pinned workflow requirements (no installs)
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet --disable-pip-version-check pip-audit==2.10.1
+          python3 -m pip install --quiet --disable-pip-version-check pip-audit==2.10.1 "$(grep '^ruff==' infra/requirements-ci.txt)"
           python3 -m pip_audit --no-deps -r infra/requirements-ci.txt
+        working-directory: ${{ github.workspace }}
+      # Every file born into the repo is formatted; the old are not rewritten (DR-1343).
+      - name: format-guard over the files added since main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          node scripts/format-guard.mjs --base origin/main
         working-directory: ${{ github.workspace }}
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
@@ -801,17 +805,11 @@ jobs:
         run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
 
-  # EVERY REGISTERED SURFACE OPENS (DR-1331, from DR-1330 D1). Darrell,
-  # 2026-11-05: "various user flows debugging tests so users don't have basic
-  # bugs... automated"; "Navigating between all playwright automated test
-  # site". scripts/e2e/surface-sweep.mjs reads the registry (app/src/surfaces.js)
-  # and opens each distinct route in Chromium at a phone and a laptop width on
-  # the built dist, failing on an uncaught page error, a rendered error
-  # boundary, a route that fell through to the Overview, or a hollow main.
-  # Its own first run found two dead routes (?view=study, ?view=moore). The two
-  # planted faults run FIRST on two surfaces (seconds): each exits 0 only when
-  # its own check tripped, so a sweep that cannot fail never judges the build
-  # (DR-0076 §3). Own build, own leg, beside the shards (DR-0645).
+  # EVERY REGISTERED SURFACE OPENS (DR-1331, DR-1330 D1): surface-sweep.mjs
+  # reads app/src/surfaces.js and opens each route in Chromium at two widths on
+  # the built dist, failing on a page error, an error boundary, a fall-through
+  # to the Overview or a hollow main; its first run found two dead routes. The
+  # two planted faults run first and must be caught (DR-0076 §3). Own build.
   surface-sweep:
     name: app — every registered surface opens
     runs-on: ubuntu-latest
