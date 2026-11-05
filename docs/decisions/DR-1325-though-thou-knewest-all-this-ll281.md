@@ -84,6 +84,14 @@ Both failures are the **same three chapters**, and they are this lesson's MECHAN
 
 **AND ll275's GATE IS A THIRD INSTANCE OF THE CLASS DR-1323 REMOVED.** `UNSHARED_CHAPTERS` asserts that ten chapters appear in **no other Living Lessons lesson's `anchor.ref`**, and the prose census pins the exact set of references any other lesson may share. That is a lesson gate claiming chapters for itself and refusing Darrell's own future lessons — precisely what DR-1323 stripped out of sov64's and sov65's gates after DR-1317. **DR-1323's own check cannot see it**, because `EXCLUSIVITY` matches on a case TITLE and ll275's titles read *"the ten unshared chapters really are untouched by this course at anchor level"* and *"THE PROSE CENSUS IS RUN AS A MEASUREMENT"* — neither matches `FREE of every OTHER`, `no other lesson stands on`, `DECLINED AS SPENT` or the reference-count pattern. DR-1323 said in its own words that removing two was not enough because *"the next builder would write a third"*. One was already on `main`.
 
+**THE EXACT REMEDY, MEASURED, so whoever decides can apply it in one move rather than re-deriving it.** In `living-lessons-ll275-peace-and-truth-in-my-days.test.js`:
+
+1. `UNSHARED_CHAPTERS` (ten entries) loses **`'Amos 6'`, `'Zephaniah 1'`, `'Jeremiah 48'`** and keeps the other seven.
+2. `SHARED_CHAPTERS` gains the three it actually shares, each with its neighbour named the way every other entry in that map already is: `'Amos 6': ['Amos 6:3'], // ll281` · `'Zephaniah 1': ['Zephaniah 1:12'], // ll281` · `'Jeremiah 48': ['Jeremiah 48:11'], // ll281`.
+3. The prose census's pinned set grows from four to seven: `['2 Chronicles 32:26', 'Ecclesiastes 8:11', 'Haggai 1:2', 'Isaiah 30:8']` becomes that plus **`'Amos 6:3'`, `'Zephaniah 1:12'`, `'Jeremiah 48:11'`** — which is precisely the `4 -> 7` the failure reports.
+
+**Measured rather than assumed:** of ll275's own anchor references, the ones ll281 also carries are exactly **`Amos 6:3`, `Zephaniah 1:12`, `Jeremiah 48:11`** plus **`John 1:29`, `John 3:16`, `Hebrews 1:8`** — and the last three are already in that gate's `CONFESSION_CHAPTERS` and are filtered out of its census, which is why three and not six reach the count. The confession is shared by design and that gate already knows it.
+
 **THIS BUILD DID NOT TOUCH IT, AND DID NOT DROP A VERSE.** Its brief forbids editing any gate outside its own and says to stop and report instead of widening the work, and DR-1317 forbids dropping a reading because another lesson uses it — the two paths out of this are each closed to this session, so it is handed up rather than taken. **Consequence stated plainly: this PR will not go green until that is decided, so it does not auto-merge.**
 
 ### Every verse is the corpus on disk, fetched before it was written
