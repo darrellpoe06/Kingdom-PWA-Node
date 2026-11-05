@@ -14,6 +14,14 @@
 
 ## Records
 
+### REV-0260 · Ways review — the IT Professionals Forum AI-development slides measured against our Ways; thirteen builds proposed in DR-1330
+- **Date:** 2026-11-05
+- **Surface:** .github/workflows/ci.yml · scripts/e2e/door-journeys.mjs · app/public/_headers · app/functions/api/push-send.js · infra/supabase/schema-v2.1-infra.sql (audit_log) · docs/decisions/INDEX.md · app/src/surfaces.js
+- **Type:** orchestration (DR-0108 Ways review) · security · code-review (DR-0219 SHOULD/ARE/GAPS/CLOSE)
+- **Status:** logged
+- **Findings:** DARRELL 2026-11-05: "evaluate our Ways and documentation and procedures for these types of processes... do a report so I and then we can make decisions"; then "Are we protected from outside issues?", "I also don't like bloated code... DRs", "Clean functions and workflows". STRONG, gated: CSP and headers (security-headers-guard.test.js), RLS proven daily on the live database, the outside-in site witness, the decision ledger as change log, sovereign-first model routing with a spend cap. EXPOSED, measured: no vulnerability audit and no secret-scanning gate anywhere; a production probe password committed in nas-health.yml; raw exception text returned to clients in 26 places; audit_log never written for login or failed-auth; one end-to-end journey (doors) and no browser sweep over the ~70 registered surfaces; AI cost never recorded per task. BLOAT: 894 of 1,224 decision records over the README's 45-line rule, one INDEX row of 63,818 characters, seven source files over 3,000 lines, 21,896 lines of workflow YAML; the Pages Functions are clean (37 files, all tested). THE WAYS QUESTIONS: playwright-core and the door-journeys stack are an unused team capability for a sweep; each browser question has cost a bespoke script; the agent's own sessions are the largest unmeasured spend. CARRIED by DR-1330 (proposed): thirteen builds with defaults — re-review: 2026-11-19.
+- **Source:** docs/99-session-notes/2026-11-05-ways-review-ai-development-best-practices-against-our-ways.md
+
 ### REV-0259 · Spec-conformance review — a tenant's face showed the landlord's record: the preview, the claim, and the landlord's own partial view, closed by DR-1167 and gated by migration 0306's smoke
 - **Date:** 2026-10-21
 - **Surface:** app/src/modules/properties/PropertiesApp.jsx · app/src/modules/properties/model.js (forThisTenancy) · app/src/modules/properties/staging.js (tenancyForTenantInvite) · app/src/modules/properties/cloud.js (loadDoorRecord) · infra/supabase/migrations-auto/0306-a-tenant-sees-their-own-tenancy-from-the-day-it-became-theirs.sql
