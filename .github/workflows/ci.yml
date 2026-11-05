@@ -237,6 +237,12 @@ jobs:
       # property_photos and the rentals coordinates down with them).
       - run: node ../scripts/migration-return-type-guard.mjs
 
+      # Subprocess-budget guard (DR-1348): a test handing a spawned script a
+      # budget at or above its own vitest ceiling is tied by construction --
+      # the runner kills the case rather than waiting. Here as well as in
+      # `verify:gates`, because a guard CI never runs is not a guard (§3).
+      - run: node ../scripts/subprocess-budget-guard.mjs
+
       # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
       # new category button not working" report): window.prompt() is blocked /
       # a no-op in the installed standalone PWA, so any input flow built on it

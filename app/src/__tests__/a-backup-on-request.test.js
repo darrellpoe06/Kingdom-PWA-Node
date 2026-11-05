@@ -15,6 +15,18 @@ import { OPS_JOBS } from '../lib/ops-commands.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const RUNNER = join(here, '../../../infra/nas-sme-pipeline/ops-runner.py');
 
+// THE BUDGET RULE (DR-1269, enforced by scripts/subprocess-budget-guard.mjs):
+// the subprocess budget must stay STRICTLY BELOW the runner's ceiling, because
+// the runner KILLS the case rather than waiting for the script. These were tied
+// at 60000ms on both ends -- quick today only because the job returns as soon
+// as BACKUP_WAIT_S elapses (20s here, 2s in the outlasts-the-wait case), so the
+// real work never approached either number. A tie that is never reached is
+// still a tie; on a loaded runner it dies as "Test timed out in 60000ms" with
+// no assertion ever wrong. 30s is ample for a ~21s worst case, under a 60s
+// ceiling.
+const PY_BUDGET_MS = 30000;
+const CASE_MS = 60000;
+
 function run(job, { script, preLock = false, waitS = 20 } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'backup-req-'));
   const backups = join(dir, 'backups'); mkdirSync(backups);
@@ -32,7 +44,7 @@ m.BACKUP_WAIT_S = ${waitS}
 status, text, result = m.JOBS[${JSON.stringify(job)}]({})
 print(json.dumps({"status": status, "text": text, "result": result}))
 `;
-  const out = execFileSync('python3', ['-c', py], { encoding: 'utf8', timeout: 60000 });
+  const out = execFileSync('python3', ['-c', py], { encoding: 'utf8', timeout: PY_BUDGET_MS });
   return { ...JSON.parse(out.trim().split('\n').pop()), backups };
 }
 
@@ -59,29 +71,29 @@ describe('the backup can be asked for from the app', () => {
     expect(r.result.ok).toBe(true);
     expect(r.result.verdict.file).toBe('new.dump');
     expect(existsSync(join(r.backups, '.last-ok'))).toBe(true); // the nightly counts it, so no second dump hours later
-  }, 60000);
+  }, CASE_MS);
   it('PROVEN TO CATCH: a failed backup reads as an error, never as done, and the old verdict is not passed off as new', () => {
     const r = run('db-backup', { script: BAD });
     expect(r.status).toBe('error');
     expect(r.result.ok).toBe(false);
     expect(r.text).toContain('pg_dump failed');
     expect(existsSync(join(r.backups, '.last-ok'))).toBe(false);
-  }, 60000);
+  }, CASE_MS);
   it('a backup already running is refused, not doubled', () => {
     const r = run('db-backup', { script: GOOD, preLock: true });
     expect(r.status).toBe('error');
     expect(r.result.started).toBe(false);
     expect(r.text).toMatch(/already running/);
-  }, 60000);
+  }, CASE_MS);
   it('a dump that outlasts the wait says so instead of claiming a verdict', () => {
     const r = run('db-backup', { script: '#!/bin/sh\nsleep 30\n', waitS: 2 });
     expect(r.status).toBe('done');
     expect(r.result.ok).toBeNull();
     expect(r.text).toMatch(/still running/);
-  }, 60000);
+  }, CASE_MS);
   it('the status job reads the newest verdict', () => {
     const r = run('db-backup-status');
     expect(r.status).toBe('done');
     expect(r.result.verdict.file).toBe('old.dump');
-  }, 60000);
+  }, CASE_MS);
 });
