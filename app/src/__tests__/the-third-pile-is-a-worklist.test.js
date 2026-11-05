@@ -672,7 +672,24 @@ const REPO = join(HERE, '..', '..', '..');
 // scripts/unchecked-claims.mjs prints 28 lessons admitting, 166 disclosures,
 // 4 checked, 25 in the gap. ll274 contributes 1 of those disclosures, ll275
 // contributes 12, sov66 contributes 2, and ll280 contributes 1.
-const GAP = 25;
+//
+// 26 on 2026-11-05: sov67 (the removing of those things that are made, DR-1332)
+// joins the gap with 17 disclosures, and it is here by the SECOND route this
+// gate offers -- saying plainly why its figures cannot be read back -- rather
+// than by neglect. Its facts are Tier 1 and were independently corroborated
+// (two CVEs, CVSS v4.0 9.2, unauthenticated RCE, patched 2026-10-21, CISA KEV
+// 2026-10-26, and no fix at all for the end-of-life branches, which is the one
+// claim its whole teaching turns on and which held from three directions
+// including the source notice's own words). But EVERY primary host is refused
+// from this container -- `curl: (56) CONNECT tunnel failed, response 403` for
+// the agency catalog and the maintainers' changelog, `getaddrinfo ENOTFOUND
+// www.cisa.gov` for the advisory -- so no runner here can read a figure back
+// off a publisher, which is what a lesson-sources.json row means. Giving it a
+// row would assert a read that did not happen. The lesson carries the limit in
+// all five reader places with `re-review: 2026-11-12`, and when those hosts are
+// allowed its figures get rows and THIS PIN COMES BACK DOWN TO 25. Same shape
+// as sov66's two, one week older.
+const GAP = 26;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
