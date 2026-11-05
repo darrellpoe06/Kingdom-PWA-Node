@@ -1,7 +1,7 @@
 # 2026-11-05 — Made In Our Image (ll283): the title is backwards, the Word reached for CONSIDER first, and the ten perspectives are named and not reproduced
 
 **Module id:** `ll283`
-**Record:** [`DR-1351`](../decisions/DR-1351-made-in-our-image-ll283.md)
+**Record:** [`DR-1352`](../decisions/DR-1352-made-in-our-image-ll283.md)
 **Source:** Gmail thread `1a164aff48fa13de` — "FW: A letter from our CEO", Big Think Members, forwarded 2026-10-22 17:36:20 UTC from Darrell's university address to himself. The letter itself is dated 2026-10-21. Above the forwarded header he typed exactly one word: `Lesson`.
 **Who taught it:** nobody. There is no recording and no identified speaker (DR-0719). A forwarded publisher's letter is a lead, never a pulpit, and this note says so in the same breath as the record and all five reader places do.
 
@@ -139,7 +139,11 @@ Both stories are **parables**. There is no real person whose life either was, so
 
 The container restarted mid-build and the session was stopped. Nothing was lost, but nothing was trusted either: the worktree was re-checked for existence and uncommitted work, `git ls-remote` confirmed no branch had been pushed, and every moving number was re-measured on the new `origin/main` rather than carried forward from memory.
 
-**The number moved twice.** DR-1350 was claimed on disk before the restart; by the time the claim script was re-run, `claude/a-status-read-is-filtered` (PR #2561) held it. The record, the catalog comment, the dates comment and the gate were renumbered to **DR-1351**, and every remote branch was then scanned by hand for a `DR-1351-` file to confirm the number was uncontested — the claim script's "0 at or above DR-1352" does not by itself answer the question for 1351.
+**The number moved twice, and this record paid both renumbers.** DR-1350 was claimed before the restart; by the time the claim script was re-run, `claude/a-status-read-is-filtered` (PR #2561) held it, so the record became **DR-1351**. Every remote branch was then scanned by hand for a `DR-1351-` file and none held it — but that scan ran at about 22:43 UTC, and at **22:51:44** `claude/how-fast-does-this-need-to-be-useful` (sov69) pushed `DR-1351-at-his-day-or-at-evening-the-latency-requirement-is-in-the-word.md`. **A scan is only true for the instant it runs**, which is the thing worth recording: a number verified free four minutes before a push is not a number held.
+
+The collision surfaced from a direction worth naming — not from the claim script, but from **`business-systems-guard` failing in CI** inside the `wf36 gatekeeper` job, on the pointer: *"Next ID says DR-1350 but the newest decision on disk is DR-1351."* Chasing that pointer is what put the sov69 record in view. So the second renumber was done the sanctioned way (DR-1021): `renumber-decision-record.mjs 1351 1352`, which renamed the file and rewrote six files (INDEX row, this note, the gate, the ledger entry, the catalog comment, the dates comment), and then `resolve-ledger-conflicts.mjs` set the pointer to **DR-1353**, because the pointer is its to compute and never a hand edit. The tool rewrote this very paragraph's own `DR-1351` references while it worked, which is why the sequence above is stated explicitly rather than left to the surviving number.
+
+**Three numbers for one record: 1350 → 1351 → 1352.** DR-1021's `re-review` asks for the week's collision rate; this is one more data point for it, and the structural cause is unchanged — a single shared pointer line and no reservation step.
 
 **ll282 was re-verified as the highest Living Lesson on the new main**, in both `living-lessons-dates.js` and `living-lessons-class.js`, rather than inferred from the test directory or taken on the orchestrator's word.
 

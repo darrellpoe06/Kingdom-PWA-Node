@@ -1,4 +1,4 @@
-# DR-1351: Made In Our Image (ll283) — the title is backwards, the Word reached for CONSIDER first, and the ten perspectives are named and not reproduced
+# DR-1352: Made In Our Image (ll283) — the title is backwards, the Word reached for CONSIDER first, and the ten perspectives are named and not reproduced
 
 **Date:** 2026-11-05 · **Status:** Accepted · **Type:** curriculum · **Tier:** A (one new Living Lesson with its own pinned gate, all four bands from the first commit, no new source row, no schema, no money, no surface change)
 **Area:** Learn · Living Lessons from the Word (`app/src/lib/living-lessons-class.js`, `…/living-lessons-dates.js`), one new gate

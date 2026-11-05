@@ -29390,7 +29390,7 @@ export const LIVING_LESSONS_MODULES = [
   // signed Chandler Tuttle, CEO, Big Think Media, announcing a printed special
   // issue titled "Made in Our Image". Nobody taught it aloud (DR-0719: a
   // forwarded publisher's letter is not a recording, so no teacher is named).
-  // Recorded as DR-1351.
+  // Recorded as DR-1352.
   //
   // THE LANDING, which is what decides one teaching from another (DR-0610):
   // the TITLE is one word out of position from Genesis 1:26-27, and the

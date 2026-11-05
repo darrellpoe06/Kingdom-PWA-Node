@@ -541,6 +541,6 @@ export const LIVING_LESSONS_ADDED = {
   // is identified). The lesson teaches the inversion of its own title against
   // Genesis 1:26-27, hinges on the word the letter itself reached for
   // (considereth, Isaiah 44:19), and deliberately refuses to reproduce the
-  // issue's ten perspectives on DR-0098 grounds (DR-1351).
+  // issue's ten perspectives on DR-0098 grounds (DR-1352).
   'll283-made-in-our-image': '2026-11-05',
 };

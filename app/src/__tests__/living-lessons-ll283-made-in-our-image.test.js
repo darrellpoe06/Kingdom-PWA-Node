@@ -9,7 +9,7 @@
 // Big Think Media, announcing a printed special issue titled "Made in Our
 // Image". Nobody taught it aloud — there is no recording and no teacher to
 // name, because a forwarded publisher's letter is a lead and never a pulpit
-// (DR-0719). Recorded as DR-1351.
+// (DR-0719). Recorded as DR-1352.
 //
 // WHY THIS LESSON NEEDED ITS OWN GATE, and the two things it most easily goes
 // wrong. (1) THE TITLE IS THE TEACHING: it is one word out of position from
