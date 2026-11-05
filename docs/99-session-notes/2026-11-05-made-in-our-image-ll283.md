@@ -153,6 +153,10 @@ The collision surfaced from a direction worth naming — not from the claim scri
 
 **`decision-chain` red once, usefully.** The record was missing a `## Verification` section — the chain's fifth slot — and reads a section that opens straight into a subheading as a missing body. The section was written with prose, not a bare list of headings.
 
+**`file-budget-guard` red once, and the fix was the one its own message prescribes.** `living-lessons-class.js` came out at 29706 lines against a 29435 ceiling that was simply its size on main before this lesson — so every new Living Lesson necessarily trips it. The ceiling was raised **by hand to the measured size, with a one-line reason recorded in `scripts/file-budgets.json`'s `raises` array**, which is exactly the path the guard's failure text names and exactly what the two `sovereign-ai-class.js` raises did earlier the same day for sov67 and sov68. It was deliberately **not** resolved by shrinking or editing anyone else's proof: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS `re-review: 2026-11-19`, and a lesson is not the bloat that ratchet exists to refuse. Raised to the measured number, never above it.
+
+**Three CI reds in total, and not one of them was a flake.** The pointer (which surfaced a real number collision), the missing chain slot, and the file budget. Each was a gate telling the truth about something this build had actually left undone.
+
 ## 10. Left open
 
 - **The signer's corporate title** was not independently confirmed; `bigthink.com` and `en.wikipedia.org` were refused to this session. `re-review: 2026-11-12`.
