@@ -109,7 +109,7 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(281); // on 2026-11-05, sov67 (The removing of those things that
+    expect(baseline.allFour).toBe(282); // 282 on 2026-11-05: pm14 (whose measure -- the benchmark, the census, and the KPIs the Word already gave us, DR-1346), built from a CFO Dive sponsored advertisement Darrell forwarded with two things above it, Lesson and potential KPIs, carries all four age bands AND an adult register from the first commit; the Project Management row reads {lessons: 14, allFour: 14}; regenerated from the real catalog by course-band-baseline-write.mjs (was 281); 281 on 2026-11-05, sov67 (The removing of those things that
     // are made -- what cannot be patched is taken away, and the part nobody can lend you) raises it
     // one more, from the 280 sov66 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 455,
