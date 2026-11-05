@@ -1061,6 +1061,23 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // so the listener still hears where they are. Outside read-along the stepper
   // is untouched — the reader's pacing is not the listener's problem and vice
   // versa.
+  //
+  // THE MARKER IS SEEN WHOLE AND HEARD SHORT (2026-11-05, DR-1328). Darrell,
+  // on a 52-step lesson: "the voice is overreacting". Measured: in read-along
+  // every step renders, so the reader spoke the WHOLE marker once per step —
+  // "Step 1 of 52 · ~5 min · Child pace", then "Step 2 of 52 · ~5 min · Child
+  // pace", fifty-two times. The step NUMBER is what a listener who is not
+  // looking at the screen needs; the minutes and the pace never change between
+  // steps, so repeating them is drone that buries the teaching.
+  //
+  // So the tail is skipped by the READER and kept on the SCREEN — the eye
+  // still gets the whole marker, the ear gets "Step 46 of 52". `data-read-skip`
+  // is the app's own mechanism for exactly this (read-follow.js SKIP_SELECTOR).
+  //
+  // DELIBERATELY NOT `aria-hidden`: that would take the pace and the minutes
+  // away from someone using a screen reader, who has no other way to get them.
+  // This drops a repetition from OUR read-aloud; it does not hide information
+  // from assistive technology, which is a different thing and would be a loss.
   if (showAll && totalSegments > 1) {
     return (
       <div className={`${box} space-y-2`} ref={(el) => { allRef.current = el; measureRef.current = el; }}>
@@ -1068,7 +1085,8 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
         {segments.map((s, i) => (
           <div key={i} data-step-index={i}>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
-              Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
+              Step {i + 1} of {totalSegments}
+              <span data-read-skip data-testid="step-marker-tail"> · ~{segmentMinutes} min · {band.label} pace</span>
             </span>
             <div className="mt-1" data-reading-words><LessonProse text={s} plan={sectionPlan} /></div>
           </div>
