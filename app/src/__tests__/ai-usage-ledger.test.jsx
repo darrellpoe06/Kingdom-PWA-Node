@@ -51,7 +51,7 @@ describe('ai-usage-ledger: proven to catch', () => {
     expect(validateLedger(ledger([ok], [{ ...s, sessionTokensObserved: 40 }]))).toEqual([]);
   });
   it('names a record that landed without its line', () => {
-    expect(missingLines([1331, 1332, 1340], new Set(['DR-1331', 'DR-1332']))).toEqual(['DR-1340']);
+    expect(missingLines([1331, 1332, 1340], new Set(['DR-1331', 'DR-1344']))).toEqual(['DR-1340']);
     expect(missingLines([1331], new Set(['DR-1331']))).toEqual([]);
   });
   it('rolls up wall clock, the estimate, the ratio and the unmetered count', () => {
