@@ -76,7 +76,7 @@ import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView, VALID_VIEWS } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
 import { isReviewerModeOn, isReviewerStranger, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
@@ -935,8 +935,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health','cameras','vault','research'];
-    return VALID.includes(v) ? v : 'overview';
+    return VALID_VIEWS.includes(v) ? v : 'overview'; // one list, lib/nav-history.js (DR-1330 D1)
   } catch (e) { return 'overview'; }
 }
 
