@@ -384,13 +384,15 @@
       "drs": [
         "DR-1352"
       ],
-      "prs": [],
+      "prs": [
+        2563
+      ],
       "model": "claude-opus-5",
       "tokens": null,
       "costUsd": null,
-      "wallClockHours": 0.07,
+      "wallClockHours": 0.53,
       "estimateWithoutAiHours": 28,
-      "notes": "Measured first commit 22:45:27Z to the ledger commit on claude/ll283-made-in-our-image; the reading of the forwarded letter, the duplicate and untaught-reference measurements across app/src and docs/decisions, the two primary-source roads attempted, and the authoring of five reader versions before that first commit are NOT on the record, so this figure understates the real elapsed time considerably. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 283rd Living Lesson carrying five reader versions (adult 2433, child 1947, youth 2077, teen 2119, senior 2308 authored prose words), two parables, 56 references fetched verbatim from the in-repo KJV corpus across 290 quoted spans, a 62-case pinned gate with five proven-to-catch cases (two of which found defects in the gate itself), a decision record, a session note, and a trust-but-verify audit whose two primary hosts were refused by the session egress."
+      "notes": "Measured first commit 22:45:27Z (2026-11-05) to the last commit on claude/ll283-made-in-our-image; the reading of the forwarded letter, the duplicate and untaught-reference measurements across app/src and docs/decisions, the two primary-source roads attempted, and the authoring of five reader versions before that first commit are NOT on the record, so this figure understates the real elapsed time considerably. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 283rd Living Lesson carrying five reader versions (adult 2433, child 1947, youth 2077, teen 2119, senior 2308 authored prose words), two parables, 56 references fetched verbatim from the in-repo KJV corpus across 290 quoted spans, a 62-case pinned gate with five proven-to-catch cases (two of which found defects in the gate itself), a decision record, a session note, and a trust-but-verify audit whose two primary hosts were refused by the session egress."
     }
   ]
 }
