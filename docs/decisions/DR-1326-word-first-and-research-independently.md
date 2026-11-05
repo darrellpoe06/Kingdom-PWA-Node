@@ -28,6 +28,8 @@ That is the forwarder's word, declared sufficient. **It is the same failure shap
 
 ## What was measured
 
+Two things, in two directions. **Outward:** every load-bearing factual claim ll281 rests on, checked against the primary record — an agency's own published series and five banks' own quarterly filings — rather than against the digest that summarized them. **Inward:** every exclusivity construct still live in the lesson gates after DR-1323, read out of the files themselves rather than remembered. One grep settled the root cause: the builder brief names neither DR-0190 nor DR-0282.
+
 ### The independent check, run against primary sources rather than the digest
 
 Four load-bearing claims carry ll281's teaching. **Three do not survive checking**, and the one its landing turns on is **backwards**.
