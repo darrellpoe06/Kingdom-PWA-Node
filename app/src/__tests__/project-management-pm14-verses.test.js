@@ -94,7 +94,9 @@ function corpusText(ref) {
     if (!bookCache.has(name)) {
       bookCache.set(name, JSON.parse(readFileSync(join(CORPUS, `${name}.json`), 'utf8')));
     }
-  } catch { return null; }
+  } catch {
+    return null;
+  }
   const chap = bookCache.get(name).chapters[Number(m[2]) - 1];
   if (!chap) return null;
   return chap[Number(m[3]) - 1] ?? null;
@@ -106,17 +108,57 @@ const L = () => PROJECT_MANAGEMENT_MODULES.find((m) => m.id === PM14_ID);
 // Every verse this lesson stands on, re-read from the corpus at test time so a
 // pin can never be "what I remember the verse saying".
 const PINNED = [
-  '1 Chronicles 21:3', '1 Chronicles 21:7', '1 Chronicles 27:23', '1 Chronicles 27:24',
-  '1 Corinthians 3:6', '1 Corinthians 3:7', '1 Corinthians 4:2', '1 Corinthians 13:1',
-  '1 Samuel 16:7', '2 Corinthians 10:12', '2 Corinthians 10:13', '2 Corinthians 10:15',
-  '2 Corinthians 10:17', '2 Corinthians 10:18', '2 Samuel 24:2', '2 Samuel 24:3',
-  '2 Samuel 24:10', 'Acts 2:41', 'Acts 2:47', 'Amos 7:8', 'Daniel 5:27', 'Deuteronomy 6:7',
-  'Galatians 5:22', 'Galatians 6:4', 'Haggai 1:5', 'Haggai 1:6', 'Hebrews 3:13',
-  'Jeremiah 17:10', 'John 1:29', 'John 3:16', 'John 15:8', 'Judges 7:2', 'Luke 12:20',
-  'Luke 14:28', 'Luke 16:10', 'Luke 16:15', 'Mark 4:27', 'Mark 4:28', 'Matthew 7:20',
-  'Numbers 1:2', 'Philippians 1:11', 'Proverbs 11:1', 'Proverbs 16:2', 'Proverbs 24:3',
-  'Proverbs 24:4', 'Proverbs 27:2', 'Proverbs 27:17', 'Psalms 19:14', 'Psalms 127:1',
-  'Revelation 3:1', 'Revelation 3:17',
+  '1 Chronicles 21:3',
+  '1 Chronicles 21:7',
+  '1 Chronicles 27:23',
+  '1 Chronicles 27:24',
+  '1 Corinthians 3:6',
+  '1 Corinthians 3:7',
+  '1 Corinthians 4:2',
+  '1 Corinthians 13:1',
+  '1 Samuel 16:7',
+  '2 Corinthians 10:12',
+  '2 Corinthians 10:13',
+  '2 Corinthians 10:15',
+  '2 Corinthians 10:17',
+  '2 Corinthians 10:18',
+  '2 Samuel 24:2',
+  '2 Samuel 24:3',
+  '2 Samuel 24:10',
+  'Acts 2:41',
+  'Acts 2:47',
+  'Amos 7:8',
+  'Daniel 5:27',
+  'Deuteronomy 6:7',
+  'Galatians 5:22',
+  'Galatians 6:4',
+  'Haggai 1:5',
+  'Haggai 1:6',
+  'Hebrews 3:13',
+  'Jeremiah 17:10',
+  'John 1:29',
+  'John 3:16',
+  'John 15:8',
+  'Judges 7:2',
+  'Luke 12:20',
+  'Luke 14:28',
+  'Luke 16:10',
+  'Luke 16:15',
+  'Mark 4:27',
+  'Mark 4:28',
+  'Matthew 7:20',
+  'Numbers 1:2',
+  'Philippians 1:11',
+  'Proverbs 11:1',
+  'Proverbs 16:2',
+  'Proverbs 24:3',
+  'Proverbs 24:4',
+  'Proverbs 27:2',
+  'Proverbs 27:17',
+  'Psalms 19:14',
+  'Psalms 127:1',
+  'Revelation 3:1',
+  'Revelation 3:17',
 ];
 
 const BANDS = ['child', 'youth', 'teen', 'senior'];
@@ -147,9 +189,7 @@ describe('pm14 is in the Project Management course, whole, with every reader ver
   it('the lessons run contiguously from one, and pm14 sits at the fourteenth place', () => {
     const nums = PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1]));
     expect(new Set(nums).size, 'two lessons may not share a number').toBe(nums.length);
-    expect(nums, 'the course numbers must run 1..n with no gap').toEqual(
-      Array.from({ length: nums.length }, (_, i) => i + 1),
-    );
+    expect(nums, 'the course numbers must run 1..n with no gap').toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
     expect(nums, 'pm14 must be in the course').toContain(14);
     expect(PROJECT_MANAGEMENT_MODULES[13].id).toBe(PM14_ID);
   });
@@ -215,7 +255,10 @@ describe('pm14 — the verses are the corpus, verbatim', () => {
     for (const ref of PINNED) {
       expect(refs, `${ref} is taught but missing from anchor.ref`).toContain(ref);
     }
-    expect(refs.filter((r) => !corpusText(r)), 'anchor refs that do not resolve in the corpus').toEqual([]);
+    expect(
+      refs.filter((r) => !corpusText(r)),
+      'anchor refs that do not resolve in the corpus'
+    ).toEqual([]);
   });
 
   it('BOTH DIRECTIONS: nothing is quoted that anchor.ref does not name', () => {
@@ -226,8 +269,14 @@ describe('pm14 — the verses are the corpus, verbatim', () => {
         quoted.add(`${x[2].trim()} ${x[3]}:${x[4].trim()}`);
       }
     }
-    expect([...quoted].filter((r) => !refs.has(r)), 'quoted but not named in anchor.ref').toEqual([]);
-    expect([...refs].filter((r) => !quoted.has(r)), 'named in anchor.ref but never quoted').toEqual([]);
+    expect(
+      [...quoted].filter((r) => !refs.has(r)),
+      'quoted but not named in anchor.ref'
+    ).toEqual([]);
+    expect(
+      [...refs].filter((r) => !quoted.has(r)),
+      'named in anchor.ref but never quoted'
+    ).toEqual([]);
   });
 
   it('PROVEN-TO-CATCH: a single altered word inside a quoted verse is caught', () => {
@@ -238,7 +287,7 @@ describe('pm14 — the verses are the corpus, verbatim', () => {
         ...m.levels,
         child: m.levels.child.replace(
           'But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith',
-          'But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, growth',
+          'But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, growth'
         ),
       },
     };
@@ -259,7 +308,11 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('the adult register AND the senior band both say it was an advertisement with no article in it', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['lesson', L().lesson], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['lesson', L().lesson],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/advertis/i.test(text), `${where} never calls it an advertisement`).toBe(true);
       expect(/no article|not an article|carries no article/i.test(text), `${where} never says there was no article`).toBe(true);
       expect(/no byline/i.test(text), `${where} never says there was no byline`).toBe(true);
@@ -267,7 +320,11 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('the standing instruction to ignore the advertisements is named, with the reason this one is the exception', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['lesson', L().lesson], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['lesson', L().lesson],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/ignore the advertisements/i.test(text), `${where} does not name the standing rule`).toBe(true);
       expect(/exception/i.test(text), `${where} does not name it as the exception`).toBe(true);
     }
@@ -277,8 +334,12 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
     const all = EVERY_TEXT().join('\n');
     // Said out loud in every reader place that weighs the source.
     for (const [where, text] of [
-      ['bigIdea', L().bigIdea], ['lesson', L().lesson], ['senior', L().levels.senior],
-      ['teen', L().levels.teen], ['youth', L().levels.youth], ['child', L().levels.child],
+      ['bigIdea', L().bigIdea],
+      ['lesson', L().lesson],
+      ['senior', L().levels.senior],
+      ['teen', L().levels.teen],
+      ['youth', L().levels.youth],
+      ['child', L().levels.child],
     ]) {
       expect(/nobody taught|no class|not a teacher|no human teacher/i.test(text), `${where} does not say nobody taught it`).toBe(true);
     }
@@ -287,7 +348,10 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('THE THREE TIERS are all three, so a truth is not shrunk and a claim is not inflated (DR-0100)', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/ESTABLISHED/.test(text), `${where} has no established tier`).toBe(true);
       expect(/ATTRIBUTED/.test(text), `${where} has no attributed tier`).toBe(true);
       expect(/UNVERIFIED/.test(text), `${where} has no unverified tier`).toBe(true);
@@ -296,7 +360,10 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('TRUST BUT VERIFY: the note says what was checked, the primary source, the tiers, what checking CHANGED, and the limit (DR-0190 section 5)', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/Trust but verify|trust but verify/.test(text) || /WHAT WE CHECKED/.test(text), `${where} has no audit`).toBe(true);
       expect(/primary source/i.test(text), `${where} never names the primary source`).toBe(true);
       expect(/What the checking changed|WHAT THE CHECKING CHANGED|What checking CHANGED/i.test(text), `${where} never says what checking changed`).toBe(true);
@@ -306,7 +373,11 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('A BLOCKED ROAD NEVER READS AS A VERIFIED CLAIM: the refused host is NAMED, with the refusal (DR-0076 section 8)', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['lesson', L().lesson], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['lesson', L().lesson],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/recurly\.com|did not resolve/i.test(text), `${where} does not name the blocked road`).toBe(true);
       expect(/getaddrinfo ENOTFOUND/.test(text), `${where} does not quote the refusal`).toBe(true);
     }
@@ -314,7 +385,13 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
   });
 
   it('THE AUDIT FINDING: the email contradicts its own headline number, and both numbers are carried', () => {
-    for (const [where, text] of [['bigIdea', L().bigIdea], ['lesson', L().lesson], ['teen', L().levels.teen], ['youth', L().levels.youth], ['senior', L().levels.senior]]) {
+    for (const [where, text] of [
+      ['bigIdea', L().bigIdea],
+      ['lesson', L().lesson],
+      ['teen', L().levels.teen],
+      ['youth', L().levels.youth],
+      ['senior', L().levels.senior],
+    ]) {
       expect(/76M/.test(text), `${where} drops the preheader figure`).toBe(true);
       expect(/75 million/.test(text), `${where} drops the body figure`).toBe(true);
       expect(/contradict|disagrees with itself/i.test(text), `${where} never names the contradiction`).toBe(true);
@@ -358,7 +435,9 @@ describe('pm14 — the Word is the authority, and it is taught rather than debat
     expect(adult).toContain('And God was displeased with this thing; therefore he smote Israel');
     expect(adult).toContain('And David’s heart smote him after that he had numbered the people');
     // The boundary is the detail that proves the arithmetic was never the fault.
-    expect(adult).toContain('But David took not the number of them from twenty years old and under: because the LORD had said he would increase Israel like to the stars of the heavens');
+    expect(adult).toContain(
+      'But David took not the number of them from twenty years old and under: because the LORD had said he would increase Israel like to the stars of the heavens'
+    );
     expect(adult).toContain('neither was the number put in the account of the chronicles of king David');
     expect(/the (?:sin|problem) was (?:never the arithmetic|the purpose)|purpose/i.test(adult), 'the discriminator is never named').toBe(true);
   });
@@ -384,11 +463,15 @@ describe('pm14 — the Word is the authority, and it is taught rather than debat
 
   it('THE SELF-REPORT is named as the instrument Scripture trusts least', () => {
     const adult = [L().levels.teen, L().levels.senior].join('\n');
-    expect(adult).toContain('Because thou sayest, I am rich, and increased with goods, and have need of nothing; and knowest not that thou art wretched, and miserable, and poor, and blind, and naked');
+    expect(adult).toContain(
+      'Because thou sayest, I am rich, and increased with goods, and have need of nothing; and knowest not that thou art wretched, and miserable, and poor, and blind, and naked'
+    );
     expect(adult).toContain('I know thy works, that thou hast a name that thou livest, and art dead');
     const senior = L().levels.senior;
     expect(senior).toContain('All the ways of a man are clean in his own eyes; but the LORD weigheth the spirits');
-    expect(senior).toContain('I the LORD search the heart, I try the reins, even to give every man according to his ways, and according to the fruit of his doings');
+    expect(senior).toContain(
+      'I the LORD search the heart, I try the reins, even to give every man according to his ways, and according to the fruit of his doings'
+    );
     expect(senior).toContain('that which is highly esteemed among men is abomination in the sight of God');
     expect(senior).toContain('Thou fool, this night thy soul shall be required of thee');
   });
@@ -414,7 +497,7 @@ describe('pm14 — the Word is the authority, and it is taught rather than debat
     expect(L().levels.senior).toContain('man looketh on the outward appearance, but the LORD looketh on the heart');
   });
 
-  it('THE KPIs HE ASKED FOR: all seven, each with its verse, and the Word\'s way of measuring growth (both halves)', () => {
+  it("THE KPIs HE ASKED FOR: all seven, each with its verse, and the Word's way of measuring growth (both halves)", () => {
     const senior = L().levels.senior;
     // qualitative: fruit
     expect(senior).toContain('But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith');
@@ -468,10 +551,10 @@ describe('pm14 — typographic theology holds on every surface', () => {
 
   it('the KJV\'s own "God" and "the LORD" are untouched inside the quotations (DR-0076 bright line)', () => {
     const all = EVERY_TEXT().join('\n');
-    expect(all).toContain('And God was displeased with this thing; therefore he smote Israel');  // 1 Chronicles 21:7
-    expect(all).toContain('but God gave the increase');                                          // 1 Corinthians 3:6
-    expect(all).toContain('Now the LORD thy God add unto the people');                           // 2 Samuel 24:3
-    expect(all).toContain('which God hath distributed to us');                                   // 2 Corinthians 10:13
+    expect(all).toContain('And God was displeased with this thing; therefore he smote Israel'); // 1 Chronicles 21:7
+    expect(all).toContain('but God gave the increase'); // 1 Corinthians 3:6
+    expect(all).toContain('Now the LORD thy God add unto the people'); // 2 Samuel 24:3
+    expect(all).toContain('which God hath distributed to us'); // 2 Corinthians 10:13
   });
 
   it('Jesus is confessed as the Lamb and the Eternal Son of Yahweh', () => {
@@ -479,7 +562,9 @@ describe('pm14 — typographic theology holds on every surface', () => {
     expect(/Lamb of Yahweh/.test(all)).toBe(true);
     expect(/Eternal Son of Yahweh/.test(all)).toBe(true);
     expect(all).toContain('Behold the Lamb of God, which taketh away the sin of the world');
-    expect(all).toContain('For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life');
+    expect(all).toContain(
+      'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life'
+    );
   });
 
   it('no holy name is lowercased in our own voice, and no adversary name is capitalised anywhere', () => {
@@ -518,7 +603,7 @@ describe('pm14 — every reader place sends the reader in all three directions',
     }
   });
 
-  it('PROVEN-TO-CATCH: stripping ONE band\'s friend line names that band while the module still reads whole', () => {
+  it("PROVEN-TO-CATCH: stripping ONE band's friend line names that band while the module still reads whole", () => {
     const m = L();
     const stripped = {
       ...m,
