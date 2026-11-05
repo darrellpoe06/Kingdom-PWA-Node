@@ -191,6 +191,18 @@ Four different verses, four different teachings, two shared chapter numbers, **z
 
 **The blast radius, measured.** Seven gates carry a `taken`-set census (`sov57`–`sov63`); six assert `toEqual([])` over their own chapters (`sov58`–`sov63`). Of those, **two collide with this lesson** and four do not — today. Every future Sovereign A.I. lesson rolls the same dice against all six, at chapter granularity, which is why this wants one decision rather than six one-off edits.
 
+**AND THE MEASUREMENT THAT DECIDES IT: chapter-level exclusivity is not unlucky here, it is structurally impossible.** Scanned across the same three catalogs the census itself reads — 82 lessons, 510 distinct chapters anchored:
+
+- **188 chapters (36.9%) are already anchored by MORE THAN ONE lesson.**
+- 322 (63.1%) are anchored by exactly one.
+- The most-shared are **Deuteronomy 6 (27 lessons), Galatians 5 (20), John 1 (19), John 3 (19), 1 Thessalonians 5 (17), Proverbs 27 (17), Hebrews 3 (17)**.
+
+Look at that top of the list. **Those are the chapters this house's own binding rules REQUIRE every lesson to carry:** the Godhead confession (John 1:29, John 3:16, Hebrews 1:8, Colossians 1:17 — DR-0210) and the growth measures (Galatians 5:22, Deuteronomy 6:7, Hebrews 3:13 — DR-0733 / DR-0795). Every lesson must anchor them, so those chapters are shared **by mandate, in every lesson, forever.**
+
+Which means the six census gates can only ever pass by **hand-excluding the mandatory chapters from their own `OURS` list** — and they do. sov61's `OURS` is eight hand-picked chapters (`Isaiah 46`, `Hebrews 6`, `2 Kings 4`, `Matthew 23`, `John 9`, `Mark 9`, `1 Samuel 7`, `Genesis 28`), with the shared ones parked in a second hand-maintained list named `DECLINED_FOR_ANOTHER_LANDING` that runs to more than twenty entries. So the construct is not a measurement at all: **it is a hand-curated claim of exclusive title to eight chapters, which every future lesson must be checked against by hand, forever.** That is precisely the frozen census DR-1317 overturned, and DR-1326's own words apply — a gate that has to be hand-maintained against the library to keep passing is debt to be READ, not a proof.
+
+**So the recommendation is not a preference.** A rule that 36.9% of the library already violates, and that the house's own typographic and growth mandates violate in every single lesson by design, cannot be enforced at chapter granularity. The verse-level version was removed four times on 2026-11-05; the chapter-level version is strictly worse and should go the same way.
+
 **What the Governor is being asked to decide**, with a recommendation rather than an open question: remove the chapter-level `toEqual([])` census from all six gates, as DR-1323 and DR-1326 removed the four verse-level instances, keeping each lesson's own positive assertions intact; and extend the guard to flag a frozen census computed over a cross-catalog `taken` set, which is far narrower than flagging `toEqual([])` by shape and so does not cry wolf. Until that is decided, **PR #2555 stays red on exactly these two cases, and they are the only two.** `re-review: 2026-11-12`.
 
 ### Honest limits
