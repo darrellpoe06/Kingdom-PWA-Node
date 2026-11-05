@@ -492,6 +492,14 @@ export const LIVING_LESSONS_ADDED = {
   // speaking day and the build day.
   'll276-integrity-is-the-only-thing-that-makes-you-rich': '2026-11-05',
   'll277-look-at-the-record': '2026-11-05',
+  // L278 came out of the Gmail lesson-intake lane: a The Daily Upside of
+  // 2026-10-20 that Darrell forwarded with one word above it, Lessons. Its lead
+  // item was a bank's security-and-resiliency programme, and the one sentence
+  // worth a lesson is the chief executive refusing the halo - not philanthropy,
+  // one hundred percent commercial. The lesson names no company, bank, person or
+  // party. Sent 2026-10-20, BUILT 2026-11-05: this is the build day, the day the
+  // id landed, not the day it was sent, and the row waited 16 days (DR-1319).
+  'll278-say-what-you-get': '2026-11-05',
   // L279 was SPOKEN into the app by Darrell on 2026-11-05, the third word of
   // that day, after L276 and L277 had shipped, and built the same day (DR-1320):
   // soul searching to see the gap between what He means by His Word and our
