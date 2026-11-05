@@ -133,6 +133,8 @@ const TITLE_LINE = 'THEY CALLED LONG LIFE A PROBLEM — the grey head, the empty
 
 // The seventeen anchor chapters, each measured absent from the 269 lessons on
 // origin/main before a word was written. Nothing outside this set may appear.
+// The chapters this lesson DECLARES it stands on. Not a claim that no other
+// lesson uses them (DR-1317): a verse is never spent.
 const FREE_CHAPTERS = [
   'Zechariah 8', 'Job 5', 'Psalms 71', 'Deuteronomy 5', '1 Kings 12',
   '2 Chronicles 10', 'Numbers 11', 'Numbers 8', 'Genesis 47', 'Genesis 48',
@@ -219,7 +221,18 @@ describe('L273 is in the catalog, numbered, dated and whole', () => {
     expect(missing).toEqual([]);
   });
 
-  it('stands only on anchor chapters measured FREE of the department (DR-0610)', () => {
+  // CORRECTED 2026-11-05 (DR-1317). This case was titled "stands only on anchor
+  // chapters measured FREE of the department (DR-0610)", and that attribution was
+  // FALSE in both directions. DR-0610 does not require a lesson's chapters to be
+  // unused elsewhere -- it forbids two lessons LANDING on the same message -- and
+  // this case never checked the department at all: it compares the lesson's own
+  // anchors against its own declared list, which is an integrity pin and a good
+  // one. The false sentence mattered because it read as authoritative and taught
+  // the spent-verse rule to anyone who opened it. Darrell, 2026-11-05: "How can
+  // we have only reference one scripture ever?! Doesn't make any sense!" A verse
+  // is never spent; shared ground is how lessons connect (search-it-out's
+  // `sharedGround` links them by it, DR-0734).
+  it('stands on exactly the anchor chapters it declares, and no others', () => {
     const chapters = new Set(String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean)
       .map((r) => { const m = /^(.+?)\s+(\d+):/.exec(r); return m && `${m[1]} ${m[2]}`; }).filter(Boolean));
     expect([...chapters].filter((c) => !FREE_CHAPTERS.includes(c))).toEqual([]);
