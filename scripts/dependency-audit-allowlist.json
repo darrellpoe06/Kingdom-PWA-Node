@@ -1,0 +1,29 @@
+{
+  "_comment": "dependency-audit-guard (DR-1330 D3). A high/critical npm audit finding may be deferred ONLY here, with a why and a reReview date; the guard fails the day the date passes. scope: prod = in the shipped bundle (npm audit --omit=dev); dev = a build or test tool. Shrink this list; never let it grow silently.",
+  "entries": [
+    {
+      "name": "xlsx",
+      "scope": "prod",
+      "why": "SheetJS 0.18.5 on npm has no fixed release (the project moved off npm); the import is lazy and reads only a spreadsheet the signed-in person chooses to upload (lib/statement-import.js), never untrusted input. Replace with the vendor's own registry build or a different parser.",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "vitest",
+      "scope": "dev",
+      "why": "vitest 2 -> 5 is a migration, not a bump (DR-1262: #2266 touched +147/-286); the UI server the advisory names is never run in CI or on a device.",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "tinypool",
+      "scope": "dev",
+      "why": "rides vitest 2 (DR-1262); the worker-options gadget needs a hostile test config, which only this repo writes.",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "vite",
+      "scope": "dev",
+      "why": "vite 5 -> 8 is a migration, not a bump (DR-1262); the dev server the advisories name never runs in CI or on a device, only `vite build` does.",
+      "reReview": "2026-12-05"
+    }
+  ]
+}

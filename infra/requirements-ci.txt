@@ -1,0 +1,11 @@
+# requirements-ci.txt (DR-1330 D3, 2026-11-05): every Python package a GitHub
+# workflow installs, pinned in one place. Before this, every workflow pip
+# install carried no version and nothing audited it. Workflows read their pin
+# from here; Dependabot (pip, directory /infra) bumps it weekly; the guards leg
+# runs pip-audit over it without installing anything. The NAS services pin
+# their own in infra/*/Dockerfile. Versions: the newest on PyPI, 2026-11-05.
+yt-dlp==2026.10.26
+youtube-transcript-api==1.2.5
+psycopg2-binary==2.9.13
+faster-whisper==1.2.1
+pillow==13.0.0

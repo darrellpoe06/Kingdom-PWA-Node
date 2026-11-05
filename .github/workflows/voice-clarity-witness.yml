@@ -104,7 +104,7 @@ jobs:
           python-version: '3.12'
       - name: Install speech recognition (CPU)
         if: steps.gate.outputs.go == 'true'
-        run: pip install --quiet faster-whisper
+        run: pip install --quiet "$(grep '^faster-whisper==' infra/requirements-ci.txt)"
       - name: The script's own offline checks
         if: steps.gate.outputs.go == 'true'
         run: python3 scripts/voice-clarity-witness.py --selftest

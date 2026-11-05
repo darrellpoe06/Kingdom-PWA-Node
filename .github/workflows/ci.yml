@@ -143,6 +143,21 @@ jobs:
       # and every app/src/modules/* has a registered journey, and a deferred
       # one carries a why and a re-review date that has not passed.
       - run: node ../scripts/journey-coverage-guard.mjs
+      # DEPENDENCY AUDIT (DR-1333, DR-1330 D3): a known high/critical in the
+      # shipped bundle or the build tools is red unless deferred with a why and
+      # a date in scripts/dependency-audit-allowlist.json; every workflow pip
+      # install is pinned through infra/requirements-ci.txt, and pip-audit
+      # reads that file without installing anything.
+      - run: node ../scripts/dependency-audit-guard.mjs
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: pip-audit over the pinned workflow requirements (no installs)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check pip-audit==2.10.1
+          python3 -m pip_audit --no-deps -r infra/requirements-ci.txt
+        working-directory: ${{ github.workspace }}
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
@@ -353,7 +368,7 @@ jobs:
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
       # containment or the read-back regresses. Gates merge.
       - name: Pillow for the photo server (so the listing-size road is exercised here, as on the NAS)
-        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
+        run: python3 -m pip install --quiet "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)" || python3 -m pip install --quiet --break-system-packages "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)"
       - name: sovereign photo server selftest
         working-directory: infra/nas-property-photos
         run: python3 photo_server.py --selftest
@@ -1644,7 +1659,7 @@ jobs:
       - name: The database, from the real chain
         run: scripts/e2e/build-door-db.sh
       - name: Pillow for the photo server (the NAS's listing road; a bare runner has neither Pillow nor convert)
-        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
+        run: python3 -m pip install --quiet "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)" || python3 -m pip install --quiet --break-system-packages "$(grep '^pillow==' $GITHUB_WORKSPACE/infra/requirements-ci.txt)"
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
       - name: Build the app against the journeys' own stack
