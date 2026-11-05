@@ -243,7 +243,7 @@ const OURS = [
 // 1 Samuel 15:22 in its `anchor.ref` and keeps the rest of its spine in its
 // theme sentence. The list below is the set the gate can actually see: 433
 // distinct anchor chapters across 75 lessons, with the count each carries.
-const DECLINED_AS_SPENT = [
+const DECLINED_FOR_ANOTHER_LANDING = [
   'Job 38', '1 Samuel 15', 'Matthew 4', 'Genesis 2', 'Proverbs 8', 'Luke 16',
   'Deuteronomy 19', 'Proverbs 22', 'Proverbs 13', 'Proverbs 19',
   'Proverbs 21', 'Proverbs 29', 'Proverbs 28', 'Galatians 6', '2 Timothy 2',
@@ -429,7 +429,22 @@ describe('the anchors were chosen by COUNTING, and the key is book-and-chapter',
     expect(derived.sort()).toEqual([...OURS].sort());
   });
 
-  it('NO chapter of this spine is an anchor of any other lesson in the department, and the set can report a hit', () => {
+  // THE CENSUS IS HISTORY, NOT A STANDING CLAIM (2026-11-05, DR-1333, applying
+  // DR-1317 and DR-1323 to a fifth gate, and this is the one that proved the
+  // cost is not hypothetical). This asserted that no chapter of this spine may
+  // ever be an anchor of another lesson ANYWHERE in the department.
+  //
+  // sov67 (DR-1332) stands on **Hebrews 12:26-27** — "the removing of those
+  // things that are shaken, as of things that are made" — which is its hinge,
+  // its title and its whole teaching, and which exists NOWHERE ELSE in
+  // Scripture. sov66 could route around sov65's gate by carrying Isaiah 36:6
+  // instead of 2 Kings 18:21, because the Word gave it a second witness for
+  // the same clause. There is no second witness for this one. So this case was
+  // refusing a lesson outright, with no route around it, over a chapter
+  // census that never looked at where either lesson LANDS.
+  //
+  // DR-1317: a verse is never spent, and overlap is how lessons connect.
+  it('the spine census is REPORTED as history, and a later lesson sharing a chapter is not a failure', () => {
     const taken = new Set();
     for (const m of [...SOVEREIGN_AI_MODULES, ...MODULES, ...AI_LEGAL_BLUEPRINT_MODULES]) {
       if (m.id === ID) continue;
@@ -438,14 +453,20 @@ describe('the anchors were chosen by COUNTING, and the key is book-and-chapter',
         if (c) taken.add(c);
       }
     }
-    // The department really is large, so an empty `taken` cannot fake a pass.
+    // KEPT, because it is about this measurement and not about another lesson:
+    // the department really is large, so an empty `taken` cannot fake a pass.
     expect(taken.size).toBeGreaterThan(400);
-    const clashes = OURS.filter((c) => taken.has(c));
-    expect(clashes, `another week already stands on: ${clashes.join(', ')}`).toEqual([]);
-    // AND THE OTHER DIRECTION: every chapter declined as spent must be detected
-    // as spent, or the check is matching nothing and passing vacuously.
-    for (const spent of DECLINED_AS_SPENT) {
-      expect(taken.has(spent), `${spent} was declined as spent but is anchored nowhere`).toBe(true);
+    const shared = OURS.filter((c) => taken.has(c));
+    expect(Array.isArray(shared)).toBe(true);
+    if (shared.length) {
+      console.log(`sov62: ${shared.length} of its ${OURS.length} spine chapters are now shared with another lesson of the department: ${shared.join(', ')} — expected, DR-1317.`);
+    }
+    // KEPT, and still an assertion: a chapter this lesson DECLINED to take,
+    // on the ground that the teaching lives elsewhere, is confirmed to really
+    // be anchored elsewhere — so the declining was a measurement and not a
+    // story. This constrains only this lesson's own stated reasoning.
+    for (const spent of DECLINED_FOR_ANOTHER_LANDING) {
+      expect(taken.has(spent), `${spent} was declined because its teaching lands elsewhere, but it is anchored nowhere`).toBe(true);
     }
   });
 
@@ -883,11 +904,19 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
       if (m.id === ID) continue;
       for (const r of anchorRefs(m)) { const c = chapterOf(r); if (c) taken.add(c); }
     }
+    // RE-POINTED (2026-11-05, DR-1333). The second assertion below used to be
+    // `expect(OURS.filter((c) => taken.has(c))).toEqual([])` — "the real set
+    // still reads clean" — which is the frozen census DR-1317 overturned. It
+    // went red the moment sov67 (DR-1332) anchored Hebrews 12, and there was
+    // no route around it, because "the removing of those things that are
+    // shaken, as of things that are made" exists nowhere else in Scripture.
+    //
+    // What still deserves proving is that the census MEASURES: a chapter known
+    // to be held elsewhere must read as taken, or the report is decorative.
     // Job 38 is sov29's own ground (four lessons stand on it).
     const bentOurs = [...OURS, 'Job 38'];
-    expect(bentOurs.filter((c) => taken.has(c))).toEqual(['Job 38']);
-    // while the real set still reads clean
-    expect(OURS.filter((c) => taken.has(c))).toEqual([]);
+    expect(bentOurs.filter((c) => taken.has(c))).toEqual(expect.arrayContaining(['Job 38']));
+    expect(taken.size, 'an empty department census cannot read as a pass').toBeGreaterThan(400);
   });
 
   it('sov29\'s teaching reaching this spine is caught by the refusal pin', () => {

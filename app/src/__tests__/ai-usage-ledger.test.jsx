@@ -51,7 +51,7 @@ describe('ai-usage-ledger: proven to catch', () => {
     expect(validateLedger(ledger([ok], [{ ...s, sessionTokensObserved: 40 }]))).toEqual([]);
   });
   it('names a record that landed without its line', () => {
-    expect(missingLines([1331, 1332, 1340], new Set(['DR-1331', 'DR-1344']))).toEqual(['DR-1340']);
+    expect(missingLines([9001, 9002, 9010], new Set(['DR-9001', 'DR-9002']))).toEqual(['DR-9010']); // ids no record holds, so a renumber never rewrites this fixture
     expect(missingLines([1331], new Set(['DR-1331']))).toEqual([]);
   });
   it('rolls up wall clock, the estimate, the ratio and the unmetered count', () => {

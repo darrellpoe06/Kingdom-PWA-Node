@@ -9,6 +9,9 @@
     },
     "local": {
       "note": "Ollama on the NAS; no dollars."
+    },
+    "claude-opus-5": {
+      "note": "Another Claude Code session's model, read from its commit trailer (Co-Authored-By: Claude Opus 5); its tokens are not on the record."
     }
   },
   "sessions": [
@@ -271,6 +274,40 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 4,
       "notes": "Shared window with D13's push."
+    },
+    {
+      "id": "sov67-what-cannot-be-patched",
+      "date": "2026-11-05",
+      "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1338)",
+      "drs": [
+        "DR-1332"
+      ],
+      "prs": [
+        2552
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.23,
+      "estimateWithoutAiHours": 24,
+      "notes": "Measured first commit 17:01:19Z to merge 18:14:53Z on claude/what-cannot-be-patched-is-removed (7 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,309-line lesson with 55 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "seven-gates-not-two",
+      "date": "2026-11-05",
+      "task": "Seven lesson gates lose a frozen census; the class guard reads identifiers (another session's work, ledgered at the first merge after DR-1338)",
+      "drs": [
+        "DR-1333"
+      ],
+      "prs": [
+        2554
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.21,
+      "estimateWithoutAiHours": 6,
+      "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
     }
   ]
 }

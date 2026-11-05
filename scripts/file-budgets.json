@@ -1,9 +1,17 @@
 {
   "_comment": "file-budget-guard (DR-1339, DR-1330 D9b). Every file here is over the 1,500-line line a new file may not cross; each ceiling is its measured size on 2026-11-05 and may only go DOWN (node scripts/file-budget-guard.mjs --generate re-freezes lower). To RAISE one, edit by hand with a one-line reason here, the way scripts/monolith-budget.json records its raises. The shell (poe-financial-mvp-v28.jsx) keeps its own ratchet in monolith-budget.json and is listed here too so one guard reads the whole picture.",
-  "raises": [],
+  "raises": [
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 9048,
+      "to": 9336,
+      "date": "2026-11-05",
+      "why": "main's #2552 (sov67, DR-1332) landed the lesson in this file between the baseline and the merge; the corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not bloat the ratchet is meant to refuse. Raised to the merged size, not above it."
+    }
+  ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 29435,
-    "app/src/lib/sovereign-ai-class.js": 9048,
+    "app/src/lib/sovereign-ai-class.js": 9336,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
