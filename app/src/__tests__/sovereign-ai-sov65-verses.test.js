@@ -53,6 +53,7 @@ import { SOVEREIGN_AI_MODULES, SOVEREIGN_AI_META } from '../lib/sovereign-ai-cla
 import { MODULES } from '../lib/church-classes.js';
 import { AI_LEGAL_BLUEPRINT_MODULES } from '../lib/ai-legal-blueprint-class.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import { lessonCreatedDay } from '../lib/lesson-dates.js';
 import { measureFullness, shortBands } from '../../../scripts/full-levels.mjs';
 import { NEW_LESSON_CHILD_CEILING, ourProseOnly } from '../../../scripts/reading-level.mjs';
@@ -387,6 +388,31 @@ describe('sov65 — the free ground, measured in both directions', () => {
     // And sov59 really is the clock, which is this week's mirror and not its twin.
     expect(anchorRefs(SOVEREIGN_AI_MODULES.find((m) => m.id.startsWith('sov59-'))).some((r) => chapterKey(r) === 'Isaiah 55')).toBe(true);
     expect(anchorRefs(M).some((r) => chapterKey(r) === 'Isaiah 55')).toBe(false);
+  });
+
+  it('THE CROSS-COURSE OVERLAP THAT LANDED MID-BUILD IS REAL, AND IS DECLARED RATHER THAN HIDDEN', () => {
+    // ll274 (DR-1312, PR #2531) merged into main WHILE this lesson was being
+    // written, and it anchors Deuteronomy 23:21, 23:22 and 23:23 -- three of
+    // this lesson's forty, one of them (23:22, forbearing is no sin) its hinge.
+    // It is a DIFFERENT COURSE, so `one-teaching-one-lesson` does not flag it
+    // and is right not to: its own header says a theme taught in two courses is
+    // the curriculum working. But an overlap a reader finds for himself looks
+    // like carelessness, so the adult lesson and the senior band NAME it, name
+    // ll274, and state the difference between the two questions.
+    const ll274 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll274-'));
+    expect(ll274, 'll274 is cited as the cross-course overlap and does not exist').toBeTruthy();
+    const theirs = new Set(anchorRefs(ll274));
+    const shared = SPINE.filter((r) => theirs.has(r));
+    expect(shared, 'the declared overlap is not what the catalog holds').toEqual(['Deuteronomy 23:21', 'Deuteronomy 23:22', 'Deuteronomy 23:23']);
+    // And it really is the ONLY chapter the two share, in both directions.
+    const theirCh = new Set(anchorRefs(ll274).map(chapterKey));
+    expect([...new Set(SPINE.map(chapterKey))].filter((c) => theirCh.has(c))).toEqual(['Deuteronomy 23']);
+    // Declared where a teacher and an adult reader meet it.
+    for (const k of ['adult', 'senior']) {
+      expect(PLACES()[k], `${k} does not name ll274`).toContain('ll274');
+      expect(PLACES()[k], `${k} does not name the shared statute`).toContain('Deuteronomy 23:21-23');
+      expect(PLACES()[k].toLowerCase(), `${k} does not state the difference between the two questions`).toMatch(/different course|two questions, two courses/);
+    }
   });
 
   it('every reader place NAMES the already-built readings rather than quietly repeating them', () => {

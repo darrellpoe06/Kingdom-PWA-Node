@@ -115,8 +115,8 @@ describe('the debt, recorded as it actually is', () => {
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 453,
     // allFour 279, adultOnly 0, adultRegister 0), never computed and never hand-merged. sov65
     // carries all four authored bands from its first commit and the full fourBandFaults suite reads
-    // clean -- adult prose 2,998 words; shares child 0.575, youth 0.690, teen 0.731, senior 0.889;
-    // ladder child 0.93 < youth 4.53 < teen 5.12 < senior 8.57 with the adult lesson at 6.88;
+    // clean -- adult prose 3,144 words; shares child 0.548, youth 0.658, teen 0.697, senior 0.893;
+    // ladder child 0.93 < youth 4.53 < teen 5.12 < senior 8.67 with the adult lesson at 7.02;
     // worst band-pair overlap 0.111 teen~senior against the 0.25 near-copy line -- so the
     // sovereign-ai row reads {lessons: 65, allFour: 44} and the DEBT does not move. THE TEEN GRADE
     // WENT OVER ITS 6.0 CEILING ON THE FIRST DRAFT at 6.40, and the 36 authored sentence splits
