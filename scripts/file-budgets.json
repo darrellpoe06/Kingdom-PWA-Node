@@ -14,10 +14,17 @@
       "to": 9658,
       "date": "2026-11-05",
       "why": "main's #2555 (sov68, DR-1338) landed the next lesson in this file between the previous raise and this merge; same reason as the 9048 -> 9336 raise: the corpus lives in JavaScript until DR-1339's re-review (2026-11-19). Raised to the merged size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 29435,
+      "to": 29706,
+      "date": "2026-11-05",
+      "why": "ll283 (Made In Our Image, DR-1352) adds the 283rd Living Lesson to this file, 271 lines of lesson content and its provenance comment. Same reason as the two sovereign-ai-class.js raises: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 29435,
+    "app/src/lib/living-lessons-class.js": 29706,
     "app/src/lib/sovereign-ai-class.js": 9658,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,
