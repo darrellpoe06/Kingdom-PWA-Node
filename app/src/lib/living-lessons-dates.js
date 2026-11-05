@@ -479,4 +479,13 @@ export const LIVING_LESSONS_ADDED = {
   // BUILT 2026-11-05: this is the build day, the day the id landed, not the day
   // it was sent, and the row waited 16 days (DR-1315).
   'll275-peace-and-truth-in-my-days': '2026-11-05',
+  // L276 came out of the same lane: a The Daily Upside of 2026-10-20 that
+  // Darrell forwarded with one word above it, Lessons. Its lead item was a
+  // bank's security-and-resiliency programme, and the one sentence worth a
+  // lesson is the chief executive refusing the halo - not philanthropy, one
+  // hundred percent commercial. The lesson names no company, bank, person or
+  // party. Sent 2026-10-20, BUILT 2026-11-05: this is the build day, the day
+  // the id landed, not the day it was sent, and the row waited 16 days
+  // (DR-1318).
+  'll276-say-what-you-get': '2026-11-05',
 };
