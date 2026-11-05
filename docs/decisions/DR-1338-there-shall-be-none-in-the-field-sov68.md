@@ -141,6 +141,26 @@ Adult prose **2,274 words** (quotations excluded on both sides). Shares: child *
 
 Seven load-bearing markers are each bent **at every site they appear** and the guard must go false: `NOBODY`, `TALK ABOUT IT TOGETHER`, `Deuteronomy 6:7`, `Lamb of Yahweh`, `there shall be none`, `it did not stink, neither was there any worm therein`, and `they found none`. Each row first asserts it found **at least one site**, so a break over nothing cannot read as a catch. The band ladder is separately proven by gutting the child band. And the five per-place slices used to prove band uniqueness are each asserted **unique to their own place**, so no band can be reworded out of a sibling.
 
+### The hold cost two waits and twelve red cases, and the asymmetry behind it is now MEASURED rather than named
+
+**While `HELD_IN_FLIGHT = [67]` was live and correct in `sovereign-ai-class.test.js`, about a dozen OTHER Sovereign A.I. gates went red on their own contiguity assertion** — in files week 68's build never touched. That is the DR-1316 cost shape, and it is the second time in two days the serial-landing lane has paid it (DR-1311 paid it for week 63).
+
+The coordinator asked what it would take to measure whether the other course-shape gates share the asymmetry. **It took two greps, so it is measured here rather than deferred.** Three populations in one department:
+
+- **Forward-safe by construction (5):** `sov64`, `sov65`, `sov66`, `sov67` (after this build's correction, below) and `sov68`. Each asserts only that its own week exists exactly once, sits in its own place, and that the weeks run contiguous **through its own number** — none of which a later or held week can falsify.
+- **Carry a hold allowance (5):** `sovereign-ai-class.test.js` and `sov41`–`sov44`, which name a `HELD_IN_FLIGHT` list.
+- **Assert STRICT contiguity over the whole module list with no allowance (~12):** `sov52` through `sov63`. These break on **any** one-week hold, and they are spelled at least three different ways — `Array.from({ length: SOVEREIGN_AI_MODULES.length }, (_, i) => i + 1)` (7 files), `nums.map((_, i) => i + 1)` (sov52, sov54), and further variants — which is why no single guard has caught the class. Empirically confirmed red on this build's pre-merge head in at least `sov52`, `sov53`, `sov54`, `sov57` and `sov59`.
+
+**Not one of them was edited, and sov68 was added to no other lesson's held list.** Every one went green on its own the moment week 67 landed, which is the proof that leaving them red was right rather than a defect to paper over. The remaining question is a policy one for the Governor: a lane whose own rule is *building is parallel but landing is strictly serial* currently cannot take the next free week number while a sibling is in flight without turning ~12 unrelated gates red for the duration. Either those twelve grow a shared forward-safe helper, or the lane stops handing out a number above an unlanded one. `re-review: 2026-12-05`.
+
+### One pin in sov67's gate over-claimed, and it is corrected here on a documented precedent
+
+`sovereign-ai-sov67-verses.test.js` asserted `expect(ns[ns.length - 1], 'sov67 must be the highest week in the course').toBe(67)`. **True of the tree it was written on and false the instant week 68 landed** — a DR-1316 maximum, and the one thing that stayed red after the gap at 67 had closed. **Nothing is wrong with sov67.**
+
+This is the same construct, in the same shape, that the **sov65 build corrected inside sov64's gate one day earlier**; sov64's own comment records the correction and says in as many words that nothing was wrong with sov64. So the precedent for who fixes it is explicit: **the build that exposes it.** The maximum is loosened to `toBeGreaterThanOrEqual(67)` and **nothing is hollowed out** — the four things sov67 can durably assert are added in its place: week 67 exists, is mounted exactly once, sits in the 67th place, and the weeks run contiguous one through 67. A real regression still fails it; a week 69 will not.
+
+**This is the one place this build touched another lesson's gate, it is reported rather than buried, and it is a single assertion.** If the Governor would rather it had been left red and handed back, the correction reverts in one line.
+
 ### Honest limits
 
 - **A complete local full-suite run was not obtainable, and what defeated it is named:** the two-slot vitest memory gate at `/tmp/kingdom-vitest-slots` makes a whole-suite run from this worktree unavailable. The runs named above were done here instead — **23 test files, 572 cases, all green** — and **CI's four shards are the authoritative run.** No full local pass is claimed.
