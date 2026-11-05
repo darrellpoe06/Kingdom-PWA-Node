@@ -40,6 +40,40 @@ const THREAD_IN_TEXT = /`([0-9a-f]{12,})`/g;
 // justifies it. Adding a pair here is a decision, not a silence: the comparison
 // must exist in the later record before the pair is listed.
 export const KNOWN_SHARED_THREADS = [
+  // The three below were read on 2026-11-04, closing three of the six pairs the
+  // dated baseline had carried unexamined since 2026-10-28 (re-review was
+  // 2026-11-28; read early because the reading was available now, DR-0236).
+  {
+    thread: '1a0a5a12db9c6a62',
+    drs: ['DR-0412', 'DR-0413', 'DR-0416'],
+    why: 'NOT lessons at all, and not duplicates. All three are `Type: word` — World Issues '
+      + 'entries 12, 13 and 16 — and one forward carried several items, each becoming its own '
+      + 'entry on a wholly distinct subject: DR-0412 the EPA unwinding the power-plant carbon '
+      + 'rules, DR-0413 the Supreme Court leaving the mail-in rules alone, DR-0416 the non-degree '
+      + 'job market and work with your hands. One source, several teachings, which DR-0610 permits: '
+      + 'its rule is one TEACHING one lesson, never one SOURCE one lesson. Read at front-matter '
+      + 'and title level on 2026-11-04; the five entries\' bodies were not read, and are not '
+      + 'needed to say the EPA rules and the trades hiring are not one teaching told twice.',
+  },
+  {
+    thread: '1a0a5a4e540b4fde',
+    drs: ['DR-0412', 'DR-0413', 'DR-0414', 'DR-0415'],
+    why: 'Same shape as the entry above and the same forward-carries-many-items cause: `Type: word` '
+      + 'World Issues entries 12, 13, 14 and 15 — the EPA carbon rules, the Supreme Court and the '
+      + 'mail-in rules, the Kennedy Center and whose name goes on the house, and Evanston\'s '
+      + 'reparations and the equal-protection suit. Four distinct subjects, no lesson among them. '
+      + 'Read at front-matter and title level on 2026-11-04.',
+  },
+  {
+    thread: 'a30e4942e161b7833c6cef051b8ab6fd',
+    drs: ['DR-0711', 'DR-0739'],
+    why: 'NOT two lessons from one source — two CORRECTIONS to one lesson, L202. DR-0711 gives the '
+      + 'session its speakers (BG, DP, and the members as Bishop Gwin calls them) and honors '
+      + 'Evangelist Mary E. Gwin; DR-0739 is `Type: defect` and gives Deacon Palmer his words and '
+      + 'the class its true count. Two records amending a single lesson is the ledger working. Note '
+      + 'also that this id is 32 hex characters — a recording row, not a Gmail thread, so the '
+      + 'Gmail-lane reasoning about forwards does not even apply to it. Read 2026-11-04.',
+  },
   {
     thread: '1a112049320caa4a',
     drs: ['DR-0763', 'DR-1288'],
@@ -114,20 +148,78 @@ export function threadClaims(ledger = readLedger()) {
 // lowers the list, and a pair that is investigated moves UP into
 // KNOWN_SHARED_THREADS with its comparison. A NEW collision fails the build,
 // which is the only thing this gate needs to do to have caught sov57.
-// re-review: 2026-11-28 -- read the six pairs below and move each one either
-// into KNOWN_SHARED_THREADS with a comparison, or out of the ledger as a
-// genuine duplicate for Darrell to fold. Lower this list as each is cleared.
-export const UNEXAMINED_BASELINE = [
-  '1a0a5a12db9c6a62:DR-0412+DR-0413+DR-0416',
-  '1a0a5a4e540b4fde:DR-0412+DR-0413+DR-0414+DR-0415',
-  '1a11668e8023cd3e:DR-0793+DR-0863',
-  '1a11be8ea0e58748:DR-0834+DR-0864',
-  '1a135f165fe391e3:DR-1005+DR-1051',
-  'a30e4942e161b7833c6cef051b8ab6fd:DR-0711+DR-0739',
+// ALL SIX WERE READ ON 2026-11-04, twenty-four days before the date, and the
+// list is now empty. What they turned out to be, because the answer was not one
+// thing: THREE were never duplicates and moved up into KNOWN_SHARED_THREADS
+// with their comparisons (two forwards that each carried several World Issues
+// items, and two corrections to the single lesson L202). ONE healed at the
+// cause: DR-1051 is `Type: orchestration`, it built a guard and no lesson, and
+// it named `1a135f165fe391e3` only because it RECOVERED that id into DR-1005,
+// which really built sov39 from it -- so it now carries the DR-1305
+// `Considered, not built:` declaration and the pair no longer exists. And TWO
+// are genuine duplicates, which is what EXAMINED_AWAITING_FOLD below holds.
+export const UNEXAMINED_BASELINE = [];
+
+/**
+ * Pairs that WERE read and ARE one teaching built twice. These are not debt and
+ * not false positives -- they are measured duplicates waiting on an editorial
+ * decision that belongs to Darrell and never to this gate (DR-1185 folded the
+ * one before these: ll235's four verses and two parables were carried into
+ * ll257 before ll235 was removed, so nothing was lost).
+ *
+ * Measured with the catalog's OWN rule -- `sharedGround` from
+ * `app/src/lib/one-teaching-one-lesson.js`, which expands verse ranges before
+ * comparing, so "Psalms 39:4; Psalms 39:5" and "Psalms 39:4-5" count as the one
+ * ground they are. Each pair is the same course AND the same source forward AND
+ * thirteen-plus shared verses. That conjunction is the discriminator: a verse
+ * measure alone cannot separate these from legitimate reuse, because dropping
+ * the title clause from the shipped rule flags 146 pairs across the 712 lessons
+ * while the shipped rule flags none. Sharing a source AND the ground is not a
+ * theme recurring; it is one send taught twice.
+ */
+export const EXAMINED_AWAITING_FOLD = [
+  {
+    thread: '1a11668e8023cd3e',
+    drs: ['DR-0793', 'DR-0863'],
+    lessons: ['ll215', 'll239'],
+    sharedVerses: 13,
+    why: 'One forward of 2026-10-07 12:48 UTC, taught twice in Living Lessons two days apart. '
+      + 'll215 "When a Land Has No Smith — Count the Cost, Prepare the Field, and Who Gives the '
+      + 'Safety" (DR-0793, 2026-10-07) and ll239 "The King Sits Down First — A Shipyard, a '
+      + 'Submarine Contract, and Who Gives Safety" (DR-0863, 2026-10-09) share 13 expanded anchor '
+      + 'verses including the whole Luke 14:28-32 counting-the-cost core, and both titles close on '
+      + 'who gives the safety. The shipped rule misses it only because the titles open differently.',
+  },
+  {
+    thread: '1a11be8ea0e58748',
+    drs: ['DR-0834', 'DR-0864'],
+    lessons: ['ll223', 'll238'],
+    sharedVerses: 14,
+    why: 'One forward of 2026-10-08 14:26 UTC, taught twice in Living Lessons. ll223 "The Storm You '
+      + 'Can See Coming, and the Court Where a Life Hangs" (DR-0834) and ll238 "Who Holds the Wind '
+      + '— The Warning, the Foundation, and the Neighbour in the Storm\'s Path" (DR-0864, '
+      + '2026-10-09) share 14 expanded anchor verses, among them Mark 4:37-39, Psalms 107:28-29 and '
+      + 'the whole of Matthew 7:24-27.',
+  },
 ];
 
+/**
+ * A third pair from the same 2026-10-08/09 run is NOT listed here on purpose:
+ * `1a11be8188dbc2f6` (DR-0821 ll221 / DR-0860 ll236) came from one
+ * utility-billing forward and shares exactly ONE verse, so "Owning the Light
+ * Instead of Renting It" and "The Bill You Cannot Read" are two genuinely
+ * different teachings from one source. It is the control that shows the rule
+ * above does not over-flag, and it needs no fold.
+ */
+
 const key = (drs) => [...drs].sort().join('+');
-const RECORDED = new Set(KNOWN_SHARED_THREADS.map((p) => `${p.thread}:${key(p.drs)}`));
+// A measured duplicate awaiting Darrell's fold is RECORDED, not NEW: the pair is
+// known and written down, so it must not fail every build until he decides. It
+// is printed loudly on every run instead, so it cannot go quiet either.
+const RECORDED = new Set([
+  ...KNOWN_SHARED_THREADS.map((p) => `${p.thread}:${key(p.drs)}`),
+  ...EXAMINED_AWAITING_FOLD.map((p) => `${p.thread}:${key(p.drs)}`),
+]);
 const BASELINE = new Set(UNEXAMINED_BASELINE);
 
 /**
@@ -177,9 +269,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(1);
   }
   console.log(`one-thread-one-record-guard: OK — ${claims.size} thread(s) named across the ledger, `
-    + `${shared.length} shared (${KNOWN_SHARED_THREADS.length} examined, `
-    + `${UNEXAMINED_BASELINE.length} unexamined debt, re-review 2026-11-28), 0 new.`);
+    + `${shared.length} shared (${KNOWN_SHARED_THREADS.length} examined and cleared, `
+    + `${EXAMINED_AWAITING_FOLD.length} measured duplicate(s) awaiting Darrell's fold, `
+    + `${UNEXAMINED_BASELINE.length} unexamined), 0 new.`);
   for (const p of KNOWN_SHARED_THREADS) console.log(`  ~ examined: ${p.thread} -> ${p.drs.join(', ')}`);
+  for (const p of EXAMINED_AWAITING_FOLD) {
+    console.log(`  ! DUPLICATE awaiting fold: ${p.lessons.join(' / ')} from ${p.thread} `
+      + `(${p.drs.join(', ')}), ${p.sharedVerses} shared verses`);
+  }
   for (const k of UNEXAMINED_BASELINE) console.log(`  ! unexamined: ${k}`);
   console.log(`  (ledger: ${DECISIONS})`);
 }

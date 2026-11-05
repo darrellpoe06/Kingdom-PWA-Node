@@ -12,6 +12,7 @@
 **Amends:** DR-0610, whose lock is "the `lesson-captured` tag written only after the push". The tag stays the lock; this adds the witness that catches it when it is missed.
 **Grounds:** DR-0610 (one teaching, one lesson); DR-1050 (the finder's inexact matching, and the proximity lesson reused here); DR-0236 (nothing waits — this was named as the remaining gap and built the same session); DR-0225 (brakes gate activation, never building); DR-0076 §3 (proven-to-catch), §4 (measure, do not claim), §8 (honest uncertainty); DR-0075 (a real debt carries a why and a date)
 **Declared by:** me, after DR-1050's record named this as the weakest link and then parked it on Darrell — which the integrity guard correctly refused
+**Considered, not built:** `1a135f165fe391e3`, `1a135b7ba6605c98`, `1a13f985bb4d2a79`, `1a13feefef705fa7` — this record is `Type: orchestration`. It builds a guard and no lesson, and it names these four threads only because it RECOVERED their ids into the records that really built them: `1a135f165fe391e3` is sov39 under **DR-1005**, `1a135b7ba6605c98` is **DR-1004**, `1a13f985bb4d2a79` is **DR-1049**, `1a13feefef705fa7` is **DR-1048**. Added 2026-11-04 under DR-1305: without this line the shipped-sweep counts a recovery record as a claim, which is the fault this record was itself written to catch, one layer in.
 
 ## Context
 
