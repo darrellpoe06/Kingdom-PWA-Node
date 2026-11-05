@@ -29,7 +29,9 @@ export function familiesIn(surfacesSource) {
 /** The module directories under app/src/modules (each must have an index). */
 export function modulesIn(modulesDir) {
   if (!existsSync(modulesDir)) return [];
-  return readdirSync(modulesDir).filter((d) => statSync(join(modulesDir, d)).isDirectory()).sort();
+  return readdirSync(modulesDir)
+    .filter((d) => statSync(join(modulesDir, d)).isDirectory())
+    .sort();
 }
 
 /**
@@ -47,7 +49,8 @@ export function check({ journeys, families, modules, runners, appJourneyIds, tod
   }
   for (const j of journeys) {
     if (!runners.includes(j.runner)) out.push(`journey '${j.id}' names unknown runner '${j.runner}'`);
-    if (j.runner === 'app-journeys' && active(j) && !appJourneyIds.includes(j.id)) out.push(`journey '${j.id}' is registered as app-journeys but scripts/e2e/app-journeys.mjs does not define it`);
+    if (j.runner === 'app-journeys' && active(j) && !appJourneyIds.includes(j.id))
+      out.push(`journey '${j.id}' is registered as app-journeys but scripts/e2e/app-journeys.mjs does not define it`);
     if (j.status === 'deferred') {
       if (!j.why || !j.reReview) out.push(`journey '${j.id}' is deferred without a why and a reReview date`);
       else if (j.reReview <= today) out.push(`journey '${j.id}' passed its re-review date ${j.reReview}: build it or re-date it with a new why`);
@@ -62,15 +65,22 @@ if (isMain) {
   const { JOURNEY_IDS } = await import('./e2e/app-journeys.mjs');
   const surfaces = readFileSync(join(ROOT, 'app/src/surfaces.js'), 'utf8');
   const families = familiesIn(surfaces);
-  for (const f of families) if (!FAMILIES.includes(f)) console.error(`journey-coverage-guard: surfaces.js declares nav '${f}' that journeys.mjs FAMILIES does not list`);
+  for (const f of families)
+    if (!FAMILIES.includes(f)) console.error(`journey-coverage-guard: surfaces.js declares nav '${f}' that journeys.mjs FAMILIES does not list`);
   const findings = check({
-    journeys: JOURNEYS, families, modules: modulesIn(join(ROOT, 'app/src/modules')), runners: RUNNERS,
-    appJourneyIds: JOURNEY_IDS, today: new Date().toISOString().slice(0, 10),
+    journeys: JOURNEYS,
+    families,
+    modules: modulesIn(join(ROOT, 'app/src/modules')),
+    runners: RUNNERS,
+    appJourneyIds: JOURNEY_IDS,
+    today: new Date().toISOString().slice(0, 10),
   });
   if (findings.length || families.some((f) => !FAMILIES.includes(f))) {
     console.error(`journey-coverage-guard: ${findings.length} finding(s):\n  ${findings.join('\n  ')}`);
     process.exit(1);
   }
   const active = JOURNEYS.filter((j) => j.status === 'active').length;
-  console.log(`journey-coverage-guard: OK — ${families.length} families and ${modulesIn(join(ROOT, 'app/src/modules')).length} modules covered by ${active} active journeys (${JOURNEYS.length - active} deferred, dated).`);
+  console.log(
+    `journey-coverage-guard: OK — ${families.length} families and ${modulesIn(join(ROOT, 'app/src/modules')).length} modules covered by ${active} active journeys (${JOURNEYS.length - active} deferred, dated).`
+  );
 }

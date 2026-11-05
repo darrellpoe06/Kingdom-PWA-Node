@@ -37,7 +37,8 @@ export function judge({ records, indexText, first = FIRST_RATCHETED_DR, maxLines
     if (lines > maxLines) out.push(`${file}: ${lines} lines (the ratchet is ${maxLines}; put the narrative in the session note the record cites)`);
     const id = `DR-${String(n).padStart(4, '0')}`;
     const row = indexText.split('\n').find((l) => l.startsWith(`| [${id}]`));
-    if (row && row.length > maxRow) out.push(`${id}: INDEX row is ${row.length} characters (the ratchet is ${maxRow}; a row is what a reader verifies at a glance)`);
+    if (row && row.length > maxRow)
+      out.push(`${id}: INDEX row is ${row.length} characters (the ratchet is ${maxRow}; a row is what a reader verifies at a glance)`);
   }
   return out;
 }

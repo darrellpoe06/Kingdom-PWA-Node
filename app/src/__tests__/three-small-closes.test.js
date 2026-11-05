@@ -36,10 +36,14 @@ describe('2. the voice worker CORS answer', () => {
   const req = (origin) => ({ headers: { get: (k) => (k === 'Origin' ? origin : null) } });
   const res = () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
   it('echoes a matched origin', () => {
-    expect(cors({ PWA_ORIGIN: 'https://poetech.us, http://localhost:5173' }, req('http://localhost:5173'), res()).headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
+    expect(
+      cors({ PWA_ORIGIN: 'https://poetech.us, http://localhost:5173' }, req('http://localhost:5173'), res()).headers.get('Access-Control-Allow-Origin')
+    ).toBe('http://localhost:5173');
   });
   it('answers an unmatched origin with the first allowed one, which the browser blocks', () => {
-    expect(cors({ PWA_ORIGIN: 'https://poetech.us' }, req('https://evil.example'), res()).headers.get('Access-Control-Allow-Origin')).toBe('https://poetech.us');
+    expect(cors({ PWA_ORIGIN: 'https://poetech.us' }, req('https://evil.example'), res()).headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://poetech.us'
+    );
   });
   it('with no allow list it sends NO CORS origin header — never *', () => {
     const out = cors({}, req('https://evil.example'), res());
@@ -50,13 +54,20 @@ describe('2. the voice worker CORS answer', () => {
 
 describe('3. a proxied write from another origin', () => {
   const realFetch = globalThis.fetch;
-  afterEach(() => { globalThis.fetch = realFetch; });
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
   function call({ method, origin }) {
     let forwarded = false;
-    globalThis.fetch = async () => { forwarded = true; return new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }); };
+    globalThis.fetch = async () => {
+      forwarded = true;
+      return new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } });
+    };
     const onRequest = makeFunnelProxy({ upstreamPrefix: '/sb', label: 'sovereign-supabase' });
     const headers = origin ? { origin } : {};
-    return onRequest({ request: new Request('https://poetech.us/sb/rest/v1/notes', { method, headers }), params: { path: ['rest', 'v1', 'notes'] } }).then((res) => ({ res, forwarded }));
+    return onRequest({ request: new Request('https://poetech.us/sb/rest/v1/notes', { method, headers }), params: { path: ['rest', 'v1', 'notes'] } }).then(
+      (res) => ({ res, forwarded })
+    );
   }
   it('is refused at the door, signed as a Function, and never forwarded', async () => {
     const { res, forwarded } = await call({ method: 'POST', origin: 'https://evil.example' });

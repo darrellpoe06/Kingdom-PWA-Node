@@ -12,12 +12,16 @@ import { readErrorJournal, ERROR_JOURNAL_KEY } from '../lib/error-journal.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-function Boom() { throw new Error('ENOENT: /volume1/secret/path.json'); }
+function Boom() {
+  throw new Error('ENOENT: /volume1/secret/path.json');
+}
 
 async function mount() {
   const container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { createRoot(container).render(createElement(ErrorBoundary, null, createElement(Boom))); });
+  await act(async () => {
+    createRoot(container).render(createElement(ErrorBoundary, null, createElement(Boom)));
+  });
   return container;
 }
 
@@ -27,7 +31,10 @@ describe('ErrorBoundary speaks a reference', () => {
     localStorage.removeItem(ERROR_JOURNAL_KEY);
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
-  afterEach(() => { document.body.innerHTML = ''; vi.restoreAllMocks(); });
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+  });
 
   it('shows a reference and keeps the exception text off the screen for a person', async () => {
     const c = await mount();

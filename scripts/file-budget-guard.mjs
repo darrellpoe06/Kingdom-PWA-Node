@@ -24,7 +24,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const BUDGETS = 'scripts/file-budgets.json';
 export const NEW_FILE_MAX = 1500;
 
-export function countLines(src) { return src.length ? src.replace(/\n$/, '').split('\n').length : 0; }
+export function countLines(src) {
+  return src.length ? src.replace(/\n$/, '').split('\n').length : 0;
+}
 
 /** @returns {string[]} findings */
 export function judge({ counts, budgets, newFileMax = NEW_FILE_MAX }) {
@@ -53,8 +55,13 @@ export function regenerate(counts, budgets) {
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
-  const files = execFileSync('git', ['ls-files', '-z', '--', 'app/src/**/*.js', 'app/src/**/*.jsx'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\0').filter((p) => p && !/\/__tests__\//.test(p) && !/\.test\./.test(p));
+  const files = execFileSync('git', ['ls-files', '-z', '--', 'app/src/**/*.js', 'app/src/**/*.jsx'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split('\0')
+    .filter((p) => p && !/\/__tests__\//.test(p) && !/\.test\./.test(p));
   const counts = Object.fromEntries(files.map((p) => [p, countLines(readFileSync(join(ROOT, p), 'utf8'))]));
   const doc = JSON.parse(readFileSync(join(ROOT, BUDGETS), 'utf8'));
   if (process.argv.includes('--generate')) {
@@ -69,5 +76,7 @@ if (isMain) {
     process.exit(1);
   }
   const over = Object.values(doc.budgets).length;
-  console.log(`file-budget-guard: OK — ${files.length} source files; ${over} budgeted file(s) at or under their ceilings; no other file over ${NEW_FILE_MAX} lines.`);
+  console.log(
+    `file-budget-guard: OK — ${files.length} source files; ${over} budgeted file(s) at or under their ceilings; no other file over ${NEW_FILE_MAX} lines.`
+  );
 }

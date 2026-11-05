@@ -69,7 +69,8 @@ export const BOUNDARY_SIGNS = ['hit an error', 'Something went wrong on this scr
  */
 export function parseRegistry(source) {
   const out = [];
-  const re = /\{\s*id:\s*'([^']+)'\s*,\s*label:\s*(?:'([^']*)'|"([^"]*)")\s*,\s*nav:\s*'([^']+)'\s*,\s*view:\s*'([^']+)'\s*,\s*sub:\s*(?:'([^']+)'|null)[^}]*?import\('([^']+)'\)/g;
+  const re =
+    /\{\s*id:\s*'([^']+)'\s*,\s*label:\s*(?:'([^']*)'|"([^"]*)")\s*,\s*nav:\s*'([^']+)'\s*,\s*view:\s*'([^']+)'\s*,\s*sub:\s*(?:'([^']+)'|null)[^}]*?import\('([^']+)'\)/g;
   let m;
   while ((m = re.exec(source))) {
     out.push({ id: m[1], label: m[2] ?? m[3] ?? m[1], nav: m[4], view: m[5], sub: m[6] || null, loadFile: basename(m[7]).replace(/\.(jsx?|mjs)$/, '') });
@@ -85,7 +86,10 @@ export function routeFor(entry) {
 /** Distinct routes, first entry wins (three church entries share sub=conference). */
 export function distinctRoutes(entries) {
   const seen = new Map();
-  for (const e of entries) { const r = routeFor(e); if (!seen.has(r)) seen.set(r, e); }
+  for (const e of entries) {
+    const r = routeFor(e);
+    if (!seen.has(r)) seen.set(r, e);
+  }
   return [...seen.entries()].map(([route, entry]) => ({ route, entry }));
 }
 
@@ -118,8 +122,18 @@ export function parseArgs(argv) {
     // --only=<id,id> narrows the sweep to named surfaces: for the planted-fault
     // runs in CI (seconds, not minutes) and for a local look at one surface.
     // Never for the real pass — coverage is the point of the real pass.
-    else if (a.startsWith('--only=')) args.only = a.slice('--only='.length).split(',').map((s) => s.trim()).filter(Boolean);
-    else if (a.startsWith('--widths=')) args.widths = a.slice('--widths='.length).split(',').map((n) => Number(n)).filter((n) => n > 0);
+    else if (a.startsWith('--only='))
+      args.only = a
+        .slice('--only='.length)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    else if (a.startsWith('--widths='))
+      args.widths = a
+        .slice('--widths='.length)
+        .split(',')
+        .map((n) => Number(n))
+        .filter((n) => n > 0);
     else if (!a.startsWith('--')) args.dist = a;
   }
   return args;
@@ -137,32 +151,68 @@ if (isMain) {
   const started = Date.now();
   const over = () => Date.now() - started > BUDGET_MS;
 
-  if (!existsSync(join(DIST, 'index.html'))) { console.error(`surface-sweep: no index.html in ${DIST} — build the app first`); process.exit(2); }
+  if (!existsSync(join(DIST, 'index.html'))) {
+    console.error(`surface-sweep: no index.html in ${DIST} — build the app first`);
+    process.exit(2);
+  }
   const entries = parseRegistry(readFileSync(REGISTRY, 'utf8'));
-  if (entries.length < MIN_SURFACES) { console.error(`surface-sweep: parsed only ${entries.length} registry entries (< ${MIN_SURFACES}) — the parser no longer reads surfaces.js`); process.exit(2); }
+  if (entries.length < MIN_SURFACES) {
+    console.error(`surface-sweep: parsed only ${entries.length} registry entries (< ${MIN_SURFACES}) — the parser no longer reads surfaces.js`);
+    process.exit(2);
+  }
   const routes = distinctRoutes(args.only ? entries.filter((e) => args.only.includes(e.id)) : entries);
-  if (args.only && routes.length !== args.only.length) { console.error(`surface-sweep: --only named ${args.only.length} surfaces but ${routes.length} resolved`); process.exit(2); }
-  console.log(`surface-sweep: ${entries.length} registered surfaces, ${routes.length} ${args.only ? 'selected' : 'distinct'} routes, widths ${args.widths.join('/')}`);
+  if (args.only && routes.length !== args.only.length) {
+    console.error(`surface-sweep: --only named ${args.only.length} surfaces but ${routes.length} resolved`);
+    process.exit(2);
+  }
+  console.log(
+    `surface-sweep: ${entries.length} registered surfaces, ${routes.length} ${args.only ? 'selected' : 'distinct'} routes, widths ${args.widths.join('/')}`
+  );
 
   // The planted fault, if any.
-  let breakKind = '', breakTarget = null;
+  let breakKind = '',
+    breakTarget = null;
   if (args.breakSpec) {
     const [kind, id] = args.breakSpec.split(':');
     breakKind = kind;
     if (kind === 'chunk') {
       breakTarget = entries.find((e) => e.id === id);
-      if (!breakTarget) { console.error(`surface-sweep: --break=chunk:${id} names no registry entry`); process.exit(2); }
-    } else if (kind !== 'pageerror') { console.error(`surface-sweep: unknown --break kind "${kind}"`); process.exit(2); }
+      if (!breakTarget) {
+        console.error(`surface-sweep: --break=chunk:${id} names no registry entry`);
+        process.exit(2);
+      }
+    } else if (kind !== 'pageerror') {
+      console.error(`surface-sweep: unknown --break kind "${kind}"`);
+      process.exit(2);
+    }
   }
 
-  const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png' };
+  const MIME = {
+    '.html': 'text/html',
+    '.js': 'text/javascript',
+    '.mjs': 'text/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.svg': 'image/svg+xml',
+    '.webmanifest': 'application/manifest+json',
+    '.woff2': 'font/woff2',
+    '.png': 'image/png',
+  };
   const server = createServer((req, res) => {
     let path = (req.url || '/').split('?')[0];
-    if (path.startsWith('/voice/') || path.startsWith('/voice-lite/') || path.startsWith('/sb/') || path.startsWith('/n8n/')) { res.writeHead(404); res.end(); return; }
+    if (path.startsWith('/voice/') || path.startsWith('/voice-lite/') || path.startsWith('/sb/') || path.startsWith('/n8n/')) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     if (path.startsWith(BASE)) path = path.slice(BASE.length) || '/';
     if (path === '/') path = '/index.html';
     const file = normalize(join(DIST, path));
-    if (!file.startsWith(normalize(DIST)) || !existsSync(file)) { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(readFileSync(join(DIST, 'index.html'))); return; }
+    if (!file.startsWith(normalize(DIST)) || !existsSync(file)) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(readFileSync(join(DIST, 'index.html')));
+      return;
+    }
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
     res.end(readFileSync(file));
   });
@@ -171,20 +221,36 @@ if (isMain) {
 
   const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : { channel: 'chrome' };
   let browser;
-  try { browser = await chromium.launch(launchOpts); }
-  catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
+  try {
+    browser = await chromium.launch(launchOpts);
+  } catch {
+    browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  }
 
   // The same clock at every hour (chrome-layout-probe's lesson): a pinned
   // quiet instant in Champaign, Date only, timers untouched.
   const QUIET = new Date('2026-09-29T10:00:00-05:00').getTime();
-  const pin = (page) => page.addInitScript((target) => {
-    const RealDate = Date; const off = target - RealDate.now();
-    class PinnedDate extends RealDate { constructor(...a) { if (a.length === 0) super(RealDate.now() + off); else super(...a); } static now() { return RealDate.now() + off; } }
-    globalThis.Date = new Proxy(PinnedDate, { apply: () => new PinnedDate().toString() });
-  }, QUIET);
+  const pin = (page) =>
+    page.addInitScript((target) => {
+      const RealDate = Date;
+      const off = target - RealDate.now();
+      class PinnedDate extends RealDate {
+        constructor(...a) {
+          if (a.length === 0) super(RealDate.now() + off);
+          else super(...a);
+        }
+        static now() {
+          return RealDate.now() + off;
+        }
+      }
+      globalThis.Date = new Proxy(PinnedDate, { apply: () => new PinnedDate().toString() });
+    }, QUIET);
 
   const chunkFor = (entry) => `**/assets/${entry.loadFile}-*.js`;
-  let failures = [], judged = 0, consoleErrors = 0, tripped = [];
+  let failures = [],
+    judged = 0,
+    consoleErrors = 0,
+    tripped = [];
 
   async function open(route, width, { plantPageError = false } = {}) {
     // Service workers are blocked: a worker-served chunk bypasses page.route,
@@ -194,14 +260,31 @@ if (isMain) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, timezoneId: 'America/Chicago', serviceWorkers: 'block' });
     const page = await context.newPage();
     await pin(page);
-    await page.addInitScript(() => { try { localStorage.setItem('poe-landing-seen', '1'); localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ } });
-    if (plantPageError) await page.addInitScript(() => { setTimeout(() => { throw new Error('surface-sweep planted page error'); }, 400); });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poe-landing-seen', '1');
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+      } catch (_) {
+        /* private mode */
+      }
+    });
+    if (plantPageError)
+      await page.addInitScript(() => {
+        setTimeout(() => {
+          throw new Error('surface-sweep planted page error');
+        }, 400);
+      });
     if (breakKind === 'chunk') {
-      await page.route(chunkFor(breakTarget), (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: "throw new Error('surface-sweep planted chunk fault');" }));
+      await page.route(chunkFor(breakTarget), (r) =>
+        r.fulfill({ status: 200, contentType: 'text/javascript', body: "throw new Error('surface-sweep planted chunk fault');" })
+      );
     }
-    const pageErrors = []; let errs = 0;
-    page.on('pageerror', (e) => pageErrors.push(String(e && e.message || e)));
-    page.on('console', (msg) => { if (msg.type() === 'error') errs += 1; });
+    const pageErrors = [];
+    let errs = 0;
+    page.on('pageerror', (e) => pageErrors.push(String((e && e.message) || e)));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errs += 1;
+    });
     await page.goto(`${origin}${BASE}/${route}`, { waitUntil: 'networkidle', timeout: IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('main', { timeout: 15000 }).catch(() => {});
     // Lazy surfaces resolve after the shell paints; give them a settle. A
@@ -222,19 +305,27 @@ if (isMain) {
 
   try {
     for (const width of args.widths) {
-      if (over()) { failures.push(`budget of ${BUDGET_MS}ms exceeded before ${width}px`); break; }
+      if (over()) {
+        failures.push(`budget of ${BUDGET_MS}ms exceeded before ${width}px`);
+        break;
+      }
       // The Overview's own text is the fall-through fingerprint for this width.
       const overview = await open('?view=overview', width);
       for (const { route, entry } of routes) {
-        if (over()) { failures.push(`budget of ${BUDGET_MS}ms exceeded at ${route}@${width}px`); break; }
+        if (over()) {
+          failures.push(`budget of ${BUDGET_MS}ms exceeded at ${route}@${width}px`);
+          break;
+        }
         const plant = breakKind === 'pageerror' && judged === 0;
         const m = await open(route, width, { plantPageError: plant });
         const label = `${route}@${width}px (${entry.id})`;
         const verdict = judge({ ...m, overviewMainText: overview.mainText }, label);
         judged += 1;
         if (verdict.length) {
-          if (breakKind && ((breakKind === 'chunk' && entry.id === breakTarget.id) || plant)) { tripped.push(...verdict); console.log(`caught   ${verdict[0]}`); }
-          else failures.push(...verdict);
+          if (breakKind && ((breakKind === 'chunk' && entry.id === breakTarget.id) || plant)) {
+            tripped.push(...verdict);
+            console.log(`caught   ${verdict[0]}`);
+          } else failures.push(...verdict);
         } else console.log(`opened   ${label} — ${m.mainText.replace(/\s+/g, ' ').trim().length} chars, ${m.consoleErrors} console errors`);
       }
     }
@@ -246,11 +337,26 @@ if (isMain) {
   const expected = routes.length * args.widths.length;
   if (judged !== expected) failures.push(`coverage: judged ${judged} of ${expected} route×width cases`);
   if (breakKind) {
-    if (!tripped.length) { console.error(`surface-sweep: PLANTED FAULT NOT CAUGHT (${args.breakSpec}) — the sweep cannot fail, which is the painted-gate class DR-0076 §3 exists to kill`); process.exit(1); }
-    if (failures.length) { console.error(`surface-sweep: the planted fault also tripped unrelated routes:\n  ${failures.join('\n  ')}`); process.exit(1); }
-    console.log(`surface-sweep: planted fault ${args.breakSpec} CAUGHT (${tripped.length} trip(s)); ${judged} cases judged, ${consoleErrors} console errors counted`);
+    if (!tripped.length) {
+      console.error(
+        `surface-sweep: PLANTED FAULT NOT CAUGHT (${args.breakSpec}) — the sweep cannot fail, which is the painted-gate class DR-0076 §3 exists to kill`
+      );
+      process.exit(1);
+    }
+    if (failures.length) {
+      console.error(`surface-sweep: the planted fault also tripped unrelated routes:\n  ${failures.join('\n  ')}`);
+      process.exit(1);
+    }
+    console.log(
+      `surface-sweep: planted fault ${args.breakSpec} CAUGHT (${tripped.length} trip(s)); ${judged} cases judged, ${consoleErrors} console errors counted`
+    );
     process.exit(0);
   }
-  if (failures.length) { console.error(`surface-sweep: ${failures.length} FAILED of ${judged} cases:\n  ${failures.join('\n  ')}`); process.exit(1); }
-  console.log(`surface-sweep: OK — ${judged} cases opened (${routes.length} routes × ${args.widths.length} widths), ${consoleErrors} console errors counted, ${Math.round((Date.now() - started) / 1000)}s`);
+  if (failures.length) {
+    console.error(`surface-sweep: ${failures.length} FAILED of ${judged} cases:\n  ${failures.join('\n  ')}`);
+    process.exit(1);
+  }
+  console.log(
+    `surface-sweep: OK — ${judged} cases opened (${routes.length} routes × ${args.widths.length} widths), ${consoleErrors} console errors counted, ${Math.round((Date.now() - started) / 1000)}s`
+  );
 }

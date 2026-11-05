@@ -28,8 +28,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-export const RESPONSE = /\b(JSONResponse|HTTPException|PlainTextResponse|HTMLResponse)\s*\(|\bjson\s*\(\s*\{|new Response\s*\(|\bres\.(json|send|end)\s*\(|\breply\.(send|code)\s*\(/;
-export const EXC_TEXT = /\b(str|repr)\s*\(\s*(e|err|exc|error|ex)\b\s*\)|\b(e|err|exc|error|ex)\.(message|args)\b|\$\{\s*(e|err|exc|error|ex)\s*\}|String\s*\(\s*(e|err|exc|error|ex)\b/;
+export const RESPONSE =
+  /\b(JSONResponse|HTTPException|PlainTextResponse|HTMLResponse)\s*\(|\bjson\s*\(\s*\{|new Response\s*\(|\bres\.(json|send|end)\s*\(|\breply\.(send|code)\s*\(/;
+export const EXC_TEXT =
+  /\b(str|repr)\s*\(\s*(e|err|exc|error|ex)\b\s*\)|\b(e|err|exc|error|ex)\.(message|args)\b|\$\{\s*(e|err|exc|error|ex)\s*\}|String\s*\(\s*(e|err|exc|error|ex)\b/;
 export const ROOTS = ['app/functions', 'backend', 'infra'];
 export const SKIP = /(^|\/)(node_modules|vendor|\.venv|site-packages|__tests__|tests?|fixtures)\//;
 
@@ -60,13 +62,16 @@ export function judge(findings, allowlist, today) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const files = execFileSync('git', ['ls-files', '-z', '--', ...ROOTS], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\0').filter((p) => /\.(py|js|mjs|ts)$/.test(p) && !SKIP.test(p));
+    .split('\0')
+    .filter((p) => /\.(py|js|mjs|ts)$/.test(p) && !SKIP.test(p));
   const findings = [];
   for (const path of files) for (const f of scan(readFileSync(join(ROOT, path), 'utf8'))) findings.push({ path, ...f });
   const allowlist = JSON.parse(readFileSync(join(ROOT, 'scripts/error-text-allowlist.json'), 'utf8')).entries;
   const failures = judge(findings, allowlist, new Date().toISOString().slice(0, 10));
   if (failures.length) {
-    console.error(`error-text-guard: ${failures.length} response(s) carry raw exception text (give the person a code and a ref; log the text under the ref):\n  ${failures.join('\n  ')}`);
+    console.error(
+      `error-text-guard: ${failures.length} response(s) carry raw exception text (give the person a code and a ref; log the text under the ref):\n  ${failures.join('\n  ')}`
+    );
     process.exit(1);
   }
   console.log(`error-text-guard: OK — ${files.length} server files, no response carries raw exception text (${findings.length} allowlisted).`);

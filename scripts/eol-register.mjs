@@ -38,7 +38,10 @@ export function judge({ register, pins, today }) {
   for (const r of lines) {
     const past = r.eol && r.eol <= today;
     if (r.pinned && past) failures.push(`${r.product} ${r.cycle} is pinned (${r.where}) and reached end of life on ${r.eol}`);
-    if (r.pinned && r.eol && !past && r.eol <= horizon) warnings.push(`${r.product} ${r.cycle} reaches end of life on ${r.eol} — within ${register.warnDays || 120} days; plan the move${r.next ? ` (${r.next})` : ''}`);
+    if (r.pinned && r.eol && !past && r.eol <= horizon)
+      warnings.push(
+        `${r.product} ${r.cycle} reaches end of life on ${r.eol} — within ${register.warnDays || 120} days; plan the move${r.next ? ` (${r.next})` : ''}`
+      );
     if (past && !r.pinned && r.status === 'retired-from-use') {
       if (!r.why || !r.reReview) failures.push(`${r.product} ${r.cycle} is retired-from-use without a why and a reReview`);
       else if (r.reReview <= today) failures.push(`${r.product} ${r.cycle} passed its re-review date ${r.reReview}`);
@@ -47,8 +50,10 @@ export function judge({ register, pins, today }) {
   const seen = new Set();
   for (const p of pins) {
     const key = `${p.product} ${p.cycle}`;
-    if (seen.has(key)) continue; seen.add(key);
-    if (!lines.some((r) => r.product === p.product && String(r.cycle) === String(p.cycle))) failures.push(`${key} is pinned in the repo but has no line in ${REGISTER}`);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!lines.some((r) => r.product === p.product && String(r.cycle) === String(p.cycle)))
+      failures.push(`${key} is pinned in the repo but has no line in ${REGISTER}`);
   }
   return { failures, warnings };
 }
@@ -65,6 +70,11 @@ if (isMain) {
   const pins = files.flatMap((f) => pinsIn(readFileSync(join(ROOT, f), 'utf8')));
   const { failures, warnings } = judge({ register, pins, today: new Date().toISOString().slice(0, 10) });
   for (const w of warnings) console.log(`::warning::${w}`);
-  if (failures.length) { console.error(`eol-register: ${failures.length} finding(s):\n  ${failures.join('\n  ')}`); process.exit(1); }
-  console.log(`eol-register: OK — ${register.runtimes.filter((r) => r.pinned).length} pinned runtimes with a date or a stated none, ${pins.length} pins read from ${files.length} files, dates from ${register.source.name} @ ${register.source.commit.slice(0, 7)}.`);
+  if (failures.length) {
+    console.error(`eol-register: ${failures.length} finding(s):\n  ${failures.join('\n  ')}`);
+    process.exit(1);
+  }
+  console.log(
+    `eol-register: OK — ${register.runtimes.filter((r) => r.pinned).length} pinned runtimes with a date or a stated none, ${pins.length} pins read from ${files.length} files, dates from ${register.source.name} @ ${register.source.commit.slice(0, 7)}.`
+  );
 }

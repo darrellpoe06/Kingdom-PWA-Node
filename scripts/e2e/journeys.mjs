@@ -30,27 +30,57 @@ export const FAMILIES = ['top', 'church', 'books', 'create'];
 
 export const JOURNEYS = Object.freeze([
   // ── the built app, no database (scripts/e2e/app-journeys.mjs) ────────────
-  { id: 'lesson-link-lands',  runner: 'app-journeys', family: 'church', status: 'active',
-    what: 'a shared lesson link opens ON the lesson, never on the Worship tab (the 2026-08-13 miss, now on every push)' },
-  { id: 'learn-by-taps',      runner: 'app-journeys', family: 'church', status: 'active',
-    what: 'from the Church door a reader taps Learn, taps a course, taps its first lesson, and the lesson opens' },
-  { id: 'top-tabs-by-taps',   runner: 'app-journeys', family: 'top',    status: 'active',
-    what: 'the dock tabs each open their own surface when tapped, and the dock says which is current' },
-  { id: 'money-tabs-by-taps', runner: 'app-journeys', family: 'books',  status: 'active',
-    what: 'the money sections each open when tapped from the dock' },
-  { id: 'create-takes-words', runner: 'app-journeys', family: 'create', status: 'active',
-    what: 'the Create station accepts typed words in the one-voice input and arms Send' },
-  { id: 'feedback-sheet-opens', runner: 'app-journeys', family: 'top', status: 'active',
-    what: 'the dock\'s Feedback control opens a sheet that takes words' },
+  {
+    id: 'lesson-link-lands',
+    runner: 'app-journeys',
+    family: 'church',
+    status: 'active',
+    what: 'a shared lesson link opens ON the lesson, never on the Worship tab (the 2026-08-13 miss, now on every push)',
+  },
+  {
+    id: 'learn-by-taps',
+    runner: 'app-journeys',
+    family: 'church',
+    status: 'active',
+    what: 'from the Church door a reader taps Learn, taps a course, taps its first lesson, and the lesson opens',
+  },
+  {
+    id: 'top-tabs-by-taps',
+    runner: 'app-journeys',
+    family: 'top',
+    status: 'active',
+    what: 'the dock tabs each open their own surface when tapped, and the dock says which is current',
+  },
+  { id: 'money-tabs-by-taps', runner: 'app-journeys', family: 'books', status: 'active', what: 'the money sections each open when tapped from the dock' },
+  {
+    id: 'create-takes-words',
+    runner: 'app-journeys',
+    family: 'create',
+    status: 'active',
+    what: 'the Create station accepts typed words in the one-voice input and arms Send',
+  },
+  { id: 'feedback-sheet-opens', runner: 'app-journeys', family: 'top', status: 'active', what: "the dock's Feedback control opens a sheet that takes words" },
 
   // ── the real schema (scripts/e2e/door-journeys.mjs, DR-0934) ─────────────
-  { id: 'door-journeys',      runner: 'door-journeys', family: 'top', module: 'properties', status: 'active',
-    what: 'a stranger books two nights, the family confirms and records money, the next guest finds the nights dark, pictures and the public wall (A1..W1, L1)' },
+  {
+    id: 'door-journeys',
+    runner: 'door-journeys',
+    family: 'top',
+    module: 'properties',
+    status: 'active',
+    what: 'a stranger books two nights, the family confirms and records money, the next guest finds the nights dark, pictures and the public wall (A1..W1, L1)',
+  },
 
   // ── deferred, with the date that fires (DR-0075) ─────────────────────────
-  { id: 'office-assistant-answers', runner: 'app-journeys', family: 'top', module: 'office-assistant', status: 'deferred',
+  {
+    id: 'office-assistant-answers',
+    runner: 'app-journeys',
+    family: 'top',
+    module: 'office-assistant',
+    status: 'deferred',
     why: 'the TLC Assistant mounts only for a family or business-tier sign-in; the dist-only runner walks signed out, and the signed-in stand-in (a minted JWT, as door-journeys does) is the next increment of the app runner',
-    reReview: '2026-11-19' },
+    reReview: '2026-11-19',
+  },
 ]);
 
 export const RUNNERS = Object.freeze(['app-journeys', 'door-journeys']);

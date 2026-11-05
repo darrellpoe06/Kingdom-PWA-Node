@@ -9,3 +9,4 @@ youtube-transcript-api==1.2.5
 psycopg2-binary==2.9.13
 faster-whisper==1.2.1
 pillow==13.0.0
+ruff==0.17.3

@@ -70,9 +70,14 @@ export function workflowRealPassword(line) {
 export function envLiteral(line) {
   const m = line.match(/^\s*(?:export\s+)?([A-Z0-9_]*(PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)[A-Z0-9_]*)\s*[:=]\s*['"]?([^'"\s#]{8,})['"]?\s*$/);
   if (!m) return null;
+  const key = m[1];
   const value = m[3];
   if (/^\$\{?[A-Z0-9_]+/.test(value)) return null; // ${VAR:-} or $VAR — read from the environment, as the compose files do
   if (FAKE.test(value)) return null;
+  // A key that NAMES where a secret-ish thing lives is not the thing: a URI,
+  // a path, a flag, a header name (GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI
+  // tripped this on 2026-11-05); and a value that is a locator, not a value.
+  if (/_(URI|URL|PATH|FILE|ENABLED|HEADER|NAME|HOOK)$/.test(key) || /^[a-z][a-z0-9+.-]*:\/\//.test(value)) return null;
   return 'env-literal';
 }
 
@@ -89,8 +94,14 @@ export function scan(path, text) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     for (const r of RULES) if (r.re.test(line)) out.push({ rule: r.id, line: i + 1 });
-    if (isWorkflow) { const w = workflowRealPassword(line); if (w) out.push({ rule: w, line: i + 1 }); }
-    if (isEnv || isCompose) { const e = envLiteral(line); if (e) out.push({ rule: e, line: i + 1 }); }
+    if (isWorkflow) {
+      const w = workflowRealPassword(line);
+      if (w) out.push({ rule: w, line: i + 1 });
+    }
+    if (isEnv || isCompose) {
+      const e = envLiteral(line);
+      if (e) out.push({ rule: e, line: i + 1 });
+    }
   }
   return out;
 }
@@ -118,12 +129,20 @@ export function judge(findings, allowlist, today) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const started = Date.now();
-  const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\0').filter(Boolean).filter(scannable);
+  const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\0')
+    .filter(Boolean)
+    .filter(scannable);
   const findings = [];
   let scanned = 0;
   for (const path of files) {
     const abs = join(ROOT, path);
-    let st; try { st = statSync(abs); } catch { continue; }
+    let st;
+    try {
+      st = statSync(abs);
+    } catch {
+      continue;
+    }
     if (!st.isFile() || st.size > 4 * 1024 * 1024) continue;
     const buf = readFileSync(abs);
     if (buf.includes(0)) continue; // binary
@@ -136,5 +155,7 @@ if (isMain) {
     console.error(`secret-scan-guard: ${failures.length} finding(s) in ${scanned} files:\n  ${failures.join('\n  ')}`);
     process.exit(1);
   }
-  console.log(`secret-scan-guard: OK — ${scanned} tracked text files, ${RULES.length + 2} rules, ${findings.length} allowlisted fixture(s), ${Date.now() - started} ms.`);
+  console.log(
+    `secret-scan-guard: OK — ${scanned} tracked text files, ${RULES.length + 2} rules, ${findings.length} allowlisted fixture(s), ${Date.now() - started} ms.`
+  );
 }

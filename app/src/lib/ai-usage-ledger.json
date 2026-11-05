@@ -237,6 +237,40 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 4,
       "notes": "Shared window with D11; the feed was unreachable, the source repository was cloned instead."
+    },
+    {
+      "id": "d13-clean-workflows",
+      "date": "2026-11-05",
+      "task": "Shared probe harness, two callers, workflow register with brake counts in Admin, YAML ceiling",
+      "drs": [
+        "DR-1342"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.45,
+      "estimateWithoutAiHours": 10,
+      "notes": "7b58a63 push to this push."
+    },
+    {
+      "id": "d10-format-ratchet",
+      "date": "2026-11-05",
+      "task": "Prettier and ruff as a ratchet on files added since main; 28 of this session's files formatted",
+      "drs": [
+        "DR-1343"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": "Shared window with D13's push."
     }
   ]
 }

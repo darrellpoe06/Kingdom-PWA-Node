@@ -50,7 +50,9 @@ describe('journey-coverage-guard: proven to catch', () => {
   });
   it('fails an unknown runner and an app journey the runner does not define', () => {
     expect(check({ ...base, journeys: [...base.journeys, { id: 'z', runner: 'nope', family: 'top', status: 'active' }] })[0]).toMatch(/unknown runner 'nope'/);
-    expect(check({ ...base, journeys: [...base.journeys, { id: 'ghost', runner: 'app-journeys', family: 'top', status: 'active' }] })[0]).toMatch(/does not define it/);
+    expect(check({ ...base, journeys: [...base.journeys, { id: 'ghost', runner: 'app-journeys', family: 'top', status: 'active' }] })[0]).toMatch(
+      /does not define it/
+    );
   });
 });
 
@@ -62,8 +64,12 @@ describe('journey-coverage-guard: the real repo', () => {
   });
   it('is covered today, with every deferral dated in the future of this record', () => {
     const findings = check({
-      journeys: JOURNEYS, families: familiesIn(SURFACES), modules: modulesIn(join(ROOT, 'app/src/modules')),
-      runners: RUNNERS, appJourneyIds: JOURNEY_IDS, today: '2026-11-05',
+      journeys: JOURNEYS,
+      families: familiesIn(SURFACES),
+      modules: modulesIn(join(ROOT, 'app/src/modules')),
+      runners: RUNNERS,
+      appJourneyIds: JOURNEY_IDS,
+      today: '2026-11-05',
     });
     expect(findings).toEqual([]);
   });

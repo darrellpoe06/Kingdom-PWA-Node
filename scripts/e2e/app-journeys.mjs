@@ -38,7 +38,12 @@ export const LESSON_LINK_COURSE = 'Made in Time';
 export function parseArgs(argv) {
   const a = { dist: null, only: null, breakKind: '' };
   for (const x of argv) {
-    if (x.startsWith('--only=')) a.only = x.slice(7).split(',').map((s) => s.trim()).filter(Boolean);
+    if (x.startsWith('--only='))
+      a.only = x
+        .slice(7)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
     else if (x.startsWith('--break=')) a.breakKind = x.slice(8);
     else if (!x.startsWith('--')) a.dist = x;
   }
@@ -85,8 +90,12 @@ const JOURNEY_DEFS = {
       const still = await page.locator(`[data-testid="${id}"]`).count();
       const current = await page.locator(`[data-testid="${id}"][aria-current="page"]`).count();
       if (still && !current) throw new Error(`after tapping ${id} the dock does not mark it current`);
-      last = now; walked += 1;
-      if (!still) { await t.open(page, '?view=about'); last = await t.main(page); }
+      last = now;
+      walked += 1;
+      if (!still) {
+        await t.open(page, '?view=about');
+        last = await t.main(page);
+      }
     }
     if (walked < 3) throw new Error(`walked only ${walked} tabs`);
   },
@@ -105,7 +114,8 @@ const JOURNEY_DEFS = {
       const now = await t.main(page);
       if (now === last) throw new Error(`tapping ${id} changed nothing on the page`);
       if (t.boundary(now)) throw new Error(`${id} rendered an error boundary`);
-      last = now; walked += 1;
+      last = now;
+      walked += 1;
     }
     if (walked < 1) throw new Error('no money section other than the open one could be tapped');
   },
@@ -140,19 +150,46 @@ if (isMain) {
   const args = parseArgs(process.argv.slice(2));
   const DIST = args.dist || fileURLToPath(new URL('../../app/dist', import.meta.url));
   const BUDGET_MS = Number(process.env.JOURNEYS_BUDGET_MS || 300000);
-  if (!existsSync(join(DIST, 'index.html'))) { console.error(`app-journeys: no index.html in ${DIST} — build the app first`); process.exit(2); }
-  if (args.breakKind && !['link', 'taps'].includes(args.breakKind)) { console.error(`app-journeys: unknown --break=${args.breakKind}`); process.exit(2); }
+  if (!existsSync(join(DIST, 'index.html'))) {
+    console.error(`app-journeys: no index.html in ${DIST} — build the app first`);
+    process.exit(2);
+  }
+  if (args.breakKind && !['link', 'taps'].includes(args.breakKind)) {
+    console.error(`app-journeys: unknown --break=${args.breakKind}`);
+    process.exit(2);
+  }
   const ids = args.only ? JOURNEY_IDS.filter((id) => args.only.includes(id)) : JOURNEY_IDS;
-  if (args.only && ids.length !== args.only.length) { console.error(`app-journeys: --only names a journey that does not exist (${args.only.join(',')})`); process.exit(2); }
+  if (args.only && ids.length !== args.only.length) {
+    console.error(`app-journeys: --only names a journey that does not exist (${args.only.join(',')})`);
+    process.exit(2);
+  }
 
-  const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png' };
+  const MIME = {
+    '.html': 'text/html',
+    '.js': 'text/javascript',
+    '.mjs': 'text/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.svg': 'image/svg+xml',
+    '.webmanifest': 'application/manifest+json',
+    '.woff2': 'font/woff2',
+    '.png': 'image/png',
+  };
   const server = createServer((req, res) => {
     let path = (req.url || '/').split('?')[0];
-    if (path.startsWith('/voice/') || path.startsWith('/voice-lite/') || path.startsWith('/sb/') || path.startsWith('/n8n/')) { res.writeHead(404); res.end(); return; }
+    if (path.startsWith('/voice/') || path.startsWith('/voice-lite/') || path.startsWith('/sb/') || path.startsWith('/n8n/')) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     if (path.startsWith(BASE)) path = path.slice(BASE.length) || '/';
     if (path === '/') path = '/index.html';
     const file = normalize(join(DIST, path));
-    if (!file.startsWith(normalize(DIST)) || !existsSync(file)) { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(readFileSync(join(DIST, 'index.html'))); return; }
+    if (!file.startsWith(normalize(DIST)) || !existsSync(file)) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(readFileSync(join(DIST, 'index.html')));
+      return;
+    }
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
     res.end(readFileSync(file));
   });
@@ -160,9 +197,15 @@ if (isMain) {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : { channel: 'chrome' };
   let browser;
-  try { browser = await chromium.launch(launchOpts); }
-  catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
-  const killer = setTimeout(() => { console.error('app-journeys: over budget'); process.exit(1); }, BUDGET_MS);
+  try {
+    browser = await chromium.launch(launchOpts);
+  } catch {
+    browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  }
+  const killer = setTimeout(() => {
+    console.error('app-journeys: over budget');
+    process.exit(1);
+  }, BUDGET_MS);
 
   const QUIET = new Date('2026-09-29T10:00:00-05:00').getTime();
   const BOUNDARY = /hit an error|something went wrong on this screen/i;
@@ -179,9 +222,13 @@ if (isMain) {
     },
     async tap(page, selector, what) {
       const el = page.locator(selector).first();
-      await el.waitFor({ timeout: 15000 }).catch(() => { throw new Error(`${what} is not on the page (${selector})`); });
+      await el.waitFor({ timeout: 15000 }).catch(() => {
+        throw new Error(`${what} is not on the page (${selector})`);
+      });
       if (process.env.JOURNEYS_DEBUG) console.log(`debug    tap ${what}: "${(await el.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 80)}"`);
-      await el.click({ timeout: 5000 }).catch((e) => { throw new Error(`${what} could not be tapped: ${String(e.message).split('\n')[0]}`); });
+      await el.click({ timeout: 5000 }).catch((e) => {
+        throw new Error(`${what} could not be tapped: ${String(e.message).split('\n')[0]}`);
+      });
       await t.settle(page);
       if (process.env.JOURNEYS_DEBUG) console.log(`debug    after ${what}: ${(await t.main(page)).slice(0, 300)}`);
     },
@@ -199,15 +246,30 @@ if (isMain) {
       const context = await browser.newContext({ viewport: { width: 412, height: 915 }, timezoneId: 'America/Chicago', serviceWorkers: 'block' });
       const page = await context.newPage();
       await page.addInitScript((target) => {
-        const RealDate = Date; const off = target - RealDate.now();
-        class PinnedDate extends RealDate { constructor(...a) { if (a.length === 0) super(RealDate.now() + off); else super(...a); } static now() { return RealDate.now() + off; } }
+        const RealDate = Date;
+        const off = target - RealDate.now();
+        class PinnedDate extends RealDate {
+          constructor(...a) {
+            if (a.length === 0) super(RealDate.now() + off);
+            else super(...a);
+          }
+          static now() {
+            return RealDate.now() + off;
+          }
+        }
         globalThis.Date = new Proxy(PinnedDate, { apply: () => new PinnedDate().toString() });
         // A returning device: the landing seen, the tour seen, and a household
         // profile already picked (the shell boots currentProfile from this key
         // on a trusted host). Without it the "Who's using this device?" picker
         // sits over every tap — measured on the first run: 5 of 6 journeys
         // tapped the picker's backdrop instead of the app.
-        try { localStorage.setItem('poe-landing-seen', '1'); localStorage.setItem('poetech.help.tour.v1', 'seen'); localStorage.setItem('poe-current-profile', 'family'); } catch (_) { /* private mode */ }
+        try {
+          localStorage.setItem('poe-landing-seen', '1');
+          localStorage.setItem('poetech.help.tour.v1', 'seen');
+          localStorage.setItem('poe-current-profile', 'family');
+        } catch (_) {
+          /* private mode */
+        }
       }, QUIET);
       if (args.breakKind === 'taps') {
         await page.addInitScript(() => {
@@ -217,15 +279,20 @@ if (isMain) {
         });
       }
       const seen = [];
-      page.on('console', (m) => { if (m.type() === 'error') seen.push(`[console] ${m.text()}`); });
+      page.on('console', (m) => {
+        if (m.type() === 'error') seen.push(`[console] ${m.text()}`);
+      });
       page.on('pageerror', (e) => seen.push(`[pageerror] ${e.message}`));
       try {
         await JOURNEY_DEFS[id](page, t);
-        results.push([id, 'pass']); console.log(`  ✔ ${id}`);
+        results.push([id, 'pass']);
+        console.log(`  ✔ ${id}`);
       } catch (e) {
         const expected = (args.breakKind === 'link' && id === 'lesson-link-lands') || (args.breakKind === 'taps' && TAP_JOURNEYS.includes(id));
-        if (expected) { caught.push(id); console.log(`  ✔ ${id} FAILED AS PLANTED — ${e.message}`); }
-        else {
+        if (expected) {
+          caught.push(id);
+          console.log(`  ✔ ${id} FAILED AS PLANTED — ${e.message}`);
+        } else {
           results.push([id, 'FAIL', e.message]);
           const text = await t.body(page).catch(() => '(no body)');
           console.log(`  ✘ ${id}\n      ${e.message}\n      url: ${page.url()}\n      page text: ${text.slice(0, 600)}`);
@@ -244,11 +311,22 @@ if (isMain) {
     const expectedIds = args.breakKind === 'link' ? ['lesson-link-lands'] : TAP_JOURNEYS;
     const ran = expectedIds.filter((id) => ids.includes(id));
     const missed = ran.filter((id) => !caught.includes(id));
-    if (missed.length) { console.error(`app-journeys: PLANTED FAULT ${args.breakKind} NOT CAUGHT by ${missed.join(', ')} — a journey that cannot fail is a painted gate (DR-0076 §3)`); process.exit(1); }
-    if (failed.length) { console.error(`app-journeys: the planted fault also failed unrelated journeys: ${failed.map((f) => f[0]).join(', ')}`); process.exit(1); }
+    if (missed.length) {
+      console.error(
+        `app-journeys: PLANTED FAULT ${args.breakKind} NOT CAUGHT by ${missed.join(', ')} — a journey that cannot fail is a painted gate (DR-0076 §3)`
+      );
+      process.exit(1);
+    }
+    if (failed.length) {
+      console.error(`app-journeys: the planted fault also failed unrelated journeys: ${failed.map((f) => f[0]).join(', ')}`);
+      process.exit(1);
+    }
     console.log(`app-journeys: planted fault ${args.breakKind} CAUGHT by ${caught.join(', ')}; ${results.length} other journey(s) unaffected`);
     process.exit(0);
   }
-  if (failed.length) { console.error(`app-journeys: ${failed.length} of ${results.length} journeys FAILED: ${failed.map((f) => f[0]).join(', ')}`); process.exit(1); }
+  if (failed.length) {
+    console.error(`app-journeys: ${failed.length} of ${results.length} journeys FAILED: ${failed.map((f) => f[0]).join(', ')}`);
+    process.exit(1);
+  }
   console.log(`app-journeys: OK — ${results.length} of ${results.length} journeys walked`);
 }

@@ -20,8 +20,12 @@ const moderate = (name) => ({ name, severity: 'moderate', isDirect: false, fixAv
 
 describe('dependency-audit-guard: proven to catch', () => {
   it('passes a prod high that is allowlisted with a why and a future date, and counts a moderate', () => {
-    const r = judge({ prod: report({ xlsx: high('xlsx') }), all: report({ xlsx: high('xlsx'), glob: moderate('glob') }),
-      allowlist: [{ name: 'xlsx', scope: 'prod', why: 'no fix', reReview: '2026-12-05' }], today: '2026-11-05' });
+    const r = judge({
+      prod: report({ xlsx: high('xlsx') }),
+      all: report({ xlsx: high('xlsx'), glob: moderate('glob') }),
+      allowlist: [{ name: 'xlsx', scope: 'prod', why: 'no fix', reReview: '2026-12-05' }],
+      today: '2026-11-05',
+    });
     expect(r.failures).toEqual([]);
     expect(r.counted.join('\n')).toMatch(/dev moderate glob/);
     expect(r.counted.join('\n')).toMatch(/prod high xlsx .* deferred/);
@@ -35,13 +39,23 @@ describe('dependency-audit-guard: proven to catch', () => {
     expect(r.failures[0]).toMatch(/dev critical vitest/);
   });
   it('fails an entry past its date, and one without a why', () => {
-    const late = judge({ prod: report({ xlsx: high('xlsx') }), all: report({ xlsx: high('xlsx') }), allowlist: [{ name: 'xlsx', why: 'x', reReview: '2026-11-01' }], today: '2026-11-05' });
+    const late = judge({
+      prod: report({ xlsx: high('xlsx') }),
+      all: report({ xlsx: high('xlsx') }),
+      allowlist: [{ name: 'xlsx', why: 'x', reReview: '2026-11-01' }],
+      today: '2026-11-05',
+    });
     expect(late.failures[0]).toMatch(/passed its re-review date 2026-11-01/);
     const bare = judge({ prod: report({}), all: report({}), allowlist: [{ name: 'xlsx', reReview: '2026-12-05' }], today: '2026-11-05' });
     expect(bare.failures[0]).toMatch(/no why or no reReview/);
   });
   it('fails an entry whose scope does not match where the finding is', () => {
-    const r = judge({ prod: report({ xlsx: high('xlsx') }), all: report({ xlsx: high('xlsx') }), allowlist: [{ name: 'xlsx', scope: 'dev', why: 'x', reReview: '2026-12-05' }], today: '2026-11-05' });
+    const r = judge({
+      prod: report({ xlsx: high('xlsx') }),
+      all: report({ xlsx: high('xlsx') }),
+      allowlist: [{ name: 'xlsx', scope: 'dev', why: 'x', reReview: '2026-12-05' }],
+      today: '2026-11-05',
+    });
     expect(r.failures[0]).toMatch(/allowlisted as dev, found in prod/);
   });
   it('reads fix availability the way npm reports it', () => {
@@ -51,7 +65,7 @@ describe('dependency-audit-guard: proven to catch', () => {
   it('fails a bare pip install in a workflow and passes the two pinned shapes', () => {
     const wf = {
       'a.yml': '      run: pip install yt-dlp\n',
-      'b.yml': "      run: pip install \"$(grep '^pillow==' infra/requirements-ci.txt)\"\n",
+      'b.yml': '      run: pip install "$(grep \'^pillow==\' infra/requirements-ci.txt)"\n',
       'c.yml': '      run: python3 -m pip install -r infra/requirements-ci.txt\n',
       'd.yml': '      # pip install nothing, a comment\n      run: pip install pip-audit==2.10.1\n',
     };
@@ -73,7 +87,11 @@ describe('dependency-audit-guard: the live allowlist', () => {
   it('every workflow pip install is pinned through infra/requirements-ci.txt', () => {
     const { readdirSync } = require('node:fs');
     const dir = join(ROOT, '.github/workflows');
-    const wf = Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith('.yml')).map((f) => [f, readFileSync(join(dir, f), 'utf8')]));
+    const wf = Object.fromEntries(
+      readdirSync(dir)
+        .filter((f) => f.endsWith('.yml'))
+        .map((f) => [f, readFileSync(join(dir, f), 'utf8')])
+    );
     expect(unpinnedPipInstalls(wf)).toEqual([]);
   });
 });

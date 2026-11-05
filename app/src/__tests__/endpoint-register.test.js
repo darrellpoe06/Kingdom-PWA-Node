@@ -9,7 +9,18 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { routeOf, methodsOf, authClassOf, secretsOf, functionsRegister, nasRegister, tablesRegister, stripSqlComments, build, OUT } from '../../../scripts/endpoint-register.mjs';
+import {
+  routeOf,
+  methodsOf,
+  authClassOf,
+  secretsOf,
+  functionsRegister,
+  nasRegister,
+  tablesRegister,
+  stripSqlComments,
+  build,
+  OUT,
+} from '../../../scripts/endpoint-register.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const LIVE = JSON.parse(readFileSync(join(ROOT, OUT), 'utf8'));
@@ -36,19 +47,36 @@ describe('endpoint-register: the parsers', () => {
     expect(secretsOf('env.STRIPE_SECRET_KEY, env.PUSH_SEND_TOKEN, env.x, env.AB')).toEqual(['PUSH_SEND_TOKEN', 'STRIPE_SECRET_KEY']);
   });
   it('skips the shared _lib and sorts by route', () => {
-    const r = functionsRegister({ 'app/functions/_lib/x.js': 'export const onRequest = 1', 'app/functions/b.js': 'export const onRequest = 1', 'app/functions/a.js': 'export const onRequest = 1' });
+    const r = functionsRegister({
+      'app/functions/_lib/x.js': 'export const onRequest = 1',
+      'app/functions/b.js': 'export const onRequest = 1',
+      'app/functions/a.js': 'export const onRequest = 1',
+    });
     expect(r.map((x) => x.route)).toEqual(['/a', '/b']);
   });
   it('reads FastAPI routes and whether the file gates with a bearer', () => {
-    const r = nasRegister({ 'infra/svc/server.py': '@app.get("/health")\n@app.post("/run")\nif not bearer_ok(h, t):', 'infra/open/server.py': '@app.get("/x")', 'infra/none/server.py': 'print(1)' });
+    const r = nasRegister({
+      'infra/svc/server.py': '@app.get("/health")\n@app.post("/run")\nif not bearer_ok(h, t):',
+      'infra/open/server.py': '@app.get("/x")',
+      'infra/none/server.py': 'print(1)',
+    });
     expect(r).toEqual([
       { path: 'infra/open/server.py', service: 'open', auth: 'open', routes: [{ method: 'GET', route: '/x' }] },
-      { path: 'infra/svc/server.py', service: 'svc', auth: 'bearer', routes: [{ method: 'GET', route: '/health' }, { method: 'POST', route: '/run' }] },
+      {
+        path: 'infra/svc/server.py',
+        service: 'svc',
+        auth: 'bearer',
+        routes: [
+          { method: 'GET', route: '/health' },
+          { method: 'POST', route: '/run' },
+        ],
+      },
     ]);
   });
-  it('reads tables with their wall, ignores prose in comments and a smoke\'s scratch table, and lists the unwalled first', () => {
+  it("reads tables with their wall, ignores prose in comments and a smoke's scratch table, and lists the unwalled first", () => {
     const sql = {
-      'infra/supabase/a.sql': 'CREATE TABLE IF NOT EXISTS public.rentals (id uuid);\n-- CREATE TABLE if the reader wonders: no\nALTER TABLE rentals ENABLE ROW LEVEL SECURITY;\nCREATE POLICY rentals_read ON rentals FOR SELECT USING (true);',
+      'infra/supabase/a.sql':
+        'CREATE TABLE IF NOT EXISTS public.rentals (id uuid);\n-- CREATE TABLE if the reader wonders: no\nALTER TABLE rentals ENABLE ROW LEVEL SECURITY;\nCREATE POLICY rentals_read ON rentals FOR SELECT USING (true);',
       'infra/supabase/b.sql': 'CREATE TABLE role_capabilities (role text);\nCREATE TABLE _smoke_0245_unpublished (x int);',
     };
     expect(stripSqlComments('a -- b\nc /* d */ e')).toBe('a \nc  e');
@@ -68,7 +96,8 @@ describe('endpoint-register: the live file', () => {
     });
     expect(fresh.functions).toEqual(LIVE.functions);
     expect(fresh.nas).toEqual(LIVE.nas);
-    const stale = JSON.parse(JSON.stringify(LIVE)); stale.functions[0].auth = ['open'];
+    const stale = JSON.parse(JSON.stringify(LIVE));
+    stale.functions[0].auth = ['open'];
     expect(stale.functions).not.toEqual(fresh.functions);
   });
   it('carries sane counts and names no prose as a table', () => {

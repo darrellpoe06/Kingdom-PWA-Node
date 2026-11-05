@@ -63,7 +63,10 @@ export function judge({ prod, all, allowlist, today }) {
   for (const f of findingsOf(all)) {
     const scope = prodNames.has(f.name) ? 'prod' : 'dev';
     const line = `${scope} ${f.severity} ${f.name} (${f.direct ? 'direct' : 'transitive'}; fix: ${f.fix})`;
-    if (!FAIL_LEVELS.includes(f.severity)) { counted.push(line); continue; }
+    if (!FAIL_LEVELS.includes(f.severity)) {
+      counted.push(line);
+      continue;
+    }
     const e = byName[f.name];
     if (!e) failures.push(`${line} — not in the allowlist: fix it, or add a dated entry with a why`);
     else if (e.scope && e.scope !== scope) failures.push(`${line} — allowlisted as ${e.scope}, found in ${scope}`);
@@ -91,8 +94,20 @@ export function unpinnedPipInstalls(workflows) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const audit = (args) => {
-    try { return JSON.parse(execFileSync('npm', ['audit', '--json', ...args], { cwd: join(ROOT, 'app'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 })); }
-    catch (e) { const out = e.stdout && String(e.stdout); if (out && out.trim().startsWith('{')) return JSON.parse(out); throw e; }
+    try {
+      return JSON.parse(
+        execFileSync('npm', ['audit', '--json', ...args], {
+          cwd: join(ROOT, 'app'),
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          maxBuffer: 64 * 1024 * 1024,
+        })
+      );
+    } catch (e) {
+      const out = e.stdout && String(e.stdout);
+      if (out && out.trim().startsWith('{')) return JSON.parse(out);
+      throw e;
+    }
   };
   const prod = audit(['--omit=dev']);
   const all = audit([]);
@@ -100,7 +115,11 @@ if (isMain) {
   const today = new Date().toISOString().slice(0, 10);
   const { failures, counted } = judge({ prod, all, allowlist, today });
   const wfDir = join(ROOT, '.github/workflows');
-  const workflows = Object.fromEntries(readdirSync(wfDir).filter((f) => f.endsWith('.yml')).map((f) => [`.github/workflows/${f}`, readFileSync(join(wfDir, f), 'utf8')]));
+  const workflows = Object.fromEntries(
+    readdirSync(wfDir)
+      .filter((f) => f.endsWith('.yml'))
+      .map((f) => [`.github/workflows/${f}`, readFileSync(join(wfDir, f), 'utf8')])
+  );
   for (const u of unpinnedPipInstalls(workflows)) failures.push(`unpinned pip install (pin it through ${REQUIREMENTS}): ${u}`);
   for (const c of counted) console.log(`  counted  ${c}`);
   const meta = (all.metadata && all.metadata.vulnerabilities) || {};
@@ -108,5 +127,7 @@ if (isMain) {
     console.error(`dependency-audit-guard: ${failures.length} finding(s):\n  ${failures.join('\n  ')}`);
     process.exit(1);
   }
-  console.log(`dependency-audit-guard: OK — npm audit ${meta.total || 0} known (${meta.critical || 0} critical, ${meta.high || 0} high, ${meta.moderate || 0} moderate, ${meta.low || 0} low); every high/critical deferred with a date; every workflow pip install pinned through ${REQUIREMENTS}.`);
+  console.log(
+    `dependency-audit-guard: OK — npm audit ${meta.total || 0} known (${meta.critical || 0} critical, ${meta.high || 0} high, ${meta.moderate || 0} moderate, ${meta.low || 0} low); every high/critical deferred with a date; every workflow pip install pinned through ${REQUIREMENTS}.`
+  );
 }

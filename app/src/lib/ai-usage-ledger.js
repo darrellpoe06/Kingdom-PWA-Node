@@ -11,7 +11,15 @@ import LEDGER from './ai-usage-ledger.json';
 import { validateLedger as validate, ledgeredDrs as covered, rollup as roll } from './ai-usage-ledger-rules.js';
 
 export { FIRST_LEDGERED_DR, validateEntry } from './ai-usage-ledger-rules.js';
-export function loadAiUsageLedger() { return LEDGER; }
-export function validateLedger(ledger = LEDGER) { return validate(ledger); }
-export function ledgeredDrs(ledger = LEDGER) { return covered(ledger); }
-export function rollup(ledger = LEDGER) { return roll(ledger); }
+export function loadAiUsageLedger() {
+  return LEDGER;
+}
+export function validateLedger(ledger = LEDGER) {
+  return validate(ledger);
+}
+export function ledgeredDrs(ledger = LEDGER) {
+  return covered(ledger);
+}
+export function rollup(ledger = LEDGER) {
+  return roll(ledger);
+}

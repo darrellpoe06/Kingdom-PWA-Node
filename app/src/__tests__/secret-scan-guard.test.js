@@ -28,7 +28,10 @@ describe('secret-scan-guard: proven to catch', () => {
       'pushover-key': '  - `PUSHOVER_USER_KEY=abcdefghijklmnopqrstuvwxyz0123`',
     };
     for (const [rule, line] of Object.entries(planted)) {
-      expect(scan('infra/x/thing.py', line).map((f) => f.rule), rule).toContain(rule);
+      expect(
+        scan('infra/x/thing.py', line).map((f) => f.rule),
+        rule
+      ).toContain(rule);
     }
     expect(Object.keys(planted).sort()).toEqual(RULES.map((r) => r.id).sort());
   });
@@ -50,8 +53,13 @@ describe('secret-scan-guard: proven to catch', () => {
     expect(envLiteral('      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}')).toBeNull();
     expect(envLiteral('OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}')).toBeNull();
     expect(scan('app/src/lib/thing.js', 'PASSWORD=hunter2hunter2')).toEqual([]); // not an env or compose file
+    // A key that names WHERE the thing lives, and a value that is a locator, are not credentials (the 2026-11-05 false positive).
+    expect(envLiteral('      GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI: pg-functions://postgres/public/auth_password_verification_attempt')).toBeNull();
+    expect(envLiteral('      GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED: "true"')).toBeNull();
+    expect(envLiteral('SECRET_FILE=/run/secrets/db_password')).toBeNull();
+    expect(envLiteral('POSTGRES_PASSWORD=hunter2hunter2')).toBe('env-literal');
   });
-  it('stays quiet on the app\'s token labels', () => {
+  it("stays quiet on the app's token labels", () => {
     expect(scan('app/src/lib/church-devices.js', "  { token: 'llm-inference',    label: 'Local LLM inference', gpuJob: true },")).toEqual([]);
   });
   it('judges: an unallowlisted finding fails, an allowlisted dated one passes, a stale date fails', () => {

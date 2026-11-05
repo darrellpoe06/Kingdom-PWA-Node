@@ -31,14 +31,22 @@ export const FIRST_LEDGERED_DR = 1331;
 
 /** Decision record numbers on disk at or above the first ledgered one. */
 export function recordsOnDisk(dir, first = FIRST_LEDGERED_DR) {
-  return readdirSync(dir).map((f) => f.match(/^DR-(\d{4})-/)).filter(Boolean).map((m) => Number(m[1])).filter((n) => n >= first).sort((a, b) => a - b);
+  return readdirSync(dir)
+    .map((f) => f.match(/^DR-(\d{4})-/))
+    .filter(Boolean)
+    .map((m) => Number(m[1]))
+    .filter((n) => n >= first)
+    .sort((a, b) => a - b);
 }
 
 export function missingLines(recordNumbers, ledgeredDrs) {
   return recordNumbers.filter((n) => !ledgeredDrs.has(`DR-${String(n).padStart(4, '0')}`)).map((n) => `DR-${String(n).padStart(4, '0')}`);
 }
 
-function flag(name, argv) { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : undefined; }
+function flag(name, argv) {
+  const i = argv.indexOf(`--${name}`);
+  return i >= 0 ? argv[i + 1] : undefined;
+}
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
@@ -49,25 +57,42 @@ if (isMain) {
   if (argv.includes('--add')) {
     const num = (v) => (v === undefined ? null : Number(v));
     const entry = {
-      id: flag('id', argv), date: flag('date', argv) || new Date().toISOString().slice(0, 10), task: flag('task', argv),
-      drs: (flag('drs', argv) || '').split(',').map((s) => s.trim()).filter(Boolean),
-      prs: (flag('prs', argv) || '').split(',').map((s) => Number(s.trim())).filter(Boolean),
+      id: flag('id', argv),
+      date: flag('date', argv) || new Date().toISOString().slice(0, 10),
+      task: flag('task', argv),
+      drs: (flag('drs', argv) || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      prs: (flag('prs', argv) || '')
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter(Boolean),
       model: flag('model', argv) || 'claude-fable-5-1',
       tokens: flag('tokens-in', argv) !== undefined ? { in: num(flag('tokens-in', argv)), out: num(flag('tokens-out', argv)) } : null,
       costUsd: flag('usd', argv) !== undefined ? num(flag('usd', argv)) : null,
-      wallClockHours: num(flag('wall', argv)), estimateWithoutAiHours: num(flag('estimate', argv)),
+      wallClockHours: num(flag('wall', argv)),
+      estimateWithoutAiHours: num(flag('estimate', argv)),
       notes: flag('notes', argv) || '',
     };
     const next = { ...ledger, entries: [...ledger.entries, entry] };
     const findings = validateLedger(next);
-    if (findings.length) { console.error(`ai-usage-ledger: the entry is not sound:\n  ${findings.join('\n  ')}`); process.exit(1); }
+    if (findings.length) {
+      console.error(`ai-usage-ledger: the entry is not sound:\n  ${findings.join('\n  ')}`);
+      process.exit(1);
+    }
     writeFileSync(path, JSON.stringify(next, null, 2) + '\n');
-    console.log(`ai-usage-ledger: added ${entry.id} (${entry.drs.join(', ')}; ${entry.wallClockHours} h measured, ${entry.estimateWithoutAiHours} h estimated without AI).`);
+    console.log(
+      `ai-usage-ledger: added ${entry.id} (${entry.drs.join(', ')}; ${entry.wallClockHours} h measured, ${entry.estimateWithoutAiHours} h estimated without AI).`
+    );
     process.exit(0);
   }
   const findings = validateLedger(ledger);
   const missing = missingLines(recordsOnDisk(join(ROOT, 'docs/decisions')), ledgeredDrs(ledger));
   for (const m of missing) findings.push(`${m} landed without a line in ${LEDGER_PATH} — add it with --add (DR-1338)`);
-  if (findings.length) { console.error(`ai-usage-ledger: ${findings.length} finding(s):\n  ${findings.join('\n  ')}`); process.exit(1); }
+  if (findings.length) {
+    console.error(`ai-usage-ledger: ${findings.length} finding(s):\n  ${findings.join('\n  ')}`);
+    process.exit(1);
+  }
   console.log(`ai-usage-ledger: OK — ${ledger.entries.length} tasks ledgered, every record from DR-${FIRST_LEDGERED_DR} on has its line.`);
 }

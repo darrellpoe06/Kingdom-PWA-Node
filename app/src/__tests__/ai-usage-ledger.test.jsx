@@ -17,7 +17,19 @@ import AiUsageReport from '../components/AiUsageReport.jsx';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
-const ok = { id: 'x', date: '2026-11-05', task: 't', drs: ['DR-1339'], prs: [1], model: 'claude-fable-5-1', tokens: null, costUsd: null, wallClockHours: 0.5, estimateWithoutAiHours: 8, notes: '' };
+const ok = {
+  id: 'x',
+  date: '2026-11-05',
+  task: 't',
+  drs: ['DR-1339'],
+  prs: [1],
+  model: 'claude-fable-5-1',
+  tokens: null,
+  costUsd: null,
+  wallClockHours: 0.5,
+  estimateWithoutAiHours: 8,
+  notes: '',
+};
 const ledger = (entries, sessions = []) => ({ models: { 'claude-fable-5-1': {} }, sessions, entries });
 
 describe('ai-usage-ledger: proven to catch', () => {
@@ -44,8 +56,13 @@ describe('ai-usage-ledger: proven to catch', () => {
   });
   it('rolls up wall clock, the estimate, the ratio and the unmetered count', () => {
     const r = rollup(ledger([ok, { ...ok, id: 'y', wallClockHours: 0.5, estimateWithoutAiHours: 8, tokens: { in: 1000, out: 500 }, costUsd: 0.02 }]));
-    expect(r.tasks).toBe(2); expect(r.wallClockHours).toBe(1); expect(r.estimateWithoutAiHours).toBe(16); expect(r.ratio).toBe(16);
-    expect(r.meteredTasks).toBe(1); expect(r.unmeteredTasks).toBe(1); expect(r.meteredUsd).toBe(0.02);
+    expect(r.tasks).toBe(2);
+    expect(r.wallClockHours).toBe(1);
+    expect(r.estimateWithoutAiHours).toBe(16);
+    expect(r.ratio).toBe(16);
+    expect(r.meteredTasks).toBe(1);
+    expect(r.unmeteredTasks).toBe(1);
+    expect(r.meteredUsd).toBe(0.02);
   });
 });
 
@@ -58,14 +75,23 @@ describe('ai-usage-ledger: the live ledger', () => {
 });
 
 describe('AiUsageReport', () => {
-  afterEach(() => { document.body.innerHTML = ''; });
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
   async function mount(el) {
-    const c = document.createElement('div'); document.body.appendChild(c);
-    await act(async () => { createRoot(c).render(el); });
+    const c = document.createElement('div');
+    document.body.appendChild(c);
+    await act(async () => {
+      createRoot(c).render(el);
+    });
     return c;
   }
   it('says "not metered" where no meter exists, never a free-looking zero', async () => {
-    const c = await mount(createElement(AiUsageReport, { ledger: ledger([ok], [{ id: 's', tokensBudgetAtStart: 100, tokensBudgetAtRead: 60, sessionTokensObserved: 40, tasks: ['x'] }]) }));
+    const c = await mount(
+      createElement(AiUsageReport, {
+        ledger: ledger([ok], [{ id: 's', tokensBudgetAtStart: 100, tokensBudgetAtRead: 60, sessionTokensObserved: 40, tasks: ['x'] }]),
+      })
+    );
     expect(c.querySelector('[data-testid="ai-cost"]').textContent).toContain('not metered');
     expect(c.querySelector('[data-testid="ai-cost"]').textContent).toContain('40 session tokens');
     expect(c.querySelector('[data-testid="ai-usage-table"]').textContent).toContain('not metered');

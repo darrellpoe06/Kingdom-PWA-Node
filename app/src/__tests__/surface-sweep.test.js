@@ -58,7 +58,12 @@ describe('surface-sweep: the registry is the list', () => {
 
 describe('surface-sweep: the judge', () => {
   const overview = 'Big Picture welcome card and the rest of the overview text goes here for the fingerprint';
-  const ok = { pageErrors: [], bodyText: 'PoeTech Rentals board with its doors', mainText: 'Rentals board with its doors and their rent, all forty characters wide', overviewMainText: overview };
+  const ok = {
+    pageErrors: [],
+    bodyText: 'PoeTech Rentals board with its doors',
+    mainText: 'Rentals board with its doors and their rent, all forty characters wide',
+    overviewMainText: overview,
+  };
 
   it('passes a surface that opened', () => {
     expect(judge(ok, '?view=rentals@390px')).toEqual([]);
