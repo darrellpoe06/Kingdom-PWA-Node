@@ -79,7 +79,7 @@ The first test run returned **ten failures**, and every one was a real finding:
 
 ### The library ratchet was run BEFORE the push, not after CI went red
 
-`censusLesson` from `app/src/lib/library-census.js` on the mounted catalog reports **`whole: true`, `missingComponents: []`, `missingVersions: []`, `adultWords: 3581`, `short: false`** — so `lesson`, `anchor`, `bigIdea`, `quiz` (**15** questions), `benefits` (**15**), `talkingPoints` (**15**), `howToRun` and `inApp` are all present, which is the exact set ll274 shipped short of. **The baseline was NOT re-frozen**; the components were written. Living Lessons now holds **273 modules** (the catalog mounts 273 with this lesson in place).
+`censusLesson` from `app/src/lib/library-census.js` on the mounted catalog reports **`whole: true`, `missingComponents: []`, `missingVersions: []`, `adultWords: 3581`, `short: false`** — so `lesson`, `anchor`, `bigIdea`, `quiz` (**15** questions), `benefits` (**15**), `talkingPoints` (**15**), `howToRun` and `inApp` are all present, which is the exact set ll274 shipped short of. **The baseline was NOT re-frozen**; the components were written. Living Lessons holds **275 modules** on the merged tree (273 at the first build, before main's ll276 and ll277 arrived).
 
 ### DR-0100's three tiers, held apart and asserted by name
 
@@ -124,7 +124,7 @@ A **second road** was attempted on the publisher and refused in its own words: `
 
 ## Impact
 
-**Living Lessons gains L278 and the course now holds 273 modules.** A teaching Darrell sent on **2026-10-20** sat for **16 days** and is now built. The placement was measured rather than assumed: the material is a general business digest, and **DR-0863 set the precedent for this exact publication** by building its Daily Upside forward as a Living Lessons lesson rather than as a tenth lesson of a nine-week Business Research course. The lane is devotional/general → Living Lessons; the id is contiguous because `origin/main` held ll1..ll275 with none in flight above 275.
+**Living Lessons gains L278 and the course now holds 275 modules** (273 at the first build; 275 after merging main, which brought ll276 and ll277 in). A teaching Darrell sent on **2026-10-20** sat for **16 days** and is now built. The placement was measured rather than assumed: the material is a general business digest, and **DR-0863 set the precedent for this exact publication** by building its Daily Upside forward as a Living Lessons lesson rather than as a tenth lesson of a nine-week Business Research course. The lane is devotional/general → Living Lessons; the id is contiguous because `origin/main` held ll1..ll275 with none in flight above 275.
 
 **The reader gains something a church rarely hands anybody: permission to be paid, and a procedure for being honest about it.** The lesson's own action is one sentence a reader can say this week — *before* doing a good thing for somebody, say out loud what you get from it, then do it anyway — and it is the exact reverse of the instinct the register teaches. The senior band adds the one move the others cannot: if an old deal is still sitting unsaid, **the gate is still open; it is late and it still counts.**
 
