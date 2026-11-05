@@ -14,8 +14,8 @@
 //             that lands without its line fails the guards leg.
 //   --add     appends an entry from flags, so a session records its own
 //             delivery in one command:
-//             node scripts/ai-usage-ledger.mjs --add --id d9-bloat --date 2026-11-05 \
-//               --task "..." --drs DR-1339 --prs 2553 --model claude-fable-5-1 \
+//             node scripts/ai-usage-ledger.mjs --add --id <task-id> --date YYYY-MM-DD \
+//               --task "..." --drs <the record's id> --prs <pr number> --model claude-fable-5-1 \
 //               --wall 0.3 --estimate 8 [--tokens-in N --tokens-out N --usd X] [--notes "..."]
 //
 // Tokens and dollars stay null where no meter exposes them; the validator
