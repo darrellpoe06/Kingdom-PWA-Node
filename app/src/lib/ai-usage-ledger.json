@@ -344,6 +344,23 @@
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
     },
     {
+      "id": "subprocess-budget-tie-and-its-gate",
+      "date": "2026-11-05",
+      "task": "The subprocess budget tie: fixed in three cases across two test files, gated repo-wide, and the gate's own blind spot closed",
+      "drs": [
+        "DR-1348"
+      ],
+      "prs": [
+        2557
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 6,
+      "notes": "Measured first commit 18:52:48Z to the rename commit 19:44:28Z on claude/youthful-fermi-16yfq3; the diagnosis was handed to the session already measured, so the reading covers the fix, the gate, its proof suite and three base merges, not the root-cause work. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for finding two further latent ties by hand, writing a static-analysis guard with a proof suite, and paying two renumbers."
+    },
+    {
       "id": "pm14-whose-measure-the-benchmark-the-census-and-the-kpis",
       "date": "2026-11-05",
       "task": "Lesson pm14: whose measure — the benchmark, the census, and the KPIs the Word already gave us",
