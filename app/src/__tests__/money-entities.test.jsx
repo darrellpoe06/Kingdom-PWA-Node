@@ -119,12 +119,19 @@ describe('Safe to Spend per entity — the cash is counted where it leaves', () 
     w.recurringObligations.push(bill('unk', { name: 'Unknown payee', amount: 75 })); // no entity, no account
     w.recurringObligations.push(bill('tlc-rent', { name: 'Office rent', amount: 900, entityId: 'e-tlc', tlcKind: 'operating', accountId: 'tlc-chk' }));
     const all = buildSafeToSpend(w, opts('consolidated'));
-    const items = all.windows.next14.items;
-    expect(items.find((i) => i.label === 'Unknown payee')).toMatchObject({ entityId: null, scopeId: 'e-personal' });
-    expect(items.find((i) => i.label === 'Office rent')).toMatchObject({ scopeId: 'e-tlc' });
-    expect(all.windows.next14.total).toBe(975);
+    // The bill list (Money → Bills) carries every entity's bills, tagged.
+    expect(all.items.find((i) => i.label === 'Unknown payee')).toMatchObject({ entityId: null });
+    expect(all.items.find((i) => i.label === 'Office rent')).toBeTruthy();
     expect(all.byEntity.map((r) => r.scope.id).sort()).toEqual(['e-personal', 'e-poeprops', 'e-tlc']);
-    expect(all.balanceSources).toHaveLength(3);
+    // The due/overdue panel under the headline is Personal's, so it agrees with
+    // the headline; TLC's office rent sits in TLC's own row.
+    const row = (id) => all.byEntity.find((r) => r.scope.id === id);
+    expect(all.windows.next14.items.find((i) => i.label === 'Unknown payee')).toBeTruthy();
+    expect(all.windows.next14.items.some((i) => i.label === 'Office rent')).toBe(false);
+    expect(all.windows.next14.total).toBe(row('e-personal').windows.next14.total);
+    expect(row('e-tlc').windows.next14.items.find((i) => i.label === 'Office rent')).toBeTruthy();
+    expect(all.windows.next14.total + row('e-tlc').windows.next14.total + row('e-poeprops').windows.next14.total).toBe(975);
+    expect(all.balanceSources).toEqual(row('e-personal').balanceSources);
   });
 });
 
@@ -196,7 +203,7 @@ describe('the Bills Review screen shows the label on every bill and filters by e
     const table = el.querySelector('[data-testid="coming-up-entities"]');
     expect(table.textContent).toMatch(/never counted as personal spending money/);
     expect(el.querySelector('[data-testid="coming-up-entity-e-tlc"]').textContent).toMatch(/💼 TLC THERAPY\$4000\.00\$1200\.00/);
-    expect(el.querySelector('[data-testid="coming-up-reserve-editor"]')).toBeNull(); // set per entity, not on the total
+    expect(el.querySelector('[data-testid="coming-up-reserve-editor"]')).toBeNull(); // no save handler given here; the All entities editor sets the Personal reserve (money-personal-reserve.test.jsx)
     act(() => root.unmount()); host.remove();
     const onSaveReserve = vi.fn();
     const tlc = buildSafeToSpend(w, opts('e-tlc'));
