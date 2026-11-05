@@ -471,4 +471,12 @@ export const LIVING_LESSONS_ADDED = {
   // across UTC midnight; the day recorded is the day its commit lands, not the
   // day the writing started.
   'll274-whose-silver-whose-name': '2026-11-05',
+  // L275 came out of the same lane: a 1440 Daily Digest Darrell forwarded on
+  // 2026-10-20 with one word above it, Lessons. Its three lead items were all
+  // refused as already-built ground, and the lesson is built on a one-line
+  // clickbait link near the foot of the mail about timekeepers deciding to stop
+  // making a small correction and let the error gather instead. Sent 2026-10-20,
+  // BUILT 2026-11-05: this is the build day, the day the id landed, not the day
+  // it was sent, and the row waited 16 days (DR-1315).
+  'll275-peace-and-truth-in-my-days': '2026-11-05',
 };

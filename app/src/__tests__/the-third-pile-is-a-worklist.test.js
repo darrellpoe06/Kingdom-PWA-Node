@@ -605,10 +605,31 @@ const REPO = join(HERE, '..', '..', '..');
 // this end verified" clause in all five reader texts with an accurate one and
 // lower the pin.
 //
+// 22 -> 23 on 2026-11-05 (DR-1315). ll275 is the next lesson out of the same
+// Gmail-lesson-intake lane, built from a 1440 Daily Digest forwarded
+// 2026-10-20. Its source is a ONE-LINE clickbait link near the foot of the mail
+// pointing at a newspaper's science page, and the newspaper's own page refused
+// this session twice: curl returned `curl: (56) CONNECT tunnel failed, response
+// 403` and the fetch tool returned `Claude Code is unable to fetch from
+// www.theguardian.com`. An independent web search found several outlets
+// agreeing on the core decision, which the lesson states as FACT, and
+// disagreeing with each other on every count of years, which the lesson
+// therefore states as open -- so NO reader text carries a figure at all, and a
+// 0-figure row in lesson-sources.json is forbidden (DR-0076 section 3). The gap
+// row is the honest placement; ll275 belongs HERE, not among the checked.
+// re-review: 2026-12-04 -- from a runner with web access, or once
+// www.theguardian.com is allowed in the session's network settings, open the
+// article and the resolution it reports. If either carries a germane figure
+// this lesson should teach, teach it, give ll275 a row and lower this pin to
+// 22; if neither does, replace the "we did not read" clauses in all five reader
+// texts with an accurate one and lower the pin.
+//
 // MEASURED ON THIS TREE, never by arithmetic on a branch:
-// scripts/unchecked-claims.mjs prints 25 lessons admitting, 151 disclosures,
-// 4 checked, 22 in the gap. ll274 contributes 1 of those disclosures.
-const GAP = 22;
+// scripts/unchecked-claims.mjs prints 26 lessons admitting, 163 disclosures,
+// 4 checked, 23 in the gap. ll274 contributes 1 of those disclosures and ll275
+// contributes 12 (its five reader texts plus its big idea, its anchor theme,
+// its facilitator notes and its quiz).
+const GAP = 23;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
