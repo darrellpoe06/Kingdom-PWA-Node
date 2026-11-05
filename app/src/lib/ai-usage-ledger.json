@@ -376,6 +376,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 26,
       "notes": "Measured first commit 19:37:26Z to the ledger commit on claude/measure-growth-yahwehs-way; the reading of the thread, the repository-wide unbuilt-passage measurement, the primary-source checking and the authoring before that first commit are NOT on the record, so 0.3 understates the real elapsed time. Estimate is this session's own, for a 14th course lesson carrying five reader versions (child 705, youth 1102, teen 1604, senior 2833, adult 1114 words), two authored stories, 51 pinned references fetched verbatim from the KJV corpus, a 43-case pinned gate proven to catch twice, a decision record, a session note, and a trust-but-verify audit of a benchmark newsletter whose primary sources were unreachable."
+    },
+    {
+      "id": "ll283-made-in-our-image",
+      "date": "2026-11-05",
+      "task": "Lesson ll283: Made In Our Image — the title is backwards, the heart that does not consider, and the ten perspectives named and not reproduced",
+      "drs": [
+        "DR-1351"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.07,
+      "estimateWithoutAiHours": 28,
+      "notes": "Measured first commit 22:45:27Z to the ledger commit on claude/ll283-made-in-our-image; the reading of the forwarded letter, the duplicate and untaught-reference measurements across app/src and docs/decisions, the two primary-source roads attempted, and the authoring of five reader versions before that first commit are NOT on the record, so this figure understates the real elapsed time considerably. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 283rd Living Lesson carrying five reader versions (adult 2433, child 1947, youth 2077, teen 2119, senior 2308 authored prose words), two parables, 56 references fetched verbatim from the in-repo KJV corpus across 290 quoted spans, a 62-case pinned gate with five proven-to-catch cases (two of which found defects in the gate itself), a decision record, a session note, and a trust-but-verify audit whose two primary hosts were refused by the session egress."
     }
   ]
 }

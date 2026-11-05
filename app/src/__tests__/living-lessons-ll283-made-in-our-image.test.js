@@ -56,9 +56,17 @@ const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, 
 const PLACES = Object.keys(TEXTS);
 
 function* strings(node) {
-  if (typeof node === 'string') { yield node; return; }
-  if (Array.isArray(node)) { for (const v of node) yield* strings(v); return; }
-  if (node && typeof node === 'object') { for (const v of Object.values(node)) yield* strings(v); }
+  if (typeof node === 'string') {
+    yield node;
+    return;
+  }
+  if (Array.isArray(node)) {
+    for (const v of node) yield* strings(v);
+    return;
+  }
+  if (node && typeof node === 'object') {
+    for (const v of Object.values(node)) yield* strings(v);
+  }
 }
 const EVERY_STRING = L ? [...strings(L)] : [];
 
@@ -73,7 +81,10 @@ function chapter(book, ch) {
 /** The corpus text a reference names (plain or range), or null. */
 export function corpusText(ref) {
   const out = [];
-  for (const piece of String(ref).split(';').map((s) => s.trim()).filter(Boolean)) {
+  for (const piece of String(ref)
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     const m = /^((?:[1-3]\s*)?[A-Za-z]+(?: of [A-Za-z]+)?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(piece);
     if (!m) return null;
     const [, book, ch, from, through] = m;
@@ -104,7 +115,10 @@ export function verbatimFaults(texts) {
     for (const { inside, ref } of quotedPairs(t)) {
       if (!ref) continue;
       const verse = corpusText(ref);
-      if (verse == null) { faults.push(`unresolved reference (${ref})`); continue; }
+      if (verse == null) {
+        faults.push(`unresolved reference (${ref})`);
+        continue;
+      }
       const bare = inside.replace(/^[,;:.\s]+|[,;:\s]+$/g, '');
       if (!verse.includes(bare)) faults.push(`(${ref}) is not the verse: ${inside.slice(0, 70)}`);
     }
@@ -182,7 +196,9 @@ describe('L283 is in the catalog, numbered, dated and whole', () => {
   });
 
   it('claims 283 exactly once, and sits after ll282', () => {
-    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
+    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id))
+      .filter(Boolean)
+      .map((m) => Number(m[1]));
     expect(numbers.filter((n) => n === 283)).toEqual([283]);
     const i = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     const j = LIVING_LESSONS_MODULES.findIndex((m) => m.id === 'll282-the-greater-work');
@@ -214,9 +230,15 @@ describe('L283 is in the catalog, numbered, dated and whole', () => {
       expect(q.answer).toBeLessThan(q.options.length);
       expect(String(q.explain).length).toBeGreaterThan(40);
     }
-    const refs = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean);
+    const refs = String(L.anchor.ref)
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
     expect(refs.length).toBeGreaterThanOrEqual(50);
-    const parse = (r) => { const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r); return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) }; };
+    const parse = (r) => {
+      const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r);
+      return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) };
+    };
     const named = [...L.lesson.matchAll(/\(((?:[1-3] )?[A-Z][A-Za-z ]+? \d+:\d+(?:-\d+)?)\)/g)].map((m) => parse(m[1])).filter(Boolean);
     for (const r of refs) {
       expect(corpusText(r), `anchor ref ${r}`).not.toBeNull();
@@ -227,10 +249,25 @@ describe('L283 is in the catalog, numbered, dated and whole', () => {
   });
 
   it('and the anchor names EVERY verse any string of the module quotes (DR-0734)', () => {
-    const parse = (r) => { const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r); return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) }; };
-    const anchors = String(L.anchor.ref).split(';').map((s) => parse(s.trim())).filter(Boolean);
-    const quoted = new Set(EVERY_STRING.flatMap((t) => quotedPairs(t).map((p) => p.ref).filter(Boolean)));
-    const missing = [...quoted].filter((r) => { const p = parse(r); return !anchors.some((q) => q.book === p.book && q.ch === p.ch && q.a <= p.b && p.a <= q.b); });
+    const parse = (r) => {
+      const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r);
+      return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) };
+    };
+    const anchors = String(L.anchor.ref)
+      .split(';')
+      .map((s) => parse(s.trim()))
+      .filter(Boolean);
+    const quoted = new Set(
+      EVERY_STRING.flatMap((t) =>
+        quotedPairs(t)
+          .map((p) => p.ref)
+          .filter(Boolean)
+      )
+    );
+    const missing = [...quoted].filter((r) => {
+      const p = parse(r);
+      return !anchors.some((q) => q.book === p.book && q.ch === p.ch && q.a <= p.b && p.a <= q.b);
+    });
     expect(missing).toEqual([]);
   });
 });
@@ -278,7 +315,8 @@ describe('the occasion is told as an occasion, and nobody is credited with teach
   });
 
   it('names the membership pitch as a frame being sold, and refuses to teach the price (DR-1324)', () => {
-    for (const k of PLACES) expect(TEXTS[k], k).toMatch(/a few dollars a week|dollars weekly|selling a magazine|the framework itself is the merchandise|the frame is the product/i);
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toMatch(/a few dollars a week|dollars weekly|selling a magazine|the framework itself is the merchandise|the frame is the product/i);
     // The figure itself is never stated as a teaching point in any reader text.
     for (const k of PLACES) expect(TEXTS[k], k).not.toMatch(/\$3|\$\s?3\b/);
   });
@@ -293,7 +331,8 @@ describe('trust but verify: the note is in every reader place, and the blocked r
   it('names the hosts that refused us, and says the read was not independent', () => {
     for (const k of ['adult', 'youth', 'teen', 'senior']) expect(TEXTS[k], k).toMatch(/bigthink\.com/);
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/would not resolve|could not get there/i);
-    for (const k of ['adult', 'youth', 'teen', 'senior']) expect(TEXTS[k], k).toMatch(/not independent|independently (read|examined)|read no page|no page (of the publisher|belonging)/i);
+    for (const k of ['adult', 'youth', 'teen', 'senior'])
+      expect(TEXTS[k], k).toMatch(/not independent|independently (read|examined)|read no page|no page (of the publisher|belonging)/i);
     expect(L.bigIdea).toMatch(/en\.wikipedia\.org/);
     expect(L.bigIdea).toMatch(/the read was not independent/);
   });
@@ -546,7 +585,11 @@ describe('no quotation is cut, and no bookkeeping reaches the reader', () => {
 });
 
 describe('our own voice names Yahweh, and the adversary is never capitalised', () => {
-  const ourVoice = (t) => String(t).split('"').filter((_, i) => i % 2 === 0).join(' ');
+  const ourVoice = (t) =>
+    String(t)
+      .split('"')
+      .filter((_, i) => i % 2 === 0)
+      .join(' ');
 
   it('no generic God, GOD or LORD in our authored voice (DR-0210)', () => {
     const found = [];
@@ -610,7 +653,11 @@ describe('the four bands are four bands, measured not claimed', () => {
   it('reads as a ladder, and the child band is inside its own age range', () => {
     expect(isInverted(grades)).toBe(false);
     expect(grades.bands.child.authored).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
-    for (const [a, b] of [['child', 'youth'], ['youth', 'teen'], ['teen', 'senior']]) {
+    for (const [a, b] of [
+      ['child', 'youth'],
+      ['youth', 'teen'],
+      ['teen', 'senior'],
+    ]) {
       expect(grades.bands[b].authored, `${b} should read above ${a}`).toBeGreaterThan(grades.bands[a].authored);
     }
   });
@@ -624,7 +671,9 @@ describe('the four bands are four bands, measured not claimed', () => {
 
 describe('the reader meets numbered points, in order, with nothing skipped', () => {
   it('the lesson’s own headings number from one and stay contiguous', () => {
-    const ns = formatLessonText(L.lesson).items.filter((i) => i.kind === 'heading').map((h) => h.n);
+    const ns = formatLessonText(L.lesson)
+      .items.filter((i) => i.kind === 'heading')
+      .map((h) => h.n);
     expect(ns.length).toBeGreaterThanOrEqual(10);
     expect(ns[0]).toBe(1);
     for (let i = 1; i < ns.length; i += 1) expect(ns[i]).toBe(ns[i - 1] + 1);
