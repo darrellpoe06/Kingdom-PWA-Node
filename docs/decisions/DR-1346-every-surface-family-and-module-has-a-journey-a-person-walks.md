@@ -1,4 +1,4 @@
-# DR-1344: Every surface family and every module has a journey a person walks — six on the built app, one on the real schema, one deferred with a date
+# DR-1346: Every surface family and every module has a journey a person walks — six on the built app, one on the real schema, one deferred with a date
 
 **Date:** 2026-11-05
 **Status:** accepted

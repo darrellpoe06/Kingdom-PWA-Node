@@ -139,7 +139,7 @@ jobs:
       # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
       # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
       - run: node ../scripts/lessons-gate-coverage.mjs
-      # Journey coverage (DR-1344, DR-1330 D2): every nav family in surfaces.js
+      # Journey coverage (DR-1346, DR-1330 D2): every nav family in surfaces.js
       # and every app/src/modules/* has a registered journey, and a deferred
       # one carries a why and a re-review date that has not passed.
       - run: node ../scripts/journey-coverage-guard.mjs
@@ -841,7 +841,7 @@ jobs:
       - name: The sweep — every distinct route, phone and laptop widths
         run: node scripts/e2e/surface-sweep.mjs
         working-directory: ${{ github.workspace }}
-      # THE JOURNEYS (DR-1344, from DR-1330 D2): a person's walks on the same
+      # THE JOURNEYS (DR-1346, from DR-1330 D2): a person's walks on the same
       # build — a shared lesson link lands on the lesson, Learn opens a lesson
       # by taps, the dock tabs and money sections open by taps, Create takes
       # typed words, the feedback sheet opens. Registry: scripts/e2e/journeys.mjs;
