@@ -54,7 +54,20 @@ export const LEDGER_FILES = [LEDGER_INDEX, LEGIBILITY_HEALTH];
 
 const ROW_RE = /^\| \[DR-(\d{4})\]\(([^)]*)\)/;
 const NEXT_RE = /^\*\*Next ID:\*\*/;
-const MARKER_RE = /^(<{7}|>{7}|\|{7})(?: |$)/;
+// SEVEN OR MORE, not exactly seven (2026-11-05, DR-1321). git writes EIGHT
+// characters when it has to disambiguate a path -- a rename or renumber
+// conflict produces `<<<<<<<< HEAD:old/path.md`, `========`, `>>>>>>>>
+// origin/main:new/path.md`. The old pattern was `<{7}(?: |$)`, so eight
+// brackets read as seven followed by a bracket, which is neither a space nor
+// end-of-line: NO MATCH. This guard exists to keep conflict markers out of the
+// ledger and it was blind to the one kind THIS ledger produces most, because a
+// DR renumber is a rename (DR-1021 recorded nineteen in one week).
+//
+// MEASURED on main at c6e86c52f: exactly one file carried them, and it was
+// `DR-1185-one-teaching-is-one-lesson.md` -- the record that DEFINES the rule
+// at the centre of DR-1317, broken in its own title line since #2372, with
+// every run of this guard reporting "zero conflict markers".
+const MARKER_RE = /^(<{7,}|>{7,}|\|{7,})(?: |$)/;
 
 // -----------------------------------------------------------------------------
 // Pure text functions.
