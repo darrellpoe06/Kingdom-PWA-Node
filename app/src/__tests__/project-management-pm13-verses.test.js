@@ -95,12 +95,55 @@ describe('pm13 is in the Project Management course, with all four bands', () => 
     expect(PROJECT_MANAGEMENT_META.weeks).toBe(PROJECT_MANAGEMENT_MODULES.length);
   });
 
-  it('the lessons run in numeric order and pm13 is the last of them', () => {
+  // WAS: `the lessons run in numeric order and pm13 is the last of them`, which
+  // asserted `Math.max(...nums)).toBe(13)` and that pm13 is the final module.
+  // Both were true of the tree this file was written on and FALSE the instant a
+  // pm14 exists — and Project Management is a live placement target for the
+  // Gmail lesson lane (project/organization material routes here), so a pm14
+  // will arrive. The identical over-claim in sov64's gate turned CI red on
+  // sov65 and would have forced every future lesson to edit another lesson's
+  // test file to land (2026-11-05). Note the contrast with banking, which is
+  // NOT this defect: `banking-course.js` hardcodes `weeks: 9` and `'9 lessons'`,
+  // so bank9's `[1..9]` pin is a CONTRACT that should catch an undeclared tenth
+  // lesson. This course derives its count — `get weeks() { return
+  // PROJECT_MANAGEMENT_MODULES.length }` — so it is open, and its gate must be
+  // too.
+  //
+  // What replaces it is stricter in three ways and weaker in none: contiguity
+  // from 1 with NO GAP (the old sorted-order check passed a gap), pm13 present
+  // and at its own numeric place, and the header count still derived.
+  it('the lessons run contiguously from one, and pm13 sits at the thirteenth place', () => {
     const nums = PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1]));
     expect(nums).toEqual([...nums].sort((a, b) => a - b));
-    expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(13);
-    expect(PROJECT_MANAGEMENT_MODULES[PROJECT_MANAGEMENT_MODULES.length - 1].id).toBe(PM13_ID);
+    expect(new Set(nums).size, 'two lessons may not share a number').toBe(nums.length);
+    // STRICTER than the old sorted check: ascending order permits [1,2,4]; this
+    // does not. It also stays true at any course length, which is the point.
+    expect(nums, 'the course numbers must run 1..n with no gap').toEqual(
+      Array.from({ length: nums.length }, (_, i) => i + 1),
+    );
+    expect(nums, 'pm13 must be in the course').toContain(13);
+    // pm13's own position, asserted without claiming anything about what comes
+    // after it: the thirteenth lesson is pm13, whether or not a pm14 exists.
+    expect(PROJECT_MANAGEMENT_MODULES[12].id).toBe(PM13_ID);
+    expect(PROJECT_MANAGEMENT_META.weeks).toBe(PROJECT_MANAGEMENT_MODULES.length);
+  });
+
+  it('PROVEN TO CATCH: a gap in the course numbers fails, where ascending order alone passed it', () => {
+    const gapped = [1, 2, 4];
+    expect(gapped).toEqual([...gapped].sort((a, b) => a - b)); // the OLD check passes
+    expect(() => expect(gapped).toEqual(Array.from({ length: gapped.length }, (_, i) => i + 1)))
+      .toThrow(); // the new one does not
+  });
+
+  it('PROVEN TO BE FORWARD-SAFE: a pm14 landing does not break this gate', () => {
+    // The whole point of the rewrite. Simulate the next lesson arriving and
+    // assert every surviving claim still holds.
+    const nums = [...PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1])), 14];
+    expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
+    expect(nums).toContain(13);
+    expect(nums.indexOf(13), 'pm13 stays at the thirteenth place').toBe(12);
+    // And the claim that was removed would have failed here, which is why it went.
+    expect(Math.max(...nums), 'the removed assertion would now be false').not.toBe(13);
   });
 
   it('every one of the four bands is written long enough to teach its reader', () => {
