@@ -135,10 +135,20 @@ describe('pm13 is in the Project Management course, with all four bands', () => 
       .toThrow(); // the new one does not
   });
 
-  it('PROVEN TO BE FORWARD-SAFE: a pm14 landing does not break this gate', () => {
+  it('PROVEN TO BE FORWARD-SAFE: the NEXT lesson landing does not break this gate', () => {
     // The whole point of the rewrite. Simulate the next lesson arriving and
     // assert every surviving claim still holds.
-    const nums = [...PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1])), 14];
+    //
+    // THE SIMULATION ITSELF CARRIED DR-1316's DEFECT, and pm14 found it on
+    // 2026-11-05. This line appended the LITERAL 14 -- a hardcoded guess at
+    // which lesson comes next, which is the very class of claim-about-what-
+    // does-not-exist-yet that this file was rewritten to remove. True while the
+    // course ended at 13; FALSE the instant a real pm14 existed, because
+    // [1..14, 14] is neither contiguous nor duplicate-free, so pm14's PR went
+    // red on pm13's gate. Now DERIVED from the course's own length, the way
+    // PROJECT_MANAGEMENT_META.weeks is, so it stays true at any course length.
+    const next = PROJECT_MANAGEMENT_MODULES.length + 1;
+    const nums = [...PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1])), next];
     expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
     expect(nums).toContain(13);
     expect(nums.indexOf(13), 'pm13 stays at the thirteenth place').toBe(12);
