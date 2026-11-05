@@ -243,3 +243,122 @@ describe('the guard reads a declared citation as a citation', () => {
       .toMatch(/DR-1272/);
   });
 });
+
+// =============================================================================
+// THE SIX UNEXAMINED PAIRS, READ (2026-11-04)
+// =============================================================================
+// The note at the top of the previous describe says this suite deliberately did
+// NOT assert zero unexplained collisions, because six were unexamined debt and
+// claiming they were fine without reading them would have been the hollowing-out
+// the guard exists to prevent. They have now been READ, and the answer was three
+// different answers: three were never duplicates, one healed at the cause, and
+// TWO are real. So the pin can finally be exact.
+describe('the six unexamined collisions are read, and what they are is pinned', () => {
+  const guard = async () => import('../../../scripts/one-thread-one-record-guard.mjs');
+
+  it('nothing is left unexamined', async () => {
+    const { UNEXAMINED_BASELINE } = await guard();
+    expect(UNEXAMINED_BASELINE, 'the list may only shrink, and it is now empty').toEqual([]);
+  });
+
+  it('DR-1051 declares the four ids it RECOVERED rather than built', async () => {
+    // It is `Type: orchestration`: it built a guard and no lesson. Without the
+    // declaration the sweep reads a recovery record as a claim -- the very fault
+    // DR-1051 was itself written to catch, one layer in.
+    const rec = readLedger().find((r) => r.dr === 'DR-1051');
+    const declared = consideredNotBuilt(rec.text);
+    for (const id of ['1a135f165fe391e3', '1a135b7ba6605c98', '1a13f985bb4d2a79', '1a13feefef705fa7']) {
+      expect([...declared], `DR-1051 must disown ${id}`).toContain(id);
+    }
+    expect(rec.text, 'a declaration must name who DID build it').toMatch(/DR-1005/);
+  });
+
+  it('the four recovered threads still read SHIPPED, via the records that really built them', async () => {
+    const { threadClaims } = await guard();
+    const claims = threadClaims();
+    // DR-1051 is gone from each; the real builder remains.
+    expect(claims.get('1a135b7ba6605c98')).toEqual(['DR-1004']);
+    expect(claims.get('1a13f985bb4d2a79')).toEqual(['DR-1049']);
+    expect(claims.get('1a13feefef705fa7')).toEqual(['DR-1048']);
+    expect(claims.get('1a135f165fe391e3'), 'sov39 built it; DR-1051 only recovered its id')
+      .not.toContain('DR-1051');
+  });
+
+  it('PROVEN TO CATCH: strip DR-1051 declaration and the collision comes straight back', async () => {
+    const { threadClaims } = await guard();
+    const ledger = readLedger().map((r) => (r.dr === 'DR-1051'
+      ? { ...r, text: r.text.replace(/\*\*Considered, not built:\*\*[^\n]*\n/, '') }
+      : r));
+    expect(ledger.find((r) => r.dr === 'DR-1051').text,
+      'the revert must remove the line or this proves nothing')
+      .not.toMatch(/\*\*Considered, not built:\*\*/);
+    expect(threadClaims(ledger).get('1a135f165fe391e3')).toContain('DR-1051');
+  });
+
+  it('the two measured duplicates are RECORDED, so the guard stays green and stays loud', async () => {
+    const { EXAMINED_AWAITING_FOLD } = await guard();
+    expect(EXAMINED_AWAITING_FOLD).toHaveLength(2);
+    expect(EXAMINED_AWAITING_FOLD.map((p) => p.thread).sort())
+      .toEqual(['1a11668e8023cd3e', '1a11be8ea0e58748']);
+    for (const p of EXAMINED_AWAITING_FOLD) {
+      expect(p.lessons, 'a duplicate entry must name the two lessons').toHaveLength(2);
+      expect(p.why.length, 'and must carry its comparison, not just a flag').toBeGreaterThan(200);
+    }
+  });
+
+  it('each duplicate pair is STILL a live collision, so the list cannot go stale', async () => {
+    const { threadClaims, EXAMINED_AWAITING_FOLD } = await guard();
+    const claims = threadClaims();
+    for (const p of EXAMINED_AWAITING_FOLD) {
+      expect(claims.get(p.thread), `${p.thread} must still be named by both records`)
+        .toEqual([...p.drs].sort());
+    }
+  });
+
+  // Loading all 44 courses costs seconds, so the catalog is built ONCE here and
+  // the two cases below carry a real timeout. The first drafts of them timed out
+  // at vitest's 5s default, which is a slow test rather than a true finding --
+  // worth saying because a timeout dressed up as a failure teaches nothing.
+  let byId = null;
+  const catalog = async () => {
+    if (byId) return byId;
+    const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
+    byId = new Map();
+    for (const c of buildCatalogCourseDescriptors()) {
+      for (const m of (c.schedule || c.modules || []).filter(Boolean)) byId.set(String(m.id || ''), m);
+    }
+    return byId;
+  };
+  const find = (map, p) => [...map.keys()].find((k) => k === p || k.startsWith(`${p}-`));
+
+  // THE MEASUREMENT ITSELF, EXECUTABLE. The 13 and 14 in that list are claims
+  // about the live catalog; here they are recomputed with the catalog's own
+  // rule, so a drift in either direction fails rather than ages quietly.
+  it('the claimed shared-verse counts are what the catalog actually holds', async () => {
+    const { EXAMINED_AWAITING_FOLD } = await guard();
+    const { sharedGround } = await import('../lib/one-teaching-one-lesson.js');
+    const map = await catalog();
+    for (const pair of EXAMINED_AWAITING_FOLD) {
+      const [a, b] = pair.lessons.map((l) => find(map, l));
+      expect(a, `${pair.lessons[0]} must exist in the catalog`).toBeTruthy();
+      expect(b, `${pair.lessons[1]} must exist in the catalog`).toBeTruthy();
+      const g = sharedGround(map.get(a), map.get(b));
+      expect(g.shared, `${pair.lessons.join('/')} claims ${pair.sharedVerses} shared verses`)
+        .toBe(pair.sharedVerses);
+      expect(g.shared, 'and a duplicate claim needs real shared ground under it')
+        .toBeGreaterThanOrEqual(10);
+    }
+  }, 60000);
+
+  it('the control pair is NOT listed: one source, two genuine teachings', async () => {
+    // ll221 "Owning the Light Instead of Renting It" and ll236 "The Bill You
+    // Cannot Read" came from one utility-billing forward and share ONE verse.
+    // If a future rule starts flagging these, it over-flags.
+    const { EXAMINED_AWAITING_FOLD } = await guard();
+    expect(EXAMINED_AWAITING_FOLD.map((p) => p.thread)).not.toContain('1a11be8188dbc2f6');
+    const { sharedGround } = await import('../lib/one-teaching-one-lesson.js');
+    const map = await catalog();
+    const g = sharedGround(map.get(find(map, 'll221')), map.get(find(map, 'll236')));
+    expect(g.shared, 'the control must stay far below the duplicate threshold').toBeLessThan(5);
+  }, 60000);
+});
