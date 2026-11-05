@@ -325,6 +325,23 @@
       "wallClockHours": 0.23,
       "estimateWithoutAiHours": 3,
       "notes": "One commit 18:41:24Z on claude/stale-proofs-of-a-removed-refusal, merged 18:55:21Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 7 files, +110/-11, not the authoring session's own."
+    },
+    {
+      "id": "sov68-there-shall-be-none-in-the-field",
+      "date": "2026-11-05",
+      "task": "Lesson sov68: there shall be none in the field (another session's work, ledgered at merge)",
+      "drs": [
+        "DR-1338"
+      ],
+      "prs": [
+        2555
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.37,
+      "estimateWithoutAiHours": 24,
+      "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
     }
   ]
 }

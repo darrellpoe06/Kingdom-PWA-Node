@@ -203,7 +203,23 @@ describe('sov67 — the lesson is mounted and is the week it says it is', () => 
     expect(SOVEREIGN_AI_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     // contiguous: the course ran to sov66 and this is sov67, with nothing skipped
     const ns = SOVEREIGN_AI_MODULES.map((m) => Number(/^sov(\d+)/.exec(m.id)[1])).sort((a, b) => a - b);
-    expect(ns[ns.length - 1], 'sov67 must be the highest week in the course').toBe(67);
+    // A PIN THAT OVER-CLAIMED, CORRECTED 2026-11-05 BY THE sov68 BUILD (DR-1338).
+    // This read `expect(ns[ns.length - 1], 'sov67 must be the highest week in
+    // the course').toBe(67)` -- which was true of the tree it was written on and
+    // false the instant a week 68 landed. It is the ONE thing that turned sov68's
+    // run red after the gap at 67 had closed, and NOTHING IS WRONG WITH sov67.
+    // This is the same DR-1316 maximum, in the same shape, that the sov65 build
+    // corrected in sov64's gate one day earlier -- sov64's own comment records
+    // it, and the fix belongs to the build that exposes it. It is NOT hollowed
+    // out: what this lesson can durably assert is that week 67 exists, that it
+    // is mounted exactly once, that it sits in the 67th place, and that the
+    // weeks are contiguous from one through 67 -- all of which a later week
+    // cannot falsify, and any of which a real regression would.
+    expect(ns, 'week 67 is not mounted').toContain(67);
+    expect(ns.filter((w) => w === 67).length, 'week 67 is mounted twice').toBe(1);
+    expect(SOVEREIGN_AI_MODULES[66].id, 'sov67 is not in the 67th place').toBe(ID);
+    expect(ns[ns.length - 1], 'sov67 is not at or below the highest week').toBeGreaterThanOrEqual(67);
+    for (let w = 1; w <= 67; w += 1) expect(ns, `week ${w} is missing`).toContain(w);
     expect(ns.includes(66), 'sov66 must still be present').toBe(true);
     for (const k of ['title', 'bigIdea', 'inApp', 'lesson']) expect(typeof M[k], `${k} missing`).toBe('string');
     for (const b of FOUR_BANDS) expect(typeof M.levels[b], `${b} band missing`).toBe('string');
