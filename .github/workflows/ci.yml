@@ -156,6 +156,10 @@ jobs:
       # first runs found a probe PIN in a workflow and a Pushover user key in
       # two docs; .gitleaks.toml records every allowlisted fixture by name.
       - run: node ../scripts/secret-scan-guard.mjs
+      # ERROR TEXT (DR-1335, DR-1330 D5): no HTTP response carries an
+      # exception's own words; the person gets a code and a ref, the log gets
+      # the text under the ref. 26 sites rewritten on 2026-11-05.
+      - run: node ../scripts/error-text-guard.mjs
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24'

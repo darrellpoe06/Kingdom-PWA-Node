@@ -59,7 +59,11 @@ export default {
 
       return cors(env, request, json({ error: 'not found' }, 404));
     } catch (e) {
-      return cors(env, request, json({ error: e.message || 'internal error' }, 500));
+      // A code and a ref to the caller; the message to the log under the ref
+      // (DR-1335). Vendor errors here can carry the RentCast or Twilio reply.
+      const ref = crypto.randomUUID().slice(0, 12);
+      console.error(`[${ref}] internal error:`, (e && e.message) || String(e));
+      return cors(env, request, json({ error: 'internal error', ref }, 500));
     }
   },
 };

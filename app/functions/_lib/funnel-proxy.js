@@ -97,8 +97,14 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
     } catch (err) {
       // Funnel unreachable (NAS down / Tailscale blip). Fail with a clear 502
       // so the client surfaces a real error instead of an opaque/CORS fail.
+      // The exception's own words go to the log under a ref, never to the
+      // client (DR-1335): a fetch error can name the upstream host.
+      const ref = crypto.randomUUID().slice(0, 12);
+      console.error(`[${ref}] ${label} proxy upstream unreachable:`, (err && err.message) || String(err));
+      // `detail` stays a KEY the site-health witness greps for (pinned by
+      // every-road-signs-itself.test.js); its value is a constant phrase.
       return new Response(
-        JSON.stringify({ error: `${label} proxy upstream unreachable`, detail: String((err && err.message) || err) }),
+        JSON.stringify({ error: `${label} proxy upstream unreachable`, detail: 'the upstream did not answer; the function log carries the cause under ref', ref }),
         { status: 502, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
       );
     }

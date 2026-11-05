@@ -36,6 +36,18 @@ import urllib.error
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+# A person gets a short code and a reference id; the exception's own words go
+# to the log under that id (DR-1335, DR-1330 D5). Never str(e) in a response.
+import logging as _logging
+import uuid as _uuid
+_errlog = _logging.getLogger(__name__)
+
+
+def _ref(e):
+    ref = _uuid.uuid4().hex[:12]
+    _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
+    return ref
+
 from ollama_health import build_health
 
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
@@ -122,7 +134,7 @@ async def chat(request: Request):
             data = json.loads(resp.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError) as e:
         # Ollama down / model not pulled / timeout -> clean failure, app falls back.
-        return JSONResponse({"ok": False, "error": "llm-unavailable", "detail": str(e)}, status_code=502)
+        return JSONResponse({"ok": False, "error": "llm-unavailable", "ref": _ref(e)}, status_code=502)
 
     reply = ""
     if isinstance(data, dict):
