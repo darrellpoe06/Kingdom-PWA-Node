@@ -9,7 +9,13 @@
 # this is observation, but the runner still only fires on a hand or a session).
 name: nas-health
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      rotate_probe_user:
+        description: 'Delete the probe user on the NAS so the next sign-up mints its hash from the NAS_HEALTH_PROBE_PIN secret (DR-1334). Once, after setting the secret.'
+        type: boolean
+        required: false
+        default: false
   # A CLOCK, AT LAST (2026-09-23). This is the only instrument that can see
   # the NAS — the forwarder, the fleet's own event log, the cutover status —
   # and until now it ran only when a person dispatched it. The 2026-09-22
@@ -61,6 +67,8 @@ jobs:
           tailscale status --peers=false
       - name: Outside-in transport proof (the runner IS the outside)
         if: steps.gate.outputs.go == 'true'
+        env:
+          PROBE_PIN: ${{ secrets.NAS_HEALTH_PROBE_PIN }}
         run: |
           # DR-0125 applied to the cutover transport: the sandbox has no route
           # to poetech.us, so THIS runner is the team's outside eye. Three
@@ -94,9 +102,22 @@ jobs:
           # DR-0172) with a PROBE phone -- captures the true signup verdict a
           # reader hit ("can't reach our service", 2026-08-19). A 200 creates
           # one deletable probe user; any 4xx/5xx prints GoTrue's own reason.
+          # THE PROBE'S PIN IS A SECRET, NEVER A LITERAL (DR-1334, DR-1330 D4).
+          # Until 2026-11-05 this step carried the probe user's production
+          # sign-in PIN as a literal in this file — the one committed
+          # credential the Ways review found. It now comes from the repo secret
+          # NAS_HEALTH_PROBE_PIN; absent, the two probe-user steps say so and
+          # are skipped (never a fallback to a literal). ROTATION: dispatch
+          # with rotate_probe_user=true once after setting the secret; the
+          # SSH leg below deletes the old probe user so this sign-up mints a
+          # fresh hash from the new PIN. secret-scan-guard fails the build on
+          # a literal password aimed at a real identity in any workflow.
+          if [ -z "$PROBE_PIN" ]; then
+            echo "OUTSIDE-IN probe user: SKIPPED — repo secret NAS_HEALTH_PROBE_PIN is not set (GitHub settings → Secrets → Actions). Set it, dispatch once with rotate_probe_user=true."
+          else
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
             -H 'Content-Type: application/json' \
-            -d '{"email":"15555550100@phone.poetech.us","password":"090909","data":{"name":"Probe User","phone":"+15555550100","login_method":"phone-pin"}}' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"'"$PROBE_PIN"'","data":{"name":"Probe User","phone":"+15555550100","login_method":"phone-pin"}}' \
             "https://poetech.us/sb/auth/v1/signup" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN POST /sb/auth/v1/signup (app shape) HTTP $C :: $(head -c 300 "$BODY")"
           # Sign the probe user IN (its hash was minted BY sovereign GoTrue at
@@ -105,9 +126,10 @@ jobs:
           # chance (2026-08-19 "same PIN doesn't work" triage).
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
             -H 'Content-Type: application/json' \
-            -d '{"email":"15555550100@phone.poetech.us","password":"090909"}' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"'"$PROBE_PIN"'"}' \
             "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN probe-user SIGN-IN HTTP $C :: $(head -c 120 "$BODY" | sed -E 's/\"(access|refresh)_token\":\"[^\"]+\"/\"\1_token\":\"<present>\"/g')"
+          fi
           # Keep the probe session's token IN MEMORY for the keyed REST probe
           # below — never printed (the sed above is what reaches the log).
           PROBE_TOKEN=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("access_token",""))' "$BODY" 2>/dev/null || true)
@@ -190,6 +212,7 @@ jobs:
         if: steps.gate.outputs.go == 'true'
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          ROTATE_PROBE_USER: ${{ inputs.rotate_probe_user }}
         run: |
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
@@ -339,6 +362,17 @@ jobs:
           ${SUDO} cat /volume1/docker/supabase/cutover.status 2>/dev/null || echo "no cutover.status yet — installer predates the status-file fix or has not run"
           echo "=== replay ledger, read straight from the database (not inferred) ==="
           SUPA_PW=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          # THE ONE WRITE THIS READ-ONLY WORKFLOW MAKES, and only when asked by
+          # the rotate_probe_user dispatch input (DR-1334): the probe user whose
+          # PIN was a committed literal is deleted so the next outside-in
+          # sign-up mints a fresh hash from the NAS_HEALTH_PROBE_PIN secret.
+          # Runner over the tailnet (DR-1159's first road), never a paste.
+          if [ "$ROTATE_PROBE_USER" = "true" ] && [ -n "$SUPA_PW" ]; then
+            echo "=== rotate_probe_user: deleting the probe user so sign-up re-mints it from the secret ==="
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "DELETE FROM auth.users WHERE email = '15555550100@phone.poetech.us';" 2>&1 | tail -1
+          fi
           if [ -n "$SUPA_PW" ]; then
             ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
               psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \

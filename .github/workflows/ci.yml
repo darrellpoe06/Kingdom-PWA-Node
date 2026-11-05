@@ -149,6 +149,23 @@ jobs:
       # install is pinned through infra/requirements-ci.txt, and pip-audit
       # reads that file without installing anything.
       - run: node ../scripts/dependency-audit-guard.mjs
+      # SECRET SCAN (DR-1334, DR-1330 D4), two independent methods (DR-0076 §7):
+      # the house guard (eleven specific shapes plus the two house rules, under
+      # two seconds, no download) and gitleaks, built by `go install` at a
+      # pinned version so the Go checksum database verifies what runs. The
+      # first runs found a probe PIN in a workflow and a Pushover user key in
+      # two docs; .gitleaks.toml records every allowlisted fixture by name.
+      - run: node ../scripts/secret-scan-guard.mjs
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: gitleaks over the checkout (pinned, verified by the Go checksum database)
+        run: |
+          set -euo pipefail
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" dir . --no-banner --redact --config .gitleaks.toml
+        working-directory: ${{ github.workspace }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
