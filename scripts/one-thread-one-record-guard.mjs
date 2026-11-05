@@ -157,68 +157,97 @@ export function threadClaims(ledger = readLedger()) {
 // it named `1a135f165fe391e3` only because it RECOVERED that id into DR-1005,
 // which really built sov39 from it -- so it now carries the DR-1305
 // `Considered, not built:` declaration and the pair no longer exists. And TWO
-// are genuine duplicates, which is what EXAMINED_AWAITING_FOLD below holds.
+// share a foundation and carry it to different points -- see below. DR-1313
+// called those two DUPLICATES and that was WRONG; DR-1317 corrects it.
 export const UNEXAMINED_BASELINE = [];
 
 /**
- * Pairs that WERE read and ARE one teaching built twice. These are not debt and
- * not false positives -- they are measured duplicates waiting on an editorial
- * decision that belongs to Darrell and never to this gate (DR-1185 folded the
- * one before these: ll235's four verses and two parables were carried into
- * ll257 before ll235 was removed, so nothing was lost).
+ * SHARED FOUNDATION, DIFFERENT POINT -- and this is the catalog working, not a
+ * fault. Declared by Darrell 2026-11-05, correcting DR-1313:
  *
- * Measured with the catalog's OWN rule -- `sharedGround` from
- * `app/src/lib/one-teaching-one-lesson.js`, which expands verse ranges before
- * comparing, so "Psalms 39:4; Psalms 39:5" and "Psalms 39:4-5" count as the one
- * ground they are. Each pair is the same course AND the same source forward AND
- * thirteen-plus shared verses. That conjunction is the discriminator: a verse
- * measure alone cannot separate these from legitimate reuse, because dropping
- * the title clause from the shipped rule flags 146 pairs across the 712 lessons
- * while the shipped rule flags none. Sharing a source AND the ground is not a
- * theme recurring; it is one send taught twice.
+ *   "there would be overlapping at times however not the exact same lesson...
+ *    sometimes 8 points of this lesson does not end with the same message it's
+ *    close however another point entirely after explaining the foundations of
+ *    the eternal systems Yahweh created in us and outside of us... How else
+ *    would they connect?!"
+ *
+ * THE TEST OF "ONE TEACHING" IS WHERE A LESSON LANDS, NEVER THE GROUND IT
+ * STANDS ON. The eternal systems Yahweh built have common foundations, so two
+ * lessons teaching from them SHOULD share that ground; the overlap is how they
+ * connect to each other. A lesson explains the foundation and then carries it
+ * to its own point. Shared ground plus a different landing is the web working.
+ *
+ * DR-1313 measured 13 and 14 shared anchor verses in the two pairs below and
+ * concluded "one teaching built twice". That conclusion was wrong, and the
+ * reason it was wrong is worth keeping: a verse count can only see the ground a
+ * lesson stands on. It is structurally blind to where the lesson carries it,
+ * which is the only thing that decides whether two lessons are one teaching.
+ * Measured on the real catalog after the correction:
+ *
+ *   ll215 ends on the foundation itself; ll239 ends on COUNSEL -- count, then
+ *   consult, more than two names whose counsel you will genuinely seek
+ *   (Proverbs 24:6, 11:14, 15:22, none of them in ll215).
+ *
+ *   ll223 ends on WHAT A WARNING ASKS OF YOU, carrying a capital case and the
+ *   Word's standard of evidence; ll238 ends on WHO HOLDS THE WIND, the
+ *   foundation, and THE NEIGHBOUR in the storm's path.
+ *
+ * So these are recorded here as legitimate, with their comparison, exactly as
+ * KNOWN_SHARED_THREADS records a thread two records legitimately name. They are
+ * NOT debt, NOT duplicates, and NOTHING is awaiting a fold. The list exists so
+ * the pairs stay visible and documented rather than silently forgotten.
  */
-export const EXAMINED_AWAITING_FOLD = [
+export const SHARED_FOUNDATION_DIFFERENT_POINT = [
   {
     thread: '1a11668e8023cd3e',
     drs: ['DR-0793', 'DR-0863'],
     lessons: ['ll215', 'll239'],
     sharedVerses: 13,
-    why: 'One forward of 2026-10-07 12:48 UTC, taught twice in Living Lessons two days apart. '
+    why: 'One forward of 2026-10-07 12:48 UTC, taught TWICE ON PURPOSE and landing in two places. '
       + 'll215 "When a Land Has No Smith — Count the Cost, Prepare the Field, and Who Gives the '
-      + 'Safety" (DR-0793, 2026-10-07) and ll239 "The King Sits Down First — A Shipyard, a '
-      + 'Submarine Contract, and Who Gives Safety" (DR-0863, 2026-10-09) share 13 expanded anchor '
-      + 'verses including the whole Luke 14:28-32 counting-the-cost core, and both titles close on '
-      + 'who gives the safety. The shipped rule misses it only because the titles open differently.',
+      + 'Safety" (DR-0793) lays the foundation: counting the cost, preparing the field, and who '
+      + 'gives the safety. ll239 "The King Sits Down First" (DR-0863) stands on that same ground — '
+      + '13 shared verses including the Luke 14:28-32 core — and carries it to COUNSEL: count, THEN '
+      + 'consult, and seek more than two names, on Proverbs 24:6, 11:14 and 15:22, which ll215 does '
+      + 'not carry. Its own in-app action is "write more than two names whose counsel you will '
+      + 'genuinely seek, and seek it", where ll215 asks the reader to read at their band. Shared '
+      + 'foundation, different point.',
   },
   {
     thread: '1a11be8ea0e58748',
     drs: ['DR-0834', 'DR-0864'],
     lessons: ['ll223', 'll238'],
     sharedVerses: 14,
-    why: 'One forward of 2026-10-08 14:26 UTC, taught twice in Living Lessons. ll223 "The Storm You '
-      + 'Can See Coming, and the Court Where a Life Hangs" (DR-0834) and ll238 "Who Holds the Wind '
-      + '— The Warning, the Foundation, and the Neighbour in the Storm\'s Path" (DR-0864, '
-      + '2026-10-09) share 14 expanded anchor verses, among them Mark 4:37-39, Psalms 107:28-29 and '
-      + 'the whole of Matthew 7:24-27.',
+    why: 'One forward of 2026-10-08 14:26 UTC, landing in two places. ll223 "The Storm You Can See '
+      + 'Coming, and the Court Where a Life Hangs" (DR-0834) ends on WHAT A WARNING ASKS OF YOU and '
+      + 'carries the capital case and the Word\'s standard of evidence alongside the storm. ll238 '
+      + '"Who Holds the Wind — The Warning, the Foundation, and the Neighbour in the Storm\'s Path" '
+      + '(DR-0864) stands on the same 14 verses (Mark 4:37-39, Psalms 107:28-29, Matthew 7:24-27) '
+      + 'and ends on Yahweh holding the wind, the foundation under the house, and THE NEIGHBOUR — '
+      + 'its action is water, light, a radio off the grid, and the two warnings you are ignoring. '
+      + 'Shared foundation, different point.',
   },
 ];
 
 /**
- * A third pair from the same 2026-10-08/09 run is NOT listed here on purpose:
+ * A third pair from the same run, kept for the contrast it draws:
  * `1a11be8188dbc2f6` (DR-0821 ll221 / DR-0860 ll236) came from one
- * utility-billing forward and shares exactly ONE verse, so "Owning the Light
- * Instead of Renting It" and "The Bill You Cannot Read" are two genuinely
- * different teachings from one source. It is the control that shows the rule
- * above does not over-flag, and it needs no fold.
+ * utility-billing forward and shares exactly ONE verse. So "Owning the Light
+ * Instead of Renting It" and "The Bill You Cannot Read" diverge at the ground
+ * as well as at the point. Together with the two above it shows the range the
+ * catalog legitimately holds: one source can produce lessons that share almost
+ * nothing OR share a whole foundation, and NEITHER is a duplicate. What would
+ * make two lessons one teaching is landing on the same message, and no pair in
+ * this ledger does.
  */
 
 const key = (drs) => [...drs].sort().join('+');
-// A measured duplicate awaiting Darrell's fold is RECORDED, not NEW: the pair is
-// known and written down, so it must not fail every build until he decides. It
-// is printed loudly on every run instead, so it cannot go quiet either.
+// A pair that shares a foundation and lands in two different places is
+// RECORDED, not NEW, and nothing about it is awaiting a decision: it is the
+// catalog connecting to itself (DR-1317).
 const RECORDED = new Set([
   ...KNOWN_SHARED_THREADS.map((p) => `${p.thread}:${key(p.drs)}`),
-  ...EXAMINED_AWAITING_FOLD.map((p) => `${p.thread}:${key(p.drs)}`),
+  ...SHARED_FOUNDATION_DIFFERENT_POINT.map((p) => `${p.thread}:${key(p.drs)}`),
 ]);
 const BASELINE = new Set(UNEXAMINED_BASELINE);
 
@@ -270,12 +299,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   console.log(`one-thread-one-record-guard: OK — ${claims.size} thread(s) named across the ledger, `
     + `${shared.length} shared (${KNOWN_SHARED_THREADS.length} examined and cleared, `
-    + `${EXAMINED_AWAITING_FOLD.length} measured duplicate(s) awaiting Darrell's fold, `
+    + `${SHARED_FOUNDATION_DIFFERENT_POINT.length} sharing a foundation and landing elsewhere, `
     + `${UNEXAMINED_BASELINE.length} unexamined), 0 new.`);
   for (const p of KNOWN_SHARED_THREADS) console.log(`  ~ examined: ${p.thread} -> ${p.drs.join(', ')}`);
-  for (const p of EXAMINED_AWAITING_FOLD) {
-    console.log(`  ! DUPLICATE awaiting fold: ${p.lessons.join(' / ')} from ${p.thread} `
-      + `(${p.drs.join(', ')}), ${p.sharedVerses} shared verses`);
+  for (const p of SHARED_FOUNDATION_DIFFERENT_POINT) {
+    console.log(`  ~ shared foundation, different point: ${p.lessons.join(' / ')} from ${p.thread} `
+      + `(${p.drs.join(', ')}), ${p.sharedVerses} verses of common ground — not a duplicate`);
   }
   for (const k of UNEXAMINED_BASELINE) console.log(`  ! unexamined: ${k}`);
   console.log(`  (ledger: ${DECISIONS})`);
