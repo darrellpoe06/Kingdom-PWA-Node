@@ -99,7 +99,7 @@ describe('it does not cry wolf', () => {
   });
   it('a budget in a COMMENT is not a budget the file grants', () => {
     const src = [
-      "// historical note: this once passed { timeout: 60000 } and was tied",
+      '// historical note: this once passed { timeout: 60000 } and was tied',
       "const run = () => spawnSync('sh', [I], { env: { X_TIMEOUT: '1' } });",
       "describe('d', () => { it('x', () => { run(); }); });",
     ].join('\n');
@@ -124,18 +124,16 @@ describe('it does not cry wolf', () => {
   // guard in a comment; neither may buy its way out of the gate that way, or
   // documenting the rule would be how you escape it.
   it('merely NAMING the guard in a comment does not exempt a file', () => {
-    for (const p of ['app/src/__tests__/a-backup-on-request.test.js',
-      'app/src/__tests__/the-deploy-has-more-than-one-road.test.js']) {
+    for (const p of ['app/src/__tests__/a-backup-on-request.test.js', 'app/src/__tests__/the-deploy-has-more-than-one-road.test.js']) {
       expect(isOwnProofSuite(read(p)), p).toBe(false);
     }
-    expect(isOwnProofSuite("// see scripts/subprocess-budget-guard.mjs\nconst x = 1;")).toBe(false);
+    expect(isOwnProofSuite('// see scripts/subprocess-budget-guard.mjs\nconst x = 1;')).toBe(false);
   });
 });
 
 describe('the tree itself is clean', () => {
   it('the two files that caused this gate now pass it', () => {
-    for (const p of ['app/src/__tests__/the-deploy-has-more-than-one-road.test.js',
-      'app/src/__tests__/a-backup-on-request.test.js']) {
+    for (const p of ['app/src/__tests__/the-deploy-has-more-than-one-road.test.js', 'app/src/__tests__/a-backup-on-request.test.js']) {
       expect(findBudgetTies(read(p), p), p).toEqual([]);
     }
   });

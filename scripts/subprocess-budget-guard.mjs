@@ -65,22 +65,40 @@ const SPAWN_RE = /\b(?:spawnSync|spawn|execFileSync|execFile|execSync|exec)\s*\(
 // ---------------------------------------------------------------------------
 function splitTopLevelArgs(src, openIdx) {
   let i = openIdx + 1;
-  let paren = 1; let brace = 0; let bracket = 0;
+  let paren = 1;
+  let brace = 0;
+  let bracket = 0;
   const args = [];
   let start = i;
   while (i < src.length) {
     const c = src[i];
     const two = src.slice(i, i + 2);
-    if (two === '//') { const nl = src.indexOf('\n', i); i = nl === -1 ? src.length : nl; continue; }
-    if (two === '/*') { const end = src.indexOf('*/', i + 2); i = end === -1 ? src.length : end + 2; continue; }
+    if (two === '//') {
+      const nl = src.indexOf('\n', i);
+      i = nl === -1 ? src.length : nl;
+      continue;
+    }
+    if (two === '/*') {
+      const end = src.indexOf('*/', i + 2);
+      i = end === -1 ? src.length : end + 2;
+      continue;
+    }
     if (c === '"' || c === "'" || c === '`') {
-      const quote = c; i += 1;
+      const quote = c;
+      i += 1;
       while (i < src.length) {
-        if (src[i] === '\\') { i += 2; continue; }
-        if (src[i] === quote) { i += 1; break; }
+        if (src[i] === '\\') {
+          i += 2;
+          continue;
+        }
+        if (src[i] === quote) {
+          i += 1;
+          break;
+        }
         // `${ ... }` can itself hold quotes and parens; walk it as a nested span
         if (quote === '`' && src.slice(i, i + 2) === '${') {
-          let d = 1; i += 2;
+          let d = 1;
+          i += 2;
           while (i < src.length && d > 0) {
             if (src[i] === '{') d += 1;
             else if (src[i] === '}') d -= 1;
@@ -95,13 +113,17 @@ function splitTopLevelArgs(src, openIdx) {
     if (c === '(') paren += 1;
     else if (c === ')') {
       paren -= 1;
-      if (paren === 0) { args.push([start, i]); return { args, end: i }; }
+      if (paren === 0) {
+        args.push([start, i]);
+        return { args, end: i };
+      }
     } else if (c === '{') brace += 1;
     else if (c === '}') brace -= 1;
     else if (c === '[') bracket += 1;
     else if (c === ']') bracket -= 1;
     else if (c === ',' && paren === 1 && brace === 0 && bracket === 0) {
-      args.push([start, i]); start = i + 1;
+      args.push([start, i]);
+      start = i + 1;
     }
     i += 1;
   }
@@ -118,29 +140,53 @@ const lineOf = (src, idx) => src.slice(0, idx).split('\n').length;
 // `'--timeout', '5'` and `SOVEREIGN_REPLAY_TIMEOUT: '5'` are both quoted.
 export function maskDataRegions(src) {
   const out = src.split('');
-  const blank = (s, e) => { for (let k = s; k < e && k < out.length; k += 1) if (out[k] !== '\n') out[k] = ' '; };
+  const blank = (s, e) => {
+    for (let k = s; k < e && k < out.length; k += 1) if (out[k] !== '\n') out[k] = ' ';
+  };
   let i = 0;
   while (i < src.length) {
     const two = src.slice(i, i + 2);
-    if (two === '//') { const nl = src.indexOf('\n', i); const e = nl === -1 ? src.length : nl; blank(i, e); i = e; continue; }
-    if (two === '/*') { const end = src.indexOf('*/', i + 2); const e = end === -1 ? src.length : end + 2; blank(i, e); i = e; continue; }
+    if (two === '//') {
+      const nl = src.indexOf('\n', i);
+      const e = nl === -1 ? src.length : nl;
+      blank(i, e);
+      i = e;
+      continue;
+    }
+    if (two === '/*') {
+      const end = src.indexOf('*/', i + 2);
+      const e = end === -1 ? src.length : end + 2;
+      blank(i, e);
+      i = e;
+      continue;
+    }
     if (src[i] === '`') {
       let j = i + 1;
       while (j < src.length) {
-        if (src[j] === '\\') { j += 2; continue; }
+        if (src[j] === '\\') {
+          j += 2;
+          continue;
+        }
         if (src[j] === '`') break;
         j += 1;
       }
-      blank(i + 1, j); i = Math.min(j + 1, src.length); continue;
+      blank(i + 1, j);
+      i = Math.min(j + 1, src.length);
+      continue;
     }
     if (src[i] === '"' || src[i] === "'") {
-      const q = src[i]; let j = i + 1;
+      const q = src[i];
+      let j = i + 1;
       while (j < src.length) {
-        if (src[j] === '\\') { j += 2; continue; }
+        if (src[j] === '\\') {
+          j += 2;
+          continue;
+        }
         if (src[j] === q || src[j] === '\n') break;
         j += 1;
       }
-      i = Math.min(j + 1, src.length); continue;
+      i = Math.min(j + 1, src.length);
+      continue;
     }
     i += 1;
   }
@@ -156,8 +202,7 @@ export function maskDataRegions(src) {
 // which is exactly what a-backup-on-request.test.js now does, and exempting it
 // would have hidden a live tie from the gate. Comments are masked out first for
 // the same reason; the import path survives because ordinary strings are kept.
-export const isOwnProofSuite = (raw) => /\bfrom\s+['"][^'"]*subprocess-budget-guard\.mjs['"]/
-  .test(maskDataRegions(raw));
+export const isOwnProofSuite = (raw) => /\bfrom\s+['"][^'"]*subprocess-budget-guard\.mjs['"]/.test(maskDataRegions(raw));
 
 // `const NAME = 3;` -> 3. Only plain integer literals; anything computed is
 // left unresolved on purpose rather than guessed at.
@@ -183,9 +228,14 @@ export function declaredBudgetsMs(raw) {
   const src = maskDataRegions(raw);
   const consts = numericConsts(src);
   const found = [];
-  const push = (ms, idx, text) => { if (ms !== null) found.push({ ms, line: lineOf(src, idx), text }); };
+  const push = (ms, idx, text) => {
+    if (ms !== null) found.push({ ms, line: lineOf(src, idx), text });
+  };
   const num = (raw) => {
-    const s = String(raw).trim().replace(/^String\(|\)$/g, '').replace(/^['"]|['"]$/g, '');
+    const s = String(raw)
+      .trim()
+      .replace(/^String\(|\)$/g, '')
+      .replace(/^['"]|['"]$/g, '');
     return resolveNumber(s, consts);
   };
 
@@ -221,10 +271,7 @@ function spawnIndices(src) {
 
 function declaredFunctions(src) {
   const decls = [];
-  const res = [
-    /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g,
-    /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\(|function\b)/g,
-  ];
+  const res = [/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g, /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\(|function\b)/g];
   for (const re of res) {
     for (const m of src.matchAll(re)) {
       const paren = src.indexOf('(', m.index);
@@ -232,13 +279,25 @@ function declaredFunctions(src) {
       const { end } = splitTopLevelArgs(src, paren);
       // the body runs from the arg list to the end of the following block or
       // expression; a brace walk covers both arrow bodies and function bodies
-      let i = end + 1; let depth = 0; let bodyEnd = src.length; let started = false;
+      let i = end + 1;
+      let depth = 0;
+      let bodyEnd = src.length;
+      let started = false;
       while (i < src.length) {
         const c = src[i];
-        if (c === '{') { depth += 1; started = true; } else if (c === '}') {
+        if (c === '{') {
+          depth += 1;
+          started = true;
+        } else if (c === '}') {
           depth -= 1;
-          if (started && depth === 0) { bodyEnd = i; break; }
-        } else if (!started && c === ';') { bodyEnd = i; break; }
+          if (started && depth === 0) {
+            bodyEnd = i;
+            break;
+          }
+        } else if (!started && c === ';') {
+          bodyEnd = i;
+          break;
+        }
         i += 1;
       }
       decls.push({ name: m[1], start: m.index, end: Math.max(bodyEnd, end) });
@@ -261,7 +320,11 @@ function spawningHelperNames(src) {
       if (marked.has(d.name)) continue;
       const body = src.slice(d.start, d.end);
       for (const n of marked) {
-        if (new RegExp(`\\b${n}\\s*\\(`).test(body)) { marked.add(d.name); grew = true; break; }
+        if (new RegExp(`\\b${n}\\s*\\(`).test(body)) {
+          marked.add(d.name);
+          grew = true;
+          break;
+        }
       }
     }
   }
@@ -288,8 +351,7 @@ export function findBudgetTies(raw, file) {
     if (args.length < 2) continue;
     const bodySpan = args[1];
     const body = src.slice(bodySpan[0], bodySpan[1]);
-    const reaches = spawns.some((s) => s > bodySpan[0] && s < bodySpan[1])
-      || [...marked].some((n) => new RegExp(`\\b${n}\\s*\\(`).test(body));
+    const reaches = spawns.some((s) => s > bodySpan[0] && s < bodySpan[1]) || [...marked].some((n) => new RegExp(`\\b${n}\\s*\\(`).test(body));
     if (!reaches) continue;
 
     const ceilingExpr = args.length >= 3 ? src.slice(args[2][0], args[2][1]) : null;
@@ -316,8 +378,9 @@ function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     const st = statSync(p);
-    if (st.isDirectory()) { if (name !== 'node_modules') walk(p, acc); }
-    else if (/\.test\.(jsx?|tsx?)$/.test(name)) acc.push(p);
+    if (st.isDirectory()) {
+      if (name !== 'node_modules') walk(p, acc);
+    } else if (/\.test\.(jsx?|tsx?)$/.test(name)) acc.push(p);
   }
   return acc;
 }
@@ -329,14 +392,17 @@ if (process.argv[1] && process.argv[1].endsWith('subprocess-budget-guard.mjs')) 
   let exempt = 0;
   for (const f of files) {
     const raw = readFileSync(f, 'utf8');
-    if (isOwnProofSuite(raw)) { exempt += 1; continue; }
+    if (isOwnProofSuite(raw)) {
+      exempt += 1;
+      continue;
+    }
     if (!declaredBudgetsMs(raw).length || !spawnIndices(maskDataRegions(raw)).length) continue;
     watched += 1;
     findings.push(...findBudgetTies(raw, f.replace(`${ROOT}/`, '')));
   }
   if (findings.length) {
-    console.error('subprocess-budget-guard FAILED — a spawned script\'s budget meets or exceeds the test');
-    console.error('runner\'s ceiling. The runner KILLS the case rather than waiting, so this is a race by');
+    console.error("subprocess-budget-guard FAILED — a spawned script's budget meets or exceeds the test");
+    console.error("runner's ceiling. The runner KILLS the case rather than waiting, so this is a race by");
     console.error('construction: it dies as "Test timed out in Nms" on a loaded runner and passes when idle');
     console.error('(DR-1269). Lower the subprocess budget, or give the case an explicit larger ceiling.');
     for (const h of findings) {
@@ -346,5 +412,7 @@ if (process.argv[1] && process.argv[1].endsWith('subprocess-budget-guard.mjs')) 
     }
     process.exit(1);
   }
-  console.log(`subprocess-budget-guard: OK — ${watched} test file(s) spawn with an explicit budget, every one strictly under its runner ceiling (${exempt} proof-suite file(s) hold tied shapes as fixtures and are exempt).`);
+  console.log(
+    `subprocess-budget-guard: OK — ${watched} test file(s) spawn with an explicit budget, every one strictly under its runner ceiling (${exempt} proof-suite file(s) hold tied shapes as fixtures and are exempt).`
+  );
 }
