@@ -44,9 +44,42 @@ const LOOPBACK = { ...process.env, NO_PROXY: '127.0.0.1,localhost', no_proxy: '1
 const shellOf = (srv) => `http://127.0.0.1:${srv.address().port}/poetech-app/`;
 // The selector must run ASYNCHRONOUSLY: a synchronous spawn would block the
 // very thread that serves the fixture, and every fetch would time out.
+//
+// THE BUDGET RULE, for every case in this file that spawns a child process --
+// the subprocess budget must stay STRICTLY BELOW the test runner's timeout,
+// because the runner KILLS the case rather than waiting for the script. Equal
+// budgets are a race by construction, not a flake: the case dies with "Test
+// timed out in Nms" and no assertion is ever wrong. Observed in CI on run
+// 42081880950 (shard 1/4) at 5009ms against the default 5000ms ceiling -- a 9ms
+// overrun, the signature of a tie, and it passes on an idle machine, which is
+// itself the tell. (Same class as the ~5002ms P54 note in vitest.config.js.)
+//
+// A case that looks safe because its fixture refuses early is NOT safe: it is
+// quick today by fixture, still tied by budget. So the ceiling goes on every
+// spawning case, not only the one seen to fail, and both ends are pinned as
+// named constants. `budgetsAreOrdered` below fails the suite if they ever meet
+// again -- a comment cannot fail a build, and this tie already shipped once.
+//
+// Sizing needs one measured fact per script, because neither inner budget is a
+// total wall clock:
+//   * served-anon-key.py --timeout is PER FETCH (urlopen(..., timeout=) at
+//     served-anon-key.py:38). It fetches the shell, then every hashed asset the
+//     shell names, SEQUENTIALLY: worst case (1 + chunks) x the per-fetch value.
+//     Lowering that value ALONE therefore does not clear a 5000ms ceiling.
+//   * SOVEREIGN_REPLAY_TIMEOUT is per INVOCATION of replay-on-clock.sh, and the
+//     single-flight case invokes it twice: worst case 2 x the value.
+const SELECTOR_FETCH_TIMEOUT_S = 3;
+// The widest fixture here serves 3 chunks, so 4 sequential fetches -> 12s.
+const SELECTOR_MAX_FETCHES = 4;
+const REPLAY_TIMEOUT_S = 3;
+// Most invocations of replay-on-clock.sh in one case (single-flight) -> 6s.
+const REPLAY_MAX_RUNS = 2;
+// Strictly above both worst cases, with room for interpreter startup, the
+// loopback fixture server and process teardown. Real runs here take ~0.5-1.5s.
+const SUBPROCESS_CASE_MS = 20000;
 function runSelector(shell) {
   return new Promise((resolve) => {
-    const child = spawn('python3', [SELECTOR, '--shell', shell, '--timeout', '5'], { env: LOOPBACK });
+    const child = spawn('python3', [SELECTOR, '--shell', shell, '--timeout', String(SELECTOR_FETCH_TIMEOUT_S)], { env: LOOPBACK });
     let out = ''; let err = '';
     child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { err += d; });
@@ -67,34 +100,42 @@ describe('the served site speaks the public client key (scripts/served-anon-key.
     expect(r.out).toBe(SOVEREIGN);
     expect(r.err).toMatch(/road served-site; chunks scanned 3; anon keys found 1; chosen 1/);
     expect(r.err).not.toContain(SOVEREIGN);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('prefers the key without a hosted "ref" claim when the hosted project key is also in the bundle', async () => {
     const s = await up({ 'a.js': `"${FUNNEL}" "${HOSTED}" "${SOVEREIGN}" "${SERVICE}"` });
     const r = await select(s);
     expect(r.code).toBe(0);
     expect(r.out).toBe(SOVEREIGN);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('REFUSES a served build that is not repoint-armed (no gateway URL): its key would be the wrong backend', async () => {
     const s = await up({ 'a.js': `"${SOVEREIGN}" https://x.supabase.co` });
     const r = await select(s);
     expect(r.code).toBe(11);
     expect(r.out).toBe('');
-  });
+  }, SUBPROCESS_CASE_MS);
   it('REFUSES when no anon key is in any chunk (a service key is not an anon key)', async () => {
     const s = await up({ 'a.js': `"${FUNNEL}" "${SERVICE}"` });
     expect((await select(s)).code).toBe(12);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('REFUSES two distinct anon keys as ambiguous rather than picking one', async () => {
     const s = await up({ 'a.js': `"${FUNNEL}" "${SOVEREIGN}"`, 'b.js': `"${OTHER_ANON}"` });
     const r = await select(s);
     expect(r.code).toBe(13);
     expect(r.out).toBe('');
-  });
+  }, SUBPROCESS_CASE_MS);
   it('REFUSES a shell that names no hashed assets, and a shell it cannot fetch', async () => {
     const s = await up({});
     expect((await select(s)).code).toBe(10);
     const r = await runSelector('http://127.0.0.1:9/poetech-app/');
     expect(r.code).toBe(14);
+  }, SUBPROCESS_CASE_MS);
+
+  // The rule above, machine-checked: a comment cannot fail a build, and this
+  // tie already shipped once. Proven-to-catch (DR-0076 §3) -- it was run with
+  // the old pair (5s inner, 5000ms outer) and fails on it.
+  it('budgetsAreOrdered: every subprocess budget stays strictly under the runner ceiling', () => {
+    expect(SELECTOR_MAX_FETCHES * SELECTOR_FETCH_TIMEOUT_S * 1000).toBeLessThan(SUBPROCESS_CASE_MS);
+    expect(REPLAY_MAX_RUNS * REPLAY_TIMEOUT_S * 1000).toBeLessThan(SUBPROCESS_CASE_MS);
   });
 });
 
@@ -126,7 +167,7 @@ describe('the database replays its own mirror on the NAS clock (infra/nas-supaba
     writeFileSync(join(repo, 'infra/nas-supabase/replay_migrations.sh'), `#!/bin/sh\n${body}\n`);
   };
   const run = (env = {}) => spawnSync('sh', [INSTALLER], {
-    encoding: 'utf8', env: { ...process.env, POETECH_REPO: repo, SOVEREIGN_REPLAY_HOME: home, SOVEREIGN_REPLAY_TIMEOUT: '5', ...env },
+    encoding: 'utf8', env: { ...process.env, POETECH_REPO: repo, SOVEREIGN_REPLAY_HOME: home, SOVEREIGN_REPLAY_TIMEOUT: String(REPLAY_TIMEOUT_S), ...env },
   });
   const status = () => JSON.parse(readFileSync(join(home, 'status.json'), 'utf8'));
   beforeAll(() => { repo = mkdtempSync(join(tmpdir(), 'sr-repo-')); home = mkdtempSync(join(tmpdir(), 'sr-home-')); });
@@ -158,7 +199,7 @@ describe('the database replays its own mirror on the NAS clock (infra/nas-supaba
     expect(typeof st.head).toBe('string');
     expect(existsSync(join(home, '.lock'))).toBe(false);
     expect(readFileSync(join(home, 'replay.log'), 'utf8')).toMatch(/rc=0/);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('a migration that FAILS reds the cycle (exit 1) with the frontier named, never a quiet 0', () => {
     fake('echo "replay: applied 0 this run, ledger 314/315, frontier: 0313-x.sql FAILED: ERROR: syntax error"; exit 1');
     const r = run();
@@ -167,21 +208,21 @@ describe('the database replays its own mirror on the NAS clock (infra/nas-supaba
     const st = status();
     expect(st.ok).toBe(false);
     expect(st.frontier).toMatch(/0313-x\.sql FAILED/);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('a replay that could not run (docker or the database away) is DEGRADED (exit 3), named', () => {
     fake('echo "replay: docker binary not found (PATH, /usr/local/bin, /usr/bin) - cannot run"; exit 1');
     const r = run();
     expect(r.status).toBe(3);
     expect(r.stdout).toMatch(/could not run this cycle/);
     expect(status().ok).toBe(false);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('the wall clock is a hard ceiling: a hung replay is killed and reported as timed out', () => {
     fake('sleep 30; echo "replay: applied 0 this run, ledger 1/1, frontier: none"');
     const r = run({ SOVEREIGN_REPLAY_TIMEOUT: '1' });
     expect(r.status).toBe(3);
     expect(status().frontier).toMatch(/timed out after 1s/);
     expect(status().rc).toBe(124);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('single-flight: a live lock means "already in progress" (exit 0, nothing run); a stale lock is cleared', () => {
     fake('echo "replay: applied 0 this run, ledger 1/1, frontier: none"; exit 0');
     mkdirSync(join(home, '.lock'));
@@ -194,13 +235,13 @@ describe('the database replays its own mirror on the NAS clock (infra/nas-supaba
     expect(cleared.stdout).toMatch(/stale lock .* was cleared/);
     expect(cleared.status).toBe(0);
     expect(existsSync(join(home, '.lock'))).toBe(false);
-  });
+  }, SUBPROCESS_CASE_MS);
   it('a missing replay script is a loud exit 1, not a silent cycle', () => {
     rmSync(join(repo, 'infra/nas-supabase/replay_migrations.sh'));
     const r = run();
     expect(r.status).toBe(1);
     expect(r.stdout).toMatch(/no replay script/);
-  });
+  }, SUBPROCESS_CASE_MS);
 });
 
 describe('one replay at a time (infra/nas-supabase/replay_migrations.sh)', () => {
