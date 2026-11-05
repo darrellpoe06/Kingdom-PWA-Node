@@ -421,6 +421,118 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     lastCloudIdxRef.current = -1;
     return next;
   };
+  // FOLLOWING SURVIVES THE PAGE RE-RENDERING UNDER IT (DR-1327).
+  //
+  // Darrell 2026-11-05, from his phone, mid-lesson: "After finding the reader
+  // the voice is overreacting... won't follow because of something... it shows
+  // this after it finds the text and can't keep going because of this!!!!!!"
+  // The screenshot: a paced CHILD-pace lesson at STEP 45 OF 52, the words
+  // plainly on the screen, and the reader's button saying TEXT — the reader's
+  // own word for "those words are on another page".
+  //
+  // WHAT WAS ACTUALLY WRONG. The follow map is built ONCE per run and its
+  // ranges are live DOM Ranges. A paced step view re-renders as the reading
+  // advances (each step revealed is a React update), React replaces the text
+  // nodes, and every stored Range detaches onto a surviving ancestor and reads
+  // `collapsed`. There was no code anywhere in this file or read-follow.js that
+  // ever rebuilt a range — measured: the only two `isConnected` reads were the
+  // two that GAVE UP. So following died silently, the button relabelled itself
+  // from "Following" to "TEXT", and the words sat there on screen.
+  //
+  // A detached range is not a reason to stop; it is a reason to look again. The
+  // map is rebuilt from the LIVE DOM — from the SAME container this run was
+  // mapped from, never the whole page (re-mapping `readingRoot()` is what put
+  // the highlight on another lesson card's identical sentence, DR-0722) — and
+  // the sentence being spoken is found in it BY ITS OWN TEXT. `findSentence`
+  // already answers exactly this question for a resumed lesson, and its
+  // `moved` verdict IS this case: the sentence is still here, at a different
+  // index, because the step list grew. Same primitive, same policy as
+  // savedStartIndex; nothing new invented.
+  /** A range still over real, attached words — the one test both halves share. */
+  const rangeAlive = (r) => !!(r && !r.collapsed && r.startContainer && r.startContainer.isConnected);
+  /** The container this run's map came from, re-resolved if React replaced it. */
+  const followRootNow = () => {
+    const f = followRef.current;
+    if (!f) return null;
+    // By id first: a lesson element keeps its id across a re-render even when
+    // the node itself is replaced.
+    if (f.rootId && typeof document !== 'undefined') {
+      const byId = document.getElementById(f.rootId);
+      if (byId) return byId;
+    }
+    // Still attached is still the right root. A root that is GONE is honestly
+    // gone — we do not fall back to the page, because a sentence found on a
+    // different surface is a wrong answer, not a recovery.
+    return f.root && f.root.isConnected ? f.root : null;
+  };
+  /** The words the voice is on right now, as text — the fingerprint to re-find. */
+  const spokenSentenceNow = () => {
+    const f = followRef.current;
+    if (!f || !f.follow) return '';
+    const local = Math.max(0, runLocalRef.current);
+    if (f.spans) {
+      const sp = f.spans[local];
+      if (sp && f.follow.text) return f.follow.text.slice(sp.start, sp.end);
+      return (f.spoken && f.spoken[local]) || '';
+    }
+    const seg = f.follow.segments ? f.follow.segments[(f.base || 0) + local] : null;
+    return (seg && seg.text) || '';
+  };
+  /**
+   * Rebuild this run's follow map from the live DOM and re-find the sentence
+   * being spoken. Returns its fresh Range, or null when the words genuinely are
+   * not on this page any more — which is the one case the TEXT button is for.
+   */
+  const reanchorFollow = () => {
+    const f = followRef.current;
+    if (!f || !f.follow) return null;
+    const root = followRootNow();
+    if (!root) return null;
+    const local = Math.max(0, runLocalRef.current);
+    let follow = null;
+    try { follow = buildFollowMap(root); } catch (_) { return null; }
+    if (!follow || !follow.segments || !follow.segments.length) return null;
+    const keep = { root, rootId: root.id || f.rootId || '', paraStarts: null };
+    // A run that speaks its OWN registered text (DR-0722) is re-found the way
+    // it was found the first time: the alignment walk. Its spans ARE its
+    // ranges, so one walk restores both, and `base` stays 0 by construction.
+    if (f.spans && Array.isArray(f.spoken) && f.spoken.length) {
+      const spans = alignSegmentSpans(follow, f.spoken);
+      const here = spans[local] ? rangeFor(follow, spans[local].start, spans[local].end) : null;
+      if (!rangeAlive(here)) return null;
+      followRef.current = {
+        ...f, ...keep, follow, base: 0,
+        ranges: spans.map((s) => (s ? rangeFor(follow, s.start, s.end) : null)),
+        spans,
+        wordable: spans.some(Boolean),
+      };
+      return here;
+    }
+    // The common case: the spoken text IS the mapped text, so the sentence is
+    // found by its own fingerprint.
+    const want = spokenSentenceNow();
+    if (!want) return null;
+    const hit = findSentence(follow.segments.map((g) => (g && g.text) || ''), {
+      sentence: (f.base || 0) + local, sentenceKey: sentenceKeyOf(want),
+    });
+    if (hit.how !== 'exact' && hit.how !== 'moved' && hit.how !== 'index-only') return null;
+    // THE BASE HAS TO MOVE, NOT THE LOCAL POSITION. `local` belongs to the
+    // ENGINE — the sentence effects set it from the piece playing — so the
+    // ranges array must stay indexed by it. Re-seat `base` instead, so
+    // `base + local` is still the true global sentence and the bookmark
+    // placeLessonIfMine writes stays the sentence actually being heard.
+    const base = hit.index - local;
+    if (follow.segments.length - base <= 0) return null;
+    const ranges = []; const lens = [];
+    for (let i = 0; i < follow.segments.length - base; i += 1) {
+      const s = base + i >= 0 ? follow.segments[base + i] : null;
+      ranges.push(s ? rangeFor(follow, s.start, s.end) : null);
+      lens.push(s ? s.text.length : 0);
+    }
+    if (!rangeAlive(ranges[local])) return null;
+    followRef.current = { ...f, ...keep, follow, base, ranges, lens };
+    return ranges[local];
+  };
   // FOLLOW ALONG, BUT NEVER YANK (DR-0633; Darrell: "need to be able to go
   // back to the reading page to see the text when I want"). The highlight
   // always follows the voice; the SCROLL follows only until the listener
@@ -493,6 +605,32 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const moved = followRange(r, { place: prefsRef.current.place, mode });
     if (settleRef.current && moved) settleRef.current = false;
   };
+  // FOLLOWING PICKS ITSELF BACK UP (DR-1327). No dependency array on purpose:
+  // this runs after EVERY commit, which is exactly when a re-render can have
+  // detached the ranges — including a re-render the reader did not cause (a
+  // paced step revealing itself as the voice reaches it). While nothing is
+  // detached it is one cheap property read and returns; when something is, the
+  // map is rebuilt, the sentence is lit and followed again, and the state bump
+  // relabels the button from "Text" back to "Following" without a tap. A
+  // failed re-anchor changes no state, so there is no loop either way.
+  const [, markReanchored] = useState(0);
+  // Through a ref, the pattern this file already uses to keep a sentence
+  // callback's dependency list honest.
+  const reanchorRef = useRef(null);
+  reanchorRef.current = reanchorFollow;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs every commit BY DESIGN (see above); the bump is reached only while a range is detached, and the re-anchor it follows makes that false, so the chain is exactly one render long.
+  useEffect(() => {
+    if (!isReading) return;
+    const f = followRef.current;
+    if (!f || !f.ranges) return;
+    const local = Math.max(0, runLocalRef.current);
+    if (rangeAlive(f.ranges[local])) return;
+    const r = reanchorRef.current();
+    if (!r) return;
+    lightSentence(r);
+    scrollToVoice(r);
+    markReanchored((n) => n + 1);
+  });
   useEffect(() => {
     if (!isReading) { awayRef.current = false; setUserAway(false); if (!jumpingRef.current) settleRef.current = false; return undefined; }
     if (typeof window === 'undefined') return undefined;
@@ -623,7 +761,11 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // it are added (DR-1254), so the sentence lit and kept is the one heard.
     const segmentIndex = pieceOffsetRef.current + Math.max(0, enginePiece);
     runLocalRef.current = segmentIndex;
-    const r = followRef.current.ranges[segmentIndex] || null;
+    let r = followRef.current.ranges[segmentIndex] || null;
+    // THE LIVE HIGHLIGHT LOOKS AGAIN (DR-1327). A paced view re-renders while
+    // the voice is reading it, which detaches every stored range. Re-anchor
+    // from the live DOM rather than light words that are no longer there.
+    if (!rangeAlive(r)) r = reanchorRef.current() || r;
     lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
     scrollToVoice(r);
@@ -651,7 +793,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     if (idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
     runLocalRef.current = idx;
-    const r = followRef.current.ranges[idx] || null;
+    let r = followRef.current.ranges[idx] || null;
+    if (!rangeAlive(r)) r = reanchorRef.current() || r; // the page may have re-rendered (DR-1327)
     lightSentence(r);
     scrollToVoice(r);
     // THE CLOUD VOICE KEEPS THE PLACE TOO (Darrell 2026-09-14: "Lessons keep
@@ -764,12 +907,17 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       ? found.index : -1;
   };
 
-  const pageFollowState = (follow, base = 0) => ({
+  // `root` is kept so the map can be REBUILT from the same container when a
+  // re-render detaches its ranges (DR-1327, reanchorFollow above). The id is
+  // kept beside it because a re-render can replace the node while keeping it.
+  const pageFollowState = (follow, base = 0, root = null) => ({
     follow,
     base,
     ranges: follow.segments.slice(base).map((s) => (s ? rangeFor(follow, s.start, s.end) : null)),
     lens: follow.segments.slice(base).map((s) => (s ? s.text.length : 0)),
     wordable: true,
+    root,
+    rootId: (root && root.id) || '',
   });
 
   // START WHERE I TAP (DR-0144): "if Ari could start right at wherever users
@@ -1038,7 +1186,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       } catch (_) { caret = null; }
       const segIdx = follow && caret ? segmentIndexAtDomPoint(follow, caret.node, caret.offset) : -1;
       if (follow && segIdx >= 0) {
-        beginRun(pageFollowState(follow, segIdx));
+        beginRun(pageFollowState(follow, segIdx, main));
         // Same law as Read-this-page: a tap-started read follows and highlights,
         // so the card must collapse to the pill or it covers the very words it
         // just lit up (reported 2026-08-06 — the panel sat over the read text).
@@ -1115,7 +1263,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // can't be built (empty page) — reading always still works.
     const follow = main ? buildFollowMap(main) : null;
     if (follow && follow.text) {
-      beginRun(pageFollowState(follow));
+      beginRun(pageFollowState(follow, 0, main));
       setMinimized(true);
       read(follow.text);
       return;
@@ -1301,6 +1449,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         lens: ownSpoken.map((s) => s.length),
         wordable: true,
         owner: t.owner,
+        // Kept so a re-render can be re-aligned by the same walk (DR-1327).
+        spoken: ownSpoken,
+        root: el,
+        rootId: (el && el.id) || '',
       });
       setMinimized(true);
       read(t.text);
@@ -1323,12 +1475,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
       if (at > 0 && follow.segments[at]) {
-        beginRun({ ...pageFollowState(follow, at), owner: t.owner });
+        beginRun({ ...pageFollowState(follow, at, el), owner: t.owner });
         setMinimized(true);
         read(follow.text.slice(follow.segments[at].start));
         return;
       }
-      beginRun({ ...pageFollowState(follow), owner: t.owner });
+      beginRun({ ...pageFollowState(follow, 0, el), owner: t.owner });
       setMinimized(true);
       read(follow.text);
       return;
@@ -1351,6 +1503,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       // span is all the lookup needs. Sentences that are not on screen stay
       // null and simply carry no highlight, as before.
       wordable: pageSpans.some(Boolean),
+      // Kept so a re-render can be re-aligned by the same walk (DR-1327).
+      spoken,
+      root: pageRoot,
+      rootId: (pageRoot && pageRoot.id) || '',
     } : null);
     setMinimized(true);
     read(t.text);
@@ -1424,7 +1580,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     jumpingRef.current = true;
     settleRef.current = true;
     setJumpLive(true);
-    beginRun({ ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner });
+    beginRun({ ...pageFollowState(f.follow, idx, f.root), paraStarts, owner: f.owner, rootId: f.rootId || '' });
     read(f.follow.text.slice(seg.start));
   };
   // BACK, TAPPED AGAIN, KEEPS WALKING BACK (2026-10-07; lib/read-follow.js
@@ -1522,22 +1678,31 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const showTheText = () => {
     awayRef.current = false;
     setUserAway(false);
-    const r = spokenRange();
     // A range over words that left the page does not vanish: the browser
     // collapses it onto the nearest surviving ancestor. Collapsed means the
-    // words are gone, so the page has to be opened again.
-    const node = r && r.startContainer;
-    if (r && !r.collapsed && node && node.isConnected) { lightSentence(r); followRange(r, { place: prefsRef.current.place }); return; }
-    openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
+    // words moved — which is a re-render as often as it is a departure, so
+    // LOOK AGAIN before deciding the text is somewhere else (DR-1327).
+    const r = rangeAlive(spokenRange()) ? spokenRange() : reanchorFollow();
+    if (rangeAlive(r)) { lightSentence(r); followRange(r, { place: prefsRef.current.place }); return; }
+    // A TAP THAT DOES NOTHING IS THE DEFECT (DR-1327). Darrell, 2026-11-05:
+    // "Also this happens after choosing to go to the text... it wont". This
+    // return value was computed and thrown away: when no surface claims the
+    // owner, openReadingSource opens nothing and said nothing, so the button
+    // was dead under his thumb. The listener is told, in the reader, in plain
+    // words — one line, no options, the way the rest of this panel speaks.
+    const opened = openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
+    if (opened) return;
+    if (typeof setNotice === 'function') setNotice('The words being read are not on this screen — open the lesson or page they came from and the reader will follow them again.');
+    // Said where the tap happened: the panel the message lives in comes open,
+    // rather than a mark he has to go and find.
+    setIsOpen(true);
+    setMinimized(false);
   };
-  // Is the text being read on THIS page? A range over words that left the
-  // page is collapsed (see above), so "Follow" has nothing to follow here and
-  // the button offers to open the text instead.
-  const textHere = (() => {
-    const r = isReading ? spokenRange() : null;
-    const node = r && r.startContainer;
-    return !!(r && !r.collapsed && node && node.isConnected);
-  })();
+  // Is the text being read on THIS page? A range over words that left the page
+  // is collapsed (see above). The re-anchor effect above has already looked
+  // again by the time this renders, so "Text" now means the words really are
+  // elsewhere.
+  const textHere = rangeAlive(isReading ? spokenRange() : null);
   // FOLLOWING, SAID IN WORDS (Darrell 2026-09-24, from his phone: "text
   // orange means follow!!!!!" — he had read the focus ring as a state). The
   // mini-bar button and the panel's "Follow the voice" are ONE control: the
