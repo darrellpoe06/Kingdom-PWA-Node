@@ -362,14 +362,18 @@ describe('L275 is in the catalog, numbered, dated and whole', () => {
     expect(Object.keys(SHARED_CHAPTERS)).toHaveLength(14);
   });
 
-  it('carries NO verse of 2 Kings 20:12-18 or Isaiah 39:2, which sov46 already teaches', () => {
-    // MEASURED, not assumed. sov46 (the helper that must see everything) stands
-    // on 2 Kings 20:12, 20:13, 20:15, 20:16, 20:17, 20:18 and Isaiah 39:2 for
-    // Hezekiah's open treasure house. The sign on the dial (20:8-11) and the
-    // reply about his sons (39:5-8) are a different passage and a different
-    // teaching, so this lesson takes those and leaves the treasure house alone.
+  it('keeps to its own passage: the dial and the reply, not the treasure house', () => {
+    // THIS LESSON'S OWN SCOPE, and the reason is restated (2026-11-05, DR-1326)
+    // because the old message read `${v} is spent in sov46`, which taught the
+    // next builder the rule DR-1317 overturned. Nothing is spent. sov46 (the
+    // helper that must see everything) teaches Hezekiah's open treasure house
+    // and ll275 could stand on those verses tomorrow if its teaching needed
+    // them. It does not: the sign on the dial (2 Kings 20:8-11) and the reply
+    // about his sons (Isaiah 39:5-8) are a different passage carrying a
+    // different point, and this case pins the authorial choice of WHAT THIS
+    // LESSON TEACHES — never a claim on ground sov46 may hold.
     for (const v of ['2 Kings 20:12', '2 Kings 20:13', '2 Kings 20:15', '2 Kings 20:16', '2 Kings 20:17', '2 Kings 20:18', 'Isaiah 39:2']) {
-      for (const t of EVERY_STRING) expect(t, `${v} is spent in sov46`).not.toContain(v);
+      for (const t of EVERY_STRING) expect(t, `${v} belongs to the treasure-house passage, which is outside this lesson's chosen scope`).not.toContain(v);
     }
     expect(L.lesson).toContain('(2 Kings 20:11)');
     expect(L.lesson).toContain('(Isaiah 39:8)');
@@ -459,9 +463,25 @@ describe('the ground is measured both ways, and shared ground is named rather th
     expect(courseProse().length).toBeGreaterThan(5_000_000);
   });
 
-  it('the ten unshared chapters really are untouched by this course at anchor level', () => {
+  // THE CENSUS IS HISTORY, NOT A STANDING CLAIM (2026-11-05, DR-1326, applying
+  // DR-1323 to a third gate). This case used to assert that the ten chapters
+  // above appear in NO other lesson of the course, forever. That is a frozen
+  // census pinned by equality, and it REFUSED Darrell's own next lesson: ll281
+  // (DR-1325) stands on Amos 6:3, Zephaniah 1:12 and Jeremiah 48:11 — which are
+  // this lesson's MECHANISM movement — and this case went red in a file ll281
+  // never touched. DR-1317: a verse is never spent, and overlap is how lessons
+  // connect. So the ten are kept as a DATED MEASUREMENT of what was true when
+  // ll275 was built, and what is asserted now is this lesson's own ground.
+  it('the once-unshared census is REPORTED as history, and a later lesson taking one is not a failure', () => {
     const spent = anchorChapters();
-    expect(UNSHARED_CHAPTERS.filter((c) => spent.has(c))).toEqual([]);
+    // The census is reported rather than enforced: a chapter that has since
+    // been taken up by a later lesson is NOT a failure, it is the library
+    // filling. Printed so the drift stays visible to a reader of this file.
+    const taken = UNSHARED_CHAPTERS.filter((c) => spent.has(c));
+    expect(Array.isArray(taken)).toBe(true);
+    if (taken.length) {
+      console.log(`ll275: ${taken.length} of its 10 once-unshared chapters are now shared with a later lesson: ${taken.join(', ')} — expected, DR-1317.`);
+    }
   });
 
   it('and the fourteen shared chapters really ARE shared at chapter level, so the list is not padding', () => {
@@ -495,13 +515,25 @@ describe('the ground is measured both ways, and shared ground is named rather th
     expect(refs.length).toBeGreaterThan(30);
     const whole = `${corpus}\n${courseProse()}`;
     const shared = refs.filter((r) => whole.includes(r));
-    // THE MEASUREMENT, pinned by its own shape rather than by a count that
-    // would rot: exactly the four restored verses are shared at prose level,
-    // and nothing else is. The old rule would have vetoed all four. The rule
-    // now is that each must be NAMED with its neighbour's landing, which the
-    // check above asserts.
-    expect(shared.sort()).toEqual(['2 Chronicles 32:26', 'Ecclesiastes 8:11', 'Haggai 1:2', 'Isaiah 30:8'].sort());
-    expect(shared.every((r) => RESTORED.some((x) => x.verse === r))).toBe(true);
+    // A FLOOR, NEVER A CEILING (2026-11-05, DR-1326). This was an exact-set
+    // equality — `shared.sort()).toEqual([the four])` — which asserted that no
+    // other lesson in the library may ever quote a fifth verse of ll275's. That
+    // is the frozen-census defect again, and it fired: ll281 (DR-1325) quotes
+    // Amos 6:3, Zephaniah 1:12 and Jeremiah 48:11, taking the count 4 -> 7 and
+    // turning this case red in a file ll281 never touched. Under DR-1317 the
+    // growth is the library filling, not a fault.
+    //
+    // What is asserted now is the thing that was always the point: the four
+    // verses Darrell's correction RESTORED are still shared AND still named
+    // here with their neighbour's landing. Others may join them freely.
+    for (const r of RESTORED.map((x) => x.verse)) {
+      expect(shared, `${r} was restored by Darrell's correction and must still be carried`).toContain(r);
+    }
+    // And the measurement is still a real measurement: it cannot read as a pass
+    // on an empty scan, and every verse it finds is one this lesson teaches.
+    expect(shared.length).toBeGreaterThanOrEqual(RESTORED.length);
+    expect(shared.every((r) => refs.includes(r))).toBe(true);
+    console.log(`ll275 prose census: ${shared.length} of its ${refs.length} references are carried somewhere else in the library — ${shared.sort().join(', ')}. Shared ground is how the courses connect (DR-1317).`);
   });
 
   it('THE CHECK THAT EARNED ITS PLACE: the two censuses genuinely disagree, which is why both are run', () => {
@@ -511,8 +543,17 @@ describe('the ground is measured both ways, and shared ground is named rather th
     // longer a reason to drop the verse — it is the reason the neighbour has to
     // be NAMED, and naming it is impossible without first knowing it is there.
     const spent = anchorChapters();
-    expect(spent.has('2 Chronicles 32'), 'FREE at anchor level').toBe(false);
-    expect(courseProse().includes('2 Chronicles 32:26'), 'BUILT in the course prose').toBe(true);
+    const prose = courseProse();
+    // THE METHOD CLAIM, COMPUTED (2026-11-05, DR-1326). This asserted that
+    // `2 Chronicles 32` is absent from every other anchor.ref in the course —
+    // a frozen census that would go red the day a later lesson anchors there,
+    // in a file that lesson may not edit. The durable form of the same proof is
+    // that the two censuses DISAGREE SOMEWHERE for this lesson's references,
+    // which is why both are run; it does not require any chapter to stay free.
+    const disagree = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean)
+      .filter((r) => !spent.has(chapterOf(r)) && prose.includes(r));
+    expect(disagree.length, 'at least one reference is free at anchor level and built in prose — the two censuses must genuinely differ').toBeGreaterThan(0);
+    expect(prose.includes('2 Chronicles 32:26'), 'BUILT in the course prose').toBe(true);
     expect(courseProse()).toContain('came not upon them in the days of Hezekiah');
     expect(courseProse().includes('Isaiah 30:8'), 'Isaiah 30:8 BUILT elsewhere in this course').toBe(true);
     // And BOTH reached this lesson, with their neighbours named.

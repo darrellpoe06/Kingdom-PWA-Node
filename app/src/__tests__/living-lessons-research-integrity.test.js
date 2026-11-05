@@ -31,6 +31,74 @@ describe('Trust but Verify — no bare statistic asserted as fact (DR-0190)', ()
     expect(offenders, offenders.join('\n')).toEqual([]);
   });
 
+  // ── DR-1326: §5 of DR-0190 gets a gate too ────────────────────────────────
+  // DR-0190 §5 has said since 2026-07-20 that a lesson carries "a short
+  // trust-but-verify note: what was checked, what tier each claim landed in,
+  // and the primary source." Only §3 (a bare statistic) was ever enforced, so a
+  // lesson could rest its whole landing on a forwarded publication's factual
+  // claims and pass, as long as it quoted no percentage.
+  //
+  // MEASURED 2026-11-05, which is why this exists: ll281 (DR-1325) was built
+  // from a business digest, deliberately figure-free, and passed every gate —
+  // while three of its four load-bearing claims failed primary-source checking,
+  // and the one its teaching turned on was BACKWARDS. FINRA's own margin table
+  // showed the largest one-month DROP in the series where the digest said the
+  // borrowing had "reached the highest level ever recorded."
+  //
+  // Darrell, 2026-11-05: "Lessons are Word first and research independently."
+  const DECLARES_FORWARDED_SOURCE = /\b(forwarded (?:into the app|newsletter|digest|article|issue)|a (?:morning )?(?:business )?(?:digest|newsletter) was forwarded|newsletter is not a recording)\b/i;
+  const VERIFICATION_NOTE = /\b(trust but verify|primary source|we checked|checked against|verified against|FINRA|filing|earnings release|own release|independent(?:ly)? (?:verif|check)|does not survive|over-claim)/i;
+  // The three lessons already on `main` that declare a forwarded source and
+  // carry no verification language. Named rather than excused: each needs a
+  // read to say whether it repeats an external factual claim at all (ll280
+  // refused every figure in its issue, so its note may be one sentence saying
+  // so) or whether a real check is owed. `re-review: 2026-11-19`.
+  const PRE_EXISTING_WITHOUT_A_NOTE = [
+    'll238-who-holds-the-wind-the-warning-the-foundation-and-the-neighbour-in-the-storms-path',
+    'll236-the-bill-you-cannot-read-honest-weights-a-plain-reckoning-and-whose-wisdom-governs-the-meter',
+    'll280-whose-answer-comes-in-the-night',
+  ];
+
+  it('a lesson built from a forwarded publication carries its trust-but-verify note (DR-0190 §5)', () => {
+    const offenders = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      const aud = audienceText(m);
+      if (!DECLARES_FORWARDED_SOURCE.test(aud)) continue;
+      if (VERIFICATION_NOTE.test(fullText(m))) continue;
+      if (PRE_EXISTING_WITHOUT_A_NOTE.includes(m.id)) continue;
+      offenders.push(m.id);
+    }
+    expect(
+      offenders,
+      'A forwarded article, newsletter or digest is a LEAD, never the citation (DR-0190 §1). '
+      + 'This lesson declares it was built from one and never says what was checked against a '
+      + 'primary source, or what tier its claims landed in. Add the note — and if the lesson '
+      + 'repeats no external factual claim at all, say THAT in a sentence:\n' + offenders.join('\n'),
+    ).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: the ratchet is real, and the three named ones are the only ones excused', () => {
+    // The trigger fires on real lessons rather than on nothing — if this count
+    // ever drops to zero the matcher has rotted and the gate is decorative.
+    const declaring = LIVING_LESSONS_MODULES.filter((m) => DECLARES_FORWARDED_SOURCE.test(audienceText(m)));
+    expect(declaring.length, 'no lesson declares a forwarded source — re-anchor this gate').toBeGreaterThanOrEqual(3);
+    // Each name on the excuse list is a real module, so the list cannot quietly
+    // hold a typo that silently excuses nothing (or everything).
+    for (const id of PRE_EXISTING_WITHOUT_A_NOTE) {
+      expect(LIVING_LESSONS_MODULES.some((m) => m.id === id), `${id} is not a module — stale excuse`).toBe(true);
+    }
+    // And a lesson that declares a forwarded source with NO verification
+    // language is genuinely caught: fabricate one and require the trigger.
+    const fake = { bigIdea: 'A morning business digest was forwarded into the app and it closed on three statements.', lesson: 'x', levels: {} };
+    expect(DECLARES_FORWARDED_SOURCE.test(audienceText(fake))).toBe(true);
+    expect(VERIFICATION_NOTE.test(fullText(fake))).toBe(false);
+  });
+
+  it('PROVEN NOT TO OVER-REACH: a lesson from a recording is never asked for the note', () => {
+    const spoken = { bigIdea: 'Bishop Gwin taught this at the weekly study and the recording is the source.', lesson: 'y', levels: {} };
+    expect(DECLARES_FORWARDED_SOURCE.test(audienceText(spoken))).toBe(false);
+  });
+
   it('L44 (Safe to Speak) teaches its research attributed — never the un-traceable %-stats as fact', () => {
     const l44 = LIVING_LESSONS_MODULES.find((m) => m.id === 'll44-safe-to-speak-psychological-safety');
     expect(l44, 'L44 must exist').toBeTruthy();
