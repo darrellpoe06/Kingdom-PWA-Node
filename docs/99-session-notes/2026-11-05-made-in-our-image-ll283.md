@@ -135,7 +135,22 @@ A strict ladder, child under its ceiling, no band a reworded copy of another (wo
 
 Both stories are **parables**. There is no real person whose life either was, so neither wears a testimony's clothes, and the unsourced-true-story pin stays at 88 (DR-1123).
 
-## 9. Left open
+## 9. The landing, and what the restart cost
+
+The container restarted mid-build and the session was stopped. Nothing was lost, but nothing was trusted either: the worktree was re-checked for existence and uncommitted work, `git ls-remote` confirmed no branch had been pushed, and every moving number was re-measured on the new `origin/main` rather than carried forward from memory.
+
+**The number moved twice.** DR-1350 was claimed on disk before the restart; by the time the claim script was re-run, `claude/a-status-read-is-filtered` (PR #2561) held it. The record, the catalog comment, the dates comment and the gate were renumbered to **DR-1351**, and every remote branch was then scanned by hand for a `DR-1351-` file to confirm the number was uncontested — the claim script's "0 at or above DR-1352" does not by itself answer the question for 1351.
+
+**ll282 was re-verified as the highest Living Lesson on the new main**, in both `living-lessons-dates.js` and `living-lessons-class.js`, rather than inferred from the test directory or taken on the orchestrator's word.
+
+**The ledger merge was a union, proven.** pm14 (DR-1349) landed while this was in flight and appended its own entry to the same array. Because this lesson's entry had not yet been written when main was merged, the merge itself was clean; the entry was then appended on top and the result checked **by parsing both sides as JSON and comparing entry ids**: 20 in, 21 out, **zero removed**. A `diff` of the id lists shows one addition and nothing else.
+
+**`format-guard` (DR-1343) flagged the new gate file**, as expected for a file added since `origin/main`. `--fix` was applied and then **the 62 gate cases were re-run**, rather than assuming prettier is behaviour-safe; a whitespace-normalised comparison confirms the reformat is line-breaks only (statement expansion and method-chain wrapping).
+
+**`decision-chain` red once, usefully.** The record was missing a `## Verification` section — the chain's fifth slot — and reads a section that opens straight into a subheading as a missing body. The section was written with prose, not a bare list of headings.
+
+## 10. Left open
 
 - **The signer's corporate title** was not independently confirmed; `bigthink.com` and `en.wikipedia.org` were refused to this session. `re-review: 2026-11-12`.
 - **The issue's own articles** were not read — the forwarded body carries only their promotional descriptions and the URLs were stripped. The lesson teaches from the Word and from the letter, and names that limit. No landing rests on an unread article.
+- **The deploy proof and the Gmail labelling** of thread `1a164aff48fa13de` were not done by this session; both belong to the orchestrator and are reported rather than assumed.
