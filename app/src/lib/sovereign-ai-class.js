@@ -8572,135 +8572,135 @@ export const SOVEREIGN_AI_MODULES = [
       "questions": [
         {
           "q": "What arrived in this lane, and under what word?",
-          "choices": [
+          "options": [
             "A research paper on model pricing, forwarded with a request for analysis",
             "A daily technology newsletter dated 2026-10-13, forwarded with one word typed above the forwarded header: Lessons",
             "A sermon recording from the weekly Bible study",
             "A vendor's own press release, sent directly by the vendor"
           ],
           "answer": 1,
-          "why": "It was a newsletter, not a study, and the teaching is judged by HIS word at the top of his own message, not by the publisher's subject line. Four removes stand between this lesson and the events."
+          "explain": "It was a newsletter, not a study, and the teaching is judged by HIS word at the top of his own message, not by the publisher's subject line. Four removes stand between this lesson and the events."
         },
         {
           "q": "How much of what that issue reported was verified here?",
-          "choices": [
+          "options": [
             "All of it, from the publisher's own page",
             "The prices only",
             "None of it - five addresses refused with curl: (56) CONNECT tunnel failed, response 403, and a second road refused with getaddrinfo ENOTFOUND www.theneurondaily.com, so every figure is UNCHECKED and none is staked",
             "The independent index scores were confirmed"
           ],
           "answer": 2,
-          "why": "Nothing was confirmed. The refusals are quoted rather than described, and the lesson deliberately stakes no figure from the issue anywhere in any reader text."
+          "explain": "Nothing was confirmed. The refusals are quoted rather than described, and the lesson deliberately stakes no figure from the issue anywhere in any reader text."
         },
         {
           "q": "In Numbers 30:2, what is a vow fastened to?",
-          "choices": [
+          "options": [
             "The man's reputation",
             "The man's calendar",
             "The man's soul, with payment measured by all that proceedeth out of his mouth",
             "The witnesses who heard it"
           ],
           "answer": 2,
-          "why": "A bond on the soul, discharged according to ALL that came out of the mouth - which forecloses paying a promise with a cheaper substitute."
+          "explain": "A bond on the soul, discharged according to ALL that came out of the mouth - which forecloses paying a promise with a cheaper substitute."
         },
         {
           "q": "According to Deuteronomy 23:22, how much sin is there in never making the vow at all?",
-          "choices": [
+          "options": [
             "A small amount, since silence is cowardice",
             "None whatsoever - if thou shalt forbear to vow, it shall be no sin in thee",
             "The same as breaking it",
             "The text does not say"
           ],
           "answer": 1,
-          "why": "No sin at all. That is why the entire weight of this law rests on the yes and none of it on the silence: you were never required to promise, only to perform what you promised."
+          "explain": "No sin at all. That is why the entire weight of this law rests on the yes and none of it on the silence: you were never required to promise, only to perform what you promised."
         },
         {
           "q": "Which son in Matthew 21:28-30 did his father's will?",
-          "choices": [
+          "options": [
             "The one who said I go, sir",
             "The one who said I will not, and afterward repented and went",
             "Both equally",
             "Neither"
           ],
           "answer": 1,
-          "why": "The polite answer is the one Jesus held up as the failure. The measure of a yes is not its warmth or its speed; it is the going. The field is the judge of the answer."
+          "explain": "The polite answer is the one Jesus held up as the failure. The measure of a yes is not its warmth or its speed; it is the going. The field is the judge of the answer."
         },
         {
           "q": "What was Jacob offered after he had served seven years and received Leah?",
-          "choices": [
+          "options": [
             "A refund of his service",
             "A ruling from a judge",
             "A further seven years for the same promise - fulfil her week, and we will give thee this also",
             "Nothing at all"
           ],
           "answer": 2,
-          "why": "Not restitution but an extension of term. That is the oldest sales shape there is: the thing you already paid for, now available on a new plan for a further term."
+          "explain": "Not restitution but an extension of term. That is the oldest sales shape there is: the thing you already paid for, now available on a new plan for a further term."
         },
         {
           "q": "In Genesis 31:7 and 31:41, what does Scripture name as the deceit?",
-          "choices": [
+          "options": [
             "That the wages were too low",
             "That the wages kept being CHANGED - ten times, after the work was already committed",
             "That Jacob was not paid at all",
             "That the contract was never written down"
           ],
           "answer": 1,
-          "why": "The offense is the movement, not the amount. A high price honestly stated is honest; terms that move after you have performed are what the Word calls deceit."
+          "explain": "The offense is the movement, not the amount. A high price honestly stated is honest; terms that move after you have performed are what the Word calls deceit."
         },
         {
           "q": "What question does Yahweh put in the seller's own hand in Malachi 1:8?",
-          "choices": [
+          "options": [
             "Is this the best you have?",
             "Offer it now unto thy governor; will he be pleased with thee, or accept thy person?",
             "What did it cost you?",
             "Who else have you shown this to?"
           ],
           "answer": 1,
-          "why": "Put it in front of the one man you cannot flatter. That dismantles every self-published scoreboard, because nobody grades his own animal and comes back with a flaw."
+          "explain": "Put it in front of the one man you cannot flatter. That dismantles every self-published scoreboard, because nobody grades his own animal and comes back with a flaw."
         },
         {
           "q": "Who is cursed in Malachi 1:14?",
-          "choices": [
+          "options": [
             "The man whose flock holds nothing better",
             "The man who HAS the sound animal, VOWS it, and sacrifices a corrupt thing instead",
             "Anyone who brings a small offering",
             "The governor who refuses the gift"
           ],
           "answer": 1,
-          "why": "Possession of the better thing is what turns a shortfall into a sin. The fraud lives in the gap between the vow and the delivery."
+          "explain": "Possession of the better thing is what turns a shortfall into a sin. The fraud lives in the gap between the vow and the delivery."
         },
         {
           "q": "What did Hezekiah's tribute purchase in 2 Kings 18:14-17?",
-          "choices": [
+          "options": [
             "Peace for a generation",
             "A written treaty",
             "Nothing - the silver and gold were paid in full and the great host came up against Jerusalem anyway",
             "A reduced assessment"
           ],
           "answer": 2,
-          "why": "Money handed to a word that was never good buys nothing. What you paid is not evidence of what you received; what you received is the only evidence there is."
+          "explain": "Money handed to a word that was never good buys nothing. What you paid is not evidence of what you received; what you received is the only evidence there is."
         },
         {
           "q": "What did the queen find when she stopped settling for the report and went to look?",
-          "choices": [
+          "options": [
             "The report had been exaggerated",
             "The half was not told her - the reality exceeded its own publication",
             "The king refused to see her",
             "Exactly what the report said, to the letter"
           ],
           "answer": 1,
-          "why": "An honest report errs in only one direction: it under-tells. That is the publication standard for this house, and it is why withholding the best version from the one place outsiders could measure it leaves a buyer holding a chart he cannot check."
+          "explain": "An honest report errs in only one direction: it under-tells. That is the publication standard for this house, and it is why withholding the best version from the one place outsiders could measure it leaves a buyer holding a chart he cannot check."
         },
         {
           "q": "What tense is the central promise in, according to Acts 13:32-33?",
-          "choices": [
+          "options": [
             "Future - it is coming soon",
             "Conditional, depending on our faithfulness",
             "Past - \"God hath fulfilled the same unto us their children, in that he hath raised up Jesus again\"",
             "The text does not specify"
           ],
           "answer": 2,
-          "why": "HATH FULFILLED. Jesus, the Lamb of Yahweh and the Eternal Son of Yahweh, was never left at coming soon, and the Father paid in the thing promised: \"he gave his only begotten Son\"."
+          "explain": "HATH FULFILLED. Jesus, the Lamb of Yahweh and the Eternal Son of Yahweh, was never left at coming soon, and the Father paid in the thing promised: \"he gave his only begotten Son\"."
         }
       ]
     },
