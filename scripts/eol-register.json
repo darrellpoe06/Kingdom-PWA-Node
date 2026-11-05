@@ -1,0 +1,17 @@
+{
+  "_comment": "eol-register (DR-1341, DR-1330 D12). Every runtime the repo pins, with the date it stops being supported. Dates are READ from the endoflife.date source (git clone of endoflife-date/endoflife.date, products/*.md front matter) at the commit named below, never recalled; a line with no published date says so. scripts/eol-register.mjs --check fails when a pinned cycle is past its date, when a pin in the repo has no line here, and warns inside the horizon. A runtime past its date that we no longer use carries status retired-from-use with a why and a reReview.",
+  "source": { "name": "endoflife.date", "repo": "https://github.com/endoflife-date/endoflife.date", "commit": "e1fbd1c02bdf4d92b35a6d40054373f2a1bd4b07", "readAt": "2026-11-05" },
+  "warnDays": 120,
+  "runtimes": [
+    { "product": "nodejs", "cycle": "22", "eol": "2027-04-30", "pinned": true, "where": ".github/workflows/*.yml node-version 22 (39 pins)", "next": "24 (eol 2028-04-30)" },
+    { "product": "python", "cycle": "3.11", "eol": "2027-10-31", "pinned": true, "where": ".github/workflows/*.yml python-version 3.11 (2 pins)" },
+    { "product": "python", "cycle": "3.12", "eol": "2028-10-31", "pinned": true, "where": ".github/workflows/*.yml python-version 3.12 (2 pins)" },
+    { "product": "postgresql", "cycle": "16", "eol": "2028-11-09", "pinned": true, "where": ".github/workflows/ci.yml and rls legs, image postgres:16 (13 pins)" },
+    { "product": "postgresql", "cycle": "15", "eol": "2027-11-11", "pinned": true, "where": "infra/nas-supabase/docker-compose.yml, supabase/postgres:15.8.1.060 (the sovereign database)" },
+    { "product": "eslint", "cycle": "10", "eol": null, "pinned": true, "where": "app/package.json eslint ^10.13.0", "note": "no end date published for the current major" },
+    { "product": "eslint", "cycle": "9", "eol": "2026-08-06", "pinned": false, "note": "npm audit offered eslint@9.39.5 as a 'fix' on 2026-11-05; that line was already past its end of life, which is why the audit guard's allowlist does not take it" },
+    { "product": "react", "cycle": "18", "eol": null, "pinned": true, "where": "app/package.json react ^18.3.1", "note": "React publishes no end date; 19 is current. A migration, not a bump (DR-1262)" },
+    { "product": "python", "cycle": "3.8", "eol": "2024-10-07", "pinned": false, "status": "retired-from-use", "where": "DSM 7.3.2's system Python on the NAS", "why": "Synology's package, not ours; DR-1218 moved our services onto their own maintained runtimes (containers). Nothing of ours runs on it.", "reReview": "2026-12-05", "sourceNote": "date from DR-1218's measurement, confirmed in endoflife.date python.md" },
+    { "product": "openssl", "cycle": "1.1.1", "eol": "2023-09-11", "pinned": false, "status": "retired-from-use", "where": "DSM 7.3.2's system OpenSSL on the NAS", "why": "Synology's package; our services carry their own TLS stacks in containers (DR-1218)", "reReview": "2026-12-05", "sourceNote": "date from DR-1218's measurement" }
+  ]
+}

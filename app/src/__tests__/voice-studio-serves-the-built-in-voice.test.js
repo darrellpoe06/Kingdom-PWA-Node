@@ -47,7 +47,7 @@ describe('the real /speak handler, exercised', () => {
     // DR-0721: the browser's webm recording reaches XTTS as WAV, and the
     // studio says it clones.
     expect(out).toContain('a webm recording reaches XTTS as WAV');
-    expect(out).toContain('the studio says it needs ffmpeg');
+    expect(out).toContain('a named refusal with a reference'); // the why stays in the studio log (DR-1335)
   });
 });
 

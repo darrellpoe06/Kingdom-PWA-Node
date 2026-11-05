@@ -44,7 +44,7 @@ export const LAYER_RULES = [
   { layer: 'app', test: (p) => /^app\//.test(p) },
   // Build and packaging tooling outside .github/scripts: the Android store
   // files, the dispatch-page builder, the NAS deploy helpers, the skills lock.
-  { layer: 'factory', test: (p) => /^(builds|tools|store)\//.test(p) || /^deploy-to-synology\./.test(p) || p === 'skills-lock.json' },
+  { layer: 'factory', test: (p) => /^(builds|tools|store)\//.test(p) || /^deploy-to-synology\./.test(p) || ['skills-lock.json', '.gitleaks.toml', '.prettierrc.json'].includes(p) }, // the two root configs are CI's (DR-1334, DR-1343)
   // backend/voice-worker is a Cloudflare Worker at the edge, beside the Functions.
   { layer: 'transport', test: (p) => /^backend\//.test(p) },
   { layer: 'archive', test: (p) => /^_archive\//.test(p) },

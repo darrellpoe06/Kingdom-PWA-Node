@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install yt-dlp
-        run: pip install --quiet yt-dlp
+        run: pip install --quiet "$(grep '^yt-dlp==' infra/requirements-ci.txt)"
 
       # MEASURED 2026-09-22, first real run (run 35673574195): yt-dlp now warns
       # "No supported JavaScript runtime could be found. Only deno is enabled by

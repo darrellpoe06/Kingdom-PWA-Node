@@ -37,14 +37,17 @@ import {
 describe('VALID_VIEWS really does mirror the shell', () => {
   const shell = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-  const shellViews = (() => {
-    const m = shell.match(/const VALID = \[([^\]]*)\]/);
-    return m ? m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean) : [];
-  })();
+  // The shell's views are its RENDER BRANCHES (`view === 'x'`), not a list it
+  // keeps: since 2026-11-05 (DR-1330 D1) the shell reads VALID_VIEWS from this
+  // module instead of holding a second copy — the two copies had drifted and
+  // ?view=study / ?view=moore fell through to the Overview on every deep link.
+  const shellViews = [...new Set([...shell.matchAll(/view === '([a-z-]+)'/g)].map((m) => m[1]))];
 
-  it('found the shell’s list to compare against', () => {
+  it('found the shell’s render branches to compare against, and the shell keeps no second list', () => {
     expect(shellViews.length).toBeGreaterThan(20);
     expect(shellViews).toContain('overview');
+    expect(shell).not.toMatch(/const VALID = \[/);
+    expect(shell).toMatch(/VALID_VIEWS\.includes\(v\)/);
   });
 
   it('every view the shell routes is known to parseNav', () => {

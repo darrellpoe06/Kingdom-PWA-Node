@@ -1,0 +1,4 @@
+{
+  "_comment": "error-text-guard (DR-1330 D5). A response that deliberately carries exception text may be recorded ONLY here by path and line, with a why and a reReview date; the guard fails the day the date passes. Expected to stay empty: the person gets a code and a ref, the log gets the text.",
+  "entries": []
+}

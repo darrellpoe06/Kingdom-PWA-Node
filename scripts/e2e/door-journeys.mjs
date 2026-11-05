@@ -467,7 +467,11 @@ const dayFromToday = (n) => { const d = new Date(); d.setDate(d.getDate() + n); 
 // The journeys.
 // ---------------------------------------------------------------------------
 async function run() {
-  const { chromium } = await import('playwright-core');
+  // A variable, so vitest (which imports this file for its pure functions) does not resolve the package at
+  // collect time, where it is not installed; and no shebang above, because vite's web transform prepends an
+  // import for a non-literal dynamic import and a shebang on line 1 then no longer parses (found 2026-11-05).
+  const pw = 'playwright-core';
+  const { chromium } = await import(/* @vite-ignore */ pw);
   const pgrst = startPostgrest();
   const photos = startPhotoServer();
   const server = gateway();

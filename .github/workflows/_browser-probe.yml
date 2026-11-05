@@ -1,0 +1,87 @@
+# _browser-probe — ONE harness for the probes that run one Node script on a
+# runner, with or without Chrome (DR-1342, DR-1330 D13).
+#
+# Darrell, 2026-11-05: "Clean functions and workflows..." Measured that day:
+# 95 workflows, 22,205 lines of YAML, 35 of them named health / witness /
+# probe, each carrying its own checkout, Node, playwright-core, tee-to-summary
+# and artifact steps as prose. A probe is its SCRIPT plus the question it asks;
+# everything else is this file. A caller is ~20 lines: the trigger, the
+# brakes (concurrency + a timeout the caller chooses), and one `uses:` with
+# the script and its arguments. The script's exit code is the verdict, and it
+# survives the tee (REV-0019: pipefail).
+#
+# THE THREE BRAKES live with the CALLER, where the trigger is: the harness
+# itself never schedules, never spawns compute, and writes nothing but the
+# step summary and an optional artifact. `permissions: contents: read` here is
+# the ceiling; a caller cannot widen it through this file.
+name: _browser-probe (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      script:
+        description: 'The Node script to run, repo-relative (e.g. scripts/nearby-witness.mjs)'
+        required: true
+        type: string
+      args:
+        description: 'Arguments for the script, shell-quoted as one string'
+        required: false
+        type: string
+        default: ''
+      title:
+        description: 'The heading the step summary carries'
+        required: false
+        type: string
+        default: 'Probe'
+      chrome:
+        description: 'Install playwright-core so the script can drive the runner''s Chrome'
+        required: false
+        type: boolean
+        default: true
+      artifact:
+        description: 'A path to upload when the script leaves files (screenshots); empty for none'
+        required: false
+        type: string
+        default: ''
+      timeout-minutes:
+        description: 'The job ceiling (brake 1: a budget)'
+        required: false
+        type: number
+        default: 15
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        if: ${{ inputs.chrome }}
+        run: npm install --no-save playwright-core@1
+      - name: ${{ inputs.title }}
+        env:
+          PROBE_SCRIPT: ${{ inputs.script }}
+          PROBE_ARGS: ${{ inputs.args }}
+          PROBE_TITLE: ${{ inputs.title }}
+        run: |
+          set -o pipefail
+          echo "## ${PROBE_TITLE}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          # shellcheck disable=SC2086  # the caller shell-quotes its own arguments
+          eval "node \"$PROBE_SCRIPT\" $PROBE_ARGS" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Keep what the probe left (screenshots, reports)
+        if: ${{ always() && inputs.artifact != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.title }}
+          path: ${{ inputs.artifact }}
+          if-no-files-found: ignore

@@ -72,6 +72,10 @@ export async function onRequest(context) {
       },
     });
   } catch (e) {
-    return json({ error: 'bridge-error', detail: (e && e.message) || String(e) }, 500);
+    // The text goes to the log under a ref; the client gets the code and the
+    // ref (DR-1335). A bridge error can carry the vendor URL and the model.
+    const ref = crypto.randomUUID().slice(0, 12);
+    console.error(`[${ref}] bridge-error:`, (e && e.message) || String(e));
+    return json({ error: 'bridge-error', ref }, 500);
   }
 }

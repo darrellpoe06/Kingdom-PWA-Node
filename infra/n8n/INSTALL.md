@@ -201,7 +201,7 @@ POST to `api.pushover.net` with user key + app token. Supports priorities, sound
 
 **Values in `.pushover-creds.local`:**
 
-- `PUSHOVER_USER_KEY` = `upan72gdukpvmo49uet2jfyjgrrf3v` (confirmed — Pushover label: *"Pushover User Key — Supply this to any Pushover-enabled software"*)
+- `PUSHOVER_USER_KEY` = `<redacted 2026-11-05, DR-1334: the value lives in the NAS .env>` (confirmed — Pushover label: *"Pushover User Key — Supply this to any Pushover-enabled software"*)
 - `PUSHOVER_APP_TOKEN` = **TODO**. Create at https://pushover.net/apps/build:
   1. Log in with `darrellpoe06@gmail.com`
   2. Click "Create a new application/API token"
@@ -251,7 +251,7 @@ Both branches converge to the same Respond/Continue node. Switching between path
 
 ### Rotate after install (not urgent, do once verified)
 
-The user key (`upan72gdukpvmo49uet2jfyjgrrf3v`) and email gateway were passed through chat logs during the install handoff. After Step 10 (end-to-end test) passes and notifications are flowing, rotate both:
+The user key (`<redacted 2026-11-05, DR-1334: the value lives in the NAS .env>`) and email gateway were passed through chat logs during the install handoff. After Step 10 (end-to-end test) passes and notifications are flowing, rotate both:
 
 1. **User key:** Log in to https://pushover.net → Account → "Reset User Key" → confirm → copy → update `.pushover-creds.local` → n8n → Settings → Credentials → Pushover → paste → Save.
 2. **Email gateway:** Account → "Reset E-Mail Address" → copy new pomail-style address → update `.pushover-creds.local` → re-wire any workflow's Email Send `to:` field (or pull from `$env.PUSHOVER_EMAIL_GATEWAY` so a `.env` edit covers it).

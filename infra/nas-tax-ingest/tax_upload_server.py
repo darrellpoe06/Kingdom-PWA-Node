@@ -50,6 +50,18 @@ import shutil
 from fastapi import FastAPI, File, Form, UploadFile, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+# A person gets a short code and a reference id; the exception's own words go
+# to the log under that id (DR-1335, DR-1330 D5). Never str(e) in a response.
+import logging as _logging
+import uuid as _uuid
+_errlog = _logging.getLogger(__name__)
+
+
+def _ref(e):
+    ref = _uuid.uuid4().hex[:12]
+    _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
+    return ref
+
 import tax_ingest  # the deterministic ingest (same directory)
 from tax_auth import bearer_ok  # one rule for every route (DR-1086)
 
@@ -207,7 +219,7 @@ async def upload(
                     return JSONResponse({"error": "too-large"}, status_code=413)
                 out.write(chunk)
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "write-failed", "detail": str(e)}, status_code=500)
+        return JSONResponse({"error": "write-failed", "ref": _ref(e)}, status_code=500)
 
     # Re-run the deterministic ingest so archive.json + the served copy refresh.
     snap = tax_ingest.build()

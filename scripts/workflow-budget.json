@@ -1,0 +1,5 @@
+{
+  "_comment": "workflow-register (DR-1342): the total line count of .github/workflows may only go DOWN; re-freeze lower with `node scripts/workflow-register.mjs --generate`. To RAISE it, edit by hand with a one-line reason here.",
+  "raises": [],
+  "totalLines": 22266
+}
