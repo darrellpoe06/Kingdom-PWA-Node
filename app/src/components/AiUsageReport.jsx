@@ -70,12 +70,24 @@ export default function AiUsageReport({ ledger = loadAiUsageLedger() }) {
       <table className="w-full text-left text-[0.75rem]" data-testid="ai-usage-table">
         <thead>
           <tr className="border-b border-[#1A1815]">
-            <th className="py-1 pr-2">Task</th>
-            <th className="py-1 pr-2">Record</th>
-            <th className="py-1 pr-2">Model</th>
-            <th className="py-1 pr-2">Took</th>
-            <th className="py-1 pr-2">Without AI (est.)</th>
-            <th className="py-1 pr-2">Cost</th>
+            <th scope="col" className="py-1 pr-2">
+              Task
+            </th>
+            <th scope="col" className="py-1 pr-2">
+              Record
+            </th>
+            <th scope="col" className="py-1 pr-2">
+              Model
+            </th>
+            <th scope="col" className="py-1 pr-2">
+              Took
+            </th>
+            <th scope="col" className="py-1 pr-2">
+              Without AI (est.)
+            </th>
+            <th scope="col" className="py-1 pr-2">
+              Cost
+            </th>
           </tr>
         </thead>
         <tbody>

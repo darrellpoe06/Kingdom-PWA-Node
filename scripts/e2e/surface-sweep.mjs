@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // =============================================================================
 // surface-sweep — every registered surface is OPENED in a real browser, on
 // every push, and a surface that cannot open is caught before a person finds it
@@ -142,7 +141,11 @@ export function parseArgs(argv) {
 // ─── main ──────────────────────────────────────────────────────────────────
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (isMain) {
-  const { chromium } = await import('playwright-core');
+  // A variable, so vitest (which imports this file for its pure functions) does not resolve the package at
+  // collect time, where it is not installed; and no shebang above, because vite's web transform prepends an
+  // import for a non-literal dynamic import and a shebang on line 1 then no longer parses (found 2026-11-05).
+  const pw = 'playwright-core';
+  const { chromium } = await import(/* @vite-ignore */ pw);
   const args = parseArgs(process.argv.slice(2));
   const DIST = args.dist || fileURLToPath(new URL('../../app/dist', import.meta.url));
   const REGISTRY = fileURLToPath(new URL('../../app/src/surfaces.js', import.meta.url));

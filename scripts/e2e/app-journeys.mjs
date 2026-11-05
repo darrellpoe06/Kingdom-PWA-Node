@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // =============================================================================
 // app-journeys — a person's walks through the built app, in a real browser,
 // on every push: taps, typing, a shared link landing where it says it will
@@ -146,7 +145,11 @@ export const TAP_JOURNEYS = Object.freeze(['learn-by-taps', 'top-tabs-by-taps', 
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (isMain) {
-  const { chromium } = await import('playwright-core');
+  // A variable, so vitest (which imports this file for its pure functions) does not resolve the package at
+  // collect time, where it is not installed; and no shebang above, because vite's web transform prepends an
+  // import for a non-literal dynamic import and a shebang on line 1 then no longer parses (found 2026-11-05).
+  const pw = 'playwright-core';
+  const { chromium } = await import(/* @vite-ignore */ pw);
   const args = parseArgs(process.argv.slice(2));
   const DIST = args.dist || fileURLToPath(new URL('../../app/dist', import.meta.url));
   const BUDGET_MS = Number(process.env.JOURNEYS_BUDGET_MS || 300000);

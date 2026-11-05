@@ -42,7 +42,7 @@ function Table({ caption, head, rows, testid }) {
         <thead>
           <tr>
             {head.map((h) => (
-              <th key={h} className="text-left border-b border-[#1A1815] py-1 pr-3 font-semibold">
+              <th key={h} scope="col" className="text-left border-b border-[#1A1815] py-1 pr-3 font-semibold">
                 {h}
               </th>
             ))}

@@ -36,7 +36,16 @@ describe('workflow-register: the reader', () => {
       'b.yml': 'name: b\non:\n  schedule:\n    - cron: "0 * * * *"\njobs:\n  j:\n    uses: ./.github/workflows/_h.yml\n',
       '_h.yml': 'name: h\non:\n  workflow_call: {}\npermissions:\n  contents: read\njobs:\n  j:\n    timeout-minutes: 5\n',
     });
-    expect(r.counts).toMatchObject({ workflows: 3, dispatchOnly: 1, scheduled: 1, reusable: 1, callers: 1, withoutConcurrency: 1, withoutTimeout: 0, withoutPermissions: 1 });
+    expect(r.counts).toMatchObject({
+      workflows: 3,
+      dispatchOnly: 1,
+      scheduled: 1,
+      reusable: 1,
+      callers: 1,
+      withoutConcurrency: 1,
+      withoutTimeout: 0,
+      withoutPermissions: 1,
+    });
   });
   it('fails a YAML total over its ceiling and passes one under', () => {
     expect(judgeBudget(101, { totalLines: 100 })[0]).toMatch(/over the ceiling of 100/);
@@ -47,11 +56,17 @@ describe('workflow-register: the reader', () => {
 describe('workflow-register: the live file', () => {
   it('equals what the YAML on disk builds today, and a stale copy differs', () => {
     const dir = join(ROOT, '.github/workflows');
-    const files = Object.fromEntries(readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort().map((f) => [f, readFileSync(join(dir, f), 'utf8')]));
+    const files = Object.fromEntries(
+      readdirSync(dir)
+        .filter((f) => /\.ya?ml$/.test(f))
+        .sort()
+        .map((f) => [f, readFileSync(join(dir, f), 'utf8')])
+    );
     const fresh = build(files);
     expect(fresh.workflows).toEqual(LIVE.workflows);
     expect(fresh.counts).toEqual(LIVE.counts);
-    const stale = JSON.parse(JSON.stringify(LIVE)); stale.workflows[0].lines += 1;
+    const stale = JSON.parse(JSON.stringify(LIVE));
+    stale.workflows[0].lines += 1;
     expect(stale.workflows).not.toEqual(fresh.workflows);
   });
   it('holds the YAML total at or under the ceiling', () => {

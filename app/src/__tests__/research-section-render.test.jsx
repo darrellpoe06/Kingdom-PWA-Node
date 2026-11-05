@@ -49,6 +49,7 @@ vi.mock('../components/ResearchTry.jsx', () => ({ default: () => createElement('
 import ResearchSection from '../components/ResearchSection.jsx';
 import { surfaceById } from '../surfaces.js';
 import { UNVERIFIED_NOTE } from '../lib/research-items.js';
+import { VALID_VIEWS } from '../lib/nav-history.js';
 
 const row = (o) => ({ id: 'a', body: '', tags: [], created_at: '2026-10-21T06:00:00Z', created_by: 'u1', ...o });
 // The road is dark in these tests: health is not what is being pinned, and a
@@ -68,8 +69,9 @@ describe('the Research section is a surface of its own', () => {
     const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(shell).toContain('<ResearchSection stranger={reviewerStranger} /'); // handed the lens's stranger mode (DR-1240)
     expect(shell).toContain("view === 'research'");
-    // and the route allow-list lets a deep link reach it
-    expect(shell).toContain("'research'];");
+    // and the ONE route allow-list (lib/nav-history.js, DR-1330 D1) lets a deep link reach it
+    expect(VALID_VIEWS).toContain('research');
+    expect(shell).toContain('VALID_VIEWS.includes(v) ? v');
   });
 
   it('is registered as a top-level view, signed-in, locked when not', () => {

@@ -37,7 +37,10 @@ export function partition(addedPaths) {
 
 export function addedSince(base) {
   try {
-    return execFileSync('git', ['diff', '--name-only', '--diff-filter=A', `${base}...HEAD`], { cwd: ROOT, encoding: 'utf8' }).split('\n').map((s) => s.trim()).filter(Boolean);
+    return execFileSync('git', ['diff', '--name-only', '--diff-filter=A', `${base}...HEAD`], { cwd: ROOT, encoding: 'utf8' })
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
   } catch (e) {
     throw new Error(`format-guard: cannot diff against ${base} (fetch it first): ${String(e.message).split('\n')[0]}`);
   }
@@ -47,15 +50,27 @@ const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.arg
 if (isMain) {
   const argv = process.argv.slice(2);
   const bi = argv.indexOf('--base');
-  const base = bi >= 0 ? argv[bi + 1] : (process.env.FORMAT_GUARD_BASE || 'origin/main');
+  const base = bi >= 0 ? argv[bi + 1] : process.env.FORMAT_GUARD_BASE || 'origin/main';
   const fix = argv.includes('--fix');
   const { js, py } = partition(addedSince(base));
   const failures = [];
   if (js.length) {
     // Prettier is the app's pinned devDependency, so it runs from app/ with the
     // paths rebased one directory up; the config is the repo's one file.
-    const r = spawnSync('npx', ['--no-install', 'prettier', fix ? '--write' : '--check', '--config', '../.prettierrc.json', ...js.map((p) => `../${p}`)], { cwd: join(ROOT, 'app'), encoding: 'utf8' });
-    if (r.status !== 0) failures.push(`prettier: ${(r.stdout + r.stderr).split('\n').filter((l) => /\[warn\]|error/i.test(l)).join('; ').slice(0, 600) || 'not formatted'}`);
+    const r = spawnSync('npx', ['--no-install', 'prettier', fix ? '--write' : '--check', '--config', '../.prettierrc.json', ...js.map((p) => `../${p}`)], {
+      cwd: join(ROOT, 'app'),
+      encoding: 'utf8',
+    });
+    if (r.status !== 0)
+      failures.push(
+        `prettier: ${
+          (r.stdout + r.stderr)
+            .split('\n')
+            .filter((l) => /\[warn\]|error/i.test(l))
+            .join('; ')
+            .slice(0, 600) || 'not formatted'
+        }`
+      );
   }
   if (py.length) {
     // ruff is pinned in infra/requirements-ci.txt; `python3 -m ruff` finds that
@@ -67,7 +82,9 @@ if (isMain) {
     if (chk.status !== 0) failures.push(`ruff check: ${(chk.stdout + chk.stderr).trim().slice(0, 600)}`);
   }
   if (failures.length) {
-    console.error(`format-guard: ${failures.length} finding(s) on files added since ${base} (${js.length} js, ${py.length} py):\n  ${failures.join('\n  ')}\n  run: node scripts/format-guard.mjs --fix`);
+    console.error(
+      `format-guard: ${failures.length} finding(s) on files added since ${base} (${js.length} js, ${py.length} py):\n  ${failures.join('\n  ')}\n  run: node scripts/format-guard.mjs --fix`
+    );
     process.exit(1);
   }
   console.log(`format-guard: OK — ${js.length} added JavaScript file(s) formatted (prettier), ${py.length} added Python file(s) clean (ruff), since ${base}.`);
