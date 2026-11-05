@@ -15,6 +15,11 @@ name: money-records-read
 
 on:
   workflow_dispatch: {}
+  # workflow_dispatch only knows workflows on main; this one never lands on
+  # main, so it runs on a push of its own two files on its own branch.
+  push:
+    branches: ['ccr-055dea31-qi5vfm']
+    paths: ['.github/workflows/money-records-read.yml', 'scripts/money-records-read.sql']
 
 concurrency:
   group: money-records-read
