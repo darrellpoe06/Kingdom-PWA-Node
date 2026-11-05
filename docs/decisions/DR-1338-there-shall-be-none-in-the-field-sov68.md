@@ -161,6 +161,38 @@ This is the same construct, in the same shape, that the **sov65 build corrected 
 
 **This is the one place this build touched another lesson's gate, it is reported rather than buried, and it is a single assertion.** If the Governor would rather it had been left red and handed back, the correction reverts in one line.
 
+### TWO GATES CLAIM WHOLE CHAPTERS OF THE WORD, AND THIS BUILD STOPS AND REPORTS RATHER THAN TOUCHING THEM
+
+**This is the one finding that is NOT closed, and it is deliberately left open.** Two other lessons' gates go red against this lesson, and the cause is the rule Darrell overturned on 2026-11-05 (DR-1317) in a form coarser than any instance removed so far: **not a verse claimed, but a whole CHAPTER claimed, forever, at chapter granularity.**
+
+`sovereign-ai-sov60-verses.test.js` and `sovereign-ai-sov61-verses.test.js` each reduce every reference to its chapter, build a `taken` set from every other lesson across three catalogs, and then assert:
+
+```js
+expect(OURS.filter((c) => taken.has(c))).toEqual([]);
+```
+
+That says: **no other lesson in the library may ever anchor any verse of these chapters.** The failures, verbatim:
+
+- sov60: `expected [ 'Amos 3', 'Deuteronomy 19' ] to deeply equal [ 'Deuteronomy 19' ]`
+- sov61: `expected [ 'Hebrews 6', 'Proverbs 11' ] to deeply equal [ 'Proverbs 11' ]`
+
+**Measured: not one VERSE is shared with either lesson. Both collisions are chapter numbers only.**
+
+| | its verses | this lesson's verse | verses shared |
+|---|---|---|---|
+| **sov60** (the bottleneck was never the typing) | **Amos 3:3** — *"Can two walk together, except they be agreed?"* | **Amos 3:7** — *"Surely the Lord GOD will do nothing, but he revealeth his secret unto his servants the prophets."* | **none** |
+| **sov61** (one thing I know) | **Hebrews 6:17, 6:18, 6:19** — the two immutable things, the anchor of the soul | **Hebrews 6:10** — *"For God is not unrighteous to forget your work and labour of love"* | **none** |
+
+Four different verses, four different teachings, two shared chapter numbers, **zero shared verses.** Amos 3:7 is this lesson's opening pattern — the keeper who tells you before He acts — and Hebrews 6:10 is the verse under its quietest observation, that the gradebook kept counting through the whole window. Both are load-bearing and **neither is dropped**, because DR-1317 settles it: a verse is never spent, and nothing is dropped for appearing elsewhere.
+
+**So this build does neither of the two things that would make the red go away.** It does not edit those gates — the brief's bright line, and the right line, since a lesson editing a neighbour's proof to make its own verses fit is the DR-1317 / DR-1326 mistake in a new costume. And it does not thin its own teaching to fit a claim the Governor has already overturned. **It stops and reports, which is what the brief asks for.**
+
+**Why the existing guard did not catch it, measured rather than guessed.** `no-lesson-gate-claims-a-verse-for-itself.test.js` passes on this tree. It reads case TITLES against `EXCLUSIVITY` and assertion MESSAGES against `SPENDING_LANGUAGE`, and this construct evades both: its title is the innocent *"an anchor chapter colliding with another week IS detected, both ways"* and the failing assertion carries no message at all. DR-1326 named this blind spot as its own honest limit, in as many words — that it deliberately does not flag a frozen census by shape, because `toEqual([])` over a computed set is ordinary and correct in a hundred honest places and a matcher guessing at intent would cry wolf. That judgment is defensible; the consequence is that **this class is invisible to the guard and only a new lesson's verses reveal it.** This lesson is the first to walk into it.
+
+**The blast radius, measured.** Seven gates carry a `taken`-set census (`sov57`–`sov63`); six assert `toEqual([])` over their own chapters (`sov58`–`sov63`). Of those, **two collide with this lesson** and four do not — today. Every future Sovereign A.I. lesson rolls the same dice against all six, at chapter granularity, which is why this wants one decision rather than six one-off edits.
+
+**What the Governor is being asked to decide**, with a recommendation rather than an open question: remove the chapter-level `toEqual([])` census from all six gates, as DR-1323 and DR-1326 removed the four verse-level instances, keeping each lesson's own positive assertions intact; and extend the guard to flag a frozen census computed over a cross-catalog `taken` set, which is far narrower than flagging `toEqual([])` by shape and so does not cry wolf. Until that is decided, **PR #2555 stays red on exactly these two cases, and they are the only two.** `re-review: 2026-11-12`.
+
 ### Honest limits
 
 - **A complete local full-suite run was not obtainable, and what defeated it is named:** the two-slot vitest memory gate at `/tmp/kingdom-vitest-slots` makes a whole-suite run from this worktree unavailable. The runs named above were done here instead — **23 test files, 572 cases, all green** — and **CI's four shards are the authoritative run.** No full local pass is claimed.
