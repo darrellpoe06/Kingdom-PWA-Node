@@ -359,6 +359,23 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 6,
       "notes": "Measured first commit 18:52:48Z to the rename commit 19:44:28Z on claude/youthful-fermi-16yfq3; the diagnosis was handed to the session already measured, so the reading covers the fix, the gate, its proof suite and three base merges, not the root-cause work. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for finding two further latent ties by hand, writing a static-analysis guard with a proof suite, and paying two renumbers."
+    },
+    {
+      "id": "a-status-read-is-filtered-at-the-source",
+      "date": "2026-11-05",
+      "task": "A status read is filtered at the source: a Ways review of this session's own GitHub instrument, the premise it believed, and the gate it measured and rejected",
+      "drs": [
+        "DR-1350"
+      ],
+      "prs": [
+        2561
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 4,
+      "notes": "Measured worktree creation 22:08Z to the single commit 22:14:35Z on claude/a-status-read-is-filtered. The finding itself is NOT on that record: the 50.2 KB read that exposed it, verifying gh over REST, the four payload measurements, and the 39-call survey that killed the proposed gate all happened earlier while driving PR #2559, so 0.2 understates it substantially. Tokens and dollars null: no meter was exposed to this session, which is itself the reason the byte measurements had to be taken by hand with wc -c. Estimate is this session's own for a read-only script, a 17-case offline proof suite proven to catch, a decision record, a session note, and the measurement that rejected a gate rather than shipping it."
     }
   ]
 }
