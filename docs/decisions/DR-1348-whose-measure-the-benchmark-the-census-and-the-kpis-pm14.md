@@ -1,4 +1,4 @@
-# DR-1346 — Whose measure: the benchmark, the census, and the KPIs the Word already gave us (pm14)
+# DR-1348 — Whose measure: the benchmark, the census, and the KPIs the Word already gave us (pm14)
 
 **Status:** accepted
 **Tier:** B
@@ -34,7 +34,7 @@ Four separate measurements were run before a word of the lesson was written, and
 
 ### The preconditions, re-run as the brief required
 
-`node scripts/claim-decision-number.mjs` reported **DR-1346 free on disk AND in flight** (1225 records on disk, highest DR-1330; 1228 on `origin/main`, highest DR-1344; 50 numbers held by unlanded branches, DR-1345 held by `origin/ccr-335c2b3f-ttub1k`, so DR-1345 would have collided). `node scripts/lesson-row-shipped-sweep.mjs 1a163d58a4d068b6` exited 0: `no decision record names it`. The thread's own `labelIds` were re-read in the same fetch and are unchanged from the brief. Nothing was self-allocated.
+`node scripts/claim-decision-number.mjs` reported **DR-1348 free on disk AND in flight** (1225 records on disk, highest DR-1330; 1228 on `origin/main`, highest DR-1344; 50 numbers held by unlanded branches, DR-1345 held by `origin/ccr-335c2b3f-ttub1k`, so DR-1345 would have collided). `node scripts/lesson-row-shipped-sweep.mjs 1a163d58a4d068b6` exited 0: `no decision record names it`. The thread's own `labelIds` were re-read in the same fetch and are unchanged from the brief. Nothing was self-allocated.
 
 ### Which passages are genuinely unbuilt, measured repository-wide
 
