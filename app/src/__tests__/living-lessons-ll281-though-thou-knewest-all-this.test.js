@@ -77,12 +77,17 @@ function quotedSpans(text) {
 }
 
 describe('ll281 — though thou knewest all this', () => {
-  it('is in the catalog exactly once, contiguous after ll280', () => {
+  it('is in the catalog exactly once, after ll280 (no gate pins a maximum, DR-1316)', () => {
     expect(M, 'll281 is missing from LIVING_LESSONS_MODULES').toBeTruthy();
     const ids = LIVING_LESSONS_MODULES.map((m) => m.id);
     expect(ids.filter((i) => i.startsWith('ll281-'))).toHaveLength(1);
-    expect(ids.filter((i) => i.startsWith('ll282-'))).toHaveLength(0);
-    expect(ids.indexOf(ID)).toBe(ids.length - 1);
+    // Earlier this case also asserted that no ll282 existed and that ll281 was
+    // the last module — a maximum, which the next lesson (ll282, The Greater
+    // Work, DR-1329) made red on arrival. DR-1316: a lesson gate pins its own
+    // number and its neighbour before it, never the end of the catalog.
+    const before = ids.findIndex((i) => i.startsWith('ll280-'));
+    expect(before).toBeGreaterThan(-1);
+    expect(ids.indexOf(ID)).toBeGreaterThan(before);
   });
 
   // --- the Word, verbatim, and the sweep asserts its own size ---------------
