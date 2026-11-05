@@ -32,7 +32,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
-  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
+  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalanceByTxId, periodLabel, isTransferTxn,
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
 import LedgerFreshness from './LedgerFreshness.jsx';
@@ -622,9 +622,13 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     if (!singleAcct) return null;
     const opening = singleAcct.openingBalance ?? singleAcct.balance;
     if (opening == null || Number.isNaN(Number(opening))) return null;
-    const acctRows = view.rows.filter(r => r.accountId === singleAcct.id);
-    return runningBalances(acctRows, Number(opening));
-  }, [singleAcct, view.rows]);
+    // The same rule as the Transactions register and the Overview: a bank-
+    // verified checkpoint resets the chain (Christina, 2026-11-05: one balance
+    // throughout FOS). Over the account's FULL ledger, so a narrowed window
+    // still shows the true balance on each row.
+    const byId = runningBalanceByTxId(data.transactions || [], [singleAcct]);
+    return new Map((data.transactions || []).filter((t) => t && t.accountId === singleAcct.id).map((t) => [t.id, byId[t.id]]));
+  }, [singleAcct, data.transactions]);
   const showBalance = !!balByRow;
 
   // A picked chip carries poe-selected: the theme's dark fill in the light

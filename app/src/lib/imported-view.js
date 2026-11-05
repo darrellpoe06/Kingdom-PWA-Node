@@ -391,17 +391,47 @@ export function runningBalanceByTxId(transactions, accounts) {
     if (t && t.accountId) (byAccount[t.accountId] = byAccount[t.accountId] || []).push(t);
   }
   const out = {};
+  // A verified-balance CHECKPOINT (a $0 row carrying the bank's balance in
+  // `reconciliation`) is the balance at the END of its day, exactly as
+  // deriveAccountBalances reads it for the Overview. Without this the register
+  // re-added the whole history and showed $23,075 for an account the bank and
+  // the Overview held at $6,236.18 (Christina, 2026-11-05: "I want one
+  // consistent, accurate account balance throughout FOS"). So a checkpoint sorts
+  // after its day's rows, resets the chain, and every later row counts forward
+  // from it by its amount, the Overview's own rule, so the newest row and the
+  // Overview agree to the cent.
+  const dayOf = (t) => String(t.date || '').slice(0, 10);
   for (const a of accounts || []) {
     const rows = byAccount[a.id] || [];
-    const asc = [...rows].sort((x, y) => String(x.date || '').localeCompare(String(y.date || '')));
+    const asc = [...rows].sort((x, y) => dayOf(x).localeCompare(dayOf(y))
+      || ((balanceCheckpoint(x) ? 1 : 0) - (balanceCheckpoint(y) ? 1 : 0))
+      || String(x.date || '').localeCompare(String(y.date || '')));
     let bal = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
+    let anchored = false;
     for (const t of asc) {
-      if (typeof t.balance === 'number' && Number.isFinite(t.balance)) {
+      const cp = balanceCheckpoint(t);
+      if (cp) {
+        bal = cp.balance;                   // the bank, verified: the chain restarts here
+        anchored = true;
+      } else if (!anchored && typeof t.balance === 'number' && Number.isFinite(t.balance)) {
         bal = t.balance;                    // bank's own running balance — authoritative
       } else {
         bal += Number(t.amount) || 0;       // no bank balance — chain off the last known
       }
       out[t.id] = Math.round(bal * 100) / 100;
+    }
+    // Before the FIRST checkpoint the Overview counts BACK from it (balance on a
+    // day = checkpoint minus the rows between), so the register does the same
+    // for every row that has no bank running balance of its own; a row that
+    // carries Chase's own balance keeps it.
+    const firstCp = asc.findIndex((t) => balanceCheckpoint(t));
+    if (firstCp > 0) {
+      let back = balanceCheckpoint(asc[firstCp]).balance;
+      for (let i = firstCp - 1; i >= 0; i--) {
+        const t = asc[i];
+        if (!(typeof t.balance === 'number' && Number.isFinite(t.balance))) out[t.id] = Math.round(back * 100) / 100;
+        back -= Number(t.amount) || 0;
+      }
     }
   }
   return out;
