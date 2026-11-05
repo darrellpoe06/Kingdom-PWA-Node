@@ -177,10 +177,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // same day L274 landed, so the date does not move and only this comment
     // does, so it never names a lesson that is no longer the highest.
     //
-    // The highest is now L278 (Soul Searching), the third word Darrell spoke on
-    // 2026-11-05, after L276 and L277 had shipped, built the same day (DR-1319);
+    // The highest is now L279 (Soul Searching), the third word Darrell spoke on
+    // 2026-11-05, after L276 and L277 had shipped, built the same day (DR-1320);
     // the date does not move and only this comment does.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L278
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L279
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

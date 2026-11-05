@@ -1,13 +1,13 @@
 // @vitest-environment node
 // =============================================================================
-// L278 — Soul Searching: the gap between what He means by His Word and our
+// L279 — Soul Searching: the gap between what He means by His Word and our
 // default ways, which may or may not need adjusting
 // =============================================================================
 // Darrell spoke a third teaching into the app on 2026-11-05, after L276 and
 // L277 had shipped: "Soul searching to see the gap between what He means by
 // His Word and our souls default ways that may or may not need adjustments
 // based on the Word-first Perspectives... lesson" -- and then, separately and
-// on purpose, "Or may not...". (DR-1319.)
+// on purpose, "Or may not...". (DR-1320.)
 //
 // THIS LESSON'S DANGERS are three, all about his framing. (1) Dropping the
 // three words he added on purpose: the search is honest about BOTH outcomes,
@@ -16,7 +16,8 @@
 // lesson AND every band, with a proof that a band dropping it is caught. (2)
 // Turning "see the gap" into self-condemnation or self-flattery -- both
 // counterfeits are named and refused in every band. (3) Losing the follow-up
-// shape: this lesson names L277 and sits directly after it. Each is pinned by
+// shape: this lesson names L277 and sits after it; ll278 (Say What You Get, DR-1319)
+// landed on main between them while this was in the lane. Each is pinned by
 // its own case below, and each has a proof that it catches.
 //
 // Quote pairing is done by splitting on the quote character (DR-1258/DR-1259),
@@ -35,7 +36,7 @@ import { formatLessonText } from '../lib/lesson-format.js';
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll278-soul-searching';
+const ID = 'll279-soul-searching';
 const PREV_ID = 'll277-look-at-the-record';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
@@ -137,7 +138,7 @@ const SPINE = [
   ['2 Timothy 1:7', 'and of a sound mind'],
 ];
 
-describe('L278 is in the catalog, numbered, dated and whole', () => {
+describe('L279 is in the catalog, numbered, dated and whole', () => {
   it('exists exactly once with all four bands', () => {
     expect(L, `${ID} is not in the catalog`).toBeTruthy();
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
@@ -145,9 +146,9 @@ describe('L278 is in the catalog, numbered, dated and whole', () => {
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims 278 exactly once, and nothing else claims it', () => {
+  it('claims 279 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(numbers.filter((n) => n === 278)).toEqual([278]);
+    expect(numbers.filter((n) => n === 279)).toEqual([279]);
   });
 
   it('carries its build day, the day it was spoken', () => {
@@ -195,11 +196,13 @@ describe('L278 is in the catalog, numbered, dated and whole', () => {
 });
 
 describe('his spine, in his order, in the lesson and in every band', () => {
-  it('opens by naming the lesson it follows, and that lesson sits directly before it in the catalog', () => {
+  it('opens by naming the lesson it follows, and that lesson sits earlier in the catalog (ll278, Say What You Get, landed between them)', () => {
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/Look at the Record/);
     const i = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
-    expect(LIVING_LESSONS_MODULES[i - 1] && LIVING_LESSONS_MODULES[i - 1].id).toBe(PREV_ID);
-    expect(LIVING_LESSONS_MODULES[i - 1].title.startsWith('Look at the Record')).toBe(true);
+    const j = LIVING_LESSONS_MODULES.findIndex((m) => m.id === PREV_ID);
+    expect(j).toBeGreaterThan(-1);
+    expect(j).toBeLessThan(i);
+    expect(LIVING_LESSONS_MODULES[j].title.startsWith('Look at the Record')).toBe(true);
   });
 
   it('defines soul searching plainly, with the Word as the line and not our own eyes', () => {
