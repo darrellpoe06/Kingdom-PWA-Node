@@ -124,13 +124,15 @@ const verseText = (ref) => {
 const SPINE_FRAGMENTS = {
   'Deuteronomy 24:15': 'At his day thou shalt give him his hire, neither shall the sun go down upon it; for he is poor, and setteth his heart upon it',
   'Leviticus 19:13': 'the wages of him that is hired shall not abide with thee all night until the morning',
-  'Matthew 20:8': 'So when even was come, the lord of the vineyard saith unto his steward, Call the labourers, and give them their hire, beginning from the last unto the first.',
+  'Matthew 20:8':
+    'So when even was come, the lord of the vineyard saith unto his steward, Call the labourers, and give them their hire, beginning from the last unto the first.',
   'Exodus 16:19': 'And Moses said, Let no man leave of it till the morning.',
   'Exodus 16:20': 'it bred worms, and stank',
   'Exodus 16:21': 'And they gathered it every morning, every man according to his eating: and when the sun waxed hot, it melted.',
   'Exodus 16:23': 'that which remaineth over lay up for you to be kept until the morning',
   'Exodus 16:24': 'it did not stink, neither was there any worm therein',
-  'Genesis 41:35': 'And let them gather all the food of those good years that come, and lay up corn under the hand of Pharaoh, and let them keep food in the cities.',
+  'Genesis 41:35':
+    'And let them gather all the food of those good years that come, and lay up corn under the hand of Pharaoh, and let them keep food in the cities.',
   'Genesis 41:49': 'And Joseph gathered corn as the sand of the sea, very much, until he left numbering; for it was without number.',
   'Genesis 41:32': 'And for that the dream was doubled unto Pharaoh twice; it is because the thing is established by God',
   'Ezekiel 33:6': 'But if the watchman see the sword come, and blow not the trumpet, and the people be not warned',
@@ -140,16 +142,20 @@ const SPINE_FRAGMENTS = {
   '2 Samuel 18:31': 'And, behold, Cushi came; and Cushi said, Tidings, my lord the king',
   'Nehemiah 4:9': 'we made our prayer unto our God, and set a watch against them day and night',
   'Nehemiah 4:20': 'In what place therefore ye hear the sound of the trumpet, resort ye thither unto us: our God shall fight for us.',
-  'Exodus 18:18': 'Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone.',
+  'Exodus 18:18':
+    'Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone.',
   'Exodus 18:21': 'place such over them, to be rulers of thousands, and rulers of hundreds, rulers of fifties, and rulers of tens',
-  'Exodus 18:22': 'every great matter they shall bring unto thee, but every small matter they shall judge: so shall it be easier for thyself, and they shall bear the burden with thee',
+  'Exodus 18:22':
+    'every great matter they shall bring unto thee, but every small matter they shall judge: so shall it be easier for thyself, and they shall bear the burden with thee',
   'Hebrews 10:11': 'And every priest standeth daily ministering and offering oftentimes the same sacrifices, which can never take away sins:',
   'Hebrews 10:12': 'But this man, after he had offered one sacrifice for sins for ever, sat down on the right hand of God;',
   'Hebrews 10:14': 'For by one offering he hath perfected for ever them that are sanctified.',
-  'Habakkuk 2:3': 'For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry.',
+  'Habakkuk 2:3':
+    'For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry.',
   'Ecclesiastes 3:1': 'To every thing there is a season, and a time to every purpose under the heaven:',
   'Ecclesiastes 8:6': 'Because to every purpose there is time and judgment, therefore the misery of man is great upon him.',
-  'Luke 12:42': 'Who then is that faithful and wise steward, whom his lord shall make ruler over his household, to give them their portion of meat in due season?',
+  'Luke 12:42':
+    'Who then is that faithful and wise steward, whom his lord shall make ruler over his household, to give them their portion of meat in due season?',
   'Jeremiah 8:20': 'The harvest is past, the summer is ended, and we are not saved.',
   'Proverbs 18:13': 'He that answereth a matter before he heareth it, it is folly and shame unto him.',
   'Proverbs 19:2': 'he that hasteth with his feet sinneth',
@@ -159,7 +165,8 @@ const SPINE_FRAGMENTS = {
   'Hebrews 1:8': 'But unto the Son he saith, Thy throne, O God, is for ever and ever',
   'Colossians 1:17': 'And he is before all things, and by him all things consist.',
   'Galatians 5:22': 'But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith,',
-  'Deuteronomy 6:7': 'And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.',
+  'Deuteronomy 6:7':
+    'And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.',
   'Hebrews 3:13': 'But exhort one another daily, while it is called To day',
 };
 /** The pinned FRAGMENT keys (39: Ezekiel 33:6 twice) and the REFERENCES (38). */
@@ -186,7 +193,10 @@ describe('sov69 — the lesson is mounted and is the week it says it is', () => 
     // to the orchestrator rather than edited here (it is a neighbour's gate).
     // What is durably true instead, and stays true when week 70 lands: the weeks
     // ascend and run contiguous, so a lesson's INDEX is its week minus one.
-    expect(SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID), 'sov69 is not at the index its week number requires').toBe(68);
+    expect(
+      SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID),
+      'sov69 is not at the index its week number requires'
+    ).toBe(68);
     expect(Math.max(...weeks)).toBeGreaterThanOrEqual(69);
     for (let w = 1; w <= 68; w += 1) expect(weeks, `week ${w} is missing`).toContain(w);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
@@ -216,7 +226,10 @@ describe('sov69 — every verse came from the corpus on disk, not from memory', 
   it(`pins all ${SPINE_COUNT} references in ${FRAGMENT_COUNT} spans, and both counts are asserted so an empty scan cannot pass`, () => {
     expect(FRAGMENT_KEYS.length, 'the pinned spans changed count without this gate being updated').toBe(FRAGMENT_COUNT);
     expect(SPINE.length, 'the pinned spine changed size without this count being updated').toBe(SPINE_COUNT);
-    const refs = M.anchor.ref.split(';').map((s) => s.trim()).filter(Boolean);
+    const refs = M.anchor.ref
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
     expect(refs.length, 'anchor.ref count').toBe(SPINE_COUNT);
     expect([...refs].sort()).toEqual([...SPINE].sort());
   });
@@ -300,7 +313,10 @@ describe('sov69 — the Word is quoted, never rewritten', () => {
   it('our own prose carries no British spellings (quoted Scripture is left exactly as written)', () => {
     for (const s of allStrings()) {
       const hits = findBritish(s);
-      expect(hits.map((h) => h.word), `British spelling in our prose: ${hits.map((h) => h.word).join(', ')}`).toEqual([]);
+      expect(
+        hits.map((h) => h.word),
+        `British spelling in our prose: ${hits.map((h) => h.word).join(', ')}`
+      ).toEqual([]);
     }
   });
 });
@@ -365,7 +381,10 @@ describe('sov69 — trust but verify: the tiers, the blocked roads quoted, and w
     const blob = allStrings().join('\n');
     // A blocked road NEVER reads as a verified claim.
     expect(/blocked road/i.test(blob), 'the lesson never names the blocked road as such').toBe(true);
-    expect(/not a quotation from the builders|not a quote from the builders/i.test(blob), 'the lesson never says the terms are not the maintainers’ own words').toBe(true);
+    expect(
+      /not a quotation from the builders|not a quote from the builders/i.test(blob),
+      'the lesson never says the terms are not the maintainers’ own words'
+    ).toBe(true);
     // Third-party blogs are not a primary source and were not used (DR-0190 §1).
     expect(/blogs/i.test(blob), 'the lesson never says what the search returned').toBe(true);
   });
@@ -435,7 +454,10 @@ describe('sov69 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
     // never touched red. Named in DR-1351 with `re-review: 2026-11-19`.
     expect(/LATENCY just means the delay/.test(M.lesson), 'latency is used before it is glossed').toBe(true);
     expect(/A BATCH MEANING SIMPLY THAT YOU LET THE WORK PILE UP/.test(M.lesson), 'batch is used before it is glossed').toBe(true);
-    expect(/BACKPRESSURE - WHICH IS ONLY A NAME FOR THINGS ARRIVING FASTER THAN THEY CAN BE HANDLED/.test(M.lesson), 'backpressure is used before it is glossed').toBe(true);
+    expect(
+      /BACKPRESSURE - WHICH IS ONLY A NAME FOR THINGS ARRIVING FASTER THAN THEY CAN BE HANDLED/.test(M.lesson),
+      'backpressure is used before it is glossed'
+    ).toBe(true);
     expect(/streaming meaning the opposite of a pile/.test(M.lesson), 'streaming is used before it is glossed').toBe(true);
     // PROVEN TO CATCH: the gloss must PRECEDE the term, not follow it.
     const at = (s) => M.lesson.indexOf(s);
@@ -464,7 +486,10 @@ describe('sov69 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
     };
     expect(stripped.levels.teen, 'the teen friend line could not be stripped').not.toBe(M.levels.teen);
     const gaps = placesMissingDirections(stripped);
-    expect(gaps.map((g) => g.place), 'the per-band check does not name the teen band').toContain('teen');
+    expect(
+      gaps.map((g) => g.place),
+      'the per-band check does not name the teen band'
+    ).toContain('teen');
     expect(gaps.find((g) => g.place === 'teen').missing, 'the named gap is not the friend direction').toContain('friends');
     expect(hasAllThree(stripped), 'the POOLED check should still read green, which is the whole point of DR-0795').toBe(true);
   });
@@ -488,7 +513,10 @@ describe('sov69 — a true story names whose life it was, so neither story claim
     // Written to teach, never lived by a named person, so the label that tells a
     // reader "a true story I lived" is not used. DR-1123's pin of 88 unsourced
     // true stories cannot move because of this lesson.
-    expect(M.stories.some((s) => s.kind === 'testimony'), 'this lesson adds an unsourced true story').toBe(false);
+    expect(
+      M.stories.some((s) => s.kind === 'testimony'),
+      'this lesson adds an unsourced true story'
+    ).toBe(false);
     // And neither parable is written in the first person as a lived account.
     for (const s of M.stories) {
       expect(/^\s*(I |We )/.test(s.body), 'a parable opens as a first-person account').toBe(false);
@@ -526,13 +554,15 @@ describe('sov69 — PROVEN TO CATCH, place by place', () => {
   it('the per-place slices used above are UNIQUE to their place, so no band can be reworded from a sibling', () => {
     const p = PLACES();
     const uniqueCarrier = (slice, place) => {
-      const holders = Object.entries(p).filter(([, v]) => v.includes(slice)).map(([k]) => k);
+      const holders = Object.entries(p)
+        .filter(([, v]) => v.includes(slice))
+        .map(([k]) => k);
       expect(holders, `"${slice.slice(0, 40)}" is not unique to ${place}`).toEqual([place]);
     };
     uniqueCarrier('Worms! It went bad.', 'child');
     uniqueCarrier('A blocked road never gets to sound like a checked fact.', 'youth');
     uniqueCarrier('The trap is assuming the second is merely the first operating on a faster clock.', 'teen');
-    uniqueCarrier('Teach this as the course\'s week on THE LATENESS THAT IS A SIN', 'senior');
+    uniqueCarrier("Teach this as the course's week on THE LATENESS THAT IS A SIN", 'senior');
     uniqueCarrier('Three things stop, keep running, and are required of you', 'adult');
   });
 });
@@ -568,7 +598,8 @@ describe('sov69 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     'Hebrews 10:12': 'living-lessons',
     'Hebrews 10:14': 'living-lessons',
     'Habakkuk 2:3': 'living-lessons, world-issues and another sovereign-ai week',
-    'Ecclesiastes 3:1': 'living-lessons, world-issues, healthy-living, made-in-time, project-management, software-project-management, word-out and another sovereign-ai week',
+    'Ecclesiastes 3:1':
+      'living-lessons, world-issues, healthy-living, made-in-time, project-management, software-project-management, word-out and another sovereign-ai week',
     'Luke 12:42': 'infrastructure, management-stewardship and another sovereign-ai week',
     'Jeremiah 8:20': 'living-lessons and another sovereign-ai week',
     'Proverbs 18:13': 'eleven modules across the library, including development, living-lessons and world-issues',
@@ -588,9 +619,7 @@ describe('sov69 — shared ground is MEASURED, never claimed (DR-1317)', () => {
    * 10:11 appears only in the Godhead reference data (who-he-is-rules.js,
    * who-he-is-data.json) and in no lesson.
    */
-  const MEASURED_UNTAUGHT_WHEN_WRITTEN = [
-    '2 Samuel 18:29', '2 Samuel 18:31', 'Hebrews 10:11', 'Ecclesiastes 8:6',
-  ];
+  const MEASURED_UNTAUGHT_WHEN_WRITTEN = ['2 Samuel 18:29', '2 Samuel 18:31', 'Hebrews 10:11', 'Ecclesiastes 8:6'];
 
   it('the census covers every reference exactly once, and the two halves add up', () => {
     const shared = Object.keys(SHARED_AND_WHO_ELSE_HOLDS_IT);
@@ -627,7 +656,9 @@ describe('sov69 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     // and what lower delay costs.
     const blob = allStrings().join('\n');
     expect(M.bigIdea.includes('WHEN THE RESULT MUST BE USEFUL TO THE PERSON WAITING ON IT'), 'the lesson does not state its own standard').toBe(true);
-    expect(/Choosing between them is an engineering question\. Being late is a sin question\./.test(M.lesson), 'the lesson does not carry its own hinge').toBe(true);
+    expect(/Choosing between them is an engineering question\. Being late is a sin question\./.test(M.lesson), 'the lesson does not carry its own hinge').toBe(
+      true
+    );
     expect(/[Tt]he window closes INSIDE the deadline/.test(M.lesson), 'the lesson does not carry why the batch is lawful').toBe(true);
     // And it does NOT teach the sibling landings.
     expect(/Xeon|GPU speed/i.test(blob), 'this lesson teaches sov4’s hardware-ceiling landing').toBe(false);
