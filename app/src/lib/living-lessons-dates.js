@@ -479,4 +479,17 @@ export const LIVING_LESSONS_ADDED = {
   // BUILT 2026-11-05: this is the build day, the day the id landed, not the day
   // it was sent, and the row waited 16 days (DR-1315).
   'll275-peace-and-truth-in-my-days': '2026-11-05',
+  // L276 and L277 were SPOKEN into the app by Darrell on 2026-11-05, minutes
+  // apart, and built the same day (DR-1318). L276, Integrity Is the Only Thing
+  // That Makes You Rich, is the first word: integrity is the number one thing,
+  // nothing matters except Christ and Him crucified, integrity outranks winning,
+  // money cannot make you rich, and a lie cannot be sustained. L277, Look at the
+  // Record, is its follow-up: what to do when the leadership itself has no
+  // integrity -- keep the documented record, be quiet while it speaks, adjust
+  // on a true critique, and let Him do His job. Built as 275 and 276 and
+  // renumbered once when ll275 (Peace and Truth in My Days, DR-1315) landed on
+  // main first. Spoken and built the same day, so the day recorded is both the
+  // speaking day and the build day.
+  'll276-integrity-is-the-only-thing-that-makes-you-rich': '2026-11-05',
+  'll277-look-at-the-record': '2026-11-05',
 };
