@@ -624,12 +624,34 @@ const REPO = join(HERE, '..', '..', '..');
 // 22; if neither does, replace the "we did not read" clauses in all five reader
 // texts with an accurate one and lower the pin.
 //
+// 23 -> 24 on 2026-11-05 (DR-1322). sov66 is the next lesson out of the same
+// Gmail-lesson-intake lane, built from a Morning Brew issue forwarded
+// 2026-10-22. THREE roads were walked and two refused: curl to the publisher, to
+// a security index and to the software's own home each returned `curl: (56)
+// CONNECT tunnel failed, response 403`, and the fetch tool returned
+// `getaddrinfo ENOTFOUND isc.sans.edu`. The THIRD road, an independent web
+// search, WORKED, and it confirmed the date, two defect identifiers, the
+// severity grade, the fixed releases and that exploitation preceded the patch --
+// all of which the lesson states FLAT. What it did NOT confirm is the share of
+// the world's web sites the mail claimed, which is an unverified media estimate,
+// and a claim about a government instruction that appeared in exactly one place.
+// So NO reader text carries a figure at all -- the lesson's own gate scrubs
+// Scripture references, the ISO dates and the quoted error code and then asserts
+// that no figure survives, proven to catch six planted shapes -- and a 0-figure
+// row in lesson-sources.json is forbidden (DR-0076 section 3). The gap row is
+// the honest placement; sov66 belongs HERE, not among the checked.
+// re-review: 2026-12-04 -- from a runner with web access, or once isc.sans.edu
+// and the publisher's host are allowed in the session's network settings, open
+// the advisory and the issue. If the share figure is confirmed by a source that
+// measured it rather than by a headline, teach it, give sov66 a row and lower
+// this pin to 23; if it is not, replace the UNCHECKED clause in all five reader
+// texts with an accurate one and lower the pin.
+//
 // MEASURED ON THIS TREE, never by arithmetic on a branch:
-// scripts/unchecked-claims.mjs prints 26 lessons admitting, 163 disclosures,
-// 4 checked, 23 in the gap. ll274 contributes 1 of those disclosures and ll275
-// contributes 12 (its five reader texts plus its big idea, its anchor theme,
-// its facilitator notes and its quiz).
-const GAP = 23;
+// scripts/unchecked-claims.mjs prints 27 lessons admitting, 165 disclosures,
+// 4 checked, 24 in the gap. ll274 contributes 1 of those disclosures, ll275
+// contributes 12, and sov66 contributes 2.
+const GAP = 24;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
