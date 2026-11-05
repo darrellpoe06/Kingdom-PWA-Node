@@ -1,12 +1,12 @@
 // @vitest-environment node
 // =============================================================================
-// L276 — Say What You Get: the gate, the ten witnesses, and the honest no
+// L278 — Say What You Get: the gate, the ten witnesses, and the honest no
 // =============================================================================
 // Captured by the Gmail-lesson-intake Way from thread 1a1594cdb35eb4e4, one
 // message, forwarded 2026-10-20 12:31:04 UTC from dpoe@illinois.edu to
 // darrellpoe06@gmail.com, subject Fw: Dimon's Private Pentagon — a The Daily
 // Upside of 2026-10-20 — with one word typed above the forwarded header in his
-// own hand: Lessons. Built and landing 2026-11-05 (DR-1318).
+// own hand: Lessons. Built and landing 2026-11-05 (DR-1319).
 //
 // WHAT THIS GATE EXISTS TO HOLD, and what each check is paying for.
 //  (1) THE TEACHING IS THE HALO, NOT THE PROMISE. Three of the digest's four
@@ -57,7 +57,7 @@ import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 import { findBritish } from '../../../scripts/american-spelling.mjs';
 import { fourBandFaults } from './fixtures/four-band-ladder.js';
 
-const ID = 'll276-say-what-you-get';
+const ID = 'll278-say-what-you-get';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
@@ -207,7 +207,7 @@ const REFUSED = [
   'the host could not be found',
 ];
 
-describe('L276 is mounted, whole, and dated', () => {
+describe('L278 is mounted, whole, and dated', () => {
   it('the module exists in Living Lessons', () => {
     expect(L, `${ID} is not in LIVING_LESSONS_MODULES`).toBeTruthy();
   });

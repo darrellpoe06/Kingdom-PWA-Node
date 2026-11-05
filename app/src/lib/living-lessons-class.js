@@ -28025,7 +28025,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // ---------------------------------------------------------------------------
-  // L276 — SAY WHAT YOU GET (DR-1318)
+  // L278 — SAY WHAT YOU GET (DR-1319)
   // ---------------------------------------------------------------------------
   // Source: Gmail lesson-intake lane (DR-0312). Thread 1a1594cdb35eb4e4, one
   // message, forwarded 2026-10-20T12:31:04Z from dpoe@illinois.edu to
@@ -28059,10 +28059,10 @@ export const LIVING_LESSONS_MODULES = [
   // connect. No cross-reference note appears in any reader text.
   //
   // Every verse is read from the KJV corpus on disk and pinned verbatim in
-  // app/src/__tests__/living-lessons-ll276-say-what-you-get.test.js.
+  // app/src/__tests__/living-lessons-ll278-say-what-you-get.test.js.
   // ---------------------------------------------------------------------------
   {
-    id: 'll276-say-what-you-get',
+    id: 'll278-say-what-you-get',
     title: 'Say What You Get — the gate, the ten witnesses, the honest no, and the blessing on the head of him that selleth it',
     bigIdea: 'A FORWARDED BUSINESS NEWSLETTER CARRIED ONE SENTENCE WORTH A WHOLE LESSON: THE HEAD OF A LARGE BANK SAID ON THE RECORD THAT HIS PROGRAMME TO FINANCE INDUSTRIES CRITICAL TO THE COUNTRY IS NOT PHILANTHROPY AND IS ONE HUNDRED PERCENT COMMERCIAL. He refused the halo, and that refusal is the most honest thing in the issue. This lesson names no company, bank, person or party, because naming them would hand the reader a side to join, and the thing underneath does not change when the names change. Scripture settled it in a chapter almost nobody reads as a contract. Boaz took a tangled purchase to the loudest place in town, "Then went Boaz up to the gate, and sat him down there" (Ruth 4:1), seated ten witnesses before a single term was spoken, and handed his rival the information that could cost him the field, telling him plainly, "I am after thee" (Ruth 4:4). The rival\'s refusal is half the teaching, because he gave his real reason instead of a noble-sounding one: "I cannot redeem it for myself, lest I mar mine own inheritance" (Ruth 4:6). Scripture records that without a word of blame. Then the hinge, and it is one word long. He announced the purchase and did not stop there. "Moreover Ruth the Moabitess, the wife of Mahlon, have I purchased to be my wife" (Ruth 4:10) - he named his own gain, out loud, in the same breath as the duty, in front of ten elders and everyone passing by, and the town blessed the transaction rather than suspecting it. And Yahweh put the blessing somewhere that has quietly troubled a lot of good people: "He that withholdeth corn, the people shall curse him: but blessing shall be upon the head of him that selleth it" (Proverbs 11:26). The curse is on hoarding. The blessing is on SELLING - at a price, to someone who needed it and paid. The labourer is worthy, not merely tolerated. What the Word actually indicts is never the profit. It is the halo over it. Jesus does not go after the alms, He goes after the audience, and of the ones who sounded a trumpet He said, "They have their reward" (Matthew 6:2) - a receipt, not a punishment. So the rule has two sides and the world runs it backward: say your GAIN out loud, keep your GIVING quiet. And the one who paid the highest price ever paid named His own gain too. Jesus, the Lamb of Yahweh and the Eternal Son of Yahweh, "who for the joy that was set before him endured the cross" (Hebrews 12:2) - the joy printed right beside the shame, with no embarrassment anywhere in the sentence.',
     inApp: 'Open this week under Living Lessons and read it at your band. Then do the one thing: take something you are about to do for somebody that genuinely helps them and also helps you, and before you do it, say the second half out loud to them - say what you get - and then do it anyway. Keep your giving quiet and your gain spoken, which is the exact reverse of how the world runs it. Measure it the Word\'s way rather than by how it felt: watch for the fruit of the Spirit in the people you dealt with (Galatians 5:22), and count occasions and days rather than feelings, because the Word\'s own rhythm is counted (Deuteronomy 6:7; Hebrews 3:13). Then read Ruth 4 for yourself, out loud, all eleven verses, and watch for the word Moreover.',
