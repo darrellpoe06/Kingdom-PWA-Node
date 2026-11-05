@@ -109,7 +109,20 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(280); // on 2026-11-05, sov66 (They dwelt careless, and there was
+    // RAISED 280 -> 281 on 2026-11-05 by sov68 (There shall be none in the field -- the announced
+    // window, the portion that did not spoil, and the part no engine was holding), READ from a
+    // fresh scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total
+    // 455, allFour 281, adultOnly 0), never computed and never hand-merged. sov68 carries all four
+    // authored bands from its first commit and fourBandFaults reads clean -- adult prose 2,274
+    // words; shares child 0.61, youth 0.64, teen 0.70, senior 0.99; ladder child 2.02 < youth 3.97
+    // < teen 4.93 < senior 8.17, every band under its ceiling; worst band-pair overlap 0.215
+    // senior~adult against the 0.25 near-copy line. THE CHILD BAND MISSED ITS 0.5 SHARE FLOOR ON
+    // THE FIRST DRAFT at 0.40, and the teen grade sat at 5.99 against a 6.00 ceiling -- one
+    // hundredth of a grade from red; both were authored out rather than waived, and the baseline
+    // was regenerated afterwards. KNOWN COLLISION, NAMED (DR-1333): sov67 is in flight on PR #2552
+    // and raises this same line 280 -> 281 from the same starting point. Whichever lands second
+    // takes 282, from a fresh baseline run on the merged tree -- never by adding one by hand.
+    expect(baseline.allFour).toBe(281); // on 2026-11-05, sov66 (They dwelt careless, and there was
     // no deliverer -- the hole that was always open, the stronger man who came, and the walls
     // Yahweh appoints) raises it one more, from the 279 sov65 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 454,
