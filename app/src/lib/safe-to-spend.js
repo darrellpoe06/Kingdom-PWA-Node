@@ -426,6 +426,16 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       && !isOwnAccountTransfer(t.description || '') // money moved to their own accounts is not a bill (Christina 2026-11-03)
       && inScope(sc, accountEntity.get(t.accountId)) && !!accountsById.get(t.accountId) && SPENDABLE_TYPES.includes(accountsById.get(t.accountId).type));
     const patterns = rows.length ? detectRecurring(rows, { direction: 'out', nowMs: asOf.getTime() }) : [];
+    // A payee the family marked "Not a bill" in Money → Bills → Review is left
+    // out of every projection; its bank transactions are untouched (Christina
+    // 2026-11-05: "Allow me to confirm, correct, or dismiss inferred bills
+    // without deleting the original bank transactions"). Before this, "Not a
+    // bill" hid the row on the review screen while Safe to Spend still counted it.
+    const reviewDismissed = (data?.moneyPlan?.billReview?.dismissed) || {};
+    const suggestions = suggestBills(data, asOf);
+    const firstWords = (x) => payeeWords(x).slice(0, 2).join(' ');
+    const dismissedNames = new Set(suggestions.filter((x) => reviewDismissed[x.key]).map((x) => firstWords(x.name)).filter(Boolean));
+    let leftOut = 0;
     // A bill confirmed on the review screen carries the payee exactly as the
     // bank spelled it (paidAs); its guessed twin is dropped so the same
     // payments are never counted twice. Spellings are compared whole, so
@@ -434,6 +444,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       .flatMap((o) => [o.paidAs, o.name, ...(o.alsoPaidAs || [])]).filter(Boolean).map((n) => cleanName(n).toLowerCase()));
     for (const p of patterns) {
       if (decisions[p.key] === 'cancel') continue;
+      if (dismissedNames.has(firstWords(p.label))) { leftOut += 1; continue; }
       if (seenPayees.has(p.key) || scheduledKeys.has(p.key)) continue;
       if (confirmedNames.has(cleanName(p.label || '').toLowerCase())) continue;
       if (looksLikeDebtPayment(p.label)) continue; // the debt minimum already carries it
@@ -441,8 +452,9 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       let guard = 0;
       while (next < start && guard++ < 120) next = addDays(next, p.cadenceDays);
       const occ = expandOccurrences(next, cadenceToFrequency(p.cadence), start, end);
+      const lastRow = rows.filter((t) => (p.txIds || []).includes(t.id)).sort((a, b) => String(a.date).localeCompare(String(b.date))).pop();
       for (const at of occ) {
-        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel });
+        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel, accountId: lastRow ? lastRow.accountId : null });
       }
       const monthly = round2(p.amount * (DAYS_PER_MONTH / p.cadenceDays));
       inferredMonthly.total = round2(inferredMonthly.total + monthly);
@@ -466,9 +478,10 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       .flatMap((e) => cleanName(e.label || '').toLowerCase().split(/\W+/).filter((w) => w.length > 3)));
     const debtMins = events.filter((e) => e.kind === 'debt-min' || e.kind === 'mortgage').map((e) => -Number(e.amount)).filter((m) => m > 0);
     let added = 0;
-    for (const s of suggestBills(data, asOf)) {
+    for (const s of suggestions) {
       if (!['home-mortgage', 'arrangement', 'past-due', 'family', 'rental', 'business', 'household'].includes(s.group)) continue; // never a transfer between own accounts
       if (decisions[s.key] === 'cancel') continue;
+      if (reviewDismissed[s.key]) { leftOut += 1; continue; }
       const key = payeeKey(s.name || '');
       if (counted.has(key) || counted.has(norm(s.name)) || seenPayees.has(key) || scheduledKeys.has(key)) continue;
       if (confirmedNames.has(cleanName(s.name || '').toLowerCase())) continue;
@@ -477,28 +490,131 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       const acct = accountsById.get(s.accountId);
       if (!acct || !SPENDABLE_TYPES.includes(acct.type) || !inScope(sc, accountEntity.get(s.accountId))) continue;
       const amount = Number(s.amount) || 0; if (!(amount > 0)) continue;
-      const days = (s.evidence && s.evidence.days && s.evidence.days.length ? s.evidence.days : [s.evidence ? s.evidence.usualDay : 1]).slice(0, s.frequency === 'semimonthly' ? 2 : 1);
-      for (const day of days) {
-        const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
-        const first = anchor < start ? addMonthsClamped(anchor, 1, day) : anchor;
-        for (const at of expandOccurrences(first, 'monthly', start, end)) {
-          events.push({ date: isoDay(at), amount: -round2(amount), label: s.name, kind: 'inferred-bill', obligationType: s.group === 'arrangement' ? 'arrangement' : (s.group === 'past-due' ? 'past-due' : null), source: 'inferred', refId: s.key, entityId: null, assumed: true, cadence: s.frequency === 'semimonthly' ? 'twice a month' : 'monthly' });
-        }
+      const rhythm = historyOccurrences(s, start, end);
+      for (const at of rhythm.dates) {
+        events.push({ date: isoDay(at), amount: -round2(amount), label: s.name, kind: 'inferred-bill', obligationType: s.group === 'arrangement' ? 'arrangement' : (s.group === 'past-due' ? 'past-due' : null), source: 'inferred', refId: s.key, entityId: null, assumed: true, cadence: rhythm.cadence, accountId: s.accountId || null });
       }
       counted.add(key); counted.add(norm(s.name));
-      const monthly = round2(amount * days.length);
+      const monthly = round2(amount * rhythm.perMonth);
       inferredMonthly.total = round2(inferredMonthly.total + monthly);
       inferredMonthly.items.push({ key: s.key, label: s.name, monthly });
       added += 1;
     }
+    if (leftOut) assumptions.push(`${dismissedNames.size} payee${dismissedNames.size === 1 ? '' : 's'} you marked "Not a bill" left out of the projection (the bank transactions are kept).`);
     if (added) assumptions.push(`${added} more bill${added === 1 ? '' : 's'} seen in your own payments (debt, mortgage, arrangement or family payments) counted on the days they are usually paid; not confirmed — confirm them in Money → Bills → Review.`);
   }
 
+  // 6c) ONE PROJECTION PER OBLIGATION (Christina 2026-11-05: BG & Mom $750 on
+  //     the 4th and again on the 5th; "Detect possible duplicate obligations,
+  //     even when their inferred due dates differ by one or two days"). Two
+  //     projections of the same payee, within 5% of the same amount, no more
+  //     than 3 days apart are one payment: it is counted once and the other is
+  //     listed as a possible duplicate, never silently dropped. A confirmed bill
+  //     beats a guess; a creditor arrangement beats a regular bill for the same
+  //     creditor (never counted through both); otherwise the earlier one stays.
+  const duplicates = [];
+  const rank = (e) => (e.source === 'obligation' ? (e.obligationType === 'arrangement' || e.obligationType === 'settlement' ? 0 : 1) : (e.kind === 'inferred-bill' ? 3 : 2));
+  const outs = events.filter((e) => e.amount < 0 && ['bill', 'inferred-bill', 'scheduled'].includes(e.kind) && !e.pastDuePart)
+    .sort((a, b) => rank(a) - rank(b) || a.date.localeCompare(b.date));
+  const kept = [];
+  const dropped = new Set();
+  for (const e of outs) {
+    const twin = kept.find((k) => k.refId !== e.refId || k.source !== e.source ? samePayment(k, e) : false);
+    if (twin) { dropped.add(e); duplicates.push({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, duplicateOf: { date: twin.date, label: twin.label, kind: twin.kind }, refId: e.refId }); }
+    else kept.push(e);
+  }
+  // 6d) A GUESSED bill dated on or before the day its account was last checked
+  //     against the bank is already inside that bank balance (the check is the
+  //     end-of-day balance): paid and cleared, never subtracted again (Christina
+  //     2026-11-05: "Only subtract unpaid obligations that are actually due after
+  //     that balance's effective date"). A confirmed bill keeps its own paid /
+  //     overdue logic below, so a legitimate unpaid bill is never removed.
+  const checks = latestCheckpoints(data, asOf);
+  const inBalance = [];
+  const live = [];
+  for (const e of events) {
+    if (dropped.has(e)) continue;
+    const cp = e.kind === 'inferred-bill' && e.accountId ? checks[e.accountId] : null;
+    if (cp && cp.basis !== 'provisional' && e.date <= cp.day) { inBalance.push({ ...e, key: occurrenceKey(e), settled: 'in-bank-balance', bankCheckedOn: cp.day, paidSoFar: round2(-e.amount), remaining: 0 }); continue; }
+    live.push(e);
+  }
+  if (duplicates.length) assumptions.push(`${duplicates.length} possible duplicate${duplicates.length === 1 ? '' : 's'} counted once (the same payee and amount projected within 3 days): ${[...new Set(duplicates.map((x) => x.label))].slice(0, 3).join(', ')}.`);
+
   // 7) SETTLED OCCURRENCES (DEFECT-1, GAP-1; Christina 2026-10-29: "I do not
   //    want incorrect calculations influencing my financial decisions").
-  const settledOut = settleOccurrences(events, data, asOf);
+  const settledOut = settleOccurrences(live, data, asOf);
   assumptions.push(...settledOut.assumptions);
-  return { events: settledOut.events, assumptions, inferredMonthly, settled: settledOut.settled, waitingOnLedger: settledOut.waitingOnLedger };
+  return { events: settledOut.events, assumptions, inferredMonthly, settled: [...inBalance, ...settledOut.settled], duplicates, waitingOnLedger: settledOut.waitingOnLedger };
+}
+
+// The words that name a payee, without the bank's noise (Zelle codes, "Online
+// Payment To", card suffixes): "ZELLE PAYMENT TO BG & MOM JPM99D23RK9R" and
+// "Zelle to BG & Mom" both read "bg and mom".
+const PAYEE_NOISE = new Set(['zelle', 'payment', 'payments', 'pymt', 'pmt', 'to', 'from', 'online', 'sent', 'cash', 'app', 'debit', 'purchase', 'web', 'id', 'paypal', 'billpay', 'autopay', 'ach', 'ppd', 'ccd', 'the']);
+export function payeeWords(text) {
+  return String(text || '').toLowerCase().replace(/&amp;/g, '&').replace(/&/g, ' and ').replace(/[^a-z\s]/g, ' ')
+    .split(/\s+/).filter((w) => w.length > 1 && !PAYEE_NOISE.has(w));
+}
+function samePayment(a, b) {
+  // Two bills the family CONFIRMED are both kept (two real bills to one payee
+  // are legitimate), except a creditor arrangement and a regular bill for the
+  // same creditor: the arrangement is how that bill is being paid.
+  if (a.source === 'obligation' && b.source === 'obligation') {
+    const arr = (e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement';
+    if (arr(a) === arr(b)) return false;
+  }
+  const x = payeeWords(a.label).slice(0, 2).join(' ');
+  const y = payeeWords(b.label).slice(0, 2).join(' ');
+  if (!x || x.length < 3 || x !== y) return false;
+  const p = -a.amount; const q = -b.amount;
+  if (Math.abs(p - q) > Math.max(p, q) * 0.05) return false;
+  // Two GUESSES of one payee from the two passes are one payment inside half
+  // its cycle (the same subscription read as the 7th and the 12th); anything
+  // confirmed is matched within 3 days, so two real bills are never merged.
+  const guesses = a.kind === 'inferred-bill' && b.kind === 'inferred-bill';
+  const cycle = (e) => { const c = String(e.cadence || ''); return c === 'weekly' ? HALF_CYCLE_DAYS.weekly : (/2 weeks|two weeks|twice/.test(c) ? HALF_CYCLE_DAYS.biweekly : HALF_CYCLE_DAYS.monthly); };
+  const days = guesses ? Math.min(cycle(a), cycle(b)) : 3;
+  return Math.abs(parseDay(a.date) - parseDay(b.date)) <= days * 86400000;
+}
+
+// When a bill seen only in past payments is due next, from its real rhythm:
+//   * paid about every two weeks (the usual gap 12–16 days, 3+ payments):
+//     every 14 days from the day it was last paid;
+//   * twice a month: its usual day and a second day at least 10 days away
+//     (a payment that wobbles from the 5th to the 7th is ONE payment);
+//   * otherwise monthly on its usual day.
+// A date whose payment was already made early (the last payment falls inside
+// that date's own cycle) is not projected again.
+export function historyOccurrences(s, start, end) {
+  const ev = (s && s.evidence) || {};
+  const last = parseDay(ev.lastPaid);
+  const gap = Number(ev.gapDays) || 0;
+  if (last && (ev.dates || []).length >= 3 && gap >= 12 && gap <= 16) {
+    let next = addDays(last, 14);
+    while (next < start) next = addDays(next, 14);
+    const dates = [];
+    for (let at = next; at <= end; at = addDays(at, 14)) dates.push(at);
+    return { dates, cadence: 'every two weeks', perMonth: DAYS_PER_MONTH / 14 };
+  }
+  const all = ev.days && ev.days.length ? ev.days : [ev.usualDay || 1];
+  const days = [all[0]];
+  if (s.frequency === 'semimonthly') {
+    const apart = (a, b) => { const d = Math.abs(a - b); return Math.min(d, 30 - d); };
+    const second = all.find((d) => apart(d, all[0]) >= 10);
+    if (second) days.push(second);
+  }
+  const half = days.length > 1 ? HALF_CYCLE_DAYS.semimonthly : HALF_CYCLE_DAYS.monthly;
+  const dates = [];
+  for (const day of days) {
+    const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
+    const first = anchor < start ? addMonthsClamped(anchor, 1, day) : anchor;
+    for (const at of expandOccurrences(first, 'monthly', start, end)) {
+      if (last && last >= addDays(at, -half)) continue; // already paid for this cycle
+      dates.push(at);
+    }
+  }
+  dates.sort((a, b) => a - b);
+  return { dates, cadence: days.length > 1 ? 'twice a month' : 'monthly', perMonth: days.length };
 }
 
 // ── what has already been paid (DEFECT-1, GAP-1) ──────────────────────────────
@@ -726,15 +842,42 @@ function comingUp(data, sc, start, settings, opts) {
   const ob = obligationEvents(data, sc, start, end14, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const inc = incomeEvents(data, sc, addDays(start, 1), end14, settings, start);
   const out = ob.events.filter((e) => e.amount < 0);
-  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
+  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
+  // What is NOT subtracted, shown beside what is: payments already paid and
+  // cleared (in the ledger, marked paid outside, or inside the bank-checked
+  // balance) and the possible duplicates counted once.
+  const last14 = isoDay(end14);
+  const cleared = (ob.settled || []).filter((e) => e.date <= last14 && e.settled !== 'canceled')
+    .map((e) => ({ date: e.date, label: e.label, amount: round2(e.paidSoFar != null ? e.paidSoFar : -e.amount), how: e.settled, bankCheckedOn: e.bankCheckedOn || null }));
+  const dupes = (ob.duplicates || []).filter((e) => e.date <= last14);
   return {
+    cleared: { total: round2(cleared.reduce((a, e) => a + e.amount, 0)), items: cleared },
+    duplicates: { total: round2(dupes.reduce((a, e) => a + e.amount, 0)), items: dupes },
     next7: pick(in7),
     next14: pick(out),
     overdue: pick(out.filter((e) => e.overdue)),
     arrangements: pick(out.filter((e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement')),
     income14: { total: round2(inc.events.reduce((s, e) => s + e.amount, 0)), items: inc.events.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) },
   };
+}
+
+// The five states a bill in Bills Due can be in (Christina 2026-11-05): paid
+// and cleared (never in these lists; see windows.cleared), pending (marked paid
+// but not posted yet, or scheduled in the register), overdue, confirmed
+// upcoming (a bill, debt minimum, mortgage or tax item on file), and inferred
+// from transaction history (not confirmed).
+export const BILL_DUE_STATUS_LABEL = {
+  overdue: 'Overdue',
+  pending: 'Pending',
+  confirmed: 'Confirmed upcoming',
+  inferred: 'Inferred from history, not confirmed',
+};
+export function billStatusOf(e) {
+  if (e.overdue) return 'overdue';
+  if (e.markedPaid || e.kind === 'scheduled') return 'pending';
+  if (e.kind === 'inferred-bill') return 'inferred';
+  return 'confirmed';
 }
 
 // How much can go to EXTRA debt payments today without any projected balance

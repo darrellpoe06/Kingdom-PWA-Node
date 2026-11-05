@@ -6,7 +6,7 @@
 // this panel can never disagree.
 // =============================================================================
 import React, { useState } from 'react';
-import { OBLIGATION_TYPE_LABEL } from '../../lib/safe-to-spend.js';
+import { OBLIGATION_TYPE_LABEL, BILL_DUE_STATUS_LABEL } from '../../lib/safe-to-spend.js';
 import { entityLabel } from '../../lib/entity-labels.js';
 
 const ROW = 'border-b border-[#E8E4DC] last:border-b-0';
@@ -42,7 +42,7 @@ function Items({ list, show, entities }) {
       {list.map((it, i) => (
         <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2">
           <span className="w-[5.5rem] shrink-0">{it.overdue ? `overdue${it.dueDate ? ` (due ${it.dueDate})` : ''}` : it.date}</span>
-          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.inferred ? ' · guessed from past payments, not confirmed' : ''}{it.assumed ? ' · due day assumed' : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}</span>
+          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.assumed ? ' · due day assumed' : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
           <span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span>
         </li>
       ))}
@@ -130,6 +130,16 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
       <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : ''}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
       <Line id="overdue" label="Overdue" value={show(W.overdue ? W.overdue.total : 0)} tone={W.overdue && W.overdue.total > 0 ? 'text-[#B85838]' : ''}><Items list={W.overdue && W.overdue.items} show={show} entities={entities} /></Line>
+      <Line id="cleared" label="Paid and cleared (not subtracted again)" value={show(W.cleared ? W.cleared.total : 0)} note="already out of your bank balance">
+        {W.cleared && W.cleared.items.length ? (
+          <ul className="space-y-1">{W.cleared.items.map((it, i) => <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0">{it.label} · {it.how === 'in-bank-balance' ? `inside your bank balance checked ${it.bankCheckedOn}` : (it.how === 'paid-in-ledger' ? 'payment found in your transactions' : 'marked paid outside these accounts')}</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></li>)}</ul>
+        ) : <p>Nothing in this window.</p>}
+      </Line>
+      <Line id="duplicates" label="Possible duplicates (counted once)" value={show(W.duplicates ? W.duplicates.total : 0)} note={W.duplicates && W.duplicates.items.length ? 'the same payee and amount projected twice; confirm or dismiss in Bills' : ''}>
+        {W.duplicates && W.duplicates.items.length ? (
+          <ul className="space-y-1">{W.duplicates.items.map((it, i) => <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0">{it.label} · same as {it.duplicateOf.label} on {it.duplicateOf.date}, which is counted</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></li>)}</ul>
+        ) : <p>None found.</p>}
+      </Line>
       <Line id="arrangements" label="Creditor arrangements (next 14 days)" value={show(W.arrangements ? W.arrangements.total : 0)}><Items list={W.arrangements && W.arrangements.items} show={show} entities={entities} /></Line>
       <Line id="income" label="Expected income (next 14 days)" value={show(W.income14 ? W.income14.total : 0)} note="counted only on the day it arrives"><Items list={W.income14 && W.income14.items} show={show} entities={entities} /></Line>
       <Line id="reserve" label="Protected cash reserve" value={show(L.minCushion)} note={result.byEntity ? 'each entity\u2019s own reserve, added up' : (W.reserveSource === 'entity' ? `${result.scope.label}\u2019s own reserve` : 'the household reserve')}>
