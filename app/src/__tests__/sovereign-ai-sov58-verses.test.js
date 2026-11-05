@@ -221,7 +221,7 @@ const SPINE = [
 // free: Psalms 39 ("a vain shew" repeats the beat Psalms 73 already carries) and
 // Isaiah 29:8 is inside a chapter already anchored three times over.
 const OURS = ['Psalms 104', 'Psalms 93', 'Psalms 73', 'Job 20', 'Judges 3', '1 Samuel 17', 'Luke 8', 'Isaiah 44', 'Jeremiah 10', 'Zechariah 10'];
-const DECLINED_AS_SPENT = ['Hebrews 11', 'Colossians 1', 'Psalms 33', 'Psalms 119', 'Matthew 7', 'Job 38', 'Deuteronomy 18', 'Luke 14', '1 John 4', '1 Thessalonians 5'];
+const DECLINED_FOR_ANOTHER_LANDING = ['Hebrews 11', 'Colossians 1', 'Psalms 33', 'Psalms 119', 'Matthew 7', 'Job 38', 'Deuteronomy 18', 'Luke 14', '1 John 4', '1 Thessalonians 5'];
 
 // Other people's stories, the sponsor copy and the shop list from that same
 // edition — and the subject's own vendor, refused with the rest so the teaching
@@ -388,10 +388,21 @@ describe('the anchors were chosen by COUNTING, and the key is book-and-chapter',
     // The department really is large, so an empty `taken` cannot fake a pass.
     expect(taken.size).toBeGreaterThan(300);
     const clashes = OURS.filter((c) => taken.has(c));
-    expect(clashes, `another week already stands on: ${clashes.join(', ')}`).toEqual([]);
+    // REPORTED, NOT ENFORCED (2026-11-05, DR-1333). This was
+    // `.toEqual([])` -- a frozen census asserting no later lesson may ever
+    // anchor a chapter of sov58's spine. DR-1317: a verse is NEVER spent, and
+    // overlap is how lessons connect; the only thing DR-0610 forbids is two
+    // lessons LANDING on the same message, which a chapter census never reads.
+    // Measured cost of the same shape elsewhere: sov67 (DR-1332) stands on
+    // Hebrews 12:26-27, whose clause exists nowhere else in Scripture, and
+    // sov62's copy of this case refused it outright with no route around.
+    expect(Array.isArray(clashes)).toBe(true);
+    if (clashes.length) {
+      console.log(`sov58: ${clashes.length} of its ${OURS.length} spine chapters are now shared with a later lesson: ${clashes.join(', ')} -- expected, DR-1317.`);
+    }
     // AND THE OTHER DIRECTION: the set must be able to report a hit at all.
-    for (const spent of DECLINED_AS_SPENT) {
-      expect(taken.has(spent), `${spent} was declined as spent but is anchored nowhere`).toBe(true);
+    for (const spent of DECLINED_FOR_ANOTHER_LANDING) {
+      expect(taken.has(spent), `${spent} was declined because its teaching lands elsewhere, but it is anchored nowhere`).toBe(true);
     }
   });
 });
