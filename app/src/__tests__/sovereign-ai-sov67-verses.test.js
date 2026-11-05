@@ -58,7 +58,7 @@
 // nobody.
 //
 // EVERY LESSON STANDS ALONE AND WHOLE (DR-1317's second correction). No reader
-// text points at another lesson. The comparison above lives in DR-1330 and in
+// text points at another lesson. The comparison above lives in DR-1332 and in
 // this header, which is reviewer bookkeeping and not a reader's business.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

@@ -121,7 +121,7 @@ describe('the debt, recorded as it actually is', () => {
     // row reads {lessons: 67, allFour: 46} and the DEBT does not move. ITS TEEN GRADE ALSO WENT
     // OVER THE 6.0 CEILING ON THE FIRST DRAFT, at 6.29, and the simplification pass then pushed
     // teen BELOW youth (4.58 against 4.64), breaking the ladder from the other side; youth was
-    // lowered to 3.02 rather than teen raised back toward its ceiling. Recorded as DR-1330.
+    // lowered to 3.02 rather than teen raised back toward its ceiling. Recorded as DR-1332.
     // The sov66 note that stood on this line is kept below, for the chain.
     // on 2026-11-05, sov66 (They dwelt careless, and there was
     // no deliverer -- the hole that was always open, the stronger man who came, and the walls

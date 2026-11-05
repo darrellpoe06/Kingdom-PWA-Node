@@ -9042,7 +9042,7 @@ export const SOVEREIGN_AI_MODULES = [
   // A VERSE IS NEVER SPENT (DR-1317). Nothing was dropped for appearing
   // elsewhere. Hebrews 8:13, Isaiah 30:13-14 and Jeremiah 8:20 are carried in
   // FULL here and are also carried by other lessons; the sharing is recorded in
-  // DR-1330 and in the census below as a MEASUREMENT, never as a veto. TWO
+  // DR-1332 and in the census below as a MEASUREMENT, never as a veto. TWO
   // readings were refused on the LANDING rather than on the Scripture, and the
   // distinction matters: James 1:22-25 and Proverbs 22:3 are absent because
   // taking them would pull this lesson onto sov66's message, not because any
@@ -9054,7 +9054,7 @@ export const SOVEREIGN_AI_MODULES = [
   // names nobody.
   //
   // Every verse is fetched from app/public/bible/kjv and pinned in
-  // app/src/__tests__/sovereign-ai-sov67-verses.test.js. Recorded as DR-1330.
+  // app/src/__tests__/sovereign-ai-sov67-verses.test.js. Recorded as DR-1332.
   {
     "id": "sov67-the-removing-of-those-things-that-are-made",
     "title": "The removing of those things that are made - what cannot be patched is taken away, and the part nobody can lend you",

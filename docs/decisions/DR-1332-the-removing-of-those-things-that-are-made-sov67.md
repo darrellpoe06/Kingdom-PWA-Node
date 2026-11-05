@@ -1,4 +1,4 @@
-# DR-1330: The removing of those things that are made — what cannot be patched is taken away, and the part nobody can lend you (sov67)
+# DR-1332: The removing of those things that are made — what cannot be patched is taken away, and the part nobody can lend you (sov67)
 
 **Date:** 2026-11-05
 **Status:** Accepted
@@ -14,7 +14,13 @@
 
 A maintenance notice is the dullest document a person receives, and this one carried a teaching four paragraphs below its own headline. The forward is his own university's IT status notice about emergency maintenance to a programming runtime, extended; the headline is the emergency and the repair, and the headline is **not** what was built. What was built is the half of the notice no news digest carried.
 
-**The assigned decision number was taken mid-build, and the stop held.** The brief assigned DR-1329 as "confirmed free." Re-running `scripts/claim-decision-number.mjs` before a word was written showed DR-1329 had landed on `origin/main` at **2026-11-05 15:34:21 UTC** (`8ebafe55`, PR #2550, ll282 "The Greater Work") — minutes before the brief was written. Nothing was written and nothing was self-allocated; the collision was reported and **DR-1330** was reassigned by the coordinator after an independent re-check. **DR-1021 is why that mattered:** it measures the cost of a session moving onto a number another session holds — four renumbers by hand, each one invalidating an already-verified tree. The in-flight check only sees *pushed* branches, so a sibling already holding DR-1330 would have been invisible from here.
+**This record's number collided TWICE, which is itself the finding, and the machinery caught both.** DR-1021 is the record that predicted it: it measures the cost of a session moving onto a number another session holds — four renumbers by hand, each one invalidating an already-verified tree — and says plainly that the cause is a single shared pointer line, which is a Governor's call rather than a tooling change.
+
+1. **DR-1329, before a word was written.** The brief assigned it as "confirmed free." Re-running `scripts/claim-decision-number.mjs` first showed it had landed on `origin/main` at **2026-11-05 15:34:21 UTC** (`8ebafe55`, PR #2550, ll282 "The Greater Work") — minutes before the brief was written. **Nothing was written and nothing was self-allocated:** the collision was reported and the number reassigned after an independent re-check. The in-flight check only sees *pushed* branches, so a sibling holding a number without having pushed is invisible, which is exactly why a builder must not self-allocate.
+2. **DR-1330, after the whole lesson was built, verified and pushed.** `bba533d56` (PR #2551, a Ways review) landed on DR-1330 during the build. The push succeeded and then `mergeable_state` read `dirty`. **`resolve-ledger-conflicts.mjs` refused by name** — *"two different decisions claim DR-1330 … folding them would delete one decision from the ledger"* — which is DR-0644's refusal doing precisely the job it was given after folding silently deleted a real decision twice on 2026-10-06.
+3. **And the refusal's own suggested target was also wrong, which it warned about in the same breath.** It proposed DR-1331 while telling the operator to check that number first, because *"disk cannot see a branch still in flight."* `claim-decision-number.mjs` then reported DR-1331 **held by `origin/ccr-335c2b3f-ttub1k`** and named **DR-1332** as free on disk *and* in flight. The tool's warning was correct and the tool's number was not; the tool that measures in-flight work is the one to obey.
+
+The renumber was then performed by **`scripts/renumber-decision-record.mjs 1330 1332`** rather than by hand — the fix DR-1021 built for this exact friction — which renamed the file and rewrote all four citing files (`INDEX.md`, this course file, this lesson's gate, and the shared band-coverage comment). The pointer was left alone for the resolver, which owns it. Three numbers were consumed to land one record, and the cost DR-1021 named was paid again: a verified tree had to be re-verified after the rename.
 
 ### The three sentences the week rests on
 
@@ -48,7 +54,7 @@ Every figure below was read off the tree that holds the lesson, at `origin/main`
 ### The clearance probes, both re-run in the fresh tree before a word was written
 
 - `node scripts/lesson-row-shipped-sweep.mjs 1a164afce3d5ed0b` → `unknown 1a164afce3d5ed0b -> no decision record names it`, exit 0.
-- `node scripts/claim-decision-number.mjs` → `next free decision number: DR-1330`, **1224 records on disk and 1224 on origin/main, highest DR-1329**, 40 numbers held by unlanded branches, **0 of them at or above DR-1330**.
+- `node scripts/claim-decision-number.mjs` → `next free decision number: DR-1332`, **1224 records on disk and 1224 on origin/main, highest DR-1329**, 40 numbers held by unlanded branches, **0 of them at or above DR-1332**.
 
 ### The ground, measured across the WHOLE repository
 
