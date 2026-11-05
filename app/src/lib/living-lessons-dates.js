@@ -508,4 +508,13 @@ export const LIVING_LESSONS_ADDED = {
   // L277's closing movement. Spoken and built the same day, so the day recorded
   // is both the speaking day and the build day.
   'll279-soul-searching': '2026-11-05',
+  // L280 records the BUILD day, not the source day. The source is a morning
+  // news digest of 2026-10-22, forwarded into the app with one typed word above
+  // the forwarded header: Lessons. Nobody taught it (DR-0719: a forwarded
+  // newsletter is not a recording, so no teacher is identified). The lesson
+  // refuses the digest's political items and both of its lead stories on
+  // DR-0098 and DR-0610 grounds and teaches the one reading that was genuinely
+  // unbuilt: whose the answer in the night is, and the chaff-or-wheat test that
+  // survives a sign coming to pass (DR-1324).
+  'll280-whose-answer-comes-in-the-night': '2026-11-05',
 };

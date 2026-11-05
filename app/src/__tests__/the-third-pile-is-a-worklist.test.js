@@ -647,11 +647,32 @@ const REPO = join(HERE, '..', '..', '..');
 // this pin to 23; if it is not, replace the UNCHECKED clause in all five reader
 // texts with an accurate one and lower the pin.
 //
+// ll280 (DR-1324) IS THE TWENTY-FIFTH, AND IT BELONGS HERE RATHER THAN AMONG
+// THE CHECKED, for a plainer reason than sov66's. Its source is a forwarded
+// morning news digest of 2026-10-22 (Gmail thread 1a163ce6aaf1fed5) whose every
+// link is a urldefense.com wrapper around a tracking redirect, and NOT ONE was
+// followed; no road to the publisher was attempted and none was needed, because
+// the lesson teaches the advertisement at the top of the page against the KJV
+// corpus on disk and takes nothing else from the issue. So there is no figure in
+// it to read back: the lesson carries NO figure at all in any of its five reader
+// texts -- its own gate scrubs Scripture references and ISO dates and then
+// asserts that none survives, proven to catch five planted shapes -- and a
+// 0-figure row in lesson-sources.json is forbidden (DR-0076 section 3). What it
+// admits as unchecked it lists item by item in every band: whether any dream
+// technique does anything, whether a dream can be remembered or steered on
+// demand, the publisher's own pages, every figure printed in the issue, the two
+// local items, the research item, and the awards and exhibitions. The gap row is
+// the honest placement.
+// re-review: 2026-12-05 -- nothing here becomes checkable by gaining network
+// access, because the lesson makes no claim about the world that a publisher
+// could confirm. If a later build ever teaches a figure from this issue, it
+// needs a row and this pin comes back down to 24.
+//
 // MEASURED ON THIS TREE, never by arithmetic on a branch:
-// scripts/unchecked-claims.mjs prints 27 lessons admitting, 165 disclosures,
-// 4 checked, 24 in the gap. ll274 contributes 1 of those disclosures, ll275
-// contributes 12, and sov66 contributes 2.
-const GAP = 24;
+// scripts/unchecked-claims.mjs prints 28 lessons admitting, 166 disclosures,
+// 4 checked, 25 in the gap. ll274 contributes 1 of those disclosures, ll275
+// contributes 12, sov66 contributes 2, and ll280 contributes 1.
+const GAP = 25;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
