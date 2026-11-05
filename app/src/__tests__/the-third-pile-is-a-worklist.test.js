@@ -576,7 +576,39 @@ const REPO = join(HERE, '..', '..', '..');
 // admitting, 150 disclosures, 4 checked, 21 in the gap. sov63 contributes 5 of
 // those disclosures, one per reader text, because the limit is carried on the
 // lesson AND all four bands rather than once in an adult paragraph.
-const GAP = 21;
+//
+// 21 -> 22 GAP on 2026-11-05 (ll274, whose silver, whose name; DR-1312).
+// CHECKED does not move. ll274 is built from an NPR Up First issue forwarded on
+// 2026-10-13 whose two lead items were a dispute over public money spent
+// promoting an official and a judicially authorized search of a legislator's
+// home. The publisher's page refused three times -- two command-line fetches
+// each returned `curl: (56) CONNECT tunnel failed, response 403` and a web
+// fetch returned `getaddrinfo ENOTFOUND www.npr.org` -- and every link in the
+// forwarded mail is a tracking redirect, so none was followed. So nobody at
+// this end read the article, the court filings, the department's full statement
+// or the measurement firm's data.
+//
+// THE LESSON ANSWERS BY STAKING NO FIGURE AT ALL, which is a stronger position
+// than a hedge: living-lessons-ll274-whose-silver-whose-name.test.js refuses a
+// dollar amount, a magnitude word and a percentage in EVERY one of the five
+// reader texts, and requires the refused 403 and the word "unchecked" in each
+// of them. It also holds DR-0100's three tiers apart in every band --
+// documented stated plainly, alleged named narrowly as alleged, and
+// unchecked-by-us said out loud -- so the gap row is the honest placement
+// rather than a defect. A 0-figure row in lesson-sources.json is forbidden
+// (DR-0076 section 3), so ll274 belongs HERE.
+// re-review: 2026-12-04 -- from a runner with web access, or once www.npr.org
+// is allowed in the session's network settings, open the issue's own page, the
+// filings in the suit it reports, and the department's statement in full. If
+// any of them carries a germane figure this lesson should teach, teach it, give
+// ll274 a row and lower this pin to 21; if none does, replace the "nobody at
+// this end verified" clause in all five reader texts with an accurate one and
+// lower the pin.
+//
+// MEASURED ON THIS TREE, never by arithmetic on a branch:
+// scripts/unchecked-claims.mjs prints 25 lessons admitting, 151 disclosures,
+// 4 checked, 22 in the gap. ll274 contributes 1 of those disclosures.
+const GAP = 22;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {

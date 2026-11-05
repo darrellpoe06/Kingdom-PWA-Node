@@ -162,7 +162,15 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // day for the same reason recorded above - the send day is seven weeks
     // earlier than the id's landing day, and dating by the send day would make
     // this very check false by putting L273 before every lesson from L212 on.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-03'); // L273
+    //
+    // The highest is now L274 (Whose Silver, Whose Name), built from the
+    // fourth-oldest genuinely-unbuilt send in the same lane: a news digest
+    // forwarded 2026-10-13 and landing 2026-11-05 (DR-1312). Same rule, same
+    // reason - the send day is 23 days earlier than the id's landing day, and
+    // dating by the send day would put L274 behind L255 and make this check
+    // false. The build ran across UTC midnight; the day recorded is the day its
+    // commit lands.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L274
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
