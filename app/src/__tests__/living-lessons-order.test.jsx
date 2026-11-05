@@ -171,12 +171,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // false. The build ran across UTC midnight; the day recorded is the day its
     // commit lands.
     //
-    // The highest is now L276 (Look at the Record), the follow-up word Darrell
-    // spoke minutes after the teaching behind L275 (Integrity Is the Only Thing
+    // The highest is now L278 (Look at the Record), the follow-up word Darrell
+    // spoke minutes after the teaching behind L277 (Integrity Is the Only Thing
     // That Makes You Rich); both were spoken and built 2026-11-05 (DR-1317), the
     // same day L274 landed, so the date does not move and only this comment
     // does, so it never names a lesson that is no longer the highest.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L276
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L278
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

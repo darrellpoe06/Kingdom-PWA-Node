@@ -27749,15 +27749,15 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // ---------------------------------------------------------------------------
-  // L275 (2026-11-05) -- spoken into the app by Darrell the same morning as L276,
+  // L277 (2026-11-05) -- spoken into the app by Darrell the same morning as L278,
   // minutes before it. His opening ranking: integrity is the number one thing
   // that matters; you know what you did, what you did not do, and why; nothing
   // matters except Christ and Him crucified; integrity outranks winning; money
   // cannot make you rich, integrity can; riches are sustainability, and a lie
   // cannot be sustained. Every verse is fetched from app/public/bible/kjv and
-  // pinned in living-lessons-ll275-integrity-is-the-only-thing-that-makes-you-rich.test.js.
+  // pinned in living-lessons-ll277-integrity-is-the-only-thing-that-makes-you-rich.test.js.
   {
-    id: 'll275-integrity-is-the-only-thing-that-makes-you-rich',
+    id: 'll277-integrity-is-the-only-thing-that-makes-you-rich',
     title: 'Integrity Is the Only Thing That Makes You Rich — What You Know Behind Closed Doors, and What Cannot Be Sustained',
     bigIdea: 'INTEGRITY IS THE ONLY THING THAT MAKES YOU RICH. This lesson was spoken into the app as a ranking: integrity is the number one thing that matters. Whether you have been lifted to a high position or you hold a low one, nobody should be able to guilt-trip you or gas your head up, because if you have integrity you know what you did, what you did not do, and why. That knowing comes from hearing Yahweh rather than the room, and not even yourself, and His Word is what settles it inside you. Nothing matters except Christ and Him crucified, the Lamb of Yahweh who chose a shaming death with His face set like a flint. Integrity outranks winning: a win without it is a loss, because He assesses the why and the how of everything done behind closed doors. Do the work so well that even an underminer has to look at the outcome, and if they still refuse, He is sharpening you for another space. Money cannot make you rich; the King’s relationship with you is the richest you can be, and riches are sustainability, because truth can be sustained and a lie cannot.',
     inApp: 'This week, pick one task at work or at home and do it as if the only reviewer were the Father who sees in secret: finish it to a standard you can measure, write down why you made each choice, and say nothing about it to anyone. Then notice the next time someone tries to guilt-trip you or flatter you, and answer silently with the fact: I know what I did and why. Read Job 1 and 2 and 1 Samuel 24 and 26 in one sitting and watch two men refuse to trade integrity for relief or for a win. Provenance, stated plainly: this lesson was built from a teaching Darrell spoke into the app on 2026-11-05, minutes before the teaching behind the next lesson; the stories in it are parables with invented characters, and every verse is quoted from the text as printed.',
@@ -27912,8 +27912,8 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // ---------------------------------------------------------------------------
-  // L276 (2026-11-05) -- the second word Darrell spoke into the app the same
-  // morning, minutes after the teaching behind L275, and its follow-up: what
+  // L278 (2026-11-05) -- the second word Darrell spoke into the app the same
+  // morning, minutes after the teaching behind L277, and its follow-up: what
   // to do when the environment itself is unhealthy. Bad leadership without
   // integrity that takes credit it did not earn and only has so much time; the
   // people who protect it; Yahweh using it to develop you; the joy of Yahweh
@@ -27922,9 +27922,9 @@ export const LIVING_LESSONS_MODULES = [
   // glory is His job, not mine; exist, live, study, let the Word come through;
   // let the chips fall, He has the rest. Every verse is fetched from
   // app/public/bible/kjv and pinned in
-  // living-lessons-ll276-look-at-the-record.test.js.
+  // living-lessons-ll278-look-at-the-record.test.js.
   {
-    id: 'll276-look-at-the-record',
+    id: 'll278-look-at-the-record',
     title: 'Look at the Record — Bad Leadership, a Narrative Louder Than the Data, and the Gift That Makes Room',
     bigIdea: 'LOOK AT THE RECORD. This lesson is the follow-up to Integrity Is the Only Thing That Makes You Rich, spoken into the app minutes after it, and it takes the question one step further: what do you do when the environment itself is unhealthy? When leadership has no integrity, takes credit for what it did not do, and is protected by people who should know better? The teaching answered that such leaders only have so much time, and that Yahweh is using them and the situation to develop you, to give you skill for handling it next time. The pressure is only pressure if your perception is wrong; with the joy of Yahweh as your strength you will be laughing. Keep the whole record, the data, the context, the documented reasons and the timelines, speak truth with transparency, and then be quiet and let the record answer. Critique the record and you will adjust and humble yourself; throw things at the wall that are not true and you need say nothing at all. If the organisation lets a narrative outweigh the data, that is its problem, and Yahweh is using it to make you a better leader than the ones over you. Let your yea be yea, enjoy your day, expect people to talk, put your family first, grow, and watch your gift make room for you here or somewhere new. He is the Shepherd of your soul; let Him do His job. His glory is His job, not yours. Exist, live, appreciate, study the Word, let it come through you, close the gaps between you and it, and let the chips fall. He has the rest.',
     inApp: 'This week, build the record the teaching described for one piece of your work: what you did, when, why, and the data behind the decision, dated and plain, in a form someone else could read without you in the room. Then the next time a story about you reaches you sideways, do not answer the story; read your record, and if there is a true critique in the story, adjust and say so; if there is not, say nothing and keep working. Read Genesis 30 and 31 in one sitting and watch a man under a boss who changed his wages ten times keep a twenty-year record and walk out blessed. Provenance, stated plainly: this lesson was built from a teaching Darrell spoke into the app on 2026-11-05, minutes after the teaching behind the previous lesson; the stories in it are parables with invented characters, and every verse is quoted from the text as printed.',

@@ -1,10 +1,10 @@
 // @vitest-environment node
 // =============================================================================
-// L276 — Look at the Record: bad leadership, a narrative louder than the data,
+// L278 — Look at the Record: bad leadership, a narrative louder than the data,
 // and the gift that makes room
 // =============================================================================
 // Darrell spoke a second teaching into the app on 2026-11-05, minutes after the
-// one behind L275: "Unhealthy environments caused by bad leadership, who don't
+// one behind L277: "Unhealthy environments caused by bad leadership, who don't
 // have integrity, who take credit for things that they don't actually have
 // credit for, who they only have a certain amount of time ... Yahweh is using
 // these people ... to give me skill ... the joy of the Lord is your strength ...
@@ -22,7 +22,7 @@
 // (2) Turning "the room is the problem" into revenge -- he said it fuels
 // building better environments, not revenge, so Proverbs 24:29 is pinned
 // everywhere. (3) Losing the follow-up shape: this lesson opens by naming
-// L275 and sits directly after it. Each is pinned by its own case below, and
+// L277 and sits directly after it. Each is pinned by its own case below, and
 // each has a proof that it catches.
 //
 // Quote pairing is done by splitting on the quote character (DR-1258/DR-1259),
@@ -41,8 +41,8 @@ import { formatLessonText } from '../lib/lesson-format.js';
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll276-look-at-the-record';
-const PREV_ID = 'll275-integrity-is-the-only-thing-that-makes-you-rich';
+const ID = 'll278-look-at-the-record';
+const PREV_ID = 'll277-integrity-is-the-only-thing-that-makes-you-rich';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
@@ -144,7 +144,7 @@ const SPINE = [
   ['Psalms 37:7', 'fret not thyself because of him who prospereth in his way'],
 ];
 
-describe('L276 is in the catalog, numbered, dated and whole', () => {
+describe('L278 is in the catalog, numbered, dated and whole', () => {
   it('exists exactly once with all four bands', () => {
     expect(L, `${ID} is not in the catalog`).toBeTruthy();
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
@@ -152,9 +152,9 @@ describe('L276 is in the catalog, numbered, dated and whole', () => {
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims 276 exactly once, and nothing else claims it', () => {
+  it('claims 278 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(numbers.filter((n) => n === 276)).toEqual([276]);
+    expect(numbers.filter((n) => n === 278)).toEqual([278]);
   });
 
   it('carries its build day, the day it was spoken', () => {
