@@ -1,6 +1,6 @@
 // =============================================================================
 // ai-usage-ledger — the slide's project-results table, kept by the build
-// (DR-1338, DR-1330 D8). Proven to catch: a cost with no tokens, a session
+// (DR-1347, DR-1330 D8). Proven to catch: a cost with no tokens, a session
 // reading that is not a subtraction, a record that landed without its line;
 // the live ledger is sound and covers every record from DR-1331 on; the
 // report never shows a zero where no meter exists.

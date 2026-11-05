@@ -1,6 +1,6 @@
 // =============================================================================
 // AiUsageReport — what the AI cost, per task, beside what the same work would
-// have cost without it (DR-1338, DR-1330 D8)
+// have cost without it (DR-1347, DR-1330 D8)
 // =============================================================================
 // Renders lib/ai-usage-ledger.json; every number derived on read by rollup(),
 // nothing painted. Where no meter exists the tile SAYS so ("not metered")

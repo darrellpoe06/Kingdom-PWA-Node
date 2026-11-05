@@ -1,5 +1,5 @@
 // =============================================================================
-// ai-usage-ledger-rules — the pure rules of the AI usage ledger (DR-1338)
+// ai-usage-ledger-rules — the pure rules of the AI usage ledger (DR-1347)
 // =============================================================================
 // No JSON import here, so the CLI (scripts/ai-usage-ledger.mjs) and the app
 // (lib/ai-usage-ledger.js, which binds the committed file) share one set of

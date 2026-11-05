@@ -1,4 +1,4 @@
-# DR-1338: What the AI cost, per task, is on the record — measured where a meter exists, said plainly where none does
+# DR-1347: What the AI cost, per task, is on the record — measured where a meter exists, said plainly where none does
 
 **Date:** 2026-11-05
 **Status:** accepted

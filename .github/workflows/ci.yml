@@ -162,7 +162,7 @@ jobs:
       # store the app renders under Admin is read from the code; a committed
       # copy that differs from the code is a red build.
       - run: node ../scripts/endpoint-register.mjs --check
-      # WHAT THE AI COST (DR-1338, DR-1330 D8): every decision record from
+      # WHAT THE AI COST (DR-1347, DR-1330 D8): every decision record from
       # DR-1331 on carries a line in app/src/lib/ai-usage-ledger.json (model,
       # measured wall clock, the estimate without AI, tokens and dollars where
       # a meter exists); a record that lands without its line is red.

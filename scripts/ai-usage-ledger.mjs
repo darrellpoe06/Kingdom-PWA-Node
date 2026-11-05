@@ -2,7 +2,7 @@
 // =============================================================================
 // ai-usage-ledger — a build that lands without its cost line is a red build
 // =============================================================================
-// DR-1338 (DR-1330 D8). The Ways review measured that AI spend was tracked per
+// DR-1347 (DR-1330 D8). The Ways review measured that AI spend was tracked per
 // DAY on a runner and never per task, and that the file built to answer "this
 // model or that one" (delay-ledger.json) held two entries. This keeps the
 // slide's project-results table from the build side:
@@ -89,7 +89,7 @@ if (isMain) {
   }
   const findings = validateLedger(ledger);
   const missing = missingLines(recordsOnDisk(join(ROOT, 'docs/decisions')), ledgeredDrs(ledger));
-  for (const m of missing) findings.push(`${m} landed without a line in ${LEDGER_PATH} — add it with --add (DR-1338)`);
+  for (const m of missing) findings.push(`${m} landed without a line in ${LEDGER_PATH} — add it with --add (DR-1347)`);
   if (findings.length) {
     console.error(`ai-usage-ledger: ${findings.length} finding(s):\n  ${findings.join('\n  ')}`);
     process.exit(1);

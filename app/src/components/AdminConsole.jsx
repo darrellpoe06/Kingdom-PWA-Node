@@ -775,7 +775,7 @@ export default function AdminConsole({
       // framework for our evaluation and assessment lives. Both answers are
       // here, beside the quality proof that measures the SYSTEM, because this
       // one measures whether the ways serve the people.
-      // DR-1338 (DR-1330 D8): beside the measure of whether the ways serve the
+      // DR-1347 (DR-1330 D8): beside the measure of whether the ways serve the
       // people, the measure of what the ways cost — per task, with AI and the
       // estimate without.
       render: () => <><ProvingOurWays /><AiUsageReport /></>,

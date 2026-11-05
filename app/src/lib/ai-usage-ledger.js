@@ -1,6 +1,6 @@
 // =============================================================================
 // ai-usage-ledger — what the AI cost, per task, and what the same work would
-// have cost without it (DR-1338, DR-1330 D8)
+// have cost without it (DR-1347, DR-1330 D8)
 // =============================================================================
 // The slide's project-results table (task · credits · cost · weeks without AI
 // · time with AI), kept honest: wall clock from commit timestamps, tokens and

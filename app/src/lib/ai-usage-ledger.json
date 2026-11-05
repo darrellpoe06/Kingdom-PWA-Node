@@ -1,5 +1,5 @@
 {
-  "schema": "ai-usage-ledger v1 (DR-1338, DR-1330 D8) — one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
+  "schema": "ai-usage-ledger v1 (DR-1347, DR-1330 D8) — one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
   "models": {
     "claude-fable-5-1": {
       "note": "The Claude Code session model (Anthropic). Per-task tokens are not exposed by the harness; the session's budget counter is recorded per session instead."
@@ -178,7 +178,7 @@
       "date": "2026-11-05",
       "task": "Per-task AI usage ledger with a guard, the slide's results table kept by the build, Admin panel",
       "drs": [
-        "DR-1338"
+        "DR-1347"
       ],
       "prs": [
         2553
@@ -278,7 +278,7 @@
     {
       "id": "sov67-what-cannot-be-patched",
       "date": "2026-11-05",
-      "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1338)",
+      "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1347)",
       "drs": [
         "DR-1332"
       ],
@@ -295,7 +295,7 @@
     {
       "id": "seven-gates-not-two",
       "date": "2026-11-05",
-      "task": "Seven lesson gates lose a frozen census; the class guard reads identifiers (another session's work, ledgered at the first merge after DR-1338)",
+      "task": "Seven lesson gates lose a frozen census; the class guard reads identifiers (another session's work, ledgered at the first merge after DR-1347)",
       "drs": [
         "DR-1333"
       ],
