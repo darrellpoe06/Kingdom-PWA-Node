@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L277 — Integrity Is the Only Thing That Makes You Rich: what you know behind
+// L276 — Integrity Is the Only Thing That Makes You Rich: what you know behind
 // closed doors, and what cannot be sustained
 // =============================================================================
 // Darrell spoke a teaching into the app on 2026-11-05: "integrity is the number
@@ -17,7 +17,7 @@
 // 6:16; 1 Peter 2:15) is pinned in the lesson AND every band. (2) Losing the
 // ranking he opened with: integrity outranks winning, and a dirty win is a
 // loss, pinned with David's two refusals over Saul. (3) Losing the bridge to
-// the follow-up word he spoke minutes later (L278). Each is pinned by its own
+// the follow-up word he spoke minutes later (L277). Each is pinned by its own
 // case below, and each has a proof that it catches.
 //
 // Quote pairing is done by splitting on the quote character (DR-1258/DR-1259),
@@ -36,8 +36,8 @@ import { formatLessonText } from '../lib/lesson-format.js';
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll277-integrity-is-the-only-thing-that-makes-you-rich';
-const NEXT_ID = 'll278-look-at-the-record';
+const ID = 'll276-integrity-is-the-only-thing-that-makes-you-rich';
+const NEXT_ID = 'll277-look-at-the-record';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
@@ -133,7 +133,7 @@ const SPINE = [
   ['Proverbs 12:3', 'A man shall not be established by wickedness'],
 ];
 
-describe('L277 is in the catalog, numbered, dated and whole', () => {
+describe('L276 is in the catalog, numbered, dated and whole', () => {
   it('exists exactly once with all four bands', () => {
     expect(L, `${ID} is not in the catalog`).toBeTruthy();
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
@@ -141,9 +141,9 @@ describe('L277 is in the catalog, numbered, dated and whole', () => {
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims 277 exactly once, and nothing else claims it', () => {
+  it('claims 276 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(numbers.filter((n) => n === 277)).toEqual([277]);
+    expect(numbers.filter((n) => n === 276)).toEqual([276]);
   });
 
   it('carries its build day, the day it was spoken', () => {

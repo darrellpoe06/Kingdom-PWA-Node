@@ -157,6 +157,12 @@ export function suggestBills(data, asOf = new Date(), { lookbackDays = 120 } = {
     const transfer = list.every((t) => isTransferTxn(t));
     const group = transfer ? (FAMILY.test(label) ? 'family' : 'transfer') : suggestGroup(label, category);
     const owner = propertyNamedIn(data, list.map((t) => t.description || '').join(' '));
+    // The real payment dates and the usual gap between them, so a payment made
+    // every two weeks is projected from the day it was last paid, never split
+    // into two "usual days" a day or two apart (Christina 2026-11-05: BG & Mom
+    // $750 projected on the 4th AND the 5th).
+    const dates = [...new Set(list.map((t) => String(t.date).slice(0, 10)))].sort();
+    const gaps = dates.slice(1).map((dt, i) => Math.round((Date.parse(`${dt}T12:00:00`) - Date.parse(`${dates[i]}T12:00:00`)) / 86400000));
     out.set(key, {
       key, source: 'suggested', verified: false,
       name: label.length > 48 ? label.slice(0, 48) : label,
@@ -171,7 +177,7 @@ export function suggestBills(data, asOf = new Date(), { lookbackDays = 120 } = {
       rentalId: owner ? owner.rentalId : null,
       paidFromEntityId: acct ? acct.entityId ?? null : null,
       nextDue: '', payOn: '', balance: '', pastDue: '',
-      evidence: { payments: list.length, months: months.size, usualDay, days: [...dayCount.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([d]) => d), total: round2(list.reduce((s, t) => s - Number(t.amount), 0)), lastPaid: String(list.map((t) => t.date).sort().pop()).slice(0, 10), how: source },
+      evidence: { payments: list.length, months: months.size, usualDay, days: [...dayCount.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([d]) => d), total: round2(list.reduce((s, t) => s - Number(t.amount), 0)), lastPaid: String(list.map((t) => t.date).sort().pop()).slice(0, 10), dates, gapDays: gaps.length ? median(gaps) : null, how: source },
     });
   };
   // The detector reads the merged payee name, so one payee spelled two ways

@@ -6,7 +6,7 @@
 // this panel can never disagree.
 // =============================================================================
 import React, { useState } from 'react';
-import { OBLIGATION_TYPE_LABEL } from '../../lib/safe-to-spend.js';
+import { OBLIGATION_TYPE_LABEL, BILL_DUE_STATUS_LABEL } from '../../lib/safe-to-spend.js';
 import { entityLabel } from '../../lib/entity-labels.js';
 
 const ROW = 'border-b border-[#E8E4DC] last:border-b-0';
@@ -42,7 +42,7 @@ function Items({ list, show, entities }) {
       {list.map((it, i) => (
         <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2">
           <span className="w-[5.5rem] shrink-0">{it.overdue ? `overdue${it.dueDate ? ` (due ${it.dueDate})` : ''}` : it.date}</span>
-          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.inferred ? ' · guessed from past payments, not confirmed' : ''}{it.assumed ? ' · due day assumed' : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}</span>
+          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.assumed ? ' · due day assumed' : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
           <span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span>
         </li>
       ))}
@@ -53,18 +53,23 @@ function Items({ list, show, entities }) {
 // The reserve for the entity in view: its own when set (settings.reserveByEntity),
 // else the household reserve. Saved as the whole map, since settings merge
 // one level deep.
+// In the combined view the headline is Personal money only, so the reserve
+// edited there is the Personal reserve (the same 'personal' key the Personal
+// view saves), never a combined one.
 function ReserveEditor({ result, settings, onSaveReserve }) {
-  const id = result.scope && result.scope.id;
+  const inView = result.scope && result.scope.id;
+  const id = inView === 'consolidated' || (result.scope && result.scope.kind === 'personal') ? 'personal' : inView;
+  const label = id === 'personal' ? 'Personal' : result.scope && result.scope.label;
   const current = ((settings && settings.reserveByEntity) || {})[id];
   const [v, setV] = useState(current != null ? String(current) : '');
-  if (!onSaveReserve || !id || id === 'consolidated') return null;
+  if (!onSaveReserve || !id) return null;
   const num = v.trim() === '' ? null : Number(v);
   const ok = num === null || (Number.isFinite(num) && num >= 0);
   return (
     <div className="flex flex-wrap items-end gap-2 mt-2" data-testid="coming-up-reserve-editor">
       <label className="text-[0.6875rem]">
-        <span className="block uppercase tracking-wider">Reserve for {result.scope.label} only</span>
-        <input type="number" inputMode="decimal" min="0" value={v} onChange={(e) => setV(e.target.value)} placeholder="household reserve" aria-label={`Reserve for ${result.scope.label}`} data-testid="coming-up-reserve-input" className="mt-0.5 w-32 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" />
+        <span className="block uppercase tracking-wider">Reserve for {label} only</span>
+        <input type="number" inputMode="decimal" min="0" value={v} onChange={(e) => setV(e.target.value)} placeholder="household reserve" aria-label={`Reserve for ${label}`} data-testid="coming-up-reserve-input" className="mt-0.5 w-32 min-h-[36px] px-2 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.8125rem]" />
       </label>
       <button type="button" disabled={!ok} onClick={() => onSaveReserve(id, num)} data-testid="coming-up-reserve-save" className="min-h-[36px] px-3 py-1.5 text-[0.75rem] rounded-full border border-[#1A1815] text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Save reserve</button>
     </div>
@@ -112,7 +117,7 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
   const inferred14 = (W.next14 && W.next14.items || []).filter((i) => i.inferred).length;
   return (
     <section aria-labelledby="coming-up-h" data-testid="money-coming-up" className="bg-white border border-[#E8E4DC] rounded-2xl px-4 py-2 sm:px-5">
-      <h2 id="coming-up-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold pt-2">What you have, what is due, what is free{result.scope ? ` · ${result.scope.label}` : ''}</h2>
+      <h2 id="coming-up-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold pt-2">What you have, what is due, what is free{result.scope ? (result.scope.id === 'consolidated' ? ' · Personal money (each entity on its own row)' : ` · ${result.scope.label}`) : ''}</h2>
       {result.byEntity && <EntityTable result={result} show={show} entities={entities} />}
       {/* "Verified" only when every counted account carries a bank check; a
           ledger-calculated figure never wears that word (DR-0076). */}
@@ -125,6 +130,16 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
       <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : ''}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
       <Line id="overdue" label="Overdue" value={show(W.overdue ? W.overdue.total : 0)} tone={W.overdue && W.overdue.total > 0 ? 'text-[#B85838]' : ''}><Items list={W.overdue && W.overdue.items} show={show} entities={entities} /></Line>
+      <Line id="cleared" label="Paid and cleared (not subtracted again)" value={show(W.cleared ? W.cleared.total : 0)} note="already out of your bank balance">
+        {W.cleared && W.cleared.items.length ? (
+          <ul className="space-y-1">{W.cleared.items.map((it, i) => <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0">{it.label} · {it.how === 'in-bank-balance' ? `inside your bank balance checked ${it.bankCheckedOn}` : (it.how === 'paid-in-ledger' ? 'payment found in your transactions' : 'marked paid outside these accounts')}</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></li>)}</ul>
+        ) : <p>Nothing in this window.</p>}
+      </Line>
+      <Line id="duplicates" label="Possible duplicates (counted once)" value={show(W.duplicates ? W.duplicates.total : 0)} note={W.duplicates && W.duplicates.items.length ? 'the same payee and amount projected twice; confirm or dismiss in Bills' : ''}>
+        {W.duplicates && W.duplicates.items.length ? (
+          <ul className="space-y-1">{W.duplicates.items.map((it, i) => <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0">{it.label} · same as {it.duplicateOf.label} on {it.duplicateOf.date}, which is counted</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></li>)}</ul>
+        ) : <p>None found.</p>}
+      </Line>
       <Line id="arrangements" label="Creditor arrangements (next 14 days)" value={show(W.arrangements ? W.arrangements.total : 0)}><Items list={W.arrangements && W.arrangements.items} show={show} entities={entities} /></Line>
       <Line id="income" label="Expected income (next 14 days)" value={show(W.income14 ? W.income14.total : 0)} note="counted only on the day it arrives"><Items list={W.income14 && W.income14.items} show={show} entities={entities} /></Line>
       <Line id="reserve" label="Protected cash reserve" value={show(L.minCushion)} note={result.byEntity ? 'each entity\u2019s own reserve, added up' : (W.reserveSource === 'entity' ? `${result.scope.label}\u2019s own reserve` : 'the household reserve')}>

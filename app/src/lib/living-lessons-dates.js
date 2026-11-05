@@ -471,15 +471,25 @@ export const LIVING_LESSONS_ADDED = {
   // across UTC midnight; the day recorded is the day its commit lands, not the
   // day the writing started.
   'll274-whose-silver-whose-name': '2026-11-05',
-  // L277 and L278 were SPOKEN into the app by Darrell on 2026-11-05, minutes
-  // apart, and built the same day (DR-1317). L277, Integrity Is the Only Thing
+  // L275 came out of the same lane: a 1440 Daily Digest Darrell forwarded on
+  // 2026-10-20 with one word above it, Lessons. Its three lead items were all
+  // refused as already-built ground, and the lesson is built on a one-line
+  // clickbait link near the foot of the mail about timekeepers deciding to stop
+  // making a small correction and let the error gather instead. Sent 2026-10-20,
+  // BUILT 2026-11-05: this is the build day, the day the id landed, not the day
+  // it was sent, and the row waited 16 days (DR-1315).
+  'll275-peace-and-truth-in-my-days': '2026-11-05',
+  // L276 and L277 were SPOKEN into the app by Darrell on 2026-11-05, minutes
+  // apart, and built the same day (DR-1317). L276, Integrity Is the Only Thing
   // That Makes You Rich, is the first word: integrity is the number one thing,
   // nothing matters except Christ and Him crucified, integrity outranks winning,
-  // money cannot make you rich, and a lie cannot be sustained. L278, Look at the
+  // money cannot make you rich, and a lie cannot be sustained. L277, Look at the
   // Record, is its follow-up: what to do when the leadership itself has no
   // integrity -- keep the documented record, be quiet while it speaks, adjust
-  // on a true critique, and let Him do His job. Spoken and built the same day,
-  // so the day recorded is both the speaking day and the build day.
-  'll277-integrity-is-the-only-thing-that-makes-you-rich': '2026-11-05',
-  'll278-look-at-the-record': '2026-11-05',
+  // on a true critique, and let Him do His job. Built as 275 and 276 and
+  // renumbered once when ll275 (Peace and Truth in My Days, DR-1315) landed on
+  // main first. Spoken and built the same day, so the day recorded is both the
+  // speaking day and the build day.
+  'll276-integrity-is-the-only-thing-that-makes-you-rich': '2026-11-05',
+  'll277-look-at-the-record': '2026-11-05',
 };
