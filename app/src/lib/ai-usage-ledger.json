@@ -1,0 +1,191 @@
+{
+  "schema": "ai-usage-ledger v1 (DR-1338, DR-1330 D8) — one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
+  "models": {
+    "claude-fable-5-1": {
+      "note": "The Claude Code session model (Anthropic). Per-task tokens are not exposed by the harness; the session's budget counter is recorded per session instead."
+    },
+    "claude-sonnet-4-6": {
+      "note": "Runner vendor calls (scripts/lib/vendors.mjs); tokens and dollars metered per call."
+    },
+    "local": {
+      "note": "Ollama on the NAS; no dollars."
+    }
+  },
+  "sessions": [
+    {
+      "id": "session-2026-11-05-ways-review-build",
+      "model": "claude-fable-5-1",
+      "startedAt": "2026-11-05T15:45:00Z",
+      "tokensBudgetAtStart": 15000000,
+      "tokensBudgetAtRead": 14589695,
+      "sessionTokensObserved": 410305,
+      "readAt": "2026-11-05T17:55:00Z",
+      "tasks": [
+        "ways-review-2026-11-05",
+        "d1-surface-sweep",
+        "d2-journeys",
+        "d3-dependency-audit",
+        "d4-secret-scan",
+        "d5-error-text",
+        "d6-sign-in-record",
+        "d7-endpoint-register"
+      ],
+      "note": "Harness budget counter, read at the D7 push. It counts the session's context budget consumed, not a bill; the bill for this session is not metered anywhere this ledger can read, and that is the open item the record names."
+    }
+  ],
+  "entries": [
+    {
+      "id": "ways-review-2026-11-05",
+      "date": "2026-11-05",
+      "task": "Ways review of the ITPF AI-development slides, report + proposed DR",
+      "drs": [
+        "DR-1330"
+      ],
+      "prs": [
+        2551
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.52,
+      "estimateWithoutAiHours": 24,
+      "notes": "Asked ~15:40Z, pushed 16:10:57Z (0.52 h), merged 16:36:59Z. Four parallel read-only sweeps plus independent re-reads."
+    },
+    {
+      "id": "d1-surface-sweep",
+      "date": "2026-11-05",
+      "task": "Registry-driven navigation sweep, CI leg, two dead routes fixed",
+      "drs": [
+        "DR-1331"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.39,
+      "estimateWithoutAiHours": 16,
+      "notes": "Ratified ~16:37Z, pushed 17:00:31Z. Includes a full 136-case browser sweep run (469 s) and two selftest misses fixed."
+    },
+    {
+      "id": "d2-journeys",
+      "date": "2026-11-05",
+      "task": "Journey registry, six app journeys, coverage guard",
+      "drs": [
+        "DR-1332"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 16,
+      "notes": "17:00:31Z → 17:15:13Z. Six runner fixes found by running, none in the app."
+    },
+    {
+      "id": "d3-dependency-audit",
+      "date": "2026-11-05",
+      "task": "Dependency audit gate, first npm audit (21 → 10), pip pins, Dependabot pip+docker",
+      "drs": [
+        "DR-1333"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.14,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:15:13Z → 17:23:34Z."
+    },
+    {
+      "id": "d4-secret-scan",
+      "date": "2026-11-05",
+      "task": "House secret scanner + gitleaks, two real credentials found and closed",
+      "drs": [
+        "DR-1334"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
+    },
+    {
+      "id": "d5-error-text",
+      "date": "2026-11-05",
+      "task": "Error-text policy, 26 sites rewritten, guard, reviewer-only detail",
+      "drs": [
+        "DR-1335"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.09,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:35:22Z → 17:40:37Z (D4's fixture fix landed in between)."
+    },
+    {
+      "id": "d6-sign-in-record",
+      "date": "2026-11-05",
+      "task": "GoTrue hook → audit_log login/failed-auth, migration 0315, smoke, CI leg, matrix",
+      "drs": [
+        "DR-1336"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:41:35Z → 17:47:50Z; proven on a local PostgreSQL 16 before CI."
+    },
+    {
+      "id": "d7-endpoint-register",
+      "date": "2026-11-05",
+      "task": "Generated endpoint + data-store register, --check guard, Admin tab with live sign-ins",
+      "drs": [
+        "DR-1337"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.09,
+      "estimateWithoutAiHours": 12,
+      "notes": "17:47:50Z → 17:53:16Z."
+    },
+    {
+      "id": "d8-ai-usage-ledger",
+      "date": "2026-11-05",
+      "task": "Per-task AI usage ledger with a guard, the slide's results table kept by the build, Admin panel",
+      "drs": [
+        "DR-1338"
+      ],
+      "prs": [
+        2553
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 8,
+      "notes": "17:53:16Z (D7 push) to this push. A Node ESM JSON-import attribute error split the rules from the file binding."
+    }
+  ]
+}
