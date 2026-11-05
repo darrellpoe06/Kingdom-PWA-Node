@@ -380,6 +380,16 @@ jobs:
             ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
               psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
               -c "SELECT 'sovereign auth.users: '||count(*) FROM auth.users;" 2>&1 | tail -1
+            # SIGN-INS AND FAILURES, THE LAST SIX HOURS (DR-1336). The hook
+            # (0315) writes the rows; this is the steward's read of them,
+            # counts only, never an email. A burst of failures is the shape
+            # of a guessed PIN, so it is said out loud as a warning.
+            AUTH_COUNTS=$(${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT coalesce(sum(CASE WHEN action='login' THEN 1 ELSE 0 END),0)||' sign-ins, '||coalesce(sum(CASE WHEN action='failed-auth' THEN 1 ELSE 0 END),0)||' failed, '||count(DISTINCT user_id)||' people' FROM public.audit_log WHERE entity_type='auth' AND at > now() - interval '6 hours';" 2>&1 | tail -1)
+            echo "=== sign-ins and failures, last 6 hours (0315 hook) === $AUTH_COUNTS"
+            FAILED=$(echo "$AUTH_COUNTS" | sed -E 's/.*, ([0-9]+) failed.*/\1/')
+            if [ "${FAILED:-0}" -ge 20 ] 2>/dev/null; then echo "::warning::$FAILED failed sign-ins in six hours — a guessed PIN looks like this; read audit_log where action='failed-auth'"; fi
             # CONTENT PARITY, from the box itself (DR-0443/DR-0445 open item).
             # The witness counted auth.users and nothing the family actually
             # reads -- so "where are the September messages?" (Darrell,

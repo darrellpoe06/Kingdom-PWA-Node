@@ -1132,6 +1132,52 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0304-withdraw-my-words-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'WITHDRAW MY WORDS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
 
+  # SIGN-INS AND FAILURES ARE ON THE RECORD (DR-1336, DR-1330 D6): 0315
+  # applies twice (idempotent); the smoke proves the hook writes 'login' and
+  # 'failed-auth' rows with the person's instance (or none), returns {} on a
+  # malformed event, owners read their instance's rows, members and anon read
+  # none, and the hook is not callable by the signed-in. PROVEN TO CATCH: the
+  # owners' read is revoked and the same smoke must FAIL; the migration
+  # restores it and the smoke passes again.
+  auth-events:
+    name: app — sign-in record walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0315 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          P() { psql -v ON_ERROR_STOP=1 -q --single-transaction "$@"; }
+          P -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql; do P -f "infra/supabase/$f"; done
+          for i in 1 2; do P -f infra/supabase/migrations-auto/0315-sign-ins-and-failures-are-on-the-record.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'AUTH EVENTS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+      - name: PROVEN TO CATCH — the owners' read revoked, the smoke must fail; restored, it passes
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -qc "REVOKE EXECUTE ON FUNCTION public.auth_events_recent(integer) FROM authenticated"
+          if psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | grep -q 'AUTH EVENTS SMOKE: PASS'; then
+            echo "::error::the smoke passed with the owners' read revoked — it cannot fail (DR-0076 §3)"; exit 1; fi
+          psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0315-sign-ins-and-failures-are-on-the-record.sql
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0315-auth-events-smoke.sql 2>&1 | grep -q 'AUTH EVENTS SMOKE: PASS'
+
   # THE VAULT HOLDS ONLY WHAT THE OWNER CAN OPEN: 0251'S WALLS, ON A REAL
   # POSTGRESQL (DR-0762). 0251 applies twice (idempotent), then the smoke
   # proves: the owner reads and writes their own header and ciphertext rows,
@@ -1709,7 +1755,7 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, withdraw-walls]
+    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, withdraw-walls, auth-events]
     runs-on: ubuntu-latest
     steps:
       - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
