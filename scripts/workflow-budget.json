@@ -25,10 +25,24 @@
     {
       "date": "2026-11-06",
       "from": 22396,
-      "to": 22399,
+      "to": 22401,
+      "dr": "DR-1353",
+      "reason": "source-transcript-nas.yml gains a more_video_ids input so a burst of links is one run instead of five dispatches that cancel each other (measured 2026-11-06: two of five cancelled by the concurrency group). One comment line and four input lines; the narrative is in the record."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22401,
+      "to": 22413,
+      "dr": "DR-1360",
+      "reason": "loops-health.yml now READS the nas-heartbeat loop (its last-run.json in its own home, install path, cron prefix, a red on a ledger that says the row could not be written, and a dark-loop diagnosis line): the a-service-comes-home gate refused the services.json entry until the witness actually looked. Twelve lines, four of them the comment that names why the ledger exists; raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22413,
+      "to": 22416,
       "dr": "DR-1363",
-      "reason": "A required guard step in ci.yml for forward-safe-gate-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) and verify-covers-ci-guards.test.js fails the build without it. Three lines is the step's cost: the narrative lives in the record and the guard's own header, not in the YAML. Raised to the measured total, not above it."
+      "reason": "A required guard step in ci.yml for forward-safe-gate-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) and verify-covers-ci-guards.test.js fails the build without it. Three lines is the step's cost: the narrative lives in the record and the guard's own header, not in the YAML. First written as 22396 -> 22399 against the main of the hour; after merging main (ll284 and the proof-of-work record raised it to 22413) the same three lines are 22413 -> 22416, which is the measured total and not above it."
     }
   ],
-  "totalLines": 22399
+  "totalLines": 22416
 }

@@ -347,9 +347,57 @@ const modulepreloadMonolith = () => ({
 // /property-photos, exactly as the production proxy-mount delivers it.
 const NAS_PHOTOS_DEV_TARGET = process.env.NAS_PHOTOS_DEV_TARGET || 'http://192.168.1.26:8099';
 
+// DR-1354: the repository's documents ride the build as STATIC FILES, not
+// modules. An import.meta.glob over the 1,800 Markdown files under docs/ ran
+// the default-heap build out of memory (measured 2026-11-06: FATAL ERROR
+// Reached heap limit), because every file became a module the bundler had to
+// parse. Static files cost the bundler nothing: each is emitted at docs/<path>
+// and fetched by the Documents surface when opened; in dev the same paths are
+// served from the repository. The catalog (paths only) is held once, the
+// DR-1214 way, so the shell does not carry it.
+function listRepoDocs() {
+  const root = fileURLToPath(new URL('../docs/', import.meta.url));
+  const out = [];
+  const walk = (dir, rel) => {
+    let entries = [];
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isDirectory()) walk(dir + e.name + '/', rel + e.name + '/');
+      else if (e.name.endsWith('.md')) out.push('docs/' + rel + e.name);
+    }
+  };
+  walk(root, '');
+  return out.sort();
+}
+const repoDocs = listRepoDocs();
+function repoDocuments() {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  return {
+    name: 'poetech-repo-documents',
+    generateBundle() {
+      for (const rel of repoDocs) {
+        let source = '';
+        try { source = readFileSync(root + rel, 'utf8'); } catch { continue; }
+        this.emitFile({ type: 'asset', fileName: rel, source });
+      }
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = String(req.url || '').split('?')[0];
+        if (!url.startsWith('/docs/') || !url.endsWith('.md') || url.includes('..')) return next();
+        try {
+          const body = readFileSync(root + decodeURIComponent(url.slice(1)), 'utf8');
+          res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+          res.end(body);
+        } catch { next(); }
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base: BASE,
-  plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
+  plugins: [react(), swVersionStamp(), modulepreloadMonolith(), repoDocuments()],
   // The on-device voice's worker (lib/device-voice.worker.js, DR-0656) imports
   // onnxruntime-web's ESM build, which reads import.meta.url; the default
   // 'iife' worker format cannot carry that, so workers are built as modules.
@@ -433,6 +481,7 @@ export default defineConfig({
     __UIUX_REVIEWS__: 'globalThis.__PT_UIUX_REVIEWS',
     __TEST_CENSUS__: 'globalThis.__PT_TEST_CENSUS',
     __LESSONS_PRINCIPLES__: 'globalThis.__PT_LESSONS_PRINCIPLES',
+    __REPO_DOCS__: 'globalThis.__PT_REPO_DOCS',
     __GOVERNANCE_QUEUE_DATA__: JSON.stringify(governanceQueue),
     __DR_LEDGER_DATA__: JSON.stringify(decisionLedger),
     __DR_PRINCIPLES_DATA__: JSON.stringify(drPrinciples),
@@ -442,6 +491,7 @@ export default defineConfig({
     __UIUX_REVIEWS_DATA__: JSON.stringify(uiuxReviews),
     __TEST_CENSUS_DATA__: JSON.stringify(testCensus),
     __LESSONS_PRINCIPLES_DATA__: JSON.stringify(lessonsPrinciples),
+    __REPO_DOCS_DATA__: JSON.stringify(repoDocs),
   },
   server: {
     proxy: {
