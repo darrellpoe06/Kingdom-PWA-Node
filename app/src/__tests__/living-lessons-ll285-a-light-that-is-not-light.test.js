@@ -448,7 +448,10 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: a mid-verse span that capitalises its first word is not the verse', () => {
-    const broken = L.levels.child.replace('"ye shall be as gods, knowing good and evil." (Genesis 3:5)', '"Ye shall be as gods, knowing good and evil." (Genesis 3:5)');
+    const broken = L.levels.child.replace(
+      '"ye shall be as gods, knowing good and evil." (Genesis 3:5)',
+      '"Ye shall be as gods, knowing good and evil." (Genesis 3:5)'
+    );
     expect(broken).not.toBe(L.levels.child);
     expect(verbatimFaults([broken])).toEqual(['(Genesis 3:5) is not the verse: Ye shall be as gods, knowing good and evil.']);
   });
