@@ -444,6 +444,23 @@
       "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped."
     },
     {
+      "id": "a-dormant-road-is-not-a-road",
+      "date": "2026-11-06",
+      "task": "A dormant road is not a road: DR-1354's claim that the IMAP credential was already in place was false, and a dormant run asked to label threads was exiting 0",
+      "drs": [
+        "DR-1355"
+      ],
+      "prs": [
+        2566
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Measured worktree creation to the single commit on claude/a-dormant-road-is-not-a-road. NOT on that record: the live dispatch that exposed the fault and the independent check of the watcher's own run history, both earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for correcting a false claim in three places plus two file headers, changing one exit path, rewriting a test that had itself passed through the fault, and proving the rewrite catches."
+    },
+    {
       "id": "pm15-sat-where-they-sat",
       "date": "2026-11-06",
       "task": "Lesson pm15: Sat where they sat — the oldest forward-deployed pattern, the buzzword question answered from the Word, and the video we never saw",
@@ -456,9 +473,9 @@
       "model": "claude-opus-5",
       "tokens": null,
       "costUsd": null,
-      "wallClockHours": 0.04,
+      "wallClockHours": 0.65,
       "estimateWithoutAiHours": 24,
-      "notes": "Measured from the first commit 14:56:35Z to the last on claude/pm15-forward-deployed-engineer, which is why 0.04 h is an ABSURD understatement and is recorded as one: everything that cost time happened before that first commit and is not on the record — reading the 2,186-character send, the duplicate and untaught-reference measurements across app/src and docs/decisions (Ezekiel 3:15 and Exodus 18:14 both at zero files), four primary-source roads attempted and refused by the session egress, 38 verses fetched verbatim from the in-repo KJV corpus, and the authoring of five reader versions and two parables. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a fifteenth Project Management lesson carrying five reader versions (adult 2,227 prose words; child 4,186, youth 6,357, teen 9,396, senior 15,508 characters), two parables, 169 quoted spans verbatim under 38 references, a 47-case pinned gate with three proven-to-catch cases (two of which found real holes in the lesson's own bands), a decision record, a session note, a three-tier audit and a trust-but-verify note whose four primary hosts were all refused."
+      "notes": "Measured from the first commit 14:56:35Z to the last on claude/pm15-forward-deployed-engineer, which is why this figure is an ABSURD understatement and is recorded as one: everything that cost time happened before that first commit and is not on the record — reading the 2,186-character send, the duplicate and untaught-reference measurements across app/src and docs/decisions (Ezekiel 3:15 and Exodus 18:14 both at ZERO files), four primary-source roads attempted and every one refused by the session egress, 38 verses fetched verbatim from the in-repo KJV corpus, and the authoring of five reader versions and two parables. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a fifteenth Project Management lesson carrying five reader versions (adult 2,314 prose words; child 5,600, youth 7,339, teen 9,489, senior 15,981 characters), two parables, 169 quoted spans verbatim under 38 references, a 47-case pinned gate with three proven-to-catch cases, a decision record, a session note, a three-tier audit and a trust-but-verify note. FIVE gates found real holes and every one was fixed in the lesson rather than the matcher: two bands missing a stated point, the send's own sentences wrongly in quotation marks, the industry term unnamed, and the four-band floor catching child at 0.42 and youth at 0.52 because Jethro was missing from both bands entirely."
     }
   ]
 }

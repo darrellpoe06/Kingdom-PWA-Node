@@ -10,10 +10,14 @@
 // shipped lessons wearing no lock; the ledger sweep has been doing the whole job
 // of preventing duplicates by itself.
 //
-// `lesson-mail-watch.yml` already reaches the mailbox over IMAP with
+// `lesson-mail-watch.yml` is written to reach the mailbox over IMAP with
 // GMAIL_WATCH_APP_PASSWORD and declares itself peek-only. In Gmail's IMAP a
 // LABEL IS A FOLDER and `UID STORE ... +X-GM-LABELS` adds one, so the credential
 // that reads can also set the lock -- from a runner, with no approval prompt.
+//
+// CORRECTED 2026-11-06 (DR-1355): that credential has NEVER BEEN SET. The
+// watcher is dormant too and always has been, so the mechanism here is right
+// and the key is missing. Measured on the first live dispatch.
 // That is the road DR-0108 asks for: a GitHub runner first, a hand last.
 //
 // This file holds the parts worth pinning offline: the id conversion and the
