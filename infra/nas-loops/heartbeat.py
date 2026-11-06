@@ -27,7 +27,7 @@ import platform
 import sys
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: UP017 -- DSM python3.8 has no datetime.UTC
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TAG = "nas-heartbeat"
@@ -62,15 +62,15 @@ def services_enabled(services_json_path):
             d = json.load(fh)
         items = d if isinstance(d, list) else d.get("services", [])
         return sum(1 for s in items if isinstance(s, dict) and s.get("enabled"))
-    except Exception:
+    except (OSError, ValueError):
         return -1
 
 
 def body_of(now=None, host=None, services=-1, cycle="services-sync"):
     """The stamp the app parses (lib/nas-heartbeat.js stampOf): at, host, services, cycle."""
     at = (
-        (now or datetime.now(timezone.utc))
-        .astimezone(timezone.utc)
+        (now or datetime.now(timezone.utc)  # noqa: UP017 -- DSM python3.8 has no datetime.UTC)
+        .astimezone(timezone.utc)  # noqa: UP017 -- DSM python3.8 has no datetime.UTC
         .isoformat()
         .replace("+00:00", "Z")
     )
@@ -171,7 +171,7 @@ def main():
         body,
         os.environ.get("HEARTBEAT_CREATED_BY", DEFAULT_CREATED_BY),
     )
-    print("nas-heartbeat: {} {}".format(what, body))
+    print(f"nas-heartbeat: {what} {body}")
     return 0
 
 
