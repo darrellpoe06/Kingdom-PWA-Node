@@ -785,7 +785,7 @@ export default function AdminConsole({
       id: 'documents',
       label: 'Documents',
       icon: 'book',
-      // DR-1354. Darrell 2026-11-06: the decisions, the Ways and the
+      // DR-1355. Darrell 2026-11-06: the decisions, the Ways and the
       // documentation readable here, by their own document location, so the
       // process and its proof can be discussed from the app alone. Reviewed
       // first: the decided ledger and the principles were already compiled in

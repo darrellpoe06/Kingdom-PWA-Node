@@ -1,5 +1,5 @@
 // =============================================================================
-// RepoDocuments — the proof of the work, readable inside the app (DR-1354)
+// RepoDocuments — the proof of the work, readable inside the app (DR-1355)
 // =============================================================================
 // Darrell, 2026-11-06: "I want all the DRs and Ways and documentation to be
 // accessible by myself inside our documents for the PoeTech App build... if I
@@ -13,7 +13,7 @@
 // the foundation documents, the Ways or the session notes. This surface does,
 // and it reads the same files from the same repository, catalogued at build
 // and fetched one static file at a time when opened (lib/repo-documents.js;
-// a module per document ran the build out of memory, DR-1354).
+// a module per document ran the build out of memory, DR-1355).
 //
 // THE STANDARD IT INHERITS (EXCELLENCE-STANDARD, UX-PATTERNS 2e/2g, P15):
 // the counts are what was on disk at build, never typed; a document opens IN

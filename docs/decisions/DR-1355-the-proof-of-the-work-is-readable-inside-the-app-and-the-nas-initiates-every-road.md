@@ -1,4 +1,4 @@
-# DR-1354: The proof of the work is readable inside the app — every decision, Way, foundation and session note by its own location — and the NAS initiates every road, so nothing outside the house has to be alive for the house to work
+# DR-1355: The proof of the work is readable inside the app — every decision, Way, foundation and session note by its own location — and the NAS initiates every road, so nothing outside the house has to be alive for the house to work
 
 **Date:** 2026-11-06
 **Status:** Accepted
@@ -24,7 +24,7 @@
 
 ## Verification
 
-- `repo-documents.test.js` — 14 cases on the real repository: every decision record on disk is listed (1,250+, newest first, DR-1353 and DR-1354 among them), the foundations and the Ways (THE-WAY, HOLD-THE-HAND-OF-THE-PROCESS, LESSONS-LEARNED), 390+ session notes, the reviews and the governance queue; titles derived, never invented; search by title or path; the reader pinned on DR-1353's own text (H1, Context, Decision, Verification, its table and lists); raw HTML and a script tag proven to stay text; the panel registered in the admin console; the surface's never-blank lines pinned.
+- `repo-documents.test.js` — 14 cases on the real repository: every decision record on disk is listed (1,250+, newest first, DR-1353 and DR-1355 among them), the foundations and the Ways (THE-WAY, HOLD-THE-HAND-OF-THE-PROCESS, LESSONS-LEARNED), 390+ session notes, the reviews and the governance queue; titles derived, never invented; search by title or path; the reader pinned on DR-1353's own text (H1, Context, Decision, Verification, its table and lists); raw HTML and a script tag proven to stay text; the panel registered in the admin console; the surface's never-blank lines pinned.
 - Lint clean; a real default-heap `vite build` emitting 1,252 decision files and 25 MB of documents as static files; the admin console's own tests green.
 - The heartbeat: `nas-heartbeat.test.js` 8 cases (a NAS silent two days reads silent in days, proven; the read filters by the JSON tag; no client and a failed read say so), `test_heartbeat.py` 5 (one row patched, never a second inserted, proven), the OpsBoard render green.
 - **Honest limits.** The reader is deliberately small (headings, paragraphs, lists, quotes, code, tables as fixed text); nested lists flatten and footnotes read inline. The surface is behind the admin console, which is where the stewards work; whether members should read the Ways there too is his call and is not decided here. `re-review: 2026-11-20` — read the surface on the live build on a phone, with large print on, and widen or narrow it from what is seen.

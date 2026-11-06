@@ -93,7 +93,7 @@ function HarvestStrip({ harvest }) {
   );
 }
 
-// DR-1354: the NAS's own heartbeat, beside the site witness. The runner's
+// DR-1355: the NAS's own heartbeat, beside the site witness. The runner's
 // probes of the NAS died with the runner's tailnet key on 2026-11-04 and nobody
 // knew for two days; this reads a row the NAS writes itself, on its own clock,
 // so a dead key, clock or NAS shows here within two cycles. Never blank: never
@@ -295,7 +295,7 @@ export default function OpsBoard() {
       fetchOpenclawTower().catch(() => null),
       fetchFleetCensus().catch(() => null),
       fetchJobsLedger().catch(() => null),
-      // DR-1354: the house's own witness, read from the row the NAS writes.
+      // DR-1355: the house's own witness, read from the row the NAS writes.
       fetchNasHeartbeat({ supabase }).catch((e) => ({ row: null, reason: String(e && e.message ? e.message : e) })),
     ]);
     setState({ phase: 'ready', data });

@@ -352,7 +352,7 @@ const NODES = [
     ],
     seeds: ['voice-enroll'],
   }),
-  // DR-1354: the house's own witness. The NAS writes one heartbeat row on its
+  // DR-1355: the house's own witness. The NAS writes one heartbeat row on its
   // own clock; the OpsBoard reads it. No runner, key or GitHub in between.
   rider('service:nas-heartbeat', 'infra/nas-loops/heartbeat.py', {
     id: 'nas-heartbeat', name: 'NAS heartbeat (the house writes its own witness)',

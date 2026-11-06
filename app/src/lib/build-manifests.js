@@ -30,5 +30,5 @@ try { globalThis.__PT_CONFLICT_LOOP = __CONFLICT_LOOP_DATA__; } catch { /* no bu
 try { globalThis.__PT_UIUX_REVIEWS = __UIUX_REVIEWS_DATA__; } catch { /* no build: the test sets it */ }
 try { globalThis.__PT_TEST_CENSUS = __TEST_CENSUS_DATA__; } catch { /* no build: the test sets it */ }
 try { globalThis.__PT_LESSONS_PRINCIPLES = __LESSONS_PRINCIPLES_DATA__; } catch { /* no build: the test sets it */ }
-// DR-1354: the repository's documents, paths only; the text is a static file.
+// DR-1355: the repository's documents, paths only; the text is a static file.
 try { globalThis.__PT_REPO_DOCS = __REPO_DOCS_DATA__; } catch { /* no build: the test sets it */ }
