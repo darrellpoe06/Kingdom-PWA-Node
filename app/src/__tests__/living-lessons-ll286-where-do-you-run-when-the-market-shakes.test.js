@@ -13,7 +13,7 @@
 // figure, which rest on the summary until the transcript lands. The five items
 // are listed, the strongest is built here, the rest were filed as their own
 // rows for the lane, and every item is held up to the Word, the brighter
-// light. (DR-1364.)
+// light. (DR-1370.)
 //
 // THIS LESSON'S DANGERS are three. (1) Letting the market voice become the
 // frame: the Word's verdict on every priced haven (Proverbs 11:4) and the

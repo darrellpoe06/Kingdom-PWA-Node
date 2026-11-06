@@ -12,7 +12,7 @@
 // range) and contested flagged narrowly (the 1948 death figure, the poll's
 // size); and the Word, not either voice, is the measure (DR-0098): the
 // stranger at the gate, one law, Jerusalem loved and judged, innocent blood
-// on every side, the multitude not followed. (DR-1364.)
+// on every side, the multitude not followed. (DR-1370.)
 //
 // THIS LESSON'S DANGERS are three. (1) Becoming a lesson from one side: the
 // love verses (Genesis 12:3, Romans 11:28) and the judgment verses (Isaiah
