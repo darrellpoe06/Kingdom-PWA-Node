@@ -69,6 +69,21 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
     const { request, params } = context;
     const url = new URL(request.url);
 
+    // A WRITE FROM ANOTHER ORIGIN IS REFUSED AT THE DOOR (DR-1340, DR-1330
+    // D11). The session rides a bearer header, so a cross-site form cannot
+    // forge a write; this is the second lock on the same door. A browser
+    // always sends Origin on a cross-origin POST; a rider or a workflow sends
+    // none and passes. Reads are not gated here — RLS and the upstream are.
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('origin');
+      if (origin && origin !== url.origin) {
+        return new Response(
+          JSON.stringify({ error: `${label} proxy refused a write from another origin`, code: 'cross-origin-write' }),
+          { status: 403, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
+        );
+      }
+    }
+
     // [[path]] catch-all -> array of segments after the route prefix (absent
     // entirely for single-path routes like /property-history).
     const segments = Array.isArray(params?.path) ? params.path : (params?.path ? [params.path] : []);
@@ -97,8 +112,14 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
     } catch (err) {
       // Funnel unreachable (NAS down / Tailscale blip). Fail with a clear 502
       // so the client surfaces a real error instead of an opaque/CORS fail.
+      // The exception's own words go to the log under a ref, never to the
+      // client (DR-1335): a fetch error can name the upstream host.
+      const ref = crypto.randomUUID().slice(0, 12);
+      console.error(`[${ref}] ${label} proxy upstream unreachable:`, (err && err.message) || String(err));
+      // `detail` stays a KEY the site-health witness greps for (pinned by
+      // every-road-signs-itself.test.js); its value is a constant phrase.
       return new Response(
-        JSON.stringify({ error: `${label} proxy upstream unreachable`, detail: String((err && err.message) || err) }),
+        JSON.stringify({ error: `${label} proxy upstream unreachable`, detail: 'the upstream did not answer; the function log carries the cause under ref', ref }),
         { status: 502, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
       );
     }

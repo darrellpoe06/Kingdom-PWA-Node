@@ -1,0 +1,13 @@
+{
+  "_comment": "workflow-register (DR-1342): the total line count of .github/workflows may only go DOWN; re-freeze lower with `node scripts/workflow-register.mjs --generate`. To RAISE it, edit by hand with a one-line reason here.",
+  "raises": [
+    {
+      "date": "2026-11-05",
+      "from": 22266,
+      "to": 22272,
+      "dr": "DR-1348",
+      "reason": "A required guard step in ci.yml for subprocess-budget-guard: one `- run:` line, four comment lines and a blank separator. The guard must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The original comment was 17 lines and was folded to four with the narrative in the record, so this is the irreducible cost of the step rather than its first draft."
+    }
+  ],
+  "totalLines": 22272
+}

@@ -51,6 +51,21 @@ function rest(supabaseUrl, path) {
   return `${supabaseUrl.replace(/\/$/, '')}/rest/v1/${path}`;
 }
 
+/**
+ * A machine token is compared in constant time (DR-1340, DR-1330 D11): a
+ * plain `===` returns at the first differing byte, which lets a caller measure
+ * how much of a guess was right. Lengths are compared first, then every byte
+ * is XOR-folded whatever the outcome.
+ */
+export function sameToken(given, expected) {
+  const a = String(given || '');
+  const b = String(expected || '');
+  if (!b) return false;
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < b.length; i++) diff |= (a.charCodeAt(i % Math.max(a.length, 1)) || 0) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 export async function onRequestPost(context) {
   const env = context.env || {};
   const supabaseUrl = asStr(env.SUPABASE_URL);
@@ -81,7 +96,7 @@ export async function onRequestPost(context) {
   const authz = asStr(context.request.headers.get('authorization'));
   const userJwt = /^Bearer\s+(.+)$/i.exec(authz)?.[1] || '';
   const machineToken = asStr(context.request.headers.get('x-push-token'));
-  const machineOk = !!asStr(env.PUSH_SEND_TOKEN) && machineToken === asStr(env.PUSH_SEND_TOKEN);
+  const machineOk = !!asStr(env.PUSH_SEND_TOKEN) && sameToken(machineToken, asStr(env.PUSH_SEND_TOKEN));
 
   if (!userJwt && !machineOk) return json({ error: 'unauthorized' }, 401);
 

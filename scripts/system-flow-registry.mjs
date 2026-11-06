@@ -1151,8 +1151,14 @@ const NODES = [
     seeds: ['auto-merge'],
   }),
   wf('install-health.yml', {
-    id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
-    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
+    id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app, through the shared browser-probe harness (DR-1342).',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
+    runToken: 'uses: ./.github/workflows/_browser-probe.yml', // the run is the harness's job, not a runs-on of its own
+  }),
+  wf('_browser-probe.yml', {
+    id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
+    reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
   }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
@@ -1233,7 +1239,8 @@ const NODES = [
   wf('nearby-witness.yml', {
     id: 'nearby-witness', name: 'Nearby witness (look, never save)', purpose: 'Looks a real address up from a runner the way the family\u2019s app places a door — the Census/OpenStreetMap lookup, the check that the match is THIS house, and what OpenStreetMap\u2019s Overpass knows around its own point — and prints the rounded area and the nearby list (DR-0998).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
-    writes: [], seeds: [],
+    writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
+    runToken: 'uses: ./.github/workflows/_browser-probe.yml', // the run is the harness's job (DR-1342)
   }),
   wf('bus-witness.yml', {
     id: 'bus-witness', name: 'Bus witness (the agency\u2019s own feed)', purpose: 'Looks a real address up from a runner and reads the Champaign-Urbana MTD GTFS feed (the sandbox has no route to mtd.org): every stop within a half-mile walk, in feet, with its routes, days and buses a day, and the feed\u2019s own date window (DR-1019). Read-only, dispatch only.',
@@ -2051,7 +2058,7 @@ for (const n of NODES) {
 // Every workflow's run result is a written resource; the flow proof reads it.
 for (const n of NODES) {
   if (n.kind === 'workflow') {
-    n.writes = [...(n.writes || []), { res: `gh:run:${n.workflow}`, token: 'runs-on:' }];
+    n.writes = [...(n.writes || []), { res: `gh:run:${n.workflow}`, token: n.runToken || 'runs-on:' }]; // a caller's run is its `uses:` line
   }
 }
 const proof = NODES.find((n) => n.id === 'flow-proof');

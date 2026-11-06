@@ -101,7 +101,10 @@
    "sov63-let-fall-handfuls-on-purpose": ["2026-11-04", "abc12c8c"],
    "sov64-lead-on-softly": ["2026-11-04", "5e5bb84d"],
    "sov65-i-go-sir-and-went-not": ["2026-11-05", "8f476a1c"],
-   "sov66-they-dwelt-careless-and-there-was-no-deliverer": ["2026-11-05", "7a147f67"]
+   "sov66-they-dwelt-careless-and-there-was-no-deliverer": ["2026-11-05", "7a147f67"],
+   "sov67-the-removing-of-those-things-that-are-made": ["2026-11-05", "9047bf11"],
+   "sov68-there-shall-be-none-in-the-field": ["2026-11-05", "a24319a7"],
+   "sov69-at-his-day-or-at-evening": ["2026-11-05", "74a97bc9"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
@@ -252,7 +255,8 @@
    "pm10-the-record-that-outlives-it": ["2026-09-18", "0023c5ac"],
    "pm11-how-the-organization-learns-prioritizes-and-decides": ["2026-09-24", "db750f70"],
    "pm12-titles-and-fruits-capability-shown-in-outcomes": ["2026-09-29", "880ed562"],
-   "pm13-selected-designed-procured-built-and-steered": ["2026-10-19", "920732f4"]
+   "pm13-selected-designed-procured-built-and-steered": ["2026-10-19", "920732f4"],
+   "pm14-whose-measure-the-benchmark-the-census-and-the-kpis": ["2026-11-05", "9f96cd39"]
   },
   "software-project-management": {
    "spm1-requirements-are-a-vow": ["2026-09-18", "0023c5ac"],

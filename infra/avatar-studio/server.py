@@ -48,6 +48,18 @@ import wave
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
+# A person gets a short code and a reference id; the exception's own words go
+# to the log under that id (DR-1335, DR-1330 D5). Never str(e) in a response.
+import logging as _logging
+import uuid as _uuid
+_errlog = _logging.getLogger(__name__)
+
+
+def _ref(e):
+    ref = _uuid.uuid4().hex[:12]
+    _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
+    return ref
+
 app = FastAPI()
 
 _lock = threading.Lock()
@@ -121,18 +133,18 @@ async def render(req: Request):
     try:
         audio, audio_sub = _decode_data_uri(body.get("audio"), "audio")
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "bad-audio", "detail": str(e)}, status_code=400)
+        return JSONResponse({"error": "bad-audio", "ref": _ref(e)}, status_code=400)
     try:
         portrait, portrait_sub = _decode_data_uri(body.get("portrait"), "image")
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "bad-portrait", "detail": str(e)}, status_code=400)
+        return JSONResponse({"error": "bad-portrait", "ref": _ref(e)}, status_code=400)
     seconds = _audio_seconds(audio, audio_sub)
     if seconds > MAX_AUDIO_SECONDS:
         return JSONResponse({"error": "audio-too-long", "seconds": round(seconds, 1), "max": MAX_AUDIO_SECONDS}, status_code=413)
     try:
         mod = _backend()
     except NotReady as e:
-        return JSONResponse({"error": "model-not-ready", "detail": str(e)}, status_code=503)
+        return JSONResponse({"error": "model-not-ready", "ref": _ref(e)}, status_code=503)
     if not _lock.acquire(blocking=False):
         return JSONResponse({"error": "busy"}, status_code=429)
     paths = []
@@ -147,9 +159,9 @@ async def render(req: Request):
         try:
             mod.render(apath, ppath, opath)
         except NotReady as e:
-            return JSONResponse({"error": "model-not-ready", "detail": str(e)}, status_code=503)
+            return JSONResponse({"error": "model-not-ready", "ref": _ref(e)}, status_code=503)
         except Exception as e:  # noqa: BLE001
-            return JSONResponse({"error": "render-failed", "detail": str(e)}, status_code=500)
+            return JSONResponse({"error": "render-failed", "ref": _ref(e)}, status_code=500)
         with open(opath, "rb") as f:
             video = f.read()
         if not video:

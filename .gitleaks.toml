@@ -1,0 +1,48 @@
+# gitleaks — the independent second scanner beside scripts/secret-scan-guard.mjs
+# (DR-1334, DR-1330 D4). The default rule set, extended. Everything allowlisted
+# here was READ, not assumed (DR-0076 §4), on the first runs of v8.30.1 over
+# this tree: 24 findings from app/, 13 more from the root; two were real (a
+# probe PIN in nas-health.yml, a Pushover user key in two docs) and are gone;
+# the rest are fixtures, placeholders, public constants and key NAMES.
+title = "PoeTech"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixtures, placeholders, public constants and names that look like keys and are not"
+regexTarget = "line"
+paths = [
+  # Test fixtures: tokens and keys minted for the test (store-signing, the
+  # lesson-share note tokens, the storage shim key, the house guard's own
+  # planted shapes). The house guard still scans these files with its rules.
+  '''app/src/__tests__/.*''',
+  # Build output, never tracked.
+  '''app/dist/.*''',
+  '''^dist/.*''',
+  # The retired TypeScript voice-ops prototype: its README's curl examples
+  # carry placeholder bearers.
+  '''_archive/.*''',
+]
+regexes = [
+  # Self-declaring placeholders in docs and probes.
+  '''not-a-real''',
+  '''YOUR_[A-Z_]+''',
+  '''PASTE_TOKEN_HERE''',
+  '''CHANGE-ME''',
+  '''<your-''',
+  # A public PayPal donate-page link: the token is the page's address, printed
+  # on the church's own giving surface (app/src/lib/giving.js).
+  '''paypal\.com/donate\?token=''',
+  # localStorage key NAMES (lib/preview-isolation.js, lib/tax-id-vault.js).
+  '''poe-financial-v28''',
+  '''poe\.taxIdVault\.v1''',
+  # wyzeapy's PUBLIC client constant (infra/nas-cameras/wyze_cloud.py), the
+  # same string every wyzeapy install sends; not a credential of ours.
+  '''WMXHYf79Nr5gIlt3r0r7p9Tcw5bvs6BB4U8O8nGJ''',
+  # Prose the generic rule misreads as a key: a verification list in the review
+  # ledger, an invite note in the decision index, a 2FA remark in a handoff.
+  '''Verified: [a-z0-9-]+ \+''',
+  '''access on next sign-in''',
+  '''2FA-protected''',
+]

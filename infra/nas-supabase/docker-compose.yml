@@ -83,6 +83,13 @@ services:
       # 0139 normalizes the one empty-aud row minted before this landed.
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_DISABLE_SIGNUP: "false"
+      # SIGN-INS AND FAILURES ARE ON THE RECORD (DR-1336, DR-1330 D6): on every
+      # password verification attempt GoTrue calls migration 0315's function,
+      # which writes one audit_log row ('login' or 'failed-auth') and returns
+      # {} — it remembers, never rejects. The function is owned by postgres
+      # and granted to supabase_auth_admin by the migration.
+      GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED: "true"
+      GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI: pg-functions://postgres/public/auth_password_verification_attempt
       # SMTP is the ONE dependency self-hosting does not remove: magic links
       # have to leave the building. Unset => email sign-in is disabled and the
       # stack still comes up healthy, so a missing sender never blocks the

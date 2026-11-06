@@ -109,7 +109,41 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(280); // on 2026-11-05, sov66 (They dwelt careless, and there was
+    expect(baseline.allFour).toBe(284); // 284 on 2026-11-05: sov69 (At his day, or at evening -- how quickly a result must be useful, and the honest price of wanting it sooner, DR-1351), built from a Level Up Coding newsletter Darrell forwarded with one line above it that is TWO instructions, "Lessons... and potential systemic use?", carries all four age bands AND an adult register from the first commit (child 1584, youth 2290, teen 2356, senior 2814, adult 2967 prose words); the Sovereign A.I. row rises by one; READ from a fresh scripts/course-band-baseline-write.mjs run on the merged tree (total 458, allFour 284, adultOnly 0), never computed and never hand-merged (was 283).
+    // The pm14 note that stood on this line is kept below, for the chain.
+    // 283 on 2026-11-05: pm14 (whose measure -- the benchmark, the census, and the KPIs the Word already gave us, DR-1349), built from a CFO Dive sponsored advertisement Darrell forwarded with two things above it, Lesson and potential KPIs, carries all four age bands AND an adult register from the first commit; the Project Management row reads {lessons: 14, allFour: 14}; regenerated from the real catalog by course-band-baseline-write.mjs (was 281); 281 on 2026-11-05, sov67 (The removing of those things that
+    // The sov68 note that stood on this line is kept below, for the chain.
+    // on 2026-11-05, sov68 (There shall be none in the field --
+    // the announced window, the portion that did not spoil, and the part no engine was holding)
+    // raises it one more, from the 281 sov67 left the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the MERGED tree that holds both lessons
+    // (total 456, allFour 282, adultOnly 0), never computed and never hand-merged. BOTH BRANCHES
+    // RAISED THIS LINE 280 -> 281 FROM THE SAME STARTING POINT, which was named in DR-1338 before
+    // either landed; sov67 landed first and took 281, so sov68 took 282 from the script rather
+    // than by adding one by hand. sov68 carries all four authored bands from its first commit and
+    // fourBandFaults reads clean -- adult prose 2,274 words; shares child 0.61, youth 0.64, teen
+    // 0.70, senior 0.99; ladder child 2.02 < youth 3.97 < teen 4.93 < senior 8.17, every band
+    // under its ceiling; worst band-pair overlap 0.215 senior~adult against the 0.25 near-copy
+    // line. ITS CHILD BAND MISSED THE 0.5 SHARE FLOOR ON THE FIRST DRAFT at 0.40, and its teen
+    // grade sat at 5.99 against the 6.00 ceiling -- one hundredth of a grade from red; both were
+    // authored out rather than waived, and the baseline was regenerated afterwards. Recorded as
+    // DR-1338.
+    // The sov67 note that stood on this line is kept below, for the chain.
+    // on 2026-11-05, sov67 (The removing of those things that
+    // are made -- what cannot be patched is taken away, and the part nobody can lend you) raises it
+    // one more, from the 280 sov66 left the same day. READ from a fresh
+    // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 455,
+    // allFour 281, adultOnly 0, adultRegister 0), never computed and never hand-merged. sov67
+    // carries all four authored bands from its first commit and fourBandFaults reads clean --
+    // adult prose 3,839 words; shares child 0.571, youth 0.667, teen 0.736, senior 0.980; ladder
+    // child -0.14 < youth 3.02 < teen 4.58 < senior 6.15 with the adult lesson at 7.28; worst
+    // band-pair overlap 0.183 senior~adult against the 0.25 near-copy line -- so the sovereign-ai
+    // row reads {lessons: 67, allFour: 46} and the DEBT does not move. ITS TEEN GRADE ALSO WENT
+    // OVER THE 6.0 CEILING ON THE FIRST DRAFT, at 6.29, and the simplification pass then pushed
+    // teen BELOW youth (4.58 against 4.64), breaking the ladder from the other side; youth was
+    // lowered to 3.02 rather than teen raised back toward its ceiling. Recorded as DR-1332.
+    // The sov66 note that stood on this line is kept below, for the chain.
+    // on 2026-11-05, sov66 (They dwelt careless, and there was
     // no deliverer -- the hole that was always open, the stronger man who came, and the walls
     // Yahweh appoints) raises it one more, from the 279 sov65 left the same day. READ from a fresh
     // scripts/course-band-baseline-write.mjs run on the tree that holds the lesson (total 454,

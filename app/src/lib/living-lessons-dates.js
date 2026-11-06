@@ -534,4 +534,13 @@ export const LIVING_LESSONS_ADDED = {
   // the inheritance you leave your children is the profile of the eternal
   // King lived out in front of them (DR-1329). Built and dated the same day.
   'll282-the-greater-work': '2026-11-05',
+  // L283 records the BUILD day, not the source day. The source is a publisher's
+  // letter dated 2026-10-21, forwarded into the app 2026-10-22 17:36:20 UTC
+  // with one typed word above the forwarded header: Lesson. Nobody taught it
+  // (DR-0719: a forwarded publisher's letter is not a recording, so no teacher
+  // is identified). The lesson teaches the inversion of its own title against
+  // Genesis 1:26-27, hinges on the word the letter itself reached for
+  // (considereth, Isaiah 44:19), and deliberately refuses to reproduce the
+  // issue's ten perspectives on DR-0098 grounds (DR-1352).
+  'll283-made-in-our-image': '2026-11-05',
 };

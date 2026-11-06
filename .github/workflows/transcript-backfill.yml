@@ -143,7 +143,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Python dependencies
-        run: pip install youtube-transcript-api psycopg2-binary
+        run: pip install "$(grep '^youtube-transcript-api==' infra/requirements-ci.txt)" "$(grep '^psycopg2-binary==' infra/requirements-ci.txt)"
 
       # DR-0442: this lane writes through a direct Postgres URL, and
       # SUPABASE_DB_URL names the RETIRED hosted project. The app has read the

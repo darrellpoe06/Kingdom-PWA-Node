@@ -1,0 +1,51 @@
+{
+  "_comment": "file-budget-guard (DR-1339, DR-1330 D9b). Every file here is over the 1,500-line line a new file may not cross; each ceiling is its measured size on 2026-11-05 and may only go DOWN (node scripts/file-budget-guard.mjs --generate re-freezes lower). To RAISE one, edit by hand with a one-line reason here, the way scripts/monolith-budget.json records its raises. The shell (poe-financial-mvp-v28.jsx) keeps its own ratchet in monolith-budget.json and is listed here too so one guard reads the whole picture.",
+  "raises": [
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 9048,
+      "to": 9336,
+      "date": "2026-11-05",
+      "why": "main's #2552 (sov67, DR-1332) landed the lesson in this file between the baseline and the merge; the corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not bloat the ratchet is meant to refuse. Raised to the merged size, not above it."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 9336,
+      "to": 9658,
+      "date": "2026-11-05",
+      "why": "main's #2555 (sov68, DR-1338) landed the next lesson in this file between the previous raise and this merge; same reason as the 9048 -> 9336 raise: the corpus lives in JavaScript until DR-1339's re-review (2026-11-19). Raised to the merged size, not above it."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 9658,
+      "to": 9950,
+      "date": "2026-11-05",
+      "why": "sov69 (DR-1351) adds one lesson to this file; third raise for the same reason as 9048 -> 9336 and 9336 -> 9658: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 29435,
+      "to": 29706,
+      "date": "2026-11-05",
+      "why": "ll283 (Made In Our Image, DR-1352) adds the 283rd Living Lesson to this file, 271 lines of lesson content and its provenance comment. Same reason as the two sovereign-ai-class.js raises: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    }
+  ],
+  "budgets": {
+    "app/src/lib/living-lessons-class.js": 29706,
+    "app/src/lib/sovereign-ai-class.js": 9950,
+    "app/src/lib/world-issues-class.js": 6729,
+    "app/src/components/ChurchLearn.jsx": 5884,
+    "app/src/modules/properties/DoorTabs.jsx": 3352,
+    "app/src/components/Rentals.jsx": 3220,
+    "app/src/modules/properties/PropertiesApp.jsx": 2682,
+    "app/src/components/TTSControl.jsx": 2630,
+    "app/src/lib/cameras.js": 2029,
+    "app/src/lib/godhead-study.js": 1993,
+    "app/src/modules/properties/cloud.js": 1991,
+    "app/src/components/Cameras.jsx": 1982,
+    "app/src/components/BooksTransactions.jsx": 1962,
+    "app/src/components/Projects.jsx": 1939,
+    "app/src/components/PracticeLearn.jsx": 1804,
+    "app/src/lib/presentable.js": 1527
+  }
+}

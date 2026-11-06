@@ -41,6 +41,18 @@ import tempfile
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
+# A person gets a short code and a reference id; the exception's own words go
+# to the log under that id (DR-1335, DR-1330 D5). Never str(e) in a response.
+import logging as _logging
+import uuid as _uuid
+_errlog = _logging.getLogger(__name__)
+
+
+def _ref(e):
+    ref = _uuid.uuid4().hex[:12]
+    _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
+    return ref
+
 app = FastAPI()
 
 _tts = None  # lazy-loaded so /health works before the model is warm
@@ -186,7 +198,7 @@ async def speak(req: Request):
         try:
             tts = get_tts()
         except Exception as e:  # noqa: BLE001
-            return JSONResponse({"error": "synthesis-failed", "detail": str(e)}, status_code=500)
+            return JSONResponse({"error": "synthesis-failed", "ref": _ref(e)}, status_code=500)
         speakers = getattr(tts, "speakers", None) or []
         if not speakers:
             return JSONResponse({"error": "reference-required"}, status_code=400)
@@ -196,7 +208,7 @@ async def speak(req: Request):
         try:
             speaker_wav = _decode_reference(reference)
         except Exception as e:  # noqa: BLE001
-            return JSONResponse({"error": "bad-reference", "detail": str(e)}, status_code=400)
+            return JSONResponse({"error": "bad-reference", "ref": _ref(e)}, status_code=400)
 
     try:
         tts = get_tts()
@@ -220,7 +232,7 @@ async def speak(req: Request):
                 pass
         return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
     except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "synthesis-failed", "detail": str(e)}, status_code=500)
+        return JSONResponse({"error": "synthesis-failed", "ref": _ref(e)}, status_code=500)
 
 
 if __name__ == "__main__":
