@@ -461,6 +461,23 @@
       "notes": "Measured worktree creation to the single commit on claude/a-dormant-road-is-not-a-road. NOT on that record: the live dispatch that exposed the fault and the independent check of the watcher's own run history, both earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for correcting a false claim in three places plus two file headers, changing one exit path, rewriting a test that had itself passed through the fault, and proving the rewrite catches."
     },
     {
+      "id": "sov70-every-one-over-against-his-house",
+      "date": "2026-11-06",
+      "task": "Lesson sov70: Every one over against his house — the coordination budget, the one trumpet, and a source we never read past its paywall",
+      "drs": [
+        "DR-1357"
+      ],
+      "prs": [
+        2568
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.78,
+      "estimateWithoutAiHours": 30,
+      "notes": "Measured worktree creation 14:31Z to the last commit on claude/sov70-coordination 15:17:39Z (2026-11-06). NOT on the record and therefore understating the real elapsed time: reading the 1,879-character paywalled send, the duplicate and never-opened-reference measurements across app/src and docs/decisions, the five primary hosts attempted on two roads each, and the authoring of five reader versions before the first commit. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 70th Sovereign A.I. week carrying five reader versions (adult 3424, child 1779, youth 2750, teen 3043, senior 3378 authored prose words), two parables, 48 references fetched verbatim from the in-repo KJV corpus and each quoted with its citation, a 40-case pinned gate with proven-to-catch on every fragment and ten markers, a decision record, a session note, and a trust-but-verify audit whose five primary hosts were all refused by the session egress. Three of the gate's own cases failed first and were real defects in my work; a scripted vocabulary pass that correctly lowered the senior band's reading grade from 11.33 to 8.91 also broke prose in twenty places, every one found by reading the rendered band back and repaired by hand."
+    },
+    {
       "id": "the-in-flight-view-has-an-age",
       "date": "2026-11-06",
       "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
