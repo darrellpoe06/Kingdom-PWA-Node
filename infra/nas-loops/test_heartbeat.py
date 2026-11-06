@@ -96,5 +96,29 @@ class OneRowTest(unittest.TestCase):
         self.assertIn("instance_id=eq.inst", calls[0][1])
 
 
+class LedgerTest(unittest.TestCase):
+    def test_the_ledger_in_its_own_home_says_what_the_cycle_did(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = os.path.join(d, "nas-heartbeat")
+            body = hb.body_of(host="poetech", services=29)
+            self.assertTrue(hb.write_ledger(home, "patched", body))
+            with open(os.path.join(home, "last-run.json"), encoding="utf-8") as fh:
+                led = json.load(fh)
+            self.assertEqual(led["what"], "patched")
+            self.assertEqual(led["host"], "poetech")
+            self.assertEqual(led["services"], 29)
+            self.assertIsNone(led["error"])
+            self.assertTrue(led["at"].endswith("Z"))
+            # A quiet no-op is still a cycle that RAN: the witness tells it from silence.
+            self.assertTrue(hb.write_ledger(home, "no-credential", error="OSError"))
+            with open(os.path.join(home, "last-run.json"), encoding="utf-8") as fh:
+                led = json.load(fh)
+            self.assertEqual((led["what"], led["error"]), ("no-credential", "OSError"))
+            self.assertTrue(led["at"].endswith("Z"))
+
+    def test_PROVEN_TO_CATCH_an_unwritable_home_never_raises(self):
+        self.assertFalse(hb.write_ledger("/proc/no-such-home/x", "patched"))
+
+
 if __name__ == "__main__":
     unittest.main()

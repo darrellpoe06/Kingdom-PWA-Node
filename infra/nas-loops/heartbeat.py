@@ -36,6 +36,11 @@ TAG = "nas-heartbeat"
 # the sign-in that owns it. Override with HEARTBEAT_CREATED_BY.
 DEFAULT_CREATED_BY = "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc"
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
+# Its own ledger in its own home (the lesson-voice pattern): the loops witness
+# (loops-health.yml) reads this file, so a cycle that ran but could not write
+# its row ("no-credential", "no-instance", "error") is told apart from a cycle
+# that never ran. Override with HEARTBEAT_HOME.
+DEFAULT_HOME = "/volume1/PoeTech/nas-heartbeat"
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
@@ -79,6 +84,23 @@ def body_of(now=None, host=None, services=-1, cycle="services-sync"):
             "cycle": cycle,
         }
     )
+
+
+def write_ledger(home, what, body=None, error=None):
+    """last-run.json: {what, at, host, services, error}. Never raises: the ledger is a witness, not the work."""
+    try:
+        os.makedirs(home, exist_ok=True)
+        entry = json.loads(body) if body else {}
+        entry.update({"what": what, "error": error})
+        if "at" not in entry:
+            entry["at"] = json.loads(body_of())["at"]
+        tmp = os.path.join(home, "last-run.json.tmp")
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(entry, fh)
+        os.replace(tmp, os.path.join(home, "last-run.json"))
+        return True
+    except (OSError, ValueError):
+        return False
 
 
 def resolve_instance(url, key, slug):
@@ -136,30 +158,47 @@ def beat(url, key, instance_id, body, created_by):
 
 def main():
     secrets = os.environ.get("SUPABASE_SECRETS", DEFAULT_SECRETS)
+    home = os.environ.get("HEARTBEAT_HOME", DEFAULT_HOME)
     sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
     try:
         from sovereign_target import load_target
 
         url, key = load_target(secrets, quiet=True)
     except (ImportError, OSError, ValueError, KeyError) as e:
-        print(f"nas-heartbeat: no credential ({e.__class__.__name__}) - quiet no-op")
-        return 0
+        url = key = None
+        why = e.__class__.__name__
+    else:
+        why = "empty target"
     if not url or not key:
-        print("nas-heartbeat: no credential - quiet no-op")
+        write_ledger(home, "no-credential", error=why)
+        print(f"nas-heartbeat: no credential ({why}) - quiet no-op")
         return 0
     slug = os.environ.get("TRANSCRIPTS_SLUG", "colg")
-    instance_id = resolve_instance(url, key, slug)
-    if not instance_id:
-        print(f"nas-heartbeat: no instance with slug '{slug}' - nothing to write to")
-        return 1
     body = body_of(services=services_enabled(os.path.join(HERE, "services.json")))
-    what = beat(
-        url,
-        key,
-        instance_id,
-        body,
-        os.environ.get("HEARTBEAT_CREATED_BY", DEFAULT_CREATED_BY),
-    )
+    try:
+        instance_id = resolve_instance(url, key, slug)
+        if not instance_id:
+            write_ledger(
+                home, "no-instance", body, error=f"no instance with slug '{slug}'"
+            )
+            print(
+                f"nas-heartbeat: no instance with slug '{slug}' - nothing to write to"
+            )
+            return 1
+        what = beat(
+            url,
+            key,
+            instance_id,
+            body,
+            os.environ.get("HEARTBEAT_CREATED_BY", DEFAULT_CREATED_BY),
+        )
+    except (OSError, ValueError, KeyError, IndexError) as e:
+        # urllib raises OSError subclasses (URLError, HTTPError); a cycle that
+        # could not reach the table says so in its ledger and exits non-zero.
+        write_ledger(home, "error", body, error=f"{e.__class__.__name__}: {e}"[:300])
+        print(f"nas-heartbeat: error {e.__class__.__name__}: {e}")
+        return 1
+    write_ledger(home, what, body)
     print(f"nas-heartbeat: {what} {body}")
     return 0
 

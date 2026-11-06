@@ -21,7 +21,14 @@
       "to": 22392,
       "dr": "DR-1353",
       "reason": "source-transcript-nas.yml gains a more_video_ids input so a burst of links is one run instead of five dispatches that cancel each other (measured 2026-11-06: two of five cancelled by the concurrency group). One comment line and four input lines; the narrative is in the record."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22392,
+      "to": 22404,
+      "dr": "DR-1355",
+      "reason": "loops-health.yml now READS the nas-heartbeat loop (its last-run.json in its own home, install path, cron prefix, a red on a ledger that says the row could not be written, and a dark-loop diagnosis line): the a-service-comes-home gate refused the services.json entry until the witness actually looked. Twelve lines, four of them the comment that names why the ledger exists; raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22392
+  "totalLines": 22404
 }

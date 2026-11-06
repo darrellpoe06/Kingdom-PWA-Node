@@ -101,6 +101,13 @@ const LOOPS_ON_THE_WAY = {
   'choir-dates': { witness: 'loops-health.yml' },
   'stream-length': { witness: 'loops-health.yml' },
   'worship-song-harvest': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1355, 2026-11-06): the house's own witness, one row the
+  // NAS writes to agent_inbox on its own clock so the app shows "NAS last seen"
+  // with no runner between them. loops-health reads its last-run.json in its
+  // own home, its install path, its cron lines, and reds when that ledger says
+  // the row could not be written -- this gate refused the services.json entry
+  // until the witness actually looked.
+  'nas-heartbeat': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },
