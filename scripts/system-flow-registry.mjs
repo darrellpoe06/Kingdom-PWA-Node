@@ -352,6 +352,28 @@ const NODES = [
     ],
     seeds: ['voice-enroll'],
   }),
+  // DR-1354: the house's own witness. The NAS writes one heartbeat row on its
+  // own clock; the OpsBoard reads it. No runner, key or GitHub in between.
+  rider('service:nas-heartbeat', 'infra/nas-loops/heartbeat.py', {
+    id: 'nas-heartbeat', name: 'NAS heartbeat (the house writes its own witness)',
+    purpose: 'One row per services-sync cycle, patched in place, with the stamp, the host and the count of services on the clock, so a dead key, clock or NAS shows in the app within two cycles.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#heartbeat', token: 'def beat' },
+    ],
+    seeds: ['nas-heartbeat-read'],
+  }),
+  app('app/src/lib/nas-heartbeat.js', {
+    id: 'nas-heartbeat-read', name: 'NAS last seen (OpsBoard)',
+    purpose: 'Reads the newest heartbeat row and says alive, late, silent, never or unreadable against the clock; the OpsBoard shows it beside the site witness.',
+    reads: [
+      { res: 'db:agent_inbox#heartbeat', token: "from('agent_inbox')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/voice_enroll.py', {
     id: 'voice-enroll', name: 'Voice enrollment by consent (NAS)',
     purpose: 'Deletes every voiceprint whose owner removed consent, then turns each consented sample into one voiceprint on the NAS, or a plain reason why not.',

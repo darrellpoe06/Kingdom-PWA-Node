@@ -15,6 +15,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
+import { fetchNasHeartbeat, heartbeatStatus } from '../lib/nas-heartbeat.js';
+import { supabase } from '../lib/supabase.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
 import { fetchFleetCensus } from '../lib/fleet-census-live.js';
@@ -86,6 +88,30 @@ function HarvestStrip({ harvest }) {
         {incident && incident.url
           ? <a href={incident.url} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the record</a>
           : null}
+      </p>
+    </div>
+  );
+}
+
+// DR-1354: the NAS's own heartbeat, beside the site witness. The runner's
+// probes of the NAS died with the runner's tailnet key on 2026-11-04 and nobody
+// knew for two days; this reads a row the NAS writes itself, on its own clock,
+// so a dead key, clock or NAS shows here within two cycles. Never blank: never
+// seen says never, unreadable says unreadable, silent says how long.
+function HeartbeatStrip({ heart }) {
+  if (!heart) return null;
+  const s = heartbeatStatus(heart.row, { reason: heart.reason });
+  const stamp = s.stamp;
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]" data-testid="nas-heartbeat">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">the NAS — its own heartbeat</span>
+        <KpiDot status={s.kpi} label={s.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {stamp
+          ? `Written by ${stamp.host || 'the NAS'} on its own clock${stamp.services != null && stamp.services >= 0 ? `, ${stamp.services} services on that clock` : ''}; no runner, key or GitHub between it and this line.`
+          : 'The NAS writes one row per clock cycle into the inbox table; until the first row lands, this line says never. If it stays at never after the merge syncs to the NAS, the clock or the credential on the NAS is the thing to check.'}
       </p>
     </div>
   );
@@ -254,6 +280,7 @@ export function FleetCensusStrip({ fleet }) {
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
   const [health, setHealth] = useState(null);
+  const [heart, setHeart] = useState(null);
   const [harvest, setHarvest] = useState(null);
   const [tower, setTower] = useState(null);
   const [fleet, setFleet] = useState(null);
@@ -261,16 +288,19 @@ export default function OpsBoard() {
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh, hh, oc, fc, jl] = await Promise.all([
+    const [data, sh, hh, oc, fc, jl, hb] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
       fetchHarvestHealth().catch(() => null),
       fetchOpenclawTower().catch(() => null),
       fetchFleetCensus().catch(() => null),
       fetchJobsLedger().catch(() => null),
+      // DR-1354: the house's own witness, read from the row the NAS writes.
+      fetchNasHeartbeat({ supabase }).catch((e) => ({ row: null, reason: String(e && e.message ? e.message : e) })),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
+    setHeart(hb);
     setHarvest(hh);
     setTower(oc);
     setFleet(fc);
@@ -333,6 +363,7 @@ export default function OpsBoard() {
 
       {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
       <UptimeStrip health={health} />
+      <HeartbeatStrip heart={heart} />
       <HarvestStrip harvest={harvest} />
       <OpenclawTowerStrip tower={tower} />
       {/* The fleet's own line — jobs, enabled, and how many have ever run (DR-1148). */}
