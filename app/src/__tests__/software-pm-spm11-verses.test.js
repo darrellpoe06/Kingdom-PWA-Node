@@ -50,6 +50,8 @@ import { SOFTWARE_PM_MODULES, SOFTWARE_PM_META } from '../lib/software-project-m
 import { scanQuotedVerses, describeFault } from '../../../scripts/quoted-verse-is-the-verse.mjs';
 import { quotedTexts } from '../../../scripts/quotation-integrity.mjs';
 import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
+import { hasAllThreeEverywhere, placesMissingDirections, ownPrompts, talkTogetherFor } from '../lib/talk-together.js';
+import { censusLesson } from '../lib/library-census.js';
 import { fourBandFaults, LADDER, fk, FOUR_BANDS } from './fixtures/four-band-ladder.js';
 
 const SPM11 = 'spm11-unsupported-cannot-be-patched';
@@ -245,6 +247,45 @@ describe('every quotation is the Word, verbatim from the corpus on disk', () => 
   });
 });
 
+describe('every band sends the reader to someone (DR-0795)', () => {
+  // CAUGHT IN CI, NOT HERE, ON THE FIRST PUSH. talk-together.test.js requires
+  // every lesson added on or after 2026-10-01 to send the reader in all three
+  // directions — parents to children, children to parents, friend to friend —
+  // IN EVERY BAND, because a reader reads ONE band. The first draft did it in
+  // none of the four. That is the finding: this file was built to hold what
+  // spm11 says about ITS OWN subject and never asked whether the lesson obeys
+  // the rules every new lesson obeys. It asks now.
+  it('the lesson and every band it ships send the reader all three ways', () => {
+    expect(hasAllThreeEverywhere(M())).toBe(true);
+    expect(placesMissingDirections(M())).toEqual([]);
+  });
+
+  it('the three directions are in the lesson’s OWN words, not the standing fallback', () => {
+    const own = ownPrompts(M());
+    expect(own.parents, 'no parents-to-children sentence of its own').toBeTruthy();
+    expect(own.children, 'no children-to-parents sentence of its own').toBeTruthy();
+    expect(own.friends, 'no friend-to-friend sentence of its own').toBeTruthy();
+    expect(talkTogetherFor(M()).allOwn, 'the card would fall back to standing prompts').toBe(true);
+  });
+
+  it('the aim and the rhythm are carried, and the friend verse is the verse', () => {
+    const s = `${M().levels.child}${M().levels.senior}`;
+    expect(s).toMatch(/until we see that Yahweh has been right/);
+    expect(s, 'the rhythm is Deuteronomy 6:7’s four places').toMatch(/at the table|four settings of Deuteronomy 6:7/);
+    expect(norm(verses('Proverbs 27:17'))).toContain('Iron sharpeneth iron; so a man sharpeneth the countenance of his friend.');
+  });
+
+  it('PROVEN TO CATCH: a band that drops its three directions is seen', () => {
+    const stripped = { ...M(), levels: { ...M().levels, teen: M().levels.teen.split('\n\n')[0] } };
+    expect(stripped.levels.teen, 'the break did not land').not.toBe(M().levels.teen);
+    const gaps = placesMissingDirections(stripped);
+    expect(
+      gaps.map((g) => g.place),
+      'a band sending the reader nowhere passed'
+    ).toContain('teen');
+  });
+});
+
 describe('the source is reported, never impersonated and never dressed as Scripture', () => {
   const ADVISORY = [
     // The clauses the lesson leans on. Each must appear in our own voice and
@@ -387,6 +428,36 @@ describe('the refusals hold — nothing is claimed that was not measured (DR-007
     ).toEqual([]);
     expect(m.bigIdea, 'the lesson names Him').toMatch(/Yahweh/);
     expect(allText(m).match(/\b(Lucifer|Satan|The Devil|The Adversary|Baal)\b/g) || []).toEqual([]);
+  });
+});
+
+describe('what spm11 costs the library census, stated rather than discovered', () => {
+  // ALSO CAUGHT IN CI. The library ratchet lets readings, whole, allVersions and
+  // exams only RISE and `waiting` only FALL. spm11 raises waiting by one, and
+  // the reason is a property of its COURSE, not a shortfall in the lesson: this
+  // course carries no adult `lesson` and no facilitator fields, so all eleven
+  // of its lessons count as waiting for a version they were never designed to
+  // have. Asserting it here means the fact is a statement in the tree rather
+  // than a surprise in a later PR's red build.
+  it('spm11 waits for exactly what its ten neighbours wait for, and nothing else', () => {
+    const rows = SOFTWARE_PM_MODULES.map((m) => censusLesson(m));
+    const mine = rows.find((r) => r.id === SPM11);
+    expect(mine.missingVersions, 'the course has no adult lesson field').toEqual(['adult']);
+    expect(mine.missingComponents.sort()).toEqual(['howToRun', 'talkingPoints']);
+    // Every lesson of this course is identical on this point. If that ever
+    // stops being true, the honest +1 in the baseline stops being honest.
+    for (const r of rows) {
+      expect(r.missingVersions, `${r.id} diverges from its course`).toEqual(mine.missingVersions);
+      expect(r.missingComponents.sort(), `${r.id} diverges from its course`).toEqual(mine.missingComponents.sort());
+    }
+  });
+
+  it('it carries every component the course DOES give a lesson', () => {
+    const mine = censusLesson(M());
+    for (const id of ['lesson', 'anchor', 'bigIdea', 'quiz', 'benefits', 'inApp']) {
+      expect(mine.missingComponents, `spm11 is missing ${id}`).not.toContain(id);
+    }
+    expect(mine.versions.sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 });
 
