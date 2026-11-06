@@ -50,7 +50,8 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD = 'WHERE DO YOU RUN WHEN THE MARKET SHAKES — Treasuries as a safe haven, the haves and the have-nots of debt, and the Word that measures the market.';
+const TITLE_LEAD =
+  'WHERE DO YOU RUN WHEN THE MARKET SHAKES — Treasuries as a safe haven, the haves and the have-nots of debt, and the Word that measures the market.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -402,7 +403,10 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: a mid-verse span that capitalises its first word is not the verse', () => {
-    const broken = L.levels.child.replace('"if riches increase, set not your heart upon them." (Psalms 62:10)', '"If riches increase, set not your heart upon them." (Psalms 62:10)');
+    const broken = L.levels.child.replace(
+      '"if riches increase, set not your heart upon them." (Psalms 62:10)',
+      '"If riches increase, set not your heart upon them." (Psalms 62:10)'
+    );
     expect(broken).not.toBe(L.levels.child);
     expect(verbatimFaults([broken])).toEqual(['(Psalms 62:10) is not the verse: If riches increase, set not your heart upon them.']);
   });

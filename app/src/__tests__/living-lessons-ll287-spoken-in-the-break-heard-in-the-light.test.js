@@ -48,7 +48,8 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD = 'SPOKEN IN THE BREAK, HEARD IN THE LIGHT — Chelli Goldenberg, Owen Jones, and the Word that judges every nation by the stranger at its gate.';
+const TITLE_LEAD =
+  'SPOKEN IN THE BREAK, HEARD IN THE LIGHT — Chelli Goldenberg, Owen Jones, and the Word that judges every nation by the stranger at its gate.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -333,7 +334,8 @@ describe('the Word is the measure, above both sides, in the lesson and in every 
 
   it('makes the stranger at the gate the measure of every nation, Israel first', () => {
     for (const k of PLACES) expect(TEXTS[k], k).toContain('Love ye therefore the stranger: for ye were strangers in the land of Egypt.');
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('the stranger that dwelleth with you shall be unto you as one born among you, and thou shalt love him as thyself');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('the stranger that dwelleth with you shall be unto you as one born among you, and thou shalt love him as thyself');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('for the land is mine; for ye are strangers and sojourners with me.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('Defend the poor and fatherless: do justice to the afflicted and needy.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('to do justly, and to love mercy, and to walk humbly with thy God?');
@@ -417,13 +419,19 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: one altered word inside a quotation fails the sweep', () => {
-    const broken = L.lesson.replace('Love ye therefore the stranger: for ye were strangers in the land of Egypt.', 'Love ye therefore the stranger: for ye were slaves in the land of Egypt.');
+    const broken = L.lesson.replace(
+      'Love ye therefore the stranger: for ye were strangers in the land of Egypt.',
+      'Love ye therefore the stranger: for ye were slaves in the land of Egypt.'
+    );
     expect(broken).not.toBe(L.lesson);
     expect(verbatimFaults([broken]).length).toBeGreaterThan(0);
   });
 
   it('PROVEN TO CATCH: a mid-verse span that capitalises its first word is not the verse', () => {
-    const broken = L.levels.child.replace('"whatsoever ye have spoken in darkness shall be heard in the light" (Luke 12:3)', '"Whatsoever ye have spoken in darkness shall be heard in the light" (Luke 12:3)');
+    const broken = L.levels.child.replace(
+      '"whatsoever ye have spoken in darkness shall be heard in the light" (Luke 12:3)',
+      '"Whatsoever ye have spoken in darkness shall be heard in the light" (Luke 12:3)'
+    );
     expect(broken).not.toBe(L.levels.child);
     expect(verbatimFaults([broken])).toEqual(['(Luke 12:3) is not the verse: Whatsoever ye have spoken in darkness shall be heard in the light']);
   });
