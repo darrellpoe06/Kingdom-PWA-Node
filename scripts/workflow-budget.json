@@ -11,10 +11,17 @@
     {
       "date": "2026-11-06",
       "from": 22272,
-      "to": 22277,
+      "to": 22387,
+      "dr": "DR-1354",
+      "reason": "One NEW workflow, lesson-mail-label.yml (114 lines), which gives the DR-0312 capture lock a road a runner can walk -- it had never been set on a single built thread because the only road stopped for a human approval on every call. The ceiling exists to refuse BLOAT, not to refuse capability; this is a whole new step of an existing Way, not a longer version of one. Its first draft was 119 lines and its header was folded to 17 with the narrative moved into the record and session note, so this is the step's cost and not its first draft. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22387,
+      "to": 22392,
       "dr": "DR-1353",
       "reason": "source-transcript-nas.yml gains a more_video_ids input so a burst of links is one run instead of five dispatches that cancel each other (measured 2026-11-06: two of five cancelled by the concurrency group). One comment line and four input lines; the narrative is in the record."
     }
   ],
-  "totalLines": 22277
+  "totalLines": 22392
 }
