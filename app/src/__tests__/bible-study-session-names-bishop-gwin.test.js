@@ -34,11 +34,55 @@ const REPO = join(process.cwd(), '..');
 const LIB = join(process.cwd(), 'src', 'lib');
 const ID_LINE = /^\s{2,4}(?:id|"id"):\s*['"]([^'"]+)['"]/;
 
+// A lesson's text is what the lesson SAYS, never what a comment says ABOUT it.
+// Added 2026-11-06 (DR-1351) after a measured false positive. A block runs from
+// one `id:` line to the next, so the header comment a builder writes ABOVE the
+// next lesson sits inside the PREVIOUS lesson's block and was being read as
+// that lesson's own words.
+//
+// MEASURED, on sov69's branch, which is what went red. sov68's block ran lines
+// 9372-9655 and matched all three terms the classifier needs:
+//   study  + weekly  <- sov68's OWN text, line 9424, inside a quotation:
+//                       "A recording of a weekly Bible study, taught by a named
+//                       preacher" -- an innocent example in a lesson about
+//                       provenance, and there since sov68 shipped.
+//   church           <- line 9631, inside sov69's HEADER COMMENT:
+//                       "// crediting Bishop Gwin for a send that names nobody."
+// So the gate read a sentence FORBIDDING his credit as evidence he taught it,
+// and filed it under the neighbour above. Two faults compounding: the block
+// boundary, and comments counted as lesson prose.
+//
+// Whole-line comments are blanked (kept as empty lines so numbering is intact).
+// Deliberately whole-line only: a trailing `// ...` after code is rare in these
+// files, and a blind `//` strip would cut `https://` inside real lesson text --
+// the same limit measured in member-surfaces-every-control-acts earlier today.
+// A genuine session lesson names Bishop Gwin in its PROSE, not in a comment, so
+// nothing real is lost. `re-review: 2026-12-05` for the trailing-comment case
+// and for the same blind spot in any other caller of isBibleStudySessionText.
+export function withoutWholeLineComments(src) {
+  let inBlock = false;
+  return String(src)
+    .split('\n')
+    .map((l) => {
+      const t = l.trim();
+      if (inBlock) {
+        if (t.includes('*/')) inBlock = false;
+        return '';
+      }
+      if (t.startsWith('/*')) {
+        if (!t.includes('*/')) inBlock = true;
+        return '';
+      }
+      return t.startsWith('//') ? '' : l;
+    })
+    .join('\n');
+}
+
 // Every lesson-shaped block in every course file, by its id line.
 function sessionLessonsInSource() {
   const found = [];
   for (const f of readdirSync(LIB).filter((n) => n.endsWith('.js') && n !== 'bible-study-session.js')) {
-    const lines = readFileSync(join(LIB, f), 'utf8').split('\n');
+    const lines = withoutWholeLineComments(readFileSync(join(LIB, f), 'utf8')).split('\n');
     const starts = [];
     lines.forEach((l, i) => { const m = l.match(ID_LINE); if (m) starts.push([i, m[1]]); });
     starts.forEach(([s, id], k) => {
@@ -127,6 +171,52 @@ describe('a lesson Bishop Gwin taught names him (DR-0719)', () => {
     expect(isBibleStudySessionText("Bishop Gwin's Celebration message on a Sunday.")).toBe(false);
     expect(isBibleStudySessionText('This discipline keeps a Bible study honest.')).toBe(false);
     expect(isBibleStudySessionText('A podcast host and a guest teacher at a weekly Bible study.')).toBe(false);
+  });
+
+  // DR-1351. The comment-stripping added above could have DISARMED this gate
+  // rather than corrected it, so these cases pin both directions: the false
+  // positive is gone, and every true positive still fires.
+  it('PROVEN-TO-CATCH: a comment naming him is not the neighbour lesson’s words', () => {
+    // The exact shape that went red, reduced: sov68's innocent quoted example
+    // supplies study + weekly, and the HEADER COMMENT for the next lesson
+    // supplies the only mention of him -- in a sentence forbidding his credit.
+    const file = [
+      '    "id": "sovNN-the-previous-lesson",',
+      '    "lesson": "A recording of a weekly Bible study, taught by a named preacher is one thing.",',
+      '  // WEEK NN+1 - WHO TAUGHT: NOBODY. The gate forbids',
+      '  // crediting Bishop Gwin for a send that names nobody.',
+      '    "id": "sovNN1-the-next-lesson",',
+      '    "lesson": "Something else entirely.",',
+    ].join('\n');
+    // Raw, the previous lesson's block swallows the comment and matches.
+    expect(isBibleStudySessionText(file.split('\n').slice(0, 4).join('\n'))).toBe(true);
+    // Stripped, it does not -- which is the fix.
+    const stripped = withoutWholeLineComments(file).split('\n');
+    expect(isBibleStudySessionText(stripped.slice(0, 4).join('\n'))).toBe(false);
+    // And the stripping kept the line count, so id-line indexes still line up.
+    expect(stripped.length).toBe(file.split('\n').length);
+  });
+
+  it('PROVEN-TO-CATCH: stripping comments does NOT disarm a real session lesson', () => {
+    const real = [
+      '    "id": "llNN-a-real-session-lesson",',
+      '    "lesson": "Taught by Bishop Lloyd E. Gwin at the Wednesday Bible Study.",',
+    ].join('\n');
+    expect(isBibleStudySessionText(withoutWholeLineComments(real))).toBe(true);
+    // A URL in real lesson text survives, which is why only WHOLE-LINE
+    // comments are blanked and a blind `//` strip was refused.
+    const withUrl = '    "inApp": "See https://poetech.us/learn for the weekly Bible study with Bishop Gwin.",';
+    expect(withoutWholeLineComments(withUrl)).toBe(withUrl);
+    expect(isBibleStudySessionText(withoutWholeLineComments(withUrl))).toBe(true);
+  });
+
+  it('block comments are blanked too, and an unterminated one does not eat the file', () => {
+    expect(withoutWholeLineComments('  /* Bishop Gwin */\n  "a": 1').split('\n')[0]).toBe('');
+    const multi = '  /* Bishop Gwin\n     weekly Bible study */\n    "id": "llNN-after",';
+    const out = withoutWholeLineComments(multi).split('\n');
+    expect(out[0]).toBe('');
+    expect(out[1]).toBe('');
+    expect(out[2]).toBe('    "id": "llNN-after",');
   });
 
   it('the NAS lesson builder, the intake Way and the builder brief carry the rule in plain words', () => {
