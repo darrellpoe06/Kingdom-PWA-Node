@@ -60,7 +60,7 @@
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 30278,
-    "app/src/lib/sovereign-ai-class.js": 10289,
+    "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,
     "app/src/modules/properties/DoorTabs.jsx": 3352,

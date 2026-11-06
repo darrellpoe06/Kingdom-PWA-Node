@@ -54,7 +54,12 @@ function Row({ row, accounts, entities, homes, rentals, onSave, onDismiss, onPau
     linkedMortgageId: row.linkedMortgageId || (homes[0] ? homes[0].id : ''),
     originalCreditor: row.originalCreditor || '', accountLast4: row.accountLast4 || '',
     alsoPaidAs: row.alsoPaidAs || [], rentalId: row.rentalId || '', tlcKind: row.tlcKind || '',
+    lender: row.lender || '', rate: row.rate ?? '', graceDays: row.graceDays ?? '', lateFees: row.lateFees ?? '',
+    isMortgage: row.isMortgage === true,
   }));
+  // A loan: the personal home mortgage or a rental property note. Its lender,
+  // number, rate, grace period and late charge live on the bill itself.
+  const loan = ['rental', 'home-mortgage'].includes(d.group);
   const similar = row.similarTo || [];
   const collection = ['arrangement', 'past-due'].includes(d.group);
   const payoff = collection ? arrangementPayoff(d) : null;
@@ -123,6 +128,21 @@ function Row({ row, accounts, entities, homes, rentals, onSave, onDismiss, onPau
             <Field label="Original creditor"><input className={INPUT} value={d.originalCreditor} onChange={set('originalCreditor')} data-testid={`bill-review-creditor-${id}`} /></Field>
             <Field label="Account or case number (last 4 kept)"><input className={INPUT} value={d.accountLast4} onChange={set('accountLast4')} autoComplete="off" data-testid={`bill-review-last4-${id}`} /></Field>
           </>
+        )}
+        {loan && (
+          <>
+            <Field label="Lender"><input className={INPUT} value={d.lender} onChange={set('lender')} data-testid={`bill-review-lender-${id}`} /></Field>
+            <Field label="Loan number (last 4 kept)"><input className={INPUT} value={d.accountLast4} onChange={set('accountLast4')} autoComplete="off" data-testid={`bill-review-loan-last4-${id}`} /></Field>
+            <Field label="Interest rate (%)"><input className={INPUT} inputMode="decimal" value={d.rate} onChange={set('rate')} data-testid={`bill-review-rate-${id}`} /></Field>
+            <Field label="Grace period after the due date (days)"><input className={INPUT} inputMode="numeric" value={d.graceDays} onChange={set('graceDays')} placeholder="15" data-testid={`bill-review-grace-${id}`} /></Field>
+            <Field label="Late fees owed now (if any)"><input className={INPUT} inputMode="decimal" value={d.lateFees} onChange={set('lateFees')} data-testid={`bill-review-latefees-${id}`} /></Field>
+          </>
+        )}
+        {d.group === 'rental' && d.rentalId && (
+          <label className="flex items-center gap-2 text-[0.75rem] sm:col-span-2">
+            <input type="checkbox" checked={d.isMortgage} onChange={(e) => setD((x) => ({ ...x, isMortgage: e.target.checked }))} data-testid={`bill-review-is-mortgage-${id}`} />
+            This bill is the mortgage on this property (so the property's own payment line is not counted a second time)
+          </label>
         )}
         <Field label={d.group === 'home-mortgage' ? 'Required monthly payment (P&I + escrow)' : 'Normal payment'}><input className={INPUT} inputMode="decimal" value={d.amount} onChange={set('amount')} data-testid={`bill-review-amount-${id}`} /></Field>
         <Field label="How often">
