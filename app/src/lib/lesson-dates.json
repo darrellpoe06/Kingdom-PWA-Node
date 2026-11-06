@@ -271,7 +271,8 @@
    "spm8-debt-named-and-dated": ["2026-09-18", "0023c5ac"],
    "spm9-the-retrospective-that-is-not-a-blame-meeting": ["2026-09-18", "0023c5ac"],
    "spm10-handover-and-the-runbook": ["2026-09-18", "0023c5ac"],
-   "spm11-unsupported-cannot-be-patched": ["2026-11-06", "19916d41"]
+   "spm11-unsupported-cannot-be-patched": ["2026-11-06", "19916d41"],
+   "spm12-the-button-you-turn-on": ["2026-11-06", "eebe3035"]
   },
   "world-issues": {
    "wi-musk-creator-critique": ["2026-06-25", "4feb6c41"],
