@@ -28,10 +28,17 @@
       "to": 29706,
       "date": "2026-11-05",
       "why": "ll283 (Made In Our Image, DR-1352) adds the 283rd Living Lesson to this file, 271 lines of lesson content and its provenance comment. Same reason as the two sovereign-ai-class.js raises: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 29706,
+      "to": 29866,
+      "date": "2026-11-06",
+      "why": "ll284 (Credit Where Credit Is Due, DR-1353) adds the 284th Living Lesson to this file, and the seven spoken lessons were corrected in place to name Darrell (DR-0719). Same reason as the ll283 raise: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 29706,
+    "app/src/lib/living-lessons-class.js": 29866,
     "app/src/lib/sovereign-ai-class.js": 9950,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,

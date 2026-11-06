@@ -54,10 +54,7 @@ on:
       slug:
         description: 'Folder name under docs/99-session-notes/sources/ (lowercase, dashes)'
         required: true
-      # A BATCH IS ONE RUN (2026-11-06, DR-1353). Darrell sent five links in two
-      # minutes; the concurrency group below keeps one pending run, so three of
-      # five dispatches were CANCELLED by the ones behind them. More ids here
-      # ride the same run after video_id, each under <slug>-<id lowercased>.
+      # A batch is one run (DR-1353): the concurrency group holds one pending run, so a burst of dispatches cancels its own siblings.
       more_video_ids:
         description: 'Optional: more YouTube video ids, space-separated, fetched in this same run'
         required: false

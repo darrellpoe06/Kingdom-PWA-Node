@@ -7,7 +7,14 @@
       "to": 22272,
       "dr": "DR-1348",
       "reason": "A required guard step in ci.yml for subprocess-budget-guard: one `- run:` line, four comment lines and a blank separator. The guard must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The original comment was 17 lines and was folded to four with the narrative in the record, so this is the irreducible cost of the step rather than its first draft."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22272,
+      "to": 22277,
+      "dr": "DR-1353",
+      "reason": "source-transcript-nas.yml gains a more_video_ids input so a burst of links is one run instead of five dispatches that cancel each other (measured 2026-11-06: two of five cancelled by the concurrency group). One comment line and four input lines; the narrative is in the record."
     }
   ],
-  "totalLines": 22272
+  "totalLines": 22277
 }
