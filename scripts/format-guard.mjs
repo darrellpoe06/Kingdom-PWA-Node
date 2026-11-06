@@ -35,14 +35,56 @@ export function partition(addedPaths) {
   return { js, py };
 }
 
+// A guard that needs a merge base ensures its own precondition (DR-1350).
+// Measured and proven in a real `git clone --depth=1`; this step used to CRASH
+// -- not report "no findings" -- the moment a branch had not merged main in
+// first, and BOTH of these had to be fixed, in this order:
+//
+// 1. THE REF WAS NEVER CREATED. actions/checkout sets a single-branch refspec,
+//    so `git fetch origin main` fetches the OBJECTS and writes no
+//    refs/remotes/origin/main. `origin/main` is then an unknown revision --
+//    nothing to do with shallowness, which is what I assumed first and what a
+//    deepen-only fix would not have touched.
+// 2. ONCE THE REF EXISTS, depth 1 on both sides genuinely has NO merge base,
+//    and the three-dot diff needs one. Deepening only main cannot help: HEAD
+//    has no parents to meet it. Both sides are deepened.
+//
+// Doing it here rather than in ci.yml keeps the fix out of the workflow line
+// ceiling (DR-1342), makes it work for a local run too, and puts the knowledge
+// next to the command that needs it.
+const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+const quiet = (args) => { try { git(args); return true; } catch { return false; } };
+const haveMergeBase = (base) => quiet(['merge-base', base, 'HEAD']);
+
+// `run` is injected so a test can prove the sequence without the network. The
+// default shells git. Every call is tolerant: a fetch that fails is answered by
+// the next merge-base check, never by an exception.
+export function ensureBase(base, run = quiet) {
+  const has = () => run(['merge-base', base, 'HEAD']);
+  if (has()) return true;
+  const branch = base.replace(/^origin\//, '');
+  const spec = `+refs/heads/${branch}:refs/remotes/${base}`;
+  run(['fetch', '--no-tags', '--depth=1', 'origin', spec]);
+  for (const d of [50, 250, 1000]) {
+    if (has()) return true;
+    run(['fetch', '--no-tags', `--deepen=${d}`, 'origin', spec]);
+    run(['fetch', '--no-tags', `--deepen=${d}`, 'origin']);
+  }
+  if (!has()) run(['fetch', '--no-tags', '--unshallow', 'origin']);
+  return has();
+}
+
 export function addedSince(base) {
+  if (!ensureBase(base)) {
+    throw new Error(`format-guard: no merge base with ${base} even after deepening and unshallowing; cannot tell which files are new to this branch.`);
+  }
   try {
     return execFileSync('git', ['diff', '--name-only', '--diff-filter=A', `${base}...HEAD`], { cwd: ROOT, encoding: 'utf8' })
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
   } catch (e) {
-    throw new Error(`format-guard: cannot diff against ${base} (fetch it first): ${String(e.message).split('\n')[0]}`);
+    throw new Error(`format-guard: cannot diff against ${base}: ${String(e.message).split('\n')[0]}`);
   }
 }
 
