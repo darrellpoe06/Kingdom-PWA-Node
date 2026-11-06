@@ -27,7 +27,7 @@
 ## Decision
 
 1. **Living Lesson 288** (`ll288-a-story-that-looks-like-news`), four bands, two parables with invented characters, eight quiz questions, a facilitator guide, dated 2026-11-06, gated by `living-lessons-ll288-a-story-that-looks-like-news.test.js`: the sender and the video’s own names in every band; the empty record, the genre and the "story, not an event" verdict in every band with a proof that dropping the verdict is caught; both halves of Romans 13 in every band with a proof that dropping "minister of God to thee for good" is caught; the real federal process named with its basis; no percentage.
-2. **The research row and two further rows** are filed for the lane: the link with the research pass as a `research` row for the NAS transcript road, and two `newsletter-item` rows (the federal watch that is real; qualified immunity and the database of the dismissed) with the Word’s angle on each.
+2. **The research row and two further rows** are filed for the lane: the link with the research pass as `agent_inbox` row `27cc2d6a-8737-497e-9515-7088ca72d251` (tag `research`) for the NAS transcript road, and two `newsletter-item` rows split from it, `65f8683d-3ac1-4566-92b9-6059fa4cf555` (the federal watch that is real) and `03b34843-7637-49c8-a800-251ec4f357ef` (qualified immunity and the register of the dismissed), each with the Word’s angle.
 
 ## Verification
 

@@ -674,6 +674,21 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 24,
       "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
+    },
+    {
+      "id": "dr-1372-the-tail-is-a-dropdown",
+      "date": "2026-11-06",
+      "task": "The lesson timeline/figures and the TALK ABOUT IT TOGETHER tail fold closed as optional dropdowns; the voice reads the teaching and the stories and skips the tail unless asked; a seven-case gate",
+      "drs": [
+        "DR-1372"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
     }
   ]
 }
