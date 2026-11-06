@@ -58,7 +58,7 @@ function Block({ b }) {
       </p>
     );
   if (b.kind === 'code' || b.kind === 'table')
-    return <pre className="text-[0.6875rem] text-[#1A1815] bg-[#F3F1EC] p-2 overflow-x-auto whitespace-pre-wrap">{b.text}</pre>;
+    return <pre className="text-[0.6875rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2 overflow-x-auto whitespace-pre-wrap">{b.text}</pre>;
   if (b.kind === 'rule') return <hr className="border-[#D9D5CC]" />;
   return (
     <p className="text-xs text-[#1A1815] leading-relaxed" style={serif}>
