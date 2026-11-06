@@ -26,7 +26,7 @@
       "date": "2026-11-06",
       "from": 22396,
       "to": 22399,
-      "dr": "DR-1360",
+      "dr": "DR-1363",
       "reason": "A required guard step in ci.yml for forward-safe-gate-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) and verify-covers-ci-guards.test.js fails the build without it. Three lines is the step's cost: the narrative lives in the record and the guard's own header, not in the YAML. Raised to the measured total, not above it."
     }
   ],

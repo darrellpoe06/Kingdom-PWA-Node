@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// A forward-safety case may not NAME the number it is simulating (DR-1360)
+// A forward-safety case may not NAME the number it is simulating (DR-1363)
 // =============================================================================
 // DR-1316 said a lesson gate may not claim to be the last lesson, and the
 // repair pattern that followed is a "forward-safe" case: append the next

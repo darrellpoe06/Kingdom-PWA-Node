@@ -1,6 +1,6 @@
 # 2026-11-06 — a forward-safety case may not name the number
 
-Narrative for **[DR-1360](../decisions/DR-1360-a-forward-safe-case-may-not-name-the-number-it-simulates.md)**.
+Narrative for **[DR-1363](../decisions/DR-1363-a-forward-safe-case-may-not-name-the-number-it-simulates.md)**.
 
 ## The report that started it
 

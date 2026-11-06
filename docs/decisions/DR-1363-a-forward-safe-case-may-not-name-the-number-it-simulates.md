@@ -1,4 +1,4 @@
-# DR-1360: A forward-safety case may not name the number it simulates
+# DR-1363: A forward-safety case may not name the number it simulates
 
 **Date:** 2026-11-06
 **Status:** Accepted

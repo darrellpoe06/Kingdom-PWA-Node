@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // =============================================================================
 // forward-safe-gate-guard — a forward-safety case may not NAME the number it
-// is pretending does not exist yet (DR-1360)
+// is pretending does not exist yet (DR-1363)
 // =============================================================================
 // DR-1316 said a lesson gate may not claim to be the last lesson. The repair
 // pattern that followed is a "forward-safe" case: append the next lesson's
@@ -112,7 +112,7 @@ export function main() {
   console.error('\nA forward-safety case that names the next number is true until that number');
   console.error('exists, which is the one moment it is meant to cover. Derive it instead:');
   console.error('    const next = COURSE_MODULES.length + 1;');
-  console.error('This bit three times before it became a gate (DR-1316, DR-1360).');
+  console.error('This bit three times before it became a gate (DR-1316, DR-1363).');
   return 1;
 }
 

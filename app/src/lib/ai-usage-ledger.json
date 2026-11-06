@@ -482,7 +482,7 @@
       "date": "2026-11-06",
       "task": "DR-1316's forward-safety pattern was written three times and twice NAMED the number it simulates; pm15 landing made pm14's literal 15 fail contiguity and blocked #2567, so a guard now reads it instead of a convention three sessions wrote down",
       "drs": [
-        "DR-1360"
+        "DR-1363"
       ],
       "prs": [
         2571
