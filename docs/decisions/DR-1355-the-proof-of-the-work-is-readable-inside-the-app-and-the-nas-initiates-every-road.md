@@ -16,6 +16,16 @@
 
 **The NAS ask, verbatim.** *"How can I fix the nas issues permanently!!!"* Then, on a proposal to replace the runner's expired Tailscale auth key with a Tailscale OAuth client: *"Not a broken way!!!"*, *"Why would I willingly want to depend on other systems... That can and do fail!!!"* The measurement behind it is in DR-1353: the runner's key died on 2026-11-04 and every runner road to the NAS (transcripts, research inbox, NAS health, research health) went red with it, while the NAS itself was online and its own loop sat idle because the work reached it only through the runner.
 
+## What was measured
+
+- The runner's road to the NAS: 96 workflows on `.github/workflows`, 64 of them join the tailnet on `TS_AUTHKEY`; that key expired 2026-11-04 and every one of the 64 went red, unseen for two days, because the probes ran on the same key as the work.
+- The documents: 1,252 Markdown files under `docs/` at build. Importing them as modules (`import.meta.glob`) ran the default-heap build out of memory; emitting them as static files builds in 63 s.
+- The app already held `__DR_LEDGER__` (decision + rationale per record) but no record was readable in full, and no Way, foundation, review or session note was reachable at all.
+
+## Impact
+
+**What this obligates.** Every document under `docs/` is now a served path of the app; a record that is wrong is wrong where Darrell reads it, so the records are the proof and must stay true (DR-0076). The NAS heartbeat is the first road the house initiates; the runner-to-NAS witnesses it replaces are support from now on, never the fact. **Not done:** no runner road is retired yet, and the heartbeat counts as working only when the OpsBoard shows a stamp from it, which this session cannot observe.
+
 ## Decision
 
 1. **Documents, in the admin console.** `RepoDocuments.jsx` lists every Markdown document under `docs/` — decision records, foundations and the Ways, reviews, governance, session notes, templates — grouped by its own folder with the count on disk at build, searchable by title or path, each opened in place and rendered from its Markdown into plain blocks by `lib/repo-documents.js`. The path is shown with every document, because the path is the document location he asked for. Loaded one file at a time (`import.meta.glob` with `?raw`, lazy), so the catalog ships and the 24 MB of text does not. No document is mounted as HTML; raw HTML in a record renders as text (proven to catch). A document that cannot load says so with its path (DR-0381). Nothing is typed by hand: the catalog is whatever was on disk at build (P15).
