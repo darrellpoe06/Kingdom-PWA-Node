@@ -200,7 +200,7 @@ jobs:
       - name: format-guard over the files added since main
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=1 origin main
+          # The guard now fetches its own base and deepens to a merge base (DR-1350).
           node scripts/format-guard.mjs --base origin/main
         working-directory: ${{ github.workspace }}
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
