@@ -1,0 +1,114 @@
+# =============================================================================
+# lesson-mail-label — the lesson lock gets a road a runner can walk (DR-1353)
+# =============================================================================
+# DR-0312 says a thread is labelled Lesson-Captured once its lesson ships. It
+# had never been set on one built thread: the only road was a connector write
+# that stops for a human approval EVERY call, and the lane that owes the step
+# runs unattended. lesson-mail-watch.yml already reads this mailbox over IMAP
+# with GMAIL_WATCH_APP_PASSWORD, and in Gmail IMAP a label IS a folder, so
+# `+X-GM-LABELS` sets the lock from a runner (DR-0108: a runner first, a hand
+# last). Full account, including the X-GM-THRID decimal trap, in DR-1353.
+#
+# WRITES MAIL, narrowly: adds one allow-listed label and nothing else — never
+# deletes, moves or empties, never reads or prints a subject or a body. Only
+# Lesson-Captured and Lesson-Published pass scripts/gmail-thread-label.mjs,
+# max 10 threads a run, dispatch-only (no schedule, so not the timer class).
+# Idempotent. Dormant without the secret, and says so rather than claiming a
+# success it did not have.
+name: Lesson mail label (set the capture lock)
+
+on:
+  workflow_dispatch:
+    inputs:
+      thread_ids:
+        description: 'Gmail thread ids, comma or space separated (hex, as the API gives them). Max 10.'
+        required: true
+      label:
+        description: 'Which lock to set'
+        required: true
+        default: Lesson-Captured
+        type: choice
+        options:
+          - Lesson-Captured
+          - Lesson-Published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lesson-mail-label
+  cancel-in-progress: false
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set the lock over IMAP
+        env:
+          GMAIL_WATCH_USER: darrellpoe06@gmail.com
+          GMAIL_WATCH_APP_PASSWORD: ${{ secrets.GMAIL_WATCH_APP_PASSWORD }}
+          THREAD_IDS: ${{ inputs.thread_ids }}
+          LESSON_LABEL: ${{ inputs.label }}
+        run: |
+          set -euo pipefail
+          # The plan (id conversion + the exact IMAP commands) comes from the
+          # module the tests pin, so the workflow cannot drift from it.
+          node --input-type=module -e '
+            import { parseThreadIds, threadIdToThrid, assertLabel } from "./scripts/gmail-thread-label.mjs";
+            const label = assertLabel(process.env.LESSON_LABEL);
+            const ids = parseThreadIds(process.env.THREAD_IDS);
+            if (!ids.length) { console.error("no thread ids given"); process.exit(1); }
+            if (ids.length > 10) { console.error(`${ids.length} threads is over the per-run budget of 10`); process.exit(1); }
+            const plan = ids.map((id) => ({ id, thrid: threadIdToThrid(id) }));
+            console.log(JSON.stringify({ label, plan }));
+          ' > /tmp/plan.json
+          cat /tmp/plan.json
+          python3 - <<'PY'
+          import imaplib, json, os, sys
+
+          pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD', '')
+          if not pw:
+              print('label road dormant: GMAIL_WATCH_APP_PASSWORD not set (honest no-op, nothing claimed)')
+              sys.exit(0)
+
+          plan = json.load(open('/tmp/plan.json'))
+          label = plan['label']
+          user = os.environ['GMAIL_WATCH_USER']
+
+          M = imaplib.IMAP4_SSL('imap.gmail.com')
+          M.login(user, pw)
+          # All Mail, not Inbox: a forwarded thread may already be archived, and
+          # selecting Inbox would find nothing and look like success.
+          M.select('"[Gmail]/All Mail"', readonly=False)
+
+          set_ok, missing, failed = [], [], []
+          for row in plan['plan']:
+              tid, thrid = row['id'], row['thrid']
+              typ, data = M.uid('SEARCH', 'X-GM-THRID', thrid)
+              uids = data[0].split() if typ == 'OK' and data and data[0] else []
+              if not uids:
+                  missing.append(tid); continue
+              typ, _ = M.uid('STORE', b','.join(uids), '+X-GM-LABELS', '(%s)' % label)
+              if typ != 'OK':
+                  failed.append(tid); continue
+              # Read it back rather than trusting the STORE's own word.
+              typ, back = M.uid('FETCH', uids[0], '(X-GM-LABELS)')
+              blob = b' '.join(x if isinstance(x, bytes) else b'' for x in (back or []))
+              if label.encode() in blob:
+                  set_ok.append('%s (%d message(s))' % (tid, len(uids)))
+              else:
+                  failed.append('%s (STORE said OK, label not read back)' % tid)
+
+          M.logout()
+          # Thread ids and counts only -- never a subject, never a body.
+          for t in set_ok:  print('LABELLED  %s  %s' % (label, t))
+          for t in missing: print('NOT FOUND %s (no message carries this thread id in All Mail)' % t)
+          for t in failed:  print('FAILED    %s' % t)
+          print('summary: %d labelled, %d not found, %d failed' % (len(set_ok), len(missing), len(failed)))
+          if failed or missing:
+              sys.exit(1)
+          PY
