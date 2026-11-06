@@ -135,6 +135,31 @@ PROVENANCE (honest)
   machines, or typed) in the lesson body and in inApp. Say what was not
   verified. Name no one except as the ROW RULES below allow.
 
+A NEWSLETTER OR FORWARDED EMAIL (DR-1361; Darrell 2026-11-06: "be more rigorous
+with our analysis of what is being requested for lessons... sometimes there's
+multiple lessons in a newsletter... even the advertising... the highest level
+is the Word of God, it is the best light, and it is exposing all these other
+lights because it is brighter")
+- When the ROW RULES say the teaching ARRIVED BY EMAIL, read it with rigor
+  BEFORE you write: (1) list EVERY distinct item it explains, because one
+  newsletter often holds several lessons and each item is explaining something
+  that could be explained in detail; (2) say what the people in it are
+  discussing and what they treat as the priority, because whole human
+  populations are discussing things at a high level there; (3) read even the
+  advertising, not to sell it, but to say plainly what is being offered to the
+  psychological profile of human beings; (4) hold EVERY item up to the Word,
+  the highest level and the best light, which exposes the other lights because
+  it is brighter: quote Isaiah 8:20 and 1 Thessalonians 5:21 verbatim there.
+- SHOW the reading, do not merely do it: lesson_intro carries a short part
+  headed exactly THE READING UNDER THE LIGHT that names the items, the
+  discussion, the advertising read, and the Word's verdict on each. The rigor
+  is visible in the lesson itself, never assumed.
+- Build THIS lesson on the strongest item. Put every other item that is itself
+  a lesson into "further_lessons" (title, item, why), at most 8, so the lane
+  builds them on its own clock (DR-0667) and nothing in the email is lost.
+  A row the ROW RULES call a NEWSLETTER ITEM is already one item: write that
+  item and return no further_lessons.
+
 WHO SPOKE (a recording can hold more than one voice)
 - A transcript may open with a "Speakers:" header and lines "LABEL: words".
   DP is Darrell Poe; BG is Bishop Gwin; S1, S2, ... are voices
@@ -194,7 +219,10 @@ SHAPE -- return ONE JSON object and nothing else (no prose, no code fence):
                           every verse quoted with its reference"}],
   "lesson_close": "the closing of the full lesson, ending with the closing line",
   "dr_summary": "two or three sentences for the decision record: what was sent,
-                 what the lesson teaches, where it is placed"
+                 what the lesson teaches, where it is placed",
+  "further_lessons": [OPTIONAL, emailed newsletters only, at most 8:
+                      {"title": "...", "item": "the item in one sentence",
+                       "why": "why it is its own lesson and what the Word says to it"}]
 }
 - Each band's FIRST sentence carries the whole title, main title AND
   subtitle, the way the series does ("How Yahweh Keeps His Word: the promise,
@@ -203,6 +231,36 @@ SHAPE -- return ONE JSON object and nothing else (no prose, no code fence):
 - lesson_close also ends with that exact sentence. Write at least three
   movements, in teaching order; do not number them (the builder numbers them).
 """
+
+
+READING_HEADING = "THE READING UNDER THE LIGHT"
+MAX_FURTHER = 8
+
+
+def is_emailed(tags):
+    """An emailed teaching: lesson_mail.py files it under a mail:<id> tag, and the
+    builder files each split item under newsletter-item (DR-1361)."""
+    tags = [str(t) for t in (tags or [])]
+    return "newsletter-item" in tags or any(t.startswith("mail:") for t in tags)
+
+
+def reading_problems(obj, rows):
+    """DR-1361, deterministic: an emailed teaching's lesson must SHOW its reading
+    under the light. [] for a non-emailed row, so the gate cannot fire where
+    the rule does not apply."""
+    if not isinstance(obj, dict) or obj.get("verdict") != "lesson":
+        return []
+    if not any(is_emailed(r.get("tags")) for r in (rows or [])):
+        return []
+    p = []
+    intro = str(obj.get("lesson_intro") or "")
+    if READING_HEADING not in intro:
+        p.append("an emailed teaching must show " + READING_HEADING + " in lesson_intro (DR-1361)")
+    if "(Isaiah 8:20)" not in intro or "(1 Thessalonians 5:21)" not in intro:
+        p.append("the reading under the light quotes Isaiah 8:20 and 1 Thessalonians 5:21 in lesson_intro (DR-1361)")
+    if any("newsletter-item" in (r.get("tags") or []) for r in rows) and obj.get("further_lessons"):
+        p.append("a newsletter item is already one item: it returns no further_lessons (DR-1361)")
+    return p
 
 
 def row_rules(rows, owner_ids):
@@ -238,6 +296,15 @@ def row_rules(rows, owner_ids):
         if "voice:BG" in tags:
             lines.append("- The speaker marks carry BG: where BG is teaching, call him Bishop Gwin or BG, "
                          "never 'the teacher' alone; a line his label does not carry is not his.")
+        if is_emailed(tags):
+            if "newsletter-item" in tags:
+                lines.append("- This is a NEWSLETTER ITEM the builder split from an emailed newsletter (DR-1361): "
+                             "it ARRIVED BY EMAIL; read it under the light as the standard says, write THIS item "
+                             "as the lesson, and return no further_lessons.")
+            else:
+                lines.append("- This teaching ARRIVED BY EMAIL (a newsletter or forwarded article, DR-1361): read it "
+                             "with the rigor the standard sets, show THE READING UNDER THE LIGHT in lesson_intro, "
+                             "and put every other item that is itself a lesson into further_lessons.")
         if "church-session-public" in tags:
             lines.append("- This is a church session the church posts publicly (DR-0711): a member may be "
                          "named, only as the teacher calls them in the recording; never health, giving, "
@@ -371,6 +438,11 @@ def schema_problems(obj):
     tp = (obj.get("facilitator") or {}).get("talkingPoints") if isinstance(obj.get("facilitator"), dict) else None
     if not (isinstance(tp, list) and len(tp) >= 4 and all(isinstance(x, str) for x in tp)):
         p.append("facilitator.talkingPoints must be a list of at least 4 strings")
+    fl = obj.get("further_lessons")
+    if fl is not None and not (isinstance(fl, list) and len(fl) <= MAX_FURTHER and all(
+            isinstance(x, dict) and all(isinstance(x.get(k), str) and x.get(k).strip() for k in ("title", "item", "why"))
+            for x in fl)):
+        p.append(f"further_lessons, when present, is at most {MAX_FURTHER} {{title, item, why}} objects (DR-1361)")
     return p
 
 
