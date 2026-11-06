@@ -35,9 +35,13 @@ Three PRs collided on DR-1355 today and two of them were one session's. The stru
 
 ## Verification
 
-**25 cases green**, every one network-free: the runner is injected, because earlier this same session a case that called real git against a nonexistent branch ran deepen rounds for minutes before it was killed.
+**26 cases green**, every one network-free: the runner is injected, because earlier this same session a case that called real git against a nonexistent branch ran deepen rounds for minutes before it was killed.
 
-**Proven to catch.** Deleting the freshness line from `main()` turns **3 cases red**; file restored and verified byte-identical with `cmp`.
+**MY FIRST THREE CASES WERE WRONG, AND CI CAUGHT IT.** They passed locally and went red on #2569 with `REFUSING — no base ref could be read`, because an `actions/checkout` has no `origin/main` remote-tracking ref — DR-1249's own condition. They were assertions about the ENVIRONMENT, not about the freshness line they exist to pin. The base read is now injected too, and a new case simulates that exact CI condition. A case that only passes where it was written is not the case I meant to write.
+
+**The refusal path carries the freshness line as well**, because the refusal's own advice is "fetch main", so whether a fetch just ran is the first thing its reader needs. The refusal is otherwise unchanged and still prints no number.
+
+**Proven to catch.** Deleting both freshness lines from `main()` turns **4 cases red**; file restored and verified byte-identical with `cmp`.
 
 **Verified on the live ledger, not only fixtures.** The real run now prints `DR-1355 — origin/claude/integrity-lesson-n55fvt, origin/claude/a-dormant-road-is-not-a-road — HELD BY 2 BRANCHES, one of them must move`, which is today's actual contested number with both real holders.
 

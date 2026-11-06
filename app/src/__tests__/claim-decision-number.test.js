@@ -236,7 +236,7 @@ describe('the view is refreshed before it is read', () => {
     // through main's own printer rather than fabricated in git, so the case
     // pins the OUTPUT a session reads.
     const lines = [];
-    main({ refresh: () => ({ ok: true, reason: '' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    main({ refresh: () => ({ ok: true, reason: '' }), readBase: onBase, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
     const row = lines.find((l) => /^ {4}DR-\d{4} — /.test(l));
     if (row) {
       // On the live repo today this is the real three-way row; off it, any row.
@@ -252,6 +252,15 @@ describe('the view is refreshed before it is read', () => {
 
 describe('an unverified view never reads as a fresh one', () => {
   const NOW = Date.UTC(2026, 10, 6, 15, 0, 0);
+
+  // THE BASE READ IS INJECTED, AND THAT IS A CORRECTION OF MY OWN CASES.
+  // Written against a local tree they passed; in CI all three went red with
+  // `REFUSING — no base ref could be read`, because an actions/checkout has no
+  // origin/main remote-tracking ref at all. That is DR-1249's condition, not a
+  // new fault — but it made these cases assertions about the ENVIRONMENT rather
+  // than about the freshness line they exist to pin. A case that only passes
+  // where it was written is not the case I meant to write.
+  const BASE_OK = () => ({ ok: true, ref: 'origin/main', numbers: new Set([1, 2, 3]), tried: ['origin/main'], reason: '' });
 
   it('says so plainly when the fetch ran', () => {
     const line = freshnessLine({ fetched: true, newestMs: NOW - 7 * 60000, nowMs: NOW });
@@ -278,7 +287,7 @@ describe('an unverified view never reads as a fresh one', () => {
   it('PROVEN TO CATCH: without the fetch, main still prints the UNVERIFIED warning', () => {
     // The regression this guards is silence, so the case asserts the words.
     const lines = [];
-    const code = main({ refresh: () => ({ ok: false, reason: 'injected: fetch skipped' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const code = main({ refresh: () => ({ ok: false, reason: 'injected: fetch skipped' }), readBase: BASE_OK, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
     const out = lines.join('\n');
     expect(code, 'the number is still answered — offline, a base read beats no answer').toBe(0);
     expect(out, 'a stale scan must announce itself').toMatch(/in-flight view: UNVERIFIED/);
@@ -287,16 +296,37 @@ describe('an unverified view never reads as a fresh one', () => {
 
   it('and with the fetch, the same run says refreshed rather than unverified', () => {
     const lines = [];
-    const code = main({ refresh: () => ({ ok: true, reason: '' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const code = main({ refresh: () => ({ ok: true, reason: '' }), readBase: BASE_OK, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
     const out = lines.join('\n');
     expect(code).toBe(0);
     expect(out).toMatch(/in-flight view: refreshed just now/);
     expect(out).not.toMatch(/UNVERIFIED/);
   });
 
+  it("the DR-1249 refusal now says whether a fetch ran, because its own advice is \"fetch main\"", () => {
+    // This is the CI condition exactly: an actions/checkout with no
+    // origin/main remote-tracking ref, which is what turned my first three
+    // cases red. The refusal is unchanged and still prints no number; what is
+    // added is the one fact that tells the reader whether the advice was
+    // already tried.
+    const lines = [];
+    const code = main({
+      refresh: () => ({ ok: false, reason: 'fatal: could not read from remote repository' }),
+      readBase: () => ({ ok: false, ref: null, numbers: new Set(), tried: BASE_CANDIDATES, reason: 'no base ref could be read' }),
+      log: (s) => lines.push(String(s)),
+      err: (s) => lines.push(String(s)),
+    });
+    const out = lines.join('\n');
+    expect(code, 'a refusal is still a refusal').toBe(1);
+    expect(out).toMatch(/REFUSING/);
+    expect(out, 'no number may be printed on this path').not.toMatch(/next free decision number/);
+    expect(out).toMatch(/in-flight view: UNVERIFIED/);
+    expect(out).toMatch(/could not read from remote repository/);
+  });
+
   it('--no-fetch buys no silence', () => {
     const lines = [];
-    main({ noFetch: true, refresh: () => { throw new Error('refresh must not be called'); }, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    main({ noFetch: true, refresh: () => { throw new Error('refresh must not be called'); }, readBase: BASE_OK, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
     const out = lines.join('\n');
     expect(out).toMatch(/UNVERIFIED/);
     expect(out).toMatch(/--no-fetch was passed/);

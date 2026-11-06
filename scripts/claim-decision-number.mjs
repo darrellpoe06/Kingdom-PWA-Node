@@ -259,19 +259,27 @@ export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {
   return held;
 }
 
-export function main({ refresh = refreshRemote, noFetch = false, log = console.log, err = console.error, now = Date.now() } = {}) {
+export function main({
+  refresh = refreshRemote, readBase = onBase, noFetch = false,
+  log = console.log, err = console.error, now = Date.now(),
+} = {}) {
   // The view is refreshed BEFORE anything is read from it, so the base read and
   // the in-flight scan answer about the same moment. --no-fetch is for a caller
   // that has just fetched, or has no network; it does not buy silence.
   const fetched = noFetch ? { ok: false, reason: '--no-fetch was passed' } : refresh();
+  const freshness = () => freshnessLine({ fetched: fetched.ok, reason: fetched.reason, newestMs: newestRefMs(), nowMs: now });
 
   const disk = onDisk();
-  const read = onBase();
+  const read = readBase();
   if (!read.ok) {
     // No number is printed. A number computed without main's own records is
     // exactly what DR-1247 was written to stop, and a tool that answers anyway
     // is more dangerous than one that will not answer at all.
     err(`claim-decision-number: REFUSING — ${read.reason}.`);
+    // The refusal's own advice is "fetch main", so whether a fetch just ran is
+    // the first thing the reader needs — and DR-1249's case was precisely a CI
+    // checkout with no origin/main ref, which an explicit refspec fetch creates.
+    err(freshness());
     err('  Nothing is recommended. Fetch main and ask again:');
     err('    git fetch origin main');
     return 1;
@@ -296,10 +304,10 @@ export function main({ refresh = refreshRemote, noFetch = false, log = console.l
     log(`  NOTE: this tree has not merged main — it cannot see ${unseen.length} landed record(s): ${unseen.map(pad).join(', ')}`);
     log('        They are counted as taken anyway. Merge main to make the tree agree.');
   }
-  // ALWAYS, whichever way the fetch went: the in-flight half of the answer is
-  // only worth what its freshness is worth, and that is not the reader's to
-  // guess (DR-1359).
-  log(freshnessLine({ fetched: fetched.ok, reason: fetched.reason, newestMs: newestRefMs(), nowMs: now }));
+  // ALWAYS, whichever way the fetch went and whichever way the base read went:
+  // the in-flight half of the answer is only worth what its freshness is worth,
+  // and that is not the reader's to guess (DR-1359).
+  log(freshness());
 
   if (inFlight.size === 0) {
     log('  in flight: none — no unmerged branch holds a decision number.');
