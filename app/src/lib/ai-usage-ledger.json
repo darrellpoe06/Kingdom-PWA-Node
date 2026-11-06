@@ -656,7 +656,7 @@
       "model": "claude-fable-5-1",
       "tokens": null,
       "costUsd": null,
-      "wallClockHours": 2.0,
+      "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
     }
