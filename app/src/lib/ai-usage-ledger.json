@@ -444,6 +444,23 @@
       "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped."
     },
     {
+      "id": "a-dormant-road-is-not-a-road",
+      "date": "2026-11-06",
+      "task": "A dormant road is not a road: DR-1354's claim that the IMAP credential was already in place was false, and a dormant run asked to label threads was exiting 0",
+      "drs": [
+        "DR-1355"
+      ],
+      "prs": [
+        2566
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Measured worktree creation to the single commit on claude/a-dormant-road-is-not-a-road. NOT on that record: the live dispatch that exposed the fault and the independent check of the watcher's own run history, both earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for correcting a false claim in three places plus two file headers, changing one exit path, rewriting a test that had itself passed through the fault, and proving the rewrite catches."
+    },
+    {
       "id": "too-old-to-patch-spm11",
       "date": "2026-11-06",
       "task": "spm11, the eleventh lesson of Software Project Management: an unsupported version cannot be patched on the day the patch arrives, built from a forwarded cPanel advisory",

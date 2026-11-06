@@ -141,10 +141,32 @@ describe('the workflow is the narrow kind it claims to be', () => {
     expect(src, 'never a body (the standing rule)').not.toMatch(/BODY\[\]|RFC822|HEADER\.FIELDS \(SUBJECT/);
   });
 
-  it('exits honestly when the secret is absent rather than claiming success', () => {
+  // REWRITTEN 2026-11-06 (DR-1355). This case used to require the words
+  // "dormant" and "nothing claimed" and called that honest. It was not enough.
+  // The first live dispatch named three threads, printed "dormant", exited 0,
+  // and the run went GREEN having laboured on nothing -- the exact shape this
+  // repository refuses. The log was honest; the EXIT CODE lied. A test that
+  // reads the message and ignores the status is the same mistake in miniature.
+  it('a dormant run that was asked to label threads FAILS, because a green run that did nothing is a lie', () => {
     const src = yml();
-    expect(src).toMatch(/dormant/);
-    expect(src).toMatch(/nothing claimed/);
+    const i = src.indexOf('GMAIL_WATCH_APP_PASSWORD');
+    const branch = src.slice(src.indexOf("pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD'"));
+    const guardBlock = branch.slice(0, branch.indexOf('user = os.environ') > 0 ? branch.indexOf('user = os.environ') : 900);
+    expect(i, 'the secret is read at all').toBeGreaterThan(0);
+    expect(guardBlock, 'the dormant branch must exit non-zero').toContain('sys.exit(1)');
+    expect(guardBlock, 'and must not exit 0').not.toContain('sys.exit(0)');
+    expect(guardBlock, 'it must say nothing was labelled').toMatch(/NOTHING was labelled/);
+    expect(guardBlock, 'it must say how many were asked for').toMatch(/%d thread\(s\)/);
+    expect(guardBlock, 'and name who can supply the secret').toMatch(/only Darrell holds/);
+    expect(guardBlock, 'and that the watcher needs the same one').toMatch(/lesson-mail-watch\.yml needs the same one/);
+  });
+
+  it('the plan is read BEFORE the secret check, so the message can count the threads', () => {
+    const src = yml();
+    expect(
+      src.indexOf("plan = json.load"),
+      'the thread count is unavailable if the secret is checked first'
+    ).toBeLessThan(src.indexOf("pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD'"));
   });
 
   it('fails the run when a thread was not found, so a silent miss cannot read as done', () => {
