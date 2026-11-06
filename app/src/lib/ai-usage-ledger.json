@@ -1,5 +1,5 @@
 {
-  "schema": "ai-usage-ledger v1 (DR-1347, DR-1330 D8) \u2014 one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
+  "schema": "ai-usage-ledger v1 (DR-1347, DR-1330 D8) — one entry per delivered task: the model that did it, the tokens and dollars where a meter exists, the wall clock measured from the previous push to this push, and an engineer's ESTIMATE of the same work without AI, labelled as an estimate. The slide's project-results table, kept by the build: scripts/ai-usage-ledger.mjs --check fails when a decision record lands without its line. Numbers here are never typed from memory: wallClockHours come from git commit timestamps; sessionTokensObserved is the harness's own budget counter, read, not guessed; tokens per task are null where no meter exposes them, and that is said rather than filled.",
   "models": {
     "claude-fable-5-1": {
       "note": "The Claude Code session model (Anthropic). Per-task tokens are not exposed by the harness; the session's budget counter is recorded per session instead."
@@ -86,12 +86,12 @@
       "costUsd": null,
       "wallClockHours": 0.25,
       "estimateWithoutAiHours": 16,
-      "notes": "17:00:31Z \u2192 17:15:13Z. Six runner fixes found by running, none in the app."
+      "notes": "17:00:31Z → 17:15:13Z. Six runner fixes found by running, none in the app."
     },
     {
       "id": "d3-dependency-audit",
       "date": "2026-11-05",
-      "task": "Dependency audit gate, first npm audit (21 \u2192 10), pip pins, Dependabot pip+docker",
+      "task": "Dependency audit gate, first npm audit (21 → 10), pip pins, Dependabot pip+docker",
       "drs": [
         "DR-1345"
       ],
@@ -103,7 +103,7 @@
       "costUsd": null,
       "wallClockHours": 0.14,
       "estimateWithoutAiHours": 8,
-      "notes": "17:15:13Z \u2192 17:23:34Z."
+      "notes": "17:15:13Z → 17:23:34Z."
     },
     {
       "id": "d4-secret-scan",
@@ -120,7 +120,7 @@
       "costUsd": null,
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 8,
-      "notes": "17:23:34Z \u2192 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
+      "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
     },
     {
       "id": "d5-error-text",
@@ -137,12 +137,12 @@
       "costUsd": null,
       "wallClockHours": 0.09,
       "estimateWithoutAiHours": 8,
-      "notes": "17:35:22Z \u2192 17:40:37Z (D4's fixture fix landed in between)."
+      "notes": "17:35:22Z → 17:40:37Z (D4's fixture fix landed in between)."
     },
     {
       "id": "d6-sign-in-record",
       "date": "2026-11-05",
-      "task": "GoTrue hook \u2192 audit_log login/failed-auth, migration 0315, smoke, CI leg, matrix",
+      "task": "GoTrue hook → audit_log login/failed-auth, migration 0315, smoke, CI leg, matrix",
       "drs": [
         "DR-1336"
       ],
@@ -154,7 +154,7 @@
       "costUsd": null,
       "wallClockHours": 0.1,
       "estimateWithoutAiHours": 8,
-      "notes": "17:41:35Z \u2192 17:47:50Z; proven on a local PostgreSQL 16 before CI."
+      "notes": "17:41:35Z → 17:47:50Z; proven on a local PostgreSQL 16 before CI."
     },
     {
       "id": "d7-endpoint-register",
@@ -171,7 +171,7 @@
       "costUsd": null,
       "wallClockHours": 0.09,
       "estimateWithoutAiHours": 12,
-      "notes": "17:47:50Z \u2192 17:53:16Z."
+      "notes": "17:47:50Z → 17:53:16Z."
     },
     {
       "id": "d8-ai-usage-ledger",
@@ -363,7 +363,7 @@
     {
       "id": "pm14-whose-measure-the-benchmark-the-census-and-the-kpis",
       "date": "2026-11-05",
-      "task": "Lesson pm14: whose measure \u2014 the benchmark, the census, and the KPIs the Word already gave us",
+      "task": "Lesson pm14: whose measure — the benchmark, the census, and the KPIs the Word already gave us",
       "drs": [
         "DR-1349"
       ],
@@ -395,7 +395,7 @@
     {
       "id": "ll283-made-in-our-image",
       "date": "2026-11-05",
-      "task": "Lesson ll283: Made In Our Image \u2014 the title is backwards, the heart that does not consider, and the ten perspectives named and not reproduced",
+      "task": "Lesson ll283: Made In Our Image — the title is backwards, the heart that does not consider, and the ten perspectives named and not reproduced",
       "drs": [
         "DR-1352"
       ],
@@ -441,7 +441,7 @@
       "costUsd": null,
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
-      "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped."
+      "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped. CORRECTED by DR-1355: the clause \"found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox\" above is FALSE and is left standing rather than deleted so the error is met with its correction. That survey read the workflows' CODE; the secret has never been set, and every lesson-mail-watch.yml run is a green no-op. DR-1355 corrected three prose places and two file headers and missed this one. The measurement of this task's own hours is unaffected."
     },
     {
       "id": "a-dormant-road-is-not-a-road",
@@ -463,7 +463,7 @@
     {
       "id": "sov70-every-one-over-against-his-house",
       "date": "2026-11-06",
-      "task": "Lesson sov70: Every one over against his house \u2014 the coordination budget, the one trumpet, and a source we never read past its paywall",
+      "task": "Lesson sov70: Every one over against his house — the coordination budget, the one trumpet, and a source we never read past its paywall",
       "drs": [
         "DR-1357"
       ],
@@ -556,9 +556,26 @@
       "model": "claude-fable-5-1",
       "tokens": null,
       "costUsd": null,
-      "wallClockHours": 1.0,
+      "wallClockHours": 1,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
+    },
+    {
+      "id": "the-in-flight-view-has-an-age",
+      "date": "2026-11-06",
+      "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
+      "drs": [
+        "DR-1359"
+      ],
+      "prs": [
+        2569
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.15,
+      "estimateWithoutAiHours": 6,
+      "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
     }
   ]
 }
