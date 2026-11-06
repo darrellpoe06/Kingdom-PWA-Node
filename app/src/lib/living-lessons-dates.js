@@ -543,4 +543,10 @@ export const LIVING_LESSONS_ADDED = {
   // (considereth, Isaiah 44:19), and deliberately refuses to reproduce the
   // issue's ten perspectives on DR-0098 grounds (DR-1352).
   'll283-made-in-our-image': '2026-11-05',
+  // L284 (Credit Where Credit Is Due) is the correction Darrell spoke into the
+  // app on 2026-11-06, in two messages minutes apart, and named as a lesson for
+  // the app and for its builder: names stay in, say what they said and research
+  // it, the fruit is the data, assessment is not condemnation, set evil aside
+  // and let the law take it, never ignore it (DR-1353). Built the same day.
+  'll284-credit-where-credit-is-due': '2026-11-06',
 };
