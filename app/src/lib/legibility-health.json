@@ -5,11 +5,11 @@
     "midnight"
   ],
   "summary": {
-    "pages": 396,
+    "pages": 397,
     "passing": 383,
     "trackedDebtPages": 13,
-    "regressionPages": 0,
-    "regressions": 0,
+    "regressionPages": 1,
+    "regressions": 1,
     "debtViolations": 86
   },
   "pages": [
@@ -119,6 +119,15 @@
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/RepoDocuments.jsx",
+      "status": "REGRESSION",
+      "violations": 1,
+      "regressions": 1,
+      "kinds": [
+        "token-light-on-light"
       ]
     },
     {

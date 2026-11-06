@@ -442,6 +442,23 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 30,
       "notes": "Measured from his first correction message 13:33Z to the last commit 14:15Z on claude/integrity-lesson-n55fvt, in one session that also carried five History Lesson links, two dead transcript roads diagnosed (TS_AUTHKEY expired 2026-11-04; the sandbox refused by the proxy for the NAS, the tailnet and youtube.com), and the Supabase reads that located the idle NAS trickle. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 284th Living Lesson with five reader versions, two parables, 77 anchors over 403 spans fetched verbatim, a 55-case gate, two catalog-wide gates proven to catch, 268 corrections across seven lessons, a NAS pipeline source with four tests, a workflow input, and a decision record."
+    },
+    {
+      "id": "repo-documents-the-proof-of-the-work",
+      "date": "2026-11-06",
+      "task": "Documents in the admin console: every decision, Way, foundation and session note readable by its own location; the standard that the NAS initiates every road",
+      "drs": [
+        "DR-1354"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 12,
+      "notes": "Measured 14:20Z to the commit on claude/integrity-lesson-n55fvt, inside the same session as DR-1353 and the five History Lesson links. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a pure catalog-and-reader module over 1,800 repository documents, an admin surface held to UX-PATTERNS 2e/2g and DR-0381, an 11-case suite on the real repository with two proven-to-catch cases, and a decision record."
     }
   ]
 }

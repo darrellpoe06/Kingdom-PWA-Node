@@ -1,0 +1,29 @@
+# DR-1354: The proof of the work is readable inside the app — every decision, Way, foundation and session note by its own location — and the NAS initiates every road, so nothing outside the house has to be alive for the house to work
+
+**Date:** 2026-11-06
+**Status:** Accepted
+**Tier:** A (one new admin surface and its pure reader, catalogued from the repository at build; a direction for the NAS roads recorded as the standard; no schema, no door, no money)
+**Type:** surface + ways
+**Area:** Admin console; the NAS roads
+**Sent in by:** Darrell — 2026-11-06, a run of messages while PR #2565 was in the lane
+**Pairs with:** DR-0065 (the app is the primary artifact; surface both), DR-0061 (a surface is a live view of real state), DR-0219 (SHOULD/ARE before building), DR-0381 (a surface never goes blank), DR-0076 (no HTML from data), DR-1353 (the Research-tab link road moved onto the NAS), DR-1159 (the order of roads to a NAS value), DR-0669 (the lesson builder listens on the NAS), DR-0247 / DR-0248 (started by record; the deterministic class), DR-1113 (the sovereign database's own backup)
+
+## Context
+
+**The documentation ask, verbatim.** *"Reports need to be findable inside the documentation of the PoeTech App also... I want all the DRs and Ways and documentation to be accessible by myself inside our documents for the PoeTech App build... if I want to go and discuss this process and what we do I want to be able to do that without using claude or anything just the document location and documentation showcases the proof of the work... make sense?"* And: *"Review if it already exists first... or is something close."*
+
+**Reviewed first (DR-0219).** Measured in `app/vite.config.js` and the admin console: the build already compiles in the decided ledger (`__DR_LEDGER__`, per-record decision and rationale, shown under Governor Review), the principles registry, the governance queue and the reviews registry. None of them shows a record's full text; none lists the foundation documents, the Ways or the session notes. `DocumentViewer.jsx` opens uploaded documents (a member's PDF or Word file), not the repository's. So the surface is new and not a duplicate, and it composes the same files from the same repository.
+
+**The NAS ask, verbatim.** *"How can I fix the nas issues permanently!!!"* Then, on a proposal to replace the runner's expired Tailscale auth key with a Tailscale OAuth client: *"Not a broken way!!!"*, *"Why would I willingly want to depend on other systems... That can and do fail!!!"* The measurement behind it is in DR-1353: the runner's key died on 2026-11-04 and every runner road to the NAS (transcripts, research inbox, NAS health, research health) went red with it, while the NAS itself was online and its own loop sat idle because the work reached it only through the runner.
+
+## Decision
+
+1. **Documents, in the admin console.** `RepoDocuments.jsx` lists every Markdown document under `docs/` — decision records, foundations and the Ways, reviews, governance, session notes, templates — grouped by its own folder with the count on disk at build, searchable by title or path, each opened in place and rendered from its Markdown into plain blocks by `lib/repo-documents.js`. The path is shown with every document, because the path is the document location he asked for. Loaded one file at a time (`import.meta.glob` with `?raw`, lazy), so the catalog ships and the 24 MB of text does not. No document is mounted as HTML; raw HTML in a record renders as text (proven to catch). A document that cannot load says so with its path (DR-0381). Nothing is typed by hand: the catalog is whatever was on disk at build (P15).
+2. **The NAS initiates every road; the lane never reaches in.** Recorded as the standard for the NAS roads, in his words: a system we do not control is support, never a necessity. The NAS pulls its code (the services-sync mirror, already so), pulls its work from the database (the Research-tab link road, DR-1353, is the first), writes its results back where the app reads them, and writes its own heartbeat the app shows. A runner road that carries work INTO the NAS (`source-transcript-nas.yml`, `research-inbox.yml`'s NAS leg, the health probes that depend on the tailnet key) is retired as each is reversed, and the Tailscale key goes back to being the phone's door. A credential that expires is never again the only road to a value the house holds. The OAuth-client proposal is withdrawn as the fix: it changes which outside system the house depends on, not whether it depends.
+3. **The witness is the house's own write.** The app shows the NAS last seen from a row the NAS writes on its own clock, not from a runner probe that shares the road it watches. Built next in this session, as the first reversed witness.
+
+## Verification
+
+- `repo-documents.test.js` — 14 cases on the real repository: every decision record on disk is listed (1,250+, newest first, DR-1353 and DR-1354 among them), the foundations and the Ways (THE-WAY, HOLD-THE-HAND-OF-THE-PROCESS, LESSONS-LEARNED), 390+ session notes, the reviews and the governance queue; titles derived, never invented; search by title or path; the reader pinned on DR-1353's own text (H1, Context, Decision, Verification, its table and lists); raw HTML and a script tag proven to stay text; the panel registered in the admin console; the surface's never-blank lines pinned.
+- Lint clean; a real `vite build` with the lazy catalog; the admin console's own tests green.
+- **Honest limits.** The reader is deliberately small (headings, paragraphs, lists, quotes, code, tables as fixed text); nested lists flatten and footnotes read inline. The surface is behind the admin console, which is where the stewards work; whether members should read the Ways there too is his call and is not decided here. `re-review: 2026-11-20` — read the surface on the live build on a phone, with large print on, and widen or narrow it from what is seen.

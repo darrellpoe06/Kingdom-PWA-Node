@@ -51,6 +51,8 @@ export default [
         __UIUX_REVIEWS_DATA__: 'readonly',
         __TEST_CENSUS_DATA__: 'readonly',
         __LESSONS_PRINCIPLES_DATA__: 'readonly',
+        __REPO_DOCS_DATA__: 'readonly',
+        __REPO_DOCS__: 'readonly',
       },
     },
     plugins: {

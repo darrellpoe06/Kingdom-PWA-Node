@@ -33,6 +33,7 @@ import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
 import ProvingOurWays from './ProvingOurWays.jsx';
+import RepoDocuments from './RepoDocuments.jsx';
 import FamilyDoors from './FamilyDoors.jsx';
 import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -779,6 +780,18 @@ export default function AdminConsole({
       // people, the measure of what the ways cost — per task, with AI and the
       // estimate without.
       render: () => <><ProvingOurWays /><AiUsageReport /></>,
+    },
+    {
+      id: 'documents',
+      label: 'Documents',
+      icon: 'book',
+      // DR-1354. Darrell 2026-11-06: the decisions, the Ways and the
+      // documentation readable here, by their own document location, so the
+      // process and its proof can be discussed from the app alone. Reviewed
+      // first: the decided ledger and the principles were already compiled in
+      // (Governor Review); the full text, the foundations and the session
+      // notes were not. Loaded one file at a time when opened.
+      render: () => <RepoDocuments />,
     },
     {
       id: 'quality',
