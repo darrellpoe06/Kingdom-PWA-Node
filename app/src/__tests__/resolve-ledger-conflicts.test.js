@@ -409,6 +409,16 @@ describe('resolve-ledger-conflicts — ai-usage-ledger.json (DR-1369)', () => {
   const mine = { id: 'ours-task', drs: ['DR-1369'], notes: 'mine' };
   const hers = { id: 'mains-task', drs: ['DR-1368'], notes: "main's" };
 
+  it('unionById keeps theirs first, appends only new ids, and reports a differing one', () => {
+    const theirs = [{ id: 'a', v: 1 }, { id: 'b', v: 1 }];
+    const ours = [{ id: 'a', v: 1 }, { id: 'c', v: 1 }, { id: 'b', v: 2 }];
+    const r = unionById(theirs, ours);
+    expect(r.merged.map((e) => e.id)).toEqual(['a', 'b', 'c']);
+    expect(r.added, 'only the id neither side had').toEqual(['c']);
+    expect(r.differ, 'b is on both sides with different content').toEqual(['b']);
+    expect(r.merged.find((e) => e.id === 'b').v, 'a differing entry is left at theirs, never folded').toBe(1);
+  });
+
   it('unions two appends, main first and ours after, losing neither', () => {
     const r = unionUsageLedgerText(
       JSON.stringify(withEntry(hers), null, 2),
