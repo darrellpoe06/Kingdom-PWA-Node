@@ -25,7 +25,8 @@ cbc07181aa 0 escapes · 95227a28bd 4 · f415316c47 0 · 7395ffb28a 0
 09d800aa17 4 · 3a073d0c3d 0 · f80bf69dea 0 · eab90722c1 0
 ```
 
-The file flips between `—` and `—` every other landing, and one entry's
+The file flips between the escaped and the literal form every other landing
+(`\u2014` against a real em-dash), and one entry's
 `"wallClockHours": 1.0` had become `1` in the same pass. `--add` writes literal
 UTF-8; a session hand-writing the JSON writes escapes, trying to be careful
 about ASCII. Four flipping lines are enough to conflict the whole file when
