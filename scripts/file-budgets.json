@@ -39,14 +39,14 @@
     {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 10289,
-      "to": 10622,
+      "to": 10624,
       "date": "2026-11-06",
-      "why": "sov71 (DR-1361) adds one lesson to this file; fifth raise for the same reason as the four before it: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+      "why": "sov71 (DR-1364) adds one lesson to this file; fifth raise for the same reason as the four before it: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 29706,
-    "app/src/lib/sovereign-ai-class.js": 10622,
+    "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,
     "app/src/modules/properties/DoorTabs.jsx": 3352,

@@ -68,7 +68,7 @@
 // exposure.
 //
 // EVERY LESSON STANDS ALONE AND WHOLE. No reader text points at another
-// lesson; the comparison lives in this header and in DR-1361.
+// lesson; the comparison lives in this header and in DR-1364.
 //
 // WHO TAUGHT (DR-0719): NOBODY. A forwarded news digest is not a recording.
 // All five reader places say so; the cases below forbid the bare phrase "the
@@ -91,7 +91,7 @@
 //
 // Every verse was fetched from app/public/bible/kjv BEFORE a word was written,
 // and SPINE_FRAGMENTS pins the exact span this lesson quotes for all 35
-// references. Recorded as DR-1361.
+// references. Recorded as DR-1364.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -370,9 +370,7 @@ describe('sov71 — WHO TAUGHT: NOBODY, and the provenance is carried', () => {
     // that does the declaring. The honest check is that each unbuilt subject
     // appears ONLY inside the declaration — named once so a later session does
     // not read the thread as spent, and never carrying a verse of its own.
-    const DECLARATION = M.lesson
-      .split('\n\n')
-      .find((p) => p.includes('WHAT WE BUILT FROM, AND WHAT WE LEFT ALONE ON PURPOSE'));
+    const DECLARATION = M.lesson.split('\n\n').find((p) => p.includes('WHAT WE BUILT FROM, AND WHAT WE LEFT ALONE ON PURPOSE'));
     expect(DECLARATION, 'the declaration paragraph is missing').toBeTruthy();
     for (const term of ['inmate', 'Ukraine', 'body clocks', 'tank explosion']) {
       expect(DECLARATION.includes(term), `the declaration does not name the unbuilt ${term} item`).toBe(true);
@@ -446,10 +444,7 @@ describe('sov71 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place say
 
 describe('sov71 — the three truths, each of them against a rule this house holds', () => {
   it('states its own standard, and it is the two-sided test rather than a posture', () => {
-    expect(
-      M.bigIdea.includes('PROTECTIVE SILENCE IS NOT CONCEALMENT'),
-      'the lesson does not state its own standard'
-    ).toBe(true);
+    expect(M.bigIdea.includes('PROTECTIVE SILENCE IS NOT CONCEALMENT'), 'the lesson does not state its own standard').toBe(true);
     // TRUTH ONE: the line is drawn on DIRECTION, not on volume.
     expect(
       M.lesson.includes('Protective silence withholds the METHOD from the one who would use it, and tells the DEFENDER exactly what to do'),
@@ -459,7 +454,10 @@ describe('sov71 — the three truths, each of them against a rule this house hol
       M.lesson.includes('Concealment withholds the DANGER from the one who has to live with it'),
       'the lesson does not carry the concealing half of the test'
     ).toBe(true);
-    expect(/THAT IS THE WHOLE TEST, and it is a test about DIRECTION, not about volume/.test(M.lesson), 'the lesson does not say the test is about direction').toBe(true);
+    expect(
+      /THAT IS THE WHOLE TEST, and it is a test about DIRECTION, not about volume/.test(M.lesson),
+      'the lesson does not say the test is about direction'
+    ).toBe(true);
     // And it names the house rule it is cutting against, rather than quietly ignoring it.
     expect(M.lesson.includes('a run that did nothing must never report success'), 'the lesson does not name the house rule it cuts against').toBe(true);
   });
@@ -473,7 +471,9 @@ describe('sov71 — the three truths, each of them against a rule this house hol
       'the lesson does not separate chosen darkness from an absence'
     ).toBe(true);
     // The three conditions the Word attaches to a deliberate darkness.
-    expect(M.lesson.includes('it is COMMANDED, it is BOUNDED by a little moment, and it names the end'), 'the lesson does not carry the three conditions').toBe(true);
+    expect(M.lesson.includes('it is COMMANDED, it is BOUNDED by a little moment, and it names the end'), 'the lesson does not carry the three conditions').toBe(
+      true
+    );
   });
 
   it('TRUTH THREE lets the dual use stand without moralising about the tool', () => {
@@ -492,7 +492,10 @@ describe('sov71 — the three truths, each of them against a rule this house hol
     // DR-0281: a verse dropped in without the reasoning worked out is hollow
     // (DR-0381). The Nehemiah 2 sequence is the reasoning, and it must be
     // present as a sequence: the withholding, then the SPENDING of it.
-    expect(M.lesson.includes('Then look at what he did with the silence the moment the survey was finished'), 'the Nehemiah 2 reasoning is not worked out').toBe(true);
+    expect(
+      M.lesson.includes('Then look at what he did with the silence the moment the survey was finished'),
+      'the Nehemiah 2 reasoning is not worked out'
+    ).toBe(true);
     expect(M.lesson.includes('and notice where the secret goes'), 'the Amos 3:7 reasoning is not worked out').toBe(true);
     // The order of the quotes is the argument: 2:12 and 2:16 BEFORE 2:18.
     const at = (ref) => M.lesson.indexOf(SPINE_FRAGMENTS[ref]);
@@ -500,7 +503,9 @@ describe('sov71 — the three truths, each of them against a rule this house hol
     expect(at('Nehemiah 2:16')).toBeLessThan(at('Nehemiah 2:18'));
     // No both-sides-you-decide staging anywhere in the module.
     const blob = allStrings().join('\n');
-    expect(/scholars (?:are )?divided|some scholars say|you decide which|three views|pick a side/i.test(blob), 'the module stages competing human views').toBe(false);
+    expect(/scholars (?:are )?divided|some scholars say|you decide which|three views|pick a side/i.test(blob), 'the module stages competing human views').toBe(
+      false
+    );
   });
 });
 
@@ -539,10 +544,13 @@ describe('sov71 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
     // list cannot know about a term it does not carry. They are NOT added to
     // that list here: `digest` and `programming language` both already appear
     // un-glossed in neighbouring lessons, so a registry entry would turn red a
-    // lesson this build never touched. Named in DR-1361 with
+    // lesson this build never touched. Named in DR-1364 with
     // `re-review: 2026-11-27`.
     expect(M.levels.youth.includes('A digest is a letter that packs a day of news into short items'), 'digest is used before it is glossed').toBe(true);
-    expect(M.levels.youth.includes('PHP is a programming language. That means steps people write to make a web page work'), 'programming language is used before it is glossed').toBe(true);
+    expect(
+      M.levels.youth.includes('PHP is a programming language. That means steps people write to make a web page work'),
+      'programming language is used before it is glossed'
+    ).toBe(true);
     // PROVEN TO CATCH: the gloss must PRECEDE the term's load-bearing use.
     const at = (s) => M.levels.youth.indexOf(s);
     expect(at('A digest is a letter that packs a day of news into short items')).toBeLessThan(at('The digest held a dozen stories'));
@@ -785,8 +793,12 @@ describe('sov71 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     // silence, darkness chosen on purpose, and a capability with no loyalty.
     const blob = allStrings().join('\n');
     expect(/dwelt careless|no deliverer|ranked low because/i.test(blob), 'this lesson teaches the unpriced-protection landing of another week').toBe(false);
-    expect(/coordination budget|every one over against his house - the wall/i.test(blob), 'this lesson teaches the coordination landing of another week').toBe(false);
-    expect(/unsupported version|mitigation is not a fix/i.test(blob), 'this lesson teaches the local-operator landing of the project-management week').toBe(false);
+    expect(/coordination budget|every one over against his house - the wall/i.test(blob), 'this lesson teaches the coordination landing of another week').toBe(
+      false
+    );
+    expect(/unsupported version|mitigation is not a fix/i.test(blob), 'this lesson teaches the local-operator landing of the project-management week').toBe(
+      false
+    );
   });
 });
 

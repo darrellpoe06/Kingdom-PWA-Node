@@ -10284,8 +10284,10 @@ export const SOVEREIGN_AI_MODULES = [
   // THE SAME EVENT, THREE DIFFERENT LANDINGS, named rather than avoided
   // (DR-1317). sov66 (DR-1322, Morning Brew thread 1a163a78c1d14d84, the same
   // day) reads this PHP defect for UNPRICED PROTECTION - a risk ranked low
-  // because the attacker was assumed weak. spm11 (#2570 / DR-1358, the
-  // University of Illinois cPanel advisory) reads it from the LOCAL
+  // because the attacker was assumed weak. spm11 (PR #2570, whose record is
+  // NOT yet on main, so it is named by its PR rather than cited by number -
+  // a citation promises the reasoning is on disk, and that one is not; built
+  // from the University of Illinois cPanel advisory) reads it from the LOCAL
   // OPERATOR'S CHAIR - an unsupported version cannot be patched, a mitigation
   // is not a fix, there is no road back. THIS week reads the DISCLOSURE
   // ETHIC and SOVEREIGNTY: the two-sided test for silence, darkness chosen on
@@ -10310,7 +10312,7 @@ export const SOVEREIGN_AI_MODULES = [
   //
   // Every verse was fetched from app/public/bible/kjv BEFORE a word was
   // written and all 35 are pinned verbatim in
-  // app/src/__tests__/sovereign-ai-sov71-verses.test.js. Recorded as DR-1361.
+  // app/src/__tests__/sovereign-ai-sov71-verses.test.js. Recorded as DR-1364.
   // ---------------------------------------------------------------------------
   {
     "id": "sov71-hide-thyself-for-a-little-moment",
