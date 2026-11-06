@@ -160,17 +160,34 @@ const SPINE = Object.keys(SPINE_FRAGMENTS);
 const SPINE_COUNT = 34;
 
 describe('sov68 — the lesson is mounted and is the week it says it is', () => {
-  it('is mounted as week 68, last in the series, with every reader field present', () => {
+  it('is mounted as week 68, at the index its week requires, with every reader field present', () => {
     expect(M, `${ID} is not mounted`).toBeTruthy();
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)[1]));
     // FORWARD-SAFE AND GAP-SAFE ON PURPOSE (DR-1316 / DR-1338): a lesson gate
     // may not claim to be the last lesson, and it may not claim a sibling's
     // week is absent. What is durably true: week 68 exists, exactly once, it is
-    // THIS lesson, it is the highest week mounted at the time of writing, it
-    // sits last in the array, and the weeks run contiguous from one through 66.
+    // THIS lesson, it is the highest week mounted at the time of writing, and
+    // the weeks run contiguous from one through 66.
+    //
+    // THIS COMMENT FORBADE WHAT THE NEXT LINE DID, and the next line won until
+    // sov69 arrived (DR-1351). The removed assertion was
+    // `expect(MODULES[MODULES.length - 1].id).toBe(ID)` with the message
+    // 'sov68 is not last' -- a claim to be the final lesson, in the file whose
+    // own comment says a gate may not make it. It read green for one reason
+    // only: no later week existed yet. That is a snapshot read as an invariant,
+    // and it is the third time DR-1316's class has landed (pm13's gate appended
+    // a literal 14; sov65's met it before that).
+    //
+    // Replaced by what stays true when week 70 lands, and the form sov69's own
+    // gate reached independently: the weeks ascend and run contiguous, so a
+    // lesson's INDEX is its week minus one. That pins position without claiming
+    // finality.
     expect(weeks).toContain(68);
     expect(weeks.filter((w) => w === 68).length, 'week 68 is mounted twice').toBe(1);
-    expect(SOVEREIGN_AI_MODULES[SOVEREIGN_AI_MODULES.length - 1].id, 'sov68 is not last').toBe(ID);
+    expect(
+      SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID),
+      'sov68 is not at the index its week number requires'
+    ).toBe(67);
     expect(Math.max(...weeks)).toBeGreaterThanOrEqual(68);
     for (let w = 1; w <= 66; w += 1) expect(weeks, `week ${w} is missing`).toContain(w);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);

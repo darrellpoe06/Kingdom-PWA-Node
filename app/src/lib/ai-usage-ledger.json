@@ -378,6 +378,21 @@
       "notes": "Measured first commit 19:37:26Z to the ledger commit on claude/measure-growth-yahwehs-way; the reading of the thread, the repository-wide unbuilt-passage measurement, the primary-source checking and the authoring before that first commit are NOT on the record, so 0.3 understates the real elapsed time. Estimate is this session's own, for a 14th course lesson carrying five reader versions (child 705, youth 1102, teen 1604, senior 2833, adult 1114 words), two authored stories, 51 pinned references fetched verbatim from the KJV corpus, a 43-case pinned gate proven to catch twice, a decision record, a session note, and a trust-but-verify audit of a benchmark newsletter whose primary sources were unreachable."
     },
     {
+      "id": "sov69-at-his-day-or-at-evening",
+      "date": "2026-11-05",
+      "task": "Lesson sov69: at his day, or at evening - the latency requirement is in the Word as law, and our own watchman runs on the wrong mechanism",
+      "drs": [
+        "DR-1351"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.48,
+      "estimateWithoutAiHours": 30,
+      "notes": "Measured from main's previous push (3bae4cac1, pm14, 22:16:10Z) to this lesson's commit (22:44:55Z) = 0.48 h. THAT NUMBER SUBSTANTIALLY UNDERSTATES THE REAL WORK and the reason is on the record rather than smoothed over: everything before the first commit is not in it - reading the 8,924-character send, the duplicate scan across every course and class module, the 38-reference census over app/src and docs/decisions, three refused attempts at the maintainers' primary documentation, the repo-wide systemic measurement of 96 workflows and 6 NAS loops, four passes to settle the reading ladder, a hand rewrite of the senior band after a scripted substitution damaged it, and TWO container restarts that stopped the run mid-build. No per-task tokens or price are exposed by this harness, so tokens and cost stay null rather than being filled with a guess. Estimate is this session's own, for a 69th course lesson carrying five reader versions (child 1584, youth 2290, teen 2356, senior 2814, adult 2967 prose words), two authored parables, 38 references fetched verbatim from the KJV corpus and pinned in 39 spans, a 35-case gate proven to catch, a decision record, a session note, a trust-but-verify audit whose three primary roads were all refused, and a systemic architecture finding traced to named files."
+    },
+    {
       "id": "a-status-read-is-filtered-at-the-source",
       "date": "2026-11-05",
       "task": "A status read is filtered at the source: a Ways review of this session's own GitHub instrument, the premise it believed, and the gate it measured and rejected",
