@@ -576,6 +576,23 @@
       "wallClockHours": 0.15,
       "estimateWithoutAiHours": 6,
       "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
+    },
+    {
+      "id": "the-ledger-unions-itself",
+      "date": "2026-11-06",
+      "task": "The usage ledger unions itself and has one serialization: the resolver owns a third file, unioned by task id and refusing a two-sided edit, and the writer's serialization is now the only one allowed on disk",
+      "drs": [
+        "DR-1369"
+      ],
+      "prs": [
+        2579
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "18:29:27Z -> 18:47:30Z measured from commit timestamps. Drawn from resolving the same conflict set by hand five times in one afternoon across nine branches. The second cause was measured, not assumed: the file oscillated between \\u2014 escapes and literal em-dashes across eight landings (0,4,0,0,4,0,0,0), so half the tax was two writers disagreeing rather than a merge, and that half is fixed at the writer. Three defects restored and proven to catch; one of the three nearly went unproven because a shell quoting failure left the file unmodified and the suite reported 35 passed. Tokens and dollars null: no meter exposed."
     }
   ]
 }
