@@ -84,12 +84,12 @@ This is the one subject where a lesson can do a reader real harm, so the boundar
 | child | 2,082 | 0.56 (floor 0.50) | **1.41** | 5.0 |
 | youth | 2,562 | 0.69 (floor 0.60) | **4.21** | — |
 | teen | 2,827 | 0.76 | **5.23** | 6.0 |
-| senior | 3,491 | 0.93 | **7.85** | 10.0 |
+| senior | 3,520 | 0.94 | **7.88** | 10.0 |
 | adult | 3,741 | — | 7.96 | — |
 
-Strictly rising. Worst band overlap 0.21 against the 0.25 near-copy line; worst band-to-adult overlap 0.21.
+Strictly rising. Worst band-to-band overlap 0.136 (youth~teen); worst band-to-adult overlap 0.199 (teen), against the 0.25 near-copy line.
 
-**Two bands first measured over their ceilings and were repaired, not thinned.** The teen band came in at **6.40** against a 6.0 ceiling and the senior at **12.20** against 10.0. Both were fixed by splitting long sentences — the tier lists, the unbuilt-items list and the benchmark definition were the worst offenders in both — rather than by removing teaching or by weakening the ladder. The senior band needed 21 such splits. Each band also takes a different **route** through the same material so the overlap check is satisfied by real difference rather than by paraphrase: the child band is the parts-counter and the well; the youth band is the sequence; the teen band is **eight questions to put to any number that lands in front of you**; the senior band is how to teach the hour to a room, with the provenance paragraph read verbatim.
+**Two bands first measured over their ceilings and were repaired, not thinned.** The teen band came in at **6.40** against a 6.0 ceiling and the senior at **12.20** against 10.0. Both were fixed by splitting long sentences — the tier lists, the unbuilt-items list and the benchmark definition were the worst offenders in both — rather than by removing teaching or by weakening the ladder. The senior band needed 21 such splits. A third repair landed later and was a real DR-0521 finding in my own prose rather than a measurement artifact: the senior band used the word **benchmark** in its provenance paragraph at character 3,262 and did not gloss it until 15,920, so the word landed cold on a reader twelve thousand characters before its meaning arrived. The gloss was moved to the first use and the later restatement shortened, and the gate now asserts that in every place the term's FIRST appearance IS its gloss - a stronger check than "a gloss exists somewhere earlier", and the one that caught it. Each band also takes a different **route** through the same material so the overlap check is satisfied by real difference rather than by paraphrase: the child band is the parts-counter and the well; the youth band is the sequence; the teen band is **eight questions to put to any number that lands in front of you**; the senior band is how to teach the hour to a room, with the provenance paragraph read verbatim.
 
 ## The in-flight week, and the gates left red on purpose
 
