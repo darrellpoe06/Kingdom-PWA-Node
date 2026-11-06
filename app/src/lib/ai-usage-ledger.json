@@ -512,6 +512,21 @@
       "notes": "Measured 14:20Z to the commit on claude/integrity-lesson-n55fvt, inside the same session as DR-1353 and the five History Lesson links. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a pure catalog-and-reader module over 1,800 repository documents, an admin surface held to UX-PATTERNS 2e/2g and DR-0381, an 11-case suite on the real repository with two proven-to-catch cases, and a decision record."
     },
     {
+      "id": "too-old-to-patch-spm11",
+      "date": "2026-11-06",
+      "task": "spm11, the eleventh lesson of Software Project Management: an unsupported version cannot be patched on the day the patch arrives, built from a forwarded cPanel advisory",
+      "drs": [
+        "DR-1358"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 12,
+      "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
+    },
+    {
       "id": "a-present-base-can-still-be-stale",
       "date": "2026-11-06",
       "task": "format-guard's ensureBase returned early on a present merge base, so a behind origin/main was never refreshed and the added-file set came back empty -- the guard formatted nothing and printed OK; the refresh is now first every run, at a measured cost under a second",
