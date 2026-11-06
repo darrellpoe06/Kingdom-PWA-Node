@@ -37,6 +37,12 @@ The cost was never the one-line edit; it was that each recurrence invalidated a 
 
 **3. pm14's literal is corrected in place** to the derived form pm15's gate already used, so pm16 owes that file no edit.
 
+## Amended the same day: a second shape, scoped by measurement
+
+The class recurred twice more within hours. `repo-documents.test.js` pinned `DR-1360` as the newest record — **not machine-detectable**, since a `[0]`-beside-a-literal detector matches 15 lines of which **14 are correct fixtures**; fixed by hand on three branches, no gate. `software-pm-spm11-verses.test.js` pinned `SOFTWARE_PM_MODULES.length === 11` inside **spm11's own gate**, which spm12 falsified exactly as only a twelfth lesson could — and that one **is** detectable, so `courseLengthInLessonGate` was added.
+
+**The scoping is the whole of it.** Eight gates pin a MODULES length; **exactly one** sits in a per-lesson `*-verses` file — the one that broke. The other seven are course-level, where "this finished course has 8 lessons" is true. A blanket ban would refuse all seven, which is the mistake DR-1368 records me nearly making an hour earlier. The spm12 builder's own fix is ported here verbatim so both branches carry an identical file. Detail: the session note.
+
 ## Verification
 
 **10 cases for the guard, 9 for the CI-coverage gate, all green**, with pm13 + pm14 + pm15 at 129/129.

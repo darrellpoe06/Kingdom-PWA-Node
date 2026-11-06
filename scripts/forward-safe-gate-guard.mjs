@@ -85,14 +85,46 @@ export function literalNextNumbers(src = '') {
   return out;
 }
 
+/**
+ * Pure. A PER-LESSON gate pinning the whole course's length to a literal.
+ *
+ * THE FOURTH SHAPE OF ONE CLASS IN ONE DAY (DR-1363 amended). A per-lesson gate has no
+ * business claiming the course's size: `expect(SOFTWARE_PM_MODULES.length)
+ * .toBe(11)` inside spm11's own gate is the claim that nothing will ever follow
+ * spm11, which only a twelfth lesson can falsify — and spm12 did, today.
+ *
+ * MEASURED before this was written, which is the only reason it exists: eight
+ * gates in the suite pin a MODULES length, and exactly ONE of them sits in a
+ * per-lesson `*-verses.test.js` file — the one that broke. The other seven are
+ * course-level gates (`*-course.test.js`, `*-class.test.js`, sections), where
+ * "this finished course has exactly 8 lessons" is a true and useful claim. So
+ * the rule is scoped to per-lesson gates and has zero false positives, unlike a
+ * blanket ban, which would have refused all seven.
+ */
+export function courseLengthInLessonGate(src = '', fileName = '') {
+  if (!/-verses\.test\.jsx?$/.test(fileName)) return [];
+  const out = [];
+  codeOnly(src)
+    .split('\n')
+    .forEach((text, i) => {
+      const m = /([A-Z][A-Z0-9_]*MODULES)\.length\s*\)?[^)]*\)\s*\.toBe\(\s*(\d+)\s*\)/.exec(text);
+      if (m) out.push({ line: i + 1, text: text.trim(), list: m[1], number: Number(m[2]) });
+    });
+  return out;
+}
+
 export function scan(dir = TESTS) {
   const findings = [];
   let files = 0;
   for (const name of readdirSync(dir)) {
     if (!name.endsWith('.test.js')) continue;
     files += 1;
-    for (const hit of literalNextNumbers(readFileSync(join(dir, name), 'utf8'))) {
-      findings.push({ file: `app/src/__tests__/${name}`, ...hit });
+    const src = readFileSync(join(dir, name), 'utf8');
+    for (const hit of literalNextNumbers(src)) {
+      findings.push({ file: `app/src/__tests__/${name}`, kind: 'literal-next-number', ...hit });
+    }
+    for (const hit of courseLengthInLessonGate(src, name)) {
+      findings.push({ file: `app/src/__tests__/${name}`, kind: 'course-length-in-lesson-gate', ...hit });
     }
   }
   return { files, findings };
@@ -106,12 +138,18 @@ export function main() {
   }
   console.error(`forward-safe-gate-guard: ${findings.length} finding(s):`);
   for (const f of findings) {
-    console.error(`  ${f.file}:${f.line} appends the literal ${f.number} to a module list`);
+    const what =
+      f.kind === 'course-length-in-lesson-gate' ? `a per-lesson gate pins ${f.list}.length to ${f.number}` : `appends the literal ${f.number} to a module list`;
+    console.error(`  ${f.file}:${f.line} ${what}`);
     console.error(`    ${f.text}`);
   }
-  console.error('\nA forward-safety case that names the next number is true until that number');
+  console.error('\nBoth shapes are one claim: that nothing will ever follow this lesson.');
+  console.error('A forward-safety case that names the next number is true until that number');
   console.error('exists, which is the one moment it is meant to cover. Derive it instead:');
   console.error('    const next = COURSE_MODULES.length + 1;');
+  console.error("And a PER-LESSON gate must not pin the course's length at all — assert its");
+  console.error('own index and that the length never shrinks, and leave the total to the');
+  console.error('course-level gate, where it is a true claim about a finished course.');
   console.error('This bit three times before it became a gate (DR-1316, DR-1363).');
   return 1;
 }

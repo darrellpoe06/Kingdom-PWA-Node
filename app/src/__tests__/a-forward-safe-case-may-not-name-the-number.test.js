@@ -20,7 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { codeOnly, literalNextNumbers, scan, TESTS } from '../../../scripts/forward-safe-gate-guard.mjs';
+import { codeOnly, literalNextNumbers, courseLengthInLessonGate, scan, TESTS } from '../../../scripts/forward-safe-gate-guard.mjs';
 
 describe('what the guard reads', () => {
   it('finds the real historical defect, written exactly as it was written', () => {
@@ -130,5 +130,59 @@ describe('PROVEN ON THE LIVE SUITE — a fixture cannot show this', () => {
       checked += 1;
     }
     expect(checked, 'pm13 and pm14 are both on main; at least those two must be read').toBeGreaterThanOrEqual(2);
+  });
+});
+
+// =============================================================================
+// The second shape: a per-lesson gate pinning the whole course's length
+// =============================================================================
+// FOURTH INSTANCE OF ONE CLASS IN ONE DAY. pm13's literal 14, pm14's literal 15,
+// repo-documents' literal DR-1360, and now spm11's `length === 11` — all four
+// are the same claim, that nothing will ever follow. spm12 falsified the last
+// one, which only a twelfth lesson could do.
+describe('a per-lesson gate may not pin the whole course length', () => {
+  it('catches the real instance, written exactly as it was written', () => {
+    const bad = '    expect(SOFTWARE_PM_MODULES.length).toBe(11);';
+    const [hit] = courseLengthInLessonGate(bad, 'software-pm-spm11-verses.test.js');
+    expect(hit, 'the instance that broke #2577').toBeTruthy();
+    expect(hit.list).toBe('SOFTWARE_PM_MODULES');
+    expect(hit.number).toBe(11);
+  });
+
+  it('and with a message argument, which is how these are usually written', () => {
+    const bad = "expect(SOVEREIGN_AI_MODULES.length, 'the course counts itself').toBe(71);";
+    expect(courseLengthInLessonGate(bad, 'sovereign-ai-sov71-verses.test.js')).toHaveLength(1);
+  });
+
+  it('IGNORES a course-level gate, where the claim is true and useful', () => {
+    // MEASURED, and the reason this rule is scoped rather than blanket: eight
+    // gates in the suite pin a MODULES length and SEVEN are course-level, where
+    // "this finished course has exactly 8 lessons" is a real claim. A blanket
+    // ban would have refused all seven.
+    const same = '    expect(MATHEMATICS_MODULES.length).toBe(8);';
+    for (const f of ['mathematics-course.test.js', 'succession-class.test.js', 'living-lessons-sections.test.jsx']) {
+      expect(courseLengthInLessonGate(same, f), f).toEqual([]);
+    }
+  });
+
+  it('passes the forms that survive a new lesson', () => {
+    for (const ok of [
+      "expect(SOFTWARE_PM_MODULES.length, 'never shrink').toBeGreaterThanOrEqual(11);",
+      'expect(SOFTWARE_PM_META.weeks).toBe(SOFTWARE_PM_MODULES.length);',
+      'expect(SOFTWARE_PM_MODULES.findIndex((m) => m.id === SPM11)).toBe(10);',
+    ]) {
+      expect(courseLengthInLessonGate(ok, 'software-pm-spm11-verses.test.js'), ok).toEqual([]);
+    }
+  });
+
+  it('reads code, not a quotation of code', () => {
+    const src = ['// WRONG: expect(SOFTWARE_PM_MODULES.length).toBe(11);', "const bad = 'expect(SOFTWARE_PM_MODULES.length).toBe(11);';"].join('\n');
+    expect(courseLengthInLessonGate(src, 'spm11-verses.test.js')).toEqual([]);
+  });
+
+  it('PROVEN ON THE LIVE SUITE: no per-lesson gate pins a course length', () => {
+    const { findings } = scan();
+    const theseOnes = findings.filter((f) => f.kind === 'course-length-in-lesson-gate');
+    expect(theseOnes, `offenders: ${theseOnes.map((f) => `${f.file}:${f.line}`).join(', ')}`).toEqual([]);
   });
 });
