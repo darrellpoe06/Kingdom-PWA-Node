@@ -185,7 +185,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // on 2026-11-05, in two messages minutes apart, built the same day
     // (DR-1329) after a sibling session's L281 had landed; the date does not
     // move and only this comment does.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-05'); // L282
+    //
+    // The highest is now L284 (Credit Where Credit Is Due), the correction
+    // Darrell spoke on 2026-11-06 and named as a lesson (DR-1353); the day
+    // moves forward with it, because this lesson was spoken and built on
+    // 2026-11-06, the day after L283.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-06'); // L284
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

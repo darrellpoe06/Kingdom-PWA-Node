@@ -295,5 +295,55 @@ class CaptionTimingsTest(unittest.TestCase):
         self.assertEqual(lt.caption_segments(None), [])
         self.assertEqual(lt.caption_segments([]), [])
 
+
+class ResearchLinksAreASourceTest(unittest.TestCase):
+    """A link Darrell sends through the Research tab is fetched by THIS NAS, with
+    no GitHub runner and no tailnet key in the road (DR-1353). Darrell,
+    2026-11-06: "I don't want to need anything... they should be supporting,
+    not necessary." Proven-to-catch: the parser is exercised on his real link
+    shapes, the source reads rows tagged research newest-first and dedupes, and a
+    read that fails must not stop the sermon drain."""
+
+    def setUp(self):
+        self.lt = _load("load_transcripts_research", "load-transcripts.py")
+
+    def test_every_link_shape_he_sends_yields_its_id_once(self):
+        text = ("History Lesson\nhttps://youtu.be/MjbVly1MEgA?is=fFMyQr1P8pvhN_CP\n"
+                "https://www.youtube.com/watch?v=eXHnlu_t5i4&t=10s https://youtube.com/shorts/769OLpmt6oQ "
+                "https://www.youtube.com/live/cmXmOKGWNek https://youtu.be/MjbVly1MEgA")
+        self.assertEqual(self.lt.youtube_ids_in(text), ["MjbVly1MEgA", "eXHnlu_t5i4", "769OLpmt6oQ", "cmXmOKGWNek"])
+
+    def test_text_without_a_link_yields_nothing(self):
+        self.assertEqual(self.lt.youtube_ids_in("Lesson. The lot is cast into the lap."), [])
+        self.assertEqual(self.lt.youtube_ids_in(None), [])
+
+    def test_research_rows_are_read_newest_first_tagged_research_and_deduped(self):
+        seen = {}
+        def fake_rest_all(url, key, path):
+            seen["path"] = path
+            return [
+                {"id": "b", "body": "History lesson\nhttps://youtu.be/z5RKj5skzHQ", "tags": ["research", "create:lesson"]},
+                {"id": "a", "body": "https://youtu.be/MjbVly1MEgA and https://youtu.be/z5RKj5skzHQ", "tags": ["research"]},
+                {"id": "c", "body": "a question with no link", "tags": ["research"]},
+            ]
+        self.lt.rest_all = fake_rest_all
+        ids = self.lt.research_video_ids("https://x.supabase.co", "k", "inst-1")
+        self.assertEqual(ids, ["z5RKj5skzHQ", "MjbVly1MEgA"])
+        self.assertIn("agent_inbox?select=", seen["path"])
+        self.assertIn("instance_id=eq.inst-1", seen["path"])
+        self.assertIn("tags=cs.", seen["path"])
+        self.assertIn("order=created_at.desc", seen["path"])
+
+    def test_PROVEN_TO_CATCH_a_row_not_tagged_research_is_never_asked_for(self):
+        # The filter lives in the request, so a lesson or thought row cannot
+        # leak in by content: the path must carry the research tag filter.
+        captured = {}
+        def fake_rest_all(url, key, path):
+            captured["path"] = path
+            return []
+        self.lt.rest_all = fake_rest_all
+        self.lt.research_video_ids("u", "k", "i")
+        self.assertIn('%5B%22research%22%5D', captured["path"])
+
 if __name__ == "__main__":
     unittest.main()

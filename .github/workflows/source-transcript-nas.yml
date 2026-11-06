@@ -54,6 +54,11 @@ on:
       slug:
         description: 'Folder name under docs/99-session-notes/sources/ (lowercase, dashes)'
         required: true
+      # A batch is one run (DR-1353): the concurrency group holds one pending run, so a burst of dispatches cancels its own siblings.
+      more_video_ids:
+        description: 'Optional: more YouTube video ids, space-separated, fetched in this same run'
+        required: false
+        default: ''
   # source-transcript.yml calls this route when YouTube challenges the runner
   # (DR-0622, 2026-09-24): one link, one dispatch, the route that works.
   workflow_call:

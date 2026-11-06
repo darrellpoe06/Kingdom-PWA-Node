@@ -1027,9 +1027,9 @@ class Build:
                     v["ok"], v["error"] = False, "unreadable reply: {}".format(e)
             obj = writer.apply_post_fix(self.fixes, v, teaching, obj)
             v["body"] = obj
-            if isinstance(obj, dict) and obj.get("verdict") == "lesson" and not writer.schema_problems(obj):
+            if isinstance(obj, dict) and obj.get("verdict") == "lesson" and not self.shape_problems(obj):
                 module = lesson_module(obj, 0)
-            v["gates"] = gates.gate_version(obj, module, self.corpus, writer.schema_problems,
+            v["gates"] = gates.gate_version(obj, module, self.corpus, self.shape_problems,
                                             band_gates=self.band_gates) if obj is not None else {"passed": False, "verse_passed": False}
             if v.get("parity_fixes"):
                 v["gates"] = dict(v["gates"], parity_fixes=v["parity_fixes"])
@@ -1090,7 +1090,7 @@ class Build:
         self.stage("numbered", ["build-lesson:L{}".format(ll), "build-dr:DR-{:04d}".format(dr)])
 
         module = lesson_module(chosen["body"], ll)
-        final = gates.gate_version(chosen["body"], module, self.corpus, writer.schema_problems, band_gates=self.band_gates)
+        final = gates.gate_version(chosen["body"], module, self.corpus, self.shape_problems, band_gates=self.band_gates)
         if not (final.get("verse_passed") and final.get("passed")):
             raise BuildFailed("the gates failed on the committed object: " + self._gate_summary(final))
         chosen["gates"] = final
@@ -1121,6 +1121,7 @@ class Build:
         if on_stored:
             on_stored(module["id"], branch)
         ts = self.now()
+        self.report["further"] = file_further(self.db, self.group, chosen["body"], module["id"])
         self.report["outcome"] = "published"
         self.report.update(lesson_id=module["id"], branch=branch, ll=ll, dr=dr, writer=chosen["writer"])
         add = [stage_tag("published", ts), "lesson-captured", "lesson-published", "lesson-id:" + module["id"]]
@@ -1184,6 +1185,11 @@ class Build:
         if rg and rg.get("skipped") is None and not rg.get("passed"):
             bits.append("repo gates failed ({})".format(",".join(k for k, x in rg.items() if isinstance(x, dict) and not x.get("passed"))))
         return "; ".join(bits) or "did not pass"
+
+    def shape_problems(self, obj):
+        """The writer's shape check PLUS the reading-under-the-light gate for an
+        emailed teaching (DR-1361): the rows decide whether the rule applies."""
+        return writer.schema_problems(obj) + writer.reading_problems(obj, self.group)
 
     def _store(self, versions, chosen, lid=None):
         """Every version is kept: the database (lesson_versions) and a copy on
@@ -1499,6 +1505,45 @@ def node_preview(wt, course_key, lesson_id, branch, run=subprocess.run, pr_finde
         return {"skipped": "the preview gate printed no JSON"}
 
 
+def file_further(db, group, body, lesson_id):
+    """DR-1361: one emailed newsletter may hold several lessons. After THIS lesson
+    ships, each item the writer named in further_lessons becomes its own
+    agent_inbox row (tagged lesson + newsletter-item + split-from:<parent>) so
+    the lane builds it on its own clock (DR-0667). Brakes: only for a parent
+    that arrived by email and is not itself a split item; once per parent
+    (newsletter-split); at most MAX_FURTHER rows; a filing fault is reported,
+    never allowed to fail a lesson that already shipped."""
+    out = {"filed": 0, "skipped": None, "error": None}
+    parent = group[0] if group else {}
+    tags = [str(t) for t in (parent.get("tags") or [])]
+    items = body.get("further_lessons") if isinstance(body, dict) else None
+    if not items:
+        out["skipped"] = "no further lessons named"
+        return out
+    if not writer.is_emailed(tags) or "newsletter-item" in tags:
+        out["skipped"] = "only an emailed newsletter is split, and an item is never split again"
+        return out
+    if "newsletter-split" in tags:
+        out["skipped"] = "this newsletter was already split"
+        return out
+    mail = [t for t in tags if t.startswith("mail:")]
+    try:
+        for i, it in enumerate(items[:writer.MAX_FURTHER], start=1):
+            text = ("NEWSLETTER ITEM {} of {} (split from the emailed newsletter that became {} "
+                    "by the lesson builder, DR-1361)\nItem: {}\nWhy it is its own lesson: {}\n\n"
+                    "THE NEWSLETTER, in full, for the reading under the light:\n{}").format(
+                i, min(len(items), writer.MAX_FURTHER), lesson_id, it["item"].strip(), it["why"].strip(),
+                teaching_of(group))
+            db.insert_lesson_row(parent.get("instance_id"), parent.get("created_by"), text,
+                                 ["lesson", "newsletter-item", "split-from:" + str(parent.get("id")),
+                                  "newsletter-title:" + it["title"].strip()[:80]] + mail, "email-split")
+            out["filed"] += 1
+        db.add_tags(parent.get("id"), ["newsletter-split"])
+    except Exception as e:  # noqa: BLE001 -- the lesson shipped; the filing fault is reported, not raised
+        out["error"] = f"{e.__class__.__name__}: {e}"[:300]
+    return out
+
+
 class Db:
     """pg8000 on the database the app reads (agent_consumer.resolve_db: the
     sovereign stack when REPOINT-ARMED, the same door the box agent uses)."""
@@ -1553,6 +1598,14 @@ class Db:
             "AND NOT (tags ?| array['lesson-building','lesson-captured']) RETURNING id::text",
             add=json.dumps(["lesson-building", stage_tag("claimed", ts)]), id=rid)
         return bool(rows)
+
+    def insert_lesson_row(self, instance_id, created_by, body, tags, source):
+        """A new inbox row the lane will pick up (DR-1361 split items): the same
+        INSERT lesson_mail.py uses, so a split item is a lesson row like any other."""
+        self.con.run(
+            "INSERT INTO public.agent_inbox (instance_id, created_by, body, tags, source) "
+            "VALUES (CAST(:iid AS uuid), CAST(:cby AS uuid), :body, CAST(:tags AS jsonb), :src)",
+            iid=instance_id, cby=created_by, body=body, tags=json.dumps(list(tags)), src=source)
 
     def add_tags(self, rid, tags):
         self.con.run(
