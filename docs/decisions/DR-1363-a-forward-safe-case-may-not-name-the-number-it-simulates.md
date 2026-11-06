@@ -51,6 +51,8 @@ The class recurred twice more within hours. `repo-documents.test.js` pinned `DR-
 
 **A case of mine was wrong first, and the same way as yesterday's.** It required pm15's gate to exist, which it does not on `main` — an assertion about which branch had merged. It now reads whatever of pm13/pm14/pm15 is present and requires at least the two that are landed.
 
+**IT CAUGHT A FIFTH, AND THE REPAIR WAS THE SOURCE.** On this branch's CI the guard flagged `software-pm-spm12-verses.test.js:166` pinning `SOFTWARE_PM_MODULES.length` to 12 and spm12 as *last*. spm12's own build had FIXED this defect in spm11's gate hours earlier, and that amendment's comment says the total and which lesson is last "belong to whichever lesson is last, and spm12's own gate holds them there" -- the defect handed forward in the words of its own fix, for the third time in one day (pm13 to pm14 before it). Amended the same way: index 11 asserted, length `toBeGreaterThanOrEqual(12)`, the total left to the course-level gate. A per-lesson gate is never the right holder, because every lesson is last exactly until the next lands. 125/125 green.
+
 **Known limit, stated:** only whole-line comments are blanked, so a trailing `//` comment of this exact shape on a line of real code would read as code. Measured across every test file: **0 such lines**, asserted by a case so the limit stops being theoretical the moment it isn't. `re-review: 2026-12-06`.
 
 ---
