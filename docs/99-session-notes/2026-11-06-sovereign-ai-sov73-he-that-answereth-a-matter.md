@@ -81,11 +81,11 @@ This is the one subject where a lesson can do a reader real harm, so the boundar
 
 | band | prose words | share of adult | grade | ceiling |
 | --- | --- | --- | --- | --- |
-| child | 2,082 | 0.56 (floor 0.50) | **1.41** | 5.0 |
-| youth | 2,562 | 0.69 (floor 0.60) | **4.21** | — |
-| teen | 2,827 | 0.76 | **5.23** | 6.0 |
-| senior | 3,520 | 0.94 | **7.88** | 10.0 |
-| adult | 3,741 | — | 7.96 | — |
+| child | 2,108 | 0.56 (floor 0.50) | **1.43** | 5.0 |
+| youth | 2,562 | 0.68 (floor 0.60) | **4.21** | — |
+| teen | 2,827 | 0.75 | **5.23** | 6.0 |
+| senior | 3,520 | 0.93 | **7.88** | 10.0 |
+| adult | 3,782 | — | 8.01 | — |
 
 Strictly rising. Worst band-to-band overlap 0.136 (youth~teen); worst band-to-adult overlap 0.199 (teen), against the 0.25 near-copy line.
 
@@ -101,6 +101,7 @@ Until week 72 lands, the **seven** sibling gates that assert strict contiguity w
 
 - **A stray non-ASCII character.** A Chinese character landed inside one quiz distractor while it was being typed (`not真 prophets`). Caught by a deliberate byte scan over every content file before assembly, not by a test — which is worth noting, because no gate in this repository would have named it.
 - **Two bands over their reading ceilings** on the first measurement, above. Measured rather than assumed, which is the only reason they were found before CI.
+- **My own child band bare-asserted the score.** Every other place carries the figure as the publication's; the child band said the system *got more right than the doctors in the test did* as a flat fact, in the one band least able to weigh a claim for itself. It now reads *Here is what the company reported*, and the adult lesson gained a sentence naming exactly what is being refused to shrink - the SHAPE of the claim, not its arithmetic, which we never verified. No gate in this repository would have caught that; it came from re-reading the band against the rule the lesson itself teaches.
 - **The census script was wrong the first time.** Its module-block splitter truncated at 40,000 characters, so it reported 1 Kings 22:6-8 as held by the sovereign file but by *no* sovereign week — which would have let this build claim three verses were untaught when sov33 has taught them since 2026-10-06. The second pass scanned whole files with this lesson's block cut out, and found the real holder. The first answer was the comfortable one; it was also false.
 
 ## Not verified, and said plainly
