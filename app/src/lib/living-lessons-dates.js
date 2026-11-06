@@ -543,4 +543,16 @@ export const LIVING_LESSONS_ADDED = {
   // (considereth, Isaiah 44:19), and deliberately refuses to reproduce the
   // issue's ten perspectives on DR-0098 grounds (DR-1352).
   'll283-made-in-our-image': '2026-11-05',
+  // L284 (Credit Where Credit Is Due) is the correction Darrell spoke into the
+  // app on 2026-11-06, in two messages minutes apart, and named as a lesson for
+  // the app and for its builder: names stay in, say what they said and research
+  // it, the fruit is the data, assessment is not condemnation, set evil aside
+  // and let the law take it, never ignore it (DR-1353). Built the same day.
+  'll284-credit-where-credit-is-due': '2026-11-06',
+  // L285: a light that is not light -- Yahweh's light is knowledge and literal
+  // life, the enemy's light is knowledge that corrupts life; we study His way
+  // because the liar's kingdom is dying; the gap is where you lie to yourself
+  // and the cure is to hear what He says about you; the brighter light exposes
+  // the others, so every newsletter is read under the Word (DR-1361). Same day.
+  'll285-a-light-that-is-not-light': '2026-11-06',
 };
