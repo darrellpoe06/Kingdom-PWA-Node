@@ -1980,3 +1980,108 @@ class Migration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# =============================================================================
+# a newsletter is read under the light, and one email may hold several lessons
+# =============================================================================
+
+class NewsletterUnderTheLight(unittest.TestCase):
+    """DR-1361 (Darrell 2026-11-06): an emailed newsletter is read with rigor --
+    every item listed, the discussion and even the advertising named, each
+    held up to the Word, which exposes the other lights because it is brighter
+    -- and the reading is SHOWN in the lesson, never assumed. One email may
+    hold several lessons: the rest are filed as their own rows."""
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+    MAIL = "mail:0123456789abcdef"
+
+    def rules(self, tags):
+        return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_an_emailed_row_is_told_to_read_under_the_light_and_a_plain_row_is_not(self):
+        self.assertIn("ARRIVED BY EMAIL", self.rules(["lesson", self.MAIL]))
+        self.assertIn("THE READING UNDER THE LIGHT", self.rules(["lesson", self.MAIL]))
+        self.assertIn("NEWSLETTER ITEM", self.rules(["lesson", "newsletter-item", "split-from:x"]))
+        self.assertNotIn("EMAIL", self.rules(["lesson"]))
+        self.assertIn("THE READING UNDER THE LIGHT", lw.STANDARD)
+        self.assertIn("further_lessons", lw.STANDARD)
+
+    def test_PROVEN_TO_CATCH_an_emailed_lesson_that_hides_its_reading_is_refused_and_a_plain_one_is_not(self):
+        obj = make_lesson()
+        emailed = [{"id": "r1", "tags": ["lesson", self.MAIL]}]
+        p = lw.reading_problems(obj, emailed)
+        self.assertEqual(len(p), 2)
+        self.assertTrue(all("DR-1361" in x for x in p))
+        # the same object is sound for a teaching that did not arrive by email
+        self.assertEqual(lw.reading_problems(obj, [{"id": "r1", "tags": ["lesson"]}]), [])
+        obj["lesson_intro"] += (" THE READING UNDER THE LIGHT. Three items; one advertisement for a sleep aid aimed at "
+                                "the fear of ageing. \"To the law and to the testimony\" (Isaiah 8:20). "
+                                "\"Prove all things; hold fast that which is good.\" (1 Thessalonians 5:21).")
+        self.assertEqual(lw.reading_problems(obj, emailed), [])
+        # a split item never splits again
+        obj["further_lessons"] = [{"title": "T", "item": "i", "why": "w"}]
+        self.assertEqual(len(lw.reading_problems(obj, [{"id": "r2", "tags": ["lesson", "newsletter-item"]}])), 1)
+        self.assertEqual(lw.reading_problems(obj, emailed), [])
+
+    def test_further_lessons_keep_their_shape_and_their_ceiling(self):
+        obj = make_lesson()
+        obj["further_lessons"] = [{"title": "T", "item": "i", "why": "w"}] * 3
+        self.assertEqual(lw.schema_problems(obj), [])
+        obj["further_lessons"] = [{"title": "T", "item": "i", "why": "w"}] * (lw.MAX_FURTHER + 1)
+        self.assertEqual(len(lw.schema_problems(obj)), 1)
+        obj["further_lessons"] = [{"title": "T", "item": "i"}]
+        self.assertEqual(len(lw.schema_problems(obj)), 1)
+        del obj["further_lessons"]
+        self.assertEqual(lw.schema_problems(obj), [])
+
+    class Db(FakeDb):
+        def __init__(self, rows=(), fail=False):
+            super().__init__(rows)
+            self.filed, self.fail = [], fail
+
+        def insert_lesson_row(self, instance_id, created_by, body, tags, source):
+            if self.fail:
+                raise RuntimeError("connection closed")
+            self.filed.append({"instance_id": instance_id, "created_by": created_by, "body": body, "tags": tags, "source": source})
+
+    def group(self, tags):
+        return [{"id": "p1", "instance_id": "inst", "created_by": self.OWNER, "tags": ["lesson"] + tags,
+                 "body": "Dear reader, three things this week..."}]
+
+    def test_the_other_items_of_an_emailed_newsletter_become_their_own_rows_once(self):
+        db = self.Db(rows=self.group([self.MAIL]))
+        body = {"further_lessons": [{"title": "Sleep and the Sabbath", "item": "an item on sleep", "why": "rest is His"},
+                                    {"title": "Debt", "item": "an item on debt", "why": "Proverbs 22:7"}]}
+        out = lb.file_further(db, self.group([self.MAIL]), body, "ll300-first")
+        self.assertEqual(out, {"filed": 2, "skipped": None, "error": None})
+        self.assertEqual(len(db.filed), 2)
+        row = db.filed[1]
+        self.assertEqual(row["source"], "email-split")
+        self.assertEqual(row["instance_id"], "inst")
+        self.assertEqual(row["created_by"], self.OWNER)
+        for t in ("lesson", "newsletter-item", "split-from:p1", "newsletter-title:Debt", self.MAIL):
+            self.assertIn(t, row["tags"])
+        self.assertIn("NEWSLETTER ITEM 2 of 2", row["body"])
+        self.assertIn("Dear reader, three things this week", row["body"])
+        self.assertIn("newsletter-split", db.rows["p1"]["tags"])
+        # a second pass over the same parent files nothing
+        again = lb.file_further(db, [dict(self.group([self.MAIL])[0], tags=["lesson", self.MAIL, "newsletter-split"])], body, "ll300-first")
+        self.assertEqual(again["filed"], 0)
+        self.assertIn("already split", again["skipped"])
+
+    def test_PROVEN_TO_CATCH_a_plain_row_an_item_row_and_an_empty_list_file_nothing(self):
+        body = {"further_lessons": [{"title": "T", "item": "i", "why": "w"}]}
+        db = self.Db()
+        self.assertEqual(lb.file_further(db, self.group([]), body, "x")["filed"], 0)
+        self.assertEqual(lb.file_further(db, self.group([self.MAIL, "newsletter-item"]), body, "x")["filed"], 0)
+        self.assertEqual(lb.file_further(db, self.group([self.MAIL]), {}, "x")["skipped"], "no further lessons named")
+        self.assertEqual(db.filed, [])
+
+    def test_the_ceiling_holds_and_a_filing_fault_is_reported_never_raised(self):
+        body = {"further_lessons": [{"title": f"T{i}", "item": "i", "why": "w"} for i in range(20)]}
+        db = self.Db()
+        self.assertEqual(lb.file_further(db, self.group([self.MAIL]), body, "x")["filed"], lw.MAX_FURTHER)
+        broken = self.Db(fail=True)
+        out = lb.file_further(broken, self.group([self.MAIL]), body, "x")
+        self.assertEqual(out["filed"], 0)
+        self.assertIn("RuntimeError", out["error"])
