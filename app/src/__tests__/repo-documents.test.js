@@ -48,11 +48,11 @@ describe('the catalog is the repository, grouped by its own folders', () => {
   const catalog = buildCatalog(keysOnDisk());
   const counts = groupCounts(catalog);
 
-  it('lists every decision record on disk, DR-1353 and DR-1360 among them, newest first', () => {
+  it('lists every decision record on disk, DR-1353, DR-1360 and DR-1361 among them, newest first', () => {
     const drs = catalog.filter((it) => it.group === 'decisions' && /\/DR-\d{4}-/.test(it.path));
     expect(drs.length).toBe(docsOnDisk('decisions').filter((f) => /^DR-\d{4}-/.test(f)).length);
     expect(drs.length).toBeGreaterThan(1000);
-    expect(drs[0].path).toMatch(/^docs\/decisions\/DR-1360-/);
+    expect(drs[0].path).toMatch(/^docs\/decisions\/DR-1361-/);
     expect(drs.some((it) => it.path.startsWith('docs/decisions/DR-1353-'))).toBe(true);
   });
 

@@ -510,6 +510,23 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 12,
       "notes": "Measured 14:20Z to the commit on claude/integrity-lesson-n55fvt, inside the same session as DR-1353 and the five History Lesson links. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a pure catalog-and-reader module over 1,800 repository documents, an admin surface held to UX-PATTERNS 2e/2g and DR-0381, an 11-case suite on the real repository with two proven-to-catch cases, and a decision record."
+    },
+    {
+      "id": "ll285-a-light-that-is-not-light",
+      "date": "2026-11-06",
+      "task": "A light that is not light: Darrell's two spoken messages become ll285 and its 57-case gate; the newsletter pipeline reads every emailed teaching under the light (reading rule, visible-reading gate, one-email-many-lessons split) with 6 builder tests",
+      "drs": [
+        "DR-1361"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.0,
+      "estimateWithoutAiHours": 30,
+      "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
     }
   ]
 }
