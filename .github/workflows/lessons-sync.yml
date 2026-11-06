@@ -69,8 +69,10 @@ jobs:
           node -e "import('../scripts/curriculum-snapshot.mjs').then((m) => process.stdout.write(m.READ_BACK_SQL))" > "$RUNNER_TEMP/readback.sql"
       - name: Join the tailnet
         if: steps.armed.outputs.armed == 'true'
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       # THE JOIN STEP IS NOT A WITNESS OF THE JOIN (2026-10-29, DR-1284).
       #

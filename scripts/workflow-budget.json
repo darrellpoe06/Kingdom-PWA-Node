@@ -35,7 +35,14 @@
       "to": 22413,
       "dr": "DR-1360",
       "reason": "loops-health.yml now READS the nas-heartbeat loop (its last-run.json in its own home, install path, cron prefix, a red on a ledger that says the row could not be written, and a dark-loop diagnosis line): the a-service-comes-home gate refused the services.json entry until the witness actually looked. Twelve lines, four of them the comment that names why the ledger exists; raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22413,
+      "to": 22659,
+      "dr": "DR-1374",
+      "reason": "Every tailnet join in the repo now goes through .github/actions/join-tailnet, which prefers a NON-EXPIRING Tailscale OAuth client and falls back to the legacy auth key. 68 join sites across 64 workflows passed secrets.TS_AUTHKEY directly, so one key expiry shut 68 roads at once -- measured again today when inbox-lessons-waiting run 42291051232 failed at 'Verify the tailnet actually joined'. The growth is three OAuth input lines per site plus a sparse actions/checkout at the 21 sites that had none (a local composite action cannot be read without a checkout, measured before converting, which is the only reason those 21 did not break). Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22413
+  "totalLines": 22659
 }
