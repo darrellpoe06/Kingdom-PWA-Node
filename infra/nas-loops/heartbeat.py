@@ -27,7 +27,7 @@ import platform
 import sys
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone  # noqa: UP017 -- DSM python3.8 has no datetime.UTC
+from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TAG = "nas-heartbeat"
@@ -68,12 +68,9 @@ def services_enabled(services_json_path):
 
 def body_of(now=None, host=None, services=-1, cycle="services-sync"):
     """The stamp the app parses (lib/nas-heartbeat.js stampOf): at, host, services, cycle."""
-    at = (
-        (now or datetime.now(timezone.utc)  # noqa: UP017 -- DSM python3.8 has no datetime.UTC)
-        .astimezone(timezone.utc)  # noqa: UP017 -- DSM python3.8 has no datetime.UTC
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    # timezone.utc, not datetime.UTC: the DSM runs Python 3.8 (UP017 is 3.11+).  # noqa: UP017
+    utc = timezone.utc  # noqa: UP017
+    at = (now or datetime.now(utc)).astimezone(utc).isoformat().replace("+00:00", "Z")
     return json.dumps(
         {
             "at": at,
@@ -144,12 +141,8 @@ def main():
         from sovereign_target import load_target
 
         url, key = load_target(secrets, quiet=True)
-    except Exception as e:
-        print(
-            "nas-heartbeat: no credential ({}) - quiet no-op".format(
-                e.__class__.__name__
-            )
-        )
+    except (ImportError, OSError, ValueError, KeyError) as e:
+        print(f"nas-heartbeat: no credential ({e.__class__.__name__}) - quiet no-op")
         return 0
     if not url or not key:
         print("nas-heartbeat: no credential - quiet no-op")
@@ -157,11 +150,7 @@ def main():
     slug = os.environ.get("TRANSCRIPTS_SLUG", "colg")
     instance_id = resolve_instance(url, key, slug)
     if not instance_id:
-        print(
-            "nas-heartbeat: no instance with slug '{}' - nothing to write to".format(
-                slug
-            )
-        )
+        print(f"nas-heartbeat: no instance with slug '{slug}' - nothing to write to")
         return 1
     body = body_of(services=services_enabled(os.path.join(HERE, "services.json")))
     what = beat(
