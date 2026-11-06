@@ -73,10 +73,8 @@ describe('format-guard: proven to catch', () => {
 // `git clone --depth=1` where origin/main is ABSENT now resolves the merge base
 // to 3e9efd896, the true branch point, and reports correctly.
 describe('the guard ensures its own merge base (DR-1350)', () => {
-  it('is a no-op when a merge base already exists, and does not need the network', () => {
-    // This checkout has full history, so ensureBase must answer true without
-    // fetching anything. A guard that fetched on every run would be a new cost
-    // on every CI job.
+  it('answers true for a base this checkout already contains', () => {
+    // HEAD is its own merge base, so this holds whatever the fetch does.
     expect(ensureBase('HEAD')).toBe(true);
   });
 
@@ -98,7 +96,8 @@ describe('the guard ensures its own merge base (DR-1350)', () => {
   it('names the destination ref explicitly, which is the fault that crashed CI', () => {
     const { run, calls } = fake([false, false, false, false, true]);
     ensureBase('origin/main', run);
-    expect(calls[1]).toBe('fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main');
+    // The refresh is now the FIRST call, before any merge-base question.
+    expect(calls[0]).toBe('fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main');
   });
 
   it('deepens BOTH sides, because deepening only the base cannot help a depth-1 HEAD', () => {
@@ -111,10 +110,19 @@ describe('the guard ensures its own merge base (DR-1350)', () => {
     expect(calls.indexOf('fetch --no-tags --unshallow origin')).toBeGreaterThan(calls.indexOf('fetch --no-tags --deepen=50 origin'));
   });
 
-  it('fetches nothing at all when a merge base is already there', () => {
+  it('REFRESHES even when a merge base is already there, and deepens nothing (DR-1365)', () => {
+    // THIS CASE PINNED THE WRONG PREMISE AND IS CORRECTED, NOT DELETED. It used
+    // to assert `fetch` was never called at all, reasoning that "a guard that
+    // fetches every run is a new cost on every job". The cost is real -- 776,
+    // 808 and 965 ms measured -- and it was weighed against the wrong thing: a
+    // PRESENT but stale origin/main makes `base...HEAD` empty, so the guard
+    // formats nothing and prints OK. Measured on #2571, where this worktree
+    // said 0 added files and CI said 2, the second genuinely unformatted.
     const { run, calls } = fake([true]);
     expect(ensureBase('origin/main', run)).toBe(true);
-    expect(calls.filter((c) => c.startsWith('fetch')), 'a guard that fetches every run is a new cost on every job').toEqual([]);
+    const fetches = calls.filter((c) => c.startsWith('fetch'));
+    expect(fetches, 'exactly one cheap single-branch refresh').toEqual(['fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main']);
+    expect(fetches.filter((c) => c.includes('--deepen') || c.includes('--unshallow')), 'the expensive paths stay behind a missing merge base').toEqual([]);
   });
 
   it('answers false rather than throwing when nothing can resolve it', () => {
@@ -128,5 +136,52 @@ describe('the guard ensures its own merge base (DR-1350)', () => {
     const body = step.slice(0, step.indexOf('working-directory'));
     expect(body, 'ci.yml still fetches the base itself').not.toMatch(/git fetch/);
     expect(body).toContain('node scripts/format-guard.mjs --base origin/main');
+  });
+});
+
+// =============================================================================
+// A present base can still be stale (DR-1365)
+// =============================================================================
+// The end-to-end measurement that cannot be a fixture: on #2571 this worktree
+// reported "0 added JavaScript file(s)" while CI reported 2, and the second was
+// genuinely unformatted. The difference was one unfetched ref.
+describe('a stale base reports clean, which is why the refresh is unconditional', () => {
+  const fakeRun = (answers) => {
+    const calls = [];
+    const run = (args) => {
+      calls.push(args.join(' '));
+      if (args[0] === 'merge-base') return answers.shift() ?? false;
+      return true;
+    };
+    return { run, calls };
+  };
+
+  it('PROVEN TO CATCH: the refresh precedes the merge-base question, always', () => {
+    // With the old short-circuit this was [] on a present base, and the guard
+    // then diffed a stale range. The order is the whole fix.
+    for (const present of [true, false]) {
+      const { run, calls } = fakeRun(present ? [true] : [false, true]);
+      ensureBase('origin/main', run);
+      expect(calls[0], `base present: ${present}`).toMatch(/^fetch --no-tags --depth=1 origin \+refs\/heads\/main/);
+    }
+  });
+
+  it('still answers false rather than throwing when the ref cannot be resolved', () => {
+    const { run } = fakeRun([]);
+    expect(ensureBase('origin/a-branch-that-does-not-exist-1363', run)).toBe(false);
+  });
+
+  it('a fetch that fails does not stop the answer, because the base may already be usable', () => {
+    // Offline, the refresh throws and `quiet` swallows it; the merge-base that
+    // was already there still resolves. The view may be stale, and the guard
+    // now at least asked.
+    const calls = [];
+    const run = (args) => {
+      calls.push(args.join(' '));
+      if (args[0] === 'fetch') return false; // as quiet() reports a failure
+      return true;
+    };
+    expect(ensureBase('origin/main', run)).toBe(true);
+    expect(calls[0]).toMatch(/^fetch/);
   });
 });
