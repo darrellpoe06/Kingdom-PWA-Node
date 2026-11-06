@@ -46,6 +46,19 @@ export function reconcileExtraction(x = {}) {
       const expected = round2(Number(s.previousBalance) + Math.abs(Number(s.deposits) || 0) - Math.abs(Number(s.withdrawals) || 0));
       checks.push({ name: 'summary', expected, actual: round2(s.newBalance), diff: round2(Number(s.newBalance) - expected) });
     }
+  } else if (x.doc_type === 'account-snapshot') {
+    // A screenshot shows a balance as of a day, not a closing statement, so there
+    // is nothing to close. It is honest about that and still useful: the balance
+    // becomes a bank-verified checkpoint for that day, and the rows are added
+    // only where the books do not already have them.
+    const s2 = x.summary || {};
+    const withBal = items.filter((r) => has(r.balance));
+    if (has(s2.newBalance) && withBal.length) {
+      const last = withBal[withBal.length - 1];
+      checks.push({ name: 'running-balance', expected: round2(s2.newBalance), actual: round2(last.balance), diff: round2(Number(last.balance) - Number(s2.newBalance)) });
+    } else {
+      return { status: 'unverifiable', checks, diff: null, note: 'A screenshot shows a balance as of one day, not a closing statement; it is recorded as the bank-verified balance for that day, and its rows are added only if the books do not have them yet.' };
+    }
   } else if (x.doc_type === 'pay-stub') {
     if (has(s.gross) && has(s.net)) {
       const ok = Number(s.net) <= Number(s.gross) + CENT && Number(s.net) >= 0;

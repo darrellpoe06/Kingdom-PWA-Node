@@ -16,8 +16,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   conflictMarkerLines, unionConflictHunks, unionKeepingOrder, nextIdAnnotations, unionAnnotations,
-  normalizeLedger, resolveLedgerText,
+  normalizeLedger, resolveLedgerText, unionUsageLedgerText, unionById,
 } from '../../../scripts/resolve-ledger-conflicts.mjs';
+import { canonicalFault } from '../../../scripts/ai-usage-ledger.mjs';
 import { drLedgerFindings } from '../../../scripts/business-systems-guard.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -387,5 +388,195 @@ describe('a rename conflict writes EIGHT markers and must still be caught', () =
     const bad = readdirSync(dir).filter((f) => f.endsWith('.md'))
       .filter((f) => conflictMarkerLines(readFileSync(join(dir, f), 'utf8')).length);
     expect(bad, `these ledger files carry conflict markers: ${bad.join(', ')}`).toEqual([]);
+  });
+});
+
+// =============================================================================
+// The usage ledger unions itself (DR-1369).
+// =============================================================================
+// The third file this resolver owns. Proven to catch: the FUSED row a textual
+// merge really produces, the two-sided edit that no rule can pick, and the
+// serialization flip that made the file conflict when nobody had touched the
+// same line.
+describe('resolve-ledger-conflicts — ai-usage-ledger.json (DR-1369)', () => {
+  const base = {
+    schema: 'v1 — the dash is literal',
+    models: { 'claude-opus-5': { note: 'a' } },
+    sessions: [{ id: 's1', tokensBudgetAtStart: 100 }],
+    entries: [{ id: 'first', drs: ['DR-1000'], notes: 'kept' }],
+  };
+  const withEntry = (e, from = base) => ({ ...from, entries: [...from.entries, e] });
+  const mine = { id: 'ours-task', drs: ['DR-1369'], notes: 'mine' };
+  const hers = { id: 'mains-task', drs: ['DR-1368'], notes: "main's" };
+
+  it('unionById keeps theirs first, appends only new ids, and reports a differing one', () => {
+    const theirs = [{ id: 'a', v: 1 }, { id: 'b', v: 1 }];
+    const ours = [{ id: 'a', v: 1 }, { id: 'c', v: 1 }, { id: 'b', v: 2 }];
+    const r = unionById(theirs, ours);
+    expect(r.merged.map((e) => e.id)).toEqual(['a', 'b', 'c']);
+    expect(r.added, 'only the id neither side had').toEqual(['c']);
+    expect(r.differ, 'b is on both sides with different content').toEqual(['b']);
+    expect(r.merged.find((e) => e.id === 'b').v, 'a differing entry is left at theirs, never folded').toBe(1);
+  });
+
+  it('unions two appends, main first and ours after, losing neither', () => {
+    const r = unionUsageLedgerText(
+      JSON.stringify(withEntry(hers), null, 2),
+      JSON.stringify(withEntry(mine), null, 2),
+    );
+    expect(r.differ).toEqual([]);
+    const ids = JSON.parse(r.text).entries.map((e) => e.id);
+    expect(ids, 'main keeps its order and ours is appended').toEqual(['first', 'mains-task', 'ours-task']);
+    expect(r.added).toEqual(['entries/ours-task']);
+  });
+
+  // THE BREAK THIS EXISTS TO STOP. A textual merge of two appends does not
+  // produce a conflict it can be trusted on: it produces ONE object carrying
+  // BOTH ids, which parses, validates by eye, and is wrong.
+  it('a textual merge FUSES the two appends; the union does not', () => {
+    const theirs = JSON.stringify(withEntry(hers), null, 2);
+    const ours = JSON.stringify(withEntry(mine), null, 2);
+    const dir = mkdtempSync(join(tmpdir(), 'usage-'));
+    try {
+      writeFileSync(join(dir, 'base'), `${JSON.stringify(base, null, 2)}\n`);
+      writeFileSync(join(dir, 'ours'), `${ours}\n`);
+      writeFileSync(join(dir, 'theirs'), `${theirs}\n`);
+      const m = spawnSync('git', ['merge-file', '-p', join(dir, 'ours'), join(dir, 'base'), join(dir, 'theirs')],
+        { encoding: 'utf8' });
+      const fused = m.stdout;
+      // Either it leaves markers (unparseable) or it interleaves the two rows.
+      const parses = (() => { try { JSON.parse(fused); return true; } catch { return false; } })();
+      expect(parses, 'a textual merge of two JSON appends is never a sound ledger').toBe(false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+
+    const r = unionUsageLedgerText(theirs, ours);
+    const entries = JSON.parse(r.text).entries;
+    expect(entries.every((e) => typeof e.id === 'string'), 'no row carries two ids').toBe(true);
+    expect(entries).toHaveLength(3);
+  });
+
+  // THE CASE NO RULE CAN PICK. On 2026-11-06 keeping main's side silently
+  // dropped a correction to the ll283 entry; hours later, main HELD the
+  // correction and the branches were stale, so keeping ours would have undone
+  // it. Same wording, opposite right answer. So it refuses and names the id.
+  it('REFUSES when the same id differs on both sides, and names it', () => {
+    const theirs = JSON.stringify(withEntry({ ...mine, notes: 'CORRECTED by DR-1355' }), null, 2);
+    const ours = JSON.stringify(withEntry(mine), null, 2);
+    const r = unionUsageLedgerText(theirs, ours);
+    expect(r.text, 'a refusal writes nothing').toBeUndefined();
+    expect(r.differ).toEqual(['entries/ours-task']);
+  });
+
+  it('REFUSES a two-sided edit of a session reading or a model note', () => {
+    const t = JSON.stringify({ ...base, sessions: [{ id: 's1', tokensBudgetAtStart: 200 }] }, null, 2);
+    const o = JSON.stringify(base, null, 2);
+    expect(unionUsageLedgerText(t, o).differ).toEqual(['sessions/s1']);
+
+    const t2 = JSON.stringify({ ...base, models: { 'claude-opus-5': { note: 'b' } } }, null, 2);
+    expect(unionUsageLedgerText(t2, o).differ).toEqual(['models/claude-opus-5']);
+  });
+
+  it('a new session or a new model is an append and unions', () => {
+    const t = JSON.stringify(base, null, 2);
+    const o = JSON.stringify({ ...base, sessions: [...base.sessions, { id: 's2' }], models: { ...base.models, 'claude-haiku-5-5': { note: 'c' } } }, null, 2);
+    const r = unionUsageLedgerText(t, o);
+    expect(r.differ).toEqual([]);
+    expect(r.added).toEqual(['sessions/s2', 'models/claude-haiku-5-5']);
+  });
+
+  it('writes the canonical serialization, so the resolution cannot reintroduce the flip', () => {
+    const escaped = JSON.stringify(withEntry(hers)).replace(/—/g, '\\u2014');
+    const r = unionUsageLedgerText(escaped, JSON.stringify(withEntry(mine), null, 2));
+    expect(r.differ).toEqual([]);
+    expect(r.text).toBe(`${JSON.stringify(JSON.parse(r.text), null, 2)}\n`);
+    expect(r.text.includes('\\u2014'), 'the escapes are gone, not propagated').toBe(false);
+  });
+});
+
+// The writer's serialization is the only one allowed on disk, because the flip
+// between the two was itself a conflict (DR-1369).
+describe('ai-usage-ledger — one serialization (DR-1369)', () => {
+  it('catches the escaped form that really landed at 95227a28bd', () => {
+    const real = JSON.parse(readFileSync(join(REPO, 'app/src/lib/ai-usage-ledger.json'), 'utf8'));
+    const escaped = JSON.stringify(real, null, 2).replace(/—/g, '\\u2014');
+    const fault = canonicalFault(`${escaped}\n`);
+    expect(fault, 'the escaped form must be caught').toBeTruthy();
+    expect(fault).toMatch(/escape\(s\) where the writer emits literal UTF-8/);
+  });
+
+  it('catches a re-serialized number and a missing trailing newline', () => {
+    expect(canonicalFault('{\n  "wallClockHours": 1.0\n}\n')).toBeTruthy();
+    expect(canonicalFault('{\n  "a": 1\n}')).toBeTruthy();
+  });
+
+  it('passes the live ledger, which is the form --add writes', () => {
+    const raw = readFileSync(join(REPO, 'app/src/lib/ai-usage-ledger.json'), 'utf8');
+    expect(canonicalFault(raw), 'the file on disk is canonical').toBeNull();
+  });
+});
+
+// The wiring, not the helper: before DR-1369 the CLI REFUSED this merge,
+// because ai-usage-ledger.json was not a file it would touch. That refusal is
+// what made every landing a hand resolution on every open branch.
+describe('resolve-ledger-conflicts — the usage ledger end to end (DR-1369)', () => {
+  const entry = (id, dr) => ({
+    id, date: '2026-11-06', task: `t ${id}`, drs: [dr], model: 'm',
+    tokens: null, costUsd: null, wallClockHours: 0.5, estimateWithoutAiHours: 4, notes: '',
+  });
+  const ledger = (entries) => `${JSON.stringify({
+    schema: 's', models: { m: { note: 'n' } }, sessions: [], entries,
+  }, null, 2)}\n`;
+  const USAGE = 'app/src/lib/ai-usage-ledger.json';
+
+  it('all three files conflict -> all three resolved, both appends kept, validator green', () => {
+    const r = makeRepo(); r.g.dir = r.dir;
+    try {
+      // The real guard and its rules, so the verification step is not a stub.
+      copyFileSync(join(REPO, 'scripts/ai-usage-ledger.mjs'), join(r.dir, 'scripts/ai-usage-ledger.mjs'));
+      r.w('app/src/lib/ai-usage-ledger-rules.js', readFileSync(join(REPO, 'app/src/lib/ai-usage-ledger-rules.js'), 'utf8'));
+      r.w(USAGE, ledger([entry('base-task', 'DR-0100')]));
+      r.g('add', '-A'); r.g('commit', '-qm', 'usage base');
+
+      const m = twoSides(r, {
+        extraOnPr: () => r.w(USAGE, ledger([entry('base-task', 'DR-0100'), entry('pr-task', 'DR-0101')])),
+        extraOnMain: () => r.w(USAGE, ledger([entry('base-task', 'DR-0100'), entry('main-task', 'DR-0102')])),
+      });
+      expect(m.stdout + m.stderr, 'the usage ledger really does conflict').toMatch(/CONFLICT.*ai-usage-ledger\.json/);
+
+      const out = run(r.dir);
+      expect(out.stderr).toBe('');
+      expect(out.status).toBe(0);
+      expect(out.stdout).toContain('ai-usage-ledger.json: unioned by id');
+      expect(out.stdout).toContain('ai-usage-ledger: OK');
+
+      const merged = JSON.parse(readFileSync(join(r.dir, USAGE), 'utf8'));
+      expect(merged.entries.map((e) => e.id), "main's order kept, ours appended, neither lost")
+        .toEqual(['base-task', 'main-task', 'pr-task']);
+      expect(r.g('diff', '--name-only', '--diff-filter=U')).toBe('');
+      r.g('commit', '-qm', 'merge');
+    } finally { r.cleanup(); }
+  });
+
+  it('a two-sided EDIT of one entry is refused end to end, naming the id', () => {
+    const r = makeRepo(); r.g.dir = r.dir;
+    try {
+      copyFileSync(join(REPO, 'scripts/ai-usage-ledger.mjs'), join(r.dir, 'scripts/ai-usage-ledger.mjs'));
+      r.w('app/src/lib/ai-usage-ledger-rules.js', readFileSync(join(REPO, 'app/src/lib/ai-usage-ledger-rules.js'), 'utf8'));
+      r.w(USAGE, ledger([entry('base-task', 'DR-0100')]));
+      r.g('add', '-A'); r.g('commit', '-qm', 'usage base');
+
+      const edited = (notes) => { const e = entry('base-task', 'DR-0100'); e.notes = notes; return ledger([e]); };
+      twoSides(r, {
+        extraOnPr: () => r.w(USAGE, edited('ours: the clause DR-1355 added')),
+        extraOnMain: () => r.w(USAGE, edited("main's: a different sentence")),
+      });
+
+      const out = run(r.dir);
+      expect(out.status, 'a refusal is exit 2, not a silent pick').toBe(2);
+      expect(out.stderr).toContain('both sides changed the SAME part');
+      expect(out.stderr).toContain('entries/base-task');
+      // Nothing was written: the conflict is still there for a person to read.
+      expect(r.g('diff', '--name-only', '--diff-filter=U')).toContain(USAGE);
+    } finally { r.cleanup(); }
   });
 });

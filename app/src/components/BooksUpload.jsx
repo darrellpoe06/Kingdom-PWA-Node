@@ -90,7 +90,9 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
           {doc.matched && doc.matched.account && doc.matched.account.accountId && (<><span className="text-[#5A5751]">Account</span><span className="text-[#1A1815]">{acctName(doc.matched.account.accountId)}</span></>)}
           {(x.dates.period_start || x.dates.period_end) && (<><span className="text-[#5A5751]">Period</span><span className="text-[#1A1815]">{x.dates.period_start || '?'} → {x.dates.period_end || '?'}</span></>)}
           {due && (<><span className="text-[#5A5751]">Due</span><span className={overdue ? 'text-[#7A1F1F] font-semibold' : 'text-[#1A1815]'}>{due}{overdue ? ' · overdue' : ''}</span></>)}
-          {x.summary && x.summary.newBalance != null && (<><span className="text-[#5A5751]">Balance</span><span className="text-[#1A1815]">{money(x.summary.newBalance)}</span></>)}
+          {x.summary && x.summary.newBalance != null && x.doc_type !== 'account-snapshot' && (<><span className="text-[#5A5751]">Balance</span><span className="text-[#1A1815]">{money(x.summary.newBalance)}</span></>)}
+          {doc.plan && doc.plan.kind === 'snapshot' && doc.plan.checkpoint && (<><span className="text-[#5A5751]">Verified balance</span><span className="text-[#1A1815]" data-testid="intake-snapshot-checkpoint">{money(doc.plan.checkpoint.balance)} as of {doc.plan.checkpoint.day} ({doc.plan.checkpoint.basis}){doc.plan.checkpointAlreadyRecorded ? ' · already recorded' : ' · will be recorded on approval'}</span></>)}
+          {doc.plan && doc.plan.kind === 'snapshot' && !doc.plan.checkpoint && x.summary && x.summary.rowsOnly && (<><span className="text-[#5A5751]">Verified balance</span><span className="text-[#8B6F47]">none — transactions only</span></>)}
           {x.amounts.map((a) => (<React.Fragment key={a.label}><span className="text-[#5A5751] capitalize">{a.label}</span><span className="text-[#1A1815]">{money(a.value)}</span></React.Fragment>))}
           {x.tax_year && (<><span className="text-[#5A5751]">Tax year</span><span className="text-[#1A1815]">{x.tax_year}</span></>)}
           {x.line_items.length > 0 && (<><span className="text-[#5A5751]">Lines</span><span className="text-[#1A1815]">{x.line_items.length}{doc.plan && doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span></>)}
@@ -116,6 +118,7 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
               {l.kind === 'tax' && `Filed in the NAS tax archive for ${l.year}`}
               {l.kind === 'receipt' && 'Added to the receipts waiting to be matched (Tx tab)'}
               {l.kind === 'statement' && 'Statement balance and period recorded'}
+              {l.kind === 'checkpoint' && (l.alreadyRecorded ? `Bank-verified balance ${money(l.balance)} as of ${l.day} was already recorded` : `Bank-verified balance ${money(l.balance)} recorded as of ${l.day} (${l.basis})`)}
             </li>
           ))}
         </ul>
@@ -124,7 +127,9 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
       {ready && doc.status !== 'added' && (
         <button type="button" disabled={busy || demo} onClick={() => onConfirm(doc)}
           className="text-xs uppercase tracking-wider px-4 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] disabled:opacity-40">
-          {demo ? 'Demo — nothing is added' : `Add to the books${doc.plan && doc.plan.rows ? ` (${doc.plan.rows.length} new)` : ''}`}
+          {demo ? 'Demo — nothing is added' : (doc.plan && doc.plan.kind === 'snapshot'
+            ? `Approve: ${doc.plan.checkpoint && !doc.plan.checkpointAlreadyRecorded ? 'verified balance' : 'no new balance'}${doc.plan.rows ? ` + ${doc.plan.rows.length} new row${doc.plan.rows.length === 1 ? '' : 's'}` : ''}`
+            : `Add to the books${doc.plan && doc.plan.rows ? ` (${doc.plan.rows.length} new)` : ''}`)}
         </button>
       )}
     </li>
