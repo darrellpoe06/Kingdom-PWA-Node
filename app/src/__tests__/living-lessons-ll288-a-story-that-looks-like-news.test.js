@@ -48,7 +48,8 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD = 'A STORY THAT LOOKS LIKE NEWS — the agent who was never pulled over, the federal watch that is real, and the Word on the ruler who bears the sword.';
+const TITLE_LEAD =
+  'A STORY THAT LOOKS LIKE NEWS — the agent who was never pulled over, the federal watch that is real, and the Word on the ruler who bears the sword.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -141,7 +142,10 @@ const SPINE = [
   ['Proverbs 13:5', 'A righteous man hateth lying'],
   ['Proverbs 12:17', 'He that speaketh truth sheweth forth righteousness: but a false witness deceit.'],
   ['Proverbs 14:25', 'A true witness delivereth souls: but a deceitful witness speaketh lies.'],
-  ['Ecclesiastes 8:11', 'Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil.'],
+  [
+    'Ecclesiastes 8:11',
+    'Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil.',
+  ],
   ['Habakkuk 1:4', 'the law is slacked, and judgment doth never go forth'],
   ['Amos 5:12', 'they afflict the just, they take a bribe, and they turn aside the poor in the gate from their right.'],
   ['Proverbs 29:2', 'when the wicked beareth rule, the people mourn.'],
@@ -289,7 +293,10 @@ describe('the lesson practises the newsletter Way: the sender named, the record 
 
   it('says in every text that the record is empty and the case is a story, not an event, and names the genre', () => {
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/found nothing|found no (record|FBI agent|Agent)|no record of/i);
-    for (const k of PLACES) expect(TEXTS[k], k).toMatch(/a story,? (and )?not an event|story and not an event|story, not an event|not teach it as (one|something that really happened)/i);
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toMatch(
+        /a story,? (and )?not an event|story and not an event|story, not an event|not teach it as (one|something that really happened)/i
+      );
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/staged skit|pretend show|paid actor/);
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/could not be fetched|could not get the video/);
     expect(L.inApp).toMatch(/could not find the case/);
@@ -324,7 +331,8 @@ describe('the Word is the measure of the story, the office and the citizen, in t
   it('opens the law of evidence on the send itself', () => {
     for (const k of PLACES) expect(TEXTS[k], k).toContain('Thou shalt not raise a false report');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('The simple believeth every word: but the prudent man looketh well to his going.');
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('they speak a vision of their own heart');
   });
 
@@ -412,7 +420,10 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: one altered word inside a quotation fails the sweep', () => {
-    const broken = L.lesson.replace('Do violence to no man, neither accuse any falsely; and be content with your wages.', 'Do violence to no man, neither accuse any falsely; and be happy with your wages.');
+    const broken = L.lesson.replace(
+      'Do violence to no man, neither accuse any falsely; and be content with your wages.',
+      'Do violence to no man, neither accuse any falsely; and be happy with your wages.'
+    );
     expect(broken).not.toBe(L.lesson);
     expect(verbatimFaults([broken]).length).toBeGreaterThan(0);
   });
