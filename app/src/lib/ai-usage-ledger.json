@@ -441,7 +441,7 @@
       "costUsd": null,
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
-      "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped."
+      "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped. CORRECTED by DR-1355: the clause \"found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox\" above is FALSE and is left standing rather than deleted so the error is met with its correction. That survey read the workflows' CODE; the secret has never been set, and every lesson-mail-watch.yml run is a green no-op. DR-1355 corrected three prose places and two file headers and missed this one. The measurement of this task's own hours is unaffected."
     },
     {
       "id": "a-dormant-road-is-not-a-road",
@@ -559,6 +559,23 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
+    },
+    {
+      "id": "the-in-flight-view-has-an-age",
+      "date": "2026-11-06",
+      "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
+      "drs": [
+        "DR-1359"
+      ],
+      "prs": [
+        2569
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.15,
+      "estimateWithoutAiHours": 6,
+      "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
     },
     {
       "id": "a-forward-safe-case-may-not-name-the-number",
