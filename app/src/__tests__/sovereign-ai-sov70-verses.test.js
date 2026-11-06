@@ -478,8 +478,29 @@ describe('sov70 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
     expect(unnamedBands(M), `bands that do not name the lesson: ${unnamedBands(M).join(', ')}`).toEqual([]);
   });
 
-  it('explains every hard term in plain words at or before its first use (DR-0521)', () => {
-    expect(termFaults(M.lesson), JSON.stringify(termFaults(M.lesson))).toEqual([]);
+  it('explains every hard term in plain words at or before its first use, in EVERY reader place (DR-1367)', () => {
+    // WIDENED FROM `M.lesson` ALONE. A reader reads ONE band, so a band is not
+    // a lesser copy of the adult field — it is the whole lesson for whoever
+    // opens it, which is the reasoning DR-0795 already applied to the TALK
+    // block. MEASURED 2026-11-06 on sov71: its gate checked the adult field
+    // only, read green, and the catalog-wide `the-plain-meaning-comes-first`
+    // gate caught `assay` in its senior band — the first entry in HARD_TERMS
+    // and the very word on Darrell's phone that founded DR-0521. A per-lesson
+    // gate that checks one field leaks band-only defects into slower,
+    // catalog-wide gates, where they surface as a shrink-only debt rising
+    // rather than as this lesson's own failure.
+    //
+    // THIS LESSON WAS CLEAN WHEN WIDENED: 0 faults across all six places,
+    // measured before the change. So this closes a latent hole by machinery
+    // instead of leaving it closed by luck.
+    const places = { lesson: M.lesson, bigIdea: M.bigIdea, ...(M.levels || {}) };
+    for (const [where, text] of Object.entries(places)) {
+      if (typeof text !== 'string') continue;
+      expect(termFaults(text), `${where}: ${JSON.stringify(termFaults(text))}`).toEqual([]);
+    }
+  });
+
+  it('and the terms THIS lesson introduces are glossed at first use (DR-0521)', () => {
     // The three terms THIS lesson introduces are glossed where they are first
     // used, which is what DR-0521 requires and what the registry's HARD_TERMS
     // list cannot know about a term it does not carry. They are NOT added to
