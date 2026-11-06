@@ -20,7 +20,7 @@ spec.loader.exec_module(hb)
 
 class StampTest(unittest.TestCase):
     def test_the_body_carries_the_four_fields_the_app_reads_with_a_utc_z_stamp(self):
-        now = datetime(2026, 11, 6, 15, 0, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 11, 6, 15, 0, 0, tzinfo=timezone.utc)  # noqa: UP017 -- the NAS runs Python 3.8
         body = json.loads(hb.body_of(now=now, host="poetech", services=29))
         self.assertEqual(
             body,

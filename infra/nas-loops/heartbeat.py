@@ -68,7 +68,7 @@ def services_enabled(services_json_path):
 
 def body_of(now=None, host=None, services=-1, cycle="services-sync"):
     """The stamp the app parses (lib/nas-heartbeat.js stampOf): at, host, services, cycle."""
-    # timezone.utc, not datetime.UTC: the DSM runs Python 3.8 (UP017 is 3.11+).  # noqa: UP017
+    # timezone.utc, not datetime.UTC: the DSM runs Python 3.8 (UP017 is 3.11+).
     utc = timezone.utc  # noqa: UP017
     at = (now or datetime.now(utc)).astimezone(utc).isoformat().replace("+00:00", "Z")
     return json.dumps(
