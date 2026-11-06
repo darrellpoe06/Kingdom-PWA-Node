@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// The proof of the work is readable inside the app (DR-1355)
+// The proof of the work is readable inside the app (DR-1360)
 // =============================================================================
 // Darrell, 2026-11-06: "I want all the DRs and Ways and documentation to be
 // accessible by myself inside our documents for the PoeTech App build... just
@@ -48,11 +48,11 @@ describe('the catalog is the repository, grouped by its own folders', () => {
   const catalog = buildCatalog(keysOnDisk());
   const counts = groupCounts(catalog);
 
-  it('lists every decision record on disk, DR-1353 and DR-1355 among them, newest first', () => {
+  it('lists every decision record on disk, DR-1353 and DR-1360 among them, newest first', () => {
     const drs = catalog.filter((it) => it.group === 'decisions' && /\/DR-\d{4}-/.test(it.path));
     expect(drs.length).toBe(docsOnDisk('decisions').filter((f) => /^DR-\d{4}-/.test(f)).length);
     expect(drs.length).toBeGreaterThan(1000);
-    expect(drs[0].path).toMatch(/^docs\/decisions\/DR-1355-/);
+    expect(drs[0].path).toMatch(/^docs\/decisions\/DR-1360-/);
     expect(drs.some((it) => it.path.startsWith('docs/decisions/DR-1353-'))).toBe(true);
   });
 
@@ -92,7 +92,7 @@ describe('the catalog is the repository, grouped by its own folders', () => {
     expect(filterCatalog(catalog, '').length).toBe(catalog.length);
     const hits = filterCatalog(catalog, 'credit where credit');
     expect(hits.some((it) => it.path.startsWith('docs/decisions/DR-1353-'))).toBe(true);
-    expect(filterCatalog(catalog, 'DR-1355').length).toBeGreaterThanOrEqual(1);
+    expect(filterCatalog(catalog, 'DR-1360').length).toBeGreaterThanOrEqual(1);
     expect(filterCatalog(catalog, 'zzqqxx-no-such-document').length).toBe(0);
   });
 });

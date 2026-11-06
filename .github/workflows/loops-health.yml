@@ -113,7 +113,7 @@ jobs:
           # have read a file that is never written and reported a fresh loop as
           # having no ledger -- caught by reading the installer, not the sibling.
           LM="$(rd /volume1/PoeTech/lesson-mail/.lesson-mail.state.json | head -c 600)"; LM_AGE="$(( $(date +%s) - $(cat /volume1/PoeTech/lesson-mail/.lesson-mail.last 2>/dev/null || date +%s) ))"
-          # nas-heartbeat (DR-1355) keeps its own ledger in its own home, like
+          # nas-heartbeat (DR-1360) keeps its own ledger in its own home, like
           # lesson-voice: the stamp it last wrote to agent_inbox, and "what"
           # (patched / inserted / no-credential / error) so a quiet no-op is
           # told apart from a cycle that never ran.
@@ -231,7 +231,7 @@ jobs:
                       problems.append(f"sovereign-replay: its own status.json says ok:false (rc {e['ledger'].get('rc')}): {e['ledger'].get('frontier')}")
                   if name == "nas-heartbeat" and isinstance(e.get("ledger"), dict) and e["ledger"].get("what") in ("error", "no-instance"):
                       # The house's own witness could not write its row: the app
-                      # will read "silent" while the box is up (DR-1355).
+                      # will read "silent" while the box is up (DR-1360).
                       problems.append(f"nas-heartbeat: its own last-run.json says {e['ledger'].get('what')}: {e['ledger'].get('error') or e['ledger'].get('at')}")
                   if name == "lesson-voice" and isinstance(e.get("ledger"), dict):
                       # queue-drained / item-budget / time-budget / locked-skip are the

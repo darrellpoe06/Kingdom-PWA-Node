@@ -173,7 +173,7 @@
       "name": "nas-heartbeat",
       "install": "infra/nas-loops/heartbeat-install.sh",
       "enabled": true,
-      "description": "The house's own witness (DR-1355). Rides the ALREADY-ARMED services-sync clock (the lesson-voice pattern): each 15-min cycle heartbeat.py writes ONE row (patched in place, inserted once) into agent_inbox tagged nas-heartbeat with the stamp, the host and the count of services on this clock, from this NAS's own credential, so the app's OpsBoard shows NAS last seen with no runner, key or GitHub between this machine and the reader. Measured 2026-11-06: every runner probe of this NAS died with the runner's tailnet key on 2026-11-04 and nobody knew for two days. Brakes (DR-0248): one read and one write per cycle, no retry loop, no credential is a named quiet no-op. Counts as working only when the OpsBoard shows a stamp from it (P66)."
+      "description": "The house's own witness (DR-1360). Rides the ALREADY-ARMED services-sync clock (the lesson-voice pattern): each 15-min cycle heartbeat.py writes ONE row (patched in place, inserted once) into agent_inbox tagged nas-heartbeat with the stamp, the host and the count of services on this clock, from this NAS's own credential, so the app's OpsBoard shows NAS last seen with no runner, key or GitHub between this machine and the reader. Measured 2026-11-06: every runner probe of this NAS died with the runner's tailnet key on 2026-11-04 and nobody knew for two days. Brakes (DR-0248): one read and one write per cycle, no retry loop, no credential is a named quiet no-op. Counts as working only when the OpsBoard shows a stamp from it (P66)."
     },
     {
       "name": "home-accounts",

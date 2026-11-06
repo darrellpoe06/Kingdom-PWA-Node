@@ -26,7 +26,7 @@
       "date": "2026-11-06",
       "from": 22392,
       "to": 22404,
-      "dr": "DR-1355",
+      "dr": "DR-1360",
       "reason": "loops-health.yml now READS the nas-heartbeat loop (its last-run.json in its own home, install path, cron prefix, a red on a ledger that says the row could not be written, and a dark-loop diagnosis line): the a-service-comes-home gate refused the services.json entry until the witness actually looked. Twelve lines, four of them the comment that names why the ledger exists; raised to the measured total, not above it."
     }
   ],

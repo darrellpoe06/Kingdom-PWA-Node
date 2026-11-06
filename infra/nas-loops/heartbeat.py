@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-# heartbeat.py -- the house's own witness (DR-1355)
+# heartbeat.py -- the house's own witness (DR-1360)
 # =============================================================================
 # Darrell, 2026-11-06: "Why would I willingly want to depend on other systems...
 # that can and do fail." The runner's probes of this NAS all died with the

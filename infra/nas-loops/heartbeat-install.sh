@@ -1,5 +1,5 @@
 #!/bin/sh
-# nas-heartbeat -- the house's own witness, one row per services-sync cycle (DR-1355).
+# nas-heartbeat -- the house's own witness, one row per services-sync cycle (DR-1360).
 # Rides the ALREADY-ARMED services-sync clock (the lesson-voice pattern): this
 # script is run once per cycle by the installer loop and exits. No daemon, no
 # schedule of its own, one read and one write. No credential = quiet no-op.

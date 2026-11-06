@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Proven-to-catch tests for heartbeat.py (DR-1355). Pure parts only: the stamp
+# Proven-to-catch tests for heartbeat.py (DR-1360). Pure parts only: the stamp
 # the app parses, the services count read from disk, and the one-row rule
 # (PATCH when a row exists, INSERT only when none). No network: rest() is
 # replaced by a recorder. Run from this dir: python3 -m unittest test_heartbeat

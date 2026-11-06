@@ -1,5 +1,5 @@
 // =============================================================================
-// nas-heartbeat — the house's own witness, read where the work is (DR-1355)
+// nas-heartbeat — the house's own witness, read where the work is (DR-1360)
 // =============================================================================
 // Darrell, 2026-11-06: "Why would I willingly want to depend on other systems...
 // that can and do fail." Measured that day: the runner's tailnet key died on

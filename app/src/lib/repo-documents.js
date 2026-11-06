@@ -1,5 +1,5 @@
 // =============================================================================
-// repo-documents — the proof of the work, readable inside the app (DR-1355)
+// repo-documents — the proof of the work, readable inside the app (DR-1360)
 // =============================================================================
 // Darrell, 2026-11-06: "Reports need to be findable inside the documentation of
 // the PoeTech App also... I want all the DRs and Ways and documentation to be
@@ -27,7 +27,7 @@
 // The catalog: the paths of every Markdown file under docs/, listed by the
 // build (vite.config.js, repoDocuments) and held once (DR-1214). The text of a
 // document is a STATIC FILE at the same path, fetched when opened; a module per
-// document ran the build out of memory (DR-1355).
+// document ran the build out of memory (DR-1360).
 export const REPO_DOCS = (() => {
   try {
     return Array.isArray(globalThis.__PT_REPO_DOCS) ? globalThis.__PT_REPO_DOCS : [];
