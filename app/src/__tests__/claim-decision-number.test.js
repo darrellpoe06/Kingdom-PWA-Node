@@ -17,7 +17,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   numbersInPaths, lowestFree, onDisk, onBase, readRef, claimedInFlight,
-  SCAN_LIMIT, BASE_CANDIDATES,
+  SCAN_LIMIT, BASE_CANDIDATES, fetchPlan, refreshRemote, freshnessLine, main,
 } from '../../../scripts/claim-decision-number.mjs';
 
 const DECISIONS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'decisions');
@@ -86,11 +86,15 @@ describe('PROVEN ON THE LIVE REPO — a fixture cannot show this', () => {
     // that has NOT landed can hold a number disk cannot see.
     const held = claimedInFlight({ limit: 8 });
     const disk = onDisk();
-    for (const [n, ref] of held) {
+    for (const [n, refs] of held) {
       // Anything it reports as held and ALSO on disk means a branch added a
       // file main already has — which is exactly the collision, not a bug.
-      expect(typeof ref, `${n} came back without a branch name`).toBe('string');
-      expect(ref.length).toBeGreaterThan(0);
+      expect(Array.isArray(refs), `${n} came back without a list of branches`).toBe(true);
+      expect(refs.length, `${n} came back with no branch name`).toBeGreaterThan(0);
+      for (const ref of refs) expect(typeof ref).toBe('string');
+      // EVERY HOLDER, not the first one (DR-1359): a number held twice used to
+      // report as held once, hiding half of today's own three-way collision.
+      expect(new Set(refs).size, 'a branch must not be listed twice').toBe(refs.length);
       expect(Number.isInteger(n)).toBe(true);
     }
     expect(disk.size).toBeGreaterThan(0);
@@ -184,5 +188,117 @@ describe('what MAIN holds, read from the ref and not from this tree (DR-1247)', 
     const newWay = lowestFree(Math.max(...stale, ...base) + 1, new Set([...stale, ...base]));
     expect(newWay).toBe(6);
     expect(base.has(newWay)).toBe(false);
+  });
+});
+
+// =============================================================================
+// The in-flight view has an age (DR-1359)
+// =============================================================================
+// claimedInFlight() walks refs/remotes/origin/, which is a LOCAL CACHE as fresh
+// as the last fetch and no fresher. MEASURED 2026-11-06: from an unfetched tree
+// this tool reported "2 of them at or above number 1355" while a third branch had
+// that number pushed and readable through the GitHub API; one targeted fetch and the
+// same scan saw it. Third door into the same collision — DR-1247 was the stale
+// tree, DR-1249 the unreadable base, this is the stale remote-tracking view.
+//
+// EVERY CASE HERE IS NETWORK-FREE. The runner is injected, because earlier this
+// same session a test that called real git against a branch that did not exist
+// ran deepen rounds for minutes before it was killed. A case that reaches the
+// network is not a fast case that occasionally hangs; it is a different test.
+describe('the view is refreshed before it is read', () => {
+  it('fetches every branch explicitly, because a single-branch clone would fetch main alone', () => {
+    const plan = fetchPlan();
+    expect(plan[0]).toBe('fetch');
+    // THE LOAD-BEARING ARGUMENT. actions/checkout sets a refspec of exactly one
+    // branch, so a bare `git fetch origin` leaves every other remote-tracking
+    // ref untouched — the view would stay stale with the fetch reporting success.
+    expect(plan, 'an implicit fetch is what leaves the view stale in CI').toContain('+refs/heads/*:refs/remotes/origin/*');
+    // A branch that merged and was deleted must stop holding its number.
+    expect(plan, 'without --prune a deleted branch keeps a number it no longer holds').toContain('--prune');
+  });
+
+  it('reports a fetch failure instead of swallowing it', () => {
+    const boom = () => { const e = new Error('spawn failed'); e.stderr = 'fatal: could not read from remote repository\n'; throw e; };
+    const got = refreshRemote(boom);
+    expect(got.ok).toBe(false);
+    expect(got.reason).toBe('fatal: could not read from remote repository');
+  });
+
+  it('reports a fetch that worked, and runs exactly the pinned plan', () => {
+    const calls = [];
+    const got = refreshRemote((args) => { calls.push(args); return ''; });
+    expect(got.ok).toBe(true);
+    expect(calls).toEqual([fetchPlan()]);
+  });
+
+  it('a number held by two branches reports BOTH, and main says one must move', () => {
+    // The second way this scan under-reported. The holders map is injected
+    // through main's own printer rather than fabricated in git, so the case
+    // pins the OUTPUT a session reads.
+    const lines = [];
+    main({ refresh: () => ({ ok: true, reason: '' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const row = lines.find((l) => /^ {4}DR-\d{4} — /.test(l));
+    if (row) {
+      // On the live repo today this is the real three-way row; off it, any row.
+      const holders = row.split('—')[1];
+      expect(holders.trim().length, 'a reported number must name who holds it').toBeGreaterThan(0);
+      if (holders.includes(',')) expect(row).toMatch(/HELD BY \d+ BRANCHES, one of them must move/);
+    }
+    // And the shape itself, independent of what is in flight right now.
+    const held = claimedInFlight({ limit: 8 });
+    for (const refs of held.values()) expect(Array.isArray(refs)).toBe(true);
+  });
+});
+
+describe('an unverified view never reads as a fresh one', () => {
+  const NOW = Date.UTC(2026, 10, 6, 15, 0, 0);
+
+  it('says so plainly when the fetch ran', () => {
+    const line = freshnessLine({ fetched: true, newestMs: NOW - 7 * 60000, nowMs: NOW });
+    expect(line).toMatch(/refreshed just now/);
+    expect(line).toMatch(/pushed 7 minute\(s\) ago/);
+    expect(line).not.toMatch(/UNVERIFIED/);
+  });
+
+  it('says UNVERIFIED and names the reason when it did not', () => {
+    const line = freshnessLine({ fetched: false, reason: 'no network', newestMs: NOW - 240 * 60000, nowMs: NOW });
+    expect(line).toMatch(/UNVERIFIED/);
+    expect(line).toMatch(/no network/);
+    expect(line, 'the actual risk, in words').toMatch(/holds its number on the server and holds nothing here/);
+  });
+
+  it('an unknown age is reported as unknown, not as zero', () => {
+    // A view with no refs at all is the emptiest possible scan. Rendering that
+    // as "0 minutes ago" would read as the freshest possible one.
+    const line = freshnessLine({ fetched: false, reason: 'x', newestMs: null, nowMs: NOW });
+    expect(line).toMatch(/newest branch: unknown/);
+    expect(line).not.toMatch(/0 minute/);
+  });
+
+  it('PROVEN TO CATCH: without the fetch, main still prints the UNVERIFIED warning', () => {
+    // The regression this guards is silence, so the case asserts the words.
+    const lines = [];
+    const code = main({ refresh: () => ({ ok: false, reason: 'injected: fetch skipped' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const out = lines.join('\n');
+    expect(code, 'the number is still answered — offline, a base read beats no answer').toBe(0);
+    expect(out, 'a stale scan must announce itself').toMatch(/in-flight view: UNVERIFIED/);
+    expect(out).toMatch(/injected: fetch skipped/);
+  });
+
+  it('and with the fetch, the same run says refreshed rather than unverified', () => {
+    const lines = [];
+    const code = main({ refresh: () => ({ ok: true, reason: '' }), log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const out = lines.join('\n');
+    expect(code).toBe(0);
+    expect(out).toMatch(/in-flight view: refreshed just now/);
+    expect(out).not.toMatch(/UNVERIFIED/);
+  });
+
+  it('--no-fetch buys no silence', () => {
+    const lines = [];
+    main({ noFetch: true, refresh: () => { throw new Error('refresh must not be called'); }, log: (s) => lines.push(String(s)), err: (s) => lines.push(String(s)) });
+    const out = lines.join('\n');
+    expect(out).toMatch(/UNVERIFIED/);
+    expect(out).toMatch(/--no-fetch was passed/);
   });
 });

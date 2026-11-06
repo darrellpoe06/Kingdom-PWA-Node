@@ -30,6 +30,27 @@
 // who holds the ones it skipped, so a session (or a person) takes it knowingly.
 // The resolver remains the only thing that writes the pointer, because two
 // things computing one line is how they drift.
+//
+// THE IN-FLIGHT VIEW HAS AN AGE, AND SILENCE ABOUT IT IS THE THIRD DOOR INTO
+// THE SAME COLLISION (DR-1359). claimedInFlight() walks `refs/remotes/origin/`,
+// which is a LOCAL CACHE: it is exactly as fresh as the last `git fetch` and not
+// one second fresher. A branch pushed five minutes ago holds its number on the
+// server and holds nothing at all in this view.
+//
+// MEASURED, 2026-11-06: asked from a tree that had not fetched, this tool said
+// "2 of them at or above number 1355" and named two branches. A third, #2565
+// (claude/integrity-lesson-n55fvt), had that number pushed and visible through the
+// GitHub API at that moment. After one targeted fetch the same scan saw it. So
+// for a second time the tool written to prevent a renumber was recommending one
+// -- DR-1247 was the stale TREE, DR-1249 the unreadable BASE, and this is the
+// stale REMOTE-TRACKING VIEW. Same failure, third door.
+//
+// SO THE VIEW IS REFRESHED FIRST, AND ITS AGE IS ALWAYS PRINTED. A fetch that
+// could not run does not read as a clean scan (DR-0076 sec. 8, and the rule
+// DR-0125 set for site health: unknown freshness NEVER reads as fresh). The
+// number is still printed -- offline and in CI a base read alone is better than
+// no answer -- but the in-flight half is marked UNVERIFIED in plain words, so a
+// session takes the number knowing which half of the question went unanswered.
 import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -150,8 +171,68 @@ export function onBase(base = null) {
 }
 
 /**
+ * The exact fetch that makes the in-flight view current. Pure, so the argv is
+ * pinned rather than described: an explicit refspec because a single-branch
+ * clone (every `actions/checkout`) has a refspec that would otherwise fetch
+ * main alone, and --prune so a merged-and-deleted branch stops holding a number
+ * it no longer holds.
+ */
+export function fetchPlan() {
+  return ['fetch', '--quiet', '--prune', '--no-tags', 'origin', '+refs/heads/*:refs/remotes/origin/*'];
+}
+
+/**
+ * Bring the remote-tracking view up to date. `run` is injected so the tests
+ * never touch the network -- a lesson this session paid for once already, when
+ * a test calling real git against a branch that did not exist ran for minutes.
+ *
+ * Returns { ok, reason }. A failure is REPORTED, never swallowed: the whole
+ * point is that an unfetched scan must not read like a clean one.
+ */
+export function refreshRemote(run = null) {
+  const exec = run || ((args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  try {
+    exec(fetchPlan());
+    return { ok: true, reason: '' };
+  } catch (err) {
+    const why = String(err?.stderr || err?.message || err).trim().split('\n')[0] || 'git fetch failed';
+    return { ok: false, reason: why };
+  }
+}
+
+/**
+ * Pure. How old the scanned view is, in words. `newestMs` is the committer date
+ * of the most recent remote-tracking ref; null when there is none to read.
+ *
+ * An age is never rendered as "fresh" on its own -- it is rendered with whether
+ * the fetch that would have made it fresh actually ran.
+ */
+export function freshnessLine({ fetched, reason = '', newestMs = null, nowMs = Date.now() }) {
+  const age = newestMs == null ? null : Math.max(0, Math.round((nowMs - newestMs) / 60000));
+  const newest = age == null ? 'newest branch: unknown' : `newest branch pushed ${age} minute(s) ago`;
+  if (fetched) return `  in-flight view: refreshed just now (${newest}).`;
+  return `  in-flight view: UNVERIFIED — the fetch did not run (${reason || 'no reason given'}), so this view is `
+    + `only as fresh as the last fetch (${newest}). A branch pushed since then holds its number on the server `
+    + 'and holds nothing here. Fetch and ask again before taking a number.';
+}
+
+/** The committer date (ms) of the most recently updated remote-tracking ref. */
+export function newestRefMs() {
+  const out = git(['for-each-ref', '--sort=-committerdate', '--format=%(committerdate:unix)', '--count=1', 'refs/remotes/origin/']).trim();
+  const n = Number(out);
+  return Number.isFinite(n) && n > 0 ? n * 1000 : null;
+}
+
+/**
  * Numbers claimed by branches whose work has NOT landed on main.
- * Returns a Map of number -> branch that holds it (first one wins).
+ * Returns a Map of number -> EVERY branch holding it, newest push first.
+ *
+ * IT USED TO KEEP THE FIRST HOLDER AND DROP THE REST, which is the second way
+ * this scan under-reported. MEASURED 2026-11-06: number 1355 was held by two live
+ * branches at once and the tool named one, so a session on the unnamed branch
+ * could read the output and never learn its number was contested. A number held
+ * twice is not a tie to be broken quietly; it is the collision itself, and both
+ * holders belong in the answer.
  */
 export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {}) {
   const held = new Map();
@@ -169,22 +250,30 @@ export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {
     const added = git(['diff', '--name-only', '--diff-filter=A', `${base}...${ref}`, '--', 'docs/decisions/'])
       .split('\n').map((s) => s.trim()).filter(Boolean);
     for (const n of numbersInPaths(added)) {
-      if (!held.has(n)) held.set(n, ref.replace('refs/remotes/', ''));
+      const name = ref.replace('refs/remotes/', '');
+      const holders = held.get(n) || [];
+      if (!holders.includes(name)) holders.push(name);
+      held.set(n, holders);
     }
   }
   return held;
 }
 
-export function main() {
+export function main({ refresh = refreshRemote, noFetch = false, log = console.log, err = console.error, now = Date.now() } = {}) {
+  // The view is refreshed BEFORE anything is read from it, so the base read and
+  // the in-flight scan answer about the same moment. --no-fetch is for a caller
+  // that has just fetched, or has no network; it does not buy silence.
+  const fetched = noFetch ? { ok: false, reason: '--no-fetch was passed' } : refresh();
+
   const disk = onDisk();
   const read = onBase();
   if (!read.ok) {
     // No number is printed. A number computed without main's own records is
     // exactly what DR-1247 was written to stop, and a tool that answers anyway
     // is more dangerous than one that will not answer at all.
-    console.error(`claim-decision-number: REFUSING — ${read.reason}.`);
-    console.error('  Nothing is recommended. Fetch main and ask again:');
-    console.error('    git fetch origin main');
+    err(`claim-decision-number: REFUSING — ${read.reason}.`);
+    err('  Nothing is recommended. Fetch main and ask again:');
+    err('    git fetch origin main');
     return 1;
   }
   const base = read.numbers;
@@ -198,18 +287,22 @@ export function main() {
   const unseen = [...base].filter((n) => !disk.has(n)).sort((a, b) => a - b);
 
   const pad = (n) => `DR-${String(n).padStart(4, '0')}`;
-  console.log(`next free decision number: ${pad(free)}`);
-  console.log(`  on disk:   ${disk.size} record(s), highest ${pad(Math.max(...disk))}`);
-  console.log(`  on ${read.ref}: ${base.size} record(s), highest ${pad(Math.max(...base))}`);
+  log(`next free decision number: ${pad(free)}`);
+  log(`  on disk:   ${disk.size} record(s), highest ${pad(Math.max(...disk))}`);
+  log(`  on ${read.ref}: ${base.size} record(s), highest ${pad(Math.max(...base))}`);
   if (unseen.length) {
     // Say it plainly: this tree is behind main, and that is the condition under
     // which this tool used to hand out a number main already held.
-    console.log(`  NOTE: this tree has not merged main — it cannot see ${unseen.length} landed record(s): ${unseen.map(pad).join(', ')}`);
-    console.log('        They are counted as taken anyway. Merge main to make the tree agree.');
+    log(`  NOTE: this tree has not merged main — it cannot see ${unseen.length} landed record(s): ${unseen.map(pad).join(', ')}`);
+    log('        They are counted as taken anyway. Merge main to make the tree agree.');
   }
+  // ALWAYS, whichever way the fetch went: the in-flight half of the answer is
+  // only worth what its freshness is worth, and that is not the reader's to
+  // guess (DR-1359).
+  log(freshnessLine({ fetched: fetched.ok, reason: fetched.reason, newestMs: newestRefMs(), nowMs: now }));
 
   if (inFlight.size === 0) {
-    console.log('  in flight: none — no unmerged branch holds a decision number.');
+    log('  in flight: none — no unmerged branch holds a decision number.');
     return 0;
   }
 
@@ -217,13 +310,20 @@ export function main() {
   // held by old unmerged branches whose numbers main has long since passed —
   // reported as a total so the figure is not mistaken for the risk.
   const skipped = [...inFlight.keys()].filter((n) => n >= diskNext).sort((a, b) => a - b);
-  console.log(`  in flight: ${inFlight.size} number(s) held by unlanded branches, ${skipped.length} of them at or above ${pad(diskNext)}`);
-  for (const n of skipped) console.log(`    ${pad(n)} — ${inFlight.get(n)}`);
+  log(`  in flight: ${inFlight.size} number(s) held by unlanded branches, ${skipped.length} of them at or above ${pad(diskNext)}`);
+  for (const n of skipped) {
+    const holders = inFlight.get(n) || [];
+    // Held twice is said out loud. It is the collision, not a detail.
+    const tail = holders.length > 1 ? ` — HELD BY ${holders.length} BRANCHES, one of them must move` : '';
+    log(`    ${pad(n)} — ${holders.join(', ')}${tail}`);
+  }
   if (skipped.length) {
-    console.log(`\n  Taking ${pad(diskNext)} would collide. ${pad(free)} is free on disk AND in flight.`);
-    console.log('  This is the renumber DR-1021 recorded four times and this week recorded nineteen.');
+    log(`\n  Taking ${pad(diskNext)} would collide. ${pad(free)} is free on disk AND in flight.`);
+    log('  This is the renumber DR-1021 recorded four times and this week recorded nineteen.');
   }
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(main());
+if (import.meta.url === `file://${process.argv[1]}`) {
+  process.exit(main({ noFetch: process.argv.includes('--no-fetch') }));
+}
