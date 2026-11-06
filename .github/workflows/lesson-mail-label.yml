@@ -4,7 +4,7 @@
 # DR-0312 says a thread is labelled Lesson-Captured once its lesson ships. It
 # had never been set on one built thread: the only road was a connector write
 # that stops for a human approval EVERY call, and the lane that owes the step
-# runs unattended. lesson-mail-watch.yml already reads this mailbox over IMAP
+# runs unattended. lesson-mail-watch.yml is written to read this mailbox over IMAP
 # with GMAIL_WATCH_APP_PASSWORD, and in Gmail IMAP a label IS a folder, so
 # `+X-GM-LABELS` sets the lock from a runner (DR-0108: a runner first, a hand
 # last). Full account, including the X-GM-THRID decimal trap, in DR-1354.
@@ -70,13 +70,22 @@ jobs:
           python3 - <<'PY'
           import imaplib, json, os, sys
 
-          pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD', '')
-          if not pw:
-              print('label road dormant: GMAIL_WATCH_APP_PASSWORD not set (honest no-op, nothing claimed)')
-              sys.exit(0)
-
           plan = json.load(open('/tmp/plan.json'))
           label = plan['label']
+
+          # DORMANT IS A FAILURE WHEN WORK WAS ASKED FOR (DR-1355). The first
+          # live dispatch of this workflow -- three threads named explicitly --
+          # printed "dormant" and exited 0, so the run went GREEN having
+          # laboured on nothing. That is the shape this repository refuses: a
+          # witness that cannot fail loudly. There are no thread ids by
+          # accident; `thread_ids` is a required input, so reaching this branch
+          # means somebody asked for N locks and got none.
+          pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD', '')
+          if not pw:
+              n = len(plan['plan'])
+              print('::error::lesson-mail-label: asked to set %s on %d thread(s) and GMAIL_WATCH_APP_PASSWORD is not set, so NOTHING was labelled. The secret is a value only Darrell holds (https://myaccount.google.com/apppasswords, stored at Settings -> Secrets -> Actions). lesson-mail-watch.yml needs the same one.' % (label, n))
+              sys.exit(1)
+
           user = os.environ['GMAIL_WATCH_USER']
 
           M = imaplib.IMAP4_SSL('imap.gmail.com')
