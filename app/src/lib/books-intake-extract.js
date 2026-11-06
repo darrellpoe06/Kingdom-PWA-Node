@@ -25,9 +25,11 @@
 import { parseStatementSummary } from './debt-history.js';
 import { accountFragment } from './bank-formats.js';
 import { parseAmount } from './statement-import.js';
+import { isOwnAccountTransfer } from './bill-review.js';
 
 export const DOC_TYPES = Object.freeze([
   'transactions-export', 'card-statement', 'bank-statement', 'loan-statement',
+  'account-snapshot',
   'bill', 'invoice', 'receipt', 'pay-stub', 'tax-form', 'unknown',
 ]);
 
@@ -36,6 +38,7 @@ export const DOC_TYPE_LABEL = Object.freeze({
   'card-statement': 'Credit card statement',
   'bank-statement': 'Bank statement',
   'loan-statement': 'Loan or mortgage statement',
+  'account-snapshot': 'Banking app screenshot (balance + recent activity)',
   bill: 'Bill (utility, phone, insurance)',
   invoice: 'Invoice',
   receipt: 'Receipt',
@@ -48,9 +51,13 @@ export const DOC_TYPE_LABEL = Object.freeze({
 // break a near-tie, never overturn what the page itself says.
 export const TAB_HINTS = Object.freeze({
   debts: ['card-statement', 'loan-statement'],
-  accounts: ['bank-statement', 'transactions-export'],
-  transactions: ['transactions-export', 'bank-statement', 'card-statement'],
-  imported: ['transactions-export'],
+  // Money's own sections (lib/money-nav.js): a phone screenshot of the banking
+  // app is the likeliest upload from the Overview and Accounts (Darrell
+  // 2026-11-06, the Chase 7206 screenshot from the Fold).
+  overview: ['account-snapshot'],
+  accounts: ['account-snapshot', 'bank-statement', 'transactions-export'],
+  transactions: ['transactions-export', 'account-snapshot', 'bank-statement', 'card-statement'],
+  imported: ['transactions-export', 'account-snapshot'],
   taxes: ['tax-form'],
   k1099: ['tax-form', 'invoice'],
   cart: ['receipt', 'bill'],
@@ -67,6 +74,10 @@ const SIGNALS = {
   'card-statement': [/minimum payment/i, /payment due date/i, /credit (limit|line)/i, /new balance/i, /annual percentage rate|\bapr\b/i, /purchases/i, /cash advance/i],
   'bank-statement': [/checking|savings/i, /beginning balance|opening balance/i, /ending balance/i, /deposits(?: and| &)? (other )?(credits|additions)/i, /withdrawals/i, /statement period/i],
   'loan-statement': [/principal/i, /escrow/i, /mortgage|loan number|auto loan/i, /interest rate/i, /amount due/i, /payoff/i],
+  // A banking APP screen: a balance as of now, a pending section, recent rows,
+  // the account's last four in parentheses — and none of a statement's opening
+  // balance, closing balance or statement period.
+  'account-snapshot': [/available (balance|now)/i, /present balance|current balance|posted balance|ledger balance|cash balance|total balance/i, /\bpending\b/i, /recent (transactions|activity)|\btransactions\b|\bactivity\b/i, /\(\s*\.{2,}\s*\d{4}\s*\)|\.{3}\d{4}\b|ending in \d{4}/i, /\bas of\b|\btoday\b/i],
   bill: [/account number/i, /amount due|total due|please pay/i, /due date|due by/i, /service (period|address)|billing period/i, /kwh|usage|utility|electric|water|gas service|internet|wireless|premium/i],
   invoice: [/\binvoice\b/i, /invoice (no|number|#)/i, /bill to/i, /terms|net \d+/i, /subtotal/i, /qty|quantity/i],
   receipt: [/\breceipt\b/i, /subtotal/i, /\btotal\b/i, /\b(visa|mastercard|debit|cash|change)\b/i, /thank you/i, /\btax\b/i],
@@ -300,6 +311,108 @@ registerExtractor('tax-form', ({ text }) => {
 });
 registerExtractor('unknown', () => ({}));
 
+// ---------------------------------------------------------------------------
+// A BANKING APP SCREENSHOT (Darrell 2026-11-06: "Upload a Chase 7206 screenshot
+// → extract → review → approve → save"). It is not a statement: it shows the
+// balance AS OF A DAY and a few recent rows, and it never "closes". What it
+// becomes in the books is the thing the engine already trusts most — a
+// bank-verified balance checkpoint for that account on that day
+// (financial-engineering.js balanceCheckpointRow) — plus its rows, through the
+// same dedupe every import uses. Nothing is invented: a screen with no date
+// asks for the day it was taken; a screen with two different balances asks
+// which one is the bank's available figure.
+// ---------------------------------------------------------------------------
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+const MONTH_RE = '(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?';
+function monthDay(mon, day, year) {
+  const mo = MONTHS[String(mon).toLowerCase().slice(0, 4)] || MONTHS[String(mon).toLowerCase().slice(0, 3)];
+  if (!mo || !year) return null;
+  const d = Number(day);
+  if (d < 1 || d > 31) return null;
+  return `${year}-${pad(mo)}-${pad(d)}`;
+}
+/** The day a screenshot was taken, when the screen says so: "as of Nov 5, 2026", "11/05/2026", "November 5, 2026". */
+export function asOfDateOf(text = '') {
+  const s = String(text);
+  let m = s.match(new RegExp(`as of[^\\n\\r\\d]{0,12}(\\d{1,2}\\/\\d{1,2}\\/\\d{2,4})`, 'i'));
+  if (m) return toIsoDate(m[1]);
+  m = s.match(new RegExp(`as of[^\\n\\r]{0,12}?${MONTH_RE}\\s+(\\d{1,2}),?\\s+(\\d{4})`, 'i'));
+  if (m) return monthDay(m[1], m[2], Number(m[3]));
+  m = s.match(new RegExp(`${MONTH_RE}\\s+(\\d{1,2}),?\\s+(20\\d{2})`, 'i'));
+  if (m) return monthDay(m[1], m[2], Number(m[3]));
+  m = s.match(/\b(\d{1,2}\/\d{1,2}\/(?:20)?\d{2})\b/);
+  if (m) return toIsoDate(m[1]);
+  return null;
+}
+/** The account's last four as a phone app prints it: "(...7206)" or "...7206". */
+function snapshotLast4(text = '') {
+  const m = String(text).match(/\(\s*\.{2,}\s*(\d{4})\s*\)/) || String(text).match(/\.{3}\s*(\d{4})\b/);
+  return m ? m[1] : accountFragment(text);
+}
+/**
+ * The rows on the screen: "Nov 4  CASH APP*DARRELL POE  +$700.00" or
+ * "11/04 Zelle payment to BG & Mom -$750.00". The year comes from the as-of
+ * day (a row cannot be later than the day the screen was taken, so a month
+ * after it belongs to the year before). Rows under a "Pending" heading are
+ * flagged. Money moved between the family's own accounts (Cash App, transfers)
+ * is a transfer, never income or spend (Darrell: "Never count the same money
+ * twice").
+ */
+export function snapshotLines(text, { asOf = null } = {}) {
+  const out = [];
+  if (!asOf) return out;
+  const year = Number(asOf.slice(0, 4)); const asOfMonth = Number(asOf.slice(5, 7));
+  const amountRe = '([+-]?\\$?\\s?[\\d,]+\\.\\d{2}-?)';
+  const numeric = new RegExp(`^\\s*(\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?)\\s+(.+?)\\s+${amountRe}\\s*$`);
+  const named = new RegExp(`^\\s*${MONTH_RE}\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\s+(.+?)\\s+${amountRe}\\s*$`, 'i');
+  let pending = false;
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^pending\b/i.test(line)) { pending = true; continue; }
+    if (/^(posted|completed|recent (transactions|activity)|transactions|activity)\b/i.test(line)) { pending = false; continue; }
+    let date = null; let description = null; let amount = null;
+    let m = line.match(numeric);
+    if (m) {
+      const mo = Number(m[1].split('/')[0]);
+      date = toIsoDate(m[1], /\/\d{2,4}$/.test(m[1]) ? null : (mo > asOfMonth ? year - 1 : year));
+      description = m[2]; amount = m[3];
+    } else if ((m = line.match(named))) {
+      const mo = MONTHS[m[1].toLowerCase().slice(0, 3)];
+      date = monthDay(m[1], m[2], m[3] ? Number(m[3]) : (mo > asOfMonth ? year - 1 : year));
+      description = m[4]; amount = m[5];
+    }
+    if (!date || date > asOf) continue;
+    const desc = description.replace(/\s{2,}/g, ' ').trim();
+    const row = { date, description: desc, amount: parseAmount(amount) };
+    if (pending) row.pending = true;
+    if (isOwnAccountTransfer(desc)) row.category = 'transfer';
+    out.push(row);
+  }
+  return out;
+}
+/** On a phone screen the figure often sits on the line BELOW its label; one line break is allowed, never two. */
+function moneyNear(text, labels) {
+  for (const label of labels) {
+    const re = new RegExp(`${label}[^\\n\\r$\\d(-]{0,40}(?:\\r?\\n[^\\n\\r$\\d(-]{0,20})?(\\(?-?\\$?\\s?[\\d,]+\\.\\d{2}\\)?-?)`, 'i');
+    const m = String(text).match(re);
+    if (m) return parseAmount(m[1]);
+  }
+  return null;
+}
+registerExtractor('account-snapshot', ({ text = '', asOf = null }) => {
+  const available = moneyNear(text, ['available balance', 'available now', 'available']);
+  const current = moneyNear(text, ['present balance', 'current balance', 'posted balance', 'ledger balance', 'cash balance', 'total balance']);
+  const day = asOf || asOfDateOf(text);
+  const balance = available != null ? available : current;
+  return {
+    summary: { availableBalance: available, currentBalance: current, newBalance: balance, balanceKind: available != null ? 'available' : (current != null ? 'current' : null) },
+    amounts: [available != null && { label: 'available', value: available }, current != null && current !== available && { label: 'current', value: current }].filter(Boolean),
+    dates: { document: day, period_end: day },
+    account_hint: { last4: snapshotLast4(text), institution: institutionOf(text) },
+    line_items: snapshotLines(text, { asOf: day }),
+  };
+});
+
 /** A stable key for "documents that look like this one" (the learned layout). */
 export function layoutKeyOf({ doc_type, institution, headerSignature = '', text = '' }) {
   const anchors = headerSignature
@@ -312,11 +425,11 @@ export function layoutKeyOf({ doc_type, institution, headerSignature = '', text 
  * Classify + extract: the ONE entry point. `read` is the reader's result
  * ({ text, rows?, headerSignature? }), `source` the stored document.
  */
-export function extractDocument(read = {}, source = {}, { hint = null, forceType = null } = {}) {
+export function extractDocument(read = {}, source = {}, { hint = null, forceType = null, asOf = null, balanceKind = null } = {}) {
   const base = emptyExtraction(source);
   const text = String(read.text || '');
   const cls = forceType ? { doc_type: forceType, confidence: 1, ranked: [forceType] } : classifyText(text, { hint, rows: read.rows });
-  const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [] }) || {};
+  const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [], asOf }) || {};
   const out = {
     ...base, ...partial,
     doc_type: cls.doc_type,
@@ -329,5 +442,13 @@ export function extractDocument(read = {}, source = {}, { hint = null, forceType
   if (!out.tax_year && cls.doc_type === 'tax-form') out.tax_year = taxYearOf(text);
   out.layout_key = layoutKeyOf({ doc_type: out.doc_type, institution: out.account_hint.institution, headerSignature: read.headerSignature, text });
   if (cls.doc_type === 'unknown' || cls.confidence < CONFIDENT) out.uncertain.push('doc_type');
+  if (cls.doc_type === 'account-snapshot') {
+    // A person's answer picks which figure is the bank's; otherwise two different
+    // figures on one screen are a question, never a guess.
+    if (balanceKind && out.summary[`${balanceKind}Balance`] != null) { out.summary.newBalance = out.summary[`${balanceKind}Balance`]; out.summary.balanceKind = balanceKind; }
+    else if (out.summary.availableBalance != null && out.summary.currentBalance != null && Math.abs(out.summary.availableBalance - out.summary.currentBalance) > 0.005) out.uncertain.push('balance_kind');
+    if (out.summary.newBalance == null) out.uncertain.push('balance');
+    if (!out.dates.document) out.uncertain.push('as_of');
+  }
   return out;
 }

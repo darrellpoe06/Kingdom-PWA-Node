@@ -208,6 +208,7 @@ export function reviewRows(data, asOf = new Date(), dismissed = {}) {
   const saved = (data?.recurringObligations || []).filter(Boolean).map((o) => ({
     ...o, source: 'saved', key: `saved:${o.id}`,
     group: GROUP_IDS.includes(o.group) ? o.group : 'household',
+    isMortgage: o.group === 'rental' && !!o.linkedMortgageId && o.linkedMortgageId === o.rentalId,
     verified: o.verified === true,
   }));
   const savedKeys = new Set(saved.flatMap((o) => [mergeKey(o.name || ''), o.fromSuggestion, ...(o.alsoPaidAs || []).map((n) => mergeKey(n))].filter(Boolean)));
@@ -254,7 +255,19 @@ export function toObligation(row, now = new Date()) {
     fromSuggestion: row.source === 'suggested' ? row.key : (row.fromSuggestion || null),
     // The personal home mortgage points at the existing home record, so Safe
     // to Spend counts this bill and not the record's P&I a second time.
-    linkedMortgageId: group === 'home-mortgage' ? (row.linkedMortgageId || null) : null,
+    linkedMortgageId: group === 'home-mortgage'
+      ? (row.linkedMortgageId || null)
+      // A rental bill marked as THE mortgage on its property points at that
+      // property record, so Safe to Spend counts this bill and not the record's
+      // P&I a second time (Darrell 2026-11-05: six First State Bank loans).
+      : (group === 'rental' && row.isMortgage === true && row.rentalId ? row.rentalId : null),
+    // A loan's own facts: who lends it, its rate, the grace period after the
+    // contractual due date (15 days on the First State Bank notes), and any
+    // late charge owed now. None is invented: blank stays null.
+    lender: String(row.lender || '').trim() || null,
+    rate: num(row.rate),
+    graceDays: Number.isFinite(Number(row.graceDays)) && Number(row.graceDays) > 0 ? Math.floor(Number(row.graceDays)) : null,
+    lateFees: num(row.lateFees),
     // A collection account is known by who it was originally owed to and its
     // account or case number. Only the last four characters are kept.
     paidAs: row.paidAs || (row.source === 'suggested' ? row.name : null) || null,
