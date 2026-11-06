@@ -1,15 +1,16 @@
 {
   "note": "The library ratchet (DR-1266). Counted by lib/library-census.js over the catalog the tests mount (buildCatalogCourseDescriptors). readings, whole, allVersions and exams may only RISE; waiting may only FALL. A lesson that lands incomplete, or a version that is lost, fails the build. When the library improves, the test says so and this file is re-frozen BY HAND to the new counts, in the PR that improved it, never by a script.",
-  "frozen": "2026-10-28",
+  "frozen": "2026-11-06",
   "counts": {
-    "lessons": 692,
-    "readings": 3062,
-    "whole": 318,
-    "allVersions": 418,
-    "exams": 677,
-    "waiting": 374
+    "lessons": 732,
+    "readings": 3261,
+    "whole": 357,
+    "allVersions": 457,
+    "exams": 717,
+    "waiting": 375
   },
   "chain": [
-    "2026-10-28: re-frozen in the PR that merged main's ll269 under the library: lessons 691 -> 692, readings 3057 -> 3062, whole 317 -> 318, allVersions 417 -> 418, exams 676 -> 677, waiting 374 unchanged (a new lesson arrived whole and added nothing to the wait)"
+    "2026-10-28: re-frozen in the PR that merged main's ll269 under the library: lessons 691 -> 692, readings 3057 -> 3062, whole 317 -> 318, allVersions 417 -> 418, exams 676 -> 677, waiting 374 unchanged (a new lesson arrived whole and added nothing to the wait)",
+    "2026-11-06: re-frozen in the PR that added spm11 (DR-1358), the eleventh lesson of Software Project Management. MEASURED on the merged tree, and against origin/main immediately before it, so the delta that is MINE is separated from the forty lessons that landed since the last freeze without one: main read {lessons:731, readings:3257, whole:357, allVersions:457, exams:716, waiting:374} and the merged tree reads {lessons:732, readings:3261, whole:357, allVersions:457, exams:717, waiting:375}. spm11 contributes +1 lesson, +4 readings (its four age bands) and +1 exam; everything the ratchet requires to RISE rises, and lessons-minus-waiting rises from 318 to 357, which is the rule that actually forbids adding to the wait and it holds. THE ONE COUNT THAT MOVED THE WRONG WAY IS waiting, 374 -> 375, and the reason is structural rather than a shortfall in the lesson: software-project-management carries no adult lesson field at all and no facilitator talking points or run of show -- the same is true of all ten lessons that preceded spm11, and four-band-group-c.test.js names that property of this course by name -- so EVERY lesson of this course counts as waiting for a version it was never designed to carry, and an eleventh cannot arrive any other way. Giving spm11 alone an adult lesson and facilitator fields would have cleared the count and made it the only lesson in its course shaped that way, which is a worse artifact than an honest +1. THE REAL FIX is a course-wide pass giving software-project-management its adult reading and facilitator fields on all eleven lessons, which would move waiting DOWN by eleven; it is a separate piece of work and is not smuggled into a lesson PR. re-review: 2026-12-06."
   ]
 }
