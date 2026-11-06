@@ -11,7 +11,9 @@ import unittest
 from datetime import datetime, timezone
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location("heartbeat", os.path.join(_HERE, "heartbeat.py"))
+spec = importlib.util.spec_from_file_location(
+    "heartbeat", os.path.join(_HERE, "heartbeat.py")
+)
 hb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(hb)
 
@@ -20,13 +22,28 @@ class StampTest(unittest.TestCase):
     def test_the_body_carries_the_four_fields_the_app_reads_with_a_utc_z_stamp(self):
         now = datetime(2026, 11, 6, 15, 0, 0, tzinfo=timezone.utc)
         body = json.loads(hb.body_of(now=now, host="poetech", services=29))
-        self.assertEqual(body, {"at": "2026-11-06T15:00:00Z", "host": "poetech", "services": 29, "cycle": "services-sync"})
+        self.assertEqual(
+            body,
+            {
+                "at": "2026-11-06T15:00:00Z",
+                "host": "poetech",
+                "services": 29,
+                "cycle": "services-sync",
+            },
+        )
 
     def test_services_count_reads_the_registry_and_says_minus_one_when_unreadable(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "services.json")
             with open(p, "w", encoding="utf-8") as fh:
-                json.dump([{"name": "a", "enabled": True}, {"name": "b", "enabled": False}, {"name": "c", "enabled": True}], fh)
+                json.dump(
+                    [
+                        {"name": "a", "enabled": True},
+                        {"name": "b", "enabled": False},
+                        {"name": "c", "enabled": True},
+                    ],
+                    fh,
+                )
             self.assertEqual(hb.services_enabled(p), 2)
             self.assertEqual(hb.services_enabled(os.path.join(d, "missing.json")), -1)
         real = hb.services_enabled(os.path.join(_HERE, "services.json"))
@@ -42,12 +59,17 @@ class OneRowTest(unittest.TestCase):
             if method == "GET" and path.startswith("agent_inbox?"):
                 return [{"id": existing_id}] if existing_id else []
             return None
+
         hb.rest = fake_rest
         return calls
 
-    def test_PROVEN_TO_CATCH_a_second_cycle_patches_the_same_row_and_never_inserts_a_second(self):
+    def test_PROVEN_TO_CATCH_a_second_cycle_patches_the_same_row_and_never_inserts_a_second(
+        self,
+    ):
         calls = self._recorder("row-1")
-        what = hb.beat("https://x", "k", "inst", hb.body_of(host="poetech", services=1), "uid")
+        what = hb.beat(
+            "https://x", "k", "inst", hb.body_of(host="poetech", services=1), "uid"
+        )
         self.assertEqual(what, "patched")
         methods = [c[0] for c in calls]
         self.assertEqual(methods, ["GET", "PATCH"])
@@ -56,7 +78,9 @@ class OneRowTest(unittest.TestCase):
 
     def test_the_first_cycle_inserts_one_tagged_row_as_the_owning_account(self):
         calls = self._recorder(None)
-        what = hb.beat("https://x", "k", "inst", hb.body_of(host="poetech", services=1), "uid-1")
+        what = hb.beat(
+            "https://x", "k", "inst", hb.body_of(host="poetech", services=1), "uid-1"
+        )
         self.assertEqual(what, "inserted")
         self.assertEqual([c[0] for c in calls], ["GET", "POST"])
         row = calls[1][2][0]

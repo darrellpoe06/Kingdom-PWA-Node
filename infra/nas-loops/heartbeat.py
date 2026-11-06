@@ -39,11 +39,17 @@ DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
-    headers = {"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"}
+    headers = {
+        "apikey": key,
+        "Authorization": "Bearer " + key,
+        "Content-Type": "application/json",
+    }
     if extra_headers:
         headers.update(extra_headers)
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    req = urllib.request.Request(url + "/rest/v1/" + path, data=data, headers=headers, method=method)
+    req = urllib.request.Request(
+        url + "/rest/v1/" + path, data=data, headers=headers, method=method
+    )
     with urllib.request.urlopen(req, timeout=30) as resp:
         raw = resp.read().decode("utf-8", "ignore")
     return json.loads(raw) if raw.strip() else None
@@ -62,19 +68,40 @@ def services_enabled(services_json_path):
 
 def body_of(now=None, host=None, services=-1, cycle="services-sync"):
     """The stamp the app parses (lib/nas-heartbeat.js stampOf): at, host, services, cycle."""
-    at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-    return json.dumps({"at": at, "host": host or platform.node(), "services": services, "cycle": cycle})
+    at = (
+        (now or datetime.now(timezone.utc))
+        .astimezone(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    return json.dumps(
+        {
+            "at": at,
+            "host": host or platform.node(),
+            "services": services,
+            "cycle": cycle,
+        }
+    )
 
 
 def resolve_instance(url, key, slug):
-    rows = rest(url, key, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(slug))
+    rows = rest(
+        url, key, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(slug)
+    )
     return rows[0]["id"] if rows else None
 
 
 def existing_row(url, key, instance_id):
-    rows = rest(url, key, "GET",
-                "agent_inbox?select=id&instance_id=eq." + instance_id
-                + "&tags=cs." + urllib.parse.quote(json.dumps([TAG])) + "&order=created_at.desc&limit=1")
+    rows = rest(
+        url,
+        key,
+        "GET",
+        "agent_inbox?select=id&instance_id=eq."
+        + instance_id
+        + "&tags=cs."
+        + urllib.parse.quote(json.dumps([TAG]))
+        + "&order=created_at.desc&limit=1",
+    )
     return rows[0]["id"] if rows else None
 
 
@@ -82,12 +109,31 @@ def beat(url, key, instance_id, body, created_by):
     """PATCH the existing heartbeat row, or INSERT the first one. Returns 'patched' | 'inserted'."""
     row_id = existing_row(url, key, instance_id)
     if row_id:
-        rest(url, key, "PATCH", "agent_inbox?id=eq." + row_id, body={"body": body, "created_at": json.loads(body)["at"]},
-             extra_headers={"Prefer": "return=minimal"})
+        rest(
+            url,
+            key,
+            "PATCH",
+            "agent_inbox?id=eq." + row_id,
+            body={"body": body, "created_at": json.loads(body)["at"]},
+            extra_headers={"Prefer": "return=minimal"},
+        )
         return "patched"
-    rest(url, key, "POST", "agent_inbox",
-         body=[{"instance_id": instance_id, "body": body, "tags": [TAG], "source": "nas-loops", "created_by": created_by}],
-         extra_headers={"Prefer": "return=minimal"})
+    rest(
+        url,
+        key,
+        "POST",
+        "agent_inbox",
+        body=[
+            {
+                "instance_id": instance_id,
+                "body": body,
+                "tags": [TAG],
+                "source": "nas-loops",
+                "created_by": created_by,
+            }
+        ],
+        extra_headers={"Prefer": "return=minimal"},
+    )
     return "inserted"
 
 
@@ -96,9 +142,14 @@ def main():
     sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
     try:
         from sovereign_target import load_target
+
         url, key = load_target(secrets, quiet=True)
     except Exception as e:
-        print("nas-heartbeat: no credential ({}) - quiet no-op".format(e.__class__.__name__))
+        print(
+            "nas-heartbeat: no credential ({}) - quiet no-op".format(
+                e.__class__.__name__
+            )
+        )
         return 0
     if not url or not key:
         print("nas-heartbeat: no credential - quiet no-op")
@@ -106,10 +157,20 @@ def main():
     slug = os.environ.get("TRANSCRIPTS_SLUG", "colg")
     instance_id = resolve_instance(url, key, slug)
     if not instance_id:
-        print("nas-heartbeat: no instance with slug '{}' - nothing to write to".format(slug))
+        print(
+            "nas-heartbeat: no instance with slug '{}' - nothing to write to".format(
+                slug
+            )
+        )
         return 1
     body = body_of(services=services_enabled(os.path.join(HERE, "services.json")))
-    what = beat(url, key, instance_id, body, os.environ.get("HEARTBEAT_CREATED_BY", DEFAULT_CREATED_BY))
+    what = beat(
+        url,
+        key,
+        instance_id,
+        body,
+        os.environ.get("HEARTBEAT_CREATED_BY", DEFAULT_CREATED_BY),
+    )
     print("nas-heartbeat: {} {}".format(what, body))
     return 0
 
