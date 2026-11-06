@@ -307,7 +307,7 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     }
     return out;
   };
-  // The VERSE-level census, added 2026-11-06 (DR-1351). The chapter census
+  // The VERSE-level census, added 2026-11-06 (DR-1352). The chapter census
   // above is right for the chapter question below, and WRONG for the verse
   // question further down -- see the comment on that case.
   const anchorVerses = () => {
@@ -351,7 +351,7 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     // would have made with it. The two censuses must genuinely disagree, or the
     // finding this build paid for has been lost.
     //
-    // CORRECTED 2026-11-06 (DR-1351), and the correction is a granularity bug,
+    // CORRECTED 2026-11-06 (DR-1352), and the correction is a granularity bug,
     // not a frozen census. This case asks a question about a VERSE -- "a
     // prose-built VERSE that is FREE at anchor level" -- and asked it of the
     // CHAPTER census. That read true for one reason only: no sibling had yet
