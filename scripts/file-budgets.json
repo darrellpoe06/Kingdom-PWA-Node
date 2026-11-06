@@ -56,10 +56,17 @@
       "to": 30278,
       "date": "2026-11-06",
       "why": "ll286 and ll287 (DR-1370) add the 286th and 287th Living Lessons, the two sends read under the newsletter Way the evening DR-1361 set it. Same reason as the ll283, ll284 and ll285 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30278,
+      "to": 30415,
+      "date": "2026-11-06",
+      "why": "ll288 (DR-1371) adds the 288th Living Lesson, the third send of the evening read under the newsletter Way. Same reason as the ll283 to ll287 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30278,
+    "app/src/lib/living-lessons-class.js": 30415,
     "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,

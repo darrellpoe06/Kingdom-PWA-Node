@@ -659,6 +659,21 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
+    },
+    {
+      "id": "ll288-a-story-that-looks-like-news",
+      "date": "2026-11-06",
+      "task": "ll288: the third send of the evening, a narrated FBI-agent video with no record of its case; research pass, the real federal process credited, the Word on the ruler who bears the sword; a 56-case gate; a research row and two further rows filed for the lane",
+      "drs": [
+        "DR-1371"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
     }
   ]
 }
