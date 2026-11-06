@@ -215,6 +215,19 @@ const NODES = [
     writes: [{ res: 'gh:signal-pr', token: 'SIGNAL_PR' }],
     seeds: ['lesson-capture'],
   }),
+  // DR-1354: the OTHER end of the Gmail door. The watcher peeks and wakes; this
+  // one sets the capture lock the Way has always specified, over the same IMAP
+  // credential, because the connector road stops for a human approval on every
+  // call and an unattended lane cannot take it. It closes the loop: the intake
+  // query excludes `-label:Lesson-Captured`, so writing the label is what stops
+  // the next firing rebuilding a lesson already shipped.
+  wf('lesson-mail-label.yml', {
+    id: 'lesson-mail-label', name: 'Gmail lesson door (set the capture lock)',
+    purpose: 'After a lesson ships, its thread is labelled so the next intake firing skips it.',
+    reads: [{ res: 'mail:lesson', token: 'imaplib' }],
+    writes: [{ res: 'mail:lesson-captured', token: '+X-GM-LABELS' }],
+    seeds: ['lesson-capture'],
+  }),
   {
     kind: 'session', id: 'lesson-capture', name: 'Lesson capture (the lesson reader + the Gmail Way)',
     file: 'docs/decisions/DR-0610-both-lesson-doors-run-in-parallel-until-the-governor-is-confident-the-in-app-reader-is-armed-for-the-parallel-run.md',
@@ -225,6 +238,12 @@ const NODES = [
       { res: 'gh:lesson-bell', file: 'docs/decisions/DR-0725-a-saved-lesson-rings-the-bell-and-the-builders-progress-is-seen-without-a-timer.md', token: 'subscribed to the bell PR' },
       { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
       { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
+      // DR-1354: the capture lock is READ by excluding it from the intake query,
+      // which is how a label stops the next firing rebuilding a shipped lesson.
+      // Named here because interconnect-guard was right to call the label a
+      // dead end until the consumer was declared: a lock nobody reads is not a
+      // lock. The token is the exclusion itself.
+      { res: 'mail:lesson-captured', file: '.github/workflows/lesson-mail-watch.yml', token: '-label:Lesson-Captured' },
     ],
     writes: [
       { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
