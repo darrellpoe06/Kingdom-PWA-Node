@@ -16,7 +16,20 @@
 // were resolved BY HAND, CI re-ran (~20 min), and another merge landed in the
 // meantime. Hand resolution also once shipped conflict markers inside INDEX.md.
 //
-// This script resolves ONLY those two files, and refuses if anything else is
+// A THIRD FILE JOINED THEM 2026-11-06 (DR-1369):
+//
+//   app/src/lib/ai-usage-ledger.json   DR-1347 made a cost entry MANDATORY on
+//                                      every record, so this file now changes
+//                                      on every branch exactly as INDEX.md
+//                                      does. It was not in this set, so the
+//                                      same conflict was resolved BY HAND five
+//                                      times in one afternoon across nine
+//                                      branches — quadratic in open branches,
+//                                      and a textual merge FUSES two appended
+//                                      objects into one plausible, wrong row
+//                                      carrying two ids.
+//
+// This script resolves ONLY those three files, and refuses if anything else is
 // in conflict (a real conflict is a human's / the owning agent's call).
 //
 //   INDEX.md   union of every line from both sides; DR rows de-duplicated by
@@ -24,6 +37,11 @@
 //              folded into ONE, the pointer RECOMPUTED as newest-DR-file-on-
 //              disk + 1, every parenthetical annotation from both sides kept.
 //   health     regenerated with `node scripts/legibility-guard.mjs --health`.
+//   usage      UNIONED BY `id`, never merged as text, main's order kept and
+//              ours appended — and REFUSED when the same id differs between
+//              the sides, which is the one case no rule can pick (see
+//              unionById's comment: on 2026-11-06 the right answer was "keep
+//              ours" in the morning and "keep main's" in the afternoon).
 //
 // Then it VERIFIES, loudly: `node scripts/business-systems-guard.mjs` must
 // pass, and no merge-touched file may carry a conflict marker.
@@ -51,6 +69,25 @@ import { fileURLToPath } from 'node:url';
 export const LEDGER_INDEX = 'docs/decisions/INDEX.md';
 export const LEGIBILITY_HEALTH = 'app/src/lib/legibility-health.json';
 export const LEDGER_FILES = [LEDGER_INDEX, LEGIBILITY_HEALTH];
+export const USAGE_LEDGER = 'app/src/lib/ai-usage-ledger.json';
+/**
+ * Every file this resolver will accept in conflict. A third file joined the two
+ * on 2026-11-06 (DR-1369): DR-1347 made a cost entry MANDATORY on every record,
+ * so `ai-usage-ledger.json` now changes on every branch exactly as INDEX.md
+ * does — and it was not in this set, so every landing dirtied every open branch
+ * and the catch-up was by hand. MEASURED: the same conflict set resolved five
+ * times in one afternoon across nine branches, which is quadratic in branches.
+ *
+ * WHY A UNION IS SAFE HERE AND REFUSING WAS RIGHT FOR INDEX ROWS. DR-0644 made
+ * this resolver REFUSE two INDEX rows that share a DR number, because a DR
+ * number is a scarce claim: two different decisions reaching for 0762 is a real
+ * collision and keeping one silently deletes a decision. A usage entry is keyed
+ * by its TASK id — a slug of the work — which two branches never pick by
+ * accident. So two sides of this file are two different appends, and the union
+ * loses nothing. The one case that is NOT an append is handled by refusing it,
+ * below.
+ */
+export const RESOLVED_FILES = [...LEDGER_FILES, USAGE_LEDGER];
 
 const ROW_RE = /^\| \[DR-(\d{4})\]\(([^)]*)\)/;
 const NEXT_RE = /^\*\*Next ID:\*\*/;
@@ -447,6 +484,97 @@ export function nextIdFromDisk(decisionsDir) {
 }
 
 // -----------------------------------------------------------------------------
+// The usage ledger (DR-1369).
+// -----------------------------------------------------------------------------
+/** Arrays of objects that are appended to and keyed by `id`. */
+const USAGE_ID_LISTS = ['entries', 'sessions'];
+/** Objects keyed by a name that is added to, never rewritten. */
+const USAGE_KEY_MAPS = ['models'];
+
+/**
+ * Pure. Union two id-keyed lists, theirs (main) first, ours appended.
+ *
+ * Returns the merged list AND every id present on both sides whose content
+ * DIFFERS. A differing id is never folded, because folding it is the exact
+ * silent loss this whole function exists to stop: taking main as the base on
+ * 2026-11-06 discarded a correction of mine to the `ll283` entry — the clause
+ * DR-1355 added to say an earlier sentence was false — and I restored it by
+ * hand twice before noticing the pattern. The second time the answer was the
+ * OPPOSITE: main held the correction and five branches held stale copies, so
+ * reflexively keeping "ours" would have undone it. Neither side is reliably
+ * right, which means no rule can pick, which means the caller must refuse.
+ */
+export function unionById(theirs = [], ours = [], key = 'id') {
+  const byId = new Map(theirs.map((e) => [e[key], e]));
+  const merged = [...theirs];
+  const added = [];
+  const differ = [];
+  for (const e of ours) {
+    const mine = byId.get(e[key]);
+    if (mine === undefined) {
+      merged.push(e);
+      added.push(e[key]);
+    } else if (JSON.stringify(mine) !== JSON.stringify(e)) {
+      differ.push(e[key]);
+    }
+  }
+  return { merged, added, differ };
+}
+
+/**
+ * Pure. Union two usage ledgers. Returns `{ text, added, differ }` on success,
+ * or `{ differ }` with entries in it when the sides disagree about something
+ * that already existed — the caller refuses on a non-empty `differ`.
+ *
+ * The output is the writer's own serialization (`--add`'s), which is also what
+ * `canonicalFault` in scripts/ai-usage-ledger.mjs now requires on disk: a
+ * resolution that re-escaped the file would hand the next branch the same
+ * four flipping lines this change exists to remove.
+ */
+export function unionUsageLedgerText(theirsText, oursText) {
+  const theirs = JSON.parse(theirsText);
+  const ours = JSON.parse(oursText);
+  const out = { ...theirs };
+  const added = [];
+  const differ = [];
+
+  for (const field of USAGE_ID_LISTS) {
+    if (!Array.isArray(theirs[field]) || !Array.isArray(ours[field])) {
+      if (JSON.stringify(theirs[field]) !== JSON.stringify(ours[field])) differ.push(`${field} (not a list on both sides)`);
+      continue;
+    }
+    const r = unionById(theirs[field], ours[field]);
+    out[field] = r.merged;
+    added.push(...r.added.map((id) => `${field}/${id}`));
+    differ.push(...r.differ.map((id) => `${field}/${id}`));
+  }
+
+  for (const field of USAGE_KEY_MAPS) {
+    const t = theirs[field] || {};
+    const o = ours[field] || {};
+    const map = { ...t };
+    for (const [name, value] of Object.entries(o)) {
+      if (!(name in t)) { map[name] = value; added.push(`${field}/${name}`); }
+      else if (JSON.stringify(t[name]) !== JSON.stringify(value)) differ.push(`${field}/${name}`);
+    }
+    out[field] = map;
+  }
+
+  // Everything else is a single value both sides are supposed to agree on.
+  const scalars = new Set([...Object.keys(theirs), ...Object.keys(ours)]
+    .filter((k) => !USAGE_ID_LISTS.includes(k) && !USAGE_KEY_MAPS.includes(k)));
+  for (const k of scalars) {
+    if (JSON.stringify(theirs[k]) !== JSON.stringify(ours[k])) differ.push(k);
+    if (!(k in out)) out[k] = ours[k];
+  }
+
+  if (differ.length) return { differ, added };
+  const ids = out.entries.map((e) => e.id);
+  if (ids.length !== new Set(ids).size) return { differ: ['entries (duplicate id after union)'], added };
+  return { text: `${JSON.stringify(out, null, 2)}\n`, added, differ: [] };
+}
+
+// -----------------------------------------------------------------------------
 // Git plumbing.
 // -----------------------------------------------------------------------------
 function git(args, opts = {}) {
@@ -494,14 +622,14 @@ function isTextFile(abs) {
  * a marker can only come from a hunk someone resolved.
  */
 function resolvedFiles(unmergedAtStart) {
-  return [...new Set([...unmergedAtStart, ...LEDGER_FILES])];
+  return [...new Set([...unmergedAtStart, ...RESOLVED_FILES])];
 }
 
 export function resolveInTree(cwd, { log = console.log, err = console.error } = {}) {
   const unmerged = [...new Set(git(['diff', '--name-only', '--diff-filter=U'], { cwd }).split('\n').filter(Boolean))];
-  const others = unmerged.filter((f) => !LEDGER_FILES.includes(f));
+  const others = unmerged.filter((f) => !RESOLVED_FILES.includes(f));
   if (others.length) {
-    err('resolve-ledger-conflicts: REFUSED — files other than the two ledger files are in conflict:');
+    err(`resolve-ledger-conflicts: REFUSED — files other than the ${RESOLVED_FILES.length} ledger files are in conflict:`);
     for (const f of others) err(`  - ${f}`);
     return { code: 2, others };
   }
@@ -543,7 +671,40 @@ export function resolveInTree(cwd, { log = console.log, err = console.error } = 
     return { code: 1 };
   }
 
-  // 3. Verify, loudly.
+  // 3. ai-usage-ledger.json — unioned by id, never merged as text (DR-1369).
+  if (unmerged.includes(USAGE_LEDGER)) {
+    const theirs = stage(3, USAGE_LEDGER, cwd);
+    const ours = stage(2, USAGE_LEDGER, cwd);
+    if (theirs === null || ours === null) {
+      err(`resolve-ledger-conflicts: REFUSED — ${USAGE_LEDGER} was deleted on one side; that is a human's call.`);
+      return { code: 2, others: [USAGE_LEDGER] };
+    }
+    let r;
+    try {
+      r = unionUsageLedgerText(theirs, ours);
+    } catch (e) {
+      err(`resolve-ledger-conflicts: REFUSED — ${USAGE_LEDGER} does not parse as JSON on one side: ${e.message}`);
+      return { code: 2, others: [USAGE_LEDGER] };
+    }
+    if (r.differ.length) {
+      err(`resolve-ledger-conflicts: REFUSED — both sides changed the SAME part of ${USAGE_LEDGER}:`);
+      for (const d of r.differ) err(`  - ${d}`);
+      err('');
+      err('A two-sided APPEND unions safely; a two-sided EDIT does not, and no rule');
+      err('can pick the right one. On 2026-11-06 keeping main silently dropped a');
+      err("correction, and keeping ours would have undone the same correction once");
+      err('main had it. Read both sides and resolve this file by hand:');
+      err(`  git show :2:${USAGE_LEDGER}   # ours`);
+      err(`  git show :3:${USAGE_LEDGER}   # main`);
+      return { code: 2, others: [USAGE_LEDGER] };
+    }
+    writeFileSync(join(cwd, USAGE_LEDGER), r.text);
+    git(['add', '--', USAGE_LEDGER], { cwd });
+    log(`ai-usage-ledger.json: unioned by id — ${r.added.length} of ours appended` +
+      (r.added.length ? ` (${r.added.join(', ')})` : '') + '.');
+  }
+
+  // 4. Verify, loudly.
   const still = git(['diff', '--name-only', '--diff-filter=U'], { cwd }).split('\n').filter(Boolean);
   if (still.length) {
     err(`resolve-ledger-conflicts: FAIL — still unmerged: ${still.join(', ')}`);
@@ -572,7 +733,21 @@ export function resolveInTree(cwd, { log = console.log, err = console.error } = 
     return { code: 1 };
   }
   log(g.stdout.trim());
-  log('resolve-ledger-conflicts: OK — ledger files resolved, zero conflict markers, guard green.');
+
+  // The usage ledger has its own validator; a union that produced an unsound
+  // file must not be reported as a resolution (DR-1369). Verified whenever the
+  // file was touched by this merge at all, not only when it conflicted.
+  const usage = join(cwd, 'scripts/ai-usage-ledger.mjs');
+  if (existsSync(usage) && existsSync(join(cwd, USAGE_LEDGER))) {
+    const u = spawnSync(process.execPath, [usage], { cwd, encoding: 'utf8' });
+    if (u.status !== 0) {
+      err(`resolve-ledger-conflicts: FAIL — ai-usage-ledger --check did not pass after the union:\n${u.stdout}${u.stderr}`);
+      return { code: 1 };
+    }
+    log(u.stdout.trim());
+  }
+
+  log('resolve-ledger-conflicts: OK — ledger files resolved, zero conflict markers, guards green.');
   return { code: 0 };
 }
 
