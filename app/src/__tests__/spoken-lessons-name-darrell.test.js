@@ -42,7 +42,13 @@ export function bareMentionsInSpokenLesson(lesson) {
   for (const [where, s] of lessonStrings(lesson)) {
     const prose = authoredProse(s);
     for (const m of prose.matchAll(BARE)) {
-      out.push({ where, hit: prose.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40).replace(/\s+/g, ' ').trim() });
+      out.push({
+        where,
+        hit: prose
+          .slice(Math.max(0, m.index - 40), m.index + m[0].length + 40)
+          .replace(/\s+/g, ' ')
+          .trim(),
+      });
     }
   }
   return out;
@@ -55,7 +61,10 @@ describe('every lesson Darrell spoke names Darrell', () => {
   it('finds the spoken lessons from their own provenance, so the scan is not vacuous', () => {
     expect(SPOKEN.length).toBeGreaterThanOrEqual(7);
     for (const id of ['ll271', 'll272', 'll276', 'll277', 'll279', 'll282']) {
-      expect(SPOKEN.some((m) => m.id.startsWith(`${id}-`)), `${id} is a spoken lesson`).toBe(true);
+      expect(
+        SPOKEN.some((m) => m.id.startsWith(`${id}-`)),
+        `${id} is a spoken lesson`
+      ).toBe(true);
     }
   });
 

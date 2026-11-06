@@ -22,9 +22,7 @@
 // with its path (never a blank, DR-0381); content text scales with the reader's
 // text size, the chrome does not. No document is mounted as HTML (DR-0076).
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  GROUPS, buildCatalog, groupCounts, filterCatalog, loadDocument, headingOf, renderMarkdownBlocks,
-} from '../lib/repo-documents.js';
+import { GROUPS, buildCatalog, groupCounts, filterCatalog, loadDocument, headingOf, renderMarkdownBlocks } from '../lib/repo-documents.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
@@ -35,19 +33,38 @@ const PAGE = 300;
 function Block({ b }) {
   if (b.kind === 'heading') {
     const size = b.level <= 1 ? 'text-base' : b.level === 2 ? 'text-sm' : 'text-xs';
-    return <p className={`${size} font-semibold text-[#1A1815] mt-3`} style={serif}>{b.text}</p>;
+    return (
+      <p className={`${size} font-semibold text-[#1A1815] mt-3`} style={serif}>
+        {b.text}
+      </p>
+    );
   }
   if (b.kind === 'list') {
     return (
       <ul className="list-disc pl-5 space-y-0.5">
-        {b.items.map((t, i) => <li key={i} className="text-xs text-[#1A1815]" style={serif}>{b.ordered ? `${i + 1}. ` : ''}{t}</li>)}
+        {b.items.map((t, i) => (
+          <li key={i} className="text-xs text-[#1A1815]" style={serif}>
+            {b.ordered ? `${i + 1}. ` : ''}
+            {t}
+          </li>
+        ))}
       </ul>
     );
   }
-  if (b.kind === 'quote') return <p className="text-xs text-[#5A5751] italic border-l-2 border-[#B85838] pl-2" style={serif}>{b.text}</p>;
-  if (b.kind === 'code' || b.kind === 'table') return <pre className="text-[0.6875rem] text-[#1A1815] bg-[#F3F1EC] p-2 overflow-x-auto whitespace-pre-wrap">{b.text}</pre>;
+  if (b.kind === 'quote')
+    return (
+      <p className="text-xs text-[#5A5751] italic border-l-2 border-[#B85838] pl-2" style={serif}>
+        {b.text}
+      </p>
+    );
+  if (b.kind === 'code' || b.kind === 'table')
+    return <pre className="text-[0.6875rem] text-[#1A1815] bg-[#F3F1EC] p-2 overflow-x-auto whitespace-pre-wrap">{b.text}</pre>;
   if (b.kind === 'rule') return <hr className="border-[#D9D5CC]" />;
-  return <p className="text-xs text-[#1A1815] leading-relaxed" style={serif}>{b.text}</p>;
+  return (
+    <p className="text-xs text-[#1A1815] leading-relaxed" style={serif}>
+      {b.text}
+    </p>
+  );
 }
 
 export default function RepoDocuments() {
@@ -58,7 +75,14 @@ export default function RepoDocuments() {
   const [openKey, setOpenKey] = useState(null);
   const [doc, setDoc] = useState({ state: 'idle', raw: '', error: '' });
 
-  const inGroup = useMemo(() => filterCatalog(catalog.filter((it) => it.group === group), query), [catalog, group, query]);
+  const inGroup = useMemo(
+    () =>
+      filterCatalog(
+        catalog.filter((it) => it.group === group),
+        query
+      ),
+    [catalog, group, query]
+  );
   const shown = inGroup.slice(0, PAGE);
   const open = catalog.find((it) => it.key === openKey) || null;
 
@@ -67,9 +91,15 @@ export default function RepoDocuments() {
     let alive = true;
     setDoc({ state: 'loading', raw: '', error: '' });
     loadDocument(openKey)
-      .then((raw) => { if (alive) setDoc({ state: 'ready', raw, error: '' }); })
-      .catch((e) => { if (alive) setDoc({ state: 'failed', raw: '', error: String(e && e.message ? e.message : e) }); });
-    return () => { alive = false; };
+      .then((raw) => {
+        if (alive) setDoc({ state: 'ready', raw, error: '' });
+      })
+      .catch((e) => {
+        if (alive) setDoc({ state: 'failed', raw: '', error: String(e && e.message ? e.message : e) });
+      });
+    return () => {
+      alive = false;
+    };
   }, [openKey]);
 
   const blocks = useMemo(() => (doc.state === 'ready' ? renderMarkdownBlocks(doc.raw) : []), [doc]);
@@ -79,7 +109,8 @@ export default function RepoDocuments() {
       <section className={card}>
         <div className={sectionH}>Documents — the proof of the work, read where the work is</div>
         <p className={`${note} mt-1`}>
-          Every decision record, foundation document, Way, review and session note in this build, under its own file path. The path is the document location; the text loads when you open it. Nothing here is typed by hand: the list is whatever was on disk when this build was made, {catalog.length} documents.
+          Every decision record, foundation document, Way, review and session note in this build, under its own file path. The path is the document location;
+          the text loads when you open it. Nothing here is typed by hand: the list is whatever was on disk when this build was made, {catalog.length} documents.
         </p>
         <div className="flex flex-wrap gap-1.5 mt-3" role="tablist" aria-label="Document groups">
           {GROUPS.filter((g) => counts[g.key] > 0).map((g) => (
@@ -88,7 +119,10 @@ export default function RepoDocuments() {
               type="button"
               role="tab"
               aria-selected={group === g.key}
-              onClick={() => { setGroup(g.key); setOpenKey(null); }}
+              onClick={() => {
+                setGroup(g.key);
+                setOpenKey(null);
+              }}
               className={`min-h-[44px] text-xs px-3 py-2 border ${group === g.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#1A1815]'}`}
             >
               {g.label} · {counts[g.key]}
@@ -101,7 +135,10 @@ export default function RepoDocuments() {
           <input
             type="search"
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setOpenKey(null); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpenKey(null);
+            }}
             placeholder="DR-1353, the way, credit, 2026-11-05…"
             className="mt-1 w-full min-h-[44px] border border-[#1A1815] px-3 py-2 text-sm bg-white text-[#1A1815]"
             aria-label="Find a document by title or path"
@@ -115,18 +152,27 @@ export default function RepoDocuments() {
       <section className={card}>
         {open ? (
           <div data-testid="repo-document-open">
-            <button type="button" onClick={() => setOpenKey(null)} className="min-h-[44px] text-xs underline text-[#B85838] px-1">Back to the list</button>
-            <p className={`${sectionH} mt-2`} data-testid="repo-document-path">{open.path}</p>
-            <p className="text-base font-semibold text-[#1A1815] mt-1" style={serif}>{doc.state === 'ready' ? (headingOf(doc.raw) || open.title) : open.title}</p>
+            <button type="button" onClick={() => setOpenKey(null)} className="min-h-[44px] text-xs underline text-[#B85838] px-1">
+              Back to the list
+            </button>
+            <p className={`${sectionH} mt-2`} data-testid="repo-document-path">
+              {open.path}
+            </p>
+            <p className="text-base font-semibold text-[#1A1815] mt-1" style={serif}>
+              {doc.state === 'ready' ? headingOf(doc.raw) || open.title : open.title}
+            </p>
             {doc.state === 'loading' && <p className={`${note} mt-2`}>Loading {open.path}…</p>}
             {doc.state === 'failed' && (
               <p className="text-xs text-[#B85838] mt-2" data-testid="repo-document-unreadable">
-                This document could not be loaded in this build ({doc.error}). Its location in the repository is {open.path}; open it there, and tell the stewards this line appeared.
+                This document could not be loaded in this build ({doc.error}). Its location in the repository is {open.path}; open it there, and tell the
+                stewards this line appeared.
               </p>
             )}
             {doc.state === 'ready' && (
               <div className="mt-3 space-y-2">
-                {blocks.map((b, i) => <Block key={i} b={b} />)}
+                {blocks.map((b, i) => (
+                  <Block key={i} b={b} />
+                ))}
               </div>
             )}
           </div>
@@ -135,13 +181,17 @@ export default function RepoDocuments() {
             {shown.map((it) => (
               <li key={it.key}>
                 <button type="button" onClick={() => setOpenKey(it.key)} className="w-full min-h-[44px] text-left py-2 px-1">
-                  <span className="block text-sm text-[#1A1815]" style={serif}>{it.title}</span>
+                  <span className="block text-sm text-[#1A1815]" style={serif}>
+                    {it.title}
+                  </span>
                   <span className="block text-[0.625rem] text-[#5A5751]">{it.path}</span>
                 </button>
               </li>
             ))}
             {shown.length === 0 && (
-              <li className={`${note} py-3`}>No document in this group matches that search. Clear the search, or pick another group above; every group lists what is on disk.</li>
+              <li className={`${note} py-3`}>
+                No document in this group matches that search. Clear the search, or pick another group above; every group lists what is on disk.
+              </li>
             )}
           </ul>
         )}

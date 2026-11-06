@@ -14,8 +14,17 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  GROUPS, repoPath, groupOf, titleFromPath, buildCatalog, groupCounts, filterCatalog,
-  headingOf, inlineText, renderMarkdownBlocks, loadDocument,
+  GROUPS,
+  repoPath,
+  groupOf,
+  titleFromPath,
+  buildCatalog,
+  groupCounts,
+  filterCatalog,
+  headingOf,
+  inlineText,
+  renderMarkdownBlocks,
+  loadDocument,
 } from '../lib/repo-documents.js';
 
 const ROOT = join(process.cwd(), '..');
@@ -141,7 +150,10 @@ describe('the surface is registered where the stewards work, and says what it is
 describe('a document is a static file fetched by its own path, never a module', () => {
   it('fetches /docs/<path>, refuses a path outside docs/, and reports a non-OK response plainly', async () => {
     const calls = [];
-    const fetchImpl = async (url) => { calls.push(url); return { ok: true, status: 200, text: async () => '# Hello\r\n\r\nworld' }; };
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      return { ok: true, status: 200, text: async () => '# Hello\r\n\r\nworld' };
+    };
     const raw = await loadDocument('docs/decisions/DR-0001-x.md', { fetchImpl });
     expect(calls).toEqual(['/docs/decisions/DR-0001-x.md']);
     expect(raw).toBe('# Hello\n\nworld');

@@ -8,9 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  HEARTBEAT_TAG, CLOCK_MIN, LATE_AFTER_MIN, SILENT_AFTER_MIN, stampOf, heartbeatStatus, fetchNasHeartbeat,
-} from '../lib/nas-heartbeat.js';
+import { HEARTBEAT_TAG, CLOCK_MIN, LATE_AFTER_MIN, SILENT_AFTER_MIN, stampOf, heartbeatStatus, fetchNasHeartbeat } from '../lib/nas-heartbeat.js';
 
 const NOW = Date.parse('2026-11-06T15:00:00Z');
 const row = (minutesAgo, extra = {}) => ({
@@ -39,7 +37,10 @@ describe('the heartbeat is judged by its own stamp against the clock', () => {
 
   it('never seen is said as never, and an unreadable table is said as unreadable', () => {
     expect(heartbeatStatus(null, { now: NOW })).toMatchObject({ state: 'never', kpi: 'attention' });
-    expect(heartbeatStatus(row(1), { now: NOW, reason: 'permission denied' })).toMatchObject({ state: 'unreadable', label: 'NAS heartbeat unreadable: permission denied' });
+    expect(heartbeatStatus(row(1), { now: NOW, reason: 'permission denied' })).toMatchObject({
+      state: 'unreadable',
+      label: 'NAS heartbeat unreadable: permission denied',
+    });
   });
 
   it('reads the stamp from the body, and falls back to created_at when the body is not JSON', () => {
@@ -53,7 +54,14 @@ describe('the heartbeat is judged by its own stamp against the clock', () => {
 
 describe('the read is the newest tagged row, and a failed read is a reason, never a throw', () => {
   const client = (reply) => ({
-    from: () => ({ select: () => ({ contains: (col, v) => { client.lastFilter = [col, v]; return { order: () => ({ limit: async () => reply }) }; } }) }),
+    from: () => ({
+      select: () => ({
+        contains: (col, v) => {
+          client.lastFilter = [col, v];
+          return { order: () => ({ limit: async () => reply }) };
+        },
+      }),
+    }),
   });
 
   it('asks for the newest nas-heartbeat row with the JSON tag filter the table needs', async () => {

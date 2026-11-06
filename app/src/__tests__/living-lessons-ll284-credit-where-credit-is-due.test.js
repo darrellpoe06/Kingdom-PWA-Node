@@ -51,9 +51,17 @@ const PLACES = Object.keys(TEXTS);
 const TITLE_LEAD = 'CREDIT WHERE CREDIT IS DUE — names stay in, the fruit is the data, and assessment is not condemnation.';
 
 function* strings(node) {
-  if (typeof node === 'string') { yield node; return; }
-  if (Array.isArray(node)) { for (const v of node) yield* strings(v); return; }
-  if (node && typeof node === 'object') { for (const v of Object.values(node)) yield* strings(v); }
+  if (typeof node === 'string') {
+    yield node;
+    return;
+  }
+  if (Array.isArray(node)) {
+    for (const v of node) yield* strings(v);
+    return;
+  }
+  if (node && typeof node === 'object') {
+    for (const v of Object.values(node)) yield* strings(v);
+  }
 }
 const EVERY_STRING = L ? [...strings(L)] : [];
 
@@ -67,7 +75,10 @@ function chapter(book, ch) {
 }
 export function corpusText(ref) {
   const out = [];
-  for (const piece of String(ref).split(';').map((s) => s.trim()).filter(Boolean)) {
+  for (const piece of String(ref)
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     const m = /^((?:[1-3]\s*)?[A-Za-z]+(?: of [A-Za-z]+)?)\s+(\d+):(\d+)(?:-(\d+))?((?:\s*,\s*\d+:\d+(?:-\d+)?)*)$/.exec(piece);
     if (!m) return null;
     const [, book, ch, from, through, extra] = m;
@@ -82,7 +93,10 @@ export function corpusText(ref) {
       return true;
     };
     if (!push(ch, from, through)) return null;
-    for (const part of (extra || '').split(',').map((s) => s.trim()).filter(Boolean)) {
+    for (const part of (extra || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)) {
       const mm = /^(\d+):(\d+)(?:-(\d+))?$/.exec(part);
       if (!mm || !push(mm[1], mm[2], mm[3])) return null;
     }
@@ -104,7 +118,10 @@ export function verbatimFaults(texts) {
     for (const { inside, ref } of quotedPairs(t)) {
       if (!ref) continue;
       const verse = corpusText(ref);
-      if (verse == null) { faults.push(`unresolved reference (${ref})`); continue; }
+      if (verse == null) {
+        faults.push(`unresolved reference (${ref})`);
+        continue;
+      }
       const bare = inside.replace(/^[,;:.\s]+|[,;:\s]+$/g, '');
       if (!verse.includes(bare)) faults.push(`(${ref}) is not the verse: ${inside.slice(0, 70)}`);
     }
@@ -161,7 +178,10 @@ const SPINE = [
   ['Amos 5:14-15', 'Hate the evil, and love the good, and establish judgment in the gate'],
   ['Ephesians 5:11', 'have no fellowship with the unfruitful works of darkness, but rather reprove them.'],
   ['Leviticus 5:1', 'if he do not utter it, then he shall bear his iniquity.'],
-  ['Ecclesiastes 8:11', 'Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil.'],
+  [
+    'Ecclesiastes 8:11',
+    'Because sentence against an evil work is not executed speedily, therefore the heart of the sons of men is fully set in them to do evil.',
+  ],
   ['Zechariah 8:16', 'Speak ye every man the truth to his neighbour; execute the judgment of truth and peace in your gates:'],
   ['1 Samuel 2:30', 'them that honour me I will honour, and they that despise me shall be lightly esteemed.'],
   ['Proverbs 10:7', 'The memory of the just is blessed: but the name of the wicked shall rot.'],
@@ -178,7 +198,9 @@ describe('L284 is in the catalog, numbered, dated and whole', () => {
   });
 
   it('claims 284 exactly once, and nothing else claims it', () => {
-    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
+    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id))
+      .filter(Boolean)
+      .map((m) => Number(m[1]));
     expect(numbers.filter((n) => n === 284)).toEqual([284]);
   });
 
@@ -212,9 +234,15 @@ describe('L284 is in the catalog, numbered, dated and whole', () => {
       expect(q.answer).toBeLessThan(q.options.length);
       expect(String(q.explain).length).toBeGreaterThan(40);
     }
-    const refs = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean);
+    const refs = String(L.anchor.ref)
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
     expect(refs.length).toBeGreaterThanOrEqual(40);
-    const parse = (r) => { const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r); return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) }; };
+    const parse = (r) => {
+      const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r);
+      return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) };
+    };
     const named = [...L.lesson.matchAll(/\(((?:[1-3] )?[A-Z][A-Za-z ]+? \d+:\d+(?:-\d+)?)\)/g)].map((m) => parse(m[1])).filter(Boolean);
     for (const r of refs) {
       expect(corpusText(r), `anchor ref ${r}`).not.toBeNull();
@@ -225,10 +253,25 @@ describe('L284 is in the catalog, numbered, dated and whole', () => {
   });
 
   it('and the anchor names EVERY verse any string of the module quotes (DR-0734)', () => {
-    const parse = (r) => { const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r); return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) }; };
-    const anchors = String(L.anchor.ref).split(';').map((s) => parse(s.trim())).filter(Boolean);
-    const quoted = new Set(EVERY_STRING.flatMap((t) => quotedPairs(t).map((p) => p.ref).filter(Boolean)));
-    const missing = [...quoted].filter((r) => { const p = parse(r); return !anchors.some((q) => q.book === p.book && q.ch === p.ch && q.a <= p.b && p.a <= q.b); });
+    const parse = (r) => {
+      const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(r);
+      return m && { book: m[1], ch: +m[2], a: +m[3], b: +(m[4] || m[3]) };
+    };
+    const anchors = String(L.anchor.ref)
+      .split(';')
+      .map((s) => parse(s.trim()))
+      .filter(Boolean);
+    const quoted = new Set(
+      EVERY_STRING.flatMap((t) =>
+        quotedPairs(t)
+          .map((p) => p.ref)
+          .filter(Boolean)
+      )
+    );
+    const missing = [...quoted].filter((r) => {
+      const p = parse(r);
+      return !anchors.some((q) => q.book === p.book && q.ch === p.ch && q.a <= p.b && p.a <= q.b);
+    });
     expect(missing).toEqual([]);
   });
 });
@@ -255,7 +298,8 @@ describe('his spine, in his order, in the lesson and in every band', () => {
   });
 
   it('shows the Word keeping names, good and evil alike, and the one nobody remembered', () => {
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('Then Eliashib the high priest rose up with his brethren the priests, and they builded the sheep gate');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('Then Eliashib the high priest rose up with his brethren the priests, and they builded the sheep gate');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('I commend unto you Phebe our sister');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('What honour and dignity hath been done to Mordecai for this?');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('yet no man remembered that same poor man.');
@@ -399,7 +443,11 @@ describe('no quotation is cut, and no bookkeeping reaches the reader', () => {
 });
 
 describe('our own voice names Yahweh, and the adversary is never capitalised', () => {
-  const ourVoice = (t) => String(t).split('"').filter((_, i) => i % 2 === 0).join(' ');
+  const ourVoice = (t) =>
+    String(t)
+      .split('"')
+      .filter((_, i) => i % 2 === 0)
+      .join(' ');
 
   it('no generic God, GOD or LORD in our authored voice (DR-0210)', () => {
     const found = [];
@@ -455,7 +503,11 @@ describe('the four bands are four bands, measured not claimed', () => {
   it('reads as a ladder, and the child band is inside its own age range', () => {
     expect(isInverted(grades)).toBe(false);
     expect(grades.bands.child.authored).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
-    for (const [a, b] of [['child', 'youth'], ['youth', 'teen'], ['teen', 'senior']]) {
+    for (const [a, b] of [
+      ['child', 'youth'],
+      ['youth', 'teen'],
+      ['teen', 'senior'],
+    ]) {
       expect(grades.bands[b].authored, `${b} should read above ${a}`).toBeGreaterThan(grades.bands[a].authored);
     }
   });
@@ -474,7 +526,9 @@ describe('the four bands are four bands, measured not claimed', () => {
 
 describe('the reader meets numbered points, in order, with nothing skipped', () => {
   it('the lesson’s own headings number from one and stay contiguous', () => {
-    const ns = formatLessonText(L.lesson).items.filter((i) => i.kind === 'heading').map((h) => h.n);
+    const ns = formatLessonText(L.lesson)
+      .items.filter((i) => i.kind === 'heading')
+      .map((h) => h.n);
     expect(ns.length).toBeGreaterThanOrEqual(10);
     expect(ns[0]).toBe(1);
     for (let i = 1; i < ns.length; i += 1) expect(ns[i]).toBe(ns[i - 1] + 1);

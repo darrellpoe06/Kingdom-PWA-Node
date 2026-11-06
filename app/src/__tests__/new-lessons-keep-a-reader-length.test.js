@@ -27,7 +27,11 @@ export const ADULT_MIN = 1500;
 export const ADULT_MAX = 3500;
 export const CHILD_MAX = 2000;
 
-export const words = (t) => String(t || '').trim().split(/\s+/).filter(Boolean).length;
+export const words = (t) =>
+  String(t || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
 export const lessonNumber = (id) => Number((/^ll(\d+)-/.exec(String(id)) || [])[1] || 0);
 
 export function lengthFaults(lesson) {
@@ -56,7 +60,13 @@ describe('a new Living Lesson keeps a reader length', () => {
     const L = BOUNDED[0];
     const padded = { ...L, lesson: `${L.lesson} ${'and so on '.repeat(ADULT_MAX)}` };
     expect(lengthFaults(padded)).toEqual([`${L.id}: adult lesson ${words(padded.lesson)} words is over ${ADULT_MAX}`]);
-    const cut = { ...L, lesson: L.lesson.split(/\s+/).slice(0, ADULT_MIN - 1).join(' ') };
+    const cut = {
+      ...L,
+      lesson: L.lesson
+        .split(/\s+/)
+        .slice(0, ADULT_MIN - 1)
+        .join(' '),
+    };
     expect(lengthFaults(cut)).toEqual([`${L.id}: adult lesson ${ADULT_MIN - 1} words is under ${ADULT_MIN}`]);
     const heavyChild = { ...L, levels: { ...L.levels, child: `${L.levels.child} ${'and so on '.repeat(CHILD_MAX)}` } };
     expect(lengthFaults(heavyChild).some((f) => f.includes('child band'))).toBe(true);

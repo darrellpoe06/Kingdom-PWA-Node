@@ -34,7 +34,9 @@ export function stampOf(row) {
       const t = Date.parse(body.at);
       if (Number.isFinite(t)) return { at: t, host: body.host || '', services: body.services ?? null, cycle: body.cycle || '' };
     }
-  } catch { /* a body that is not JSON falls back to created_at */ }
+  } catch {
+    /* a body that is not JSON falls back to created_at */
+  }
   const t = Date.parse(row.created_at || '');
   return Number.isFinite(t) ? { at: t, host: '', services: null, cycle: '' } : null;
 }
