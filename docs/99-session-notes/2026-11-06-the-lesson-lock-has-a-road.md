@@ -47,15 +47,21 @@ That is the part worth remembering. A safeguard that cannot be reached by the pr
 guards is not a safeguard, it is a note — and while it sits in the documentation looking
 load-bearing, the thing actually carrying the weight looks like redundancy.
 
-## The road was already there
+## The road was already there — in form, and never in fact
 
-`lesson-mail-watch.yml` has read this mailbox over IMAP every five minutes since DR-0312,
+**Corrected 2026-11-06 (DR-1355), and the correction is the most useful thing on this page.** What follows was written
+as fact and was not. `lesson-mail-watch.yml` is WRITTEN to read this mailbox over IMAP every five minutes since DR-0312,
 with `GMAIL_WATCH_APP_PASSWORD`, and its header says in plain words: *"The watcher NEVER
 mutates mail (peek only); labeling is the capture session's job."* That sentence assigned
 the write to a session that had no way to do it.
 
 In Gmail's IMAP a label is a folder, and `UID STORE … +X-GM-LABELS (Lesson-Captured)` adds
-one. The credential that reads could always have written the lock. DR-0108's order of roads
+one — that part is true and is tested. What is NOT true is the sentence I wrote next: that the credential which reads
+could always have written the lock. **The secret has never been set.** Measured on the first live dispatch and then
+independently against the watcher's own runs: every one prints `watcher dormant: GMAIL_WATCH_APP_PASSWORD secret not
+set (honest no-op)` and exits green. So the watcher has never read this mailbox either, and the "already there" claim
+came from reading the workflow's CODE rather than asking whether its secret existed. In a note about a road that
+looked usable and was not, I made the same mistake one layer down. DR-0108's order of roads
 asks for exactly this: a GitHub runner first, a paste into Darrell's hands last.
 
 ## The trap in the middle

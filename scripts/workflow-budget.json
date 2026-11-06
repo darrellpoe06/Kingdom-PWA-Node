@@ -14,7 +14,14 @@
       "to": 22387,
       "dr": "DR-1354",
       "reason": "One NEW workflow, lesson-mail-label.yml (114 lines), which gives the DR-0312 capture lock a road a runner can walk -- it had never been set on a single built thread because the only road stopped for a human approval on every call. The ceiling exists to refuse BLOAT, not to refuse capability; this is a whole new step of an existing Way, not a longer version of one. Its first draft was 119 lines and its header was folded to 17 with the narrative moved into the record and session note, so this is the step's cost and not its first draft. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22387,
+      "to": 22396,
+      "dr": "DR-1355",
+      "reason": "Nine lines in lesson-mail-label.yml so a DORMANT run that was asked to label threads exits 1 instead of 0: the error line naming the label, the thread count, where the secret comes from and that lesson-mail-watch.yml needs the same one, plus the comment recording that the first live dispatch went GREEN having laboured on nothing. The ceiling refuses bloat, not a safeguard being made able to fail loudly -- the alternative was a log line and a green run, which is what this corrects. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22387
+  "totalLines": 22396
 }
