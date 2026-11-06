@@ -144,10 +144,21 @@ const SPINE = {
 };
 
 describe('spm11 is the eleventh lesson of the course, and the course counts itself', () => {
-  it('the lesson exists, is last, and the week count is derived rather than pinned', () => {
+  // AMENDED 2026-11-06 BY spm12 (DR-1366), and the amendment is the honest one.
+  // This case asserted `length === 11` and that spm11 was LAST. Neither was ever
+  // a property OF spm11: both were claims about the course having nothing after
+  // it, which only a twelfth lesson can falsify — and the twelfth lesson did.
+  // CI shard 4/4 named it. So the pin is moved to what it actually meant and
+  // what stays true for good: spm11 exists, it sits at INDEX 10 (the eleventh),
+  // and the week count is still derived from the array rather than pinned
+  // (DR-0677). The course's total length and which lesson is last belong to
+  // whichever lesson is last, and spm12's own gate holds them there, along with
+  // contiguity spm1..spmN read off the ids. Nothing spm11 protects was weakened:
+  // every other case in this file is untouched.
+  it('the lesson exists, is the eleventh, and the week count is derived rather than pinned', () => {
     expect(M(), 'spm11 is not in SOFTWARE_PM_MODULES').toBeTruthy();
-    expect(SOFTWARE_PM_MODULES.length).toBe(11);
-    expect(SOFTWARE_PM_MODULES[SOFTWARE_PM_MODULES.length - 1].id).toBe(SPM11);
+    expect(SOFTWARE_PM_MODULES.length, 'the course may grow, but never shrink past spm11').toBeGreaterThanOrEqual(11);
+    expect(SOFTWARE_PM_MODULES.findIndex((m) => m.id === SPM11), 'spm11 is the ELEVENTH lesson').toBe(10);
     // DR-0677: weeks is a getter over the array, so a new lesson edits no count.
     expect(SOFTWARE_PM_META.weeks).toBe(SOFTWARE_PM_MODULES.length);
   });
