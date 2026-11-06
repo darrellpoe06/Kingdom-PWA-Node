@@ -307,6 +307,19 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     }
     return out;
   };
+  // The VERSE-level census, added 2026-11-06 (DR-1351). The chapter census
+  // above is right for the chapter question below, and WRONG for the verse
+  // question further down -- see the comment on that case.
+  const anchorVerses = () => {
+    const out = new Set();
+    for (const m of LIVING_LESSONS_MODULES) {
+      if (m.id === ID) continue;
+      for (const r of String((m.anchor && m.anchor.ref) || '').split(';')) {
+        const t = r.trim(); if (t) out.add(t);
+      }
+    }
+    return out;
+  };
   const courseProse = () => {
     const out = [];
     for (const m of LIVING_LESSONS_MODULES) { if (m.id === ID) continue; out.push(...strings(m)); }
@@ -337,8 +350,25 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     // taught in ll94's and ll244's own prose for the very claim this lesson
     // would have made with it. The two censuses must genuinely disagree, or the
     // finding this build paid for has been lost.
-    const spent = anchorChapters();
-    expect(spent.has('Psalms 115'), 'Psalms 115 should be FREE at anchor level').toBe(false);
+    //
+    // CORRECTED 2026-11-06 (DR-1351), and the correction is a granularity bug,
+    // not a frozen census. This case asks a question about a VERSE -- "a
+    // prose-built VERSE that is FREE at anchor level" -- and asked it of the
+    // CHAPTER census. That read true for one reason only: no sibling had yet
+    // anchored any verse in Psalms 115. ll283 ("Made In Our Image") anchors
+    // Psalms 115:4, 115:5 and 115:8 for `they that make them are like unto
+    // them`, which is the right verse for that lesson, so the chapter went
+    // "spent" and this case went red -- while saying "spent" about a verse that
+    // is still free. MEASURED on ll283's branch: 3,417 anchor verse refs across
+    // 777 anchor chapters; "Psalms 115" IS anchored as a chapter; `Psalms 115:1`
+    // is NOT anchored as a verse. So the claim this case exists to make is
+    // untouched; only the census it was asked of was the wrong one.
+    //
+    // This is NOT the exclusivity class DR-1317/1323/1326/1333/1344 removed. No
+    // verse is being refused to anybody here: the case is a proof that the two
+    // censuses CAN disagree, and it now compares like with like.
+    const spent = anchorVerses();
+    expect(spent.has('Psalms 115:1'), 'Psalms 115:1 should be FREE at anchor level').toBe(false);
     expect(courseProse().includes('Psalms 115:1'), 'Psalms 115:1 should be BUILT in the course prose').toBe(true);
     // And the other four dropped on the same measurement really are in the prose.
     for (const v of ['Psalms 15:4', 'Exodus 18:21', '1 Samuel 8:17', 'Acts 12:23']) {
