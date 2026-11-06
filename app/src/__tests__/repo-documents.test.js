@@ -48,12 +48,33 @@ describe('the catalog is the repository, grouped by its own folders', () => {
   const catalog = buildCatalog(keysOnDisk());
   const counts = groupCounts(catalog);
 
-  it('lists every decision record on disk, DR-1353 and DR-1360 among them, newest first', () => {
+  it('lists every decision record on disk, newest first, with the newest DERIVED', () => {
     const drs = catalog.filter((it) => it.group === 'decisions' && /\/DR-\d{4}-/.test(it.path));
-    expect(drs.length).toBe(docsOnDisk('decisions').filter((f) => /^DR-\d{4}-/.test(f)).length);
+    const files = docsOnDisk('decisions').filter((f) => /^DR-\d{4}-/.test(f));
+    expect(drs.length).toBe(files.length);
     expect(drs.length).toBeGreaterThan(1000);
-    expect(drs[0].path).toMatch(/^docs\/decisions\/DR-1360-/);
-    expect(drs.some((it) => it.path.startsWith('docs/decisions/DR-1353-'))).toBe(true);
+
+    // THE NUMBER WAS A LITERAL AND IT BROKE TWO PRs (DR-1365). This read
+    // `toMatch(/^docs\/decisions\/DR-1360-/)`, which was true for exactly as
+    // long as DR-1360 was the newest record: #2571 (DR-1363) and #2574
+    // (DR-1365) both went red on it within the hour, and every future
+    // record-adding branch would have too. DR-1316's defect class in a
+    // different shape — a case pinned to a value that moves by design.
+    //
+    // NOT COVERED BY forward-safe-gate-guard, and said plainly rather than
+    // claimed: that guard looks for a bare integer appended to a course's own
+    // *MODULES list. A detector for THIS shape (`[0]` beside a literal
+    // `DR-NNNN`) matches 15 lines in this suite and 14 of them are correct —
+    // they assert on their own fixtures, where the literal IS the fixture's
+    // value. A scanner cannot tell fixture data from a live-repo read, and one
+    // that cried wolf 14 times would be worse than this comment.
+    //
+    // So it is derived from disk instead, which holds whatever lands next.
+    const highest = Math.max(...files.map((f) => Number(f.slice(3, 7))));
+    expect(drs[0].path, 'the catalog ranks decision records by number, descending').toBe(
+      `docs/decisions/${files.find((f) => Number(f.slice(3, 7)) === highest)}`,
+    );
+    expect(drs.some((it) => it.path.startsWith('docs/decisions/DR-1353-')), 'a landed record stays findable').toBe(true);
   });
 
   it('lists the foundations and the Ways, the session notes, the reviews and the governance queue', () => {
