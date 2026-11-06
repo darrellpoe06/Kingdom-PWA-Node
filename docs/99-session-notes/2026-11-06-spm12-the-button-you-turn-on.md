@@ -60,7 +60,7 @@ A pin typed from memory would have been wrong twice. One proven-to-catch case in
 
 DR-1317 forbids dropping a verse merely because it appears elsewhere, so each of these is named with its real reason rather than quietly avoided:
 
-- **Luke 14:28** — the obvious cost verse. sov71 (DR-1364) used it today, and **this course's own spm3 already anchors on it**. spm12 names it in the senior band and lands on Proverbs 20:25 instead, because *the failure here is not a refusal to count; it is counting the construction and never the tenancy.* Both the naming and the different landing are asserted in the gate, including that spm3 still owns it and spm12 does not re-anchor on it.
+- **Luke 14:28** — the obvious cost verse. sov71 is reported to have used it today — **DR-1364 is not on disk in this tree**, measured with `ls docs/decisions/DR-1364-*`, because it sits on an unmerged branch; it is therefore named and not cited. What IS verifiable here is that **this course's own spm3 already anchors on it**, which the gate asserts by reading spm3's `anchor.ref`. spm12 names it in the senior band and lands on Proverbs 20:25 instead, because *the failure here is not a refusal to count; it is counting the construction and never the tenancy.* Both the naming and the different landing are asserted in the gate, including that spm3 still owns it and spm12 does not re-anchor on it.
 - **Proverbs 27:23** — the register verse, anchored by **spm6 and spm8 both**. Left with them: this lesson's teaching is the obligation, not the inventory.
 
 ## The three neighbours, one sentence each

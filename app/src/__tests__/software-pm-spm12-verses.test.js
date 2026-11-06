@@ -421,7 +421,7 @@ describe('the teaching is reasoned from the Word, not decorated with it (DR-0281
   });
 
   it('the enquiry-after-the-vow is the landing, and Luke 14:28 is named rather than reused', () => {
-    // sov71 (DR-1364) and this course's own spm3 both already count cost at
+    // This course's own spm3 already counts cost at
     // Luke 14:28. spm12 names it and lands elsewhere ON PURPOSE, because the
     // failure here is not a refusal to count — it is counting the build and
     // never the owning. Asserted so the distinction cannot be edited away.

@@ -4,7 +4,7 @@
 **Tier:** A
 **Date:** 2026-11-06
 **Scope:** spm12 · Software Project Management: Prove It · Gmail thread `1a16435ca2019031`
-**Relations:** DR-0312, DR-0076, DR-0098, DR-0100, DR-0190, DR-0210, DR-0281, DR-0314, DR-0456, DR-0459, DR-0677, DR-0795, DR-1317, DR-1339, DR-1358, DR-1364
+**Relations:** DR-0312, DR-0076, DR-0098, DR-0100, DR-0190, DR-0210, DR-0281, DR-0314, DR-0456, DR-0459, DR-0677, DR-0795, DR-1317, DR-1339, DR-1358
 
 **Intake:** Gmail thread `1a16435ca2019031`, forwarded **2026-10-22 15:23**, carrying an IT Brew (Morning Brew) issue of **2026-10-22**. His word above the header: **"Lessons"**. The full body was supplied in the build brief; no Gmail tool was called.
 
@@ -26,7 +26,7 @@ Three items in one issue, by two reporters, quoting three named people. A place-
 
 **THE PRIMARY SOURCE WAS NOT REACHED, AND THE REFUSALS ARE QUOTED (DR-0190 §6).** Both publisher hosts refused to resolve from this session: `www.itbrew.com` → *"getaddrinfo ENOTFOUND www.itbrew.com"*, and `www.morningbrew.com` → *"getaddrinfo ENOTFOUND www.morningbrew.com"*. A web search for the Hutten item returned nothing from the publication. **I did not read either article.** So every external claim is **tier 2, attributed** — reported as the publication reported it, never asserted on our own authority — and the lesson's landing rests on the Word and on this house's own written record. The senior band says *neither was independently verified here* where a reader meets it, and the gate refuses any sentence that would assert one. `re-review: 2026-12-06` if the hosts are ever allowed.
 
-**The ground, chosen so no neighbour is told twice (DR-1317).** Luke 14:28 is the obvious cost verse and is deliberately **not** this lesson's anchor: sov71 (DR-1364) used it today and this course's own **spm3** already anchors on it. spm12 **names** it in the senior band and lands on **Proverbs 20:25** instead — *after vows to make enquiry* — because the failure here is not a refusal to count, it is counting the construction and never the tenancy. **Proverbs 27:23** is likewise named rather than taken: it is the register verse spm6 and spm8 both anchor on, and this lesson's teaching is the obligation rather than the inventory.
+**The ground, chosen so no neighbour is told twice (DR-1317).** Luke 14:28 is the obvious cost verse and is deliberately **not** this lesson's anchor: this course's own **spm3** already anchors on it, and sov71 is reported to have used it today — its record, DR-1364, is **not on disk in this tree** (I checked; it is on an unmerged branch), so it is named rather than cited and is kept out of the Relations line above. spm12 **names** it in the senior band and lands on **Proverbs 20:25** instead — *after vows to make enquiry* — because the failure here is not a refusal to count, it is counting the construction and never the tenancy. **Proverbs 27:23** is likewise named rather than taken: it is the register verse spm6 and spm8 both anchor on, and this lesson's teaching is the obligation rather than the inventory.
 
 **The neighbours it would be confused with, each in one sentence.** spm8: *name and date your debt* — the clock is the borrower's. spm11: *the version you did not keep current cannot be patched* — the clock was a maintainer's. spm12: *the thing you switched on is now yours to carry* — the clock starts when you switch it on and does not stop. Held apart by id in the gate.
 
