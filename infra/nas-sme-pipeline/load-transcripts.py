@@ -356,6 +356,44 @@ def video_ids_from_cloud(url, key, instance_id):
 
 # --- id sources -------------------------------------------------------------
 
+# A LINK DARRELL SENDS IS A SOURCE, ON THIS NAS, WITH NO RUNNER IN THE ROAD
+# (2026-11-06, DR-1353). Darrell: "I don't want to need anything... they should
+# be supporting, not necessary." The Research tab writes an agent_inbox row
+# tagged `research` whose body holds the link; until now the only road from
+# that row to a transcript ran through a GitHub runner joining the tailnet, and
+# the day its key died five links sat. The trickle already fetches captions
+# from this NAS's own residential IP on its own clock, so the Research tab's
+# links join its worklist FIRST (newest first), ahead of the sermon backlog.
+# Read-only on agent_inbox; the transcript lands in video_transcripts exactly
+# as a sermon's does, where the app and the builder already read.
+YT_ID_RE = re.compile(
+    r"(?:youtu\.be/|youtube\.com/(?:watch\?(?:[^\s&]*&)*v=|shorts/|live/|embed/))([A-Za-z0-9_-]{11})")
+
+
+def youtube_ids_in(text):
+    """Every YouTube video id a block of text names, in order, without repeats."""
+    out = []
+    for vid in YT_ID_RE.findall(str(text or "")):
+        if vid not in out:
+            out.append(vid)
+    return out
+
+
+def research_video_ids(url, key, instance_id):
+    """Video ids from the Research tab's rows (agent_inbox tagged `research`),
+    newest first, so a link Darrell sends is fetched before the sermon backlog."""
+    rows = rest_all(url, key,
+                    "agent_inbox?select=id,body,tags,created_at&instance_id=eq." + instance_id
+                    + "&tags=cs." + urllib.parse.quote('["research"]')
+                    + "&order=created_at.desc,id.asc")
+    ids = []
+    for r in rows:
+        for vid in youtube_ids_in(r.get("body")):
+            if vid not in ids:
+                ids.append(vid)
+    return ids
+
+
 def channel_video_ids(channel_id):
     req = urllib.request.Request(CHANNEL_RSS.format(channel_id), headers={"User-Agent": "Mozilla/5.0"})
     data = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "ignore")
@@ -537,6 +575,13 @@ def main():
     if args.channel:
         ids += channel_video_ids(args.channel)
     if not ids:
+        # Research-tab links first (DR-1353), then the sermon corpus. A link's
+        # upload date is unknown here, so a no-caption result is a durable
+        # verdict for it, as for any sermon with no service_date.
+        try:
+            ids += research_video_ids(url, key, instance_id)
+        except Exception as e:  # the sermon drain must not die for a research read
+            log(f"research links: not read this run ({e.__class__.__name__}: {e})")
         for _vid, _sd in video_ids_from_cloud(url, key, instance_id):
             ids.append(_vid)
             svc_date[_vid] = _sd
