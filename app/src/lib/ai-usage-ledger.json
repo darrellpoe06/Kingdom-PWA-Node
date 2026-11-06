@@ -659,6 +659,23 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
+    },
+    {
+      "id": "the-tailnet-ticket-stops-expiring",
+      "date": "2026-11-06",
+      "task": "One door onto the tailnet that prefers a non-expiring OAuth client: 68 join sites across 64 workflows each passed an auth key that expires by design, so one expiry shut 68 roads",
+      "drs": [
+        "DR-1374"
+      ],
+      "prs": [
+        2582
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.32,
+      "estimateWithoutAiHours": 7,
+      "notes": "Measured from commit timestamps. Darrell: 'Onetime fix... not 50 different connectbot tries' -- and ConnectBot cannot reach this one, because the dead credential is the RUNNER's ticket, held in Tailscale's control plane and GitHub's secrets, never on the NAS. Two measurements shaped it: 68 join sites on an expiring key, and 21 of them with no actions/checkout before them, which would have silently broken 21 workflows had the conversion gone in blind. Confirmed independently by the upstream action's own output on this branch: 'Input authkey has been deprecated... An OAuth API client is recommended instead'. Proven to catch three defects; the third did NOT catch at first because the assertion matched the file's own header comment, the same prose-read-as-code trap as this morning's gate. Tokens and dollars null: no meter exposed."
     }
   ]
 }

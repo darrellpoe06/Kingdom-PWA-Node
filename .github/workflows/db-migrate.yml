@@ -167,8 +167,10 @@ jobs:
       # break, and the run's overall status still reflects both halves.
       - name: Land the same migrations on the SOVEREIGN database (repoint armed only)
         if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: Replay onto the sovereign database

@@ -1,0 +1,104 @@
+# =============================================================================
+# join-tailnet — one door onto the tailnet, and a ticket that does not expire
+# =============================================================================
+# MEASURED 2026-11-06: `inbox-lessons-waiting.yml` run 42291051232 failed at
+# "Verify the tailnet actually joined" — the join step reported success while
+# the tailnet was shut, exactly the DR-1284 shape. The cause was not the NAS and
+# not the code: a Tailscale AUTH KEY had expired. Auth keys expire by design (90
+# days at most), and **64 workflows in this repo pass `secrets.TS_AUTHKEY`**, so
+# one expiry shuts 64 roads at once — the deploy, the health witnesses, the
+# announce bell, the lesson intake. It has happened repeatedly (DR-1269, DR-1284).
+#
+# ConnectBot cannot fix it, and that is worth writing down because it is the
+# natural question: the dead credential is the RUNNER's ticket onto the tailnet.
+# It lives in Tailscale's control plane and GitHub's secret store. Nothing on
+# the NAS holds it, so no amount of SSH to the NAS reaches it.
+#
+# THE ONE-TIME FIX IS THE CREDENTIAL TYPE, NOT A FRESH KEY. An OAuth client
+# (`tailscale/github-action`'s `oauth-client-id` + `oauth-secret`) does NOT
+# expire. Minted once, the tailnet road stops dying. This action prefers it and
+# falls back to the auth key, so the roads keep working exactly as they do today
+# until the OAuth secrets exist, and stop expiring the moment they do — no
+# second migration, no flag day.
+#
+# IT ALSO VERIFIES. The join step's own conclusion is not a witness of the join
+# (DR-1284, measured: `backend error: invalid key` five times and the step still
+# closed `conclusion=success`). This action asks tailscale itself and fails loudly,
+# naming which credential it used, so a shut road can never read as an open one.
+name: Join the tailnet
+description: Join the tailnet with a non-expiring OAuth client where one exists, else the legacy auth key, and VERIFY the join.
+
+inputs:
+  oauth-client-id:
+    description: Tailscale OAuth client id (never expires). Pass secrets.TS_OAUTH_CLIENT_ID.
+    required: false
+    default: ''
+  oauth-secret:
+    description: Tailscale OAuth client secret. Pass secrets.TS_OAUTH_SECRET.
+    required: false
+    default: ''
+  authkey:
+    description: Legacy auth key (EXPIRES). Pass secrets.TS_AUTHKEY. Used only when no OAuth client is given.
+    required: false
+    default: ''
+  tags:
+    description: Tags for the ephemeral node. Required by Tailscale when joining with OAuth.
+    required: false
+    default: 'tag:ci'
+
+outputs:
+  credential:
+    description: Which credential opened the road — oauth or authkey.
+    value: ${{ steps.pick.outputs.credential }}
+
+runs:
+  using: composite
+  steps:
+    - id: pick
+      shell: bash
+      env:
+        OAUTH_ID: ${{ inputs.oauth-client-id }}
+        AUTHKEY: ${{ inputs.authkey }}
+      run: |
+        set -euo pipefail
+        # Never print either value. Only which KIND of ticket we hold.
+        if [ -n "${OAUTH_ID:-}" ]; then
+          echo "credential=oauth" >> "$GITHUB_OUTPUT"
+          echo "Ticket: OAuth client (does not expire)."
+        elif [ -n "${AUTHKEY:-}" ]; then
+          echo "credential=authkey" >> "$GITHUB_OUTPUT"
+          echo "Ticket: legacy auth key (EXPIRES — mint an OAuth client to stop this recurring)."
+        else
+          echo "credential=none" >> "$GITHUB_OUTPUT"
+          echo "::error::No tailnet credential at all: neither TS_OAUTH_CLIENT_ID nor TS_AUTHKEY is set."
+          exit 1
+        fi
+
+    - name: Join with the OAuth client
+      if: steps.pick.outputs.credential == 'oauth'
+      uses: tailscale/github-action@v3
+      with:
+        oauth-client-id: ${{ inputs.oauth-client-id }}
+        oauth-secret: ${{ inputs.oauth-secret }}
+        tags: ${{ inputs.tags }}
+
+    - name: Join with the legacy auth key
+      if: steps.pick.outputs.credential == 'authkey'
+      uses: tailscale/github-action@v3
+      with:
+        authkey: ${{ inputs.authkey }}
+
+    # THE JOIN STEP IS NOT A WITNESS OF THE JOIN (DR-1284). Ask tailscale.
+    - name: Verify the tailnet actually joined
+      shell: bash
+      env:
+        CRED: ${{ steps.pick.outputs.credential }}
+      run: |
+        set -uo pipefail
+        if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
+          echo "::error::Tailnet join FAILED using the ${CRED} credential. An OAuth client does not expire; an auth key does (needs Reusable + Ephemeral)."
+          sed -e 's/tskey-[A-Za-z0-9-]*/tskey-REDACTED/g' /tmp/ts-join.txt || true
+          exit 1
+        fi
+        echo "Tailnet joined, verified by tailscale itself, using the ${CRED} credential:"
+        tailscale status --peers=false
