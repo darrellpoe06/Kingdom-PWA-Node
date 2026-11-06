@@ -58,7 +58,7 @@ export function questionsFor(doc, { extraction: x, matched = {}, recon = null, h
     return out; // what it IS decides every other question
   }
 
-  const needsAccount = ['transactions-export', 'card-statement', 'bank-statement', 'loan-statement'].includes(x.doc_type);
+  const needsAccount = ['transactions-export', 'card-statement', 'bank-statement', 'loan-statement', 'account-snapshot'].includes(x.doc_type);
   if (needsAccount && matched.account && !matched.account.accountId) {
     const cands = (matched.account.candidates || []).map((c) => ({ value: `account:${c.id}`, label: `${c.name} (${c.reason === 'last-4' ? 'same last 4' : 'same bank'})` }));
     const rest = (accounts || []).filter((a) => a && a.id && !cands.some((c) => c.value === `account:${a.id}`)).slice(0, 6)
@@ -81,6 +81,30 @@ export function questionsFor(doc, { extraction: x, matched = {}, recon = null, h
   } else if ((entities || []).length > 1 && matched.entity && !matched.entity.entityId && ['bill', 'invoice', 'receipt', 'pay-stub'].includes(x.doc_type)) {
     out.push(q(id, 'entity', 'Whose books does this belong to?', (matched.entity.candidates || entities).map((e) => ({ value: `entity:${e.id}`, label: e.name })),
       { blocking: false, why: 'Stored either way; this only files it under the right name.' }));
+  }
+
+  if (x.doc_type === 'account-snapshot') {
+    // A screenshot's day is the day its balance is true. The screen usually
+    // says it; when it does not, the day it was uploaded is offered, never
+    // assumed (Darrell 2026-11-06: "Never invent missing information").
+    if (x.uncertain.includes('as_of')) {
+      const got = String(doc.receivedAt || '').slice(0, 10);
+      const back = (n) => { const d = got ? new Date(`${got}T12:00:00`) : new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+      const days = got ? [got, back(1), back(2)] : [back(0), back(1), back(2)];
+      out.push(q(id, 'as_of', 'What day was this screenshot taken? Its balance is true as of that day.',
+        days.map((d, i) => ({ value: d, label: i === 0 ? `${d} (the day it was uploaded)` : d })),
+        { why: 'The screen shows no date, and a verified balance needs the day it was true.' }));
+    }
+    if (x.uncertain.includes('balance_kind')) {
+      out.push(q(id, 'balance_kind', 'The screen shows two balances. Which one is the bank\'s available balance to record?',
+        [{ value: 'available', label: `Available ${money(x.summary.availableBalance)}` }, { value: 'current', label: `Current / present ${money(x.summary.currentBalance)}` }],
+        { why: 'Only one figure becomes the bank-verified balance for that day.' }));
+    }
+    if (x.uncertain.includes('balance')) {
+      out.push(q(id, 'balance', 'No balance was read from this screenshot. How should it be handled?',
+        [{ value: 'rows-only', label: 'Add its transactions only; no verified balance' }, { value: 'hold', label: 'Hold it; I will upload a clearer screenshot' }],
+        { why: 'A verified balance is never guessed from a screen that does not show one.' }));
+    }
   }
 
   if (recon && recon.status === 'mismatch') {

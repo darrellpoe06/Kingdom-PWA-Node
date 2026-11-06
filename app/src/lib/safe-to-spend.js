@@ -703,7 +703,14 @@ function samePayee(a, b) {
   if (!a || !b) return false;
   if (a === b) return true;
   const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  return short.length >= 4 && long.startsWith(short + ' ');
+  if (short.length < 4) return false;
+  if (long.startsWith(short + ' ')) return true;
+  // The bank's own spelling carries its noise in FRONT of the payee ("ZELLE
+  // PAYMENT TO BG MOM JPM99..."), so the confirmed bill "BG & Mom" is matched
+  // when its words appear whole inside the row's key (Darrell 2026-11-06:
+  // "Match cleared payments to existing bills"). Whole words only: "MOM" alone
+  // is too short to match anything.
+  return (' ' + long + ' ').includes(' ' + short + ' ');
 }
 export function settleOccurrences(events, data, asOf) {
   const statuses = (data && data.moneyPlan && data.moneyPlan.billStatus) || {};

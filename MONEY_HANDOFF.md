@@ -48,6 +48,20 @@ Unchanged and verified by the same run: Personal reserve floors Safe to Spend at
 
 Money -> Bills -> Review & confirm -> add a bill, one per loan: group "Rental property mortgage or expense"; Lender "First State Bank"; Loan number last 4; Normal payment; Actual due date = the CONTRACTUAL due date (even if passed); Grace period 15; Late fees owed now if the bank shows one; Paid from = the account actually used; Belongs to = Poe Properties; Which property; tick "This bill is the mortgage on this property". The line of credit has no property: leave the property unset and the mortgage box unticked. Nothing is pre-filled by the agent: the figures come from the bank statements.
 
+## Screenshot import (milestone 1, 2026-11-06; on PR #2540, held, NOT merged)
+
+**Decision (Darrell 2026-11-06):** uploaded bank screenshots, PDF statements and transaction files are the initial source of financial information. No NAS, SSH or network requests. The Books intake pipeline (DR-0709) is reused; the Books UI is unchanged except the review card.
+
+**What exists already (measured):** Money's header row carries the one Upload button on every Money tab (`BooksUploadButton`, mounted inside the PIN gate as `BooksUploadMount` with the Money section as the hint). The file input takes any file, many at once (PNG/JPG/HEIC/PDF). Images are OCR'd sovereign-first (`books-intake-read.js`: the NAS `/books/ocr` road when it answers, else tesseract.js on the device, loaded from unpkg on first use). PDFs use pdf.js. Originals are kept in IndexedDB and copied to the household's private document shelf. Rows go through `planAccountImport` dedupe (FITID or content key), accounts are matched by last-4, uncertain facts become a stored question queue, nothing is written until a person taps Approve.
+
+**What was missing and is now built:** a banking-app screenshot is not a statement. New document kind `account-snapshot` ("Banking app screenshot") in `books-intake-extract.js`: classifier signals (available balance, present balance, pending, the `(...7206)` last-4, "as of"); extractor reads the available/current balance (the figure may sit on the line below its label), the as-of day, the last four, and the rows in both `Nov 4` and `11/04` spellings with the year taken from the as-of day; rows under "Pending" are flagged; rows whose description is a move between the family's own accounts (Cash App, transfers) are category `transfer`. Questions (`books-intake-questions.js`): no date on the screen asks for the day (the upload day offered first, never assumed); two different balances ask which is the bank's; no balance asks rows-only or hold. Plan/commit (`books-intake-pipeline.js`): kind `snapshot` writes the new rows through `commitImportedRows`, then ONE bank-verified checkpoint row (`balanceCheckpointRow`, basis available/current, source "screenshot <file>") unless that account already has one for that day and figure. The engine then reads the balance as verified on that day (Accounts and Safe to Spend already display "verified on"). Review card (`BooksUpload.jsx`) shows "Verified balance $X as of <day> (available) · will be recorded on approval" and the button reads "Approve: verified balance + N new rows".
+
+**Also fixed on the way:** `settleOccurrences` matches a confirmed bill to the bank's noisy spelling of its payee ("ZELLE PAYMENT TO BG MOM ..." settles "BG & Mom"), so a cleared payment imported from a screenshot marks the bill paid.
+
+**Tests:** `app/src/__tests__/money-screenshot-upload.test.js` (12 cases): classify, extract (balance, day, last-4, rows, year roll, pending, Cash App = transfer), the no-date question, Personal vs Poe Properties routing (7206 vs 3322), approve writes 4 rows + 1 checkpoint and the engine reads $5,774 verified 2026-11-05 with Poe Properties at $0, re-upload adds nothing, a later screenshot records a newer checkpoint and only the missing row, an imported Zelle row settles the bill. Intake suites (books-one-upload 21, every-tab 15, bulk-import 20, bank-formats 13) and the 14 Money suites all green: 20 files, 299 tests. Lint clean.
+
+**Not yet proven, said plainly:** real OCR on a real Fold screenshot. The tests feed the pipeline the text OCR would produce. The first real upload is the test (Money -> Upload -> the Chase 7206 screenshot). If OCR garbles the balance, the card shows what it read and the questions catch a missing day or balance; nothing is written until Approve.
+
 ## The seven questions - what the engine can answer today
 
 | # | Question | Engine support | Blocked by |
@@ -82,13 +96,15 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Next unfinished task
 
-Darrell runs the read-only census from ConnectBot (`scripts/money-census.sh`,
-one line) and pastes the rounded rows back; present verified current records
-beside the exact proposed corrections (items 2-4); wait for approval before any
-record change; enter the six loans with the figures from the bank statements;
-compare Safe to Spend against the verified figures; then lift the hold on PR
-#2540 and delete `scripts/money-census.sh` + `scripts/money-records-read.sql`.
-No live records changed and nothing deployed by this thread.
+SUPERSEDED 2026-11-06: no NAS, SSH or network road (Darrell's decision). Darrell
+tests milestone 1 on the Fold once this branch is served: Money -> Upload ->
+the Chase 7206 screenshot -> review card -> Approve. Then the other accounts
+(3322, First State Bank, Cash App) the same way; the six loans entered in
+Bills -> Review from the bank statements; the $10,000 reserve saved in Coming
+Up; Safe to Spend compared against the verified figures; then the hold on PR
+#2540 is lifted and `scripts/money-census.sh` + `scripts/money-records-read.sql`
+(unused now) are deleted. No live records changed and nothing deployed by this
+thread.
 
 ## References
 
