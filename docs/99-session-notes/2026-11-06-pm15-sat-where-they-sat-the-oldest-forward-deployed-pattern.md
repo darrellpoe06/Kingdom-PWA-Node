@@ -1,7 +1,7 @@
 # pm15 — Sat where they sat: the oldest forward-deployed pattern, and the video we never saw
 
 **Date:** 2026-11-06
-**Decision record:** [`DR-1355`](../decisions/DR-1355-sat-where-they-sat-the-oldest-forward-deployed-pattern-pm15.md)
+**Decision record:** [`DR-1356`](../decisions/DR-1356-sat-where-they-sat-the-oldest-forward-deployed-pattern-pm15.md)
 **Module id:** `pm15-sat-where-they-sat-the-oldest-forward-deployed-pattern`
 **Course:** Project Management: Count the Cost (lesson 15 of 15)
 **Source:** Gmail thread `1a1643591fce3702`, forwarded 2026-10-22 15:23:09 UTC, subject `FW: What is a forward-deployed engineer?`, from McKinsey & Company `publishing@email.mckinsey.com`
