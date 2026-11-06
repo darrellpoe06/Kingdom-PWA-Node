@@ -1,4 +1,4 @@
-// The lesson lock has a road a runner can walk (DR-1353).
+// The lesson lock has a road a runner can walk (DR-1354).
 // =============================================================================
 // The Gmail-lesson-intake Way says a thread is labelled Lesson-Captured once its
 // lesson ships. It had NEVER been set on a built thread, because the only road
@@ -9,14 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  ALLOWED_LABELS,
-  THREAD_ID,
-  threadIdToThrid,
-  assertLabel,
-  imapPlan,
-  parseThreadIds,
-} from '../../../scripts/gmail-thread-label.mjs';
+import { ALLOWED_LABELS, THREAD_ID, threadIdToThrid, assertLabel, imapPlan, parseThreadIds } from '../../../scripts/gmail-thread-label.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const WORKFLOW = join(ROOT, '.github', 'workflows', 'lesson-mail-label.yml');
@@ -97,11 +90,7 @@ describe('the IMAP plan', () => {
   });
 
   it('parses the pasted input the workflow takes', () => {
-    expect(parseThreadIds('1a163d58a4d068b6, 1a16401bf7c5898d  1a164aff48fa13de')).toEqual([
-      '1a163d58a4d068b6',
-      '1a16401bf7c5898d',
-      '1a164aff48fa13de',
-    ]);
+    expect(parseThreadIds('1a163d58a4d068b6, 1a16401bf7c5898d  1a164aff48fa13de')).toEqual(['1a163d58a4d068b6', '1a16401bf7c5898d', '1a164aff48fa13de']);
     expect(parseThreadIds('')).toEqual([]);
     expect(parseThreadIds(undefined)).toEqual([]);
   });

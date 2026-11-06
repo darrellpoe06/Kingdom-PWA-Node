@@ -1,4 +1,4 @@
-# DR-1353: The lesson lock has a road a runner can walk — the label was never missed, it was never reachable
+# DR-1354: The lesson lock has a road a runner can walk — the label was never missed, it was never reachable
 
 **Date:** 2026-11-06
 **Status:** Accepted

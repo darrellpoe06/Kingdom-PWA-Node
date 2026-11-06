@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// gmail-thread-label.mjs -- the pure half of the lesson lock's road (DR-1353).
+// gmail-thread-label.mjs -- the pure half of the lesson lock's road (DR-1354).
 // =============================================================================
 // WHY. The Gmail-lesson-intake Way (DR-0312) says a thread is labelled
 // Lesson-Captured only after its lesson ships. Measured 2026-11-06: that label

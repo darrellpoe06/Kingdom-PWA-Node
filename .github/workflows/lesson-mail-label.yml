@@ -1,5 +1,5 @@
 # =============================================================================
-# lesson-mail-label — the lesson lock gets a road a runner can walk (DR-1353)
+# lesson-mail-label — the lesson lock gets a road a runner can walk (DR-1354)
 # =============================================================================
 # DR-0312 says a thread is labelled Lesson-Captured once its lesson ships. It
 # had never been set on one built thread: the only road was a connector write
@@ -7,7 +7,7 @@
 # runs unattended. lesson-mail-watch.yml already reads this mailbox over IMAP
 # with GMAIL_WATCH_APP_PASSWORD, and in Gmail IMAP a label IS a folder, so
 # `+X-GM-LABELS` sets the lock from a runner (DR-0108: a runner first, a hand
-# last). Full account, including the X-GM-THRID decimal trap, in DR-1353.
+# last). Full account, including the X-GM-THRID decimal trap, in DR-1354.
 #
 # WRITES MAIL, narrowly: adds one allow-listed label and nothing else — never
 # deletes, moves or empties, never reads or prints a subject or a body. Only

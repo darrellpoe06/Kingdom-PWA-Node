@@ -692,7 +692,7 @@
     {
       "file": "lesson-mail-label.yml",
       "name": "Lesson mail label (set the capture lock)",
-      "purpose": "lesson-mail-label — the lesson lock gets a road a runner can walk (DR-1353)",
+      "purpose": "lesson-mail-label — the lesson lock gets a road a runner can walk (DR-1354)",
       "triggers": [
         "workflow_dispatch"
       ],

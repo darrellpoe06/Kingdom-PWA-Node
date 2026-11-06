@@ -1,7 +1,7 @@
-# The lesson lock has a road — the narrative behind DR-1353
+# The lesson lock has a road — the narrative behind DR-1354
 
 **Date:** 2026-11-06
-**Record:** [DR-1353](../decisions/DR-1353-the-lesson-lock-has-a-road-a-runner-can-walk.md)
+**Record:** [DR-1354](../decisions/DR-1354-the-lesson-lock-has-a-road-a-runner-can-walk.md)
 
 Narrative held here per `record-length-guard` (DR-1339): the record stays inside 60 lines
 and its INDEX row inside 700 characters, and the guard's own message is the instruction —
