@@ -61,10 +61,28 @@ const haveMergeBase = (base) => quiet(['merge-base', base, 'HEAD']);
 // the next merge-base check, never by an exception.
 export function ensureBase(base, run = quiet) {
   const has = () => run(['merge-base', base, 'HEAD']);
-  if (has()) return true;
   const branch = base.replace(/^origin\//, '');
   const spec = `+refs/heads/${branch}:refs/remotes/${base}`;
+  // A PRESENT BASE CAN STILL BE STALE, AND THAT REPORTS CLEAN (DR-1365).
+  //
+  // This used to short-circuit on `if (has()) return true` — my own reasoning
+  // this morning, pinned by a case saying "a guard that fetches every run is a
+  // new cost on every job". The cost is real and it was weighed against the
+  // wrong thing. `base...HEAD` from a worktree whose origin/main is behind
+  // yields NO added files, so the guard formats an empty set and prints OK.
+  //
+  // MEASURED 2026-11-06 on #2571: this worktree said "0 added JavaScript
+  // file(s)" and CI said 2, and the second file was genuinely unformatted. One
+  // `git fetch origin main` reproduced the failure exactly. A guard that
+  // reports OK over nothing is DR-0076 §3's anti-theater failure.
+  //
+  // THE ACTUAL COST, measured here rather than asserted: this single-branch
+  // depth-1 fetch runs in 776, 808 and 965 ms on three consecutive tries,
+  // against a `lint + guards` job that runs for minutes. So it is refreshed
+  // first, every run, and the deepening below still only happens when the
+  // merge base is genuinely missing.
   run(['fetch', '--no-tags', '--depth=1', 'origin', spec]);
+  if (has()) return true;
   for (const d of [50, 250, 1000]) {
     if (has()) return true;
     run(['fetch', '--no-tags', `--deepen=${d}`, 'origin', spec]);

@@ -527,6 +527,40 @@
       "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
     },
     {
+      "id": "a-present-base-can-still-be-stale",
+      "date": "2026-11-06",
+      "task": "format-guard's ensureBase returned early on a present merge base, so a behind origin/main was never refreshed and the added-file set came back empty -- the guard formatted nothing and printed OK; the refresh is now first every run, at a measured cost under a second",
+      "drs": [
+        "DR-1365"
+      ],
+      "prs": [
+        2574
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.38,
+      "estimateWithoutAiHours": 5,
+      "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
+    },
+    {
+      "id": "ll285-a-light-that-is-not-light",
+      "date": "2026-11-06",
+      "task": "A light that is not light: Darrell's two spoken messages become ll285 and its 57-case gate; the newsletter pipeline reads every emailed teaching under the light (reading rule, visible-reading gate, one-email-many-lessons split) with 6 builder tests",
+      "drs": [
+        "DR-1361"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.0,
+      "estimateWithoutAiHours": 30,
+      "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
+    },
+    {
       "id": "sov71-hide-thyself-for-a-little-moment",
       "date": "2026-11-06",
       "task": "sov71: protective silence is not concealment, the gate shut on purpose, and the tool that found the hole is the tool that opens it - the Sovereign A.I. disclosure-ethic week, built from ONE item of a 1440 Daily Digest with no primary source reachable",
@@ -541,6 +575,7 @@
       "costUsd": null,
       "wallClockHours": 2.1,
       "estimateWithoutAiHours": 26,
-      "notes": "Measured from the first read of CLAUDE.md to the push of claude/sov71-the-silence-that-protects. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 71st course lesson with five reader versions, two parables, 35 anchors fetched verbatim from app/public/bible/kjv before a word was written, a 44-case gate with ten markers proven to catch at every site, a trust-but-verify pass that REVERSED the draft's core assumption, three regenerated or ratcheted shared files, a decision record, a session note, and one coordinator-directed renumber off a collided number. Seven defects in my own work were caught by my own gate on its first run, two of them wrong premises in the gate rather than typos."    }
+      "notes": "Measured from the first read of CLAUDE.md to the push of claude/sov71-the-silence-that-protects. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 71st course lesson with five reader versions, two parables, 35 anchors fetched verbatim from app/public/bible/kjv before a word was written, a 44-case gate with ten markers proven to catch at every site, a trust-but-verify pass that REVERSED the draft's core assumption, three regenerated or ratcheted shared files, a decision record, a session note, and one coordinator-directed renumber off a collided number. Seven defects in my own work were caught by my own gate on its first run, two of them wrong premises in the gate rather than typos."
+    }
   ]
 }
