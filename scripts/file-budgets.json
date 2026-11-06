@@ -35,10 +35,24 @@
       "to": 10289,
       "date": "2026-11-06",
       "why": "sov70 (DR-1357) adds one lesson to this file; fourth raise for the same reason as 9048 -> 9336, 9336 -> 9658 and 9658 -> 9950: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 29706,
+      "to": 29866,
+      "date": "2026-11-06",
+      "why": "ll284 (Credit Where Credit Is Due, DR-1353) adds the 284th Living Lesson to this file, and the seven spoken lessons were corrected in place to name Darrell (DR-0719). Same reason as the ll283 raise: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 29866,
+      "to": 30001,
+      "date": "2026-11-06",
+      "why": "ll285 (A Light That Is Not Light, DR-1361) adds the 285th Living Lesson to this file, spoken by Darrell the same afternoon as ll284. Same reason as the ll283 and ll284 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 29706,
+    "app/src/lib/living-lessons-class.js": 30001,
     "app/src/lib/sovereign-ai-class.js": 10289,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,

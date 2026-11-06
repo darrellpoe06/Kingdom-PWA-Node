@@ -478,6 +478,89 @@
       "notes": "Measured worktree creation 14:31Z to the last commit on claude/sov70-coordination 15:17:39Z (2026-11-06). NOT on the record and therefore understating the real elapsed time: reading the 1,879-character paywalled send, the duplicate and never-opened-reference measurements across app/src and docs/decisions, the five primary hosts attempted on two roads each, and the authoring of five reader versions before the first commit. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 70th Sovereign A.I. week carrying five reader versions (adult 3424, child 1779, youth 2750, teen 3043, senior 3378 authored prose words), two parables, 48 references fetched verbatim from the in-repo KJV corpus and each quoted with its citation, a 40-case pinned gate with proven-to-catch on every fragment and ten markers, a decision record, a session note, and a trust-but-verify audit whose five primary hosts were all refused by the session egress. Three of the gate's own cases failed first and were real defects in my work; a scripted vocabulary pass that correctly lowered the senior band's reading grade from 11.33 to 8.91 also broke prose in twenty places, every one found by reading the rendered band back and repaired by hand."
     },
     {
+      "id": "ll284-credit-where-credit-is-due",
+      "date": "2026-11-06",
+      "task": "Credit where credit is due: Darrell's correction becomes ll284 and a gate; seven spoken lessons corrected to name him; a reader-length gate; the Research-tab link road moved onto the NAS with no runner in it",
+      "drs": [
+        "DR-1353"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 30,
+      "notes": "Measured from his first correction message 13:33Z to the last commit 14:15Z on claude/integrity-lesson-n55fvt, in one session that also carried five History Lesson links, two dead transcript roads diagnosed (TS_AUTHKEY expired 2026-11-04; the sandbox refused by the proxy for the NAS, the tailnet and youtube.com), and the Supabase reads that located the idle NAS trickle. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 284th Living Lesson with five reader versions, two parables, 77 anchors over 403 spans fetched verbatim, a 55-case gate, two catalog-wide gates proven to catch, 268 corrections across seven lessons, a NAS pipeline source with four tests, a workflow input, and a decision record."
+    },
+    {
+      "id": "repo-documents-the-proof-of-the-work",
+      "date": "2026-11-06",
+      "task": "Documents in the admin console: every decision, Way, foundation and session note readable by its own location; the standard that the NAS initiates every road",
+      "drs": [
+        "DR-1360"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 12,
+      "notes": "Measured 14:20Z to the commit on claude/integrity-lesson-n55fvt, inside the same session as DR-1353 and the five History Lesson links. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a pure catalog-and-reader module over 1,800 repository documents, an admin surface held to UX-PATTERNS 2e/2g and DR-0381, an 11-case suite on the real repository with two proven-to-catch cases, and a decision record."
+    },
+    {
+      "id": "too-old-to-patch-spm11",
+      "date": "2026-11-06",
+      "task": "spm11, the eleventh lesson of Software Project Management: an unsupported version cannot be patched on the day the patch arrives, built from a forwarded cPanel advisory",
+      "drs": [
+        "DR-1358"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 12,
+      "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
+    },
+    {
+      "id": "a-present-base-can-still-be-stale",
+      "date": "2026-11-06",
+      "task": "format-guard's ensureBase returned early on a present merge base, so a behind origin/main was never refreshed and the added-file set came back empty -- the guard formatted nothing and printed OK; the refresh is now first every run, at a measured cost under a second",
+      "drs": [
+        "DR-1365"
+      ],
+      "prs": [
+        2574
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.38,
+      "estimateWithoutAiHours": 5,
+      "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
+    },
+    {
+      "id": "ll285-a-light-that-is-not-light",
+      "date": "2026-11-06",
+      "task": "A light that is not light: Darrell's two spoken messages become ll285 and its 57-case gate; the newsletter pipeline reads every emailed teaching under the light (reading rule, visible-reading gate, one-email-many-lessons split) with 6 builder tests",
+      "drs": [
+        "DR-1361"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.0,
+      "estimateWithoutAiHours": 30,
+      "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
+    },
+    {
       "id": "pm15-sat-where-they-sat",
       "date": "2026-11-06",
       "task": "Lesson pm15: Sat where they sat — the oldest forward-deployed pattern, the buzzword question answered from the Word, and the video we never saw",
