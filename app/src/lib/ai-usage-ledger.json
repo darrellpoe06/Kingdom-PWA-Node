@@ -425,6 +425,23 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 4,
       "notes": "Measured worktree creation 22:08Z to the single commit 22:14:35Z on claude/a-status-read-is-filtered. The finding itself is NOT on that record: the 50.2 KB read that exposed it, verifying gh over REST, the four payload measurements, and the 39-call survey that killed the proposed gate all happened earlier while driving PR #2559, so 0.2 understates it substantially. Tokens and dollars null: no meter was exposed to this session, which is itself the reason the byte measurements had to be taken by hand with wc -c. Estimate is this session's own for a read-only script, a 17-case offline proof suite proven to catch, a decision record, a session note, and the measurement that rejected a gate rather than shipping it."
+    },
+    {
+      "id": "ll284-credit-where-credit-is-due",
+      "date": "2026-11-06",
+      "task": "Credit where credit is due: Darrell's correction becomes ll284 and a gate; seven spoken lessons corrected to name him; a reader-length gate; the Research-tab link road moved onto the NAS with no runner in it",
+      "drs": [
+        "DR-1353"
+      ],
+      "prs": [
+        2565
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 30,
+      "notes": "Measured from his first correction message 13:33Z to the last commit 14:15Z on claude/integrity-lesson-n55fvt, in one session that also carried five History Lesson links, two dead transcript roads diagnosed (TS_AUTHKEY expired 2026-11-04; the sandbox refused by the proxy for the NAS, the tailnet and youtube.com), and the Supabase reads that located the idle NAS trickle. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 284th Living Lesson with five reader versions, two parables, 77 anchors over 403 spans fetched verbatim, a 55-case gate, two catalog-wide gates proven to catch, 268 corrections across seven lessons, a NAS pipeline source with four tests, a workflow input, and a decision record."
     }
   ]
 }
