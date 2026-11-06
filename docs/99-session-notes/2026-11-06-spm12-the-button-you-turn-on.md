@@ -80,7 +80,7 @@ Held apart by id in the gate, with a case asserting all three titles open differ
 | child | **1.77** | 318 | yes |
 | youth | **6.21** | 431 | yes |
 | teen | **7.47** | 429 | yes |
-| senior | **10.95** | 1,134 | yes |
+| senior | **10.95** | 1,137 | yes |
 
 Child under its 5.0 ceiling. Worst band-pair overlap **0.151** (youth~teen) against the 0.25 near-copy line; child~senior 0.028. `fourBandFaults` empty. **No scripted vocabulary pass was run on any band** — every band was composed in its own register and read back, because DR-1306 measured what a script does to authored prose.
 
