@@ -35,6 +35,14 @@
 //     only after it is shown to CATCH the break.
 //   - DR-0075: a rough edge left alone needs a stated why AND a re-review date.
 //
+// ONE LESSON IS BUILT FROM SOMEBODY ELSE'S RECORDED FAILURE, and it is marked
+// as such. spm11 (DR-1358) is built from a University of Illinois Technology
+// Services advisory to its cPanel users, 2026-10-21, about a critical PHP
+// vulnerability and the removal of every PHP below 8.3. Darrell forwarded it
+// with the single word Lesson; he did not write it, and nobody here operates
+// that estate. The advisory is reported in our own voice, never in quotation
+// marks, and the attribution is held by a gate rather than by good intentions.
+//
 // WHAT THIS COURSE DOES NOT CLAIM (DR-0076 sec. 8). Nothing here claims that
 // reading the Word raises an ITIL or PMP exam score, shortens a delivery cycle,
 // or lowers a defect rate. None of that was measured. What is claimed is what
@@ -43,8 +51,17 @@
 //
 // EVERY QUOTATION IS VERBATIM from the verified local KJV corpus
 // (`app/public/bible/kjv`), fetched rather than recalled, and every quoted span
-// is held by software-project-management-course.test.js under strict comparison
-// (DR-0456 — whitespace-only normalisation, apostrophes never normalised).
+// is held under strict comparison (DR-0456 — whitespace-only normalisation,
+// apostrophes never normalised) by, in order of reach:
+//   - app/src/__tests__/project-management-courses.test.js — both PM courses,
+//     every double-quoted span in the teen and senior bands and the meta;
+//   - app/src/__tests__/four-band-group-c.test.js — all four bands of every
+//     lesson, each span resolved against the reference it names;
+//   - app/src/__tests__/every-catalog-quotes-the-verse.test.js — this file
+//     pinned at exactly ZERO quotation faults catalog-wide;
+//   - app/src/__tests__/software-pm-spm11-verses.test.js — spm11's own gate.
+// (The header long named a `software-project-management-course.test.js`; no
+// file of that name has ever existed. Corrected 2026-11-06 with spm11.)
 // =============================================================================
 
 import { progressSummaryFor, exportCurriculumMarkdownFor } from './church-classes.js';
@@ -639,6 +656,62 @@ export const SOFTWARE_PM_MODULES = [
       ],
     },
   },
+  {
+    id: 'spm11-unsupported-cannot-be-patched',
+    title: 'Too old to patch — an unsupported version cannot be fixed on the day the fix arrives',
+    bigIdea: 'On 2026-10-21 a university hosting team wrote to its users about a critical vulnerability announced in PHP the day before. The vendor fix was not yet in hand. So that night they removed every PHP release below 8.3 from the estate, and they gave the reason in one clause: older versions of PHP will not be patched for this critical vulnerability. The removal had already been planned — slower, more controlled — and the day decided when. That is the whole teaching: the version you did not keep current cannot be patched on the day the patch arrives, and the maintainer’s support window, not your preference, decides whether a fix can ever reach you. Yahweh states the discipline without softening it: "A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished" (Proverbs 22:3). Foreseeing is the work, not a mood. And the deferral that feels free carries its own arithmetic, with the schedule in somebody else’s hand: "Yet a little sleep, a little slumber, a little folding of the hands to sleep: So shall thy poverty come as one that travelleth, and thy want as an armed man" (Proverbs 6:10-11). Want arrives travelling — under its own power, at an hour it picks. An unsupported runtime is therefore not a neutral state. It is a decision already taken, whose due date is held by whoever maintains the thing you are standing on.',
+    inApp: 'Write down every runtime, library and framework your system stands on, and beside each one put the date its maintainer stops issuing security fixes — not the date you intend to upgrade, the date the fixes stop. Anything already past that date is not a backlog item; it is an unpatchable system today, and the next critical advisory will say so for you. Then open the error logs, all of them rather than the first one you find, and read what has been failing where nobody was looking.',
+    anchor: {
+      ref: 'Proverbs 22:3; Proverbs 6:10-11; Jeremiah 6:14; Deuteronomy 19:15; Galatians 6:5',
+      theme: 'The prudent man foresees the evil and acts while acting is still possible; the simple pass on and are punished. Jeremiah 6:14 names the half-measure written up as a cure: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" — healed slightly is exactly what a mitigation does, and reporting it as a fix is the lie. Deuteronomy 19:15 gives the rule for reading the logs — "at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established" — because one log is not the whole witness. And Galatians 6:5 settles ownership: "For every man shall bear his own burden."',
+    },
+    benefits: [
+      'Every dependency gets the date its maintainer stops shipping security fixes, which is the only date that decides whether a patch can reach you at all.',
+      'A mitigation stops being reported as a fix, because the Word names the half-healing and this house has already paid for that confusion twice over — recorded as DR-0107 and DR-0125.',
+      'Every error log gets read rather than the first one found, so the failure that only signed-in users meet stops hiding.',
+      'Owning code written for you gets named as owning its currency, because nobody else is coming to make it run on the supported version.',
+    ],
+    levels: {
+      child: "Too old to patch. An unsupported version cannot be fixed on the day the fix arrives. That is the lesson, and here is what it means.\n\nA program you use was built by someone else. They keep fixing it when problems are found. But old versions get retired. After that, the maker stops sending fixes for the old one. So when a big problem shows up, no fix will ever come to it.\n\nThe Word says a wise person looks ahead. \"A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished\" (Proverbs 22:3). To foresee means to see it coming and move while you still can.\n\nWaiting feels free. It is not free. \"Yet a little sleep, a little slumber, a little folding of the hands to sleep\" (Proverbs 6:10). Then the bill comes. It comes on its own day, not on yours.\n\nSay a man puts off fixing a hole in his fence. Nothing bad happens for a year. Then one cold night the dog gets out. The hole did not change. The night did.\n\nAnd when something breaks, do not read just one list of what went wrong. There can be more than one list. \"at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established\" (Deuteronomy 19:15). Read them all. Then you can see the whole thing.",
+      youth: "Too old to patch: an unsupported version cannot be fixed on the day the fix arrives. Here is the real case. In October 2026 a university hosting team told its users that a critical flaw had been announced in PHP, the language a great many of their websites run on. The vendor fix had not arrived yet. So that night the team removed every version of PHP below 8.3 from its servers, and it said why in one line: older versions of PHP will not be patched for this critical vulnerability.\n\nRead that again, because it is the hinge. Those old versions were not waiting their turn for a fix. No fix was ever coming to them. Support for them had ended, which means the choice to stay put had quietly become the choice to be unfixable. The day of the flaw was simply the day that bill was called in.\n\nThe Word gives the discipline. \"A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished\" (Proverbs 22:3). And it is honest about delay: \"So shall thy poverty come as one that travelleth, and thy want as an armed man\" (Proverbs 6:11). Notice who keeps the clock. Want travels toward you and chooses its own arrival.\n\nThe same team did something worth copying. They switched off two risky settings, and then they said plainly that while those steps help, real risk stays until the update lands. That is a brake, not a cure, and they refused to call it one. The opposite of that honesty has a name in the Word: \"They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace\" (Jeremiah 6:14). A half-healing announced as peace is how people get hurt twice.",
+      teen: "Too old to patch: an unsupported version cannot be fixed on the day the fix arrives. A hosting team learned it in public. A critical flaw landed in PHP, the vendor patch was not out yet, and overnight they deleted every PHP below 8.3 from their servers — because, in their own words, older versions of PHP will not be patched for this critical vulnerability. Not slow to be patched. Never going to be. The advisory calls those releases out-of-support, which is the whole of it: support had already ended, and the sites were still sitting on them. Three things follow, and all three sting. One: sitting on an old version is a decision, not a neutral place to sit, and the due date belongs to whoever maintains what you are standing on. Two: the brakes they pulled were not a fix, and they said so out loud — that honesty is the standard here, because a status report that calls a mitigation a cure is just a lie with a green tick on it. Three: there was no road back. Their notice says there is no way to return to a compatible version and the only path forward is to update your applications. Scripture puts the whole job in one line: \"A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished\" (Proverbs 22:3). Foreseeing is unglamorous work done on a calm day, and it is the only day it can be done.",
+      senior: "Too old to patch — an unsupported version cannot be fixed on the day the fix arrives. The industry calls the condition end-of-life or end-of-support, calls the discipline that prevents it patch management or dependency currency, and calls the inventory a software bill of materials; the vocabulary is useful and it is not the lesson. The lesson is whose clock. On 2026-10-21 a university hosting team, holding a critical PHP vulnerability announced the previous day and no vendor patch yet available, removed every PHP release below 8.3 from its estate and stated the reason exactly: older versions of PHP will not be patched for this critical vulnerability. They had planned a slower, more controlled removal of those out-of-support versions and moved the timeline up, which is the shape of every deferral — cheap for exactly as long as nothing happens, and settled in full on a day chosen by someone else. Proverbs 22:3 is the discipline, addressed to a reader who can still act: \"A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.\" Proverbs 6:10-11 supplies the arithmetic a deferral hides, and the agency in it repays attention — the sleeper does nothing while the loss moves under its own power: \"So shall thy poverty come as one that travelleth, and thy want as an armed man.\" Four consequences follow, each of them stated by the advisory itself rather than inferred. FIRST, A MITIGATION IS NOT A FIX AND MUST NEVER BE REPORTED AS ONE. They disabled an extension and a limit, then wrote that while those mitigations provide some protection, risk remains present until the updates can be applied. That sentence is the model. Jeremiah 6:14 names its opposite: \"They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace.\" Healed slightly is precisely what a mitigation accomplishes, and a status that calls it a cure is the one lie this house’s verification doctrine will not carry — because this house has paid for exactly that failure twice, and both times are on its own written record rather than in an illustration: once when every check stood green over a site that had been stale for about nine hours, and once when a whole fleet of safeguards watched the pipeline and not one of them ever made an HTTP request to the product. SECOND, THERE IS NO ROAD BACK. The notice is blunt about it: there is no way to return to a compatible version, and the only path forward is to update the applications. The direction of travel is Paul’s, \"forgetting those things which are behind, and reaching forth unto those things which are before\" (Philippians 3:13), and the grief of the irreversible is David’s, \"I shall go to him, but he shall not return to me\" (2 Samuel 12:23). THIRD, THE LOG YOU READ DECIDES WHICH FAILURE YOU CAN SEE. The advisory notes that a WordPress install keeps an error_log in its root AND another inside wp-admin, and that the two hold different contexts — a visitor’s errors in one, a signed-in user’s in the other. Deuteronomy 19:15 is the reading rule: \"at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.\" One log is not the whole witness. A clean screen in the one file you happened to open is not an absence of errors, and a white page with no visible error is the most expensive form of that mistake. FOURTH, OWNERSHIP OF CUSTOM CODE INCLUDES OWNERSHIP OF ITS CURRENCY. A public package can be upgraded to a current release; code written for one site has to be updated by somebody, and the advisory says so without offering comfort. \"For every man shall bear his own burden\" (Galatians 6:5). Proverbs 24:30-31 is what the unattended field looks like on the day the weather turns: \"And, lo, it was all grown over with thorns, and nettles had covered the face thereof, and the stone wall thereof was broken down.\" None of this is a claim that the deferral was stupid; the slower removal was a reasonable plan. It is a claim about who owns the calendar, and the answer is never the person deferring.",
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'The hosting team removed every PHP release below 8.3 before the vendor patch even existed. Why?',
+          options: [
+            'The older releases were measurably slower',
+            'Because older versions of PHP will not be patched for this critical vulnerability — the support window, not the operator’s preference, decides whether a fix can arrive',
+            'To move customers onto a paid tier',
+          ],
+          answer: 1,
+          explain: 'They had planned a slower, more controlled removal of the out-of-support versions and moved the timeline up. The deferral felt free right until the hour it cost the most.',
+        },
+        {
+          q: 'What is the difference between the mitigations they applied and a fix?',
+          options: [
+            'None — anything that reduces risk is a fix',
+            'A mitigation lowers risk while the risk remains, which is why they wrote that there is still risk present until the updates can be applied',
+            'A mitigation becomes a fix once it is written down',
+          ],
+          answer: 1,
+          explain: 'The Word names the opposite of that honesty: the hurt healed slightly while peace is announced (Jeremiah 6:14). DR-0107 and DR-0125 are this house’s own record of a brake reported as a cure.',
+        },
+        {
+          q: 'A WordPress install keeps an error_log in its root and another in wp-admin. What follows?',
+          options: [
+            'Either file is the complete record',
+            'They hold different contexts — a visitor’s errors in one, a signed-in user’s in the other — so one log is not the whole witness',
+            'The second file is a backup copy of the first',
+          ],
+          answer: 1,
+          explain: '"at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established" (Deuteronomy 19:15). A white screen with no error in the file you opened is not an absence of errors.',
+        },
+      ],
+    },
+  },
 ];
 
 export const SOFTWARE_PM_INTEREST_TAG = '[Software PM interest]';
@@ -662,5 +735,5 @@ export function exportSoftwarePmCurriculumMarkdown() {
 export const SOFTWARE_PM_TUTOR_META = {
   title: SOFTWARE_PM_META.title,
   intro: 'You are a coach for someone shipping, paying for, or accountable for software — including the person who has to explain to a congregation why the app was down.',
-  posture: 'Teach the Word’s own case FIRST, then this house’s recorded case study, then the industry’s name for the shape — in that order, every time: a vow performed according to all that proceeded out of the mouth, the field prepared before the house, the conditional spoken out loud against a false balance, answering a matter before hearing it, a change that must never be silent, prove all things applied to the deployed product rather than the pipeline, a perfect and just measure demanded of the instrument itself, the borrower servant to the lender, the two sorrows told apart by their output, and a chain four links deep whose third link must be able to teach. Use the real recorded failures when they fit — the nine-hour stale site behind a green pipeline (DR-0107), the safeguards that never once asked the product whether it was up (DR-0125), the gate that ships only once it catches the break (DR-0076), the rough edge that needs a why and a date (DR-0075) — and cite them as records rather than as hypotheticals. NEVER claim that studying the Word raises an ITIL or PMP exam score, shortens a cycle time, or lowers a defect rate; none of that was measured, and say so plainly if asked. Cite Scripture verbatim from the app’s own corpus or by reference with a theme; never quote from memory and never invent a verse. Say Yahweh rather than the generic name in your own voice, and leave every quotation exactly as written. You can be wrong — tell the learner to prove it against the running system, not against your description of it.',
+  posture: 'Teach the Word’s own case FIRST, then this house’s recorded case study, then the industry’s name for the shape — in that order, every time: a vow performed according to all that proceeded out of the mouth, the field prepared before the house, the conditional spoken out loud against a false balance, answering a matter before hearing it, a change that must never be silent, prove all things applied to the deployed product rather than the pipeline, a perfect and just measure demanded of the instrument itself, the borrower servant to the lender, the two sorrows told apart by their output, a chain four links deep whose third link must be able to teach, and the prudent man who foresees the evil while the simple pass on — because the version left out of support cannot be patched on the day the patch arrives, and the date was never the operator’s to set. Use the real recorded failures when they fit — the nine-hour stale site behind a green pipeline (DR-0107), the safeguards that never once asked the product whether it was up (DR-0125), the gate that ships only once it catches the break (DR-0076), the rough edge that needs a why and a date (DR-0075) — and cite them as records rather than as hypotheticals. NEVER claim that studying the Word raises an ITIL or PMP exam score, shortens a cycle time, or lowers a defect rate; none of that was measured, and say so plainly if asked. Cite Scripture verbatim from the app’s own corpus or by reference with a theme; never quote from memory and never invent a verse. Say Yahweh rather than the generic name in your own voice, and leave every quotation exactly as written. You can be wrong — tell the learner to prove it against the running system, not against your description of it.',
 };

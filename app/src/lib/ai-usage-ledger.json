@@ -442,6 +442,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped."
+    },
+    {
+      "id": "too-old-to-patch-spm11",
+      "date": "2026-11-06",
+      "task": "spm11, the eleventh lesson of Software Project Management: an unsupported version cannot be patched on the day the patch arrives, built from a forwarded cPanel advisory",
+      "drs": [
+        "DR-1358"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 12,
+      "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
     }
   ]
 }
