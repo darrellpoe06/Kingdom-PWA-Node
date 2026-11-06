@@ -25,6 +25,24 @@ its own performer.
 returns as unlabelled, **7 are already-shipped lessons** — their decision records name them.
 The lock was documented as the brake; the ledger sweep was the brake.
 
+**The seven, with their records** — these ids live here and NOT in the decision record, deliberately.
+`one-thread-one-record-guard` reads a thread id inside a record as that record *owning* the thread,
+and each of these is owned by its own lesson's record. Naming them in DR-1354 made eight threads
+read as claimed twice and failed the guard; it was right to.
+
+| thread | shipped as |
+| :--- | :--- |
+| `1a18262cf26c9f77` | DR-1295 |
+| `1a164afce3d5ed0b` | DR-1332 |
+| `1a163d3dfa9641dc` | DR-1338 |
+| `1a163d000aaa1023` | DR-1325 |
+| `1a163a78c1d14d84` | DR-1322 / DR-1325 / DR-1332 |
+| `1a15f24a9e2291c3` | DR-1193 |
+| `1a15f615725825be` | DR-1192 |
+
+The eighth was pm14's own thread, `1a163d58a4d068b6` (DR-1349), which the record also named while
+describing what the first live run would label.
+
 That is the part worth remembering. A safeguard that cannot be reached by the process it
 guards is not a safeguard, it is a note — and while it sits in the documentation looking
 load-bearing, the thing actually carrying the weight looks like redundancy.
