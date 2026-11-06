@@ -21,7 +21,14 @@
       "to": 22396,
       "dr": "DR-1355",
       "reason": "Nine lines in lesson-mail-label.yml so a DORMANT run that was asked to label threads exits 1 instead of 0: the error line naming the label, the thread count, where the secret comes from and that lesson-mail-watch.yml needs the same one, plus the comment recording that the first live dispatch went GREEN having laboured on nothing. The ceiling refuses bloat, not a safeguard being made able to fail loudly -- the alternative was a log line and a green run, which is what this corrects. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22396,
+      "to": 22399,
+      "dr": "DR-1360",
+      "reason": "A required guard step in ci.yml for forward-safe-gate-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) and verify-covers-ci-guards.test.js fails the build without it. Three lines is the step's cost: the narrative lives in the record and the guard's own header, not in the YAML. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22396
+  "totalLines": 22399
 }

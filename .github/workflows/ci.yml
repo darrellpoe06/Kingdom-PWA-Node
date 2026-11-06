@@ -173,6 +173,9 @@ jobs:
       # no other source file is born over 1,500 lines.
       - run: node ../scripts/record-length-guard.mjs
       - run: node ../scripts/file-budget-guard.mjs
+      # A forward-safety case may not NAME the number it simulates (DR-1360):
+      # a literal is true the day it is written and false the day it must hold.
+      - run: node ../scripts/forward-safe-gate-guard.mjs
       # No runtime past its end of life; every pin has a dated line (DR-1341).
       - run: node ../scripts/eol-register.mjs
       # The workflow register is never stale and the YAML only shrinks (DR-1342).

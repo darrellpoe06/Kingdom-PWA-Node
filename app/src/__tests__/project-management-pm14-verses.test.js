@@ -194,8 +194,17 @@ describe('pm14 is in the Project Management course, whole, with every reader ver
     expect(PROJECT_MANAGEMENT_MODULES[13].id).toBe(PM14_ID);
   });
 
-  it('PROVEN-TO-BE-FORWARD-SAFE: a pm15 landing does not break this gate (DR-1316)', () => {
-    const nums = [...PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1])), 15];
+  it('PROVEN-TO-BE-FORWARD-SAFE: the next lesson landing does not break this gate (DR-1316)', () => {
+    // THE LITERAL WAS THE BUG, AND THIS IS DR-1316'S DEFECT CLASS THE THIRD
+    // TIME -- the second time inside a fix for it. pm13's gate appended a
+    // literal 14; this file's own earlier case repaired that with the derived
+    // form, and then hardcoded 15 right here. When pm15 actually landed the
+    // list became [1..15, 15] and contiguity failed, blocking #2567 on a gate
+    // belonging to the lesson before it. A forward-safety case that names the
+    // next number is only safe until that number exists, which is the one
+    // moment it is meant to cover.
+    const next = PROJECT_MANAGEMENT_MODULES.length + 1;
+    const nums = [...PROJECT_MANAGEMENT_MODULES.map((m) => Number(/^pm(\d+)-/.exec(m.id)[1])), next];
     expect(nums).toEqual(Array.from({ length: nums.length }, (_, i) => i + 1));
     expect(nums.indexOf(14), 'pm14 stays at the fourteenth place').toBe(13);
     expect(Math.max(...nums), 'this gate never claims pm14 is the highest').not.toBe(14);
