@@ -537,8 +537,24 @@ describe('sov71 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
     expect(unnamedBands(M), `bands that do not name the lesson: ${unnamedBands(M).join(', ')}`).toEqual([]);
   });
 
-  it('explains every hard term in plain words at or before its first use (DR-0521)', () => {
-    expect(termFaults(M.lesson), JSON.stringify(termFaults(M.lesson))).toEqual([]);
+  it('explains every hard term in plain words at or before its first use, IN ALL FIVE PLACES (DR-0521)', () => {
+    // ALL FIVE PLACES, NOT ONLY THE ADULT LESSON. This case first read
+    // `termFaults(M.lesson)` alone, and that gap let a real defect through to
+    // CI: the SENIOR band used `assay` — the very word Darrell hit on his phone
+    // that founded DR-0521 — and the catalog-wide
+    // `the-plain-meaning-comes-first` gate turned vitest shard 3/4 red on
+    // f7550eb0 while this file stayed green. A reader reads ONE band, so every
+    // band is held to the registry, which is the same reasoning DR-0795 applied
+    // to the TALK block. The prose was repaired; the registry and its
+    // shrink-only baseline were NOT touched, because weakening either to pass
+    // is the one edit `plain-before-the-term.js` exists to prevent.
+    for (const [place, txt] of Object.entries(PLACES())) {
+      expect(termFaults(txt), `${place}: ${JSON.stringify(termFaults(txt))}`).toEqual([]);
+    }
+    // PROVEN TO CATCH, on the exact defect that shipped: planting the word back
+    // into the senior band, un-glossed, is named by this case and by its place.
+    const planted = `${M.levels.senior}\nThe fire assays the WORK.`;
+    expect(termFaults(planted), 'a planted un-glossed hard term was NOT caught').toContain('assay');
     // The two terms THIS lesson introduces are glossed where they are first
     // used, which is what DR-0521 requires and what the registry's HARD_TERMS
     // list cannot know about a term it does not carry. They are NOT added to

@@ -164,6 +164,31 @@ is the part of the build worth keeping.
    unbuilt is not the same as teaching it. The case now asserts each unbuilt subject appears
    **only** inside the declaration paragraph, which is what it should always have said.
 
+**And an eighth, which my gate did NOT catch — the one worth reading.**
+
+The senior band carried the sentence *The fire assays the WORK*. **`assay` is the first
+entry in `HARD_TERMS`, and it is the word Darrell hit on his phone that founded DR-0521
+in the first place.** My own DR-0521 case ran `termFaults(M.lesson)` — the **adult lesson
+only** — so this gate file read green while the catalog-wide
+`the-plain-meaning-comes-first` gate turned **vitest shard 3/4 red on f7550eb0**, naming
+`sov71-hide-thyself-for-a-little-moment.senior: assay` and pushing the shrink-only debt
+from 65 to 66.
+
+Two separable repairs, and the distinction matters:
+
+1. **The prose**, not the registry. The sentence now reads *The fire puts the WORK itself
+   to the test*. `plain-before-the-term.js` and its baseline were **not touched** —
+   weakening a cue or recording a new fault so a lesson passes is precisely the edit that
+   file exists to prevent, and it says so in its own header.
+2. **The case**, widened to **all five places**, with a proven-to-catch that plants the
+   word back into the senior band and asserts it is named. The same reasoning DR-0795
+   applied to the TALK block applies here: a reader reads ONE band, so every band answers
+   to the registry, not just the adult prose.
+
+The lesson about my own instruments: a per-lesson gate that only checks the adult field
+will keep letting band-only defects through to a catalog-wide gate, which is a slower and
+more expensive place to find them.
+
 Two more findings from the authoring rather than the gate:
 
 8. **The band ladder had to be tuned twice, by measurement, not by feel.** The teen band first
