@@ -82,12 +82,7 @@ describe('it reads code, not prose', () => {
   });
 
   it('still catches the defect when it sits below a comment block', () => {
-    const src = [
-      '// a forward-safety case',
-      '/* and a block */',
-      ' * continuation',
-      'const nums = [...SOVEREIGN_AI_MODULES.map((m) => n(m)), 71];',
-    ].join('\n');
+    const src = ['// a forward-safety case', '/* and a block */', ' * continuation', 'const nums = [...SOVEREIGN_AI_MODULES.map((m) => n(m)), 71];'].join('\n');
     const [hit] = literalNextNumbers(src);
     expect(hit.number).toBe(71);
     expect(hit.line, 'the line number must survive the blanking').toBe(4);
