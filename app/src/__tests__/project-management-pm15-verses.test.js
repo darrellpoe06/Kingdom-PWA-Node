@@ -309,7 +309,10 @@ describe('pm15 — the verses are the corpus, verbatim', () => {
 describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the honesty cannot be edited out', () => {
   it('his words are carried: Lesson, and research', () => {
     const all = EVERY_TEXT().join('\n');
-    expect(/two words typed above (?:it|the header)[^.]*Lesson and research|two words (?:over|above) it: Lesson and research/.test(all), 'his words are not carried').toBe(true);
+    expect(
+      /two words typed above (?:it|the header)[^.]*Lesson and research|two words (?:over|above) it: Lesson and research/.test(all),
+      'his words are not carried'
+    ).toBe(true);
     for (const place of ['youth', 'teen', 'senior']) {
       expect(/research/i.test(L().levels[place]), `${place} never names the second thing he asked for`).toBe(true);
     }
@@ -406,7 +409,12 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
       expect(/stays (?:the author’s|theirs)/i.test(text), `${where} never says the claim stays theirs`).toBe(true);
     }
     // And no figure is invented to fill the hole the source left.
-    expect(EVERY_TEXT().join('\n').match(/\d+(?:\.\d+)?\s?(?:%|per cent|percent)/g), 'a percentage appears, and the source carried none').toBeNull();
+    expect(
+      EVERY_TEXT()
+        .join('\n')
+        .match(/\d+(?:\.\d+)?\s?(?:%|per cent|percent)/g),
+      'a percentage appears, and the source carried none'
+    ).toBeNull();
   });
 
   it("THE PUBLICATION'S OWN SCEPTICISM is quoted, not paraphrased as ours, and stated PLAINLY (DR-0100 §5)", () => {
@@ -421,10 +429,7 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
       expect(text, `${where} does not carry the publication's own scepticism verbatim`).toContain(BUZZWORD);
     }
     // Plainly, because THEY printed it — not hedged into "some say".
-    expect(
-      /rather than hedging it/i.test(L().bigIdea + L().levels.senior),
-      'the plain statement of their own printed words is hedged'
-    ).toBe(true);
+    expect(/rather than hedging it/i.test(L().bigIdea + L().levels.senior), 'the plain statement of their own printed words is hedged').toBe(true);
     // And the disagreement between the three is carried as the send framed it.
     expect(/still evolving/.test(L().bigIdea + L().levels.senior), 'the send’s note that the role is still evolving is dropped').toBe(true);
     expect(/do not agree/i.test(L().bigIdea + L().levels.senior + L().lesson), 'the send’s own signal that the three disagree is dropped').toBe(true);
@@ -442,10 +447,7 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
       expect(/NO PRIMARY SOURCE WAS READ/i.test(text), `${where} does not state the limit plainly`).toBe(true);
     }
     // The change itself, named: a date was going to be claimed and is not.
-    expect(
-      /it dates nothing/i.test(L().bigIdea + L().levels.senior),
-      'the actual change the checking produced is not stated'
-    ).toBe(true);
+    expect(/it dates nothing/i.test(L().bigIdea + L().levels.senior), 'the actual change the checking produced is not stated').toBe(true);
   });
 
   it('A BLOCKED ROAD NEVER READS AS A VERIFIED CLAIM: every refused host is NAMED, with the refusal quoted (DR-0076 §8)', () => {
@@ -487,9 +489,7 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
 describe('pm15 — the Word is the authority, and it is taught rather than debated', () => {
   it('THE SPINE: Ezekiel sat where they sat, and the word came AFTER, in every band', () => {
     for (const { place, text } of PLACES()) {
-      expect(text, `${place} drops the spine of the lesson`).toContain(
-        'and I sat where they sat, and remained there astonished among them seven days'
-      );
+      expect(text, `${place} drops the spine of the lesson`).toContain('and I sat where they sat, and remained there astonished among them seven days');
       expect(text, `${place} drops the order the whole lesson turns on`).toContain(
         'And it came to pass at the end of seven days, that the word of the LORD came unto me, saying,'
       );
@@ -520,7 +520,10 @@ describe('pm15 — the Word is the authority, and it is taught rather than debat
     expect(adult).toContain('why sittest thou thyself alone, and all the people stand by thee from morning unto even?');
     expect(adult).toContain('The thing that thou doest is not good');
     expect(adult).toContain('for this thing is too heavy for thee; thou art not able to perform it thyself alone');
-    expect(/a QUESTION, not a finding|a question rather than a finding|a QUESTION rather than a finding/i.test(adult), 'the question-before-verdict point is never made').toBe(true);
+    expect(
+      /a QUESTION, not a finding|a question rather than a finding|a QUESTION rather than a finding/i.test(adult),
+      'the question-before-verdict point is never made'
+    ).toBe(true);
     // And the earlier lesson's landing on that same chapter is acknowledged so
     // the reader is not taught the delegation half twice (DR-1317).
     expect(
@@ -557,7 +560,9 @@ describe('pm15 — the Word is the authority, and it is taught rather than debat
     const adult = [L().lesson, L().levels.teen, L().levels.senior].join('\n');
     expect(adult).toContain('whose own the sheep are not, seeth the wolf coming, and leaveth the sheep, and fleeth');
     expect(adult).toContain('The hireling fleeth, because he is an hireling, and careth not for the sheep');
-    expect(/whose own the sheep are\.? Not the title|It is whose own the sheep are|[Nn]ot the title/i.test(adult), 'the dividing line is never named').toBe(true);
+    expect(/whose own the sheep are\.? Not the title|It is whose own the sheep are|[Nn]ot the title/i.test(adult), 'the dividing line is never named').toBe(
+      true
+    );
     expect(adult).toContain('He that answereth a matter before he heareth it, it is folly and shame unto him');
   });
 
@@ -572,18 +577,14 @@ describe('pm15 — the Word is the authority, and it is taught rather than debat
       expect(text).toContain('For we have not an high priest which cannot be touched with the feeling of our infirmities');
       // THE REVERENCE GUARD. The point is that nearness is His way, never that
       // an embedded engineer resembles Christ.
-      expect(
-        /NOT that an embedded engineer (?:is like|resembles) Christ|not that a job is like Christ/i.test(text),
-        'the reverence guard is missing'
-      ).toBe(true);
+      expect(/NOT that an embedded engineer (?:is like|resembles) Christ|not that a job is like Christ/i.test(text), 'the reverence guard is missing').toBe(
+        true
+      );
       // The separator and the pronoun are both free: what must be present is
       // the claim. (Written loosely on purpose after the first draft of this
       // matcher required "Him; it never" with no space and reported a hole in
       // three places that all carried the line.)
-      expect(
-        /borrows from Him[;,.]?\s*(?:it\s+)?never stands beside Him/i.test(text),
-        'the borrows-never-stands-beside line is missing'
-      ).toBe(true);
+      expect(/borrows from Him[;,.]?\s*(?:it\s+)?never stands beside Him/i.test(text), 'the borrows-never-stands-beside line is missing').toBe(true);
     }
   });
 
@@ -604,17 +605,17 @@ describe('pm15 — the Word is the authority, and it is taught rather than debat
     expect(adult).toContain('Though I speak with the tongues of men and of angels, and have not charity, I am become as sounding brass, or a tinkling cymbal');
     // The different landing from the earlier lesson that used these verses is
     // said out loud for the reader, without naming a record id (DR-1317).
-    expect(
-      /An earlier lesson in this course used these same two verses/i.test(L().levels.senior),
-      'the different landing is not named'
-    ).toBe(true);
+    expect(/An earlier lesson in this course used these same two verses/i.test(L().levels.senior), 'the different landing is not named').toBe(true);
   });
 
   it('GROWTH IS MEASURED THE WORD’S WAY, both halves, and none of it imported', () => {
     const adult = [L().lesson, L().levels.senior].join('\n');
     expect(adult).toContain('But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith,');
     expect(adult).toContain('But exhort one another daily, while it is called To day');
-    expect(/[Nn]one of it imported|none of those is borrowed|[Nn]ot one of those is borrowed/.test(adult), 'the refusal of imported measures is never stated').toBe(true);
+    expect(
+      /[Nn]one of it imported|none of those is borrowed|[Nn]ot one of those is borrowed/.test(adult),
+      'the refusal of imported measures is never stated'
+    ).toBe(true);
     expect(/hours (?:spent )?inside the work/i.test(adult), 'the quantitative measure is never named').toBe(true);
   });
 
