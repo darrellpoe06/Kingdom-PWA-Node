@@ -49,10 +49,17 @@
       "to": 30001,
       "date": "2026-11-06",
       "why": "ll285 (A Light That Is Not Light, DR-1361) adds the 285th Living Lesson to this file, spoken by Darrell the same afternoon as ll284. Same reason as the ll283 and ll284 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30001,
+      "to": 30278,
+      "date": "2026-11-06",
+      "why": "ll286 and ll287 (DR-1364) add the 286th and 287th Living Lessons, the two sends read under the newsletter Way the evening DR-1361 set it. Same reason as the ll283, ll284 and ll285 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30001,
+    "app/src/lib/living-lessons-class.js": 30278,
     "app/src/lib/sovereign-ai-class.js": 10289,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,

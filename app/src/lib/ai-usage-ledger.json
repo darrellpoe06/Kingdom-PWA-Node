@@ -559,6 +559,21 @@
       "wallClockHours": 1.0,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
+    },
+    {
+      "id": "ll286-ll287-two-sends-under-the-light",
+      "date": "2026-11-06",
+      "task": "Two sends read under the newsletter Way the evening it was set: ll286 (Priya Misra, the bond market as a safe haven) and ll287 (Owen Jones on Chelli Goldenberg), research passes tiered, two gates (55 + 56), eight split rows and two research rows filed for the lane, the builder rule names public voices",
+      "drs": [
+        "DR-1364"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.0,
+      "estimateWithoutAiHours": 30,
+      "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
     }
   ]
 }
