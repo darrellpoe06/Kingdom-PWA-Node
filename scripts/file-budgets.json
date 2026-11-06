@@ -30,6 +30,13 @@
       "why": "ll283 (Made In Our Image, DR-1352) adds the 283rd Living Lesson to this file, 271 lines of lesson content and its provenance comment. Same reason as the two sovereign-ai-class.js raises: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 9950,
+      "to": 10289,
+      "date": "2026-11-06",
+      "why": "sov70 (DR-1357) adds one lesson to this file; fourth raise for the same reason as 9048 -> 9336, 9336 -> 9658 and 9658 -> 9950: the lesson corpus lives in JavaScript until DR-1339 lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/lib/living-lessons-class.js",
       "from": 29706,
       "to": 29866,
@@ -39,7 +46,7 @@
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 29866,
-    "app/src/lib/sovereign-ai-class.js": 9950,
+    "app/src/lib/sovereign-ai-class.js": 10289,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5884,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
