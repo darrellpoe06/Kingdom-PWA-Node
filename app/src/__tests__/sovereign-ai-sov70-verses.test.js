@@ -142,9 +142,11 @@ const SPINE_FRAGMENTS = {
   '1 Corinthians 14:8': 'For if the trumpet give an uncertain sound, who shall prepare himself to the battle?',
   'Exodus 18:14': 'why sittest thou thyself alone, and all the people stand by thee from morning unto even?',
   'Exodus 18:17': 'The thing that thou doest is not good.',
-  'Exodus 18:18': 'Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone.',
+  'Exodus 18:18':
+    'Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone.',
   'Exodus 18:21': 'place such over them, to be rulers of thousands, and rulers of hundreds, rulers of fifties, and rulers of tens',
-  'Exodus 18:22': 'every great matter they shall bring unto thee, but every small matter they shall judge: so shall it be easier for thyself, and they shall bear the burden with thee',
+  'Exodus 18:22':
+    'every great matter they shall bring unto thee, but every small matter they shall judge: so shall it be easier for thyself, and they shall bear the burden with thee',
   'Exodus 18:23': 'then thou shalt be able to endure, and all this people shall also go to their place in peace.',
   'Numbers 11:14': 'I am not able to bear all this people alone, because it is too heavy for me.',
   'Numbers 11:16': 'Gather unto me seventy men of the elders of Israel',
@@ -160,11 +162,13 @@ const SPINE_FRAGMENTS = {
   '1 Corinthians 12:27': 'Now ye are the body of Christ, and members in particular.',
   'Romans 12:4': 'For as we have many members in one body, and all members have not the same office:',
   'Romans 12:5': 'So we, being many, are one body in Christ, and every one members one of another.',
-  'Ephesians 4:16': 'the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part',
+  'Ephesians 4:16':
+    'the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part',
   'Galatians 6:4': 'But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another.',
   'Galatians 6:5': 'For every man shall bear his own burden.',
   'Genesis 11:1': 'And the whole earth was of one language, and of one speech.',
-  'Genesis 11:6': 'Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do.',
+  'Genesis 11:6':
+    'Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do.',
   'Genesis 11:7': 'Go to, let us go down, and there confound their language, that they may not understand one another’s speech.',
   'Genesis 11:8': 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.',
   '1 Corinthians 14:33': 'For God is not the author of confusion, but of peace, as in all churches of the saints.',
@@ -173,8 +177,10 @@ const SPINE_FRAGMENTS = {
   'Hebrews 1:8': 'But unto the Son he saith, Thy throne, O God, is for ever and ever',
   'Colossians 1:17': 'And he is before all things, and by him all things consist.',
   'Galatians 5:22': 'But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith,',
-  'Deuteronomy 6:7': 'And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.',
-  'Hebrews 3:13': 'But exhort one another daily, while it is called To day',};
+  'Deuteronomy 6:7':
+    'And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.',
+  'Hebrews 3:13': 'But exhort one another daily, while it is called To day',
+};
 /** The pinned references, all 48. The counts this gate asserts about ITSELF, so an empty scan can never pass. */
 const SPINE = Object.keys(SPINE_FRAGMENTS);
 const SPINE_COUNT = 48;
@@ -191,7 +197,10 @@ describe('sov70 — the lesson is mounted and is the week it says it is', () => 
     // weeks run contiguous one through 69.
     expect(weeks).toContain(70);
     expect(weeks.filter((w) => w === 70).length, 'week 70 is mounted twice').toBe(1);
-    expect(SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID), 'sov70 is not at the index its week number requires').toBe(69);
+    expect(
+      SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID),
+      'sov70 is not at the index its week number requires'
+    ).toBe(69);
     expect(Math.max(...weeks)).toBeGreaterThanOrEqual(70);
     for (let w = 1; w <= 69; w += 1) expect(weeks, `week ${w} is missing`).toContain(w);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
@@ -360,7 +369,10 @@ describe('sov70 — WE NEVER READ THE ARTICLE, and every reader place says so (D
       if (place === 'child') continue;
       expect(/\bPreview\b/.test(txt), `${place} does not carry the Preview marker`).toBe(true);
       expect(/three (?:\w+ )?paragraphs/i.test(txt), `${place} does not carry the paragraph count`).toBe(true);
-      expect(/four section headings|four headings|four promised section|four sections|four things it plan/i.test(txt), `${place} does not carry the section count`).toBe(true);
+      expect(
+        /four section headings|four headings|four promised section|four sections|four things it plan/i.test(txt),
+        `${place} does not carry the section count`
+      ).toBe(true);
     }
   });
 
@@ -699,15 +711,9 @@ describe('sov70 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     // sov69's landing is THE LATENCY REQUIREMENT — how fast a result must be useful.
     // THIS lesson's landing is THE COORDINATION BUDGET: what must wait on
     // agreement, and where the one channel belongs.
-    expect(
-      M.bigIdea.includes('COORDINATION IS NOT FREE AND IT IS NOT EVIL - IT IS A BUDGET'),
-      'the lesson does not state its own standard'
-    ).toBe(true);
+    expect(M.bigIdea.includes('COORDINATION IS NOT FREE AND IT IS NOT EVIL - IT IS A BUDGET'), 'the lesson does not state its own standard').toBe(true);
     expect(/Independence was not the absence of a plan\. Independence WAS the plan\./.test(M.lesson), 'the lesson does not carry its own hinge').toBe(true);
-    expect(
-      M.lesson.includes('agreement was spent UP FRONT, in the cutting'),
-      'the lesson does not carry why the single cut buys the independence'
-    ).toBe(true);
+    expect(M.lesson.includes('agreement was spent UP FRONT, in the cutting'), 'the lesson does not carry why the single cut buys the independence').toBe(true);
     expect(
       M.lesson.includes('It was reserved for the single event that genuinely required the whole wall to stop and converge'),
       'the lesson does not carry the reserved-channel landing'

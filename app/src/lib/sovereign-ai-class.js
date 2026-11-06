@@ -9959,7 +9959,7 @@ export const SOVEREIGN_AI_MODULES = [
   //
   // Every verse was fetched from app/public/bible/kjv BEFORE a word was written
   // and all 48 are pinned verbatim in
-  // app/src/__tests__/sovereign-ai-sov70-verses.test.js. Recorded as DR-1355.
+  // app/src/__tests__/sovereign-ai-sov70-verses.test.js. Recorded as DR-1357.
   // ---------------------------------------------------------------------------
   {
     "id": "sov70-every-one-over-against-his-house",
