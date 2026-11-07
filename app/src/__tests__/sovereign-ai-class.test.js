@@ -136,7 +136,28 @@ describe('curriculum shape', () => {
     // course-shape spec for a contiguity assertion over a module list, then a
     // probe that mounts a deliberate one-week hole and records which specs go
     // red. `re-review: 2026-12-05`.
-    const HELD_IN_FLIGHT = [];
+    // 72 IS HELD HERE, recorded 2026-11-06 (DR-1376). Sovereign A.I. week 72 was
+    // being written on a sibling branch when week 73 (he that answereth a matter
+    // before he heareth it, DR-1376) was built off an origin/main whose highest
+    // week was 71. Both sources came through the same Gmail intake lane and
+    // landing is strictly serial, so week 73 took the number assigned to it
+    // rather than one another branch already held. This line reads `[72]` on
+    // that branch -- correct there, and wrong the instant week 72 merges, which
+    // is exactly what the assertion below forces: `[72]` fails `toEqual` the
+    // moment 72 is no longer missing, so a hold cannot outlive its week in
+    // silence. RECOMPUTE from the merged tree and DELETE this entry rather than
+    // widening the list; a hole nobody recorded is a dropped or misfiled week.
+    //
+    // WHAT THIS HOLD COSTS WHILE IT IS LIVE, named rather than discovered
+    // (the DR-1338 asymmetry, `re-review: 2026-12-05`). THIS file has a hold
+    // mechanism; `sovereign-ai-sov57-verses` through `sovereign-ai-sov63-verses`
+    // assert strict contiguity over the module list with no such allowance and
+    // know nothing about this list, so those seven go red while 72 is missing.
+    // None of them was edited and week 73 was added to no other lesson's held
+    // list: they go green on their own the moment week 72 lands, which is the
+    // proof that leaving them red is right. Week 73's own gate deliberately
+    // makes NO contiguity claim, so the allowance lives in exactly one place.
+    const HELD_IN_FLIGHT = [72];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
