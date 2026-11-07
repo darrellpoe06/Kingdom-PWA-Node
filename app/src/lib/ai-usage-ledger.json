@@ -659,6 +659,23 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
+    },
+    {
+      "id": "a-closed-list-is-not-a-broken-gate",
+      "date": "2026-11-06",
+      "task": "A closed vocabulary list is friction, not a broken gate: measured a neighbour's gate the spm12 builder reported, and the replacement I proposed would have refused seven landed lessons",
+      "drs": [
+        "DR-1368"
+      ],
+      "prs": [
+        2578
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.48,
+      "estimateWithoutAiHours": 4,
+      "notes": "17:38:00Z -> 18:06:41Z measured from commit timestamps. A measured NON-change: 0 of 11 spm modules pass only via the bare words, so the gate is not vacuous, and a naming-phrase requirement would have refused pm8 and spm2/4/5/6/7/8. Also probed every record and note for broken links: 1307 links, not the 43 a first narrow regex reported, and 1 genuine break left standing because its target was never written. Tokens and dollars null: no meter exposed."
     }
   ]
 }
