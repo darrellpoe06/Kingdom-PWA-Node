@@ -4,7 +4,7 @@
 // DAY and a few recent rows. Through the one Books upload (DR-0709) it becomes
 // the bank-verified balance checkpoint the Money engine already trusts, plus
 // its rows through the same dedupe every import uses. Nothing is invented.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { extractDocument, classifyText, asOfDateOf, snapshotLines, DOC_TYPES, DOC_TYPE_LABEL } from '../lib/books-intake-extract.js';
 import { memoryStore } from '../lib/books-intake-store.js';
 import { intakeFiles, answer, commitDoc, canWrite } from '../lib/books-intake-pipeline.js';
@@ -94,6 +94,76 @@ describe('a banking-app screenshot is its own kind of document (PROVEN TO CATCH)
     expect(answered.status).toBe('ready');
     expect(answered.plan.checkpoint).toMatchObject({ balance: 5774, day: '2026-11-05', basis: 'available' });
     expect(answered.extraction.line_items).toHaveLength(4);
+  });
+});
+
+
+describe('two answers on one screenshot: each stays saved, and the document reaches Ready (Darrell 2026-11-06, PROVEN TO CATCH)', () => {
+  // His real Chase 7206 screen: no date on it, Available $4,687.18 and Present $5,062.72.
+  const REAL = ['Chase', 'Chase Personal Checking (...7206)', 'Available balance', '$4,687.18', 'Present balance $5,062.72', 'Transactions', 'Nov 5  Zelle payment to BG & Mom JPM99D23RK9R  -$750.00'].join('\n');
+  const REAL_ACCOUNTS = [{ id: 'a-7206', name: 'Chase Personal Checking', fragment: '7206', type: 'checking', entityId: 'e-personal', balance: 0 }];
+  const ctx2 = (store, transactions = []) => ({ store, hint: 'overview', known: { accounts: REAL_ACCOUNTS, entities: ENTITIES, transactions }, reader: async (f) => ({ text: await f.text() }), now: () => '2026-11-06T18:00:00.000Z' });
+  it('date first, then Available: both answers stay on the document, nothing is re-asked, status is ready with the $4,687.18 checkpoint for 2026-11-06', async () => {
+    const store = memoryStore();
+    const [doc] = await intakeFiles([fakeFile('shot.jpg', 'image/jpeg', REAL)], ctx2(store));
+    expect(doc.questions.map((q) => q.field).sort()).toEqual(['as_of', 'balance_kind']);
+    const d2 = await answer(doc, `${doc.id}:as_of`, '2026-11-06', ctx2(store));
+    expect(d2.questions.find((q) => q.field === 'as_of')).toMatchObject({ status: 'answered', answer: '2026-11-06' });
+    expect(d2.questions.filter((q) => q.status === 'open').map((q) => q.field)).toEqual(['balance_kind']);
+    const d3 = await answer(d2, `${d2.id}:balance_kind`, 'available', ctx2(store));
+    expect(d3.questions.filter((q) => q.status !== 'answered')).toHaveLength(0);
+    expect(d3.questions.map((q) => [q.field, q.answer]).sort()).toEqual([['as_of', '2026-11-06'], ['balance_kind', 'available']]);
+    expect(d3.status).toBe('ready');
+    expect(canWrite(d3)).toBe(true);
+    expect(d3.plan).toMatchObject({ kind: 'snapshot', accountId: 'a-7206', checkpoint: { balance: 4687.18, day: '2026-11-06', basis: 'available' } });
+    expect(d3.extraction.uncertain).toEqual([]);
+  });
+  it('Available first, then the date: the same end state', async () => {
+    const store = memoryStore();
+    const [doc] = await intakeFiles([fakeFile('shot.jpg', 'image/jpeg', REAL)], ctx2(store));
+    const d2 = await answer(doc, `${doc.id}:balance_kind`, 'available', ctx2(store));
+    expect(d2.questions.filter((q) => q.status === 'open').map((q) => q.field)).toEqual(['as_of']);
+    const d3 = await answer(d2, `${d2.id}:as_of`, '2026-11-06', ctx2(store));
+    expect(d3.status).toBe('ready');
+    expect(d3.plan.checkpoint).toMatchObject({ balance: 4687.18, day: '2026-11-06', basis: 'available' });
+  });
+  it('choosing Present instead records $5,062.72 as the current balance', async () => {
+    const store = memoryStore();
+    const [doc] = await intakeFiles([fakeFile('shot.jpg', 'image/jpeg', REAL)], ctx2(store));
+    const d2 = await answer(doc, `${doc.id}:as_of`, '2026-11-06', ctx2(store));
+    const d3 = await answer(d2, `${d2.id}:balance_kind`, 'current', ctx2(store));
+    expect(d3.status).toBe('ready');
+    expect(d3.plan.checkpoint).toMatchObject({ balance: 5062.72, day: '2026-11-06', basis: 'current' });
+  });
+  it('approval writes the verified balance to the EXISTING Chase 7206 account (no new account), the engine reads it verified on 2026-11-06, and the one row lands once', async () => {
+    const store = memoryStore();
+    const ledger = [];
+    const addAccount = vi.fn();
+    const sinks = { addAccount, commitImportedRows: async (rows) => { rows.forEach((r, i) => ledger.push({ id: `t-${ledger.length + i}`, ...r })); return { saved: rows.length }; } };
+    const [doc] = await intakeFiles([fakeFile('shot.jpg', 'image/jpeg', REAL)], ctx2(store));
+    const d2 = await answer(doc, `${doc.id}:as_of`, '2026-11-06', ctx2(store));
+    const d3 = await answer(d2, `${d2.id}:balance_kind`, 'available', ctx2(store));
+    const out = await commitDoc(d3, { store, sinks, known: { accounts: REAL_ACCOUNTS, entities: ENTITIES, transactions: [] } });
+    expect(out.status).toBe('added');
+    expect(addAccount).not.toHaveBeenCalled();
+    const cps = ledger.filter((t) => t.category === 'balance-checkpoint');
+    expect(cps).toHaveLength(1);
+    expect(cps[0]).toMatchObject({ accountId: 'a-7206', date: '2026-11-06' });
+    expect(cps[0].reconciliation).toMatchObject({ balance: 4687.18, basis: 'available' });
+    expect(ledger.filter((t) => t.category !== 'balance-checkpoint')).toHaveLength(1);
+    const data = { entities: ENTITIES, accounts: REAL_ACCOUNTS, transactions: ledger, recurringObligations: [], inflows: { salaries: [], rentals: [] }, moneyPlan: { settings: { reserveByEntity: { personal: 10000 } } } };
+    expect(deriveAccountBalances(data, at(2026, 11, 6))['a-7206']).toBe(4687.18);
+    const r = buildSafeToSpend(data, { currentDate: at(2026, 11, 6), period: '7d', scope: 'personal' });
+    expect(r.balanceSources.find((b) => b.id === 'a-7206')).toMatchObject({ verifiedOn: '2026-11-06', verifiedBalance: 4687.18 });
+    expect(r.lines.availableCash).toBe(4687.18);
+    expect(r.safeToSpendNow).toBe(0); // under the $10,000 reserve
+    // approving the same screenshot again writes nothing more
+    const [again] = await intakeFiles([fakeFile('shot2.jpg', 'image/jpeg', REAL)], ctx2(store, ledger));
+    const a2 = await answer(again, `${again.id}:as_of`, '2026-11-06', ctx2(store, ledger));
+    const a3 = await answer(a2, `${a2.id}:balance_kind`, 'available', ctx2(store, ledger));
+    const before = ledger.length;
+    await commitDoc(a3, { store, sinks, known: { accounts: REAL_ACCOUNTS, entities: ENTITIES, transactions: ledger } });
+    expect(ledger.length).toBe(before);
   });
 });
 
