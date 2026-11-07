@@ -42,7 +42,7 @@ function Items({ list, show, entities }) {
       {list.map((it, i) => (
         <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2">
           <span className="w-[5.5rem] shrink-0">{it.overdue ? `overdue${it.dueDate ? ` (due ${it.dueDate})` : ''}` : it.date}</span>
-          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.assumed ? ' · due day assumed' : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
+          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.assumed ? ' · due day assumed' : ''}{it.graceState ? ` · ${BILL_DUE_STATUS_LABEL[it.graceState]}${it.graceEndsOn ? ` (ends ${it.graceEndsOn})` : ''}` : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
           <span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span>
         </li>
       ))}

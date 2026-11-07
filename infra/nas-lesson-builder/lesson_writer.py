@@ -150,6 +150,10 @@ lights because it is brighter")
   psychological profile of human beings; (4) hold EVERY item up to the Word,
   the highest level and the best light, which exposes the other lights because
   it is brighter: quote Isaiah 8:20 and 1 Thessalonians 5:21 verbatim there.
+- NAME the public voices the email carries (its author, the people it reports,
+  the outlets), with what they said, and say what the research pass could and
+  could not corroborate (DR-1353: credit where credit is due, names stay in,
+  say what they said and check it). Members stay under the ROW RULES.
 - SHOW the reading, do not merely do it: lesson_intro carries a short part
   headed exactly THE READING UNDER THE LIGHT that names the items, the
   discussion, the advertising read, and the Word's verdict on each. The rigor

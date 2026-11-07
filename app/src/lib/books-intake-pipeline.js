@@ -30,6 +30,7 @@ import { reconcileExtraction } from './books-intake-reconcile.js';
 import { questionsFor, answerQuestion, blockingOpen, lessonFrom, applyLesson } from './books-intake-questions.js';
 import { receiptShape } from './receipts.js';
 import { planAccountImport } from './bulk-statement-import.js';
+import { balanceCheckpointRow } from './financial-engineering.js';
 
 export const STATUS_LABEL = Object.freeze({
   received: 'Received', read: 'Read', 'needs-answer': 'Needs your answer', ready: 'Ready to confirm', added: 'Added', stored: 'Stored',
@@ -82,10 +83,16 @@ export async function processDoc(doc, ctx) {
   const remembered = applyLesson(lesson && lesson.answers, { extraction: firstPass, accounts: known.accounts });
   const given = { ...remembered, ...answersOf(doc) };
 
+  // A screenshot's answered day / balance choice re-shapes the extraction (its
+  // rows take their year from the day; the chosen figure becomes the balance).
+  const reshape = !!(given.as_of || given.balance_kind);
   const x = given.doc_type && given.doc_type !== 'unknown'
-    ? extractDocument(read, doc, { hint, forceType: given.doc_type })
-    : firstPass;
+    ? extractDocument(read, doc, { hint, forceType: given.doc_type, asOf: given.as_of || null, balanceKind: given.balance_kind || null })
+    : (reshape ? extractDocument(read, doc, { hint, forceType: firstPass.doc_type !== 'unknown' ? firstPass.doc_type : null, asOf: given.as_of || null, balanceKind: given.balance_kind || null }) : firstPass);
   if (given.doc_type) x.uncertain = x.uncertain.filter((u) => u !== 'doc_type');
+  if (given.as_of) x.uncertain = x.uncertain.filter((u) => u !== 'as_of');
+  if (given.balance_kind) x.uncertain = x.uncertain.filter((u) => u !== 'balance_kind');
+  if (given.balance === 'rows-only') { x.uncertain = x.uncertain.filter((u) => u !== 'balance'); x.summary.rowsOnly = true; }
   if (given.tax_year) x.tax_year = Number(given.tax_year);
   x.rowReconciliation = read.rowReconciliation || null;
 
@@ -121,10 +128,19 @@ export async function processDoc(doc, ctx) {
 // Keep a person's earlier answers/skips when a document is re-processed.
 function mergeQuestions(prev = [], fresh = []) {
   const byId = new Map((prev || []).map((q) => [q.id, q]));
-  return fresh.map((q) => {
+  const out = fresh.map((q) => {
     const old = byId.get(q.id);
     return old && old.status !== 'open' && q.status === 'open' ? { ...q, status: old.status, answer: old.answer, answeredAt: old.answeredAt } : q;
   });
+  // An ANSWER stays on the document even when its question is no longer asked:
+  // the answer is exactly what made it stop being asked, and the next
+  // re-process reads it back (answersOf). Before this, a screenshot with no
+  // date and two balances ping-ponged (Darrell 2026-11-06, Chase 7206): the
+  // day was answered and dropped, answering the balance re-read the document
+  // with no day, which re-asked the day and dropped the balance.
+  const freshIds = new Set(fresh.map((q) => q.id));
+  for (const q of prev || []) if (q && q.status === 'answered' && !freshIds.has(q.id)) out.push(q);
+  return out;
 }
 
 /** What may be written, and through which proven path. Pure. */
@@ -151,6 +167,19 @@ export function planWrite(doc, { known = {} } = {}) {
     }
     case 'bank-statement':
       return { kind: 'statement-facts', accountId: accountId || null, createAccount, summary: x.summary, period: [x.dates.period_start, x.dates.period_end] };
+    case 'account-snapshot': {
+      // The balance on the screen becomes the bank-verified checkpoint for that
+      // account on that day (never twice for the same day and figure), and the
+      // rows go through the same dedupe as every import.
+      const rows = accountId ? newRowsFor(x, accountId, known.transactions) : { txns: ledgerRows(x), duplicates: 0 };
+      const day = x.dates.document;
+      const bal = x.summary.rowsOnly ? null : x.summary.newBalance;
+      const basis = x.summary.balanceKind || 'available';
+      const already = !!(accountId && day && bal != null && (known.transactions || []).some((t) => t && t.accountId === accountId && String(t.category || '') === 'balance-checkpoint'
+        && String(t.date || '').slice(0, 10) === day && Math.abs(Number(t.reconciliation && t.reconciliation.balance) - bal) < 0.005));
+      const checkpoint = day && bal != null ? { balance: bal, day, basis } : null;
+      return { kind: 'snapshot', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates, checkpoint, checkpointAlreadyRecorded: already, asOf: day, summary: x.summary };
+    }
     case 'tax-form':
       return { kind: 'tax', year: x.tax_year, entityId: m.entity && m.entity.entityId, taxKind: x.summary.taxKind || 'other', pdf: /pdf$/i.test(doc.type) || /\.pdf$/i.test(doc.name) };
     case 'receipt': {
@@ -196,7 +225,7 @@ export async function commitDoc(doc, { store, sinks = {}, known = {}, demo = fal
   const p = doc.plan;
   const links = [];
   let createdAccountId = null;
-  if ((p.kind === 'transactions' || p.kind === 'statement-facts') && p.createAccount && sinks.addAccount) {
+  if ((p.kind === 'transactions' || p.kind === 'statement-facts' || p.kind === 'snapshot') && p.createAccount && sinks.addAccount) {
     const acc = sinks.addAccount({ ...p.createAccount, entityId: doc.matched && doc.matched.entity ? doc.matched.entity.entityId : null });
     createdAccountId = acc && acc.id;
     if (createdAccountId) links.push({ kind: 'account', id: createdAccountId, label: p.createAccount.name });
@@ -213,6 +242,22 @@ export async function commitDoc(doc, { store, sinks = {}, known = {}, demo = fal
       if (p.summary && p.summary.minimumPayment != null) patch.minPayment = p.summary.minimumPayment;
       if (p.summary && p.summary.apr != null) patch.rate = p.summary.apr;
       sinks.updateAccount(accountId, patch);
+    }
+  } else if (p.kind === 'snapshot' && accountId && sinks.commitImportedRows) {
+    // Rows first (re-planned against the ledger as it is NOW), then the
+    // bank-verified balance for the day, unless that exact checkpoint is there.
+    const fresh = planAccountImport(ledgerRows(doc.extraction), accountId, known.transactions || []);
+    const summary = fresh.txns.length ? await sinks.commitImportedRows(fresh.txns.map((r) => ({ ...r, source: 'screenshot', docId: doc.id }))) : { total: 0, saved: 0 };
+    links.push({ kind: 'transactions', accountId, count: fresh.txns.length, duplicates: fresh.duplicates, summary });
+    const cp = p.checkpoint;
+    const already = cp && (known.transactions || []).some((t) => t && t.accountId === accountId && String(t.category || '') === 'balance-checkpoint'
+      && String(t.date || '').slice(0, 10) === cp.day && Math.abs(Number(t.reconciliation && t.reconciliation.balance) - cp.balance) < 0.005);
+    if (cp && !already) {
+      const row = balanceCheckpointRow(accountId, cp.balance, cp.day, { basis: cp.basis, source: `screenshot ${doc.name}` });
+      await sinks.commitImportedRows([{ ...row, docId: doc.id }]);
+      links.push({ kind: 'checkpoint', accountId, balance: cp.balance, day: cp.day, basis: cp.basis });
+    } else if (cp) {
+      links.push({ kind: 'checkpoint', accountId, balance: cp.balance, day: cp.day, basis: cp.basis, alreadyRecorded: true });
     }
   } else if (p.kind === 'statement-facts') {
     links.push({ kind: 'statement', accountId, period: p.period });
