@@ -155,16 +155,14 @@ const SPINE_FRAGMENTS = {
   'James 1:19': 'let every man be swift to hear, slow to speak, slow to wrath',
   'Proverbs 20:5': 'Counsel in the heart of man is like deep water; but a man of understanding will draw it out.',
   'Genesis 3:9': 'And the LORD God called unto Adam, and said unto him, Where art thou?',
-  'Genesis 18:21':
-    'I will go down now, and see whether they have done altogether according to the cry of it, which is come unto me; and if not, I will know.',
+  'Genesis 18:21': 'I will go down now, and see whether they have done altogether according to the cry of it, which is come unto me; and if not, I will know.',
   'Job 38:3': 'for I will demand of thee, and answer thou me',
   'Mark 10:51': 'And Jesus answered and said unto him, What wilt thou that I should do unto thee?',
   'John 5:6': 'he saith unto him, Wilt thou be made whole?',
   'John 2:25': 'And needed not that any should testify of man: for he knew what was in man.',
   'Proverbs 25:2': 'the honour of kings is to search out a matter',
   'Proverbs 18:17': 'He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.',
-  'Jeremiah 6:16':
-    'Stand ye in the ways, and see, and ask for the old paths, where is the good way, and walk therein, and ye shall find rest for your souls',
+  'Jeremiah 6:16': 'Stand ye in the ways, and see, and ask for the old paths, where is the good way, and walk therein, and ye shall find rest for your souls',
   '1 Corinthians 13:12': 'For now we see through a glass, darkly; but then face to face: now I know in part',
   'Proverbs 11:14': 'Where no counsel is, the people fall: but in the multitude of counsellors there is safety.',
   'Proverbs 15:22': 'Without counsel purposes are disappointed: but in the multitude of counsellors they are established.',
@@ -211,7 +209,10 @@ describe('sov73 — the lesson is mounted and is the week it says it is', () => 
     // strictly, and this lesson sits where that ascending order puts it.
     expect(weeks).toContain(73);
     expect(weeks.filter((w) => w === 73).length, 'week 73 is mounted twice').toBe(1);
-    expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
+    expect(
+      weeks.every((n, i) => i === 0 || n > weeks[i - 1]),
+      `weeks ascend: ${weeks.join(',')}`
+    ).toBe(true);
     expect(
       SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID),
       'sov73 does not sit where the ascending week order puts it'
@@ -360,8 +361,14 @@ describe('sov73 — the Word is quoted, never rewritten', () => {
     // PROVEN NOT HOLLOW: the scan really does see our prose, and really does
     // leave a quotation alone. Proverbs 25:2 carries "honour" INSIDE its
     // quotation marks in this lesson and must never be reported.
-    expect(findBritish('we honour the searching').map((h) => h.word), 'the British scan is blind').toEqual(['honour']);
-    expect(findBritish('"the honour of kings is to search out a matter"').map((h) => h.word), 'the scan reads inside a quotation').toEqual([]);
+    expect(
+      findBritish('we honour the searching').map((h) => h.word),
+      'the British scan is blind'
+    ).toEqual(['honour']);
+    expect(
+      findBritish('"the honour of kings is to search out a matter"').map((h) => h.word),
+      'the scan reads inside a quotation'
+    ).toEqual([]);
   });
 });
 
@@ -497,13 +504,14 @@ describe('sov73 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place say
   it('what the checking CHANGED is stated, and it names the expectation it reversed (DR-0190 §5)', () => {
     expect(M.lesson.includes('AND HERE IS WHAT THE CHECKING CHANGED'), 'the adult lesson does not say what the checking changed').toBe(true);
     expect(M.lesson.includes('The probe REVERSED that'), 'the reversal is not named as a reversal').toBe(true);
-    expect(
-      M.lesson.includes('every number here sits two layers out from anything measured'),
-      'the lesson does not state how far out its figures sit'
-    ).toBe(true);
+    expect(M.lesson.includes('every number here sits two layers out from anything measured'), 'the lesson does not state how far out its figures sit').toBe(
+      true
+    );
     const blob = allStrings().join('\n');
-    expect(/the landing had to move off the numbers entirely|the landing of the lesson had to move off the numbers altogether/i.test(blob),
-      'the lesson does not say the landing moved off the numbers').toBe(true);
+    expect(
+      /the landing had to move off the numbers entirely|the landing of the lesson had to move off the numbers altogether/i.test(blob),
+      'the lesson does not say the landing moved off the numbers'
+    ).toBe(true);
   });
 
   it('the advertisements are NAMED and taken from for nothing', () => {
@@ -515,8 +523,10 @@ describe('sov73 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place say
       'the lesson does not say it takes nothing from the advertising'
     ).toBe(true);
     // Not even as a foil, which is the subtle way an advertisement gets used.
-    expect(/not a foil to argue against|not even a target to argue against|not even a convenient position to argue against/i.test(blob),
-      'the lesson does not refuse the advertisement as a foil').toBe(true);
+    expect(
+      /not a foil to argue against|not even a target to argue against|not even a convenient position to argue against/i.test(blob),
+      'the lesson does not refuse the advertisement as a foil'
+    ).toBe(true);
     // And the advertised product is never named, because naming it would be carrying it.
     expect(/\bDemi\b/.test(blob), 'the advertised product is named, which is carrying the advertising').toBe(false);
   });
@@ -529,10 +539,7 @@ describe('sov73 — the landing: the sequence, the counsel, and the score that i
       M.lesson.includes('It does not say the answer was wrong'),
       'the lesson does not carry the point that Proverbs 18:13 is silent about the answer being wrong'
     ).toBe(true);
-    expect(
-      M.lesson.includes('so the fault is located in the SEQUENCE, not in the outcome'),
-      'the lesson does not place the fault on the sequence'
-    ).toBe(true);
+    expect(M.lesson.includes('so the fault is located in the SEQUENCE, not in the outcome'), 'the lesson does not place the fault on the sequence').toBe(true);
     // The EAR, not the mouth, is the organ given the seeking, and the lesson says so.
     expect(M.lesson.includes('The EAR seeks. Not the mouth.'), 'the lesson does not work out Proverbs 18:15').toBe(true);
   });
@@ -557,10 +564,7 @@ describe('sov73 — the landing: the sequence, the counsel, and the score that i
       M.lesson.includes('the panel was assembled by the man who already knew what he wanted to hear'),
       'the lesson does not name why the four hundred were worthless'
     ).toBe(true);
-    expect(
-      M.lesson.includes('excluded for being unwelcome rather than for being wrong'),
-      'the lesson does not name why Micaiah was left out'
-    ).toBe(true);
+    expect(M.lesson.includes('excluded for being unwelcome rather than for being wrong'), 'the lesson does not name why Micaiah was left out').toBe(true);
     expect(M.lesson.includes('not whether they argue, but whether any of them can lose'), 'the lesson does not state the panel test').toBe(true);
     // The order of the quotes IS the argument: the four hundred, then the question, then the admission.
     const at = (ref) => M.lesson.indexOf(SPINE_FRAGMENTS[ref]);
@@ -597,9 +601,10 @@ describe('sov73 — the landing: the sequence, the counsel, and the score that i
 
   it('quotes AND reasons from the Word, never staging competing human views (DR-0281 / DR-0098)', () => {
     const blob = allStrings().join('\n');
-    expect(/scholars (?:are )?divided|some scholars say|you decide which|three views|pick a side|both sides/i.test(blob), 'the module stages competing human views').toBe(
-      false
-    );
+    expect(
+      /scholars (?:are )?divided|some scholars say|you decide which|three views|pick a side|both sides/i.test(blob),
+      'the module stages competing human views'
+    ).toBe(false);
     expect(M.lesson.includes('we will not stage two sides of it'), 'the lesson does not refuse the both-sides posture').toBe(true);
   });
 });
@@ -810,17 +815,18 @@ describe('sov73 — PROVEN TO CATCH, place by place', () => {
   });
 
   it('PROVEN TO CATCH: softening either refusal into a description, in any non-child place, is caught', () => {
-    const quotesBoth = (txt) =>
-      txt.includes('curl: (56) CONNECT tunnel failed, response 403') && txt.includes('getaddrinfo ENOTFOUND microsoft.ai');
+    const quotesBoth = (txt) => txt.includes('curl: (56) CONNECT tunnel failed, response 403') && txt.includes('getaddrinfo ENOTFOUND microsoft.ai');
     for (const [place, txt] of Object.entries(PLACES())) {
       if (place === 'child') continue;
       expect(quotesBoth(txt), `${place} does not quote both refusals on the shipped lesson`).toBe(true);
-      expect(quotesBoth(txt.replace('curl: (56) CONNECT tunnel failed, response 403', 'the request was blocked')), `a softened gateway refusal in ${place} was NOT caught`).toBe(
-        false
-      );
-      expect(quotesBoth(txt.replace('getaddrinfo ENOTFOUND microsoft.ai', 'the address did not work')), `a softened resolver refusal in ${place} was NOT caught`).toBe(
-        false
-      );
+      expect(
+        quotesBoth(txt.replace('curl: (56) CONNECT tunnel failed, response 403', 'the request was blocked')),
+        `a softened gateway refusal in ${place} was NOT caught`
+      ).toBe(false);
+      expect(
+        quotesBoth(txt.replace('getaddrinfo ENOTFOUND microsoft.ai', 'the address did not work')),
+        `a softened resolver refusal in ${place} was NOT caught`
+      ).toBe(false);
     }
   });
 
@@ -860,14 +866,16 @@ describe('sov73 — shared ground is MEASURED, never claimed (DR-1317)', () => {
   // and not taught content. The two halves are asserted to add up to the spine,
   // so a reference cannot be quietly left out of the census.
   const SHARED_AND_WHO_ELSE_HOLDS_IT = {
-    'Proverbs 18:13': 'eleven other courses and six other sovereign-ai weeks (the most-taught verse in this catalog; read here for the SEQUENCE being the fault rather than the outcome)',
+    'Proverbs 18:13':
+      'eleven other courses and six other sovereign-ai weeks (the most-taught verse in this catalog; read here for the SEQUENCE being the fault rather than the outcome)',
     'Proverbs 15:28': 'living-lessons and one other sovereign-ai week',
     'Proverbs 18:15': 'living-lessons and rent-to-own-business',
     'James 1:19': 'living-lessons, sound-board and four other sovereign-ai weeks',
     'Proverbs 20:5': 'living-lessons and one other sovereign-ai week',
     'Genesis 3:9': 'living-lessons and the torah-pattern surface',
     'Job 38:3': 'car-research, healthy-living, living-lessons and world-issues',
-    'Mark 10:51': 'the therapy-lesson surface (app/src/lib/tlc-lessons.js) and DR-0345 - NOT any course or class module of the taught catalog, so this is the first lesson to teach it',
+    'Mark 10:51':
+      'the therapy-lesson surface (app/src/lib/tlc-lessons.js) and DR-0345 - NOT any course or class module of the taught catalog, so this is the first lesson to teach it',
     'John 2:25': 'living-lessons, world-issues and the seeing-study surface',
     'Proverbs 25:2': 'ten other courses including business-research, development and world-issues (the standing search-it-out verse)',
     'Proverbs 18:17': 'six other courses and six other sovereign-ai weeks',
@@ -876,9 +884,12 @@ describe('sov73 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     'Proverbs 11:14': 'datasystems, living-lessons, project-management, stocks, world-issues and four other sovereign-ai weeks',
     'Proverbs 15:22': 'historical-research, living-lessons, partnerships, project-management and two other sovereign-ai weeks',
     'Proverbs 24:6': 'living-lessons, project-management and two other sovereign-ai weeks',
-    '1 Kings 22:6': 'sovereign-ai week 33 and DR-0761 (read there for the CONSENSUS THAT KILLED A KING and a tool trained on approval; read here for WHO ASSEMBLED THE PANEL and whether anyone in it can lose)',
-    '1 Kings 22:7': 'sovereign-ai week 33 (the same chapter, the visiting king\u2019s question, read there for the instinct that distrusts unanimity and here for the available voice that was excluded)',
-    '1 Kings 22:8': 'sovereign-ai week 33 (read there for what the four hundred were selected FOR; read here for the admission that the exclusion was for being unwelcome rather than for being wrong)',
+    '1 Kings 22:6':
+      'sovereign-ai week 33 and DR-0761 (read there for the CONSENSUS THAT KILLED A KING and a tool trained on approval; read here for WHO ASSEMBLED THE PANEL and whether anyone in it can lose)',
+    '1 Kings 22:7':
+      'sovereign-ai week 33 (the same chapter, the visiting king\u2019s question, read there for the instinct that distrusts unanimity and here for the available voice that was excluded)',
+    '1 Kings 22:8':
+      'sovereign-ai week 33 (read there for what the four hundred were selected FOR; read here for the admission that the exclusion was for being unwelcome rather than for being wrong)',
     'Proverbs 14:15': 'nine other courses and nine other sovereign-ai weeks',
     'Luke 14:28': 'fifteen other courses (the standing count-the-cost verse)',
     'Proverbs 24:3': 'seven other courses and nine other sovereign-ai weeks (the standing Resources pair)',
@@ -958,18 +969,24 @@ describe('sov73 — shared ground is MEASURED, never claimed (DR-1317)', () => {
     // it carries John 1:29, John 3:16 and Deuteronomy 6:7 and not the other
     // four. The claim is now the MEASURED three rather than the assumed seven,
     // which is the whole discipline this census exists for.
-    expect(STANDING_SEVEN.filter((r) => theirs.has(r)).sort(), 'the standing verses week 33 shares changed; re-measure rather than widen').toEqual(
-      ['Deuteronomy 6:7', 'John 1:29', 'John 3:16']
-    );
+    expect(STANDING_SEVEN.filter((r) => theirs.has(r)).sort(), 'the standing verses week 33 shares changed; re-measure rather than widen').toEqual([
+      'Deuteronomy 6:7',
+      'John 1:29',
+      'John 3:16',
+    ]);
     // AND THE LANDINGS DIFFER, which is what makes the overlap legitimate.
     // Week 33 lands on a TOOL TRAINED ON APPROVAL and the faithful witness.
     // This week lands on the SEQUENCE, the asking as honor, and a score that is
     // not a healing. Neither sibling's landing language appears here.
     const blob = allStrings().join('\n');
-    expect(/trained on approval|faithful witness|hurt healed slightly|smooth things|consensus that killed a king/i.test(blob),
-      'this lesson teaches the approval-reward landing of week 33').toBe(false);
+    expect(
+      /trained on approval|faithful witness|hurt healed slightly|smooth things|consensus that killed a king/i.test(blob),
+      'this lesson teaches the approval-reward landing of week 33'
+    ).toBe(false);
     // sov71's landing is the DISCLOSURE ETHIC — the two-sided test for silence.
-    expect(/protective silence|concealment withholds|gate shut on purpose/i.test(blob), 'this lesson teaches the disclosure landing of another week').toBe(false);
+    expect(/protective silence|concealment withholds|gate shut on purpose/i.test(blob), 'this lesson teaches the disclosure landing of another week').toBe(
+      false
+    );
     // sov70's landing is THE COORDINATION BUDGET — what must wait on agreement.
     expect(/coordination budget|every one over against his house/i.test(blob), 'this lesson teaches the coordination landing of another week').toBe(false);
     // And this lesson's own landing IS stated, so the case is not purely negative.
