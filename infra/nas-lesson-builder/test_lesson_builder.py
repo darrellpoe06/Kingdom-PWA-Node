@@ -2005,6 +2005,7 @@ class NewsletterUnderTheLight(unittest.TestCase):
         self.assertNotIn("EMAIL", self.rules(["lesson"]))
         self.assertIn("THE READING UNDER THE LIGHT", lw.STANDARD)
         self.assertIn("further_lessons", lw.STANDARD)
+        self.assertIn("NAME the public voices", lw.STANDARD)
 
     def test_PROVEN_TO_CATCH_an_emailed_lesson_that_hides_its_reading_is_refused_and_a_plain_one_is_not(self):
         obj = make_lesson()
