@@ -646,6 +646,21 @@
       "notes": "18:29:27Z -> 18:47:30Z measured from commit timestamps. Drawn from resolving the same conflict set by hand five times in one afternoon across nine branches. The second cause was measured, not assumed: the file oscillated between \\u2014 escapes and literal em-dashes across eight landings (0,4,0,0,4,0,0,0), so half the tax was two writers disagreeing rather than a merge, and that half is fixed at the writer. Three defects restored and proven to catch; one of the three nearly went unproven because a shell quoting failure left the file unmodified and the suite reported 35 passed. Tokens and dollars null: no meter exposed."
     },
     {
+      "id": "ll286-ll287-two-sends-under-the-light",
+      "date": "2026-11-06",
+      "task": "Two sends read under the newsletter Way the evening it was set: ll286 (Priya Misra, the bond market as a safe haven) and ll287 (Owen Jones on Chelli Goldenberg), research passes tiered, two gates (55 + 56), eight split rows and two research rows filed for the lane, the builder rule names public voices",
+      "drs": [
+        "DR-1370"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 30,
+      "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
+    },
+    {
       "id": "a-closed-list-is-not-a-broken-gate",
       "date": "2026-11-06",
       "task": "A closed vocabulary list is friction, not a broken gate: measured a neighbour's gate the spm12 builder reported, and the replacement I proposed would have refused seven landed lessons",

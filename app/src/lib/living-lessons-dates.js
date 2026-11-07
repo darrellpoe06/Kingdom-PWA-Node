@@ -555,4 +555,14 @@ export const LIVING_LESSONS_ADDED = {
   // and the cure is to hear what He says about you; the brighter light exposes
   // the others, so every newsletter is read under the Word (DR-1361). Same day.
   'll285-a-light-that-is-not-light': '2026-11-06',
+  // L286: the first lesson under the newsletter Way (DR-1361): a link and a
+  // summary of Priya Misra on the bond market as a safe haven, the speaker
+  // named and checked, the strongest item built, the rest filed for the lane,
+  // every item held up to the Word (DR-1370). Same day.
+  'll286-where-do-you-run-when-the-market-shakes': '2026-11-06',
+  // L287: the second lesson under the newsletter Way the same evening: Owen
+  // Jones on Chelli Goldenberg's Channel 13 interview, both voices named, every
+  // claim tiered (DR-0100), the Word as the measure of every nation by the
+  // stranger at its gate (DR-1370). Same day.
+  'll287-spoken-in-the-break-heard-in-the-light': '2026-11-06',
 };
