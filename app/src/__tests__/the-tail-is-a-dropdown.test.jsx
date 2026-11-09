@@ -36,9 +36,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const L288 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll288-'));
 const BODY = 'ONE. The first point. TWO. The second point, with a story in it.';
-const TAIL = 'TALK ABOUT IT TOGETHER. Parents, ask your children what they saw today. Children, ask your mom or your dad where it lands. Friends, tell one friend this week.';
+const TAIL =
+  'TALK ABOUT IT TOGETHER. Parents, ask your children what they saw today. Children, ask your mom or your dad where it lands. Friends, tell one friend this week.';
 
-let root; let host;
+let root;
+let host;
 function render(el) {
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -46,7 +48,12 @@ function render(el) {
   act(() => root.render(el));
   return host;
 }
-afterEach(() => { if (root) act(() => root.unmount()); if (host) host.remove(); root = null; host = null; });
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  if (host) host.remove();
+  root = null;
+  host = null;
+});
 
 describe('the voice reads the teaching and the stories, not the tail', () => {
   it('splitTalkTogether cuts at the heading and leaves text without one whole', () => {
@@ -65,9 +72,7 @@ describe('the voice reads the teaching and the stories, not the tail', () => {
 
   it('1a. readAloudTextFromArc leaves the tail out by default; 1b. includeTalk brings it back verbatim', () => {
     const arc = {
-      audienceSegments: [
-        { kind: 'teach', audience: { lessonPlan: { segments: [BODY, TAIL, 'Adult: one more.'] }, stories: [] } },
-      ],
+      audienceSegments: [{ kind: 'teach', audience: { lessonPlan: { segments: [BODY, TAIL, 'Adult: one more.'] }, stories: [] } }],
     };
     const spoken = readAloudTextFromArc(arc);
     expect(spoken).toContain('The first point');
