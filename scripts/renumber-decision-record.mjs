@@ -25,6 +25,21 @@
 // resolve-ledger-conflicts.mjs, which already owns it and computes it from the
 // files on disk.
 //
+// THAT LAST SENTENCE WAS FALSE FOR AS LONG AS IT HAS BEEN WRITTEN (DR-1362).
+// The bare-id rewrite is a whole-file `DR-nnnn(?!\d)` replace, and INDEX.md is
+// one of the files it rewrites — so whenever the pointer's VALUE happened to be
+// the number being moved, the pointer moved too. MEASURED 2026-11-06 on a
+// fixture: `**Next ID:** DR-1355.` became `**Next ID:** DR-1362.`
+//
+// And that is not a rare alignment, it is the NORMAL one: a session takes the
+// number the pointer names, discovers another session took it first, and
+// renumbers off it — so the pointer is holding exactly the number being moved
+// almost every time this tool runs. The pm15 builder hit it on #2567 today and
+// reported it; the pointer it wrote named that session's own new record.
+//
+// The pointer line is now excluded by a predicate, so the documented contract
+// and the behaviour agree. Nothing else about the rewrite changes.
+//
 // WHAT IT REFUSES, so it can never be the thing that loses a decision:
 //   · a target number that any file on disk already holds — the whole point is
 //     to leave a collision, not create one;
@@ -61,6 +76,28 @@ import { execFileSync } from 'node:child_process';
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DECISIONS_DIR = 'docs/decisions';
 export const INDEX_REL = 'docs/decisions/INDEX.md';
+
+/**
+ * The one line this tool must never rewrite (DR-1362).
+ *
+ * `**Next ID:**` is computed from disk by resolve-ledger-conflicts.mjs, which
+ * owns it, because two things computing one line is how they drift (DR-0644 /
+ * DR-1021). This pattern holds it back from the bare-id rewrite.
+ */
+export const POINTER_LINE = /^\s*\*\*Next ID:\*\*/;
+
+/**
+ * Pure. The pointer line, when it still mentions `oldId`; otherwise null.
+ *
+ * Held back from the rewrite, so a stale mention cannot be fixed silently —
+ * and must not be, because the annotations there are sometimes history that
+ * stays true after the move. Reported for a person to read.
+ */
+export function pointerLineMentioning(text = '', oldId = '') {
+  const line = String(text).split('\n').find((l) => POINTER_LINE.test(l));
+  if (!line || !oldId) return null;
+  return new RegExp(`${oldId}(?!\\d)`).test(line) ? line.trim() : null;
+}
 
 // Where a decision id can be cited. Kept in step with decision-citation-guard's
 // own scope, plus docs/ (which that guard does not read but this must rewrite).
@@ -145,15 +182,22 @@ export function planRenumber(onDisk, from, to = null, { file = null } = {}) {
  * it does not (two records hold it, straight after a merge) only the file name
  * is rewritten, because a bare id may belong to the other record.
  */
-export function rewriteText(text, plan, { exclusive = true } = {}) {
+export function rewriteText(text, plan, { exclusive = true, skipLine = POINTER_LINE } = {}) {
   const oldId = idOf(plan.from);
   const newId = idOf(plan.to);
-  let next = text.split(plan.oldFile).join(plan.newFile);
-  if (exclusive) {
-    // The id itself, but never as part of a longer number (DR-1016 must not
-    // match inside DR-10160; the ledger reaches five digits eventually).
-    next = next.replace(new RegExp(`${oldId}(?!\\d)`, 'g'), newId);
-  }
+  // LINE BY LINE, so one line can be held back. The pointer is the only line
+  // this tool must never touch (DR-1362), and holding it back is the whole
+  // difference between the documented contract and what the tool used to do.
+  const next = text.split('\n').map((line) => {
+    if (skipLine && skipLine.test(line)) return line;
+    let out = line.split(plan.oldFile).join(plan.newFile);
+    if (exclusive) {
+      // The id itself, but never as part of a longer number (DR-1016 must not
+      // match inside DR-10160; the ledger reaches five digits eventually).
+      out = out.replace(new RegExp(`${oldId}(?!\\d)`, 'g'), newId);
+    }
+    return out;
+  }).join('\n');
   return next === text ? null : next;
 }
 
@@ -263,6 +307,24 @@ export function renumberInTree(cwd, from, to, { force = false, file = null, log 
     }
   }
   log(`renumber: ${oldId} -> ${idOf(plan.to)}; 1 file renamed, ${rewrote} file(s) rewritten.`);
+
+  // THE POINTER LINE IS REPORTED, NEVER REWRITTEN (DR-1362). It is held back
+  // from the rewrite because the resolver owns it, but a mention of the moved
+  // number left standing there needs a person's eye: the annotations on that
+  // line come in two shapes this tool cannot tell apart. "DR-1344 was taken on
+  // 2026-11-05" is HISTORY and stays true after the record moves; "DR-1016 =
+  // a-gospel-with-a-hole-in-it" is a claim about the CURRENT state and goes
+  // stale. Rewriting the first falsifies a true record of the past — the exact
+  // fault of the renumber that rewrote an already-merged session note stating
+  // what the pointer had been set to. So it is named, like an ambiguous
+  // citation, and the operator decides.
+  const pointerMentions = pointerLineMentioning(readFileSync(join(cwd, INDEX_REL), 'utf8'), oldId);
+  if (pointerMentions) {
+    log(`NOT rewritten: the **Next ID:** line still mentions ${oldId}:`);
+    log(`  ${pointerMentions}`);
+    log('That line is resolve-ledger-conflicts.mjs\'s to set. If the mention is history');
+    log('("was taken on <date>") it stays true; if it describes the current state, fix it by hand.');
+  }
   if (!exclusive) {
     log(`NOT rewritten: ${ambiguous} bare ${oldId} citation(s) remain, because two records held that`);
     log('number and a bare id may belong to either. Read these and fix the ones that meant the moved record:');
