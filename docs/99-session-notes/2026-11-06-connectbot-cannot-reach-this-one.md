@@ -120,6 +120,38 @@ not change. And the record's own count was wrong: it said two sites carry
 `continue-on-error`, re-counted as four, all four preserved through the
 rewrite.
 
+## This change is lane-touching, so DR-0107 clause 2 is not yet discharged
+
+Read properly rather than recalled: DR-0107 does not only ask that the served
+build advanced after a merge (clause 3). For a change to the merge/CI/deploy
+lane it says the change **is not done until a real merge has produced a real
+deploy**, and it obligates enumerating *every* downstream `push`-triggered
+effect and proving each still fires. This rewrite touches
+`deploy-cloudflare-pages.yml`, so that clause binds — and checking that the
+deploy's `continue-on-error` survived is NOT discharge of it.
+
+Enumerated rather than assumed: 12 workflows are `push`-triggered, 6 of them
+join the tailnet and so are changed here, and **5 of those 6 fire on a merge to
+`main`**:
+
+| workflow | fires on |
+| --- | --- |
+| `deploy-cloudflare-pages.yml` | push to `main` |
+| `db-migrate.yml` | push to `main` |
+| `lessons-sync.yml` | push to `main` |
+| `openclaw-tower.yml` | push to `main` |
+| `voice-intake-health.yml` | push, any branch |
+
+(`public-shelf-anon-probe.yml` is the sixth; it fires only on `probe/**`, so a
+merge to `main` does not exercise it.)
+
+**The obligation standing on this PR:** after it merges, watch each of those
+five actually fire on the merge commit, and confirm the deploy run's `head_sha`
+matches `main`'s tip. Until that is done the change is shipped, not proven —
+and the 2026-07-06 incident DR-0107 records is exactly the shape of assuming
+otherwise: nine hours of a stale `poetech.us` because a downstream `push`
+effect silently stopped firing while every other signal stayed green.
+
 ## What is left for him, exactly once
 
 Mint one OAuth client in the Tailscale admin console, add two secrets. The
