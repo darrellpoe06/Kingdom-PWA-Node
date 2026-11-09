@@ -128,10 +128,19 @@ export async function processDoc(doc, ctx) {
 // Keep a person's earlier answers/skips when a document is re-processed.
 function mergeQuestions(prev = [], fresh = []) {
   const byId = new Map((prev || []).map((q) => [q.id, q]));
-  return fresh.map((q) => {
+  const out = fresh.map((q) => {
     const old = byId.get(q.id);
     return old && old.status !== 'open' && q.status === 'open' ? { ...q, status: old.status, answer: old.answer, answeredAt: old.answeredAt } : q;
   });
+  // An ANSWER stays on the document even when its question is no longer asked:
+  // the answer is exactly what made it stop being asked, and the next
+  // re-process reads it back (answersOf). Before this, a screenshot with no
+  // date and two balances ping-ponged (Darrell 2026-11-06, Chase 7206): the
+  // day was answered and dropped, answering the balance re-read the document
+  // with no day, which re-asked the day and dropped the balance.
+  const freshIds = new Set(fresh.map((q) => q.id));
+  for (const q of prev || []) if (q && q.status === 'answered' && !freshIds.has(q.id)) out.push(q);
+  return out;
 }
 
 /** What may be written, and through which proven path. Pure. */
