@@ -1,7 +1,7 @@
 # 2026-10-17 — L254: All things work together, the integrated system, and which way it runs
 
 **Module id:** `ll255-all-things-work-together-the-integrated-system-and-which-way-it-runs`
-**Record:** [DR-1094](../decisions/DR-1094-all-things-work-together-the-integrated-system-and-which-way-it-runs-ll254.md)
+**Record:** [DR-1094](../decisions/DR-1094-all-things-work-together-the-integrated-system-and-which-way-it-runs-ll255.md)
 **Spoken by:** Darrell, 2026-10-17, into the house — and sharpened by him the same day, mid-build.
 **Built:** same session (a spoken teaching is build input).
 
