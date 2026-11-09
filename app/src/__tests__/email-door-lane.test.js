@@ -46,7 +46,11 @@ describe('nas-email-door.yml — dispatchable, and it names the one missing valu
   });
 
   it('rides the proven remote-hands channel', () => {
-    expect(wf).toMatch(/uses:\s*tailscale\/github-action@v3/);
+    // The join is asserted by WHAT IT IS, not by the one spelling it had.
+    // DR-1374 moved every join behind `./.github/actions/join-tailnet`; pinning
+    // the raw action made this red for a change that only renamed the door
+    // (the DR-1363 / DR-1379 class). Either door satisfies it.
+    expect(wf).toMatch(/uses:\s*(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action@v3)/);
     expect(wf).toMatch(/tailscale status --peers=false/);
     expect(wf).toMatch(/run:\s*bash scripts\/email-door-over-tailnet\.sh/);
   });

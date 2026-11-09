@@ -82,8 +82,10 @@ jobs:
           node-version: '22'
 
       - name: Join the tailnet (the anon key lives on the NAS; the database is reached the same way)
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: Fetch the sovereign anon key (masked, never printed)

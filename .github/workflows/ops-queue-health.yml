@@ -77,8 +77,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: Join the tailnet (to read the live database)
         continue-on-error: true
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Read the retired hosted database (comparison only)
         id: hosted

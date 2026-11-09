@@ -105,7 +105,8 @@ describe('the lane', () => {
     expect(wf).toMatch(/cancel-in-progress: false/);
     expect(wf).toMatch(/timeout-minutes: 20/);                        // BUDGET (8 lookups x up to 2 min, DR-1019)
     expect(wf).toMatch(/PLACE_DOORS_ENABLED != 'false'/);             // KILL
-    expect(wf).toMatch(/tailscale\/github-action@v3/);
+    // Either door: DR-1374 moved every join behind the one composite action.
+    expect(wf).toMatch(/(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action@v3)/);
     expect(wf).toMatch(/bash scripts\/place-doors-over-tailnet\.sh/);
     // THE CHAIN (DR-1211): a successful deploy dispatches the address
     // completer with then_place, and IT dispatches the door placer from a job

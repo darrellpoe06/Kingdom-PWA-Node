@@ -260,7 +260,8 @@ describe('the Worker carries the road and the deploy arms its two keys', () => {
     const wf = read('.github/workflows/cf-roads-worker.yml');
     expect(wf).toMatch(/wrangler@3 secret put CF_API_TOKEN/);
     expect(wf).toMatch(/wrangler@3 secret put SB_ANON_KEY/);
-    expect(wf).toMatch(/tailscale\/github-action@v3/);
+    // Either door: DR-1374 moved every join behind the one composite action.
+    expect(wf).toMatch(/(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action@v3)/);
     expect(wf).toMatch(/add-mask::\$KEY/);
     expect(wf).toMatch(/check "https:\/\/poetech\.us\/edge\/ping"/);
     // The secrets are put only inside the deploy job (behind the explicit input).

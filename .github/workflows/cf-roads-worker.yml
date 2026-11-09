@@ -139,9 +139,11 @@ jobs:
       # carries: the join may fail, because the next step has another road to
       # the same public value and verifies its shape either way.
       - name: Join the tailnet (for the anon key)
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         continue-on-error: true
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Fetch the sovereign anon key from the NAS, or read it back from the served site
         id: anon
