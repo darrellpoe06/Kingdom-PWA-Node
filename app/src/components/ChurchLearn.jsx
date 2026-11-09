@@ -3415,7 +3415,6 @@ function CourseView({
                       Talk about it together — optional, open to see the prompts
                     </summary>
                     <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
-                      <span className="sr-only">Talk about it together</span>
                       {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
                     </div>
                     <ul className="space-y-1">
