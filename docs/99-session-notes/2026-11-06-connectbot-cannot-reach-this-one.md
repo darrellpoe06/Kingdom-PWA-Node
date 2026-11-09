@@ -90,6 +90,36 @@ or a 3am failure. Re-measured after the fix: **0 invalid, 0 join sites without a
 prior checkout, 0 raw uses remaining.** Asserting the property over the whole
 set is the only reason a 68-site mechanical edit is something I would push.
 
+## The tests that pinned the door's name (2026-11-09)
+
+Five assertions across four suites went red for a change that only renamed the
+door, which is the third sighting of one shape in four days: DR-1363's literal
+lesson numbers, DR-1379's literal date, and now a literal action name. The
+repair is always the same — assert the thing, not the spelling it had — so each
+now accepts either `./.github/actions/join-tailnet` or the raw action.
+
+The one that mattered was `a-tailnet-join-is-not-a-witness.test.js`, DR-1284's
+shrink-only debt gate. Its sweep looked for the raw action, so after the
+rewrite it found **zero** joiners and said it was measuring nothing — the
+anti-vacuity assertion doing precisely its job. The honest close is that the
+debt really is 0 now, and the reason deserves saying plainly: **not 41 judgment
+calls, but one step moved into the door**, which the verify then reached all 64
+joining lanes through at once. The pin went 41 → 0 in one move, and a pin that
+falls that fast is exactly the kind that deserves suspicion, so it is still
+measured off disk every run and still proven to catch: putting a single lane
+back on a bare join reds the gate and names `announce-bearer-sync.yml`.
+
+Two smaller things fell out of reading it closely. The exempt set's test for
+"this lane's join may fail" was proximity-based — any `continue-on-error`
+within 500 characters *before* the join counted — and that had been quietly
+reading `loops-health.yml` into the set off an unrelated earlier step. With one
+canonical door there is a real step block to read, so the predicate is now
+exact and that lane leaves the list; verified against `origin/main` that its
+join never carried the flag, so the measurement sharpened and the fleet did
+not change. And the record's own count was wrong: it said two sites carry
+`continue-on-error`, re-counted as four, all four preserved through the
+rewrite.
+
 ## What is left for him, exactly once
 
 Mint one OAuth client in the Tailscale admin console, add two secrets. The

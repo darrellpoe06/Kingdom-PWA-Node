@@ -33,7 +33,9 @@ const WF = join(REPO, '.github', 'workflows');
 const ACTION = join(REPO, '.github', 'actions', 'join-tailnet', 'action.yml');
 const DOOR = './.github/actions/join-tailnet';
 
-const files = readdirSync(WF).filter((f) => f.endsWith('.yml')).sort();
+const files = readdirSync(WF)
+  .filter((f) => f.endsWith('.yml'))
+  .sort();
 const read = (f) => readFileSync(join(WF, f), 'utf8');
 
 /** A workflow's job keys sit at exactly two spaces of indentation. */
@@ -47,7 +49,11 @@ function joinSites() {
     let checkedOut = false;
     for (const line of read(f).split('\n')) {
       const k = JOB_KEY.exec(line);
-      if (k) { job = k[1]; checkedOut = false; continue; }
+      if (k) {
+        job = k[1];
+        checkedOut = false;
+        continue;
+      }
       if (line.includes('actions/checkout')) checkedOut = true;
       if (line.includes(DOOR)) out.push({ file: f, job, checkedOut });
     }
@@ -81,9 +87,12 @@ describe('join-tailnet — one door (DR-1374)', () => {
         const dashAt = new RegExp(`^ {${Math.max(indent - 2, 0)}}-\\s`);
         let ok = false;
         for (let j = i - 1; j >= 0 && j > i - 12; j -= 1) {
-          if (dashAt.test(L[j])) { ok = true; break; }
+          if (dashAt.test(L[j])) {
+            ok = true;
+            break;
+          }
           // Reaching a shallower key means the step was never opened.
-          if (/^\s*\S/.test(L[j]) && (/^ {0,3}\S/.test(L[j]))) break;
+          if (/^\s*\S/.test(L[j]) && /^ {0,3}\S/.test(L[j])) break;
         }
         if (!ok) broken.push(`${f}:${i + 1}`);
       });
@@ -95,10 +104,7 @@ describe('join-tailnet — one door (DR-1374)', () => {
   // the upstream action is a road that dies on the next key expiry.
   it('no workflow uses tailscale/github-action directly', () => {
     const direct = files.filter((f) => read(f).includes('tailscale/github-action@'));
-    expect(
-      direct,
-      `these bypass the one door (${DOOR}) and will die on the next auth-key expiry: ${direct.join(', ')}`,
-    ).toEqual([]);
+    expect(direct, `these bypass the one door (${DOOR}) and will die on the next auth-key expiry: ${direct.join(', ')}`).toEqual([]);
   });
 
   it('the door exists, prefers OAuth, falls back to the auth key, and verifies the join', () => {
