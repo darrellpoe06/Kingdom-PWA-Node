@@ -571,4 +571,5 @@ export const LIVING_LESSONS_ADDED = {
   // bears the sword and on the false report (DR-1371). Same day.
   'll288-a-story-that-looks-like-news': '2026-11-06',
   'll289-why-the-oppressed-still-call-on-him': '2026-11-06',
+  'll290-the-house-built-by-wisdom': '2026-11-09',
 };

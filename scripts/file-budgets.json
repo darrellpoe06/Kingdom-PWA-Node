@@ -77,10 +77,17 @@
       "to": 30551,
       "date": "2026-11-06",
       "why": "ll289 (Why the Oppressed Still Call on Him, DR-1380) adds the 289th Living Lesson to this file, the fourth send of the evening read under DR-1361; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30551,
+      "to": 30686,
+      "date": "2026-11-09",
+      "why": "ll290 (The House Built by Wisdom, DR-1381) adds the 290th Living Lesson to this file; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30551,
+    "app/src/lib/living-lessons-class.js": 30686,
     "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5905,

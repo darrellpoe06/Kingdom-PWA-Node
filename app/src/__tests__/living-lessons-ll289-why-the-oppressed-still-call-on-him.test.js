@@ -45,8 +45,7 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD =
-  'WHY THE OPPRESSED STILL CALL ON HIM — the Lamb who was despised, the Bible the slaveholders cut, and the Word on whose side Yahweh stands.';
+const TITLE_LEAD = 'WHY THE OPPRESSED STILL CALL ON HIM — the Lamb who was despised, the Bible the slaveholders cut, and the Word on whose side Yahweh stands.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -135,23 +134,38 @@ const SPINE = [
   ['Psalms 13:1-2', 'How long wilt thou forget me, O LORD? for ever?'],
   ['Matthew 27:46', 'My God, my God, why hast thou forsaken me?'],
   ['Exodus 2:23-25', 'And God heard their groaning, and God remembered his covenant with Abraham, with Isaac, and with Jacob.'],
-  ['Exodus 3:7-9', 'I have surely seen the affliction of my people which are in Egypt, and have heard their cry by reason of their taskmasters; for I know their sorrows; And I am come down to deliver them'],
+  [
+    'Exodus 3:7-9',
+    'I have surely seen the affliction of my people which are in Egypt, and have heard their cry by reason of their taskmasters; for I know their sorrows; And I am come down to deliver them',
+  ],
   ['Acts 7:34', 'I have seen, I have seen the affliction of my people'],
   ['Psalms 103:6', 'The LORD executeth righteousness and judgment for all that are oppressed.'],
   ['Psalms 146:7-9', 'The LORD looseth the prisoners'],
   ['Psalms 10:12-14', 'the poor committeth himself unto thee; thou art the helper of the fatherless.'],
-  ['Deuteronomy 7:7-8', 'The LORD did not set his love upon you, nor choose you, because ye were more in number than any people; for ye were the fewest of all people: But because the LORD loved you'],
+  [
+    'Deuteronomy 7:7-8',
+    'The LORD did not set his love upon you, nor choose you, because ye were more in number than any people; for ye were the fewest of all people: But because the LORD loved you',
+  ],
   ['Amos 2:6-7', 'because they sold the righteous for silver, and the poor for a pair of shoes'],
-  ['Acts 10:34-35', 'Of a truth I perceive that God is no respecter of persons: But in every nation he that feareth him, and worketh righteousness, is accepted with him.'],
+  [
+    'Acts 10:34-35',
+    'Of a truth I perceive that God is no respecter of persons: But in every nation he that feareth him, and worketh righteousness, is accepted with him.',
+  ],
   ['Galatians 3:28', 'There is neither Jew nor Greek, there is neither bond nor free, there is neither male nor female: for ye are all one in Christ Jesus.'],
   ['Luke 13:3', 'except ye repent, ye shall all likewise perish.'],
   ['Isaiah 53:3', 'He is despised and rejected of men; a man of sorrows, and acquainted with grief'],
   ['Matthew 2:13-15', 'flee into Egypt, and be thou there until I bring thee word: for Herod will seek the young child to destroy him.'],
   ['Luke 4:18-19', 'he hath anointed me to preach the gospel to the poor; he hath sent me to heal the brokenhearted, to preach deliverance to the captives'],
   ['Philippians 2:7-8', 'became obedient unto death, even the death of the cross.'],
-  ['Hebrews 4:15', 'For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin.'],
+  [
+    'Hebrews 4:15',
+    'For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin.',
+  ],
   ['John 1:29', 'which taketh away the sin of the world.'],
-  ['Isaiah 53:4-5', 'he was wounded for our transgressions, he was bruised for our iniquities: the chastisement of our peace was upon him; and with his stripes we are healed.'],
+  [
+    'Isaiah 53:4-5',
+    'he was wounded for our transgressions, he was bruised for our iniquities: the chastisement of our peace was upon him; and with his stripes we are healed.',
+  ],
   ['Numbers 12:1', 'And Miriam and Aaron spake against Moses because of the Ethiopian woman whom he had married'],
   ['Jeremiah 38:7-13', 'Ebedmelech the Ethiopian, one of the eunuchs which was in the king’s house'],
   ['Luke 23:26', 'one Simon, a Cyrenian'],
@@ -161,11 +175,17 @@ const SPINE = [
   ['Exodus 21:16', 'And he that stealeth a man, and selleth him, or if he be found in his hand, he shall surely be put to death.'],
   ['Deuteronomy 23:15-16', 'Thou shalt not deliver unto his master the servant which is escaped from his master unto thee'],
   ['1 Timothy 1:9-10', 'for manslayers, For whoremongers, for them that defile themselves with mankind, for menstealers'],
-  ['Ephesians 6:9', 'ye masters, do the same things unto them, forbearing threatening: knowing that your Master also is in heaven; neither is there respect of persons with him.'],
+  [
+    'Ephesians 6:9',
+    'ye masters, do the same things unto them, forbearing threatening: knowing that your Master also is in heaven; neither is there respect of persons with him.',
+  ],
   ['Galatians 5:1', 'Stand fast therefore in the liberty wherewith Christ hath made us free, and be not entangled again with the yoke of bondage.'],
   ['Isaiah 1:17', 'Learn to do well; seek judgment, relieve the oppressed, judge the fatherless, plead for the widow.'],
   ['Micah 6:8', 'what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?'],
-  ['1 Corinthians 6:9-11', 'And such were some of you: but ye are washed, but ye are sanctified, but ye are justified in the name of the Lord Jesus, and by the Spirit of our God.'],
+  [
+    '1 Corinthians 6:9-11',
+    'And such were some of you: but ye are washed, but ye are sanctified, but ye are justified in the name of the Lord Jesus, and by the Spirit of our God.',
+  ],
   ['Ecclesiastes 7:29', 'Lo, this only have I found, that God hath made man upright; but they have sought out many inventions.'],
   ['Isaiah 10:1-2', 'Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed'],
   ['Deuteronomy 30:19', 'therefore choose life'],
@@ -324,14 +344,18 @@ describe('the Word is the measure of the question, the people, the Lamb and the 
   });
 
   it('teaches that no people is favored and that being oppressed is not righteousness, in every band', () => {
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('The LORD did not set his love upon you, nor choose you, because ye were more in number than any people');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('The LORD did not set his love upon you, nor choose you, because ye were more in number than any people');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('God is no respecter of persons');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('except ye repent, ye shall all likewise perish.');
     for (const k of ['adult', 'youth', 'teen', 'senior']) expect(TEXTS[k], k).toMatch(/a condition He hears, not a merit He rewards/);
   });
 
   it('PROVEN TO CATCH: a band that drops "no respecter of persons" is named', () => {
-    const youth = L.levels.youth.replace('"God is no respecter of persons: But in every nation he that feareth him, and worketh righteousness, is accepted with him." (Acts 10:34-35).', 'He loves everyone.');
+    const youth = L.levels.youth.replace(
+      '"God is no respecter of persons: But in every nation he that feareth him, and worketh righteousness, is accepted with him." (Acts 10:34-35).',
+      'He loves everyone.'
+    );
     expect(youth).not.toBe(L.levels.youth);
     expect(youth.includes('God is no respecter of persons')).toBe(false);
   });
@@ -356,7 +380,8 @@ describe('the Word is the measure of the question, the people, the Lamb and the 
   });
 
   it('reads the two verses the Slave Bible cut, whole, in every text', () => {
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('And he that stealeth a man, and selleth him, or if he be found in his hand, he shall surely be put to death.');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('And he that stealeth a man, and selleth him, or if he be found in his hand, he shall surely be put to death.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('Thou shalt not deliver unto his master the servant which is escaped from his master unto thee');
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/man-stealer|steals a person|stealing people/i);
   });
@@ -370,7 +395,10 @@ describe('the Word is the measure of the question, the people, the Lamb and the 
   });
 
   it('PROVEN TO CATCH: a band that drops the sentence that He never calls oppression good is named', () => {
-    const youth = L.levels.youth.replace('It never calls oppression good or the whip a gift; this lesson does not teach that the suffering was good, and no band of it does.', 'Suffering is good for you.');
+    const youth = L.levels.youth.replace(
+      'It never calls oppression good or the whip a gift; this lesson does not teach that the suffering was good, and no band of it does.',
+      'Suffering is good for you.'
+    );
     expect(youth).not.toBe(L.levels.youth);
     expect(youth).not.toMatch(/never calls (oppression|the whip|being hurt) (good|a gift)|never says being hurt is good/);
   });
@@ -409,10 +437,7 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: one altered word inside a quotation fails the sweep', () => {
-    const broken = L.lesson.replace(
-      'He that oppresseth the poor reproacheth his Maker',
-      'He that oppresseth the poor insults his Maker'
-    );
+    const broken = L.lesson.replace('He that oppresseth the poor reproacheth his Maker', 'He that oppresseth the poor insults his Maker');
     expect(broken).not.toBe(L.lesson);
     expect(verbatimFaults([broken]).length).toBeGreaterThan(0);
   });

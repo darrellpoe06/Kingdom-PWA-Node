@@ -190,7 +190,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // Darrell spoke on 2026-11-06 and named as a lesson (DR-1353); the day
     // moves forward with it, because this lesson was spoken and built on
     // 2026-11-06, the day after L283.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-06'); // L284
+    //
+    // The highest number is now L290 (DR-1381, "The House Built by Wisdom"),
+    // sent and built on 2026-11-09.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-09'); // L290
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
