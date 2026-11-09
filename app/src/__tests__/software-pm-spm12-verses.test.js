@@ -161,10 +161,27 @@ const SPINE = {
 };
 
 describe('spm12 is the twelfth lesson of the course, and the course counts itself', () => {
-  it('the lesson exists, is last, and the week count is derived rather than pinned', () => {
+  // AMENDED BY DR-1363's GUARD, THE FIFTH INSTANCE OF ONE CLASS IN ONE DAY.
+  // This case pinned SOFTWARE_PM_MODULES.length to 12 and asserted spm12 is
+  // LAST -- both of which say nothing will ever follow spm12, which only a
+  // thirteenth lesson can falsify. It is worth reading how it got here: spm12's
+  // own build FIXED this exact defect in spm11's gate hours earlier, and that
+  // amendment's comment says the total and "which lesson is last" now "belong
+  // to whichever lesson is last, and spm12's own gate holds them there." That
+  // sentence is the defect being handed forward rather than removed. A
+  // per-lesson gate is never the right holder for the course's size, because
+  // every lesson is last exactly until the next one lands.
+  //
+  // So the pins move to what they actually meant and what stays true for good:
+  // spm12 exists, it sits at INDEX 11 (the twelfth), and the week count is
+  // still derived from the array (DR-0677). The course's total and contiguity
+  // belong to the course-level gate, where "this course has N lessons" is a
+  // claim about a finished course rather than a promise about the future.
+  // Nothing spm12 protects was weakened: every other case here is untouched.
+  it('the lesson exists, is the twelfth, and the week count is derived rather than pinned', () => {
     expect(M(), 'spm12 is not in SOFTWARE_PM_MODULES').toBeTruthy();
-    expect(SOFTWARE_PM_MODULES.length).toBe(12);
-    expect(SOFTWARE_PM_MODULES[SOFTWARE_PM_MODULES.length - 1].id).toBe(SPM12);
+    expect(SOFTWARE_PM_MODULES.length, 'the course may grow, but never shrink past spm12').toBeGreaterThanOrEqual(12);
+    expect(SOFTWARE_PM_MODULES.findIndex((m) => m.id === SPM12), 'spm12 is the TWELFTH lesson').toBe(11);
     // DR-0677: weeks is a getter over the array, so a new lesson edits no count.
     expect(SOFTWARE_PM_META.weeks).toBe(SOFTWARE_PM_MODULES.length);
   });
