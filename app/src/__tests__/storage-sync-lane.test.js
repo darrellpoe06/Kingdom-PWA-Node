@@ -49,7 +49,8 @@ describe('nas-storage-sync.yml — the copy is a dispatchable lane', () => {
   });
 
   it('rides the same remote-hands channel as nas-health (tailnet join, verified, then NAS_SSH_KEY)', () => {
-    expect(wf).toMatch(/uses:\s*tailscale\/github-action@v3/);
+    // Either door: DR-1374 moved every join behind the one composite action.
+    expect(wf).toMatch(/uses:\s*(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action@v3)/);
     expect(wf).toMatch(/tailscale status --peers=false/);
     expect(wf).toMatch(/NAS_SSH_KEY:\s*\$\{\{\s*secrets\.NAS_SSH_KEY\s*\}\}/);
     // `all` is the sentinel for every bucket (a blank API input is replaced by

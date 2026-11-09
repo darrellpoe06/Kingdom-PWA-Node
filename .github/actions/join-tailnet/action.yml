@@ -14,12 +14,21 @@
 # It lives in Tailscale's control plane and GitHub's secret store. Nothing on
 # the NAS holds it, so no amount of SSH to the NAS reaches it.
 #
-# THE ONE-TIME FIX IS THE CREDENTIAL TYPE, NOT A FRESH KEY. An OAuth client
-# (`tailscale/github-action`'s `oauth-client-id` + `oauth-secret`) does NOT
-# expire. Minted once, the tailnet road stops dying. This action prefers it and
-# falls back to the auth key, so the roads keep working exactly as they do today
-# until the OAuth secrets exist, and stop expiring the moment they do — no
-# second migration, no flag day.
+# THE FIX IS NOT THIS ACTION, AND DR-1360 GOVERNS. DR-1360 (Accepted, merged)
+# withdrew the OAuth-client proposal as *the* fix in Darrell's own words — "Not a
+# broken way!!!", "Why would I willingly want to depend on other systems... That
+# can and do fail!!!" — and set the standard instead: the NAS initiates every
+# road, a runner road that carries work INTO the NAS is retired as each is
+# reversed, and the Tailscale key goes back to being the phone's door. That is
+# the fix. This action does not contest it and must not be read as the answer.
+#
+# What this action is for: it makes DR-1360's retirement CHEAP, because the joins
+# now live in one file instead of 68 sites, and it stops a shut road reading as an
+# open one. The `oauth-*` inputs stay DORMANT — no OAuth secret is set, every join
+# falls through to the legacy key, and behaviour is identical to today's. Reviving
+# them as a preference would need a decision that supersedes DR-1360; this is not
+# that decision, and nobody should be asked to mint an OAuth client on its
+# account.
 #
 # IT ALSO VERIFIES. The join step's own conclusion is not a witness of the join
 # (DR-1284, measured: `backend error: invalid key` five times and the step still

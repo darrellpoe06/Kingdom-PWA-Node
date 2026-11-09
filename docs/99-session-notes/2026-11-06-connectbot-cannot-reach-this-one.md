@@ -152,8 +152,52 @@ and the 2026-07-06 incident DR-0107 records is exactly the shape of assuming
 otherwise: nine hours of a stale `poetech.us` because a downstream `push`
 effect silently stopped firing while every other signal stayed green.
 
-## What is left for him, exactly once
+## DR-1360 governs, and this record had re-proposed what it withdrew (2026-11-09)
 
-Mint one OAuth client in the Tailscale admin console, add two secrets. The
-fallback means nothing waits on it and nothing breaks before it — and when it
-lands, sixty-eight roads stop dying on a timer.
+Found by being made to read a record I had cited from a commit subject line.
+**DR-1360** — "The proof of the work is readable inside the app, and the NAS
+initiates every road" — is Accepted and merged, and its §2 says, in Darrell's
+words: *"The OAuth-client proposal is withdrawn as the fix: it changes which
+outside system the house depends on, not whether it depends."* Against
+*"Not a broken way!!!"* and *"Why would I willingly want to depend on other
+systems... That can and do fail!!!"*
+
+This record proposed exactly that OAuth client. Measured: it contained **no
+mention of DR-1360**, carried no `supersedes:`, and nothing in `docs/decisions/`
+supersedes DR-1360. Both are dated 2026-11-06. So it was not a considered
+reversal — it was a later record re-proposing a withdrawn one, silently. Worse,
+I spent a session asking Darrell to go mint those credentials: pressing him
+toward the thing he had already refused, in his own recorded words.
+
+**Resolved without needing his ruling, because the evidence settles it.** An
+unmerged record does not override a merged accepted one, so DR-1360 governs.
+The `oauth-*` inputs stay dormant, the claim that the OAuth client is *the fix*
+is withdrawn from the record and the action's header, and the ask is withdrawn.
+Nothing about the shipped behaviour changes: no OAuth secret exists, so every
+join already falls through to `TS_AUTHKEY`.
+
+**What survives is the uncontested majority, and it serves DR-1360.** One door
+and a verify that asks tailscale itself: DR-1284's 41-lane debt closes, and
+retiring a runner→NAS road — DR-1360's actual fix — becomes a one-file change
+instead of 68. Reviving the OAuth preference would need a decision that
+supersedes DR-1360; this is not that decision.
+
+Evidence the underlying problem is live, from the deploy of `a3d14b848` the same
+hour: `backend error: invalid key: API key does not exist` / `Tailscale up
+failed`. The deploy survived only because its join carries `continue-on-error`
+and has a second road (DR-1269). The key really is dead; DR-1360's answer to
+that is to stop needing it, not to buy a longer-lived one.
+
+## What is left for him — nothing, and that is the correction
+
+This section used to read: *"Mint one OAuth client in the Tailscale admin
+console, add two secrets."* **That ask is withdrawn** (see the section above).
+DR-1360 governs and it withdrew the OAuth client as the fix, so asking him to
+mint one was pressing him toward what he had already refused. Nothing here waits
+on him.
+
+The road forward is DR-1360's own: the NAS initiates every road, and each
+runner→NAS road is retired as it is reversed, after which the Tailscale key
+goes back to being the phone's door and cannot shut the house. This change is a
+step on that road — one door instead of 68 join sites — not an alternative to
+it.
