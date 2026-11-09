@@ -659,6 +659,23 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
+    },
+    {
+      "id": "a-test-may-not-pin-today",
+      "date": "2026-11-09",
+      "task": "The lane had stopped for two days: one test pinned the literal day it was written, so every open branch failed the same vitest shard. The three literals are derived from the clock the component reads.",
+      "drs": [
+        "DR-1379"
+      ],
+      "prs": [
+        2588
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "Wall clock measured from the first read of the blocked PRs to the commit at 21:13:15Z; the fix itself was minutes, the diagnosis was the hour. Two of my own measurements were wrong first and only surfaced because they contradicted each other: a hardcoded stale SHA reported both legs success (keep-prs-current had moved the heads on 2026-11-07), and a heredoc inside a loop ate the loop's stdin so every iteration printed the same numbers. Estimate without AI assumes a person reading four unrelated red PRs and finding the shared cause. Proven to catch: the literal restored fails today. Tokens and dollars null: no meter exposed."
     }
   ]
 }

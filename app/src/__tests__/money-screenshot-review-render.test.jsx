@@ -43,6 +43,26 @@ afterEach(() => {
   host = null;
 });
 
+// THE UPLOADED DAY IS TODAY, SO IT MAY NOT BE WRITTEN DOWN (DR-1379).
+// This screenshot carries NO date, so books-intake-questions offers "the day it
+// was uploaded", which books-intake-pipeline takes from `doc.receivedAt`, which
+// is the real clock. The three assertions below pinned the literal 2026-11-06 --
+// true on the day the test was written and false every day after. Measured: the
+// `app - vitest shard 4/4` leg went red at 00:30 UTC on 2026-11-07 and stayed
+// red, blocking FOUR unrelated PRs whose own changes were fine, because every
+// branch carries this file.
+//
+// The same shape as DR-1363's literal lesson numbers: a value that is correct
+// when typed and wrong exactly when the thing it describes moves on. Derived
+// here from the same clock the component reads.
+//
+// KNOWN LIMIT, STATED: a run that crosses UTC midnight between the pipeline's
+// `now()` and this assertion could still differ by a day. That window is
+// seconds wide once a day instead of certain failure every day, and the honest
+// fix for it is an injectable clock in the pipeline, which is the Money
+// feature's own call to make. re-review: 2026-12-07.
+const UPLOADED_DAY = new Date().toISOString().slice(0, 10);
+
 const SCREEN = [
   'Chase',
   'Chase Personal Checking (...7206)',
@@ -128,7 +148,7 @@ describe('the review screen on a phone: date, Available, Ready to confirm, Appro
     await until(() => !byText(/^Available \$4687\.18$/));
     // 3. Ready to confirm, with the verified balance named, and the Approve button
     await until(() => /Ready to confirm/.test(c.querySelector('[data-testid="intake-doc"]').textContent));
-    expect(c.querySelector('[data-testid="intake-snapshot-checkpoint"]').textContent).toMatch(/\$4,687\.18 as of 2026-11-06 \(available\)/);
+    expect(c.querySelector('[data-testid="intake-snapshot-checkpoint"]').textContent).toContain(`$4,687.18 as of ${UPLOADED_DAY} (available)`);
     expect(c.querySelector('[data-testid="intake-doc"]').textContent).toMatch(/Chase Personal Checking/);
     const approve = await until(() => byText(/^Approve: verified balance \+ 1 new row$/));
     expect(approve.disabled).toBe(false);
@@ -140,9 +160,9 @@ describe('the review screen on a phone: date, Available, Ready to confirm, Appro
     expect(addAccount).not.toHaveBeenCalled();
     const cps = written.filter((r) => r.category === 'balance-checkpoint');
     expect(cps).toHaveLength(1);
-    expect(cps[0]).toMatchObject({ accountId: 'a-7206', date: '2026-11-06' });
+    expect(cps[0]).toMatchObject({ accountId: 'a-7206', date: UPLOADED_DAY });
     expect(cps[0].reconciliation).toMatchObject({ balance: 4687.18, basis: 'available' });
     expect(written.filter((r) => r.category !== 'balance-checkpoint')).toHaveLength(1);
-    expect(c.querySelector('[data-testid="intake-doc"]').textContent).toMatch(/Bank-verified balance \$4,687\.18 recorded as of 2026-11-06/);
+    expect(c.querySelector('[data-testid="intake-doc"]').textContent).toContain(`Bank-verified balance $4,687.18 recorded as of ${UPLOADED_DAY}`);
   });
 });
