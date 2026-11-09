@@ -570,4 +570,5 @@ export const LIVING_LESSONS_ADDED = {
   // anywhere; the real federal process credited, the Word on the ruler who
   // bears the sword and on the false report (DR-1371). Same day.
   'll288-a-story-that-looks-like-news': '2026-11-06',
+  'll289-why-the-oppressed-still-call-on-him': '2026-11-06',
 };

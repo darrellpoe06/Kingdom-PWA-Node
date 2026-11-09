@@ -740,6 +740,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "ll289-why-the-oppressed-still-call-on-him",
+      "date": "2026-11-06",
+      "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
+      "drs": [
+        "DR-1380"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Built across worker restarts; the video could not be fetched from the cloud, so the voices, the Pew figure, the 1807 Slave Bible, Douglass's appendix and the AME history were checked by web search. Estimate is this session's own for a 3,500-word lesson with four bands, two parables, a quiz, a guide and a 55-case gate."
     }
   ]
 }
