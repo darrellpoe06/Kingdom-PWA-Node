@@ -661,6 +661,40 @@
       "notes": "Built in the same session as DR-1361; neither video reachable from the cloud, so the public record was searched and the links filed for the NAS transcript road."
     },
     {
+      "id": "a-test-may-not-pin-today",
+      "date": "2026-11-09",
+      "task": "The lane had stopped for two days: one test pinned the literal day it was written, so every open branch failed the same vitest shard. The three literals are derived from the clock the component reads.",
+      "drs": [
+        "DR-1379"
+      ],
+      "prs": [
+        2588
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "Wall clock measured from the first read of the blocked PRs to the commit at 21:13:15Z; the fix itself was minutes, the diagnosis was the hour. Two of my own measurements were wrong first and only surfaced because they contradicted each other: a hardcoded stale SHA reported both legs success (keep-prs-current had moved the heads on 2026-11-07), and a heredoc inside a loop ate the loop's stdin so every iteration printed the same numbers. Estimate without AI assumes a person reading four unrelated red PRs and finding the shared cause. Proven to catch: the literal restored fails today. Tokens and dollars null: no meter exposed."
+    },
+    {
+      "id": "a-forward-safe-case-may-not-name-the-number",
+      "date": "2026-11-06",
+      "task": "DR-1316's forward-safety pattern was written three times and twice NAMED the number it simulates; pm15 landing made pm14's literal 15 fail contiguity and blocked #2567, so a guard now reads it instead of a convention three sessions wrote down",
+      "drs": [
+        "DR-1363"
+      ],
+      "prs": [
+        2571
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.08,
+      "estimateWithoutAiHours": 4,
+      "notes": "Measured worktree creation (16:07:14Z, stat) to the commit (16:12:03Z, git %cI) on claude/a-forward-safe-case-may-not-name-the-number: 4m49s. NOT on that clock: the pm15 builder's own diagnosis of the blocker, the one-line fix proven separately and pushed to #2567, and the guard's first draft written in another worktree. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same by hand, not a measurement."
+    },
+    {
       "id": "a-reader-reads-one-band",
       "date": "2026-11-06",
       "task": "A reader reads one band, so every band is checked: sov69/sov70's term gate read only the lesson body and left bigIdea and the four levels unchecked",
