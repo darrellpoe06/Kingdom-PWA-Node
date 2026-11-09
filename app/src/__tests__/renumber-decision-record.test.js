@@ -23,7 +23,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   recordsOnDisk, firstFreeNumber, planRenumber, rewriteText, rewriteIndexRow,
-  ambiguousCitations, renumberInTree, idOf, pad, parseArgs, CITATION_DIRS,
+  ambiguousCitations, renumberInTree, idOf, pad, parseArgs, CITATION_DIRS, POINTER_LINE,
+  pointerLineMentioning,
 } from '../../../scripts/renumber-decision-record.mjs';
 
 const disk = (pairs) => new Map(pairs);
@@ -159,7 +160,11 @@ describe('the whole rename, in a real tree', () => {
 
     const index = readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8');
     expect(index).toContain('| [DR-1018](DR-1018-a-gospel-with-a-hole-in-it.md) |');
-    expect(index).not.toContain('DR-1016');
+    // THE ROWS lose every mention, not the whole file: the pointer line is held
+    // back and reported instead (DR-1362), because its annotations are
+    // sometimes history that stays true after the move.
+    const rows = index.split('\n').filter((l) => l.startsWith('| ['));
+    expect(rows.join('\n')).not.toContain('DR-1016');
     expect(index, "another record's row is untouched").toContain('| [DR-1017](DR-1017-held-by-another.md) |');
 
     expect(readFileSync(join(root, 'app/src/__tests__/living-lessons-l79-verses.test.js'), 'utf8'))
@@ -183,15 +188,55 @@ describe('the whole rename, in a real tree', () => {
     expect(readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8')).toContain('[DR-1016]');
   });
 
-  it('leaves the pointer to the resolver that owns it', () => {
+  it('leaves the pointer line ENTIRELY alone, byte for byte', () => {
     const root = build();
     renumberInTree(root, 1016, 1098, { force: true, log: () => {} });
     const index = readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8');
-    // The pointer line's own "DR-1018" is a Next ID, not a citation of the moved
-    // record, and this script does not compute pointers — resolve-ledger-conflicts
-    // does, from the files on disk.
-    expect(index).toContain('**Next ID:** DR-1018.');
-    expect(index, "the pointer's annotation still names the record, renumbered").toContain('(DR-1098 = a-gospel-with-a-hole-in-it)');
+    // THE WHOLE LINE, not just its Next ID (DR-1362). The parenthetical is a
+    // statement about which number was taken and when — history, which stays
+    // true of the past even after the record moves. Rewriting it is the same
+    // fault as the renumber that falsified an already-merged session note
+    // stating what the pointer HAD been set to.
+    const pointer = index.split('\n').find((l) => l.startsWith('**Next ID:**'));
+    expect(pointer).toBe('**Next ID:** DR-1018. (DR-1016 = a-gospel-with-a-hole-in-it)');
+  });
+
+  it('PROVEN TO CATCH: the pointer survives even when it names the number being moved', () => {
+    // THE CASE THE OLD ONE COULD NOT MAKE. Its fixture put the pointer on
+    // DR-1018 while moving DR-1016, so the bare-id rewrite never had the
+    // pointer's number to match — the case passed for as long as the bug
+    // existed, pinning the contract on the one input where it cannot break.
+    //
+    // And the alignment it avoided is the NORMAL one: a session takes the
+    // number the pointer names, finds another session took it first, and
+    // renumbers off it, so the pointer is holding exactly the number being
+    // moved almost every time this tool runs. MEASURED on #2567 today, where
+    // the pointer it wrote named that session's own new record.
+    const root = mkdtempSync(join(tmpdir(), 'dr-ptr-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    writeFileSync(join(root, 'docs/decisions/DR-1355-a-road.md'), '# DR-1355: A road\n');
+    writeFileSync(join(root, 'docs/decisions/INDEX.md'),
+      '**Next ID:** DR-1355. (DR-1344 was taken on 2026-11-05)\n'
+      + '| [DR-1355](DR-1355-a-road.md) | **A road.** | accepted |\n'
+      + '| [DR-1300](DR-1300-other.md) | cites DR-1355 as its pair | accepted |\n');
+
+    renumberInTree(root, 1355, 1362, { force: true, log: () => {} });
+    const index = readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8');
+    const pointer = index.split('\n').find((l) => l.startsWith('**Next ID:**'));
+
+    expect(pointer, 'the pointer must not move, and it used to become DR-1362 here').toBe('**Next ID:** DR-1355. (DR-1344 was taken on 2026-11-05)');
+    // And the rest of the rename still happens, so this is a held-back line and
+    // not a disabled rewrite.
+    expect(index).toContain('| [DR-1362](DR-1362-a-road.md) |');
+    expect(index, "another record's citation of the moved record still moves").toContain('cites DR-1362 as its pair');
+    expect(existsSync(join(root, 'docs/decisions/DR-1362-a-road.md'))).toBe(true);
+  });
+
+  it('the predicate matches the pointer and nothing that merely mentions it', () => {
+    expect(POINTER_LINE.test('**Next ID:** DR-1355.')).toBe(true);
+    expect(POINTER_LINE.test('  **Next ID:** DR-1355.')).toBe(true);
+    expect(POINTER_LINE.test('| [DR-1355](DR-1355-a.md) | the Next ID rule |'), 'a row that mentions the pointer is still a row').toBe(false);
+    expect(POINTER_LINE.test('and the **Next ID:** is set by the resolver'), 'mid-sentence is prose, not the pointer line').toBe(false);
   });
 
   it('renames exactly one file and never deletes a record', () => {
@@ -328,5 +373,38 @@ describe('the sweep reaches the Pages Functions, which are not under app/src', (
 
     expect(readFileSync(join(root, 'app/functions/_lib/funnel-proxy.js'), 'utf8'),
       'the factory the record is about carries the new number').toContain('DR-1092');
+  });
+});
+
+describe('the pointer mention is reported, never fixed silently (DR-1362)', () => {
+  it('names the line when it still mentions the moved number', () => {
+    const index = '**Next ID:** DR-1355. (DR-1344 was taken on 2026-11-05)\n| [DR-1355](DR-1355-a.md) | row |\n';
+    expect(pointerLineMentioning(index, 'DR-1344')).toBe('**Next ID:** DR-1355. (DR-1344 was taken on 2026-11-05)');
+  });
+
+  it('says nothing when the line does not mention it', () => {
+    const index = '**Next ID:** DR-1360.\n| [DR-1355](DR-1355-a.md) | row |\n';
+    expect(pointerLineMentioning(index, 'DR-1344')).toBe(null);
+  });
+
+  it('never matches inside a longer number', () => {
+    expect(pointerLineMentioning('**Next ID:** DR-13550.\n', 'DR-1355')).toBe(null);
+  });
+
+  it('the real run reports it — measured through renumberInTree, not asserted in prose', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dr-rep-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    writeFileSync(join(root, 'docs/decisions/DR-1355-a-road.md'), '# DR-1355: A road\n');
+    writeFileSync(join(root, 'docs/decisions/INDEX.md'),
+      '**Next ID:** DR-1355. (DR-1355 was taken on 2026-11-06)\n'
+      + '| [DR-1355](DR-1355-a-road.md) | **A road.** | accepted |\n');
+    const said = [];
+    renumberInTree(root, 1355, 1362, { force: true, log: (s) => said.push(String(s)) });
+    const out = said.join('\n');
+    expect(out, 'a stale mention left in the pointer must be announced').toMatch(/NOT rewritten: the \*\*Next ID:\*\* line still mentions DR-1355/);
+    expect(out).toContain('(DR-1355 was taken on 2026-11-06)');
+    // And the line itself is untouched, which is why it needs announcing.
+    const index = readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8');
+    expect(index.split('\n')[0]).toBe('**Next ID:** DR-1355. (DR-1355 was taken on 2026-11-06)');
   });
 });

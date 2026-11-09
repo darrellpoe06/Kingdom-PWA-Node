@@ -678,6 +678,40 @@
       "notes": "Wall clock measured from the first read of the blocked PRs to the commit at 21:13:15Z; the fix itself was minutes, the diagnosis was the hour. Two of my own measurements were wrong first and only surfaced because they contradicted each other: a hardcoded stale SHA reported both legs success (keep-prs-current had moved the heads on 2026-11-07), and a heredoc inside a loop ate the loop's stdin so every iteration printed the same numbers. Estimate without AI assumes a person reading four unrelated red PRs and finding the shared cause. Proven to catch: the literal restored fails today. Tokens and dollars null: no meter exposed."
     },
     {
+      "id": "a-forward-safe-case-may-not-name-the-number",
+      "date": "2026-11-06",
+      "task": "DR-1316's forward-safety pattern was written three times and twice NAMED the number it simulates; pm15 landing made pm14's literal 15 fail contiguity and blocked #2567, so a guard now reads it instead of a convention three sessions wrote down",
+      "drs": [
+        "DR-1363"
+      ],
+      "prs": [
+        2571
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.08,
+      "estimateWithoutAiHours": 4,
+      "notes": "Measured worktree creation (16:07:14Z, stat) to the commit (16:12:03Z, git %cI) on claude/a-forward-safe-case-may-not-name-the-number: 4m49s. NOT on that clock: the pm15 builder's own diagnosis of the blocker, the one-line fix proven separately and pushed to #2567, and the guard's first draft written in another worktree. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same by hand, not a measurement."
+    },
+    {
+      "id": "the-renumber-leaves-the-pointer-alone",
+      "date": "2026-11-06",
+      "task": "renumber-decision-record.mjs has claimed since DR-1021 that the Next ID pointer is the resolver's, and its bare-id rewrite moved that line whenever the pointer held the number being renumbered -- the normal case; the line is now held back and a stale mention is reported rather than fixed",
+      "drs": [
+        "DR-1362"
+      ],
+      "prs": [
+        2572
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.08,
+      "estimateWithoutAiHours": 3,
+      "notes": "Measured worktree creation (16:24:37Z, stat) to the commit (16:29:30Z, git %cI) on claude/the-renumber-leaves-the-pointer-alone: 4m53s. NOT on that clock: the pm15 builder's own discovery of the fault while reading a renumber diff, and my fixture measurement confirming it before I touched anything. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same by hand, not a measurement. Also not on it: this very line, which was missed on the first push and turned #2572 red on both the guards leg and vitest shard 4/4 -- the ledger check is the one gate that cannot be satisfied before a PR number exists."
+    },
+    {
       "id": "ll288-a-story-that-looks-like-news",
       "date": "2026-11-06",
       "task": "ll288: the third send of the evening, a narrated FBI-agent video with no record of its case; research pass, the real federal process credited, the Word on the ruler who bears the sword; a 56-case gate; a research row and two further rows filed for the lane",
