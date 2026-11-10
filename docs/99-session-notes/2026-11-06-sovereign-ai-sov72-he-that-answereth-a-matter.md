@@ -1,4 +1,4 @@
-# 2026-11-06 — sov73, "He that answereth a matter before he heareth it" (DR-1376)
+# 2026-11-06 — sov72, "He that answereth a matter before he heareth it" (DR-1376)
 
 The narrative behind **DR-1376**. The record is the decision; this is the work.
 
@@ -67,7 +67,7 @@ Four references appear in **no file** of `app/src` or `docs/decisions` with this
 
 ## The overlap, measured and named rather than avoided (DR-1317)
 
-**14** shared teaching references with **sov33** (DR-0761), outside the seven standing verses every lesson in this course carries by construction — including the whole of **1 Kings 22:6-8**. That is reported, not hidden, and it is not a veto: a verse is never spent. The landings differ and the gate asserts both halves. sov33 reads that chapter for **the consensus that killed a king** and a tool shaped by a reward that blends being right with being liked; sov73 reads it for **who assembled the panel** and whether anybody in it can lose. Not one reference was dropped for the overlap, and the gate's census names the other holder for all 36 shared references.
+**14** shared teaching references with **sov33** (DR-0761), outside the seven standing verses every lesson in this course carries by construction — including the whole of **1 Kings 22:6-8**. That is reported, not hidden, and it is not a veto: a verse is never spent. The landings differ and the gate asserts both halves. sov33 reads that chapter for **the consensus that killed a king** and a tool shaped by a reward that blends being right with being liked; sov72 reads it for **who assembled the panel** and whether anybody in it can lose. Not one reference was dropped for the overlap, and the gate's census names the other holder for all 36 shared references.
 
 Measured the same way against the rest of the course: 12 shared with sov45, 10 with sov42, 9 with sov35. This course's spine is deliberately thick in Proverbs; the discipline is to name it and to prove the landing differs, not to go hunting for unused verses.
 
@@ -91,18 +91,42 @@ Strictly rising. Worst band-to-band overlap 0.136 (youth~teen); worst band-to-ad
 
 **Two bands first measured over their ceilings and were repaired, not thinned.** The teen band came in at **6.40** against a 6.0 ceiling and the senior at **12.20** against 10.0. Both were fixed by splitting long sentences — the tier lists, the unbuilt-items list and the benchmark definition were the worst offenders in both — rather than by removing teaching or by weakening the ladder. The senior band needed 21 such splits. A third repair landed later and was a real DR-0521 finding in my own prose rather than a measurement artifact: the senior band used the word **benchmark** in its provenance paragraph at character 3,262 and did not gloss it until 15,920, so the word landed cold on a reader twelve thousand characters before its meaning arrived. The gloss was moved to the first use and the later restatement shortened, and the gate now asserts that in every place the term's FIRST appearance IS its gloss - a stronger check than "a gloss exists somewhere earlier", and the one that caught it. Each band also takes a different **route** through the same material so the overlap check is satisfied by real difference rather than by paraphrase: the child band is the parts-counter and the well; the youth band is the sequence; the teen band is **eight questions to put to any number that lands in front of you**; the senior band is how to teach the hour to a room, with the provenance paragraph read verbatim.
 
-## The in-flight week, and the gates left red on purpose
+## The in-flight week, the gates left red on purpose, and how the hold ended
 
-Week **72** was being written on a sibling branch when this landed, and landing is strictly serial. So week 72 is recorded ONCE, in `sovereign-ai-class.test.js`'s `HELD_IN_FLIGHT`, which fails the instant the hold outlives its week. **This lesson's own gate makes no contiguity claim at all** — it asserts that week 73 exists exactly once, is this lesson, that the weeks ascend strictly, and that it sits where that ascending order puts it. Duplicating the hold allowance here would be a second place to forget to clear it.
+Built as week **73**: week 72 was being written on a sibling branch when this landed, and
+landing is strictly serial, so the gap was recorded ONCE — in `sovereign-ai-class.test.js`'s
+`HELD_IN_FLIGHT`, which by design fails the instant the hold outlives its week. **This lesson's
+own gate made no contiguity claim at all**, so there was exactly one allowance to clear.
 
-Until week 72 lands, the **seven** sibling gates that assert strict contiguity with no such allowance — `sovereign-ai-sov57` through `sov63` — are expected red. That is the measured asymmetry DR-1338 already recorded with `re-review: 2026-12-05`. **Not one of them was edited.** They go green on their own the moment the held week arrives, and weakening a gate to pass is the single edit they exist to prevent.
+**The hold ended on 2026-11-10, and not the way it expected.** The brake fired — and the answer
+it demanded was that the held week is not coming. The sibling's sov72 was complete and
+**uncommitted** when the weekly limit killed the container on 2026-11-06; the rebuild took it,
+along with DR-1375. (See the 2026-11-09 note, "What the container took with it." DR-1375 is
+absent from the ledger, which is the measurement rather than the story.) A week that will never
+land is not a hold, so this lesson was renumbered to the number it actually is — the course's
+**72nd** — and the `HELD_IN_FLIGHT` entry was DELETED rather than widened, which is what its own
+message prescribes. The course is contiguous 1..72 again.
+
+**The asymmetry is now MEASURED, which closes DR-1338's `re-review: 2026-12-05` early.** That
+item asked for exactly this probe — a scan for contiguity assertions plus a deliberate one-week
+hole — and the hole was real, so the probe ran for free. **TEN** gates assert 1..N contiguity
+with no allowance and went red while 72 was missing: `sov52`, `sov53`, `sov54`, and `sov57`
+through `sov63`.
+
+This note first said **seven** (`sov57`–`sov63`), and the undercount is the instructive part: the
+seven were counted by one phrasing, `toEqual(Array.from({ length: SOVEREIGN_AI_MODULES.length }…))`,
+while `sov52`, `sov53` and `sov54` spell the identical claim as `toEqual(nums.map((_, i) => i + 1))`.
+A count taken from one spelling is not a measurement (DR-0076 §4) — the same fault, in the same
+session, as a sweep that missed two files because `grep` could not match an escaped slash inside a
+regex literal. **Not one of the ten was edited.** All ten go green on their own now that 72 is
+filled, and weakening a gate to pass is the single edit they exist to prevent.
 
 ## What I got wrong, in my own work
 
 - **A stray non-ASCII character.** A Chinese character landed inside one quiz distractor while it was being typed (`not真 prophets`). Caught by a deliberate byte scan over every content file before assembly, not by a test — which is worth noting, because no gate in this repository would have named it.
 - **Two bands over their reading ceilings** on the first measurement, above. Measured rather than assumed, which is the only reason they were found before CI.
 - **My own child band bare-asserted the score.** Every other place carries the figure as the publication's; the child band said the system *got more right than the doctors in the test did* as a flat fact, in the one band least able to weigh a claim for itself. It now reads *Here is what the company reported*, and the adult lesson gained a sentence naming exactly what is being refused to shrink - the SHAPE of the claim, not its arithmetic, which we never verified. No gate in this repository would have caught that; it came from re-reading the band against the rule the lesson itself teaches.
-- **Three faults my own gate caught that reading had not.** The first full run of `sovereign-ai-sov73-verses.test.js` was 53 of 55 green and the two reds were both real. (1) `anchor.theme` paraphrased Proverbs 18:17 in OUR voice as *until the neighbour comes and searches him* - a British spelling in our prose, which the Word-quoting rule leaves alone inside a quotation and forbids outside one. Repaired by quoting the verse's own words instead: *"seemeth just; but his neighbour cometh and searcheth him"*, which is both verbatim and better teaching. (2) The child band's spelling-test illustration said *The teacher hands you the whole word list* - the bare phrase DR-0719 forbids, here meaning a schoolteacher and not this lesson's teacher, and the rule is still right because a reader cannot see which was meant. Reworded to *Your teacher*. (3) A quiz distractor for *Who taught this lesson?* read **Bishop Gwin** - the EXACT DR-0719 fault sov70's and sov71's records had both already recorded, reproduced here in a third lesson. It was replaced with a neutral distractor rather than left standing as a wrong answer, because a wrong answer that names a real teacher teaches the thing the rule exists to prevent. Three findings is also the measurement that matters about the gate: it was written before the prose was finished, and it caught what a careful re-read of 90,000 characters did not.
+- **Three faults my own gate caught that reading had not.** The first full run of `sovereign-ai-sov72-verses.test.js` was 53 of 55 green and the two reds were both real. (1) `anchor.theme` paraphrased Proverbs 18:17 in OUR voice as *until the neighbour comes and searches him* - a British spelling in our prose, which the Word-quoting rule leaves alone inside a quotation and forbids outside one. Repaired by quoting the verse's own words instead: *"seemeth just; but his neighbour cometh and searcheth him"*, which is both verbatim and better teaching. (2) The child band's spelling-test illustration said *The teacher hands you the whole word list* - the bare phrase DR-0719 forbids, here meaning a schoolteacher and not this lesson's teacher, and the rule is still right because a reader cannot see which was meant. Reworded to *Your teacher*. (3) A quiz distractor for *Who taught this lesson?* read **Bishop Gwin** - the EXACT DR-0719 fault sov70's and sov71's records had both already recorded, reproduced here in a third lesson. It was replaced with a neutral distractor rather than left standing as a wrong answer, because a wrong answer that names a real teacher teaches the thing the rule exists to prevent. Three findings is also the measurement that matters about the gate: it was written before the prose was finished, and it caught what a careful re-read of 90,000 characters did not.
 - **The census script was wrong the first time.** Its module-block splitter truncated at 40,000 characters, so it reported 1 Kings 22:6-8 as held by the sovereign file but by *no* sovereign week — which would have let this build claim three verses were untaught when sov33 has taught them since 2026-10-06. The second pass scanned whole files with this lesson's block cut out, and found the real holder. The first answer was the comfortable one; it was also false.
 
 ## Not verified, and said plainly
@@ -115,6 +139,6 @@ Until week 72 lands, the **seven** sibling gates that assert strict contiguity w
 
 ## Cost
 
-`app/src/lib/ai-usage-ledger.json` carries the line for `sov73-ask-before-you-answer`: **1.92 h** wall, measured from the session's first tool call (23:05 UTC) to the ledger line (00:00 UTC on 2026-11-07), against a **40 h** honest estimate for the same artifact at the same standard without AI. The committed span `d0befabdab..3835440bee` is 7m14s and covers only the commits, so it would understate the build badly; the wall figure is the one to read. Roughly 35 minutes of that wall was the local full vitest run sitting in the machine's two-slot memory queue behind two sibling sessions' runs - time spent, but not compute this build used. Token use is not instrumented here; the honest estimate is about 2.0M, read-heavy.
+`app/src/lib/ai-usage-ledger.json` carries the line for `sov72-ask-before-you-answer`: **1.92 h** wall, measured from the session's first tool call (23:05 UTC) to the ledger line (00:00 UTC on 2026-11-07), against a **40 h** honest estimate for the same artifact at the same standard without AI. The committed span `d0befabdab..3835440bee` is 7m14s and covers only the commits, so it would understate the build badly; the wall figure is the one to read. Roughly 35 minutes of that wall was the local full vitest run sitting in the machine's two-slot memory queue behind two sibling sessions' runs - time spent, but not compute this build used. Token use is not instrumented here; the honest estimate is about 2.0M, read-heavy.
 
-**Module id:** `sov73-he-that-answereth-a-matter-before-he-heareth-it`
+**Module id:** `sov72-he-that-answereth-a-matter-before-he-heareth-it`

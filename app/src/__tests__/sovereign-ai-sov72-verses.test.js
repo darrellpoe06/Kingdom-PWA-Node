@@ -1,5 +1,5 @@
 // =============================================================================
-// sovereign-ai-sov73-verses — the gate for sov73, "He that answereth a matter
+// sovereign-ai-sov72-verses — the gate for sov72, "He that answereth a matter
 // before he heareth it"
 // =============================================================================
 // WHAT THIS LESSON IS, AND WHAT IT DELIBERATELY IS NOT.
@@ -83,15 +83,31 @@
 // STORIES ARE PARABLES, NOT TESTIMONIES (DR-1123). Both stories were written
 // to teach and no real person's life is behind either.
 //
-// WEEK 73, AND THE CONTIGUITY CLAIM IS FORWARD-SAFE AND GAP-SAFE. The cases
-// assert that week 73 exists exactly once, is this lesson, and sits at the
-// index its position in the ascending series requires — never that this is the
-// LAST lesson (the fault DR-1316 is named for), and never that the weeks run
-// contiguous to 72, because week 72 was being written on a sibling branch when
-// this landed and landing is strictly serial. The gap is recorded ONCE, in
-// `sovereign-ai-class.test.js`'s HELD_IN_FLIGHT, which fails the moment the
-// hold outlives its week. Duplicating that allowance here would be a second
-// place to forget to clear.
+// WEEK 72, AND THE CONTIGUITY CLAIM IS FORWARD-SAFE. The cases assert that
+// week 72 exists exactly once, is this lesson, and sits at the index its
+// position in the ascending series requires — never that this is the LAST
+// lesson (the fault DR-1316 is named for), so week 73's arrival cannot turn
+// this gate red.
+//
+// THIS LESSON WAS BUILT AS WEEK 73 AND IS WEEK 72, AND THE HOLD IS RELEASED.
+// It was numbered 73 on 2026-11-06 because week 72 was being written on a
+// sibling branch and landing is strictly serial; the gap was recorded ONCE, in
+// `sovereign-ai-class.test.js`'s HELD_IN_FLIGHT, which by design fails the
+// moment the hold outlives its week. That brake fired, and the answer it asked
+// for is here: the sibling's work no longer exists. It was complete and
+// UNCOMMITTED when the weekly limit killed the container on 2026-11-06, and the
+// rebuild took it along with DR-1375 (see the 2026-11-09 note "What the
+// container took with it"; DR-1375 is absent from the ledger, which is the
+// measurement). A week that is not coming is not a hold, so this lesson takes
+// the number it is: the course's 72nd. HELD_IN_FLIGHT is back to `[]`.
+//
+// MEASURED, correcting the hold's own estimate: TEN sibling gates assert 1..N
+// contiguity and went red while 72 was missing — sov52, sov53, sov54 and
+// sov57 through sov63 — not the seven the hold named. The seven were counted by
+// one phrasing (`Array.from({ length: … })`); sov52, sov53 and sov54 spell the
+// same claim `nums.map((_, i) => i + 1)`. All ten go green on their own now
+// that 72 is filled, none of them edited, which is what the hold predicted and
+// why leaving them red was right.
 //
 // NOTHING HERE ASSERTS ANYTHING ABOUT THE TREE. No case reads a git ref, a
 // branch state or another branch having merged: a case that asserts about the
@@ -114,7 +130,7 @@ import { termFaults } from '../lib/plain-before-the-term.js';
 import { censusLesson } from '../lib/library-census.js';
 import { fourBandFaults, LADDER, fk, overlapOf, FOUR_BANDS } from './fixtures/four-band-ladder.js';
 
-const ID = 'sov73-he-that-answereth-a-matter-before-he-heareth-it';
+const ID = 'sov72-he-that-answereth-a-matter-before-he-heareth-it';
 const M = SOVEREIGN_AI_MODULES.find((m) => m.id === ID);
 /** The five places a reader actually meets this lesson. */
 const PLACES = () => ({ adult: M.lesson, child: M.levels.child, youth: M.levels.youth, teen: M.levels.teen, senior: M.levels.senior });
@@ -196,28 +212,29 @@ const SPINE_FRAGMENTS = {
 const SPINE = Object.keys(SPINE_FRAGMENTS);
 const SPINE_COUNT = 40;
 
-describe('sov73 — the lesson is mounted and is the week it says it is', () => {
-  it('is mounted as week 73, at the index its place in the series requires, with every reader field present', () => {
+describe('sov72 — the lesson is mounted and is the week it says it is', () => {
+  it('is mounted as week 72, at the index its place in the series requires, with every reader field present', () => {
     expect(M, `${ID} is not mounted`).toBeTruthy();
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)[1]));
-    // FORWARD-SAFE AND GAP-SAFE ON PURPOSE (DR-1316 / DR-1338 / DR-1351). This
-    // gate does NOT assert `MODULES[length - 1].id === ID`: sov68's gate made
-    // exactly that claim and sov69's arrival turned it red. Nor does it assert
-    // the weeks run contiguous to 72, because week 72 was on a sibling branch
-    // when this landed. What is durably true, and stays true when week 74
-    // lands: week 73 exists, exactly once, it is THIS lesson, the weeks ascend
-    // strictly, and this lesson sits where that ascending order puts it.
-    expect(weeks).toContain(73);
-    expect(weeks.filter((w) => w === 73).length, 'week 73 is mounted twice').toBe(1);
+    // FORWARD-SAFE ON PURPOSE (DR-1316 / DR-1338 / DR-1351). This gate does
+    // NOT assert `MODULES[length - 1].id === ID`: sov68's gate made exactly
+    // that claim and sov69's arrival turned it red. Contiguity is asserted in
+    // one place for the whole course — `sovereign-ai-class.test.js` — rather
+    // than restated here, so a future hold has one allowance to clear and not
+    // two. What is durably true, and stays true when week 73 lands: week 72
+    // exists, exactly once, it is THIS lesson, the weeks ascend strictly, and
+    // this lesson sits where that ascending order puts it.
+    expect(weeks).toContain(72);
+    expect(weeks.filter((w) => w === 72).length, 'week 72 is mounted twice').toBe(1);
     expect(
       weeks.every((n, i) => i === 0 || n > weeks[i - 1]),
       `weeks ascend: ${weeks.join(',')}`
     ).toBe(true);
     expect(
       SOVEREIGN_AI_MODULES.findIndex((m) => m.id === ID),
-      'sov73 does not sit where the ascending week order puts it'
-    ).toBe([...weeks].sort((a, b) => a - b).indexOf(73));
-    expect(Math.max(...weeks)).toBeGreaterThanOrEqual(73);
+      'sov72 does not sit where the ascending week order puts it'
+    ).toBe([...weeks].sort((a, b) => a - b).indexOf(72));
+    expect(Math.max(...weeks)).toBeGreaterThanOrEqual(72);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
     expect(String(M.title).length).toBeGreaterThan(80);
     for (const k of ['bigIdea', 'inApp', 'lesson']) expect(String(M[k]).length, k).toBeGreaterThan(200);
@@ -250,7 +267,7 @@ describe('sov73 — the lesson is mounted and is the week it says it is', () => 
   });
 });
 
-describe('sov73 — every verse came from the corpus on disk, not from memory', () => {
+describe('sov72 — every verse came from the corpus on disk, not from memory', () => {
   it(`pins all ${SPINE_COUNT} references, and the count is asserted so an empty scan cannot pass`, () => {
     expect(SPINE.length, 'the pinned spine changed size without this count being updated').toBe(SPINE_COUNT);
     const refs = M.anchor.ref
@@ -323,7 +340,7 @@ describe('sov73 — every verse came from the corpus on disk, not from memory', 
   });
 });
 
-describe('sov73 — the Word is quoted, never rewritten', () => {
+describe('sov72 — the Word is quoted, never rewritten', () => {
   it('Yahweh is never substituted into a quotation (DR-0076 bright line)', () => {
     for (const s of allStrings()) {
       const spans = [...s.matchAll(/"([^"]*)"/g)].map((m) => m[1]);
@@ -372,7 +389,7 @@ describe('sov73 — the Word is quoted, never rewritten', () => {
   });
 });
 
-describe('sov73 — WHO TAUGHT: NOBODY, and the provenance is carried', () => {
+describe('sov72 — WHO TAUGHT: NOBODY, and the provenance is carried', () => {
   it('all five reader places say nobody taught it, and name the source as a newsletter', () => {
     for (const [place, txt] of Object.entries(PLACES())) {
       expect(/NOBODY/.test(txt), `${place} does not say WHO TAUGHT: NOBODY`).toBe(true);
@@ -444,7 +461,7 @@ describe('sov73 — WHO TAUGHT: NOBODY, and the provenance is carried', () => {
   });
 });
 
-describe('sov73 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place says so (DR-0076 §8)', () => {
+describe('sov72 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place says so (DR-0076 §8)', () => {
   it('all five places state plainly that no first-hand source was opened', () => {
     for (const [place, txt] of Object.entries(PLACES())) {
       expect(
@@ -532,7 +549,7 @@ describe('sov73 — WE NEVER OPENED A PRIMARY SOURCE, and every reader place say
   });
 });
 
-describe('sov73 — the landing: the sequence, the counsel, and the score that is not a healing', () => {
+describe('sov72 — the landing: the sequence, the counsel, and the score that is not a healing', () => {
   it('states its own standard, and the standard is the SEQUENCE rather than the outcome', () => {
     expect(M.bigIdea.includes('WHY A SCORE IS NOT A HEALING'), 'the lesson does not state its own standard').toBe(true);
     expect(
@@ -609,7 +626,7 @@ describe('sov73 — the landing: the sequence, the counsel, and the score that i
   });
 });
 
-describe('sov73 — the health boundary is a first-class requirement, not a disclaimer', () => {
+describe('sov72 — the health boundary is a first-class requirement, not a disclaimer', () => {
   it('every reader place sends a reader with something wrong to a physician', () => {
     for (const [place, txt] of Object.entries(PLACES())) {
       expect(/go to a physician|go see a doctor/i.test(txt), `${place} does not send the reader to a physician`).toBe(true);
@@ -649,7 +666,7 @@ describe('sov73 — the health boundary is a first-class requirement, not a disc
   });
 });
 
-describe('sov73 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () => {
+describe('sov72 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () => {
   it('the four-band ladder has no faults', () => {
     expect(fourBandFaults(M), `band faults: ${fourBandFaults(M).join(' | ')}`).toEqual([]);
   });
@@ -752,7 +769,7 @@ describe('sov73 — the four bands, and TALK ABOUT IT TOGETHER everywhere', () =
   });
 });
 
-describe('sov73 — a true story names whose life it was, so neither story claims to be one (DR-1123)', () => {
+describe('sov72 — a true story names whose life it was, so neither story claims to be one (DR-1123)', () => {
   it('both stories are parables, and no story wears the testimony label', () => {
     expect(M.stories.length).toBeGreaterThanOrEqual(2);
     for (const s of M.stories) {
@@ -777,7 +794,7 @@ describe('sov73 — a true story names whose life it was, so neither story claim
   });
 });
 
-describe('sov73 — PROVEN TO CATCH, place by place', () => {
+describe('sov72 — PROVEN TO CATCH, place by place', () => {
   const everyPlace = (re) => (p) => Object.values(p).every((v) => re.test(v));
   it('breaking any load-bearing marker, at every site it appears, is caught', () => {
     const rows = [
@@ -854,7 +871,7 @@ describe('sov73 — PROVEN TO CATCH, place by place', () => {
   });
 });
 
-describe('sov73 — shared ground is MEASURED, never claimed (DR-1317)', () => {
+describe('sov72 — shared ground is MEASURED, never claimed (DR-1317)', () => {
   // This is a measurement and not a veto. It names the other holder for every
   // reference this lesson shares, and it asserts NOTHING about what another
   // lesson may stand on. A verse is never spent.
@@ -1000,7 +1017,7 @@ describe('sov73 — shared ground is MEASURED, never claimed (DR-1317)', () => {
   });
 });
 
-describe('sov73 — the date is derived, never typed', () => {
+describe('sov72 — the date is derived, never typed', () => {
   it('lesson-dates records this lesson, derived from git and not from the working tree', () => {
     const d = lessonCreatedDay('sovereign-ai', ID);
     expect(d, `${ID} has no lesson-dates entry; run npm run lesson-dates`).toBeTruthy();
