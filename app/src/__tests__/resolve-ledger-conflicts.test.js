@@ -679,6 +679,38 @@ describe('resolve-ledger-conflicts — the budget ratchets re-base onto main', (
     expect(r.differ[0]).toContain('main rewrote an existing entry');
   });
 
+  it('CATCHES the stale chain: the CEILING is the authority, not the last raise', () => {
+    // THE REAL CASE, 2026-11-10, sov72 merging main into scripts/file-budgets.json.
+    // Our raise is on a file main never touched, so it needs no re-base at all --
+    // but the kept chain's last entry for that file ends at 10289 while main's
+    // CEILING is 10624, because `--generate` lowers a ceiling down-only WITHOUT
+    // writing a raise entry. Landing on the chain gave 10624 -> 10688 and
+    // file-budget-guard refused: "11023 lines, over its ceiling of 10688".
+    const F = 'app/src/lib/sovereign-ai-class.js';
+    const base = fb([fraise(F, 10100, 10289)], { [F]: 10624 });
+    const theirs = fb([fraise(F, 10100, 10289), fraise('other.js', 100, 140)],
+      { [F]: 10624, 'other.js': 140 });
+    const ours = fb([fraise(F, 10100, 10289), fraise(F, 10624, 11023)], { [F]: 11023 });
+
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, FB).text);
+    // The chain says 10289; the ceiling says 10624. The ceiling wins.
+    expect(out.raises.at(-1), 'landing on the stale chain end moves a ratchet by accident')
+      .toMatchObject({ file: F, from: 10624, to: 11023 });
+    expect(out.budgets[F]).toBe(11023);
+    // And main's own file is untouched by our re-base.
+    expect(out.budgets['other.js']).toBe(140);
+  });
+
+  it('a SECOND entry of ours on one subject lands on the first, not the ceiling again', () => {
+    // The ordering fix must not re-seed from the ceiling once we are chaining.
+    const base = fb([], { 'a.js': 1000 });
+    const theirs = fb([], { 'a.js': 1000 });
+    const ours = fb([fraise('a.js', 1000, 1010), fraise('a.js', 1010, 1025)], { 'a.js': 1025 });
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, FB).text);
+    expect(out.raises.map((e) => [e.from, e.to])).toEqual([[1000, 1010], [1010, 1025]]);
+    expect(out.budgets['a.js']).toBe(1025);
+  });
+
   it('a subject main has NEVER seen needs no re-base — ours stands unchanged', () => {
     // No predecessor and no ceiling in main is positive evidence that main has
     // never budgeted this file, so there is nothing to re-base onto and nothing

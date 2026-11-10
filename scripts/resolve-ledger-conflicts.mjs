@@ -694,11 +694,17 @@ export function unionBudgetText(baseText, theirsText, oursText, spec) {
   const oursNew = ours.raises.slice(base.raises.length);
   const kept = [...base.raises, ...theirsNew];
 
-  // The end of the chain we are re-basing onto, per subject. For file budgets
-  // each file has its own chain; for workflow lines there is one global chain.
+  // Where the kept chain ENDS per subject — the FALLBACK, not the authority
+  // (see the ordering comment in the loop). For file budgets each file has its
+  // own chain; for workflow lines there is one global chain.
   const subject = (e) => (spec.perKey ? String(e[spec.raiseKey] ?? '') : '');
+  const chainEnd = new Map();
+  for (const e of kept) chainEnd.set(subject(e), e.to);
+  // `endOf` is the RUNNING value per subject: seeded once below from the
+  // ceiling (the authority) and advanced by each of our entries, so a second
+  // entry on the same subject lands on the first's `to` and not on the ceiling
+  // again. Seeding lazily, not here, keeps "main has never seen this" visible.
   const endOf = new Map();
-  for (const e of kept) endOf.set(subject(e), e.to);
 
   const mine = [];
   for (const e of oursNew) {
@@ -707,19 +713,34 @@ export function unionBudgetText(baseText, theirsText, oursText, spec) {
       differ.push(`raises/${key || 'totalLines'} (an entry's from/to is not a number)`);
       continue;
     }
-    // Where the chain this entry lands on ENDS, in order of authority:
-    //   1. the last `to` in the kept chain for this subject;
-    //   2. the ceiling main carries for it — `--generate` lowers a ceiling
-    //      down-only WITHOUT writing a raise entry, so main can have moved a
-    //      subject the kept chain says nothing about;
+    // Where this entry lands, in order of authority:
+    //   1. THE CEILING main carries for this subject;
+    //   2. the last `to` in the kept chain for it;
     //   3. our own `from`, unchanged.
+    //
+    // THE CEILING COMES FIRST, AND THIS ORDER WAS WRONG ONCE. It read chain
+    // first, and a REAL conflict caught it the same day (sov72 merging main,
+    // scripts/file-budgets.json): our raise was on sovereign-ai-class.js, a
+    // file main never touched, and the kept chain's last entry for it ends at
+    // 10289 while main's ceiling is 10624 — the raise history was 335 lines
+    // BEHIND what the guard enforces. Landing on the chain produced
+    // 10624 -> 10688 and file-budget-guard refused it: "11023 lines, over its
+    // ceiling of 10688". WHY the chain can be stale: `--generate` lowers a
+    // ceiling down-only WITHOUT writing a raise entry, so `raises` is history
+    // and commentary while the CEILING is the number the guard actually
+    // enforces. Re-basing onto commentary is how a ratchet moves by accident.
+    //
     // (3) is not a guess. Having neither (1) nor (2) is positive evidence that
-    // main has never seen this subject — a file that only this branch has
-    // pushed over the new-file line — so there is nothing to re-base onto and
-    // nothing to re-base: our entry already starts from the right place. The
-    // ceiling is still measured and judged by the guard below either way, so
-    // this cannot let an unexplained ceiling through.
-    const landing = endOf.has(key) ? endOf.get(key) : startFromCeiling(theirs, spec, key);
+    // main has never seen this subject — a file only this branch pushed over
+    // the new-file line — so there is nothing to re-base onto and nothing to
+    // re-base: our entry already starts in the right place. Either way the
+    // guard below measures and judges, so this cannot pass an unexplained
+    // ceiling.
+    let landing = endOf.get(key); // already advanced by an earlier entry of ours
+    if (typeof landing !== 'number') {
+      const ceiling = startFromCeiling(theirs, spec, key);
+      landing = typeof ceiling === 'number' ? ceiling : chainEnd.get(key);
+    }
     const from = typeof landing === 'number' ? landing : e.from;
     const delta = e.to - e.from;
     const to = from + delta;
