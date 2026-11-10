@@ -1,4 +1,4 @@
-# DR-1385 — The resolver owns the budget ratchets, and still never sets a ceiling
+# DR-1388 — The resolver owns the budget ratchets, and still never sets a ceiling
 
 **Date:** 2026-11-10
 **Status:** Decided

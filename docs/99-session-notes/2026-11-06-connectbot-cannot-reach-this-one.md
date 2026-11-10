@@ -202,7 +202,7 @@ goes back to being the phone's door and cannot shut the house. This change is a
 step on that road — one door instead of 68 join sites — not an alternative to
 it.
 
-## The friction this landing exposed: the two budget ratchets (DR-1385)
+## The friction this landing exposed: the two budget ratchets (DR-1388)
 
 Landing DR-1374 cost two hand resolutions that no tool owned, and they are the
 reason this section exists. `keep-prs-current` calls
