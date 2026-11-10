@@ -572,4 +572,5 @@ export const LIVING_LESSONS_ADDED = {
   'll288-a-story-that-looks-like-news': '2026-11-06',
   'll289-why-the-oppressed-still-call-on-him': '2026-11-06',
   'll290-the-house-built-by-wisdom': '2026-11-09',
+  'll291-fruits-meet-for-repentance': '2026-11-09',
 };
