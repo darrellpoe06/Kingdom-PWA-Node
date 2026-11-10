@@ -135,6 +135,13 @@
       "why": "ll296 (Willing and Obedient, DR-1392) adds the fifth Living Lesson Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31479,
+      "to": 31608,
+      "date": "2026-11-10",
+      "why": "ll297 (Precept upon Precept, DR-1395) adds the sixth Living Lesson Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/components/ChurchLearn.jsx",
       "from": 5927,
       "to": 5967,
@@ -150,7 +157,7 @@
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31479,
+    "app/src/lib/living-lessons-class.js": 31608,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5998,
