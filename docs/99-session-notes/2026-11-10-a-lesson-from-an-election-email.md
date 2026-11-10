@@ -1,6 +1,6 @@
 # 2026-11-10 — a lesson from an election email, and five findings it cost
 
-Working note for **DR-1413** (L300, Put Not Your Trust In Princes), built from
+Working note for **DR-1414** (L300, Put Not Your Trust In Princes), built from
 the forward Darrell sent on 2026-10-22 with one word over it: Lesson
 (Gmail thread `1a165328274f4784`). The record carries the decision; this note
 carries the narrative the 60-line ratchet rightly keeps out of it.
@@ -63,7 +63,7 @@ main landed ll298, ll299 and DR-1402..1411 (#2600) and DR-1412 (#2603) while thi
 branch was building. Before renumbering, the question that mattered was whether
 either new lesson *was* this teaching: they are "What Programs You" and "Read with
 the Heart", and nothing in the catalog is built from this forward. So the lesson
-moved ll298 → ll300 and the record DR-1411 → DR-1413.
+moved ll298 → ll300 and the record DR-1411 → DR-1414.
 
 `resolve-ledger-conflicts.mjs` refused the collision mid-merge and printed the
 order to fix it; `renumber-decision-record.mjs` renamed the record and rewrote the

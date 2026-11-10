@@ -181,7 +181,7 @@
       "from": 31897,
       "to": 32042,
       "date": "2026-11-10",
-      "why": "ll300 (Put Not Your Trust In Princes, DR-1413) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Raised by the lesson's own measured size and nothing more. The from/to were re-based by resolve-ledger-conflicts when main landed three lessons ahead of this branch, and its re-based landing was then corrected DOWN to the measured line count, because the chain end must equal the ceiling the guard enforces. Same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
+      "why": "ll300 (Put Not Your Trust In Princes, DR-1414) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Raised by the lesson's own measured size and nothing more. The from/to were re-based by resolve-ledger-conflicts when main landed three lessons ahead of this branch, and its re-based landing was then corrected DOWN to the measured line count, because the chain end must equal the ceiling the guard enforces. Same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
     },
     {
       "file": "app/src/components/ChurchLearn.jsx",

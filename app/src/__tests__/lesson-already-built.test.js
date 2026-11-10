@@ -280,7 +280,7 @@ describe('a promise about a date is not a record of a forward', () => {
 });
 
 // =============================================================================
-// The thread id, added 2026-11-10 after ll300 (DR-1413).
+// The thread id, added 2026-11-10 after ll300 (DR-1414).
 // =============================================================================
 // ll300's `Lesson-Captured` label could not be written — the write needed an
 // approval the building session could not grant — so the Gmail-side lock was
@@ -295,8 +295,8 @@ describe('a Gmail thread id is proof, where a timestamp is inference', () => {
     const root = mkdtempSync(join(tmpdir(), 'thread-'));
     mkdirSync(join(root, 'docs/decisions'), { recursive: true });
     mkdirSync(join(root, 'app/src/lib'), { recursive: true });
-    writeFileSync(join(root, 'docs/decisions/DR-1413-put-not-your-trust-in-princes.md'),
-      '# DR-1413: L300 — Put Not Your Trust In Princes\n\n'
+    writeFileSync(join(root, 'docs/decisions/DR-1414-put-not-your-trust-in-princes.md'),
+      '# DR-1414: L300 — Put Not Your Trust In Princes\n\n'
       + '**Sent in by:** Darrell — a FORWARD: an election email, 2026-10-22, one word\n'
       + 'over it: Lesson (Gmail thread `1a165328274f4784`)\n\nll300-put-not-your-trust-in-princes\n');
     writeFileSync(join(root, 'docs/decisions/DR-0999-another-lesson.md'),
@@ -309,7 +309,7 @@ describe('a Gmail thread id is proof, where a timestamp is inference', () => {
     const r = findAlreadyBuilt(tree(), { thread: '1a165328274f4784' });
     expect(r.verdict).toBe('ALREADY BUILT — the thread is named in the ledger');
     expect(r.hits[0].strength).toBe('thread');
-    expect(r.hits[0].file).toBe('docs/decisions/DR-1413-put-not-your-trust-in-princes.md');
+    expect(r.hits[0].file).toBe('docs/decisions/DR-1414-put-not-your-trust-in-princes.md');
     expect(r.hits[0].lessons).toContain('ll300-put-not-your-trust-in-princes');
   });
 

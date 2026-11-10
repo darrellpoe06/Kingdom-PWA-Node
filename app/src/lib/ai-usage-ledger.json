@@ -1318,11 +1318,11 @@
       "notes": "Darrell: Fix it (Big Print screenshot of his record)"
     },
     {
-      "id": "dr-1413-put-not-your-trust-in-princes",
+      "id": "dr-1414-put-not-your-trust-in-princes",
       "date": "2026-11-10",
       "task": "L300, a Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Four bands plus the adult teaching, 42 verses verbatim from disk, non-partisan enforced by a gate, movements renumbered so all five texts render 1..8, and a 46-check gate proven to catch on the live module.",
       "drs": [
-        "DR-1413"
+        "DR-1414"
       ],
       "prs": [],
       "model": "claude-opus-5",

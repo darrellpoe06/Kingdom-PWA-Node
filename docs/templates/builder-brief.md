@@ -72,7 +72,7 @@ Being at the weekly 1 p.m. Bible study at The Church of the Living God does not 
 
 ## Before building a forwarded teaching: ask the repo, not only the label
 
-**Added 2026-11-10 after ll300 (DR-1413).** The Gmail lane's lock is the
+**Added 2026-11-10 after ll300 (DR-1414).** The Gmail lane's lock is the
 `Lesson-Captured` label, and the lane's instruction is to read the thread's own
 `labelIds` and skip it if the label is there. That is right, and it is not
 enough: ll300 was built, merged and deployed while its label stayed **unwritten**,

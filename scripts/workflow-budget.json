@@ -89,7 +89,7 @@
       "date": "2026-11-10",
       "from": 22823,
       "to": 22838,
-      "dr": "DR-1413",
+      "dr": "DR-1414",
       "reason": "The NAS's two witnesses are gated. Neither infra/nas-loops/test_heartbeat.py nor the new test_lesson_queue_census.py was run by CI: both test files existed and nothing executed them, which is the brake-without-a-witness shape this repo keeps finding. One step now runs both, and the comment above it records WHY the census test matters most: it parses scripts/lesson-inbox-waiting.sql and fails if the loop's exclusion list drifts from the lane's, because a census taken on 2026-11-10 dropped not-a-lesson and withdrawn and so counted rows a person had taken back (DR-1142, DR-0725). Raised to the measured size, not above it."
     }
   ],

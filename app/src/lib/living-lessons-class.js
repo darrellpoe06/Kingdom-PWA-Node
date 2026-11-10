@@ -31847,7 +31847,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // ---------------------------------------------------------------------------
-  // LESSON 300 — "Put Not Your Trust In Princes" (DR-1413). Darrell forwarded an
+  // LESSON 300 — "Put Not Your Trust In Princes" (DR-1414). Darrell forwarded an
   // election email into the app on 2026-10-22 with one word above it: Lesson. The
   // forward was substantially an advertisement for a news app; its one honest
   // paragraph described weariness with the cost of living and with leadership, and

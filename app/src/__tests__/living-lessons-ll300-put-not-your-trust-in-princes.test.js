@@ -6,7 +6,7 @@
 // above it: Lesson. The forward was substantially an advertisement for a news
 // app; its one honest paragraph described weariness with the cost of living and
 // with leadership, and concluded that something has to give. That is the
-// OCCASION. The Word is the content. (DR-1413.)
+// OCCASION. The Word is the content. (DR-1414.)
 //
 // PLACED IN LIVING LESSONS, NOT WORLD ISSUES, ON PURPOSE: that course's method
 // is verified claim-checking, and the forward's checkable claims need polling

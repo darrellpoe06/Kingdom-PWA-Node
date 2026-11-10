@@ -1,4 +1,4 @@
-# DR-1413: L300 — Put Not Your Trust In Princes: where hope belongs when the rulers disappoint
+# DR-1414: L300 — Put Not Your Trust In Princes: where hope belongs when the rulers disappoint
 
 **Date:** 2026-11-10
 **Status:** Accepted
@@ -54,7 +54,7 @@ lost two ways (DR-0712), a narrow spelling scan, and a heading my script cut.
 with no baseline debt; file-budget, business-systems and usage-ledger guards green;
 lint clean. RENUMBERED once: main took ll298, ll299 and DR-1402..1412 while this
 branch built, so the resolver refused the collision and this record moved to
-DR-1413, the lesson to ll300 — after checking neither new lesson is this teaching.
+DR-1414, the lesson to ll300 — after checking neither new lesson is this teaching.
 Limits: the forward's claims are unverified and asserted nowhere; the parables are
 invented people, not members. `re-review: 2026-11-24` — the teen→senior step is
 5.8 grades, against 1.3 and 1.3 below it: lumpy but passing.
