@@ -81,7 +81,7 @@ describe('the Latest list says which ones I read, and which version', () => {
 
   it('device and record together: one mark, each version once, the count from the device', () => {
     finishPlace({ courseKey: 'll', lessonId: L3.id, version: 'senior' });
-    recordPlace({ courseKey: 'll', lessonId: L3.id, sentence: 3 });
+    recordPlace({ courseKey: 'll', lessonId: L3.id, sentence: 0 }); // a re-read starts at the top (DR-1409)
     finishPlace({ courseKey: 'll', lessonId: L3.id, version: 'senior' });
     mount({ recordFor: (id) => (id === L3.id ? { lessonId: L3.id, completedAt: 'x', versionsRead: ['teen', 'senior'] } : null) });
     expect(mark(L3.id).textContent).toBe('✓ READ ×2 · Teen, Senior');

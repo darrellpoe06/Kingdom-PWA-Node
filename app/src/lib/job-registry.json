@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 39,
+  "scheduled": 40,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -36,6 +36,13 @@
       "name": "Deploy freshness (heal a missed deploy)",
       "crons": [
         "*/5 * * * *"
+      ]
+    },
+    {
+      "file": "exposure-report.yml",
+      "name": "exposure-report",
+      "crons": [
+        "17 14 * * 3"
       ]
     },
     {

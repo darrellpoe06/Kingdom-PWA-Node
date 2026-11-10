@@ -401,3 +401,19 @@ describe('the five domains Darrell named are each actually taught', () => {
     expect(byId('marketing').lesson).toMatch(/customers who left are your marketing department/);
   });
 });
+
+describe('the King brings the balance, and a system built around Him serves it (DR-1405)', () => {
+  // Darrell, 2026-11-10, reading rto8: "You want balance - and THE KING IS THE
+  // ONE WHO BRINGS THE BALANCE. Not a system. Not a schedule.... why can't a
+  // system be built to support this?!" The lesson set a system against the
+  // King. It now keeps Him as the source and lets a system built around Him
+  // carry what He gives, in every band that names it.
+  it('rto8 never sets a system or a schedule against the King', async () => {
+    const { RTO_BUSINESS_MODULES } = await import('../lib/rent-to-own-business-class.js');
+    const m = RTO_BUSINESS_MODULES.find((x) => x.id === 'rto8-marketing-vision-and-going-to-get-the-information');
+    const all = [m.lesson, ...Object.values(m.levels)].join(' ');
+    expect(all).not.toMatch(/Not a system\. Not a schedule\./);
+    expect(all).not.toMatch(/not a schedule,|rather than any system/);
+    expect(m.lesson).toMatch(/THE KING IS THE ONE WHO BRINGS THE BALANCE\. A system or a schedule cannot bring it on its own, but one built around Him can carry it/);
+  });
+});

@@ -2741,6 +2741,22 @@
         "body": "Bernadette ran the night desk at a small care home, and every morning the owner, Mr. Okafor, drove in at six to walk the halls himself before he signed the day sheet. One week the snow closed the road for four days. He could not come in, and the only line on his sheet for those mornings read: not checked. Nothing had gone wrong. Bernadette and two aides had turned every resident, given every medication on time, and kept the boiler running through the worst of it. But when the state inspector read the sheet the following month, four blank mornings in a row looked exactly like four mornings when something might have been hidden, and the home spent a hard afternoon proving a good week. That spring Bernadette changed one thing. At the end of every shift, before she went home, she wrote the round sheet herself: the time of each round, the name of anyone who needed the nurse, and anything that could not be done and why. She posted a copy where the owner and the inspector could both read it without a key to the building. The sheet never said all was well unless every round had been walked. On a bad night it said so, and named the room. Mr. Okafor still came in when the roads were clear. But he never again had to write unknown about a house that was being kept faithfully, because the house now told him its own state.",
         "verse": "Proverbs 27:23"
       }
+    ],
+    "dsi17-what-an-attacker-would-use": [
+      {
+        "kind": "parable",
+        "tone": "light",
+        "title": "Ten Cards on the Fellowship Table",
+        "body": "Brother Lyle kept the church building, and one spring a contractor handed him a list of ten repairs, each marked urgent or very urgent in red ink. Lyle laid ten index cards on the fellowship hall table and turned them over one at a time. For each card he asked the same four things. Has anybody actually come in this way? Does this door open onto where the children are? Can someone reach it from the street? And is there already a lock on it that works? The cracked window in the boiler room, marked very urgent, sat behind two locked doors and faced a fence. The back door by the nursery, marked only urgent, opened onto the alley, and the deacons remembered it had been tried twice that winter. Lyle moved the nursery door to the top and put a guard schedule on it that week. He did not throw the other cards away; he wrote a date on each. His wife asked why he had not simply done the reddest one first. He said the wall is guarded where it is low, not where the ink is darkest.",
+        "verse": "Nehemiah 4:13"
+      },
+      {
+        "kind": "parable",
+        "tone": "solemn",
+        "title": "The Note Before the Wrench",
+        "body": "Marisol managed the building for a small congregation, and her night custodian, Dante, was quick with a wrench. One Saturday he heard the boiler knocking, guessed which valve was the trouble, and shut it off. It was the wrong valve. On Sunday morning the sanctuary was cold, the nursery was colder, and the service moved to the fellowship hall in coats. Nobody shouted at him. Marisol sat down with him on Monday and set one rule: before he touched anything, he would write on the clipboard by the boiler room door what he heard, what he saw, which pipe, and what he thought it meant. Then he would call her, and they would decide together. Dante thought it would slow him down. It did, by about ten minutes a week. In the two years after, nothing he fixed broke something else. When a new volunteer asked why the clipboard came before the toolbox, Dante told him the old proverb he had learned the hard way, that answering a matter before you hear it is folly and shame.",
+        "verse": "Proverbs 18:13"
+      }
     ]
   },
   "ai-legal-blueprint": {
@@ -3616,6 +3632,22 @@
         "title": "The Restaurant Nobody Asked For",
         "body": "Marcus Fields had a dream, and he loved it so much he never tested it. He wanted to open an upscale restaurant in his old neighborhood, with white tablecloths and a menu that would make people proud. He did not ask anyone if they would eat there. He did not count what it would really cost. He took out a second mortgage, emptied his retirement account and borrowed from his brother. He spent eight months and every dollar building a beautiful dining room. On opening night his family came, and a few friends. The next night there were nine customers. Within a month most nights there were three or four. The neighborhood was proud of him, but most families there could not afford forty-dollar plates, and the people who could did not drive across town to eat. Marcus had built the house before he had planted the field. In eleven months the restaurant closed. Marcus owed more than he would earn in five years. He did not leave his house for weeks. It was his pastor who finally sat with him. He did not shame him. He told him Jesus Himself had warned about the man who starts a tower and cannot finish it, not to mock that man, but so others would count first. Marcus was that man now, the pastor said gently, which meant Marcus could teach others what it cost. It took him seven years to pay back his brother. Then he started over, small this time. He sold plates from a food truck and kept a list of every customer who asked for more. When he finally opened a little lunch counter, it was full on the first day.",
         "verse": "Luke 14:28"
+      }
+    ],
+    "econ9-the-engine-and-the-reserve": [
+      {
+        "kind": "parable",
+        "tone": "light",
+        "title": "The Shilling Box",
+        "body": "Sister Odessa had kept the books for the usher board at a small church for twenty years, so when the pastor asked who would start a reserve, every head in the room turned her way. She agreed on three conditions. Every household that joined would lay by the same small amount on the first Sunday of every month, whatever it was. The book would be read aloud to the members every quarter, every dollar in and every dollar out, with two signatures on every check. And the reserve would never charge interest to a member in need. Forty households began at five dollars a month. People smiled at the size of it. The first winter, the furnace in Brother Whitfield's house failed in January, and the reserve paid the repairman that week; he paid it back over a year, with nothing added. The next spring the river came up, and the same reserve bought sandbags for the whole street, members and neighbors alike, because the book had a line for that too. By the third year sixty households were in it, and a young couple asked if it could help with the deposit on a first house. Odessa read that request aloud at the quarterly meeting like everything else. It was a small box, she said, but it was ours, it was open, and it was faithful, and that was why people trusted it with more.",
+        "verse": "1 Corinthians 16:2"
+      },
+      {
+        "kind": "parable",
+        "tone": "solemn",
+        "title": "Not Empty",
+        "body": "Marcus worked twelve years in another man's garage on a promise of partnership that was never put on paper. He opened the doors at six, trained every new hire, kept the customers who would not deal with anyone else, and built most of what the shop was known for. When the owner sold the business, the buyer kept the name and the customer list, the owner kept the money, and Marcus left with his own toolbox and a handshake. He told his wife it was not the money that stung; it was walking out with nothing after twelve years of building. Five years later Marcus had a shop of his own, and he made one rule his apprentices still talk about. Every apprentice who finished the two years walked out the door on the last day with a full roll-away toolbox, paid for out of a fund the shop set aside every week from the first month it opened. Some stayed and some went to start their own places, and every one of them left with what they needed to work. A customer once asked why he spent so much on people who were leaving. Marcus said he had been sent away empty once, and he had read that a worker set free should be furnished liberally, so in his shop nobody would go away empty again.",
+        "verse": "Deuteronomy 15:13-14"
       }
     ]
   },

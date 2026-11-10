@@ -25,6 +25,7 @@
 // overwrite risks more than it saves.
 // =============================================================================
 import supabase from './supabase.js';
+import { shareHouseholdsOnce } from './one-person-sign-ins.js';
 
 const TABLE_SYNCED_KEYS = [
   'accounts', 'debts', 'transactions', 'projects', 'inquiries',
@@ -32,6 +33,19 @@ const TABLE_SYNCED_KEYS = [
 ];
 const PRIVATE_KEYS = ['notes', 'appDirectives'];
 const PHOTO_KEYS = ['lifePhotos'];
+// PERSONAL TO THE PERSON ON THIS DEVICE (2026-11-10, DR-1406). Darrell: "Pace and
+// depth should be sustained unless it is changed." The snapshot is one row per
+// household, last write wins, so pace and depth riding it meant a child's band
+// chosen on another device became Darrell's band at his next sign-in. They are
+// never pushed, and an incoming snapshot never overwrites them.
+export const DEVICE_PREF_KEYS = ['learnAgeBand', 'learnLevel'];
+
+/** A snapshot's data with this device's own preferences removed, so applying it keeps them. */
+export function withoutDevicePrefs(snapData) {
+  const out = { ...(snapData || {}) };
+  for (const k of DEVICE_PREF_KEYS) delete out[k];
+  return out;
+}
 
 // Hard ceiling on what we'll write into a jsonb row. Beyond this something
 // is wrong (a base64 slipped a new shape past the stripper) — refuse and
@@ -44,6 +58,7 @@ async function currentSession() {
 }
 
 async function getTenantId() {
+  await shareHouseholdsOnce(supabase); // either sign-in opens on the same house (DR-1407)
   const { data, error } = await supabase.rpc('join_default_instance', { display_name_in: null });
   if (error) throw error;
   return data;
@@ -69,7 +84,7 @@ export function stripPhotoBytes(node) {
 // Returns null (with a warning) if the result is still implausibly large.
 export function buildSnapshotPayload({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }) {
   const cleaned = { ...(data || {}) };
-  for (const k of [...TABLE_SYNCED_KEYS, ...PRIVATE_KEYS, ...PHOTO_KEYS]) delete cleaned[k];
+  for (const k of [...TABLE_SYNCED_KEYS, ...PRIVATE_KEYS, ...PHOTO_KEYS, ...DEVICE_PREF_KEYS]) delete cleaned[k];
   const stripped = stripPhotoBytes(cleaned);
   const payload = { v: 1, data: stripped, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
   try {

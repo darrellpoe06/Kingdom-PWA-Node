@@ -25,6 +25,7 @@ import { fetchFleetCensus } from '../lib/fleet-census-live.js';
 import { fetchJobsLedger } from '../lib/jobs-ledger.js';
 import JobsLedgerStrip from './JobsLedgerStrip.jsx';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
+import ExposureStrip from './ExposureStrip.jsx';
 import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
 function laneBadge(lane) {
@@ -375,6 +376,8 @@ export default function OpsBoard() {
       <FleetCensusStrip fleet={fleet} />
       {/* The jobs by their actual names — last ran, never ran in the window, sequence, logs, missed-cycle reminder (DR-1189). */}
       <JobsLedgerStrip jobs={jobs} />
+      {/* What an attacker would use, ranked before any fix (DR-1408). */}
+      <ExposureStrip />
 
       {/* Data-integrity standard report — how much of the app is verified
           live-data vs painted, and the trend over time (DR-0196; Darrell

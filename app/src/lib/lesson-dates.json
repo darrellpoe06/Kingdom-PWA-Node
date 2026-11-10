@@ -316,7 +316,8 @@
    "dsi13-roles-and-permissions": ["2026-06-29", "c94cec85"],
    "dsi14-your-onboarding-path": ["2026-06-29", "c94cec85"],
    "dsi15-weighed-into-named-hands": ["2026-10-28", "504a681f"],
-   "dsi16-the-house-reports-itself": ["2026-11-10", "a30af3f8"]
+   "dsi16-the-house-reports-itself": ["2026-11-10", "a30af3f8"],
+   "dsi17-what-an-attacker-would-use": ["2026-11-10", "5573b504"]
   },
   "handed-forward": {
    "succ1-mission-not-map": ["2026-07-06", "d9097ed8"],
@@ -545,7 +546,8 @@
    "econ5-the-real-barriers": ["2026-07-04", "fcd84e50"],
    "econ6-accountability-and-judgment": ["2026-07-04", "fcd84e50"],
    "econ7-build-institutions": ["2026-07-04", "fcd84e50"],
-   "econ8-test-build-multiply": ["2026-07-10", "ad5ae14d"]
+   "econ8-test-build-multiply": ["2026-07-10", "ad5ae14d"],
+   "econ9-the-engine-and-the-reserve": ["2026-11-10", "9dd6fd18"]
   },
   "prophetic-voices": {
    "pv-price": ["2026-07-04", "fcd84e50"],

@@ -34,7 +34,8 @@
 // shows each worker's open work; "To review" shows the work the workers have
 // finished that is still open, to accept (Resolve) or send back.
 import React, { useEffect, useMemo, useState } from 'react';
-import { triageQueue, cameInLabel, actionsFor, MOVE_TARGETS, BUILDING_AREAS, NEW_URGENCIES, newWorkOrder, workersBoard, resultsToReview, workersFinished, progressOf, ageOf, requiresResult, closingChecks } from '../lib/work-order-triage.js';
+import { triageQueue, cameInLabel, actionsFor, MOVE_TARGETS, BUILDING_AREAS, NEW_URGENCIES, newWorkOrder, workersBoard, resultsToReview, workersFinished, progressOf, ageOf, requiresResult, closingChecks, readerReach } from '../lib/work-order-triage.js';
+import { loadReaderReach } from '../lib/reader-reach.js';
 import { buildingsOf } from '../lib/building-group.js';
 import { useBoardTasks, patchTask } from '../lib/use-board-tasks.js';
 import { loadAllWorkOrders, setWorkOrderStatus, assignWorkOrder, postNote, loadWorkOrderPhotos, addPhoto, loadPhotoThumbs, loadPhotoImages } from '../modules/properties/cloud.js';
@@ -359,7 +360,7 @@ function Row({ w, expanded, onToggle, act, contractors, movers, busy, message, p
   );
 }
 
-export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS, photoOps = PHOTO_OPS, compress = null }) {
+export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS, photoOps = PHOTO_OPS, compress = null, reachOp = loadReaderReach }) {
   const tasks = useTasks();
   const [view, setView] = useState('queue');
   const [adding, setAdding] = useState(false);
@@ -374,6 +375,18 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   // pictures (DR-1235). "Could not be read" is said, never shown as none.
   const [pics, setPics] = useState({ state: 'loading', photos: [], names: [], reason: '' });
   const [familyInstance, setFamilyInstance] = useState(null);
+  // Who is reading, and whether that sign-in has a seat in Poe Properties
+  // (DR-1407): without one its work orders read as an empty list, not an error.
+  const [reach, setReach] = useState({ state: 'loading' });
+
+  useEffect(() => {
+    let live = true;
+    if (typeof reachOp !== 'function') return undefined;
+    Promise.resolve(reachOp()).then((r) => {
+      if (live) setReach(r && r.ok ? { state: 'read', email: r.email || null, seat: r.seat || null } : { state: 'failed' });
+    }).catch(() => { if (live) setReach({ state: 'failed' }); });
+    return () => { live = false; };
+  }, [reachOp, reads]);
 
   useEffect(() => {
     let live = true;
@@ -517,6 +530,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   const board = useMemo(() => workersBoard(queue, contractors), [queue, contractors]);
   const review = useMemo(() => resultsToReview(queue), [queue]);
   const openJob = (key) => { setView('queue'); setExpanded(key); setMessage(null); };
+  const reachLine = readerReach(reach);
   const tab = (id, label) => (
     <button type="button" key={id} onClick={() => setView(id)} aria-pressed={view === id} data-testid={`work-order-view-${id}`}
       className={`text-[0.625rem] uppercase tracking-wider border px-2 min-h-[36px] ${view === id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC]'} ${FOCUS_RING}`}>{label}</button>
@@ -528,8 +542,13 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
     <section aria-labelledby="work-order-triage-h" className="mt-4" data-testid="work-order-triage">
       <h3 id="work-order-triage-h" className="text-sm font-semibold">Work order triage</h3>
       <p className={`text-[0.625rem] ${MUTED}`} data-testid="work-order-summary">
-        {queue.open.length} open · {queue.closed.length} closed · every work order in the system, numbered in the order it came in
+        {queue.open.length} open · {queue.closed.length} closed · {reachLine && !reachLine.complete ? 'every work order this sign-in can read' : 'every work order in the system'}, numbered in the order it came in
       </p>
+      {reachLine && (
+        <p className={`text-[0.625rem] ${reachLine.tone === 'ok' ? MUTED : 'text-[#B85838] font-semibold'}`} data-testid="work-order-reach" data-reach={reachLine.tone} role={reachLine.tone === 'ok' ? undefined : 'status'}>
+          {reachLine.text}
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Work order views">
         {tab('queue', `Queue · ${queue.open.length}`)}
         {tab('workers', `By worker · ${board.busy.length}`)}

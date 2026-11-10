@@ -47,8 +47,8 @@ describe('the place counts the VERSION read to the end', () => {
     finishPlace({ courseKey: C, lessonId: L, version: 'adult' }, { storage });
     expect(versionsRead(place())).toEqual(['adult']);
     expect(versionReads(place(), 'adult')).toBe(1);
-    // Read again, as a child this time (the reader moved, so `done` cleared).
-    recordPlace({ courseKey: C, lessonId: L, sentence: 4, version: 'child' }, { storage });
+    // Read again, as a child this time: a re-read starts at the top (DR-1409), so `done` cleared.
+    recordPlace({ courseKey: C, lessonId: L, stage: 0, step: 0, sentence: 0, version: 'child' }, { storage });
     expect(place().done).toBe(false);
     expect(versionsRead(place()), 'moving again does not forget a version read').toEqual(['adult']);
     expect(place().version, 'the version being read is noted').toBe('child');
@@ -141,7 +141,7 @@ describe('the mark on a row', () => {
   it('device and record are one answer; a version is never counted twice', () => {
     finishPlace({ courseKey: C, lessonId: L, version: 'adult' }, { storage });
     finishPlace({ courseKey: C, lessonId: L, version: 'adult' }, { storage });
-    recordPlace({ courseKey: C, lessonId: L, sentence: 2 }, { storage });
+    recordPlace({ courseKey: C, lessonId: L, sentence: 0 }, { storage }); // a re-read starts at the top (DR-1409)
     finishPlace({ courseKey: C, lessonId: L, version: 'adult' }, { storage });
     const m = readMark({ place: place(), record: { completedAt: 'x', versionsRead: ['adult', 'teen'] }, versions: V });
     expect(m.readIds).toEqual(['teen', 'adult']);
@@ -181,7 +181,7 @@ describe('the wiring is real (source contracts)', () => {
   it('the lesson space names the version its reading serves, the reader notes it, the deck names its own', () => {
     const learn = src('components/ChurchLearn.jsx');
     expect(learn).toMatch(/version: versionRead\(module, ageBand, levelOverride\),/);
-    expect(learn).toMatch(/finishPlace\(\{ courseKey: course\.key, lessonId: presentLesson\.id, version: deckVersion\(presentLesson, end && end\.age\) \}\)/);
+    expect(learn).toMatch(/finishPlace\(\{ courseKey: course\.key, lessonId: presentLesson\.id, version: deckVersion\(presentLesson, end && end\.age\), whole: true \}\)/);
     expect(learn).toMatch(/toggleModule\(p\.lessonId, course\.key, \{ versionsRead: read \}\)/);
     const tts = src('components/TTSControl.jsx');
     expect(tts).toMatch(/recordPlace\(\{ version: t\.version \}\);/);

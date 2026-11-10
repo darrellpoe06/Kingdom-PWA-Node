@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.instance_members (
   user_id      uuid NOT NULL,
   role         text NOT NULL,
   display_name text,
+  title text, classification text, relationship text, -- live columns 0319 copies (DR-1407)
   PRIMARY KEY (instance_id, user_id)
 );
 CREATE OR REPLACE FUNCTION public.user_role_in_instance(tenant_uuid uuid)

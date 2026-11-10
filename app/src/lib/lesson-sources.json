@@ -110,5 +110,52 @@
       "claim": "the firm's own third-quarter 2026 release states that net new assets were $232 billion, gives net revenues of $9.1 billion compared with $8.2 billion, reports an increase of 41%, prints $10.5 trillion, and names Ted Pick as Chairman and Chief Executive Officer",
       "note": "Read back by machine on a GitHub runner, 2026-10-28: this sandbox cannot reach morganstanley.com at all (the agent proxy answers 403 to the CONNECT), a runner can -- DR-0108, the team's reach, not one agent's. Found by three probe runs on a throwaway branch: 40776657937 located the release at .../shareholder/3q2026.pdf after /press-releases/3q-2026-earnings-results answered 404; 40777096354 established which figure strings the PDF prints; 40777425081 established the CONTEXT each one sits in. Phrasings the release does NOT use, and which are therefore not claimed: 'net new assets of $232 billion', 'client assets of $10.5 trillion', 'from $8.2 billion', 'increased 41%'. NOT read back, and said rather than smoothed over: the $81 billion of net new assets a year earlier and the $5.8 billion from stock trading are absent from this release, and 'Sharon Yeshaya' does not appear in it, so those stay The Daily Upside's report. The nearly 40 percent S&P 500 top-ten concentration has no row at all: no index document was opened for it, and a 0-figure row would make checked() count a lesson whose figure nobody read (DR-0076 section 3). The LABELS are held apart from the FIGURES: the release prints $9.1 billion and $10.5 trillion, but the segment description the newsletter attached to each was not verified adjacent to the figure, and the lesson says so in its own text and in all four bands."
     }
+  ],
+  "econ9-the-engine-and-the-reserve": [
+    {
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "title": "Greater Wealth, Greater Uncertainty: Changes in Racial Inequality in the Survey of Consumer Finances (FEDS Notes)",
+      "url": "https://www.federalreserve.gov/econres/notes/feds-notes/greater-wealth-greater-uncertainty-changes-in-racial-inequality-in-the-survey-of-consumer-finances-20231018.html",
+      "read": "2026-11-10",
+      "says": [
+        "285,000",
+        "44,900"
+      ],
+      "claim": "in the 2022 Survey of Consumer Finances the typical White family held about $285,000 in wealth and the typical Black family about $44,900"
+    },
+    {
+      "publisher": "National Park Service",
+      "title": "Preamble and Articles of Association for the Free African Society",
+      "url": "https://www.nps.gov/articles/000/inde-preamble-and-articles-of-association-for-the-free-african-society.htm",
+      "read": "2026-11-10",
+      "says": [
+        "1787"
+      ],
+      "claim": "the Free African Society was founded in Philadelphia in 1787 by Richard Allen and Absalom Jones"
+    },
+    {
+      "publisher": "National Park Service",
+      "title": "Maggie L. Walker",
+      "url": "https://www.nps.gov/articles/maggie-l-walker.htm",
+      "read": "2026-11-10",
+      "says": [
+        "1903"
+      ],
+      "claim": "Maggie Lena Walker founded the St. Luke Penny Savings Bank in Richmond, Virginia in 1903"
+    }
+  ],
+  "dsi17-what-an-attacker-would-use": [
+    {
+      "publisher": "Picus Security (distributing the Gartner report)",
+      "title": "Prioritize What Attackers Will Exploit: 4 Elements of Strong Exposure Prioritization",
+      "url": "https://www.picussecurity.com/resource/report/gartner-prioritize-what-attackers-will-exploit",
+      "read": "2026-11-10",
+      "says": [
+        "2028",
+        "70%"
+      ],
+      "claim": "Gartner (Jonathan Nunez, March 5, 2026) predicts that by 2028 organizations prioritizing with threat intelligence, asset context, exploitability modeling and security control validation will reduce breach likelihood by at least 70% compared with peers relying mainly on CVSS; the lesson renders it as more than two thirds, because its bands carry no percentage",
+      "note": "An attribution read back from the party that distributes and sells around the report, never an independent test of the forecast; the lesson says so in its adult text and in every band. The full report is sold and was not opened."
+    }
   ]
 }

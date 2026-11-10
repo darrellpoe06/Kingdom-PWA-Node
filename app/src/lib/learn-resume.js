@@ -52,6 +52,23 @@
 
 import { mergeWitness } from './reading-progress.js';
 
+// A RE-READ IS COUNTED ONLY WHEN IT IS A READING (Darrell 2026-11-10, with
+// L292 to L297 each showing READ x29 to x41 on the day they were written:
+// "Read count is off... fix it..."). Since DR-1384 a reading is credited at
+// the evidence floor (0.9), before its last sentences; every move after that
+// cleared `done`, the move's own position put the evidence straight back over
+// the floor, and the next sentence finished it again. So a finished reading
+// starts a new one only by going back: the place keeps `low`, the least of the
+// reading reached since it (re)started, and a second finish counts only when
+// that low fell under RESTART_FLOOR (test-integrity's PARTLY floor), or when a
+// whole lesson was presented end to end (`whole`, the deck). The first finish
+// always counts.
+export const RESTART_FLOOR = 0.25;
+// The counts that loop inflated cannot be recovered. A place finished more
+// than once since the auto-finish landed on main (2026-11-10 14:58:50 UTC) is
+// collapsed once to a single read, and marked so it is never collapsed again.
+export const INFLATED_SINCE = Date.parse('2026-11-10T14:58:50Z');
+
 const KEY = 'poe-learn-place';          // legacy single record — migrated, then mirrored
 const MAP_KEY = 'poe-learn-places';     // { v, last, mirror, byLesson: { 'course::lesson': place } }
 /** How many lessons' places a device keeps; the oldest untouched fall off first. */
@@ -206,8 +223,31 @@ function normPlace(p) {
     // shipped, which honestly reads as nothing measured yet.
     seen: frac(p.seen),
     heard: frac(p.heard),
+    // THE LEAST OF THE READING REACHED SINCE IT (RE)STARTED (2026-11-10). null
+    // on a place written before this shipped: unknown, never a fresh start.
+    low: p.low === null || p.low === undefined ? null : frac(p.low),
+    recounted: p.recounted === true,
+    // Written under the counting rule of 2026-11-10 (2), or before it (1).
+    rule: p.rule === 2 ? 2 : 1,
     at: typeof p.at === 'number' ? p.at : 0,
   };
+}
+
+/** Collapse a count the re-finish loop inflated, once (INFLATED_SINCE). */
+function repairCount(place) {
+  if (!place || place.rule === 2 || place.recounted || place.finishes <= 1) return place;
+  if (!(typeof place.lastFinishedAt === 'number' && place.lastFinishedAt >= INFLATED_SINCE)) return place;
+  const versions = Object.fromEntries(Object.entries(place.versions || {}).map(([k, n]) => [k, Math.min(1, n)]));
+  return { ...place, finishes: 1, versions, recounted: true };
+}
+
+/** True when this reading may count as a new finish: the first, or one that went back near the start. */
+export function readingIsFresh(place) {
+  if (!place || typeof place !== 'object') return true;
+  const n = Number(place.finishes);
+  if (!Number.isFinite(n) || n <= 0) return true;
+  if (place.low === null || place.low === undefined) return place.done !== true && place.recounted !== true;
+  return Number(place.low) < RESTART_FLOOR;
 }
 
 function frac(v) {
@@ -232,7 +272,7 @@ function readMap(storage) {
     if (m && typeof m === 'object' && !Array.isArray(m) && m.byLesson && typeof m.byLesson === 'object') {
       const byLesson = {};
       for (const [k, v] of Object.entries(m.byLesson)) {
-        const p = normPlace(v);
+        const p = repairCount(normPlace(v));
         if (p && k === placeKey(p.courseKey, p.lessonId)) byLesson[k] = p;
       }
       map = {
@@ -460,8 +500,10 @@ export function versionReads(place, id) {
   return v[cleanVersion(id)] || 0;
 }
 
-function witnessesFor(base, patch, moves) {
-  const rereading = base.done === true && moves;
+function witnessesFor(base, patch, moves, restart = false) {
+  // A new reading: a finished one moved again, or one already counted started
+  // over at the top (2026-11-10), so a stale end never credits the new start.
+  const rereading = (base.done === true && moves) || restart;
   const prev = rereading ? {} : { seen: base.seen, heard: base.heard };
   const merged = mergeWitness(prev, { seen: patch.seen, heard: patch.heard });
   return { seen: merged.seen, heard: merged.heard };
@@ -511,6 +553,18 @@ export function recordPlace(patch, opts = {}) {
   const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0, version: '', versions: {}, seen: 0, heard: 0 };
   const moves = patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined;
   const nextDone = patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true);
+  const nextStage = patch.stage !== undefined ? idx(patch.stage) : idx(base.stage);
+  const nextStep = patch.step !== undefined ? idx(patch.step) : idx(base.step);
+  const atTop = moves && nextStage === 0 && nextStep === 0 && (patch.sentence === undefined ? patch.step !== undefined || patch.stage !== undefined : idx(patch.sentence) === 0);
+  const patchReach = patch.seen !== undefined || patch.heard !== undefined ? mergeWitness({ seen: patch.seen, heard: patch.heard }).reached : null;
+  const baseLow = base.low === null || base.low === undefined ? null : Number(base.low);
+  // A finished reading moved again: a new reading starts where the move is,
+  // so only a move back to the top (or a reported position) can make it low.
+  const low = base.done === true && moves
+    ? (atTop ? 0 : patchReach === null ? 1 : patchReach)
+    : atTop ? 0 : patchReach === null ? baseLow : baseLow === null ? patchReach : Math.min(baseLow, patchReach);
+  const edge = nextDone && base.done !== true;
+  const counted = edge && (idx(base.finishes) === 0 || patch.whole === true || (baseLow === null && base.recounted !== true) || (low !== null && low < RESTART_FLOOR));
   const next = {
     courseKey,
     lessonId,
@@ -543,8 +597,11 @@ export function recordPlace(patch, opts = {}) {
     // reading a lesson a second time erased the evidence of the first. So the
     // count lives beside it and RATCHETS — it rises on the false→true edge of
     // `done`, and nothing lowers it, starting over included.
-    finishes: idx(base.finishes) + (nextDone && base.done !== true ? 1 : 0),
-    lastFinishedAt: (nextDone && base.done !== true) ? now : (base.lastFinishedAt || null),
+    finishes: idx(base.finishes) + (counted ? 1 : 0),
+    lastFinishedAt: counted ? now : (base.lastFinishedAt || null),
+    low,
+    recounted: base.recounted === true,
+    rule: 2,
     // WHICH VERSION (DR-1255): the words being read, as the reader noted
     // them from its target (or as the deck names them at its end), kept
     // until another version is read. On the same false→true edge the
@@ -556,10 +613,10 @@ export function recordPlace(patch, opts = {}) {
     // the reader has spoken; each only rises (lib/reading-progress.js). A new
     // reading of a finished lesson starts both again, so every reading is
     // verified on its own and a past one never stands in for this one.
-    ...witnessesFor(base, patch, moves),
+    ...witnessesFor(base, patch, moves, atTop && idx(base.finishes) > 0),
     version: patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version),
     versions: countVersion(cleanVersions(base.versions),
-      (nextDone && base.done !== true) ? (patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version)) : ''),
+      counted ? (patch.version !== undefined ? cleanVersion(patch.version) : cleanVersion(base.version)) : ''),
     at: now,
   };
   writeMap(storage, { ...map, last: k, byLesson: { ...map.byLesson, [k]: next } });

@@ -183,6 +183,65 @@ export const PRAISE_CLOSE = [
 // One Learn lesson from one witness source. The Word leads each pair; the cited
 // claim follows it. Nothing is invented: every sentence below is either the
 // data's own text or the fixed frame this module owns.
+
+// EVERY LESSON HAS A TEST (2026-11-10, DR-1404). Measured that day: all twelve
+// Healthy Living lessons carried no quiz. The test is built only from the
+// lesson's own witness record: each cited finding and the passage the lesson
+// sets beside it, and who the witness is. Wrong options are the same field
+// from the other witnesses in the room, so nothing is invented and each
+// question checks that the reader knows THIS lesson. The right answer's
+// position is fixed per question by a stable hash, so a retake meets the same
+// test.
+function stableIndex(key, n) {
+  let h = 0;
+  for (const ch of String(key)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % n;
+}
+
+// Double quotes are reserved for the Word; a witness's own quoted phrase
+// is carried in single quotes inside a test.
+const unquote = (t) => String(t || '').replace(/"/g, "'");
+
+function placed(correct, wrongPool, key) {
+  const wrong = [];
+  for (const v of wrongPool) {
+    if (v && v !== correct && !wrong.includes(v)) wrong.push(v);
+    if (wrong.length === 2) break;
+  }
+  if (wrong.length < 2) return null;
+  const at = stableIndex(key, 3);
+  const options = [...wrong];
+  options.splice(at, 0, correct);
+  return { options, answer: at };
+}
+
+export function quizFromWitness(source, sources = WITNESS_SOURCES) {
+  const others = (sources || []).filter((s) => s && s.id !== source.id);
+  const otherRefs = others.flatMap((s) => (s.pairs || []).map((p) => (p.refs || []).join(' · ')));
+  const questions = [];
+  for (const pair of (source.pairs || []).slice(0, 3)) {
+    const correct = (pair.refs || []).join(' · ');
+    const o = placed(correct, otherRefs.slice(stableIndex(pair.id, Math.max(1, otherRefs.length - 2))), `${source.id}:${pair.id}`);
+    if (!o) continue;
+    questions.push({
+      q: `This lesson's witness reports: ${unquote(pair.claim)} Which passage does the lesson set beside it?`,
+      options: o.options,
+      answer: o.answer,
+      explain: `The lesson pairs it with ${correct}. ${unquote(pair.bridge)}`,
+    });
+  }
+  const who = placed(source.source && source.source.expert, others.map((s) => s.source && s.source.expert), `${source.id}:who`);
+  if (who) {
+    questions.push({
+      q: 'Whose work is this lesson\'s research witness?',
+      options: who.options,
+      answer: who.answer,
+      explain: `${source.source.expert} (${source.source.credential}), ${source.source.work}. The science is a witness; the Word governs it.`,
+    });
+  }
+  return { questions };
+}
+
 export function moduleFromWitness(source) {
   const refs = refsOf(source);
   const cite = citeOf(source);
@@ -233,6 +292,7 @@ export function moduleFromWitness(source) {
     anchor: { ref: refs.join(' · '), theme: source.topic },
     launch: { view: 'church', churchView: 'eternal-algorithms' },
     care: HEALTHY_LIVING_CARE_NOTE,
+    quiz: quizFromWitness(source),
     // The three closing movements, also carried as parts so a surface can
     // render them separately without re-deriving them.
     integration: {
