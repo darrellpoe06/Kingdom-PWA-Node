@@ -12,6 +12,9 @@
     },
     "claude-opus-5": {
       "note": "Another Claude Code session's model, read from its commit trailer (Co-Authored-By: Claude Opus 5); its tokens are not on the record."
+    },
+    "claude-opus-5-5": {
+      "note": "The Claude Code session model after a mid-session switch (Anthropic). Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -761,6 +764,81 @@
       "wallClockHours": 0.32,
       "estimateWithoutAiHours": 7,
       "notes": "Measured from commit timestamps. Darrell: 'Onetime fix... not 50 different connectbot tries' -- and ConnectBot cannot reach this one, because the dead credential is the RUNNER's ticket, held in Tailscale's control plane and GitHub's secrets, never on the NAS. Two measurements shaped it: 68 join sites on an expiring key, and 21 of them with no actions/checkout before them, which would have silently broken 21 workflows had the conversion gone in blind. Confirmed independently by the upstream action's own output on this branch: 'Input authkey has been deprecated... An OAuth API client is recommended instead'. Proven to catch three defects; the third did NOT catch at first because the assertion matched the file's own header comment, the same prose-read-as-code trap as this morning's gate. Tokens and dollars null: no meter exposed."
+    },
+    {
+      "id": "ll288-a-story-that-looks-like-news",
+      "date": "2026-11-06",
+      "task": "ll288: the third send of the evening, a narrated FBI-agent video with no record of its case; research pass, the real federal process credited, the Word on the ruler who bears the sword; a 56-case gate; a research row and two further rows filed for the lane",
+      "drs": [
+        "DR-1371"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
+    },
+    {
+      "id": "dr-1372-the-tail-is-a-dropdown",
+      "date": "2026-11-06",
+      "task": "The lesson timeline/figures and the TALK ABOUT IT TOGETHER tail fold closed as optional dropdowns; the voice reads the teaching and the stories and skips the tail unless asked; a seven-case gate",
+      "drs": [
+        "DR-1372"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "ll289-why-the-oppressed-still-call-on-him",
+      "date": "2026-11-06",
+      "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
+      "drs": [
+        "DR-1380"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Built across worker restarts; the video could not be fetched from the cloud, so the voices, the Pew figure, the 1807 Slave Bible, Douglass's appendix and the AME history were checked by web search. Estimate is this session's own for a 3,500-word lesson with four bands, two parables, a quiz, a guide and a 55-case gate."
+    },
+    {
+      "id": "ll290-the-house-built-by-wisdom",
+      "date": "2026-11-09",
+      "task": "ll290: the periodic table as a house built by Wisdom; research pass, one figure corrected, the Builder named; a 53-case gate",
+      "drs": [
+        "DR-1381"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 20,
+      "notes": "Built across repeated worker restarts; the video could not be fetched, so the history was checked by web search."
+    },
+    {
+      "id": "ll291-fruits-meet-for-repentance",
+      "date": "2026-11-09",
+      "task": "ll291: a relationship panel on betrayal, boundaries and apology; the apology research checked; the Word's order taught; a 51-case gate",
+      "drs": [
+        "DR-1382"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 20,
+      "notes": "Built across repeated worker restarts; the panel could not be identified and the video could not be fetched."
     },
     {
       "id": "the-lesson-lane-says-why-it-is-asleep",

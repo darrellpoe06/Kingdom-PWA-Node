@@ -20,7 +20,7 @@
 
 ## Impact
 
-**What this obligates.** A charged send is neither refused nor platformed: both voices are credited, the established is stated with its basis, the contested stays contested, and the Word is the measure above both sides, Israel first by its own law of the stranger. The first live use of DR-1361’s one-email-many-lessons: eight `agent_inbox` rows (`lesson`, `newsletter-item`, `split-from:research:<id>`, source `chat-split`) now wait for the NAS lane. **Honest limits.** The transcripts are not yet read; Owen Jones’s own words rest on the summary. The split rows’ builds are the witness that the lane reads them (re-review 2026-11-13). The Word’s silence on the modern state’s politics is kept as silence (DR-0098).
+**What this obligates.** A charged send is neither refused nor platformed: both voices are credited, the established is stated with its basis, the contested stays contested, and the Word is the measure above both sides, Israel first by its own law of the stranger. The first live use of DR-1361’s one-email-many-lessons: ll286 is built from `agent_inbox` row `9d0bd543-f665-4562-9581-f9e2bae46fc1` and ll287 from `agent_inbox` row `074d5a00-e653-4362-9efa-8c6c9178c235` (tag `research`); eight `newsletter-item` rows split from them (source `chat-split`) now wait for the NAS lane. **Honest limits.** The transcripts are not yet read; Owen Jones’s own words rest on the summary. The split rows’ builds are the witness that the lane reads them (re-review 2026-11-13). The Word’s silence on the modern state’s politics is kept as silence (DR-0098).
 
 ## Decision
 
