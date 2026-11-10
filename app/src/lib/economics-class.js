@@ -537,9 +537,9 @@ export const ECON_MODULES = [
       },
       {
         claim: 'The Free African Society, founded in Philadelphia on April 12, 1787 by Richard Allen and Absalom Jones, collected one shilling a month from members to aid widows, the sick and the jobless after a year of membership, and served the whole city in the yellow fever epidemic of 1793.',
-        title: 'The Free African Society',
-        publisher: 'The Archives of the Episcopal Church',
-        url: 'https://episcopalarchives.org/church-awakens/exhibits/show/legacy/free-african-society',
+        title: 'Preamble and Articles of Association for the Free African Society',
+        publisher: 'National Park Service',
+        url: 'https://www.nps.gov/articles/000/inde-preamble-and-articles-of-association-for-the-free-african-society.htm',
         asOf: '2026-11-10',
       },
       {
