@@ -42,6 +42,7 @@ on:
       # it needs a human to remember, and remembering is not machinery.
       - 'scripts/sovereign-replay-over-tailnet.sh'
       - 'infra/nas-supabase/replay_migrations.sh'
+      - 'scripts/served-migration-receipt.py'
   workflow_dispatch:
 
 # Single-instance lock. Two db-migrate runs applying DDL to the SAME cloud DB at
@@ -167,6 +168,7 @@ jobs:
       # break, and the run's overall status still reflects both halves.
       - name: Land the same migrations on the SOVEREIGN database (repoint armed only)
         if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        continue-on-error: true
         uses: ./.github/actions/join-tailnet
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -176,6 +178,7 @@ jobs:
       - name: Replay onto the sovereign database
         id: replay
         if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        continue-on-error: true
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         # Captured to a file and printed, NOT piped. A pipe here would hand the
@@ -189,44 +192,9 @@ jobs:
           cat /tmp/replay-output.txt
           exit $rc
 
-      # A SHUT SOVEREIGN ROAD IS NEVER ONLY A RED CHECK (2026-10-29, DR-1283).
-      #
-      # When the tailnet key is refused this step fails for a reason no re-run
-      # can heal, and the whole signal was a red check in the Actions tab --
-      # while migrate-freshness.yml correctly re-dispatched this workflow on
-      # every fire, each one failing the same way. Re-dispatching was right;
-      # being quiet about it was not.
-      #
-      # It does NOT mean the live database is behind: DR-1269 gave the replay a
-      # second road the same day (replay-on-clock.sh, the NAS's own clock, same
-      # ledger, shared lock). It does not mean it is current either. The entry
-      # says so and points a reader at the box's own status.json, which is the
-      # only thing that answers it -- and which loops-health reads over this
-      # same closed road.
-      #
-      # So the outage writes itself down, once per cooldown window, on the one
-      # rolling entry the whole fleet shares. The run still goes red: this adds
-      # a reader-facing record, it does not soften the status.
-      - name: Say so in the ledger when the sovereign road is shut
-        if: ${{ always() && steps.replay.outcome == 'failure' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          node scripts/tailnet-key-incident.mjs \
-            --workflow "db-migrate (sovereign replay)" \
-            --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --measured-file /tmp/replay-output.txt
-
-      # KEYED ON THE HOSTED HALF, NOT ON THE WHOLE JOB (2026-10-29, DR-1283).
-      #
-      # This was `if: success()`, which reads the job's status -- and the job is
-      # red whenever the SOVEREIGN replay above fails. So a refused tailnet key
-      # silently switched off all six isolation proofs: measured, they had not
-      # run since 2026-10-27 19:35, twenty-nine hours. The proofs run against
-      # SUPABASE_DB_URL (the hosted project, as this file's own comment at the
-      # dispatch has always said), so they do not depend on the sovereign road
-      # in any way and must not be suppressed by it. They are now gated on the
-      # two steps whose success they actually require.
+      # KEYED ON THE HOSTED HALF, NOT ON THE WHOLE JOB (DR-1283): `if: success()`
+      # let a shut sovereign road switch off the hosted isolation proofs for 29
+      # hours. They need only the two steps named here.
       - name: Dispatch the isolation proofs (all features, one matrix)
         if: ${{ !cancelled() && steps.hosted.outcome == 'success' && steps.witness.outcome == 'success' }}
         env:
@@ -238,3 +206,29 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rls-isolation.yml/dispatches" \
             -d '{"ref":"main"}' \
             && echo "isolation proofs dispatched (rls-isolation matrix)"
+
+      # THE HOUSE SAYS WHAT IT APPLIED (DR-1398, under DR-1360). The NAS applies
+      # every migration on its own clock (DR-1269); the reach-in above only hurried
+      # it. The authority is the live ledger, read over poetech.us/sb with the
+      # site's anon key: no tailnet, no hand. Up to 25 min (a NAS cycle is ~15).
+      - name: Read the live database's own receipt over the served road
+        id: receipt
+        if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        timeout-minutes: 30
+        run: |
+          KEY=$(python3 scripts/served-anon-key.py) || { echo "the served site gave no anon key; nothing claimed"; exit 14; }
+          echo "::add-mask::$KEY"
+          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-migration-receipt.py --wait 1500 --interval 60
+
+      # A SHUT SOVEREIGN ROAD IS NEVER ONLY A RED CHECK (DR-1283): the outage is
+      # written on the fleet's one rolling entry, once per cooldown -- since
+      # DR-1398 only when the house's own receipt could not prove it either.
+      - name: Say so in the ledger when the sovereign road is shut
+        if: ${{ always() && steps.replay.outcome == 'failure' && steps.receipt.outcome != 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/tailnet-key-incident.mjs \
+            --workflow "db-migrate (sovereign replay)" \
+            --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --measured-file /tmp/replay-output.txt
