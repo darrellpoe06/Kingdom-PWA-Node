@@ -43,8 +43,7 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD =
-  'FRUITS MEET FOR REPENTANCE — what a real apology says, walls that have gates, and the Word on forgiving the one who betrayed you.';
+const TITLE_LEAD = 'FRUITS MEET FOR REPENTANCE — what a real apology says, walls that have gates, and the Word on forgiving the one who betrayed you.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -362,10 +361,7 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: one altered word inside a quotation fails the sweep', () => {
-    const broken = L.lesson.replace(
-      'Bring forth therefore fruits meet for repentance',
-      'Bring forth therefore fruits fit for repentance'
-    );
+    const broken = L.lesson.replace('Bring forth therefore fruits meet for repentance', 'Bring forth therefore fruits fit for repentance');
     expect(broken).not.toBe(L.lesson);
     expect(verbatimFaults([broken]).length).toBeGreaterThan(0);
   });

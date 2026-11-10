@@ -45,8 +45,7 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const PLACES = Object.keys(TEXTS);
-const TITLE_LEAD =
-  'THE HOUSE BUILT BY WISDOM — the periodic table is a map of rooms, three witnesses found its rules, and the Word names the Builder.';
+const TITLE_LEAD = 'THE HOUSE BUILT BY WISDOM — the periodic table is a map of rooms, three witnesses found its rules, and the Word names the Builder.';
 
 function* strings(node) {
   if (typeof node === 'string') {
@@ -132,7 +131,10 @@ const SPINE = [
   ['Isaiah 8:20', 'if they speak not according to this word, it is because there is no light in them.'],
   ['1 Thessalonians 5:21', 'Prove all things; hold fast that which is good.'],
   ['Hebrews 11:3', 'so that things which are seen were not made of things which do appear.'],
-  ['Proverbs 24:3-4', 'Through wisdom is an house builded; and by understanding it is established: And by knowledge shall the chambers be filled with all precious and pleasant riches.'],
+  [
+    'Proverbs 24:3-4',
+    'Through wisdom is an house builded; and by understanding it is established: And by knowledge shall the chambers be filled with all precious and pleasant riches.',
+  ],
   ['Hebrews 3:4', 'For every house is builded by some man; but he that built all things is God.'],
   ['Psalms 127:1', 'Except the LORD build the house, they labour in vain that build it'],
   ['John 14:2', 'In my Father’s house are many mansions'],
@@ -151,7 +153,10 @@ const SPINE = [
   ['Isaiah 28:24-26', 'For his God doth instruct him to discretion, and doth teach him.'],
   ['Deuteronomy 19:15', 'at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.'],
   ['2 Corinthians 13:1', 'In the mouth of two or three witnesses shall every word be established.'],
-  ['Romans 1:20', 'For the invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead'],
+  [
+    'Romans 1:20',
+    'For the invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead',
+  ],
   ['Psalms 19:1-2', 'The heavens declare the glory of God; and the firmament sheweth his handywork.'],
   ['Psalms 104:24', 'O LORD, how manifold are thy works! in wisdom hast thou made them all: the earth is full of thy riches.'],
   ['Job 37:16', 'Dost thou know the balancings of the clouds, the wondrous works of him which is perfect in knowledge?'],
@@ -279,13 +284,21 @@ describe('the lesson practises the newsletter Way: the sender named, the science
   });
 
   it('corrects the row lengths in every text: two, eight, eight, eighteen, eighteen, thirty-two, thirty-two', () => {
-    for (const k of PLACES) expect(TEXTS[k], k).toMatch(/two, eight, eight, eighteen, eighteen,? thirty-two,? and thirty-two|two, eight, eight, eighteen, eighteen, thirty-two, thirty-two/);
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toMatch(
+        /two, eight, eight, eighteen, eighteen,? thirty-two,? and thirty-two|two, eight, eight, eighteen, eighteen, thirty-two, thirty-two/
+      );
   });
 
   it('PROVEN TO CATCH: a band that reverts to the summary’s four row lengths is named', () => {
-    const youth = L.levels.youth.replace('the rows run two, eight, eight, eighteen, eighteen, thirty-two, thirty-two', 'the rows run two, eight, eighteen, thirty-two');
+    const youth = L.levels.youth.replace(
+      'the rows run two, eight, eight, eighteen, eighteen, thirty-two, thirty-two',
+      'the rows run two, eight, eighteen, thirty-two'
+    );
     expect(youth).not.toBe(L.levels.youth);
-    expect(youth).not.toMatch(/two, eight, eight, eighteen, eighteen,? thirty-two,? and thirty-two|two, eight, eight, eighteen, eighteen, thirty-two, thirty-two/);
+    expect(youth).not.toMatch(
+      /two, eight, eight, eighteen, eighteen,? thirty-two,? and thirty-two|two, eight, eight, eighteen, eighteen, thirty-two, thirty-two/
+    );
   });
 
   it('sits inside the reader-length band Darrell asked for, measured not claimed', () => {
@@ -312,7 +325,8 @@ describe('the Word is the measure of the map, the rules, the witnesses and the B
   it('honors the search and the remeasure, and the three witnesses, in every text', () => {
     for (const k of PLACES) expect(TEXTS[k], k).toContain('It is the glory of God to conceal a thing: but the honour of kings is to search out a matter.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('The works of the LORD are great, sought out of all them that have pleasure therein.');
-    for (const k of PLACES) expect(TEXTS[k], k).toContain('at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.');
+    for (const k of PLACES)
+      expect(TEXTS[k], k).toContain('at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.');
     for (const k of PLACES) expect(TEXTS[k], k).toContain('The heavens declare the glory of God');
   });
 
@@ -379,10 +393,7 @@ describe('every verse is the corpus on disk, and the sweep cannot pass vacuously
   });
 
   it('PROVEN TO CATCH: a mid-verse span that capitalises its first word is not the verse', () => {
-    const broken = L.levels.child.replace(
-      '"by him all things consist." (Colossians 1:17)',
-      '"By him all things consist." (Colossians 1:17)'
-    );
+    const broken = L.levels.child.replace('"by him all things consist." (Colossians 1:17)', '"By him all things consist." (Colossians 1:17)');
     expect(broken).not.toBe(L.levels.child);
     expect(verbatimFaults([broken])).toEqual(['(Colossians 1:17) is not the verse: By him all things consist.']);
   });

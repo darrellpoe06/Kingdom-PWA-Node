@@ -824,6 +824,21 @@
       "wallClockHours": 1.25,
       "estimateWithoutAiHours": 20,
       "notes": "Built across repeated worker restarts; the video could not be fetched, so the history was checked by web search."
+    },
+    {
+      "id": "ll291-fruits-meet-for-repentance",
+      "date": "2026-11-09",
+      "task": "ll291: a relationship panel on betrayal, boundaries and apology; the apology research checked; the Word's order taught; a 51-case gate",
+      "drs": [
+        "DR-1382"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 20,
+      "notes": "Built across repeated worker restarts; the panel could not be identified and the video could not be fetched."
     }
   ]
 }
