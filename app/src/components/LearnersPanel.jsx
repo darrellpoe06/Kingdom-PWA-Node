@@ -189,7 +189,7 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
     return (
       <li key={x.id} className="min-w-0" data-testid="learner-course-missing" data-lesson-id={x.id}>
         {onReadAgain ? (
-          <button type="button" onClick={() => onReadAgain(courseKey, x.id)} className="text-left underline underline-offset-2 text-[#1A1815] min-h-[32px] [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+          <button type="button" onClick={() => onReadAgain(courseKey, x.id)} className="text-left underline underline-offset-2 text-[#1A1815] min-h-[36px] [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
             {label}
           </button>
         ) : (
@@ -209,7 +209,7 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
   }
   return (
     <details className="mt-1 text-[0.6875rem] text-[#5A5751]" data-testid="learner-course-gap">
-      <summary className="cursor-pointer min-h-[32px]">{lead}: show them</summary>
+      <summary className="cursor-pointer min-h-[36px]">{lead}: show them</summary>
       <ul className="mt-0.5 space-y-0.5">{items}</ul>
     </details>
   );
@@ -363,7 +363,7 @@ export default function LearnersPanel({
             data-testid="learner-pick"
             value={chosen ? chosen.userId : ''}
             onChange={(e) => setWhoId(e.target.value)}
-            className="w-full max-w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
             style={{ fontFamily: '"Fraunces", serif' }}
           >
             {ordered.map((l) => (

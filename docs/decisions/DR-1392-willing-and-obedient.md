@@ -12,6 +12,19 @@
 
 Spoken after L295 and named a lesson. He asked how Yahweh makes a person willing and obedient, and what the process is. He asked what makes someone follow a leader with humility, trusting that the leader is closer to right than they are, even though the leader cannot see everything. He asked why a follower with no competence and no critical path has so much critique of a leader with real experience. He asked about the mouth a person cannot see, which keeps sliding what the leader said. And he asked what to do when someone calls evil good, keeps arguing, and never hears what was said: manage, stay, or separate.
 
+## What was measured
+
+- 36 anchors, all from the KJV on disk.
+- Adult text: 1,823 words.
+- Band shares: 0.60 / 0.61 / 0.62 / 0.69.
+- Grades: 3.4 / 4.0 / 4.8 / 5.3 / 5.6; the ladder holds.
+- All three talk directions in every band.
+- No quote with an ellipsis, no DR id, no percentage, and no generic God or LORD in our voice. The quiz options that quoted a verse were rendered in our voice with Yahweh.
+
+## Impact
+
+**What this obligates.** The lesson is in the catalog for every reader at every band from the day it was spoken. Its gate keeps every quoted verse word for word against the KJV on disk and keeps its spine in every band, so a later edit cannot quietly drop or alter the Word. No schema, no money, no new surface.
+
 ## Decision
 
 L296, `ll296-willing-and-obedient`, after L295.
@@ -28,15 +41,6 @@ L296, `ll296-willing-and-obedient`, after L295.
 The practice is to say the instruction back before adding to it.
 
 His words are rendered for meaning and never put in double quotes. There are two parables with invented people and eight exam questions.
-
-## Measured
-
-- 36 anchors, all from the KJV on disk.
-- Adult text: 1,823 words.
-- Band shares: 0.60 / 0.61 / 0.62 / 0.69.
-- Grades: 3.4 / 4.0 / 4.8 / 5.3 / 5.6; the ladder holds.
-- All three talk directions in every band.
-- No quote with an ellipsis, no DR id, no percentage, and no generic God or LORD in our voice. The quiz options that quoted a verse were rendered in our voice with Yahweh.
 
 ## Verification
 

@@ -18,6 +18,19 @@ Spoken after L296 as a thanksgiving, and named a lesson. Darrell said:
 - Following the King is a skill and a discipline. The Word has to be part of every day, so you can evaluate well and the gaps never grow too wide to see.
 - The King wants us to win, and it is our daily bread. King, help us.
 
+## What was measured
+
+- 30 anchors, all from the KJV on disk.
+- Adult text: 1,838 words.
+- Band shares (child, youth, teen, senior): 0.54 / 0.62 / 0.62 / 0.63.
+- Reading grades (child, youth, teen, senior, adult): 3.0 / 3.3 / 3.7 / 5.1 / 5.2.
+- All three talk directions appear in every band.
+- No quotation is cut with an ellipsis. No DR id, no percentage, and no generic God in our voice.
+
+## Impact
+
+**What this obligates.** The lesson is in the catalog for every reader at every band from the day it was spoken. Its gate keeps every quoted verse word for word against the KJV on disk and keeps its spine in every band, so a later edit cannot quietly drop or alter the Word. No schema, no money, no new surface.
+
 ## Decision
 
 L297, `ll297-precept-upon-precept`, after L296. Sections, each with its verses:
@@ -35,15 +48,6 @@ L297, `ll297-precept-upon-precept`, after L296. Sections, each with its verses:
 The lesson closes with his prayer. The practice is one precept each morning, reread before any decision made in strong feeling.
 
 His words are rendered for meaning, never in double quotes. There are two parables with invented people and eight exam questions. Quiz options that quoted a verse are rendered in our voice.
-
-## Measured
-
-- 30 anchors, all from the KJV on disk.
-- Adult text: 1,838 words.
-- Band shares (child, youth, teen, senior): 0.54 / 0.62 / 0.62 / 0.63.
-- Reading grades (child, youth, teen, senior, adult): 3.0 / 3.3 / 3.7 / 5.1 / 5.2.
-- All three talk directions appear in every band.
-- No quotation is cut with an ellipsis. No DR id, no percentage, and no generic God in our voice.
 
 ## Verification
 

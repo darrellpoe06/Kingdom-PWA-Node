@@ -17,6 +17,10 @@ His words, in order: "Not seeing any part... taking the test... and some kpi's t
 - DR-1384 let a passed exam or Done finish a reading with nothing seen, and a flick to the bottom set `seen` to 1 at once (jsdom and a fast scroll alike): a reading could be credited with no reading.
 - The cloud ledger (0313 trigger) keeps `{at, pct, passed, band}` per attempt and `completed_at` per lesson, which Done also writes. It cannot hold how an attempt was taken without a migration.
 
+## Impact
+
+**What this obligates.** A reading is credited only on evidence, so the Lessons read count and every completion rate now mean what they say; a learner who passed or pressed Done without reading keeps the score and the mark, and the reading waits for the reading. Device-side only; the cloud record gains the finer evidence only through the schema follow-up named below.
+
 ## Decision
 
 1. **READ is credited on evidence.** Seen or heard to `READ_FLOOR` (0.9), or a finish by the reader, deck or end door. Done stays the learner's own mark; a passed exam stays a score. Neither finishes a reading on its own (`finishRead` requires `hasReadEvidence`).

@@ -19,6 +19,10 @@ His words: "Clicking all lessons takes a user to the bottom of the page!!!!! Fix
 - **Cut off.** The course table had five columns; at Big Print the fourth and fifth ran off the right edge.
 - **No 100%.** Completion is lessons with a read on the record over the course's lessons. The record could not say which lessons it was missing, so a gap could not be checked or closed. This session's database role cannot read learners' rows (row security), so the specific missing lessons were not measured here; the fix makes the screen name them.
 
+## Impact
+
+**What this obligates.** Both All lessons doors must land at the top of the list on every device, and the record must open on the record, show one chosen learner, never run off a Big Print screen, and name every lesson a course is still waiting for. No schema; the record reads the same rows as before.
+
 ## Decision
 
 1. Both All lessons doors forget the row just left (`lastFocusRef = null`), land on a non-sticky anchor `#learn-all-lessons-top` above the bar, and land again when the history unwind pops (fallback one second).

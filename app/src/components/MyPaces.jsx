@@ -38,7 +38,7 @@ export default function MyPaces({ lessonId, tick = 0 }) {
         onClick={flip}
         aria-pressed={on}
         data-testid="my-paces-toggle"
-        className="text-[0.6875rem] uppercase tracking-wider text-[#1A1815] underline underline-offset-2 min-h-[32px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+        className="text-[0.6875rem] uppercase tracking-wider text-[#1A1815] underline underline-offset-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         style={MONO}
       >
         {on ? 'Hide my paces' : 'Show my paces'}
