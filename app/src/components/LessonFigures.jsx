@@ -235,8 +235,20 @@ export default function LessonFigures({ module }) {
   const timeline = lessonTimelineFor(module);
   const figures = timeline ? [...figuresFor(module), timeline] : figuresFor(module);
   if (!figures.length) return null;
+  // A DROPDOWN AT THE END, LIKE A STORY (DR-1372). Darrell, 2026-11-06, from
+  // the reader on a tablet, scrolling the sixteen-book timeline inside a
+  // lesson: "This list should be in a tab we can link to not in every lesson
+  // it takes too long... maybe it can be a drop-down option for reading each
+  // lesson hidden by default." Then: "The timelines should be a possible
+  // drop-down like a story we add at the end to summarize the points." So the
+  // figures fold CLOSED here (the whole timeline lives open in the Bible, one
+  // tap away through the link inside), and the reader mounts them after the
+  // stories. DR-1296's chart is still the chart; it is now an option, picked.
   return (
-    <div data-testid="lesson-figures" data-count={figures.length}>
+    <details className="mt-2" data-testid="lesson-figures" data-count={figures.length}>
+      <summary className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#1A1815]" style={SERIF} data-testid="lesson-figures-summary">
+        {(timeline ? timeline.title : figures[0].title) + (figures.length > 1 ? ` and ${figures.length - 1} more` : '')} — optional, open to review
+      </summary>
       {figures.map((f) => {
         const Body = BODY[f.kind];
         return (
@@ -245,6 +257,6 @@ export default function LessonFigures({ module }) {
           </FigureFrame>
         );
       })}
-    </div>
+    </details>
   );
 }

@@ -202,3 +202,51 @@ export function talkTogetherCoverage(modules = []) {
 export function mustCarryOwn(added, since = TALK_TOGETHER_SINCE) {
   return typeof added === 'string' && added >= since;
 }
+
+// THE TAIL IS A DROPDOWN, NOT A RE-READ (DR-1372). Darrell, 2026-11-06, from
+// the reader on a tablet: "the asking others for their testimony should be a
+// drop down too.... not read each time!!!!" Every lesson ends with the part
+// headed TALK ABOUT IT TOGETHER (DR-0733); it stays in the text, it stays in
+// the gates, and the page folds it closed while the voice skips it unless
+// asked. The heading is the seam, so the split is pure and reversible.
+export const TALK_HEADING_RE = /\bTALK ABOUT IT TOGETHER\b\.?/;
+
+/** { body, talk }: the lesson before the seam, and the tail from the heading on ('' when absent). */
+export function splitTalkTogether(text) {
+  const t = String(text || '');
+  const m = TALK_HEADING_RE.exec(t);
+  if (!m) return { body: t, talk: '' };
+  return { body: t.slice(0, m.index).trimEnd(), talk: t.slice(m.index).trim() };
+}
+
+/** Is this heading text the Talk About It Together seam? */
+export function isTalkHeading(text) {
+  return TALK_HEADING_RE.test(String(text || ''));
+}
+
+/**
+ * The paced segments with the tail removed. A segment that holds the seam is
+ * cut at it; every segment after a seam is tail too (the pacer may have split
+ * the tail across steps). Returns { body: string[], talk: string[] }.
+ */
+export function segmentsWithoutTalkTail(segments) {
+  const body = [];
+  const talk = [];
+  let inTail = false;
+  for (const seg of segments || []) {
+    const text = String(seg || '');
+    if (inTail) {
+      if (text.trim()) talk.push(text);
+      continue;
+    }
+    const cut = splitTalkTogether(text);
+    if (cut.talk) {
+      inTail = true;
+      if (cut.body.trim()) body.push(cut.body);
+      talk.push(cut.talk);
+    } else if (text.trim()) {
+      body.push(text);
+    }
+  }
+  return { body, talk };
+}

@@ -119,6 +119,7 @@ import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, D
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
+import LessonNeighbors from './LessonNeighbors.jsx';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -763,11 +764,15 @@ export function lessonSections(items, rhythm = SECTION_RHYTHM) {
 export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1815]' }) {
   const { items } = formatLessonText(text, plan);
   if (!items.length) return null;
-  const sections = lessonSections(items);
   const serif = { fontFamily: '"Fraunces", serif' };
-  return (
-    <div className={className} style={serif}>
-      {sections.map((sec, si) => (
+  // THE TAIL IS A DROPDOWN (DR-1372): "the asking others for their testimony
+  // should be a drop down too.... not read each time". The TALK ABOUT IT
+  // TOGETHER part (DR-0733) stays in the text and the gates; from the first item
+  // that starts with its heading to the end it renders in a closed <details>.
+  const seam = items.findIndex((it) => /^\s*TALK ABOUT IT TOGETHER\b/.test(String(it.text || '')));
+  const bodySections = lessonSections(seam < 0 ? items : items.slice(0, seam));
+  const tailSections = seam < 0 ? [] : lessonSections(items.slice(seam));
+  const renderSection = (sec, si) => (
         <React.Fragment key={si}>
           {sec.items.map((it) => (
             it.kind === 'heading' ? (
@@ -795,7 +800,20 @@ export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1
             <VerseChips refs={sec.refs} tone="word" lead className="mt-1.5" data-testid="section-refs" data-block-lines={sec.items.filter((it) => it.kind !== 'heading').length} />
           )}
         </React.Fragment>
-      ))}
+  );
+  const body = bodySections.map((sec, si) => renderSection(sec, si));
+  const tail = tailSections.map((sec, si) => renderSection(sec, bodySections.length + si));
+  return (
+    <div className={className} style={serif}>
+      {body}
+      {tail.length > 0 && (
+        <details className="mt-3 border-l-4 border-[#B85838] pl-3" data-testid="lesson-prose-talk-fold">
+          <summary className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#B85838]">
+            Talk about it together — optional, open to read the three prompts
+          </summary>
+          {tail}
+        </details>
+      )}
     </div>
   );
 }
@@ -1460,8 +1478,6 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
-            {/* The chart / steps / quadrant the reading talks about (DR-1296). */}
-            <LessonFigures module={module} />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
@@ -1475,6 +1491,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 is a task, and a task set mid-reading takes the reader out of it. It
                 moves to the 'send' stage, after the reading is done. */}
             <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
+            {/* The chart the reading talks about (DR-1296), AFTER the stories and
+                folded closed (DR-1372): "a drop-down... like a story we add at the end". */}
+            <LessonFigures module={module} />
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Who He Is (DR-0675): every passage this lesson carries, with where,
@@ -1900,6 +1919,7 @@ function CourseView({
     if (!lessonId) return;
     const p = getPlaceFor(course.key, lessonId);
     const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
+    if (next.seen >= 1 && !placeIsFinished(p)) finishRead(lessonId);
     // Only a real change re-renders: the same marks read back again are not news.
     setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
   };
@@ -1928,6 +1948,15 @@ function CourseView({
     const out = recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
     if (patch && patch.lessonId) refreshLiveRead(patch.lessonId);
     return out;
+  };
+  // READ IS READ BY ANY ROAD (DR-1384). Darrell 2026-11-10: "I took the exam and passed and still... it doesn't look like I read it... fix it".
+  // A passed exam, Done, or every part seen finishes the reading once, with its version, so the list shows ✓ READ.
+  const finishRead = (id) => {
+    const p = id ? getPlaceFor(course.key, id) : null;
+    if (!id || placeIsFinished(p)) return;
+    const m = (schedule || []).find((x) => x && x.id === id);
+    const version = m ? versionRead(m, ageBand, levelOverride) : null;
+    try { finishPlace({ courseKey: course.key, lessonId: id, ...(version ? { version } : {}) }); } catch (_) { /* the reading stands either way */ }
   };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
@@ -2271,6 +2300,15 @@ function CourseView({
   };
   const scheduleRef = React.useRef(schedule);
   scheduleRef.current = schedule;
+  // PREVIOUS AND NEXT AT THE END OF THE LESSON, NEVER A DEAD END (DR-1383).
+  // ONE TAP LANDS AT THE TOP (Darrell 2026-11-10): the scroll waits until the new screen has painted, else it lands mid-page.
+  const landTop = (sel) => { if (typeof window === 'undefined') return; window.requestAnimationFrame(() => window.requestAnimationFrame(() => { const t = sel && document.querySelector(sel); try { if (t) t.scrollIntoView({ block: 'start', behavior: motionBehavior() }); else window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } })); };
+  const goToLesson = (id) => { lastFocusRef.current = id; setFocusId(id); setOpenTutorId(id); savePlace({ lessonId: id }); recordUse(id); landTop(null); };
+  const neighborDoor = (x) => x && { id: x.id, title: x.title, label: isNumberedCourse(schedule) ? numberLabel(x, true, U.cap) : `${U.cap} ${x.week}` };
+  const lessonNeighbors = (m) => {
+    const i = sequence.findIndex((x) => x.id === m.id);
+    return <LessonNeighbors unit={U.noun} prev={neighborDoor(i > 0 ? sequence[i - 1] : null)} next={neighborDoor(i >= 0 ? sequence[i + 1] : null)} onGo={goToLesson} onAll={() => { setOpenTutorId(null); setFocusId(null); landTop('[data-testid="lessons-bar"], #learn-lesson-find'); }} />;
+  };
 
   // The wrapper hides its own chrome (course picker/sort) while the space is
   // open — the whole screen belongs to the one lesson (DR-0264).
@@ -3159,7 +3197,7 @@ function CourseView({
                 {toggleModule && (
                   <button
                     type="button"
-                    onClick={() => toggleModule(m.id)}
+                    onClick={() => { toggleModule(m.id); if (!done) finishRead(m.id); }}
                     aria-pressed={done}
                     className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                   >
@@ -3391,9 +3429,12 @@ function CourseView({
               {(() => {
                 const talk = talkTogetherFor(m);
                 return (
-                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                  <details className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                    {/* A DROPDOWN, CLOSED (DR-1372): the prompts are read when opened. */}
+                    <summary className="cursor-pointer min-h-[44px] flex items-center text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
+                      Talk about it together — optional, open to see the prompts
+                    </summary>
                     <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
-                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Talk about it together</div>
                       {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
                     </div>
                     <ul className="space-y-1">
@@ -3409,7 +3450,7 @@ function CourseView({
                     <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                       {talk.aim} <span className="italic">"{talk.verse.text}"</span> ({talk.verse.ref})
                     </p>
-                  </div>
+                  </details>
                 );
               })()}
               {/* FOR THE LITTLEST (DR-0866). Darrell, 2026-10-10: "Coloring
@@ -3722,6 +3763,7 @@ function CourseView({
                   (Darrell's screenshot of week 29). It now follows the guide,
                   where a finished reader meets it. */}
               {!tutorOpen && renderActions({ head: false })}
+              {!tutorOpen && focusModule && focusModule.id === m.id && lessonNeighbors(m)}
 
               {/* The solo tutor for this week */}
               {tutorOpen && (
@@ -3740,7 +3782,7 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={recordQuiz}
+                    onRecordQuiz={(id, r) => { if (recordQuiz) recordQuiz(id, r); if (r && r.passed) finishRead(id); }}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
@@ -3759,6 +3801,7 @@ function CourseView({
                     onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
                   {renderActions({ head: false })}
+                  {lessonNeighbors(m)}
                 </div>
               )}
 
