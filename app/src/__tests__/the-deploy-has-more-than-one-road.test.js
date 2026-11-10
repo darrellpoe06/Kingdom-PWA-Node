@@ -145,8 +145,12 @@ describe('the served site speaks the public client key (scripts/served-anon-key.
 describe('the deploy lane walks the second road (deploy-cloudflare-pages.yml)', () => {
   const wf = read('.github/workflows/deploy-cloudflare-pages.yml');
   it('the tailnet join no longer ends the job, the key step tries the NAS then the served site, and refuses with both named', () => {
-    const join = wf.indexOf('uses: tailscale/github-action@v3');
-    expect(join).toBeGreaterThan(0);
+    // DR-1374 moved the join behind the one composite door, so find it by
+    // either spelling — the thing that matters here is unchanged and is the
+    // DR-0107 guarantee: a refused key must NOT end the deploy job.
+    const door = wf.indexOf('uses: ./.github/actions/join-tailnet');
+    const join = door >= 0 ? door : wf.indexOf('uses: tailscale/github-action@v3');
+    expect(join, 'the deploy lane no longer joins the tailnet at all').toBeGreaterThan(0);
     expect(wf.slice(join, join + 400)).toMatch(/continue-on-error: true/);
     expect(wf).toMatch(/python3 scripts\/served-anon-key\.py/);
     expect(wf).toMatch(/ROAD="nas-over-tailnet"/);

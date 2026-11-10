@@ -44,7 +44,8 @@ describe('nas-user-rescue.yml — the rescue is a dispatchable lane', () => {
   });
 
   it('rides the proven remote-hands channel (tailnet joined, verified, NAS_SSH_KEY)', () => {
-    expect(wf).toMatch(/uses:\s*tailscale\/github-action@v3/);
+    // Either door: DR-1374 moved every join behind the one composite action.
+    expect(wf).toMatch(/uses:\s*(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action@v3)/);
     expect(wf).toMatch(/tailscale status --peers=false/);
     expect(wf).toMatch(/NAS_SSH_KEY:\s*\$\{\{\s*secrets\.NAS_SSH_KEY\s*\}\}/);
     expect(wf).toMatch(/run:\s*bash scripts\/user-rescue-over-tailnet\.sh/);

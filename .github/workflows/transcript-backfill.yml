@@ -104,6 +104,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Check out (the join-tailnet action lives in this repo)
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
       - name: Check the remote-hands channel is configured
         env:
           TS: ${{ secrets.TS_AUTHKEY != '' }}
@@ -112,8 +117,10 @@ jobs:
           if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
             echo "::error::NOT CONFIGURED: TS_AUTHKEY and NAS_SSH_KEY (the secrets nas-health uses)."; exit 1
           fi
-      - uses: tailscale/github-action@v3
+      - uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Run the transcript-trickle rider once on the NAS (its own stamp and budget)
         env:

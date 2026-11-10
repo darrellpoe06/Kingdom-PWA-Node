@@ -120,7 +120,11 @@ const SHUT = { reachable: false };
 
 describe('camera-health asks whether it got onto the tailnet before it says anything about the cameras', () => {
   it('the join is verified, the verify is a brake, and it names the real cause', () => {
-    expect(yaml, 'the lane still joins the tailnet').toContain('tailscale/github-action');
+    // Either door counts: DR-1374 put every join behind the one composite
+    // action, so pinning the raw action's name measured the spelling, not the
+    // join (the DR-1363 / DR-1379 class).
+    expect(yaml, 'the lane still joins the tailnet')
+      .toMatch(/uses:\s*(\.\/\.github\/actions\/join-tailnet|tailscale\/github-action)/);
     const v = step('Verify the tailnet actually joined');
     expect(v, 'camera-health must verify its join (DR-1284)').toContain('tailscale status --peers=false');
     expect(v, 'a verify step is a brake, not a log line').toMatch(/exit 1/);

@@ -42,7 +42,14 @@
       "to": 22416,
       "dr": "DR-1363",
       "reason": "A required guard step in ci.yml for forward-safe-gate-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) and verify-covers-ci-guards.test.js fails the build without it. Three lines is the step's cost: the narrative lives in the record and the guard's own header, not in the YAML. First written as 22396 -> 22399 against the main of the hour; after merging main (ll284 and the proof-of-work record raised it to 22413) the same three lines are 22413 -> 22416, which is the measured total and not above it."
+    },
+    {
+      "date": "2026-11-06",
+      "from": 22416,
+      "to": 22662,
+      "dr": "DR-1374",
+      "reason": "Every tailnet join in the repo now goes through .github/actions/join-tailnet, which VERIFIES the join by asking tailscale itself rather than trusting the step's conclusion (DR-1284). 68 join sites across 64 workflows passed secrets.TS_AUTHKEY directly, so one key failure shut 68 roads at once -- measured again on inbox-lessons-waiting run 42709659655, which failed at 'Verify the tailnet actually joined'. The growth is the door's input lines per site plus a sparse actions/checkout at the 21 sites that had none (a local composite action cannot be read without a checkout, measured before converting, which is the only reason those 21 did not break). The oauth-* inputs are DORMANT: DR-1360 withdrew the OAuth client as the fix and governs. First written as 22413 -> 22659 against the main of the hour; after merging main (DR-1363's three lines raised it to 22416) the same change is 22416 -> 22662, which is the measured total and not above it."
     }
   ],
-  "totalLines": 22416
+  "totalLines": 22662
 }

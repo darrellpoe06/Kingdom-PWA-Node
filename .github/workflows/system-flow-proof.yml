@@ -74,8 +74,10 @@ jobs:
           node scripts/system-flow-proof.mjs sql "$RUN_ID" runs.json > proof.sql
           echo "measurement batch: $(wc -l < proof.sql) lines"
       - name: Join the tailnet (to reach the live database)
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Measure on the live database and record the proof rows
         env:

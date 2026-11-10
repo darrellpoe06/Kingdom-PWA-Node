@@ -85,8 +85,10 @@ jobs:
           if [ -f infra/gpu-scheduler/state/STREAMING_HOLD ]; then echo "hold=--streaming-hold" >> "$GITHUB_OUTPUT"; else echo "hold=" >> "$GITHUB_OUTPUT"; fi
 
       - name: Join the tailnet
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
 
       - name: Write the key
