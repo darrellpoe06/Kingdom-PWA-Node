@@ -21,7 +21,7 @@
 
 ## Impact
 
-**What this obligates.** A science send is taught whole, its history credited by name and its one wrong figure corrected; only the word nature is moved back under the name of the Builder (DR-0100 tier three), and every band says no fact is given up. **Honest limits.** The video's words rest on the summary until the transcript lands; the research row for the NAS transcript road is still to be filed (worker restarts cut the filing call; re-review 2026-11-16).
+**What this obligates.** A science send is taught whole, its history credited by name and its one wrong figure corrected; only the word nature is moved back under the name of the Builder (DR-0100 tier three), and every band says no fact is given up. **Honest limits.** The video's words rest on the summary until the transcript lands; the research row for the NAS transcript road is `agent_inbox` row `94b13efe-f83f-4b62-8523-b31b7c28611c` (tag `research`), filed 2026-11-10 after worker restarts cut the first filing calls.
 
 ## Decision
 
