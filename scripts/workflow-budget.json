@@ -63,7 +63,14 @@
       "to": 22727,
       "dr": "DR-1399",
       "reason": "loops-health.yml gains its second road (DR-1360): the join carries continue-on-error, and one step reads the heartbeat the NAS writes itself over poetech.us/sb when the box could not be asked over SSH, writing the same witness the judge, report and incident steps already read. Three lines of comment, five of step, one flag, two small judge edits; the narrative is in the record. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22727,
+      "to": 22732,
+      "dr": "DR-1407",
+      "reason": "0319's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke) and proven on a bare Postgres in CI: a three-line leg in rls-isolation.yml and a two-line step in ci.yml's withdraw-walls job, folded to one run line with no comment, the narrative in the record. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22727
+  "totalLines": 22732
 }

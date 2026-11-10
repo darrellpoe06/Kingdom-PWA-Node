@@ -1216,6 +1216,23 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 3,
       "notes": "Darrell: Pace and depth should be sustained unless it is changed."
+    },
+    {
+      "id": "dr-1407-one-person-one-house",
+      "date": "2026-11-10",
+      "task": "Christina's two sign-ins hold the same houses (0319, smoke on Postgres) and the triage card names its reader and what it cannot read",
+      "drs": [
+        "DR-1407"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: Why don't Christina see the same page on the Big Picture"
     }
   ]
 }

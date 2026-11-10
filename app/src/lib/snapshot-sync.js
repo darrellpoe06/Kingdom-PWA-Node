@@ -25,6 +25,7 @@
 // overwrite risks more than it saves.
 // =============================================================================
 import supabase from './supabase.js';
+import { shareHouseholdsOnce } from './one-person-sign-ins.js';
 
 const TABLE_SYNCED_KEYS = [
   'accounts', 'debts', 'transactions', 'projects', 'inquiries',
@@ -57,6 +58,7 @@ async function currentSession() {
 }
 
 async function getTenantId() {
+  await shareHouseholdsOnce(supabase); // either sign-in opens on the same house (DR-1407)
   const { data, error } = await supabase.rpc('join_default_instance', { display_name_in: null });
   if (error) throw error;
   return data;

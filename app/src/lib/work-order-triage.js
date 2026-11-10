@@ -470,3 +470,27 @@ export function closingChecks(w) {
     { ok: (x.notes || []).length > 1, text: (x.notes || []).length > 1 ? `${x.notes.length} notes on its record.` : 'Nothing has been written on it since it came in.' },
   ];
 }
+
+// -----------------------------------------------------------------------------
+// readerReach — what this sign-in can read, said on the card (DR-1407).
+// Darrell 2026-11-10: "Why don't Christina see the same page on the Big
+// Picture!!!" Poe Properties' work orders come back EMPTY, not as an error,
+// for a sign-in with no seat there, so the card looked like a smaller system.
+// `reach` is { state: 'loading' | 'read' | 'failed', email, seat }. Unknown is
+// never shown as complete (DR-0076): only a confirmed seat may say the list is
+// every work order in the system.
+// -----------------------------------------------------------------------------
+export function readerReach(reach) {
+  const r = reach || { state: 'loading' };
+  const who = r.email ? `Signed in as ${r.email}` : 'This sign-in';
+  if (r.state === 'read' && r.seat) {
+    return { tone: 'ok', complete: true, text: `${r.email ? `Read as ${r.email}` : 'Read'} · Poe Properties: ${r.seat.role}` };
+  }
+  if (r.state === 'read') {
+    return { tone: 'missing', complete: false, text: `${who}, which has no seat in Poe Properties, so Poe Properties' work orders are not in this list. Sign in with the account that has the seat, or ask an owner to add this one.` };
+  }
+  if (r.state === 'failed') {
+    return { tone: 'unknown', complete: false, text: "Whether this sign-in can read Poe Properties could not be checked, so Poe Properties' work orders may be missing from this list." };
+  }
+  return null;
+}

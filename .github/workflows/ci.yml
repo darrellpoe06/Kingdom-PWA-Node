@@ -1158,6 +1158,8 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0304-your-words-can-be-withdrawn-and-sent-where-they-belong.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0304-withdraw-my-words-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'WITHDRAW MY WORDS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+      - name: 0319 gives one person's sign-ins the same houses, twice, never lowering a seat (DR-1407)
+        run: for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0319-one-person-sees-one-house-from-either-sign-in.sql; done; psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0319-one-person-one-house-smoke.sql | grep -q 'ONE PERSON ONE HOUSE SMOKE: PASS'
 
   # SIGN-INS AND FAILURES ARE ON THE RECORD (DR-1336, DR-1330 D6): 0315
   # applies twice (idempotent); the smoke proves the hook writes 'login' and
