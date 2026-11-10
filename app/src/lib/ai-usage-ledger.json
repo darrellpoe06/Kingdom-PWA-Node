@@ -845,7 +845,7 @@
       "date": "2026-11-10",
       "task": "Teach the ledger resolver to own the two budget ratchets: union the append-only raises and re-base ours onto main's chain",
       "drs": [
-        "DR-1383"
+        "DR-1385"
       ],
       "prs": [],
       "model": "claude-opus-5",
