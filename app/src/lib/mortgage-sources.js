@@ -25,20 +25,32 @@ function missingOf(o) {
 function propertyOption(r) {
   const m = r.mortgage || {};
   const o = {
-    id: `property:${r.id}`, kind: 'property', entityId: r.entityId ?? null,
+    id: `property:${r.id}`,
+    kind: 'property',
+    entityId: r.entityId ?? null,
     label: `${r.name || r.address || 'Property'} · mortgage`,
-    principal: num(m.balance), ratePct: num(m.rate), payment: num(m.monthlyPI),
+    principal: num(m.balance),
+    ratePct: num(m.rate),
+    payment: num(m.monthlyPI),
     propertyValue: num(r.market && r.market.marketValue) || num(r.estimatedValue),
-    escrowMonthly: num(m.escrow), estimated: m.estimated === true,
+    escrowMonthly: num(m.escrow),
+    estimated: m.estimated === true,
   };
   return { ...o, missing: missingOf(o) };
 }
 
 function debtOption(d) {
   const o = {
-    id: `debt:${d.id}`, kind: 'debt', entityId: d.entityId ?? null, label: d.name || 'Debt',
-    principal: num(d.balance), ratePct: num(d.rate), payment: num(d.minPayment),
-    propertyValue: 0, escrowMonthly: 0, estimated: false,
+    id: `debt:${d.id}`,
+    kind: 'debt',
+    entityId: d.entityId ?? null,
+    label: d.name || 'Debt',
+    principal: num(d.balance),
+    ratePct: num(d.rate),
+    payment: num(d.minPayment),
+    propertyValue: 0,
+    escrowMonthly: 0,
+    estimated: false,
   };
   return { ...o, missing: missingOf(o) };
 }
@@ -62,7 +74,10 @@ export function loanGroups({ rentals = [], debts = [], entities = null } = {}) {
   let propertiesWithoutMortgage = 0;
   for (const r of rentals || []) {
     if (!r || !visible(r.entityId ?? null)) continue;
-    if (!(num(r.mortgage && r.mortgage.balance) > 0)) { propertiesWithoutMortgage += 1; continue; }
+    if (!(num(r.mortgage && r.mortgage.balance) > 0)) {
+      propertiesWithoutMortgage += 1;
+      continue;
+    }
     options.push(propertyOption(r));
   }
   for (const d of debts || []) {
@@ -75,7 +90,10 @@ export function loanGroups({ rentals = [], debts = [], entities = null } = {}) {
   const groups = [];
   for (const o of options) {
     let g = groups.find((x) => x.entityId === o.entityId);
-    if (!g) { g = { entityId: o.entityId, label: nameOf(o.entityId), options: [] }; groups.push(g); }
+    if (!g) {
+      g = { entityId: o.entityId, label: nameOf(o.entityId), options: [] };
+      groups.push(g);
+    }
     g.options.push(o);
   }
   groups.sort((a, b) => rank(a.entityId) - rank(b.entityId));

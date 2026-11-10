@@ -38,7 +38,9 @@ export function addMonths(ym, add) {
 
 /** The level monthly payment for a principal, a yearly rate (%) and a term in years. */
 export function standardPayment(principal, ratePct, years) {
-  const p = num(principal); const n = Math.round(num(years) * 12); const r = num(ratePct) / 100 / 12;
+  const p = num(principal);
+  const n = Math.round(num(years) * 12);
+  const r = num(ratePct) / 100 / 12;
   if (!(p > 0) || !(n > 0)) return 0;
   return round2(exactPayment(p, r, n));
 }
@@ -49,7 +51,8 @@ export function extraInMonth(prepay, n) {
   const p = prepay || {};
   let x = 0;
   const every = (rule, step) => {
-    const amount = num(rule && rule.amount); const start = Math.max(1, Math.round(num(rule && rule.startMonth) || 1));
+    const amount = num(rule && rule.amount);
+    const start = Math.max(1, Math.round(num(rule && rule.startMonth) || 1));
     if (amount > 0 && n >= start && (n - start) % step === 0) x += amount;
   };
   every(p.monthly, 1);
@@ -71,7 +74,7 @@ export function buildSchedule(loan) {
   const r = ratePct / 100 / 12;
   const termMonths = Math.round(num(loan && loan.years) * 12);
   // A payment on file is used as written; a term is worked out and kept exact.
-  const pay = num(loan && loan.payment) > 0 ? num(loan.payment) : (principal > 0 && termMonths > 0 ? exactPayment(principal, r, termMonths) : 0);
+  const pay = num(loan && loan.payment) > 0 ? num(loan.payment) : principal > 0 && termMonths > 0 ? exactPayment(principal, r, termMonths) : 0;
   const payment = round2(pay);
   const startYm = (loan && loan.startYm) || '2000-01';
   const value = num(loan && loan.propertyValue);
@@ -79,24 +82,47 @@ export function buildSchedule(loan) {
   if (!(principal > 0)) return fail('Enter the amount owed.');
   if (ratePct < 0) return fail('The interest rate cannot be below zero.');
   if (!(pay > 0)) return fail('Enter the term in years, or the monthly payment.');
-  if (pay <= principal * r + 0.005) return fail(`A payment of $${payment.toFixed(2)} does not cover the first month of interest ($${round2(principal * r).toFixed(2)}), so this loan would never be paid off.`);
+  if (pay <= principal * r + 0.005)
+    return fail(
+      `A payment of $${payment.toFixed(2)} does not cover the first month of interest ($${round2(principal * r).toFixed(2)}), so this loan would never be paid off.`
+    );
 
-  const rows = []; let balance = principal; let totalInterest = 0; let totalExtra = 0;
+  const rows = [];
+  let balance = principal;
+  let totalInterest = 0;
+  let totalExtra = 0;
   for (let n = 1; balance > 0.004 && n <= MAX_MONTHS; n += 1) {
     const interest = balance * r;
     const toPrincipal = Math.min(pay - interest, balance);
     const extra = Math.min(extraInMonth(loan.prepay, n), balance - toPrincipal);
     balance = balance - toPrincipal - extra;
     if (balance < 0.005) balance = 0;
-    totalInterest += interest; totalExtra += extra;
+    totalInterest += interest;
+    totalExtra += extra;
     rows.push({
-      n, ym: addMonths(startYm, n - 1), payment: round2(interest + toPrincipal), interest: round2(interest), principal: round2(toPrincipal), extra: round2(extra),
-      total: round2(interest + toPrincipal + extra), balance: round2(balance), ltv: value > 0 ? Math.round((balance / value) * 1000) / 10 : null,
+      n,
+      ym: addMonths(startYm, n - 1),
+      payment: round2(interest + toPrincipal),
+      interest: round2(interest),
+      principal: round2(toPrincipal),
+      extra: round2(extra),
+      total: round2(interest + toPrincipal + extra),
+      balance: round2(balance),
+      ltv: value > 0 ? Math.round((balance / value) * 1000) / 10 : null,
       exact: { interest, principal: toPrincipal, extra },
     });
   }
   if (balance > 0.004) return fail('This loan is not paid off within 100 years at this payment.');
-  return { ok: true, payment, rows, months: rows.length, totalInterest: round2(totalInterest), totalExtra: round2(totalExtra), totalPaid: round2(principal + totalInterest), endYm: rows[rows.length - 1].ym };
+  return {
+    ok: true,
+    payment,
+    rows,
+    months: rows.length,
+    totalInterest: round2(totalInterest),
+    totalExtra: round2(totalExtra),
+    totalPaid: round2(principal + totalInterest),
+    endYm: rows[rows.length - 1].ym,
+  };
 }
 
 /** One row a calendar year: interest, principal (extra included), and the closing balance. */
@@ -105,10 +131,16 @@ export function annualRows(rows) {
   for (const row of rows || []) {
     const year = row.ym.slice(0, 4);
     let y = out[out.length - 1];
-    if (!y || y.year !== year) { y = { year, i: 0, p: 0, x: 0 }; out.push(y); }
+    if (!y || y.year !== year) {
+      y = { year, i: 0, p: 0, x: 0 };
+      out.push(y);
+    }
     const e = row.exact || row;
-    y.i += e.interest; y.p += e.principal + e.extra; y.x += e.extra;
-    y.balance = row.balance; y.ltv = row.ltv;
+    y.i += e.interest;
+    y.p += e.principal + e.extra;
+    y.x += e.extra;
+    y.balance = row.balance;
+    y.ltv = row.ltv;
   }
   return out.map((y) => ({ year: y.year, interest: round2(y.i), principal: round2(y.p), extra: round2(y.x), balance: y.balance, ltv: y.ltv }));
 }
@@ -129,7 +161,9 @@ export function calculate(loan, expenses = {}) {
     payment: base.payment,
     monthlyExpenses,
     totalMonthly: round2(base.payment + monthlyExpenses),
-    base, plan, hasExtra,
+    base,
+    plan,
+    hasExtra,
     monthsSaved: base.months - plan.months,
     interestSaved: round2(base.totalInterest - plan.totalInterest),
     // Of every dollar paid under the plan: how much is interest, scheduled principal, extra.

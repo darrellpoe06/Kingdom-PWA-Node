@@ -15,29 +15,64 @@ const TODAY = new Date(2026, 10, 10);
 
 function world() {
   return {
-    entities: [{ id: 'e-p', name: 'Personal', type: 'personal' }, { id: 'e-pp', name: 'Poe Properties LLC', type: 'business' }, { id: 'e-hidden', name: 'Hidden Co', type: 'business' }],
+    entities: [
+      { id: 'e-p', name: 'Personal', type: 'personal' },
+      { id: 'e-pp', name: 'Poe Properties LLC', type: 'business' },
+      { id: 'e-hidden', name: 'Hidden Co', type: 'business' },
+    ],
     accounts: [
       { id: 'card', name: 'Visa', type: 'credit', entityId: 'e-p', balance: -2500, rate: 24, minPayment: 75 },
       { id: 'secret', name: 'Hidden card', type: 'credit', entityId: 'e-hidden', balance: -900 },
     ],
     transactions: [],
-    inflows: { rentals: [
-      { id: 'home', name: 'Our home', status: 'owner-occupied', entityId: 'e-p', estimatedValue: 250000, mortgage: { balance: 150000, rate: 6, monthlyPI: 1100, escrow: 300 } },
-      { id: 'r1', name: '1402 Maple St', entityId: 'e-pp', market: { marketValue: 120000 }, mortgage: { balance: 80000, rate: 6.5, monthlyPI: 596.46, escrow: 183.33 } },
-      { id: 'r2', name: '312 Willow Ln', entityId: 'e-pp', mortgage: { balance: 40000, rate: 0, monthlyPI: 0, escrow: 0 } },
-      { id: 'r3', name: 'Paid-off lot', entityId: 'e-pp', mortgage: { balance: 0, rate: 0, monthlyPI: 0, escrow: 0 } },
-    ] },
+    inflows: {
+      rentals: [
+        {
+          id: 'home',
+          name: 'Our home',
+          status: 'owner-occupied',
+          entityId: 'e-p',
+          estimatedValue: 250000,
+          mortgage: { balance: 150000, rate: 6, monthlyPI: 1100, escrow: 300 },
+        },
+        {
+          id: 'r1',
+          name: '1402 Maple St',
+          entityId: 'e-pp',
+          market: { marketValue: 120000 },
+          mortgage: { balance: 80000, rate: 6.5, monthlyPI: 596.46, escrow: 183.33 },
+        },
+        { id: 'r2', name: '312 Willow Ln', entityId: 'e-pp', mortgage: { balance: 40000, rate: 0, monthlyPI: 0, escrow: 0 } },
+        { id: 'r3', name: 'Paid-off lot', entityId: 'e-pp', mortgage: { balance: 0, rate: 0, monthlyPI: 0, escrow: 0 } },
+      ],
+    },
   };
 }
 
-let root; let host;
-function mount(el) { host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); act(() => root.render(el)); return host; }
-afterEach(() => { if (root) act(() => root.unmount()); if (host) host.remove(); root = null; host = null; });
+let root;
+let host;
+function mount(el) {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  act(() => root.render(el));
+  return host;
+}
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  if (host) host.remove();
+  root = null;
+  host = null;
+});
 const q = (id) => host.querySelector(`[data-testid="${id}"]`);
 const click = (id) => act(() => q(id).dispatchEvent(new MouseEvent('click', { bubbles: true })));
 function type(id, value) {
-  const el = q(id); const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
-  act(() => { Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); });
+  const el = q(id);
+  const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+  act(() => {
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+    el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  });
 }
 
 describe('mortgage-sources: the drop-down is the real records, by entity', () => {
@@ -58,13 +93,23 @@ describe('mortgage-sources: the drop-down is the real records, by entity', () =>
   it('carries the figures on file and names what is missing, never a guess', () => {
     const data = world();
     const s = loanGroups({ rentals: data.inflows.rentals, entities: data.entities });
-    expect(findLoan(s.groups, 'property:r1')).toMatchObject({ principal: 80000, ratePct: 6.5, payment: 596.46, propertyValue: 120000, escrowMonthly: 183.33, missing: [] });
+    expect(findLoan(s.groups, 'property:r1')).toMatchObject({
+      principal: 80000,
+      ratePct: 6.5,
+      payment: 596.46,
+      propertyValue: 120000,
+      escrowMonthly: 183.33,
+      missing: [],
+    });
     expect(findLoan(s.groups, 'property:r2').missing).toEqual(['the interest rate', 'the monthly payment']);
   });
 });
 
 describe('MortgageCalculator: on the screen', () => {
-  const sources = () => { const d = world(); return loanGroups({ rentals: d.inflows.rentals, debts: deriveDebts(d, TODAY), entities: d.entities.slice(0, 2) }); };
+  const sources = () => {
+    const d = world();
+    return loanGroups({ rentals: d.inflows.rentals, debts: deriveDebts(d, TODAY), entities: d.entities.slice(0, 2) });
+  };
 
   it('is closed until a person opens it', () => {
     mount(createElement(MortgageCalculator, { sources: sources(), currentDate: TODAY }));
@@ -89,7 +134,10 @@ describe('MortgageCalculator: on the screen', () => {
   });
   it('a new loan gives the reference result, and extra principal shows what it saves', () => {
     mount(createElement(MortgageCalculator, { sources: sources(), currentDate: TODAY, defaultOpen: true }));
-    type('mc-value', '80000'); type('mc-rate', '6.5'); type('mc-years', '20'); type('mc-start', '2023-05');
+    type('mc-value', '80000');
+    type('mc-rate', '6.5');
+    type('mc-years', '20');
+    type('mc-start', '2023-05');
     expect(q('mc-principal').value).toBe('80000');
     expect(q('mc-result').textContent).toMatch(/\$596\.46/);
     type('mc-x-monthly', '600');
@@ -115,7 +163,10 @@ describe('MortgageCalculator: on the screen', () => {
   });
   it('says so in words when a payment would never pay the loan off', () => {
     mount(createElement(MortgageCalculator, { sources: sources(), currentDate: TODAY, defaultOpen: true }));
-    type('mc-principal', '100000'); type('mc-rate', '12'); type('mc-mode', 'payment'); type('mc-payment', '900');
+    type('mc-principal', '100000');
+    type('mc-rate', '12');
+    type('mc-mode', 'payment');
+    type('mc-payment', '900');
     expect(q('mc-reason').textContent).toMatch(/never be paid off/);
     expect(q('mc-result')).toBeNull();
   });
@@ -127,24 +178,60 @@ describe('MortgageCalculator: on the screen', () => {
 
 describe('where it is mounted', () => {
   it('Debt Freedom: every visible loan, and the records are not changed', () => {
-    const data = world(); const before = JSON.stringify(data); let wrote = 0;
-    mount(createElement(MoneyLoanCalculator, { money: { data, setData: () => { wrote += 1; }, updateRental: () => { wrote += 1; }, derivedDebts: deriveDebts(data, TODAY), currentDate: TODAY, visibleEntities: data.entities.slice(0, 2) } }));
+    const data = world();
+    const before = JSON.stringify(data);
+    let wrote = 0;
+    mount(
+      createElement(MoneyLoanCalculator, {
+        money: {
+          data,
+          setData: () => {
+            wrote += 1;
+          },
+          updateRental: () => {
+            wrote += 1;
+          },
+          derivedDebts: deriveDebts(data, TODAY),
+          currentDate: TODAY,
+          visibleEntities: data.entities.slice(0, 2),
+        },
+      })
+    );
     click('mc-toggle');
-    expect([...q('mc-pick').querySelectorAll('option')].map((o) => o.value)).toEqual(['', 'property:home', 'debt:debt-acct-card', 'property:r1', 'property:r2']);
-    type('mc-pick', 'debt:debt-acct-card'); type('mc-x-monthly', '100');
+    expect([...q('mc-pick').querySelectorAll('option')].map((o) => o.value)).toEqual([
+      '',
+      'property:home',
+      'debt:debt-acct-card',
+      'property:r1',
+      'property:r2',
+    ]);
+    type('mc-pick', 'debt:debt-acct-card');
+    type('mc-x-monthly', '100');
     expect(q('mc-result')).not.toBeNull();
     expect(JSON.stringify(data)).toBe(before);
     expect(wrote).toBe(0);
   });
   it('Real Estate: the property mortgages under the band, and no calculator when none is handed in', () => {
     const data = world();
-    const state = { doors: 3, properties: 3, label: 'Poe Properties', collected: { known: false, note: 'No lease ledger yet.' }, holds: [], attention: [], allClear: false, clear: null, personal: 0, service: null };
+    const state = {
+      doors: 3,
+      properties: 3,
+      label: 'Poe Properties',
+      collected: { known: false, note: 'No lease ledger yet.' },
+      holds: [],
+      attention: [],
+      allClear: false,
+      clear: null,
+      personal: 0,
+      service: null,
+    };
     mount(createElement(RealEstateDoor, { state, calc: { rentals: data.inflows.rentals.slice(1), entities: data.entities, currentDate: TODAY } }));
     expect(q('real-estate-calculator')).not.toBeNull();
     expect(q('real-estate-door-scope').contains(q('mortgage-calculator'))).toBe(false);
     click('mc-toggle');
     expect([...q('mc-pick').querySelectorAll('option')].map((o) => o.value)).toEqual(['', 'property:r1', 'property:r2']);
-    act(() => root.unmount()); host.remove();
+    act(() => root.unmount());
+    host.remove();
     mount(createElement(RealEstateDoor, { state }));
     expect(q('real-estate-calculator')).toBeNull();
   });

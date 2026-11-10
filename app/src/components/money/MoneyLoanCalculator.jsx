@@ -12,9 +12,15 @@ import { loanGroups } from '../../lib/mortgage-sources.js';
 
 export default function MoneyLoanCalculator({ money }) {
   const { data = {}, derivedDebts = [], currentDate, visibleEntities = null } = money || {};
-  const sources = useMemo(() => loanGroups({
-    rentals: (data.inflows && data.inflows.rentals) || [], debts: derivedDebts, entities: visibleEntities || data.entities || null,
-  }), [data.inflows, data.entities, derivedDebts, visibleEntities]);
+  const sources = useMemo(
+    () =>
+      loanGroups({
+        rentals: (data.inflows && data.inflows.rentals) || [],
+        debts: derivedDebts,
+        entities: visibleEntities || data.entities || null,
+      }),
+    [data.inflows, data.entities, derivedDebts, visibleEntities]
+  );
   return (
     <MortgageCalculator
       sources={sources}

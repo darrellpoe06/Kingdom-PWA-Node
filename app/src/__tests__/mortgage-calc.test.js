@@ -18,7 +18,8 @@ describe('mortgage-calc: the reference figures', () => {
   });
   it('matches the 2025 months (interest, principal with extra, loan-to-value, balance)', () => {
     const { rows } = buildSchedule(EXTRA);
-    const jan = rows.find((r) => r.ym === '2025-01'); const dec = rows.find((r) => r.ym === '2025-12');
+    const jan = rows.find((r) => r.ym === '2025-01');
+    const dec = rows.find((r) => r.ym === '2025-12');
     expect([jan.interest, Math.round((jan.principal + jan.extra) * 100) / 100, jan.ltv, jan.balance]).toEqual([346.27, 850.19, 78.8, 63075.8]);
     expect([dec.interest, Math.round((dec.principal + dec.extra) * 100) / 100, dec.ltv, dec.balance]).toEqual([294.21, 902.24, 66.8, 53414.18]);
   });
@@ -72,7 +73,12 @@ describe('mortgage-calc: the rules', () => {
     expect([s.months, s.totalInterest, s.endYm]).toEqual([12, 0, '2026-12']);
   });
   it('places each kind of extra payment in its own months', () => {
-    const p = { monthly: { amount: 10, startMonth: 3 }, semiAnnual: { amount: 100, startMonth: 2 }, annual: { amount: 1000, startMonth: 5 }, oneTime: { amount: 5000, month: 7 } };
+    const p = {
+      monthly: { amount: 10, startMonth: 3 },
+      semiAnnual: { amount: 100, startMonth: 2 },
+      annual: { amount: 1000, startMonth: 5 },
+      oneTime: { amount: 5000, month: 7 },
+    };
     expect([1, 2, 3, 5, 7, 8, 14, 17].map((n) => extraInMonth(p, n))).toEqual([0, 100, 10, 1010, 5010, 110, 110, 1010]);
   });
   it('never pays more extra than is owed, and the last payment is trimmed', () => {
