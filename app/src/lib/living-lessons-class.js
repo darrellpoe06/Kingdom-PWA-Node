@@ -31560,7 +31560,8 @@ export const LIVING_LESSONS_MODULES = [
   // ---------------------------------------------------------------------------
   // ---------------------------------------------------------------------------
   // ---------------------------------------------------------------------------
-  // LESSON 298 — "Put Not Your Trust In Princes" (DR-DRNUM). Darrell forwarded an
+  // ---------------------------------------------------------------------------
+  // LESSON 300 — "Put Not Your Trust In Princes" (DR-1413). Darrell forwarded an
   // election email into the app on 2026-10-22 with one word above it: Lesson. The
   // forward was substantially an advertisement for a news app; its one honest
   // paragraph described weariness with the cost of living and with leadership, and
@@ -31571,9 +31572,9 @@ export const LIVING_LESSONS_MODULES = [
   // asserting the unverified). NON-PARTISAN BY CONSTRUCTION (DR-0098): the lesson
   // names no side, blames no party, and tells no one how to vote. Every verse is
   // fetched from app/public/bible/kjv and pinned in
-  // living-lessons-ll298-put-not-your-trust-in-princes.test.js.
+  // living-lessons-ll300-put-not-your-trust-in-princes.test.js.
   {
-    id: 'll298-put-not-your-trust-in-princes',
+    id: 'll300-put-not-your-trust-in-princes',
     title: 'Put Not Your Trust In Princes — Where Hope Belongs When the Rulers Disappoint',
     bigIdea: 'PUT NOT YOUR TRUST IN PRINCES. Darrell forwarded an election email into the app on 2026-10-22 with one word above it: Lesson. The email itself was mostly an advertisement for a news app built around an election tab, and the ad is not the lesson. One paragraph in it was an honest account of a national mood: weariness with the cost of living and with leadership in the capital, bickering that settles nothing, and the conclusion that something has to give. That sentence is truer than its author knew, and it is the occasion for this teaching. The Word answers it without taking a side and without telling anyone how to vote. Yahweh rules over the rulers: "And he changeth the times and the seasons: he removeth kings, and setteth up kings: he giveth wisdom unto the wise, and knowledge to them that know understanding:" (Daniel 2:21). The warning is flat and exempts no party: "Put not your trust in princes, nor in the son of man, in whom there is no help." (Psalms 146:3). The reason is a fact about bodies rather than a complaint about politicians: "His breath goeth forth, he returneth to his earth; in that very day his thoughts perish." (Psalms 146:4). Israel once moved its hope from Yahweh onto a king and was told what had really happened: "And the LORD said unto Samuel, Hearken unto the voice of the people in all that they say unto thee: for they have not rejected thee, but they have rejected me, that I should not reign over them." (1 Samuel 8:7). And yet we pray for whoever holds office, including the ones we did not choose (1 Timothy 2:1-2), honor the office (Romans 13:1; 1 Peter 2:17), and stop at exactly one line: "Then Peter and the other apostles answered and said, We ought to obey God rather than men." (Acts 5:29). Hope has an address, and it is not a building in any capital: "Happy is he that hath the God of Jacob for his help, whose hope is in the LORD his God:" (Psalms 146:5). What gives way was never load-bearing. "Blessed is the nation whose God is the LORD; and the people whom he hath chosen for his own inheritance." (Psalms 33:12).',
     inApp: 'This week, do four things. Pray by name, out loud, for one person in authority you did not vote for, and ask for a quiet and peaceable life in all godliness and honesty (1 Timothy 2:1-2). Write Psalms 146:3 where you will see it before you open the news. When you notice your chest tighten at a headline, stop and read Psalms 2:4 and remember Who is seated. And before any result arrives, settle your joy the way Habakkuk settled his, saying Yet before you know the outcome (Habakkuk 3:17-18).',

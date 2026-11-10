@@ -1,12 +1,12 @@
 // @vitest-environment node
 // =============================================================================
-// L298 — Put Not Your Trust In Princes
+// L300 — Put Not Your Trust In Princes
 // =============================================================================
 // Darrell forwarded an election email into the app on 2026-10-22 with one word
 // above it: Lesson. The forward was substantially an advertisement for a news
 // app; its one honest paragraph described weariness with the cost of living and
 // with leadership, and concluded that something has to give. That is the
-// OCCASION. The Word is the content. (DR-1411.)
+// OCCASION. The Word is the content. (DR-1413.)
 //
 // PLACED IN LIVING LESSONS, NOT WORLD ISSUES, ON PURPOSE: that course's method
 // is verified claim-checking, and the forward's checkable claims need polling
@@ -45,7 +45,7 @@ import { findBritish, ourProse } from '../../../scripts/american-spelling.mjs';
 import { lengthFaults, words, ADULT_MIN, ADULT_MAX } from './new-lessons-keep-a-reader-length.test.js';
 import { isSpokenByDarrell } from './spoken-lessons-name-darrell.test.js';
 
-const ID = 'll298-put-not-your-trust-in-princes';
+const ID = 'll300-put-not-your-trust-in-princes';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
@@ -173,7 +173,7 @@ const SHARED = [
   '1 Peter 2:17',
 ];
 
-describe('L298 is in the catalog, numbered, dated and whole', () => {
+describe('L300 is in the catalog, numbered, dated and whole', () => {
   it('exists exactly once with all four bands', () => {
     expect(L, `${ID} is not in the catalog`).toBeTruthy();
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
@@ -181,14 +181,14 @@ describe('L298 is in the catalog, numbered, dated and whole', () => {
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims 298 exactly once, and nothing else claims it', () => {
+  it('claims 300 exactly once, and nothing else claims it', () => {
     const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(numbers.filter((n) => n === 298)).toEqual([298]);
+    expect(numbers.filter((n) => n === 300)).toEqual([300]);
   });
 
-  it('sits after ll297 in the catalog, and carries its build day', () => {
+  it('sits after ll299 in the catalog, and carries its build day', () => {
     const i = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
-    const j = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll297-'));
+    const j = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll299-'));
     expect(j).toBeGreaterThan(-1);
     expect(j).toBeLessThan(i);
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-11-10');

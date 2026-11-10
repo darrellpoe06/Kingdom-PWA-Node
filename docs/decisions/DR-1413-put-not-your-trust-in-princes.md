@@ -1,4 +1,4 @@
-# DR-1411: L298 — Put Not Your Trust In Princes: where hope belongs when the rulers disappoint
+# DR-1413: L300 — Put Not Your Trust In Princes: where hope belongs when the rulers disappoint
 
 **Date:** 2026-11-10
 **Status:** Accepted
@@ -37,7 +37,7 @@ and named it — `(Proverbs 21:1) is not the verse`. Reverted; 46 green.
 ## Impact
 
 One lesson, four bands, two invented parables, ten quiz questions, a 42-verse
-gate. `living-lessons-class.js` 31,608 → 31,755 lines, raised to the measured size
+gate. `living-lessons-class.js` 31,897 → the measured size, raised to the measured size
 on the existing ratchet (DR-1339's lesson-content-out-of-JS re-review, 2026-11-19,
 remains the answer to why lesson prose still lives in JavaScript).
 

@@ -579,5 +579,5 @@ export const LIVING_LESSONS_ADDED = {
   'll295-the-bleating-of-the-sheep': '2026-11-10',
   'll296-willing-and-obedient': '2026-11-10',
   'll297-precept-upon-precept': '2026-11-10',
-  'll298-put-not-your-trust-in-princes': '2026-11-10',
+  'll300-put-not-your-trust-in-princes': '2026-11-10',
 };
