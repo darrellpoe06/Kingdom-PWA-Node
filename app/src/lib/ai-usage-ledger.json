@@ -839,6 +839,36 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 20,
       "notes": "Built across repeated worker restarts; the panel could not be identified and the video could not be fetched."
+    },
+    {
+      "id": "dr-1383-no-dead-end",
+      "date": "2026-11-10",
+      "task": "Previous, All lessons and Next at the end of every open lesson, landing at the top after the paint; a 5-case gate",
+      "drs": [
+        "DR-1383"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell's three messages and a screenshot; built across worker restarts."
+    },
+    {
+      "id": "dr-1384-read-by-any-road",
+      "date": "2026-11-10",
+      "task": "A passed exam, Done, or every part seen finishes the reading with its version so the list shows READ; a 4-case gate, proven to catch",
+      "drs": [
+        "DR-1384"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": "Traced from three screenshots of L3 to the finish roads in readMark."
     }
   ]
 }
