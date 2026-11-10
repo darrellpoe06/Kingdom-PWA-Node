@@ -1301,6 +1301,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Lesson. Read with the heart... according to the Word"
+    },
+    {
+      "id": "dr-1412-record-figures-fit",
+      "date": "2026-11-10",
+      "task": "The learner record's figure rows are sized by their text, so Big Print wraps them instead of running them together; measured in Chromium",
+      "drs": [
+        "DR-1412"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Darrell: Fix it (Big Print screenshot of his record)"
     }
   ]
 }
