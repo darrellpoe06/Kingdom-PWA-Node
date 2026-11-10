@@ -49,7 +49,14 @@
       "to": 22662,
       "dr": "DR-1374",
       "reason": "Every tailnet join in the repo now goes through .github/actions/join-tailnet, which VERIFIES the join by asking tailscale itself rather than trusting the step's conclusion (DR-1284). 68 join sites across 64 workflows passed secrets.TS_AUTHKEY directly, so one key failure shut 68 roads at once -- measured again on inbox-lessons-waiting run 42709659655, which failed at 'Verify the tailnet actually joined'. The growth is the door's input lines per site plus a sparse actions/checkout at the 21 sites that had none (a local composite action cannot be read without a checkout, measured before converting, which is the only reason those 21 did not break). The oauth-* inputs are DORMANT: DR-1360 withdrew the OAuth client as the fix and governs. First written as 22413 -> 22659 against the main of the hour; after merging main (DR-1363's three lines raised it to 22416) the same change is 22416 -> 22662, which is the measured total and not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22662,
+      "to": 22722,
+      "dr": "DR-1382",
+      "reason": "Two dormant lanes are given a voice. lesson-mail-watch.yml had 480 runs from 2026-08-25 to 2026-11-09, every sampled one an honest no-op exiting 0, so 77 days of a shut Gmail door were visible only in the raw log of run 480; the dormant branch now also emits a ::warning:: and a step summary naming what it costs and the one value that fixes it. nas-email-door.yml reports SMTP_APP_PASSWORD presence BEFORE its tailnet gate, because that fact does not depend on the tailnet and was unreachable behind a dead TS_AUTHKEY -- it decides whether a dark lane is a wiring fix or a value only Darrell can mint (DR-1159). The growth is almost entirely the comments that record the 480-run measurement and name this as the WEAK fix, with the rolling-issue ledger (DR-0125's shape) as the dated follow-up; raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22662
+  "totalLines": 22722
 }

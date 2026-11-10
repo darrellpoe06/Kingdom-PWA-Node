@@ -761,6 +761,21 @@
       "wallClockHours": 0.32,
       "estimateWithoutAiHours": 7,
       "notes": "Measured from commit timestamps. Darrell: 'Onetime fix... not 50 different connectbot tries' -- and ConnectBot cannot reach this one, because the dead credential is the RUNNER's ticket, held in Tailscale's control plane and GitHub's secrets, never on the NAS. Two measurements shaped it: 68 join sites on an expiring key, and 21 of them with no actions/checkout before them, which would have silently broken 21 workflows had the conversion gone in blind. Confirmed independently by the upstream action's own output on this branch: 'Input authkey has been deprecated... An OAuth API client is recommended instead'. Proven to catch three defects; the third did NOT catch at first because the assertion matched the file's own header comment, the same prose-read-as-code trap as this morning's gate. Tokens and dollars null: no meter exposed."
+    },
+    {
+      "id": "the-lesson-lane-says-why-it-is-asleep",
+      "date": "2026-11-10",
+      "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
+      "drs": [
+        "DR-1382"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found while reading the Gmail intake queue for the next oldest-first lesson: 39 uncaptured threads, nine of the first thirty already shipped. Measured the cause rather than assuming it - lesson-mail-watch.yml has 480 runs from 2026-08-25 to 2026-11-09 and every sampled run was an honest no-op, so the automated Gmail door has never once opened. The estimate without AI is the cost of noticing at all: the fact was visible only in the raw log of run 480."
     }
   ]
 }
