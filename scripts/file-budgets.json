@@ -121,6 +121,20 @@
       "why": "ll292 (The Word Is Our Mirror, DR-1387) adds the 292nd Living Lesson, the teaching Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30951,
+      "to": 31350,
+      "date": "2026-11-10",
+      "why": "ll293, ll294 and ll295 (DR-1389, DR-1390, DR-1391) add three Living Lessons, the teachings Darrell spoke on 2026-11-10 and named as lessons; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31350,
+      "to": 31479,
+      "date": "2026-11-10",
+      "why": "ll296 (Willing and Obedient, DR-1392) adds the fifth Living Lesson Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/components/ChurchLearn.jsx",
       "from": 5927,
       "to": 5967,
@@ -136,7 +150,7 @@
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30951,
+    "app/src/lib/living-lessons-class.js": 31479,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5998,

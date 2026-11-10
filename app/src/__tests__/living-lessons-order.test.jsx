@@ -195,9 +195,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // sent and built on 2026-11-09; then L291 (DR-1382, "Fruits Meet for
     // Repentance"), the same day.
     //
-    // The highest is now L292 (DR-1387, "The Word Is Our Mirror"), the
-    // teaching Darrell spoke on 2026-11-10, built the day it was spoken.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-10'); // L292
+    // The highest is now L296 (DR-1392, "Willing and Obedient"), the last
+    // of five teachings Darrell spoke on 2026-11-10 (L292 to L296, DR-1387
+    // and DR-1389 to DR-1392), each built the day it was spoken.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-10'); // L296
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

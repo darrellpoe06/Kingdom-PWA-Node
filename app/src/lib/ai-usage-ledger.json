@@ -946,6 +946,66 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Five messages and a Big Print screenshot."
+    },
+    {
+      "id": "dr-1389-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1389): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1389"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1390-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1390): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1390"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1391-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1391): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1391"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1392-lesson",
+      "date": "2026-11-10",
+      "task": "L296 Willing and Obedient, from Darrell's spoken teaching of 2026-11-10: five bands, 36 KJV anchors, generated gate",
+      "drs": [
+        "DR-1392"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
     }
   ]
 }
