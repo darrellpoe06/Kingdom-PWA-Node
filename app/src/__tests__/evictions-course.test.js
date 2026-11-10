@@ -461,7 +461,7 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       .toEqual(['Deuteronomy 24', 'Leviticus 25', 'Matthew 18', 'Micah 2']);
   });
 
-  it('shares exactly SEVEN verses with courses OUTSIDE the department, and names them', () => {
+  it('shares exactly EIGHT verses with courses OUTSIDE the department, and names them', () => {
     // The department pin above is verse-level zero. This is the wider picture,
     // pinned so the narrower claim cannot be mistaken for a catalog-wide one.
     //
@@ -507,7 +507,22 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
     // common making in one breath; a provision course and an evictions course
     // meeting there is the catalog agreeing with itself. Re-pinned, not
     // loosened, and the title says SEVEN.
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Job 31:16', 'Matthew 18:27', 'Matthew 18:33']);
+    //
+    // And to EIGHT on 2026-11-09 when ll289 (why the oppressed still call on
+    // Him, DR-1380) landed in Living Lessons: it anchors Amos 2:6-7 as a RANGE,
+    // and this course already cites Amos 2:6, so verse 7 entered the shared set
+    // with the range rather than by a second citation. The overlap is the text
+    // itself — "they sold the righteous for silver, and the poor for a pair of
+    // shoes; That pant after the dust of the poor" — where verse 6 names the
+    // sale of someone who cannot pay and verse 7 names the trampling that
+    // follows it. This course reads the sale for what the Word restrains
+    // against a household that cannot pay; ll289 reads both verses for Yahweh
+    // judging His own people by the same measure, which is how that lesson
+    // shows He is no respecter of persons. One breath of Amos naming the sale
+    // and the trampling, read by an evictions course and a lesson on who may
+    // call on Him, is the catalog agreeing with itself. Re-pinned rather than
+    // loosened, and the title says EIGHT.
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Amos 2:7', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Job 31:16', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {
