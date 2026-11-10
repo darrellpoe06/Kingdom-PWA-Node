@@ -21,7 +21,7 @@
 
 ## Impact
 
-**What this obligates.** A send about hurt is taught in the Word's order: the betrayal named, the wall given gates and watchmen (Proverbs 25:28; Nehemiah 7:3), the family curse broken by Christ (Galatians 3:13), the false apology shown beside the real one (Saul beside David), repentance proved by fruit (Matthew 3:8; Joseph's test), forgiveness commanded now and trust rebuilt by fruit (Matthew 6:14-15; Luke 17:3). Covenant questions are sent to the Word and the elders, not staged. **Honest limits.** The panel's words rest on the summary until the transcript lands; the research row for the NAS transcript road is still to be filed (worker restarts; re-review 2026-11-16).
+**What this obligates.** A send about hurt is taught in the Word's order: the betrayal named, the wall given gates and watchmen (Proverbs 25:28; Nehemiah 7:3), the family curse broken by Christ (Galatians 3:13), the false apology shown beside the real one (Saul beside David), repentance proved by fruit (Matthew 3:8; Joseph's test), forgiveness commanded now and trust rebuilt by fruit (Matthew 6:14-15; Luke 17:3). Covenant questions are sent to the Word and the elders, not staged. **Honest limits.** The panel's words rest on the summary until the transcript lands; the research row for the NAS transcript road is `agent_inbox` row `b45adeb2-dab7-41bc-8946-713d21426f19` (tag `research`), filed 2026-11-10 after worker restarts cut the first filing calls.
 
 ## Decision
 
