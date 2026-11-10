@@ -12,6 +12,9 @@
     },
     "claude-opus-5": {
       "note": "Another Claude Code session's model, read from its commit trailer (Co-Authored-By: Claude Opus 5); its tokens are not on the record."
+    },
+    "claude-opus-5-5": {
+      "note": "The Claude Code session model after a mid-session switch (Anthropic). Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -806,6 +809,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 24,
       "notes": "Built across worker restarts; the video could not be fetched from the cloud, so the voices, the Pew figure, the 1807 Slave Bible, Douglass's appendix and the AME history were checked by web search. Estimate is this session's own for a 3,500-word lesson with four bands, two parables, a quiz, a guide and a 55-case gate."
+    },
+    {
+      "id": "ll290-the-house-built-by-wisdom",
+      "date": "2026-11-09",
+      "task": "ll290: the periodic table as a house built by Wisdom; research pass, one figure corrected, the Builder named; a 53-case gate",
+      "drs": [
+        "DR-1381"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 20,
+      "notes": "Built across repeated worker restarts; the video could not be fetched, so the history was checked by web search."
     }
   ]
 }
