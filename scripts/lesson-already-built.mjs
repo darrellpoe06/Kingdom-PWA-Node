@@ -194,9 +194,23 @@ export function provenanceDayHit(text, day, source, window = SOURCE_DAY_WINDOW) 
   return null;
 }
 
-export function scoreFile(text, { dates = [], day = null, source = null, terms = [] }) {
+export const THREAD_ID = /^[0-9a-f]{16}$/;
+
+/**
+ * A Gmail thread id is PROOF, where a timestamp is inference: the id belongs to
+ * exactly one forward and the ledger-names-its-thread rule (DR-0076 §8) puts it
+ * in the record of every lesson built from one. Added 2026-11-10 after ll300:
+ * its `Lesson-Captured` label could not be written (the write needed an
+ * approval this session could not grant), so the Gmail-side lock was absent
+ * while the lesson was already built and merged. The lane's own instruction
+ * checks the LABEL, and this finder keyed on subject/source/timestamp, so
+ * nothing machine-checkable stood between a missing label and a duplicate
+ * build. The repo was a witness nobody had taught this tool to read.
+ */
+export function scoreFile(text, { dates = [], day = null, source = null, terms = [], thread = null }) {
   const hay = text;
   const low = hay.toLowerCase();
+  const threadHit = thread && THREAD_ID.test(thread) && hay.includes(thread) ? thread : null;
   const dateHit = dates.find((d) => hay.includes(d)) || null;
   // The day is only a signal where it reads as provenance: near the source
   // name, and not on a `re-review:` line. A whole-file `includes` here scored
@@ -204,13 +218,15 @@ export function scoreFile(text, { dates = [], day = null, source = null, terms =
   const dayHit = provenanceDayHit(hay, day, source);
   const sourceHit = source && low.includes(source.toLowerCase()) ? source : null;
   const termHits = terms.filter((t) => low.includes(t));
-  if (!dateHit && !sourceHit && !termHits.length) return null;
+  if (!threadHit && !dateHit && !sourceHit && !termHits.length) return null;
   // A bare day proves nothing by itself; paired with the source IN ONE PLACE it
   // is strong.
-  const strength = dateHit
-    ? 'timestamp'
-    : (sourceHit && dayHit ? 'source+day' : (sourceHit ? 'source' : 'terms'));
-  return { strength, dateHit, dayHit, sourceHit, termHits };
+  const strength = threadHit
+    ? 'thread'
+    : (dateHit
+      ? 'timestamp'
+      : (sourceHit && dayHit ? 'source+day' : (sourceHit ? 'source' : 'terms')));
+  return { strength, threadHit, dateHit, dayHit, sourceHit, termHits };
 }
 
 /** Pull the id of any lesson named in a file, so the report can name it. */
@@ -218,7 +234,7 @@ export function lessonIdsIn(text) {
   return [...new Set((text.match(/\b(?:ll|sov|lil|bands?)[a-z]*\d+-[a-z0-9-]+/g) || []))];
 }
 
-export function findAlreadyBuilt(root, { subject = '', source = null, forwardedAt = null } = {}) {
+export function findAlreadyBuilt(root, { subject = '', source = null, forwardedAt = null, thread = null } = {}) {
   const dates = forwardedAt ? dateForms(forwardedAt) : [];
   const day = forwardedAt ? bareDay(forwardedAt) : null;
   const terms = distinctiveTerms(subject);
@@ -228,18 +244,20 @@ export function findAlreadyBuilt(root, { subject = '', source = null, forwardedA
   ];
   const hits = [];
   for (const [rel, text] of files) {
-    const s = scoreFile(text, { dates, day, source, terms });
+    const s = scoreFile(text, { dates, day, source, terms, thread });
     if (!s) continue;
     hits.push({ file: rel, ...s, lessons: lessonIdsIn(text).slice(0, 4) });
   }
-  const rank = { timestamp: 0, 'source+day': 1, source: 2, terms: 3 };
+  const rank = { thread: 0, timestamp: 1, 'source+day': 2, source: 3, terms: 4 };
   hits.sort((a, b) => rank[a.strength] - rank[b.strength] || b.termHits.length - a.termHits.length);
-  const verdict = hits.some((h) => h.strength === 'timestamp')
+  const verdict = hits.some((h) => h.strength === 'thread')
+    ? 'ALREADY BUILT — the thread is named in the ledger'
+    : (hits.some((h) => h.strength === 'timestamp')
     ? 'ALREADY BUILT'
     : (hits.some((h) => h.strength === 'source+day')
       ? 'LIKELY ALREADY BUILT — the source on that day'
-      : (hits.some((h) => h.strength === 'source') ? 'MAYBE — a source match only' : (hits.length ? 'WEAK — terms only' : 'NOTHING FOUND')));
-  return { verdict, dates, day, terms, hits };
+      : (hits.some((h) => h.strength === 'source') ? 'MAYBE — a source match only' : (hits.length ? 'WEAK — terms only' : 'NOTHING FOUND'))));
+  return { verdict, dates, day, terms, thread, hits };
 }
 
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith('lesson-already-built.mjs');
@@ -249,21 +267,31 @@ if (invokedDirectly) {
   const subject = get('--subject') || '';
   const source = get('--source');
   const at = get('--at');
-  if (!subject && !source && !at) {
-    console.error('usage: lesson-already-built.mjs [--subject "..."] [--source NAME] [--at ISO]');
+  const thread = get('--thread');
+  if (!subject && !source && !at && !thread) {
+    console.error('usage: lesson-already-built.mjs [--thread <16 hex>] [--subject "..."] [--source NAME] [--at ISO]');
     console.error('  reports whether a forwarded teaching is already a lesson; writes nothing');
+    console.error('  --thread is the strongest check: the Gmail thread id, which one forward owns');
     process.exit(2);
   }
-  const r = findAlreadyBuilt(join(HERE, '..'), { subject, source, forwardedAt: at });
+  // A malformed id would match nothing and read as NOTHING FOUND, which is the
+  // one wrong answer this finder must never give by accident.
+  if (thread && !THREAD_ID.test(thread)) {
+    console.error(`--thread ${thread} is not a Gmail thread id (16 lowercase hex characters)`);
+    process.exit(2);
+  }
+  const r = findAlreadyBuilt(join(HERE, '..'), { subject, source, forwardedAt: at, thread });
   console.log(`verdict: ${r.verdict}`);
   if (r.dates.length) console.log(`  looked for the forward as: ${r.dates.join(' | ')}`);
   if (r.terms.length) console.log(`  distinctive terms: ${r.terms.slice(0, 8).join(', ')}`);
   for (const h of r.hits.slice(0, 8)) {
-    const why = h.dateHit
+    const why = h.threadHit
+      ? `thread ${h.threadHit}`
+      : (h.dateHit
       ? `timestamp "${h.dateHit}"`
       : (h.sourceHit && h.dayHit
         ? `source "${h.sourceHit}" on ${h.dayHit}`
-        : (h.sourceHit ? `source "${h.sourceHit}"` : `${h.termHits.length} term(s): ${h.termHits.slice(0, 5).join(', ')}`));
+        : (h.sourceHit ? `source "${h.sourceHit}"` : `${h.termHits.length} term(s): ${h.termHits.slice(0, 5).join(', ')}`)));
     console.log(`  [${h.strength}] ${h.file} — ${why}${h.lessons.length ? ` — names ${h.lessons.join(', ')}` : ''}`);
   }
   if (r.verdict === 'NOTHING FOUND') console.log('  nothing matched; this looks unbuilt, and DR-0610 still asks you to read before building.');
