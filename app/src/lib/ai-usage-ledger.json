@@ -1267,6 +1267,23 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell: Read count is off... fix it..."
+    },
+    {
+      "id": "dr-1410-dates-reasons",
+      "date": "2026-11-10",
+      "task": "The timeline axis draws only the dates that fit at any text size; all 66 book dates carry a reason graded from the Word's own markers, read back from the KJV",
+      "drs": [
+        "DR-1410"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
     }
   ]
 }

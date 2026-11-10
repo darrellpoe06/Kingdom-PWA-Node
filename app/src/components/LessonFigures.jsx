@@ -13,9 +13,10 @@
 // =============================================================================
 
 import React from 'react';
-import { figuresFor, lessonTimelineFor, spanScale, spanTicks } from '../lib/lesson-figures.js';
+import { figuresFor, lessonTimelineFor, spanScale, spanTicks, tickGap } from '../lib/lesson-figures.js';
 import { bibleHref, requestBibleTimeline } from '../lib/bible-timeline-link.js';
 import VerseChips from './VerseChips.jsx';
+import { basisLine } from '../lib/progress-of-revelation-basis.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 
@@ -71,19 +72,41 @@ function tickShift(t) {
 // In the Bible, `onPick` makes each book a button that opens it, and `current`
 // marks the book being read, so the chart is a way into the Word, not a picture
 // beside it.
+// HOW MANY DATES FIT (2026-11-10): the axis is measured, with the label size
+// Big Print gives it, and only as many dates are drawn as fit apart.
+function useTickRoom(ref, longest) {
+  const [room, setRoom] = React.useState(0);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === 'undefined') return undefined;
+    const measure = () => {
+      const font = parseFloat(window.getComputedStyle(el).fontSize) || 9;
+      setRoom(tickGap(el.clientWidth, longest * font * 0.62));
+    };
+    measure();
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [ref, longest]);
+  return room;
+}
+
 function SpanGroup({ group, onPick = null, current = null }) {
   const scale = spanScale(group);
-  const ticks = spanTicks(scale, group.era);
+  const axis = React.useRef(null);
+  const longest = Math.max(...spanTicks(scale, group.era).map((t) => t.label.length), 0);
+  const ticks = spanTicks(scale, group.era, useTickRoom(axis, longest));
   const fill = group.era === 'AD' ? 'bg-[#2A5A8E]' : 'bg-[#5A6E3D]';
   return (
     <details open className="mt-1" data-testid="lesson-figure-group" data-group={group.id}>
       <summary className="cursor-pointer text-xs font-semibold text-[#1A1815] min-h-[36px] flex items-center" style={SERIF}>{group.label}</summary>
       {ticks.length > 0 && (
-        <div className="relative h-4 mb-1 mx-1" aria-hidden="true" data-testid="lesson-figure-ticks">
+        <div ref={axis} className="relative h-4 mb-1 mx-1 text-[0.5625rem]" aria-hidden="true" data-testid="lesson-figure-ticks">
           {ticks.map((t) => (
             <span
               key={t.year}
-              className="absolute top-0 text-[0.5625rem] text-[#5A5751] whitespace-nowrap"
+              className="absolute top-0 text-[#5A5751] whitespace-nowrap"
               style={{ left: `${t.at * 100}%`, transform: tickShift(t) }}
             >
               {t.label}
@@ -141,6 +164,12 @@ function SpanGroup({ group, onPick = null, current = null }) {
                   {words}
                   {bar}
                 </>
+              )}
+              {/* WHY THIS DATE (DR-1410): the Word's own marker, or that it is silent. */}
+              {basisLine(r.label) && (
+                <span className="block text-[0.625rem] text-[#5A5751] leading-snug mt-0.5 mx-1" data-testid="lesson-figure-basis">
+                  {basisLine(r.label)}
+                </span>
               )}
             </li>
           );
