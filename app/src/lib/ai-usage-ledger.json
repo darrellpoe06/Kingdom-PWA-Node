@@ -767,7 +767,7 @@
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
       "drs": [
-        "DR-1382"
+        "DR-1384"
       ],
       "prs": [],
       "model": "claude-opus-5",

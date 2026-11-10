@@ -1,6 +1,6 @@
 # 2026-11-10 — The lesson lane was never awake: 480 green runs, 77 days, no work
 
-**Record:** [DR-1382](../decisions/DR-1382-a-dormant-lane-says-so-where-someone-will-see-it.md)
+**Record:** [DR-1384](../decisions/DR-1384-a-dormant-lane-says-so-where-someone-will-see-it.md)
 
 A Ways finding (DR-0108), found while checking the Gmail intake queue for the next
 oldest-first lesson. Nothing here is a lesson; it is the door the lessons come through.
@@ -92,7 +92,7 @@ pasted at Settings → Secrets and variables → Actions. Set it as **`GMAIL_WAT
 and both the watcher and the label road wake up on the next dispatch. The same 16 characters also
 serve `SMTP_APP_PASSWORD` for the email door. This is the one value the box cannot mint itself.
 
-**Mine, and DONE in this change (DR-1382), not waiting on him:**
+**Mine, and DONE in this change (DR-1384), not waiting on him:**
 
 1. `nas-email-door.yml` now reports `SMTP_APP_PASSWORD` presence **before** the tailnet gate, so
    the house can answer the question above by itself on any dispatch, with the tailnet dead.
