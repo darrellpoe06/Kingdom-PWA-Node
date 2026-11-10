@@ -120,6 +120,9 @@ import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-section
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import LessonNeighbors from './LessonNeighbors.jsx';
+import MyPaces from './MyPaces.jsx';
+import { noteSeenRise, noteEarsPace, recordPacedAttempt } from '../lib/pace-understanding.js';
+import { hasReadEvidence, readingReached, attemptIntegrity, attemptIntegrityLine, pacedSeen, READ_FLOOR } from '../lib/test-integrity.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -426,6 +429,8 @@ function MediaList({ module }) {
 export function QuizBlock({ module, saved, onRecord }) {
   const [answers, setAnswers] = useState({});
   const [graded, setGraded] = useState(null);
+  const [integrity, setIntegrity] = useState(null);
+  const firstAnswerAt = React.useRef(null);
   // THE CHECK READS ITS CHOICES TO A LITTLE LEARNER (DR-0431). A pre-K child
   // cannot read the options, so a course whose decoys are letters and numbers
   // (never a wrong teaching) opts in with readOptionsAloud: the options leave
@@ -437,7 +442,11 @@ export function QuizBlock({ module, saved, onRecord }) {
   const submit = () => {
     const result = gradeQuiz(quiz, answers);
     setGraded(result);
-    if (onRecord) onRecord(module.id, { passed: result.passed, pct: result.pct, at: new Date().toISOString() });
+    // HOW IT WAS TAKEN (DR-1386): the time from the first answer to the check, and the question count.
+    const ms = firstAnswerAt.current ? Date.now() - firstAnswerAt.current : null;
+    const back = onRecord ? onRecord(module.id, { passed: result.passed, pct: result.pct, at: new Date().toISOString(), ms, questions: quiz.questions.length }) : null;
+    setIntegrity(back && back.reading ? back : null);
+    firstAnswerAt.current = null;
   };
   return (
     <div className="mt-3 border-t border-[#E8E4DC] pt-3">
@@ -471,7 +480,7 @@ export function QuizBlock({ module, saved, onRecord }) {
                         type="radio"
                         name={`q-${module.id}-${qi}`}
                         checked={checked}
-                        onChange={() => setAnswers((a) => ({ ...a, [qi]: oi }))}
+                        onChange={() => { if (!firstAnswerAt.current) firstAnswerAt.current = Date.now(); setAnswers((a) => ({ ...a, [qi]: oi })); }}
                         className="mt-0.5"
                       />
                       <span className="text-[#1A1815]">{opt}</span>
@@ -505,6 +514,11 @@ export function QuizBlock({ module, saved, onRecord }) {
           </span>
         )}
       </div>
+      {integrity && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" data-testid="quiz-integrity" data-reading={integrity.reading} data-rushed={integrity.rushed ? 'true' : 'false'} style={{ fontFamily: '"Fraunces", serif' }}>
+          {attemptIntegrityLine(integrity)}
+        </p>
+      )}
     </div>
   );
 }
@@ -926,7 +940,7 @@ export function LessonLevelControl({
 // component with a real multi-step plan. Reaching it through the full ChurchLearn
 // tree meant the assertion depended on which course/session view happened to
 // mount, which is how the first draft of that test passed while proving nothing.
-export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null, onSeen = null }) {
+export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null, onSeen = null, seenFrom = 0 }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   // HOW MUCH OF THE READING HAS BEEN ON SCREEN (Darrell 2026-10-29: "what
   // percentage of the lesson is left in each so that I and users can verify
@@ -946,7 +960,12 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const planKey = plan && Array.isArray(plan.segments)
     ? `${plan.levelId || ''}:${plan.segments.length}:${wordsIn(plan.segments)}`
     : '';
-  React.useEffect(() => { seenRef.current = -1; }, [planKey]);
+  // AT A READING PACE, WITH GRACE (DR-1386). Words count as seen no faster than
+  // a generous reading pace allows from where this reading began, so a flick to
+  // the bottom is not a reading; a slow reader is never held back by it.
+  const seenFromRef = useRef(seenFrom);
+  const readSinceRef = useRef(Date.now());
+  React.useEffect(() => { seenRef.current = -1; seenFromRef.current = seenFrom; readSinceRef.current = Date.now(); }, [planKey]); // eslint-disable-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     const segs = plan && Array.isArray(plan.segments) ? plan.segments : [];
     if (!onSeenRef.current || !segs.length || typeof window === 'undefined') return undefined;
@@ -957,17 +976,26 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
     const before = paced ? wordsBefore(segs, at) : 0;
     const span = paced ? countReadingWords(segs[at]) : total;
     let raf = null;
+    let later = null;
     const look = () => {
       raf = null;
+      later = null;
       const root = measureRef.current;
       if (!root || !onSeenRef.current) return;
       const blocks = Array.from(root.querySelectorAll('[data-reading-words] p')).map((el) => ({
         words: countReadingWords(el.textContent),
         bottom: el.getBoundingClientRect().bottom,
       }));
-      const f = fractionOf(before + seenFraction(blocks, window.innerHeight) * span, total);
+      const raw = fractionOf(before + seenFraction(blocks, window.innerHeight) * span, total);
+      const f = pacedSeen({ raw, from: seenFromRef.current, words: total, ms: Date.now() - readSinceRef.current });
       const mille = Math.floor(f * 1000);
-      if (mille > seenRef.current) { seenRef.current = mille; onSeenRef.current(f); }
+      if (mille > seenRef.current) {
+        const prev = seenRef.current < 0 ? seenFromRef.current : seenRef.current / 1000;
+        seenRef.current = mille;
+        onSeenRef.current(f, { words: Math.max(0, f - prev) * total, at: Date.now(), capped: raw > f });
+      }
+      // Words on screen beyond the pace are credited as the time to read them passes.
+      if (raw > f && later === null) later = window.setTimeout(look, 2000);
     };
     const onMove = () => { if (raf === null) raf = window.requestAnimationFrame(look); };
     window.addEventListener('scroll', onMove, { passive: true });
@@ -977,6 +1005,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
       window.removeEventListener('scroll', onMove);
       window.removeEventListener('resize', onMove);
       if (raf !== null) window.cancelAnimationFrame(raf);
+      if (later !== null) window.clearTimeout(later);
     };
   }, [idx, showAll, planKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const firedRef = useRef(false);
@@ -1409,8 +1438,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     : null;
 
   const recordQuizAndEngage = (id, result) => {
-    if (onRecordQuiz) onRecordQuiz(id, result);
+    const back = onRecordQuiz ? onRecordQuiz(id, result) : null;
     if (onEngagement) onEngagement(result.passed ? 'quiz-passed' : 'quiz-failed', id);
+    return back;
   };
 
   const send = async () => {
@@ -1471,7 +1501,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
               initialIndex={savedHere ? savedHere.step : 0}
               onStepChange={onPlace ? (i, total) => onPlace({ lessonId: module.id, step: i, totalSteps: total }) : null}
-              onSeen={onPlace ? (seen) => onPlace({ lessonId: module.id, seen }) : null}
+              onSeen={onPlace ? (seen, rise) => { onPlace({ lessonId: module.id, seen }); if (rise) noteSeenRise(module.id, rise); } : null}
+              seenFrom={savedHere ? savedHere.seen : 0}
               showAll={showEverything}
               flush={flush}
               // The row lives on the stage header now (stageLevelRow below);
@@ -1919,7 +1950,7 @@ function CourseView({
     if (!lessonId) return;
     const p = getPlaceFor(course.key, lessonId);
     const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
-    if (next.seen >= 1 && !placeIsFinished(p)) finishRead(lessonId);
+    if (readingReached(p) >= READ_FLOOR && !placeIsFinished(p)) finishRead(lessonId);
     // Only a real change re-renders: the same marks read back again are not news.
     setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
   };
@@ -1928,6 +1959,7 @@ function CourseView({
     const onReader = (e) => {
       const d = e && e.detail;
       if (!d || !d.lessonId) return;
+      if (d.wpm) noteEarsPace(d.lessonId, d.wpm, d.rate);
       setLiveReader(d);
       refreshLiveRead(d.lessonId);
     };
@@ -1949,11 +1981,11 @@ function CourseView({
     if (patch && patch.lessonId) refreshLiveRead(patch.lessonId);
     return out;
   };
-  // READ IS READ BY ANY ROAD (DR-1384). Darrell 2026-11-10: "I took the exam and passed and still... it doesn't look like I read it... fix it".
-  // A passed exam, Done, or every part seen finishes the reading once, with its version, so the list shows ✓ READ.
+  // READ IS CREDITED ON EVIDENCE (DR-1384, narrowed by DR-1386: "credit where it is due... not anything"). The parts seen or heard to the floor
+  // finish the reading once, with its version; Done and a passed exam finish it only when that evidence is already there.
   const finishRead = (id) => {
     const p = id ? getPlaceFor(course.key, id) : null;
-    if (!id || placeIsFinished(p)) return;
+    if (!id || placeIsFinished(p) || !hasReadEvidence(p)) return;
     const m = (schedule || []).find((x) => x && x.id === id);
     const version = m ? versionRead(m, ageBand, levelOverride) : null;
     try { finishPlace({ courseKey: course.key, lessonId: id, ...(version ? { version } : {}) }); } catch (_) { /* the reading stands either way */ }
@@ -2933,6 +2965,7 @@ function CourseView({
                 {time && (
                   <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-reading-time-left">{time}</div>
                 )}
+                <MyPaces lessonId={focusModule.id} tick={Math.floor(reached * 100)} />
                 <div
                   className="h-1 mt-1 bg-[#E8E4DC]"
                   role="progressbar"
@@ -3782,7 +3815,14 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={(id, r) => { if (recordQuiz) recordQuiz(id, r); if (r && r.passed) finishRead(id); }}
+                    onRecordQuiz={(id, r) => {
+                      // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
+                      const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
+                      const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
+                      if (recordQuiz) recordQuiz(id, { ...r, integrity });
+                      if (r && r.passed) finishRead(id);
+                      return integrity;
+                    }}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}

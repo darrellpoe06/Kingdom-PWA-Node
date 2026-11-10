@@ -884,6 +884,36 @@
       "wallClockHours": 0.25,
       "estimateWithoutAiHours": 2,
       "notes": "From one Big Print screenshot of L7 after DR-1383 deployed."
+    },
+    {
+      "id": "dr-1386-credit-where-due",
+      "date": "2026-11-10",
+      "task": "Credit where it is due: READ on evidence at a pace with grace, an exam's taking kept apart from its grading, Understood first on the learner card, opt-in paces and pace-and-understanding, every line an evaluation never a condemnation",
+      "drs": [
+        "DR-1386"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "From a run of Darrell's messages on 2026-11-10 after DR-1384 shipped."
+    },
+    {
+      "id": "dr-1387-ll292-the-word-is-our-mirror",
+      "date": "2026-11-10",
+      "task": "L292 The Word Is Our Mirror, the teaching Darrell spoke line by line: no condemnation, only evaluation; accountable to Him now and after; the heart by the Word; heart to deed. Five bands, 36 KJV anchors, 50-case gate",
+      "drs": [
+        "DR-1387"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Spoken mid-build of DR-1386."
     }
   ]
 }

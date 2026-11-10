@@ -19,7 +19,8 @@
 // =============================================================================
 
 import React from 'react';
-import { aggregateLearnerRecords, examAttemptsByLesson, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
+import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
+import { testIntegrityKpis } from '../lib/test-integrity.js';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
@@ -133,6 +134,30 @@ function Figure({ label, value, hint }) {
   );
 }
 
+// HOW THE EXAMS WERE TAKEN, KEPT APART FROM WHAT THEY SCORED (DR-1386). Darrell
+// 2026-11-10: "some kpi's that fit noticing when a human roll a test", "test
+// taking and grading are separate and both should mean more", "reading and
+// comprehension as the main goal", and "No Condemnation.. evaluation". Each
+// attempt on the record is placed against the lesson's place on the record
+// (read or marked done), so the figures are a mirror, never a verdict.
+function TakenAndGraded({ rows = [], userId }) {
+  const mine = rows.map(rowToRecord).filter((r) => r.userId === userId);
+  const k = testIntegrityKpis(mine);
+  if (!k.taken) return null;
+  return (
+    <div className="mt-2" data-testid="taken-and-graded">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <Figure label="Understood" value={k.understood} hint="Lessons on record and passed after it: the main goal." />
+        <Figure label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
+        <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
+        <Figure label="Retakes within a minute" value={k.quickRetakes} hint="Another try less than a minute after the last." />
+        <Figure label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
+      </div>
+    </div>
+  );
+}
+
 function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain }) {
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
@@ -164,6 +189,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
           hint={learner.bestQuizPct === null ? 'Answer a lesson’s exam and the score lands here.' : `best ${pct(learner.bestQuizPct)}`}
         />
       </div>
+      <TakenAndGraded rows={rows} userId={learner.userId} />
 
       {learner.courses?.length ? (
         <>
