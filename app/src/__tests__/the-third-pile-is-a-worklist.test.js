@@ -716,8 +716,15 @@ const REPO = join(HERE, '..', '..', '..');
 // the gate itself printed 27 against a pin of 26 and named sov72 as the new
 // row, which is how this entry was written rather than from the branch's
 // three-day-old CI.
+// 2026-11-10 (DR-1402): econ9 admits what it did not check (two source hosts
+// unopened from the build) AND gives its figures rows in lesson-sources.json
+// (the Fed's 285,000 and 44,900; 1787; 1903), so the gap holds at 27 and the
+// read-back side rises to 5, which is the direction this number is meant to go.
+// 2026-11-10 (DR-1408): dsi17 admits the Gartner report was not opened (it is
+// sold) AND gives its forecast a row read back from the distributing page, so
+// the gap holds at 27 and the read-back side rises to 6.
 const GAP = 27;
-const CHECKED_LESSONS = 4;
+const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {

@@ -158,15 +158,36 @@
     {
       "file": "app/src/lib/living-lessons-class.js",
       "from": 31608,
-      "to": 31755,
+      "to": 31743,
       "date": "2026-11-10",
-      "why": "ll298 (Put Not Your Trust In Princes, DR-1413) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word above it: Lesson; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+      "why": "DR-1403: L298 (What Programs You), a spoken teaching built the day it was spoken: one module with four bands, two stories, eight questions and a 45-verse anchor. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/world-issues-class.js",
+      "from": 6729,
+      "to": 6789,
+      "date": "2026-11-10",
+      "why": "DR-1404: Every lesson has a test: two World Issues lessons had none and gain four-question discernment tests written from their own claims, and a third test is reshaped so the quiz screen reads it. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31743,
+      "to": 31897,
+      "date": "2026-11-10",
+      "why": "L299, Read with the Heart, a teaching Darrell spoke into the app the same day (DR-1411): one lesson of four bands, two parables and an eight-question test, the way every Living Lesson lands in this file."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31897,
+      "to": 32042,
+      "date": "2026-11-10",
+      "why": "ll300 (Put Not Your Trust In Princes, DR-1413) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Raised by the lesson's own measured size and nothing more. The from/to were re-based by resolve-ledger-conflicts when main landed three lessons ahead of this branch, and its re-based landing was then corrected DOWN to the measured line count, because the chain end must equal the ceiling the guard enforces. Same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31755,
+    "app/src/lib/living-lessons-class.js": 32042,
     "app/src/lib/sovereign-ai-class.js": 11023,
-    "app/src/lib/world-issues-class.js": 6729,
+    "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 5998,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,

@@ -35,6 +35,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { withUploadRetry } from './upload-retry.js';
+import { shareHouseholdsOnce } from './one-person-sign-ins.js';
 import { markSynced, markSyncFailed, registerResync } from './sync-freshness.js';
 
 // -----------------------------------------------------------------------------
@@ -82,7 +83,9 @@ async function currentSession() {
 async function getTenantId() {
   // Reuses the same join_default_instance() RPC the feedback sync uses.
   // (Name kept as getTenantId for backward-compat with callers; the
-  // underlying RPC was renamed in v2.1-infra.)
+  // underlying RPC was renamed in v2.1-infra.) Both of a person's sign-ins
+  // are brought level first, so either opens on the same house (DR-1407).
+  await shareHouseholdsOnce(supabase);
   const { data, error } = await supabase.rpc('join_default_instance', {
     display_name_in: null,
   });

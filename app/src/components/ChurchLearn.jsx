@@ -128,7 +128,7 @@ import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
-import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT, readingIsFresh } from '../lib/learn-resume.js';
 import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
@@ -1985,7 +1985,7 @@ function CourseView({
   // finish the reading once, with its version; Done and a passed exam finish it only when that evidence is already there.
   const finishRead = (id) => {
     const p = id ? getPlaceFor(course.key, id) : null;
-    if (!id || placeIsFinished(p) || !hasReadEvidence(p)) return;
+    if (!id || placeIsFinished(p) || !hasReadEvidence(p) || !readingIsFresh(p)) return;
     const m = (schedule || []).find((x) => x && x.id === id);
     const version = m ? versionRead(m, ageBand, levelOverride) : null;
     try { finishPlace({ courseKey: course.key, lessonId: id, ...(version ? { version } : {}) }); } catch (_) { /* the reading stands either way */ }
@@ -2550,7 +2550,7 @@ function CourseView({
         // finished the same way the in-space reader finishes it, and the read
         // is filed to the record at once rather than on the next sign-in.
         onFinished={(end) => {
-          try { finishPlace({ courseKey: course.key, lessonId: presentLesson.id, version: deckVersion(presentLesson, end && end.age) }); } catch (_) { /* the reading stands either way */ }
+          try { finishPlace({ courseKey: course.key, lessonId: presentLesson.id, version: deckVersion(presentLesson, end && end.age), whole: true }); } catch (_) { /* the reading stands either way */ }
           fileFinishedPlaces();
         }}
       />

@@ -102,7 +102,7 @@ describe('the look: the mark with taps takes its own line under the title', () =
 
   it('the row wraps; a mark with taps is last and full-width; a mark with none stays inline', () => {
     finishPlace({ courseKey: 'll', lessonId: L1.id });
-    recordPlace({ courseKey: 'll', lessonId: L1.id, sentence: 2 });
+    recordPlace({ courseKey: 'll', lessonId: L1.id, sentence: 0 }); // a re-read starts at the top (DR-1409)
     finishPlace({ courseKey: 'll', lessonId: L1.id });
     finishPlace({ courseKey: 'll', lessonId: L2.id });
     act(() => root.render(createElement(LatestLessons, { courses: courses(), onOpen: () => {}, onPlay: () => {}, onContinue: () => {}, onReadVersion: () => {}, ageBand: 'adult' })));

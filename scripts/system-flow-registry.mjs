@@ -1124,6 +1124,26 @@ const NODES = [
     reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
     seeds: [],
   }),
+  wf('workflows-parse.yml', {
+    id: 'workflows-parse', name: 'Every workflow file parses (DR-1409)',
+    purpose: 'On any change to the workflows: parses every file under .github/workflows and fails, naming the file, line and column, when one cannot be read, because a workflow that does not parse runs no job at all and its checks never report.',
+    reads: [{ res: 'gh:pr', token: 'pull_request' }],
+    writes: [{ res: 'gh:check', token: 'scripts/workflows-parse.py' }],
+    seeds: ['auto-merge'],
+  }),
+  wf('exposure-report.yml', {
+    id: 'exposure-report', name: 'Exposure ranked before any fix (DR-1408)',
+    purpose: 'Weekly and on dispatch: ranks every known vulnerability in what ships by the four elements (exploited now, reaches people, reachable, held by a dated decision) and publishes the conditions before any fix. Report only: no fix, no PR, nothing running touched.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'file:dependency-audit-allowlist', token: 'scripts/exposure-report.mjs --fetch' }],
+    writes: [{ res: 'gh:exposure-report', token: '--label exposure-report' }],
+    seeds: ['exposure-surface'],
+  }),
+  app('app/src/lib/exposure-report.js', {
+    id: 'exposure-surface', name: 'OpsBoard Exposure strip',
+    purpose: 'What an attacker would use, ranked before any fix, read live; an unreadable feed or a stale report is said, never shown as safe.',
+    reads: [{ res: 'gh:exposure-report', token: 'labels=exposure-report' }],
+    seeds: [],
+  }),
 
   // ===========================================================================
   // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
@@ -2245,6 +2265,7 @@ const RESOURCES = {
   'cf:push-env': { label: 'the push sender’s settings' },
   'tower:voice-studio': { label: 'the reading-voice studio on the tower' },
   'tower:openclaw': { label: 'the OpenClaw gateway on the tower', sink: 'Runs on the tower loopback behind the poetech-gate plugin; a person on the tower talks to it (role a, no channel paired), and the lane measures it into the openclaw-tower record (DR-0670).' },
+  'file:dependency-audit-allowlist': { label: 'the dated decisions that hold known vulnerabilities, plus npm audit and the public threat feeds', source: 'Committed in scripts/dependency-audit-allowlist.json by the PRs that defer a finding with a why and a date (DR-1330 D3); npm audit, CISA KEV, GitHub\'s advisory database and FIRST EPSS are read on the runner (DR-1408).' },
   'file:openclaw-registry': { label: 'the OpenClaw role registry + ARMED-BY-RECORD', source: 'Committed in infra/openclaw-tower by the PRs that arm, stop or resume a role (DR-0670).' },
   'auth:hook': { label: 'the renter-portal sign-in hook', sink: 'GoTrue calls it on every renter sign-in; its effect is the renter portal’s own access, proven by the renter-portal isolation smokes.' },
   'tailnet:nodes': { label: 'the always-on devices', source: 'The tailnet itself reports which devices answer.' },

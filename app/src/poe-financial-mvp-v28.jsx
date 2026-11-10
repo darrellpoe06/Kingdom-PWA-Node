@@ -174,7 +174,7 @@ import TierSwitcher from './components/TierSwitcher.jsx';
 import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
-import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
+import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos, withoutDevicePrefs } from './lib/snapshot-sync.js';
 import { persistSnapshot, storageBannerMessage } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
@@ -1619,7 +1619,7 @@ export default function PoeFinancialSystem() {
         try { localStorage.setItem('poe-snapshot-marker', remote.updatedAt); } catch (_) { /* non-fatal */ }
         const p = remote.payload;
         setData(d => {
-          const snapData = p.data || {};
+          const snapData = withoutDevicePrefs(p.data || {});
           const next = { ...d, ...snapData };
           if (snapData.inflows && Array.isArray(snapData.inflows.rentals)) {
             next.inflows = {

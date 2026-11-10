@@ -37,7 +37,7 @@ and named it — `(Proverbs 21:1) is not the verse`. Reverted; 46 green.
 ## Impact
 
 One lesson, four bands, two invented parables, ten quiz questions, a 42-verse
-gate. `living-lessons-class.js` 31,897 → the measured size, raised to the measured size
+gate. `living-lessons-class.js` 31,897 → 32,042 lines, raised to the measured size
 on the existing ratchet (DR-1339's lesson-content-out-of-JS re-review, 2026-11-19,
 remains the answer to why lesson prose still lives in JavaScript).
 
@@ -76,7 +76,12 @@ exactly `[1..8]`.
 with no baseline debt added; file-budget guard green. Limits, stated: the
 forward's own claims are NOT verified and are asserted nowhere; the parables are
 invented people, not members; `derive-lesson-dates.mjs` cannot run in a shallow
-clone, so the date was entered by hand as this day's other lessons were.
+clone, so the date was entered by hand as this day's other lessons were. This
+record and its lesson were RENUMBERED once: main took ll298, ll299 and DR-1402
+through DR-1412 while this branch was building, so the resolver refused the
+collision and `renumber-decision-record.mjs` moved DR-1411 to DR-1413 and the
+lesson to ll300 — after checking that neither of main's new lessons is this
+teaching and that nothing in the catalog is built from this forward.
 `re-review: 2026-11-24` — the teen→senior step is 5.8 grades against 1.3 and 1.3
 below it; the ladder passes but is lumpy, and the fix belongs with the band-count
 mechanism already dated.

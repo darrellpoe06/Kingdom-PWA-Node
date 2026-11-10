@@ -21,9 +21,10 @@ import { defaultCourses } from '../lib/book-corpus.js';
 import { resolveForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has an 8-module set, each with the shared fields', () => {
-    expect(ECON_MODULES).toHaveLength(8);
-    expect(ECON_META.weeks).toBe(8);
+  it('has a 9-module set, each with the shared fields', () => {
+    // econ9, the engine and the reserve (DR-1402), joined 2026-11-10.
+    expect(ECON_MODULES).toHaveLength(9);
+    expect(ECON_META.weeks).toBe(9);
     expect(ECON_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref && m.anchor?.theme)).toBe(true);
   });
   it('module ids are unique, prefixed econ*, and cover the full arc', () => {
@@ -33,7 +34,7 @@ describe('curriculum shape', () => {
       'econ1-soul-first', 'econ2-ownership-vs-consumption', 'econ3-circulation',
       'econ4-group-economics', 'econ5-the-real-barriers',
       'econ6-accountability-and-judgment', 'econ7-build-institutions',
-      'econ8-test-build-multiply',
+      'econ8-test-build-multiply', 'econ9-the-engine-and-the-reserve',
     ]);
   });
   it('session flow sums to 75 minutes with the money-tools hands-on label', () => {

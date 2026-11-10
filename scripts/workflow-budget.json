@@ -63,7 +63,28 @@
       "to": 22727,
       "dr": "DR-1399",
       "reason": "loops-health.yml gains its second road (DR-1360): the join carries continue-on-error, and one step reads the heartbeat the NAS writes itself over poetech.us/sb when the box could not be asked over SSH, writing the same witness the judge, report and incident steps already read. Three lines of comment, five of step, one flag, two small judge edits; the narrative is in the record. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22727,
+      "to": 22732,
+      "dr": "DR-1407",
+      "reason": "0319's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke) and proven on a bare Postgres in CI: a three-line leg in rls-isolation.yml and a two-line step in ci.yml's withdraw-walls job, folded to one run line with no comment, the narrative in the record. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22732,
+      "to": 22790,
+      "dr": "DR-1408",
+      "reason": "One NEW workflow, exposure-report.yml (58 lines): Darrell asked for workflows that keep us secure without undermining our processes, reporting the conditions before any fix, inside the app. It ranks every known vulnerability in what we ship by the four elements and publishes the report the Exposure strip reads; it is report only (no fix, no PR, no push), one run at a time, ten minutes at most. A whole new capability, not a longer version of one; its header carries the read-only promise the tests pin. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22790,
+      "to": 22823,
+      "dr": "DR-1409",
+      "reason": "ci.yml did not parse from 29dc042 on: a one-line `run:` held 'SMOKE: PASS', a colon and a space in a plain YAML value, so GitHub ran no ci.yml job on four pushes and nothing showed red. The step becomes a block (+2), and a new workflow, workflows-parse.yml (31 lines), parses every workflow on any change to them; it cannot live inside the file it guards, because a file that does not parse runs nothing. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22727
+  "totalLines": 22823
 }

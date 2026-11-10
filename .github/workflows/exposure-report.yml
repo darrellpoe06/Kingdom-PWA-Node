@@ -1,0 +1,57 @@
+# exposure-report -- what an attacker would actually use, ranked, and the
+# conditions reported BEFORE anything is changed (DR-1408).
+#
+# Gartner's four elements (threat intelligence, asset context, exploitability,
+# control validation) applied to what we ship: scripts/exposure-report.mjs.
+# READ-ONLY: npm audit, CISA KEV, GitHub's advisory database (CVE + EPSS) and
+# FIRST EPSS are read; no fix, no PR, no lockfile edit, nothing running is
+# touched. The ranking lands on the rolling `exposure-report` issue (the
+# newest by creation, sorted explicitly here and in the app, P62), which
+# OpsBoard reads live (app/src/lib/exposure-report.js). Every input is already
+# public (the lockfile, the allowlist, the feeds), so the issue discloses
+# nothing new. On a pull request it only reports, to prove the runner's reach.
+# Brakes: one pass, a 10-minute ceiling, one run at a time.
+name: exposure-report
+
+on:
+  schedule:
+    - cron: '17 14 * * 3'
+  workflow_dispatch: {}
+  pull_request:
+    paths: ['scripts/exposure-report.mjs', '.github/workflows/exposure-report.yml']
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: exposure-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Rank what is exposed (report only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/exposure-report.mjs --selftest
+          node scripts/exposure-report.mjs --fetch --out=/tmp/exposure.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Publish the conditions on the rolling exposure-report issue
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          { echo "Exposure conditions, read $(date -u +%FT%TZ) by run $GITHUB_RUN_ID. Report only: nothing was changed (DR-1408)."; echo; echo '```json'; cat /tmp/exposure.json; echo '```'; } > /tmp/body.md
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --label exposure-report --state all --search "sort:created-desc" --limit 1 --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue edit "$n" -R "$GITHUB_REPOSITORY" --body-file /tmp/body.md; exit 0; fi
+          gh label create exposure-report -R "$GITHUB_REPOSITORY" --color 5A5751 --force
+          gh issue create -R "$GITHUB_REPOSITORY" --title "Exposure report (rolling, DR-1408)" --label exposure-report --body-file /tmp/body.md

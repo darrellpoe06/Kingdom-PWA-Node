@@ -286,14 +286,32 @@ export function spanScale(group) {
   return { start, end, at };
 }
 
-/** Round, evenly spaced labels for a scale: about four of them. */
-export function spanTicks(scale, era) {
+/**
+ * The least share of the axis two neighbouring date labels need, for an axis
+ * `width` px wide and labels `labelWidth` px (Darrell 2026-11-10, at Big
+ * Print: "Fix the dates...", the axis read "14001200 BC ... 600400 BC").
+ * Labels centre on their year and the ends align to the edge, so neighbours
+ * need one and a half label widths. 0 when the axis has not been measured.
+ */
+export function tickGap(width, labelWidth) {
+  if (!(width > 0) || !(labelWidth > 0)) return 0;
+  return (1.5 * labelWidth) / width;
+}
+
+/**
+ * Round, evenly spaced labels for a scale: at most six, and never closer than
+ * `minGap` (a share of the axis, from tickGap) so no two dates print over each
+ * other. Both ends of a scale keep a date when one fits at all.
+ */
+export function spanTicks(scale, era, minGap = 0) {
   if (!scale) return [];
-  const span = Math.abs(scale.end - scale.start);
-  const step = [10, 20, 25, 50, 100, 200, 250, 500].find((s) => span / s <= 6) || 500;
-  const ticks = [];
   const lo = Math.min(scale.start, scale.end);
   const hi = Math.max(scale.start, scale.end);
+  const span = hi - lo || 1;
+  const count = (s) => Math.floor(hi / s) - Math.ceil(lo / s) + 1;
+  const steps = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+  const step = steps.find((s) => count(s) <= 6 && s / span >= minGap) || steps[steps.length - 1];
+  const ticks = [];
   for (let y = Math.ceil(lo / step) * step; y <= hi; y += step) ticks.push(y);
   return ticks.map((y) => ({ year: y, at: scale.at(y), label: era === 'AD' ? `AD ${y}` : `${y} BC` }))
     .sort((a, b) => a.at - b.at);

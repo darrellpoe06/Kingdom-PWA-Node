@@ -1143,6 +1143,181 @@
       "notes": "Darrell: Explain the before and after in a lesson."
     },
     {
+      "id": "dr-1402-engine-and-reserve",
+      "date": "2026-11-10",
+      "task": "econ9, a Kingdom Economics session on what the African American community's labor has been worth to America, the honest limit of the counterfactual, and a community reserve the community owns; nine sources, four bands, verses verbatim",
+      "drs": [
+        "DR-1402"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 12,
+      "notes": "Darrell's spoken teaching, 2026-11-10."
+    },
+    {
+      "id": "dr-1403-what-programs-you",
+      "date": "2026-11-10",
+      "task": "L298 What Programs You: a spoken teaching on daily systems, the root, strongholds, reasoning with Yahweh, and believing Him first; four bands, verses verbatim",
+      "drs": [
+        "DR-1403"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell's spoken teaching, 2026-11-10."
+    },
+    {
+      "id": "dr-1404-every-lesson-has-a-test",
+      "date": "2026-11-10",
+      "task": "171 lessons had no test; built honest tests from each lesson's own words, fixed a misshaped quiz, and added a guard over every mounted course with a falling ratchet for thin tests",
+      "drs": [
+        "DR-1404"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 16,
+      "notes": "Darrell: Lessons with no tests?!"
+    },
+    {
+      "id": "dr-1405-system-built-around-the-king",
+      "date": "2026-11-10",
+      "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
+      "drs": [
+        "DR-1405"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: why can't a system be built to support this?"
+    },
+    {
+      "id": "dr-1406-pace-and-depth-sustained",
+      "date": "2026-11-10",
+      "task": "Pace and depth stopped being overwritten by the household snapshot: device-personal, never pushed, stripped on pull; pinned by a test",
+      "drs": [
+        "DR-1406"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "Darrell: Pace and depth should be sustained unless it is changed."
+    },
+    {
+      "id": "dr-1407-one-person-one-house",
+      "date": "2026-11-10",
+      "task": "Christina's two sign-ins hold the same houses (0319, smoke on Postgres) and the triage card names its reader and what it cannot read",
+      "drs": [
+        "DR-1407"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: Why don't Christina see the same page on the Big Picture"
+    },
+    {
+      "id": "dr-1408-exposure-before-any-fix",
+      "date": "2026-11-10",
+      "task": "Gartner exposure prioritization researched; a report-only weekly job ranks vulnerabilities by the four elements; Exposure strip on the board; dsi17 lesson",
+      "drs": [
+        "DR-1408"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 16,
+      "notes": "Darrell: workflows that make sure we are secure without undermining our processes, conditions report before, inside the PoeTech App"
+    },
+    {
+      "id": "dr-1409-read-count",
+      "date": "2026-11-10",
+      "task": "The read count stopped re-finishing on every sentence past the evidence floor; inflated counts collapsed once; 8 tests reproduce the loop",
+      "drs": [
+        "DR-1409"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell: Read count is off... fix it..."
+    },
+    {
+      "id": "dr-1410-dates-reasons",
+      "date": "2026-11-10",
+      "task": "The timeline axis draws only the dates that fit at any text size; all 66 book dates carry a reason graded from the Word's own markers, read back from the KJV",
+      "drs": [
+        "DR-1410"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "dr-1411-ll299-read-with-the-heart",
+      "date": "2026-11-10",
+      "task": "L299 Read with the Heart, a spoken teaching built the day it was spoken: four bands, two parables, eight questions, 33 verses read from the KJV, 47-case gate",
+      "drs": [
+        "DR-1411"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: Lesson. Read with the heart... according to the Word"
+    },
+    {
+      "id": "dr-1412-record-figures-fit",
+      "date": "2026-11-10",
+      "task": "The learner record's figure rows are sized by their text, so Big Print wraps them instead of running them together; measured in Chromium",
+      "drs": [
+        "DR-1412"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Darrell: Fix it (Big Print screenshot of his record)"
+    },
+    {
       "id": "dr-1413-put-not-your-trust-in-princes",
       "date": "2026-11-10",
       "task": "L300, a Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Four bands plus the adult teaching, 42 verses verbatim from disk, non-partisan enforced by a gate, movements renumbered so all five texts render 1..8, and a 46-check gate proven to catch on the live module.",

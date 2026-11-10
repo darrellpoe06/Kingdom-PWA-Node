@@ -66,6 +66,9 @@ jobs:
           # Sign-ins and failures are on the record (DR-1336): the hook writes
           # 'login' / 'failed-auth' rows, owners read their instance's, members
           # and anon read none, the hook is not callable by the signed-in.
+          - feature: one-person-one-house
+            migrations: "0319-one-person-sees-one-house-from-either-sign-in.sql"
+            smokes: "0319-one-person-one-house-smoke.sql"
           - feature: auth-events
             migrations: "0315-sign-ins-and-failures-are-on-the-record.sql"
             smokes: "0315-auth-events-smoke.sql"
