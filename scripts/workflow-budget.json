@@ -70,7 +70,14 @@
       "to": 22732,
       "dr": "DR-1407",
       "reason": "0319's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke) and proven on a bare Postgres in CI: a three-line leg in rls-isolation.yml and a two-line step in ci.yml's withdraw-walls job, folded to one run line with no comment, the narrative in the record. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22732,
+      "to": 22790,
+      "dr": "DR-1408",
+      "reason": "One NEW workflow, exposure-report.yml (58 lines): Darrell asked for workflows that keep us secure without undermining our processes, reporting the conditions before any fix, inside the app. It ranks every known vulnerability in what we ship by the four elements and publishes the report the Exposure strip reads; it is report only (no fix, no PR, no push), one run at a time, ten minutes at most. A whole new capability, not a longer version of one; its header carries the read-only promise the tests pin. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22732
+  "totalLines": 22790
 }

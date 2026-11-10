@@ -66,6 +66,7 @@
 // the SAME source as the inline "?" help — the living tie (item 5). If the help
 // grows, this module's surface-tour grows with it; it can never silently drift.
 import { HELP, ROADMAP } from './help-content.js';
+import { DATASYSTEMS_MODULES_PART2 } from './datasystems-course-part2.js';
 
 // Self-paced: no cohort, no weekly clock. These exports mirror the other courses so
 // the host wiring is identical, but the start is null (no painted dates) and the UI
@@ -81,7 +82,7 @@ export const DATASYSTEMS_META = {
   cadenceDays: 7,
   // The module count grows as the system grows and as the SMEs enrich it. Keep this
   // in step with DATASYSTEMS_MODULES.length (asserted in the test).
-  weeks: 16,
+  weeks: 17,
   handsOnLabel: 'Try it in the app',
   unit: {
     noun: 'module',
@@ -1334,6 +1335,7 @@ export const DATASYSTEMS_MODULES = [
       ],
     },
   },
+  ...DATASYSTEMS_MODULES_PART2,
 ];
 
 // ---------------------------------------------------------------------------

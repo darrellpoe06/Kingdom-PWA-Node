@@ -1233,6 +1233,23 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell: Why don't Christina see the same page on the Big Picture"
+    },
+    {
+      "id": "dr-1408-exposure-before-any-fix",
+      "date": "2026-11-10",
+      "task": "Gartner exposure prioritization researched; a report-only weekly job ranks vulnerabilities by the four elements; Exposure strip on the board; dsi17 lesson",
+      "drs": [
+        "DR-1408"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 16,
+      "notes": "Darrell: workflows that make sure we are secure without undermining our processes, conditions report before, inside the PoeTech App"
     }
   ]
 }
