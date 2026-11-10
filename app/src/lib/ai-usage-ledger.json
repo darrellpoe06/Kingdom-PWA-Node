@@ -1201,6 +1201,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 1,
       "notes": "Darrell: why can't a system be built to support this?"
+    },
+    {
+      "id": "dr-1406-pace-and-depth-sustained",
+      "date": "2026-11-10",
+      "task": "Pace and depth stopped being overwritten by the household snapshot: device-personal, never pushed, stripped on pull; pinned by a test",
+      "drs": [
+        "DR-1406"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "Darrell: Pace and depth should be sustained unless it is changed."
     }
   ]
 }
