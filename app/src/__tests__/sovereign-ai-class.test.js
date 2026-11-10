@@ -136,6 +136,32 @@ describe('curriculum shape', () => {
     // course-shape spec for a contiguity assertion over a module list, then a
     // probe that mounts a deliberate one-week hole and records which specs go
     // red. `re-review: 2026-12-05`.
+    // 72 WAS HELD HERE AND THE HOLD IS RELEASED, 2026-11-10 (DR-1376). The
+    // entry read `[72]` from 2026-11-06: Sovereign A.I. week 72 was being
+    // written on a sibling branch when this lesson was built off an origin/main
+    // whose highest week was 71, so it took the number it was assigned (73)
+    // rather than one another branch held. The brake worked exactly as its own
+    // instruction says it should -- it fired, and the answer it demanded is
+    // that the held week is NOT COMING. The sibling's work was complete and
+    // UNCOMMITTED when the weekly limit killed the container on 2026-11-06; the
+    // rebuild took it, along with DR-1375 (2026-11-09 note, "What the container
+    // took with it"; DR-1375 is absent from the ledger, which is the
+    // measurement, not the story). A week that will never land is not a hold,
+    // so the lesson was renumbered to the number it actually is -- the course's
+    // 72nd -- and this entry is DELETED rather than widened, which is what the
+    // message below prescribes. The course is contiguous 1..72 again.
+    //
+    // THE DR-1338 ASYMMETRY IS NOW MEASURED, closing `re-review: 2026-12-05`
+    // early, because the hole was real and the probe it asked for ran for free.
+    // TEN gates assert 1..N contiguity over the module list with no allowance
+    // and went red while 72 was missing: sov52, sov53, sov54 and sov57 through
+    // sov63. The hold itself named SEVEN (sov57-sov63) -- an undercount, and
+    // instructive about how it was counted: the seven were found by one
+    // phrasing, `toEqual(Array.from({ length: SOVEREIGN_AI_MODULES.length }…))`,
+    // while sov52, sov53 and sov54 spell the identical claim as
+    // `toEqual(nums.map((_, i) => i + 1))`. A count taken from one spelling is
+    // not a measurement (DR-0076 §4). None of the ten was edited and all ten go
+    // green on 72 landing, which is the proof that leaving them red was right.
     const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
