@@ -174,7 +174,7 @@ function readIdsFor(rows, userId, courseKey) {
   return out;
 }
 
-// WHICH LESSONS ARE NOT ON THE RECORD YET (DR-1388; Darrell 2026-11-10: "No 100% even after completing all lessons... Evaluation
+// WHICH LESSONS ARE NOT ON THE RECORD YET (DR-1393; Darrell 2026-11-10: "No 100% even after completing all lessons... Evaluation
 // of systems"). Completion is read lessons over the course's lessons; when it is short of the whole, this names each lesson the
 // record does not hold yet, by number and title, each one tap to read when it is your own record. A long list folds.
 function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
@@ -250,7 +250,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
 
       {learner.courses?.length ? (
         <>
-          {/* COURSE BY COURSE, STACKED (DR-1388). Darrell's Big Print screenshot, 2026-11-10: the five-column table ran off the
+          {/* COURSE BY COURSE, STACKED (DR-1393). Darrell's Big Print screenshot, 2026-11-10: the five-column table ran off the
               right edge ("cutting off fields"). Each course is now its own block: the name on one line, then every figure as a
               labelled pair that wraps, so nothing is ever cut at any text size. And each course names the lessons not yet on the
               record, so a completion short of the whole says exactly which lessons it is waiting for. */}
@@ -301,7 +301,7 @@ export default function LearnersPanel({
   currentUserId = null,
   isGovernor = false,
   courseTotals = null,
-  courseLessonIds = null, // { [courseKey]: [lessonId, ...] } in course order (DR-1388)
+  courseLessonIds = null, // { [courseKey]: [lessonId, ...] } in course order (DR-1393)
   signedIn = true,
   titleOf = null,        // (lessonId, courseKey) => title, from the mounted catalog
   onRetake = null,       // (courseKey, lessonId) => opens the lesson at its exam
@@ -353,7 +353,7 @@ export default function LearnersPanel({
         </div>
       )}
 
-      {/* WHOSE RECORD, ONE TAP (DR-1388; Darrell 2026-11-10: "each user needs to have a drop-down for choosing them... so I can
+      {/* WHOSE RECORD, ONE TAP (DR-1393; Darrell 2026-11-10: "each user needs to have a drop-down for choosing them... so I can
           see my recent records or my son's without needing to scroll"). The Governor picks a learner and sees that record alone. */}
       {showWho && (
         <div className="mb-3">

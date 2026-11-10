@@ -161,7 +161,7 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
       landed.length = 0;
       click(q('lesson-neighbor-all'));
       paint();
-      // DR-1388: wait past the leave effect's 60 ms return-to-the-row scroll, which
+      // DR-1393: wait past the leave effect's 60 ms return-to-the-row scroll, which
       // used to fire after the landing and carry the reader to the row at the bottom.
       await act(() => new Promise((r) => setTimeout(r, 120)));
       paint();

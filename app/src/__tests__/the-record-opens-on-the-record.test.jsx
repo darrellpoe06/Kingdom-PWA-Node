@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // =============================================================================
 // The record opens on the record, picks a learner in one tap, never runs off the
-// edge, and names what it is still waiting for (DR-1388)
+// edge, and names what it is still waiting for (DR-1393)
 // =============================================================================
 // Darrell, 2026-11-10: "Record doesn't open a users record!! It should!!!... it
 // currently opened the information about it... we want the record"; with a Big

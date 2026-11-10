@@ -125,7 +125,7 @@
       "from": 30951,
       "to": 31350,
       "date": "2026-11-10",
-      "why": "ll293, ll294 and ll295 (DR-1389, DR-1390, DR-1391) add three Living Lessons, the teachings Darrell spoke on 2026-11-10 and named as lessons; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+      "why": "ll293, ll294 and ll295 (DR-1394, DR-1390, DR-1391) add three Living Lessons, the teachings Darrell spoke on 2026-11-10 and named as lessons; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     },
     {
       "file": "app/src/lib/living-lessons-class.js",
@@ -146,7 +146,7 @@
       "from": 5967,
       "to": 5998,
       "date": "2026-11-10",
-      "why": "DR-1388: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
+      "why": "DR-1393: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
     }
   ],
   "budgets": {

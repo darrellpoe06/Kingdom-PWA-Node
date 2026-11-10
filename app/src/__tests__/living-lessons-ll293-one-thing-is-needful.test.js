@@ -2,7 +2,7 @@
 // =============================================================================
 // L293 — One Thing Is Needful
 // =============================================================================
-// A spoken teaching. Darrell spoke it on 2026-11-10 in three long messages: humble yourself to what was written; looking without learning; the critical path, the few words that matter most; deeds prove it; agreement and the hard part; longsuffering, when it is enough, its cost, and rest while bearing. (DR-1389.)
+// A spoken teaching. Darrell spoke it on 2026-11-10 in three long messages: humble yourself to what was written; looking without learning; the critical path, the few words that matter most; deeds prove it; agreement and the hard part; longsuffering, when it is enough, its cost, and rest while bearing. (DR-1394.)
 //
 // THIS LESSON'S DANGERS are three. (1) Teaching that it is never enough: every text carries Genesis 6:3 beside Romans 12:18. (2) Counselling anyone out of a marriage or the care of their own: the adult and senior texts keep those under the Word. (3) Turning the five-out-of-a-hundred into a percentage: no text carries one.
 //

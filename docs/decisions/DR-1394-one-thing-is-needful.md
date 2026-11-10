@@ -1,4 +1,4 @@
-# DR-1389: L293 — One Thing Is Needful: obeying what was asked, the few words that matter most, longsuffering, and when it is enough
+# DR-1394: L293 — One Thing Is Needful: obeying what was asked, the few words that matter most, longsuffering, and when it is enough
 
 **Date:** 2026-11-10
 **Status:** Accepted

@@ -6,7 +6,7 @@
 **Type:** lesson
 **Area:** Living Lessons (app/src/lib/living-lessons-class.js, living-lessons-dates.js)
 **Sent in by:** Darrell — a spoken teaching, 2026-11-10
-**Pairs with:** DR-1387, DR-1389 to DR-1391 (the same day's lessons), DR-0098, DR-0076, DR-0210, DR-0331
+**Pairs with:** DR-1387, DR-1390, DR-1391, DR-1394 (the same day's lessons), DR-0098, DR-0076, DR-0210, DR-0331
 
 ## Context
 

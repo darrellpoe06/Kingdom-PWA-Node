@@ -2335,7 +2335,7 @@ function CourseView({
   // PREVIOUS AND NEXT AT THE END OF THE LESSON, NEVER A DEAD END (DR-1383).
   // ONE TAP LANDS AT THE TOP (Darrell 2026-11-10): the scroll waits until the new screen has painted, else it lands mid-page.
   const landTop = (sel) => { if (typeof window === 'undefined') return; window.requestAnimationFrame(() => window.requestAnimationFrame(() => { const t = sel && document.querySelector(sel); try { if (t) t.scrollIntoView({ block: 'start', behavior: motionBehavior() }); else window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } })); };
-  // ALL LESSONS LANDS AT THE TOP OF THE LIST (DR-1388; Darrell 2026-11-10: "Clicking all lessons takes a user to the bottom of the page").
+  // ALL LESSONS LANDS AT THE TOP OF THE LIST (DR-1393; Darrell 2026-11-10: "Clicking all lessons takes a user to the bottom of the page").
   // The leave effect below scrolls back to the row just left 60 ms later, and the newest lessons sit last, so an explicit
   // All lessons forgets that row. It lands on the list's top anchor: the sticky bar itself is always "in view" and never moves.
   // Leaving unwinds the lesson's history entry (useHistoryValue), and the browser then restores the list's old scroll, which is
@@ -2740,11 +2740,11 @@ function CourseView({
               // own "All" control uses, so a reader who asked for reduced
               // motion still gets it.
               onClick={() => {
-                // Forget the row just left, or the leave effect scrolls back down to it (DR-1388).
+                // Forget the row just left, or the leave effect scrolls back down to it (DR-1393).
                 lastFocusRef.current = null;
                 setFocusId(null);
                 if (typeof document === 'undefined') return;
-                // After the swap has painted, or there is nothing to scroll to; and again once the history unwind pops (DR-1388).
+                // After the swap has painted, or there is nothing to scroll to; and again once the history unwind pops (DR-1393).
                 const land = () => requestAnimationFrame(() => {
                   const top = document.getElementById('learn-all-lessons-top');
                   const target = top || document.getElementById('learn-lesson-find');
@@ -4577,7 +4577,7 @@ export default function ChurchLearn({
     }
     return out;
   }, [courses]);
-  // Which lessons each course holds, in order, so the record can name the ones not on it yet (DR-1388).
+  // Which lessons each course holds, in order, so the record can name the ones not on it yet (DR-1393).
   const courseLessonIds = React.useMemo(() => {
     const out = {};
     for (const c of (courses || [])) {
@@ -5919,7 +5919,7 @@ export default function ChurchLearn({
           course's real lesson count. Folded, so it never pushes the lessons
           down the page; it carries its own live summary on the summary line. */}
       {learnArea === 'record' && !lessonFocus && (
-        // THE RECORD OPENS ON THE RECORD (DR-1388; Darrell 2026-11-10: "Record doesn't open a users record... we want the record").
+        // THE RECORD OPENS ON THE RECORD (DR-1393; Darrell 2026-11-10: "Record doesn't open a users record... we want the record").
         <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-class-record" open>
           <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
             Class record

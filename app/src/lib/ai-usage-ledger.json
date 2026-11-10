@@ -888,6 +888,36 @@
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
     },
     {
+      "id": "the-lesson-lane-says-why-it-is-asleep",
+      "date": "2026-11-10",
+      "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
+      "drs": [
+        "DR-1389"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found while reading the Gmail intake queue for the next oldest-first lesson: 39 uncaptured threads, nine of the first thirty already shipped. Measured the cause rather than assuming it - lesson-mail-watch.yml has 480 runs from 2026-08-25 to 2026-11-09 and every sampled run was an honest no-op, so the automated Gmail door has never once opened. The estimate without AI is the cost of noticing at all: the fact was visible only in the raw log of run 480."
+    },
+    {
+      "id": "the-resolver-owns-the-budgets",
+      "date": "2026-11-10",
+      "task": "Teach the ledger resolver to own the two budget ratchets: union the append-only raises and re-base ours onto main's chain",
+      "drs": [
+        "DR-1388"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "The two ratchet files conflict on every landing and were resolved by hand twice the same day, which is quadratic in open branches. The resolver unions raises, re-bases our entries keeping each delta, and defers the ceiling to each guard's own down-only --generate and check so it never invents a measurement. 11 new checks on the real 2026-11-06 numbers; one expected-refusal check proved the code wrong rather than the test."
+    },
+    {
       "id": "dr-1385-doors-stack",
       "date": "2026-11-10",
       "task": "The end-of-lesson doors stack full width at Big Print, Next first, titles wrap inside their borders; a sixth gate case",
@@ -933,11 +963,11 @@
       "notes": "Spoken mid-build of DR-1386."
     },
     {
-      "id": "dr-1388-all-lessons-and-the-record",
+      "id": "dr-1393-all-lessons-and-the-record",
       "date": "2026-11-10",
       "task": "All lessons lands at the top (two late scrolls removed), the Record opens on the record, a whose-record picker, stacked course rows, and each course names the lessons not on the record yet",
       "drs": [
-        "DR-1388"
+        "DR-1393"
       ],
       "prs": [],
       "model": "claude-opus-5-5",
@@ -948,11 +978,11 @@
       "notes": "Five messages and a Big Print screenshot."
     },
     {
-      "id": "dr-1389-lesson",
+      "id": "dr-1394-lesson",
       "date": "2026-11-10",
-      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1389): five bands, KJV anchors fetched on disk, generated gate",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1394): five bands, KJV anchors fetched on disk, generated gate",
       "drs": [
-        "DR-1389"
+        "DR-1394"
       ],
       "prs": [],
       "model": "claude-opus-5-5",

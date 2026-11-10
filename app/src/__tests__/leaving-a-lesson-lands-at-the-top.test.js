@@ -50,13 +50,13 @@ describe('the way out of a lesson', () => {
     expect(allButtonHandler()).toContain('setFocusId(null)');
   });
 
-  it('scrolls to the top of the lesson list, at its TOP (DR-1388: the sticky bar never moves when scrolled to)', () => {
+  it('scrolls to the top of the lesson list, at its TOP (DR-1393: the sticky bar never moves when scrolled to)', () => {
     const h = allButtonHandler();
     expect(h).toContain("getElementById('learn-all-lessons-top')");
     expect(h).toContain("block: 'start'");
   });
 
-  it('forgets the row just left, so the leave effect cannot scroll back down to it (DR-1388)', () => {
+  it('forgets the row just left, so the leave effect cannot scroll back down to it (DR-1393)', () => {
     expect(allButtonHandler()).toContain('lastFocusRef.current = null');
   });
 

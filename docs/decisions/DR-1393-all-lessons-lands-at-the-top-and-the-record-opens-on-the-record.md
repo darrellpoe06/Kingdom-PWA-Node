@@ -1,4 +1,4 @@
-# DR-1388: All lessons lands at the top; the Record tab opens on the record, picks a learner in one tap, never runs off the edge, and names what it waits for
+# DR-1393: All lessons lands at the top; the Record tab opens on the record, picks a learner in one tap, never runs off the edge, and names what it waits for
 
 **Date:** 2026-11-10
 **Status:** Accepted
