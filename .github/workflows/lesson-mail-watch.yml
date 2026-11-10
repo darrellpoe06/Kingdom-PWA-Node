@@ -50,9 +50,56 @@ jobs:
           import imaplib, os, subprocess, sys, json
           from email.parser import BytesHeaderParser
 
+          # A DORMANT WATCHER SAYS SO WHERE SOMEONE WILL SEE IT (DR-0621).
+          # MEASURED 2026-11-10: this workflow had 480 runs from 2026-08-25 to
+          # 2026-11-09, every sampled one printing the line below and exiting 0.
+          # Green, for 77 days, having read no mail at all -- and the only reason
+          # anybody found out is that a session went looking at the raw log of
+          # run number 480. DR-1355 already named this shape in the sibling
+          # label workflow: "a run went GREEN having laboured on nothing... a
+          # witness that cannot fail loudly."
+          #
+          # IT STILL EXITS 0 ON PURPOSE, and that is not the same mistake. The
+          # label lane is dispatch-only with a required input, so dormancy there
+          # means somebody asked for N locks and got none, and failing is right.
+          # This lane is SCHEDULED: 480 red runs is noise, and a witness nobody
+          # can bear to look at is no witness either. So it stays green and gets
+          # a voice instead -- ::warning:: puts it on the run and in the Actions
+          # list, and the step summary says what it costs and who can fix it.
+          #
+          # THIS IS THE WEAK VERSION, named as such. The house already has the
+          # strong one: site-health.yml files each failing observation on a
+          # rolling `incident`-labelled issue (DR-0125), which is a queryable
+          # ledger and renders on the OpsBoard, so "the door has been shut for
+          # 77 days" becomes a number someone reads instead of a line in log
+          # 480. That needs `issues: write` here and a de-duplicating key, and
+          # it is the follow-up. `re-review: 2026-11-24`.
+          #
+          # P61 IS THE REAL COST, stated so it is not discovered again: a
+          # standing lane must not depend on one chat connector. While this is
+          # dormant the ONLY road that moves lesson mail is a session querying
+          # Gmail through its connector by hand, which is exactly the dependency
+          # P61 forbids for a standing lane. The lane is not merely quiet; it is
+          # being carried by hand.
           pw = os.environ.get('GMAIL_WATCH_APP_PASSWORD', '')
           if not pw:
               print('watcher dormant: GMAIL_WATCH_APP_PASSWORD secret not set (honest no-op)')
+              print('::warning title=Lesson mail watcher is dormant::GMAIL_WATCH_APP_PASSWORD is not set, so no mail was read and no lesson can be detected automatically. Every run of this workflow has been an honest no-op since 2026-08-25.')
+              summary = os.environ.get('GITHUB_STEP_SUMMARY')
+              if summary:
+                  with open(summary, 'a') as fh:
+                      fh.write('## Lesson mail watcher — DORMANT, nothing was read\n\n')
+                      fh.write('`GMAIL_WATCH_APP_PASSWORD` is not set, so this run read no mail.\n')
+                      fh.write('It is green because it did exactly what it could, not because the lane works.\n\n')
+                      fh.write('**What it costs:** forwarded lessons are not detected automatically, and\n')
+                      fh.write('`Lesson-Captured` is never written, so the intake queue over-reports\n')
+                      fh.write('already-built threads. The repo-side witness `ledger-names-its-thread.mjs`\n')
+                      fh.write('is what prevents re-work meanwhile.\n\n')
+                      fh.write('**The one value, which only Darrell can mint:** a Google App Password from\n')
+                      fh.write('https://myaccount.google.com/apppasswords (behind 2-Step Verification),\n')
+                      fh.write('pasted at Settings → Secrets and variables → Actions as\n')
+                      fh.write('`GMAIL_WATCH_APP_PASSWORD`. The same 16 characters also serve\n')
+                      fh.write('`SMTP_APP_PASSWORD` for the email door, and wake `lesson-mail-label.yml`.\n')
               sys.exit(0)
           user = os.environ['GMAIL_WATCH_USER']
           pr = os.environ['SIGNAL_PR']; repo = os.environ['REPO']
