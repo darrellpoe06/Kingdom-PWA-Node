@@ -901,6 +901,21 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 3,
       "notes": "Found while reading the Gmail intake queue for the next oldest-first lesson: 39 uncaptured threads, nine of the first thirty already shipped. Measured the cause rather than assuming it - lesson-mail-watch.yml has 480 runs from 2026-08-25 to 2026-11-09 and every sampled run was an honest no-op, so the automated Gmail door has never once opened. The estimate without AI is the cost of noticing at all: the fact was visible only in the raw log of run 480."
+    },
+    {
+      "id": "the-resolver-owns-the-budgets",
+      "date": "2026-11-10",
+      "task": "Teach the ledger resolver to own the two budget ratchets: union the append-only raises and re-base ours onto main's chain",
+      "drs": [
+        "DR-1388"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "The two ratchet files conflict on every landing and were resolved by hand twice the same day, which is quadratic in open branches. The resolver unions raises, re-bases our entries keeping each delta, and defers the ceiling to each guard's own down-only --generate and check so it never invents a measurement. 11 new checks on the real 2026-11-06 numbers; one expected-refusal check proved the code wrong rather than the test."
     }
   ]
 }
