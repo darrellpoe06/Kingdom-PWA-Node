@@ -146,7 +146,28 @@ const DIR = join(__dirname, '..', '..', '..', '.github', 'workflows');
 // improvement. The verify is still the right fix WHEN one of these lanes gains
 // a timer or starts writing somewhere persistent; that is the trigger to watch
 // for, not the calendar. `re-review: 2026-11-29` with the rest of the debt.
-const UNVERIFIED = 41;
+// CLOSED TO 0 on 2026-11-09 by DR-1374, and the REASON matters more than the
+// number. This debt was never 41 lanes' worth of missing judgment; it was one
+// missing step repeated 41 times. DR-1374 put every join behind a single
+// composite door, `./.github/actions/join-tailnet`, and that door ASKS
+// tailscale itself and exits 1 naming the credential. So the verify arrived in
+// all 64 joining lanes at once.
+//
+// This is NOT the pin being relaxed to make a run green — the thing the pin
+// demanded is now true everywhere, and it is still measured here rather than
+// asserted: `classify()` below reads the fleet off disk and a lane that joins
+// by any other route lands in `unverified` and reds this gate.
+//
+// What the note above feared is also answered. It said adding a verify to 44
+// workflows was "44 judgment calls about what each should do when the road is
+// shut". The one door removes the per-lane call by making the answer uniform:
+// fail at the door, naming the cause. A lane that genuinely must survive a
+// shut road says so with `continue-on-error` ON THE DOOR STEP, and those lanes
+// are named — not counted — in the exempt set below.
+//
+// MEASURED at the close: 64 workflows join, 0 still name the raw action, 4 door
+// steps carry `continue-on-error`.
+const UNVERIFIED = 0;
 
 // The four that carry his spoken and in-app lessons. Named, not counted: if
 // one of these loses its verify the gate must say WHICH, because a silent
@@ -168,15 +189,34 @@ const classify = () => {
   const unverified = [];
   for (const fn of workflows) {
     const s = read(fn);
-    if (!s.includes('tailscale/github-action')) continue;
+    const door = /uses:\s*\.\/\.github\/actions\/join-tailnet/.exec(s);
+    const rawAt = s.indexOf('tailscale/github-action');
+    if (!door && rawAt < 0) continue;
     joiners.push(fn);
+    // THE EXEMPT TEST IS NOW EXACT, not proximity. The old predicate took any
+    // `continue-on-error` within 500 characters BEFORE the join as the join's
+    // own, which read `loops-health.yml` into the exempt set off an unrelated
+    // earlier step. With one canonical door there is a real step block to read,
+    // so the question "may this lane's join fail without ending the job?" is
+    // answered from the step itself. That is why the exempt list below loses a
+    // lane: the measurement got sharper, the fleet did not change.
+    const survivesAShutRoad = (at) => {
+      const from = s.lastIndexOf('\n      - ', at);
+      const to = s.indexOf('\n      - ', at);
+      return s.slice(from < 0 ? Math.max(0, at - 400) : from, to < 0 ? at + 400 : to)
+        .includes('continue-on-error');
+    };
+    if (door) {
+      // The one door asks tailscale itself and exits 1 (DR-1374). A lane that
+      // joins through it has verified its join by construction.
+      if (survivesAShutRoad(door.index)) secondRoad.push(fn);
+      else verified.push(fn);
+      continue;
+    }
+    // A lane still joining by the raw action owes its own verify, as before.
     const asks = s.includes('tailscale status') || s.includes('Verify the tailnet');
-    // A join declared `continue-on-error` is one the workflow expects to fail
-    // and has another way round (DR-1269's served-site road is the pattern).
-    const i = s.indexOf('tailscale/github-action');
-    const near = s.slice(Math.max(0, i - 500), i + 300);
     if (asks) verified.push(fn);
-    else if (near.includes('continue-on-error')) secondRoad.push(fn);
+    else if (survivesAShutRoad(rawAt)) secondRoad.push(fn);
     else unverified.push(fn);
   }
   return { joiners, verified, secondRoad, unverified };
@@ -241,7 +281,13 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
       'cf-roads-worker.yml',
       'deploy-cloudflare-pages.yml',
       'harvest-health.yml',
-      'loops-health.yml',
+      // `loops-health.yml` WAS on this list and is not any more, and it is not
+      // because that lane changed. Verified against `origin/main`: its join
+      // never carried `continue-on-error` at all. The old proximity predicate
+      // picked up an unrelated earlier step's flag within 500 characters and
+      // called the join exempt. The exact predicate reads the join's own step
+      // block, so the lane now reports what it actually is — a plain join,
+      // verified by the one door like every other.
       'ops-queue-health.yml',
     ]);
   });

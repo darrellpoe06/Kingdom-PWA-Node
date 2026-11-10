@@ -50,9 +50,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - name: Join the tailnet (to reach the live database)
-        uses: tailscale/github-action@v3
+      - name: Check out (the join-tailnet action lives in this repo)
+        uses: actions/checkout@v7
         with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+      - name: Join the tailnet (to reach the live database)
+        uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Count the family ledger (counts and ids only)
         env:
@@ -180,9 +187,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Join the tailnet (to read the NAS service log)
-        uses: tailscale/github-action@v3
+      - name: Check out (the join-tailnet action lives in this repo)
+        uses: actions/checkout@v7
         with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+      - name: Join the tailnet (to read the NAS service log)
+        uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: The /taxes road at growing sizes, without the family key (nothing is written)
         run: |
@@ -223,9 +237,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Join the tailnet
-        uses: tailscale/github-action@v3
+      - name: Check out (the join-tailnet action lives in this repo)
+        uses: actions/checkout@v7
         with:
+          sparse-checkout: .github/actions
+          sparse-checkout-cone-mode: false
+      - name: Join the tailnet
+        uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: One upload with the family key into a throwaway folder, then remove it
         env:

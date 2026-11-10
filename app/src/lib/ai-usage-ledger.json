@@ -712,6 +712,57 @@
       "notes": "Measured worktree creation (16:24:37Z, stat) to the commit (16:29:30Z, git %cI) on claude/the-renumber-leaves-the-pointer-alone: 4m53s. NOT on that clock: the pm15 builder's own discovery of the fault while reading a renumber diff, and my fixture measurement confirming it before I touched anything. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same by hand, not a measurement. Also not on it: this very line, which was missed on the first push and turned #2572 red on both the guards leg and vitest shard 4/4 -- the ledger check is the one gate that cannot be satisfied before a PR number exists."
     },
     {
+      "id": "a-reader-reads-one-band",
+      "date": "2026-11-06",
+      "task": "A reader reads one band, so every band is checked: sov69/sov70's term gate read only the lesson body and left bigIdea and the four levels unchecked",
+      "drs": [
+        "DR-1367"
+      ],
+      "prs": [
+        2576
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.48,
+      "estimateWithoutAiHours": 3,
+      "notes": "17:01:47Z -> 17:30:31Z measured from commit timestamps. The gate checked termFaults(M.lesson) alone; a reader meets bigIdea and the levels too, so the widened case checks every place text reaches a reader. Tokens and dollars null: no meter exposed. The line itself was missing until the catch-up, which is how ai-usage-ledger --check caught it rather than a person."
+    },
+    {
+      "id": "a-closed-list-is-not-a-broken-gate",
+      "date": "2026-11-06",
+      "task": "A closed vocabulary list is friction, not a broken gate: measured a neighbour's gate the spm12 builder reported, and the replacement I proposed would have refused seven landed lessons",
+      "drs": [
+        "DR-1368"
+      ],
+      "prs": [
+        2578
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.48,
+      "estimateWithoutAiHours": 4,
+      "notes": "17:38:00Z -> 18:06:41Z measured from commit timestamps. A measured NON-change: 0 of 11 spm modules pass only via the bare words, so the gate is not vacuous, and a naming-phrase requirement would have refused pm8 and spm2/4/5/6/7/8. Also probed every record and note for broken links: 1307 links, not the 43 a first narrow regex reported, and 1 genuine break left standing because its target was never written. Tokens and dollars null: no meter exposed."
+    },
+    {
+      "id": "the-tailnet-ticket-stops-expiring",
+      "date": "2026-11-06",
+      "task": "One door onto the tailnet that prefers a non-expiring OAuth client: 68 join sites across 64 workflows each passed an auth key that expires by design, so one expiry shut 68 roads",
+      "drs": [
+        "DR-1374"
+      ],
+      "prs": [
+        2582
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.32,
+      "estimateWithoutAiHours": 7,
+      "notes": "Measured from commit timestamps. Darrell: 'Onetime fix... not 50 different connectbot tries' -- and ConnectBot cannot reach this one, because the dead credential is the RUNNER's ticket, held in Tailscale's control plane and GitHub's secrets, never on the NAS. Two measurements shaped it: 68 join sites on an expiring key, and 21 of them with no actions/checkout before them, which would have silently broken 21 workflows had the conversion gone in blind. Confirmed independently by the upstream action's own output on this branch: 'Input authkey has been deprecated... An OAuth API client is recommended instead'. Proven to catch three defects; the third did NOT catch at first because the assertion matched the file's own header comment, the same prose-read-as-code trap as this morning's gate. Tokens and dollars null: no meter exposed."
+    },
+    {
       "id": "ll288-a-story-that-looks-like-news",
       "date": "2026-11-06",
       "task": "ll288: the third send of the evening, a narrated FBI-agent video with no record of its case; research pass, the real federal process credited, the Word on the ruler who bears the sword; a 56-case gate; a research row and two further rows filed for the lane",

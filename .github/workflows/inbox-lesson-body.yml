@@ -44,8 +44,10 @@ jobs:
         run: |
           [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
       - name: Join the tailnet (to reach the live database)
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       # THE JOIN STEP IS NOT A WITNESS OF THE JOIN (2026-10-29, DR-1284).
       #

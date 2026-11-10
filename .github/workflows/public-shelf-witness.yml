@@ -83,8 +83,10 @@ jobs:
       # that was NULL on every door and broke three surfaces at once.
       # ---------------------------------------------------------------------
       - name: Join the tailnet (to reach the live database)
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
 
       # A JOIN STEP IS NOT A WITNESS OF THE JOIN (DR-1284). `tailscale up` can

@@ -70,8 +70,10 @@ jobs:
       # backend into a package a family member would install (DR-0107).
       - name: Join the tailnet (repoint armed only)
         if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
-        uses: tailscale/github-action@v3
+        uses: ./.github/actions/join-tailnet
         with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Fetch the sovereign anon key from the NAS (repoint armed only)
         if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
