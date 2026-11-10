@@ -42,6 +42,7 @@ import { isTransferTxn, isBalanceAdjustment } from '../../lib/imported-view.js';
 import { fmt } from '../../lib/format.js';
 import MoneyBillReview from './MoneyBillReview.jsx';
 import MoneyHomeMortgage from './MoneyHomeMortgage.jsx';
+import MoneyLoanCalculator from './MoneyLoanCalculator.jsx';
 import MoneyArrangements from './MoneyArrangements.jsx';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
@@ -335,6 +336,7 @@ export function MoneyDebtFreedom({ money }) {
   return (
     <div data-testid="money-debt-freedom" className="space-y-4">
       <MoneyHomeMortgage money={money} />
+      <MoneyLoanCalculator money={money} />
       <MoneyArrangements money={money} />
       {/* THE SUMMARY BAND (Christina 2026-10-28): total debt, required monthly, extra, debt-free date, next payoff */}
       <section aria-label="Debt summary" data-testid="debt-summary" className="bg-[#1F3A2E] text-[#F6F1E7] rounded-2xl p-4 sm:p-5">

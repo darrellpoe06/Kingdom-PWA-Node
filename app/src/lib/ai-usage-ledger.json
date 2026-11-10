@@ -15,6 +15,9 @@
     },
     "claude-opus-5-5": {
       "note": "The Claude Code session model after a mid-session switch (Anthropic). Per-task tokens are not exposed by the harness."
+    },
+    "claude-fable-5-2": {
+      "note": "The Claude session model on 2026-11-10 (Anthropic). Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -1316,6 +1319,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "Darrell: Fix it (Big Print screenshot of his record)"
+    },
+    {
+      "id": "dr-1413-mortgage-calculator",
+      "date": "2026-11-10",
+      "task": "Our own mortgage and loan calculator: one engine, a drop-down of the real property mortgages and debts by entity, mounted closed in Debt Freedom and Real Estate; matched to the cent against the reference and measured in Chromium",
+      "drs": [
+        "DR-1413"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 12,
+      "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
     },
     {
       "id": "dr-1414-put-not-your-trust-in-princes",
