@@ -267,7 +267,7 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
     }
   });
 
-  it('the four exempt lanes are exempt for a stated reason, not by accident', () => {
+  it('the five exempt lanes are exempt for a stated reason, not by accident', () => {
     const { secondRoad } = classify();
     // Each of these declares `continue-on-error` on the join because it has
     // another way to the same value or reports DEGRADED rather than dying.
@@ -279,6 +279,10 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
       // reader could have noticed — which is exactly what naming the lanes
       // instead of counting them is for.
       'cf-roads-worker.yml',
+      // DR-1398: the migration lane's join may fail because the proof has a
+      // second road: the live database's own ledger, read over poetech.us/sb
+      // (served-migration-receipt.py), while the NAS applies on its own clock.
+      'db-migrate.yml',
       'deploy-cloudflare-pages.yml',
       'harvest-health.yml',
       // `loops-health.yml` WAS on this list and is not any more, and it is not
