@@ -43,6 +43,7 @@
 // than shown empty; every word of the authored lesson survives (the chunking lives
 // in learn-framework). Claims are derived from real fields, not painted.
 // =============================================================================
+import { segmentsWithoutTalkTail } from './talk-together.js';
 import { lessonPlanForAge, resolveForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
 import { storyHeading, storyFootnote } from './story-truth.js';
 
@@ -256,7 +257,7 @@ export function planSessions(module, opts = {}) {
 // benefits. NO-LEAK: reads only `audience` fields — facilitator say/do/howToRun
 // can never be spoken to a learner. Pure over the arc (DR-0076-testable).
 // ---------------------------------------------------------------------------
-export function readAloudTextFromArc(arc) {
+export function readAloudTextFromArc(arc, { includeTalk = false } = {}) {
   if (!arc) return '';
   const parts = [];
   if (arc.title) parts.push(`${arc.title}.`);
@@ -266,7 +267,13 @@ export function readAloudTextFromArc(arc) {
       if (a.bigIdea) parts.push(a.bigIdea);
       if (a.anchorRef) parts.push(`Anchor scripture — ${a.anchorRef}${a.anchorTheme ? `: ${a.anchorTheme}` : ''}.`);
     } else if (seg.kind === 'teach') {
-      parts.push(...(((a.lessonPlan && a.lessonPlan.segments) || [])));
+      // THE TAIL IS NOT RE-READ (DR-1372). The TALK ABOUT IT TOGETHER part at
+      // the end of every lesson stays on the page as a dropdown; the voice
+      // reads the teaching and the stories and stops at the seam unless the
+      // caller asks for the tail (includeTalk).
+      const cut = segmentsWithoutTalkTail((a.lessonPlan && a.lessonPlan.segments) || []);
+      parts.push(...cut.body);
+      if (includeTalk) parts.push(...cut.talk);
       for (const s of a.stories || []) {
         parts.push(`${storyHeading(s)}.`);
         if (s.body) parts.push(s.body);

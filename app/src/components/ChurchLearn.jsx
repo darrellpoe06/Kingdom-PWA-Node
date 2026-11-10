@@ -763,11 +763,15 @@ export function lessonSections(items, rhythm = SECTION_RHYTHM) {
 export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1815]' }) {
   const { items } = formatLessonText(text, plan);
   if (!items.length) return null;
-  const sections = lessonSections(items);
   const serif = { fontFamily: '"Fraunces", serif' };
-  return (
-    <div className={className} style={serif}>
-      {sections.map((sec, si) => (
+  // THE TAIL IS A DROPDOWN (DR-1372): "the asking others for their testimony
+  // should be a drop down too.... not read each time". The TALK ABOUT IT
+  // TOGETHER part (DR-0733) stays in the text and the gates; from the first item
+  // that starts with its heading to the end it renders in a closed <details>.
+  const seam = items.findIndex((it) => /^\s*TALK ABOUT IT TOGETHER\b/.test(String(it.text || '')));
+  const bodySections = lessonSections(seam < 0 ? items : items.slice(0, seam));
+  const tailSections = seam < 0 ? [] : lessonSections(items.slice(seam));
+  const renderSection = (sec, si) => (
         <React.Fragment key={si}>
           {sec.items.map((it) => (
             it.kind === 'heading' ? (
@@ -795,7 +799,20 @@ export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1
             <VerseChips refs={sec.refs} tone="word" lead className="mt-1.5" data-testid="section-refs" data-block-lines={sec.items.filter((it) => it.kind !== 'heading').length} />
           )}
         </React.Fragment>
-      ))}
+  );
+  const body = bodySections.map((sec, si) => renderSection(sec, si));
+  const tail = tailSections.map((sec, si) => renderSection(sec, bodySections.length + si));
+  return (
+    <div className={className} style={serif}>
+      {body}
+      {tail.length > 0 && (
+        <details className="mt-3 border-l-4 border-[#B85838] pl-3" data-testid="lesson-prose-talk-fold">
+          <summary className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#B85838]">
+            Talk about it together — optional, open to read the three prompts
+          </summary>
+          {tail}
+        </details>
+      )}
     </div>
   );
 }
@@ -1460,8 +1477,6 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
-            {/* The chart / steps / quadrant the reading talks about (DR-1296). */}
-            <LessonFigures module={module} />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
@@ -1475,6 +1490,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 is a task, and a task set mid-reading takes the reader out of it. It
                 moves to the 'send' stage, after the reading is done. */}
             <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
+            {/* The chart the reading talks about (DR-1296), AFTER the stories and
+                folded closed (DR-1372): "a drop-down... like a story we add at the end". */}
+            <LessonFigures module={module} />
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Who He Is (DR-0675): every passage this lesson carries, with where,
@@ -3391,9 +3409,12 @@ function CourseView({
               {(() => {
                 const talk = talkTogetherFor(m);
                 return (
-                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                  <details className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                    {/* A DROPDOWN, CLOSED (DR-1372): the prompts are read when opened. */}
+                    <summary className="cursor-pointer min-h-[44px] flex items-center text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
+                      Talk about it together — optional, open to see the prompts
+                    </summary>
                     <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
-                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Talk about it together</div>
                       {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
                     </div>
                     <ul className="space-y-1">
@@ -3409,7 +3430,7 @@ function CourseView({
                     <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                       {talk.aim} <span className="italic">"{talk.verse.text}"</span> ({talk.verse.ref})
                     </p>
-                  </div>
+                  </details>
                 );
               })()}
               {/* FOR THE LITTLEST (DR-0866). Darrell, 2026-10-10: "Coloring
