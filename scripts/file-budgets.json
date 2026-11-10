@@ -154,12 +154,26 @@
       "to": 5998,
       "date": "2026-11-10",
       "why": "DR-1393: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31608,
+      "to": 31743,
+      "date": "2026-11-10",
+      "why": "DR-1403: L298 (What Programs You), a spoken teaching built the day it was spoken: one module with four bands, two stories, eight questions and a 45-verse anchor. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/world-issues-class.js",
+      "from": 6729,
+      "to": 6789,
+      "date": "2026-11-10",
+      "why": "DR-1404: Every lesson has a test: two World Issues lessons had none and gain four-question discernment tests written from their own claims, and a third test is reshaped so the quiz screen reads it. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31608,
+    "app/src/lib/living-lessons-class.js": 31743,
     "app/src/lib/sovereign-ai-class.js": 11023,
-    "app/src/lib/world-issues-class.js": 6729,
+    "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 5998,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,

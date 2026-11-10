@@ -50,7 +50,74 @@ export function wordQuotes(refs) {
   }).filter(Boolean);
 }
 
-export function moduleFromAlgorithm(alg) {
+
+// EVERY PATTERN HAS A TEST (2026-11-10, DR-1404). Darrell: "Lessons with no
+// tests?!!!!!!" Measured that day: all 156 patterns across the five Eternal
+// Algorithms courses carried no quiz, so the exam the reader is built around
+// never appeared. The test is built ONLY from the pattern's own catalog words
+// (its IF, its THEN, its anchor references, its outcome), so nothing is
+// invented. Wrong options are the same field from the nearest other patterns
+// in the catalog, which makes each question a real reading check: the reader
+// must know THIS pattern's condition from its neighbours'. The right answer's
+// position is fixed per pattern by a stable hash of its id, so it is not always
+// first and never changes between visits (a retake meets the same test).
+function stableIndex(id, n) {
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % n;
+}
+
+function peersFor(alg, catalog) {
+  const all = (catalog || []).filter((a) => a && a.id !== alg.id);
+  const same = all.filter((a) => a.section === alg.section);
+  const i = (catalog || []).findIndex((a) => a && a.id === alg.id);
+  const rot = (list) => {
+    if (!list.length) return [];
+    const at = Math.max(0, list.findIndex((a) => (catalog || []).indexOf(a) > i));
+    return [...list.slice(at), ...list.slice(0, at)];
+  };
+  return [...rot(same), ...rot(all.filter((a) => a.section !== alg.section))];
+}
+
+function optionsFor(correct, pick, peers, id, salt) {
+  const wrong = [];
+  for (const p of peers) {
+    const v = pick(p);
+    if (v && v !== correct && !wrong.includes(v)) wrong.push(v);
+    if (wrong.length === 2) break;
+  }
+  if (wrong.length < 2) return null;
+  const at = stableIndex(`${id}:${salt}`, 3);
+  const options = [...wrong];
+  options.splice(at, 0, correct);
+  return { options, answer: at };
+}
+
+export function quizFromAlgorithm(alg, catalog = GODHEAD_ALGORITHMS) {
+  const peers = peersFor(alg, catalog);
+  const refs = (a) => (a.refs || []).join(' · ');
+  const asks = [
+    { salt: 'if', q: 'In this pattern, what is the IF, the condition the Word sets?', value: alg.condition, pick: (a) => a.condition },
+    { salt: 'then', q: 'When that condition is met, what is the THEN?', value: alg.consequence, pick: (a) => a.consequence },
+    { salt: 'ref', q: 'Which passage of the Word anchors this pattern?', value: refs(alg), pick: refs },
+    { salt: 'out', q: 'What is the outcome when you walk in it?', value: alg.outcome, pick: (a) => a.outcome },
+  ];
+  const questions = [];
+  for (const a of asks) {
+    if (!a.value) continue;
+    const o = optionsFor(a.value, a.pick, peers, alg.id, a.salt);
+    if (!o) continue;
+    questions.push({
+      q: a.q,
+      options: o.options,
+      answer: o.answer,
+      explain: `From this pattern itself (${refs(alg)}): IF ${alg.condition} THEN ${alg.consequence}`,
+    });
+  }
+  return { questions };
+}
+
+export function moduleFromAlgorithm(alg, catalog = GODHEAD_ALGORITHMS) {
   const refs = (alg.refs || []).join(' · ');
   const quotes = wordQuotes(alg.refs);
   const word = quotes.length ? `The Word, read first:\n\n${quotes.join('\n\n')}` : null;
@@ -91,11 +158,12 @@ export function moduleFromAlgorithm(alg) {
     inApp: 'Read the verses above aloud, slowly, as a house. Then take it to your Study (or the Council Chamber): write where this conditional is currently running in your house — and one obedience step this week that moves your side of the IF.',
     anchor: { ref: refs, theme: alg.condition },
     launch: { view: 'church', churchView: 'eternal-algorithms' },
+    quiz: quizFromAlgorithm(alg, catalog),
   };
 }
 
 export function modulesForSection(sectionKey, catalog = GODHEAD_ALGORITHMS) {
-  return catalog.filter((a) => a && a.section === sectionKey).map(moduleFromAlgorithm);
+  return catalog.filter((a) => a && a.section === sectionKey).map((a) => moduleFromAlgorithm(a, catalog));
 }
 
 // The course descriptor set — shape-identical to the other Learn courses

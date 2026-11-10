@@ -526,6 +526,35 @@ const BEAUTY_SUPPLY_ISSUE = {
     teen: 'Real talk: the internet loves to pit two groups against each other, because anger gets clicks. So when a video says "boycott THOSE people," slow down and run the moves. (1) What is the actual claim, and who is making it? (2) Is it a documented barrier, an assumption about people’s motives, an opinion, or a "you should do X"? A real example here: it is documented that Black entrepreneurs face barriers getting beauty-supply wholesale access — that part is checkable. But "every Asian store owner is racist" is a conclusion about thousands of hearts that no video can prove, and blaming a whole group for what some did is collective punishment. (3) Find the real source. (4) Can you say the other side’s best case — mostly immigrant families who built stores through long hours — fairly? The Bible is big on this: defend people who are shut out AND don’t bear false witness, and don’t "go with the crowd to do evil" (Exodus 23:2). The strongest move when your community is shut out of ownership is usually to BUILD — your own supply, your own distribution — not just to boycott. Aim at the structure, not a people.',
     senior: 'For the seasoned believer, this is judgment stewarded in a media age engineered to pit underserved communities against each other. Keep the categories: a documented BARRIER (limited wholesale access, a financing gap — real and sourced) is not the same as a proven MOTIVE across thousands of owners; an individual’s disrespect is not a group’s guilt; targeted accountability is not collective punishment. Scripture has governed exactly this for millennia — defend the shut-out and command open, honest dealing (Isaiah 1:17; Proverbs 31:8-9), refuse partiality and false witness even in a good cause (Exodus 23:2-3; Leviticus 19:15), and, in Christ, tear down the dividing wall of hostility between peoples (Ephesians 2:14-16). Hold truth and grace: name the barrier and organize your community’s ownership while leaving the verdict on any soul to God and refusing to punish good-faith families for others’ wrongs. And let the response mature past reaction into stewardship — the Black church’s long tradition as builder and refuge points the way: accountability AND construction, group economics AND reconciliation, aimed at the structure of capital and distribution, never at a people.',
   },
+  // ---- Discernment-skill quiz (DR-1404: every lesson has a test) ----
+  quiz: {
+    questions: [
+      {
+        q: 'Black entrepreneurs report real barriers reaching the few central distributors. Does that, by itself, prove every Asian-owned store owner is a deliberate racial gatekeeper?',
+        options: ['Yes, the barrier proves the motive', 'No, the barrier is documented; the motive across thousands of owners is not', 'No, because the barrier is not real'],
+        answer: 1,
+        explain: 'The lesson\'s core distinction: a documented BARRIER is not the same as a proven MOTIVE. Name the barrier plainly; do not invent a motive for a whole group.',
+      },
+      {
+        q: 'What is it called when a whole group is punished for what some of its members did?',
+        options: ['Collective punishment, which the Word refuses', 'Fair competition', 'Group economics'],
+        answer: 0,
+        explain: 'Treating all Asian-owned stores as responsible for some owners\' conduct is collective punishment. The Word forbids partiality and following a crowd to do evil, even in a good cause (Exodus 23:2-3; Leviticus 19:15).',
+      },
+      {
+        q: 'According to the structural view the lesson weighs, where is the real lever?',
+        options: ['A war on a people', 'Distribution and capital access, built and owned by the community', 'Doing nothing'],
+        answer: 1,
+        explain: 'The fight is with a structure, not a people: build distribution and capital, support Black-owned stores, and plead the cause of the shut-out without warring on a people.',
+      },
+      {
+        q: 'Which response holds truth and grace together?',
+        options: ['Name the documented barrier, build our own ownership, and refuse to condemn a whole people', 'Ignore the barrier to keep the peace', 'Condemn every store owner to make the point'],
+        answer: 0,
+        explain: 'Plead the cause of the shut-out (Proverbs 31:8-9) and overcome evil with good (Romans 12:19-21): both halves of Yahweh\'s heart, held at once.',
+      },
+    ],
+  },
 };
 
 // =============================================================================
@@ -644,6 +673,35 @@ const GAME_CHANGERS_ISSUE = {
     child: 'Some movies really want you to eat only one way. Here\'s the true part: too much junk food (soda, chips, candy, fast food) really does hurt your heart — doctors know that for sure, it\'s not just an opinion. So eat lots of real food, especially fruits and vegetables! But the Bible says God gave us BOTH plants AND meat to eat and to say thank You for (Genesis 9:3), and it is not kind or fair to judge someone for what\'s on their plate. Eat healthy, say thank You to God, and be kind about other people\'s food.',
     teen: 'Real talk: a documentary like this mixes true things with overstated things, and it wants you to pick a team. Run the moves. (1) What\'s actually TRUE and documented? Heart disease is the #1 killer, and the ultra-processed junk-food diet does real, measured damage — that\'s not "one side," that\'s facts, own it. Eating way more whole plants and less junk is genuinely one of the best things you can do. (2) What did the film OVERSTATE? The "vegetarian gladiators" claim is misread, the evolution/gut-length argument is cherry-picked, and "plants are optimal for everyone" leans on weak studies — humans are omnivores. (3) Where\'s the ideology? "You MUST go vegan / meat is evil." The Bible gives you both plants and meat (Genesis 9:3), says food isn\'t where your righteousness lives (Romans 14:17), and tells people not to judge each other over diet — while still saying take care of your body, it\'s God\'s temple (1 Corinthians 6:19-20). So: speak the truth about junk food plainly, enjoy your freedom about meat, and don\'t let anyone shame you into a food religion.',
     senior: 'For the seasoned believer, this is discernment in an age of persuasive, agenda-driven media — and the discipline is to see the truth in BOTH directions. Speak the established fact plainly: heart disease is the nation\'s leading killer, the ultra-processed Western diet does real and documented harm, and a whole-food, plant-rich, less-processed pattern is among the best-evidenced changes a person can make (the Ornish trial even showed a comprehensive plant-centered lifestyle regressing coronary disease). Refusing to say so — hiding real harm behind "well, it\'s contested" — would be a failure to see the truth (DR-0100). AND refuse the over-reach: the film cherry-picks (the gladiators, the gut-length argument, saturated fat oversimplified, "optimal for all"), and its deeper claim — that plant-only is THE way and meat is wrong — is an ideology the Word will not bless. Scripture gives both the herb and every moving thing (Genesis 1:29; 9:3), forbids making abstinence from meats a doctrine (1 Timothy 4:3-4), and forbids judging a brother over his plate (Romans 14) — while commanding real stewardship of the temple and warning against gluttony (1 Corinthians 6:19-20; Proverbs 23:20-21). Hold both: name the real harm without flinching, honor the freedom without judging, and steward the body as Daniel did (Daniel 1:12-15) — evidence in hand, offered to God, no diet religion.',
+  },
+  // ---- Discernment-skill quiz (DR-1404: every lesson has a test) ----
+  quiz: {
+    questions: [
+      {
+        q: 'Heart disease is the leading cause of death in the United States. How should that be stated?',
+        options: ['As one side of a debate', 'Plainly, as documented fact and real damage', 'As something nobody can know'],
+        answer: 1,
+        explain: 'Established fact and real damage are stated plainly. Hedging it into one side of a debate would be ignoring real harm.',
+      },
+      {
+        q: 'Elite athletes can thrive on a plant-based diet. What does that show?',
+        options: ['That a plant-based diet CAN be excellent', 'That meat is harmful for everyone', 'That plants are useless'],
+        answer: 0,
+        explain: 'CAN is documented; SUPERIOR FOR EVERYONE is the film\'s interpretive leap. Keep the two apart.',
+      },
+      {
+        q: 'Where do the film\'s own scientific critics agree with it?',
+        options: ['Nowhere at all', 'A diet high in whole plants and fibre and low in ultra-processed food is beneficial', 'That meat must never be eaten'],
+        answer: 1,
+        explain: 'The dispute is over the film\'s stronger, one-sided claims, not over eating more real plants. The real damage is the ultra-processed pattern.',
+      },
+      {
+        q: 'What does the Word correct in this story?',
+        options: ['The measured harm of ultra-processed food', 'Only the ideological over-reach that makes meat-abstinence a doctrine', 'Nothing; diet is outside the Word'],
+        answer: 1,
+        explain: 'Yahweh gave the herb and every moving thing for food (Genesis 1:29; 9:3) and forbids judging one another over food (Romans 14; 1 Timothy 4:3-4). The measured harm still stands, and the body is to be stewarded (1 Corinthians 6:19-20).',
+      },
+    ],
   },
 };
 
@@ -2075,10 +2133,12 @@ const HISTORICAL_TRAUMA_ISSUE = {
     teen: 'Here is a hard skill most people never learn: what do you do when someone is RIGHT about something real and then says something completely false at the end? Most people pick a side — either they believe the whole thing because the first part was true, or they throw out the whole thing because the last part was false. Both are lazy. Run the moves instead. (1) What is documented? A lot here is: land given to freed families in 1865 and taken back within a year; a whole business district in Tulsa burned and then the insurance claims denied — all but one; two out of more than 3,200 home loans in 13 Mississippi cities in 1947 going to Black borrowers; a 1986 law where five grams of crack got you the same five-year minimum as five hundred grams of powder. That is real, it is sourced, and nobody serious disputes it. (2) What did the speaker get wrong? Two things, and both times the TRUTH was worse than what he said. He said "five years versus five months" — the real law is the same five years for a hundred times less. He said "thirteen articles of the Constitution" — it is one amendment, the 13th. When you use a wrong number inside a true argument, you hand your opponent a way to dump the whole thing. (3) What has no evidence at all? The ending, where he says one group runs the banks, the movies, and the government. That is a very old accusation that traces back to a document proven to be a forgery, and it has gotten people killed. Notice that NOTHING earlier in his argument supports it — he just switches. Finding that switch is the whole skill. God says it straight: "Thou shalt not raise a false report" (Exodus 23:1), and He put no exception in there for people who have been genuinely wronged. So: believe the documented part, fix the numbers, refuse the ending. One honest scale.',
     senior: 'For the seasoned believer, this lesson is judgment held in both hands at once, and Scripture equips it fully. Start where Yahweh starts: divers weights are an abomination (Deuteronomy 25:13-16), and the Son sealed the measure you use as the measure returned to you (Matthew 7:2) — so the crooked scale the teaching protests is a sin against Yahweh Himself, not merely a social discourtesy. Then read the record through Naboth: a man who would not part with the inheritance of his fathers, a taking accomplished through courtroom procedure and paid witnesses, and the prophetic question that outlives every deed of sale — "Hast thou killed, and also taken possession?" (1 Kings 21:19). Greenwood is that chapter with a fire department: not merely a mob, but 1,800,000 dollars in claims and all but one denied because the deed was reclassified as a riot. Micah saw the coveting and the taking of a man’s heritage (Micah 2:2); Isaiah saw that the instrument is paperwork — "Woe unto them that decree unrighteous decrees" (Isaiah 10:1) — and a redlining map and a hundred-to-one ratio are decrees with signatures. Pharaoh supplies the strategy word: "let us deal wisely with them" (Exodus 1:10). And "get over it" is Jeremiah 6:14 exactly — the hurt healed slightly, peace declared where there is none. Now the elder’s harder work, which the young advocate often cannot yet do: the same Word that vindicates the grievance forbids its closing turn without any allowance for the sufferer. "Thou shalt not raise a false report" (Exodus 23:1) has no clause for the aggrieved; Yahweh hates a false witness and the sowing of discord among brethren (Proverbs 6:19); the covenant word over Abraham’s line stands (Genesis 12:3); the grafted branch is warned not to boast against the natural ones (Romans 11:18); and that people is called the apple of His eye (Zechariah 2:8). Note also what honest history does to the comparison’s premise — Evian in 1938 where thirty-two nations declined, the St. Louis turned from an American port in 1939 with 255 of those returned later murdered, the 1939 White Paper sealing the other door. The gates were shut on both peoples by overlapping hands, which is a heavier indictment of the gatekeepers than the comparison as given. Teach the household the discipline that outlasts every news cycle: receive documented truth plainly (DR-0100 is Proverbs 12:19 in operational dress), correct your own side’s numbers before an opponent does it for you, refuse the false report though it come wrapped in a real wound, and want Yahweh’s remedy more than the argument — restitution that pays (Exodus 22:1; Luke 19:8) and return that restores possession (Leviticus 25:10), because His justice was never a slogan; it was priced, legislated, and calendared. And leave them Zelophehad’s daughters: five women with no inheritance who stood at the door, stated their cause, and heard Yahweh answer "The daughters of Zelophehad speak right" (Numbers 27:7) — the statute amended, possession given. That is the model. Not silence, and not a false report. A true cause, accurately stated, pressed where it can be heard, until the record is changed. And close it where the elder alone can close it, because it takes years to see: the wilderness these histories describe was not weather. Powers made it, and then issued the narrative that keeps people quiet inside it — that others have it worse, that it could be worse, that everyone should be satisfied. Yahweh already tried those shepherds and gave the verdict: "with force and with cruelty have ye ruled them" (Ezekiel 34:4), after listing every restoration they declined — the broken not bound up, the driven-away never brought again. The crooked scale in this teaching is not merely a bad habit of the public; it is a tool, and a people busy arguing over whose catastrophe ranks higher is a people not asking who has been holding the scale. So teach the household to refuse the comparison rather than to win it. And give them the horizon, because a grievance without one turns to bitterness in a young heart — and name it correctly: this is not the end of days, it is the transition to the Government of Yahweh: "the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace" (Isaiah 9:6) — of the increase of that government "there shall be no end... to order it, and to establish it with judgment and with justice" (Isaiah 9:7), and "The zeal of the LORD of hosts will perform this." Not a reform. A transfer of government. Where every earthly power told this family to be satisfied, He says "I will feed my flock, and I will cause them to lie down" (Ezekiel 34:15). Until that day we hold the record straight, refuse the false report, seek restitution and return where they can be sought, and raise children who can carry a true account without carrying hatred — because the kingdoms of this world are already declared His (Revelation 11:15), and His kingdom "shall never be destroyed" (Daniel 2:44). Teach them last the thing that turns waiting into standing: Jesus IS. Not will be. "Before Abraham was, I am" (John 8:58) — the name from the bush, "I AM THAT I AM" (Exodus 3:14) — and "All power is given unto me in heaven and in earth" (Matthew 28:18), already given, held now. Even the thrones that ruled with force and cruelty were "created by him, and for him" (Colossians 1:16), and "by him all things consist" (Colossians 1:17). So the transition is a return of borrowed authority, not a battle for foreign ground; and the household that knows this carries its true account without fear, because the Government it is waiting to SEE is the Government it already lives under.',
   },
-  quiz: [
+  // Was a bare array with `choices` (2026-07), which the quiz screen never
+  // read, so this test never appeared. Reshaped 2026-11-10 (DR-1404).
+  quiz: { questions: [
     {
       q: 'The teaching says a Black man on crack got five years while a white man on powder got five months. What does the actual 1986 statute say?',
-      choices: [
+      options: [
         'The teaching is right — five years versus five months',
         'Five grams of crack triggered the SAME five-year mandatory minimum as five hundred grams of powder — a 100-to-1 quantity ratio',
         'There was never any difference between crack and powder sentencing',
@@ -2089,7 +2149,7 @@ const HISTORICAL_TRAUMA_ISSUE = {
     },
     {
       q: 'Everything documented in the first part of the teaching is true. Does that make the closing claim about Jewish control of media and banking more likely to be true?',
-      choices: [
+      options: [
         'Yes — a speaker who is right about one thing is probably right about the rest',
         'No — the documented history of American policy supplies no evidence at all about who owns banks or studios; the argument switches from sourced claims to an unsupported accusation',
         'Yes, because both are about power',
@@ -2100,7 +2160,7 @@ const HISTORICAL_TRAUMA_ISSUE = {
     },
     {
       q: 'Yahweh commands "Thou shalt not raise a false report" (Exodus 23:1). Does a person who has genuinely been wronged get an exception?',
-      choices: [
+      options: [
         'Yes — real suffering justifies strong accusations',
         'No — the command carries no exception for the aggrieved, and Yahweh names a false witness and one who sows discord among brethren among the things He hates (Proverbs 6:19)',
         'Only if the accusation is mostly true',
@@ -2111,7 +2171,7 @@ const HISTORICAL_TRAUMA_ISSUE = {
     },
     {
       q: 'What does the Word offer as the remedy for generational dispossession?',
-      choices: [
+      options: [
         'An apology and moving on',
         'Restitution that pays and return that restores possession — fourfold and fivefold restoration (Exodus 22:1) and jubilee return (Leviticus 25:10)',
         'Nothing — Scripture is silent on the question',
@@ -2120,7 +2180,7 @@ const HISTORICAL_TRAUMA_ISSUE = {
       answer: 1,
       explain: 'Yahweh’s justice was never sentiment. It was priced and legislated: theft repaid multiple times over (Exodus 22:1; Zacchaeus in Luke 19:8), and land returned to the family at jubilee because "the land is mine" (Leviticus 25:23). Forgiveness is commanded too — but the Word never asks the wronged to call an unpaid debt paid.',
     },
-  ],
+  ] },
 };
 
 // =============================================================================
