@@ -62,7 +62,9 @@ class DefinitionTest(unittest.TestCase):
         sql = self._sql()
         excluded = re.findall(r"NOT\s*\(\s*tags\s*\?\s*'([a-z-]+)'\s*\)", sql)
         self.assertNotEqual(
-            sorted(excluded), sorted(shortened), "a dropped exclusion must not compare equal"
+            sorted(excluded),
+            sorted(shortened),
+            "a dropped exclusion must not compare equal",
         )
         self.assertIn("not-a-lesson", excluded)
         self.assertIn("withdrawn", excluded)
@@ -81,11 +83,37 @@ class CensusTest(unittest.TestCase):
     def test_counts_by_road_and_shape_and_never_carries_a_body(self):
         now = datetime(2026, 11, 10, 23, 0, 0, tzinfo=timezone.utc)  # noqa: UP017
         rows = [
-            {"id": "a", "created_at": "2026-09-29T17:59:56Z", "source": "thinking-space", "tags": ["lesson"], "body": "SECRET WORDS"},
-            {"id": "b", "created_at": "2026-09-30T19:31:23Z", "source": "lesson-voice-transcribe", "tags": ["lesson", "voice-transcript"]},
-            {"id": "c", "created_at": "2026-10-22T01:23:59Z", "source": "research-inbox", "tags": ["lesson", "build-failed"]},
-            {"id": "d", "created_at": "2026-11-06T20:36:08Z", "source": "chat-split", "tags": ["lesson", "newsletter-item"]},
-            {"id": "e", "created_at": "2026-11-09T22:28:33Z", "source": "somewhere-else", "tags": ["lesson"]},
+            {
+                "id": "a",
+                "created_at": "2026-09-29T17:59:56Z",
+                "source": "thinking-space",
+                "tags": ["lesson"],
+                "body": "SECRET WORDS",
+            },
+            {
+                "id": "b",
+                "created_at": "2026-09-30T19:31:23Z",
+                "source": "lesson-voice-transcribe",
+                "tags": ["lesson", "voice-transcript"],
+            },
+            {
+                "id": "c",
+                "created_at": "2026-10-22T01:23:59Z",
+                "source": "research-inbox",
+                "tags": ["lesson", "build-failed"],
+            },
+            {
+                "id": "d",
+                "created_at": "2026-11-06T20:36:08Z",
+                "source": "chat-split",
+                "tags": ["lesson", "newsletter-item"],
+            },
+            {
+                "id": "e",
+                "created_at": "2026-11-09T22:28:33Z",
+                "source": "somewhere-else",
+                "tags": ["lesson"],
+            },
         ]
         c = qc.census_of(rows, now=now)
         self.assertEqual(c["total"], 5)
@@ -109,8 +137,19 @@ class CensusTest(unittest.TestCase):
         self.assertEqual(c["by_road"], {})
         self.assertIsNone(c["oldest_waiting"])
 
-    def test_a_voice_row_waiting_for_its_words_is_counted_as_that_not_as_buildable(self):
-        c = qc.census_of([{"id": "v", "created_at": "2026-11-01T00:00:00Z", "source": "x", "tags": ["lesson", "voice"]}])
+    def test_a_voice_row_waiting_for_its_words_is_counted_as_that_not_as_buildable(
+        self,
+    ):
+        c = qc.census_of(
+            [
+                {
+                    "id": "v",
+                    "created_at": "2026-11-01T00:00:00Z",
+                    "source": "x",
+                    "tags": ["lesson", "voice"],
+                }
+            ]
+        )
         self.assertEqual(c["by_shape"], {"voice-waiting-for-words": 1})
 
 
@@ -146,7 +185,7 @@ class OneRowTest(unittest.TestCase):
         body = json.dumps(qc.census_of([]))
         what = qc.publish("u", "k", "inst", body, "who")
         self.assertEqual(what, "inserted")
-        post = [c for c in self.calls if c["method"] == "POST"][0]
+        post = next(c for c in self.calls if c["method"] == "POST")
         tags = post["body"][0]["tags"]
         self.assertIn(qc.TAG, tags)
         # The census row must never read as a waiting lesson and be built.

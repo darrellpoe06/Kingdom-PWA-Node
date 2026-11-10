@@ -17,23 +17,31 @@
 //      rather than showing the number as if it answered the house's question.
 import { describe, it, expect } from 'vitest';
 import {
-  CENSUS_TAG, EXPECTED_EXCLUDES, LATE_AFTER_MIN, SILENT_AFTER_MIN,
-  censusOf, censusStatus, definitionDrift, oldestWaitDays, fetchLessonQueueCensus,
+  CENSUS_TAG,
+  EXPECTED_EXCLUDES,
+  LATE_AFTER_MIN,
+  SILENT_AFTER_MIN,
+  censusOf,
+  censusStatus,
+  definitionDrift,
+  oldestWaitDays,
+  fetchLessonQueueCensus,
 } from '../lib/lesson-queue-census.js';
 
 const AT = '2026-11-10T23:00:00Z';
 const NOW = Date.parse('2026-11-10T23:05:00Z');
-const body = (over = {}) => JSON.stringify({
-  at: AT,
-  host: 'poetech',
-  cycle: 'services-sync',
-  total: 6,
-  by_road: { 'thinking-space': 2, 'research-inbox': 3, other: 1 },
-  by_shape: { plain: 2, 'build-failed': 3, 'voice-transcript': 1 },
-  oldest_waiting: '2026-09-29T17:59:56Z',
-  excludes: [...EXPECTED_EXCLUDES],
-  ...over,
-});
+const body = (over = {}) =>
+  JSON.stringify({
+    at: AT,
+    host: 'poetech',
+    cycle: 'services-sync',
+    total: 6,
+    by_road: { 'thinking-space': 2, 'research-inbox': 3, other: 1 },
+    by_shape: { plain: 2, 'build-failed': 3, 'voice-transcript': 1 },
+    oldest_waiting: '2026-09-29T17:59:56Z',
+    excludes: [...EXPECTED_EXCLUDES],
+    ...over,
+  });
 const row = (over = {}) => ({ id: 'r1', body: body(over), tags: [CENSUS_TAG], created_at: AT });
 
 describe('the census the NAS wrote', () => {
@@ -152,12 +160,26 @@ describe('reading the row', () => {
   it('asks for the newest census row by its tag', async () => {
     const calls = [];
     const q = {
-      select() { return this; },
-      contains(col, val) { calls.push([col, val]); return this; },
-      order() { return this; },
-      limit() { return Promise.resolve({ data: [row()], error: null }); },
+      select() {
+        return this;
+      },
+      contains(col, val) {
+        calls.push([col, val]);
+        return this;
+      },
+      order() {
+        return this;
+      },
+      limit() {
+        return Promise.resolve({ data: [row()], error: null });
+      },
     };
-    const supabase = { from(t) { calls.push(['from', t]); return q; } };
+    const supabase = {
+      from(t) {
+        calls.push(['from', t]);
+        return q;
+      },
+    };
     const out = await fetchLessonQueueCensus({ supabase });
     expect(calls[0]).toEqual(['from', 'agent_inbox']);
     expect(calls[1]).toEqual(['tags', JSON.stringify([CENSUS_TAG])]);
@@ -169,7 +191,18 @@ describe('reading the row', () => {
     expect(await fetchLessonQueueCensus({})).toEqual({ row: null, reason: 'no database client' });
     const supabase = {
       from() {
-        return { select() { return this; }, contains() { return this; }, order() { return this; }, limit: () => Promise.resolve({ data: null, error: { message: 'nope' } }) };
+        return {
+          select() {
+            return this;
+          },
+          contains() {
+            return this;
+          },
+          order() {
+            return this;
+          },
+          limit: () => Promise.resolve({ data: null, error: { message: 'nope' } }),
+        };
       },
     };
     expect(await fetchLessonQueueCensus({ supabase })).toEqual({ row: null, reason: 'nope' });

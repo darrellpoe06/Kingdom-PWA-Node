@@ -32,13 +32,7 @@ export const SILENT_AFTER_MIN = CLOCK_MIN * 4;
 
 // The five exclusions scripts/lesson-inbox-waiting.sql applies. Kept here so
 // the reader can say plainly when a row was counted under a DIFFERENT question.
-export const EXPECTED_EXCLUDES = Object.freeze([
-  'lesson-captured',
-  'lesson-building',
-  'awaiting-review',
-  'not-a-lesson',
-  'withdrawn',
-]);
+export const EXPECTED_EXCLUDES = Object.freeze(['lesson-captured', 'lesson-building', 'awaiting-review', 'not-a-lesson', 'withdrawn']);
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,59}$/;
 const counts = (v) => {
@@ -53,7 +47,7 @@ const counts = (v) => {
 /** The stamp the row carries: {at, host, total, byRoad, byShape, oldest, excludes}. */
 export function censusOf(row) {
   if (!row) return null;
-  let body = null;
+  let body;
   try {
     body = typeof row.body === 'string' ? JSON.parse(row.body) : row.body;
   } catch {
@@ -109,7 +103,15 @@ export function censusStatus(row, { now = Date.now(), reason = '' } = {}) {
   const census = censusOf(row);
   if (!census) {
     // NOT "nothing is waiting": nobody has counted (DR-1186).
-    return { state: 'never', ageMin: null, total: null, label: 'Lesson queue never counted: the NAS has written no census yet', kpi: 'attention', drift: '', census: null };
+    return {
+      state: 'never',
+      ageMin: null,
+      total: null,
+      label: 'Lesson queue never counted: the NAS has written no census yet',
+      kpi: 'attention',
+      drift: '',
+      census: null,
+    };
   }
   const ageMin = Math.max(0, Math.round((now - census.at) / 60000));
   const drift = definitionDrift(census);
@@ -122,7 +124,15 @@ export function censusStatus(row, { now = Date.now(), reason = '' } = {}) {
     return { state: 'fresh', ageMin, total: n, label: `${waiting} lesson row(s) waiting${oldestPart}, counted ${ageMin} min ago`, kpi, drift, census };
   }
   if (ageMin <= SILENT_AFTER_MIN) {
-    return { state: 'late', ageMin, total: n, label: `Lesson queue count is late: ${waiting} waiting as of ${ageMin} min ago`, kpi: 'attention', drift, census };
+    return {
+      state: 'late',
+      ageMin,
+      total: n,
+      label: `Lesson queue count is late: ${waiting} waiting as of ${ageMin} min ago`,
+      kpi: 'attention',
+      drift,
+      census,
+    };
   }
   const hours = Math.floor(ageMin / 60);
   const when = hours >= 48 ? `${Math.floor(hours / 24)} days` : hours >= 1 ? `${hours} h` : `${ageMin} min`;
