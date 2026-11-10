@@ -916,6 +916,141 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 6,
       "notes": "The two ratchet files conflict on every landing and were resolved by hand twice the same day, which is quadratic in open branches. The resolver unions raises, re-bases our entries keeping each delta, and defers the ceiling to each guard's own down-only --generate and check so it never invents a measurement. 11 new checks on the real 2026-11-06 numbers; one expected-refusal check proved the code wrong rather than the test."
+    },
+    {
+      "id": "dr-1385-doors-stack",
+      "date": "2026-11-10",
+      "task": "The end-of-lesson doors stack full width at Big Print, Next first, titles wrap inside their borders; a sixth gate case",
+      "drs": [
+        "DR-1385"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 2,
+      "notes": "From one Big Print screenshot of L7 after DR-1383 deployed."
+    },
+    {
+      "id": "dr-1386-credit-where-due",
+      "date": "2026-11-10",
+      "task": "Credit where it is due: READ on evidence at a pace with grace, an exam's taking kept apart from its grading, Understood first on the learner card, opt-in paces and pace-and-understanding, every line an evaluation never a condemnation",
+      "drs": [
+        "DR-1386"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "From a run of Darrell's messages on 2026-11-10 after DR-1384 shipped."
+    },
+    {
+      "id": "dr-1387-ll292-the-word-is-our-mirror",
+      "date": "2026-11-10",
+      "task": "L292 The Word Is Our Mirror, the teaching Darrell spoke line by line: no condemnation, only evaluation; accountable to Him now and after; the heart by the Word; heart to deed. Five bands, 36 KJV anchors, 50-case gate",
+      "drs": [
+        "DR-1387"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Spoken mid-build of DR-1386."
+    },
+    {
+      "id": "dr-1393-all-lessons-and-the-record",
+      "date": "2026-11-10",
+      "task": "All lessons lands at the top (two late scrolls removed), the Record opens on the record, a whose-record picker, stacked course rows, and each course names the lessons not on the record yet",
+      "drs": [
+        "DR-1393"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Five messages and a Big Print screenshot."
+    },
+    {
+      "id": "dr-1394-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1394): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1394"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1390-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1390): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1390"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1391-lesson",
+      "date": "2026-11-10",
+      "task": "Living Lesson from Darrell's spoken teaching of 2026-11-10 (DR-1391): five bands, KJV anchors fetched on disk, generated gate",
+      "drs": [
+        "DR-1391"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1392-lesson",
+      "date": "2026-11-10",
+      "task": "L296 Willing and Obedient, from Darrell's spoken teaching of 2026-11-10: five bands, 36 KJV anchors, generated gate",
+      "drs": [
+        "DR-1392"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1395-lesson",
+      "date": "2026-11-10",
+      "task": "L297 Precept upon Precept, from Darrell's spoken thanksgiving of 2026-11-10: five bands, 30 KJV anchors, generated gate",
+      "drs": [
+        "DR-1395"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.75,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken the same day; built the same session."
     }
   ]
 }

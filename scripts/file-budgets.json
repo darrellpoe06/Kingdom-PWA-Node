@@ -112,13 +112,55 @@
       "to": 11023,
       "date": "2026-11-06",
       "why": "sov72 (DR-1376, he that answereth a matter before he heareth it) adds one lesson to this file: the Sovereign A.I. week on the sequence, the counsel and the score that is not a healing, with all four age bands and 40 pinned verses. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size, not above it; the sixth recorded raise on this file, for the same stated reason as the five before it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30819,
+      "to": 30951,
+      "date": "2026-11-10",
+      "why": "ll292 (The Word Is Our Mirror, DR-1387) adds the 292nd Living Lesson, the teaching Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30951,
+      "to": 31350,
+      "date": "2026-11-10",
+      "why": "ll293, ll294 and ll295 (DR-1394, DR-1390, DR-1391) add three Living Lessons, the teachings Darrell spoke on 2026-11-10 and named as lessons; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31350,
+      "to": 31479,
+      "date": "2026-11-10",
+      "why": "ll296 (Willing and Obedient, DR-1392) adds the fifth Living Lesson Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31479,
+      "to": 31608,
+      "date": "2026-11-10",
+      "why": "ll297 (Precept upon Precept, DR-1395) adds the sixth Living Lesson Darrell spoke on 2026-11-10; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5927,
+      "to": 5967,
+      "date": "2026-11-10",
+      "why": "DR-1386: credit where it is due. The reading witness credits seen words at a pace with grace, each exam attempt carries how it was taken and the paces it was read at, Done and a pass credit READ only with evidence, and the opt-in paces view mounts in the live strip. The rules live in lib/test-integrity.js and lib/pace-understanding.js and the view in MyPaces.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5967,
+      "to": 5998,
+      "date": "2026-11-10",
+      "why": "DR-1393: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30819,
+    "app/src/lib/living-lessons-class.js": 31608,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6729,
-    "app/src/components/ChurchLearn.jsx": 5927,
+    "app/src/components/ChurchLearn.jsx": 5998,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,

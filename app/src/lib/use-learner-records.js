@@ -81,7 +81,8 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       // never lowers what the learner sees. The attempt's own score is in
       // `last` and in the ledger.
       const at = (result && result.at) || new Date().toISOString();
-      const thisTry = { at, pct: result?.pct ?? null, passed: result?.passed ?? null };
+      // HOW IT WAS TAKEN rides the device's own ledger (DR-1386); the wall's ledger keeps at/pct/passed (0313).
+      const thisTry = { at, pct: result?.pct ?? null, passed: result?.passed ?? null, ...(result && result.integrity ? { integrity: result.integrity } : {}) };
       const history = [...(Array.isArray(prior?.history) ? prior.history : []), thisTry];
       const bestPct = Math.max(Number.isFinite(prior?.pct) ? prior.pct : -1, Number.isFinite(thisTry.pct) ? thisTry.pct : -1);
       const next = {

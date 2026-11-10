@@ -210,3 +210,28 @@ describe('every exam attempt is listed, and the doors to retake and reread are h
     expect(host.querySelector('[data-testid="exam-history"]')).toBeNull();
   });
 });
+
+describe('how the exams were taken, kept apart from what they scored (DR-1386)', () => {
+  const fig = (label) => [...host.querySelectorAll('[data-testid="taken-and-graded"] *')].find((el) => el.textContent.trim().startsWith(label) && el.children.length >= 1);
+  it('names understood, taken after the lesson, passed before it, quick retakes and tries to first pass, from the record', () => {
+    const records = [
+      rec({ lesson_id: 'L1', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 60, passed: false }, { at: '2026-10-28T01:00:30.000Z', pct: 100, passed: true }] }),
+      rec({ lesson_id: 'L2', completed_at: null, quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 80, passed: true }] }),
+    ];
+    const text = draw({ records, currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="taken-and-graded"]')).toBeTruthy();
+    expect(text).toContain('How the exams were taken');
+    expect(fig('Understood').textContent).toMatch(/^Understood\s*1/);
+    expect(fig('Taken after the lesson').textContent).toMatch(/2 of 3/);
+    expect(fig('Passed before the lesson').textContent).toMatch(/^Passed before the lesson\s*1/);
+    expect(fig('Retakes within a minute').textContent).toMatch(/^Retakes within a minute\s*1/);
+    expect(fig('Tries to first pass').textContent).toMatch(/1\.5/);
+  });
+
+  it('PROVEN TO CATCH: no attempts, no figures (nothing painted), and no word of condemnation anywhere', () => {
+    draw({ records: [rec({ quiz_pct: null, quiz_passed: null, quiz_attempts: 0, quiz_at: null })], currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="taken-and-graded"]')).toBeNull();
+    draw({ records: [rec({ completed_at: null, quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 100, passed: true }] })], currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="taken-and-graded"]').textContent).not.toMatch(/cheat|rolled|guess|lazy|suspicious/i);
+  });
+});

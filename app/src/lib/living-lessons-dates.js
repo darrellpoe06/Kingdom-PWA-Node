@@ -573,4 +573,10 @@ export const LIVING_LESSONS_ADDED = {
   'll289-why-the-oppressed-still-call-on-him': '2026-11-06',
   'll290-the-house-built-by-wisdom': '2026-11-09',
   'll291-fruits-meet-for-repentance': '2026-11-09',
+  'll292-the-word-is-our-mirror': '2026-11-10',
+  'll293-one-thing-is-needful': '2026-11-10',
+  'll294-a-prophet-in-his-own-house': '2026-11-10',
+  'll295-the-bleating-of-the-sheep': '2026-11-10',
+  'll296-willing-and-obedient': '2026-11-10',
+  'll297-precept-upon-precept': '2026-11-10',
 };
