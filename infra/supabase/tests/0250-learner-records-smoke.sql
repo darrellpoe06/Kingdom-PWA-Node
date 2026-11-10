@@ -2,7 +2,7 @@
 -- 0250 LEARNER RECORD SMOKE — a learner keeps his own record, the Governor sees
 -- every learner's, and no learner sees another's (DR-0754)
 -- =============================================================================
--- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql, 0250, 0312 and 0313, in a
+-- Run as postgres AFTER scripts/curriculum-ci-bootstrap.sql, 0250, 0312, 0313 and 0316, in a
 -- transaction that ROLLS BACK. The Governor's email list is swapped for a test
 -- address INSIDE the transaction only, so no real account is touched.
 -- PROVES:
@@ -55,6 +55,8 @@ DECLARE
   pct int;
   att int;
   vr  text[];
+  rd  text;
+  rd2 text;
   done boolean;
 BEGIN
   -- 1. The learner keeps his own record and reads it back.
@@ -200,6 +202,64 @@ BEGIN
     FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
   IF n <> 3 OR pct <> 100 THEN RAISE EXCEPTION 'FAIL: a read touched the exam ledger (entries=%, pct=%)', n, pct; END IF;
   DELETE FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L106';
+
+  -- 11. HOW EACH ATTEMPT WAS TAKEN, AND THE READING ON EVIDENCE (0316, DR-1396).
+  --     The attempt's `taken` lands in its ledger entry, cleaned to the known
+  --     keys; anything else is dropped; the row keeps the latest; a mark-read
+  --     leaves it; the evidenced reading ratchets and refuses a future moment.
+  INSERT INTO public.learner_lesson_records (lesson_id, course_key, age_band, quiz_pct, quiz_passed, quiz_attempts, quiz_at, quiz_taken)
+  VALUES ('L107', 'living-lessons', 'adult', 100, true, 1, '2026-11-10 09:00:00+00',
+          '{"reading":"before","readPct":0,"secsPerQuestion":0.4,"rushed":true,"firstTry":true,"eyesWpm":null,"evil":"x","readPct2":5}'::jsonb);
+  SELECT quiz_history -> 0 -> 'taken' ->> 'reading', quiz_taken ->> 'reading' INTO rd, rd2
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  SELECT (quiz_history -> 0 -> 'taken' ->> 'rushed')::boolean INTO done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  IF rd IS DISTINCT FROM 'before' OR NOT done THEN RAISE EXCEPTION 'FAIL: how the attempt was taken did not reach its ledger entry (reading=%, rushed=%)', rd, done; END IF;
+  SELECT (quiz_history -> 0 -> 'taken') ? 'evil' OR (quiz_history -> 0 -> 'taken') ? 'readPct2' INTO done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  IF done THEN RAISE EXCEPTION 'FAIL: an unknown key reached the ledger'; END IF;
+  IF rd2 IS DISTINCT FROM 'before' THEN RAISE EXCEPTION 'FAIL: the row does not keep the latest attempt (quiz_taken.reading=%)', rd2; END IF;
+  -- A second attempt after reading: its own entry says after; the row now says after.
+  UPDATE public.learner_lesson_records
+     SET quiz_pct = 90, quiz_passed = true, quiz_attempts = 2, quiz_at = '2026-11-10 09:30:00+00',
+         quiz_taken = '{"reading":"after","readPct":100,"secsPerQuestion":12,"rushed":false,"firstTry":false,"eyesWpm":240}'::jsonb,
+         read_evidence_at = '2026-11-10 09:20:00+00', updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L107';
+  SELECT jsonb_array_length(quiz_history), quiz_history -> 1 -> 'taken' ->> 'reading', (quiz_history -> 1 -> 'taken' ->> 'eyesWpm')::int
+    INTO n, rd, pct
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  IF n <> 2 OR rd IS DISTINCT FROM 'after' OR pct <> 240 THEN RAISE EXCEPTION 'FAIL: the second attempt was not kept with how it was taken (entries=%, reading=%, eyes=%)', n, rd, pct; END IF;
+  -- A mark-read that names no attempt leaves quiz_taken; a later or cleared read moment never moves the evidence.
+  UPDATE public.learner_lesson_records SET completed_at = now(), read_evidence_at = NULL, quiz_taken = '{"reading":"partly"}'::jsonb, updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L107';
+  SELECT quiz_taken ->> 'reading', (read_evidence_at = '2026-11-10 09:20:00+00'::timestamptz) INTO rd, done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  IF rd IS DISTINCT FROM 'after' THEN RAISE EXCEPTION 'FAIL: a write without an attempt replaced quiz_taken (%)', rd; END IF;
+  IF NOT done THEN RAISE EXCEPTION 'FAIL: the evidenced reading was cleared or moved'; END IF;
+  UPDATE public.learner_lesson_records SET read_evidence_at = '2026-11-10 10:00:00+00', updated_at = now()
+   WHERE user_id = son AND lesson_id = 'L107';
+  SELECT (read_evidence_at = '2026-11-10 09:20:00+00'::timestamptz) INTO done
+    FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L107';
+  IF NOT done THEN RAISE EXCEPTION 'FAIL: a later moment replaced the first evidenced reading'; END IF;
+  INSERT INTO public.learner_lesson_records (lesson_id, read_evidence_at) VALUES ('L108', now() + interval '30 days');
+  SELECT read_evidence_at IS NULL INTO done FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L108';
+  IF NOT done THEN RAISE EXCEPTION 'FAIL: a reading evidenced in the future was accepted'; END IF;
+  -- A quiz_taken that names no attempt, or is not an object, is never stored.
+  INSERT INTO public.learner_lesson_records (lesson_id, quiz_taken) VALUES ('L109', '["not","an","object"]'::jsonb);
+  SELECT quiz_taken IS NULL INTO done FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L109';
+  IF NOT done THEN RAISE EXCEPTION 'LEAK: a quiz_taken with no attempt was stored'; END IF;
+  INSERT INTO public.learner_lesson_records (lesson_id, quiz_at, quiz_pct, quiz_taken) VALUES ('L110', '2026-11-10 11:00:00+00', 50, '["not","an","object"]'::jsonb);
+  SELECT quiz_taken IS NULL AND NOT ((quiz_history -> 0) ? 'taken') INTO done FROM public.learner_lesson_records WHERE user_id = son AND lesson_id = 'L110';
+  IF NOT done THEN RAISE EXCEPTION 'LEAK: a quiz_taken that is not an object reached the record'; END IF;
+  -- The attempts view gives one plain row per attempt, under the same read wall.
+  SELECT count(*), max(eyes_wpm), bool_or(rushed) INTO n, pct, done
+    FROM public.learner_exam_attempts WHERE lesson_id = 'L107';
+  IF n <> 2 OR pct <> 240 OR NOT done THEN RAISE EXCEPTION 'FAIL: the attempts view does not show both attempts as taken (rows=%, eyes=%, rushed=%)', n, pct, done; END IF;
+  PERFORM pg_temp.as_user(other);
+  SELECT count(*) INTO n FROM public.learner_exam_attempts WHERE lesson_id = 'L107';
+  IF n <> 0 THEN RAISE EXCEPTION 'LEAK: another learner sees % of this learner''s attempts through the view', n; END IF;
+  PERFORM pg_temp.as_user(son);
+  DELETE FROM public.learner_lesson_records WHERE user_id = son AND lesson_id IN ('L107', 'L108', 'L109', 'L110');
 
   PERFORM pg_temp.as_postgres();
   RAISE NOTICE 'LEARNER RECORD SMOKE: PASS';

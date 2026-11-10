@@ -70,6 +70,28 @@ export function cleanVersionsRead(v) {
 // trigger from the columns the row was written with. The client never sends
 // it. Only well-formed entries reach the app; a malformed one is dropped, not
 // guessed at.
+// HOW AN ATTEMPT WAS TAKEN (DR-1386, kept on the record by 0316 / DR-1396).
+// The same keys, types and ranges the wall keeps; anything else is dropped.
+export function cleanTaken(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  const num = (v, lo, hi, dp = 0) => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
+    const f = 10 ** dp;
+    return Math.min(hi, Math.max(lo, Math.round(v * f) / f));
+  };
+  const out = {
+    reading: ['after', 'partly', 'before'].includes(t.reading) ? t.reading : undefined,
+    readPct: num(t.readPct, 0, 100),
+    secsPerQuestion: num(t.secsPerQuestion, 0, 3600, 1),
+    rushed: typeof t.rushed === 'boolean' ? t.rushed : undefined,
+    firstTry: typeof t.firstTry === 'boolean' ? t.firstTry : undefined,
+    eyesWpm: num(t.eyesWpm, 0, 5000),
+    earsWpm: num(t.earsWpm, 0, 5000),
+  };
+  for (const k of Object.keys(out)) if (out[k] === undefined) delete out[k];
+  return Object.keys(out).length ? out : null;
+}
+
 export function cleanQuizHistory(v) {
   if (!Array.isArray(v)) return [];
   return v
@@ -79,6 +101,7 @@ export function cleanQuizHistory(v) {
       pct: intOrNull(e.pct),
       passed: e.passed === null || e.passed === undefined ? null : !!e.passed,
       band: e.band ? String(e.band) : null,
+      ...(cleanTaken(e.taken) ? { taken: cleanTaken(e.taken) } : {}),
     }))
     .filter((e) => e.at);
 }
@@ -101,6 +124,9 @@ export function rowToRecord(row = {}) {
     quizAt: iso(row.quiz_at || row.quizAt),
     versionsRead: cleanVersionsRead(row.versions_read ?? row.versionsRead),
     quizHistory: cleanQuizHistory(row.quiz_history ?? row.quizHistory),
+    // The reading on evidence, apart from Done (0316), and the latest attempt's how-taken.
+    readEvidenceAt: iso(row.read_evidence_at || row.readEvidenceAt),
+    quizTaken: cleanTaken(row.quiz_taken ?? row.quizTaken),
     updatedAt: iso(row.updated_at || row.updatedAt),
   };
 }
@@ -124,6 +150,10 @@ export function recordToRow(rec = {}) {
   // Only a record that names versions carries the column: the wall ratchets
   // the union (0312), and a row that says nothing leaves what is there.
   if (Array.isArray(rec.versionsRead)) row.versions_read = cleanVersionsRead(rec.versionsRead);
+  // Only a record that names them carries the evidence columns (0316): the wall
+  // ratchets the reading and copies how the attempt was taken into its ledger entry.
+  if (rec.readEvidenceAt) row.read_evidence_at = iso(rec.readEvidenceAt);
+  if (cleanTaken(rec.quizTaken)) row.quiz_taken = cleanTaken(rec.quizTaken);
   // quiz_history is never in the row the client writes: the wall appends each
   // attempt itself and ignores anything sent (0313), so there is nothing to
   // carry and nothing a device could rewrite.
