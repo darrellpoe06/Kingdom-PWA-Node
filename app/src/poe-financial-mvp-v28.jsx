@@ -1619,7 +1619,6 @@ export default function PoeFinancialSystem() {
         try { localStorage.setItem('poe-snapshot-marker', remote.updatedAt); } catch (_) { /* non-fatal */ }
         const p = remote.payload;
         setData(d => {
-          // Pace and depth stay this person's own (DR-1406): never taken from the household row.
           const snapData = withoutDevicePrefs(p.data || {});
           const next = { ...d, ...snapData };
           if (snapData.inflows && Array.isArray(snapData.inflows.rentals)) {
