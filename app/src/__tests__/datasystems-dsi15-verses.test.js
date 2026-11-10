@@ -148,19 +148,21 @@ describe('dsi15 is in the course, numbered, and whole', () => {
   it('exists exactly once as the fifteenth module with all four bands', () => {
     expect(L, `${ID} is not in the course`).toBeTruthy();
     expect(DATASYSTEMS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(DATASYSTEMS_MODULES).toHaveLength(15);
-    expect(DATASYSTEMS_MODULES[DATASYSTEMS_MODULES.length - 1].id).toBe(ID);
+    // dsi16 (DR-1401) followed it, so dsi15 is pinned by its place, not as the last.
+    expect(DATASYSTEMS_MODULES.length).toBeGreaterThanOrEqual(15);
+    expect(DATASYSTEMS_MODULES[14].id).toBe(ID);
     for (const b of BANDS) expect(typeof L.levels[b], b).toBe('string');
     expect(L.levels.child.length).toBeGreaterThan(1000);
   });
 
-  it('claims dsi15 exactly once, and the course numbers stay 1 to 15 with no gap', () => {
+  it('claims dsi15 exactly once, and the course numbers stay 1 to N with no gap', () => {
     const numbers = DATASYSTEMS_MODULES.map((m) => Number(/^dsi(\d+)-/.exec(m.id)[1])).sort((a, b) => a - b);
-    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(numbers).toEqual(numbers.map((_, i) => i + 1));
+    expect(numbers.slice(0, 15)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   });
 
   it('the course meta counts fifteen modules rather than the fourteen it carried before', () => {
-    expect(DATASYSTEMS_META.weeks).toBe(15);
+    expect(DATASYSTEMS_META.weeks).toBeGreaterThanOrEqual(15);
     expect(DATASYSTEMS_META.weeks).toBe(DATASYSTEMS_MODULES.length);
   });
 
