@@ -148,7 +148,7 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
             <button
               type="button"
               onClick={() => onOpen(r.courseKey, r.lessonId)}
-              className="flex-1 min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="flex-[1_1_12rem] min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] [overflow-wrap:anywhere] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
               style={{ fontFamily: '"Fraunces", serif' }}
             >
               <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }}>

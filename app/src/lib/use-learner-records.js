@@ -59,7 +59,8 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       const p = { ...(d.classProgress || {}) };
       if (versionsRead) {
         if (!p[moduleId]) p[moduleId] = new Date().toISOString();
-        keep(moduleId, courseKey, { completedAt: p[moduleId], versionsRead });
+        // A reading files with its evidence (0316): this road is only ever a finished reading.
+        keep(moduleId, courseKey, { completedAt: p[moduleId], versionsRead, readEvidenceAt: new Date().toISOString() });
         return { ...d, classProgress: p };
       }
       if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
@@ -81,7 +82,7 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       // never lowers what the learner sees. The attempt's own score is in
       // `last` and in the ledger.
       const at = (result && result.at) || new Date().toISOString();
-      // HOW IT WAS TAKEN rides the device's own ledger (DR-1386); the wall's ledger keeps at/pct/passed (0313).
+      // HOW IT WAS TAKEN rides the device's ledger and, since 0316, the wall's too (DR-1386, DR-1396).
       const thisTry = { at, pct: result?.pct ?? null, passed: result?.passed ?? null, ...(result && result.integrity ? { integrity: result.integrity } : {}) };
       const history = [...(Array.isArray(prior?.history) ? prior.history : []), thisTry];
       const bestPct = Math.max(Number.isFinite(prior?.pct) ? prior.pct : -1, Number.isFinite(thisTry.pct) ? thisTry.pct : -1);
@@ -102,6 +103,8 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
           passed: thisTry.passed,
           at,
           attempts,
+          // How this attempt was taken reaches the record (0316, DR-1396).
+          ...(thisTry.integrity ? { taken: thisTry.integrity } : {}),
         },
       });
       return { ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: next } };

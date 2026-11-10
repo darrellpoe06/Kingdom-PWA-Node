@@ -33,8 +33,8 @@ His words, in order: "Not seeing any part... taking the test... and some kpi's t
 
 ## Honest limits
 
-- On the cloud card, "on the record" is `completed_at`, which Done also writes; the device holds the finer evidence. Carrying per-attempt evidence (reading reached, seconds a question, pace) to the cloud is a schema change (Tier B), filed as `agent_inbox` row `474cfe54-0ac1-4c37-ba4c-a325492f034d`, `re-review: 2026-11-24`.
-- Paces and the pace-and-understanding view are this device's only. Brain measurement (his prefrontal-cortex ask) and devices when available are filed as `agent_inbox` row `ced55234-1089-463f-bab7-9912fb16b469`; the app measures behaviour, not the brain, and says so.
+- On the cloud card, "on the record" is `completed_at`, which Done also writes; the device holds the finer evidence. Carrying per-attempt evidence (reading reached, seconds a question, pace) to the cloud was built the same day on the NAS database (DR-1396, migration 0316); the `agent_inbox` row `474cfe54-0ac1-4c37-ba4c-a325492f034d` went to the hosted mirror, not the live database.
+- Paces and the pace-and-understanding view are this device's only. Brain measurement (his prefrontal-cortex ask) and devices when available are filed as `agent_inbox` row `ced55234-1089-463f-bab7-9912fb16b469` (on the hosted mirror, DR-1396); the app measures behaviour, not the brain, and says so.
 
 ## Verification
 

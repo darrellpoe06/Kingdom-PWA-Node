@@ -124,9 +124,13 @@ export function testIntegrityKpis(records = []) {
   const triesToPass = [];
   for (const r of Array.isArray(records) ? records : []) {
     if (!r || !Array.isArray(r.quizHistory) || !r.quizHistory.length) continue;
-    const readAt = r.completedAt ? Date.parse(r.completedAt) : NaN;
+    // The reading on evidence when the record has it (0316), else the lesson's mark.
+    const readAt = r.readEvidenceAt ? Date.parse(r.readEvidenceAt) : r.completedAt ? Date.parse(r.completedAt) : NaN;
     const tries = r.quizHistory
-      .map((e) => ({ t: Date.parse(e.at), passed: !!e.passed, rushed: !!(e.integrity && e.integrity.rushed) }))
+      .map((e) => {
+        const how = e.taken || e.integrity || null;
+        return { t: Date.parse(e.at), passed: !!e.passed, rushed: !!(how && how.rushed), reading: how && how.reading ? how.reading : null };
+      })
       .filter((e) => Number.isFinite(e.t))
       .sort((a, b) => a.t - b.t);
     let firstPass = null;
@@ -135,7 +139,8 @@ export function testIntegrityKpis(records = []) {
       taken += 1;
       if (e.rushed) rushed += 1;
       if (e.passed) passed += 1;
-      const after = Number.isFinite(readAt) && readAt <= e.t;
+      // The attempt's own account of the reading wins; else the moments are compared.
+      const after = e.reading ? e.reading === 'after' : Number.isFinite(readAt) && readAt <= e.t;
       if (after && e.passed) understoodHere = true;
       if (after) afterReading += 1;
       else {

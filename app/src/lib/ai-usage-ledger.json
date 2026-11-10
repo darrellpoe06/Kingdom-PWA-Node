@@ -1051,6 +1051,36 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "dr-1396-evidence-on-the-nas",
+      "date": "2026-11-10",
+      "task": "Learning evidence kept on the NAS: migration 0316 (read_evidence_at ratchet, quiz_taken into the ledger, per-attempt SQL view), app send/read with deploy-order fallbacks, smoke section 11 proven on a real Postgres, CI step",
+      "drs": [
+        "DR-1396"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: Storage on the nas, what are we waiting for."
+    },
+    {
+      "id": "dr-1397-title-never-crushed",
+      "date": "2026-11-10",
+      "task": "A lesson row's title keeps a 12rem floor in the Latest and course lists, so Continue and Play wrap below it at large text sizes instead of crushing it",
+      "drs": [
+        "DR-1397"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 2,
+      "notes": "From one A++ screenshot."
     }
   ]
 }

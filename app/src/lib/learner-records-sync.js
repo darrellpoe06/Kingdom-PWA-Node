@@ -75,6 +75,8 @@ export async function saveLearnerRecord(rec = {}, { client = defaultClient, demo
     quizAt: quiz.at ?? rec.quizAt ?? null,
     quizAttempts: quiz.attempts ?? rec.quizAttempts ?? 0,
     versionsRead: rec.versionsRead,
+    readEvidenceAt: rec.readEvidenceAt,
+    quizTaken: quiz.taken ?? rec.quizTaken,
   });
   // ONLY WHAT WAS SAID IS WRITTEN (DR-1255, measured in this file): the row
   // is one per lesson and the upsert merges by column, so a mark-read that
@@ -90,9 +92,19 @@ export async function saveLearnerRecord(rec = {}, { client = defaultClient, demo
   if (rec.courseKey === undefined) delete payload.course_key;
 
   try {
-    const { error } = await client
+    let { error } = await client
       .from(TABLE)
       .upsert(payload, { onConflict: 'user_id,lesson_id' });
+    // NEVER LOSE A WRITE TO THE ORDER OF A DEPLOY (DR-1396). The evidence
+    // columns arrive with migration 0316; if the app reaches a database that
+    // does not have them yet, the same write is sent again without them, so
+    // the reading and the score are still kept.
+    if (error && (payload.quiz_taken !== undefined || payload.read_evidence_at !== undefined)
+      && (error.code === 'PGRST204' || isMissingColumn(error, 'quiz_taken') || isMissingColumn(error, 'read_evidence_at'))) {
+      delete payload.quiz_taken;
+      delete payload.read_evidence_at;
+      ({ error } = await client.from(TABLE).upsert(payload, { onConflict: 'user_id,lesson_id' }));
+    }
     if (error) return { error };
     return { saved: true, record: rowToRecord({ ...payload, user_id: session.user?.id || null }) };
   } catch (err) {
@@ -112,8 +124,11 @@ export async function saveLearnerRecord(rec = {}, { client = defaultClient, demo
 // refuses the whole select with PostgreSQL's 42703. The read then asks again
 // without that one column, so the record never goes dark for a column it
 // can live without — the ledger simply reads as empty until 0313 lands.
-const READ_COLUMNS = 'user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, quiz_history, updated_at';
-const READ_COLUMNS_BEFORE_0313 = READ_COLUMNS.replace(', quiz_history', '');
+// `read_evidence_at` and `quiz_taken` arrived with 0316 (DR-1396) and fall back
+// the same way: a backend without them reads the record without them.
+const READ_COLUMNS = 'user_id, lesson_id, course_key, learner_label, age_band, completed_at, quiz_pct, quiz_passed, quiz_attempts, quiz_at, versions_read, quiz_history, read_evidence_at, quiz_taken, updated_at';
+const READ_COLUMNS_BEFORE_0316 = READ_COLUMNS.replace(', read_evidence_at, quiz_taken', '');
+const READ_COLUMNS_BEFORE_0313 = READ_COLUMNS_BEFORE_0316.replace(', quiz_history', '');
 
 export function isMissingColumn(error, column) {
   if (!error) return false;
@@ -131,6 +146,7 @@ export async function fetchLearnerRecords({ client = defaultClient, limit = 2000
     .limit(limit);
   try {
     let { data, error } = await read(READ_COLUMNS);
+    if (error && (isMissingColumn(error, 'read_evidence_at') || isMissingColumn(error, 'quiz_taken'))) ({ data, error } = await read(READ_COLUMNS_BEFORE_0316));
     if (error && isMissingColumn(error, 'quiz_history')) ({ data, error } = await read(READ_COLUMNS_BEFORE_0313));
     if (error) return { records: [], error };
     const records = (data || []).map(rowToRecord).filter((r) => r.lessonId);

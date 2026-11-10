@@ -5535,7 +5535,7 @@ export default function ChurchLearn({
                     <button
                       type="button"
                       onClick={() => open(m.id)}
-                      className="flex-1 min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      className="flex-[1_1_12rem] min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] [overflow-wrap:anywhere] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     >
                       {/* THE LESSON'S OWN NUMBER, AND ITS DAY (Darrell 2026-09-24:
