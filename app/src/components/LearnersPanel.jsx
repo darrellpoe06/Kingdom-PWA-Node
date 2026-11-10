@@ -124,9 +124,20 @@ function BandChip({ band }) {
   );
 }
 
+// THE FIGURES WRAP BY THEIR OWN SIZE (Darrell 2026-11-10, a Big Print
+// screenshot of his record: "LESSONSVERSIONS", "Child,35", "attempts100%" —
+// "Fix it"). The grids counted columns by the SCREEN (sm:grid-cols-5), so a
+// wide screen kept five columns while Big Print made the words three times
+// larger, and each figure ran into the next. Columns are now sized by the
+// TEXT: each figure is at least FIGURE_MIN_EM wide in its own em, which grows
+// with Big Print, so a row wraps to fewer columns as the words grow; and a
+// long word breaks inside its own box instead of crossing into the next one.
+export const FIGURE_MIN_EM = 9;
+export const FIGURE_GRID = { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${FIGURE_MIN_EM}em), 1fr))` };
+
 function Figure({ label, value, hint }) {
   return (
-    <div className="border border-[#E8E4DC] p-3">
+    <div className="border border-[#E8E4DC] p-3 min-w-0 [overflow-wrap:anywhere]" data-testid="record-figure">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{label}</div>
       <div className="text-lg text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
       {hint ? <div className="text-[0.6875rem] text-[#5A5751]">{hint}</div> : null}
@@ -147,7 +158,7 @@ function TakenAndGraded({ rows = [], userId }) {
   return (
     <div className="mt-2" data-testid="taken-and-graded">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
         <Figure label="Understood" value={k.understood} hint="Lessons on record and passed after it: the main goal." />
         <Figure label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
         <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
@@ -228,7 +239,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
         <BandChip band={learner.competency} />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
         <Figure label="Lessons read" value={learner.lessonsRead} />
         {/* WHICH VERSIONS (DR-1255, closed DR-1261): the same Word is written
             for five readers; the record says which of them this learner has
@@ -345,7 +356,7 @@ export default function LearnersPanel({
       </p>
 
       {isGovernor && learners.length > 1 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="grid gap-2 mb-4" style={FIGURE_GRID} data-testid="record-figures">
           <Figure label="Learners" value={totals.learners} />
           <Figure label="Lessons read" value={totals.lessonsRead} />
           <Figure label="Exams passed" value={`${totals.examsPassed} of ${totals.examsTaken}`} />
