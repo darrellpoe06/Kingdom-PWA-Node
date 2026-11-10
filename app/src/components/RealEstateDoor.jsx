@@ -42,6 +42,8 @@
 import React from 'react';
 import { WELCOME_CSS } from './PoePropertiesWelcome.jsx';
 import { useThemePref } from '../lib/theme-css.js';
+import MortgageCalculator from './MortgageCalculator.jsx';
+import { loanGroups } from '../lib/mortgage-sources.js';
 
 const fmt = (n) => (n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`);
 
@@ -56,12 +58,18 @@ const TONE_CLASS = { green: 'pp-good', rust: 'pp-red', watch: 'pp-watch', muted:
  * @param {object} props.state   the value of lib/real-estate-door.js doorState()
  * @param {string|null} props.focus  the attention band the list is filtered to
  * @param {(key: string|null) => void} props.onFocus  focus that band, or clear it
+ * @param {{rentals: object[], entities: object[], currentDate: Date}|null} props.calc
+ *   when given, the mortgage calculator is mounted (closed) under the band,
+ *   listing these properties' own mortgages by entity (DR-1413). It sits
+ *   outside the `.pp-door` island because it wears the shell's themed classes.
  * @param {boolean} props.scoped  false when the host already provides `.pp-door`
  *   (inside the Poe Properties app), so the palette and the stylesheet are not
  *   declared twice.
  */
-export default function RealEstateDoor({ state, focus = null, onFocus = () => {}, scoped = true }) {
+export default function RealEstateDoor({ state, focus = null, onFocus = () => {}, scoped = true, calc = null }) {
   const [theme] = useThemePref('cream');
+  const calcRentals = calc ? calc.rentals : null; const calcEntities = calc ? calc.entities : null;
+  const sources = React.useMemo(() => (calcRentals ? loanGroups({ rentals: calcRentals, entities: calcEntities }) : null), [calcRentals, calcEntities]);
   if (!state) return null;
   const { doors, properties, label, collected, holds, attention, allClear, clear, personal, service } = state;
 
@@ -214,9 +222,16 @@ export default function RealEstateDoor({ state, focus = null, onFocus = () => {}
   // Estate tab it is the island itself.
   if (!scoped) return band;
   return (
-    <div data-theme={theme === 'cream' ? undefined : theme} className="pp-door pp-re-door" data-testid="real-estate-door-scope">
-      <style>{WELCOME_CSS}</style>
-      {band}
-    </div>
+    <>
+      <div data-theme={theme === 'cream' ? undefined : theme} className="pp-door pp-re-door" data-testid="real-estate-door-scope">
+        <style>{WELCOME_CSS}</style>
+        {band}
+      </div>
+      {sources && (
+        <div className="mb-4" data-testid="real-estate-calculator">
+          <MortgageCalculator sources={sources} currentDate={calc.currentDate} title="Mortgage calculator" lead="Choose a property to fill in its mortgage on file, or work out a new loan on a house you are weighing." />
+        </div>
+      )}
+    </>
   );
 }
