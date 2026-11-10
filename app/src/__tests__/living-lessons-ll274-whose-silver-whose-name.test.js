@@ -333,8 +333,52 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
   });
 
   it('every chapter this lesson stands on is FREE at anchor level', () => {
-    const spent = anchorChapters();
-    expect(FREE_CHAPTERS.filter((c) => spent.has(c))).toEqual([]);
+    // CORRECTED 2026-11-09 on DR-1317, which is Darrell's own correction at
+    // law-tier and settles this exactly: **"one teaching" is decided by WHERE A
+    // LESSON LANDS, never by the Scripture it stands on**, and **a verse is
+    // never SPENT** — "there would be overlapping at times however not the
+    // exact same lesson... How else would they connect?!" With DR-1323: no
+    // lesson gate claims a verse for itself.
+    //
+    // At chapter granularity this case was a residual instance of the measure
+    // DR-1317 removed. It retired ground for THIS lesson because a sibling
+    // anchored a DIFFERENT verse in the same chapter, which is overlap doing
+    // what DR-1317 says overlap is for. ll274 lands on the vow and what
+    // forbearing to vow costs; ll289 lands on the escaped servant and the
+    // verses the Slave Bible cut. Two landings, one chapter, no verse taken.
+    //
+    // (The same fix was made in the case below on 2026-11-06, where the comment
+    // credits DR-1352. That attribution is loose: DR-1352 is ll283's lesson
+    // record and says nothing about this gate — the fix was made on ll283's
+    // branch a day after the record was written. DR-1352 does name DR-1317 and
+    // DR-1323 in its Pairs-with line, which is where the principle lives.)
+    //
+    // MEASURED on this tree, by importing the modules rather than by regex:
+    // ll289 ("Why the Oppressed Still Call on Him", DR-1380) anchors
+    // Deuteronomy 23:15-16 — the escaped servant, the verses the Slave Bible
+    // cut. This lesson stands on Deuteronomy 23:21-23 — the vow, and what
+    // forbearing to vow costs. Zero verse overlap. The chapter census called
+    // the ground spent; no verse this lesson stands on is taken.
+    //
+    // So the question is asked at the granularity it means: a chapter is spent
+    // for THIS lesson when a sibling anchors one of the VERSES this lesson
+    // stands on. A sibling teaching a different part of the same chapter is the
+    // catalog working — two lessons meeting in Deuteronomy 23 on two different
+    // commands — and is named here rather than silently allowed.
+    //
+    // This is NOT the exclusivity class DR-1317/1323/1326/1333/1344 removed,
+    // and it is not a loosened pin: a sibling anchoring 23:21, 23:22 or 23:23
+    // still reds this case, which is the proof below.
+    const spentVerses = anchorVerses();
+    const mine = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean);
+    const collisions = mine.filter((r) => FREE_CHAPTERS.includes(chapterOf(r)) && spentVerses.has(r));
+    expect(collisions, `a sibling anchors a verse this lesson stands on:\n${collisions.join('\n')}`)
+      .toEqual([]);
+    // The chapter census still has to be real, or the check above is vacuous
+    // against an empty set (DR-0076 §3) — and the one chapter a sibling now
+    // shares is named, so a NEW chapter joining that set is visible in a diff.
+    const spentChapters = anchorChapters();
+    expect(FREE_CHAPTERS.filter((c) => spentChapters.has(c))).toEqual(['Deuteronomy 23']);
   });
 
   it('and FREE at prose level too, which is the check an anchor census cannot make', () => {
