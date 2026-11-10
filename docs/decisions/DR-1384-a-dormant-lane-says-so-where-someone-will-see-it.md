@@ -15,17 +15,25 @@ the first thirty already had shipped lessons — it over-reports toward re-work.
 The `Lesson-Captured` lock has **never been set on any thread**: its road ran
 twice, once green having labelled nothing (the dormant-exits-0 bug DR-1355
 fixed) and once red saying `GMAIL_WATCH_APP_PASSWORD is not set`. The watcher is
-that fault at scale — **480 runs, 2026-08-25 to 2026-11-09**, recent ones green,
-every run sampled printing `watcher dormant: ... (honest no-op)`. **77 days of
-green runs that read no mail**, found only by opening the raw log of run 480.
-DR-1355 named the shape, *"a witness that cannot fail loudly"*, and fixed only
-the label lane.
+that fault at scale — **480 runs, 2026-08-25 to 2026-11-09**, every one sampled
+printing `watcher dormant: ... (honest no-op)`. **77 days of green runs that read
+no mail**, found only by opening the raw log of run 480. DR-1355 named the shape,
+*"a witness that cannot fail loudly"*, and fixed only the label lane.
 
 **The Ways check ran before this was called his** (DR-1159): one App Password
-serves both SMTP and IMAP, so it could have been a wiring fix.
+serves SMTP and IMAP both, so it could have been a wiring fix.
 `GMAIL_WATCH_APP_PASSWORD` is definitively unset; `SMTP_APP_PASSWORD` **could not
-be determined** — the one workflow printing that fact checks `TS_AUTHKEY` first
-and exits, hiding an independent fact behind a dead dependency.
+be determined** — the one workflow printing that checks `TS_AUTHKEY` first and
+exits, hiding an independent fact behind a dead dependency.
+
+## Impact
+
+**The cost, named rather than discovered later (P61):** while dormant, the only
+road moving lesson mail is a session querying Gmail by hand — the dependency P61
+forbids a standing lane. It is not quiet; it is carried by hand, and has been for
+77 days. **What this obligates:** a scheduled witness that cannot do its job says
+so where a person will look, and names the value it needs. **His, and only his:**
+a Google App Password as `GMAIL_WATCH_APP_PASSWORD`.
 
 ## Decision
 
@@ -36,25 +44,17 @@ and exits, hiding an independent fact behind a dead dependency.
    naming the cost and the one value that ends it. **It still exits 0,** which is
    not the same mistake twice — the label lane is dispatch-only with a required
    input, so dormancy there means work was asked for and not done; this lane is
-   *scheduled*, where 480 reds is noise, and a witness nobody can bear to look
-   at is no witness either.
+   *scheduled*, where 480 reds is noise and a witness nobody can look at is none.
 
-**Stated as the weak fix.** The strong one is DR-0125's: file each observation on
-a rolling `incident`-labelled issue, queryable and on the OpsBoard; needs
-`issues: write` and a de-duplicating key. `re-review: 2026-11-24`.
-
-**The cost named, not discovered later (P61):** while dormant, the only road
-moving lesson mail is a session querying Gmail by hand — the exact dependency
-P61 forbids a standing lane. It is not quiet; it is carried by hand. **His, and
-only his:** a Google App Password as `GMAIL_WATCH_APP_PASSWORD`.
+**Stated as the weak fix.** The strong one is DR-0125's: each observation filed
+on a rolling `incident` issue, on the OpsBoard. `re-review: 2026-11-24`.
 
 ## Verification
 
 Both files parse as YAML and the watcher's embedded python parses with `ast` (95
 lines) — the dormant branch is the one path reachable without the secret, so a
-syntax error there would stay invisible until the next scheduled run. The ceiling
+syntax error there stays invisible until the next scheduled run. The ceiling
 is raised to the **measured** 22722 with its reason; register regenerated, 97
-workflows, ceiling met exactly. The new behaviour cannot be proven green here —
+workflows. The new behaviour cannot be proven green here —
 the secret's absence IS the condition under test — so what is proven is that the
-dormant path runs and says so; the first scheduled run after merge is the live
-witness.
+dormant path runs and says so; the first scheduled run after merge is the witness.
