@@ -168,6 +168,26 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
     }
   });
 
+  it('5. the doors stack full width, Next first, and a long word wraps inside its door (DR-1385)', () => {
+    act(() =>
+      root.render(
+        React.createElement(LessonNeighbors, {
+          prev: { id: 'a', label: 'L6', title: 'What borrowing makes you, and what it does not' },
+          next: { id: 'b', label: 'L8', title: 'He that sweareth to his own hurt, and changeth not' },
+          onGo: () => {},
+          onAll: () => {},
+        })
+      )
+    );
+    const nav = q('lesson-neighbors');
+    expect(nav.className).toMatch(/\bflex-col\b/);
+    const order = [...nav.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
+    expect(order).toEqual(['lesson-neighbor-next', 'lesson-neighbor-prev', 'lesson-neighbor-all']);
+    for (const b of nav.querySelectorAll('button')) expect(b.className).toMatch(/\bw-full\b/);
+    expect(q('lesson-neighbor-next-title').className).toMatch(/\[overflow-wrap:anywhere\]/);
+    expect(q('lesson-neighbor-prev-title').className).toMatch(/\[overflow-wrap:anywhere\]/);
+  });
+
   it('PROVEN TO CATCH: a caller that forgets the way back renders no row at all, so case 3 fails instead of shipping a dead end', () => {
     act(() => root.render(React.createElement(LessonNeighbors, { prev: null, next: null, onGo: () => {} })));
     expect(q('lesson-neighbors')).toBeNull();
