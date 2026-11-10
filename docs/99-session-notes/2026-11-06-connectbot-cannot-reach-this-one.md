@@ -201,3 +201,63 @@ runner→NAS road is retired as it is reversed, after which the Tailscale key
 goes back to being the phone's door and cannot shut the house. This change is a
 step on that road — one door instead of 68 join sites — not an alternative to
 it.
+
+## The friction this landing exposed: the two budget ratchets (DR-1381)
+
+Landing DR-1374 cost two hand resolutions that no tool owned, and they are the
+reason this section exists. `keep-prs-current` calls
+`scripts/workflow-budget.json` and `scripts/file-budgets.json` "the owner's
+call", so every branch that touches a workflow or grows a budgeted file resolves
+them by hand. **They are not the owner's call**, and the arithmetic is the kind
+a hand gets wrong quietly.
+
+A raise entry is a **link in a chain** — `from` the ceiling before a change,
+`to` after. Both sides of a merge branch from the same `from`, so keeping both
+entries leaves two claiming one predecessor, and the ceiling counts only one of
+the two changes. The real numbers from #2582:
+
+| | what it said | what it means |
+|---|---|---|
+| base | ends at `22413` | the ceiling both sides branched from |
+| main | added `22413 → 22416` | DR-1363's three guard lines |
+| ours | wrote `22413 → 22659` | DR-1374's 246 lines, against the main of the hour |
+| naive union | `22659` | **main's three lines vanish** (`22659 < 22416 + 246`) |
+| re-based | `22416 → 22662` | the delta kept, landing on main's chain |
+
+What survives a merge is the **delta**, not the numbers — and the file already
+records that re-basing done by hand **twice**, in its own prose: *"First written
+as 22413 → 22659 against the main of the hour; after merging main (DR-1363's
+three lines raised it to 22416) the same change is 22416 → 22662, which is the
+measured total and not above it."* The practice was already precedent. Only the
+arithmetic was manual, and it was right because the numbers were small.
+
+**What the resolver now does, and the line it does not cross.** It unions the
+append-only `raises` and re-bases our entries onto main's chain, per *file* for
+`file-budgets.json` since each file chains separately. It **never sets a
+ceiling**: it leaves what the chain predicts, then runs each guard's own
+`--generate` — both down-only, `Math.min` in `workflow-register.mjs` and
+`regenerate` in `file-budget-guard.mjs` — and lets each guard's own check judge.
+So the measurement is never reimplemented and a ceiling can rise only by as much
+as a raise entry with a human's reason explains. An unexplained rise is REFUSED,
+carrying the guard's own message, which is already written to ask for that
+reason.
+
+That line matters more than the convenience: every open branch's resolution runs
+through this script, so a resolver that invented a ceiling would move a ratchet
+on nine branches at once without anyone reading it.
+
+**Prose is reported, never rewritten.** A re-based entry's `reason` may still
+recite the pre-merge numbers. The resolver prints the old and the new and says
+so — rewriting prose by number is the exact fault DR-1362 §2 records, and the
+two entries above are the proof, since each describes its own re-basing in words
+a tool could not have written.
+
+**One check was wrong about the code, not the other way round.** I wrote a check
+expecting a refusal when a subject has no predecessor *and* no ceiling in main,
+and it failed. The test was right: having neither is positive evidence that main
+has never seen that file, so there is nothing to re-base onto *and* nothing to
+re-base — ours already starts in the right place, and the guard still measures
+the result. The refusal was over-eager and the code changed. Recorded because a
+flag is where the work starts (DR-0621), and because the opposite reflex — bend
+the test until it is green — is what would have shipped a resolver that refuses
+every genuinely new budgeted file.

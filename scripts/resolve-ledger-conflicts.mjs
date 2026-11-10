@@ -87,7 +87,55 @@ export const USAGE_LEDGER = 'app/src/lib/ai-usage-ledger.json';
  * loses nothing. The one case that is NOT an append is handled by refusing it,
  * below.
  */
-export const RESOLVED_FILES = [...LEDGER_FILES, USAGE_LEDGER];
+export const WORKFLOW_BUDGET = 'scripts/workflow-budget.json';
+export const FILE_BUDGETS = 'scripts/file-budgets.json';
+/**
+ * The two budget ratchets, and what each one's ceiling actually is.
+ *
+ * `raiseKey` is the field a raise entry is about, `ceiling` the field holding
+ * the limit, and `perKey` says whether the from->to chain is global (workflow
+ * lines: one number) or per subject (file budgets: a map of path -> lines).
+ */
+/** The guard that OWNS each budget's measurement; the resolver never measures. */
+export const BUDGET_GUARDS = Object.freeze({
+  [WORKFLOW_BUDGET]: { script: 'scripts/workflow-register.mjs' },
+  [FILE_BUDGETS]: { script: 'scripts/file-budget-guard.mjs' },
+});
+
+export const BUDGET_SPECS = Object.freeze({
+  [WORKFLOW_BUDGET]: { raiseKey: 'dr', ceiling: 'totalLines', perKey: false, why: 'reason' },
+  [FILE_BUDGETS]: { raiseKey: 'file', ceiling: 'budgets', perKey: true, why: 'why' },
+});
+
+/**
+ * Every file this resolver will accept in conflict. A third file joined the two
+ * on 2026-11-06 (DR-1369): DR-1347 made a cost entry MANDATORY on every record,
+ * so `ai-usage-ledger.json` now changes on every branch exactly as INDEX.md
+ * does — and it was not in this set, so every landing dirtied every open branch
+ * and the catch-up was by hand. MEASURED: the same conflict set resolved five
+ * times in one afternoon across nine branches, which is quadratic in branches.
+ *
+ * WHY A UNION IS SAFE HERE AND REFUSING WAS RIGHT FOR INDEX ROWS. DR-0644 made
+ * this resolver REFUSE two INDEX rows that share a DR number, because a DR
+ * number is a scarce claim: two different decisions reaching for 0762 is a real
+ * collision and keeping one silently deletes a decision. A usage entry is keyed
+ * by its TASK id — a slug of the work — which two branches never pick by
+ * accident. So two sides of this file are two different appends, and the union
+ * loses nothing. The one case that is NOT an append is handled by refusing it,
+ * below.
+ *
+ * THE TWO BUDGET RATCHETS JOINED ON 2026-11-09, and they are a different shape
+ * from the three above: an append-only `raises` history PLUS a ceiling that is
+ * a MEASUREMENT of the merged tree. `keep-prs-current` calls them "the owner's
+ * call" and they are not, quite — measured on #2582, where both sides had
+ * branched from the same baseline so the unioned history held two entries
+ * claiming it. The resolution is a union plus a re-measure, and the file
+ * carries its own precedent: DR-1363's reason records re-basing exactly that
+ * way when main moved under it. What the resolver must NEVER do is invent a
+ * ceiling, so it measures one (the caller supplies the measurement) and refuses
+ * when the measurement needs a raise that no entry explains.
+ */
+export const RESOLVED_FILES = [...LEDGER_FILES, USAGE_LEDGER, WORKFLOW_BUDGET, FILE_BUDGETS];
 
 const ROW_RE = /^\| \[DR-(\d{4})\]\(([^)]*)\)/;
 const NEXT_RE = /^\*\*Next ID:\*\*/;
@@ -575,6 +623,144 @@ export function unionUsageLedgerText(theirsText, oursText) {
 }
 
 // -----------------------------------------------------------------------------
+// The two budget ratchets (DR-1342 workflow lines, DR-1339 file sizes).
+// -----------------------------------------------------------------------------
+
+/**
+ * Union an append-only `raises` history and RE-BASE our new entries onto the
+ * chain main actually has.
+ *
+ * WHY RE-BASING AND NOT A PLAIN UNION. A raise entry is not a free-standing
+ * row like a usage entry: it is a LINK in a chain, `from` the ceiling before
+ * the change and `to` the ceiling after. Both sides branched from the same
+ * `from`, so a plain union yields two entries claiming the same predecessor
+ * and a ceiling that counts only one of the two changes. What stays true
+ * across the merge is not the numbers but the DELTA -- how many lines our own
+ * change added -- so our entry is re-based: `from` becomes the chain's current
+ * end and `to` becomes that plus our delta.
+ *
+ * THIS IS NOT A NEW RULE. workflow-budget.json already records it done by hand
+ * twice, in its own prose: "First written as 22413 -> 22659 against the main of
+ * the hour; after merging main (DR-1363's three lines raised it to 22416) the
+ * same change is 22416 -> 22662, which is the measured total and not above it."
+ * (DR-1374's entry; DR-1363's says the same.) MEASURED: resolving these two
+ * files by hand on 2026-11-09 took both re-basings and a re-measure, and got
+ * the arithmetic right only because the numbers were small.
+ *
+ * WHAT THIS FUNCTION REFUSES TO DO. It never sets a ceiling. It leaves the
+ * ceiling at what the chain predicts and lets the guard's own `--generate`
+ * lower it to the measurement (both generators are down-only: `Math.min` in
+ * workflow-register.mjs, `regenerate` in file-budget-guard.mjs) and the guard's
+ * own check judge it. So a ceiling can only RISE here by as much as a raise
+ * entry with a human's reason explains; an unexplained rise fails the guard and
+ * the resolver reports that instead of papering over it. Inventing a ceiling is
+ * the one thing that would make this resolver dangerous, since every other open
+ * branch's resolution runs through it.
+ *
+ * IT ALSO DOES NOT TOUCH PROSE. A re-based entry's `reason`/`why` may still
+ * recite the pre-merge numbers. Per DR-1362 decision 2 a stale mention a tool
+ * cannot disambiguate is REPORTED, never rewritten -- rewriting prose by number
+ * is the exact fault that record exists to name -- so the caller prints the
+ * old and new numbers and the author says it in words if it matters.
+ *
+ * @param {string} baseText   stage 1: the common ancestor.
+ * @param {string} theirsText stage 3: main.
+ * @param {string} oursText   stage 2: this branch.
+ * @param {{raiseKey: string, ceiling: string, perKey: boolean}} spec
+ * @returns {{text?: string, rebased: string[], added: string[], differ: string[]}}
+ */
+export function unionBudgetText(baseText, theirsText, oursText, spec) {
+  const base = JSON.parse(baseText);
+  const theirs = JSON.parse(theirsText);
+  const ours = JSON.parse(oursText);
+  const differ = [];
+  const added = [];
+  const rebased = [];
+
+  const list = (d) => (Array.isArray(d.raises) ? d.raises : null);
+  if (!list(base) || !list(theirs) || !list(ours)) {
+    return { differ: ['raises (not a list on all three sides)'], added, rebased };
+  }
+
+  // `raises` is append-only, so the ancestor must be a PREFIX of both sides.
+  // When it is not, someone edited history and no rule can say which edit wins.
+  const prefixOf = (side) =>
+    JSON.stringify(side.raises.slice(0, base.raises.length)) === JSON.stringify(base.raises);
+  if (!prefixOf(theirs)) differ.push('raises (main rewrote an existing entry, so it is not append-only)');
+  if (!prefixOf(ours)) differ.push('raises (this branch rewrote an existing entry, so it is not append-only)');
+  if (differ.length) return { differ, added, rebased };
+
+  const theirsNew = theirs.raises.slice(base.raises.length);
+  const oursNew = ours.raises.slice(base.raises.length);
+  const kept = [...base.raises, ...theirsNew];
+
+  // The end of the chain we are re-basing onto, per subject. For file budgets
+  // each file has its own chain; for workflow lines there is one global chain.
+  const subject = (e) => (spec.perKey ? String(e[spec.raiseKey] ?? '') : '');
+  const endOf = new Map();
+  for (const e of kept) endOf.set(subject(e), e.to);
+
+  const mine = [];
+  for (const e of oursNew) {
+    const key = subject(e);
+    if (typeof e.from !== 'number' || typeof e.to !== 'number') {
+      differ.push(`raises/${key || 'totalLines'} (an entry's from/to is not a number)`);
+      continue;
+    }
+    // Where the chain this entry lands on ENDS, in order of authority:
+    //   1. the last `to` in the kept chain for this subject;
+    //   2. the ceiling main carries for it — `--generate` lowers a ceiling
+    //      down-only WITHOUT writing a raise entry, so main can have moved a
+    //      subject the kept chain says nothing about;
+    //   3. our own `from`, unchanged.
+    // (3) is not a guess. Having neither (1) nor (2) is positive evidence that
+    // main has never seen this subject — a file that only this branch has
+    // pushed over the new-file line — so there is nothing to re-base onto and
+    // nothing to re-base: our entry already starts from the right place. The
+    // ceiling is still measured and judged by the guard below either way, so
+    // this cannot let an unexplained ceiling through.
+    const landing = endOf.has(key) ? endOf.get(key) : startFromCeiling(theirs, spec, key);
+    const from = typeof landing === 'number' ? landing : e.from;
+    const delta = e.to - e.from;
+    const to = from + delta;
+    if (to !== e.to || from !== e.from) {
+      rebased.push(`${key || 'totalLines'}: ${e.from} -> ${e.to} becomes ${from} -> ${to}` +
+        ` (delta ${delta >= 0 ? '+' : ''}${delta} kept)`);
+    } else {
+      added.push(`${key || 'totalLines'}: ${from} -> ${to}`);
+    }
+    endOf.set(key, to);
+    mine.push({ ...e, from, to });
+  }
+  if (differ.length) return { differ, added, rebased };
+
+  const out = { ...theirs, raises: [...kept, ...mine] };
+
+  // Carry the ceiling the CHAIN now predicts -- never a measurement, and never
+  // higher than the entries above explain. The guard's own --generate lowers it
+  // to the real size and the guard's own check fails an unexplained rise.
+  if (spec.perKey) {
+    const ceilings = { ...theirs[spec.ceiling] };
+    for (const [key, end] of endOf) if (key && key in ceilings) ceilings[key] = end;
+    // A file this branch budgeted that main does not know about yet is ours to add.
+    for (const [key, value] of Object.entries(ours[spec.ceiling] || {})) {
+      if (!(key in ceilings)) { ceilings[key] = endOf.has(key) ? endOf.get(key) : value; added.push(`${spec.ceiling}/${key}`); }
+    }
+    out[spec.ceiling] = ceilings;
+  } else if (endOf.has('')) {
+    out[spec.ceiling] = endOf.get('');
+  }
+
+  return { text: `${JSON.stringify(out, null, 2)}\n`, added, rebased, differ: [] };
+}
+
+function startFromCeiling(theirs, spec, key) {
+  const c = theirs[spec.ceiling];
+  if (spec.perKey) return c && typeof c[key] === 'number' ? c[key] : null;
+  return typeof c === 'number' ? c : null;
+}
+
+// -----------------------------------------------------------------------------
 // Git plumbing.
 // -----------------------------------------------------------------------------
 function git(args, opts = {}) {
@@ -704,7 +890,75 @@ export function resolveInTree(cwd, { log = console.log, err = console.error } = 
       (r.added.length ? ` (${r.added.join(', ')})` : '') + '.');
   }
 
-  // 4. Verify, loudly.
+  // 4. The two budget ratchets — history unioned and re-based here, the CEILING
+  //    left to each guard's own generator and checker (see unionBudgetText).
+  for (const [path, spec] of Object.entries(BUDGET_SPECS)) {
+    if (!unmerged.includes(path)) continue;
+    const b = stage(1, path, cwd);
+    const theirs = stage(3, path, cwd);
+    const ours = stage(2, path, cwd);
+    if (b === null || theirs === null || ours === null) {
+      err(`resolve-ledger-conflicts: REFUSED — ${path} was added or deleted on one side; that is a human's call.`);
+      return { code: 2, others: [path] };
+    }
+    let r;
+    try {
+      r = unionBudgetText(b, theirs, ours, spec);
+    } catch (e) {
+      err(`resolve-ledger-conflicts: REFUSED — ${path} does not parse as JSON on one side: ${e.message}`);
+      return { code: 2, others: [path] };
+    }
+    if (r.differ.length) {
+      err(`resolve-ledger-conflicts: REFUSED — ${path} cannot be unioned:`);
+      for (const d of r.differ) err(`  - ${d}`);
+      err('');
+      err('A raise history is append-only, and a re-base needs an unbroken chain to');
+      err('land on. Read both sides and resolve this file by hand:');
+      err(`  git show :2:${path}   # ours`);
+      err(`  git show :3:${path}   # main`);
+      return { code: 2, others: [path] };
+    }
+    writeFileSync(join(cwd, path), r.text);
+
+    // The guard measures; we do not. --generate is down-only on both guards, so
+    // it can lower the ceiling to the real size but never raise it past what a
+    // raise entry explains; then the guard's own check judges the result.
+    const own = BUDGET_GUARDS[path];
+    const script = join(cwd, own.script);
+    if (!existsSync(script)) {
+      err(`resolve-ledger-conflicts: FAIL — ${path} conflicts but ${own.script} is missing, so nothing can measure it.`);
+      return { code: 1 };
+    }
+    const before = JSON.parse(r.text)[spec.ceiling];
+    const gen = spawnSync(process.execPath, [script, '--generate'], { cwd, encoding: 'utf8' });
+    if (gen.status !== 0) {
+      err(`resolve-ledger-conflicts: FAIL — ${own.script} --generate exited ${gen.status}\n${gen.stdout}${gen.stderr}`);
+      return { code: 1 };
+    }
+    const chk = spawnSync(process.execPath, [script], { cwd, encoding: 'utf8' });
+    if (chk.status !== 0) {
+      err(`resolve-ledger-conflicts: REFUSED — the merged tree is OVER the ceiling in ${path}:`);
+      err(`${chk.stdout}${chk.stderr}`.trimEnd());
+      err('');
+      err('The history unioned cleanly, so this is not a merge question: the merged');
+      err('tree is bigger than every raise entry in it explains. A raise needs a');
+      err("human's reason, which is what the guard's own message asks for. Add the");
+      err(`entry to ${path} by hand, or bring the tree back under the ceiling.`);
+      return { code: 2, others: [path] };
+    }
+    git(['add', '--', path], { cwd });
+    const after = JSON.parse(readFileSync(join(cwd, path), 'utf8'))[spec.ceiling];
+    const lowered = JSON.stringify(before) !== JSON.stringify(after);
+    log(`${path.split('/').pop()}: raises unioned — ${r.added.length} appended, ${r.rebased.length} re-based` +
+      (lowered ? `; ${own.script.split('/').pop()} --generate then re-froze the ceiling lower (down-only)` : '') + '.');
+    // DR-1362 decision 2: report the moved numbers, never rewrite the prose.
+    for (const line of r.rebased) {
+      log(`  re-based ${line}`);
+      log("    its reason/why may still recite the old numbers — a tool must not rewrite prose by number (DR-1362); say it in words if it matters.");
+    }
+  }
+
+  // 5. Verify, loudly.
   const still = git(['diff', '--name-only', '--diff-filter=U'], { cwd }).split('\n').filter(Boolean);
   if (still.length) {
     err(`resolve-ledger-conflicts: FAIL — still unmerged: ${still.join(', ')}`);

@@ -17,7 +17,9 @@ import { fileURLToPath } from 'node:url';
 import {
   conflictMarkerLines, unionConflictHunks, unionKeepingOrder, nextIdAnnotations, unionAnnotations,
   normalizeLedger, resolveLedgerText, unionUsageLedgerText, unionById,
+  unionBudgetText, BUDGET_SPECS, BUDGET_GUARDS, RESOLVED_FILES,
 } from '../../../scripts/resolve-ledger-conflicts.mjs';
+import { regenerate } from '../../../scripts/file-budget-guard.mjs';
 import { canonicalFault } from '../../../scripts/ai-usage-ledger.mjs';
 import { drLedgerFindings } from '../../../scripts/business-systems-guard.mjs';
 
@@ -578,5 +580,151 @@ describe('resolve-ledger-conflicts — the usage ledger end to end (DR-1369)', (
       // Nothing was written: the conflict is still there for a person to read.
       expect(r.g('diff', '--name-only', '--diff-filter=U')).toContain(USAGE);
     } finally { r.cleanup(); }
+  });
+});
+
+// -----------------------------------------------------------------------------
+// The two budget ratchets (DR-1342 workflow lines, DR-1339 file sizes).
+// -----------------------------------------------------------------------------
+// The fixtures are the REAL numbers of 2026-11-06, taken from the prose
+// workflow-budget.json already carries: two raises that had to be re-based by
+// hand when main moved underneath them. Each check is fed the break it exists
+// to stop and must CATCH it (DR-0076 section 3).
+describe('resolve-ledger-conflicts — the budget ratchets re-base onto main', () => {
+  const WB = { raiseKey: 'dr', ceiling: 'totalLines', perKey: false, why: 'reason' };
+  const FB = { raiseKey: 'file', ceiling: 'budgets', perKey: true, why: 'why' };
+
+  const wb = (raises, totalLines) => JSON.stringify({ _comment: 'x', raises, totalLines }, null, 2) + '\n';
+  const raise = (dr, from, to, reason = 'a reason') => ({ date: '2026-11-06', from, to, dr, reason });
+  const fb = (raises, budgets) => JSON.stringify({ _comment: 'x', raises, budgets }, null, 2) + '\n';
+  const fraise = (file, from, to, why = 'a reason') => ({ file, from, to, date: '2026-11-06', why });
+
+  it('CATCHES the naive union: a plain concat counts only ONE of the two changes', () => {
+    // The real case. Base ends at 22413. Main appended DR-1363 (+3). We wrote
+    // DR-1374 as 22413 -> 22659 (+246) against the main of the hour.
+    const base = wb([raise('DR-1360', 22401, 22413)], 22413);
+    const theirs = wb([raise('DR-1360', 22401, 22413), raise('DR-1363', 22413, 22416)], 22416);
+    const ours = wb([raise('DR-1360', 22401, 22413), raise('DR-1374', 22413, 22659)], 22659);
+
+    // What a hand does when it just keeps both entries and the bigger total:
+    // 22659 counts our 246 lines but silently drops main's 3.
+    expect(22659).toBeLessThan(22416 + 246);
+
+    const r = unionBudgetText(base, theirs, ours, WB);
+    expect(r.differ).toEqual([]);
+    const out = JSON.parse(r.text);
+    // Exactly the numbers the record settled on by hand.
+    expect(out.raises.map((e) => [e.dr, e.from, e.to])).toEqual([
+      ['DR-1360', 22401, 22413],
+      ['DR-1363', 22413, 22416],
+      ['DR-1374', 22416, 22662],
+    ]);
+    expect(out.totalLines).toBe(22662);
+    expect(r.rebased).toHaveLength(1);
+    expect(r.rebased[0]).toContain('22413 -> 22659 becomes 22416 -> 22662');
+    expect(r.rebased[0]).toContain('delta +246 kept');
+  });
+
+  it('the DR-1363 re-base lands on its recorded numbers too (22396->22399 => 22413->22416)', () => {
+    const base = wb([raise('DR-1348', 22266, 22272)], 22272);
+    const theirs = wb([raise('DR-1348', 22266, 22272), raise('ll284', 22272, 22413)], 22413);
+    const ours = wb([raise('DR-1348', 22266, 22272), raise('DR-1363', 22396, 22399)], 22399);
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, WB).text);
+    expect(out.raises.at(-1)).toMatchObject({ dr: 'DR-1363', from: 22413, to: 22416 });
+    expect(out.totalLines).toBe(22416);
+  });
+
+  it('does NOT rewrite the prose that recites the old numbers (DR-1362 decision 2)', () => {
+    const stale = 'First written as 22413 -> 22659 against the main of the hour.';
+    const base = wb([raise('DR-1360', 22401, 22413)], 22413);
+    const theirs = wb([raise('DR-1360', 22401, 22413), raise('DR-1363', 22413, 22416)], 22416);
+    const ours = wb([raise('DR-1360', 22401, 22413), raise('DR-1374', 22413, 22659, stale)], 22659);
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, WB).text);
+    expect(out.raises.at(-1).reason, 'a tool must not rewrite prose by number').toBe(stale);
+  });
+
+  it('per-file chains re-base INDEPENDENTLY — a file main did not touch does not move', () => {
+    const base = fb([], { 'a.js': 100, 'b.js': 200 });
+    const theirs = fb([fraise('a.js', 100, 140)], { 'a.js': 140, 'b.js': 200 });
+    const ours = fb([fraise('a.js', 100, 110), fraise('b.js', 200, 230)],
+      { 'a.js': 110, 'b.js': 230 });
+    const r = unionBudgetText(base, theirs, ours, FB);
+    expect(r.differ).toEqual([]);
+    const out = JSON.parse(r.text);
+    // a.js re-bases onto main's 140 (+10); b.js main never touched, so it stands.
+    expect(out.raises.map((e) => [e.file, e.from, e.to])).toEqual([
+      ['a.js', 100, 140],
+      ['a.js', 140, 150],
+      ['b.js', 200, 230],
+    ]);
+    expect(out.budgets).toEqual({ 'a.js': 150, 'b.js': 230 });
+    expect(r.rebased).toHaveLength(1);
+    expect(r.rebased[0]).toContain('a.js');
+  });
+
+  it('a file only THIS branch budgets is carried over, not dropped', () => {
+    const base = fb([], { 'a.js': 100 });
+    const theirs = fb([], { 'a.js': 100 });
+    const ours = fb([fraise('new.js', 1500, 1600)], { 'a.js': 100, 'new.js': 1600 });
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, FB).text);
+    expect(out.budgets).toEqual({ 'a.js': 100, 'new.js': 1600 });
+  });
+
+  it('REFUSES when a side rewrote history: raises is append-only or it is nothing', () => {
+    const base = wb([raise('DR-1360', 22401, 22413, 'the original reason')], 22413);
+    const theirs = wb([raise('DR-1360', 22401, 22413, 'main reworded it')], 22413);
+    const ours = wb([raise('DR-1360', 22401, 22413, 'the original reason'), raise('DR-1374', 22413, 22659)], 22659);
+    const r = unionBudgetText(base, theirs, ours, WB);
+    expect(r.text, 'nothing is written on a refusal').toBeUndefined();
+    expect(r.differ[0]).toContain('main rewrote an existing entry');
+  });
+
+  it('a subject main has NEVER seen needs no re-base — ours stands unchanged', () => {
+    // No predecessor and no ceiling in main is positive evidence that main has
+    // never budgeted this file, so there is nothing to re-base onto and nothing
+    // to re-base. The guard still measures and judges the ceiling either way.
+    const base = fb([], {});
+    const theirs = fb([], {});
+    const ours = fb([fraise('ghost.js', 1500, 1600)], { 'ghost.js': 1600 });
+    const r = unionBudgetText(base, theirs, ours, FB);
+    expect(r.differ).toEqual([]);
+    const out = JSON.parse(r.text);
+    expect(out.raises.at(-1)).toMatchObject({ file: 'ghost.js', from: 1500, to: 1600 });
+    expect(r.rebased, 'nothing moved, so nothing is reported as moved').toEqual([]);
+  });
+
+  it('REFUSES an entry whose from/to is not a number — no arithmetic on nonsense', () => {
+    const base = wb([raise('DR-1360', 22401, 22413)], 22413);
+    const theirs = wb([raise('DR-1360', 22401, 22413), raise('DR-1363', 22413, 22416)], 22416);
+    const ours = wb([raise('DR-1360', 22401, 22413), raise('DR-1374', 22413, 'lots')], 22659);
+    const r = unionBudgetText(base, theirs, ours, WB);
+    expect(r.text, 'nothing is written on a refusal').toBeUndefined();
+    expect(r.differ[0]).toContain('not a number');
+  });
+
+  it('a shrink is a NEGATIVE delta and still chains (the ratchet goes down freely)', () => {
+    const base = wb([raise('DR-1348', 22266, 22272)], 22272);
+    const theirs = wb([raise('DR-1348', 22266, 22272), raise('main', 22272, 22300)], 22300);
+    const ours = wb([raise('DR-1348', 22266, 22272), raise('ours', 22272, 22250)], 22250);
+    const out = JSON.parse(unionBudgetText(base, theirs, ours, WB).text);
+    expect(out.raises.at(-1)).toMatchObject({ from: 22300, to: 22278 });
+    expect(out.totalLines).toBe(22278);
+  });
+
+  it('the resolver OWNS both budget files (they are in RESOLVED_FILES)', () => {
+    expect(RESOLVED_FILES).toContain('scripts/workflow-budget.json');
+    expect(RESOLVED_FILES).toContain('scripts/file-budgets.json');
+    // And each one names the guard that measures it, so the resolver never does.
+    expect(Object.keys(BUDGET_GUARDS).sort()).toEqual(Object.keys(BUDGET_SPECS).sort());
+  });
+
+  it("the guards that OWN the measurement are down-only, which is why the resolver may defer to them", () => {
+    // Proving the premise the design rests on, not just asserting it: both
+    // generators keep the MINIMUM, so --generate can lower a ceiling to the
+    // real size but can never raise one past what a raise entry explains.
+    const reg = readFileSync(join(REPO, 'scripts/workflow-register.mjs'), 'utf8');
+    expect(reg).toMatch(/budget\.totalLines\s*=\s*Math\.min\(/);
+    expect(regenerate({ 'a.js': 90 }, { 'a.js': 100 })).toEqual({ 'a.js': 90 });
+    expect(regenerate({ 'a.js': 120 }, { 'a.js': 100 }), 'never raises').toEqual({ 'a.js': 100 });
   });
 });
