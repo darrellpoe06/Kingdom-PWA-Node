@@ -96,3 +96,35 @@ behaved correctly and recorded **UNKNOWN, never zero**, on its rolling log
 voice or in-app rows are waiting right now is NOT known. Unblocking needs one
 value only the Governor holds — a fresh Reusable + Ephemeral auth key, or better
 the OAuth client the error itself names, which does not expire.
+
+## The priority lane's queue, once it could be read (2026-11-10 22:05Z)
+
+The Supabase connector became available later in the session and answered what
+the tailnet road could not. **35 rows are waiting**, every one created by
+`c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc` — Darrell's phone account, one of his two,
+so none of them waits on member approval. None is tagged plain `voice` (which
+would mean a recording still waiting for its words) and none is `voice-failed`.
+Counted by road, never by body:
+
+- **2 typed teachings** from `thinking-space`, the oldest **2026-09-29** and
+  carrying a 54,115-character body.
+- **4 voice transcripts** (`voice-transcript`, `whisper:nas-cpu`), dated
+  2026-09-30 to 2026-10-09. Two carry `speakers:marked`; one carries
+  `speakers:unmarked` with its reason recorded; the name tags name Bishop Gwin,
+  Freedom Yeshua, and one homework recording. These are buildable: the transcript
+  row holds the words.
+- **17 research-road rows** from 2026-10-22 and 2026-10-23, **every one tagged
+  `build-failed`**, and every reason the same shape: `no version passed every
+  gate (1 written) ... api_error_status: 429`. The NAS lesson builder claimed,
+  grouped, fetched verses, wrote, gated and failed — seventeen times — against a
+  rate limit. Several rows show it tried twice.
+- **12 newsletter items** split from research (`chat-split`, `newsletter-item`),
+  2026-11-06 to 2026-11-09, each carrying its own `newsletter-title:`.
+
+**What the 17 say about the builder.** The lock worked exactly as designed: a
+crashed build leaves its row unmarked, so nothing was lost and the next run
+retries it. What did not work is anything noticing that the same failure repeated
+seventeen times in two days and then stopped being retried at all. A brake that
+preserves work is not the same as a witness that reports it, and this queue had
+the first without the second. The run log on #2378 is that witness for the READ;
+the builder's own failures have no equivalent.
