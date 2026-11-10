@@ -70,6 +70,7 @@ jobs:
 
       - name: Join the tailnet (ephemeral)
         if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
         uses: ./.github/actions/join-tailnet
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -207,6 +208,16 @@ jobs:
           EOS
           cat /tmp/witness.json | head -c 6000; echo
 
+      # THE HOUSE'S OWN WORD WHEN THE BOX CANNOT BE ASKED (DR-1399, under DR-1360):
+      # the heartbeat the NAS writes each cycle, read over poetech.us/sb. Same
+      # witness shape, so the judge, report and incident steps run unchanged.
+      - name: When the box cannot be asked, read the house's own heartbeat
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          python3 scripts/served-heartbeat-receipt.py --needed /tmp/witness.json || exit 0
+          KEY=$(python3 scripts/served-anon-key.py) || KEY=""; [ -n "$KEY" ] && echo "::add-mask::$KEY"
+          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-heartbeat-receipt.py --loops "lesson-voice,lesson-parity,church-mail,lesson-mail,family-key,agent-consumer,db-backup,sovereign-replay,choir-dates,stream-length,worship-song-harvest,nas-heartbeat" > /tmp/witness.next && mv /tmp/witness.next /tmp/witness.json
+
       - name: Judge each loop on what it wrote, and report
         if: steps.gate.outputs.go == 'true'
         run: |
@@ -215,7 +226,7 @@ jobs:
           w = json.load(open("/tmp/witness.json"))
           problems = []
           if not w.get("reachable"):
-              problems.append("the NAS did not answer over SSH")
+              problems.append("the NAS did not answer over SSH" + (f", and over poetech.us: {w.get('why')}" if w.get("road") == "served" else ""))
           else:
               clock = w.get("clock") or {}
               if clock.get("age_s") is not None and clock["age_s"] > 3600:
@@ -241,7 +252,7 @@ jobs:
                       t = e["ledger"].get("transcribe") if isinstance(e["ledger"].get("transcribe"), dict) else e["ledger"]
                       if t.get("ran") is False or "credential" in str(t.get("stopped") or ""):
                           problems.append(f"lesson-voice: its own last-run.json says it did not run: {t.get('stopped') or 'no reason written'}")
-                  if not e.get("installer"):
+                  if not e.get("installer") and w.get("road") != "served":
                       problems.append(f"{name}: its installer is not in the box's checkout")
           verdict = "PASS" if not problems else "FAIL"
           clock = w.get("clock") or {}

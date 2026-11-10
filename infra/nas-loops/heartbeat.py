@@ -24,6 +24,7 @@
 import json
 import os
 import platform
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -71,19 +72,92 @@ def services_enabled(services_json_path):
         return -1
 
 
-def body_of(now=None, host=None, services=-1, cycle="services-sync"):
+def service_names(services_json_path):
+    """Every enabled service name in the registry; [] if unreadable."""
+    try:
+        with open(services_json_path, "r", encoding="utf-8") as fh:
+            d = json.load(fh)
+        items = d if isinstance(d, list) else d.get("services", [])
+        return [
+            s["name"]
+            for s in items
+            if isinstance(s, dict)
+            and s.get("enabled")
+            and isinstance(s.get("name"), str)
+        ]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
+def _named_in(section, name):
+    # The same rule loops-health reads with: a name opens the section or follows
+    # "; ", and is followed by " (", ";" or the end. A reason may hold anything,
+    # so names are matched from the registry, never split out of free text.
+    return (
+        re.search(r"(?:^|; )" + re.escape(name) + r"(?= \(|;|$)", section) is not None
+    )
+
+
+def last_cycle(events_path, names, tail_bytes=400000):
+    """The previous services-sync run, from the runner's own event line (DR-1399).
+
+    Returns {at, ok, failed, degraded} with failed / degraded as service NAMES
+    only (no reasons: the reasons stay on the NAS and in loops-health), or None
+    when no run is recorded or the log cannot be read. The heartbeat runs inside
+    a cycle, so this is always the cycle before it.
+    """
+    try:
+        with open(events_path, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - tail_bytes))
+            lines = fh.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        if '"loop=services-sync ' not in line and "loop=services-sync " not in line:
+            continue
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(ev, dict) or ev.get("event") not in (
+            "loop_run_done",
+            "loop_run_fail",
+        ):
+            continue
+        detail = str(ev.get("detail") or "")
+        if "loop=services-sync " not in detail:
+            continue
+        m = re.search(r"\| (services-sync: .*?)(?: calls_today=\d+)?$", detail)
+        summary = m.group(1) if m else ""
+        mf = re.search(r"FAILED: (.*)$", summary)
+        md = re.search(r"DEGRADED: (.*)$", summary)
+        failed = [n for n in names if mf and _named_in(mf.group(1), n)]
+        degraded = [n for n in names if md and _named_in(md.group(1), n)]
+        return {
+            "at": ev.get("ts"),
+            "ok": ev.get("event") == "loop_run_done",
+            "failed": failed,
+            "degraded": degraded,
+        }
+    return None
+
+
+def body_of(now=None, host=None, services=-1, cycle="services-sync", last=None):
     """The stamp the app parses (lib/nas-heartbeat.js stampOf): at, host, services, cycle."""
     # timezone.utc, not datetime.UTC: the DSM runs Python 3.8 (UP017 is 3.11+).
     utc = timezone.utc  # noqa: UP017
     at = (now or datetime.now(utc)).astimezone(utc).isoformat().replace("+00:00", "Z")
-    return json.dumps(
-        {
-            "at": at,
-            "host": host or platform.node(),
-            "services": services,
-            "cycle": cycle,
-        }
-    )
+    body = {
+        "at": at,
+        "host": host or platform.node(),
+        "services": services,
+        "cycle": cycle,
+    }
+    if last is not None:
+        body["last_cycle"] = last
+    return json.dumps(body)
 
 
 def write_ledger(home, what, body=None, error=None):
@@ -174,7 +248,14 @@ def main():
         print(f"nas-heartbeat: no credential ({why}) - quiet no-op")
         return 0
     slug = os.environ.get("TRANSCRIPTS_SLUG", "colg")
-    body = body_of(services=services_enabled(os.path.join(HERE, "services.json")))
+    registry = os.path.join(HERE, "services.json")
+    last = last_cycle(
+        os.environ.get(
+            "HEARTBEAT_EVENTS", os.path.join(HERE, "events", "events.jsonl")
+        ),
+        service_names(registry),
+    )
+    body = body_of(services=services_enabled(registry), last=last)
     try:
         instance_id = resolve_instance(url, key, slug)
         if not instance_id:

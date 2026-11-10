@@ -15,7 +15,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
-import { fetchNasHeartbeat, heartbeatStatus } from '../lib/nas-heartbeat.js';
+import { fetchNasHeartbeat, heartbeatStatus, lastCycleLine } from '../lib/nas-heartbeat.js';
 import { supabase } from '../lib/supabase.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
@@ -113,6 +113,11 @@ function HeartbeatStrip({ heart }) {
           ? `Written by ${stamp.host || 'the NAS'} on its own clock${stamp.services != null && stamp.services >= 0 ? `, ${stamp.services} services on that clock` : ''}; no runner, key or GitHub between it and this line.`
           : 'The NAS writes one row per clock cycle into the inbox table; until the first row lands, this line says never. If it stays at never after the merge syncs to the NAS, the clock or the credential on the NAS is the thing to check.'}
       </p>
+      {stamp && lastCycleLine(stamp.lastCycle) && (
+        <p className="text-[0.625rem] text-[#1A1815] mt-1" data-testid="nas-heartbeat-cycle">
+          {lastCycleLine(stamp.lastCycle)}
+        </p>
+      )}
     </div>
   );
 }

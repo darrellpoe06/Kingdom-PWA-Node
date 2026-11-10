@@ -1096,6 +1096,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Darrell: Why can't we do it another way, we designed it. Applies DR-1360."
+    },
+    {
+      "id": "dr-1399-house-says-how-its-clock-ran",
+      "date": "2026-11-10",
+      "task": "The NAS heartbeat carries the last cycle's failed and degraded service names; migration 0318 publishes them names-only; the OpsBoard shows them; loops-health reads them over poetech.us when the tailnet key is dead",
+      "drs": [
+        "DR-1399"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Carried forward from Darrell's 'why can't we do it another way' after DR-1398 proved live."
     }
   ]
 }

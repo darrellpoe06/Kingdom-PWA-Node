@@ -25,20 +25,56 @@ export const CLOCK_MIN = 15;
 export const LATE_AFTER_MIN = CLOCK_MIN * 2;
 export const SILENT_AFTER_MIN = CLOCK_MIN * 4;
 
-/** The stamp the row carries: its body is JSON {at, host, services, cycle}; created_at is the fallback. */
+const NAME = /^[a-z0-9][a-z0-9-]{0,59}$/;
+const names = (v) => (Array.isArray(v) ? v.filter((n) => typeof n === 'string' && NAME.test(n)).slice(0, 50) : []);
+
+/**
+ * The previous services-sync cycle the heartbeat carries (DR-1399): when it
+ * ran, whether it finished, and the NAMES of the services that failed or ran
+ * degraded. null when the row does not carry one (an older heartbeat).
+ */
+export function lastCycleOf(body) {
+  const lc = body && typeof body.last_cycle === 'object' ? body.last_cycle : null;
+  if (!lc) return null;
+  const at = Date.parse(lc.at || '');
+  return {
+    at: Number.isFinite(at) ? at : null,
+    ok: typeof lc.ok === 'boolean' ? lc.ok : null,
+    failed: names(lc.failed),
+    degraded: names(lc.degraded),
+  };
+}
+
+/** The stamp the row carries: its body is JSON {at, host, services, cycle, last_cycle?}; created_at is the fallback. */
 export function stampOf(row) {
   if (!row) return null;
   try {
     const body = typeof row.body === 'string' ? JSON.parse(row.body) : row.body;
     if (body && body.at) {
       const t = Date.parse(body.at);
-      if (Number.isFinite(t)) return { at: t, host: body.host || '', services: body.services ?? null, cycle: body.cycle || '' };
+      if (Number.isFinite(t)) return { at: t, host: body.host || '', services: body.services ?? null, cycle: body.cycle || '', lastCycle: lastCycleOf(body) };
     }
   } catch {
     /* a body that is not JSON falls back to created_at */
   }
   const t = Date.parse(row.created_at || '');
-  return Number.isFinite(t) ? { at: t, host: '', services: null, cycle: '' } : null;
+  return Number.isFinite(t) ? { at: t, host: '', services: null, cycle: '', lastCycle: null } : null;
+}
+
+/**
+ * One plain line for the last cycle, or '' when the heartbeat carries none.
+ * Names every failed and degraded service; never says "all well" for a cycle
+ * that did not finish (DR-0076).
+ */
+export function lastCycleLine(lastCycle) {
+  if (!lastCycle) return '';
+  const parts = [];
+  if (lastCycle.failed.length) parts.push(`failed: ${lastCycle.failed.join(', ')}`);
+  if (lastCycle.degraded.length) parts.push(`could not work this cycle: ${lastCycle.degraded.join(', ')}`);
+  if (parts.length) return `Last cycle — ${parts.join('; ')}.`;
+  if (lastCycle.ok === false) return 'Last cycle did not finish, and named no service.';
+  if (lastCycle.ok === true) return 'Last cycle: every service ran.';
+  return '';
 }
 
 /**

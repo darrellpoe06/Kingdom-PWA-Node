@@ -267,7 +267,7 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
     }
   });
 
-  it('the five exempt lanes are exempt for a stated reason, not by accident', () => {
+  it('the six exempt lanes are exempt for a stated reason, not by accident', () => {
     const { secondRoad } = classify();
     // Each of these declares `continue-on-error` on the join because it has
     // another way to the same value or reports DEGRADED rather than dying.
@@ -285,13 +285,12 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
       'db-migrate.yml',
       'deploy-cloudflare-pages.yml',
       'harvest-health.yml',
-      // `loops-health.yml` WAS on this list and is not any more, and it is not
-      // because that lane changed. Verified against `origin/main`: its join
-      // never carried `continue-on-error` at all. The old proximity predicate
-      // picked up an unrelated earlier step's flag within 500 characters and
-      // called the join exempt. The exact predicate reads the join's own step
-      // block, so the lane now reports what it actually is — a plain join,
-      // verified by the one door like every other.
+      // DR-1399: loops-health's join may fail because the witness has a second
+      // road: the heartbeat the NAS writes itself, read over poetech.us/sb
+      // (served-heartbeat-receipt.py). (It was once on this list by accident,
+      // via a proximity predicate; DR-1284 removed it. This time it is the
+      // join's own step that carries the flag.)
+      'loops-health.yml',
       'ops-queue-health.yml',
     ]);
   });

@@ -8,7 +8,17 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { HEARTBEAT_TAG, CLOCK_MIN, LATE_AFTER_MIN, SILENT_AFTER_MIN, stampOf, heartbeatStatus, fetchNasHeartbeat } from '../lib/nas-heartbeat.js';
+import {
+  HEARTBEAT_TAG,
+  CLOCK_MIN,
+  LATE_AFTER_MIN,
+  SILENT_AFTER_MIN,
+  stampOf,
+  heartbeatStatus,
+  fetchNasHeartbeat,
+  lastCycleOf,
+  lastCycleLine,
+} from '../lib/nas-heartbeat.js';
 
 const NOW = Date.parse('2026-11-06T15:00:00Z');
 const row = (minutesAgo, extra = {}) => ({
@@ -96,5 +106,41 @@ describe('the writer on the NAS and the reader in the app agree on the row', () 
     expect(jsx).toContain('fetchNasHeartbeat');
     expect(jsx).toContain('heartbeatStatus');
     expect(jsx).toContain('data-testid="nas-heartbeat"');
+  });
+});
+
+describe('the last cycle the heartbeat carries (DR-1399)', () => {
+  const cyc = (lc) => stampOf(row(3, { last_cycle: lc })).lastCycle;
+
+  it('names every failed and degraded service in one line', () => {
+    const lc = cyc({ at: '2026-11-06T14:45:00Z', ok: false, failed: ['db-backup', 'sovereign-replay'], degraded: ['choir-dates'] });
+    expect(lc).toEqual({ at: Date.parse('2026-11-06T14:45:00Z'), ok: false, failed: ['db-backup', 'sovereign-replay'], degraded: ['choir-dates'] });
+    expect(lastCycleLine(lc)).toBe('Last cycle — failed: db-backup, sovereign-replay; could not work this cycle: choir-dates.');
+  });
+
+  it('a clean cycle says so; an older heartbeat with no cycle says nothing', () => {
+    expect(lastCycleLine(cyc({ at: '2026-11-06T14:45:00Z', ok: true, failed: [], degraded: [] }))).toBe('Last cycle: every service ran.');
+    expect(stampOf(row(3)).lastCycle).toBeNull();
+    expect(lastCycleLine(null)).toBe('');
+  });
+
+  it('PROVEN TO CATCH: a cycle that did not finish never reads as all well', () => {
+    expect(lastCycleLine(cyc({ ok: false, failed: [], degraded: [] }))).toBe('Last cycle did not finish, and named no service.');
+    expect(lastCycleLine(cyc({ ok: false, failed: [], degraded: [] }))).not.toMatch(/every service ran/);
+  });
+
+  it('only service-shaped names are shown; anything else in the row is dropped', () => {
+    expect(lastCycleOf({ last_cycle: { failed: ['db-backup', '<script>', 'Bad Name', 7], degraded: 'x' } })).toEqual({
+      at: null,
+      ok: null,
+      failed: ['db-backup'],
+      degraded: [],
+    });
+  });
+
+  it('the OpsBoard shows the line under the heartbeat', () => {
+    const jsx = readFileSync(join(process.cwd(), 'src', 'components', 'OpsBoard.jsx'), 'utf8');
+    expect(jsx).toContain('lastCycleLine(stamp.lastCycle)');
+    expect(jsx).toContain('data-testid="nas-heartbeat-cycle"');
   });
 });

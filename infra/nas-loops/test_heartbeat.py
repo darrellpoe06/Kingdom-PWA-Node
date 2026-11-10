@@ -120,5 +120,118 @@ class LedgerTest(unittest.TestCase):
         self.assertFalse(hb.write_ledger("/proc/no-such-home/x", "patched"))
 
 
+def _event(ts, event, summary):
+    head = "loop=services-sync kind=deploy cap=200/day usedToday=4 timeout=600s decision=GO(armed)"
+    return json.dumps(
+        {
+            "ts": ts,
+            "node": "nas-loops",
+            "agent": "nas-loops",
+            "event": event,
+            "armed": True,
+            "detail": f"{head} -> exit=0 in 9000ms | {summary} calls_today=4",
+        }
+    )
+
+
+class LastCycleTest(unittest.TestCase):
+    """DR-1399: the heartbeat carries the previous cycle's failed / degraded NAMES."""
+
+    NAMES = [
+        "lesson-voice",
+        "db-backup",
+        "choir-dates",
+        "sovereign-replay",
+        "nas-heartbeat",
+    ]
+
+    def _run(self, lines, names=None):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "events.jsonl")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(lines) + "\n")
+            return hb.last_cycle(p, names or self.NAMES)
+
+    def test_a_clean_cycle_names_nothing(self):
+        got = self._run(
+            [
+                _event(
+                    "2026-11-10T12:00:00Z",
+                    "loop_run_done",
+                    "services-sync: all services synced",
+                )
+            ]
+        )
+        self.assertEqual(
+            got,
+            {"at": "2026-11-10T12:00:00Z", "ok": True, "failed": [], "degraded": []},
+        )
+
+    def test_degraded_names_come_from_the_registry_never_from_the_free_text(self):
+        summary = "services-sync: all services synced; DEGRADED: choir-dates (youtube: 429; lesson-voice said nothing | ok)"
+        got = self._run([_event("2026-11-10T12:15:00Z", "loop_run_done", summary)])
+        self.assertTrue(got["ok"])
+        self.assertEqual(got["degraded"], ["choir-dates"])
+        self.assertEqual(got["failed"], [])
+
+    def test_failed_names_and_the_newest_cycle_wins(self):
+        older = _event(
+            "2026-11-10T11:45:00Z",
+            "loop_run_done",
+            "services-sync: all services synced",
+        )
+        newer = _event(
+            "2026-11-10T12:00:00Z",
+            "loop_run_fail",
+            "services-sync: FAILED: db-backup (exit 1: pg_dump: error); sovereign-replay (timeout 480s)",
+        )
+        other = json.dumps(
+            {
+                "ts": "2026-11-10T12:05:00Z",
+                "event": "loop_run_done",
+                "detail": "loop=funnel-watchdog -> exit=0",
+            }
+        )
+        got = self._run([older, newer, other, "not json"])
+        self.assertEqual(got["at"], "2026-11-10T12:00:00Z")
+        self.assertFalse(got["ok"])
+        self.assertEqual(got["failed"], ["db-backup", "sovereign-replay"])
+
+    def test_PROVEN_TO_CATCH_a_name_inside_another_name_or_a_reason_is_not_counted(
+        self,
+    ):
+        # "lesson-voice" appears only INSIDE a reason, after "; " but followed by
+        # a space and a word, not " (" / ";" / end: it must not be named.
+        summary = "services-sync: FAILED: db-backup (exit 1: then lesson-voice said x)"
+        got = self._run(
+            [_event("2026-11-10T12:00:00Z", "loop_run_fail", summary)],
+            names=self.NAMES + ["db"],
+        )
+        self.assertEqual(got["failed"], ["db-backup"])
+
+    def test_no_log_and_no_cycle_say_none(self):
+        self.assertIsNone(hb.last_cycle("/proc/no-such/events.jsonl", self.NAMES))
+        self.assertIsNone(
+            self._run(
+                ["not json", json.dumps({"event": "loop_run_done", "detail": "loop=x"})]
+            )
+        )
+
+    def test_the_body_carries_the_cycle_only_when_known(self):
+        last = {
+            "at": "2026-11-10T12:00:00Z",
+            "ok": True,
+            "failed": [],
+            "degraded": ["choir-dates"],
+        }
+        self.assertEqual(
+            json.loads(hb.body_of(host="h", services=3, last=last))["last_cycle"], last
+        )
+        self.assertNotIn("last_cycle", json.loads(hb.body_of(host="h", services=3)))
+        real = hb.service_names(os.path.join(_HERE, "services.json"))
+        self.assertIn("sovereign-replay", real)
+        self.assertIn("nas-heartbeat", real)
+
+
 if __name__ == "__main__":
     unittest.main()
