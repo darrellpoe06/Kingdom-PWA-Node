@@ -76,6 +76,17 @@ describe('the four elements decide the rank, not severity alone', () => {
     expect([shipped.tier, tool.tier]).toEqual(['plan', 'plan']);
     expect(shipped.elements.threat).toMatch(/^unknown/);
   });
+  it('an advisory with no CVE is unknown, never scored as zero (the runner found one on 2026-11-10)', () => {
+    const r = rank(pkg('n', 'moderate', null, 'G-NOCVE'), { scope: 'dev', intel, today });
+    expect(r.tier).toBe('plan');
+    expect(r.elements.threat).toMatch(/^unknown: an advisory has no CVE/);
+  });
+  it('a package listed only for a vulnerable dependency says so, and prints no score of its own', () => {
+    const r = rank({ name: 'p', severity: 'moderate', direct: true, fixAvailable: true, advisories: [] }, { scope: 'dev', intel, today });
+    expect(r.elements.threat).toMatch(/^no advisory of its own/);
+    expect(r.elements.threat).not.toMatch(/EPSS/);
+    expect(r.tier).toBe('watch');
+  });
   it('control validation names the dated decision that holds it, or says nothing does', () => {
     const allowlist = [
       { name: 'f', why: 'no fixed release', reReview: '2026-12-05' },

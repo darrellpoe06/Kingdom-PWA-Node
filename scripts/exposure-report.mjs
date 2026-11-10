@@ -85,10 +85,15 @@ export function networkReachable(vector) {
  */
 export function rank(pkg, { scope, allowlist = [], intel = {}, today }) {
   const cves = intel.cveOf ? pkg.advisories.map((a) => intel.cveOf.get(a.ghsa)).filter(Boolean) : [];
-  const kevKnown = intel.kev instanceof Set && !!intel.cveOf;
-  const onKev = kevKnown ? cves.some((c) => intel.kev.has(c)) : null;
-  const epssKnown = intel.epss instanceof Map && !!intel.cveOf;
-  const epss = epssKnown ? Math.max(0, ...cves.map((c) => intel.epss.get(c) || 0)) : null;
+  // A package listed only because a dependency it uses is vulnerable has no
+  // advisory of its own: its risk is ranked on that dependency's own row.
+  const inherited = pkg.advisories.length === 0;
+  // An advisory with no CVE cannot be looked up in KEV or EPSS: unknown, never 0.
+  const noCve = !inherited && !!intel.cveOf && pkg.advisories.some((a) => !intel.cveOf.get(a.ghsa));
+  const kevKnown = intel.kev instanceof Set && !!intel.cveOf && !noCve;
+  const onKev = inherited ? false : kevKnown ? cves.some((c) => intel.kev.has(c)) : null;
+  const epssKnown = intel.epss instanceof Map && !!intel.cveOf && !noCve;
+  const epss = inherited ? 0 : epssKnown ? Math.max(0, ...cves.map((c) => intel.epss.get(c) || 0)) : null;
   const reach = pkg.advisories.map((a) => networkReachable(a.vector));
   const reachable = reach.some((r) => r === true) ? true : reach.every((r) => r === false) && reach.length ? false : null;
   const entry = allowlist.find((e) => e.name === pkg.name);
@@ -99,9 +104,13 @@ export function rank(pkg, { scope, allowlist = [], intel = {}, today }) {
       ? 'on the KEV list: exploited in the wild'
       : epss != null && epss >= EPSS_LIKELY
         ? `EPSS ${(epss * 100).toFixed(1)}%: likely to be exploited`
-        : onKev === null || epss === null
-          ? 'unknown: the threat feeds could not be read'
-          : `not on KEV; EPSS ${((epss || 0) * 100).toFixed(1)}%`;
+        : inherited
+          ? 'no advisory of its own: listed because a dependency it uses is vulnerable, ranked on that row'
+          : noCve
+            ? 'unknown: an advisory has no CVE, so the threat feeds cannot speak to it'
+            : onKev === null || epss === null
+              ? 'unknown: the threat feeds could not be read'
+              : `not on KEV; EPSS ${((epss || 0) * 100).toFixed(1)}%`;
   const asset = `${scope === 'prod' ? 'ships to people' : 'build or test tool only'}, ${pkg.direct ? 'direct' : 'transitive'}`;
   const exploit =
     reachable === true
@@ -224,6 +233,13 @@ function selftest() {
     [
       'unknown threat intel never ranks a build tool as watch either',
       rank(pkg('d', 'moderate', null, 'G9'), { scope: 'dev', intel: { kev: null, cveOf: null, epss: null }, today }).tier === 'plan',
+    ],
+    ['an advisory with no CVE is unknown, never scored as zero', rank(pkg('e', 'moderate', null, 'G-NOCVE'), { scope: 'dev', intel, today }).tier === 'plan'],
+    [
+      'a package with no advisory of its own says so instead of printing a score',
+      /no advisory of its own/.test(
+        rank({ name: 'f', severity: 'moderate', direct: true, fixAvailable: true, advisories: [] }, { scope: 'dev', intel, today }).elements.threat
+      ),
     ],
     ['network reach needs AV:N, PR:N and UI:N', networkReachable('AV:N/PR:N/UI:R') === false && networkReachable(null) === null],
   ];

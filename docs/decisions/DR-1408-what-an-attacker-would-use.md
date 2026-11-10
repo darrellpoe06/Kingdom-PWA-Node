@@ -18,6 +18,7 @@ The research's claim: rank weaknesses by four elements together, not by severity
 - **The audit run of 2026-11-10.** `npm audit` found 10 packages with known vulnerabilities: 1 in what ships (xlsx, held until 2026-12-05) and 9 in build and test tools.
 - **Severity alone would mislead.** By severity, vitest and tinypool, both critical, lead. By the four elements, the shipped xlsx leads.
 - **What this sandbox cannot reach.** CISA, FIRST and GitHub's global advisory API are all out of reach here, so the threat feeds are read on the runner.
+- **The runner reaches them.** The PR run 42858614704 read 1,773 KEV entries, CVEs for 16 of 17 advisories and 16 EPSS scores: Act now 0, Plan 1 (xlsx), Watch 9. The run exposed two defects, both fixed. A package listed only for a vulnerable dependency had printed EPSS 0.0%, and an advisory with no CVE had been scored as zero instead of unknown.
 
 ## Impact
 
@@ -41,7 +42,7 @@ What ships, what is being exploited and what holds each finding are now visible 
 
 ## Verification
 
-- `exposure-is-ranked-before-any-fix.test.jsx`, 17 cases, covers:
+- `exposure-is-ranked-before-any-fix.test.jsx`, 19 cases, covers:
   - all four elements;
   - **proven to catch:** a severity-only sort puts the build-tool critical first;
   - unknown is held at Plan;
