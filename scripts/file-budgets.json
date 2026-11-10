@@ -56,13 +56,48 @@
       "to": 30278,
       "date": "2026-11-06",
       "why": "ll286 and ll287 (DR-1370) add the 286th and 287th Living Lessons, the two sends read under the newsletter Way the evening DR-1361 set it. Same reason as the ll283, ll284 and ll285 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30278,
+      "to": 30415,
+      "date": "2026-11-06",
+      "why": "ll288 (DR-1371) adds the 288th Living Lesson, the third send of the evening read under the newsletter Way. Same reason as the ll283 to ll287 raises: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5884,
+      "to": 5905,
+      "date": "2026-11-06",
+      "why": "DR-1372: the TALK ABOUT IT TOGETHER tail folds into a closed <details> in LessonProse and in the prompts block, which is a fold the reader asked for, not bloat; the comments were cut to the minimum first (44 added lines became 21). The reader's own split out of this file stays the DR-1339 re-review item (2026-11-19). Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30415,
+      "to": 30551,
+      "date": "2026-11-06",
+      "why": "ll289 (Why the Oppressed Still Call on Him, DR-1380) adds the 289th Living Lesson to this file, the fourth send of the evening read under DR-1361; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30551,
+      "to": 30686,
+      "date": "2026-11-09",
+      "why": "ll290 (The House Built by Wisdom, DR-1381) adds the 290th Living Lesson to this file; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 30686,
+      "to": 30819,
+      "date": "2026-11-09",
+      "why": "ll291 (Fruits Meet for Repentance, DR-1382) adds the 291st Living Lesson to this file; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 30278,
+    "app/src/lib/living-lessons-class.js": 30819,
     "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
-    "app/src/components/ChurchLearn.jsx": 5884,
+    "app/src/components/ChurchLearn.jsx": 5905,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,

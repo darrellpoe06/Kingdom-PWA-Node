@@ -565,4 +565,12 @@ export const LIVING_LESSONS_ADDED = {
   // claim tiered (DR-0100), the Word as the measure of every nation by the
   // stranger at its gate (DR-1370). Same day.
   'll287-spoken-in-the-break-heard-in-the-light': '2026-11-06',
+  // L288: the third send of the evening, and the one the light examined: a
+  // narrated video about an FBI agent pulled over, with no record of the case
+  // anywhere; the real federal process credited, the Word on the ruler who
+  // bears the sword and on the false report (DR-1371). Same day.
+  'll288-a-story-that-looks-like-news': '2026-11-06',
+  'll289-why-the-oppressed-still-call-on-him': '2026-11-06',
+  'll290-the-house-built-by-wisdom': '2026-11-09',
+  'll291-fruits-meet-for-repentance': '2026-11-09',
 };
