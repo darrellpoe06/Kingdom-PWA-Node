@@ -1111,6 +1111,21 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 10,
       "notes": "Carried forward from Darrell's 'why can't we do it another way' after DR-1398 proved live."
+    },
+    {
+      "id": "dr-1400-missing-migration-asks-the-clock",
+      "date": "2026-11-10",
+      "task": "When migrations are still missing, the migration reader asks the house's clock report and names the cause; the two receipts traced to work alone and together",
+      "drs": [
+        "DR-1400"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Darrell: Do they work well together and or separately?"
     }
   ]
 }
