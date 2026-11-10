@@ -1126,6 +1126,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 3,
       "notes": "Darrell: Do they work well together and or separately?"
+    },
+    {
+      "id": "dr-1401-house-reports-itself-lesson",
+      "date": "2026-11-10",
+      "task": "dsi16, a Data Systems module teaching the before and after of the migration lane and the loops witness: what, where, when, how and why, four bands, verses verbatim, reality-traced gate",
+      "drs": [
+        "DR-1401"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 8,
+      "notes": "Darrell: Explain the before and after in a lesson."
     }
   ]
 }
