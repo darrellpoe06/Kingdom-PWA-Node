@@ -580,4 +580,5 @@ export const LIVING_LESSONS_ADDED = {
   'll296-willing-and-obedient': '2026-11-10',
   'll297-precept-upon-precept': '2026-11-10',
   'll298-what-programs-you': '2026-11-10',
+  'll299-read-with-the-heart': '2026-11-10',
 };

@@ -168,10 +168,17 @@
       "to": 6789,
       "date": "2026-11-10",
       "why": "DR-1404: Every lesson has a test: two World Issues lessons had none and gain four-question discernment tests written from their own claims, and a third test is reshaped so the quiz screen reads it. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31743,
+      "to": 31897,
+      "date": "2026-11-10",
+      "why": "L299, Read with the Heart, a teaching Darrell spoke into the app the same day (DR-1411): one lesson of four bands, two parables and an eight-question test, the way every Living Lesson lands in this file."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31743,
+    "app/src/lib/living-lessons-class.js": 31897,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 5998,

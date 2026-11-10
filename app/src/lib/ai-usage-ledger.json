@@ -1284,6 +1284,23 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "dr-1411-ll299-read-with-the-heart",
+      "date": "2026-11-10",
+      "task": "L299 Read with the Heart, a spoken teaching built the day it was spoken: four bands, two parables, eight questions, 33 verses read from the KJV, 47-case gate",
+      "drs": [
+        "DR-1411"
+      ],
+      "prs": [
+        2600
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: Lesson. Read with the heart... according to the Word"
     }
   ]
 }
