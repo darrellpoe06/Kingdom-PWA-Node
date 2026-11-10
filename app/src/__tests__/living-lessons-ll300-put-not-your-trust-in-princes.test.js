@@ -53,9 +53,17 @@ const PLACES = Object.keys(TEXTS);
 const TITLE_LEAD = 'PUT NOT YOUR TRUST IN PRINCES — WHERE HOPE BELONGS WHEN';
 
 function* strings(node) {
-  if (typeof node === 'string') { yield node; return; }
-  if (Array.isArray(node)) { for (const v of node) yield* strings(v); return; }
-  if (node && typeof node === 'object') { for (const v of Object.values(node)) yield* strings(v); }
+  if (typeof node === 'string') {
+    yield node;
+    return;
+  }
+  if (Array.isArray(node)) {
+    for (const v of node) yield* strings(v);
+    return;
+  }
+  if (node && typeof node === 'object') {
+    for (const v of Object.values(node)) yield* strings(v);
+  }
 }
 const EVERY_STRING = L ? [...strings(L)] : [];
 
@@ -69,7 +77,10 @@ function chapter(book, ch) {
 }
 function corpusText(ref) {
   const out = [];
-  for (const piece of String(ref).split(';').map((s) => s.trim()).filter(Boolean)) {
+  for (const piece of String(ref)
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     const m = /^((?:[1-3]\s*)?[A-Za-z]+(?: of [A-Za-z]+)?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(piece);
     if (!m) return null;
     const [, book, ch, from, through] = m;
@@ -98,7 +109,10 @@ function verbatimFaults(texts) {
     for (const { inside, ref } of quotedPairs(t)) {
       if (!ref) continue;
       const verse = corpusText(ref);
-      if (verse == null) { faults.push(`unresolved reference (${ref})`); continue; }
+      if (verse == null) {
+        faults.push(`unresolved reference (${ref})`);
+        continue;
+      }
       const bare = inside.replace(/^[,;:.\s]+|[,;:\s]+$/g, '');
       if (!verse.includes(bare)) faults.push(`(${ref}) is not the verse: ${inside.slice(0, 70)}`);
     }
@@ -116,23 +130,41 @@ const SPINE = [
   ['Psalms 118:8', 'It is better to trust in the LORD than to put confidence in man.'],
   ['Psalms 118:9', 'It is better to trust in the LORD than to put confidence in princes.'],
   ['1 Samuel 8:5', 'And said unto him, Behold, thou art old, and thy sons walk not in thy ways: now make us a king to judge us like all the nations.'],
-  ['1 Samuel 8:7', 'And the LORD said unto Samuel, Hearken unto the voice of the people in all that they say unto thee: for they have not rejected thee, but they have rejected me, that I should not reign over them.'],
+  [
+    '1 Samuel 8:7',
+    'And the LORD said unto Samuel, Hearken unto the voice of the people in all that they say unto thee: for they have not rejected thee, but they have rejected me, that I should not reign over them.',
+  ],
   ['1 Samuel 8:19', 'Nevertheless the people refused to obey the voice of Samuel; and they said, Nay; but we will have a king over us;'],
   ['1 Samuel 8:20', 'That we also may be like all the nations; and that our king may judge us, and go out before us, and fight our battles.'],
-  ['Daniel 2:21', 'And he changeth the times and the seasons: he removeth kings, and setteth up kings: he giveth wisdom unto the wise, and knowledge to them that know understanding:'],
+  [
+    'Daniel 2:21',
+    'And he changeth the times and the seasons: he removeth kings, and setteth up kings: he giveth wisdom unto the wise, and knowledge to them that know understanding:',
+  ],
   ['Proverbs 29:2', 'When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn.'],
   ['Isaiah 40:23', 'That bringeth the princes to nothing; he maketh the judges of the earth as vanity.'],
-  ['Isaiah 40:24', 'Yea, they shall not be planted; yea, they shall not be sown: yea, their stock shall not take root in the earth: and he shall also blow upon them, and they shall wither, and the whirlwind shall take them away as stubble.'],
+  [
+    'Isaiah 40:24',
+    'Yea, they shall not be planted; yea, they shall not be sown: yea, their stock shall not take root in the earth: and he shall also blow upon them, and they shall wither, and the whirlwind shall take them away as stubble.',
+  ],
   ['Jeremiah 17:5', 'Thus saith the LORD; Cursed be the man that trusteth in man, and maketh flesh his arm, and whose heart departeth from the LORD.'],
   ['Jeremiah 17:7', 'Blessed is the man that trusteth in the LORD, and whose hope the LORD is.'],
-  ['Jeremiah 17:8', 'For he shall be as a tree planted by the waters, and that spreadeth out her roots by the river, and shall not see when heat cometh, but her leaf shall be green; and shall not be careful in the year of drought, neither shall cease from yielding fruit.'],
+  [
+    'Jeremiah 17:8',
+    'For he shall be as a tree planted by the waters, and that spreadeth out her roots by the river, and shall not see when heat cometh, but her leaf shall be green; and shall not be careful in the year of drought, neither shall cease from yielding fruit.',
+  ],
   ['Matthew 6:33', 'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.'],
-  ['Matthew 6:34', 'Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.'],
+  [
+    'Matthew 6:34',
+    'Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.',
+  ],
   ['1 Timothy 2:1', 'I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men;'],
   ['1 Timothy 2:2', 'For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty.'],
   ['Romans 13:1', 'Let every soul be subject unto the higher powers. For there is no power but of God: the powers that be are ordained of God.'],
   ['Proverbs 21:1', 'The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will.'],
-  ['Habakkuk 3:17', 'Although the fig tree shall not blossom, neither shall fruit be in the vines; the labour of the olive shall fail, and the fields shall yield no meat; the flock shall be cut off from the fold, and there shall be no herd in the stalls:'],
+  [
+    'Habakkuk 3:17',
+    'Although the fig tree shall not blossom, neither shall fruit be in the vines; the labour of the olive shall fail, and the fields shall yield no meat; the flock shall be cut off from the fold, and there shall be no herd in the stalls:',
+  ],
   ['Habakkuk 3:18', 'Yet I will rejoice in the LORD, I will joy in the God of my salvation.'],
   ['Psalms 2:1', 'Why do the heathen rage, and the people imagine a vain thing?'],
   ['Psalms 2:2', 'The kings of the earth set themselves, and the rulers take counsel together, against the LORD, and against his anointed, saying,'],
@@ -142,15 +174,33 @@ const SPINE = [
   ['Psalms 33:12', 'Blessed is the nation whose God is the LORD; and the people whom he hath chosen for his own inheritance.'],
   ['Psalms 75:7', 'But God is the judge: he putteth down one, and setteth up another.'],
   ['Psalms 20:7', 'Some trust in chariots, and some in horses: but we will remember the name of the LORD our God.'],
-  ['Psalms 37:7', 'Rest in the LORD, and wait patiently for him: fret not thyself because of him who prospereth in his way, because of the man who bringeth wicked devices to pass.'],
-  ['Isaiah 9:6', 'For unto us a child is born, unto us a son is given: and the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace.'],
-  ['Isaiah 9:7', 'Of the increase of his government and peace there shall be no end, upon the throne of David, and upon his kingdom, to order it, and to establish it with judgment and with justice from henceforth even for ever. The zeal of the LORD of hosts will perform this.'],
-  ['Daniel 4:17', 'This matter is by the decree of the watchers, and the demand by the word of the holy ones: to the intent that the living may know that the most High ruleth in the kingdom of men, and giveth it to whomsoever he will, and setteth up over it the basest of men.'],
+  [
+    'Psalms 37:7',
+    'Rest in the LORD, and wait patiently for him: fret not thyself because of him who prospereth in his way, because of the man who bringeth wicked devices to pass.',
+  ],
+  [
+    'Isaiah 9:6',
+    'For unto us a child is born, unto us a son is given: and the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace.',
+  ],
+  [
+    'Isaiah 9:7',
+    'Of the increase of his government and peace there shall be no end, upon the throne of David, and upon his kingdom, to order it, and to establish it with judgment and with justice from henceforth even for ever. The zeal of the LORD of hosts will perform this.',
+  ],
+  [
+    'Daniel 4:17',
+    'This matter is by the decree of the watchers, and the demand by the word of the holy ones: to the intent that the living may know that the most High ruleth in the kingdom of men, and giveth it to whomsoever he will, and setteth up over it the basest of men.',
+  ],
   ['Proverbs 11:14', 'Where no counsel is, the people fall: but in the multitude of counsellors there is safety.'],
-  ['Matthew 22:21', 'They say unto him, Caesar’s. Then saith he unto them, Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s.'],
+  [
+    'Matthew 22:21',
+    'They say unto him, Caesar’s. Then saith he unto them, Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s.',
+  ],
   ['Acts 5:29', 'Then Peter and the other apostles answered and said, We ought to obey God rather than men.'],
   ['Philippians 3:20', 'For our conversation is in heaven; from whence also we look for the Saviour, the Lord Jesus Christ:'],
-  ['Hebrews 12:28', 'Wherefore we receiving a kingdom which cannot be moved, let us have grace, whereby we may serve God acceptably with reverence and godly fear:'],
+  [
+    'Hebrews 12:28',
+    'Wherefore we receiving a kingdom which cannot be moved, let us have grace, whereby we may serve God acceptably with reverence and godly fear:',
+  ],
   ['1 Peter 2:17', 'Honour all men. Love the brotherhood. Fear God. Honour the king.'],
 ];
 // The sixteen the WHOLE series carries — in full, in the lesson and all four bands.
@@ -182,7 +232,9 @@ describe('L300 is in the catalog, numbered, dated and whole', () => {
   });
 
   it('claims 300 exactly once, and nothing else claims it', () => {
-    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
+    const numbers = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id))
+      .filter(Boolean)
+      .map((m) => Number(m[1]));
     expect(numbers.filter((n) => n === 300)).toEqual([300]);
   });
 
@@ -220,14 +272,23 @@ describe('L300 is in the catalog, numbered, dated and whole', () => {
       expect(q.answer).toBeLessThan(q.options.length);
       expect(String(q.explain).length).toBeGreaterThan(40);
     }
-    const refs = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean);
+    const refs = String(L.anchor.ref)
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
     expect(refs.length).toBeGreaterThanOrEqual(30);
     for (const r of refs) {
       expect(corpusText(r), `anchor ref ${r}`).not.toBeNull();
       expect(L.lesson.includes(`(${r})`), `anchor ${r} is not named in the lesson`).toBe(true);
     }
     // and nothing is quoted that the anchor does not carry
-    const quoted = new Set(EVERY_STRING.flatMap((t) => quotedPairs(t).map((p) => p.ref).filter(Boolean)));
+    const quoted = new Set(
+      EVERY_STRING.flatMap((t) =>
+        quotedPairs(t)
+          .map((p) => p.ref)
+          .filter(Boolean)
+      )
+    );
     expect([...quoted].filter((r) => !refs.includes(r))).toEqual([]);
   });
 });
@@ -331,7 +392,11 @@ describe('the four bands are four bands, measured not claimed', () => {
   it('reads as a ladder, and the child band is inside its own age range', () => {
     expect(isInverted(grades)).toBe(false);
     expect(grades.bands.child.authored).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
-    for (const [x, y] of [['child', 'youth'], ['youth', 'teen'], ['teen', 'senior']]) {
+    for (const [x, y] of [
+      ['child', 'youth'],
+      ['youth', 'teen'],
+      ['teen', 'senior'],
+    ]) {
       expect(grades.bands[y].authored, `${y} should read above ${x}`).toBeGreaterThan(grades.bands[x].authored);
     }
   });
@@ -352,7 +417,10 @@ describe('the four bands are four bands, measured not claimed', () => {
 });
 
 describe('the reader meets eight numbered movements, in order, in every text', () => {
-  const headings = (t) => formatLessonText(t).items.filter((i) => i.kind === 'heading').map((h) => h.n);
+  const headings = (t) =>
+    formatLessonText(t)
+      .items.filter((i) => i.kind === 'heading')
+      .map((h) => h.n);
 
   it('each of the five texts renders headings 1..8, contiguous', () => {
     for (const k of PLACES) {
@@ -371,7 +439,11 @@ describe('the reader meets eight numbered movements, in order, in every text', (
 });
 
 describe('our own voice names Yahweh, and the quotations are left exactly as written', () => {
-  const ourVoice = (t) => String(t).split('"').filter((_, i) => i % 2 === 0).join(' ');
+  const ourVoice = (t) =>
+    String(t)
+      .split('"')
+      .filter((_, i) => i % 2 === 0)
+      .join(' ');
 
   it('no generic God, GOD or LORD in our authored voice (DR-0210)', () => {
     const found = [];

@@ -97,10 +97,41 @@ voice or in-app rows are waiting right now is NOT known. Unblocking needs one
 value only the Governor holds — a fresh Reusable + Ephemeral auth key, or better
 the OAuth client the error itself names, which does not expire.
 
-## The priority lane's queue, once it could be read (2026-11-10 22:05Z)
+## CORRECTION: which database that census came from (2026-11-10 23:10Z)
 
-The Supabase connector became available later in the session and answered what
-the tailnet road could not. **35 rows are waiting**, every one created by
+**Read this before the census below.** The count was taken through the Supabase
+MCP connector, which reaches the HOSTED project `mjjlevhdufpaplypnqrv`. The
+lane's own reader does not use that road: `inbox-lessons-waiting.yml` joins the
+tailnet and runs `scripts/live-sql.sh`, which goes ssh → `docker exec psql`
+inside `supabase-db` **on the NAS**. That script's own header records why
+(DR-0310, DR-0618): *"The app has read the NAS's own Supabase since
+REPOINT-ARMED (2026-08-19)... Five monitors still read the hosted project
+through the SUPABASE_DB_URL secret, so their green and red described a database
+nobody uses."*
+
+So the honest statement is narrower than the one below: **35 rows are waiting in
+the hosted project.** Whether that is the same queue the lane reads is NOT
+established here, and it is the exact failure that header was written about — a
+measurement of the wrong store reading as a measurement of the live one.
+
+**What argues the hosted project is NOT dead for this table:** the rows are
+current and coherent — newsletter items dated 2026-11-09, and seventeen
+research-road rows carrying the NAS lesson builder's own `build:`/`build-failed`
+telemetry from 2026-10-22/23. A store abandoned in August does not accumulate
+November writes from the NAS builder. So either `agent_inbox` still lives
+hosted, or the two are synced, or the repoint is partial — and this session
+cannot tell which from the cloud, because the NAS road needs the expired key.
+
+**Not resolved, and not to be papered over:** until the NAS database is readable,
+the census below should be cited as "the hosted project's queue", never as "the
+lane's queue". `re-review: 2026-11-13` — once a road to the NAS database exists,
+run the same count there and compare the two.
+
+## The hosted project's lesson queue, counted (2026-11-10 22:05Z)
+
+The Supabase connector became available later in the session and answered for
+the HOSTED project what the tailnet road could not answer for the NAS's.
+**35 rows are waiting there**, every one created by
 `c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc` — Darrell's phone account, one of his two,
 so none of them waits on member approval. None is tagged plain `voice` (which
 would mean a recording still waiting for its words) and none is `voice-failed`.
