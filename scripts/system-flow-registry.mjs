@@ -1124,6 +1124,13 @@ const NODES = [
     reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
     seeds: [],
   }),
+  wf('workflows-parse.yml', {
+    id: 'workflows-parse', name: 'Every workflow file parses (DR-1409)',
+    purpose: 'On any change to the workflows: parses every file under .github/workflows and fails, naming the file, line and column, when one cannot be read, because a workflow that does not parse runs no job at all and its checks never report.',
+    reads: [{ res: 'gh:pr', token: 'pull_request' }],
+    writes: [{ res: 'gh:check', token: 'scripts/workflows-parse.py' }],
+    seeds: ['auto-merge'],
+  }),
   wf('exposure-report.yml', {
     id: 'exposure-report', name: 'Exposure ranked before any fix (DR-1408)',
     purpose: 'Weekly and on dispatch: ranks every known vulnerability in what ships by the four elements (exploited now, reaches people, reachable, held by a dated decision) and publishes the conditions before any fix. Report only: no fix, no PR, nothing running touched.',

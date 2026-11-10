@@ -77,7 +77,14 @@
       "to": 22790,
       "dr": "DR-1408",
       "reason": "One NEW workflow, exposure-report.yml (58 lines): Darrell asked for workflows that keep us secure without undermining our processes, reporting the conditions before any fix, inside the app. It ranks every known vulnerability in what we ship by the four elements and publishes the report the Exposure strip reads; it is report only (no fix, no PR, no push), one run at a time, ten minutes at most. A whole new capability, not a longer version of one; its header carries the read-only promise the tests pin. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22790,
+      "to": 22823,
+      "dr": "DR-1409",
+      "reason": "ci.yml did not parse from 29dc042 on: a one-line `run:` held 'SMOKE: PASS', a colon and a space in a plain YAML value, so GitHub ran no ci.yml job on four pushes and nothing showed red. The step becomes a block (+2), and a new workflow, workflows-parse.yml (31 lines), parses every workflow on any change to them; it cannot live inside the file it guards, because a file that does not parse runs nothing. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22790
+  "totalLines": 22823
 }

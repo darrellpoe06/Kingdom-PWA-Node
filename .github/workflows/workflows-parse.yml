@@ -1,0 +1,30 @@
+# workflows-parse -- every workflow file is YAML GitHub can read (DR-1409).
+# A workflow that does not parse runs no job at all, so this check cannot live
+# inside the file it guards: it runs here, on any change to the workflows.
+name: workflows-parse
+
+on:
+  pull_request:
+    paths: ['.github/workflows/**', 'scripts/workflows-parse.py']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/**', 'scripts/workflows-parse.py']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflows-parse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Every workflow parses, and the check catches the break it exists for
+        run: |
+          python3 -m pip install --quiet "$(grep '^pyyaml==' infra/requirements-ci.txt)" || python3 -m pip install --quiet --break-system-packages "$(grep '^pyyaml==' infra/requirements-ci.txt)"
+          python3 scripts/workflows-parse.py --selftest
+          python3 scripts/workflows-parse.py
