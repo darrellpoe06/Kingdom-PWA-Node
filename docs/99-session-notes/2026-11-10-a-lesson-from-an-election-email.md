@@ -1,0 +1,98 @@
+# 2026-11-10 — a lesson from an election email, and five findings it cost
+
+Working note for **DR-1413** (L300, Put Not Your Trust In Princes), built from
+the forward Darrell sent on 2026-10-22 with one word over it: Lesson
+(Gmail thread `1a165328274f4784`). The record carries the decision; this note
+carries the narrative the 60-line ratchet rightly keeps out of it.
+
+## The handling of the source
+
+The email is substantially an advertisement for a news app built around an
+election tab. His standing rule is to ignore the ads unless they relate to the
+lesson, and one paragraph did: weariness with the cost of living and with
+leadership in the capital, bickering that settles nothing, and the conclusion
+that *something has to give.*
+
+Everything else in it is marketing and is unused. Its checkable claims — who is
+dissatisfied, by how much, what is driving this election — need polling and
+economic data this sandbox cannot reach, so under DR-0076 they are unverified and
+appear nowhere in the lesson. That is also the reason the teaching is **Living
+Lessons and not World Issues**: World Issues' method *is* verified claim-checking,
+and on this material it could not have done its own job.
+
+## Five findings
+
+**1. DR-0456 recurred, and the lesson's own sweep caught it.** The child band
+carried a RETYPED `Proverbs 21:1` with an ASCII apostrophe where the corpus has
+U+2019. The cause was ordinary: that band was authored before the verse
+substitution helper existed, so its verses were typed rather than fetched. Every
+span is now filled FROM the corpus file, which makes a typed verse impossible
+rather than discouraged. The lesson's gate replays this exact break, and on the
+live module it fires three independent gates and names the verse.
+
+**2. A check of mine was vacuous.** The first verbatim sweep iterated
+`quotedTexts()` as if its entries were strings; they are `[where, text]` pairs, so
+`q.text` was undefined, every span hit `continue`, and it printed "0 mismatches"
+having examined nothing. It surfaced only because 5 spans for ~200 quotations is
+implausible on its face. This is the failure DR-0076 §3 names: a check that cannot
+fail is not a check, and it is invisible in review precisely because it is green.
+
+**3. Movement numbers were lost two different ways (DR-0712).** The adult lesson
+used `1.`–`8.` headings, for which `lesson-format.js` has no marker pattern, so
+the formatter numbered only three auto-detected caps lines. The four bands used
+the house `ONE.`–`EIGHT.` form but still lost numbers wherever a movement opened
+straight after a verse citation that ended `(Ref)` with no full stop — the heading
+merged into the preceding sentence. Both are fixed, and the flattener now
+terminates a citation that closes a movement. All five texts render `[1..8]`.
+The gate asserts the exact sequence rather than a count floor, because a floor
+would have passed the broken version.
+
+**4. The spelling scan's scope was too narrow.** Fixing the band texts left the
+metadata British. Scanning only the fields `quotedTexts()` covers found three;
+walking EVERY string in the module found two more, in `howToRun` and the
+discussion prompts.
+
+**5. My own repair script truncated a heading.** An `A ` alternative in a
+lookahead stopped the caps run at "A KING", so heading TWO became "THE ASK FOR."
+with the rest left as prose, in both the adult and child texts. Caught by
+re-measuring the headings rather than by reading the diff.
+
+## The renumber
+
+main landed ll298, ll299 and DR-1402..1411 (#2600) and DR-1412 (#2603) while this
+branch was building. Before renumbering, the question that mattered was whether
+either new lesson *was* this teaching: they are "What Programs You" and "Read with
+the Heart", and nothing in the catalog is built from this forward. So the lesson
+moved ll298 → ll300 and the record DR-1411 → DR-1413.
+
+`resolve-ledger-conflicts.mjs` refused the collision mid-merge and printed the
+order to fix it; `renumber-decision-record.mjs` renamed the record and rewrote the
+four citing files. On the second pass the resolver re-based the budget raise
+`31608→31755` into `31897→32044`, preserving the delta — the DR-1388 behavior
+working on a real conflict rather than a fixture.
+
+**Two defects that exposed.** The class file had shipped the literal placeholder
+`DR-DRNUM` in the lesson's banner comment, because the number was substituted into
+the GENERATED block and then reverted by the next regeneration from the template;
+the number now lives in the template. And the resolver's re-based landing (32044)
+sat two lines ABOVE the ceiling it had just re-frozen (32042), so it was corrected
+DOWN to the measured count — a chain end above the ceiling is the same staleness
+class DR-1388 exists to prevent.
+
+## Adjacent, reported not fixed: the priority lane is unreadable
+
+`inbox-lessons-waiting.yml` failed three consecutive runs (2026-11-06, 2026-11-09,
+and one dispatched for this firing). The cause is not the workflow:
+
+```
+backend error: invalid key: API key does not exist
+Tailnet join FAILED using the authkey credential.
+```
+
+`TS_AUTHKEY` has expired, so every NAS road over the tailnet is dark — including
+the road the voice/in-app priority lane reads its queue through. The workflow
+behaved correctly and recorded **UNKNOWN, never zero**, on its rolling log
+(#2378), because an unread queue is not an empty one. Stated plainly: whether any
+voice or in-app rows are waiting right now is NOT known. Unblocking needs one
+value only the Governor holds — a fresh Reusable + Ephemeral auth key, or better
+the OAuth client the error itself names, which does not expire.
