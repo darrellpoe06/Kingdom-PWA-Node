@@ -67,6 +67,19 @@ jobs:
           AP: ${{ secrets.SMTP_APP_PASSWORD != '' }}
           MODE: ${{ inputs.mode }}
         run: |
+          # THE MAIL PASSWORD IS REPORTED FIRST, because whether the house holds
+          # one does NOT depend on the tailnet. Measured 2026-11-10: with
+          # TS_AUTHKEY dead this gate exited at the check below, so the one fact
+          # a reader needed -- does a Google App Password already exist in this
+          # repo? -- sat unreachable behind an unrelated dead dependency. That
+          # answer decides whether a dark Gmail lane is a WIRING fix someone can
+          # make or a value only Darrell can mint, and DR-1159 is explicit that
+          # a paste handed for a value the house already holds is a Ways finding
+          # rather than a delivery. PRESENCE ONLY: `secrets.X != ''` yields the
+          # literal true or false, so there is no secret text here for masking
+          # to reach (P63 is about data masking could eat; this is not that).
+          echo "SMTP_APP_PASSWORD present: $AP"
+          echo "- \`SMTP_APP_PASSWORD\` present: **$AP**" >> "$GITHUB_STEP_SUMMARY"
           if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
             echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
             echo "go=false" >> "$GITHUB_OUTPUT"
