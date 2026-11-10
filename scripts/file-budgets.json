@@ -154,10 +154,17 @@
       "to": 5998,
       "date": "2026-11-10",
       "why": "DR-1393: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31608,
+      "to": 31755,
+      "date": "2026-11-10",
+      "why": "ll298 (Put Not Your Trust In Princes, DR-1411) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word above it: Lesson; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the measured size, not above it."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31608,
+    "app/src/lib/living-lessons-class.js": 31755,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6729,
     "app/src/components/ChurchLearn.jsx": 5998,
