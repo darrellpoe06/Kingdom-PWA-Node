@@ -10,7 +10,7 @@
 `scripts/resolve-ledger-conflicts.mjs` settles the three derived files every
 branch dirties. Two more conflict on every landing and were not in it:
 `scripts/workflow-budget.json` (DR-1342) and `scripts/file-budgets.json`
-(DR-1339). Both were resolved by hand today; `keep-prs-current` calls them
+(DR-1339), both resolved by hand today; `keep-prs-current` calls them
 "the owner's call".
 
 ## What was measured
@@ -20,11 +20,16 @@ the ceiling before a change, `to` after — so when both sides branch from the
 same `from`, a plain union leaves two entries claiming one predecessor and a
 ceiling counting only one change. On #2582: ours said `22413 → 22659`, main had
 added `22413 → 22416`, and `22659 < 22416 + 246`. Main's three lines vanish.
+What survives is the **delta**, which the file's own prose already records
+re-based by hand twice. Only the arithmetic was manual.
 
-What survives a merge is the **delta**, not the numbers. The file already
-records that re-basing done by hand twice, in its own prose (*"First written as
-22413 → 22659 against the main of the hour… the same change is 22416 → 22662"*).
-Only the arithmetic was manual, and right because the numbers were small.
+## Impact
+
+Every branch touching a workflow or growing a budgeted file hits this, so the
+cost is quadratic in open branches — and a hand that gets the arithmetic wrong
+LOWERS a ratchet silently, which is the failure that matters: a ceiling nobody
+raised on purpose stops meaning anything. **What this obligates:** the chain is
+re-based mechanically, and the ceiling stays the guards' to measure.
 
 ## Decision
 
@@ -34,27 +39,22 @@ onto the chain main actually has, keeping each delta. `file-budgets.json` chains
 not move. A subject with no predecessor *and* no ceiling in main is one main has
 never seen, so ours stands unchanged — evidence, not a guess.
 
-**It still never sets a ceiling.** It leaves the ceiling at what the chain
-predicts, runs each guard's own `--generate` — both down-only (`Math.min` in
-`workflow-register.mjs`, `regenerate` in `file-budget-guard.mjs`) — and lets
-each guard's own check judge. The measurement is never reimplemented, a ceiling
-rises only by what a raise entry explains, and an unexplained rise is
-**REFUSED** carrying the guard's own message, which asks for the human reason a
-raise needs. Inventing a ceiling is the one thing that would make this resolver
-dangerous, since every open branch's resolution runs through it. It also refuses
-a rewritten history, a non-numeric `from`/`to`, and a one-sided add or delete.
-
-**Prose is reported, never rewritten.** A re-based entry's `reason`/`why` may
-still recite the pre-merge numbers; the resolver prints old and new and says a
-tool must not rewrite prose by number — the fault DR-1362 §2 records.
+**It still never sets a ceiling.** It leaves what the chain predicts, runs each
+guard's own `--generate` — both down-only (`Math.min` in `workflow-register.mjs`,
+`regenerate` in `file-budget-guard.mjs`) — and lets each guard's check judge. The measurement is never reimplemented, and an
+unexplained rise is **REFUSED** carrying the guard's own message, which asks for
+the reason a raise needs. Inventing a ceiling is the one thing that would make
+this resolver dangerous, since every branch's resolution runs through it. It
+also refuses a rewritten history, a non-numeric `from`/`to`, and a one-sided add
+or delete. **Prose is reported, never rewritten** — rewriting prose by number is
+the fault DR-1362 §2 records.
 
 ## Verification
 
 11 checks, fed the break each exists to stop (DR-0076 §3): the naive concat is
 shown to drop main's three lines before the re-base is shown to keep them. The
 fixtures are the **real** numbers of 2026-11-06 — DR-1374's `22413 → 22659`
-landing on `22416 → 22662`, DR-1363's `22396 → 22399` landing on `22413 →
-22416` — so they assert what two hand resolutions settled on, not what the code
-happens to do. The down-only premise is proven, not asserted: `regenerate`
-lowers 100→90 and refuses 100→120. One check expected a refusal and the **code**
-was wrong, not the test; a failing check is where the work starts (DR-0621).
+landing on `22416 → 22662`, DR-1363's `22396 → 22399` landing on `22413 → 22416`
+— so they assert what two hand resolutions settled on, not what the code happens
+to do. The down-only premise is proven. One check expected a refusal and the
+**code** was wrong, not the test (DR-0621).
