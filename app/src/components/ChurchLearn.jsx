@@ -119,6 +119,7 @@ import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, D
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
+import LessonNeighbors from './LessonNeighbors.jsx';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -1918,6 +1919,7 @@ function CourseView({
     if (!lessonId) return;
     const p = getPlaceFor(course.key, lessonId);
     const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
+    if (next.seen >= 1 && !placeIsFinished(p)) finishRead(lessonId);
     // Only a real change re-renders: the same marks read back again are not news.
     setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
   };
@@ -1946,6 +1948,15 @@ function CourseView({
     const out = recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
     if (patch && patch.lessonId) refreshLiveRead(patch.lessonId);
     return out;
+  };
+  // READ IS READ BY ANY ROAD (DR-1384). Darrell 2026-11-10: "I took the exam and passed and still... it doesn't look like I read it... fix it".
+  // A passed exam, Done, or every part seen finishes the reading once, with its version, so the list shows ✓ READ.
+  const finishRead = (id) => {
+    const p = id ? getPlaceFor(course.key, id) : null;
+    if (!id || placeIsFinished(p)) return;
+    const m = (schedule || []).find((x) => x && x.id === id);
+    const version = m ? versionRead(m, ageBand, levelOverride) : null;
+    try { finishPlace({ courseKey: course.key, lessonId: id, ...(version ? { version } : {}) }); } catch (_) { /* the reading stands either way */ }
   };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
@@ -2289,6 +2300,15 @@ function CourseView({
   };
   const scheduleRef = React.useRef(schedule);
   scheduleRef.current = schedule;
+  // PREVIOUS AND NEXT AT THE END OF THE LESSON, NEVER A DEAD END (DR-1383).
+  // ONE TAP LANDS AT THE TOP (Darrell 2026-11-10): the scroll waits until the new screen has painted, else it lands mid-page.
+  const landTop = (sel) => { if (typeof window === 'undefined') return; window.requestAnimationFrame(() => window.requestAnimationFrame(() => { const t = sel && document.querySelector(sel); try { if (t) t.scrollIntoView({ block: 'start', behavior: motionBehavior() }); else window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } })); };
+  const goToLesson = (id) => { lastFocusRef.current = id; setFocusId(id); setOpenTutorId(id); savePlace({ lessonId: id }); recordUse(id); landTop(null); };
+  const neighborDoor = (x) => x && { id: x.id, title: x.title, label: isNumberedCourse(schedule) ? numberLabel(x, true, U.cap) : `${U.cap} ${x.week}` };
+  const lessonNeighbors = (m) => {
+    const i = sequence.findIndex((x) => x.id === m.id);
+    return <LessonNeighbors unit={U.noun} prev={neighborDoor(i > 0 ? sequence[i - 1] : null)} next={neighborDoor(i >= 0 ? sequence[i + 1] : null)} onGo={goToLesson} onAll={() => { setOpenTutorId(null); setFocusId(null); landTop('[data-testid="lessons-bar"], #learn-lesson-find'); }} />;
+  };
 
   // The wrapper hides its own chrome (course picker/sort) while the space is
   // open — the whole screen belongs to the one lesson (DR-0264).
@@ -3177,7 +3197,7 @@ function CourseView({
                 {toggleModule && (
                   <button
                     type="button"
-                    onClick={() => toggleModule(m.id)}
+                    onClick={() => { toggleModule(m.id); if (!done) finishRead(m.id); }}
                     aria-pressed={done}
                     className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                   >
@@ -3743,6 +3763,7 @@ function CourseView({
                   (Darrell's screenshot of week 29). It now follows the guide,
                   where a finished reader meets it. */}
               {!tutorOpen && renderActions({ head: false })}
+              {!tutorOpen && focusModule && focusModule.id === m.id && lessonNeighbors(m)}
 
               {/* The solo tutor for this week */}
               {tutorOpen && (
@@ -3761,7 +3782,7 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={recordQuiz}
+                    onRecordQuiz={(id, r) => { if (recordQuiz) recordQuiz(id, r); if (r && r.passed) finishRead(id); }}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
@@ -3780,6 +3801,7 @@ function CourseView({
                     onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
                   {renderActions({ head: false })}
+                  {lessonNeighbors(m)}
                 </div>
               )}
 
