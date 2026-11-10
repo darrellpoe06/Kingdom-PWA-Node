@@ -32,6 +32,7 @@ for (const f of ['0315-a.sql', '0316-b.sql', '0317-c.sql']) writeFileSync(join(D
 let server;
 let origin;
 let answers = [];
+let heartbeat = [200, { seen: false }];
 let asked = [];
 beforeAll(async () => {
   server = http.createServer((req, res) => {
@@ -39,7 +40,7 @@ beforeAll(async () => {
     req.on('data', (c) => (body += c));
     req.on('end', () => {
       asked.push({ url: req.url, key: req.headers.apikey, body: JSON.parse(body || '{}') });
-      const [status, json] = answers.length > 1 ? answers.shift() : answers[0];
+      const [status, json] = req.url.includes('nas_heartbeat_receipt') ? heartbeat : answers.length > 1 ? answers.shift() : answers[0];
       res.writeHead(status, { 'content-type': 'application/json' });
       res.end(JSON.stringify(json));
     });
@@ -168,4 +169,51 @@ describe('db-migrate: the house is the authority, the reach-in is support', () =
   it('a change to the reader re-runs the lane that uses it', () => {
     expect(y).toContain("- 'scripts/served-migration-receipt.py'");
   });
+});
+
+describe('the two receipts together: a missing file asks the clock why (DR-1399)', () => {
+  const fresh = () => new Date(Date.now() - 4 * 60000).toISOString();
+  const why = async (hb) => {
+    answers = [receipt(['0317-c.sql'])];
+    heartbeat = hb;
+    const r = await runReader(['--origin', origin]);
+    expect(r.code).toBe(20);
+    return r.out.split('\n').find((l) => l.includes("why, by the house's own clock report")) || '';
+  };
+
+  it('a stopped clock is named as the cause, not the migration', async () => {
+    const old = new Date(Date.now() - 3 * 3600000).toISOString();
+    expect(await why([200, { seen: true, at: old, last_cycle: { at: old, ok: true, failed: [], degraded: [] } }])).toMatch(/clock has stopped/);
+  }, 20000);
+
+  it('a failing replay is named as the cause', async () => {
+    expect(await why([200, { seen: true, at: fresh(), last_cycle: { at: fresh(), ok: false, failed: ['sovereign-replay'], degraded: [] } }])).toMatch(
+      /sovereign-replay as FAILED/
+    );
+  }, 20000);
+
+  it('a replay that could not run this cycle is named', async () => {
+    expect(await why([200, { seen: true, at: fresh(), last_cycle: { at: fresh(), ok: true, failed: [], degraded: ['sovereign-replay'] } }])).toMatch(
+      /could not run its last cycle/
+    );
+  }, 20000);
+
+  it('a clean replay on a running clock means the NAS has not pulled the commit', async () => {
+    expect(await why([200, { seen: true, at: fresh(), last_cycle: { at: fresh(), ok: true, failed: [], degraded: [] } }])).toMatch(
+      /has not pulled this commit/
+    );
+  }, 20000);
+
+  it('PROVEN TO CATCH: an unreadable clock report never guesses a cause, and never changes the verdict', async () => {
+    expect(await why([200, { seen: false }])).toMatch(/cause is not known from here/);
+    expect(await why([502, { error: 'bad gateway' }])).toMatch(/could not be read .*cause is not known from here/);
+  }, 20000);
+
+  it('everything applied: the clock is not asked at all', async () => {
+    answers = [receipt([])];
+    asked = [];
+    const r = await runReader(['--origin', origin]);
+    expect(r.code).toBe(0);
+    expect(asked.some((a) => a.url.includes('nas_heartbeat_receipt'))).toBe(false);
+  }, 20000);
 });

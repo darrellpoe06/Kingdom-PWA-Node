@@ -33,6 +33,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 
 UA = "poetech-migration-receipt/1 (DR-1398)"
 
@@ -79,6 +80,51 @@ def ask(origin, key, files, timeout):
     if missing:
         return 20, data
     return 0, data
+
+
+def clock_diagnosis(origin, key, timeout, now=None):
+    """When files are still missing, the house's own clock report says why (DR-1399).
+
+    Reads public.nas_heartbeat_receipt() (migration 0318) and returns one line
+    that tells a stopped clock from a failing migration from a checkout that
+    has not pulled the commit yet. Never changes the exit code: a diagnosis,
+    not a verdict. Never raises.
+    """
+    req = urllib.request.Request(
+        origin.rstrip("/") + "/sb/rest/v1/rpc/nas_heartbeat_receipt",
+        data=b"{}",
+        method="POST",
+        headers={
+            "apikey": key,
+            "Authorization": "Bearer " + key,
+            "Content-Type": "application/json",
+            "User-Agent": UA,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            hb = json.loads(r.read().decode("utf-8", "replace") or "null")
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return f"the house's clock report could not be read ({e.__class__.__name__}), so the cause is not known from here"
+    if not isinstance(hb, dict) or not hb.get("seen"):
+        return "the house has written no heartbeat, so the cause is not known from here"
+    try:
+        at = datetime.fromisoformat(str(hb.get("at"))).timestamp()
+    except ValueError:
+        at = None
+    age_min = int(((now or time.time()) - at) // 60) if at else None
+    lc = hb.get("last_cycle") if isinstance(hb.get("last_cycle"), dict) else None
+    if age_min is not None and age_min > 30:
+        return f"the NAS clock last wrote its heartbeat {age_min} min ago: the clock has stopped, so nothing is applying (the clock is the thing to look at, not the migration)"
+    if lc is None:
+        return "the NAS clock is running, but its heartbeat does not carry the last cycle, so the replay's own result is not known from here"
+    if "sovereign-replay" in (lc.get("failed") or []):
+        return "the NAS clock is running and its last cycle names sovereign-replay as FAILED: the migration itself is failing on the live database (its reason is in the box's sovereign-replay/status.json)"
+    if "sovereign-replay" in (lc.get("degraded") or []):
+        return "the NAS clock is running and sovereign-replay could not run its last cycle (busy, timed out, or the database not answering); it retries every cycle"
+    if lc.get("ok") is False:
+        return "the NAS clock is running but its last cycle did not finish, and named no service"
+    return "the NAS clock is running and sovereign-replay ran clean last cycle, so the missing files are not yet in the checkout it replays from (the NAS has not pulled this commit)"
 
 
 def main(argv=None):
@@ -142,6 +188,11 @@ def main(argv=None):
             lines.append(f"  not applied: {m}")
     else:
         lines.append(f"migration-receipt: {detail} (after {asks} ask(s))")
+    if code in (20, 21):
+        lines.append(
+            "migration-receipt: why, by the house's own clock report: "
+            + clock_diagnosis(a.origin, key, a.timeout)
+        )
     for line in lines:
         print(line)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
