@@ -105,7 +105,18 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
   it('3. at either end the All lessons door stands where the missing neighbor would, never a dead end', () => {
     const go = [];
     let all = 0;
-    act(() => root.render(React.createElement(LessonNeighbors, { prev: null, next: null, onGo: (id) => go.push(id), onAll: () => { all += 1; } })));
+    act(() =>
+      root.render(
+        React.createElement(LessonNeighbors, {
+          prev: null,
+          next: null,
+          onGo: (id) => go.push(id),
+          onAll: () => {
+            all += 1;
+          },
+        })
+      )
+    );
     expect(q('lesson-neighbor-prev')).toBeNull();
     expect(q('lesson-neighbor-next')).toBeNull();
     const back = q('lesson-neighbor-all');
@@ -123,10 +134,19 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
     const tops = [];
     // Frames run AFTER React has painted the new screen, as a browser runs them.
     const frames = [];
-    const paint = () => { while (frames.length) frames.shift()(0); };
-    window.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
-    Element.prototype.scrollIntoView = function scrolled() { landed.push(this.getAttribute('data-testid') || this.id); };
-    window.scrollTo = (a) => { tops.push(a && typeof a === 'object' ? a.top : a); };
+    const paint = () => {
+      while (frames.length) frames.shift()(0);
+    };
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb);
+      return frames.length;
+    };
+    Element.prototype.scrollIntoView = function scrolled() {
+      landed.push(this.getAttribute('data-testid') || this.id);
+    };
+    window.scrollTo = (a) => {
+      tops.push(a && typeof a === 'object' ? a.top : a);
+    };
     try {
       mount();
       openLivingLessons();

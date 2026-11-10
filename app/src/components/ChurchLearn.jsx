@@ -1919,6 +1919,7 @@ function CourseView({
     if (!lessonId) return;
     const p = getPlaceFor(course.key, lessonId);
     const next = { lessonId, seen: (p && p.seen) || 0, heard: (p && p.heard) || 0 };
+    if (next.seen >= 1 && !placeIsFinished(p)) finishRead(lessonId);
     // Only a real change re-renders: the same marks read back again are not news.
     setLiveRead((prev) => (prev && prev.lessonId === next.lessonId && prev.seen === next.seen && prev.heard === next.heard ? prev : next));
   };
@@ -1947,6 +1948,15 @@ function CourseView({
     const out = recordPlace({ courseKey: course.key, ...(version ? { version } : {}), ...patch });
     if (patch && patch.lessonId) refreshLiveRead(patch.lessonId);
     return out;
+  };
+  // READ IS READ BY ANY ROAD (DR-1384). Darrell 2026-11-10: "I took the exam and passed and still... it doesn't look like I read it... fix it".
+  // A passed exam, Done, or every part seen finishes the reading once, with its version, so the list shows ✓ READ.
+  const finishRead = (id) => {
+    const p = id ? getPlaceFor(course.key, id) : null;
+    if (!id || placeIsFinished(p)) return;
+    const m = (schedule || []).find((x) => x && x.id === id);
+    const version = m ? versionRead(m, ageBand, levelOverride) : null;
+    try { finishPlace({ courseKey: course.key, lessonId: id, ...(version ? { version } : {}) }); } catch (_) { /* the reading stands either way */ }
   };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
@@ -3187,7 +3197,7 @@ function CourseView({
                 {toggleModule && (
                   <button
                     type="button"
-                    onClick={() => toggleModule(m.id)}
+                    onClick={() => { toggleModule(m.id); if (!done) finishRead(m.id); }}
                     aria-pressed={done}
                     className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                   >
@@ -3772,7 +3782,7 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={recordQuiz}
+                    onRecordQuiz={(id, r) => { if (recordQuiz) recordQuiz(id, r); if (r && r.passed) finishRead(id); }}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}

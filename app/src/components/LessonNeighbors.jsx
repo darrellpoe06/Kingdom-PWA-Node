@@ -19,8 +19,7 @@
 import React from 'react';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
-const DOOR =
-  'flex-1 min-w-[120px] px-3 py-2 min-h-[48px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+const DOOR = 'flex-1 min-w-[120px] px-3 py-2 min-h-[48px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const QUIET = 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white';
 const LOUD = 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]';
 
@@ -33,7 +32,11 @@ function Door({ testid, label, title, onClick, align = 'start', loud = false }) 
       className={`${DOOR} ${loud ? LOUD : QUIET} ${align === 'end' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
     >
       <span className="ts-chrome-region block text-[0.625rem] uppercase tracking-wider font-semibold">{label}</span>
-      {title && <span className="block text-sm mt-0.5" style={SERIF}>{title}</span>}
+      {title && (
+        <span className="block text-sm mt-0.5" style={SERIF}>
+          {title}
+        </span>
+      )}
     </button>
   );
 }
@@ -48,7 +51,9 @@ export default function LessonNeighbors({ prev, next, onGo, onAll, unit = 'lesso
     <nav aria-label={`Previous and next ${unit}`} data-testid="lesson-neighbors" className="mt-4 pt-3 border-t border-[#E8E4DC] flex flex-wrap gap-2">
       {prev && <Door testid="lesson-neighbor-prev" label={`← Previous ${unit} · ${prev.label}`} title={prev.title} onClick={() => onGo(prev.id)} />}
       <Door testid="lesson-neighbor-all" align="center" label={`↑ All ${unit}s`} onClick={onAll} loud={!next} />
-      {next && <Door testid="lesson-neighbor-next" align="end" loud label={`Next ${unit} · ${next.label} →`} title={next.title} onClick={() => onGo(next.id)} />}
+      {next && (
+        <Door testid="lesson-neighbor-next" align="end" loud label={`Next ${unit} · ${next.label} →`} title={next.title} onClick={() => onGo(next.id)} />
+      )}
     </nav>
   );
 }
