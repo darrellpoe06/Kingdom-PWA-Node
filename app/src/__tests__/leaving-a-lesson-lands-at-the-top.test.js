@@ -96,3 +96,53 @@ describe('the landmark it aims at', () => {
     expect(bar - anchor, 'the anchor is right above the bar').toBeLessThan(400);
   });
 });
+
+// =============================================================================
+// AND ITS ONE-SECOND TIMER DOES NOT OUTLIVE THE PAGE (2026-11-10, measured)
+// =============================================================================
+// The handler listens for popstate so a reader who lands with the back button
+// still gets scrolled, then stops listening after a second. That timer kept no
+// handle and cleared nothing on the popstate path, so a run that finished
+// inside its second fired the callback with the environment already gone:
+//
+//   ReferenceError: window is not defined
+//    at Timeout._onTimeout src/components/ChurchLearn.jsx:2757
+//
+// It failed `app - vitest shard 3/4` on ll300's PR from
+// `the-course-overview-lives-with-the-course.test.jsx` -- a file that never
+// touches this component -- while ci.yml was green on main. Red only under
+// sharding, green alone, blamed on an unrelated file: the shape of a leaked
+// timer, not of a broken test.
+describe('the popstate timer it arms', () => {
+  it('keeps the handle, so something can cancel it', () => {
+    const h = allButtonHandler();
+    expect(h).toMatch(/stopListening\s*=\s*window\.setTimeout/);
+  });
+
+  it('PROVEN-TO-CATCH: it is never armed as a bare, unheld setTimeout again', () => {
+    const h = allButtonHandler().replace(/\s+/g, ' ');
+    // The exact defect: the call as a statement, its handle thrown away.
+    expect(h).not.toContain("window.setTimeout(() => window.removeEventListener('popstate', again), 1000)");
+  });
+
+  it('clears the timer the moment the listener is removed for real', () => {
+    const h = allButtonHandler();
+    expect(h).toMatch(/if \(stopListening\) window\.clearTimeout\(stopListening\)/);
+  });
+
+  it('cannot throw when it fires after its page is gone', () => {
+    const h = allButtonHandler();
+    // The late callback's removeEventListener is inside a try: with the
+    // environment torn down the reference itself throws, and there is nothing
+    // left to stop listening to, so catching is the correct answer.
+    expect(h).toMatch(/try \{ window\.removeEventListener\('popstate', again\); \} catch/);
+  });
+
+  it('and still does the thing the listener exists for', () => {
+    // Guarding the teardown path must not cost the behaviour: a real popstate
+    // still re-lands the reader at the top.
+    const h = allButtonHandler();
+    expect(h).toContain("window.addEventListener('popstate', again)");
+    expect(h).toMatch(/const again = \(\) => \{[\s\S]*land\(\);/);
+  });
+});

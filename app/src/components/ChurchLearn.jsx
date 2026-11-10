@@ -2752,9 +2752,29 @@ function CourseView({
                   try { target.scrollIntoView({ block: 'start', behavior: motionBehavior() }); } catch (_) { target.scrollIntoView(); }
                 });
                 land();
-                const again = () => { window.removeEventListener('popstate', again); land(); };
+                // THE ONE-SECOND TIMER OUTLIVED ITS PAGE (2026-11-10, measured
+                // on ll300's PR). This stopped listening for popstate after a
+                // second, kept no handle, and cleared nothing on the popstate
+                // path -- so a run that finished inside that second fired the
+                // callback with the environment already gone and threw
+                // `ReferenceError: window is not defined` from a torn-down
+                // vitest worker, failing `app - vitest shard 3/4` from a test
+                // file that never touched this component. Green on main and red
+                // only under sharding, which is exactly the shape a leaked
+                // timer has. So: the handle is kept and cleared the moment the
+                // listener is removed for real, and the late callback can no
+                // longer throw -- if the page is gone there is nothing left to
+                // stop listening to, and that is not an error worth a crash.
+                let stopListening = 0;
+                const again = () => {
+                  if (stopListening) window.clearTimeout(stopListening);
+                  window.removeEventListener('popstate', again);
+                  land();
+                };
                 window.addEventListener('popstate', again);
-                window.setTimeout(() => window.removeEventListener('popstate', again), 1000);
+                stopListening = window.setTimeout(() => {
+                  try { window.removeEventListener('popstate', again); } catch (_) { /* the page is gone; nothing to stop listening to */ }
+                }, 1000);
               }}
               data-testid="lesson-bar-all"
               className="text-[0.8125rem] uppercase tracking-wider px-4 py-2 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
