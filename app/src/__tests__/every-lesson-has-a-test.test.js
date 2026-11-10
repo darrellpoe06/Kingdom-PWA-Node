@@ -113,8 +113,9 @@ describe('the generated tests are built from the lesson’s own words, never inv
     const { questions } = quizFromAlgorithm(alg);
     expect(questions.length).toBeGreaterThanOrEqual(3);
     const right = questions.map((q) => q.options[q.answer]);
-    expect(right).toContain(alg.condition);
-    expect(right).toContain(alg.consequence);
+    const unq = (x) => String(x).replace(/"/g, "'");
+    expect(right).toContain(unq(alg.condition));
+    expect(right).toContain(unq(alg.consequence));
     expect(right).toContain(alg.refs.join(' · '));
     for (const q of questions) {
       const wrong = q.options.filter((_, i) => i !== q.answer);

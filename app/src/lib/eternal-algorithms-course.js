@@ -93,14 +93,19 @@ function optionsFor(correct, pick, peers, id, salt) {
   return { options, answer: at };
 }
 
+// Double quotes are reserved for the Word read verbatim (DR-0076). A pattern's
+// own text sometimes paraphrases a verse inside double quotes; inside a test it
+// is carried in single quotes so it is never read as a verbatim quotation.
+const unquote = (t) => (t == null ? t : String(t).replace(/"/g, "'"));
+
 export function quizFromAlgorithm(alg, catalog = GODHEAD_ALGORITHMS) {
   const peers = peersFor(alg, catalog);
   const refs = (a) => (a.refs || []).join(' · ');
   const asks = [
-    { salt: 'if', q: 'In this pattern, what is the IF, the condition the Word sets?', value: alg.condition, pick: (a) => a.condition },
-    { salt: 'then', q: 'When that condition is met, what is the THEN?', value: alg.consequence, pick: (a) => a.consequence },
+    { salt: 'if', q: 'In this pattern, what is the IF, the condition the Word sets?', value: unquote(alg.condition), pick: (a) => unquote(a.condition) },
+    { salt: 'then', q: 'When that condition is met, what is the THEN?', value: unquote(alg.consequence), pick: (a) => unquote(a.consequence) },
     { salt: 'ref', q: 'Which passage of the Word anchors this pattern?', value: refs(alg), pick: refs },
-    { salt: 'out', q: 'What is the outcome when you walk in it?', value: alg.outcome, pick: (a) => a.outcome },
+    { salt: 'out', q: 'What is the outcome when you walk in it?', value: unquote(alg.outcome), pick: (a) => unquote(a.outcome) },
   ];
   const questions = [];
   for (const a of asks) {
@@ -111,7 +116,7 @@ export function quizFromAlgorithm(alg, catalog = GODHEAD_ALGORITHMS) {
       q: a.q,
       options: o.options,
       answer: o.answer,
-      explain: `From this pattern itself (${refs(alg)}): IF ${alg.condition} THEN ${alg.consequence}`,
+      explain: `From this pattern itself (${refs(alg)}): IF ${unquote(alg.condition)} THEN ${unquote(alg.consequence)}`,
     });
   }
   return { questions };
