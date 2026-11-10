@@ -69,7 +69,7 @@ def epoch(stamp):
     if not isinstance(stamp, str) or not stamp:
         return None
     try:
-        return int(datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp())
+        return int(datetime.fromisoformat(stamp).timestamp())
     except ValueError:
         return None
 
