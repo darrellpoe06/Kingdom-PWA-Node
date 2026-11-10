@@ -121,6 +121,16 @@ session, as a sweep that missed two files because `grep` could not match an esca
 regex literal. **Not one of the ten was edited.** All ten go green on their own now that 72 is
 filled, and weakening a gate to pass is the single edit they exist to prevent.
 
+**One consequence of the renumber, reported rather than overridden.** `lesson-dates.json` derives
+a lesson's day from the earliest commit that added the line defining its id (DR-0687). Under the
+new id that commit is today's, so the recorded day moved **2026-11-06 → 2026-11-10** (`a306537a`).
+The lesson was *authored* on 2026-11-06, as this note's own date says, and nothing was ever shown
+to a reader under the old number. DR-0988's declared-exception mechanism exists for overriding a
+derived day with provenance, and it is deliberately **not** used here: the derivation is correct by
+its own rule, the id really is new today, and overriding a generator that is right in order to make
+a number look nicer is how a ratchet stops meaning anything. The gate asserts only that the day
+exists and is ISO-shaped — it pins no literal day, which is DR-1379's rule already in force here.
+
 ## What I got wrong, in my own work
 
 - **A stray non-ASCII character.** A Chinese character landed inside one quiz distractor while it was being typed (`not真 prophets`). Caught by a deliberate byte scan over every content file before assembly, not by a test — which is worth noting, because no gate in this repository would have named it.
