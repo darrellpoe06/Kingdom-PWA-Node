@@ -384,6 +384,27 @@ const NODES = [
     ],
     seeds: ['nas-heartbeat-read'],
   }),
+  rider('service:lesson-queue-census', 'infra/nas-loops/lesson-queue-census.py', {
+    id: 'lesson-queue-census', name: 'Lesson queue census (the house counts its own queue)',
+    purpose: 'One row per services-sync cycle, patched in place: how many lesson rows wait, by road and by shape, the oldest wait, and the exclusion list used — so the queue is readable with no runner reaching into the NAS and no tailnet key alive (DR-1360). Counts and tag shapes only, never a body.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'db:agent_inbox#lesson', token: 'def waiting_query' },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#lesson-queue-census', token: 'def publish' },
+    ],
+    seeds: ['lesson-queue-census-read'],
+  }),
+  app('app/src/lib/lesson-queue-census.js', {
+    id: 'lesson-queue-census-read', name: 'What waits in the lesson queue',
+    purpose: 'Reads the newest census row and says fresh, late, stale, never or unreadable against the clock, and names a count taken under a different definition. An absent row reads as never counted, never as an empty queue (DR-1186).',
+    reads: [
+      { res: 'db:agent_inbox#lesson-queue-census', token: "from('agent_inbox')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   app('app/src/lib/nas-heartbeat.js', {
     id: 'nas-heartbeat-read', name: 'NAS last seen (OpsBoard)',
     purpose: 'Reads the newest heartbeat row and says alive, late, silent, never or unreadable against the clock; the OpsBoard shows it beside the site witness.',

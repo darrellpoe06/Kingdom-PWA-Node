@@ -355,6 +355,21 @@ jobs:
       - name: scribe queue-consumer brake tests
         working-directory: infra/nas-scribe
         run: python3 -m unittest test_scribe_consumer -v
+      # The NAS's own witnesses (DR-1360): the house writes its heartbeat and
+      # counts its own lesson queue, so neither answer needs a runner reaching
+      # INTO the NAS over a key that expires. NEITHER WAS GATED BEFORE: both
+      # test files existed and CI ran neither, which is the "brake without a
+      # witness" shape this repo keeps finding. The census test is the one that
+      # matters most — it PARSES scripts/lesson-inbox-waiting.sql and fails if
+      # the loop's exclusion list drifts from the lane's, because a census taken
+      # on 2026-11-10 dropped `not-a-lesson` and `withdrawn` and so counted rows
+      # a person had taken back (DR-1142, DR-0725). Proven-to-catch: dropping
+      # either tag fails by name. Gates merge.
+      - name: NAS heartbeat and lesson-queue-census unit tests
+        working-directory: infra/nas-loops
+        run: |
+          python3 -m unittest test_heartbeat -v
+          python3 -m unittest test_lesson_queue_census -v
       # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
       # transcript row -> cloud copy removed), idempotency by the database, the
       # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,

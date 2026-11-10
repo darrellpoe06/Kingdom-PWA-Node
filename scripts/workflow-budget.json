@@ -84,7 +84,14 @@
       "to": 22823,
       "dr": "DR-1409",
       "reason": "ci.yml did not parse from 29dc042 on: a one-line `run:` held 'SMOKE: PASS', a colon and a space in a plain YAML value, so GitHub ran no ci.yml job on four pushes and nothing showed red. The step becomes a block (+2), and a new workflow, workflows-parse.yml (31 lines), parses every workflow on any change to them; it cannot live inside the file it guards, because a file that does not parse runs nothing. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22823,
+      "to": 22838,
+      "dr": "DR-1413",
+      "reason": "The NAS's two witnesses are gated. Neither infra/nas-loops/test_heartbeat.py nor the new test_lesson_queue_census.py was run by CI: both test files existed and nothing executed them, which is the brake-without-a-witness shape this repo keeps finding. One step now runs both, and the comment above it records WHY the census test matters most: it parses scripts/lesson-inbox-waiting.sql and fails if the loop's exclusion list drifts from the lane's, because a census taken on 2026-11-10 dropped not-a-lesson and withdrawn and so counted rows a person had taken back (DR-1142, DR-0725). Raised to the measured size, not above it."
     }
   ],
-  "totalLines": 22823
+  "totalLines": 22838
 }
