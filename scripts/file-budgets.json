@@ -91,13 +91,20 @@
       "to": 30819,
       "date": "2026-11-09",
       "why": "ll291 (Fruits Meet for Repentance, DR-1382) adds the 291st Living Lesson to this file; same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5905,
+      "to": 5917,
+      "date": "2026-11-10",
+      "why": "DR-1383: Previous, All and Next at the end of every open lesson, landing at the top after the paint (Darrell 2026-11-10: no dead ends, one tap). The row itself lives in LessonNeighbors.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 30819,
     "app/src/lib/sovereign-ai-class.js": 10624,
     "app/src/lib/world-issues-class.js": 6729,
-    "app/src/components/ChurchLearn.jsx": 5905,
+    "app/src/components/ChurchLearn.jsx": 5917,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,

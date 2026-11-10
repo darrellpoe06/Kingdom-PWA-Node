@@ -119,6 +119,7 @@ import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, D
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
+import LessonNeighbors from './LessonNeighbors.jsx';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -2289,6 +2290,15 @@ function CourseView({
   };
   const scheduleRef = React.useRef(schedule);
   scheduleRef.current = schedule;
+  // PREVIOUS AND NEXT AT THE END OF THE LESSON, NEVER A DEAD END (DR-1383).
+  // ONE TAP LANDS AT THE TOP (Darrell 2026-11-10): the scroll waits until the new screen has painted, else it lands mid-page.
+  const landTop = (sel) => { if (typeof window === 'undefined') return; window.requestAnimationFrame(() => window.requestAnimationFrame(() => { const t = sel && document.querySelector(sel); try { if (t) t.scrollIntoView({ block: 'start', behavior: motionBehavior() }); else window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } })); };
+  const goToLesson = (id) => { lastFocusRef.current = id; setFocusId(id); setOpenTutorId(id); savePlace({ lessonId: id }); recordUse(id); landTop(null); };
+  const neighborDoor = (x) => x && { id: x.id, title: x.title, label: isNumberedCourse(schedule) ? numberLabel(x, true, U.cap) : `${U.cap} ${x.week}` };
+  const lessonNeighbors = (m) => {
+    const i = sequence.findIndex((x) => x.id === m.id);
+    return <LessonNeighbors unit={U.noun} prev={neighborDoor(i > 0 ? sequence[i - 1] : null)} next={neighborDoor(i >= 0 ? sequence[i + 1] : null)} onGo={goToLesson} onAll={() => { setOpenTutorId(null); setFocusId(null); landTop('[data-testid="lessons-bar"], #learn-lesson-find'); }} />;
+  };
 
   // The wrapper hides its own chrome (course picker/sort) while the space is
   // open — the whole screen belongs to the one lesson (DR-0264).
@@ -3743,6 +3753,7 @@ function CourseView({
                   (Darrell's screenshot of week 29). It now follows the guide,
                   where a finished reader meets it. */}
               {!tutorOpen && renderActions({ head: false })}
+              {!tutorOpen && focusModule && focusModule.id === m.id && lessonNeighbors(m)}
 
               {/* The solo tutor for this week */}
               {tutorOpen && (
@@ -3780,6 +3791,7 @@ function CourseView({
                     onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
                   {renderActions({ head: false })}
+                  {lessonNeighbors(m)}
                 </div>
               )}
 
