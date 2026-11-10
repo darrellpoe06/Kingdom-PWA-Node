@@ -50,10 +50,14 @@ describe('the way out of a lesson', () => {
     expect(allButtonHandler()).toContain('setFocusId(null)');
   });
 
-  it('scrolls to the lessons landmark, at its TOP', () => {
+  it('scrolls to the top of the lesson list, at its TOP (DR-1388: the sticky bar never moves when scrolled to)', () => {
     const h = allButtonHandler();
-    expect(h).toContain('[data-testid="lessons-bar"]');
+    expect(h).toContain("getElementById('learn-all-lessons-top')");
     expect(h).toContain("block: 'start'");
+  });
+
+  it('forgets the row just left, so the leave effect cannot scroll back down to it (DR-1388)', () => {
+    expect(allButtonHandler()).toContain('lastFocusRef.current = null');
   });
 
   it('waits for the swap to paint before measuring where to go', () => {
@@ -83,5 +87,12 @@ describe('the way out of a lesson', () => {
 describe('the landmark it aims at', () => {
   it('exists, and is the bar the lesson list hangs under', () => {
     expect(SRC).toContain('data-testid="lessons-bar"');
+  });
+
+  it('and the top anchor sits just before it, outside the sticky bar', () => {
+    const anchor = SRC.indexOf('id="learn-all-lessons-top"');
+    expect(anchor).toBeGreaterThan(-1);
+    const bar = SRC.indexOf('data-testid="lessons-bar"', anchor);
+    expect(bar - anchor, 'the anchor is right above the bar').toBeLessThan(400);
   });
 });

@@ -126,13 +126,20 @@
       "to": 5967,
       "date": "2026-11-10",
       "why": "DR-1386: credit where it is due. The reading witness credits seen words at a pace with grace, each exam attempt carries how it was taken and the paces it was read at, Done and a pass credit READ only with evidence, and the opt-in paces view mounts in the live strip. The rules live in lib/test-integrity.js and lib/pace-understanding.js and the view in MyPaces.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5967,
+      "to": 5998,
+      "date": "2026-11-10",
+      "why": "DR-1388: All lessons lands at the top of the list (it forgets the row just left and lands again after the history unwind), the Record tab opens on the record, and each course's lesson ids reach the record so it can name what it is waiting for. The record's own layout lives in LearnersPanel.jsx; ChurchLearn carries only the wiring. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 30951,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6729,
-    "app/src/components/ChurchLearn.jsx": 5967,
+    "app/src/components/ChurchLearn.jsx": 5998,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,

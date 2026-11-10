@@ -18,7 +18,7 @@
 // untested learner reads "Not yet tested", never 0%.
 // =============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
@@ -158,7 +158,64 @@ function TakenAndGraded({ rows = [], userId }) {
   );
 }
 
-function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain }) {
+function CoursePair({ label, value }) {
+  return (
+    <div className="flex items-baseline gap-1">
+      <dt className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{label}</dt>
+      <dd className="text-[#1A1815]">{value}</dd>
+    </div>
+  );
+}
+
+// The lesson ids this learner has on the record as read, in one course.
+function readIdsFor(rows, userId, courseKey) {
+  const out = new Set();
+  for (const r of rows.map(rowToRecord)) if (r.userId === userId && r.courseKey === courseKey && r.completedAt) out.add(r.lessonId);
+  return out;
+}
+
+// WHICH LESSONS ARE NOT ON THE RECORD YET (DR-1388; Darrell 2026-11-10: "No 100% even after completing all lessons... Evaluation
+// of systems"). Completion is read lessons over the course's lessons; when it is short of the whole, this names each lesson the
+// record does not hold yet, by number and title, each one tap to read when it is your own record. A long list folds.
+function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
+  if (!Array.isArray(ids) || !ids.length) return null;
+  const missing = ids.map((id, i) => ({ id, n: i + 1 })).filter((x) => !readIds.has(x.id));
+  if (!missing.length) {
+    return <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" data-testid="learner-course-whole">Every lesson in this course is on the record.</p>;
+  }
+  const items = missing.map((x) => {
+    const title = (typeof titleOf === 'function' && titleOf(x.id, courseKey)) || x.id;
+    const label = `${x.n}. ${title}`;
+    return (
+      <li key={x.id} className="min-w-0" data-testid="learner-course-missing" data-lesson-id={x.id}>
+        {onReadAgain ? (
+          <button type="button" onClick={() => onReadAgain(courseKey, x.id)} className="text-left underline underline-offset-2 text-[#1A1815] min-h-[32px] [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+            {label}
+          </button>
+        ) : (
+          <span className="[overflow-wrap:anywhere]">{label}</span>
+        )}
+      </li>
+    );
+  });
+  const lead = `${missing.length} not on the record yet`;
+  if (missing.length <= 12) {
+    return (
+      <div className="mt-1 text-[0.6875rem] text-[#5A5751]" data-testid="learner-course-gap">
+        {lead}:
+        <ul className="mt-0.5 space-y-0.5">{items}</ul>
+      </div>
+    );
+  }
+  return (
+    <details className="mt-1 text-[0.6875rem] text-[#5A5751]" data-testid="learner-course-gap">
+      <summary className="cursor-pointer min-h-[32px]">{lead}: show them</summary>
+      <ul className="mt-0.5 space-y-0.5">{items}</ul>
+    </details>
+  );
+}
+
+function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null }) {
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
     <li className="border border-[#E8E4DC] p-3">
@@ -193,31 +250,32 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
 
       {learner.courses?.length ? (
         <>
-          <table className="w-full mt-3 text-xs">
-            <caption className="sr-only">Course by course, for this learner</caption>
-            <thead>
-              <tr className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                <th scope="col" className="text-left py-1">Course</th>
-                <th scope="col" className="text-right py-1">Read</th>
-                <th scope="col" className="text-right py-1">Completion</th>
-                <th scope="col" className="text-right py-1">Average</th>
-                <th scope="col" className="text-right py-1">Last read</th>
-              </tr>
-            </thead>
-            <tbody>
-              {learner.courses.map((c) => (
-                <tr key={c.courseKey} className="border-t border-[#E8E4DC]">
-                  <th scope="row" className="text-left py-1 font-normal text-[#1A1815]">
-                    {c.courseKey === 'unplaced' ? 'Not placed in a course' : c.courseKey}
-                  </th>
-                  <td className="text-right py-1 text-[#1A1815]">{c.lessonsRead}{c.courseLessons ? ` of ${c.courseLessons}` : ''}</td>
-                  <td className="text-right py-1 text-[#1A1815]">{pct(c.completionPct)}</td>
-                  <td className="text-right py-1 text-[#1A1815]">{c.examsTaken ? pct(c.avgQuizPct) : '—'}</td>
-                  <td className="text-right py-1 text-[#5A5751]">{when(c.lastActivityAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* COURSE BY COURSE, STACKED (DR-1388). Darrell's Big Print screenshot, 2026-11-10: the five-column table ran off the
+              right edge ("cutting off fields"). Each course is now its own block: the name on one line, then every figure as a
+              labelled pair that wraps, so nothing is ever cut at any text size. And each course names the lessons not yet on the
+              record, so a completion short of the whole says exactly which lessons it is waiting for. */}
+          <ul className="mt-3 divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]" data-testid="learner-courses" aria-label="Course by course, for this learner">
+            {learner.courses.map((c) => (
+              <li key={c.courseKey} className="py-2 min-w-0" data-testid="learner-course" data-course-key={c.courseKey}>
+                <div className="text-sm text-[#1A1815] [overflow-wrap:anywhere]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {c.courseKey === 'unplaced' ? 'Not placed in a course' : c.courseKey}
+                </div>
+                <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-0.5">
+                  <CoursePair label="Read" value={`${c.lessonsRead}${c.courseLessons ? ` of ${c.courseLessons}` : ''}`} />
+                  <CoursePair label="Completion" value={pct(c.completionPct)} />
+                  <CoursePair label="Average" value={c.examsTaken ? pct(c.avgQuizPct) : '—'} />
+                  <CoursePair label="Last read" value={when(c.lastActivityAt)} />
+                </dl>
+                <NotYetRead
+                  ids={courseLessonIds && courseLessonIds[c.courseKey]}
+                  readIds={readIdsFor(rows, learner.userId, c.courseKey)}
+                  courseKey={c.courseKey}
+                  titleOf={titleOf}
+                  onReadAgain={mine ? onReadAgain : null}
+                />
+              </li>
+            ))}
+          </ul>
           <ExamHistory rows={rows} userId={learner.userId} titleOf={titleOf} onRetake={onRetake} onReadAgain={onReadAgain} mine={mine} />
           {unknownCompletion && (
             <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -243,12 +301,14 @@ export default function LearnersPanel({
   currentUserId = null,
   isGovernor = false,
   courseTotals = null,
+  courseLessonIds = null, // { [courseKey]: [lessonId, ...] } in course order (DR-1388)
   signedIn = true,
   titleOf = null,        // (lessonId, courseKey) => title, from the mounted catalog
   onRetake = null,       // (courseKey, lessonId) => opens the lesson at its exam
   onReadAgain = null,    // (courseKey, lessonId) => opens the reading from the top
 }) {
   const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
+  const [whoId, setWhoId] = useState(null);
   if (!signedIn) {
     return (
       <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -262,6 +322,11 @@ export default function LearnersPanel({
   const others = learners.filter((l) => l.userId !== currentUserId);
   const mine = learners.find((l) => l.userId === currentUserId) || null;
   const showWho = isGovernor && learners.length > 1;
+  // You first, then everyone else by their latest activity.
+  const ordered = [...(mine ? [mine] : []), ...[...others].sort((a, b) => String(b.lastActivityAt || '').localeCompare(String(a.lastActivityAt || '')))];
+  const chosen = ordered.find((l) => l.userId === whoId) || ordered[0] || null;
+  // A learner sees only their own record; the Governor sees the one chosen.
+  const shown = isGovernor ? chosen : mine;
 
   if (!learners.length) {
     return (
@@ -288,9 +353,32 @@ export default function LearnersPanel({
         </div>
       )}
 
+      {/* WHOSE RECORD, ONE TAP (DR-1388; Darrell 2026-11-10: "each user needs to have a drop-down for choosing them... so I can
+          see my recent records or my son's without needing to scroll"). The Governor picks a learner and sees that record alone. */}
+      {showWho && (
+        <div className="mb-3">
+          <label htmlFor="learner-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Whose record</label>
+          <select
+            id="learner-pick"
+            data-testid="learner-pick"
+            value={chosen ? chosen.userId : ''}
+            onChange={(e) => setWhoId(e.target.value)}
+            className="w-full max-w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            style={{ fontFamily: '"Fraunces", serif' }}
+          >
+            {ordered.map((l) => (
+              <option key={l.userId} value={l.userId}>
+                {l.userId === currentUserId ? 'You' : (l.label || 'A learner')}{l.lastActivityAt ? ` · last ${when(l.lastActivityAt)}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <ul className="space-y-3">
-        {mine ? <LearnerCard key={mine.userId} learner={mine} mine showWho={showWho} rows={rows} titleOf={nameOf} onRetake={onRetake} onReadAgain={onReadAgain} /> : null}
-        {isGovernor ? others.map((l) => <LearnerCard key={l.userId} learner={l} mine={false} showWho rows={rows} titleOf={nameOf} />) : null}
+        {shown ? (
+          <LearnerCard key={shown.userId} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
+        ) : null}
       </ul>
 
       {isGovernor && !mine && others.length ? (

@@ -2335,11 +2335,24 @@ function CourseView({
   // PREVIOUS AND NEXT AT THE END OF THE LESSON, NEVER A DEAD END (DR-1383).
   // ONE TAP LANDS AT THE TOP (Darrell 2026-11-10): the scroll waits until the new screen has painted, else it lands mid-page.
   const landTop = (sel) => { if (typeof window === 'undefined') return; window.requestAnimationFrame(() => window.requestAnimationFrame(() => { const t = sel && document.querySelector(sel); try { if (t) t.scrollIntoView({ block: 'start', behavior: motionBehavior() }); else window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } })); };
+  // ALL LESSONS LANDS AT THE TOP OF THE LIST (DR-1388; Darrell 2026-11-10: "Clicking all lessons takes a user to the bottom of the page").
+  // The leave effect below scrolls back to the row just left 60 ms later, and the newest lessons sit last, so an explicit
+  // All lessons forgets that row. It lands on the list's top anchor: the sticky bar itself is always "in view" and never moves.
+  // Leaving unwinds the lesson's history entry (useHistoryValue), and the browser then restores the list's old scroll, which is
+  // the row just left; so the landing runs again once that unwind has popped, with a short fallback when no pop comes.
+  const landAfterUnwind = (sel) => {
+    landTop(sel);
+    if (typeof window === 'undefined') return;
+    const again = () => { window.removeEventListener('popstate', again); landTop(sel); };
+    window.addEventListener('popstate', again);
+    window.setTimeout(() => window.removeEventListener('popstate', again), 1000);
+  };
+  const toAllLessons = () => { lastFocusRef.current = null; setOpenTutorId(null); setFocusId(null); landAfterUnwind('#learn-all-lessons-top'); };
   const goToLesson = (id) => { lastFocusRef.current = id; setFocusId(id); setOpenTutorId(id); savePlace({ lessonId: id }); recordUse(id); landTop(null); };
   const neighborDoor = (x) => x && { id: x.id, title: x.title, label: isNumberedCourse(schedule) ? numberLabel(x, true, U.cap) : `${U.cap} ${x.week}` };
   const lessonNeighbors = (m) => {
     const i = sequence.findIndex((x) => x.id === m.id);
-    return <LessonNeighbors unit={U.noun} prev={neighborDoor(i > 0 ? sequence[i - 1] : null)} next={neighborDoor(i >= 0 ? sequence[i + 1] : null)} onGo={goToLesson} onAll={() => { setOpenTutorId(null); setFocusId(null); landTop('[data-testid="lessons-bar"], #learn-lesson-find'); }} />;
+    return <LessonNeighbors unit={U.noun} prev={neighborDoor(i > 0 ? sequence[i - 1] : null)} next={neighborDoor(i >= 0 ? sequence[i + 1] : null)} onGo={goToLesson} onAll={toAllLessons} />;
   };
 
   // The wrapper hides its own chrome (course picker/sort) while the space is
@@ -2727,15 +2740,21 @@ function CourseView({
               // own "All" control uses, so a reader who asked for reduced
               // motion still gets it.
               onClick={() => {
+                // Forget the row just left, or the leave effect scrolls back down to it (DR-1388).
+                lastFocusRef.current = null;
                 setFocusId(null);
                 if (typeof document === 'undefined') return;
-                // After the swap has painted, or there is nothing to scroll to.
-                requestAnimationFrame(() => {
-                  const bar = document.querySelector('[data-testid="lessons-bar"]');
-                  const target = bar || document.getElementById('learn-lesson-find');
+                // After the swap has painted, or there is nothing to scroll to; and again once the history unwind pops (DR-1388).
+                const land = () => requestAnimationFrame(() => {
+                  const top = document.getElementById('learn-all-lessons-top');
+                  const target = top || document.getElementById('learn-lesson-find');
                   if (!target) { try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { window.scrollTo(0, 0); } return; }
                   try { target.scrollIntoView({ block: 'start', behavior: motionBehavior() }); } catch (_) { target.scrollIntoView(); }
                 });
+                land();
+                const again = () => { window.removeEventListener('popstate', again); land(); };
+                window.addEventListener('popstate', again);
+                window.setTimeout(() => window.removeEventListener('popstate', again), 1000);
               }}
               data-testid="lesson-bar-all"
               className="text-[0.8125rem] uppercase tracking-wider px-4 py-2 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
@@ -4558,6 +4577,15 @@ export default function ChurchLearn({
     }
     return out;
   }, [courses]);
+  // Which lessons each course holds, in order, so the record can name the ones not on it yet (DR-1388).
+  const courseLessonIds = React.useMemo(() => {
+    const out = {};
+    for (const c of (courses || [])) {
+      const list = Array.isArray(c?.schedule) ? c.schedule : Array.isArray(c?.modules) ? c.modules : null;
+      if (c?.key && list && list.length) out[c.key] = list.map((m) => m && m.id).filter(Boolean);
+    }
+    return out;
+  }, [courses]);
   // The fold's own summary is LIVE (DR-0381): it says what the record holds
   // before anyone opens it, and says plainly when it holds nothing.
   // The library's own live summary line (DR-1266), on the fold before it opens.
@@ -5809,6 +5837,7 @@ export default function ChurchLearn({
           do I get to the rest of the lessons?"). So the bar renders either way
           and the three things inside it that belong to a course wait for one:
           the unit noun, the course's name, and its Continue. */}
+      {!lessonFocus && <div id="learn-all-lessons-top" data-testid="learn-all-lessons-top" aria-hidden="true" />}
       {courses.length > 1 && !lessonFocus && (
         <div
           className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-wrap"
@@ -5890,7 +5919,8 @@ export default function ChurchLearn({
           course's real lesson count. Folded, so it never pushes the lessons
           down the page; it carries its own live summary on the summary line. */}
       {learnArea === 'record' && !lessonFocus && (
-        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-class-record">
+        // THE RECORD OPENS ON THE RECORD (DR-1388; Darrell 2026-11-10: "Record doesn't open a users record... we want the record").
+        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-class-record" open>
           <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
             Class record
             <span className="normal-case tracking-normal text-[#1A1815]">
@@ -5904,6 +5934,7 @@ export default function ChurchLearn({
               isGovernor={isGovernor}
               signedIn={signedIn}
               courseTotals={courseLessonTotals}
+              courseLessonIds={courseLessonIds}
               titleOf={lessonTitleOf}
               onRetake={retakeExam}
               onReadAgain={readAgain}
@@ -5918,7 +5949,7 @@ export default function ChurchLearn({
           holds, what each lesson still waits for, and how the library and the
           learning are managed. From the mounted catalog, never typed. */}
       {learnArea === 'record' && !lessonFocus && (
-        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-library-census" open>
+        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-library-census">
           <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
             The library
             <span className="normal-case tracking-normal text-[#1A1815]">{' — '}{libraryLine}</span>

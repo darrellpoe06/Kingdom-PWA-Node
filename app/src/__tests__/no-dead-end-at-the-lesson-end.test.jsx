@@ -126,7 +126,7 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
     expect(go).toEqual([]);
   });
 
-  it('4. one tap lands at the top: Next at the top of the next lesson, All lessons at the lessons bar', () => {
+  it('4. one tap lands at the top: Next at the top of the next lesson, All lessons at the top of the list', async () => {
     const raf = window.requestAnimationFrame;
     const into = Element.prototype.scrollIntoView;
     const to = window.scrollTo;
@@ -148,6 +148,8 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
       tops.push(a && typeof a === 'object' ? a.top : a);
     };
     try {
+      // A fresh entry, so this case's history unwind lands on it and not on an earlier case's lesson entry.
+      window.history.pushState({ fresh: true }, '');
       mount();
       openLivingLessons();
       click(byText('Bodybuilding Christ'));
@@ -159,14 +161,29 @@ describe('an open lesson ends with Previous and Next, and never a dead end', () 
       landed.length = 0;
       click(q('lesson-neighbor-all'));
       paint();
+      // DR-1388: wait past the leave effect's 60 ms return-to-the-row scroll, which
+      // used to fire after the landing and carry the reader to the row at the bottom.
+      await act(() => new Promise((r) => setTimeout(r, 120)));
+      paint();
       expect(cards().length).toBeGreaterThan(4);
-      expect(landed, 'All lessons lands at the lessons bar, not the bottom').toContain('lessons-bar');
+      expect(landed, 'All lessons lands at the top of the list').toContain('learn-all-lessons-top');
+      expect(landed.filter((x) => String(x).startsWith('learn-lesson-')), 'and nothing scrolls back down to the lesson just left').toEqual([]);
+      expect(landed[landed.length - 1]).toBe('learn-all-lessons-top');
+      // The lessons bar's own All lands the same way.
+      click(byText('Bodybuilding Christ'));
+      landed.length = 0;
+      click(q('lesson-bar-all'));
+      paint();
+      await act(() => new Promise((r) => setTimeout(r, 120)));
+      paint();
+      expect(landed.filter((x) => String(x).startsWith('learn-lesson-')), 'the bar’s All never scrolls back down either').toEqual([]);
+      expect(landed[landed.length - 1]).toBe('learn-all-lessons-top');
     } finally {
       window.requestAnimationFrame = raf;
       Element.prototype.scrollIntoView = into;
       window.scrollTo = to;
     }
-  });
+  }, 120000);
 
   it('5. the doors stack full width, Next first, and a long word wraps inside its door (DR-1385)', () => {
     act(() =>
