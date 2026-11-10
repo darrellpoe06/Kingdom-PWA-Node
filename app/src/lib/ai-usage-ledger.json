@@ -871,6 +871,23 @@
       "notes": "Traced from three screenshots of L3 to the finish roads in readMark."
     },
     {
+      "id": "sov73-ask-before-you-answer",
+      "date": "2026-11-06",
+      "task": "sov73, he that answereth a matter before he heareth it: the Sovereign A.I. week built Word-first from one item of a forwarded trade newsletter, with all four age bands, a 40-verse pinned gate, DR-1376, its session note, the band count re-derived and the file-budget raise recorded",
+      "drs": [
+        "DR-1376"
+      ],
+      "prs": [
+        2585
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.92,
+      "estimateWithoutAiHours": 40,
+      "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
+    },
+    {
       "id": "the-resolver-owns-the-budgets",
       "date": "2026-11-10",
       "task": "Teach the ledger resolver to own the two budget ratchets: union the append-only raises and re-base ours onto main's chain",

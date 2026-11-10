@@ -689,7 +689,34 @@ const REPO = join(HERE, '..', '..', '..');
 // all five reader places with `re-review: 2026-11-12`, and when those hosts are
 // allowed its figures get rows and THIS PIN COMES BACK DOWN TO 25. Same shape
 // as sov66's two, one week older.
-const GAP = 26;
+// 27 on 2026-11-09: sov72 (he that answereth a matter before he heareth it,
+// DR-1376) joins the gap with 1 disclosure, by the SAME second route this gate
+// offers -- saying plainly why its figure cannot be read back -- and not by
+// neglect. The lesson already carries the limit in its own reader text, naming
+// what was refused: four primary hosts answered `curl: (56) CONNECT tunnel
+// failed, response 403` at the gateway and a fifth would not resolve
+// (`getaddrinfo ENOTFOUND microsoft.ai`). A lesson-sources.json row means a
+// runner read a figure back off a publisher; none did, so a row would assert a
+// read that did not happen.
+//
+// ONE THING THE NOTES ABOVE DO NOT SAY, and it is a Ways question rather than a
+// content one (DR-0108: scope to the team's reach, never the agent's). Every
+// "cannot be read back" here -- sov67's, sov66's and now sov72's -- was
+// measured FROM THIS CONTAINER, whose egress goes through the agent proxy that
+// returned those 403s. A GitHub runner has open egress and is road one in
+// DR-1159's order, and it has NOT been tried for these figures. So the honest
+// statement is narrower than "no runner here can read a figure back": it is
+// that this container cannot, and the runner road is untested. Testing it is
+// what would lower this pin and the two before it, which is a better answer
+// than waiting for hosts to be allowlisted. Not built here, because it is a new
+// road and this is a lesson's catch-up merge. `re-review: 2026-11-20` with
+// sov67's own 2026-11-12, whichever is read first.
+//
+// MEASURED ON THIS TREE after merging main, never by arithmetic on a branch:
+// the gate itself printed 27 against a pin of 26 and named sov72 as the new
+// row, which is how this entry was written rather than from the branch's
+// three-day-old CI.
+const GAP = 27;
 const CHECKED_LESSONS = 4;
 
 describe('both sides of the honesty gap are counted', () => {
