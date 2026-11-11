@@ -723,7 +723,19 @@ const REPO = join(HERE, '..', '..', '..');
 // 2026-11-10 (DR-1408): dsi17 admits the Gartner report was not opened (it is
 // sold) AND gives its forecast a row read back from the distributing page, so
 // the gap holds at 27 and the read-back side rises to 6.
-const GAP = 27;
+// 2026-11-11 (DR-1425): pm16 RAISES the gap to 28, and the direction is
+// deliberate rather than a slip. Its source is an advertisement whose report
+// sits behind a form demanding a real person's name, employer and job title, so
+// the report was NOT opened -- we do not spend Darrell's identity to fetch a
+// vendor's PDF. That is this gate's SECOND remedy ("say plainly why it cannot be
+// checked") and not its first: there is no row to add to lesson-sources.json,
+// because the lesson asserts NO figure from the report. Its survey of 100+
+// retail leaders is quoted nowhere and leaned on nowhere, which is exactly why
+// the read-back side does not move with it. A lesson that admits an unread
+// source and then relies on none of it is the shape this gap exists to HOLD
+// rather than hide -- the alternative, repeating the vendor's numbers and giving
+// them a row, would have lowered this count by asserting what we never read.
+const GAP = 28;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
