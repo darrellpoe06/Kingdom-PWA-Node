@@ -181,7 +181,40 @@ lines, ceiling raised to the measured total.
 
 **The limit, stated (P66).** That witness rides the runner's tailnet key, which
 is the expired road this whole loop exists to route around. So until a fresh
-`TS_AUTHKEY` is in place, the loop's real witness is the app-side reader
-(`app/src/lib/lesson-queue-census.js`), which reads an uncounted queue as
-uncounted and never as empty. Neither witness has yet seen a stamp from this
-loop: it counts as working when one of them does, not now.
+`TS_AUTHKEY` is in place, the loop's live witness is the app-side reader, which
+reads an uncounted queue as uncounted and never as empty. Neither witness has
+yet seen a stamp from this loop: it counts as working when one of them does,
+not now.
+
+## Seventh finding: the loop was not actually in the app (2026-11-11 00:06Z)
+
+Then a stop hook caught me citing `THE-WAY-A-SERVICE-COMES-HOME.md` without
+having opened it this session — a fair catch, because what I had actually read
+was the gate's comments, and citing the Way itself claimed more than I'd done.
+Reading it changed the work.
+
+The Way says plainly: **"A loop is a service too. A batch loop with no door
+keeps steps 1, 2, 4, 6, 7 and 8."** Step 7 is *"it shows in the app... never a
+painted status"* and step 8 is *"it seeds the next — a service that answers to
+no one is not home."* I had built `app/src/lib/lesson-queue-census.js` with 16
+checks and **imported it nowhere**: the NAS would count its queue and no screen
+would read it. `nas-heartbeat`, the loop I mirrored in every other respect,
+shows on the OpsBoard; mine did not. The gate could not catch this, because the
+gate reads the installer and the witness, not the app.
+
+So the strip was built beside the heartbeat's: the count, what KIND of work
+waits broken out by shape, and the oldest wait. **Nine checks, proven to catch**
+— rendering an absent census as `0 lesson rows waiting` (the natural wrong
+version, the `total ?? 0` reflex) fails `PROVEN TO CATCH: no census row says
+NEVER COUNTED and shows no zero` by name. That is the DR-1186 failure exactly:
+a reader who sees "0 waiting" when nobody could count stops looking, and this
+queue is 35 rows deep.
+
+**The finding under the finding.** Two gates passed a loop that was not home,
+because between them nothing asked "does this show up where Darrell looks?"
+That is DR-0065's standing default — the app is the primary artifact — and it
+was carried here by a Way document rather than by any check. Worth a gate of
+its own, and the honest version of this note says I did not build one:
+`re-review: 2026-11-18` — teach `a-service-comes-home.test.js` to require that
+a loop on the Way has a reader that some component imports, so step 7 is
+machinery and not a document someone has to remember to read.
