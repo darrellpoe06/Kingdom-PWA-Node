@@ -676,7 +676,7 @@ export default function Pulpit() {
     if (!/^UC[A-Za-z0-9_-]{22}$/.test(ch)) return undefined;
     fetch(`/api/church-recent?channel=${encodeURIComponent(ch)}`)
       .then((r) => (r.ok ? r.text() : ''))
-      .then((xml) => { if (alive) setChannelFresh(parseYoutubeFeed(xml, 8)); })
+      .then((xml) => { if (alive) setChannelFresh(parseYoutubeFeed(xml, 15)); })
       .catch(() => { if (alive) setChannelFresh([]); });
     return () => { alive = false; };
   }, [reloadKey]);
