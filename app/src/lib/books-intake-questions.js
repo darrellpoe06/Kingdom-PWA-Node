@@ -22,6 +22,7 @@
 // =============================================================================
 import { DOC_TYPE_LABEL, DOC_TYPES } from './books-intake-extract.js';
 import { TAB_HINTS } from './books-intake-extract.js';
+import { accountLast4 } from './books-intake-match.js';
 
 export const QUESTION_STATUS = Object.freeze(['open', 'answered', 'skipped']);
 
@@ -67,6 +68,14 @@ export function questionsFor(doc, { extraction: x, matched = {}, recon = null, h
     out.push(q(id, 'account', `Which account is this${x.account_hint.last4 ? ` (ending ${x.account_hint.last4})` : ''}?`,
       [...cands, ...create, ...rest],
       { why: x.account_hint.last4 ? 'No account on file ends in those four digits.' : 'The document does not show which account it is.' }));
+    // A new account must land in the right pocket: a Poe Properties screenshot
+    // created with no entity would ride Personal and count business cash as
+    // personal spending money (Darrell 2026-11-11: "Keep Personal, Poe
+    // Properties, and TLC separate"). Asked only when the page did not say.
+    if ((entities || []).length > 1 && matched.entity && !matched.entity.entityId) {
+      out.push(q(id, 'entity', 'Whose account is this?', (matched.entity.candidates && matched.entity.candidates.length ? matched.entity.candidates : entities).map((e) => ({ value: `entity:${e.id}`, label: e.name })),
+        { blocking: true, why: 'Business and personal money are kept apart; a new account needs its owner before anything is recorded.' }));
+    }
   }
 
   if (x.doc_type === 'tax-form') {
@@ -175,7 +184,7 @@ export function applyLesson(lesson, { extraction: x, accounts = [] }) {
   if (lesson.account) {
     const id = String(lesson.account).slice('account:'.length);
     const acc = (accounts || []).find((a) => a.id === id);
-    const l4 = String((acc && acc.fragment) || '').replace(/\D/g, '').slice(-4);
+    const l4 = accountLast4(acc);
     const pageL4 = x && x.account_hint && x.account_hint.last4;
     if (acc && (!pageL4 || !l4 || pageL4 === l4)) answers.account = lesson.account;
   }

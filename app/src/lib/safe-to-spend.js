@@ -53,7 +53,7 @@
 // Tests: src/__tests__/safe-to-spend.test.js.
 // =============================================================================
 
-import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints } from './financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 import { cleanName, suggestBills, isOwnAccountTransfer } from './bill-review.js';
@@ -325,7 +325,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     const amount = Number(o.amount) || 0; if (amount <= 0) continue;
     seenPayees.add(payeeKey(o.name || ''));
     const type = OBLIGATION_TYPES.includes(o.type) ? o.type : 'regular';
-    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId || null, paidByEntityId: paidBy, assumed: false };
+    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId || null, paidByEntityId: paidBy, accountId: o.accountId && accountEntity.has(o.accountId) ? o.accountId : null, assumed: false };
     // A separate past-due amount on a regular bill or arrangement is owed now.
     const pastDue = Number(o.pastDue) || 0;
     if (pastDue > 0 && type !== 'past-due') {
@@ -410,7 +410,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
     const amt = Number(t.amount) || 0; if (!amt) continue;
     scheduledKeys.add(payeeKey(t.description || ''));
-    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, assumed: false });
+    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false });
   }
 
   // 3) Minimum debt payments + mortgage P&I/escrow, once each. A mortgage
@@ -738,10 +738,13 @@ export function settleOccurrences(events, data, asOf) {
       // A missed occurrence is dated today but was DUE earlier; the payment
       // window opens half a cycle before the due date, not before today.
       const from = addDays(parseDay(ev.dueDate || ev.date), -half);
-      const k = payeeKey((o && o.name) || ev.label || '');
+      // Every spelling the bill is known by: its name, and the bank's own
+      // ("FIRST STATE BK LOAN PMT 5342" for "First State Bank loan 5342") as
+      // the review screen recorded it (paidAs / alsoPaidAs).
+      const names = [...new Set([(o && o.name) || ev.label || '', o && o.paidAs, ...((o && o.alsoPaidAs) || [])].filter(Boolean).map((n) => payeeKey(n)).filter(Boolean))];
       for (const x of debits) {
         if (paid >= due - 0.005) break;
-        if (x.left <= 0.005 || x.d < from || !samePayee(x.key, k)) continue;
+        if (x.left <= 0.005 || x.d < from || !names.some((k) => samePayee(x.key, k))) continue;
         const take = Math.min(x.left, due - paid);
         x.left = round2(x.left - take); paid = round2(paid + take); ledgerIds.push(x.id);
       }
@@ -898,13 +901,22 @@ export function ledgerFreshness(data, sc, asOf, settings = {}) {
 // bills, overdue items, creditor arrangements and settlements, and expected
 // income, each with the items that make it up (every number can be opened).
 function comingUp(data, sc, start, settings, opts) {
+  const end30 = addDays(start, 30);
   const end14 = addDays(start, 14);
   const end7 = addDays(start, 7);
-  const ob = obligationEvents(data, sc, start, end14, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
-  const inc = incomeEvents(data, sc, addDays(start, 1), end14, settings, start);
-  const out = ob.events.filter((e) => e.amount < 0);
+  // One 30-day walk; the 7- and 14-day windows are its earlier days (the
+  // events are the same whatever the end), so the three can never disagree.
+  const ob = obligationEvents(data, sc, start, end30, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
+  const inc = incomeEvents(data, sc, addDays(start, 1), end30, settings, start);
+  const out30 = ob.events.filter((e) => e.amount < 0);
+  const out = out30.filter((e) => e.date <= isoDay(end14));
   const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
+  // Past-due obligations are their own list, apart from the regular monthly
+  // bills (Darrell 2026-11-11): a missed loan payment (overdue, in or past
+  // its grace period) or a past-due balance entered as such.
+  const isPastDue = (e) => !!e.overdue || !!e.graceState || e.obligationType === 'past-due';
+  const incomeThrough = (end) => { const xs = inc.events.filter((e) => e.date <= isoDay(end)); return { total: round2(xs.reduce((s, e) => s + e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) }; };
   // What is NOT subtracted, shown beside what is: payments already paid and
   // cleared (in the ledger, marked paid outside, or inside the bank-checked
   // balance) and the possible duplicates counted once.
@@ -917,9 +929,20 @@ function comingUp(data, sc, start, settings, opts) {
     duplicates: { total: round2(dupes.reduce((a, e) => a + e.amount, 0)), items: dupes },
     next7: pick(in7),
     next14: pick(out),
+    next30: pick(out30),
+    // Regular bills in each window with the past-due ones taken out, so a
+    // missed payment is never read as this month's bill.
+    regular7: pick(in7.filter((e) => !isPastDue(e))),
+    regular14: pick(out.filter((e) => !isPastDue(e))),
+    regular30: pick(out30.filter((e) => !isPastDue(e))),
+    pastDue: pick(out30.filter(isPastDue)),
     overdue: pick(out.filter((e) => e.overdue)),
     arrangements: pick(out.filter((e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement')),
-    income14: { total: round2(inc.events.reduce((s, e) => s + e.amount, 0)), items: inc.events.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) },
+    // Income expected BEFORE each window's bills are due: what arrives inside
+    // the same window (counted only on the day it arrives, never earlier).
+    income7: incomeThrough(end7),
+    income14: incomeThrough(end14),
+    income30: incomeThrough(end30),
   };
 }
 
@@ -1006,6 +1029,22 @@ function forScope(data, sc, asOf, settings, opts) {
   const checked = latestCheckpoints(data, asOf);
   const anyChecked = spendable.some((a) => checked[a.id]);
   const balanceOf = (a) => (balances[a.id] != null ? balances[a.id] : (Number(a.balance) || 0));
+  // THE TRAIL BEHIND EACH FIGURE (Darrell 2026-11-11): every bank check the
+  // account carries, the rows that moved it since the one in force, and any
+  // check dated AFTER today (a misread screenshot day), which is never used
+  // and is said so, instead of an older figure standing in silence.
+  const history = checkpointHistory(data);
+  const asOfDay = isoDay(asOf);
+  const trailOf = (a, cp) => {
+    const cps = (history[a.id] || []);
+    const since = cp ? (data?.transactions || []).filter((t) => t && t.accountId === a.id && !isBalanceAdjustment(t) && String(t.date || '').slice(0, 10) > cp.day && String(t.date || '').slice(0, 10) <= asOfDay) : [];
+    const later = cps.filter((c) => c.day > asOfDay);
+    return {
+      checkpoints: cps.slice().reverse().slice(0, 5).map((c) => ({ day: c.day, balance: c.balance, basis: c.basis, source: c.source })),
+      sinceVerified: cp ? { count: since.length, net: round2(since.reduce((s, t) => s + (Number(t.amount) || 0), 0)) } : null,
+      laterCheckpoint: later.length ? { day: later[later.length - 1].day, balance: later[later.length - 1].balance, source: later[later.length - 1].source } : null,
+    };
+  };
   const balanceSources = spendable.map((a) => {
     const cp = checked[a.id];
     // A PROVISIONAL balance is the family's own approximate figure ("about
@@ -1021,8 +1060,12 @@ function forScope(data, sc, asOf, settings, opts) {
       verifiedDaysAgo: cp && !provisional ? daysBetween(parseDay(cp.day), asOf) : null,
       provisional, provisionalOn: provisional ? cp.day : null,
       counted: anyChecked ? !!cp : true,
+      ...trailOf(a, cp),
     };
   });
+  for (const b of balanceSources) {
+    if (b.laterCheckpoint) assumptions.push(`${b.name}: a verified balance of $${b.laterCheckpoint.balance.toLocaleString()} is dated ${b.laterCheckpoint.day}, after today, so it is not used yet${b.laterCheckpoint.source ? ` (${b.laterCheckpoint.source})` : ''}; if that day is wrong, correct the screenshot's day.`);
+  }
   const availableCash = round2(balanceSources.filter((b) => b.counted).reduce((s, b) => s + b.balance, 0));
   const unverifiedExcluded = round2(balanceSources.filter((b) => !b.counted).reduce((s, b) => s + b.balance, 0));
   const investments = round2((data?.accounts || []).filter((a) => a.type === 'investment' && !a.inLegal && inScope(sc, a.entityId)).reduce((s, a) => s + (balances[a.id] || 0), 0));
@@ -1247,7 +1290,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     // The combined view lists every entity's bills and income side by side,
     // each item tagged with the pocket it comes out of — a total of what is
     // DUE, never a pool of who may spend what.
-    windows: ['next7', 'next14', 'overdue', 'arrangements', 'income14'].reduce((w, k) => {
+    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30'].reduce((w, k) => {
       const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
       w[k] = {
         total: round2(parts.reduce((s, { part }) => s + (Number(part.total) || 0), 0)),

@@ -25,7 +25,7 @@
 // =============================================================================
 import { readAnyFile } from './books-intake-read.js';
 import { extractDocument } from './books-intake-extract.js';
-import { matchDocument, newRowsFor, proposedAccount, ledgerRows } from './books-intake-match.js';
+import { matchDocument, newRowsFor, proposedAccount, ledgerRows, resolveEntity } from './books-intake-match.js';
 import { reconcileExtraction } from './books-intake-reconcile.js';
 import { questionsFor, answerQuestion, blockingOpen, lessonFrom, applyLesson } from './books-intake-questions.js';
 import { receiptShape } from './receipts.js';
@@ -100,6 +100,10 @@ export async function processDoc(doc, ctx) {
   if (given.account && String(given.account).startsWith('account:')) {
     matched.account = { accountId: String(given.account).slice(8), certain: true, candidates: [] };
     matched.proposedAccount = null;
+    // The chosen account's owner is the document's owner (so no entity question
+    // is asked for an account the books already file under a pocket).
+    const ent = resolveEntity(x, { entities: known.entities || [], accounts: known.accounts || [], accountId: matched.account.accountId, text: read.text });
+    if (ent.entityId) matched.entity = ent;
   }
   if (given.entity && String(given.entity).startsWith('entity:')) matched.entity = { entityId: String(given.entity).slice(7), certain: true };
   const recon = reconcileExtraction(x);
