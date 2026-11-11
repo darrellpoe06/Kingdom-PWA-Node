@@ -21,6 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
+import { courseStanding } from '../lib/course-pace.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
 import { learnerIdentity } from '../lib/learner-identity.js';
@@ -177,6 +178,49 @@ function TakenAndGraded({ rows = [], userId }) {
   );
 }
 
+// WHERE YOU STAND AND WHERE THIS PACE LANDS (DR-1422). Darrell, 2026-11-11:
+// "Fully completed courses... x amount x to go... on pace for completing by x
+// date at this pace", after "Read and tested...". Every figure above this one
+// counts the past; none of them stated a GOAL or how far is left. Done here is
+// his definition — the reading on the record AND the exam passed — and mastery
+// at 100% rides beside it rather than inside it (DR-1386 keeps them apart).
+// The date is this learner's own measured rate or it is not shown at all: a
+// projection with no basis is a painted number (DR-0061 / P15).
+function StandingAndPace({ rows = [], userId, courseLessonIds }) {
+  if (!courseLessonIds || !Object.keys(courseLessonIds).length) return null;
+  const mine = rows.map(rowToRecord).filter((r) => r.userId === userId);
+  const s = courseStanding(mine, courseLessonIds);
+  if (!s.coursesTotal) return null;
+  const p = s.pace;
+  const onPace = p.finishAt
+    ? `At this pace, the rest by ${new Date(p.finishAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`
+    : p.far
+      ? 'At this pace, longer than ten years'
+      : 'Not enough read and tested yet to measure a pace';
+  const basis = p.basisCount >= 2 && p.basisDays ? `${p.basisCount} read and tested across ${p.basisDays} day${p.basisDays === 1 ? '' : 's'} — ${p.perWeek} a week` : p.why;
+  return (
+    <div className="mt-2" data-testid="standing-and-pace">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Where you stand</div>
+      <div className="grid gap-2" style={FIGURE_GRID} data-testid="standing-figures">
+        <Figure label="Courses fully completed" value={`${s.coursesComplete} of ${s.coursesTotal}`} hint="Every lesson in the course read and its exam passed." />
+        <Figure label="Courses to go" value={s.coursesToGo} hint={`${s.lessonsToGo} lesson${s.lessonsToGo === 1 ? '' : 's'} still to read and test.`} />
+        {/* THE TOTAL IS SAID ON BOTH, SO MASTERY IS SOUGHT AFTER (Darrell,
+            2026-11-11: "Say the total passed and mastered with testing and
+            reading... so it will be sought after"). A bare count of mastered
+            lessons is a pat on the back; the same count against the whole
+            names what is still there to go and get. */}
+        <Figure label="Read and tested" value={`${s.lessonsDone} of ${s.lessonsTotal}`} hint={`The reading on the record and the exam passed. ${s.lessonsToGo} to go.`} />
+        <Figure
+          label="Mastered at 100%"
+          value={`${s.mastered} of ${s.lessonsTotal}`}
+          hint={`Read in full, and every answer right. ${s.lessonsTotal - s.mastered} still to master.`}
+        />
+        <Figure label="On pace" value={onPace} hint={basis} />
+      </div>
+    </div>
+  );
+}
+
 function CoursePair({ label, value }) {
   return (
     <div className="flex items-baseline gap-1">
@@ -278,6 +322,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
         />
       </div>
       <TakenAndGraded rows={rows} userId={learner.userId} />
+      <StandingAndPace rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} />
 
       {learner.courses?.length ? (
         <>
