@@ -184,6 +184,13 @@
       "why": "ll300 (Put Not Your Trust In Princes, DR-1414) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Raised by the lesson's own measured size and nothing more. The from/to were re-based by resolve-ledger-conflicts when main landed three lessons ahead of this branch, and its re-based landing was then corrected DOWN to the measured line count, because the chain end must equal the ceiling the guard enforces. Same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
     },
     {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 32042,
+      "to": 32192,
+      "date": "2026-11-11",
+      "why": "ll301, Your Old Men Shall Dream Dreams (DR-1426): the Joel 2:28 / Acts 2:17 lesson Darrell sent into the app with one word over it, Lesson. One lesson of four bands, two parables and an eight-question test, raised by its own measured size and nothing more, until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
+    },
+    {
       "file": "app/src/components/ChurchLearn.jsx",
       "from": 5998,
       "to": 6002,
@@ -199,7 +206,7 @@
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 32042,
+    "app/src/lib/living-lessons-class.js": 32192,
     "app/src/lib/sovereign-ai-class.js": 11203,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6002,
