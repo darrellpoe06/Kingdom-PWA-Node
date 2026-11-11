@@ -2,7 +2,7 @@
 // use-prospects — the two mounts of the calculator keep prospects the same way
 // =============================================================================
 // Both Debt Freedom and Real Estate hand the calculator the household's list of
-// properties being weighed and the two writers for it (DR-1414). The write is
+// properties being weighed and the two writers for it (DR-1415). The write is
 // one key, data.moneyPlan.prospects, through the shell's own setData and the
 // plan's own stamp (patchMoneyPlan), so it rides the household snapshot exactly
 // as the rest of the Money settings do. With no setData (a read-only seat) the

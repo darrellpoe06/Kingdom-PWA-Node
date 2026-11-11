@@ -1,4 +1,4 @@
-# DR-1414: A property we are weighing is kept by name, in a list of its own
+# DR-1415: A property we are weighing is kept by name, in a list of its own
 
 **Date:** 2026-11-10
 **Status:** Accepted

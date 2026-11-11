@@ -5,7 +5,7 @@
 // App where it makes sense... easy population of our actual numbers... based
 // on a drop down for each asset... and debt to get rid of it... easy to see...
 // not disturbing what we need already." (DR-1413) Then, the same evening:
-// properties we are looking to buy, kept by name (DR-1414); and, from his own
+// properties we are looking to buy, kept by name (DR-1415); and, from his own
 // screen, "I don't see any mortgage in the list... we really want to know how
 // assets are paid down and the benefits of that... keep using our subtab
 // procedures so scrolling is minimal" (DR-1416).

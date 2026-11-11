@@ -1340,7 +1340,7 @@
       "date": "2026-11-10",
       "task": "A property being weighed is named and kept in the household's own list, restored with every figure, with what is left from the expected rent",
       "drs": [
-        "DR-1414"
+        "DR-1415"
       ],
       "prs": [],
       "model": "claude-fable-5-2",
