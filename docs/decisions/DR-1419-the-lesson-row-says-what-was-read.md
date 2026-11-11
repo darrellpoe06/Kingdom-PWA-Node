@@ -1,4 +1,4 @@
-# DR-1418: The lesson row says what was read, not what is left
+# DR-1419: The lesson row says what was read, not what is left
 
 **Date:** 2026-11-10
 **Status:** Accepted

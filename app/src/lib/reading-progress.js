@@ -80,7 +80,7 @@ export function percentRead(fraction) {
 }
 
 /**
- * "38% read", or "all read" at the end: what the lesson rows say (DR-1418).
+ * "38% read", or "all read" at the end: what the lesson rows say (DR-1419).
  * Darrell, 2026-11-10, of four rows reading "CONTINUE · 99% LEFT" on lessons
  * he had barely opened: "How could I have 99% and not have read it... is the
  * test complete? Fix it". A bare percentage beside Continue is read as what

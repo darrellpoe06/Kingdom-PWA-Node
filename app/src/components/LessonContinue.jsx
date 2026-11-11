@@ -217,7 +217,7 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
   // screen or heard from the reader (lib/reading-progress.js); said only once
   // something was measured, never painted.
   const reached = placeReached(place);
-  // READ, NOT LEFT, ON THE ROW (DR-1418): "99% left" beside Continue was read as 99% done.
+  // READ, NOT LEFT, ON THE ROW (DR-1419): "99% left" beside Continue was read as 99% done.
   const left = reached > 0 ? readLabel(reached) : '';
   const both = reached > 0 ? `${readLabel(reached)}, ${leftLabel(reached)}` : '';
   return (

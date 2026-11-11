@@ -1400,7 +1400,7 @@
       "date": "2026-11-10",
       "task": "The lesson row says percent read instead of percent left",
       "drs": [
-        "DR-1418"
+        "DR-1419"
       ],
       "prs": [],
       "model": "claude-fable-5-2",

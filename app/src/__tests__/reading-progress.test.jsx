@@ -175,7 +175,7 @@ describe('each lesson row says how much is left', () => {
     return host;
   };
   const base = { courseKey: 'living-lessons', lessonId: 'll1', stage: 1, step: 2, sentence: 0, sentenceKey: '', done: false, started: true, finishes: 0, at: Date.now() };
-  it('Continue · 38% read, from the furthest witness: what was READ, in that word (DR-1418)', () => {
+  it('Continue · 38% read, from the furthest witness: what was READ, in that word (DR-1419)', () => {
     const el = render(<RowContinue place={{ ...base, seen: 0.38, heard: 0.1 }} title="L1" onContinue={() => {}} />);
     const b = el.querySelector('[data-testid="row-continue"]');
     expect(b.textContent).toBe('Continue · 38% read');
