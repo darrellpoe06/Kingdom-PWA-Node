@@ -13,6 +13,7 @@
 - **A property with no mortgage balance on file was left out of the list.** `loanGroups` skipped it and only counted it. `MONEY_HANDOFF.md` already recorded that the six First State Bank loans are not entered, so on the real household that rule removed the very mortgages the calculator was built for. I shipped it without reading that against the rule.
 - **Mortgages were sorted under their entity,** so any that were listed sat below a long run of cards.
 - **Everything was one long panel:** measured 2,000px tall at 360px with a loan chosen.
+- **DR-1413 was filed Tier A;** a new product feature is Tier B (RELEASE-TIERS). This record and DR-1414 carry B.
 - **Not seen:** Darrell's live records. The cause above is read from the code and the handoff, not from the NAS.
 
 ## Decision

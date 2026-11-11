@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-10
 **Status:** Accepted
-**Tier:** A (one new key in the household's own Money settings; no schema, no table, no total changed)
+**Tier:** B (a new product feature; one new key in the household's own Money settings, no schema; self-verified by test and in Chromium)
 **Type:** feature
 **Area:** `app/src/lib/purchase-prospects.js`, `app/src/lib/use-prospects.js`, `app/src/lib/mortgage-sources.js`, `app/src/components/MortgageCalculator.jsx`; one prop on an existing line in `Rentals.jsx` and the shell
 **Sent in by:** Darrell, 2026-11-10: "I also want to be able to use it for potential properties we are looking to potentially purchase and other users will also want that type of functionality"
