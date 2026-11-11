@@ -9,6 +9,12 @@
       "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
     },
     {
+      "name": "content-sync",
+      "install": "infra/nas-supabase/content_sync_install.sh",
+      "enabled": true,
+      "description": "The NAS carries hosted-only content rows (choir_sermons and the other content tables) to the sovereign database ITSELF (DR-1427, the DR-1360 direction: the NAS initiates the road). The runner lane sovereign-content-sync.yml failed every day 2026-11-04..11 on an expired tailnet key, so November services never reached The Word's month archive. Stamp-gated rider on the already-armed services-sync clock: one content_sync.py --commit per 6 hours (4/day), 420 s timeout under the 480 s rider ceiling; idempotent (ON CONFLICT DO NOTHING). Registered second, after the transcript trickle, so a slow sibling cannot starve it."
+    },
+    {
       "name": "church-mail",
       "install": "infra/nas-church-mail/install.sh",
       "enabled": true,

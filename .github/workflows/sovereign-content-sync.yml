@@ -45,10 +45,8 @@ on:
         description: "one table only (blank = every content table)"
         type: string
         default: ""
-  schedule:
-    # 06:20 UTC daily — after the NAS's overnight ingest window and before the
-    # US morning, offset from the hour so it never stacks on the other clocks.
-    - cron: '20 6 * * *'
+  # NO SCHEDULE (DR-1427): the NAS rider content-sync carries these rows every 6h;
+  # this road failed daily on an expired key (retired per DR-1360). Hand-run only.
 
 permissions:
   contents: read

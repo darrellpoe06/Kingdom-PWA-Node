@@ -1032,6 +1032,15 @@ const NODES = [
     ],
     seeds: ['sermon-reader'],
   }),
+  // DR-1427: the NAS carries the same rows itself, every 6 hours, on the armed
+  // services-sync clock; the runner lane above failed daily on an expired key.
+  rider('service:content-sync', 'infra/nas-supabase/content_sync.py', {
+    id: 'content-sync-nas', name: 'NAS carries new services to the archive',
+    purpose: 'Carries rows filed on the hosted copy to the database the app reads, from the NAS itself, so a new month fills without a runner key.',
+    reads: [{ res: 'hosted:db', token: 'source' }],
+    writes: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:video_transcripts', token: 'video_transcripts' }],
+    seeds: ['sermon-reader'],
+  }),
 
   // ===========================================================================
   // 10. SITE HEALTH → INCIDENTS → THE OPERATIONS READOUT

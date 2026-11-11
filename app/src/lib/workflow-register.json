@@ -3,8 +3,8 @@
   "counts": {
     "workflows": 99,
     "totalLines": 22854,
-    "dispatchOnly": 43,
-    "scheduled": 40,
+    "dispatchOnly": 44,
+    "scheduled": 39,
     "reusable": 2,
     "callers": 3,
     "withoutConcurrency": 9,
@@ -852,7 +852,7 @@
         "permissions": true
       },
       "calls": [],
-      "lines": 474
+      "lines": 476
     },
     {
       "file": "mcp-health.yml",
@@ -1506,19 +1506,16 @@
       "name": "Sovereign content sync (hosted -> sovereign)",
       "purpose": "Sovereign content sync — the rows the NAS pipelines filed on the retired",
       "triggers": [
-        "workflow_dispatch",
-        "schedule"
+        "workflow_dispatch"
       ],
-      "crons": [
-        "20 6 * * *"
-      ],
+      "crons": [],
       "brakes": {
         "concurrency": true,
         "timeout": true,
         "permissions": true
       },
       "calls": [],
-      "lines": 87
+      "lines": 85
     },
     {
       "file": "sovereign-drift.yml",
