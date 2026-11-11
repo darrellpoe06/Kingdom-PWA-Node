@@ -94,8 +94,15 @@ describe('the message names the app the link opens', () => {
   it('a Love Corner lesson says The Love Corner, a PoeTech lesson says PoeTech, and every lesson is still free to read', () => {
     const lc = byKey('living-lessons');
     const pt = byKey('rent-to-own-business');
-    const a = lessonSharePayload(L301, { url: lessonUrl({ courseKey: lc.key, lessonId: L301.id, course: lc, origin: ORIGIN }), courseTitle: 'Living Lessons from the Word', brand: lessonDoorFor(lc).brand });
-    const b = lessonSharePayload({ title: 'A business lesson', bigIdea: 'Work as unto the Lord.' }, { url: lessonUrl({ courseKey: pt.key, lessonId: 'x', course: pt, origin: ORIGIN }), courseTitle: 'Business', brand: lessonDoorFor(pt).brand });
+    const a = lessonSharePayload(L301, {
+      url: lessonUrl({ courseKey: lc.key, lessonId: L301.id, course: lc, origin: ORIGIN }),
+      courseTitle: 'Living Lessons from the Word',
+      brand: lessonDoorFor(lc).brand,
+    });
+    const b = lessonSharePayload(
+      { title: 'A business lesson', bigIdea: 'Work as unto the Lord.' },
+      { url: lessonUrl({ courseKey: pt.key, lessonId: 'x', course: pt, origin: ORIGIN }), courseTitle: 'Business', brand: lessonDoorFor(pt).brand }
+    );
     expect(a.text).toMatch(/Living Lessons from the Word · The Love Corner/);
     expect(a.text).toMatch(/\/lovecorner\/app\/\?/);
     expect(b.text).toMatch(/Business · PoeTech/);
