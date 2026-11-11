@@ -1454,6 +1454,40 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell: the name of the reader, in their name; parents, households vs individuals"
+    },
+    {
+      "id": "dr-1422-goal-gap-and-pace",
+      "date": "2026-11-11",
+      "task": "The learner's record says where you stand: fully completed courses, what is left, mastery at 100% against its total, and the date this learner's own measured pace reaches the goal",
+      "drs": [
+        "DR-1422"
+      ],
+      "prs": [
+        2607
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.1,
+      "estimateWithoutAiHours": 7,
+      "notes": "Darrell on the exam figures: fully completed courses, x to go, on pace for completing by x date; say the total passed and mastered so it will be sought after. Two defects found by the checks, not by reading: a real rate rounding to 0, and summary-column records reading 0 of 2 beside Exams passed 2 (caught only by the render check)."
+    },
+    {
+      "id": "dr-1423-sov73-credential-you-cannot-check",
+      "date": "2026-11-11",
+      "task": "sov73, a credential you cannot check is not a credential: the Sovereign A.I. week built from a forwarded health-literacy newsletter, landing on the one test the letter names and cannot finish",
+      "drs": [
+        "DR-1423"
+      ],
+      "prs": [
+        2607
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.4,
+      "estimateWithoutAiHours": 14,
+      "notes": "Gmail thread 1a168bfea63e45ea, one word over the forward: Lesson. Seam chosen by measurement (sov15 and sov44 already teach two of its four tests). 49 quoted spans filled from the KJV corpus on disk, never typed. Three findings: a gate caught the lesson reciting a decision record; the suspicion guard first fired on the safeguard it protects; prettier on the whole class file reformatted the other 72 lessons (8,962 insertions for one lesson) and was redone as 180 insertions, 0 deletions."
     }
   ]
 }
