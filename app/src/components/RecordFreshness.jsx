@@ -2,7 +2,7 @@
 // RecordFreshness — the record says when it was last read, and reads again
 // =============================================================================
 // Darrell, 2026-11-10: "Are the latest numbers always available when clicked
-// on record? If not fix it... latest numbers always... each time." (DR-1417)
+// on record? If not fix it... latest numbers always... each time." (DR-1418)
 //
 // Mounted at the top of the class record. Three jobs, all on real events:
 //   1. it asks for the record to be read again the moment it appears, and each

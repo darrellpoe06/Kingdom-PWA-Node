@@ -383,7 +383,7 @@ export default function LearnersPanel({
 
   return (
     <div>
-      {/* THE LATEST NUMBERS, EVERY TIME (DR-1417): read again as this opens, and say when it was read. */}
+      {/* THE LATEST NUMBERS, EVERY TIME (DR-1418): read again as this opens, and say when it was read. */}
       <RecordFreshness />
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {isGovernor

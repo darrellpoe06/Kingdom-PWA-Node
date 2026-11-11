@@ -1,6 +1,6 @@
 // the-record-is-read-again-each-time — the class record shows the latest
 // numbers every time it is opened, says when they were read, and never blanks
-// itself on a read that failed. DR-1417.
+// itself on a read that failed. DR-1418.
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';

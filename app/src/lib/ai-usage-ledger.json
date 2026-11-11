@@ -1385,7 +1385,7 @@
       "date": "2026-11-10",
       "task": "The class record is read again on opening, save, focus and reconnect, keeps the screen on a failed read, and says when it was read",
       "drs": [
-        "DR-1417"
+        "DR-1418"
       ],
       "prs": [],
       "model": "claude-fable-5-2",

@@ -1,4 +1,4 @@
-# DR-1417: The record is read again each time it is opened, and says when it was read
+# DR-1418: The record is read again each time it is opened, and says when it was read
 
 **Date:** 2026-11-10
 **Status:** Accepted

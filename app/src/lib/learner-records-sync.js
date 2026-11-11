@@ -156,7 +156,7 @@ export async function fetchLearnerRecords({ client = defaultClient, limit = 2000
   }
 }
 
-// ── THE LATEST NUMBERS, EVERY TIME THE RECORD IS OPENED (DR-1417) ────────────
+// ── THE LATEST NUMBERS, EVERY TIME THE RECORD IS OPENED (DR-1418) ────────────
 // Darrell, 2026-11-10: "Are the latest numbers always available when clicked
 // on record? If not fix it... latest numbers always... Synced with latest
 // reading data... make sure... each time... triggers for whatever."
