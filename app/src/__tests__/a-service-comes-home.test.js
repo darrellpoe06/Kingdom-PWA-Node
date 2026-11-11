@@ -247,6 +247,42 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);
   });
 
+  // STEP 7 OF THE WAY, MADE MACHINERY (DR-1414, 2026-11-11).
+  // THE-WAY-A-SERVICE-COMES-HOME: "a loop is a service too", keeping steps 1,
+  // 2, 4, 6, 7 and 8 -- and step 7 is "it shows in the app... never a painted
+  // status". On 2026-11-10 lesson-queue-census was built with a reader carrying
+  // 16 checks that NOTHING IMPORTED: the NAS would count its own lesson queue
+  // and no screen would ever read it. Every gate passed. The miss was caught by
+  // a person reading the Way, which is exactly the kind of catch that does not
+  // survive a context compaction -- so it becomes a check.
+  //
+  // THE RULE IS NARROW ON PURPOSE. Most loops here have no reader of their own:
+  // they are shown collectively through the loops witness, and demanding a
+  // module per loop would fail fourteen of them for no defect. What IS a defect
+  // is a reader built FOR a loop that no surface reads. So: if
+  // app/src/lib/<loop>.js exists, a component must import it. A gate that fails
+  // honestly on the real break and stays quiet otherwise.
+  it('a loop with a reader of its own is READ by a surface: step 7, it shows in the app', () => {
+    const components = join(ROOT, 'app/src/components');
+    const files = readdirSync(components).filter((f) => f.endsWith('.jsx') || f.endsWith('.js'));
+    const checked = [];
+    for (const name of Object.keys(LOOPS_ON_THE_WAY)) {
+      const reader = `app/src/lib/${name}.js`;
+      if (!has(reader)) continue; // shown through the loops witness, not its own module
+      checked.push(name);
+      const importers = files.filter((f) => read(`app/src/components/${f}`).includes(`${name}.js`));
+      expect(
+        importers.length,
+        `${reader} exists but NO component imports it: the loop would be counted by the NAS and read by no screen. ` +
+          `That is step 7 of THE-WAY-A-SERVICE-COMES-HOME ("it shows in the app"), and a loop that fails it is not home.`,
+      ).toBeGreaterThan(0);
+    }
+    // The gate must actually be looking at something; if the readers are all
+    // renamed away this silently checks nothing, which is the vacuous-check
+    // failure (DR-0076 §3).
+    expect(checked.length, 'no loop on the Way has a reader module; has app/src/lib been reorganised?').toBeGreaterThan(0);
+  });
+
   it('the Funnel witness asks every mount the watchdog restores, by the same path', () => {
     const wd = read('infra/nas-loops/loops/funnel_watchdog.py');
     const fh = read('.github/workflows/funnel-health.yml');
