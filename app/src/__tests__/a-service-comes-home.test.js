@@ -118,6 +118,12 @@ const LOOPS_ON_THE_WAY = {
   // diagnosis. The app-side reader (app/src/lib/lesson-queue-census.js) is the
   // second witness, and reads an uncounted queue as uncounted, never as empty.
   'lesson-queue-census': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1427, under DR-1360, 2026-11-11): the NAS carries new
+  // services to the archive itself, after the runner lane failed daily on an
+  // expired tailnet key and The Word's months stopped at October. loops-health
+  // names it in its loops, its install path, its `content-sync:` cron lines,
+  // the heartbeat receipt, and its own state/content-sync.out in the diagnosis.
+  'content-sync': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },

@@ -1533,6 +1533,21 @@
       "wallClockHours": 3.1,
       "estimateWithoutAiHours": 16,
       "notes": "Gmail thread 1a17ed862dc396be, one line over the forward: Lesson and research and implementation of the research. Seam measured against pm14/pm12/pm15. Deuteronomy 25:13-14 is the anchor: two weights, one in the bag and one in the house. Carries the house's own Love Corner failure as a first-party witness rather than the vendor's survey. Five findings, all caught by gates: the sweep fired on prose in quotes; the course reserves double quotes for Scripture; an ellipsis inside a quotation; a decision record recited at the reader; no industry term named. Teen band moved by hand in both directions, overshooting twice."
+    },
+    {
+      "id": "dr-1427-the-word-months-fill",
+      "date": "2026-11-11",
+      "task": "The Word's month list fills from the channel the day a service posts; the NAS carries the archive itself every 6h (content-sync rider) after the runner lane failed on an expired tailnet key",
+      "drs": [
+        "DR-1427"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 8,
+      "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
     }
   ]
 }

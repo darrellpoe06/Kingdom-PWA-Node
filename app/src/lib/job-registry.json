@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 40,
+  "scheduled": 39,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -239,13 +239,6 @@
       "name": "Site health (up + fresh, outside-in)",
       "crons": [
         "*/10 * * * *"
-      ]
-    },
-    {
-      "file": "sovereign-content-sync.yml",
-      "name": "Sovereign content sync (hosted -> sovereign)",
-      "crons": [
-        "20 6 * * *"
       ]
     },
     {

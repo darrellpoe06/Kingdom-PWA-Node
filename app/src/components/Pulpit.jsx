@@ -50,6 +50,7 @@ import HelpButton from './HelpButton.jsx';
 import { fetchPointsData, fetchPublicPoints, fetchVideoStats, fetchTranscriptsFor, videosNeedingTranscript } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
+import { withChannelRows } from '../lib/the-word-channel-rows.js';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
@@ -283,6 +284,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
           <div className="flex items-baseline gap-2 flex-wrap">
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
             {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
+            {sermon.fromChannel && <span className="text-[0.5625rem] uppercase tracking-wider border border-[#B85838] text-[#B85838] px-1.5 py-0.5">New · from the channel</span>}
           </div>
           {/* The FIXED "when · what · who" metadata line — SAME place on EVERY card so
               the eye trains to one spot (Darrell 2026-07-14: "keep the same data format
@@ -367,7 +369,10 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   // DB migration has run against the cloud.
   const list = dedupeSermons(Array.isArray(sermons) ? sermons : []).kept;
   const drafts = list.filter((s) => s.status === 'draft');
-  const history = list.filter((s) => s.status !== 'draft');
+  // A NEW SERVICE JOINS ITS MONTH THE DAY IT POSTS (DR-1427): the channel's
+  // videos the archive does not hold yet are rows in the same list, dated by
+  // title or publish day, so "This month" is never empty while the import waits.
+  const history = withChannelRows(list.filter((s) => s.status !== 'draft'), justPosted);
   const roster = speakerRoster(list);
 
   // Attach the points bundle + engagement to each history item. Points are keyed
@@ -385,7 +390,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
   };
   const historyEnriched = history.map(enrich);
   const rowFor = (s) => (
-    <MessageRow sermon={s} canEdit={canEdit} points={s._points} reaction={s._reaction} views={s._views}
+    <MessageRow sermon={s} canEdit={canEdit && !s.fromChannel} points={s._points} reaction={s._reaction} views={s._views}
       onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
       onEdit={(x) => setForm({ initial: x })} onDelete={onDelete} onReuse={onReuse} />
   );
@@ -453,26 +458,6 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
           {importMsg && <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{importMsg}</span>}
         </div>
       ))}
-
-      {/* JUST POSTED — the channel's newest uploads not yet in the archive
-          (live RSS union, DR-0061): visible the day they land on YouTube. */}
-      {justPosted.length > 0 && (
-        <div className="mb-3">
-          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1">Just posted · joins the archive shortly</div>
-          <div className="bg-white border border-[#B85838] divide-y divide-[#E8E4DC]">
-            {justPosted.map((v) => (
-              <div key={v.videoId} className="p-2.5 flex items-center gap-3">
-                {v.thumbnail && <img src={v.thumbnail} alt="" className="w-20 h-12 object-cover shrink-0" loading="lazy" />}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[0.8125rem] text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{v.title}</div>
-                  {v.published && <div className="text-[0.625rem] text-[#5A5751]">{new Date(v.published).toLocaleDateString()}</div>}
-                </div>
-                <a href={v.url} target="_blank" rel="noreferrer" className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Watch</a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {canEdit && drafts.length > 0 && (
         <div className="mb-3">
@@ -950,7 +935,7 @@ export default function Pulpit() {
           onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
-          justPosted={channelFresh.filter((v) => v.videoId && !libraryItems.some((s) => videoIdOf(s) === v.videoId))}
+          justPosted={channelFresh}
           libLoading={libLoading} libError={libError}
           onRetry={() => { setLibError(false); setLibLoading(true); setReloadKey((k) => k + 1); }}
         />
