@@ -110,6 +110,19 @@ describe('the way home (Darrell 2026-10-02: "They only let me go back when I pus
     expect(a.getAttribute('href')).toBe('/poetech-app/?view=overview');
     expect(a.textContent).toMatch(/PoeTech app/);
   });
+  // QUIETER ON A CHURCH-BRANDED APP (Darrell 2026-11-11, a Love Corner
+  // screenshot: "PoeTech is not supposed to be that obvious on the Love Corner
+  // App... put the connection somewhere else not as prominent as it is"). The
+  // link stays — 2026-10-02 above is why it exists — but it leaves the church
+  // app's ALWAYS-VISIBLE chrome and rides the expanded header instead.
+  it('collapsed, the church app’s chrome carries the church’s name and not the platform’s', async () => {
+    const host = await mount(
+      createElement(TopNavRow, { collapsed: true, onToggleHeader: () => {}, hatch: hatchFor(true), ...BRAND, home: { href: '/poetech-app/?view=overview', label: 'PoeTech app' } }, [tab('church', 'Church')]),
+    );
+    expect(host.querySelector('[data-testid="one-tab-way-home"]'), 'the platform must not sit in the collapsed church chrome').toBeNull();
+    expect(host.textContent).not.toMatch(/PoeTech app/);
+  });
+
   it('PROVEN-TO-CATCH: without `home` (a church member) the row carries no way to PoeTech', async () => {
     const host = await mount(row(false, [tab('church', 'Church')]));
     expect(host.querySelector('[data-testid="one-tab-way-home"]')).toBeNull();

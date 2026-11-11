@@ -2,8 +2,12 @@
 // LifeHub — Christina's home view, opt-in, wired to real records
 // =============================================================================
 // The structure and the counts come from lib/life-hub.js; the choice to see
-// this screen at all comes from lib/home-view-prefs.js and defaults to OFF, so
-// nobody's front door changes unless they pick it. Everything here is rendered
+// this screen comes from lib/home-view-prefs.js, whose DEFAULT_HOME_VIEW is
+// 'lifehub' (DR-1046). This line used to say it "defaults to OFF" — true when
+// it shipped opt-in under DR-0464, and FALSE from the moment the approval
+// landed, while line 20 below already said the opposite. A file that states
+// its own default twice will eventually state it two ways (DR-0076: the
+// records are the proof and must stay true). Everything here is rendered
 // from records this app already holds, and a tile with no record shows no
 // number (DR-0061 — a painted number on the family's front screen is worse
 // than none).
