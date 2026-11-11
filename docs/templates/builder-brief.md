@@ -69,3 +69,27 @@ Being at the weekly 1 p.m. Bible study at The Church of the Living God does not 
 1. Watch the session's first real output (a commit, a PR, a comment) before calling it working (P66).
 2. Stop it at once if it works outside OUTCOME or MUST NOT TOUCH (P67).
 3. Measure before holding work back for resources, and name the number (P65).
+
+## Before building a forwarded teaching: ask the repo, not only the label
+
+**Added 2026-11-10 after ll300 (DR-1414).** The Gmail lane's lock is the
+`Lesson-Captured` label, and the lane's instruction is to read the thread's own
+`labelIds` and skip it if the label is there. That is right, and it is not
+enough: ll300 was built, merged and deployed while its label stayed **unwritten**,
+because the write needed an approval the building session could not grant. A
+thread with no label and a lesson already in the app is exactly the state that
+produces a duplicate, and on 2026-10-11 a broken label query put twelve threads
+in that state at once.
+
+So the label is one witness and the ledger is the other. Run both:
+
+```
+node scripts/lesson-already-built.mjs --thread <the 16-hex Gmail thread id>
+```
+
+`ALREADY BUILT — the thread is named in the ledger` means a decision record
+already names that thread, and it names the record and the lesson id. It answers
+with Gmail unreachable and with the label missing, because DR-0076 §8 requires
+every forward-built record to carry its thread id. A malformed id is refused
+rather than reported as nothing found — the one wrong answer here is a false
+"nothing matched", which costs a duplicate lesson in the congregation's app.
