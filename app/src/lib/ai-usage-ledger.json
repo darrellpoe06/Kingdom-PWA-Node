@@ -1415,7 +1415,7 @@
       "date": "2026-11-10",
       "task": "The Learn course picker says each course's standing, the list in numbers, and the two nearest wins",
       "drs": [
-        "DR-1419"
+        "DR-1420"
       ],
       "prs": [],
       "model": "claude-fable-5-2",

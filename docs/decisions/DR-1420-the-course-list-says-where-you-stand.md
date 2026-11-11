@@ -1,4 +1,4 @@
-# DR-1419: The course list says where you stand, and offers the two nearest wins
+# DR-1420: The course list says where you stand, and offers the two nearest wins
 
 **Date:** 2026-11-10
 **Status:** Accepted

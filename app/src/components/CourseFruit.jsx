@@ -4,7 +4,7 @@
 // Darrell, 2026-11-10: "Show the percentage of the ones completed vs not
 // started in locations that motivate reading... I want to start courses that I
 // don't have a record for... Low hanging fruit type of information that
-// provokes to good Word time." (DR-1419)
+// provokes to good Word time." (DR-1420)
 //
 // Sits directly under the course picker. One line says the whole list in
 // numbers a person can act on, with a bar; then at most two buttons, each one

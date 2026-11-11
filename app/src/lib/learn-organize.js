@@ -99,7 +99,7 @@ export function courseStanding(course, { places = [], progress = {} } = {}) {
   return { state, done, begun, lastOpened };
 }
 
-// ── WHERE YOU STAND, SAID ON THE LIST ITSELF (DR-1419) ───────────────────────
+// ── WHERE YOU STAND, SAID ON THE LIST ITSELF (DR-1420) ───────────────────────
 // Darrell, 2026-11-10, of a course picker that named 51 courses and their
 // lesson counts and nothing about him: "Show the percentage of the ones
 // completed vs not started in locations that motivate reading like here and
