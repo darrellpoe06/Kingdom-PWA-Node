@@ -19,7 +19,6 @@
 **Pairs with:** DR-0290, DR-0444, DR-0349, DR-0731, DR-0184 (PoeTech+ is the $39 tier), RELEASE-TIERS
 
 ## Context
-
 A lesson link used to take the address of whatever page the sharer had open. One lesson therefore opened in either app, depending on who sent it, while the message always named the Love Corner.
 
 DR-0536 had kept every lesson free to read and called Mathematics and A.I. never priced. Its reason was this: "A child who cannot pay must never meet a locked lesson."
@@ -55,8 +54,6 @@ DR-0536 had kept every lesson free to read and called Mathematics and A.I. never
   - The Love Corner list equals the spiritual list.
   - **Proven to catch:** without its course, a link falls back to the sharer's page (the bug Darrell held); without the PoeTech check, the church brand covers a business lesson.
   - The shell captures the check once, at boot, and uses it only for the brand and the welcome cards.
-- **Other suites.** The 11 link, share and catalog suites pass (135 tests). The shell holds 5,185 lines.
-
-**The showcase is built.** `components/PoeTechShowcase.jsx` appears only in the Love Corner app, only on a PoeTech-subject course. It says the child level and the whole first lesson are free there, and it links to the same course in PoeTech. It claims no lock; three cases cover it, including a render on the Love Corner path.
+- **Other suites.** The 11 link, share and catalog suites pass (135 tests). The shell holds 5,185 lines. **The showcase is built.** `components/PoeTechShowcase.jsx` appears only in the Love Corner app, only on a PoeTech-subject course. It says the child level and the whole first lesson are free there, and it links to the same course in PoeTech. It claims no lock; three cases cover it, including a render on the Love Corner path.
 
 **Waiting on Darrell (DR-0089: a value only he holds):** the PoeTech+ checkout needs a payment account in his name. Workshops wait for real dates. `re-review: 2026-11-25`.
