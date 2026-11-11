@@ -1,4 +1,4 @@
-# DR-1420: The record is in the reader's name, with who they are beneath it
+# DR-1421: The record is in the reader's name, with who they are beneath it
 
 **Date:** 2026-11-10
 **Status:** Accepted

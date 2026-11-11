@@ -239,7 +239,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
     <li className="border border-[#E8E4DC] p-3">
-      {/* THE RECORD IS IN THE READER'S NAME (DR-1420): the name first and largest, who they are beneath it, and the sign-in
+      {/* THE RECORD IS IN THE READER'S NAME (DR-1421): the name first and largest, who they are beneath it, and the sign-in
           address kept as one of those lines, never as the heading. */}
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3" data-testid="learner-head">
         <div className="min-w-0 [overflow-wrap:anywhere]">
@@ -340,9 +340,9 @@ export default function LearnersPanel({
 }) {
   const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
   const [whoId, setWhoId] = useState(null);
-  // The viewer's own contacts put a name to a number or address (DR-0825, DR-1420); with none, nothing changes.
+  // The viewer's own contacts put a name to a number or address (DR-0825, DR-1421); with none, nothing changes.
   const [contacts, setContacts] = useState(() => emptyIndex());
-  // The household's own roster names its members and says who they are in it (DR-1420). Owner and admin only, by its wall.
+  // The household's own roster names its members and says who they are in it (DR-1421). Owner and admin only, by its wall.
   const [household, setHousehold] = useState(() => emptyHousehold());
   useEffect(() => {
     let live = true;

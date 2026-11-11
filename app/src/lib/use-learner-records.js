@@ -43,7 +43,7 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     Promise.resolve(saveLearnerRecord({
       lessonId,
       courseKey: courseKey || null,
-      // The reader's own name when the account carries one, so the record is in their name (DR-1420).
+      // The reader's own name when the account carries one, so the record is in their name (DR-1421).
       learnerLabel: accountName(s?.user) || s?.user?.email || null,
       ageBand: band || 'adult',
       ...extra,

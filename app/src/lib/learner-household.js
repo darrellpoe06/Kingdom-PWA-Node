@@ -2,7 +2,7 @@
 // learner-household — the household a reader belongs to, for their record
 // =============================================================================
 // Darrell, 2026-11-10, of what a record should say beneath the reader's name:
-// "Also parents etc... households... vs individuals etc." (DR-1420)
+// "Also parents etc... households... vs individuals etc." (DR-1421)
 //
 // One read of what the household account already holds: its own name
 // (instances.display_name) and its roster (list_instance_members: each
