@@ -206,8 +206,22 @@ export const NAV_GROUPS = [
 ];
 
 /**
- * Group the gated pairs for the sidebar / More: [{ key, label, items: [[id, label], ...] }],
+ * Quick links: a door straight to a tab INSIDE a section, drawn in a group
+ * beside the sections (DR-1424). Darrell 2026-11-11, on the More menu's Soul
+ * group: he wanted the Learn tab, the lessons and courses, as a quick link
+ * there. A quick link is NOT a section: it has no id of its own in navItems(),
+ * VALID_VIEWS or FEEDBACK_AREAS (those ids are the contract above). It opens
+ * an existing section on one of its tabs, and it shows only when the section
+ * it opens is in the reader's list, so it is gated exactly as that section is.
+ */
+export const NAV_QUICK_LINKS = [
+  { key: 'learn', group: 'soul', view: 'church', churchView: 'learn', words: 'Learn', icon: 'pencil', title: 'Learn: lessons and courses' },
+];
+
+/**
+ * Group the gated pairs for the sidebar / More: [{ key, label, items: [[id, label], ...], links }],
  * groups with no items omitted, every input pair (except the separator) present exactly once.
+ * `links` are the group's quick links whose section the reader can open.
  */
 export function navGroups(items = []) {
   const pairs = items.filter(([id]) => id !== '__sep__');
@@ -218,7 +232,8 @@ export function navGroups(items = []) {
       const p = pairs.find(([pid]) => pid === id);
       if (p && !seen.has(id)) { got.push(p); seen.add(id); }
     }
-    return { key: g.key, label: g.label, items: got };
+    const links = NAV_QUICK_LINKS.filter((q) => q.group === g.key && pairs.some(([pid]) => pid === q.view));
+    return { key: g.key, label: g.label, items: got, links };
   });
   const strays = pairs.filter(([id]) => !seen.has(id));
   if (strays.length) out[0].items.push(...strays);

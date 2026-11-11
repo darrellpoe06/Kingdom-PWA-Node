@@ -1488,6 +1488,21 @@
       "wallClockHours": 2.4,
       "estimateWithoutAiHours": 14,
       "notes": "Gmail thread 1a168bfea63e45ea, one word over the forward: Lesson. Seam chosen by measurement (sov15 and sov44 already teach two of its four tests). 49 quoted spans filled from the KJV corpus on disk, never typed. Three findings: a gate caught the lesson reciting a decision record; the suspicion guard first fired on the safeguard it protects; prettier on the whole class file reformatted the other 72 lessons (8,962 insertions for one lesson) and was redone as 180 insertions, 0 deletions."
+    },
+    {
+      "id": "dr-1424-learn-quick-link-soul",
+      "date": "2026-11-11",
+      "task": "Learn (Church's lessons and courses) as a quick link under Soul in the More menu and the laptop rail, gated as Church is, with no new nav id",
+      "drs": [
+        "DR-1424"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 2.5,
+      "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
     }
   ]
 }

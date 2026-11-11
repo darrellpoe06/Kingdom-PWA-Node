@@ -1252,7 +1252,7 @@ export default function PoeFinancialSystem() {
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
   const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
   const { homeView } = useHomePrefs();
-  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
+  const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
@@ -4128,7 +4128,7 @@ ${THEME_CSS}
 
       {/* THE RAIL AND THE PAGE (DR-1046 Phase 2): from `lg` the sidebar stands beside the header and the page; below `lg` this wrapper is a plain block and nothing moves. */}
       <div className="lg:flex lg:items-start">
-      {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} />}
+      {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} churchView={churchView} onQuickLink={(q) => { setChurchView(q.churchView); setView(q.view); }} />}
       <div className="min-w-0 flex-1">
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
