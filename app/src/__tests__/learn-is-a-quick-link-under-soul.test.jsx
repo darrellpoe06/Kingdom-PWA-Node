@@ -41,7 +41,7 @@ describe('the Soul group carries a Learn quick link', () => {
     expect(soul(navItems({ ...FAMILY, churchDoorOnly: true })).links.map((q) => q.key)).toEqual(['learn']);
   });
 
-  it('PROVEN TO CATCH: without Church in the reader\'s list there is no Learn door to a locked room', () => {
+  it("PROVEN TO CATCH: without Church in the reader's list there is no Learn door to a locked room", () => {
     const noChurch = navItems(FAMILY).filter(([id]) => id !== 'church');
     expect(navGroups(noChurch).flatMap((g) => g.links.map((q) => q.key))).toEqual([]);
     expect(navGroups(navItems({ isAssistantAcct: true, authSession: { user: {} } })).flatMap((g) => g.links)).toEqual([]);
@@ -51,25 +51,45 @@ describe('the Soul group carries a Learn quick link', () => {
 describe('pressing it lands on Learn', () => {
   let container, root;
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, headers: new Headers(), text: async () => '', json: async () => ({}) })));
-    vi.stubGlobal('matchMedia', vi.fn((q) => ({ matches: /639\.98px/.test(q), media: q, addEventListener() {}, removeEventListener() {} })));
-    try { localStorage.clear(); } catch { /* ignore */ }
-    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: true, status: 200, headers: new Headers(), text: async () => '', json: async () => ({}) }))
+    );
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((q) => ({ matches: /639\.98px/.test(q), media: q, addEventListener() {}, removeEventListener() {} }))
+    );
+    try {
+      localStorage.clear();
+    } catch {
+      /* ignore */
+    }
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
   });
-  afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); });
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  });
 
-  it('the phone\'s More menu: Learn is in the Soul row after Academy; it opens Church on Learn and closes More', () => {
+  it("the phone's More menu: Learn is in the Soul row after Academy; it opens Church on Learn and closes More", () => {
     const onNavigate = vi.fn();
     const nav = { groups: navGroups(navItems(FAMILY)), view: 'books', homeView: 'current', churchView: 'home', onNavigate };
     act(() => root.render(createElement(ChromeDock, { onFeedback: () => {}, nav })));
-    act(() => { container.querySelector('[data-testid="dock-more"]').click(); });
+    act(() => {
+      container.querySelector('[data-testid="dock-more"]').click();
+    });
     const row = container.querySelector('[data-testid="dock-more-group-soul"]');
     const order = [...row.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
     expect(order).toEqual(['dock-more-church', 'dock-more-study', 'dock-more-library', 'dock-more-cohorts', 'dock-more-quick-learn']);
     const learn = row.querySelector('[data-testid="dock-more-quick-learn"]');
     expect(learn.textContent).toBe('Learn');
     expect(learn.getAttribute('aria-current')).toBeNull();
-    act(() => { learn.click(); });
+    act(() => {
+      learn.click();
+    });
     expect(onNavigate).toHaveBeenCalledWith('church', null, 'learn');
     expect(container.querySelector('[data-testid="dock-more"]').getAttribute('aria-expanded')).toBe('false');
   });
@@ -77,7 +97,9 @@ describe('pressing it lands on Learn', () => {
   it('the More menu marks Learn current while Learn is open', () => {
     const nav = { groups: navGroups(navItems(FAMILY)), view: 'church', homeView: 'current', churchView: 'learn', onNavigate: () => {} };
     act(() => root.render(createElement(ChromeDock, { onFeedback: () => {}, nav })));
-    act(() => { container.querySelector('[data-testid="dock-more"]').click(); });
+    act(() => {
+      container.querySelector('[data-testid="dock-more"]').click();
+    });
     expect(container.querySelector('[data-testid="dock-more-quick-learn"]').getAttribute('aria-current')).toBe('page');
   });
 
@@ -87,11 +109,13 @@ describe('pressing it lands on Learn', () => {
     const learn = container.querySelector('[data-testid="side-nav-quick-learn"]');
     expect(learn).toBeTruthy();
     expect(learn.getAttribute('aria-current')).toBe('page');
-    act(() => { learn.click(); });
+    act(() => {
+      learn.click();
+    });
     expect(onQuickLink).toHaveBeenCalledWith(expect.objectContaining({ view: 'church', churchView: 'learn' }));
   });
 
-  it('the shell routes the door: both bars set Church\'s tab, and Church renders Learn on that tab', () => {
+  it("the shell routes the door: both bars set Church's tab, and Church renders Learn on that tab", () => {
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(shell).toMatch(/onNavigate: \(v, home, sub\) => \{ if \(home\) setHomeView\(home\); if \(sub\) setChurchView\(sub\); setView\(v\); \}/);
     expect(shell).toMatch(/onQuickLink=\{\(q\) => \{ setChurchView\(q\.churchView\); setView\(q\.view\); \}\}/);
