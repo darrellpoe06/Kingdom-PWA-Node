@@ -91,7 +91,14 @@
       "to": 22838,
       "dr": "DR-1414",
       "reason": "The NAS's two witnesses are gated. Neither infra/nas-loops/test_heartbeat.py nor the new test_lesson_queue_census.py was run by CI: both test files existed and nothing executed them, which is the brake-without-a-witness shape this repo keeps finding. One step now runs both, and the comment above it records WHY the census test matters most: it parses scripts/lesson-inbox-waiting.sql and fails if the loop's exclusion list drifts from the lane's, because a census taken on 2026-11-10 dropped not-a-lesson and withdrawn and so counted rows a person had taken back (DR-1142, DR-0725). Raised to the measured size, not above it."
+    },
+    {
+      "date": "2026-11-10",
+      "from": 22838,
+      "to": 22854,
+      "dr": "DR-1414",
+      "reason": "loops-health.yml now READS the lesson-queue-census loop, exactly as it was made to read nas-heartbeat: its last-run.json in its own home, its install path, its `lesson-queue-census:` cron lines, a red when that ledger says the count could not be written, and a line in the dark-loop diagnosis. The a-service-comes-home gate caught the services.json entry with the loop on NEITHER list and failed the first push of PR #2604 by name -- doing its job -- and a name beside a witness that never looks at it is the hollow version of walking the Way, so the witness was made to look first. Sixteen lines, six of them the comment recording that this ledger carries counts and never a person's words. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22838
+  "totalLines": 22854
 }

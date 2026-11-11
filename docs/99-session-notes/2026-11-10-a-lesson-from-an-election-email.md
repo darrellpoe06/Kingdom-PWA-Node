@@ -159,3 +159,29 @@ seventeen times in two days and then stopped being retried at all. A brake that
 preserves work is not the same as a witness that reports it, and this queue had
 the first without the second. The run log on #2378 is that witness for the READ;
 the builder's own failures have no equivalent.
+
+## Sixth finding: the Way's own gate caught the new loop (2026-11-11 00:00Z)
+
+`a-service-comes-home.test.js` failed PR #2604 by name on the live head:
+`lesson-queue-census is enabled but on neither list`. The loop was written into
+`infra/nas-loops/services.json` as enabled and never added to the Way's lists —
+exactly the "joins at birth" omission that gate was built for (DR-0621 /
+DR-1119). It is worth recording that it was caught by machinery and not by
+attention: five local guards, the flow registry and 106 targeted tests were all
+green, because this check reads `services.json` against a list in a test file
+and nothing I ran locally paired them.
+
+The fix is the one the gate's own comment demands. A name listed beside a
+witness that never looks at it is the hollow version of walking the Way, so
+`loops-health.yml` was made to read the loop the way it reads `nas-heartbeat`:
+its `last-run.json` in its own home, its install path, its `lesson-queue-census:`
+cron lines, a red when that ledger says the count could not be written, and a
+line in the dark-loop diagnosis. Then the name was added. Sixteen workflow
+lines, ceiling raised to the measured total.
+
+**The limit, stated (P66).** That witness rides the runner's tailnet key, which
+is the expired road this whole loop exists to route around. So until a fresh
+`TS_AUTHKEY` is in place, the loop's real witness is the app-side reader
+(`app/src/lib/lesson-queue-census.js`), which reads an uncounted queue as
+uncounted and never as empty. Neither witness has yet seen a stamp from this
+loop: it counts as working when one of them does, not now.

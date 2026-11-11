@@ -108,6 +108,16 @@ const LOOPS_ON_THE_WAY = {
   // the row could not be written -- this gate refused the services.json entry
   // until the witness actually looked.
   'nas-heartbeat': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1414, under DR-1360, 2026-11-10): the house counts its
+  // own lesson queue, reversing the last road that reached IN to answer "what is
+  // waiting?". This gate caught the services.json entry on the first push with
+  // the loop on NEITHER list -- doing exactly its job -- so loops-health was
+  // made to look before the name was allowed: its last-run.json in its own home,
+  // its install path, its `lesson-queue-census:` cron lines, a red when that
+  // ledger says the count could not be written, and a line in the dark-loop
+  // diagnosis. The app-side reader (app/src/lib/lesson-queue-census.js) is the
+  // second witness, and reads an uncounted queue as uncounted, never as empty.
+  'lesson-queue-census': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },
