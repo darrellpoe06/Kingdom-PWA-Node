@@ -5,7 +5,7 @@
 // the schedule, the balance chart and the split of every dollar paid. Pure
 // display over lib/mortgage-calc.js; split from MortgageCalculator.jsx so each
 // file stays small (DR-1339). Theme classes only; no figure is marked in red
-// (DR-0099). DR-1413, DR-1415.
+// (DR-0099). DR-1413, DR-1416.
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { annualRows } from '../lib/mortgage-calc.js';

@@ -8,7 +8,7 @@
 // properties we are looking to buy, kept by name (DR-1414); and, from his own
 // screen, "I don't see any mortgage in the list... we really want to know how
 // assets are paid down and the benefits of that... keep using our subtab
-// procedures so scrolling is minimal" (DR-1415).
+// procedures so scrolling is minimal" (DR-1416).
 //
 // One component, mounted closed in Money → Debt Freedom and in Real Estate.
 // The drop-down lists every property first, then every other debt

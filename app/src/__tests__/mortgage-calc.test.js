@@ -91,7 +91,7 @@ describe('mortgage-calc: the rules', () => {
   });
 });
 
-describe('mortgage-calc: what paying it down does for the asset (DR-1415)', () => {
+describe('mortgage-calc: what paying it down does for the asset (DR-1416)', () => {
   const loan = { principal: 80000, ratePct: 6.5, years: 20, startYm: '2023-05' };
   it('what is owned now, after a year, and what is freed when it is paid off', () => {
     const a = assetView(calculate(loan, { annualTax: 1200 }), { propertyValue: 120000, rent: 1100 });

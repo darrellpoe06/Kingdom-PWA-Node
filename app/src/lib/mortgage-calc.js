@@ -176,7 +176,7 @@ export function calculate(loan, expenses = {}) {
 }
 
 /**
- * What paying this loan down does for the asset behind it (DR-1415). Built
+ * What paying this loan down does for the asset behind it (DR-1416). Built
  * from a calculate() result; the value is the one on file and is held still,
  * so every equity figure is "at today's value" and is null when no value is
  * on file. Nothing is guessed.

@@ -1,4 +1,4 @@
-# DR-1415: Every property is in the list, the asset is the answer, and it is one row of sub-tabs
+# DR-1416: Every property is in the list, the asset is the answer, and it is one row of sub-tabs
 
 **Date:** 2026-11-10
 **Status:** Accepted

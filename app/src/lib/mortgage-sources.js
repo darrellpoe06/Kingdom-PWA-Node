@@ -43,7 +43,7 @@ function propertyOption(r) {
     record: m,
   };
   // A property with no balance on file is still listed: it is ours, and the
-  // list says plainly that its mortgage has not been entered (DR-1415).
+  // list says plainly that its mortgage has not been entered (DR-1416).
   o.hasMortgage = o.principal > 0;
   o.label = o.hasMortgage ? name : `${name} · no mortgage on file`;
   return { ...o, missing: missingOf(o) };
@@ -105,7 +105,7 @@ export function loanGroups({ rentals = [], debts = [], entities = null, prospect
     });
 
   // One group per kind and entity. Every property comes before any other debt,
-  // so a mortgage is never below a long run of cards (DR-1415).
+  // so a mortgage is never below a long run of cards (DR-1416).
   const byEntity = (options, title, key) => {
     const out = [];
     for (const o of options) {
