@@ -67,10 +67,7 @@ describe('mastery at 100% is counted beside done, never folded into it', () => {
 
 describe('fully completed courses, and how many to go', () => {
   it('counts the courses whose every lesson is read and tested', () => {
-    const s = standing(
-      [rec('alpha', 'a1', T0, [[T0, 100]]), rec('alpha', 'a2', T0, [[T0, 100]]), rec('beta', 'b1', T0, [])],
-      IDS,
-    );
+    const s = standing([rec('alpha', 'a1', T0, [[T0, 100]]), rec('alpha', 'a2', T0, [[T0, 100]]), rec('beta', 'b1', T0, [])], IDS);
     expect(s.coursesTotal).toBe(2);
     expect(s.coursesComplete).toBe(1);
     expect(s.coursesToGo).toBe(1);
@@ -112,10 +109,7 @@ describe('the date is measured, or it is not given', () => {
   });
 
   it('projects from this learner’s own rate: two in ten days, one to go, ten days out', () => {
-    const s = standing(
-      [rec('alpha', 'a1', T0, [[T0, 100]]), rec('alpha', 'a2', T0 + 10 * DAY, [[T0 + 10 * DAY, 100]]), rec('beta', 'b1', T0, [])],
-      IDS,
-    );
+    const s = standing([rec('alpha', 'a1', T0, [[T0, 100]]), rec('alpha', 'a2', T0 + 10 * DAY, [[T0 + 10 * DAY, 100]]), rec('beta', 'b1', T0, [])], IDS);
     const now = T0 + 10 * DAY;
     const p = pace(s, now);
     expect(p.basisCount).toBe(2);

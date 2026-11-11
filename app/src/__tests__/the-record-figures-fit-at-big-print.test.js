@@ -20,7 +20,16 @@ describe('the record’s figures are sized by their text, not the screen', () =>
   it('every figure row uses the text-sized grid', () => {
     expect(FIGURE_GRID.gridTemplateColumns).toBe(`repeat(auto-fit, minmax(min(100%, ${FIGURE_MIN_EM}em), 1fr))`);
     expect(FIGURE_MIN_EM).toBeGreaterThanOrEqual(8);
-    expect((SRC.match(/style=\{FIGURE_GRID\}/g) || []).length).toBe(3);
+    // DERIVED, NOT PINNED (DR-0677; corrected 2026-11-11 when a fourth figure
+    // row landed). This asserted "exactly 3", so adding a legitimate row broke
+    // it while the property it guards — every figure row sized by its TEXT and
+    // never by the screen — was never in danger. A hand-written count fails on
+    // growth instead of on the defect. Note one row carries extra classes
+    // ("grid gap-2 mb-4"), so the check matches the prefix.
+    const rows = SRC.match(/className="grid gap-2[^"]*"\s*style=\{FIGURE_GRID\}/g) || [];
+    const grids = SRC.match(/className="grid gap-2[^"]*"/g) || [];
+    expect(grids.length, 'no figure rows found; has the panel been restructured?').toBeGreaterThan(0);
+    expect(rows.length, 'a figure row does not carry FIGURE_GRID, so Big Print would size it by the screen').toBe(grids.length);
   });
   it('PROVEN TO CATCH: no figure row counts its columns by the screen again', () => {
     expect(SRC).not.toMatch(/grid-cols-2 sm:grid-cols-[45]/);

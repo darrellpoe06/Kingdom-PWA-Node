@@ -81,7 +81,10 @@ export function doneAt(record) {
   if (!record) return null;
   const read = ms(record.readEvidenceAt) ?? ms(record.completedAt);
   if (read === null) return null;
-  const passes = attemptsOf(record).filter((e) => e && e.passed).map((e) => ms(e.at)).filter((t) => t !== null);
+  const passes = attemptsOf(record)
+    .filter((e) => e && e.passed)
+    .map((e) => ms(e.at))
+    .filter((t) => t !== null);
   if (!passes.length) return null;
   return Math.max(read, Math.min(...passes));
 }
@@ -162,14 +165,28 @@ export function pace(stand, now = Date.now()) {
     return { perWeek: null, basisDays: null, basisCount: moments.length, finishAt: null, far: false, why: 'every lesson on every course is read and tested' };
   }
   if (moments.length < MIN_FOR_PACE) {
-    return { perWeek: null, basisDays: null, basisCount: moments.length, finishAt: null, far: false, why: `${moments.length} lesson${moments.length === 1 ? '' : 's'} read and tested so far — two are needed before a pace can be measured` };
+    return {
+      perWeek: null,
+      basisDays: null,
+      basisCount: moments.length,
+      finishAt: null,
+      far: false,
+      why: `${moments.length} lesson${moments.length === 1 ? '' : 's'} read and tested so far — two are needed before a pace can be measured`,
+    };
   }
   const span = moments[moments.length - 1] - moments[0];
   // Lessons finished across the days they span. The first lesson opens the
   // window rather than counting inside it, so n events give n-1 intervals.
   const days = span / DAY;
   if (!(days > 0)) {
-    return { perWeek: null, basisDays: 0, basisCount: moments.length, finishAt: null, far: false, why: 'every finished lesson lands in the same moment — a pace needs more than one day' };
+    return {
+      perWeek: null,
+      basisDays: 0,
+      basisCount: moments.length,
+      finishAt: null,
+      far: false,
+      why: 'every finished lesson lands in the same moment — a pace needs more than one day',
+    };
   }
   const perDay = (moments.length - 1) / days;
   const perWeek = roundRate(perDay * 7);
