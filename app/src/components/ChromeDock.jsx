@@ -149,6 +149,21 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const tabsMode = (!!nav && phone && !inReader) || moneyMode;
   const moneyNav = moneyMode ? nav.money : null;
   const moneySection = moneyNav ? (sectionFor(moneyNav.booksView) || { id: 'overview' }).id : null;
+  // THE BAR ONLY OFFERS WHAT THIS DOOR ALLOWS (Darrell 2026-11-11, a Love
+  // Corner screenshot: "Maybe those bottom controls are only available inside
+  // PoeTech... that's the add initially or also?"). It was an ADD: BOTTOM_NAV
+  // arrived with DR-1046 Phase 2 as a FIXED list, while the church-only rule
+  // (DR-0640) lives in navItems — which filters the church door down to the
+  // `church` tab alone. The static list bypassed that filter, so a phone on
+  // the Love Corner offered Home, Big Picture, Money and Messages: four
+  // PoeTech surfaces inside a church app.
+  //
+  // Derived, not a second list (DR-0677): the dock keeps only the tabs whose
+  // view the shell's own nav already permits. Inside PoeTech every one is
+  // permitted and the bar is unchanged; on a church-only door none is, and the
+  // bar carries no platform section at all.
+  const allowedViews = new Set((nav && Array.isArray(nav.groups) ? nav.groups : []).flatMap((g) => (Array.isArray(g.items) ? g.items.map(([id]) => id) : [])));
+  const bottomTabs = allowedViews.size ? BOTTOM_NAV.filter((t) => allowedViews.has(t.view)) : BOTTOM_NAV;
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
   const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
@@ -261,7 +276,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                   <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
                   <DockLabel>{t.words}</DockLabel>
                 </button>
-              )) : BOTTOM_NAV.map((t) => (
+              )) : bottomTabs.map((t) => (
                 <button
                   key={t.key}
                   type="button"
