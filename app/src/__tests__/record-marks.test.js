@@ -1,7 +1,7 @@
 // @vitest-environment node
 // record-marks — every picture the learner record awards is the app's own
 // artwork on disk, never a device-font glyph, and no component carries one.
-// DR-1416.
+// DR-1417.
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';

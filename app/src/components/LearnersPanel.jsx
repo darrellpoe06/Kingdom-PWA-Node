@@ -164,7 +164,7 @@ function TakenAndGraded({ rows = [], userId }) {
   return (
     <div className="mt-2" data-testid="taken-and-graded">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
-      {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1416). */}
+      {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1417). */}
       <UnderstoodGoals understood={k.understood} readAndPassed={k.readAndPassed} lessonsTested={k.lessonsTested} />
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
         <Figure mark="sword" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />

@@ -6,7 +6,7 @@
 **Type:** feature
 **Area:** `app/src/lib/learner-identity.js`, `app/src/lib/learner-household.js`, `app/src/components/LearnersPanel.jsx`, `app/src/lib/use-learner-records.js`
 **Sent in by:** Darrell, 2026-11-10, his son's record headed "14472209779@phone.poetech.us · CHILD · MASTERED" with 0 lessons read: say "the name of the reader in their record... use all subpoints for who they are... name as the main focus like Big Picture in our default mode"; "The name of the reader"; "In their name"; "Also sub-info for the user to identify themselves"; "Also parents etc... households... vs individuals etc."
-**Pairs with:** DR-0825 (a number you know is shown as the person you know), DR-0754, DR-1416, DR-0060 (the walls decide who reads what)
+**Pairs with:** DR-0825 (a number you know is shown as the person you know), DR-0754, DR-1417, DR-0060 (the walls decide who reads what)
 
 ## Context
 
@@ -28,7 +28,7 @@ A parent could not tell at a glance whose record was open, and a child's record 
 - **A reader on their own record** is told it is theirs and how they sign in, so they can recognise it.
 - **A reader the roster does not list** gets no household line. Unknown is not "none".
 - **New records carry the reader's own name** when their account has one.
-- **An exam average is named as one:** the badge reads "Exam average 90% or more". "Mastered" is kept for DR-1416.
+- **An exam average is named as one:** the badge reads "Exam average 90% or more". "Mastered" is kept for DR-1417.
 - **The drop-down** names each reader the same way.
 
 ## Verification

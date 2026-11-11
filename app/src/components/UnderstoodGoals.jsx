@@ -5,7 +5,7 @@
 // "Understanding is Mastered and understood when the test and lessons are read
 // in full 100%... Fix it" and then "Make it look nice like accomplished goals
 // are occurring and some black lions for 100% etc... some sword of the spirit
-// etc... emojis." (DR-1416)
+// etc... emojis." (DR-1417)
 //
 // THE MARKS, each for one thing a row on the record already holds:
 //   the Black Lion   a lesson UNDERSTOOD: read in full and its exam at 100%,

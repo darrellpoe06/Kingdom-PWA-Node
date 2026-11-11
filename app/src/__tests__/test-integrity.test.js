@@ -3,7 +3,7 @@
 // =============================================================================
 // READ on evidence (seen or heard to the floor, seen at a reading pace with
 // grace); an exam's TAKING (before / partly / after reading, quick or not) kept
-// apart from its GRADING; UNDERSTOOD (read in full and the exam at 100%, DR-1416)
+// apart from its GRADING; UNDERSTOOD (read in full and the exam at 100%, DR-1417)
 // as the main goal; and every line an evaluation, never a condemnation.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
@@ -132,7 +132,7 @@ describe('the KPIs that notice how a test was taken', () => {
   });
 });
 
-describe('understood is mastery: the lesson read in full AND the exam at 100% (DR-1416)', () => {
+describe('understood is mastery: the lesson read in full AND the exam at 100% (DR-1417)', () => {
   const day = (m) => new Date(Date.UTC(2026, 10, 10, 9, m)).toISOString();
   const one = (pct, taken, completedAt = day(0)) => ({ lessonId: `l-${pct}-${JSON.stringify(taken)}`, completedAt, quizHistory: [{ at: day(20), pct, passed: pct >= 70, ...(taken ? { taken } : {}) }] });
 

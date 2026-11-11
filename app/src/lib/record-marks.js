@@ -1,5 +1,5 @@
 // =============================================================================
-// record-marks — the pictures the learner record awards, by name (DR-1416)
+// record-marks — the pictures the learner record awards, by name (DR-1417)
 // =============================================================================
 // Darrell asked for "black lions for 100%... sword of the spirit... emojis" on
 // the record. The house rule (scripts/consistency-guard.mjs) is that a

@@ -72,7 +72,7 @@ describe('a learner reads his own record', () => {
     expect(t).toMatch(/Your record/);
     expect(t).toMatch(/Lessons read/);
     expect(t).toMatch(/90%/);        // the average of 80 and 100, measured
-    // An exam average is named as an average; "Mastered" is kept for a lesson read in full with its exam at 100% (DR-1416).
+    // An exam average is named as an average; "Mastered" is kept for a lesson read in full with its exam at 100% (DR-1417).
     expect(t).toMatch(/Exam average 90% or more/);
     expect(t).not.toMatch(/Mastered/);
   });
@@ -223,7 +223,7 @@ describe('how the exams were taken, kept apart from what they scored (DR-1386)',
     const text = draw({ records, currentUserId: SON, titleOf: () => null });
     expect(host.querySelector('[data-testid="taken-and-graded"]')).toBeTruthy();
     expect(text).toContain('How the exams were taken');
-    // L1: 60, then 100 thirty seconds later: the answers given back, not understood (DR-1416). L2: passed before the lesson.
+    // L1: 60, then 100 thirty seconds later: the answers given back, not understood (DR-1417). L2: passed before the lesson.
     expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 2 lessons tested');
     expect(host.querySelector('[data-testid="understood-lions"]')).toBeNull();
     expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('0');
@@ -242,7 +242,7 @@ describe('how the exams were taken, kept apart from what they scored (DR-1386)',
     expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('100');
   });
 
-  it('PROVEN TO CATCH: a pass at 80% after the lesson is read and passed with the way forward, and no lion (DR-1416)', () => {
+  it('PROVEN TO CATCH: a pass at 80% after the lesson is read and passed with the way forward, and no lion (DR-1417)', () => {
     const records = [rec({ lesson_id: 'L1', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 80, passed: true }] })];
     draw({ records, currentUserId: SON, titleOf: () => null });
     expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 1 lesson tested');

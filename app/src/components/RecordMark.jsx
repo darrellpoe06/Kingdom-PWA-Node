@@ -1,7 +1,7 @@
 // =============================================================================
 // RecordMark — one of the record's pictures, from the app's own artwork only
 // =============================================================================
-// See lib/record-marks.js (DR-1416). Decorative: the words beside a mark carry
+// See lib/record-marks.js (DR-1417). Decorative: the words beside a mark carry
 // its meaning, so it is hidden from a screen reader and draws nothing at all
 // if its picture cannot load. Sized in em, so Big Print scales it.
 // =============================================================================

@@ -1,4 +1,4 @@
-# DR-1416: Understood is mastery, and the record shows it as goals accomplished
+# DR-1417: Understood is mastery, and the record shows it as goals accomplished
 
 **Date:** 2026-11-10
 **Status:** Accepted

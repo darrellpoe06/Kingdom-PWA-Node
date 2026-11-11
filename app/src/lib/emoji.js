@@ -99,7 +99,7 @@ export const CURATED_EMOJI = [
   '🔑', '🛠️', '🔧', '⏰', '📱', '💻', '📷', '🍽️', '☕', '🍕', '🎂', '🧺',
   // nature + weather (the everyday texture of family notes)
   '🌧️', '⛅', '❄️', '🌊', '🌍', '🌙', '🐕', '🐈', '🦋', '🐝',
-  // the learner record's marks (DR-1416): the sword of the Spirit
+  // the learner record's marks (DR-1417): the sword of the Spirit
   '🗡️',
 ];
 

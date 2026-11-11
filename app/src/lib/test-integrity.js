@@ -36,7 +36,7 @@ export const GRACE_WPM = 600;
 /** A reading counts when this much of the lesson was seen or heard. */
 export const READ_FLOOR = 0.9;
 /**
- * UNDERSTOOD IS MASTERY (DR-1416). Darrell, 2026-11-10, of a record that
+ * UNDERSTOOD IS MASTERY (DR-1417). Darrell, 2026-11-10, of a record that
  * counted a 70% pass on a lesson 90% read as understood: "Understanding is
  * Mastered and understood when the test and lessons are read in full 100%."
  * Both, in full: the lesson read to this much, and the exam scored this much.
@@ -129,7 +129,7 @@ export function attemptIntegrityLine(i, pct = null) {
   return `${takenLine(i)}${understoodLine(i, pct)}`;
 }
 
-/** What this attempt means for understanding (DR-1416): said only when the score is known. */
+/** What this attempt means for understanding (DR-1417): said only when the score is known. */
 function understoodLine(i, pct) {
   if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return '';
   if (isMastery({ pct, readPct: i.readPct, rushed: i.rushed })) return ' Understood: the lesson read in full and every answer right.';
@@ -162,7 +162,7 @@ function takenLine(i) {
  * what it scored. UNDERSTOOD, the main goal ("reading and comprehension as the
  * main goal"), counts the lessons MASTERED: read in full and the exam at 100%,
  * in a try that was neither rushed nor a retake within a minute (isMastery,
- * DR-1416). READ AND PASSED keeps the measure understood used to
+ * DR-1417). READ AND PASSED keeps the measure understood used to
  * be, a lesson on the record and passed at or after it, so no credit is lost
  * from view. LESSONS TESTED is how many lessons have any attempt at all.
  * Rushed is known only for attempts this device measured (DR-1386).

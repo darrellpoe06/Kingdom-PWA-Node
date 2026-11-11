@@ -160,7 +160,7 @@ describe('on the record', () => {
     expect(points[3]).toMatch(/^Last active /);
     expect(host.querySelector('[data-testid="learner-name"]').textContent).not.toMatch(/@/);
   });
-  it('PROVEN TO CATCH: an exam average is not called Mastered on a record with no lesson read (DR-1416)', async () => {
+  it('PROVEN TO CATCH: an exam average is not called Mastered on a record with no lesson read (DR-1417)', async () => {
     await mount({ records: [rec()], currentUserId: ME, isGovernor: true, titleOf: () => null });
     const head = host.querySelector('[data-testid="learner-head"]').textContent;
     expect(head).toMatch(/Exam average 90% or more/);
