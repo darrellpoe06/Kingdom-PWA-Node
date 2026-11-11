@@ -99,6 +99,66 @@ export function courseStanding(course, { places = [], progress = {} } = {}) {
   return { state, done, begun, lastOpened };
 }
 
+// ── WHERE YOU STAND, SAID ON THE LIST ITSELF (DR-1419) ───────────────────────
+// Darrell, 2026-11-10, of a course picker that named 51 courses and their
+// lesson counts and nothing about him: "Show the percentage of the ones
+// completed vs not started in locations that motivate reading like here and
+// other obvious locations", "When I see the whole list... I want to start
+// courses that I don't have a record for", and "Low hanging fruit type of
+// information that provokes to good Word time."
+//
+// All of it is courseStanding() said in words: the same real records the
+// "Not started first" order already sorts by, never a second count.
+
+/** "not started", "3 of 8 read · 37%", or "all 8 read". Never 100% before the last lesson. */
+export function courseStandingLabel(course, ctx = {}) {
+  const total = courseLessonCount(course);
+  const s = courseStanding(course, ctx);
+  if (!total) return '';
+  if (s.state === 'completed') return `all ${total} read`;
+  if (!s.done) return s.begun ? 'begun, none finished' : 'not started';
+  return `${s.done} of ${total} read · ${Math.floor((s.done / total) * 100)}%`;
+}
+
+/** The whole list in four numbers: how many courses are not started, begun and finished, and the lessons read. */
+export function libraryStanding(courses, ctx = {}) {
+  const list = (Array.isArray(courses) ? courses : []).filter((c) => c && courseLessonCount(c) > 0);
+  const out = { courses: list.length, notStarted: 0, inProgress: 0, completed: 0, lessons: 0, lessonsRead: 0 };
+  for (const c of list) {
+    const s = courseStanding(c, ctx);
+    out.lessons += courseLessonCount(c);
+    out.lessonsRead += Math.min(s.done, courseLessonCount(c));
+    if (s.state === 'completed') out.completed += 1;
+    else if (s.state === 'in-progress') out.inProgress += 1;
+    else out.notStarted += 1;
+  }
+  out.pct = out.lessons ? Math.floor((out.lessonsRead / out.lessons) * 100) : 0;
+  return out;
+}
+
+/**
+ * The two nearest wins, from the records alone:
+ *   nearest    the course already begun with the fewest lessons left to finish it;
+ *   quickStart the shortest course with nothing on the record yet.
+ * Either is null when no course fits. Ties keep the catalog's own order.
+ */
+export function lowHangingFruit(courses, ctx = {}) {
+  const list = (Array.isArray(courses) ? courses : []).filter((c) => c && courseLessonCount(c) > 0);
+  let nearest = null;
+  let quickStart = null;
+  for (const c of list) {
+    const total = courseLessonCount(c);
+    const s = courseStanding(c, ctx);
+    if (s.state === 'in-progress') {
+      const left = total - s.done;
+      if (!nearest || left < nearest.left) nearest = { course: c, left, done: s.done, total };
+    } else if (s.state === 'not-started') {
+      if (!quickStart || total < quickStart.total) quickStart = { course: c, total };
+    }
+  }
+  return { nearest, quickStart };
+}
+
 /** The orders this catalog can honestly offer — an order whose data is absent is left out. */
 export function courseSortsFor(courses, ctx = {}) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];

@@ -1409,6 +1409,21 @@
       "wallClockHours": 0.1,
       "estimateWithoutAiHours": 1,
       "notes": "Darrell: How could I have 99% and not have read it"
+    },
+    {
+      "id": "dr-1419-course-list-standing",
+      "date": "2026-11-10",
+      "task": "The Learn course picker says each course's standing, the list in numbers, and the two nearest wins",
+      "drs": [
+        "DR-1419"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 4,
+      "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
     }
   ]
 }
