@@ -1334,6 +1334,36 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 12,
       "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
+    },
+    {
+      "id": "dr-1414-weigh-a-property",
+      "date": "2026-11-10",
+      "task": "A property being weighed is named and kept in the household's own list, restored with every figure, with what is left from the expected rent",
+      "drs": [
+        "DR-1414"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: use it for potential properties we are looking to purchase; other users will want it"
+    },
+    {
+      "id": "dr-1415-every-property-and-the-asset",
+      "date": "2026-11-10",
+      "task": "Every property listed first even with no mortgage on file, figures saved to the record on one button, the asset pay-down view, and the calculator as one row of sub-tabs; measured in Chromium",
+      "drs": [
+        "DR-1415"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: I don't see any mortgage in the list... fix it; how assets are paid down; keep using our subtab procedures"
     }
   ]
 }

@@ -4,38 +4,40 @@
 // Darrell, 2026-11-10: "We need our own mortgage calculator inside our PoeTech
 // App where it makes sense... easy population of our actual numbers... based
 // on a drop down for each asset... and debt to get rid of it... easy to see...
-// not disturbing what we need already." (DR-1413)
+// not disturbing what we need already." (DR-1413) Then, the same evening:
+// properties we are looking to buy, kept by name (DR-1414); and, from his own
+// screen, "I don't see any mortgage in the list... we really want to know how
+// assets are paid down and the benefits of that... keep using our subtab
+// procedures so scrolling is minimal" (DR-1415).
 //
-// One component, mounted closed in two places: Money → Debt Freedom (every
-// property mortgage and every debt, by entity) and Real Estate (the property
-// mortgages). The drop-down copies a record's balance, rate and payment in
-// (lib/mortgage-sources.js); every figure can then be changed to try a what-if.
-// NOTHING IS WRITTEN BACK: the property record, the debt and the debt-freedom
-// plan are untouched, and the screen says so. The arithmetic is
-// lib/mortgage-calc.js, pinned to the cent against the reference calculator.
+// One component, mounted closed in Money → Debt Freedom and in Real Estate.
+// The drop-down lists every property first, then every other debt
+// (lib/mortgage-sources.js); the answer sits directly under it; and everything
+// else is ONE row of sub-tabs (SectionTabs, the app's own pattern), one panel
+// at a time: Loan, Costs, Extra, then Asset, Summary, Schedule, Chart.
 //
-// Colors are the app's own classes so every theme remaps them; no figure on
-// this surface is marked in red (DR-0099). Grids are sized by their text so
-// Big Print wraps instead of overlapping (DR-1412).
+// WHAT IT WRITES, and only on a named button: a property being weighed is kept
+// in its own list (lib/purchase-prospects.js), and the balance, rate and
+// payment typed for a property can be saved to that property's own record,
+// the same three fields the home-mortgage card already edits. Nothing else:
+// no debt, no plan, no total is touched by looking.
+//
+// Colors are the app's own classes so every theme remaps them; no figure is
+// marked in red (DR-0099). Grids are sized by their text (DR-1412).
 // =============================================================================
-import React, { useMemo, useState } from 'react';
-import { calculate, annualRows } from '../lib/mortgage-calc.js';
+import React, { useEffect, useMemo, useState } from 'react';
+import SectionTabs from './SectionTabs.jsx';
+import { calculate, assetView } from '../lib/mortgage-calc.js';
 import { findLoan } from '../lib/mortgage-sources.js';
+import { FIGURE_KEYS, missingForSave, toProspect } from '../lib/purchase-prospects.js';
+import { AssetView, BalanceChart, SplitBar, Schedule, Rows, FOCUS, GRID, money, monthName, span } from './MortgageCalculatorViews.jsx';
 
-const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const INPUT = `w-full min-h-[44px] px-2.5 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.875rem] ${FOCUS}`;
 const BTN = `min-h-[44px] px-4 py-2 text-[0.8125rem] font-semibold rounded-full border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] ${FOCUS}`;
+const BTN_QUIET = `min-h-[44px] px-4 text-[0.8125rem] font-semibold rounded-full border border-[#1A1815] bg-white text-[#1A1815] ${FOCUS}`;
 const LABEL = 'block text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-1';
-const GRID = { display: 'grid', gap: '0.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 9em), 1fr))' };
-const H4 = 'text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold mt-3 mb-1';
+const NOTE = 'text-[0.75rem] text-[#5A5751]';
 
-const money = (n) => (n == null || !Number.isFinite(n) ? '—' : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-const monthName = (ym) => {
-  if (!ym) return '—';
-  const [y, m] = ym.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
-};
-const span = (n) => (n == null ? '—' : `${Math.floor(n / 12)} yr ${n % 12} mo`);
 const n = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? 0 : Number(x));
 const str = (x) => (x > 0 ? String(x) : '');
 const nextMonth = (d) => {
@@ -54,6 +56,7 @@ const BLANK = {
   insurance: '',
   tax: '',
   monthlyCost: '',
+  rent: '',
   xMonthly: '',
   xMonthlyStart: '1',
   xSemi: '',
@@ -64,7 +67,7 @@ const BLANK = {
   xOnceMonth: '1',
 };
 
-function Field({ id, label, value, onChange, type = 'text', hint }) {
+function Field({ id, label, value, onChange, type = 'text', hint, numeric = true }) {
   return (
     <label htmlFor={id}>
       <span className={LABEL}>{label}</span>
@@ -73,174 +76,12 @@ function Field({ id, label, value, onChange, type = 'text', hint }) {
         data-testid={id}
         className={INPUT}
         type={type}
-        inputMode={type === 'month' ? undefined : 'decimal'}
+        inputMode={type === 'month' || !numeric ? undefined : 'decimal'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
       {hint && <span className="block text-[0.6875rem] text-[#5A5751] mt-0.5">{hint}</span>}
     </label>
-  );
-}
-
-// The balance over time: the loan as written, and under the extra payments.
-function BalanceChart({ base, plan, hasExtra }) {
-  const W = 320;
-  const H = 150;
-  const months = base.months;
-  const top = base.rows.length ? base.rows[0].balance + base.rows[0].principal : 1;
-  const path = (rows) => `M0,0 ${rows.map((r) => `L${((r.n / months) * W).toFixed(1)},${(H - (r.balance / top) * H).toFixed(1)}`).join(' ')}`;
-  return (
-    <figure data-testid="mc-balance-chart" className="m-0">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label={
-          hasExtra
-            ? `Balance over time. As written it reaches zero in ${monthName(base.endYm)}; with the extra payments, in ${monthName(plan.endYm)}.`
-            : `Balance over time, reaching zero in ${monthName(base.endYm)}.`
-        }
-        className="w-full h-auto border-l border-b border-[#E8E4DC]"
-        preserveAspectRatio="none"
-        style={{ maxHeight: '14rem' }}
-      >
-        <g className="text-[#5A5751]">
-          <path
-            d={path(base.rows)}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeDasharray={hasExtra ? '5 4' : undefined}
-            vectorEffect="non-scaling-stroke"
-          />
-        </g>
-        {hasExtra && (
-          <g className="text-[#1F3A2E]">
-            <path d={path(plan.rows)} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" />
-          </g>
-        )}
-      </svg>
-      <figcaption className="text-[0.75rem] text-[#5A5751] mt-1">
-        {monthName(base.rows[0].ym)} to {monthName(base.endYm)}.{' '}
-        {hasExtra ? (
-          <>
-            Dashed: as written. <strong className="text-[#1F3A2E]">Solid: with the extra payments</strong>, ending {monthName(plan.endYm)}.
-          </>
-        ) : (
-          'Add an extra payment above to see the second line.'
-        )}
-      </figcaption>
-    </figure>
-  );
-}
-
-// Of every dollar paid: interest, scheduled principal, extra principal.
-function SplitBar({ split }) {
-  const total = split.interest + split.principal + split.extra;
-  if (!(total > 0)) return null;
-  const parts = [
-    ['Interest', split.interest, 'text-[#B85838]'],
-    ['Principal', split.principal, 'text-[#5A5751]'],
-    ['Extra principal', split.extra, 'text-[#1F3A2E]'],
-  ].filter((p) => p[1] > 0);
-  const pct = (v) => Math.round((v / total) * 1000) / 10;
-  return (
-    <div data-testid="mc-split">
-      <div
-        className="flex w-full h-4 rounded-full overflow-hidden border border-[#E8E4DC]"
-        role="img"
-        aria-label={`Of everything paid: ${parts.map(([l, v]) => `${l} ${pct(v)}%`).join(', ')}.`}
-      >
-        {parts.map(([l, v, c]) => (
-          <span key={l} className={`bg-current ${c}`} style={{ width: `${pct(v)}%` }} />
-        ))}
-      </div>
-      <ul className="mt-1 text-[0.75rem] text-[#1A1815]" style={{ ...GRID, gap: '0.25rem' }}>
-        {parts.map(([l, v, c]) => (
-          <li key={l} className="flex items-center gap-1.5">
-            <span aria-hidden="true" className={`inline-block w-3 h-3 rounded-sm bg-current shrink-0 ${c}`} />
-            <span className="text-[#1A1815]">
-              {l}: {pct(v)}% · {money(v)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Schedule({ plan }) {
-  const years = useMemo(() => annualRows(plan.rows), [plan.rows]);
-  const [open, setOpen] = useState(null);
-  const showLtv = plan.rows.length > 0 && plan.rows[0].ltv != null;
-  return (
-    <div data-testid="mc-schedule" className="overflow-x-auto">
-      <table className="w-full text-[0.75rem] text-[#1A1815]">
-        <caption className="sr-only">
-          The schedule by year: interest, principal paid with any extra, and the balance at the end of the year. Choose a year to see its months.
-        </caption>
-        <thead>
-          <tr className="text-left text-[#5A5751]">
-            <th scope="col" className="py-1">
-              Year
-            </th>
-            <th scope="col" className="text-right">
-              Interest
-            </th>
-            <th scope="col" className="text-right">
-              Principal
-            </th>
-            {showLtv && (
-              <th scope="col" className="text-right">
-                Owed of value
-              </th>
-            )}
-            <th scope="col" className="text-right">
-              Balance
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {years.map((y) => (
-            <React.Fragment key={y.year}>
-              <tr className="border-t border-[#F0ECE4]">
-                <th scope="row" className="py-0.5 text-left font-normal">
-                  <button
-                    type="button"
-                    data-testid={`mc-year-${y.year}`}
-                    aria-expanded={open === y.year}
-                    onClick={() => setOpen(open === y.year ? null : y.year)}
-                    className={`min-h-[44px] pr-2 underline text-[#1A1815] ${FOCUS}`}
-                  >
-                    {y.year}
-                  </button>
-                </th>
-                <td className="text-right">{money(y.interest)}</td>
-                <td className="text-right">{money(y.principal)}</td>
-                {showLtv && <td className="text-right">{y.ltv}%</td>}
-                <td className="text-right">{money(y.balance)}</td>
-              </tr>
-              {open === y.year &&
-                plan.rows
-                  .filter((r) => r.ym.startsWith(y.year))
-                  .map((r) => (
-                    <tr key={r.ym} className="bg-[#FAF8F4] text-[#5A5751]" data-testid={`mc-month-${r.ym}`}>
-                      <th scope="row" className="py-1 pl-3 text-left font-normal">
-                        {monthName(r.ym).split(' ')[0].slice(0, 3)} · #{r.n}
-                      </th>
-                      <td className="text-right">{money(r.interest)}</td>
-                      <td className="text-right">
-                        {money(r.principal + r.extra)}
-                        {r.extra > 0 ? ` (${money(r.extra)} extra)` : ''}
-                      </td>
-                      {showLtv && <td className="text-right">{r.ltv}%</td>}
-                      <td className="text-right">{money(r.balance)}</td>
-                    </tr>
-                  ))}
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 
@@ -251,22 +92,56 @@ function Schedule({ plan }) {
  * @param {string} [props.title]
  * @param {string} [props.lead]   one sentence saying what this mount lists
  * @param {boolean} [props.defaultOpen]
+ * @param {string} [props.idBase]  the sub-tab row's id prefix; unique per mount
+ * @param {object[]} [props.entities]  offered as "who would hold it" on a property being weighed
+ * @param {(prospect: object) => void} [props.onSaveProspect]  when given, a new loan can be named and kept
+ * @param {(id: string) => void} [props.onRemoveProspect]
+ * @param {(rentalId: string, patch: object) => void} [props.onSaveRecord]  when given, the balance, rate and
+ *   payment entered for a property can be saved to that property's record (the shell's updateRental)
  */
-export default function MortgageCalculator({ sources, currentDate, title = 'Mortgage and loan calculator', lead = '', defaultOpen = false }) {
+export default function MortgageCalculator({
+  sources,
+  currentDate,
+  title = 'Mortgage and loan calculator',
+  lead = '',
+  defaultOpen = false,
+  idBase = 'mc',
+  entities = null,
+  onSaveProspect = null,
+  onRemoveProspect = null,
+  onSaveRecord = null,
+}) {
   const groups = (sources && sources.groups) || [];
   const cd = useMemo(() => (currentDate instanceof Date ? currentDate : new Date()), [currentDate]);
   const [open, setOpen] = useState(defaultOpen);
   const [pick, setPick] = useState('');
   const [f, setF] = useState(() => ({ ...BLANK, start: nextMonth(cd) }));
-  const [tab, setTab] = useState('summary');
+  const [tab, setTab] = useState('loan');
+  const [keep, setKeep] = useState({ name: '', entityId: '' });
+  const [note, setNote] = useState('');
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
+  // The row of sub-tabs scrolls on a phone; the open one is always brought into view.
+  useEffect(() => {
+    const chip = typeof document !== 'undefined' ? document.getElementById(`${idBase}-tab-${tab}`) : null;
+    if (chip && typeof chip.scrollIntoView === 'function') chip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [tab, idBase]);
   const picked = pick ? findLoan(groups, pick) : null;
+  // A property being weighed is a new loan with a name: not a record on the books.
+  const weighing = !picked || picked.kind === 'prospect';
+  const isProperty = !!picked && picked.kind === 'property';
 
   const choose = (id) => {
     setPick(id);
+    setNote('');
     const o = id ? findLoan(groups, id) : null;
     if (!o) {
       setF((x) => ({ ...BLANK, start: x.start }));
+      setKeep({ name: '', entityId: '' });
+      return;
+    }
+    if (o.kind === 'prospect') {
+      setF((x) => ({ ...BLANK, start: x.start, ...o.figures, principal: o.figures.principal || str(o.principal) }));
+      setKeep({ name: o.name, entityId: o.entityId || '' });
       return;
     }
     setF((x) => ({
@@ -279,13 +154,16 @@ export default function MortgageCalculator({ sources, currentDate, title = 'Mort
       payment: str(o.payment),
       years: '',
       monthlyCost: str(o.escrowMonthly),
+      rent: str(o.rent),
     }));
+    // Straight to the answer when the record is whole; to the Loan tab when a figure is missing.
+    setTab(o.missing.length ? 'loan' : o.kind === 'property' ? 'asset' : 'summary');
   };
   // A new loan: the amount borrowed follows the price and the down payment.
   const setPrice = (k) => (v) =>
     setF((x) => {
       const next = { ...x, [k]: v };
-      if (!pick && n(next.value) > 0) next.principal = String(Math.max(0, Math.round((n(next.value) - n(next.down)) * 100) / 100));
+      if (weighing && n(next.value) > 0) next.principal = String(Math.max(0, Math.round((n(next.value) - n(next.down)) * 100) / 100));
       return next;
     });
 
@@ -310,27 +188,260 @@ export default function MortgageCalculator({ sources, currentDate, title = 'Mort
       ),
     [f, cd]
   );
+  const asset = useMemo(() => assetView(result, { propertyValue: n(f.value), rent: n(f.rent) }), [result, f.value, f.rent]);
 
+  const saveBlockers = missingForSave({ name: keep.name, figures: f });
+  const saveProspect = () => {
+    if (!onSaveProspect || saveBlockers.length) return;
+    const id = picked && picked.kind === 'prospect' ? picked.prospectId : `p-${Date.now().toString(36)}`;
+    const figures = {};
+    for (const k of FIGURE_KEYS) figures[k] = f[k];
+    onSaveProspect(toProspect({ id, name: keep.name, entityId: keep.entityId || null, figures }));
+    setPick(`prospect:${id}`);
+    setNote('Saved with this household\u2019s records. Choose it from the list any time to pick up where you left off.');
+  };
+  const removeProspect = () => {
+    if (!onRemoveProspect || !picked || picked.kind !== 'prospect') return;
+    onRemoveProspect(picked.prospectId);
+    choose('');
+    setNote('Removed from the list.');
+  };
+  // The three figures the property record keeps, as they stand in the calculator.
+  const forRecord = { balance: n(f.principal), rate: n(f.rate), monthlyPI: result.ok ? result.payment : 0 };
+  const recordReady = isProperty && forRecord.balance > 0 && forRecord.rate > 0 && forRecord.monthlyPI > 0;
+  const recordSame = isProperty && forRecord.balance === picked.principal && forRecord.rate === picked.ratePct && forRecord.monthlyPI === picked.payment;
+  const saveRecord = () => {
+    if (!onSaveRecord || !recordReady || recordSame) return;
+    onSaveRecord(picked.rentalId, { mortgage: { ...(picked.record || {}), ...forRecord, estimated: false } });
+    setNote(`Saved to the record for ${picked.name}.`);
+  };
+
+  const leftFromRent = result.ok && n(f.rent) > 0 ? Math.round((n(f.rent) - result.totalMonthly) * 100) / 100 : null;
   const started = n(f.principal) > 0 || n(f.rate) > 0;
   const facts = result.ok
     ? [
-        ['Monthly payment', money(result.payment), f.mode === 'term' ? 'principal and interest, worked out' : 'principal and interest, as entered'],
-        [
-          'With monthly costs',
-          money(result.totalMonthly),
-          result.monthlyExpenses > 0 ? `${money(result.monthlyExpenses)} of insurance, tax and other costs` : 'no costs entered',
-        ],
+        ['Monthly payment', money(result.payment), result.monthlyExpenses > 0 ? `${money(result.totalMonthly)} with costs` : 'principal and interest'],
         ['Paid off', monthName(result.plan.endYm), `${span(result.plan.months)}${result.hasExtra ? `, ${span(result.monthsSaved)} sooner` : ''}`],
-        ['Interest', money(result.plan.totalInterest), result.hasExtra ? `${money(result.interestSaved)} less than as written` : 'over the life of the loan'],
+        ['Interest', money(result.plan.totalInterest), result.hasExtra ? `${money(result.interestSaved)} saved` : 'over the life of the loan'],
+        ...(leftFromRent == null
+          ? []
+          : [[leftFromRent >= 0 ? 'Left from the rent' : 'Short of the rent', `${money(Math.abs(leftFromRent))} a month`, 'before repairs and vacancy']]),
       ]
     : [];
+
+  const needAnswer = (
+    <p data-testid="mc-need-answer" className={NOTE}>
+      {started ? result.reason : 'Choose a loan above or enter the figures on the Loan tab first.'}
+    </p>
+  );
+  const sections = [
+    {
+      id: 'loan',
+      label: 'Loan',
+      render: () => (
+        <div style={GRID}>
+          <Field id="mc-value" label="Property value (optional)" value={f.value} onChange={setPrice('value')} />
+          {weighing && <Field id="mc-down" label="Down payment" value={f.down} onChange={setPrice('down')} />}
+          <Field id="mc-principal" label={weighing ? 'Amount borrowed' : 'Balance owed'} value={f.principal} onChange={set('principal')} />
+          <Field id="mc-rate" label="Interest rate (%)" value={f.rate} onChange={set('rate')} />
+          <label htmlFor="mc-mode">
+            <span className={LABEL}>I know the</span>
+            <select id="mc-mode" data-testid="mc-mode" className={INPUT} value={f.mode} onChange={(e) => set('mode')(e.target.value)}>
+              <option value="term">term in years</option>
+              <option value="payment">monthly payment</option>
+            </select>
+          </label>
+          {f.mode === 'term' ? (
+            <Field id="mc-years" label="Years" value={f.years} onChange={set('years')} />
+          ) : (
+            <Field id="mc-payment" label="Principal and interest per month" value={f.payment} onChange={set('payment')} />
+          )}
+          <Field id="mc-start" label="First payment" type="month" value={f.start} onChange={set('start')} />
+        </div>
+      ),
+    },
+    {
+      id: 'costs',
+      label: 'Costs',
+      render: () => (
+        <div style={GRID}>
+          <Field id="mc-insurance" label="Insurance per year" value={f.insurance} onChange={set('insurance')} />
+          <Field id="mc-tax" label="Property tax per year" value={f.tax} onChange={set('tax')} />
+          <Field
+            id="mc-monthly-cost"
+            label="Escrow or other, per month"
+            value={f.monthlyCost}
+            onChange={set('monthlyCost')}
+            hint={isProperty && picked.escrowMonthly > 0 ? 'the escrow on the record' : undefined}
+          />
+          <Field
+            id="mc-rent"
+            label={weighing ? 'Expected rent per month' : 'Rent per month'}
+            value={f.rent}
+            onChange={set('rent')}
+            hint={isProperty && picked.rent > 0 ? 'the rent on the record' : undefined}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'extra',
+      label: 'Extra',
+      render: () => (
+        <div style={GRID}>
+          <Field id="mc-x-monthly" label="Every month" value={f.xMonthly} onChange={set('xMonthly')} />
+          <Field id="mc-x-monthly-start" label="Starting at payment #" value={f.xMonthlyStart} onChange={set('xMonthlyStart')} />
+          <Field id="mc-x-semi" label="Twice a year" value={f.xSemi} onChange={set('xSemi')} />
+          <Field id="mc-x-semi-start" label="Starting at payment #" value={f.xSemiStart} onChange={set('xSemiStart')} />
+          <Field id="mc-x-annual" label="Once a year" value={f.xAnnual} onChange={set('xAnnual')} />
+          <Field id="mc-x-annual-start" label="Starting at payment #" value={f.xAnnualStart} onChange={set('xAnnualStart')} />
+          <Field id="mc-x-once" label="One time" value={f.xOnce} onChange={set('xOnce')} />
+          <Field id="mc-x-once-month" label="At payment #" value={f.xOnceMonth} onChange={set('xOnceMonth')} />
+        </div>
+      ),
+    },
+    {
+      id: 'asset',
+      label: 'Asset',
+      render: () => (result.ok ? <AssetView asset={asset} hasExtra={result.hasExtra} name={picked ? picked.name : keep.name} /> : needAnswer),
+    },
+    {
+      id: 'summary',
+      label: 'Summary',
+      render: () =>
+        result.ok ? (
+          <Rows
+            testid="mc-summary"
+            rows={[
+              ['First payment', monthName(result.plan.rows[0].ym)],
+              ['Last payment', monthName(result.plan.endYm)],
+              ['Time to pay off', span(result.plan.months)],
+              ['As written', `${span(result.base.months)}, to ${monthName(result.base.endYm)}`],
+              ['Total interest', money(result.plan.totalInterest)],
+              ['Interest as written', money(result.base.totalInterest)],
+              ['Total of all payments', money(result.plan.totalPaid)],
+              ['Extra payments', money(result.plan.totalExtra)],
+              ['Interest saved', money(result.interestSaved)],
+              ['Paid off sooner by', span(result.monthsSaved)],
+              [
+                'With monthly costs',
+                money(result.totalMonthly),
+                result.monthlyExpenses > 0 ? `${money(result.monthlyExpenses)} of insurance, tax and other costs` : 'no costs entered',
+              ],
+            ]}
+          />
+        ) : (
+          needAnswer
+        ),
+    },
+    { id: 'schedule', label: 'Schedule', render: () => (result.ok ? <Schedule plan={result.plan} /> : needAnswer) },
+    {
+      id: 'chart',
+      label: 'Chart',
+      render: () =>
+        result.ok ? (
+          <div className="space-y-3">
+            <BalanceChart base={result.base} plan={result.plan} hasExtra={result.hasExtra} />
+            <SplitBar split={result.split} />
+          </div>
+        ) : (
+          needAnswer
+        ),
+    },
+    weighing && onSaveProspect
+      ? {
+          id: 'keep',
+          label: 'Keep',
+          render: () => (
+            <div data-testid="mc-keep" className="space-y-2">
+              <p className={NOTE}>
+                Name a property you are weighing and it stays in the list above with these figures. It is not added to your properties, your debts or any total.
+              </p>
+              <div style={GRID}>
+                <Field id="mc-keep-name" label="Name or address" value={keep.name} onChange={(v) => setKeep((k) => ({ ...k, name: v }))} numeric={false} />
+                {entities && entities.length > 0 && (
+                  <label htmlFor="mc-keep-entity">
+                    <span className={LABEL}>Who would hold it</span>
+                    <select
+                      id="mc-keep-entity"
+                      data-testid="mc-keep-entity"
+                      className={INPUT}
+                      value={keep.entityId}
+                      onChange={(e) => setKeep((k) => ({ ...k, entityId: e.target.value }))}
+                    >
+                      <option value="">Not decided</option>
+                      {entities.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <button type="button" data-testid="mc-keep-save" className={BTN} onClick={saveProspect} aria-disabled={saveBlockers.length > 0}>
+                  {picked ? 'Save the changes' : 'Save this property'}
+                </button>
+                {picked && onRemoveProspect && (
+                  <button type="button" data-testid="mc-keep-remove" onClick={removeProspect} className={BTN_QUIET}>
+                    Remove from the list
+                  </button>
+                )}
+              </div>
+              {saveBlockers.length > 0 && (keep.name || started) && (
+                <p data-testid="mc-keep-needs" className="text-[0.75rem] text-[#B45309]">
+                  To save it, enter {saveBlockers.join(' and ')}.
+                </p>
+              )}
+            </div>
+          ),
+        }
+      : null,
+    isProperty && onSaveRecord
+      ? {
+          id: 'record',
+          label: 'Save',
+          render: () => (
+            <div data-testid="mc-record" className="space-y-2">
+              <p className={NOTE}>
+                The record for {picked.name} keeps three mortgage figures. Save what is entered here and it fills in everywhere the app reads that mortgage:
+                Real Estate, Debts and Bills Due.
+              </p>
+              <Rows
+                testid="mc-record-rows"
+                rows={[
+                  ['Balance', money(forRecord.balance), `on the record: ${picked.principal > 0 ? money(picked.principal) : 'not entered'}`],
+                  [
+                    'Interest rate',
+                    forRecord.rate > 0 ? `${forRecord.rate}%` : '—',
+                    `on the record: ${picked.ratePct > 0 ? `${picked.ratePct}%` : 'not entered'}`,
+                  ],
+                  ['Principal and interest', money(forRecord.monthlyPI), `on the record: ${picked.payment > 0 ? money(picked.payment) : 'not entered'}`],
+                ]}
+              />
+              <button type="button" data-testid="mc-record-save" className={BTN} onClick={saveRecord} aria-disabled={!recordReady || recordSame}>
+                Save these figures to the property record
+              </button>
+              {!recordReady && (
+                <p data-testid="mc-record-needs" className="text-[0.75rem] text-[#B45309]">
+                  Enter the balance, the rate, and the payment or the term on the Loan tab first.
+                </p>
+              )}
+              {recordReady && recordSame && <p className={NOTE}>These match the record already.</p>}
+            </div>
+          ),
+        }
+      : null,
+  ];
 
   return (
     <section data-testid="mortgage-calculator" aria-label={title} className="bg-white border border-[#E8E4DC] rounded-2xl p-4 space-y-3">
       <div>
         <h3 className="text-[0.875rem] font-semibold text-[#1A1815]">{title}</h3>
-        <p className="text-[0.75rem] text-[#5A5751]">
-          {lead || 'Choose a loan on file to fill in its figures, or enter a new one.'} A calculator only: it changes no record and no plan.
+        <p className={NOTE}>
+          {lead || 'Choose a property or a debt on file to fill in its figures, or enter a new one.'} Looking changes nothing; it saves only when you press a
+          save button.
         </p>
       </div>
       <button type="button" data-testid="mc-toggle" aria-expanded={open} onClick={() => setOpen(!open)} className={BTN}>
@@ -339,14 +450,15 @@ export default function MortgageCalculator({ sources, currentDate, title = 'Mort
       {open && (
         <div className="space-y-3">
           <label htmlFor="mc-pick">
-            <span className={LABEL}>Which loan</span>
+            <span className={LABEL}>Which property or debt</span>
             <select id="mc-pick" data-testid="mc-pick" className={INPUT} value={pick} onChange={(e) => choose(e.target.value)}>
-              <option value="">A new loan — enter the figures</option>
+              <option value="">A new loan, or a property we are weighing</option>
               {groups.map((g) => (
-                <optgroup key={String(g.entityId)} label={g.label}>
+                <optgroup key={g.key || String(g.entityId)} label={g.label}>
                   {g.options.map((o) => (
                     <option key={o.id} value={o.id}>
-                      {o.label} · {money(o.principal)}
+                      {o.label}
+                      {o.principal > 0 ? ` · ${money(o.principal)}` : ''}
                     </option>
                   ))}
                 </optgroup>
@@ -354,140 +466,73 @@ export default function MortgageCalculator({ sources, currentDate, title = 'Mort
             </select>
           </label>
           {groups.length === 0 && (
-            <p data-testid="mc-none" className="text-[0.75rem] text-[#5A5751]">
-              No mortgage or debt with a balance is on file yet, so there is nothing to choose. A new loan can still be worked out below.
+            <p data-testid="mc-none" className={NOTE}>
+              No property or debt is on file yet, so there is nothing to choose. A new loan can still be worked out below.
             </p>
           )}
-          {picked && (
+          {picked && picked.kind !== 'prospect' && (
             <p data-testid="mc-filled" className="text-[0.75rem] text-[#1A1815]">
-              Filled from the record: {picked.principal > 0 ? money(picked.principal) : 'no balance'} owed
-              {picked.ratePct > 0 ? ` at ${picked.ratePct}%${picked.estimated ? ' (estimated on the record)' : ''}` : ''}
-              {picked.payment > 0 ? `, ${money(picked.payment)} a month` : ''}.
+              {picked.principal > 0 ? (
+                <>
+                  Filled from the record: {money(picked.principal)} owed
+                  {picked.ratePct > 0 ? ` at ${picked.ratePct}%${picked.estimated ? ' (estimated on the record)' : ''}` : ''}
+                  {picked.payment > 0 ? `, ${money(picked.payment)} a month` : ''}.
+                </>
+              ) : (
+                <>No mortgage has been entered for {picked.name} yet.</>
+              )}
               {picked.missing.length > 0 && (
                 <span className="text-[#B45309]" data-testid="mc-missing">
                   {' '}
-                  Not on the record yet: {picked.missing.join(', ')}. Enter it here to see the result.
+                  Not on the record yet: {picked.missing.join(', ')}. Enter it on the Loan tab
+                  {isProperty && onSaveRecord ? ', then the Save tab keeps it' : ''}.
                 </span>
               )}
             </p>
           )}
 
-          <div style={GRID}>
-            <Field id="mc-value" label="Property value (optional)" value={f.value} onChange={setPrice('value')} />
-            {!pick && <Field id="mc-down" label="Down payment" value={f.down} onChange={setPrice('down')} />}
-            <Field id="mc-principal" label={pick ? 'Balance owed' : 'Amount borrowed'} value={f.principal} onChange={set('principal')} />
-            <Field id="mc-rate" label="Interest rate (%)" value={f.rate} onChange={set('rate')} />
-            <label htmlFor="mc-mode">
-              <span className={LABEL}>I know the</span>
-              <select id="mc-mode" data-testid="mc-mode" className={INPUT} value={f.mode} onChange={(e) => set('mode')(e.target.value)}>
-                <option value="term">term in years</option>
-                <option value="payment">monthly payment</option>
-              </select>
-            </label>
-            {f.mode === 'term' ? (
-              <Field id="mc-years" label="Years" value={f.years} onChange={set('years')} />
-            ) : (
-              <Field id="mc-payment" label="Principal and interest per month" value={f.payment} onChange={set('payment')} />
-            )}
-            <Field id="mc-start" label="First payment" type="month" value={f.start} onChange={set('start')} />
-          </div>
-
-          <h4 className={H4}>Costs beside the payment</h4>
-          <div style={GRID}>
-            <Field id="mc-insurance" label="Insurance per year" value={f.insurance} onChange={set('insurance')} />
-            <Field id="mc-tax" label="Property tax per year" value={f.tax} onChange={set('tax')} />
-            <Field
-              id="mc-monthly-cost"
-              label="Escrow or other, per month"
-              value={f.monthlyCost}
-              onChange={set('monthlyCost')}
-              hint={picked && picked.escrowMonthly > 0 ? 'the escrow on the record' : undefined}
-            />
-          </div>
-
-          <h4 className={H4}>Extra toward principal</h4>
-          <div style={GRID}>
-            <Field id="mc-x-monthly" label="Every month" value={f.xMonthly} onChange={set('xMonthly')} />
-            <Field id="mc-x-monthly-start" label="Starting at payment #" value={f.xMonthlyStart} onChange={set('xMonthlyStart')} />
-            <Field id="mc-x-semi" label="Twice a year" value={f.xSemi} onChange={set('xSemi')} />
-            <Field id="mc-x-semi-start" label="Starting at payment #" value={f.xSemiStart} onChange={set('xSemiStart')} />
-            <Field id="mc-x-annual" label="Once a year" value={f.xAnnual} onChange={set('xAnnual')} />
-            <Field id="mc-x-annual-start" label="Starting at payment #" value={f.xAnnualStart} onChange={set('xAnnualStart')} />
-            <Field id="mc-x-once" label="One time" value={f.xOnce} onChange={set('xOnce')} />
-            <Field id="mc-x-once-month" label="At payment #" value={f.xOnceMonth} onChange={set('xOnceMonth')} />
-          </div>
-
-          {!result.ok && started && (
-            <p data-testid="mc-reason" role="status" className="text-[0.8125rem] text-[#B45309]">
-              {result.reason}
+          {result.ok ? (
+            <dl
+              data-testid="mc-result"
+              className="rounded-xl bg-[#1F3A2E] text-[#F6F1E7] p-3"
+              style={{ ...GRID, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 8em), 1fr))' }}
+            >
+              {facts.map(([label, value, sub]) => (
+                <div key={label} className="min-w-0" style={{ overflowWrap: 'anywhere' }}>
+                  <dt className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#C9A227] font-semibold">{label}</dt>
+                  <dd className="text-base font-semibold leading-tight text-[#F6F1E7]">
+                    {value}
+                    <span className="block mt-0.5 text-[0.6875rem] font-normal text-[#F6F1E7] opacity-80">{sub}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            started && (
+              <p data-testid="mc-reason" role="status" className="text-[0.8125rem] text-[#B45309]">
+                {result.reason}
+              </p>
+            )
+          )}
+          {note && (
+            <p data-testid="mc-note" role="status" className="text-[0.75rem] text-[#1F3A2E]">
+              {note}
             </p>
           )}
-          {result.ok && (
-            <div data-testid="mc-result" className="space-y-3">
-              <dl className="rounded-xl bg-[#1F3A2E] text-[#F6F1E7] p-3" style={{ ...GRID, gap: '0.75rem' }}>
-                {facts.map(([label, value, sub]) => (
-                  <div key={label} className="min-w-0" style={{ overflowWrap: 'anywhere' }}>
-                    <dt className="text-[0.5625rem] uppercase tracking-[0.18em] text-[#C9A227] font-semibold">{label}</dt>
-                    <dd className="text-xl leading-tight text-[#F6F1E7]">
-                      {value}
-                      <span className="block mt-0.5 text-[0.6875rem] text-[#F6F1E7] opacity-80">{sub}</span>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <div role="tablist" aria-label="Calculator views" className="flex flex-wrap gap-2">
-                {[
-                  ['summary', 'Summary'],
-                  ['schedule', 'Schedule'],
-                  ['chart', 'Chart'],
-                ].map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === k}
-                    data-testid={`mc-tab-${k}`}
-                    onClick={() => setTab(k)}
-                    className={`min-h-[44px] px-4 text-[0.8125rem] font-semibold rounded-full border border-[#1A1815] ${tab === k ? 'bg-[#1A1815] text-white underline underline-offset-4' : 'bg-white text-[#1A1815]'} ${FOCUS}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {tab === 'summary' && (
-                <dl data-testid="mc-summary" className="text-[0.8125rem]" style={{ ...GRID, columnGap: '1rem', rowGap: 0 }}>
-                  {[
-                    ['First payment', monthName(result.plan.rows[0].ym)],
-                    ['Last payment', monthName(result.plan.endYm)],
-                    ['Time to pay off', span(result.plan.months)],
-                    ['As written', `${span(result.base.months)}, to ${monthName(result.base.endYm)}`],
-                    ['Total interest', money(result.plan.totalInterest)],
-                    ['Interest as written', money(result.base.totalInterest)],
-                    ['Total of all payments', money(result.plan.totalPaid)],
-                    ['Extra payments', money(result.plan.totalExtra)],
-                    ['Interest saved', money(result.interestSaved)],
-                    ['Paid off sooner by', span(result.monthsSaved)],
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-2 border-b border-[#F0ECE4] py-1">
-                      <dt className="text-[#5A5751]">{k}</dt>
-                      <dd className="text-[#1A1815] text-right">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {tab === 'schedule' && <Schedule plan={result.plan} />}
-              {tab === 'chart' && (
-                <div className="space-y-3">
-                  <BalanceChart base={result.base} plan={result.plan} hasExtra={result.hasExtra} />
-                  <SplitBar split={result.split} />
-                </div>
-              )}
-              <p className="text-[0.6875rem] text-[#5A5751]">
-                A projection: it assumes the rate stays the same, every payment is made in its month, and extra goes straight to principal. A lender that rounds
-                interest each month can differ by a few cents. Pay extra only from what Safe to Spend shows as available.
-              </p>
-            </div>
-          )}
+
+          <SectionTabs
+            variant="sub"
+            idBase={idBase}
+            ariaLabel="Calculator sections"
+            sections={sections}
+            activeId={tab}
+            onActiveChange={setTab}
+            chipClassName="min-h-[44px]"
+          />
+          <p className="text-[0.6875rem] text-[#5A5751]">
+            A projection: it assumes the rate stays the same, every payment is made in its month, and extra goes straight to principal. A lender that rounds
+            interest each month can differ by a few cents. Pay extra only from what Safe to Spend shows as available.
+          </p>
         </div>
       )}
     </section>
