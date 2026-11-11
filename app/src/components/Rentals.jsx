@@ -1159,7 +1159,7 @@ const RECORD_TABS = [
   { id: 'tenancy', label: 'Tenancy', count: null },
 ];
 
-function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {}, books = null }) {
+function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {}, books = null, plan = null }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
   const openIncidentFor = (r) => incidents.find(i => i.status !== 'resolved' && i.linkedTo?.type === 'rental' && i.linkedTo?.id === r.id);
@@ -1908,7 +1908,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <>
       <section>
         {/* The door opens on the portfolio, not on a label (DR-1169). */}
-        <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} calc={{ rentals, entities, currentDate }} />
+        <RealEstateDoor state={door} focus={doorFocus} onFocus={setDoorFocus} calc={{ rentals, entities, currentDate, plan, updateRental: readOnly ? null : updateRental }} />
 
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>

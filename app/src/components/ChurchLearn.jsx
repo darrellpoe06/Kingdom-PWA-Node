@@ -115,7 +115,7 @@ import { searchItOutFor } from '../lib/search-it-out.js';
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { censusLibrary, censusLine } from '../lib/library-census.js';
-import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords, lessonVersions, monthReadings } from '../lib/learn-organize.js';
+import CourseFruit from './CourseFruit.jsx'; import { courseStandingLabel, organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords, lessonVersions, monthReadings } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
@@ -516,7 +516,7 @@ export function QuizBlock({ module, saved, onRecord }) {
       </div>
       {integrity && (
         <p className="text-[0.6875rem] text-[#5A5751] mt-1" data-testid="quiz-integrity" data-reading={integrity.reading} data-rushed={integrity.rushed ? 'true' : 'false'} style={{ fontFamily: '"Fraunces", serif' }}>
-          {attemptIntegrityLine(integrity)}
+          {attemptIntegrityLine(integrity, graded ? graded.pct : null)}
         </p>
       )}
     </div>
@@ -5091,7 +5091,7 @@ export default function ChurchLearn({
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
                       <option key={c.key} value={c.key}>
-                        {c.key === active.key ? '● ' : ''}{c.code} · {c.meta.title} · {courseLessonCount(c)} lessons
+                        {c.key === active.key ? '● ' : ''}{c.code} · {c.meta.title} · {courseLessonCount(c)} lessons · {courseStandingLabel(c, sortCtx)}
                       </option>
                     ))}
                   </optgroup>
@@ -5115,7 +5115,7 @@ export default function ChurchLearn({
                     ))}
                   </optgroup>
                 )}
-              </select>
+              </select><CourseFruit courses={visibleCourses} ctx={sortCtx} onOpen={openCourseKey} />
             </div>
             <div>
               <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort courses</label>

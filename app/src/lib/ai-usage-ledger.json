@@ -1349,6 +1349,111 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell's word was one word: Lesson. The forward was mostly an advertisement; its one honest paragraph is the occasion and the Word is the content. Tokens and dollars stay null: no meter here exposes them."
+    },
+    {
+      "id": "dr-1414-weigh-a-property",
+      "date": "2026-11-10",
+      "task": "A property being weighed is named and kept in the household's own list, restored with every figure, with what is left from the expected rent",
+      "drs": [
+        "DR-1415"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: use it for potential properties we are looking to purchase; other users will want it"
+    },
+    {
+      "id": "dr-1415-every-property-and-the-asset",
+      "date": "2026-11-10",
+      "task": "Every property listed first even with no mortgage on file, figures saved to the record on one button, the asset pay-down view, and the calculator as one row of sub-tabs; measured in Chromium",
+      "drs": [
+        "DR-1416"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: I don't see any mortgage in the list... fix it; how assets are paid down; keep using our subtab procedures"
+    },
+    {
+      "id": "dr-1416-understood-is-mastery",
+      "date": "2026-11-10",
+      "task": "Understood on the learner record is mastery (lesson read in full, exam at 100%, not rushed, not an instant retake), shown as a band of Black Lions; measured in Chromium",
+      "drs": [
+        "DR-1417"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 8,
+      "notes": "Darrell: Understanding is Mastered when the test and lessons are read in full 100%; black lions; taken-after is not understanding"
+    },
+    {
+      "id": "dr-1417-record-read-again",
+      "date": "2026-11-10",
+      "task": "The class record is read again on opening, save, focus and reconnect, keeps the screen on a failed read, and says when it was read",
+      "drs": [
+        "DR-1418"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell: Are the latest numbers always available when clicked on record? If not fix it"
+    },
+    {
+      "id": "dr-1418-row-says-read",
+      "date": "2026-11-10",
+      "task": "The lesson row says percent read instead of percent left",
+      "drs": [
+        "DR-1419"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: How could I have 99% and not have read it"
+    },
+    {
+      "id": "dr-1419-course-list-standing",
+      "date": "2026-11-10",
+      "task": "The Learn course picker says each course's standing, the list in numbers, and the two nearest wins",
+      "drs": [
+        "DR-1420"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 4,
+      "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
+    },
+    {
+      "id": "dr-1420-record-in-readers-name",
+      "date": "2026-11-10",
+      "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
+      "drs": [
+        "DR-1421"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: the name of the reader, in their name; parents, households vs individuals"
     }
   ]
 }

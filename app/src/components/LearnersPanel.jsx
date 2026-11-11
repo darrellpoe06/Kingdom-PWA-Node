@@ -18,9 +18,15 @@
 // untested learner reads "Not yet tested", never 0%.
 // =============================================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
+import UnderstoodGoals from './UnderstoodGoals.jsx';
+import RecordFreshness from './RecordFreshness.jsx';
+import { learnerIdentity } from '../lib/learner-identity.js';
+import { emptyIndex, loadContactIndex } from '../lib/contact-names.js';
+import { emptyHousehold, loadLearnerHousehold } from '../lib/learner-household.js';
+import RecordMark from './RecordMark.jsx';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
@@ -119,7 +125,7 @@ function BandChip({ band }) {
   const tone = BAND_TONE[band?.key] || BAND_TONE['not-yet'];
   return (
     <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${tone}`}>
-      {band?.label || 'Not yet tested'}
+      {band?.key === 'mastered' ? 'Exam average 90% or more' : band?.label || 'Not yet tested'}
     </span>
   );
 }
@@ -135,10 +141,10 @@ function BandChip({ band }) {
 export const FIGURE_MIN_EM = 9;
 export const FIGURE_GRID = { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${FIGURE_MIN_EM}em), 1fr))` };
 
-function Figure({ label, value, hint }) {
+function Figure({ label, value, hint, mark = null }) {
   return (
     <div className="border border-[#E8E4DC] p-3 min-w-0 [overflow-wrap:anywhere]" data-testid="record-figure">
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{label}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{mark ? <RecordMark name={mark} size={1.25} className="mr-1" /> : null}{label}</div>
       <div className="text-lg text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
       {hint ? <div className="text-[0.6875rem] text-[#5A5751]">{hint}</div> : null}
     </div>
@@ -158,12 +164,14 @@ function TakenAndGraded({ rows = [], userId }) {
   return (
     <div className="mt-2" data-testid="taken-and-graded">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
+      {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1417). */}
+      <UnderstoodGoals understood={k.understood} readAndPassed={k.readAndPassed} lessonsTested={k.lessonsTested} />
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
-        <Figure label="Understood" value={k.understood} hint="Lessons on record and passed after it: the main goal." />
-        <Figure label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
+        <Figure mark="sword" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />
+        <Figure mark="book" label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
         <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
         <Figure label="Retakes within a minute" value={k.quickRetakes} hint="Another try less than a minute after the last." />
-        <Figure label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
+        <Figure mark="target" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
       </div>
     </div>
   );
@@ -226,15 +234,27 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
   );
 }
 
-function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null }) {
+function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null, contacts = null, household = null }) {
+  const who = learnerIdentity(learner, { contacts, mine, household });
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
     <li className="border border-[#E8E4DC] p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-          {showWho ? (learner.label || 'A learner') : 'Your record'}
-          {mine && showWho ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]"> · you</span> : null}
-          {learner.ageBand ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]"> · {learner.ageBand}</span> : null}
+      {/* THE RECORD IS IN THE READER'S NAME (DR-1421): the name first and largest, who they are beneath it, and the sign-in
+          address kept as one of those lines, never as the heading. */}
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-3" data-testid="learner-head">
+        <div className="min-w-0 [overflow-wrap:anywhere]">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{showWho ? 'The record of' : 'Your record'}</div>
+          <h3 className="text-2xl leading-tight text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="learner-name">
+            {showWho ? who.name : mine && !who.named ? 'You' : who.name}
+          </h3>
+          {who.points.length > 0 && (
+            <ul className="mt-1 text-[0.75rem] text-[#5A5751] space-y-0.5" data-testid="learner-points">
+              {who.points.map((pt) => (
+                <li key={pt}>{pt}</li>
+              ))}
+              {learner.lastActivityAt ? <li>Last active {when(learner.lastActivityAt)}</li> : null}
+            </ul>
+          )}
         </div>
         <BandChip band={learner.competency} />
       </div>
@@ -320,6 +340,17 @@ export default function LearnersPanel({
 }) {
   const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
   const [whoId, setWhoId] = useState(null);
+  // The viewer's own contacts put a name to a number or address (DR-0825, DR-1421); with none, nothing changes.
+  const [contacts, setContacts] = useState(() => emptyIndex());
+  // The household's own roster names its members and says who they are in it (DR-1421). Owner and admin only, by its wall.
+  const [household, setHousehold] = useState(() => emptyHousehold());
+  useEffect(() => {
+    let live = true;
+    if (!signedIn) return undefined;
+    Promise.resolve(loadLearnerHousehold()).then((h) => { if (live && h) setHousehold(h); }).catch(() => {});
+    if (isGovernor) Promise.resolve(loadContactIndex()).then((idx) => { if (live && idx) setContacts(idx); }).catch(() => {});
+    return () => { live = false; };
+  }, [signedIn, isGovernor]);
   if (!signedIn) {
     return (
       <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -341,14 +372,19 @@ export default function LearnersPanel({
 
   if (!learners.length) {
     return (
-      <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div>
+        <RecordFreshness />
+        <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
         No lessons read yet, so there is nothing to measure. Mark a lesson read, or answer its exam, and the record starts here — on this device and every other one you sign in on.
       </p>
+      </div>
     );
   }
 
   return (
     <div>
+      {/* THE LATEST NUMBERS, EVERY TIME (DR-1418): read again as this opens, and say when it was read. */}
+      <RecordFreshness />
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {isGovernor
           ? 'Every learner’s own record, as the lessons were actually read and answered. You can see it; you cannot change it.'
@@ -379,7 +415,7 @@ export default function LearnersPanel({
           >
             {ordered.map((l) => (
               <option key={l.userId} value={l.userId}>
-                {l.userId === currentUserId ? 'You' : (l.label || 'A learner')}{l.lastActivityAt ? ` · last ${when(l.lastActivityAt)}` : ''}
+                {l.userId === currentUserId ? 'You' : learnerIdentity(l, { contacts, household }).name}{l.lastActivityAt ? ` · last ${when(l.lastActivityAt)}` : ''}
               </option>
             ))}
           </select>
@@ -388,7 +424,7 @@ export default function LearnersPanel({
 
       <ul className="space-y-3">
         {shown ? (
-          <LearnerCard key={shown.userId} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
+          <LearnerCard key={shown.userId} contacts={contacts} household={household} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
         ) : null}
       </ul>
 

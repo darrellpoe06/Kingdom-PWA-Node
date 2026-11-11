@@ -4349,7 +4349,7 @@ ${THEME_CSS}
                 setSnowballExtra={setSnowballExtra}
                 rentalSnowball={rentalSnowball}
                 sevenYearTarget={sevenYearTarget}
-                currentDate={currentDate}
+                currentDate={currentDate} plan={{ moneyPlan: data.moneyPlan, setData: fullEdit ? setData : null }}
                 addRental={fullEdit ? addRental : noop}
                 updateRental={fullEdit ? updateRental : noop}
                 deleteRental={fullEdit ? deleteRental : noop}

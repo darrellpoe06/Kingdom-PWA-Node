@@ -2,7 +2,7 @@
 // sent on 2026-11-10 ($80,000 at 6.5% over 20 years from May 2023, with $600 a
 // month extra from the first payment). DR-1413.
 import { describe, it, expect } from 'vitest';
-import { standardPayment, buildSchedule, annualRows, calculate, extraInMonth, addMonths } from '../lib/mortgage-calc.js';
+import { standardPayment, buildSchedule, annualRows, calculate, extraInMonth, addMonths, assetView } from '../lib/mortgage-calc.js';
 
 const LOAN = { principal: 80000, ratePct: 6.5, years: 20, startYm: '2023-05', propertyValue: 80000 };
 const EXTRA = { ...LOAN, prepay: { monthly: { amount: 600, startMonth: 1 } } };
@@ -88,5 +88,38 @@ describe('mortgage-calc: the rules', () => {
   });
   it('rolls the calendar across a year end', () => {
     expect(addMonths('2025-11', 3)).toBe('2026-02');
+  });
+});
+
+describe('mortgage-calc: what paying it down does for the asset (DR-1416)', () => {
+  const loan = { principal: 80000, ratePct: 6.5, years: 20, startYm: '2023-05' };
+  it('what is owned now, after a year, and what is freed when it is paid off', () => {
+    const a = assetView(calculate(loan, { annualTax: 1200 }), { propertyValue: 120000, rent: 1100 });
+    expect(a).toMatchObject({
+      value: 120000,
+      owedNow: 80000,
+      equityNow: 40000,
+      ownedPctNow: 33.3,
+      monthsCounted: 12,
+      paidOffYm: '2043-04',
+      freedPerMonth: 596.46,
+      monthsSaved: 0,
+      keptBySooner: 0,
+      rentAfterPayoff: 1000,
+    });
+    expect(a.equityIn12).toBeCloseTo(120000 - (80000 - a.paidDownIn12), 2);
+    expect(a.paidDownIn12).toBeGreaterThan(2000);
+  });
+  it('extra principal: the months no payment is owed, and what those payments come to', () => {
+    const a = assetView(calculate({ ...loan, prepay: { monthly: { amount: 600, startMonth: 1 } } }), { propertyValue: 120000 });
+    expect([a.paidOffYm, a.monthsSaved, a.keptBySooner, a.interestSaved]).toEqual(['2030-04', 156, 93047.76, 43549.02]);
+  });
+  it('with no value on file it gives no equity figure, never a guess', () => {
+    const a = assetView(calculate(loan), {});
+    expect([a.value, a.equityNow, a.ownedPctNow, a.equityIn12, a.rentAfterPayoff]).toEqual([null, null, null, null, null]);
+    expect(a.owedNow).toBe(80000);
+  });
+  it('gives nothing for a loan that has no answer', () => {
+    expect(assetView(calculate({ principal: 100000, ratePct: 12, payment: 900 }), { propertyValue: 1 })).toBeNull();
   });
 });

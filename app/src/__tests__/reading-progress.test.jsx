@@ -17,7 +17,7 @@ import React, { act } from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import {
-  countWords, wordsBefore, wordsIn, fractionOf, percentLeft, percentRead, leftLabel, seenFraction,
+  countWords, wordsBefore, wordsIn, fractionOf, percentLeft, percentRead, leftLabel, readLabel, seenFraction,
   mergeWitness, witnessLabel, createPaceMeter, minutesLeft, timeLeftLabel, PACE_MIN_MS,
 } from '../lib/reading-progress.js';
 import { recordPlace, finishPlace, getPlaceFor, placeReached } from '../lib/learn-resume.js';
@@ -175,12 +175,20 @@ describe('each lesson row says how much is left', () => {
     return host;
   };
   const base = { courseKey: 'living-lessons', lessonId: 'll1', stage: 1, step: 2, sentence: 0, sentenceKey: '', done: false, started: true, finishes: 0, at: Date.now() };
-  it('Continue · 62% left, from the furthest witness', () => {
+  it('Continue · 38% read, from the furthest witness: what was READ, in that word (DR-1419)', () => {
     const el = render(<RowContinue place={{ ...base, seen: 0.38, heard: 0.1 }} title="L1" onContinue={() => {}} />);
     const b = el.querySelector('[data-testid="row-continue"]');
-    expect(b.textContent).toBe('Continue · 62% left');
-    expect(b.getAttribute('aria-label')).toContain('62% left');
+    expect(b.textContent).toBe('Continue · 38% read');
+    expect(b.getAttribute('aria-label')).toContain('38% read, 62% left');
     expect(b.getAttribute('title')).toContain('seen 38% · heard 10%');
+  });
+  it('PROVEN TO CATCH: a lesson barely opened says 1% read, never a bare 99% (Darrell read "99% left" as 99% done)', () => {
+    const el = render(<RowContinue place={{ ...base, seen: 0.012, heard: 0 }} title="L4" onContinue={() => {}} />);
+    const text = el.querySelector('[data-testid="row-continue"]').textContent;
+    expect(text).toBe('Continue · 1% read');
+    expect(text).not.toMatch(/99/);
+    expect(readLabel(1)).toBe('all read');
+    expect(readLabel(0.999)).toBe('99% read');
   });
   it('nothing measured, nothing painted', () => {
     const el = render(<RowContinue place={{ ...base, seen: 0, heard: 0 }} title="L1" onContinue={() => {}} />);

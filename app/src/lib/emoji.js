@@ -99,6 +99,8 @@ export const CURATED_EMOJI = [
   '🔑', '🛠️', '🔧', '⏰', '📱', '💻', '📷', '🍽️', '☕', '🍕', '🎂', '🧺',
   // nature + weather (the everyday texture of family notes)
   '🌧️', '⛅', '❄️', '🌊', '🌍', '🌙', '🐕', '🐈', '🦋', '🐝',
+  // the learner record's marks (DR-1417): the sword of the Spirit
+  '🗡️',
 ];
 
 // The de-duplicated asset names the sync script materializes.

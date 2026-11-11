@@ -72,7 +72,9 @@ describe('a learner reads his own record', () => {
     expect(t).toMatch(/Your record/);
     expect(t).toMatch(/Lessons read/);
     expect(t).toMatch(/90%/);        // the average of 80 and 100, measured
-    expect(t).toMatch(/Mastered/);
+    // An exam average is named as an average; "Mastered" is kept for a lesson read in full with its exam at 100% (DR-1417).
+    expect(t).toMatch(/Exam average 90% or more/);
+    expect(t).not.toMatch(/Mastered/);
   });
 
   it('an untested learner reads "Not yet tested", never 0% — proven to catch', () => {
@@ -221,11 +223,42 @@ describe('how the exams were taken, kept apart from what they scored (DR-1386)',
     const text = draw({ records, currentUserId: SON, titleOf: () => null });
     expect(host.querySelector('[data-testid="taken-and-graded"]')).toBeTruthy();
     expect(text).toContain('How the exams were taken');
-    expect(fig('Understood').textContent).toMatch(/^Understood\s*1/);
+    // L1: 60, then 100 thirty seconds later: the answers given back, not understood (DR-1417). L2: passed before the lesson.
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 2 lessons tested');
+    expect(host.querySelector('[data-testid="understood-lions"]')).toBeNull();
+    expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('0');
+    expect(fig('Read and passed').textContent).toMatch(/Read and passed\s*1/);
     expect(fig('Taken after the lesson').textContent).toMatch(/2 of 3/);
     expect(fig('Passed before the lesson').textContent).toMatch(/^Passed before the lesson\s*1/);
     expect(fig('Retakes within a minute').textContent).toMatch(/^Retakes within a minute\s*1/);
     expect(fig('Tries to first pass').textContent).toMatch(/1\.5/);
+  });
+
+  it('100% a few minutes after a miss, with the lesson on the record first, is understood: one Black Lion', () => {
+    const records = [rec({ lesson_id: 'L1', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 60, passed: false }, { at: '2026-10-28T01:06:00.000Z', pct: 100, passed: true }] })];
+    draw({ records, currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('1 of 1 lesson tested');
+    expect(host.querySelectorAll('[data-testid="understood-lions"] [data-testid="black-lion"]').length).toBe(1);
+    expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('100');
+  });
+
+  it('PROVEN TO CATCH: a pass at 80% after the lesson is read and passed with the way forward, and no lion (DR-1417)', () => {
+    const records = [rec({ lesson_id: 'L1', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 80, passed: true }] })];
+    draw({ records, currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 1 lesson tested');
+    expect(host.querySelector('[data-testid="understood-lions"]')).toBeNull();
+    expect(host.querySelector('[data-testid="understood-one-step"]').textContent).toMatch(/1 more is read and passed\. Read the lesson in full, then take its exam to 100% at your own pace/);
+    expect(fig('Read and passed').textContent).toMatch(/Read and passed\s*1/);
+  });
+
+  it('every lesson tested understood: the crown, a lion for each, and no more than twelve drawn', () => {
+    const records = Array.from({ length: 14 }, (_, i) => rec({ lesson_id: `L${i}`, quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 100, passed: true, taken: { reading: 'after', readPct: 100 } }] }));
+    draw({ records, currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('14 of 14 lessons tested');
+    expect(host.querySelector('[data-testid="understood-all"]').textContent).toMatch(/Every lesson tested is understood/);
+    expect(host.querySelectorAll('[data-testid="understood-lions"] [data-testid="black-lion"]').length).toBe(12);
+    expect(host.querySelector('[data-testid="understood-lions"]').textContent).toMatch(/and 2 more/);
+    expect(host.querySelector('[data-testid="understood-one-step"]')).toBeNull();
   });
 
   it('PROVEN TO CATCH: no attempts, no figures (nothing painted), and no word of condemnation anywhere', () => {

@@ -174,3 +174,34 @@ export function calculate(loan, expenses = {}) {
     },
   };
 }
+
+/**
+ * What paying this loan down does for the asset behind it (DR-1416). Built
+ * from a calculate() result; the value is the one on file and is held still,
+ * so every equity figure is "at today's value" and is null when no value is
+ * on file. Nothing is guessed.
+ */
+export function assetView(result, { propertyValue = 0, rent = 0 } = {}) {
+  if (!result || !result.ok) return null;
+  const value = num(propertyValue);
+  const rows = result.plan.rows;
+  const owedNow = round2(rows[0].balance + rows[0].exact.principal + rows[0].exact.extra);
+  const after12 = rows[Math.min(12, rows.length) - 1];
+  const equity = (owed) => (value > 0 ? round2(value - owed) : null);
+  return {
+    value: value > 0 ? value : null,
+    owedNow,
+    equityNow: equity(owedNow),
+    ownedPctNow: value > 0 ? Math.round((1 - owedNow / value) * 1000) / 10 : null,
+    monthsCounted: Math.min(12, rows.length),
+    paidDownIn12: round2(owedNow - after12.balance),
+    equityIn12: equity(after12.balance),
+    paidOffYm: result.plan.endYm,
+    freedPerMonth: result.payment,
+    // With extra principal: the months the payment is no longer owed.
+    monthsSaved: result.monthsSaved,
+    keptBySooner: round2(result.payment * result.monthsSaved),
+    interestSaved: result.interestSaved,
+    rentAfterPayoff: num(rent) > 0 ? round2(num(rent) - result.monthlyExpenses) : null,
+  };
+}

@@ -22,8 +22,9 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { saveLearnerRecord, subscribeLearnerRecords } from './learner-records-sync.js';
+import { saveLearnerRecord, subscribeLearnerRecords, requestLearnerRecordsRefresh } from './learner-records-sync.js';
 import { mergeRecordsIntoState } from './learner-records.js';
+import { accountName } from './learner-identity.js';
 
 export function useLearnerRecords({ authSession = null, demo = false, ageBand = 'adult', setData = null } = {}) {
   // Every learner record this account may read — his own, or every learner's
@@ -42,10 +43,14 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     Promise.resolve(saveLearnerRecord({
       lessonId,
       courseKey: courseKey || null,
-      learnerLabel: s?.user?.email || null,
+      // The reader's own name when the account carries one, so the record is in their name (DR-1421).
+      learnerLabel: accountName(s?.user) || s?.user?.email || null,
       ageBand: band || 'adult',
       ...extra,
-    })).catch(() => { /* offline, or a wall said no — the read stands */ });
+    }))
+      // This device's own save is on the record: read it back so the figures are the latest (DR-1418).
+      .then((res) => { if (res && res.saved) requestLearnerRecordsRefresh(); })
+      .catch(() => { /* offline, or a wall said no — the read stands */ });
   }, []);
 
   // A tap toggles. A READING FILES (DR-1255): called with `{ versionsRead }`
@@ -124,6 +129,9 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
           progress: d.classProgress || {},
           quizState: d.classQuiz || {},
         });
+        // The record is now re-read often (DR-1418); a read that changes nothing must not rewrite the device's state.
+        const same = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
+        if (same(merged.progress, d.classProgress) && same(merged.quizState, d.classQuiz)) return d;
         return { ...d, classProgress: merged.progress, classQuiz: merged.quizState };
       });
     });
