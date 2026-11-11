@@ -20,6 +20,9 @@ import { courseDepartment } from '../lib/learn-organize.js';
 import { LOVE_CORNER_DEPARTMENTS, LESSON_DOORS, lessonDoorFor, lessonUrl, lessonSharePayload } from '../lib/lesson-links.js';
 import { isPublicChurchRoute, wearsChurchBrand } from '../lib/access-gate.js';
 import { isPoeTechLessonLink } from '../lib/learn-catalog.js';
+import { createElement, act } from 'react';
+import { createRoot } from 'react-dom/client';
+import PoeTechShowcase, { showcaseHref } from '../components/PoeTechShowcase.jsx';
 import { DOORS } from '../lib/app-doors.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import { SPIRITUAL_DEPARTMENTS } from '../lib/learn-access-tiers.js';
@@ -151,5 +154,43 @@ describe('a signed-out visitor sees the app the lesson belongs to (DR-1428)', ()
     expect(shell).toMatch(/route: churchBrandRoute && !poetechLessonLink \}\)/);
     expect((shell.match(/churchBrandRoute && !poetechLessonLink && <PublicWelcome/g) || []).length).toBe(2);
     expect(shell).toMatch(/isChurchLinkVisit\(\{ route: churchBrandRoute, view \}\)/);
+  });
+});
+
+describe('inside the Love Corner, a PoeTech subject points home (DR-1428)', () => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const biz = () => byKey('rent-to-own-business');
+  const ll = () => byKey('living-lessons');
+
+  it('the card appears only in the Love Corner app and only on a PoeTech subject, linking the same course in PoeTech', () => {
+    const lc = { pathname: '/lovecorner/app/', search: '', origin: ORIGIN };
+    expect(showcaseHref(biz(), lc)).toBe(`${ORIGIN}/poetech-app/?view=church&sub=learn&course=rent-to-own-business`);
+    expect(showcaseHref(ll(), lc)).toBeNull();
+    expect(showcaseHref(biz(), { pathname: '/poetech-app/', search: '', origin: ORIGIN })).toBeNull();
+  });
+
+  it('renders on the Love Corner path, says what is true today, and never claims a lock', () => {
+    window.history.replaceState(null, '', '/lovecorner/app/?view=church&sub=learn');
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => root.render(createElement(PoeTechShowcase, { course: biz() })));
+    const card = host.querySelector('[data-testid="poetech-showcase"]');
+    expect(card).toBeTruthy();
+    expect(card.textContent).toMatch(/child level of every lesson and the whole first lesson are yours, free/);
+    expect(card.textContent).toMatch(/PoeTech\+ \(\$39\/mo\)/);
+    expect(card.textContent).not.toMatch(/locked|unlock|paywall/i);
+    expect(host.querySelector('[data-testid="poetech-showcase-link"]').getAttribute('href')).toMatch(
+      /\/poetech-app\/\?view=church&sub=learn&course=rent-to-own-business$/
+    );
+    act(() => root.render(createElement(PoeTechShowcase, { course: ll() })));
+    expect(host.querySelector('[data-testid="poetech-showcase"]')).toBeNull();
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it('ChurchLearn renders it under the course header', () => {
+    const src = readFileSync(join(SRC, 'components', 'ChurchLearn.jsx'), 'utf8');
+    expect(src).toMatch(/<PoeTechShowcase course=\{active\} \/>/);
   });
 });

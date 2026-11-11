@@ -158,6 +158,7 @@ import LearnersPanel from './LearnersPanel.jsx';
 import RecordStrip from './RecordStrip.jsx';
 import { recordHeadline } from '../lib/record-headline.js';
 import { aggregateLearnerRecords } from '../lib/learner-records.js';
+import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subject points home from the Love Corner
 
 const fmtDate = formatClassDate;
 
@@ -5330,6 +5331,7 @@ export default function ChurchLearn({
                 <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   {active.meta.audience ? `For ${active.meta.audience}. ` : ''}{active.meta.format ? `${active.meta.format}. ` : ''}{lessonCountLabel(schedule, U)}.
                 </p>
+                <PoeTechShowcase course={active} />
                 {/* IS EVERY LESSON WHAT IT SHOULD BE, COUNTED HERE (Darrell
                     2026-10-21: "make sure all lessons are what they should be...
                     Inside each lesson"). Two stories and the verses quoted

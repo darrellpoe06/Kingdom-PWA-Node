@@ -57,4 +57,6 @@ DR-0536 had kept every lesson free to read and called Mathematics and A.I. never
   - The shell captures the check once, at boot, and uses it only for the brand and the welcome cards.
 - **Other suites.** The 11 link, share and catalog suites pass (135 tests). The shell holds 5,185 lines.
 
-**Not yet built:** the Love Corner showcase of PoeTech subjects ("Continue in PoeTech"), the PoeTech+ checkout, and workshops. `re-review: 2026-11-25`: decide checkout, then the showcase.
+**The showcase is built.** `components/PoeTechShowcase.jsx` appears only in the Love Corner app, only on a PoeTech-subject course. It says the child level and the whole first lesson are free there, and it links to the same course in PoeTech. It claims no lock; three cases cover it, including a render on the Love Corner path.
+
+**Waiting on Darrell (DR-0089: a value only he holds):** the PoeTech+ checkout needs a payment account in his name. Workshops wait for real dates. `re-review: 2026-11-25`.
