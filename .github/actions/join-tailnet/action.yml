@@ -76,7 +76,7 @@ runs:
           echo "Ticket: OAuth client (does not expire)."
         elif [ -n "${AUTHKEY:-}" ]; then
           echo "credential=authkey" >> "$GITHUB_OUTPUT"
-          echo "Ticket: legacy auth key (EXPIRES — mint an OAuth client to stop this recurring)."
+          echo "Ticket: legacy auth key (EXPIRES — a fresh Reusable + Ephemeral key restores this witness; the road itself is reversed per DR-1360)."
         else
           echo "credential=none" >> "$GITHUB_OUTPUT"
           echo "::error::No tailnet credential at all: neither TS_OAUTH_CLIENT_ID nor TS_AUTHKEY is set."
@@ -105,7 +105,11 @@ runs:
       run: |
         set -uo pipefail
         if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
-          echo "::error::Tailnet join FAILED using the ${CRED} credential. An OAuth client does not expire; an auth key does (needs Reusable + Ephemeral)."
+          # DO NOT recommend an OAuth client here. DR-1360 clause 2 withdrew that
+          # proposal in Darrell's words -- "it changes which outside system the
+          # house depends on, not whether it depends" -- and this message is read
+          # at exactly the moment someone is looking for the permanent fix.
+          echo "::error::Tailnet join FAILED using the ${CRED} credential. An auth key expires; mint a fresh Reusable + Ephemeral key to restore THIS WITNESS. The permanent fix is not a longer-lived ticket into the house: per DR-1360 the NAS initiates the road and writes its result where the app reads it, and this runner road is retired as each is reversed."
           sed -e 's/tskey-[A-Za-z0-9-]*/tskey-REDACTED/g' /tmp/ts-join.txt || true
           exit 1
         fi
