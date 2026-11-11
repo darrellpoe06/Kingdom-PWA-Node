@@ -29,6 +29,9 @@ const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outlin
 
 export default function SideNav({
   items = [], view = 'overview', setView, brandName = 'PoeTech', brandTagline = '', onSettings = null, settingsOpen = false,
+  // Quick links (DR-1424): a door straight to a tab inside a section, e.g.
+  // Learn under Soul. The shell hands the opener and the church tab it is on.
+  onQuickLink = null, churchView = null,
 }) {
   const groups = navGroups(items);
   if (!groups.length) return null;
@@ -67,6 +70,23 @@ export default function SideNav({
                   <span className="min-w-0 flex-1 truncate">{words || label}</span>
                   {id === 'messages' && <DmUnreadBadge />}
                   {active && <span aria-hidden="true" className="w-2 h-2 rounded-full border-2 border-[#C9A227] shrink-0" />}
+                </button>
+              );
+            })}
+            {onQuickLink && (g.links || []).map((q) => {
+              const on = view === q.view && churchView === q.churchView;
+              return (
+                <button
+                  key={`q-${q.key}`}
+                  type="button"
+                  data-testid={`side-nav-quick-${q.key}`}
+                  onClick={() => onQuickLink(q)}
+                  title={q.title}
+                  aria-current={on ? 'page' : undefined}
+                  className={`min-h-[36px] w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left text-[0.8125rem] transition-colors ${FOCUS} ${on ? 'bg-[#F6F1E7] text-[#1F3A2E] font-semibold' : 'text-[#F6F1E7] hover:bg-[#2B2F2D]'}`}
+                >
+                  <span aria-hidden="true" className="text-[1rem] leading-none shrink-0"><UiIcon name={q.icon} /></span>
+                  <span className="min-w-0 flex-1 truncate">{q.words}</span>
                 </button>
               );
             })}

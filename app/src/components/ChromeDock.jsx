@@ -167,6 +167,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
   const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
+  const goQuick = (q) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(q.view, null, q.churchView); };
   const [comfortCollapsed, setComfortCollapsed] = useComfortCollapsed();
   const [size, setSize, steps] = useTextSize();
   const sizeAt = Math.max(0, steps.findIndex((st) => st.key === size));
@@ -350,6 +351,17 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                       <DockLabel>{NAV_WORDS[id] || id}</DockLabel>
                     </button>
                   ))}
+                  {/* Quick links (DR-1424): a door straight to a tab inside a
+                      section, e.g. Learn, Church's lessons and courses. */}
+                  {(g.links || []).map((q) => {
+                    const on = nav.view === q.view && nav.churchView === q.churchView;
+                    return (
+                      <button key={`q-${q.key}`} type="button" data-testid={`dock-more-quick-${q.key}`} onClick={() => goQuick(q)} aria-current={on ? 'page' : undefined} title={q.title} className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
+                        <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={q.icon} /></span>
+                        <DockLabel>{q.words}</DockLabel>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
               {oneRow && comfortButtons}
