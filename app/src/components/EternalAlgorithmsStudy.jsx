@@ -35,7 +35,7 @@ import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
-import { witnessCopyBlock, lessonUrl, lessonSharePayload } from '../lib/lesson-links.js';
+import { witnessCopyBlock, lessonUrl, lessonSharePayload, LESSON_DOORS } from '../lib/lesson-links.js';
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare } from '../lib/lesson-share-record.js';
 import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
@@ -487,7 +487,7 @@ function WitnessView() {
                 payload={() => lessonSharePayload(
                   { title: src.topic || src.source.work, bigIdea: src.summary || '' },
                   {
-                    url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                    url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}`, path: LESSON_DOORS.lovecorner.path }),
                     courseTitle: HEALTHY_LIVING_META.title || '',
                     // DR-0698: the record key on the link, and the share recorded.
                     token: newShareToken(),
@@ -504,11 +504,11 @@ function WitnessView() {
                 text={() => witnessCopyBlock(src, {
                   verseFor: witnessVerse,
                   care: HEALTHY_LIVING_CARE_NOTE,
-                  url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                  url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}`, path: LESSON_DOORS.lovecorner.path }),
                 })}
               />
               <a
-                href={lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` })}
+                href={lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}`, path: LESSON_DOORS.lovecorner.path })}
                 className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] inline-flex items-center border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
               >
                 Open as a lesson →

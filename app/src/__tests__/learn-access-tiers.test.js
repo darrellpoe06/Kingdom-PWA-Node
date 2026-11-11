@@ -19,8 +19,8 @@ import { join } from 'node:path';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { courseDepartment } from '../lib/learn-organize.js';
 import {
-  accessTier, sellableFor, lessonTextIsFree, summarize,
-  FORMATION_DEPARTMENTS, SELLABLE_ACCOMPANIMENT, ACCESS_ENFORCEMENT,
+  accessTier, sellableFor, lessonTextIsFree, summarize, lessonAccess,
+  FORMATION_DEPARTMENTS, SPIRITUAL_DEPARTMENTS, SELLABLE_ACCOMPANIMENT, ACCESS_ENFORCEMENT, PREMIUM_TIER,
 } from '../lib/learn-access-tiers.js';
 
 const PAIRS = LEARN_CATALOG.map((c) => ({ key: c.key, department: courseDepartment(c) }));
@@ -122,5 +122,48 @@ describe('the split it recommends, stated as numbers', () => {
     expect(s.counts.formation + s.counts.vocational).toBe(PAIRS.length);
     expect(s.counts.formation).toBeGreaterThan(0);
     expect(s.counts.vocational).toBeGreaterThan(0);
+  });
+});
+
+// DR-1428 (Darrell 2026-11-11): spiritual lessons free at every level; the
+// CHILD level of every subject free; the first lesson of every course free;
+// the more rigorous levels of the PoeTech subjects are PoeTech+ ($39). Still
+// OFF: nothing is locked until a real way to pay exists.
+describe('the Love Corner gives freely; PoeTech+ holds the rigorous levels (DR-1428)', () => {
+  const dept = (key) => PAIRS.find((p) => p.key === key).department;
+  const BANDS = ['child', 'youth', 'teen', 'standard', 'senior'];
+
+  it('every spiritual lesson is free at every level, in every place it sits in its course', () => {
+    for (const key of ['living-lessons', 'little-learners', 'kingdom-economics', 'sound-board']) {
+      for (const band of BANDS) for (const i of [0, 7]) expect(lessonAccess({ department: dept(key), band, lessonIndex: i }).free, `${key} ${band} #${i}`).toBe(true);
+    }
+  });
+
+  it('a PoeTech subject: the child level is free, the first lesson is free, the rigorous levels need PoeTech+', () => {
+    const d = dept('rent-to-own-business');
+    expect(SPIRITUAL_DEPARTMENTS).not.toContain(d);
+    expect(lessonAccess({ department: d, band: 'child', lessonIndex: 5 }).free).toBe(true);
+    expect(lessonAccess({ department: d, band: 'senior', lessonIndex: 0 }).free).toBe(true);
+    for (const band of ['youth', 'teen', 'standard', 'senior']) {
+      expect(lessonAccess({ department: d, band, lessonIndex: 3 }), band).toMatchObject({ free: false, needs: PREMIUM_TIER });
+    }
+    expect(PREMIUM_TIER).toBe('poetech-plus');
+  });
+
+  it('Mathematics and A.I. are PoeTech subjects now, and a child still never meets a lock in them', () => {
+    for (const key of ['mathematics', 'ai']) {
+      expect(accessTier(dept(key)), key).toBe('vocational');
+      expect(lessonAccess({ department: dept(key), band: 'child', lessonIndex: 9 }).free, key).toBe(true);
+    }
+  });
+
+  it('PROVEN TO CATCH: a department that is not declared stays FREE, never paid', () => {
+    expect(lessonAccess({ department: '', band: 'teen', lessonIndex: 4 }).free).toBe(true);
+    expect(lessonAccess({ department: 'Real Estate', band: 'teen', lessonIndex: 4 }).free).toBe(false);
+  });
+
+  it('nothing is locked yet: the rule is built and enforcement stays off until checkout exists', () => {
+    expect(ACCESS_ENFORCEMENT).toBe(false);
+    expect(lessonTextIsFree()).toBe(true);
   });
 });
