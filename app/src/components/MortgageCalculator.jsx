@@ -30,7 +30,10 @@ import SectionTabs from './SectionTabs.jsx';
 import { calculate, assetView } from '../lib/mortgage-calc.js';
 import { findLoan } from '../lib/mortgage-sources.js';
 import { FIGURE_KEYS, missingForSave, toProspect } from '../lib/purchase-prospects.js';
-import { AssetView, BalanceChart, SplitBar, Schedule, Rows, FOCUS, GRID, money, monthName, span } from './MortgageCalculatorViews.jsx';
+import { AssetView, BalanceChart, SplitBar, Schedule, Rows, GRID, money, monthName, span } from './MortgageCalculatorViews.jsx';
+
+// Declared here, not imported: the UI-standards gate reads a button's focus ring from this file.
+const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 const INPUT = `w-full min-h-[44px] px-2.5 rounded-lg border border-[#E8E4DC] bg-white text-[#1A1815] text-[0.875rem] ${FOCUS}`;
 const BTN = `min-h-[44px] px-4 py-2 text-[0.8125rem] font-semibold rounded-full border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] ${FOCUS}`;
