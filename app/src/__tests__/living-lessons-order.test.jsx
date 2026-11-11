@@ -198,7 +198,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // The highest is now L297 (DR-1395, "Precept upon Precept"), the last
     // of six teachings Darrell spoke on 2026-11-10 (L292 to L297), each
     // built the day it was spoken.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-10'); // L297
+    //
+    // The highest is now L301 (DR-1426, "Your Old Men Shall Dream Dreams"),
+    // the Joel 2:28 / Acts 2:17 lesson Darrell sent on 2026-11-11 and built
+    // the same day; the day moves forward with it, after L298 to L300 on
+    // 2026-11-10.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-11'); // L301
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
