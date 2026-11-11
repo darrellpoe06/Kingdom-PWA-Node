@@ -29,7 +29,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   normalise, distinctiveTerms, dateForms, bareDay, scoreFile, lessonIdsIn, findAlreadyBuilt,
-  provenanceDayHit, isPromiseLine, SOURCE_DAY_WINDOW,
+  provenanceDayHit, isPromiseLine, SOURCE_DAY_WINDOW, THREAD_ID,
 } from '../../../scripts/lesson-already-built.mjs';
 
 describe('reading the forward', () => {
@@ -276,5 +276,79 @@ describe('a promise about a date is not a record of a forward', () => {
     expect(provenanceDayHit('Morning Brew on 2026-10-15', null, 'Morning Brew')).toBeNull();
     expect(provenanceDayHit('Morning Brew on 2026-10-15', '2026-10-15', null)).toBeNull();
     expect(provenanceDayHit('', '2026-10-15', 'Morning Brew')).toBeNull();
+  });
+});
+
+// =============================================================================
+// The thread id, added 2026-11-10 after ll300 (DR-1414).
+// =============================================================================
+// ll300's `Lesson-Captured` label could not be written — the write needed an
+// approval the building session could not grant — so the Gmail-side lock was
+// absent while the lesson was already built and merged. The lane's own
+// instruction checks the LABEL, and this finder keyed on subject, source and
+// timestamp, so NOTHING machine-checkable stood between a missing label and a
+// duplicate build of a teaching already in the congregation's app. The repo was
+// a second witness (DR-0076 §8 puts the thread id in every such record) that
+// nobody had taught this tool to read.
+describe('a Gmail thread id is proof, where a timestamp is inference', () => {
+  const tree = () => {
+    const root = mkdtempSync(join(tmpdir(), 'thread-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    mkdirSync(join(root, 'app/src/lib'), { recursive: true });
+    writeFileSync(join(root, 'docs/decisions/DR-1414-put-not-your-trust-in-princes.md'),
+      '# DR-1414: L300 — Put Not Your Trust In Princes\n\n'
+      + '**Sent in by:** Darrell — a FORWARD: an election email, 2026-10-22, one word\n'
+      + 'over it: Lesson (Gmail thread `1a165328274f4784`)\n\nll300-put-not-your-trust-in-princes\n');
+    writeFileSync(join(root, 'docs/decisions/DR-0999-another-lesson.md'),
+      '# DR-0999: a different teaching\n\nGmail thread `1a0f23b12bf2ca45`\n');
+    writeFileSync(join(root, 'app/src/lib/living-lessons-class.js'), 'export const X = [];\n');
+    return root;
+  };
+
+  it('finds the lesson by its thread alone — no subject, no source, no timestamp', () => {
+    const r = findAlreadyBuilt(tree(), { thread: '1a165328274f4784' });
+    expect(r.verdict).toBe('ALREADY BUILT — the thread is named in the ledger');
+    expect(r.hits[0].strength).toBe('thread');
+    expect(r.hits[0].file).toBe('docs/decisions/DR-1414-put-not-your-trust-in-princes.md');
+    expect(r.hits[0].lessons).toContain('ll300-put-not-your-trust-in-princes');
+  });
+
+  it('PROVEN TO CATCH: a thread nobody built reads NOTHING FOUND, never "already built"', () => {
+    const r = findAlreadyBuilt(tree(), { thread: '00112233445566aa' });
+    expect(r.verdict).toBe('NOTHING FOUND');
+    expect(r.hits).toEqual([]);
+  });
+
+  it('does not confuse one thread for another', () => {
+    const r = findAlreadyBuilt(tree(), { thread: '1a0f23b12bf2ca45' });
+    expect(r.verdict).toBe('ALREADY BUILT — the thread is named in the ledger');
+    expect(r.hits.map((h) => h.file)).toEqual(['docs/decisions/DR-0999-another-lesson.md']);
+  });
+
+  it('outranks every weaker signal, so a thread match is what the verdict says', () => {
+    // The same tree, searched with a thread AND a source that matches a
+    // different record: the thread wins the ranking and the verdict.
+    const r = findAlreadyBuilt(tree(), { thread: '1a165328274f4784', source: 'teaching', subject: 'a different teaching' });
+    expect(r.hits[0].strength).toBe('thread');
+    expect(r.verdict).toBe('ALREADY BUILT — the thread is named in the ledger');
+  });
+
+  it('a malformed id matches nothing rather than matching loosely', () => {
+    // The dangerous answer is a false NOTHING FOUND, so the CLI refuses a
+    // malformed id outright (exit 2) and scoreFile ignores it here.
+    expect(THREAD_ID.test('1a165328274f4784')).toBe(true);
+    expect(THREAD_ID.test('Label_22')).toBe(false);
+    expect(THREAD_ID.test('1A165328274F4784')).toBe(false);
+    expect(THREAD_ID.test('1a165328274f478')).toBe(false);
+    expect(scoreFile('Gmail thread `1a165328274f4784`', { thread: 'Label_22' })).toBeNull();
+  });
+
+  it('scoreFile reports the thread hit alongside the weaker signals it found', () => {
+    const s = scoreFile('Gmail thread `1a165328274f4784`, a Morning Brew forward', {
+      thread: '1a165328274f4784', source: 'Morning Brew',
+    });
+    expect(s.strength).toBe('thread');
+    expect(s.threadHit).toBe('1a165328274f4784');
+    expect(s.sourceHit).toBe('Morning Brew');
   });
 });

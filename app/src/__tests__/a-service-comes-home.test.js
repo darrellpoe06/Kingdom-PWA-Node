@@ -108,6 +108,16 @@ const LOOPS_ON_THE_WAY = {
   // the row could not be written -- this gate refused the services.json entry
   // until the witness actually looked.
   'nas-heartbeat': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1414, under DR-1360, 2026-11-10): the house counts its
+  // own lesson queue, reversing the last road that reached IN to answer "what is
+  // waiting?". This gate caught the services.json entry on the first push with
+  // the loop on NEITHER list -- doing exactly its job -- so loops-health was
+  // made to look before the name was allowed: its last-run.json in its own home,
+  // its install path, its `lesson-queue-census:` cron lines, a red when that
+  // ledger says the count could not be written, and a line in the dark-loop
+  // diagnosis. The app-side reader (app/src/lib/lesson-queue-census.js) is the
+  // second witness, and reads an uncounted queue as uncounted, never as empty.
+  'lesson-queue-census': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },
@@ -235,6 +245,66 @@ describe('a service comes home by one Way (DR-1119)', () => {
     for (const s of ENABLED) expect(listed.has(s.name), `${s.name} is enabled but on neither list; a new service walks the Way (THE-WAY-A-SERVICE-COMES-HOME)`).toBe(true);
     const names = new Set(SERVICES.map((s) => s.name));
     for (const n of listed) expect(names.has(n), `${n} is listed but not in services.json`).toBe(true);
+  });
+
+  // STEP 7 OF THE WAY, MADE MACHINERY (DR-1414, 2026-11-11).
+  // THE-WAY-A-SERVICE-COMES-HOME: "a loop is a service too", keeping steps 1,
+  // 2, 4, 6, 7 and 8 -- and step 7 is "it shows in the app... never a painted
+  // status". On 2026-11-10 lesson-queue-census was built with a reader carrying
+  // 16 checks that NOTHING IMPORTED: the NAS would count its own lesson queue
+  // and no screen would ever read it. Every gate passed. The miss was caught by
+  // a person reading the Way, which is exactly the kind of catch that does not
+  // survive a context compaction -- so it becomes a check.
+  //
+  // THE RULE IS NARROW ON PURPOSE. Most loops here have no reader of their own:
+  // they are shown collectively through the loops witness, and demanding a
+  // module per loop would fail fourteen of them for no defect. What IS a defect
+  // is a reader built FOR a loop that no surface reads. So: if
+  // app/src/lib/<loop>.js exists, a component must import it. A gate that fails
+  // honestly on the real break and stays quiet otherwise.
+  it('a loop with a reader of its own is READ by a surface: step 7, it shows in the app', () => {
+    const components = join(ROOT, 'app/src/components');
+    const files = readdirSync(components).filter((f) => f.endsWith('.jsx') || f.endsWith('.js'));
+    const checked = [];
+    for (const name of Object.keys(LOOPS_ON_THE_WAY)) {
+      const reader = `app/src/lib/${name}.js`;
+      if (!has(reader)) continue; // shown through the loops witness, not its own module
+      checked.push(name);
+      const importers = files.filter((f) => read(`app/src/components/${f}`).includes(`${name}.js`));
+      expect(
+        importers.length,
+        `${reader} exists but NO component imports it: the loop would be counted by the NAS and read by no screen. ` +
+          `That is step 7 of THE-WAY-A-SERVICE-COMES-HOME ("it shows in the app"), and a loop that fails it is not home.`,
+      ).toBeGreaterThan(0);
+    }
+    // The gate must actually be looking at something; if the readers are all
+    // renamed away this silently checks nothing, which is the vacuous-check
+    // failure (DR-0076 §3).
+    expect(checked.length, 'no loop on the Way has a reader module; has app/src/lib been reorganised?').toBeGreaterThan(0);
+  });
+
+  // THE WITNESS'S LIST IS THE WAY'S LIST, DERIVED BOTH WAYS (DR-1414, DR-0677).
+  // loops-health.yml judges whatever names are in its own `loops` array. If a
+  // loop is added to LOOPS_ON_THE_WAY with loops-health as its witness but not
+  // to that array, the Way says it is watched and nothing watches it -- the
+  // hollow entry this gate exists to refuse, one level deeper. The reverse is
+  // just as bad: a name judged by the witness that no list admits to.
+  // This came out of a real break: a hand-written count of twelve in the dsi16
+  // lesson test was the only thing coupling these two, and it failed the build
+  // the first time a loop legitimately joined rather than when they disagreed.
+  it('every loop the Way assigns to loops-health is in that workflow’s own list, and nothing else is', () => {
+    const wf = read('.github/workflows/loops-health.yml');
+    const judged = /loops = \[([^\]]+)\]/
+      .exec(wf)[1]
+      .split(',')
+      .map((s) => s.replace(/["'\s]/g, ''))
+      .filter(Boolean);
+    const assigned = Object.entries(LOOPS_ON_THE_WAY)
+      .filter(([, w]) => w.witness === 'loops-health.yml')
+      .map(([name]) => name);
+    expect([...judged].sort(), 'the workflow judges a different set than the Way assigns it').toEqual([...assigned].sort());
+    // Neither side may be empty, or this passes by checking nothing (DR-0076 §3).
+    expect(judged.length).toBeGreaterThan(0);
   });
 
   it('the Funnel witness asks every mount the watchdog restores, by the same path', () => {

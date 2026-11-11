@@ -2752,9 +2752,13 @@ function CourseView({
                   try { target.scrollIntoView({ block: 'start', behavior: motionBehavior() }); } catch (_) { target.scrollIntoView(); }
                 });
                 land();
-                const again = () => { window.removeEventListener('popstate', again); land(); };
+                // The handle is kept and cleared, and the late callback cannot throw:
+                // this timer used to outlive its page, and a torn-down worker threw
+                // from it. Why, measured: leaving-a-lesson-lands-at-the-top.test.js.
+                let stopListening = 0;
+                const again = () => { if (stopListening) window.clearTimeout(stopListening); window.removeEventListener('popstate', again); land(); };
                 window.addEventListener('popstate', again);
-                window.setTimeout(() => window.removeEventListener('popstate', again), 1000);
+                stopListening = window.setTimeout(() => { try { window.removeEventListener('popstate', again); } catch (_) { /* the page is gone */ } }, 1000);
               }}
               data-testid="lesson-bar-all"
               className="text-[0.8125rem] uppercase tracking-wider px-4 py-2 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"

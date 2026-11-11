@@ -16,6 +16,7 @@ import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
 import { fetchNasHeartbeat, heartbeatStatus, lastCycleLine } from '../lib/nas-heartbeat.js';
+import { fetchLessonQueueCensus, censusStatus } from '../lib/lesson-queue-census.js';
 import { supabase } from '../lib/supabase.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
@@ -117,6 +118,45 @@ function HeartbeatStrip({ heart }) {
       {stamp && lastCycleLine(stamp.lastCycle) && (
         <p className="text-[0.625rem] text-[#1A1815] mt-1" data-testid="nas-heartbeat-cycle">
           {lastCycleLine(stamp.lastCycle)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// DR-1414, under DR-1360: what waits in the lesson queue, as the NAS counted it
+// on its own clock. THE WAY'S STEP 7 -- a loop that shows nowhere in the app is
+// not home (THE-WAY-A-SERVICE-COMES-HOME, "a loop is a service too", steps
+// 1,2,4,6,7,8), and the census read by nothing on a screen was exactly that.
+// Three things this line will not do: it never renders an uncounted queue as an
+// empty one (DR-1186 -- the failure `inbox-lessons-waiting.yml` was rewritten to
+// stop making), it never presents a stale number as current, and it never shows
+// a count without naming it when that count asked a DIFFERENT question than the
+// house means by "waiting" (DR-0725).
+export function QueueCensusStrip({ census }) {
+  if (!census) return null;
+  const s = censusStatus(census.row, { reason: census.reason });
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]" data-testid="lesson-queue-census">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">the lesson queue — as the NAS counted it</span>
+        <KpiDot status={s.kpi} label={s.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {s.census
+          ? `Counted by ${s.census.host || 'the NAS'} on its own clock; no tailnet, runner or key between the count and this line.`
+          : 'The NAS counts its own lesson queue each clock cycle and writes one row. Until the first row lands this says never counted — which is not the same as nothing waiting.'}
+      </p>
+      {s.drift && (
+        <p className="text-[0.625rem] text-[#B85838] mt-1" data-testid="lesson-queue-census-drift">
+          {s.drift}
+        </p>
+      )}
+      {s.census && s.total != null && s.total > 0 && (
+        <p className="text-[0.625rem] text-[#1A1815] mt-1" data-testid="lesson-queue-census-roads">
+          {Object.entries(s.census.byShape)
+            .map(([shape, n]) => `${n} ${shape}`)
+            .join(' · ') || 'no shape recorded'}
         </p>
       )}
     </div>
@@ -287,6 +327,7 @@ export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
   const [health, setHealth] = useState(null);
   const [heart, setHeart] = useState(null);
+  const [census, setCensus] = useState(null);
   const [harvest, setHarvest] = useState(null);
   const [tower, setTower] = useState(null);
   const [fleet, setFleet] = useState(null);
@@ -294,7 +335,7 @@ export default function OpsBoard() {
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh, hh, oc, fc, jl, hb] = await Promise.all([
+    const [data, sh, hh, oc, fc, jl, hb, qc] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
       fetchHarvestHealth().catch(() => null),
@@ -303,10 +344,15 @@ export default function OpsBoard() {
       fetchJobsLedger().catch(() => null),
       // DR-1360: the house's own witness, read from the row the NAS writes.
       fetchNasHeartbeat({ supabase }).catch((e) => ({ row: null, reason: String(e && e.message ? e.message : e) })),
+      // DR-1414: what waits to be built, counted by the NAS itself. A thrown
+      // read becomes a NAMED reason, never a silent null that would render as
+      // an empty queue (DR-1186).
+      fetchLessonQueueCensus({ supabase }).catch((e) => ({ row: null, reason: String(e && e.message ? e.message : e) })),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
     setHeart(hb);
+    setCensus(qc);
     setHarvest(hh);
     setTower(oc);
     setFleet(fc);
@@ -370,6 +416,7 @@ export default function OpsBoard() {
       {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
       <UptimeStrip health={health} />
       <HeartbeatStrip heart={heart} />
+      <QueueCensusStrip census={census} />
       <HarvestStrip harvest={harvest} />
       <OpenclawTowerStrip tower={tower} />
       {/* The fleet's own line — jobs, enabled, and how many have ever run (DR-1148). */}

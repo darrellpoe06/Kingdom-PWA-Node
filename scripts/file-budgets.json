@@ -175,13 +175,27 @@
       "to": 31897,
       "date": "2026-11-10",
       "why": "L299, Read with the Heart, a teaching Darrell spoke into the app the same day (DR-1411): one lesson of four bands, two parables and an eight-question test, the way every Living Lesson lands in this file."
+    },
+    {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 31897,
+      "to": 32042,
+      "date": "2026-11-10",
+      "why": "ll300 (Put Not Your Trust In Princes, DR-1414) adds the Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Raised by the lesson's own measured size and nothing more. The from/to were re-based by resolve-ledger-conflicts when main landed three lessons ahead of this branch, and its re-based landing was then corrected DOWN to the measured line count, because the chain end must equal the ceiling the guard enforces. Same reason as every raise before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 5998,
+      "to": 6002,
+      "date": "2026-11-10",
+      "why": "A real defect fix costs four lines more than the defect did. The all-lessons control armed a one-second window.setTimeout, kept no handle and cleared nothing on the popstate path, so a run finishing inside that second fired the callback with the environment torn down and threw ReferenceError: window is not defined -- failing `app - vitest shard 3/4` from a test file that never touches this component, while ci.yml was green on main. The fix keeps the handle, clears it when the listener is really removed, and guards the late callback. Shrunk first, as this ratchet asks: the incident's full account lives in leaving-a-lesson-lands-at-the-top.test.js (five new checks, four of which fail on the old line) and the component carries a three-line pointer to it instead. Raised to the measured size, not above it. This file is the monolith DR-1339's re-review (2026-11-19) covers."
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 31897,
+    "app/src/lib/living-lessons-class.js": 32042,
     "app/src/lib/sovereign-ai-class.js": 11023,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 5998,
+    "app/src/components/ChurchLearn.jsx": 6002,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,
