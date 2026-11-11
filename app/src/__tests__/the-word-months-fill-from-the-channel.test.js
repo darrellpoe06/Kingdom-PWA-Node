@@ -24,11 +24,36 @@ const ARCHIVE = [
 ];
 // The channel feed as /api/church-recent returns it (the screenshot's titles).
 const FEED = [
-  { videoId: 'nov11vid001', title: '11 - 11 - 2026 Bishop Lloyd E. Gwin "I CAN DO ALL THINGS THROUGH JESUS"', published: '2026-11-11T23:10:00+00:00', url: 'https://www.youtube.com/watch?v=nov11vid001' },
-  { videoId: 'iVmQ0ioX6Bc', title: '"I Can Do All Things Through Christ Who Strenghthens Me!" - Bishop Lloyd E. Gwin', published: '2026-11-09T01:05:00+00:00', url: 'https://www.youtube.com/watch?v=iVmQ0ioX6Bc' },
-  { videoId: '7aCAdw5W-Nc', title: '11 - 4 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study " I AM SOMEBODY!"', published: '2026-11-05T02:00:00+00:00', url: 'https://www.youtube.com/watch?v=7aCAdw5W-Nc' },
-  { videoId: 'vtY09rV2JEc', title: '"I Am Somebody!" - Bishop Lloyd E. Gwin', published: '2026-11-02T22:00:00+00:00', url: 'https://www.youtube.com/watch?v=vtY09rV2JEc' },
-  { videoId: 'RRrpX8kBDA8', title: '10- 28 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study " IF GOD SAID I CAN DO IT"', published: '2026-10-29T02:00:00+00:00', url: 'https://www.youtube.com/watch?v=RRrpX8kBDA8' },
+  {
+    videoId: 'nov11vid001',
+    title: '11 - 11 - 2026 Bishop Lloyd E. Gwin "I CAN DO ALL THINGS THROUGH JESUS"',
+    published: '2026-11-11T23:10:00+00:00',
+    url: 'https://www.youtube.com/watch?v=nov11vid001',
+  },
+  {
+    videoId: 'iVmQ0ioX6Bc',
+    title: '"I Can Do All Things Through Christ Who Strenghthens Me!" - Bishop Lloyd E. Gwin',
+    published: '2026-11-09T01:05:00+00:00',
+    url: 'https://www.youtube.com/watch?v=iVmQ0ioX6Bc',
+  },
+  {
+    videoId: '7aCAdw5W-Nc',
+    title: '11 - 4 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study " I AM SOMEBODY!"',
+    published: '2026-11-05T02:00:00+00:00',
+    url: 'https://www.youtube.com/watch?v=7aCAdw5W-Nc',
+  },
+  {
+    videoId: 'vtY09rV2JEc',
+    title: '"I Am Somebody!" - Bishop Lloyd E. Gwin',
+    published: '2026-11-02T22:00:00+00:00',
+    url: 'https://www.youtube.com/watch?v=vtY09rV2JEc',
+  },
+  {
+    videoId: 'RRrpX8kBDA8',
+    title: '10- 28 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study " IF GOD SAID I CAN DO IT"',
+    published: '2026-10-29T02:00:00+00:00',
+    url: 'https://www.youtube.com/watch?v=RRrpX8kBDA8',
+  },
 ];
 
 describe('a channel video becomes a row dated into its month', () => {
@@ -57,7 +82,10 @@ describe('a channel video becomes a row dated into its month', () => {
   });
 
   it('an archived row with no date borrows the same video’s channel date, so it never falls out of every month', () => {
-    const rows = withChannelRows([{ id: 'u1', youtubeUrl: 'https://www.youtube.com/watch?v=iVmQ0ioX6Bc', title: 'I Can Do All Things', serviceDate: null, status: 'active' }], FEED);
+    const rows = withChannelRows(
+      [{ id: 'u1', youtubeUrl: 'https://www.youtube.com/watch?v=iVmQ0ioX6Bc', title: 'I Can Do All Things', serviceDate: null, status: 'active' }],
+      FEED
+    );
     const u = rows.find((r) => r.id === 'u1');
     expect(u.serviceDate).toBe('2026-11-09');
     expect(u.fromChannel).toBeUndefined();
