@@ -8,10 +8,13 @@
 **Sent in by:** Darrell, 2026-11-10: "Are the latest numbers always available when clicked on record? If not fix it... latest numbers always... Synced... with latest reading data... make sure... each time... if needed... triggers for whatever"
 **Pairs with:** DR-0754 (the record leaves the device), DR-0076 §8 (unknown is never green), DR-0255 (events before timers)
 
-## The answer to his question: no
+## The question: are the latest numbers always there? No
 
-- **SHOULD:** the Record shows the latest numbers whenever it is opened.
-- **ARE (read from the code):** the record was read once at sign-in, and again only when a realtime change arrived. Opening the Record read nothing. Coming back to the app read nothing. This device's own save was seen only if the realtime socket delivered it, and that socket is not proven on the sovereign road.
+The Record should show the latest numbers whenever it is opened. It did not.
+
+## What was measured
+
+- **Read from the code (`subscribeLearnerRecords`):** the record was read once at sign-in, and again only when a realtime change arrived. Opening the Record read nothing. Coming back to the app read nothing. This device's own save was seen only if the realtime socket delivered it, and that socket is not proven on the sovereign road.
 - **A second defect found on the way:** a read that failed handed the screen an empty list, so a dropped connection drew a learner with no record.
 
 ## Decision

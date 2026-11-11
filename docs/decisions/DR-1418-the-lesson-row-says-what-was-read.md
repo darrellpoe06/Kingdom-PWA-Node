@@ -8,9 +8,14 @@
 **Sent in by:** Darrell, 2026-11-10, a screenshot of four lessons each reading "CONTINUE · 99% LEFT": "How could I have 99% and not have read it... is the test complete? Fix it?!!!!!!!!"
 **Pairs with:** DR-1293 (the percentage on each row), DR-0381 (a surface says what is true)
 
-## What was wrong
+## The defect
 
-The row said how much of the lesson was LEFT. Beside the word Continue, on a bright button, a bare "99%" is read as 99% done. Those four lessons were about 1% read; the label was arithmetically right and said the opposite of what a person takes from it. The tests are not complete on those lessons, and nothing recorded them as read: the Record on the same day names all four as not on the record yet.
+The row said how much of the lesson was LEFT. Beside the word Continue, on a bright button, a bare "99%" is read as 99% done. The label was arithmetically right and said the opposite of what a person takes from it.
+
+## What was measured
+
+- **The rule, read from `lib/reading-progress.js`:** `percentLeft` gives 99 for any lesson between 1% and 2% read. Those four lessons were about 1% read.
+- **The tests are not complete on those lessons, and nothing recorded them as read:** Darrell's Record screenshot of the same hour names all four (lessons 4 to 7) as not on the record yet.
 
 ## Decision
 

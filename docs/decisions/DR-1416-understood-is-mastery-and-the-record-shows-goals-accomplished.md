@@ -8,7 +8,7 @@
 **Sent in by:** Darrell, 2026-11-10, his record reading "Understood 11": "Understanding is Mastered and understood when the test and lessons are read in full 100%... Fix it"; "Make it look nice like accomplished goals are occurring and some black lions for 100% etc... some sword of the spirit etc... emojis"; then: "its saying 11 understood lessons because the test were taken after, that isn't correct... every one knows that... fix it to make sense based on known understanding about learning"
 **Pairs with:** DR-1386 (credit where it is due; evaluation, never condemnation), DR-1396, DR-0099 (no red), DR-0076
 
-## What was wrong
+## The defect
 
 `understood` counted a lesson when any PASS (70% or more) came at or after the lesson went on the record, and a lesson goes on the record at 90% read. So a 70% score on a lesson nine-tenths read was "understood", and so was a 100% reached thirty seconds after a miss. When a test was sat proves nothing about what was learned.
 

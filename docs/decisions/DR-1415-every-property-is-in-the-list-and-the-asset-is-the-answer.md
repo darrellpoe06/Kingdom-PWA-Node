@@ -8,7 +8,7 @@
 **Sent in by:** Darrell, 2026-11-10, a screenshot of the live drop-down showing only cards under Personal: "I don't see any mortgage in the list... fix it... it should be all debt... however we really want to know how assets are paid down and the benefits of that... also keep using our subtab procedures so scrolling is minimal"
 **Pairs with:** DR-1413, DR-1414, DR-0381 (not hollow), DR-0076, the SectionTabs Way (2026-07-04, 2026-07-05)
 
-## What was wrong (DR-1413's own defects)
+## The defect: what DR-1413 got wrong
 
 - **A property with no mortgage balance on file was left out of the list.** `loanGroups` skipped it and only counted it. `MONEY_HANDOFF.md` already recorded that the six First State Bank loans are not entered, so on the real household that rule removed the very mortgages the calculator was built for. I shipped it without reading that against the rule.
 - **Mortgages were sorted under their entity,** so any that were listed sat below a long run of cards.
