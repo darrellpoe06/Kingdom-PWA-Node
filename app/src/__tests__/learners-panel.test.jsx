@@ -72,7 +72,9 @@ describe('a learner reads his own record', () => {
     expect(t).toMatch(/Your record/);
     expect(t).toMatch(/Lessons read/);
     expect(t).toMatch(/90%/);        // the average of 80 and 100, measured
-    expect(t).toMatch(/Mastered/);
+    // An exam average is named as an average; "Mastered" is kept for a lesson read in full with its exam at 100% (DR-1416).
+    expect(t).toMatch(/Exam average 90% or more/);
+    expect(t).not.toMatch(/Mastered/);
   });
 
   it('an untested learner reads "Not yet tested", never 0% — proven to catch', () => {

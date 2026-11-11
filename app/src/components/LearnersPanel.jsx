@@ -18,11 +18,14 @@
 // untested learner reads "Not yet tested", never 0%.
 // =============================================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
+import { learnerIdentity } from '../lib/learner-identity.js';
+import { emptyIndex, loadContactIndex } from '../lib/contact-names.js';
+import { emptyHousehold, loadLearnerHousehold } from '../lib/learner-household.js';
 import RecordMark from './RecordMark.jsx';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
@@ -122,7 +125,7 @@ function BandChip({ band }) {
   const tone = BAND_TONE[band?.key] || BAND_TONE['not-yet'];
   return (
     <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${tone}`}>
-      {band?.label || 'Not yet tested'}
+      {band?.key === 'mastered' ? 'Exam average 90% or more' : band?.label || 'Not yet tested'}
     </span>
   );
 }
@@ -231,15 +234,27 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
   );
 }
 
-function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null }) {
+function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null, contacts = null, household = null }) {
+  const who = learnerIdentity(learner, { contacts, mine, household });
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   return (
     <li className="border border-[#E8E4DC] p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-          {showWho ? (learner.label || 'A learner') : 'Your record'}
-          {mine && showWho ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]"> · you</span> : null}
-          {learner.ageBand ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]"> · {learner.ageBand}</span> : null}
+      {/* THE RECORD IS IN THE READER'S NAME (DR-1420): the name first and largest, who they are beneath it, and the sign-in
+          address kept as one of those lines, never as the heading. */}
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-3" data-testid="learner-head">
+        <div className="min-w-0 [overflow-wrap:anywhere]">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{showWho ? 'The record of' : 'Your record'}</div>
+          <h3 className="text-2xl leading-tight text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="learner-name">
+            {showWho ? who.name : mine && !who.named ? 'You' : who.name}
+          </h3>
+          {who.points.length > 0 && (
+            <ul className="mt-1 text-[0.75rem] text-[#5A5751] space-y-0.5" data-testid="learner-points">
+              {who.points.map((pt) => (
+                <li key={pt}>{pt}</li>
+              ))}
+              {learner.lastActivityAt ? <li>Last active {when(learner.lastActivityAt)}</li> : null}
+            </ul>
+          )}
         </div>
         <BandChip band={learner.competency} />
       </div>
@@ -325,6 +340,17 @@ export default function LearnersPanel({
 }) {
   const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
   const [whoId, setWhoId] = useState(null);
+  // The viewer's own contacts put a name to a number or address (DR-0825, DR-1420); with none, nothing changes.
+  const [contacts, setContacts] = useState(() => emptyIndex());
+  // The household's own roster names its members and says who they are in it (DR-1420). Owner and admin only, by its wall.
+  const [household, setHousehold] = useState(() => emptyHousehold());
+  useEffect(() => {
+    let live = true;
+    if (!signedIn) return undefined;
+    Promise.resolve(loadLearnerHousehold()).then((h) => { if (live && h) setHousehold(h); }).catch(() => {});
+    if (isGovernor) Promise.resolve(loadContactIndex()).then((idx) => { if (live && idx) setContacts(idx); }).catch(() => {});
+    return () => { live = false; };
+  }, [signedIn, isGovernor]);
   if (!signedIn) {
     return (
       <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -389,7 +415,7 @@ export default function LearnersPanel({
           >
             {ordered.map((l) => (
               <option key={l.userId} value={l.userId}>
-                {l.userId === currentUserId ? 'You' : (l.label || 'A learner')}{l.lastActivityAt ? ` · last ${when(l.lastActivityAt)}` : ''}
+                {l.userId === currentUserId ? 'You' : learnerIdentity(l, { contacts, household }).name}{l.lastActivityAt ? ` · last ${when(l.lastActivityAt)}` : ''}
               </option>
             ))}
           </select>
@@ -398,7 +424,7 @@ export default function LearnersPanel({
 
       <ul className="space-y-3">
         {shown ? (
-          <LearnerCard key={shown.userId} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
+          <LearnerCard key={shown.userId} contacts={contacts} household={household} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
         ) : null}
       </ul>
 

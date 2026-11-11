@@ -24,6 +24,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { saveLearnerRecord, subscribeLearnerRecords, requestLearnerRecordsRefresh } from './learner-records-sync.js';
 import { mergeRecordsIntoState } from './learner-records.js';
+import { accountName } from './learner-identity.js';
 
 export function useLearnerRecords({ authSession = null, demo = false, ageBand = 'adult', setData = null } = {}) {
   // Every learner record this account may read — his own, or every learner's
@@ -42,7 +43,8 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     Promise.resolve(saveLearnerRecord({
       lessonId,
       courseKey: courseKey || null,
-      learnerLabel: s?.user?.email || null,
+      // The reader's own name when the account carries one, so the record is in their name (DR-1420).
+      learnerLabel: accountName(s?.user) || s?.user?.email || null,
       ageBand: band || 'adult',
       ...extra,
     }))

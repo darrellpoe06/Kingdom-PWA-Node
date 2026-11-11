@@ -1424,6 +1424,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 4,
       "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
+    },
+    {
+      "id": "dr-1420-record-in-readers-name",
+      "date": "2026-11-10",
+      "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
+      "drs": [
+        "DR-1420"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell: the name of the reader, in their name; parents, households vs individuals"
     }
   ]
 }
