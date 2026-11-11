@@ -133,7 +133,16 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             words, not a chevron. Rendered only when the shell passes `home`
             (a family member on the church door); a church member never sees
             it. */}
-        {home && home.href ? (
+        {/* QUIETER ON A CHURCH-BRANDED APP (Darrell 2026-11-11, a Love Corner
+            screenshot with POETECH APP beside the church's own lockup:
+            "PoeTech is not supposed to be that obvious on the Love Corner
+            App... put the connection somewhere else not as prominent as it
+            is"). It is NOT removed — the 2026-10-02 complaint above is the
+            reason it exists, and removing it would re-create that. It now
+            rides the EXPANDED header only, so the church app's always-visible
+            chrome carries the church's name and not the platform's, and a
+            family member is still one tap (Show header) from the way back. */}
+        {home && home.href && !collapsed ? (
           <a
             href={home.href}
             data-testid="one-tab-way-home"

@@ -189,11 +189,18 @@
       "to": 6002,
       "date": "2026-11-10",
       "why": "A real defect fix costs four lines more than the defect did. The all-lessons control armed a one-second window.setTimeout, kept no handle and cleared nothing on the popstate path, so a run finishing inside that second fired the callback with the environment torn down and threw ReferenceError: window is not defined -- failing `app - vitest shard 3/4` from a test file that never touches this component, while ci.yml was green on main. The fix keeps the handle, clears it when the listener is really removed, and guards the late callback. Shrunk first, as this ratchet asks: the incident's full account lives in leaving-a-lesson-lands-at-the-top.test.js (five new checks, four of which fail on the old line) and the component carries a three-line pointer to it instead. Raised to the measured size, not above it. This file is the monolith DR-1339's re-review (2026-11-19) covers."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 11023,
+      "to": 11203,
+      "date": "2026-11-11",
+      "why": "sov73 (DR-1423, a credential you cannot check is not a credential) adds one lesson to this file: the Sovereign A.I. week on the credential that cannot be checked, the costume 2 Corinthians 11:13-14 already described, and the three-move pitch of Genesis 3:4-5, with all four age bands and 49 quoted spans swept verbatim against app/public/bible/kjv. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size, not above it; the seventh recorded raise on this file, for the same stated reason as the six before it. THE FIRST ATTEMPT AT THIS RAISE WOULD HAVE BEEN 2,142 LINES: `prettier --write` was run on the whole file to re-insert the module, which reformatted the other 72 lessons (8,962 insertions, 6,820 deletions for one added lesson). The insertion was redone against the unformatted file in its own native style -- 180 insertions, 0 deletions -- which is what this number measures."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 32042,
-    "app/src/lib/sovereign-ai-class.js": 11023,
+    "app/src/lib/sovereign-ai-class.js": 11203,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6002,
     "app/src/modules/properties/DoorTabs.jsx": 3352,

@@ -147,6 +147,21 @@ describe('ChromeDock: five tabs on a phone outside the reader, untouched inside 
   afterEach(() => { act(() => root.unmount()); container.remove(); document.documentElement.removeAttribute('data-lesson-space'); vi.unstubAllGlobals(); });
   const render = (props = {}) => act(() => root.render(createElement(ChromeDock, { onFeedback: () => {}, nav: nav(), ...props })));
 
+  // THE BAR ONLY OFFERS WHAT THIS DOOR ALLOWS (Darrell 2026-11-11, a Love
+  // Corner screenshot: "Maybe those bottom controls are only available inside
+  // PoeTech"). BOTTOM_NAV was a FIXED list that bypassed the church-only
+  // filter in navItems (DR-0640), so a phone on the church door offered Home,
+  // Big Picture, Money and Messages -- four PoeTech surfaces in a church app.
+  it('PROVEN TO CATCH: on the church-only door the bar carries no PoeTech section', () => {
+    phone(true);
+    const churchNav = { groups: navGroups(navItems({ ...FAMILY, churchDoorOnly: true })), view: 'church', homeView: 'current', onNavigate };
+    act(() => root.render(createElement(ChromeDock, { onFeedback: () => {}, nav: churchNav })));
+    for (const k of ['home', 'bigpicture', 'books', 'messages']) {
+      expect(container.querySelector(`[data-testid="dock-tab-${k}"]`), `${k} must not ride a church-branded app`).toBeNull();
+    }
+    expect(container.textContent).not.toMatch(/Big Picture|Money/);
+  });
+
   it('on a phone, off a lesson: Home, Big Picture, Books, Messages, then More — and Books is the current one', () => {
     phone(true);
     render();

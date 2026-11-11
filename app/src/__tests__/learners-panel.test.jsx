@@ -268,3 +268,48 @@ describe('how the exams were taken, kept apart from what they scored (DR-1386)',
     expect(host.querySelector('[data-testid="taken-and-graded"]').textContent).not.toMatch(/cheat|rolled|guess|lazy|suspicious/i);
   });
 });
+
+// WHERE YOU STAND AND WHERE THIS PACE LANDS (DR-1422). Darrell asked for
+// "Fully completed courses... x amount x to go... on pace for completing by x
+// date", and then that the totals be said "so it will be sought after".
+describe('the record says where you stand, and never paints the date', () => {
+  const IDS = { 'living-lessons': ['L1', 'L2'] };
+
+  it('names fully completed courses, what is left, and both totals', () => {
+    const t = draw({
+      records: [rec({ lesson_id: 'L1' }), rec({ lesson_id: 'L2', quiz_pct: 100, completed_at: '2026-10-11T10:00:00.000Z', quiz_at: '2026-10-11T10:05:00.000Z' })],
+      currentUserId: SON,
+      courseLessonIds: IDS,
+    });
+    expect(t).toMatch(/Courses fully completed/i);
+    expect(t).toMatch(/1 of 1/);
+    expect(t).toMatch(/Read and tested/i);
+    expect(t).toMatch(/2 of 2/);
+    // The total rides on mastery too, so the gap is visible and sought after.
+    expect(t).toMatch(/Mastered at 100%/i);
+    expect(t).toMatch(/1 of 2/);
+    expect(t).toMatch(/still to master/i);
+  });
+
+  it('PROVEN TO CATCH: one lesson read and tested gives NO date, and says why', () => {
+    const t = draw({ records: [rec({ lesson_id: 'L1' })], currentUserId: SON, courseLessonIds: IDS });
+    expect(t).toMatch(/Not enough read and tested yet to measure a pace/i);
+    // A projection with no basis is the painted number this refuses.
+    expect(t).not.toMatch(/At this pace, the rest by/i);
+  });
+
+  it('with a real rate it names a date and the basis it measured', () => {
+    const t = draw({
+      records: [rec({ lesson_id: 'L1' }), rec({ lesson_id: 'L2', completed_at: '2026-10-11T10:00:00.000Z', quiz_at: '2026-10-11T10:05:00.000Z' })],
+      currentUserId: SON,
+      courseLessonIds: { 'living-lessons': ['L1', 'L2', 'L3'] },
+    });
+    expect(t).toMatch(/At this pace, the rest by/i);
+    expect(t).toMatch(/read and tested across/i);
+  });
+
+  it('no course lesson ids: the strip stays away rather than guessing a goal', () => {
+    const t = draw({ records: [rec({ lesson_id: 'L1' })], currentUserId: SON });
+    expect(t).not.toMatch(/Courses fully completed/i);
+  });
+});
