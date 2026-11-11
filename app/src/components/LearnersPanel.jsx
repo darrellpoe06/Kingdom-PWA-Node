@@ -21,6 +21,9 @@
 import React, { useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
+import UnderstoodGoals from './UnderstoodGoals.jsx';
+import RecordFreshness from './RecordFreshness.jsx';
+import EmojiText from './EmojiText.jsx';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
@@ -135,10 +138,10 @@ function BandChip({ band }) {
 export const FIGURE_MIN_EM = 9;
 export const FIGURE_GRID = { gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${FIGURE_MIN_EM}em), 1fr))` };
 
-function Figure({ label, value, hint }) {
+function Figure({ label, value, hint, mark = null }) {
   return (
     <div className="border border-[#E8E4DC] p-3 min-w-0 [overflow-wrap:anywhere]" data-testid="record-figure">
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{label}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{mark ? <span aria-hidden="true" className="mr-1 text-[0.875rem]"><EmojiText text={mark} /></span> : null}{label}</div>
       <div className="text-lg text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
       {hint ? <div className="text-[0.6875rem] text-[#5A5751]">{hint}</div> : null}
     </div>
@@ -158,12 +161,14 @@ function TakenAndGraded({ rows = [], userId }) {
   return (
     <div className="mt-2" data-testid="taken-and-graded">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
+      {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1416). */}
+      <UnderstoodGoals understood={k.understood} readAndPassed={k.readAndPassed} lessonsTested={k.lessonsTested} />
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
-        <Figure label="Understood" value={k.understood} hint="Lessons on record and passed after it: the main goal." />
-        <Figure label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
+        <Figure mark="🗡️" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />
+        <Figure mark="📖" label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
         <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
         <Figure label="Retakes within a minute" value={k.quickRetakes} hint="Another try less than a minute after the last." />
-        <Figure label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
+        <Figure mark="🎯" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
       </div>
     </div>
   );
@@ -341,14 +346,19 @@ export default function LearnersPanel({
 
   if (!learners.length) {
     return (
-      <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div>
+        <RecordFreshness />
+        <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
         No lessons read yet, so there is nothing to measure. Mark a lesson read, or answer its exam, and the record starts here — on this device and every other one you sign in on.
       </p>
+      </div>
     );
   }
 
   return (
     <div>
+      {/* THE LATEST NUMBERS, EVERY TIME (DR-1417): read again as this opens, and say when it was read. */}
+      <RecordFreshness />
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {isGovernor
           ? 'Every learner’s own record, as the lessons were actually read and answered. You can see it; you cannot change it.'

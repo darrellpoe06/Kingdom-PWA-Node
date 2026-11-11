@@ -35,6 +35,42 @@ export const GRACE_WPM = 600;
 
 /** A reading counts when this much of the lesson was seen or heard. */
 export const READ_FLOOR = 0.9;
+/**
+ * UNDERSTOOD IS MASTERY (DR-1416). Darrell, 2026-11-10, of a record that
+ * counted a 70% pass on a lesson 90% read as understood: "Understanding is
+ * Mastered and understood when the test and lessons are read in full 100%."
+ * Both, in full: the lesson read to this much, and the exam scored this much.
+ * READ_FLOOR still decides when a lesson goes on the record as read, with
+ * grace; it no longer decides understanding.
+ *
+ * And then, the same hour, of the 11 the old rule had counted: "its saying 11
+ * understood lessons because the test were taken after, that isn't correct...
+ * every one knows that... fix it to make sense based on known understanding
+ * about learning." WHEN a test was sat proves nothing about what was learned.
+ * What shows understanding is getting every answer right from what was read,
+ * so two ways of reaching 100% without it are not counted: an attempt answered
+ * faster than the questions can be read (RUSH_SECONDS_PER_QUESTION), and a
+ * retake within a minute of the last try (QUICK_RETAKE_SECONDS), which is the
+ * answers just shown being given back, not the lesson. Both rest on what
+ * learning research calls retrieval: recalling it unaided is the evidence
+ * (stated from general knowledge of that research, not fetched for this
+ * record). The score of such an attempt is still kept as a pass.
+ */
+export const MASTERY_READ_PCT = 100;
+export const MASTERY_SCORE_PCT = 100;
+
+/**
+ * Is this one attempt mastery? `readPct` is the reading the attempt itself
+ * recorded (0..100); an attempt from before that was measured carries none,
+ * and then `readBefore` (the lesson was on the record at or before the
+ * attempt) stands in for it, the most the record can say.
+ */
+export function isMastery({ pct, readPct = null, readBefore = false, rushed = false, quickRetake = false } = {}) {
+  if (!(Number(pct) >= MASTERY_SCORE_PCT)) return false;
+  if (rushed || quickRetake) return false;
+  return readPct === null || readPct === undefined ? !!readBefore : Number(readPct) >= MASTERY_READ_PCT;
+}
+
 /** Below this, the lesson was not read before the test. */
 export const PARTLY_FLOOR = 0.25;
 /** Fewer seconds than this per question is not a reading of the questions. */
@@ -88,8 +124,23 @@ export function attemptIntegrity({ reached = 0, ms = null, questions = 0 } = {})
  * you... His Word is our mirror"). It says what happened and what is kept,
  * plainly, and never scolds; the score is always kept.
  */
-export function attemptIntegrityLine(i) {
+export function attemptIntegrityLine(i, pct = null) {
   if (!i) return '';
+  return `${takenLine(i)}${understoodLine(i, pct)}`;
+}
+
+/** What this attempt means for understanding (DR-1416): said only when the score is known. */
+function understoodLine(i, pct) {
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return '';
+  if (isMastery({ pct, readPct: i.readPct, rushed: i.rushed })) return ' Understood: the lesson read in full and every answer right.';
+  const left = [];
+  if (i.readPct < MASTERY_READ_PCT) left.push(`the lesson is ${i.readPct}% read`);
+  if (Number(pct) < MASTERY_SCORE_PCT) left.push(`the exam is at ${Math.round(Number(pct))}%`);
+  if (!left.length && i.rushed) left.push('this try was answered very quickly, so take it once more at your own pace');
+  return ` Understood is the lesson read in full and its exam at 100%: ${left.join(' and ')}. Both are yours to finish whenever you like.`;
+}
+
+function takenLine(i) {
   const pace = i.rushed
     ? ` Answered quickly, about ${i.secsPerQuestion} seconds a question. There is no limit on tries; take it again at your own pace whenever you like.`
     : '';
@@ -109,7 +160,11 @@ export function attemptIntegrityLine(i) {
  * GRADING are kept apart ("test taking and grading are separate and both
  * should mean more"): taken / rushed say how the exam was sat, passed says
  * what it scored. UNDERSTOOD, the main goal ("reading and comprehension as the
- * main goal"), counts the lessons read AND passed at or after the reading.
+ * main goal"), counts the lessons MASTERED: read in full and the exam at 100%,
+ * in a try that was neither rushed nor a retake within a minute (isMastery,
+ * DR-1416). READ AND PASSED keeps the measure understood used to
+ * be, a lesson on the record and passed at or after it, so no credit is lost
+ * from view. LESSONS TESTED is how many lessons have any attempt at all.
  * Rushed is known only for attempts this device measured (DR-1386).
  */
 export function testIntegrityKpis(records = []) {
@@ -121,6 +176,8 @@ export function testIntegrityKpis(records = []) {
   let rushed = 0;
   let passed = 0;
   let understood = 0;
+  let readAndPassed = 0;
+  let lessonsTested = 0;
   const triesToPass = [];
   for (const r of Array.isArray(records) ? records : []) {
     if (!r || !Array.isArray(r.quizHistory) || !r.quizHistory.length) continue;
@@ -129,19 +186,24 @@ export function testIntegrityKpis(records = []) {
     const tries = r.quizHistory
       .map((e) => {
         const how = e.taken || e.integrity || null;
-        return { t: Date.parse(e.at), passed: !!e.passed, rushed: !!(how && how.rushed), reading: how && how.reading ? how.reading : null };
+        const readPct = how && Number.isFinite(how.readPct) ? how.readPct : null;
+        return { t: Date.parse(e.at), pct: e.pct, passed: !!e.passed, rushed: !!(how && how.rushed), reading: how && how.reading ? how.reading : null, readPct };
       })
       .filter((e) => Number.isFinite(e.t))
       .sort((a, b) => a.t - b.t);
     let firstPass = null;
     let understoodHere = false;
+    let readAndPassedHere = false;
+    if (tries.length) lessonsTested += 1;
     tries.forEach((e, i) => {
       taken += 1;
       if (e.rushed) rushed += 1;
       if (e.passed) passed += 1;
       // The attempt's own account of the reading wins; else the moments are compared.
       const after = e.reading ? e.reading === 'after' : Number.isFinite(readAt) && readAt <= e.t;
-      if (after && e.passed) understoodHere = true;
+      if (after && e.passed) readAndPassedHere = true;
+      const quickRetake = i > 0 && e.t - tries[i - 1].t < QUICK_RETAKE_SECONDS * 1000;
+      if (after && isMastery({ pct: e.pct, readPct: e.readPct, readBefore: after, rushed: e.rushed, quickRetake })) understoodHere = true;
       if (after) afterReading += 1;
       else {
         beforeReading += 1;
@@ -152,7 +214,8 @@ export function testIntegrityKpis(records = []) {
     });
     if (firstPass !== null) triesToPass.push(firstPass);
     if (understoodHere) understood += 1;
+    if (readAndPassedHere) readAndPassed += 1;
   }
   const mean = triesToPass.length ? Math.round((triesToPass.reduce((a, b) => a + b, 0) / triesToPass.length) * 10) / 10 : null;
-  return { taken, passed, rushed, afterReading, beforeReading, passedBeforeReading, quickRetakes, triesToFirstPass: mean, understood };
+  return { taken, passed, rushed, afterReading, beforeReading, passedBeforeReading, quickRetakes, triesToFirstPass: mean, understood, readAndPassed, lessonsTested };
 }

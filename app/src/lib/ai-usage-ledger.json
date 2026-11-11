@@ -1364,6 +1364,51 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: I don't see any mortgage in the list... fix it; how assets are paid down; keep using our subtab procedures"
+    },
+    {
+      "id": "dr-1416-understood-is-mastery",
+      "date": "2026-11-10",
+      "task": "Understood on the learner record is mastery (lesson read in full, exam at 100%, not rushed, not an instant retake), shown as a band of Black Lions; measured in Chromium",
+      "drs": [
+        "DR-1416"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 8,
+      "notes": "Darrell: Understanding is Mastered when the test and lessons are read in full 100%; black lions; taken-after is not understanding"
+    },
+    {
+      "id": "dr-1417-record-read-again",
+      "date": "2026-11-10",
+      "task": "The class record is read again on opening, save, focus and reconnect, keeps the screen on a failed read, and says when it was read",
+      "drs": [
+        "DR-1417"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell: Are the latest numbers always available when clicked on record? If not fix it"
+    },
+    {
+      "id": "dr-1418-row-says-read",
+      "date": "2026-11-10",
+      "task": "The lesson row says percent read instead of percent left",
+      "drs": [
+        "DR-1418"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: How could I have 99% and not have read it"
     }
   ]
 }

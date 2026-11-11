@@ -156,35 +156,136 @@ export async function fetchLearnerRecords({ client = defaultClient, limit = 2000
   }
 }
 
+// ── THE LATEST NUMBERS, EVERY TIME THE RECORD IS OPENED (DR-1417) ────────────
+// Darrell, 2026-11-10: "Are the latest numbers always available when clicked
+// on record? If not fix it... latest numbers always... Synced with latest
+// reading data... make sure... each time... triggers for whatever."
+//
+// MEASURED BEFORE THIS: the record was read ONCE at sign-in and again only
+// when a realtime change arrived. Nothing re-read it when the Record was
+// opened, when the app came back to the front, when the network returned, or
+// after this device's own save. So with the socket down (it is not proven on
+// the sovereign road) the figures were as old as the sign-in. And a read that
+// FAILED handed the screen an empty list, which drew a learner with no record.
+//
+// NOW the record is re-read on every one of those moments, each a real event
+// and none a timer: REFRESH_EVENT (the Record opening, the Refresh button,
+// this device's own save landing), the page becoming visible, the window
+// taking focus, the network returning, and the realtime change as before.
+// Reads are coalesced (one in flight, one queued) and spaced MIN_REFRESH_MS
+// apart so a burst of events is one read. A failed read keeps what is on the
+// screen and says so; freshness (when it was last read, and whether the last
+// try reached it) is published for the panel to show.
+export const REFRESH_EVENT = 'poe:learner-records-refresh';
+export const MIN_REFRESH_MS = 1500;
+
+let freshness = { at: null, ok: null, reading: false };
+const freshnessListeners = new Set();
+function setFreshness(patch) {
+  freshness = { ...freshness, ...patch };
+  for (const fn of freshnessListeners) fn();
+}
+export function getRecordsFreshness() {
+  return freshness;
+}
+export function subscribeRecordsFreshness(fn) {
+  freshnessListeners.add(fn);
+  return () => freshnessListeners.delete(fn);
+}
+/** Ask for the record to be read again now. Safe anywhere; a no-op with no window. */
+export function requestLearnerRecordsRefresh() {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') window.dispatchEvent(new Event(REFRESH_EVENT));
+}
+
 /**
- * Fetch once, then re-fetch whenever a record changes. Returns an unsubscribe.
- * A client without realtime still gets the first fetch, so the screen is never
- * empty just because the socket is missing.
+ * Fetch once, then re-fetch whenever a record changes or the record is asked
+ * for again (see above). Returns an unsubscribe.
  */
-export function subscribeLearnerRecords(onRecords, { client = defaultClient, limit = 2000 } = {}) {
+export function subscribeLearnerRecords(onRecords, { client = defaultClient, limit = 2000, now = () => Date.now(), minGapMs = MIN_REFRESH_MS } = {}) {
   let live = true;
-  const push = async () => {
-    const { records } = await fetchLearnerRecords({ client, limit });
-    if (live && typeof onRecords === 'function') onRecords(records);
+  let reading = false;
+  let queued = false;
+  let lastStart = -Infinity;
+  let timer = null;
+
+  const read = async () => {
+    reading = true;
+    lastStart = now();
+    setFreshness({ reading: true });
+    const res = await fetchLearnerRecords({ client, limit });
+    reading = false;
+    if (!live) return;
+    if (res.error) {
+      // What is on the screen stays; the panel says the last try did not reach the record.
+      setFreshness({ reading: false, ok: false });
+    } else {
+      setFreshness({ reading: false, ok: true, at: new Date(now()).toISOString() });
+      if (typeof onRecords === 'function') onRecords(res.records);
+    }
+    if (queued) {
+      queued = false;
+      push();
+    }
   };
-  push();
+  // One read in flight, at most one waiting, never closer together than minGapMs.
+  function push() {
+    if (!live) return;
+    if (reading) {
+      queued = true;
+      return;
+    }
+    const wait = lastStart + minGapMs - now();
+    if (wait > 0) {
+      if (timer === null) {
+        timer = setTimeout(() => {
+          timer = null;
+          push();
+        }, wait);
+      }
+      return;
+    }
+    read();
+  }
+  read();
 
   let channel = null;
   try {
     if (typeof client.channel === 'function') {
       channel = client
         .channel(`learner-records-${Math.random().toString(36).slice(2, 10)}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => { push(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
+          push();
+        })
         .subscribe();
     }
   } catch {
     channel = null;
   }
 
+  const hasWindow = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+  const onVisible = () => {
+    if (typeof document === 'undefined' || document.visibilityState !== 'hidden') push();
+  };
+  if (hasWindow) {
+    window.addEventListener(REFRESH_EVENT, push);
+    window.addEventListener('focus', push);
+    window.addEventListener('online', push);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
+  }
+
   return () => {
     live = false;
+    if (timer !== null) clearTimeout(timer);
+    if (hasWindow) {
+      window.removeEventListener(REFRESH_EVENT, push);
+      window.removeEventListener('focus', push);
+      window.removeEventListener('online', push);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+    }
     try {
       if (channel && typeof client.removeChannel === 'function') client.removeChannel(channel);
-    } catch { /* a socket already gone costs nothing */ }
+    } catch {
+      /* a socket already gone costs nothing */
+    }
   };
 }

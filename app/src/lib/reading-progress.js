@@ -79,6 +79,17 @@ export function percentRead(fraction) {
   return 100 - percentLeft(fraction);
 }
 
+/**
+ * "38% read", or "all read" at the end: what the lesson rows say (DR-1418).
+ * Darrell, 2026-11-10, of four rows reading "CONTINUE · 99% LEFT" on lessons
+ * he had barely opened: "How could I have 99% and not have read it... is the
+ * test complete? Fix it". A bare percentage beside Continue is read as what
+ * has been DONE, so the row says what has been read, in that word.
+ */
+export function readLabel(fraction) {
+  return percentLeft(fraction) === 0 ? 'all read' : `${percentRead(fraction)}% read`;
+}
+
 /** "62% left", or "all read" at the end. */
 export function leftLabel(fraction) {
   const left = percentLeft(fraction);

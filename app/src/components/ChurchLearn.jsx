@@ -516,7 +516,7 @@ export function QuizBlock({ module, saved, onRecord }) {
       </div>
       {integrity && (
         <p className="text-[0.6875rem] text-[#5A5751] mt-1" data-testid="quiz-integrity" data-reading={integrity.reading} data-rushed={integrity.rushed ? 'true' : 'false'} style={{ fontFamily: '"Fraunces", serif' }}>
-          {attemptIntegrityLine(integrity)}
+          {attemptIntegrityLine(integrity, graded ? graded.pct : null)}
         </p>
       )}
     </div>
