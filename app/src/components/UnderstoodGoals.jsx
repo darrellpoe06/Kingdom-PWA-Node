@@ -21,11 +21,12 @@
 //
 // The lion is the self-hosted lion drawn in ink on a gold seal, so it is a
 // BLACK lion in every theme, midnight included (lib/ari.js: the Black Lion).
-// The marks are images with names; the words beside them carry the meaning,
-// so nothing depends on seeing a picture. No red (DR-0099).
+// Every mark is the app's own artwork (lib/record-marks.js), never a
+// device-font glyph; the words beside them carry the meaning, so nothing
+// depends on seeing a picture. No red (DR-0099).
 // =============================================================================
 import React from 'react';
-import EmojiText from './EmojiText.jsx';
+import RecordMark from './RecordMark.jsx';
 
 export const LIONS_SHOWN = 12;
 const SEAL = { background: '#C9A227', boxShadow: 'inset 0 0 0 2px #8C6B14' };
@@ -41,19 +42,13 @@ export function BlackLion({ size = 1.75, label = 'Black Lion: a lesson understoo
       className="inline-flex items-center justify-center rounded-full shrink-0"
       style={{ ...SEAL, width: `${size}em`, height: `${size}em`, fontSize: 'inherit' }}
     >
-      <span aria-hidden="true" style={{ ...INK, fontSize: `${size * 0.62}em`, lineHeight: 1 }}>
-        <EmojiText text="🦁" />
-      </span>
+      <RecordMark name="lion" size={size * 0.62} style={INK} />
     </span>
   );
 }
 
-function Mark({ emoji }) {
-  return (
-    <span aria-hidden="true" className="mr-1">
-      <EmojiText text={emoji} />
-    </span>
-  );
+function Mark({ name }) {
+  return <RecordMark name={name} className="mr-1" />;
 }
 
 /**
@@ -99,20 +94,20 @@ export default function UnderstoodGoals({ understood = 0, readAndPassed = 0, les
       )}
       {all && (
         <p className="mt-3 text-[0.875rem] text-[#F6F1E7] font-semibold" data-testid="understood-all">
-          <Mark emoji="👑" />
+          <Mark name="crown" />
           Every lesson tested is understood. Well done.
         </p>
       )}
       {!all && oneStep > 0 && (
         <p className="mt-3 text-[0.8125rem] text-[#F6F1E7]" data-testid="understood-one-step">
-          <Mark emoji="🗡️" />
+          <Mark name="sword" />
           {oneStep} more {oneStep === 1 ? 'is' : 'are'} read and passed. Read the lesson in full, then take its exam to 100% at your own pace, and each becomes
           a lion.
         </p>
       )}
       {!all && understood === 0 && oneStep === 0 && (
         <p className="mt-3 text-[0.8125rem] text-[#F6F1E7]" data-testid="understood-start">
-          <Mark emoji="📖" />
+          <Mark name="book" />
           The first lion is one lesson read in full, then its exam at 100% at your own pace. There is no limit on tries.
         </p>
       )}

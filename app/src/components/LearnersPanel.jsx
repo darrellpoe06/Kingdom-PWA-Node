@@ -23,7 +23,7 @@ import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_
 import { testIntegrityKpis } from '../lib/test-integrity.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
-import EmojiText from './EmojiText.jsx';
+import RecordMark from './RecordMark.jsx';
 import { VERSION_LABEL } from '../lib/lesson-read-mark.js';
 
 const PASS_LINE = COMPETENCY_BANDS.find((b) => b.key === 'passing')?.min ?? 70;
@@ -141,7 +141,7 @@ export const FIGURE_GRID = { gridTemplateColumns: `repeat(auto-fit, minmax(min(1
 function Figure({ label, value, hint, mark = null }) {
   return (
     <div className="border border-[#E8E4DC] p-3 min-w-0 [overflow-wrap:anywhere]" data-testid="record-figure">
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{mark ? <span aria-hidden="true" className="mr-1 text-[0.875rem]"><EmojiText text={mark} /></span> : null}{label}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{mark ? <RecordMark name={mark} size={1.25} className="mr-1" /> : null}{label}</div>
       <div className="text-lg text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
       {hint ? <div className="text-[0.6875rem] text-[#5A5751]">{hint}</div> : null}
     </div>
@@ -164,11 +164,11 @@ function TakenAndGraded({ rows = [], userId }) {
       {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1416). */}
       <UnderstoodGoals understood={k.understood} readAndPassed={k.readAndPassed} lessonsTested={k.lessonsTested} />
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
-        <Figure mark="🗡️" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />
-        <Figure mark="📖" label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
+        <Figure mark="sword" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />
+        <Figure mark="book" label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
         <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
         <Figure label="Retakes within a minute" value={k.quickRetakes} hint="Another try less than a minute after the last." />
-        <Figure mark="🎯" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
+        <Figure mark="target" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
       </div>
     </div>
   );
