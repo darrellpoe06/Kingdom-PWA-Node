@@ -283,6 +283,30 @@ describe('a service comes home by one Way (DR-1119)', () => {
     expect(checked.length, 'no loop on the Way has a reader module; has app/src/lib been reorganised?').toBeGreaterThan(0);
   });
 
+  // THE WITNESS'S LIST IS THE WAY'S LIST, DERIVED BOTH WAYS (DR-1414, DR-0677).
+  // loops-health.yml judges whatever names are in its own `loops` array. If a
+  // loop is added to LOOPS_ON_THE_WAY with loops-health as its witness but not
+  // to that array, the Way says it is watched and nothing watches it -- the
+  // hollow entry this gate exists to refuse, one level deeper. The reverse is
+  // just as bad: a name judged by the witness that no list admits to.
+  // This came out of a real break: a hand-written count of twelve in the dsi16
+  // lesson test was the only thing coupling these two, and it failed the build
+  // the first time a loop legitimately joined rather than when they disagreed.
+  it('every loop the Way assigns to loops-health is in that workflow’s own list, and nothing else is', () => {
+    const wf = read('.github/workflows/loops-health.yml');
+    const judged = /loops = \[([^\]]+)\]/
+      .exec(wf)[1]
+      .split(',')
+      .map((s) => s.replace(/["'\s]/g, ''))
+      .filter(Boolean);
+    const assigned = Object.entries(LOOPS_ON_THE_WAY)
+      .filter(([, w]) => w.witness === 'loops-health.yml')
+      .map(([name]) => name);
+    expect([...judged].sort(), 'the workflow judges a different set than the Way assigns it').toEqual([...assigned].sort());
+    // Neither side may be empty, or this passes by checking nothing (DR-0076 §3).
+    expect(judged.length).toBeGreaterThan(0);
+  });
+
   it('the Funnel witness asks every mount the watchdog restores, by the same path', () => {
     const wd = read('infra/nas-loops/loops/funnel_watchdog.py');
     const fh = read('.github/workflows/funnel-health.yml');

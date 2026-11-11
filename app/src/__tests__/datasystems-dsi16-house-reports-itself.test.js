@@ -231,10 +231,40 @@ describe('REALITY-TRACE: the lesson’s numbers are the system’s, not memory',
     for (const k of PLACES) expect(TEXTS[k], k).toMatch(/fifteen minutes/);
   });
 
-  it('the twelve jobs are the loops witness’s own list', () => {
+  // WHAT THIS CHECK USED TO DO, AND WHY IT WAS WRONG (DR-1414, 2026-11-11).
+  // It read the loops witness's own list, asserted it held exactly twelve, and
+  // required the lesson to say "twelve" — treating the lesson's number as a
+  // LIVE claim. It is not. The lesson narrates a DATED run: incident #2473, the
+  // key refused at 1:40, the clock finished eight minutes earlier, all twelve
+  // jobs passed. Twelve is what that run measured, and rewriting it when a
+  // thirteenth loop joins the Way would falsify a real observation -- the one
+  // thing a reality-trace must never do.
+  //
+  // So the number stays history, and the LIVE invariant moved to the gate that
+  // owns the Way's lists (a-service-comes-home: the witness's array must be
+  // exactly the loops the Way assigns to loops-health). Counts are derived from
+  // the data, never hand-written (DR-0677); a hand-written twelve here broke
+  // the build the first time a loop legitimately joined, and would have broken
+  // it again at the fourteenth.
+  it('the lesson’s twelve is the run it narrates, named as that run and not as today', () => {
+    for (const k of ['adult', 'youth', 'teen', 'senior']) {
+      expect(TEXTS[k], k).toMatch(/twelve/);
+      // Every band ties its count to the dated run, never to the standing state.
+      expect(TEXTS[k], `${k}: the count must belong to the run, not to "every day"`).toMatch(/(all twelve jobs|twelve scheduled jobs|twelve jobs passed)/);
+    }
+    // And no band may claim a fixed count as what the witness watches HABITUALLY.
+    for (const k of PLACES) {
+      expect(TEXTS[k], `${k}: a habitual claim with a frozen count goes stale the next time a loop joins`).not.toMatch(/judges the same twelve jobs|looks at twelve chores/);
+    }
+  });
+
+  it('the loops witness reads its list from the workflow, and it has grown past the run the lesson narrates', () => {
     const list = /loops = \[([^\]]+)\]/.exec(loops)[1].split(',');
-    expect(list).toHaveLength(12);
-    for (const k of ['adult', 'youth', 'teen', 'senior']) expect(TEXTS[k], k).toMatch(/twelve/);
+    // Derived, not pinned: this says the list is READ, and that the lesson's
+    // twelve is history rather than today's count. The exact membership is
+    // gated in a-service-comes-home, which owns LOOPS_ON_THE_WAY.
+    expect(list.length).toBe(new Set(list).size); // no duplicate name slipped in
+    expect(list.map((s) => s.replace(/["\s]/g, ''))).toContain('lesson-queue-census');
   });
 
   it('the strip the in-app step names is the one the admin surface renders', () => {
