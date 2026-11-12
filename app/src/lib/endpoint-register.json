@@ -4,7 +4,7 @@
     "functions": 28,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 321,
+    "tables": 323,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -2452,6 +2452,18 @@
     {
       "table": "workflow_state",
       "definedIn": "infra/supabase/schema-v2.10-ai-workflow-state.sql",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "workshop_events",
+      "definedIn": "infra/supabase/migrations-auto/0322-a-workshop-is-sold-by-the-seat.sql",
+      "rls": true,
+      "policies": 2
+    },
+    {
+      "table": "workshop_registrations",
+      "definedIn": "infra/supabase/migrations-auto/0322-a-workshop-is-sold-by-the-seat.sql",
       "rls": true,
       "policies": 1
     },
