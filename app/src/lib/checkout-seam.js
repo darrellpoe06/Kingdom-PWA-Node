@@ -57,6 +57,24 @@ export function buildBookCheckoutRequest(product, sub, { successUrl, cancelUrl, 
   };
 }
 
+// Build the request for ONE SEAT at an in-person workshop (DR-1444). The seat
+// is a person's, so the server verifies the buyer; the price is the event
+// row's (workshop_events, migration 0322), read by the server, never sent.
+export function buildWorkshopCheckoutRequest(event, { successUrl, cancelUrl, nowIso } = {}) {
+  return {
+    kind: 'workshop',
+    mode: 'payment',
+    eventId: asStr(event?.id),
+    title: asStr(event?.title),
+    amountCents: Math.max(0, asNum(event?.priceCents, 0)),
+    currency: asStr(event?.currency) || 'usd',
+    successUrl: asStr(successUrl),
+    cancelUrl: asStr(cancelUrl),
+    createdIso: asStr(nowIso),
+    metadata: { eventId: asStr(event?.id), kind: 'workshop' },
+  };
+}
+
 // Build the request for a unified-subscriber SUBSCRIPTION (after the 90-day free
 // period, or to upgrade). One subscriber, one subscription across the app.
 export function buildSubscriptionCheckoutRequest(tier, sub, { successUrl, cancelUrl, nowIso } = {}) {
@@ -102,8 +120,14 @@ export function entitlementFromWebhook(event) {
   const userKey = asStr(md.userKey || event?.userKey);
   if (!userKey) return null;
   if (type === 'book.purchased' || (md.kind === 'book' && type === 'checkout.session.completed')) {
-    const productId = asStr(md.productId || event?.productId);
+    // The server stamps the product as metadata.product (checkout.js); the
+    // older seam name productId is still honoured. A grant with neither is nothing.
+    const productId = asStr(md.productId || md.product || event?.productId);
     return productId ? { kind: 'book', userKey, productId } : null;
+  }
+  if (md.kind === 'workshop' && type === 'checkout.session.completed') {
+    const eventId = asStr(md.eventId || event?.eventId);
+    return eventId ? { kind: 'workshop', userKey, eventId } : null;
   }
   if (type === 'subscription.active' || (md.kind === 'subscription' && type === 'checkout.session.completed')) {
     return {

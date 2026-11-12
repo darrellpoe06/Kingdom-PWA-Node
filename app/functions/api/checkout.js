@@ -50,7 +50,7 @@ export function parseJsonEnv(raw) {
 
 // The seam request -> the Stripe Checkout Session params, or { error } when the
 // request fails the server's own truth (unknown product/tier, bad kind). Pure.
-export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null } = {}) {
+export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null, event = null } = {}) {
   const kind = asStr(req?.kind);
   const userKey = asStr(req?.userKey);
   const success = origin + safeReturnPath(req?.successUrl, '/poetech-app/?paid=1');
@@ -71,6 +71,37 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
     p.set('line_items[0][price_data][unit_amount]', String(cents));
     p.set('line_items[0][price_data][product_data][name]', asStr(req?.title) || productId);
     p.set('metadata[product]', productId);
+    // A signed-in buyer rides the session so the webhook can grant THEIR
+    // entitlement (book_entitlements, 0051); a guest still pays, but only a
+    // person can be handed a book (DR-1444 closed the gap: nothing granted).
+    if (buyer && UUID.test(asStr(buyer.userId))) {
+      p.set('metadata[userId]', buyer.userId);
+      p.set('client_reference_id', buyer.userId);
+      if (asStr(buyer.email)) p.set('customer_email', buyer.email);
+    }
+    return { params: p };
+  }
+  if (kind === 'workshop') {
+    // The seat's price is the EVENT ROW's (workshop_events, 0322), read by
+    // this server; the client's figure never reaches Stripe (DR-1444).
+    const ev = event && typeof event === 'object' ? event : null;
+    if (!ev || !UUID.test(asStr(ev.id))) return { error: 'unknown-event' };
+    if (asStr(ev.status) !== 'open') return { error: 'unknown-event' };
+    if (Number.isFinite(ev.seatsLeft) && ev.seatsLeft <= 0) return { error: 'sold-out' };
+    const cents = ev.priceCents;
+    if (!Number.isInteger(cents) || cents <= 0) return { error: 'unknown-event' };
+    if (!buyer || !UUID.test(asStr(buyer.userId))) return { error: 'sign-in-required' };
+    p.set('mode', 'payment');
+    p.set('line_items[0][quantity]', '1');
+    p.set('line_items[0][price_data][currency]', asStr(ev.currency) || 'usd');
+    p.set('line_items[0][price_data][unit_amount]', String(cents));
+    p.set('line_items[0][price_data][product_data][name]', asStr(ev.title) || 'Workshop seat');
+    p.set('metadata[product]', 'workshop');
+    p.set('metadata[eventId]', ev.id);
+    p.set('metadata[userId]', buyer.userId);
+    p.set('metadata[userKey]', asStr(buyer.email) || buyer.userId);
+    p.set('client_reference_id', buyer.userId);
+    if (asStr(buyer.email)) p.set('customer_email', buyer.email);
     return { params: p };
   }
   if (kind === 'subscription') {
@@ -115,6 +146,38 @@ export async function verifiedBuyer(request, env = {}, fetchImpl = fetch) {
   return { buyer: { userId, email: asStr(user?.email) } };
 }
 
+// The workshop event a seat is bought at, read from the house's own table over
+// the anon road (RLS shows only open and sold-out rows) with its seats left.
+// Returns { event } (status/price from the row, never the client) or { error }.
+export async function workshopEvent(eventId, env = {}, fetchImpl = fetch) {
+  const id = asStr(eventId);
+  if (!UUID.test(id)) return { error: 'unknown-event', status: 400 };
+  const url = asStr(env.SUPABASE_URL).replace(/\/$/, '');
+  const anon = asStr(env.SUPABASE_ANON_KEY) || asStr(env.VITE_SUPABASE_ANON_KEY);
+  if (!url || !anon) return { error: 'identity-not-configured', status: 503 };
+  const headers = { apikey: anon, Authorization: `Bearer ${anon}`, 'content-type': 'application/json' };
+  let rowRes;
+  try {
+    rowRes = await fetchImpl(`${url}/rest/v1/workshop_events?id=eq.${encodeURIComponent(id)}&select=id,title,status,price_cents,currency,capacity`, { headers });
+  } catch { return { error: 'event-unreachable', status: 502 }; }
+  if (!rowRes || !rowRes.ok) return { error: 'event-unreachable', status: 502 };
+  const rows = await rowRes.json().catch(() => null);
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) return { error: 'unknown-event', status: 400 };
+  let seatsLeft = null;
+  try {
+    const r = await fetchImpl(`${url}/rest/v1/rpc/workshop_seats_left`, { method: 'POST', headers, body: JSON.stringify({ p_event: id }) });
+    if (r && r.ok) { const n = await r.json().catch(() => null); if (Number.isFinite(n)) seatsLeft = n; }
+  } catch { /* unknown stays null: the row's status still governs */ }
+  return {
+    event: {
+      id: asStr(row.id), title: asStr(row.title), status: asStr(row.status),
+      priceCents: Number.isFinite(row.price_cents) ? row.price_cents : NaN,
+      currency: asStr(row.currency) || 'usd', seatsLeft,
+    },
+  };
+}
+
 // Which subscriptions can really be bought right now: a Stripe key, a Price
 // for the tier, and the identity road a subscription needs. Pure.
 export function openTiers(env = {}) {
@@ -140,10 +203,21 @@ export async function onRequestPost(context) {
   try { body = await context.request.json(); } catch { return json({ error: 'bad-json' }, 400); }
 
   let buyer = null;
-  if (asStr(body?.kind) === 'subscription') {
+  const kind = asStr(body?.kind);
+  const hasToken = /^Bearer\s+\S+/i.test(asStr(context.request.headers.get('authorization')));
+  // A subscription and a workshop seat are a PERSON's: the buyer must be
+  // verified. A book may be bought as a guest, but a signed-in buyer is
+  // verified too, so the webhook can hand them the book.
+  if (kind === 'subscription' || kind === 'workshop' || (kind === 'book' && hasToken)) {
     const who = await verifiedBuyer(context.request, env);
     if (who.error) return json({ error: who.error }, who.status);
     buyer = who.buyer;
+  }
+  let event = null;
+  if (kind === 'workshop') {
+    const found = await workshopEvent(body?.eventId, env);
+    if (found.error) return json({ error: found.error }, found.status);
+    event = found.event;
   }
 
   const origin = new URL(context.request.url).origin;
@@ -153,6 +227,7 @@ export async function onRequestPost(context) {
     origin,
     instanceId: asStr(env.PAYMENTS_INSTANCE_ID),
     buyer,
+    event,
   });
   if (built.error) return json({ error: built.error }, 400);
 

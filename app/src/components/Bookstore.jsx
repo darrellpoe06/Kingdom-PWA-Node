@@ -32,6 +32,12 @@ import {
   buildBookCheckoutRequest, buildSubscriptionCheckoutRequest, executeCheckout,
   checkoutEndpoint, PROCESSOR_NOTE,
 } from '../lib/checkout-seam.js';
+// DR-1444: one teaching, three ways to hold it — the book (above), the
+// self-paced video course, the in-person workshop seat; and a bought book is
+// owned on every device, read from the buyer's own cloud row.
+import { CoursesShelf, WorkshopsShelf, GovernorLearningLedger } from './LearningShelves.jsx';
+import { readMyBookEntitlements, ownsBook } from '../lib/book-entitlements-cloud.js';
+import { supabase } from '../lib/supabase.js';
 
 // Themed classes, never inline hex — same law as Library.jsx (2026-07-30
 // midnight-illegibility fix); pinned by library-theme-classes.test.js.
@@ -148,9 +154,16 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
   const [overrides, setOverrides] = useState([]);
   const [selected, setSelected] = useState(null);
   const [checkoutNote, setCheckoutNote] = useState('');
+  const [cloudOwned, setCloudOwned] = useState([]);
 
   // First signed-in load starts the 90-day free app access (graceful, honest).
   useEffect(() => { setSub(ensureSubscriber(userKey, nowIso())); setOverrides(loadOverrides()); }, [userKey]);
+  // The books the webhook handed this person (their own rows; a read that did not answer changes nothing).
+  useEffect(() => {
+    let alive = true;
+    if (email) readMyBookEntitlements(supabase).then((r) => { if (alive && r.ok) setCloudOwned(r.productIds); });
+    return () => { alive = false; };
+  }, [email]);
 
   const catalog = useMemo(() => mergeCatalog(seedCatalog(), overrides), [overrides]);
   const forSale = useMemo(() => publishedProducts(catalog), [catalog]);
@@ -208,7 +221,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {forSale.map((product) => {
-          const owned = entitledToBook(sub, product, nowIso());
+          const owned = ownsBook(entitledToBook(sub, product, nowIso()), cloudOwned, product.id);
           const open = selected === product.id;
           return (
             <div key={product.id} className="border bg-white p-3 border-[#E8E4DC]" >
@@ -248,6 +261,10 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
           ))}
         </div>
       )}
+
+      <CoursesShelf />
+      <WorkshopsShelf />
+      {isFamilyMember && <GovernorLearningLedger />}
     </div>
   );
 }

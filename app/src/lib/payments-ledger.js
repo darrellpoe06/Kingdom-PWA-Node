@@ -26,6 +26,7 @@ export const PRODUCT_ENTITY = Object.freeze({
   'moore-order': 'e-moore', 'moore-class': 'e-moore',
   'tlc-session': 'e-tlc',
   'book': 'e-personal',
+  'workshop': 'e-personal',
 });
 
 // normalizePayment — a Stripe-shaped event (checkout.session.completed /
