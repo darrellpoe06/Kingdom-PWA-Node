@@ -1976,6 +1976,23 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 24,
       "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
+      "id": "ministries-landing-2026-11-12",
+      "date": "2026-11-12",
+      "task": "Phase 3 of the Love Corner redesign: the Ministries landing, four families over the one registry at the top of the existing Ministries tab, the Youth Ministry linked to the Youth Zone",
+      "drs": [
+        "DR-1457"
+      ],
+      "prs": [
+        2648
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 8,
+      "notes": "No token meter in this session; tokens and cost are null."
     }
   ]
 }
