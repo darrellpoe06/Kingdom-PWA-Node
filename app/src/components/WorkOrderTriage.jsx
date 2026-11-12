@@ -43,6 +43,7 @@ import { loadPictureNames, rememberPictureName } from '../modules/properties/pic
 import { buildTenancyNote } from '../modules/properties/model.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { canCarryPictures, picturesOf, picturesOnNote, loosePictures, pictureLine } from '../lib/work-order-pictures.js';
+import { isReviewerStranger } from '../lib/reviewer-lens.js';
 import { AddPictures, PictureStrip } from './WorkOrderPictures.jsx';
 
 const REQUEST_OPS = {
@@ -360,7 +361,30 @@ function Row({ w, expanded, onToggle, act, contractors, movers, busy, message, p
   );
 }
 
-export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS, photoOps = PHOTO_OPS, compress = null, reachOp = loadReaderReach }) {
+// THE STRANGER LENS REACHES THIS BOARD TOO (Darrell 2026-11-12, reviewing in
+// "as a new user" from his phone: "I can see all this as a new person with no
+// record?! They can see our businesses?!").
+//
+// WHAT WAS TRUE, AND WHAT WAS NOT. A real person with no invite reads NOTHING
+// of this: infra/supabase/tests/0260-door-work-orders-smoke.sql asserts "S and
+// O2 read nothing of I" and runs as a required CI job on every push, so RLS was
+// never the hole and no business data was exposed. What was wrong is the LENS.
+// DR-1240's stranger mode was wired into four surfaces — Properties, Research,
+// Messages, Vault — exactly the four the banner names, and this board was not
+// one of them. So the reviewer, still signed in as himself and therefore still
+// reading his own rows through RLS, was shown Poe Properties work orders, a
+// worker's name, an apartment and 33 interior photographs under a banner
+// reading "a person with no invite sees this".
+//
+// That is worse than a cosmetic miss: this lens exists so a steward can check
+// his own exposure (DR-0104), and a lens that under-hides tells him strangers
+// see things they cannot — teaching him to distrust the one instrument he has
+// for the question. It goes on the COMPONENT, not on one mount, because
+// Projects and LifeHub both mount it and a per-mount fix would leave the other
+// open. `stranger` is injectable so the tests drive both states without the
+// global.
+export default function WorkOrderTriage({ incidents = [], rentals = [], contractors = [], updateIncident = null, addIncident = null, workerOps = null, movers = null, requestOps = REQUEST_OPS, load = loadAllWorkOrders, useTasks = useBoardTasks, taskOps = TASK_OPS, photoOps = PHOTO_OPS, compress = null, reachOp = loadReaderReach, stranger = null }) {
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
   const tasks = useTasks();
   const [view, setView] = useState('queue');
   const [adding, setAdding] = useState(false);
@@ -379,18 +403,23 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   // (DR-1407): without one its work orders read as an empty list, not an error.
   const [reach, setReach] = useState({ state: 'loading' });
 
+  // `lens` is a DEPENDENCY of all four reads below, not only a guard they read
+  // once on mount: if it ever flips while this board is mounted, the read that
+  // was skipped has to run, and the read that ran must not stand as the last
+  // word. Leaving it out would also leave four lint warnings behind, and this
+  // repo ships zero.
   useEffect(() => {
     let live = true;
-    if (typeof reachOp !== 'function') return undefined;
+    if (lens || typeof reachOp !== 'function') return undefined;
     Promise.resolve(reachOp()).then((r) => {
       if (live) setReach(r && r.ok ? { state: 'read', email: r.email || null, seat: r.seat || null } : { state: 'failed' });
     }).catch(() => { if (live) setReach({ state: 'failed' }); });
     return () => { live = false; };
-  }, [reachOp, reads]);
+  }, [lens, reachOp, reads]);
 
   useEffect(() => {
     let live = true;
-    if (!photoOps) return undefined;
+    if (lens || !photoOps) return undefined;
     Promise.all([
       Promise.resolve(photoOps.load ? photoOps.load() : { ok: true, photos: [] }).catch((e) => ({ ok: false, reason: (e && e.message) || 'could not be read' })),
       Promise.resolve(photoOps.names ? photoOps.names() : { ok: true, names: [] }).catch(() => ({ ok: false, names: [] })),
@@ -404,24 +433,25 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       });
     });
     return () => { live = false; };
-  }, [photoOps, reads]);
+  }, [lens, photoOps, reads]);
 
   useEffect(() => {
     let live = true;
-    if (!photoOps || typeof photoOps.instanceId !== 'function') return undefined;
+    if (lens || !photoOps || typeof photoOps.instanceId !== 'function') return undefined;
     Promise.resolve(photoOps.instanceId()).then((id) => { if (live && id) setFamilyInstance(id); }).catch(() => {});
     return () => { live = false; };
-  }, [photoOps]);
+  }, [lens, photoOps]);
 
   useEffect(() => {
     let live = true;
+    if (lens) return undefined;
     Promise.resolve(load()).then((res) => {
       if (!live) return;
       if (res && res.ok) setCloud({ state: 'read', requests: res.requests || [], docs: res.docs || [], events: res.events || [], notes: res.notes || [], unreadable: res.unreadable || [] });
       else setCloud({ state: 'failed', requests: [], docs: [], events: [], notes: [], unreadable: [], reason: (res && (res.error || res.reason)) || 'could not be read' });
     }).catch((e) => { if (live) setCloud({ state: 'failed', requests: [], docs: [], events: [], notes: [], unreadable: [], reason: (e && e.message) || 'could not be read' }); });
     return () => { live = false; };
-  }, [load, reads]);
+  }, [lens, load, reads]);
 
   const doorLabelOf = useMemo(() => doorLabeller(rentals), [rentals]);
   const queue = useMemo(
@@ -537,6 +567,25 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   );
   const pictures = photoOps ? { names: pics.names, remember: photoOps.remember, thumb: photoOps.thumb, image: photoOps.image, instanceId: familyInstance, compress } : null;
   const rowProps = (w) => ({ w, expanded: expanded === w.key, onToggle: () => toggle(w.key), act: actOn(w), contractors, movers, busy, message: expanded === w.key ? message : null, photos: picturesOf(pics.photos, w), pictures });
+
+  // UNDER THE STRANGER LENS IT SAYS SO, rather than vanishing (DR-0381: a
+  // surface never goes blank without saying why). A board that silently
+  // disappears leaves the steward unable to tell "hidden from a stranger" from
+  // "broken", which is the same unreadable-vs-empty confusion this house keeps
+  // paying for. It names what is hidden and what actually enforces it, so the
+  // reviewer reads a statement about the real gate and not about this mask.
+  if (lens) {
+    return (
+      <section aria-labelledby="work-order-triage-h" className="mt-4" data-testid="work-order-triage-stranger">
+        <h3 id="work-order-triage-h" className="text-sm font-semibold">Work order triage</h3>
+        <p className={`text-[0.625rem] ${MUTED}`}>
+          Hidden under this lens. A person with no invite reads none of these work orders, the
+          properties they sit on, the workers named on them or their pictures — the database refuses
+          the rows, so there is nothing here for them to be shown.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="work-order-triage-h" className="mt-4" data-testid="work-order-triage">
