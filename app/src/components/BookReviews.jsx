@@ -65,7 +65,7 @@ export default function BookReviews({ product, sub, userKey, nowIso, cloud = nul
                 className={`${btn} ${rating >= n ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}
                 data-testid={`rate-${n}`}
               >
-                ★
+                {n}
               </button>
             ))}
           </div>

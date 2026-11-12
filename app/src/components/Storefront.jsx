@@ -175,7 +175,7 @@ export default function Storefront({
 
   const shareUrl = storeUrl({ origin: loc.origin });
   return (
-    <div className="max-w-4xl" data-testid="storefront" data-total={counts.total}>
+    <div className="w-full" data-testid="storefront" data-total={counts.total}>
       <SectionTitle eyebrow="Store">{STORE_PROFILE.name}</SectionTitle>
       <header className="border p-3 mb-4 border-[#E8E4DC] bg-white" data-testid="store-profile">
         <div className="text-sm font-semibold text-[#1A1815]" style={serif}>
