@@ -217,6 +217,34 @@ export function renewalAsSettleEvent(evt = {}) {
   };
 }
 
+// THE FIREWALL (DR-1438). A Stripe account can be shared with another business
+// (TLC is a therapy practice; Moore Divahs sells too). A webhook endpoint hears
+// EVERY event on the account, so only an event our own checkout made may touch
+// the books or a person's row: a checkout session our seam created carries
+// metadata.kind ('book' | 'subscription') or a product the house tagged for its
+// books (PRODUCT_ENTITY), and a renewal carries the
+// subscription metadata (tier + userId) our checkout set. Anything else is
+// acknowledged and NOTHING is written -- never a stranger's payment, never a
+// client's email. Pure.
+export function isOurs(evt = {}) {
+  const type = asStr(evt.type);
+  const obj = (evt.data && evt.data.object) || {};
+  if (type === 'checkout.session.completed') {
+    const md = obj.metadata || {};
+    // Our seam's own sessions, or a product the house tagged for its books (PRODUCT_ENTITY).
+    return ['book', 'subscription'].includes(asStr(md.kind)) || Object.prototype.hasOwnProperty.call(PRODUCT_ENTITY, asStr(md.product));
+  }
+  if (type === 'invoice.paid') {
+    const smd = obj.parent?.subscription_details?.metadata || obj.subscription_details?.metadata || {};
+    return ACTIVATABLE_TIERS.includes(asStr(smd.tier)) && UUID.test(asStr(smd.userId));
+  }
+  if (type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') {
+    const md = obj.metadata || {};
+    return ACTIVATABLE_TIERS.includes(asStr(md.tier)) && UUID.test(asStr(md.userId));
+  }
+  return false;
+}
+
 // Ledger row (camelCase engine shape) -> the payments table row (snake_case).
 export function toTableRow(row, { instanceId = '' } = {}) {
   return {
@@ -253,6 +281,7 @@ export async function onRequestPost(context) {
   if (!HANDLED_EVENTS.includes(asStr(evt?.type))) return json({ received: true, ignored: true });
 
   const type = asStr(evt?.type);
+  if (!isOurs(evt)) return json({ received: true, ours: false });
   const instanceId = asStr((evt.data?.object?.metadata || {}).instanceId) || asStr(env.PAYMENTS_INSTANCE_ID);
   const svc = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json' };
 

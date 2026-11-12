@@ -14,7 +14,7 @@ import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { toStripeSessionParams, verifiedBuyer, openTiers, onRequestGet, onRequestPost as checkoutPost } from '../../functions/api/checkout.js';
-import { memberSubscriptionChange, renewalAsSettleEvent, onRequestPost as webhookPost } from '../../functions/api/stripe-webhook.js';
+import { memberSubscriptionChange, renewalAsSettleEvent, isOurs, onRequestPost as webhookPost } from '../../functions/api/stripe-webhook.js';
 import { onRequestPost as portalPost, portalReturnPath } from '../../functions/api/billing-portal.js';
 import { paidTierFrom, memberTierDecision, returnPaths, checkoutOpen, startPlusCheckout, sayCheckoutError, PLUS_TIER } from '../lib/poetech-plus.js';
 import { ACCESS_ENFORCEMENT } from '../lib/learn-access-tiers.js';
@@ -189,7 +189,7 @@ describe('the webhook keeps one person’s row true after the purchase', () => {
   it('PROVEN TO CATCH a cancellation that never lands: deleted PATCHes the person’s row by user AND subscription', async () => {
     const calls = [];
     vi.stubGlobal('fetch', async (u, i) => (calls.push({ u: String(u), i }), new Response(JSON.stringify([{ user_id: BUYER }]), { status: 200 })));
-    const res = await hook(subEvt('customer.subscription.deleted', { id: 'sub_1', status: 'canceled', metadata: { userId: BUYER } }));
+    const res = await hook(subEvt('customer.subscription.deleted', { id: 'sub_1', status: 'canceled', metadata: { userId: BUYER, tier: PLUS_TIER } }));
     expect(await res.json()).toMatchObject({ member: 'cancelled', counted: false });
     expect(calls).toHaveLength(1); // no money row for a status change
     expect(calls[0].u).toContain(`member_subscriptions?user_id=eq.${BUYER}&stripe_subscription_id=eq.sub_1`);
@@ -307,9 +307,42 @@ describe('the app’s tier follows the person’s own paid row', () => {
     expect(shell).toMatch(/\{requiredTier === 'poetech-plus' && <PoeTechPlusButton \/>\}/);
     const card = readFileSync(join(process.cwd(), 'src', 'components', 'PoeTechShowcase.jsx'), 'utf8');
     expect(card).toMatch(/<PoeTechPlusButton \/>/);
+    // DR-1437: the pricing page's own Checkout window carries it for the PoeTech+ tier.
+    const about = readFileSync(join(process.cwd(), 'src', 'components', 'About.jsx'), 'utf8');
+    expect(about).toMatch(/\{cartTier\.name === 'PoeTech\+' && \(/);
+    expect(about).toMatch(/data-testid="pricing-poetech-plus-checkout"[\s\S]{0,200}<PoeTechPlusButton \/>/);
   });
 
   it('nothing is locked yet: enforcement stays off until a real purchase is proven end to end', () => {
     expect(ACCESS_ENFORCEMENT).toBe(false);
+  });
+});
+
+// DR-1438 (Darrell 2026-11-12: Christina has Square and Stripe; the store and other checkouts too). A webhook endpoint
+// hears EVERY event on the account. If the account is shared with TLC (a therapy practice), an untagged payment must
+// never reach PoeTech's books or anyone's row.
+describe('the firewall: only what the house made or tagged is recorded (DR-1438)', () => {
+  const stranger = {
+    id: 'evt_tlc',
+    type: 'checkout.session.completed',
+    created: 1794500000,
+    data: { object: { id: 'cs_tlc', payment_status: 'paid', amount_total: 15000, currency: 'usd', customer_details: { email: 'client@example.com' }, metadata: {} } },
+  };
+
+  it('PROVEN TO CATCH: an untagged payment on a shared account writes nothing, and its email goes nowhere', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', async (u, i) => (calls.push({ u: String(u), i }), new Response(null, { status: 201 })));
+    const res = await hook(stranger);
+    expect(await res.json()).toEqual({ received: true, ours: false });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('our own session, a house-tagged product, and our subscription events still pass', () => {
+    expect(isOurs({ ...stranger, data: { object: { metadata: { kind: 'subscription' } } } })).toBe(true);
+    expect(isOurs({ ...stranger, data: { object: { metadata: { product: 'moore-order' } } } })).toBe(true);
+    expect(isOurs({ ...stranger, data: { object: { metadata: { product: 'not-ours' } } } })).toBe(false);
+    expect(isOurs({ type: 'customer.subscription.deleted', data: { object: { metadata: { tier: PLUS_TIER, userId: BUYER } } } })).toBe(true);
+    expect(isOurs({ type: 'customer.subscription.deleted', data: { object: { metadata: {} } } })).toBe(false);
+    expect(isOurs({ type: 'invoice.paid', data: { object: { billing_reason: 'subscription_cycle', subscription_details: { metadata: {} } } } })).toBe(false);
   });
 });
