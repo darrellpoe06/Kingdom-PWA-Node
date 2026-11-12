@@ -271,6 +271,7 @@ export const FEEDBACK_AREAS = [
     ['church-access', 'Church · Access (ask the office for a staff tab · and, for the office, the queue and the decision)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
+    ['church-institute', 'Church · TLC Theological Institute'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
     ['church-harvest', 'Church · Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · Video Wall (sanctuary LED capital project — budget · donations · spec)'],

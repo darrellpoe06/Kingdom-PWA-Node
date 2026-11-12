@@ -1,8 +1,9 @@
 # 2026-11-12 — The Love Corner redesign: homepage mockup and implementation plan
 
 Layer 4 working artifact (audit + reality-trace + plan). Branch `ccr-91fb688d-spyn2g`.
-Status: **mockup and plan delivered; NO production code changed. Waiting on Darrell's approval
-before any file under `app/src` is touched** (the brief's own stop line, §12).
+Status: **mockup approved by Darrell ("Perfect keep going", 2026-11-12); Phase 0 and Phase 1 BUILT the same
+session (DR-1455), with the Institute's Slice A landing. Phases 2–6 remain as named in §7.** The real logo and
+Bishop Gwin's photograph arrived mid-session and are in `app/public/lovecorner/`; the empty slot is gone.
 
 Deliverables in this folder and in `docs/design/love-corner-redesign/`:
 
@@ -11,6 +12,10 @@ Deliverables in this folder and in `docs/design/love-corner-redesign/`:
   the More sheet with every existing tab).
 - `2026-11-12-mockup-home-hero.png`, `...-home-youth-ministries-institute.png`,
   `...-institute-landing.png`, `...-more-sheet-all-tabs.png` — stills of the same mockup.
+- `2026-11-12-live-build-*.png` — the REAL app after Phase 1, built (`vite build`) and served at the site root the
+  way Pages serves it, screenshotted on a 390×844 phone viewport: the hero with the real seal and portrait, the doors
+  and the week, Youth Zone and Ministries, the Institute landing, the More sheet. The build needed placeholder
+  Supabase values to boot locally (the real ones are deploy secrets); the sandbox has no route to poetech.us.
 
 ## 1. What was asked
 

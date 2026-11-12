@@ -119,7 +119,7 @@ describe('pressing it lands on Learn', () => {
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(shell).toMatch(/onNavigate: \(v, home, sub\) => \{ if \(home\) setHomeView\(home\); if \(sub\) setChurchView\(sub\); setView\(v\); \}/);
     expect(shell).toMatch(/onQuickLink=\{\(q\) => \{ setChurchView\(q\.churchView\); setView\(q\.view\); \}\}/);
-    expect(shell).toMatch(/\['learn','Learn'\]/);
+    expect(readFileSync(join(HERE, '..', 'lib', 'church-tabs.jsx'), 'utf8')).toMatch(/\['learn', 'Learn'\]/); // the one list (DR-1455)
     expect(shell).toMatch(/return <ChurchLearn/);
   });
 });
