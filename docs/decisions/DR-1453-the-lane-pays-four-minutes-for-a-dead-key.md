@@ -14,10 +14,12 @@
 
 ## What was measured
 
-- **The expired `TS_AUTHKEY` costs about four minutes on EVERY run that joins, including the deploy.** Three independent measurements on 2026-11-12:
+- **The expired `TS_AUTHKEY` costs MINUTES on EVERY run that joins, including the deploy.** Four independent measurements on 2026-11-12, and the range is stated rather than rounded to the tidier figure this record's filename carries:
   - `place-doors`, step `Join the tailnet`: 18:28:13 to 18:32:05 = **3 m 52 s**, then fails and the job dies.
   - `deploy-cloudflare-pages` run 2157, step 5: 18:16:41 to 18:20:50 = **4 m 09 s**, concluded `success`.
   - `deploy-cloudflare-pages` run 2158 (the sov76 deploy), step 5: 18:37:24 to 18:41:31 = **4 m 07 s**, concluded `success`.
+  - `inbox-lessons-waiting` run 522, step 3: 19:04:51 to 19:07:38 = **2 m 47 s**, concluded `success` while reporting `TAILNET: false`.
+  So the honest span is **2 m 47 s to 4 m 09 s**, not "about four minutes" — the first draft of this record said four on three samples and the fourth widened it. The conclusion is unchanged (minutes per run across 64 workflows); the figure is not.
 - **On the deploy that is 64 per cent of the job.** Run 2158's build-and-deploy job ran 18:37:08 to 18:43:33 = 6 m 25 s, of which 4 m 07 s was a credential the step is explicitly designed not to need: it carries `continue-on-error: true` and the next step reads the same public value back off the served site (DR-1269). The design is right; the cost is the tailscale action retrying to its own timeout before giving up.
 - **64 workflows carry `TS_AUTHKEY`.** So the key is not only holding witnesses red (camera-health, place-doors, complete-addresses, ops-queue-health, lessons-sync all failed on main today, all five at the same join step); it is sitting on the critical path between a merge and the site going live.
 - **PRs opened by the lane's own bot have their gates HELD.** `dr-number-claim` runs `43241899928` (14:53) and `43279143702` (18:22), both `actor: github-actions[bot]`, both sat at `action_required` with zero jobs; the second carries `run_attempt: 2` and `triggering_actor: darrellpoe06`, which is the hand approval. Every run with `actor: darrellpoe06` started within seconds. **The hold is not in our code:** neither `dr-number-claim.yml` nor `auto-merge.yml` carries an `environment:` key, so no required-reviewer gate lives in the repository.
@@ -25,6 +27,10 @@
 ## Impact
 
 `auto-open-pr.yml` opens every `claude/*` PR as `github-actions[bot]`, and auto-merge waits on required checks. When those checks are frozen at `action_required`, the PR waits for a human — which is precisely the stall DR-0103 exists to remove. It did not bite today only because someone was watching.
+
+**REPRODUCED A THIRD TIME, watched from the push: this record's own PR.** #2640 was opened by the bot at 18:48 and `dr-number-claim` run `43283712811` concluded `action_required` with zero jobs, same as the two before it. So the behaviour is deterministic on bot-opened PRs, not intermittent.
+
+**AND WHAT IT IS NOT: the hold is NOT what kept #2640 from merging.** That PR went red on three checks of its own, all one defect of mine — the INDEX row below was 886 characters against the 700 ratchet, failing `record-length-guard`, `bloat-ratchets.test.js:36` and the aggregator (9,113 of 9,114 tests passed). **So whether a held `dr-number-claim` BLOCKS a merge or is silently skipped by one is still an OPEN question, and this record does not answer it.** The first attempt to answer it watched a PR that was red for an unrelated reason and would have mistaken my own broken row for a lane defect. `re-review: 2026-11-19` — settle it on the next bot-opened PR that is genuinely green.
 
 ## Decision
 
@@ -39,3 +45,4 @@
 - The absence of an `environment:` key checked in both workflow files by name.
 - **Two of my own readings were wrong first and are recorded that way.** I reported the join "fails in 19 milliseconds", having read the duration of the composite action's final error-echo step and taken it for the join; the join takes about four minutes. And I reported run 2158's step as "past 8 minutes, about double the precedent" from a stale `in_progress` snapshot; it completed at 4 m 07 s, in line with the precedent. Both corrections are the reason this record carries three measurements rather than one.
 - **Not measured, and so not claimed:** how long a HEALTHY tailnet join takes in this repository. That gap is the whole reason decision 2 parks rather than ships.
+- **A third correction, and the sharpest one: I said "all guards green" having run three of them.** `business-systems-guard`, `re-review-ratchet-guard` and `dr-number-claims` passed, and I reported that as the guard suite. `record-length-guard` was never run, and it is the one that fails on this record — so the claim was evidence for three checks dressed as evidence for the set. CI caught it, which is the gate doing its job (DR-0076 section 2), but the claim should never have been made. Each guard is now named with its own exit code rather than summarised: `record-length-guard: 0`, `business-systems-guard: 0`, `re-review-ratchet-guard: 0`, and `bloat-ratchets.test.js` 10 green.
