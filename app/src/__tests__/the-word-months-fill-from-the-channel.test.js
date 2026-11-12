@@ -11,7 +11,9 @@
 // in their month, whatever the import lane is doing.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, existsSync, utimesSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { channelRow, withChannelRows } from '../lib/the-word-channel-rows.js';
 
@@ -108,5 +110,45 @@ describe('The Word’s library uses it', () => {
     expect(src).not.toMatch(/joins the archive shortly/);
     expect(src).toMatch(/canEdit=\{canEdit && !s\.fromChannel\}/);
     expect(src).toMatch(/New · from the channel/);
+  });
+});
+
+// DR-1429: a dateless service must not fall out of every month once it ages
+// past the feed. The NAS dater (choir-dates) used to stop for good after its
+// first drain; now its DONE marker rests it for 6 hours, then it re-checks.
+describe('the NAS keeps dating new services, and the app reads the whole feed (DR-1429)', () => {
+  const ROOT = join(process.cwd(), '..');
+  const install = readFileSync(join(ROOT, 'infra', 'church-media-golive', 'choir_dates_install.sh'), 'utf8');
+  const block = install.slice(
+    install.indexOf('if [ -f "$STATE/choir-dates.DONE" ]; then'),
+    install.indexOf('fi\n', install.indexOf('rm -f "$STATE/choir-dates.DONE"')) + 3
+  );
+  const run = (ageSeconds) => {
+    const dir = mkdtempSync(join(tmpdir(), 'choir-dates-'));
+    const marker = join(dir, 'choir-dates.DONE');
+    writeFileSync(marker, 'done');
+    const t = Date.now() / 1000 - ageSeconds;
+    utimesSync(marker, t, t);
+    const r = spawnSync('sh', ['-c', `STATE="${dir}"\n${block}\necho CONTINUED`], { encoding: 'utf8' });
+    return { out: r.stdout, markerLeft: existsSync(marker) };
+  };
+
+  it('a fresh marker rests the dater (no work, marker kept)', () => {
+    const r = run(60);
+    expect(r.out).toMatch(/rests until 6h/);
+    expect(r.out).not.toMatch(/CONTINUED/);
+    expect(r.markerLeft).toBe(true);
+  });
+
+  it('PROVEN TO CATCH the old forever-DONE: a marker older than 6 hours is cleared and the dater runs again', () => {
+    const r = run(7 * 3600);
+    expect(r.out).toMatch(/re-checking for new undated services/);
+    expect(r.out).toMatch(/CONTINUED/);
+    expect(r.markerLeft).toBe(false);
+  });
+
+  it('the library reads the whole channel feed (15), not the newest 8, so a dateless service keeps its month longer', () => {
+    const src = readFileSync(join(process.cwd(), 'src', 'components', 'Pulpit.jsx'), 'utf8');
+    expect(src).toMatch(/setChannelFresh\(parseYoutubeFeed\(xml, 15\)\)/);
   });
 });

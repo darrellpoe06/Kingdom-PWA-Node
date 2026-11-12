@@ -64,7 +64,7 @@ import { currentSentence, landOnPlace } from '../lib/lesson-landing.js';
 import { usePrinting } from '../lib/use-printing.js';
 import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
-import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
+import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload, lessonDoorFor } from '../lib/lesson-links.js';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 // DR-0698: every share carries a token, and the record says whether the link worked.
 import { newShareToken } from '../lib/lesson-share.js';
@@ -158,6 +158,7 @@ import LearnersPanel from './LearnersPanel.jsx';
 import RecordStrip from './RecordStrip.jsx';
 import { recordHeadline } from '../lib/record-headline.js';
 import { aggregateLearnerRecords } from '../lib/learner-records.js';
+import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subject points home from the Love Corner
 
 const fmtDate = formatClassDate;
 
@@ -3122,11 +3123,11 @@ function CourseView({
                   label="Share"
                   title="Share this lesson using your usual apps"
                   payload={() => lessonSharePayload(m, {
-                    url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
+                    url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }),
                     courseTitle: course.meta.title || '',
                     token: newShareToken(),
                     courseKey: course.meta.key,
-                    lessonId: m.id,
+                    lessonId: m.id, brand: lessonDoorFor(course).brand,
                   })}
                   onShared={recordLessonShare}
                 />
@@ -3137,7 +3138,7 @@ function CourseView({
                     label="Copy lesson"
                     copiedLabel="Lesson copied ✓"
                     title="Copy this lesson's text, with its anchor and a link back to it"
-                    text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                    text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
                   />
                 ) : (
                   <DownloadNeedsAccount compact label="Copy lesson" />
@@ -3146,7 +3147,7 @@ function CourseView({
                   label="Copy link"
                   copiedLabel="Link copied ✓"
                   title="Copy a link that opens exactly this lesson"
-                  text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
+                  text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course })}
                 />
                 {/* DOWNLOAD THIS LESSON (DR-0722): its words and reading voice,
                     at the levels chosen, for reading and listening offline.
@@ -3356,7 +3357,7 @@ function CourseView({
                   back to this exact lesson under it. navigator.share first;
                   no sheet => the same control copies and says so honestly. */}
               {(() => {
-                const secUrl = lessonUrl({ courseKey: course.meta.key, lessonId: m.id });
+                const secUrl = lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course });
                 const sec = (label, text) => (
                   <ShareButton
                     label="Share this part"
@@ -3760,7 +3761,7 @@ function CourseView({
                         payload={() => sectionSharePayload(m, {
                           label: 'The Lord’s Matrix — where else this Word stands',
                           text: kin.map((k) => `L${ownNumber(k, schedule)} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
-                          url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
+                          url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }),
                           courseTitle: course.meta.title || '',
                           token: newShareToken(),
                           courseKey: course.meta.key,
@@ -5330,6 +5331,7 @@ export default function ChurchLearn({
                 <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   {active.meta.audience ? `For ${active.meta.audience}. ` : ''}{active.meta.format ? `${active.meta.format}. ` : ''}{lessonCountLabel(schedule, U)}.
                 </p>
+                <PoeTechShowcase course={active} />
                 {/* IS EVERY LESSON WHAT IT SHOULD BE, COUNTED HERE (Darrell
                     2026-10-21: "make sure all lessons are what they should be...
                     Inside each lesson"). Two stories and the verses quoted
@@ -5769,7 +5771,7 @@ export default function ChurchLearn({
               label="Share this course"
               title="Share the whole course using your usual apps"
               payload={() => courseSharePayload(active.meta, {
-                url: lessonUrl({ courseKey: active.key }),
+                url: lessonUrl({ courseKey: active.key, course: active }),
                 lessonCount: (active.schedule && active.schedule.length) || 0,
                 unitPlural: `${unitLabels(active.meta).noun}s`,
               })}

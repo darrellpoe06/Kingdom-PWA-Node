@@ -13,9 +13,23 @@ DIR="$REPO/infra/church-media-golive"
 STATE="$DIR/state"
 mkdir -p "$STATE"
 
+# DONE IS NOT FOREVER (DR-1429, 2026-11-11). The marker used to stop this
+# rider for good, but new undated services keep arriving (a Sunday title with
+# no date, filed on the hosted copy and carried home by content-sync), and
+# with the drainer asleep they stayed undated -- out of every month in The
+# Word once they aged past the channel feed the app borrows a date from.
+# Now the marker only rests the rider: after 6 hours it is cleared, one cheap
+# REST read asks for undated rows, and choir_dates_sync.py writes the marker
+# again when there are none. Budget: the same per-run chunk/time budget as
+# ever, at most 4 re-checks a day once drained.
 if [ -f "$STATE/choir-dates.DONE" ]; then
-  echo "choir-dates: backlog drained (marker present); no-op"
-  exit 0
+  age=$(( $(date +%s) - $(stat -c %Y "$STATE/choir-dates.DONE" 2>/dev/null || date +%s) ))
+  if [ "$age" -lt 21600 ]; then
+    echo "choir-dates: backlog drained (marker ${age}s old); rests until 6h, then re-checks"
+    exit 0
+  fi
+  echo "choir-dates: marker ${age}s old; re-checking for new undated services"
+  rm -f "$STATE/choir-dates.DONE"
 fi
 
 # Self-sufficient dependency (live cycles 2026-08-04: run 30904945110 proved
