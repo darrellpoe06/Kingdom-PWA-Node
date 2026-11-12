@@ -45,6 +45,8 @@ import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
+import { CHURCH_BOTTOM_NAV, CHURCH_TAB_ICONS, churchTabGroups } from '../lib/church-tabs.jsx';
+import { requestChurchHomeSection } from '../lib/church-home-section.js';
 import { MONEY_BOTTOM_NAV, moneyMoreSections, sectionFor } from '../lib/money-nav.js';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
@@ -164,6 +166,18 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // bar carries no platform section at all.
   const allowedViews = new Set((nav && Array.isArray(nav.groups) ? nav.groups : []).flatMap((g) => (Array.isArray(g.items) ? g.items.map(([id]) => id) : [])));
   const bottomTabs = allowedViews.size ? BOTTOM_NAV.filter((t) => allowedViews.has(t.view)) : BOTTOM_NAV;
+  // THE CHURCH DOOR GETS THE CHURCH'S OWN BAR (the 2026-11-12 redesign, brief
+  // §10: "a clean mobile bottom navigation bar"). The same rule as above,
+  // applied the other way: when the door permits ONLY the church, the bar
+  // carries Home · Watch · Word from lib/church-tabs.jsx (with Give and More
+  // already here), and More lists every Church sub-tab the shell gated for
+  // this reader (nav.churchTabs — the SAME list the strip draws, DR-0677),
+  // grouped. Inside PoeTech nothing changes: the platform tabs stay.
+  const churchOnly = allowedViews.size === 1 && allowedViews.has('church') && Array.isArray(nav && nav.churchTabs);
+  const churchTabs = churchOnly ? CHURCH_BOTTOM_NAV : [];
+  const churchGroups = churchOnly ? churchTabGroups(nav.churchTabs) : [];
+  const churchTabActive = (t) => nav && nav.view === 'church' && nav.churchView === t.churchView && (!t.section || nav.churchHomeSection === t.section);
+  const goChurchTab = (t) => { setMoreOpen(false); if (t.section) requestChurchHomeSection(t.section); if (nav && nav.onNavigate) nav.onNavigate('church', null, t.churchView); };
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
   const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
@@ -277,6 +291,19 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                   <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
                   <DockLabel>{t.words}</DockLabel>
                 </button>
+              )) : churchTabs.length ? churchTabs.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  data-testid={`dock-tab-${t.key}`}
+                  onClick={() => goChurchTab(t)}
+                  aria-current={churchTabActive(t) ? 'page' : undefined}
+                  title={t.words}
+                  className={`${churchTabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                >
+                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
+                  <DockLabel>{t.words}</DockLabel>
+                </button>
               )) : bottomTabs.map((t) => (
                 <button
                   key={t.key}
@@ -334,7 +361,21 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                   ))}
                 </div>
               )}
-              {tabsMode && nav.groups && nav.groups.map((g) => (
+              {tabsMode && churchGroups.map((g) => (
+                <div key={`church-${g.key}`} data-testid={`dock-more-church-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
+                  <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>
+                  {g.items.map(([id, words]) => {
+                    const on = nav.view === 'church' && nav.churchView === id;
+                    return (
+                      <button key={id} type="button" data-testid={`dock-more-church-tab-${id}`} onClick={() => goChurchTab({ churchView: id, section: null })} aria-current={on ? 'page' : undefined} title={words} className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
+                        <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={CHURCH_TAB_ICONS[id] || 'folder'} /></span>
+                        <DockLabel>{words}</DockLabel>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {tabsMode && nav.groups && !churchOnly && nav.groups.map((g) => (
                 <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
                   {g.label && <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>}
                   {g.items.map(([id]) => (

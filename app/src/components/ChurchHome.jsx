@@ -33,6 +33,8 @@ import SectionTabs from './SectionTabs.jsx';
 import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
+import { subscribeChurchHomeSection, takePendingChurchHomeSection } from '../lib/church-home-section.js';
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
@@ -43,6 +45,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
   // ride). One sign-in serves everyone — the role follows the account.
   const [loginOpen, setLoginOpen] = useState(false);
+  // THE FRONT DOOR DRIVES THE STRIP (2026-11-12 redesign). The homepage's
+  // doors (Watch, Prayer, Events, Connect) and the phone's bottom bar ask for
+  // a section through lib/church-home-section.js; the strip below runs in
+  // controlled mode so the request opens the section in place (UX 2e).
+  const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
+  useEffect(() => subscribeChurchHomeSection((id) => { if (id) setSection(id); }), []);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -937,6 +945,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
 
   return (
     <div className="space-y-6">
+      <LoveCornerHome church={church} setChurchView={setChurchView} signedIn={signedIn} onSignIn={() => setLoginOpen(true)} />
       {/* Obvious LOG IN / CREATE ACCOUNT — signed-out only. The community is
           public (no account needed to look around); this is the clear way for a
           member/staff/admin to sign in, or anyone to make an account to request a
@@ -970,7 +979,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} />
+      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
     </div>
   );
 }

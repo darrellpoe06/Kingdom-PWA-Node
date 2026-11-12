@@ -141,7 +141,11 @@ describe('the office, and only the office', () => {
     expect(store).toMatch(/role === 'owner' \|\| role === 'admin'/);
     // The tab AND the route both ride that predicate. A tab without the route
     // guard would leave the surface reachable by URL, which is the real risk.
-    expect(app).toMatch(/isChurchOfficeRole\(churchAccess\.role\) \? \[\['giving-book'/);
+    // The tab list moved to lib/church-tabs.jsx (2026-11-12, DR-1454): the shell
+    // hands it the office role, and the list rides the same predicate.
+    const tabs = read('app/src/lib/church-tabs.jsx');
+    expect(tabs).toMatch(/isChurchOfficeRole\(officeRole\) \? \[\['giving-book'/);
+    expect(app).toMatch(/churchSubTabs\(\{ signedIn: !!authSession, reviewerMode, officeRole: churchAccess\.role/);
     expect(app).toMatch(/churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole\(churchAccess\.role\)/);
   });
 });

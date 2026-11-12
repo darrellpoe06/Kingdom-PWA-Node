@@ -135,7 +135,10 @@ describe('source pins — the door mounts the tab and the registry names it', ()
     // inside the authSession-gated group, so a signed-out visitor is never
     // offered it. Pinning the whole array froze the tab beside it too — the
     // next church tab to land there broke this test while the door was fine.
-    const gated = shell.match(/\.\.\.\(authSession \? \[(.*?)\] : \[\]\)/);
+    // The tab list moved to lib/church-tabs.jsx (DR-1454); the shell hands it `signedIn: !!authSession`.
+    const tabs = readFileSync(join(SRC, 'lib', 'church-tabs.jsx'), 'utf8');
+    expect(shell).toMatch(/churchSubTabs\(\{ signedIn: !!authSession/);
+    const gated = tabs.match(/\.\.\.\(signedIn \? \[(.*?)\] : \[\]\)/);
     expect(gated, 'the authSession-gated church tab group is gone').toBeTruthy();
     expect(gated[1]).toContain('[\'members\', <><UiIcon name="users" /> Members</>]');
   });

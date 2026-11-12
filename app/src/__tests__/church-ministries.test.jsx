@@ -230,7 +230,10 @@ describe('one name, one meaning (Darrell 2026-09-11)', () => {
   });
 
   it('calls renting the campuses what it is, in the nav and the registry', () => {
-    expect(read('poe-financial-mvp-v28.jsx')).toMatch(/\['events','Campus Rentals'\]/);
+    // The sub-tab list moved out of the shell into lib/church-tabs.jsx (2026-11-12
+    // redesign) — one list for the strip, the phone's bar and its More sheet.
+    expect(read('lib/church-tabs.jsx')).toMatch(/\['events', 'Campus Rentals'\]/);
+    expect(read('poe-financial-mvp-v28.jsx')).toMatch(/churchSubTabs\(/);
     expect(read('surfaces.js')).toMatch(/id: 'events',\s+label: 'Campus Rentals'/);
     expect(read('components/EventManagement.jsx')).toMatch(/>Campus Rentals</);
   });

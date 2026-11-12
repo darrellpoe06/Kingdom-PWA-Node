@@ -126,6 +126,7 @@ export const SURFACES = [
   { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
   { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    requires: 'church-staff', whenDenied: 'hide', gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
   { id: 'learn',            label: 'Learn',         nav: 'church', view: 'church', sub: 'learn',      load: () => import('./components/ChurchLearn.jsx') },
+  { id: 'institute',        label: 'TLC Theological Institute', nav: 'church', view: 'church', sub: 'institute', requires: 'anyone', whenDenied: 'lock', gate: 'any church viewer — the church\'s educational ministry, public by design (Slice A: no enrollment door until the office confirms)', load: () => import('./components/ChurchInstitute.jsx') },
   { id: 'eternal-algorithms', label: 'Eternal Algorithms', nav: 'church', view: 'church', sub: 'eternal-algorithms', load: () => import('./components/EternalAlgorithmsStudy.jsx') },
   { id: 'conference',       label: 'Conference',    nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceModule.jsx'), 'ConferenceModule') },
   { id: 'conference-var',   label: 'Conference Variance', nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceVariance.jsx'), 'ConferenceVariance') },
@@ -182,6 +183,10 @@ export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
 // The one camera predicate, re-exported so the shell's render gate rides its
 // existing surfaces import line (DR-1237; the shell cannot grow, DR-0078).
 export { canSeeCameras } from './lib/surface-access.js';
+// The Church sub-tab list rides out of here so the shell adds no import line
+// (monolith budget): lib/church-tabs.jsx is the one list the strip, the
+// phone's bar and its More sheet all draw from (2026-11-12 redesign).
+export { churchSubTabs } from './lib/church-tabs.jsx';
 
 // Named exports — the shell's render switch references these bare identifiers
 // today, so exporting them keeps that switch byte-for-byte unchanged while the
@@ -231,6 +236,7 @@ export const ChurchInfraPlan  = surfaceById['infra-plan'].component;
 export const HarvestLedger    = surfaceById['harvest'].component;
 export const ChurchObservation = surfaceById['observe'].component;
 export const ChurchLearn      = surfaceById['learn'].component;
+export const ChurchInstitute  = surfaceById['institute'].component;
 export const EternalAlgorithmsStudy = surfaceById['eternal-algorithms'].component;
 export const ConferenceModule = surfaceById['conference'].component;
 export const ConferenceVariance = surfaceById['conference-var'].component;
