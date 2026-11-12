@@ -144,6 +144,39 @@ describe('the shelf', () => {
     expect(h.querySelector('[data-testid="delivery-failed"]').textContent).toMatch(/could not be found/);
     expect(h.querySelector('[data-testid="delivered"]')).toBeNull();
   });
+  it("two open processors: the owner's first is the Buy button, the other is offered beside it and posts its name; a Square return delivers too (DR-1451)", async () => {
+    const calls = [];
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (String(url).startsWith('/api/checkout') && (!init || init.method !== 'POST'))
+        return { ok: true, status: 200, json: async () => ({ books: ['prod-living-lessons'], subscriptions: [], processors: ['square', 'stripe'] }) };
+      if (String(url).startsWith('/api/checkout')) {
+        calls.push(JSON.parse(init.body));
+        return { ok: true, status: 200, json: async () => ({ url: '' }) };
+      }
+      if (String(url).startsWith('/api/deliver?square_order='))
+        return { ok: true, status: 200, json: async () => ({ ok: true, product: 'prod-living-lessons', grants: ['prod-living-lessons'], email: null }) };
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl, search: '?view=store' }));
+    const ll = [...h.querySelectorAll('[data-testid="store-item"]')].find((i) => i.getAttribute('data-id') === 'prod-living-lessons');
+    expect(ll.querySelector('[data-testid="buy"]').getAttribute('data-processor')).toBe('square');
+    expect(ll.querySelector('[data-testid="buy-alternate"]').textContent).toBe('Pay with Stripe');
+    await act(async () => {
+      ll.querySelector('[data-testid="buy"]').click();
+    });
+    await flush();
+    await act(async () => {
+      ll.querySelector('[data-testid="buy-alternate"]').click();
+    });
+    await flush();
+    expect(calls.map((c) => c.processor)).toEqual(['square', 'stripe']);
+    expect(calls[0].successUrl).toMatch(/paid=1&session_id=\{CHECKOUT_SESSION_ID\}$/);
+    await act(() => root.unmount());
+    host.parentNode.removeChild(host);
+    const h2 = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl, search: '?view=store&paid=1&square_order=ORD1XYZ12' }));
+    expect(h2.querySelector('[data-testid="delivered"]').textContent).toMatch(/Your book is in your library on this device\./);
+    expect(h2.querySelector('[data-testid="buy-alternate"]')).toBeNull();
+  });
   it('DeliveredPanel renders nothing with no delivery', async () => {
     const h = await draw(createElement(DeliveredPanel, { delivery: null }));
     expect(h.textContent).toBe('');

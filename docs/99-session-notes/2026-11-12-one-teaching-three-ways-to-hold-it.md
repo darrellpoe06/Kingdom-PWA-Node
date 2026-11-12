@@ -109,3 +109,23 @@ merge commit carrying conflict markers reached the branch before the guards
 were re-run with their real exit codes. The endpoint register and the
 format guard read only tracked files, so a new function must be added to
 git before either regenerates.
+
+
+## Addendum (same day) — Square joins the seam (DR-1451)
+
+Darrell: "what about the square account both work?" Both can. Stripe works
+as it is once the secret key is pasted. Square is now built as the second
+adapter on the same seam from Square's own reference (payment links, orders,
+the signed webhook, the payment object): `functions/_lib/square.js`,
+`/api/square-webhook`, the Square branch of `/api/checkout`, `square_order`
+on `/api/deliver`, and the store's second button. The firewall holds on
+Square by the order's metadata; the ledger row is keyed by the payment id
+so created/updated events count once. Not built, by name: a Square
+subscription (PoeTech+ stays on Stripe). Activation is the owner's paste of
+the token, location, signature key and notification URL on the Pages
+project; a PoeTech account or location, never TLC's.
+
+Also measured at 17:15Z: the research items 7b4128a5 and e8294305 are still
+unclaimed, and `agent_inbox` holds no `nas-heartbeat` row at all, so the
+NAS cycle that now answers research (DR-1443) has not yet been seen
+writing. That is the lane's witness, and it is absent.

@@ -129,7 +129,7 @@ export async function mySeats(client) {
 }
 
 /** Start the Stripe checkout for one seat. Returns { url } or { error }. */
-export async function startSeatCheckout({ token, eventId, pathname, search, fetchImpl } = {}) {
+export async function startSeatCheckout({ token, eventId, pathname, search, fetchImpl, processor = '' } = {}) {
   if (!token) return { error: 'sign-in-required' };
   if (!asStr(eventId)) return { error: 'unknown-event' };
   const f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
@@ -141,7 +141,7 @@ export async function startSeatCheckout({ token, eventId, pathname, search, fetc
     const res = await f('/api/checkout', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ kind: 'workshop', eventId: asStr(eventId), successUrl, cancelUrl }),
+      body: JSON.stringify({ kind: 'workshop', eventId: asStr(eventId), successUrl, cancelUrl, ...(asStr(processor) ? { processor: asStr(processor) } : {}) }),
       ...(ctl ? { signal: ctl.signal } : {}),
     });
     const data = await res.json().catch(() => null);

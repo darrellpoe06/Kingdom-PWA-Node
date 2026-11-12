@@ -115,15 +115,25 @@ describe('the storefront list', () => {
     expect(await readOpen({ fetchImpl: async () => ({ ok: true, json: async () => ({ books: ['a'], subscriptions: ['poetech-plus'] }) }) })).toEqual({
       books: ['a'],
       subscriptions: ['poetech-plus'],
+      processors: ['stripe'], // an older server that names none: its open book is Stripe's
     });
-    expect(await readOpen({ fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toEqual({ books: [], subscriptions: [] });
+    expect(
+      await readOpen({
+        fetchImpl: async () => ({ ok: true, json: async () => ({ books: ['a'], subscriptions: [], processors: ['square', 'stripe', 'paypal'] }) }),
+      })
+    ).toEqual({ books: ['a'], subscriptions: [], processors: ['square', 'stripe'] });
+    expect(await readOpen({ fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toEqual({
+      books: [],
+      subscriptions: [],
+      processors: [],
+    });
     expect(
       await readOpen({
         fetchImpl: async () => {
           throw new Error('x');
         },
       })
-    ).toEqual({ books: [], subscriptions: [] });
+    ).toEqual({ books: [], subscriptions: [], processors: [] });
   });
 });
 

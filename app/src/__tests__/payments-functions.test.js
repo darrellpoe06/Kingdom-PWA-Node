@@ -84,7 +84,7 @@ describe('checkout — price truth is server-side', () => {
     });
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toEqual({ url: 'https://checkout.stripe.com/c/1', id: 'cs_1' }); // no Stripe internals leak
+    expect(data).toEqual({ url: 'https://checkout.stripe.com/c/1', id: 'cs_1', processor: 'stripe' }); // no Stripe internals leak
     expect(calls[0].url).toBe('https://api.stripe.com/v1/checkout/sessions');
     expect(calls[0].init.headers.Authorization).toBe('Bearer sk_test_1');
     expect(calls[0].init.body).toContain('success_url=https%3A%2F%2Fpoetech.us%2Fpoetech-app%2F%3Fpaid%3D1');
