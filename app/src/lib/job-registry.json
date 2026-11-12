@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 40,
+  "scheduled": 39,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -211,13 +211,6 @@
       "name": "research-health",
       "crons": [
         "41 13 * * *"
-      ]
-    },
-    {
-      "file": "research-inbox.yml",
-      "name": "research-inbox",
-      "crons": [
-        "7,22,37,52 * * * *"
       ]
     },
     {

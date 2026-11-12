@@ -51,15 +51,33 @@ OLLAMA_CANDIDATES="${RESEARCH_OLLAMA_CANDIDATES:-http://100.69.19.13:11434 http:
 # secret, so readable by the forwarder; empty when no tower answered).
 OLLAMA_URL_FILE="$DATA/ollama.url"
 
-echo "== research install: the bell (DR-1202) =="
-# FIRST, before any step that can stop this installer: the bell does not need
-# the search road (a link is read by yt-dlp and Whisper, not Vane), so a dark
-# road must never silence it. One pass per cycle; it rings only when work waits
-# and the waiting set changed (or an hour passed). Never fails the install.
-if command -v python3 >/dev/null 2>&1; then
-  timeout 60 python3 "$SRC/research_bell.py" 2>&1 | sed 's/^/  /' || echo "  research-bell: did not finish (timeout or error); the next cycle tries again"
+echo "== research install: the NAS answers its own research items (DR-1443) =="
+# FIRST, before any step that can stop this installer: a dark search road
+# must never silence the lane (a link is read by captions and Whisper, not
+# Vane). Until 2026-11-12 this rang research-inbox.yml on GitHub (DR-1202);
+# that runner's tailnet key expired 2026-11-04, so every run died at the join
+# and nothing was answered. Per DR-1360 the NAS now does the work itself:
+# research-inbox-nas.sh, detached (a link's audio can take 45 minutes and must
+# not hold the services-sync cycle), under its own lock and a 55-minute wall.
+# A run still going is left alone; nothing stacks.
+LANE=/volume1/PoeTech/research/nas-lane
+if command -v bash >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+  mkdir -p "$LANE" 2>/dev/null || true
+  RUNNING="$(cat "$LANE/.lock/pid" 2>/dev/null || true)"
+  if [ -n "$RUNNING" ] && kill -0 "$RUNNING" 2>/dev/null; then
+    echo "  a research run is still going (pid $RUNNING) - left alone"
+  else
+    if command -v setsid >/dev/null 2>&1; then DETACH=setsid; else DETACH=""; fi
+    POETECH_REPO="$REPO" $DETACH nohup timeout 3300 bash "$SRC/research-inbox-nas.sh" > "$LANE/run.log" 2>&1 < /dev/null &
+    echo "  started (log $LANE/run.log, ledger $LANE/last-run.json); last run: $(cat "$LANE/last-run.json" 2>/dev/null || echo none yet)"
+  fi
 else
-  echo "  research-bell: python3 not found"
+  echo "  research-inbox-nas: bash or python3 not found"
+fi
+# The GitHub bell is kept for the day a runner road is wanted again, OFF by
+# default: ringing a lane that cannot join only paints the Actions page red.
+if [ "${RESEARCH_BELL_GITHUB:-0}" = 1 ] && command -v python3 >/dev/null 2>&1; then
+  timeout 60 python3 "$SRC/research_bell.py" 2>&1 | sed 's/^/  /' || echo "  research-bell: did not finish (timeout or error); the next cycle tries again"
 fi
 
 echo "== research install: token =="
