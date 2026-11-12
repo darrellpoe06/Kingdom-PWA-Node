@@ -78,7 +78,7 @@ import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView, VALID_VIEWS } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
 import { isReviewerModeOn, isReviewerStranger, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
-import { onAuthChange, signOut } from './lib/supabase.js';
+import { onAuthChange, signOut, supabase } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
 import { useLearnerRecords } from './lib/use-learner-records.js';
@@ -170,7 +170,7 @@ import {
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
-import TierSwitcher from './components/TierSwitcher.jsx';
+import TierSwitcher from './components/TierSwitcher.jsx'; import PoeTechPlusButton from './components/PoeTechPlusButton.jsx'; import { syncMemberTier } from './lib/poetech-plus.js';
 import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME, TLC_DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -699,7 +699,7 @@ function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserT
       </p>
       <div className="flex gap-2 flex-wrap">
         <button type="button" onClick={() => setView('about')} className="bg-[#1A1815] text-white px-5 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">See pricing tiers →</button>
-        <button type="button" onClick={() => setView('overview')} className="border border-[#1A1815] px-5 py-2.5 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">← Back to Big Picture</button>
+        <button type="button" onClick={() => setView('overview')} className="border border-[#1A1815] px-5 py-2.5 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">← Back to Big Picture</button>{requiredTier === 'poetech-plus' && <PoeTechPlusButton />}
       </div>
       {/* Dev-only tier switcher — lets you preview what each tier looks like without paying. */}
       {setUserTier && (
@@ -1837,7 +1837,7 @@ export default function PoeFinancialSystem() {
     const email = (authSession.user?.email || '').toLowerCase();
     if (FAMILY_EMAIL_PROFILES[email]) {
       setData(d => (effectiveTier(d.userTier) === 'business' ? d : { ...d, userTier: 'business' }));
-    }
+    } else syncMemberTier(supabase, setData); // DR-1432: anyone else holds the tier their own paid row says (member_subscriptions), or Foundation
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession]);
 

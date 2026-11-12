@@ -66,6 +66,9 @@ jobs:
           # Sign-ins and failures are on the record (DR-1336): the hook writes
           # 'login' / 'failed-auth' rows, owners read their instance's, members
           # and anon read none, the hook is not callable by the signed-in.
+          - feature: member-subscriptions
+            migrations: "0321-a-poetech-plus-member-holds-their-own-subscription.sql"
+            smokes: "0321-member-subscriptions-smoke.sql"
           - feature: one-person-one-house
             migrations: "0319-one-person-sees-one-house-from-either-sign-in.sql"
             smokes: "0319-one-person-one-house-smoke.sql"

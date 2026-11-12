@@ -1593,6 +1593,21 @@
       "wallClockHours": 0.25,
       "estimateWithoutAiHours": 1.5,
       "notes": "Darrell: lessons in both still; access is what is paid for"
+    },
+    {
+      "id": "poetech-plus-checkout",
+      "date": "2026-11-12",
+      "task": "PoeTech+ checkout: verified buyer, member_subscriptions row (0321), webhook lifecycle, money counted once, truthful button in both apps, cancel portal, one-secret keys workflow",
+      "drs": [
+        "DR-1432"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 24,
+      "notes": "Found household-row activation, missing cancellation path and a double count in the books; all closed with proven-to-catch tests"
     }
   ]
 }

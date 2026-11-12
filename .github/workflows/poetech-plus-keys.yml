@@ -1,0 +1,80 @@
+# PoeTech+ keys -- one value Darrell holds becomes a working checkout (DR-1432).
+# He sets ONE repository secret, STRIPE_SECRET_KEY (his Stripe account). This
+# job makes the $39/month Price, the webhook and the cancel portal from it
+# (scripts/poetech-plus-keys.mjs), installs the Pages secrets with wrangler,
+# redeploys (Pages binds env at deploy time), and proves the LIVE site now
+# offers PoeTech+ (DR-0125: prove the site, not the pipeline).
+# BRAKES: dispatch-only, no clock. A LIVE key (real money) is refused unless
+# the dispatch types CHARGE-REAL-MONEY: prove a test-mode purchase end to end
+# first (Tier C, activate on proof). Re-running is idempotent.
+name: PoeTech+ keys
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: 'Type CHARGE-REAL-MONEY only to install a LIVE key (after a test-mode purchase is proven)'
+        required: false
+        default: ''
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: poetech-plus-keys
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      PROJECT: poetech-app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: The key must exist, and a live key must be meant
+        env:
+          LIVE: ${{ github.event.inputs.live }}
+        run: |
+          [ -n "$STRIPE_SECRET_KEY" ] || { echo "::error::Repository secret STRIPE_SECRET_KEY is not set. Nothing was changed."; exit 1; }
+          case "$STRIPE_SECRET_KEY" in
+            sk_live_*|rk_live_*) [ "$LIVE" = "CHARGE-REAL-MONEY" ] || { echo "::error::This is a LIVE key. Prove a test-mode purchase first, then dispatch with CHARGE-REAL-MONEY. Nothing was changed."; exit 1; } ;;
+          esac
+      - name: Make the Price, webhook and portal in Stripe (values never printed)
+        run: |
+          set -o pipefail
+          umask 077
+          npx --yes wrangler@3 pages secret list --project-name="$PROJECT" > /tmp/before.txt 2>&1
+          FLAG=""; grep -q STRIPE_WEBHOOK_SECRET /tmp/before.txt && FLAG="--pages-has-webhook-secret"
+          node scripts/poetech-plus-keys.mjs --out /tmp/stripe.json $FLAG
+      - name: Install onto the Pages project, then read the names back
+        run: |
+          set -o pipefail
+          npx --yes wrangler@3 pages secret bulk /tmp/stripe.json --project-name="$PROJECT" > /tmp/up.out 2>&1 || { tail -5 /tmp/up.out; exit 1; }
+          shred -u /tmp/stripe.json 2>/dev/null || rm -f /tmp/stripe.json
+          npx --yes wrangler@3 pages secret list --project-name="$PROJECT" > /tmp/after.txt 2>&1
+          for N in STRIPE_SECRET_KEY STRIPE_TIER_PRICES STRIPE_WEBHOOK_SECRET STRIPE_PORTAL_CONFIG SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_KEY; do
+            grep -q "$N" /tmp/after.txt || { echo "::error::Cloudflare does not list $N."; exit 1; }
+          done
+      - name: Leave no key behind
+        if: ${{ always() }}
+        run: rm -f /tmp/stripe.json
+      - name: Redeploy and wait (Pages binds secrets at deploy time)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BEFORE=$(gh run list --workflow deploy-cloudflare-pages.yml --branch main --limit 20 --json databaseId --jq 'map(.databaseId) | max // 0')
+          gh workflow run deploy-cloudflare-pages.yml --ref main
+          RUN=$BEFORE
+          for i in $(seq 1 30); do sleep 10; RUN=$(gh run list --workflow deploy-cloudflare-pages.yml --branch main --limit 20 --json databaseId --jq 'map(.databaseId) | max // 0'); [ "$RUN" != "$BEFORE" ] && break; done
+          [ "$RUN" != "$BEFORE" ] || { echo "::error::No deploy run appeared in 5 minutes."; exit 1; }
+          gh run watch "$RUN" --exit-status
+      - name: WITNESS -- the live site offers PoeTech+
+        run: |
+          BODY=$(curl -sS --max-time 30 -H 'accept: application/json' https://poetech.us/api/checkout || true)
+          echo "GET https://poetech.us/api/checkout -> $BODY" | head -c 300; echo
+          echo "$BODY" | grep -q '"poetech-plus"' || { echo "::error::The live site does not offer PoeTech+ yet (Functions down? see site-health)."; exit 1; }
+          echo "PoeTech+ is for sale on the live site."

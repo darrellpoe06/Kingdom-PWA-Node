@@ -1177,6 +1177,10 @@ jobs:
         run: |
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0319-one-person-sees-one-house-from-either-sign-in.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0319-one-person-one-house-smoke.sql | grep -q 'ONE PERSON ONE HOUSE SMOKE: PASS'
+      - name: 0321 a PoeTech+ member reads only their own row and cannot grant a tier, twice (DR-1432)
+        run: |
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0321-a-poetech-plus-member-holds-their-own-subscription.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0321-member-subscriptions-smoke.sql 2>&1 | grep -q 'MEMBER SUBSCRIPTIONS SMOKE: PASS'
 
   # SIGN-INS AND FAILURES ARE ON THE RECORD (DR-1336, DR-1330 D6): 0315
   # applies twice (idempotent); the smoke proves the hook writes 'login' and

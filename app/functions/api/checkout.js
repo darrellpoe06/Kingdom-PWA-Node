@@ -17,11 +17,21 @@
 // Env (all Darrell's custody): STRIPE_SECRET_KEY, STRIPE_CATALOG,
 // STRIPE_TIER_PRICES, PAYMENTS_INSTANCE_ID (optional — stamps rows to the
 // family instance for steward-scoped reads).
+//
+// A SUBSCRIPTION IS A PERSON'S (DR-1432, the PoeTech+ checkout). The buyer is
+// the signed-in caller, proven by the sovereign auth road (SUPABASE_URL +
+// SUPABASE_ANON_KEY, already installed by push-sender-credentials.yml), never
+// a client-said key. Their user id rides the session (client_reference_id and
+// metadata) and the subscription itself, so the webhook writes the tier onto
+// THAT person's member_subscriptions row (migration 0321), and every later
+// renewal or cancellation finds them again. GET answers which tiers are open
+// for sale, so the app shows a buy button only when one can really work.
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Only same-site return targets: Stripe redirects the buyer here after paying,
 // and an attacker-supplied absolute URL would bounce them (and their session
@@ -40,7 +50,7 @@ export function parseJsonEnv(raw) {
 
 // The seam request -> the Stripe Checkout Session params, or { error } when the
 // request fails the server's own truth (unknown product/tier, bad kind). Pure.
-export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '' } = {}) {
+export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null } = {}) {
   const kind = asStr(req?.kind);
   const userKey = asStr(req?.userKey);
   const success = origin + safeReturnPath(req?.successUrl, '/poetech-app/?paid=1');
@@ -67,13 +77,58 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
     const tier = asStr(req?.tier);
     const priceId = asStr(tierPrices[tier]);
     if (!priceId) return { error: 'unknown-tier' };
+    if (!buyer || !UUID.test(asStr(buyer.userId))) return { error: 'sign-in-required' };
     p.set('mode', 'subscription');
     p.set('line_items[0][quantity]', '1');
     p.set('line_items[0][price]', priceId);
     p.set('metadata[product]', tier);
+    p.set('metadata[tier]', tier);
+    p.set('metadata[userId]', buyer.userId);
+    p.set('metadata[userKey]', asStr(buyer.email) || buyer.userId);
+    p.set('client_reference_id', buyer.userId);
+    if (asStr(buyer.email)) p.set('customer_email', buyer.email);
+    // The subscription carries the person too, so renewals and cancellations
+    // (customer.subscription.*) reach the same row without a lookup table.
+    p.set('subscription_data[metadata][userId]', buyer.userId);
+    p.set('subscription_data[metadata][tier]', tier);
     return { params: p };
   }
   return { error: 'unknown-kind' };
+}
+
+// Who is buying: the caller's own session, checked by the auth server that
+// issued it. Returns { buyer } or { error, status }; never trusts the body.
+export async function verifiedBuyer(request, env = {}, fetchImpl = fetch) {
+  const jwt = /^Bearer\s+(.+)$/i.exec(asStr(request.headers.get('authorization')))?.[1] || '';
+  if (!jwt) return { error: 'sign-in-required', status: 401 };
+  const url = asStr(env.SUPABASE_URL).replace(/\/$/, '');
+  const anon = asStr(env.SUPABASE_ANON_KEY) || asStr(env.VITE_SUPABASE_ANON_KEY);
+  if (!url || !anon) return { error: 'identity-not-configured', status: 503 };
+  let res;
+  try {
+    res = await fetchImpl(`${url}/auth/v1/user`, { headers: { apikey: anon, Authorization: `Bearer ${jwt}` } });
+  } catch { return { error: 'identity-unreachable', status: 502 }; }
+  if (!res || !res.ok) return { error: 'sign-in-required', status: 401 };
+  const user = await res.json().catch(() => null);
+  const userId = asStr(user?.id);
+  if (!UUID.test(userId)) return { error: 'sign-in-required', status: 401 };
+  return { buyer: { userId, email: asStr(user?.email) } };
+}
+
+// Which subscriptions can really be bought right now: a Stripe key, a Price
+// for the tier, and the identity road a subscription needs. Pure.
+export function openTiers(env = {}) {
+  if (!asStr(env.STRIPE_SECRET_KEY)) return [];
+  if (!asStr(env.SUPABASE_URL) || !(asStr(env.SUPABASE_ANON_KEY) || asStr(env.VITE_SUPABASE_ANON_KEY))) return [];
+  const prices = parseJsonEnv(env.STRIPE_TIER_PRICES);
+  return Object.keys(prices).filter((t) => /^price_[A-Za-z0-9]+$/.test(asStr(prices[t]))).sort();
+}
+
+export async function onRequestGet(context) {
+  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}) }), {
+    status: 200,
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+  });
 }
 
 export async function onRequestPost(context) {
@@ -84,12 +139,20 @@ export async function onRequestPost(context) {
   let body;
   try { body = await context.request.json(); } catch { return json({ error: 'bad-json' }, 400); }
 
+  let buyer = null;
+  if (asStr(body?.kind) === 'subscription') {
+    const who = await verifiedBuyer(context.request, env);
+    if (who.error) return json({ error: who.error }, who.status);
+    buyer = who.buyer;
+  }
+
   const origin = new URL(context.request.url).origin;
   const built = toStripeSessionParams(body, {
     catalog: parseJsonEnv(env.STRIPE_CATALOG),
     tierPrices: parseJsonEnv(env.STRIPE_TIER_PRICES),
     origin,
     instanceId: asStr(env.PAYMENTS_INSTANCE_ID),
+    buyer,
   });
   if (built.error) return json({ error: built.error }, 400);
 

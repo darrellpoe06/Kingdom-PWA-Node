@@ -12,6 +12,7 @@
       "path": "app/functions/api/checkout.js",
       "route": "/api/checkout",
       "methods": [
+        "GET",
         "POST"
       ],
       "auth": [
@@ -21,7 +22,10 @@
         "PAYMENTS_INSTANCE_ID",
         "STRIPE_CATALOG",
         "STRIPE_SECRET_KEY",
-        "STRIPE_TIER_PRICES"
+        "STRIPE_TIER_PRICES",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY"
       ]
     },
     {

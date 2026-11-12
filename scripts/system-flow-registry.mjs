@@ -1538,6 +1538,25 @@ const NODES = [
     writes: [{ res: 'db:push_subscriptions', token: 'push_subscriptions' }],
     seeds: ['push-send'],
   }),
+  wf('poetech-plus-keys.yml', {
+    id: 'poetech-plus-keys', name: "PoeTech+ keys: one value of his becomes the checkout (DR-1432)",
+    purpose: "From Darrell's Stripe secret key alone, makes the $39/month Price, the webhook and the cancel portal, installs the Pages secrets, redeploys and proves the live site offers PoeTech+.",
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'gh:secret', token: 'STRIPE_SECRET_KEY' }],
+    writes: [{ res: 'cf:stripe-env', token: 'STRIPE_TIER_PRICES' }],
+    seeds: ['poetech-plus-webhook'],
+  }),
+  app('app/functions/api/stripe-webhook.js', {
+    id: 'poetech-plus-webhook', name: 'A PoeTech+ purchase lands on the buyer (DR-1432)', purpose: "Stripe's verified events write the money once to the books and the paid tier, renewal or cancellation to the buyer's own row.",
+    reads: [{ res: 'http:stripe-webhook', token: 'stripe-signature' }, { res: 'cf:stripe-env', token: 'STRIPE_WEBHOOK_SECRET' }],
+    writes: [{ res: 'db:member_subscriptions', token: 'member_subscriptions' }],
+    seeds: ['poetech-plus-tier'],
+  }),
+  app('app/src/lib/poetech-plus.js', {
+    id: 'poetech-plus-tier', name: 'PoeTech+ is yours (the app reads your row)', purpose: "On sign-in the app's tier follows the person's own paid row; the buy and manage buttons start Stripe's own pages.",
+    reads: [{ res: 'db:member_subscriptions', token: 'member_subscriptions' }],
+    writes: [{ res: 'http:checkout', token: '/api/checkout' }],
+    seeds: [],
+  }),
   app('app/src/lib/door-feedback-sync.js', {
     id: 'door-feedback', name: 'A door’s own feedback + fault reports', purpose: 'A customer says a door is broken; a door that breaks reports itself; the office works each one.',
     writes: [
@@ -2285,6 +2304,10 @@ const RESOURCES = {
   'nas:ytzero-inbox': { label: 'the chosen-channels inbox', sink: 'Darrell reads it himself at its LAN page (port 3701); it is a personal inbox by design, not data another workflow uses.' },
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
+  'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
+  'cf:stripe-env': { label: 'the PoeTech+ Stripe secrets on the Pages project (Cloudflare never returns the values)' },
+  'http:stripe-webhook': { label: "Stripe's signed event about a PoeTech+ purchase", source: "Stripe sends it after a person pays, renews, fails a card or cancels on Stripe's own pages; the signature is verified before a byte is trusted (DR-1432)." },
+  'http:checkout': { label: 'a PoeTech+ checkout started', sink: "Stripe's own checkout page takes the payment; what comes back is the signed webhook event, not this request (DR-1432)." },
   'db:push_subscriptions': { label: 'devices that asked for notifications', proof: { ts: 'last_seen_at', fresh: 30 } },
   'db:door_feedback': { label: 'door feedback + fault reports', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'new'" } },
   'db:push_outbox': { label: 'office pushes waiting', proof: { ts: 'created_at', fresh: 30, consumed: 'sent_at IS NOT NULL' } },
