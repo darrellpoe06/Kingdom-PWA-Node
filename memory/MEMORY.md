@@ -245,7 +245,7 @@ relying on it; memories reflect what was true when written.
 ## Session-learned additions (append per session, newest first)
 
 - **2026-11-12 — the store's product line is DERIVED from the Learn registry
-  (DR-1444)** — `lib/learning-products.js` builds a book, a self-paced video
+  (DR-1447)** — `lib/learning-products.js` builds a book, a self-paced video
   course and a workshop seat from every `LEARN_CATALOG` entry; the book count
   is MEASURED on the lesson BODY (`course-book-fitness.js`: lesson + bigIdea +
   benefits + inApp), never on the curriculum export, which carries facilitator

@@ -73,7 +73,7 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
     p.set('metadata[product]', productId);
     // A signed-in buyer rides the session so the webhook can grant THEIR
     // entitlement (book_entitlements, 0051); a guest still pays, but only a
-    // person can be handed a book (DR-1444 closed the gap: nothing granted).
+    // person can be handed a book (DR-1447 closed the gap: nothing granted).
     if (buyer && UUID.test(asStr(buyer.userId))) {
       p.set('metadata[userId]', buyer.userId);
       p.set('client_reference_id', buyer.userId);
@@ -83,7 +83,7 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
   }
   if (kind === 'workshop') {
     // The seat's price is the EVENT ROW's (workshop_events, 0322), read by
-    // this server; the client's figure never reaches Stripe (DR-1444).
+    // this server; the client's figure never reaches Stripe (DR-1447).
     const ev = event && typeof event === 'object' ? event : null;
     if (!ev || !UUID.test(asStr(ev.id))) return { error: 'unknown-event' };
     if (asStr(ev.status) !== 'open') return { error: 'unknown-event' };

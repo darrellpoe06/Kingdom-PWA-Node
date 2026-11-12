@@ -1,0 +1,60 @@
+{
+  "_comment": "Every file carrying a PARKED promise whose re-review date has already passed, measured 2026-11-12 (DR-1444). DR-0075: a parked thing carries a re-review date and that date IS the promise it is revisited — but nothing ever checked whether the date had PASSED, only that it was shaped like one (system-flow-graph.mjs:205). Measured: 54 of 73 machine-readable dates were already past due, the oldest by 103 days. This baseline is the honest starting line so the gate can refuse NEW drift today rather than wait for a clean slate. Both ceilings are DOWN-ONLY, the same shape as the YAML line ceiling (DR-1342/DR-1343): re-freeze lower with `node scripts/re-review-ratchet-guard.mjs --generate` once dates are moved forward. A ninth file, or one more overdue date in any file already listed, fails the build. THE BLOCKERS ARE NOT COPIED HERE: each item carries its own in the data beside it (buildPath / purchasePath / neededSince / blocker / disabledWhy / why), and duplicating them into this file would create a second place to drift from. `blockersLiveIn` says which field to read.",
+  "maxOverdue": 54,
+  "files": [
+    {
+      "where": "app/src/lib/research-intake.js",
+      "overdue": 16,
+      "blockersLiveIn": "each item's own fields beside its date",
+      "note": "The research backlog the app surfaces to the Governor. Every one of its 16 dates is past due."
+    },
+    {
+      "where": "app/src/lib/seeing-study.js",
+      "overdue": 11,
+      "blockersLiveIn": "each item's own fields beside its date",
+      "note": "All 11 past due."
+    },
+    {
+      "where": "app/src/lib/open-source-candidates.js",
+      "overdue": 8,
+      "blockersLiveIn": "each candidate's own fields beside its date",
+      "note": "8 of 10; the two current ones show the file is maintained, which makes the 8 a backlog rather than an abandoned file."
+    },
+    {
+      "where": "scripts/system-flow-registry.mjs",
+      "overdue": 5,
+      "blockersLiveIn": "open: { blocker, reReview }",
+      "note": "Flow gaps. Three sat at 2026-10-01: the tell-poetech relay (retires when a PoeTech request is seen landing in the feedback queue on the live database), the n8n wf18 bearer (leaves with n8n, DR-0617/DR-0132), and the push_outbox drain (needs a real phone in a hand receiving a push, DR-0400/DR-0334 — no session can hold that proof). The other two are the openers loop's legs, which wait on Darrell's opener hardware in devices.json (DR-0823)."
+    },
+    {
+      "where": "app/src/lib/church-own-door.js",
+      "overdue": 5,
+      "blockersLiveIn": "each item's own fields beside its date",
+      "note": "All 5 past due."
+    },
+    {
+      "where": "app/src/lib/sovereignty-gaps.js",
+      "overdue": 4,
+      "blockersLiveIn": "status / neededSince / buildPath / purchasePath",
+      "note": "Its own line 45 already records this very failure once before: 'OVERDUE BY 52 DAYS when this was found (2026-09-14) — nothing surfaced it, which is the DR-0075 failure the date exists to prevent.' It was written down and nothing was built; that comment is why this gate exists."
+    },
+    {
+      "where": "infra/nas-loops/services.json",
+      "overdue": 2,
+      "blockersLiveIn": "disabledWhy",
+      "note": "openers (Tier C by definition — the only service driving a physical actuator on the family's house, armed by hand and never by a merge, DR-0823; its three brakes are already built and proven in CI, so only the arming is his) and fill-versions (its first two runs watched live on the NAS with the ledger and cache-read counts in hand, DR-1266/DR-1225)."
+    },
+    {
+      "where": "app/src/lib/intake-outcomes.js",
+      "overdue": 2,
+      "blockersLiveIn": "each item's own fields beside its date",
+      "note": "Both past due."
+    },
+    {
+      "where": "scripts/contrast-guard.mjs",
+      "overdue": 1,
+      "blockersLiveIn": "the allow-list entry's own why",
+      "note": "THE OLDEST PROMISE IN THE HOUSE, 103 days, and the only one with a cost a reader pays: brand rust #B85838 on the cream base measures ~4.2-4.4:1 in every light theme — sub-AA — passing only on the white card at 4.68:1. Parked because darkening a shared brand token is cross-cutting, which is a real reason and not a reason to stop measuring. Needs a decision on the token."
+    }
+  ]
+}

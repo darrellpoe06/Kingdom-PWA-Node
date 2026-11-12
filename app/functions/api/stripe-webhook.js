@@ -151,7 +151,7 @@ const isoFromSeconds = (n) => (Number.isFinite(n) && n > 0 ? new Date(n * 1000).
 
 // bookEntitlementGrant — a PAID book session with a verified buyer hands THAT
 // person the book (grant_book_entitlement, migration 0051, service role only).
-// DR-1444 closed the gap: the ledger counted every book sale and nobody was
+// DR-1447 closed the gap: the ledger counted every book sale and nobody was
 // ever handed the book. A guest purchase (no userId) grants nothing here —
 // there is no person to hand it to. Pure.
 export function bookEntitlementGrant(evt = {}) {
@@ -346,7 +346,7 @@ export async function onRequestPost(context) {
   }
 
   // ── 1b. THE BOOK, THE SEAT: a paid one-off is handed to its buyer ────────
-  // (DR-1444.) A failed write answers 500 so Stripe retries; the ledger insert
+  // (DR-1447.) A failed write answers 500 so Stripe retries; the ledger insert
   // above is idempotent and both writes below are keyed per person, so a
   // retry hands the same book or seat once.
   const grant = bookEntitlementGrant(evt);

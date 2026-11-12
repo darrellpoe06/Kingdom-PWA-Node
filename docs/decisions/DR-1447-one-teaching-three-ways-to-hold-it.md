@@ -1,4 +1,4 @@
-# DR-1444: One teaching, three ways to hold it: the book, the self-paced video course, the in-person workshop seat
+# DR-1447: One teaching, three ways to hold it: the book, the self-paced video course, the in-person workshop seat
 
 **Date:** 2026-11-12
 **Status:** Accepted (built and proven; the first live seat and the first video are the watched steps)

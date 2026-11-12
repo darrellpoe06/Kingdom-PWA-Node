@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // learning-products — one teaching, three ways to hold it, derived from the
-// live registry (DR-1444)
+// live registry (DR-1447)
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';

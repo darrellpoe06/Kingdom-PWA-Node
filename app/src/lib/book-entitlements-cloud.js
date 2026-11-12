@@ -2,7 +2,7 @@
 // book-entitlements-cloud — the books a signed-in person owns, read from their
 // own rows (book_entitlements, migration 0051; RLS returns only theirs)
 // =============================================================================
-// DR-1444. The Stripe webhook now hands a paid book to its buyer by writing
+// DR-1447. The Stripe webhook now hands a paid book to its buyer by writing
 // this table (grant_book_entitlement). Until this module, nothing in the app
 // read it back: the store's "Owned" came only from the device-local record,
 // so a book bought on the phone was unowned on the laptop. One read, one

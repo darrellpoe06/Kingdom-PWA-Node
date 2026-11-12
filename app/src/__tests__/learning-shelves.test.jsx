@@ -2,7 +2,7 @@
 // =============================================================================
 // LearningShelves + LessonVideo — the store's course and workshop shelves say
 // what they see, and a lesson paints a player only when one is recorded
-// (DR-1444)
+// (DR-1447)
 // =============================================================================
 // Copy and behavior together (DR-0691): where a shelf promises a state, a
 // test renders that state and reads the words a person would read.

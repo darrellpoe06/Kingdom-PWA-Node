@@ -2,7 +2,7 @@
 // =============================================================================
 // the-learning-products-checkout — a book is handed to its buyer, a workshop
 // seat is a person's at the event row's price, and the firewall admits both
-// (DR-1444)
+// (DR-1447)
 // =============================================================================
 // Measured before this shipped: the ledger counted every book sale and
 // grant_book_entitlement was called nowhere (nobody was ever handed the

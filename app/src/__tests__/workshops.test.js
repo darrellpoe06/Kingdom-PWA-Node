@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // workshops — the app's half of a seat: reads only what the house opened,
-// counts seats through the database, and starts checkout as a person (DR-1444)
+// counts seats through the database, and starts checkout as a person (DR-1447)
 // =============================================================================
 import { describe, it, expect, vi } from 'vitest';
 import {
