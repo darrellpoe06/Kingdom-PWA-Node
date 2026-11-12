@@ -133,7 +133,14 @@
       "to": 23064,
       "dr": "DR-1441",
       "reason": "A required guard step in ci.yml for reviewer-lens-registry-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment was five lines in its first draft (the whole Darrell-read-the-banner narrative) and was folded to two, with the narrative kept in the guard's own header and the record. Raised to the measured total, not above it. Re-froze at 23062 after merging main (DR-1443's PR landed fewer YAML lines than it replaced), so the ceiling sits at the measured total, not at the raise."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 23062,
+      "to": 23065,
+      "dr": "DR-1444",
+      "reason": "A required guard step in ci.yml for re-review-ratchet-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment is two lines, the same shape as the reviewer-lens step beside it, with the narrative in the guard's own header and DR-1444. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23062
+  "totalLines": 23065
 }
