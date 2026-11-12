@@ -10,7 +10,7 @@
 // each, three at a time, so the grid filled one square at a time over 33
 // round trips. And the row's toggle painted its orange focus frame on a TAP
 // (focus:, not focus-visible:), which stayed around the whole card until the
-// next tap landed somewhere else — a colour that changed on its own.
+// next tap landed somewhere else — a color that changed on its own.
 //
 // PROVEN TO CATCH: drop the warm-up from PictureStrip and "one ask" fails;
 // let warmThumbs skip the pending registration and "a tile that comes on

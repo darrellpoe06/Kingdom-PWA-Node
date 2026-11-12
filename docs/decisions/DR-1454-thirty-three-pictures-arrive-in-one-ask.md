@@ -13,7 +13,7 @@ DR-0955 made every tile ask for its own thumbnail when it comes on screen, three
 
 ## What was measured
 - **Screenshot 2:** eleven pale squares drawn, none filled, under a note with 33 pictures; `PHOTO_OPS.thumb` calls `loadPhotoThumbs([id])` for ONE id, and `SharpPicture` runs at most three such asks at once. The store already answers twelve ids in one call (`PHOTO_THUMB_BATCH = 12`).
-- **Screenshot 2, the orange frame around #13:** the row's toggle carries `focus:outline` (`FOCUS_RING`). On a touch screen a tap focuses the button and the 2 px orange frame stays around the whole card until the next tap lands elsewhere. Nothing in the data changed colour; the frame appeared and left with the reader's taps.
+- **Screenshot 2, the orange frame around #13:** the row's toggle carries `focus:outline` (`FOCUS_RING`). On a touch screen a tap focuses the button and the 2 px orange frame stays around the whole card until the next tap lands elsewhere. Nothing in the data changed color; the frame appeared and left with the reader's taps.
 
 ## Impact
 An opened work order's pictures arrive in three asks instead of thirty-three, and the grid fills together. The card no longer takes an orange frame from a tap; a keyboard still sees the ring.
