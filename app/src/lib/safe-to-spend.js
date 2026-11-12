@@ -53,7 +53,7 @@
 // Tests: src/__tests__/safe-to-spend.test.js.
 // =============================================================================
 
-import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints } from './financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 import { cleanName, suggestBills, isOwnAccountTransfer } from './bill-review.js';
@@ -325,7 +325,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     const amount = Number(o.amount) || 0; if (amount <= 0) continue;
     seenPayees.add(payeeKey(o.name || ''));
     const type = OBLIGATION_TYPES.includes(o.type) ? o.type : 'regular';
-    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId || null, paidByEntityId: paidBy, assumed: false };
+    const base = { amount: -round2(amount), label: o.name || 'Obligation', kind: 'bill', obligationType: type, category: o.category || 'other', source: 'obligation', refId: o.id, entityId: o.entityId || null, paidByEntityId: paidBy, accountId: o.accountId && accountEntity.has(o.accountId) ? o.accountId : null, assumed: false };
     // A separate past-due amount on a regular bill or arrangement is owed now.
     const pastDue = Number(o.pastDue) || 0;
     if (pastDue > 0 && type !== 'past-due') {
@@ -410,7 +410,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
     const amt = Number(t.amount) || 0; if (!amt) continue;
     scheduledKeys.add(payeeKey(t.description || ''));
-    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, assumed: false });
+    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false });
   }
 
   // 3) Minimum debt payments + mortgage P&I/escrow, once each. A mortgage
@@ -738,10 +738,13 @@ export function settleOccurrences(events, data, asOf) {
       // A missed occurrence is dated today but was DUE earlier; the payment
       // window opens half a cycle before the due date, not before today.
       const from = addDays(parseDay(ev.dueDate || ev.date), -half);
-      const k = payeeKey((o && o.name) || ev.label || '');
+      // Every spelling the bill is known by: its name, and the bank's own
+      // ("FIRST STATE BK LOAN PMT 5342" for "First State Bank loan 5342") as
+      // the review screen recorded it (paidAs / alsoPaidAs).
+      const names = [...new Set([(o && o.name) || ev.label || '', o && o.paidAs, ...((o && o.alsoPaidAs) || [])].filter(Boolean).map((n) => payeeKey(n)).filter(Boolean))];
       for (const x of debits) {
         if (paid >= due - 0.005) break;
-        if (x.left <= 0.005 || x.d < from || !samePayee(x.key, k)) continue;
+        if (x.left <= 0.005 || x.d < from || !names.some((k) => samePayee(x.key, k))) continue;
         const take = Math.min(x.left, due - paid);
         x.left = round2(x.left - take); paid = round2(paid + take); ledgerIds.push(x.id);
       }
@@ -898,13 +901,22 @@ export function ledgerFreshness(data, sc, asOf, settings = {}) {
 // bills, overdue items, creditor arrangements and settlements, and expected
 // income, each with the items that make it up (every number can be opened).
 function comingUp(data, sc, start, settings, opts) {
+  const end30 = addDays(start, 30);
   const end14 = addDays(start, 14);
   const end7 = addDays(start, 7);
-  const ob = obligationEvents(data, sc, start, end14, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
-  const inc = incomeEvents(data, sc, addDays(start, 1), end14, settings, start);
-  const out = ob.events.filter((e) => e.amount < 0);
+  // One 30-day walk; the 7- and 14-day windows are its earlier days (the
+  // events are the same whatever the end), so the three can never disagree.
+  const ob = obligationEvents(data, sc, start, end30, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
+  const inc = incomeEvents(data, sc, addDays(start, 1), end30, settings, start);
+  const out30 = ob.events.filter((e) => e.amount < 0);
+  const out = out30.filter((e) => e.date <= isoDay(end14));
   const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
+  // Past-due obligations are their own list, apart from the regular monthly
+  // bills (Darrell 2026-11-11): a missed loan payment (overdue, in or past
+  // its grace period) or a past-due balance entered as such.
+  const isPastDue = (e) => !!e.overdue || !!e.graceState || e.obligationType === 'past-due';
+  const incomeThrough = (end) => { const xs = inc.events.filter((e) => e.date <= isoDay(end)); return { total: round2(xs.reduce((s, e) => s + e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) }; };
   // What is NOT subtracted, shown beside what is: payments already paid and
   // cleared (in the ledger, marked paid outside, or inside the bank-checked
   // balance) and the possible duplicates counted once.
@@ -917,9 +929,20 @@ function comingUp(data, sc, start, settings, opts) {
     duplicates: { total: round2(dupes.reduce((a, e) => a + e.amount, 0)), items: dupes },
     next7: pick(in7),
     next14: pick(out),
+    next30: pick(out30),
+    // Regular bills in each window with the past-due ones taken out, so a
+    // missed payment is never read as this month's bill.
+    regular7: pick(in7.filter((e) => !isPastDue(e))),
+    regular14: pick(out.filter((e) => !isPastDue(e))),
+    regular30: pick(out30.filter((e) => !isPastDue(e))),
+    pastDue: pick(out30.filter(isPastDue)),
     overdue: pick(out.filter((e) => e.overdue)),
     arrangements: pick(out.filter((e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement')),
-    income14: { total: round2(inc.events.reduce((s, e) => s + e.amount, 0)), items: inc.events.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) },
+    // Income expected BEFORE each window's bills are due: what arrives inside
+    // the same window (counted only on the day it arrives, never earlier).
+    income7: incomeThrough(end7),
+    income14: incomeThrough(end14),
+    income30: incomeThrough(end30),
   };
 }
 
@@ -952,16 +975,70 @@ export function extraDebtCapacity(data, opts = {}) {
   const chosen = buildSafeToSpend(data, opts);
   const month = buildSafeToSpend(data, { ...opts, period: '30d' });
   const amount = round2(Math.max(0, Math.min(chosen.safeToSpendNow, month.safeToSpendNow)));
+  // ONE POOL, TWO USES (Christina 2026-11-11: "Help me determine how much I
+  // can safely contribute toward my reserve and additional debt payments
+  // after accounting for upcoming bills"). What is safe today above the
+  // designated cushion can be set aside as reserve or paid toward debt; the
+  // suggestion fills the reserve goal first (an emergency reserve is what
+  // keeps the next missed paycheck from becoming new debt), and the rest goes
+  // to debt. Setting money aside raises the cushion, so the next read of this
+  // line is smaller by exactly that amount — never counted twice.
+  const rs = (chosen.lines && chosen.lines.reserve) || { goal: 0, designated: 0, remaining: 0 };
+  const toReserve = round2(Math.min(amount, Number(rs.remaining) || 0));
   return {
     amount,
     status: chosen.status === 'unavailable' || month.status === 'unavailable' ? 'unavailable' : (chosen.status === 'verified' && month.status === 'verified' ? 'verified' : 'estimate'),
     chosen: { label: chosen.period.label, safe: chosen.safeToSpendNow, lowest: chosen.lines.projectedLowest },
     month: { label: month.period.label, safe: month.safeToSpendNow, lowest: month.lines.projectedLowest },
+    reserve: { goal: rs.goal, designated: rs.designated, remaining: rs.remaining, suggested: toReserve, debtAfter: round2(amount - toReserve) },
   };
 }
 
 // A bank check older than this no longer counts as current.
 export const CHECKPOINT_FRESH_DAYS = 14;
+
+// The Personal pocket's emergency-reserve GOAL when none has been saved
+// (Christina 2026-11-11: "I am working toward saving $10,000"). A goal, never
+// a cushion: nothing is protected until money is actually set aside.
+export const DEFAULT_PERSONAL_RESERVE_GOAL = 10000;
+
+// What a pocket has set aside, what it is saving toward, and the cushion the
+// walk protects. Pure; shared by the walk, the capacity line and the panel.
+//   designated = the reserve typed under the pocket's key (money set aside by
+//                hand) + every designation in moneyPlan.reserveDesignations
+//                for the pocket (date, amount, note), newest last;
+//   goal       = settings.reserveGoalByEntity[key], else $10,000 for Personal,
+//                else 0;
+//   cushion    = designated when anything is set aside; else the explicit
+//                household cushion for Personal, or the business chain.
+export function reserveStatus(data, settings = {}, sc) {
+  const reserves = settings.reserveByEntity || {};
+  const goals = settings.reserveGoalByEntity || {};
+  const hasKey = (k) => reserves[k] != null && reserves[k] !== '' && Number.isFinite(Number(reserves[k]));
+  const key = sc.kind === 'personal' ? (hasKey('personal') || !hasKey(sc.id) ? 'personal' : sc.id) : sc.id;
+  const typed = hasKey(key) ? round2(Number(reserves[key])) : null;
+  const designations = (data?.moneyPlan?.reserveDesignations || [])
+    .filter((d) => d && (d.scope === key || (sc.kind === 'personal' && (d.scope === 'personal' || sc.entityIds.includes(d.scope)))) && Number.isFinite(Number(d.amount)))
+    .map((d) => ({ id: d.id, date: String(d.date || '').slice(0, 10), amount: round2(Number(d.amount)), note: d.note || '' }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const fromDesignations = round2(designations.reduce((s, d) => s + d.amount, 0));
+  const designated = round2(Math.max(0, (typed || 0) + fromDesignations));
+  const anySetAside = typed != null || designations.length > 0;
+  const goalKey = goals[key] != null && goals[key] !== '' && Number.isFinite(Number(goals[key])) ? Number(goals[key]) : (sc.kind === 'personal' && goals.personal != null && goals.personal !== '' ? Number(goals.personal) : null);
+  const goal = round2(goalKey != null ? goalKey : (sc.kind === 'personal' ? DEFAULT_PERSONAL_RESERVE_GOAL : 0));
+  const household = settings.minCushion != null && settings.minCushion !== '' ? round2(Number(settings.minCushion)) : null;
+  let cushion; let source;
+  if (anySetAside) { cushion = designated; source = 'designated'; }
+  else if (household != null) { cushion = household; source = 'household'; }
+  else if (sc.kind === 'personal') { cushion = 0; source = 'none'; }
+  else { cushion = round2(Number(data?.meta?.bufferTarget) || 0); source = cushion > 0 ? 'household' : 'none'; }
+  const remaining = round2(Math.max(0, goal - designated));
+  return {
+    key, goal, designated, typed, designations, remaining, cushion, source,
+    pct: goal > 0 ? Math.min(100, Math.round((designated / goal) * 100)) : null,
+    goalSource: goalKey != null ? 'saved' : (sc.kind === 'personal' ? 'default' : 'none'),
+  };
+}
 
 export function buildSafeToSpend(data, opts = {}) {
   const asOfRaw = opts.currentDate instanceof Date ? opts.currentDate : new Date();
@@ -1006,6 +1083,22 @@ function forScope(data, sc, asOf, settings, opts) {
   const checked = latestCheckpoints(data, asOf);
   const anyChecked = spendable.some((a) => checked[a.id]);
   const balanceOf = (a) => (balances[a.id] != null ? balances[a.id] : (Number(a.balance) || 0));
+  // THE TRAIL BEHIND EACH FIGURE (Darrell 2026-11-11): every bank check the
+  // account carries, the rows that moved it since the one in force, and any
+  // check dated AFTER today (a misread screenshot day), which is never used
+  // and is said so, instead of an older figure standing in silence.
+  const history = checkpointHistory(data);
+  const asOfDay = isoDay(asOf);
+  const trailOf = (a, cp) => {
+    const cps = (history[a.id] || []);
+    const since = cp ? (data?.transactions || []).filter((t) => t && t.accountId === a.id && !isBalanceAdjustment(t) && String(t.date || '').slice(0, 10) > cp.day && String(t.date || '').slice(0, 10) <= asOfDay) : [];
+    const later = cps.filter((c) => c.day > asOfDay);
+    return {
+      checkpoints: cps.slice().reverse().slice(0, 5).map((c) => ({ day: c.day, balance: c.balance, basis: c.basis, source: c.source })),
+      sinceVerified: cp ? { count: since.length, net: round2(since.reduce((s, t) => s + (Number(t.amount) || 0), 0)) } : null,
+      laterCheckpoint: later.length ? { day: later[later.length - 1].day, balance: later[later.length - 1].balance, source: later[later.length - 1].source } : null,
+    };
+  };
   const balanceSources = spendable.map((a) => {
     const cp = checked[a.id];
     // A PROVISIONAL balance is the family's own approximate figure ("about
@@ -1021,8 +1114,12 @@ function forScope(data, sc, asOf, settings, opts) {
       verifiedDaysAgo: cp && !provisional ? daysBetween(parseDay(cp.day), asOf) : null,
       provisional, provisionalOn: provisional ? cp.day : null,
       counted: anyChecked ? !!cp : true,
+      ...trailOf(a, cp),
     };
   });
+  for (const b of balanceSources) {
+    if (b.laterCheckpoint) assumptions.push(`${b.name}: a verified balance of $${b.laterCheckpoint.balance.toLocaleString()} is dated ${b.laterCheckpoint.day}, after today, so it is not used yet${b.laterCheckpoint.source ? ` (${b.laterCheckpoint.source})` : ''}; if that day is wrong, correct the screenshot's day.`);
+  }
   const availableCash = round2(balanceSources.filter((b) => b.counted).reduce((s, b) => s + b.balance, 0));
   const unverifiedExcluded = round2(balanceSources.filter((b) => !b.counted).reduce((s, b) => s + b.balance, 0));
   const investments = round2((data?.accounts || []).filter((a) => a.type === 'investment' && !a.inLegal && inScope(sc, a.entityId)).reduce((s, a) => s + (balances[a.id] || 0), 0));
@@ -1036,16 +1133,26 @@ function forScope(data, sc, asOf, settings, opts) {
   // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
   // reserve, as before.
-  const reserves = settings.reserveByEntity || {};
   // Every personal pocket (the Personal view, the Personal row of the combined
   // view) reads ONE key, 'personal', so the reserve she sets is the reserve
   // every Money screen uses.
-  const hasKey = (k) => reserves[k] != null && reserves[k] !== '';
-  const ownReserve = sc.kind === 'personal' ? (hasKey('personal') ? reserves.personal : (hasKey(sc.id) ? reserves[sc.id] : undefined)) : (hasKey(sc.id) ? reserves[sc.id] : undefined);
-  const hasOwnReserve = ownReserve != null && ownReserve !== '' && Number.isFinite(Number(ownReserve));
-  const minCushion = round2(hasOwnReserve ? Number(ownReserve) : (settings.minCushion != null && settings.minCushion !== '' ? Number(settings.minCushion) : (Number(data?.meta?.bufferTarget) || 0)));
+  // THE GOAL IS NOT THE CUSHION (Christina 2026-11-11: "The $10,000 reserve is
+  // my SAVINGS GOAL, not my current reserve balance... Only protect money I
+  // have actually designated as reserved"). The cushion every projected day
+  // must stay above is the money SET ASIDE for this pocket — the reserve
+  // figure typed under the pocket's key plus every designation recorded in
+  // moneyPlan.reserveDesignations — never the goal. The goal is tracked
+  // beside it (lines.reserve) with what is still to be saved. A Personal
+  // pocket with nothing set aside protects an explicit household cushion
+  // (settings.minCushion) if one was typed, else nothing: a target on file
+  // (meta.bufferTarget) is a goal too and is never subtracted from what is
+  // spendable. Business pockets keep their own chain (their key, else the
+  // household cushion, else the buffer target), unchanged.
+  const reserve = reserveStatus(data, settings, sc);
+  const minCushion = reserve.cushion;
+  if (reserve.source === 'none') assumptions.push(`${sc.label}: nothing is set aside as a reserve yet, so no cushion is protected; the $${reserve.goal.toLocaleString()} goal is tracked, not subtracted.`);
   const windows = comingUp(data, sc, start, settings, opts);
-  windows.reserveSource = hasOwnReserve ? 'entity' : 'household';
+  windows.reserveSource = reserve.source;
 
   // Day-by-day walk.
   const items = [...income.events, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
@@ -1157,6 +1264,7 @@ function forScope(data, sc, asOf, settings, opts) {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
       minCushion, otherCommitments, expectedIncome,
+      reserve: { goal: reserve.goal, designated: reserve.designated, remaining: reserve.remaining, pct: reserve.pct, source: reserve.source, goalSource: reserve.goalSource, key: reserve.key, typed: reserve.typed, designations: reserve.designations },
       projectedLowest: lowest,
       toLowest,
       nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred } : null,
@@ -1232,6 +1340,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       availableCash: sumLine('availableCash'), investmentsHeldApart: sumLine('investmentsHeldApart'), pendingHolds: 0,
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),
       minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'),
+      reserve: ['goal', 'designated', 'remaining'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + (((r.lines || {}).reserve || {})[k] || 0), 0)); return acc; }, { pct: null, source: 'summed', goalSource: 'summed', key: null, typed: null, designations: [] }),
       projectedLowest: { amount: lowestSum, date: null },
       toLowest: ['income', 'bills', 'debtMinimums', 'taxesDated', 'other', 'living', 'taxes', 'savings', 'reserves', 'obligations'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + ((r.lines.toLowest || {})[k] || 0), 0)); return acc; }, { date: null, days: null }),
       nextIncome, potentialDebtPayment: safe,
@@ -1247,7 +1356,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     // The combined view lists every entity's bills and income side by side,
     // each item tagged with the pocket it comes out of — a total of what is
     // DUE, never a pool of who may spend what.
-    windows: ['next7', 'next14', 'overdue', 'arrangements', 'income14'].reduce((w, k) => {
+    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30'].reduce((w, k) => {
       const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
       w[k] = {
         total: round2(parts.reduce((s, { part }) => s + (Number(part.total) || 0), 0)),

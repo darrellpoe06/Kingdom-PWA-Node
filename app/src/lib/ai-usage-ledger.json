@@ -1653,6 +1653,23 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell's screenshot: 2 of 51 beside courses read in full at 100%"
+    },
+    {
+      "id": "dr-1435-money-reserve-trace-day-boundary",
+      "date": "2026-11-11",
+      "task": "FOS Money go-live pass stacked on PR #2609: the $10,000 emergency reserve as a GOAL with money set aside tracked apart (designations, one pool for reserve and extra debt), the per-row balance trace under each account, and the calendar-day clearing fix; a forecast and 30-day windows built first, then dropped for #2609's",
+      "drs": [
+        "DR-1435"
+      ],
+      "prs": [
+        2610
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "Christina's go-live brief, then her correction before merge: the $10,000 is a savings goal, not a cushion; only designated money is protected. Two sessions on one brief; restacked on fix/money-three-accounts with only what it lacked. Live 3322/8168 figures unreachable from the sandbox (no NAS road)."
     }
   ]
 }

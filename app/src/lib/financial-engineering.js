@@ -104,17 +104,23 @@ export function deriveAccountBalances(data, asOf = new Date()) {
   const clearedByAccount = {};
   const rowsByAccount = {};
   const checkpointsByAccount = {};
+  const asOfDay = localDay(asOf);
   for (const t of data?.transactions || []) {
     if (!t || !t.accountId) continue;
     const cp = balanceCheckpoint(t);
     if (cp) { (checkpointsByAccount[t.accountId] ||= []).push(cp); continue; }
     const d = new Date(t.date);
     if (isNaN(d.getTime())) continue;
-    (rowsByAccount[t.accountId] ||= []).push({ day: String(t.date).slice(0, 10), amount: Number(t.amount) || 0, cleared: d <= asOf });
-    if (d > asOf) continue; // only settled history
+    // A row is cleared when its DAY is today or earlier, judged on the local
+    // calendar (2026-11-11). `new Date('2026-11-12')` is UTC midnight, which is
+    // the evening of the 11th in Central time, so a bill-pay row scheduled for
+    // tomorrow was being subtracted from a verified balance tonight.
+    const day = /^\d{4}-\d{2}-\d{2}/.test(String(t.date)) ? String(t.date).slice(0, 10) : localDay(d);
+    const cleared = day <= asOfDay;
+    (rowsByAccount[t.accountId] ||= []).push({ day, amount: Number(t.amount) || 0, cleared });
+    if (!cleared) continue; // only settled history
     clearedByAccount[t.accountId] = (clearedByAccount[t.accountId] || 0) + (Number(t.amount) || 0);
   }
-  const asOfDay = localDay(asOf);
   const out = {};
   for (const a of data?.accounts || []) {
     const cps = (checkpointsByAccount[a.id] || []).slice().sort((x, y) => x.day.localeCompare(y.day));
@@ -151,6 +157,57 @@ export function latestCheckpoints(data, asOf = new Date()) {
     if (!out[t.accountId] || cp.day >= out[t.accountId].day) out[t.accountId] = cp;
   }
   return out;
+}
+
+// Every verified checkpoint an account carries, oldest first — the trail a
+// person reads to see WHICH figure is in force and why (Darrell 2026-11-11:
+// two business balances showed older figures; the trail says whether a newer
+// screenshot was ever recorded, or recorded with a later day).
+export function checkpointHistory(data) {
+  const out = {};
+  for (const t of data?.transactions || []) {
+    const cp = t && t.accountId ? balanceCheckpoint(t) : null;
+    if (!cp) continue;
+    (out[t.accountId] ||= []).push({ ...cp, id: t.id || null });
+  }
+  for (const id of Object.keys(out)) out[id].sort((x, y) => x.day.localeCompare(y.day));
+  return out;
+}
+
+// -----------------------------------------------------------------------------
+// balanceTrace — WHY an account reads what it reads, row by row (Christina
+// 2026-11-11: the bank showed Poe Properties 3322 at $4,479.53 and TLC 8168 at
+// $370.69 while the app showed $2,540 and $38). The displayed figure is the
+// latest bank-verified checkpoint on or before `asOf` plus every cleared row
+// dated AFTER that day; this returns exactly those parts — the checkpoint, each
+// row with its day, description and amount, their sum, and the result — so a
+// surface can print "verified $4,479.53 on 11-09 · 3 rows since −$1,939.53 =
+// $2,540" and list the three. With no checkpoint it names the anchor and every
+// cleared row. Complements checkpointHistory (which checks are on file) and the
+// engine's sinceVerified (count and net). Pure.
+// -----------------------------------------------------------------------------
+export function balanceTrace(data, accountId, asOf = new Date()) {
+  const asOfDay = localDay(asOf);
+  const acct = (data?.accounts || []).find((a) => a && a.id === accountId) || null;
+  const cps = [];
+  const rows = [];
+  for (const t of data?.transactions || []) {
+    if (!t || t.accountId !== accountId) continue;
+    const cp = balanceCheckpoint(t);
+    if (cp) { if (cp.day <= asOfDay) cps.push(cp); continue; }
+    const d = new Date(t.date);
+    if (isNaN(d.getTime())) continue;
+    const day = /^\d{4}-\d{2}-\d{2}/.test(String(t.date)) ? String(t.date).slice(0, 10) : localDay(d);
+    if (day > asOfDay) continue;
+    rows.push({ id: t.id, day, amount: round2(Number(t.amount) || 0), description: t.description || '', category: t.category || null, pending: !!t.pending, source: t.source || null });
+  }
+  cps.sort((x, y) => x.day.localeCompare(y.day));
+  const cp = cps.length ? cps[cps.length - 1] : null;
+  const since = (cp ? rows.filter((r) => r.day > cp.day) : rows).sort((a, b) => a.day.localeCompare(b.day) || String(a.id).localeCompare(String(b.id)));
+  const sumSince = round2(since.reduce((s, r) => s + r.amount, 0));
+  const anchor = cp ? null : round2(acct && acct.openingBalance != null ? acct.openingBalance : (acct && acct.balance) || 0);
+  const balance = round2((cp ? cp.balance : anchor) + sumSince);
+  return { accountId, checkpoint: cp, anchor, rowsSince: since, sumSince, balance, asOf: asOfDay };
 }
 
 // -----------------------------------------------------------------------------

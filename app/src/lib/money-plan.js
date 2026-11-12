@@ -36,12 +36,14 @@ export function emptyMoneyPlan() {
       taxAmounts: {},          // { [taxCalendarItemId]: annual amount }
       savingsMonthly: null,    // planned savings per month
       minCushion: null,        // the minimum cash cushion; null = meta.bufferTarget
+      reserveGoalByEntity: {}, // { personal: 10000, [entityId]: n } — the emergency-reserve GOAL per pocket (a target, never subtracted)
       includeInferredBills: true,
       staleDays: 14,
       privacy: false,          // hide amounts when others are nearby
       scope: 'personal',
     },
     goalMeta: {},              // { [goalId]: { kind, linkedAccountIds, monthlyContribution } }
+    reserveDesignations: [],   // [{ id, scope: 'personal' | entityId, date, amount, note }] — money actually SET ASIDE as reserve (Christina 2026-11-11)
     billStatus: {},            // { [`${refId}:${date}`]: { status, at } }
     budgets: {},               // { [periodKey]: { income, categories: { [cat]: planned } } }
   };

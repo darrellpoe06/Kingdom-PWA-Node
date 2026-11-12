@@ -28,6 +28,31 @@ string "unknown" in each of them -- never 0:
            answer, so it is reported as unknown WITH its age
 Only exit 0 means a number anyone may act on. The key is read from the
 environment and never printed.
+
+WHAT THIS ROAD MAY CARRY, AND WHAT IT MUST NEVER (2026-11-12, measured when
+the four lesson-intake lanes were checked against it one by one). The anon key
+is PUBLIC by nature -- it ships inside the bundle every browser downloads -- so
+this road is a public endpoint, and it answers exactly one kind of question:
+"does work wait?", in counts and ages. It does not generalise:
+
+  inbox-lessons-waiting.yml  FITS. It asks only for the count (this script).
+  lesson-inbox-bell.yml      DOES NOT. It runs a proof query, reads the NAS
+                             bell state over ssh, and reads pg_extension /
+                             pg_trigger; a counts-only receipt cannot stand in
+                             for any of those. It needs the tailnet.
+  inbox-lesson-body.yml      MUST NEVER. Its whole purpose is to carry a row's
+                             BODY -- a person's own words. Putting a body, or
+                             any field that could reconstruct one, behind a
+                             public key would publish a teaching. This is a
+                             bright line, not a preference (DR-0611, and the
+                             never-a-body rule the lanes all carry).
+  lessons-sync.yml           UNEXAMINED. It does not share the waiting query,
+                             so it asks a different question; decide it on its
+                             own evidence rather than by this pattern.
+
+So the TS_AUTHKEY is still genuinely needed by three of the four. Anyone
+reaching for this road for a new lane: check which question the lane asks
+first. If the answer is anything but a count, this is the wrong road.
 """
 
 import argparse

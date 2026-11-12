@@ -16,7 +16,19 @@
 import { planAccountImport, detectAccount } from './bulk-statement-import.js';
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const last4Of = (a) => String((a && (a.fragment || a.last4 || a.mask)) || '').replace(/\D/g, '').slice(-4);
+/**
+ * The last four digits an account is known by. The fragment field first; when
+ * an account was named by its digits and never given a fragment ("Chase 3322",
+ * "TLC Therapy Solutions 8168"), the four digits in its name (Darrell
+ * 2026-11-11: two business screenshots stayed off their accounts).
+ */
+export function accountLast4(a) {
+  const frag = String((a && (a.fragment || a.last4 || a.mask)) || '').replace(/\D/g, '').slice(-4);
+  if (frag.length === 4) return frag;
+  const m = String((a && a.name) || '').match(/(?:^|\D)(\d{4})(?!\d)/g);
+  return m ? m[m.length - 1].replace(/\D/g, '') : '';
+}
+const last4Of = accountLast4;
 
 /** Accounts that could be this document's account, best first, with the reason. */
 export function accountCandidates(x = {}, accounts = []) {

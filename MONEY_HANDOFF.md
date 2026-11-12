@@ -64,6 +64,33 @@ Money -> Bills -> Review & confirm -> add a bill, one per loan: group "Rental pr
 
 **Not yet proven, said plainly:** real OCR on a real Fold screenshot. The tests feed the pipeline the text OCR would produce. The first real upload is the test (Money -> Upload -> the Chase 7206 screenshot). If OCR garbles the balance, the card shows what it read and the questions catch a missing day or balance; nothing is written until Approve.
 
+## Three accounts, the trail, the windows, the forecast (2026-11-11; PR on hold for Darrell's approval)
+
+**Darrell's report:** screenshots uploaded for Personal Chase 7206 ($3,183.10), Poe Properties Chase 3322 ($4,479.53) and TLC Therapy Solutions 8168 ($370.69); FOS showed Personal right and the two business balances old (about $2,540 and $38). The sandbox cannot see his phone's intake queue or the NAS ledger, so the cause was found in the code paths that can silently leave a figure old, each one closed and pinned, and the trail behind every figure is now on the surface so the live cause reads off the phone:
+
+1. **Matching ignored the account's name.** `accountLast4` (books-intake-match.js) read only `fragment`; an account named "Chase 3322" or "TLC Therapy Solutions 8168" with no fragment never matched its screenshot, so the upload asked "which account?" or offered a new twin. The name's four digits are the fallback now; `applyLesson` uses the same reader.
+2. **A new account could be born with no owner.** For a screenshot naming no known account, no entity question was asked (only for bills/receipts/pay stubs), so a created account rode Personal and business cash counted as personal spending money. `questionsFor` now asks "Whose account is this?" (blocking) when several entities exist and the page does not say; choosing an existing account settles the owner from that account (`processDoc` re-resolves the entity); a created account is born in the chosen pocket.
+3. **The bank's spelling of the account.** `accountFragment` (bank-formats.js) reads "x8168", "…8168" (OCR's one-character ellipsis) and "ending in 8168"; `snapshotLast4` reads "(…7206)". `institutionOf` knows First State Bank and Cash App.
+4. **Rows dated "11/07" were dropped.** `snapshotLines` read the "/07" as a year, so every m/d row from a bank that prints dates that way (TLC's) never imported. Fixed; pinned.
+5. **The trail.** `balanceSources[]` now carries `checkpoints` (every bank check on file, newest first, with day, balance, basis, source), `sinceVerified` (rows after the check in force: count and net) and `laterCheckpoint` (a check dated AFTER today — a misread screenshot day — which is never used and is named in the assumptions). Coming Up's cash line shows the trail per account; Money -> Accounts shows "bank-verified <day> (<basis>) · <source>" or "not bank-verified" per cash account. An older screenshot approved later never overrides a newer check (pinned).
+6. **Transactions told apart.** Screenshot rows: a deposit is a plain positive row; a move between own accounts is category `transfer`; a loan/mortgage/card payment is category `debt-payment` (`isDebtPaymentRow`), which the engine never counts as everyday spending or an inferred bill. Dedupe across re-uploads and overlapping screenshots is the proven `planAccountImport`. A confirmed bill is settled by any of its spellings (`name`, `paidAs`, `alsoPaidAs`), so a loan confirmed from the bank's row ("FIRST STATE BK LOAN PMT 5342") is marked paid by the next screenshot that shows the payment.
+7. **Bills and income windows.** `windows` now carries `next30`, `regular7/14/30` (the regular bills with past-due taken out), `pastDue` (overdue, in or past grace, or a past-due balance; the due date stays the contract's) and `income7/14/30`. Coming Up shows "Bills due in the next 30 days", "Past-due obligations (apart from regular bills)" and, under each bills line, "income expected before these are due".
+8. **The 30/60/90 forecast moved.** Money -> Transactions showed one figure for Now, +30, +60, +90 because it added only account-named upcoming rows. `lib/cash-forecast.js` now reads the engine's own 90-day walk at each horizon and places every item on the account that pays or receives it (a bill's paying account, a scheduled row's account, else the pocket's primary or only spendable account, else a named "not yet on an account" row); confirmed (entered, dated) and estimated (inferred, assumed, accrued) are kept apart, an "est" mark names the estimated amount, the verified day sits under each account, and the rows add up to the engine's timeline to the cent (pinned).
+
+**Tests (new):** `money-three-accounts.test.js` (17: Tasks 1, 2, 3, 4 over the three accounts), `cash-forecast.test.js` (6), `money-three-accounts-render.test.jsx` (3, at 412px: Coming Up for Poe Properties and All entities, the Transactions forecast table). Every Money and intake suite green; lint clean.
+
+**What the sandbox could not verify, said plainly:** whether the two business screenshots on Darrell's phone were approved, matched, or dated right. After deploy, Money -> Overview -> Coming Up -> "Current cash" opens the trail per account: it names the check in force, the rows since, any earlier checks and any check dated after today. Money -> Upload shows anything still waiting. That reading is the diagnosis; no record was changed by this thread.
+
+## Stacked on the three-accounts PR (2026-11-11; Christina's brief; DR-1435; PR #2610 on `ccr-f178819a-g2lhs2`, held)
+
+Built in a parallel session on the same brief and restacked on `fix/money-three-accounts` with only what that PR lacks:
+
+1. **Reserve: the goal is not the cushion** (Christina's correction, 2026-11-11). `settings.reserveGoalByEntity[key]` is the GOAL (`DEFAULT_PERSONAL_RESERVE_GOAL` = 10000 for Personal until saved); `moneyPlan.reserveDesignations[]` (`{ id, scope, date, amount, note }`) is money actually SET ASIDE, recorded from Coming Up's "Add to reserve" (negative = taken back out); `reserveByEntity[key]` stays honored as money set aside by hand. `reserveStatus(data, settings, sc)` gives designated / goal / remaining and the `cushion` the walk protects: designated money when any is set aside, else an explicit `minCushion` for Personal, else nothing (a target is never subtracted); business pockets keep their old chain. `lines.reserve` carries it; `windows.reserveSource` = designated | household | none. `extraDebtCapacity().reserve` = `{ remaining, suggested, debtAfter }`: one pool for the reserve and extra debt, goal filled first.
+2. **The rows.** `balanceTrace(data, accountId, asOf)` (financial-engineering.js) = latest checkpoint + every cleared row after its day = the displayed figure; Coming Up's `Trace` lists each row under the account beside the trail, with the fix (today's screenshot outranks the rows).
+3. **Day boundary.** `deriveAccountBalances` clears a row by its local calendar day; before, a row dated tomorrow was subtracted tonight after 6pm Central.
+
+Tests: `money-balance-trace.test.js` (5, under `TZ=America/Chicago`), `money-coming-up-30-days.test.jsx` (13: windows, goal vs set aside, designations, one pool, the panel); `safe-to-spend.test.js` and `money-functional-audit.test.js` pass their cushion explicitly. 24 Money suites, 315 green; 137 dependent files green. Merge order: #2609, then #2610 (it retargets to `main` by itself). No live record changed.
+
 ## The seven questions - what the engine can answer today
 
 | # | Question | Engine support | Blocked by |
@@ -90,7 +117,7 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 1. Verify the live (NAS) Money records with the read-only census via ConnectBot; until then every "existing value" is unverified.
 1b. Fleet-wide: `TS_AUTHKEY` revoked since 2026-10-28; 60+ NAS lanes (nas-health, db-migrate's sovereign replay, sovereign-read, probes) are red until Darrell mints a new Reusable + Ephemeral key and updates the repository secret. The deploy still works (its anon key falls back to the served-site road, DR-1269).
-2. Chase 3322 entity assignment (Personal vs Poe Properties).
+2. Chase 3322 and TLC 8168: read their trail in Coming Up after the 2026-11-11 PR deploys (which check is in force, whether the new screenshots were approved, whether a day was misread).
 3. Cash App and First State Bank checking accounts under Poe Properties, if absent.
 4. Personal reserve: save $10,000 under the `personal` key; today the Overview shows only the $2,000 buffer.
 5. Six First State Bank loans and the loan -> property mapping (deferred by Darrell to a separate step).
@@ -98,7 +125,12 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Next unfinished task
 
-PR #2540 squash-merged as be9db0d on 2026-11-06 (Darrell approved after CI run
+2026-11-11: branch `fix/money-three-accounts` carries the three-accounts work
+above; its PR is labeled `hold` until Darrell approves the merge. After the
+merge: watch the deploy run and site-health, then Darrell reads Coming Up's
+cash trail for 3322 and 8168 and the Transactions forecast on the Fold.
+
+Earlier: PR #2540 squash-merged as be9db0d on 2026-11-06 (Darrell approved after CI run
 42283312999 was green on 6832063); deploy run 2081 succeeded and site-health run
 1780 answered up + intact + fresh. Milestone 2 is Darrell's hand: open FOS Money
 on the Fold, Upload, the Chase 7206 screenshot, read the card, Approve. Report

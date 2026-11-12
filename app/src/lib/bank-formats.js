@@ -85,8 +85,12 @@ const ISSUERS = [
 
 /** The last 4 digits of an account, from the usual masked forms. */
 export function accountFragment(text = '') {
+  // "ending in 8168", "acct ...8168", "****8168", "xx8168", "x8168", "…8168"
+  // (OCR of a phone screen prints the ellipsis as one character).
   const m = String(text).match(/(?:ending(?:\s+in)?|acct|account|card)\D{0,12}(\d{4})\b/i)
-    || String(text).match(/[*xX•]{2,}\s*(\d{4})\b/);
+    || String(text).match(/[*xX•]{2,}\s*(\d{4})\b/)
+    || String(text).match(/(?:…|\.{2,})\s*(\d{4})\b/)
+    || String(text).match(/\bx(\d{4})\b/i);
   return m ? m[1] : null;
 }
 
