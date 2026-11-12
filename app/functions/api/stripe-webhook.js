@@ -166,6 +166,18 @@ export function bookEntitlementGrant(evt = {}) {
   return { p_user: userId, p_product: productId, p_source: 'purchase', p_stripe_ref: asStr(obj.payment_intent) || asStr(obj.id) || null };
 }
 
+// A bundle hands over every book it grants (DR-1449): the checkout stamped
+// metadata.grants from the owner's catalog; one grant call per book, the
+// bundle id itself recorded too so the ledger and the buyer agree. Pure.
+export function bookEntitlementGrants(evt = {}) {
+  const one = bookEntitlementGrant(evt);
+  if (!one) return [];
+  const md = ((evt.data && evt.data.object) || {}).metadata || {};
+  const grants = asStr(md.grants).split(',').map((s) => s.trim()).filter(Boolean);
+  const ids = [...new Set([one.p_product, ...grants])];
+  return ids.map((id) => ({ ...one, p_product: id }));
+}
+
 // workshopRegistrationChange — a PAID seat session seats THAT person at THAT
 // event (workshop_registrations, migration 0322; one row per person per
 // event, so a retry re-seats, never double-seats). Pure.
@@ -349,14 +361,16 @@ export async function onRequestPost(context) {
   // (DR-1448.) A failed write answers 500 so Stripe retries; the ledger insert
   // above is idempotent and both writes below are keyed per person, so a
   // retry hands the same book or seat once.
-  const grant = bookEntitlementGrant(evt);
-  if (grant) {
-    let g;
-    try {
-      g = await fetch(`${supabaseUrl}/rest/v1/rpc/grant_book_entitlement`, { method: 'POST', headers: svc, body: JSON.stringify(grant) });
-    } catch { return json({ error: 'entitlement-unreachable' }, 502); }
-    if (!g.ok) return json({ error: `entitlement-${g.status}` }, 500);
-    return json({ received: true, counted: !!moneyEvt, book: grant.p_product });
+  const grants = bookEntitlementGrants(evt);
+  if (grants.length) {
+    for (const grant of grants) {
+      let g;
+      try {
+        g = await fetch(`${supabaseUrl}/rest/v1/rpc/grant_book_entitlement`, { method: 'POST', headers: svc, body: JSON.stringify(grant) });
+      } catch { return json({ error: 'entitlement-unreachable' }, 502); }
+      if (!g.ok) return json({ error: `entitlement-${g.status}` }, 500);
+    }
+    return json({ received: true, counted: !!moneyEvt, book: grants[0].p_product, granted: grants.map((g) => g.p_product) });
   }
   const seat = workshopRegistrationChange(evt);
   if (seat) {

@@ -50,7 +50,38 @@ export function parseJsonEnv(raw) {
 
 // The seam request -> the Stripe Checkout Session params, or { error } when the
 // request fails the server's own truth (unknown product/tier, bad kind). Pure.
-export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null, event = null } = {}) {
+// One STRIPE_CATALOG entry -> { kind, cents, minCents, presetCents, grants }
+// or null. MIRROR of parseCatalogEntry in app/src/lib/store-pricing.js
+// (conformance-tested): an integer is a fixed price; { cents } the same in
+// long form; { pwyw: { min, preset } } pay what you want from a minimum;
+// `grants` lists the books one purchase hands over (a bundle). Pure.
+export function catalogEntry(raw) {
+  const int = (v) => (Number.isInteger(v) && v >= 0 ? v : null);
+  if (Number.isInteger(raw)) return raw > 0 ? { kind: 'fixed', cents: raw, minCents: raw, presetCents: raw, grants: [] } : null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const grants = (Array.isArray(raw.grants) ? raw.grants : []).map(asStr).filter(Boolean);
+  if (raw.pwyw && typeof raw.pwyw === 'object') {
+    const min = int(raw.pwyw.min);
+    const preset = int(raw.pwyw.preset);
+    if (min === null || min <= 0) return null;
+    const pre = preset !== null && preset >= min ? preset : min;
+    return { kind: 'pwyw', cents: pre, minCents: min, presetCents: pre, grants };
+  }
+  const cents = int(raw.cents);
+  if (cents === null || cents <= 0) return null;
+  return { kind: 'fixed', cents, minCents: cents, presetCents: cents, grants };
+}
+
+// The books that can really be bought right now: a Stripe key and at least
+// one priced entry in the owner's catalog. The store reads THIS, not a build
+// flag (DR-1438's named next build, closed by DR-1449). Pure.
+export function openBooks(env = {}) {
+  if (!asStr(env.STRIPE_SECRET_KEY)) return [];
+  const catalog = parseJsonEnv(env.STRIPE_CATALOG);
+  return Object.keys(catalog).filter((id) => catalogEntry(catalog[id])).sort();
+}
+
+export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null, event = null, promotionCodesOn = true } = {}) {
   const kind = asStr(req?.kind);
   const userKey = asStr(req?.userKey);
   const success = origin + safeReturnPath(req?.successUrl, '/poetech-app/?paid=1');
@@ -63,14 +94,27 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
   if (instanceId) p.set('metadata[instanceId]', instanceId);
   if (kind === 'book') {
     const productId = asStr(req?.productId);
-    const cents = catalog[productId];
-    if (!Number.isInteger(cents) || cents <= 0) return { error: 'unknown-product' };
+    const entry = catalogEntry(catalog[productId]);
+    if (!entry) return { error: 'unknown-product' };
     p.set('mode', 'payment');
     p.set('line_items[0][quantity]', '1');
     p.set('line_items[0][price_data][currency]', 'usd');
-    p.set('line_items[0][price_data][unit_amount]', String(cents));
+    if (entry.kind === 'pwyw') {
+      // Pay what you want (DR-1449): the buyer names the price on Stripe's
+      // own page, never below the minimum THIS catalog holds; the client's
+      // amount is still never read.
+      p.set('line_items[0][price_data][custom_unit_amount][enabled]', 'true');
+      p.set('line_items[0][price_data][custom_unit_amount][minimum]', String(entry.minCents));
+      p.set('line_items[0][price_data][custom_unit_amount][preset]', String(entry.presetCents));
+    } else {
+      p.set('line_items[0][price_data][unit_amount]', String(entry.cents));
+    }
     p.set('line_items[0][price_data][product_data][name]', asStr(req?.title) || productId);
+    // Coupons are Stripe promotion codes the owner makes in the dashboard
+    // and the buyer enters on Stripe's page (DR-1449); nothing here prices.
+    if (promotionCodesOn) p.set('allow_promotion_codes', 'true');
     p.set('metadata[product]', productId);
+    if (entry.grants.length) p.set('metadata[grants]', entry.grants.join(','));
     // A signed-in buyer rides the session so the webhook can grant THEIR
     // entitlement (book_entitlements, 0051); a guest still pays, but only a
     // person can be handed a book (DR-1448 closed the gap: nothing granted).
@@ -188,7 +232,7 @@ export function openTiers(env = {}) {
 }
 
 export async function onRequestGet(context) {
-  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}) }), {
+  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}), books: openBooks(context.env || {}) }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   });
@@ -228,6 +272,7 @@ export async function onRequestPost(context) {
     instanceId: asStr(env.PAYMENTS_INSTANCE_ID),
     buyer,
     event,
+    promotionCodesOn: asStr(env.STRIPE_PROMOTION_CODES) !== 'off',
   });
   if (built.error) return json({ error: built.error }, 400);
 

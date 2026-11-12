@@ -93,15 +93,19 @@ export function buildSubscriptionCheckoutRequest(tier, sub, { successUrl, cancel
 // preview -> execute. If no processor is configured, returns { configured:false }
 // with the request for preview — it NEVER charges. When configured, POSTs and
 // expects { url } (the Stripe Checkout URL) to send the buyer to.
-export async function executeCheckout(request, { config, fetchImpl } = {}) {
+export async function executeCheckout(request, { config, fetchImpl, token = '' } = {}) {
   if (!processorConfigured(config)) {
     return { ok: false, configured: false, request, note: PROCESSOR_NOTE };
   }
   const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
   if (!doFetch) return { ok: false, configured: true, error: 'no-fetch', request };
   try {
+    // A signed-in buyer's token rides along (DR-1448): the server verifies it
+    // and stamps the person, so the webhook can hand them the book.
     const res = await doFetch(config.endpoint, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request),
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(asStr(token) ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(request),
     });
     if (!res || !res.ok) return { ok: false, configured: true, error: `http-${res ? res.status : 'no-response'}`, request };
     const data = await res.json();

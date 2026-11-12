@@ -1574,6 +1574,26 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // The sovereign storefront (DR-1449): what the server says can be bought,
+  // and the book handed over the moment Stripe sends the buyer back.
+  app('app/functions/api/deliver.js', {
+    id: 'instant-delivery', name: 'The book is delivered on return from Stripe (DR-1449)', purpose: 'Asks Stripe what a paid checkout session bought (our seam only) and tells the app the product ids granted; the app builds the EPUB itself.',
+    reads: [{ res: 'http:checkout', token: 'checkout/sessions' }, { res: 'cf:stripe-env', token: 'STRIPE_SECRET_KEY' }],
+    writes: [{ res: 'http:deliver', token: 'json({ ok: true' }],
+    seeds: [],
+  }),
+  app('app/src/lib/instant-delivery.js', {
+    id: 'store-delivery', name: 'The store hands over the book on arrival (DR-1449)', purpose: "Reads Stripe's return, asks /api/deliver, grants the device entitlement and offers the downloads.",
+    reads: [{ res: 'http:deliver', token: '/api/deliver' }],
+    writes: [{ res: 'local:book-entitlements', token: 'grantBookEntitlement' }],
+    seeds: [],
+  }),
+  app('app/src/lib/store-catalog.js', {
+    id: 'storefront', name: 'The public storefront reads what can really be bought (DR-1449)', purpose: "One list of books, bundles, courses, open workshops and the membership; what is buyable is GET /api/checkout's answer, never a build flag.",
+    reads: [{ res: 'http:checkout', token: '/api/checkout' }, { res: 'db:workshop_events', file: 'app/src/components/Storefront.jsx', token: 'listOpenWorkshops' }],
+    writes: [],
+    seeds: [],
+  }),
   app('app/src/lib/workshops.js', {
     id: 'workshop-seats', name: 'A workshop seat is bought in the store (DR-1448)', purpose: 'The Governor opens a workshop from the store panel (owner-scoped RLS); the store shows the open ones with date, place, price and seats left; a signed-in person takes a seat through the checkout; their held seat shows on their own row.',
     reads: [{ res: 'db:workshop_events', token: 'workshop_events' }, { res: 'db:workshop_registrations', token: 'workshop_registrations' }],
@@ -2356,6 +2376,8 @@ const RESOURCES = {
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
   'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
+  'http:deliver': { label: 'what a paid checkout bought, said to the app (never a key, an amount or a card)', sink: 'The app reads it once on return from Stripe and builds the book itself; nothing else consumes it.' },
+  'local:book-entitlements': { label: "the device's own record of the books it holds (entitlements.js)", sink: 'Read back by the Bookstore and the storefront on this device; the cloud copy is the webhook\'s (book_entitlements).' },
   'db:workshop_events': { label: 'the in-person workshops the house opened, with the price that is charged (DR-1448)' },
   'db:workshop_registrations': { label: "each person's paid workshop seat (written only by the Stripe webhook)" },
   'cf:stripe-env': { label: 'the PoeTech+ Stripe secrets on the Pages project (Cloudflare never returns the values)' },

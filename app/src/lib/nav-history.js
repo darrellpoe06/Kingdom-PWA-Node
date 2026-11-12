@@ -43,6 +43,7 @@ export const VALID_VIEWS = [
   'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
   'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
   'forecast', 'cohorts', 'tlc-assistant', 'health', 'cameras', 'vault', 'research',
+  'store', // the public storefront (DR-1449): anyone browses, signed in or not
   // 'study' and 'moore' added 2026-11-05 (DR-1330 D1): both are registered
   // surfaces with render branches in the shell, and neither was listed here
   // nor in the shell's own copy of this list, so ?view=study and ?view=moore

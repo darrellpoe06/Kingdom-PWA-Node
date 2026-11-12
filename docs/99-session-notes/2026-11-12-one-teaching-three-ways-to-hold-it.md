@@ -88,3 +88,24 @@ they can be argued with.
   an event from the store panel; the lanes carry the rest
   (`re-review: 2026-11-26`).
 - No walk-through video exists yet; every section reads "0 of N recorded".
+
+## Later the same morning: the sovereign storefront (DR-1449)
+
+Darrell sent a Payhip storefront link ("make our store have this
+capability"), then asked whether we need Payhip at all or can do it
+sovereign. The answer built: a public `store` surface on our own door, the
+server's open list instead of a build flag, one catalog entry shape for
+fixed, pay-what-you-want and bundle pricing (mirrored between
+`store-pricing.js` and `checkout.js`, conformance-tested), Stripe promotion
+codes, and instant delivery on return from Stripe (`/api/deliver` says what
+was bought; the device builds the EPUB). Neither payhip.com nor the Acrobat
+document is reachable from the sandbox; both are filed as research items
+for the NAS lane (`7b4128a5`, `e8294305`) on the COLG instance, where the
+research section reads them.
+
+Two measurement errors of my own this session, both recorded in DR-1136's
+class: a guard piped through `tail` read as green while failing, and a
+merge commit carrying conflict markers reached the branch before the guards
+were re-run with their real exit codes. The endpoint register and the
+format guard read only tracked files, so a new function must be added to
+git before either regenerates.

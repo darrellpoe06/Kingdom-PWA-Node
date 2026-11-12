@@ -88,6 +88,10 @@ export function navItems({
     // (the books<->app flywheel). Reading is open to every signed-in
     // user; the build Studio is family/Governor-gated inside.
     ['library', <><UiIcon name="bookOpen" /> Library</>],
+    // Store — the public storefront (DR-1449): books, bundles, courses,
+    // workshops and the membership on our own door; no sign-in to browse,
+    // so it is never spread on a session.
+    ['store', <><UiIcon name="coins" /> Store</>],
     // Chef's Corner — the recipe surface (starts with the Poe Family
     // Vegan Recipes by Chef Mario). Open to every signed-in user;
     // persistence is instance-scoped (family-private).
@@ -175,7 +179,7 @@ export const NAV_WORDS = {
   overview: 'Big Picture', books: 'Money', inbound: 'Inbound', rentals: 'Real Estate', properties: 'Properties',
   projects: 'Projects', 'tlc-assistant': 'Assistant', tlc: 'TLC', practice: 'Practice', opportunities: 'Dev/Ops',
   about: 'About', messages: 'Messages', notes: 'Notes', create: 'Create', voice: 'Voice', scribe: 'Scribe',
-  library: 'Library', recipes: "Chef's Corner", health: 'Road to 150', games: 'Games', tvtime: 'TV Time',
+  library: 'Library', store: 'Store', recipes: "Chef's Corner", health: 'Road to 150', games: 'Games', tvtime: 'TV Time',
   advocacy: 'Advocacy', databack: 'Your Data', cameras: 'Cameras', vault: 'Vault', research: 'Research', study: 'Study', church: 'Church',
   markets: 'Markets', center: 'Center', crm: 'CRM', relationships: 'Relationships', inventory: 'Inventory',
   moore: 'Moore Divahs', forecast: 'Forecast', cohorts: 'Academy', admin: 'Admin',
@@ -185,7 +189,7 @@ export const NAV_WORDS = {
 export const NAV_ICONS = {
   overview: 'chart', books: 'coins', inbound: 'phone', rentals: 'home', properties: 'home', projects: 'folder',
   'tlc-assistant': 'heart', tlc: 'heart', practice: 'heart', opportunities: 'tools', about: 'globe',
-  messages: 'chat', notes: 'dove', create: 'palette', voice: 'volume', scribe: 'monitor', library: 'bookOpen',
+  messages: 'chat', notes: 'dove', create: 'palette', voice: 'volume', scribe: 'monitor', library: 'bookOpen', store: 'coins',
   recipes: 'chefHat', health: 'chart', games: 'dice', tvtime: 'monitor', advocacy: 'landmark', databack: 'landmark',
   cameras: 'eye', vault: 'lock', research: 'link', study: 'book', church: 'cross', markets: 'chart', center: 'sliders', crm: 'users',
   relationships: 'users', inventory: 'tools', moore: 'palette', forecast: 'chart', cohorts: 'bookOpen', admin: 'lock',
@@ -198,7 +202,7 @@ export const NAV_ICONS = {
  */
 export const NAV_GROUPS = [
   { key: 'family',   label: '',         ids: ['overview', 'books', 'messages', 'rentals', 'properties', 'projects', 'tlc', 'practice', 'tlc-assistant'] },
-  { key: 'soul',     label: 'Soul',     ids: ['church', 'study', 'library', 'cohorts'] },
+  { key: 'soul',     label: 'Soul',     ids: ['church', 'study', 'library', 'store', 'cohorts'] },
   { key: 'create',   label: 'Create',   ids: ['notes', 'create', 'voice', 'scribe', 'research'] },
   { key: 'life',     label: 'Life',     ids: ['recipes', 'health', 'games', 'tvtime', 'advocacy', 'databack', 'vault', 'cameras'] },
   { key: 'business', label: 'Business', ids: ['inbound', 'crm', 'relationships', 'inventory', 'moore', 'forecast', 'markets', 'opportunities'] },

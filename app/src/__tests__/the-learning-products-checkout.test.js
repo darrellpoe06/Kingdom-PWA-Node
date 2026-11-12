@@ -186,7 +186,7 @@ describe('a book is handed to its buyer', () => {
       return new Response('[]', { status: 201 });
     });
     const res = await hook(paidSession({ kind: 'book', product: 'prod-course-banking', userId: BUYER }));
-    expect(await res.json()).toEqual({ received: true, counted: true, book: 'prod-course-banking' });
+    expect(await res.json()).toEqual({ received: true, counted: true, book: 'prod-course-banking', granted: ['prod-course-banking'] });
     const grant = calls.find((c) => c.u.endsWith('/rest/v1/rpc/grant_book_entitlement'));
     expect(grant).toBeTruthy();
     expect(grant.i.headers.Authorization).toBe('Bearer srv_1');
