@@ -50,7 +50,38 @@ export function parseJsonEnv(raw) {
 
 // The seam request -> the Stripe Checkout Session params, or { error } when the
 // request fails the server's own truth (unknown product/tier, bad kind). Pure.
-export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null } = {}) {
+// One STRIPE_CATALOG entry -> { kind, cents, minCents, presetCents, grants }
+// or null. MIRROR of parseCatalogEntry in app/src/lib/store-pricing.js
+// (conformance-tested): an integer is a fixed price; { cents } the same in
+// long form; { pwyw: { min, preset } } pay what you want from a minimum;
+// `grants` lists the books one purchase hands over (a bundle). Pure.
+export function catalogEntry(raw) {
+  const int = (v) => (Number.isInteger(v) && v >= 0 ? v : null);
+  if (Number.isInteger(raw)) return raw > 0 ? { kind: 'fixed', cents: raw, minCents: raw, presetCents: raw, grants: [] } : null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const grants = (Array.isArray(raw.grants) ? raw.grants : []).map(asStr).filter(Boolean);
+  if (raw.pwyw && typeof raw.pwyw === 'object') {
+    const min = int(raw.pwyw.min);
+    const preset = int(raw.pwyw.preset);
+    if (min === null || min <= 0) return null;
+    const pre = preset !== null && preset >= min ? preset : min;
+    return { kind: 'pwyw', cents: pre, minCents: min, presetCents: pre, grants };
+  }
+  const cents = int(raw.cents);
+  if (cents === null || cents <= 0) return null;
+  return { kind: 'fixed', cents, minCents: cents, presetCents: cents, grants };
+}
+
+// The books that can really be bought right now: a Stripe key and at least
+// one priced entry in the owner's catalog. The store reads THIS, not a build
+// flag (DR-1438's named next build, closed by DR-1449). Pure.
+export function openBooks(env = {}) {
+  if (!asStr(env.STRIPE_SECRET_KEY)) return [];
+  const catalog = parseJsonEnv(env.STRIPE_CATALOG);
+  return Object.keys(catalog).filter((id) => catalogEntry(catalog[id])).sort();
+}
+
+export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null, event = null, promotionCodesOn = true } = {}) {
   const kind = asStr(req?.kind);
   const userKey = asStr(req?.userKey);
   const success = origin + safeReturnPath(req?.successUrl, '/poetech-app/?paid=1');
@@ -63,14 +94,58 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
   if (instanceId) p.set('metadata[instanceId]', instanceId);
   if (kind === 'book') {
     const productId = asStr(req?.productId);
-    const cents = catalog[productId];
-    if (!Number.isInteger(cents) || cents <= 0) return { error: 'unknown-product' };
+    const entry = catalogEntry(catalog[productId]);
+    if (!entry) return { error: 'unknown-product' };
     p.set('mode', 'payment');
     p.set('line_items[0][quantity]', '1');
     p.set('line_items[0][price_data][currency]', 'usd');
-    p.set('line_items[0][price_data][unit_amount]', String(cents));
+    if (entry.kind === 'pwyw') {
+      // Pay what you want (DR-1449): the buyer names the price on Stripe's
+      // own page, never below the minimum THIS catalog holds; the client's
+      // amount is still never read.
+      p.set('line_items[0][price_data][custom_unit_amount][enabled]', 'true');
+      p.set('line_items[0][price_data][custom_unit_amount][minimum]', String(entry.minCents));
+      p.set('line_items[0][price_data][custom_unit_amount][preset]', String(entry.presetCents));
+    } else {
+      p.set('line_items[0][price_data][unit_amount]', String(entry.cents));
+    }
     p.set('line_items[0][price_data][product_data][name]', asStr(req?.title) || productId);
+    // Coupons are Stripe promotion codes the owner makes in the dashboard
+    // and the buyer enters on Stripe's page (DR-1449); nothing here prices.
+    if (promotionCodesOn) p.set('allow_promotion_codes', 'true');
     p.set('metadata[product]', productId);
+    if (entry.grants.length) p.set('metadata[grants]', entry.grants.join(','));
+    // A signed-in buyer rides the session so the webhook can grant THEIR
+    // entitlement (book_entitlements, 0051); a guest still pays, but only a
+    // person can be handed a book (DR-1448 closed the gap: nothing granted).
+    if (buyer && UUID.test(asStr(buyer.userId))) {
+      p.set('metadata[userId]', buyer.userId);
+      p.set('client_reference_id', buyer.userId);
+      if (asStr(buyer.email)) p.set('customer_email', buyer.email);
+    }
+    return { params: p };
+  }
+  if (kind === 'workshop') {
+    // The seat's price is the EVENT ROW's (workshop_events, 0323), read by
+    // this server; the client's figure never reaches Stripe (DR-1448).
+    const ev = event && typeof event === 'object' ? event : null;
+    if (!ev || !UUID.test(asStr(ev.id))) return { error: 'unknown-event' };
+    if (asStr(ev.status) !== 'open') return { error: 'unknown-event' };
+    if (Number.isFinite(ev.seatsLeft) && ev.seatsLeft <= 0) return { error: 'sold-out' };
+    const cents = ev.priceCents;
+    if (!Number.isInteger(cents) || cents <= 0) return { error: 'unknown-event' };
+    if (!buyer || !UUID.test(asStr(buyer.userId))) return { error: 'sign-in-required' };
+    p.set('mode', 'payment');
+    p.set('line_items[0][quantity]', '1');
+    p.set('line_items[0][price_data][currency]', asStr(ev.currency) || 'usd');
+    p.set('line_items[0][price_data][unit_amount]', String(cents));
+    p.set('line_items[0][price_data][product_data][name]', asStr(ev.title) || 'Workshop seat');
+    p.set('metadata[product]', 'workshop');
+    p.set('metadata[eventId]', ev.id);
+    p.set('metadata[userId]', buyer.userId);
+    p.set('metadata[userKey]', asStr(buyer.email) || buyer.userId);
+    p.set('client_reference_id', buyer.userId);
+    if (asStr(buyer.email)) p.set('customer_email', buyer.email);
     return { params: p };
   }
   if (kind === 'subscription') {
@@ -115,6 +190,38 @@ export async function verifiedBuyer(request, env = {}, fetchImpl = fetch) {
   return { buyer: { userId, email: asStr(user?.email) } };
 }
 
+// The workshop event a seat is bought at, read from the house's own table over
+// the anon road (RLS shows only open and sold-out rows) with its seats left.
+// Returns { event } (status/price from the row, never the client) or { error }.
+export async function workshopEvent(eventId, env = {}, fetchImpl = fetch) {
+  const id = asStr(eventId);
+  if (!UUID.test(id)) return { error: 'unknown-event', status: 400 };
+  const url = asStr(env.SUPABASE_URL).replace(/\/$/, '');
+  const anon = asStr(env.SUPABASE_ANON_KEY) || asStr(env.VITE_SUPABASE_ANON_KEY);
+  if (!url || !anon) return { error: 'identity-not-configured', status: 503 };
+  const headers = { apikey: anon, Authorization: `Bearer ${anon}`, 'content-type': 'application/json' };
+  let rowRes;
+  try {
+    rowRes = await fetchImpl(`${url}/rest/v1/workshop_events?id=eq.${encodeURIComponent(id)}&select=id,title,status,price_cents,currency,capacity`, { headers });
+  } catch { return { error: 'event-unreachable', status: 502 }; }
+  if (!rowRes || !rowRes.ok) return { error: 'event-unreachable', status: 502 };
+  const rows = await rowRes.json().catch(() => null);
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) return { error: 'unknown-event', status: 400 };
+  let seatsLeft = null;
+  try {
+    const r = await fetchImpl(`${url}/rest/v1/rpc/workshop_seats_left`, { method: 'POST', headers, body: JSON.stringify({ p_event: id }) });
+    if (r && r.ok) { const n = await r.json().catch(() => null); if (Number.isFinite(n)) seatsLeft = n; }
+  } catch { /* unknown stays null: the row's status still governs */ }
+  return {
+    event: {
+      id: asStr(row.id), title: asStr(row.title), status: asStr(row.status),
+      priceCents: Number.isFinite(row.price_cents) ? row.price_cents : NaN,
+      currency: asStr(row.currency) || 'usd', seatsLeft,
+    },
+  };
+}
+
 // Which subscriptions can really be bought right now: a Stripe key, a Price
 // for the tier, and the identity road a subscription needs. Pure.
 export function openTiers(env = {}) {
@@ -125,7 +232,7 @@ export function openTiers(env = {}) {
 }
 
 export async function onRequestGet(context) {
-  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}) }), {
+  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}), books: openBooks(context.env || {}) }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   });
@@ -140,10 +247,21 @@ export async function onRequestPost(context) {
   try { body = await context.request.json(); } catch { return json({ error: 'bad-json' }, 400); }
 
   let buyer = null;
-  if (asStr(body?.kind) === 'subscription') {
+  const kind = asStr(body?.kind);
+  const hasToken = /^Bearer\s+\S+/i.test(asStr(context.request.headers.get('authorization')));
+  // A subscription and a workshop seat are a PERSON's: the buyer must be
+  // verified. A book may be bought as a guest, but a signed-in buyer is
+  // verified too, so the webhook can hand them the book.
+  if (kind === 'subscription' || kind === 'workshop' || (kind === 'book' && hasToken)) {
     const who = await verifiedBuyer(context.request, env);
     if (who.error) return json({ error: who.error }, who.status);
     buyer = who.buyer;
+  }
+  let event = null;
+  if (kind === 'workshop') {
+    const found = await workshopEvent(body?.eventId, env);
+    if (found.error) return json({ error: found.error }, found.status);
+    event = found.event;
   }
 
   const origin = new URL(context.request.url).origin;
@@ -153,6 +271,8 @@ export async function onRequestPost(context) {
     origin,
     instanceId: asStr(env.PAYMENTS_INSTANCE_ID),
     buyer,
+    event,
+    promotionCodesOn: asStr(env.STRIPE_PROMOTION_CODES) !== 'off',
   });
   if (built.error) return json({ error: built.error }, 400);
 

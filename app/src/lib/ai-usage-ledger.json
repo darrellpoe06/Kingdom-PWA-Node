@@ -1852,6 +1852,36 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
+    },
+    {
+      "id": "learning-products-store",
+      "date": "2026-11-12",
+      "task": "One teaching, three ways to hold it: the course book line measured on the live registry (which courses are a book), the self-paced course with a walk-through video slot per section, the in-person workshop seat priced by knowledge type, place, format and demand, sold through the existing Stripe seam at the event row's price; the book entitlement the webhook never granted is now handed over",
+      "drs": [
+        "DR-1448"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.8,
+      "estimateWithoutAiHours": 40,
+      "notes": "Measured first: the curriculum export inflates every course by facilitator notes, quiz and age rewrites (2.55M words against 1.98M of book body); counting it would have overstated every answer. Found that the ledger counted book sales while grant_book_entitlement was called nowhere, and that the seam read metadata.productId while the server wrote metadata.product. The Acrobat share link Darrell sent could not be reached from this sandbox (host outside the allowlist; the allow request was declined), so that document is listed as awaiting its source, with no product painted over it."
+    },
+    {
+      "id": "sovereign-storefront",
+      "date": "2026-11-12",
+      "task": "The sovereign storefront: a public store surface with the seller's face, books, bundles, courses, open workshops and the membership; the server's open list instead of a build flag; one catalog entry shape for fixed, pay-what-you-want and bundle pricing mirrored between the store and the checkout function; Stripe promotion codes; instant delivery on return from Stripe through /api/deliver with the EPUB built on the device",
+      "drs": [
+        "DR-1449"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 30,
+      "notes": "Darrell asked whether Payhip was needed or the capability could be sovereign; built sovereign on the existing Stripe seam. payhip.com and the Acrobat document are outside the sandbox allowlist (both allows declined), so both were filed as research items for the NAS lane (7b4128a5, e8294305). Found along the way: the register and the format guard read only tracked files, so a new function or file must be git-added before either regenerates; and a guard read through a pipe reported the pipe's exit, which let a merge commit with conflict markers reach the branch once before the guards were re-run with their real exit codes."
     }
   ]
 }

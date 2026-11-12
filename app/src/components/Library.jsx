@@ -303,6 +303,17 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
     if (book) setReading(book);
     else setToast(`"${product.title}" content is not available to read yet.`);
   }, [ctx]);
+  // A bought book downloads the moment it is owned (DR-1449): built from its
+  // recipe here, the same bytes the shelf's DownloadRow makes.
+  const onDownloadProduct = useCallback((product, kind = 'epub') => {
+    const book = buildRecipe(product.recipeId, ctx, { nowIso: new Date().toISOString() });
+    if (!book) { setToast(`"${product.title}" content is not available to download yet.`); return; }
+    try {
+      if (kind === 'html') triggerDownload(new Blob([bookToReaderHtml(book)], { type: 'text/html' }), exportFilename(book.title, 'html'));
+      else if (kind === 'md') triggerDownload(new Blob([toMarkdown(book)], { type: 'text/markdown' }), exportFilename(book.title, 'md'));
+      else triggerDownload(new Blob([bookToEpubBytes(book)], { type: 'application/epub+zip' }), exportFilename(book.title, 'epub'));
+    } catch (e) { setToast(`"${product.title}" could not be packaged (${(e && e.message) || 'unknown'}).`); }
+  }, [ctx]);
 
   if (reading) {
     return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} userKey={email} />;
@@ -340,7 +351,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
       {toast && <div className="mb-3 text-xs px-3 py-2 border border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" >{toast}</div>}
 
       {mode === 'store' && (
-        <Bookstore email={email} isFamilyMember={isFamilyMember} onReadProduct={onReadProduct} />
+        <Bookstore email={email} isFamilyMember={isFamilyMember} onReadProduct={onReadProduct} onDownloadProduct={onDownloadProduct} />
       )}
 
       {mode === 'shelf' && (

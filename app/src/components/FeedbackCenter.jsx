@@ -165,6 +165,7 @@ export const FEEDBACK_AREAS = [
     ['voice', 'Voice · listen to anything (choose a voice · consent-gated enrollment)'],
     ['scribe', 'Scribe · record workflows on screen + meetings (consent-gated)'],
     ['library', 'Library · books from the corpus + in-app reader (companion deep-links)'],
+    ['store', 'Store · the public shelf (books, bundles, courses, workshops, membership · pay what you want · the book delivered on return from Stripe · reviews)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
     ['health', 'Road to 150 · health program (dashboard · weight + graph · water)'],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],

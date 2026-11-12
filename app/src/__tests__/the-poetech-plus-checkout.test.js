@@ -122,7 +122,8 @@ describe('the app shows a buy button only when buying can really work', () => {
   it('GET /api/checkout answers the open list and is never cached', async () => {
     const res = await onRequestGet({ env: ENV });
     expect(res.headers.get('cache-control')).toBe('no-store');
-    expect(await res.json()).toEqual({ subscriptions: [PLUS_TIER] });
+    // DR-1449: the same answer now carries the priced books (none in this env).
+    expect(await res.json()).toEqual({ subscriptions: [PLUS_TIER], books: [] });
   });
 
   it('PROVEN TO CATCH the #2057 class: the SPA shell answering 200 HTML reads as NOT open', async () => {

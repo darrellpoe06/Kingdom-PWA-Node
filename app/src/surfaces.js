@@ -73,6 +73,10 @@ export const SURFACES = [
   { id: 'voice',        label: 'Voice',            nav: 'top', view: 'voice',        sub: null,          load: () => import('./components/VoiceStudio.jsx') },
   { id: 'scribe',       label: 'Scribe',           nav: 'top', view: 'scribe',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/WorkflowScribe.jsx') },
   { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
+  // The store's public face (DR-1449): anyone browses; buying a seat or a
+  // membership signs in; a book may be bought as a guest and is delivered
+  // to the device that bought it.
+  { id: 'store',        label: 'Store',            nav: 'top', view: 'store',        sub: null,          requires: 'anyone', whenDenied: 'hide', gate: 'anyone — a public shelf; the server says what can be bought (DR-1449)', load: () => import('./components/Storefront.jsx') },
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          requires: 'study-circle', whenDenied: 'hide', gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
@@ -245,3 +249,4 @@ export const Contractors1099  = surfaceById['k1099'].component;
 export const FamilyPlan       = surfaceById['plan'].component;
 export const Obligations      = surfaceById['owed'].component;
 export const MoneySurfaces    = surfaceById['money-overview'].component;
+export const Storefront       = surfaceById['store'].component;
