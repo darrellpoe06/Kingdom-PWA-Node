@@ -21,7 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
-import { courseStanding, examsOwed, mostStudied, growthOpportunities } from '../lib/course-pace.js';
+import { courseStanding, examsOwed, mostStudied, growthOpportunities, courseAwards } from '../lib/course-pace.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
 import { learnerIdentity } from '../lib/learner-identity.js';
@@ -245,6 +245,23 @@ function StandingAndPace({ rows = [], userId, courseLessonIds }) {
   return (
     <div className="mt-2" data-testid="standing-and-pace">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Where you stand</div>
+      {/* COURSES ARE REWARDED (DR-1440): each course earns its highest award, as a lesson earns a lion. */}
+      {courseAwards(s).length > 0 && (
+        <div className="mb-2" data-testid="course-awards">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+            Courses rewarded: {s.coursesUnderstood} understood, {s.coursesComplete} completed, {s.coursesRead} read in full
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
+            {courseAwards(s).map((a) => (
+              <li key={a.courseKey} className="inline-flex items-center gap-1 border border-[#C9A227] px-2 py-1 text-xs text-[#1A1815] [overflow-wrap:anywhere]" title={a.label} data-award={a.award}>
+                <RecordMark name={a.award} size={1.1} />
+                <span>{a.courseKey}</span>
+                <span className="sr-only">: {a.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="standing-figures">
         <Figure label="Courses read in full" value={`${s.coursesRead} of ${s.coursesTotal}`} hint="Every lesson in the course read. Reading counts on its own." />
         <Figure label="Courses fully completed" value={`${s.coursesComplete} of ${s.coursesTotal}`} hint="Every lesson in the course read and its exam passed, in either order." />

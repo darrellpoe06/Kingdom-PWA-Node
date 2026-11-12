@@ -194,7 +194,7 @@ export function standing(records = [], courseLessonIds = {}) {
     mastered += mast;
     lessonsRead += read;
     tries += courseTries;
-    courses.push({ courseKey, total: ids.length, done, read, tries: courseTries, grow, toGo: ids.length - done, mastered: mast, complete: done === ids.length, readInFull: read === ids.length });
+    courses.push({ courseKey, total: ids.length, done, read, tries: courseTries, grow, toGo: ids.length - done, mastered: mast, complete: done === ids.length, readInFull: read === ids.length, understoodAll: mast === ids.length });
   }
   const coursesComplete = courses.filter((c) => c.complete).length;
   return {
@@ -203,6 +203,7 @@ export function standing(records = [], courseLessonIds = {}) {
     coursesComplete,
     // DR-1439: reading counts on its own, and every try is study.
     coursesRead: courses.filter((c) => c.readInFull).length,
+    coursesUnderstood: courses.filter((c) => c.understoodAll).length,
     lessonsRead,
     lessonsTested,
     tries,
@@ -213,6 +214,28 @@ export function standing(records = [], courseLessonIds = {}) {
     mastered,
     doneMoments: doneMoments.sort((a, b) => a - b),
   };
+}
+
+/**
+ * COURSES ARE REWARDED (DR-1440, Darrell 2026-11-12: "Courses should be
+ * rewarded"). Each course earns its highest award, as a lesson earns a lion:
+ *   crown  understood: every lesson read in full and its exam at 100%
+ *   sword  completed:  every lesson read and its exam passed
+ *   book   read:       every lesson read in full
+ * Highest first, then by name. A course with none earns nothing yet. Pure.
+ */
+export const COURSE_AWARDS = Object.freeze({
+  crown: 'Understood: every lesson at 100%',
+  sword: 'Completed: every lesson read and passed',
+  book: 'Read in full: every lesson read',
+});
+export function courseAwards(stand) {
+  const rank = { crown: 0, sword: 1, book: 2 };
+  return (stand && Array.isArray(stand.courses) ? stand.courses : [])
+    .map((c) => ({ courseKey: c.courseKey, award: c.understoodAll ? 'crown' : c.complete ? 'sword' : c.readInFull ? 'book' : null }))
+    .filter((a) => a.award)
+    .sort((a, b) => rank[a.award] - rank[b.award] || a.courseKey.localeCompare(b.courseKey))
+    .map((a) => ({ ...a, label: COURSE_AWARDS[a.award] }));
 }
 
 /**

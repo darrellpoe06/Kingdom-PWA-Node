@@ -302,6 +302,9 @@ describe('the record says where you stand, and never paints the date', () => {
     expect(t).toMatch(/Lessons read/i);
     expect(t).toMatch(/Understood at 100%/i);
     expect(t).toMatch(/1 of 2/);
+    // DR-1440: the course is rewarded with its highest award: read and passed, so the sword.
+    expect(host.querySelector('[data-testid="course-awards"]').textContent).toMatch(/Courses rewarded: 0 understood, 1 completed, 1 read in full/);
+    expect(host.querySelector('[data-testid="course-awards"] [data-award="sword"]').textContent).toMatch(/living-lessons/);
   });
 
   it('PROVEN TO CATCH: one lesson read and tested gives NO date, and says why', () => {

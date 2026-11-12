@@ -13,7 +13,7 @@
 //      read but never tested, or passed before it was ever read, must not
 //      close a course — the second case is already its own figure (DR-1386).
 import { describe, it, expect } from 'vitest';
-import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed, mostStudied, growthOpportunities } from '../lib/course-pace.js';
+import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed, mostStudied, growthOpportunities, courseAwards } from '../lib/course-pace.js';
 
 const DAY = 86400000;
 const T0 = Date.UTC(2026, 9, 1, 12, 0, 0);
@@ -267,5 +267,17 @@ describe('the most opportunities to grow understanding are named (DR-1439)', () 
       r('b', 'b2', { quizPct: 100, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }),
     ];
     expect(growthOpportunities(standing(recs, ids)).map((c) => [c.courseKey, c.grow])).toEqual([['a', 2]]);
+  });
+});
+
+// DR-1440 (Darrell 2026-11-12: "Courses should be rewarded").
+describe('courses are rewarded: crown, sword or book, the highest earned (DR-1440)', () => {
+  const ids = { a: ['a1'], b: ['b1'], c: ['c1'], d: ['d1'] };
+  const r = (courseKey, over = {}) => ({ userId: 'u', courseKey, lessonId: `${courseKey}1`, completedAt: '2026-11-01T00:00:00Z', ...over });
+  it('understood earns the crown, read and passed the sword, read in full the book; nothing earns nothing', () => {
+    const s = standing([r('a', { quizPct: 100, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }), r('b', { quizPct: 80, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }), r('c')], ids);
+    expect(courseAwards(s).map((x) => [x.courseKey, x.award])).toEqual([['a', 'crown'], ['b', 'sword'], ['c', 'book']]);
+    expect(s.coursesUnderstood).toBe(1);
+    expect(courseAwards(standing([], ids))).toEqual([]);
   });
 });
