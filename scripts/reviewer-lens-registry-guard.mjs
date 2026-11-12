@@ -65,9 +65,7 @@ const lensSrc = readFileSync(LENS, 'utf8');
 // Read the registry out of the source rather than importing it: this guard is
 // plain node with no bundler, and the file is ESM with no side effects to run.
 const block = lensSrc.slice(lensSrc.indexOf('export const STRANGER_HIDES'));
-const entries = [...block.slice(0, block.indexOf(']')).matchAll(
-  /what:\s*'([^']+)'\s*,\s*module:\s*'([^']+)'/g,
-)].map((m) => ({ what: m[1], module: m[2] }));
+const entries = [...block.slice(0, block.indexOf(']')).matchAll(/what:\s*'([^']+)'\s*,\s*module:\s*'([^']+)'/g)].map((m) => ({ what: m[1], module: m[2] }));
 
 if (entries.length === 0) fail('STRANGER_HIDES is empty or unreadable — the banner would promise nothing, or everything');
 
@@ -85,7 +83,9 @@ for (const e of entries) {
   // own proven-to-catch suite, which broke a surface and watched nothing
   // happen because the import line alone still satisfied a mention check.)
   if (!/isReviewerStranger\s*\(/.test(s)) {
-    fail(`STRANGER_HIDES names "${e.what}" at ${e.module}, but that file never CALLS isReviewerStranger — the sentence promises it is hidden and nothing hides it`);
+    fail(
+      `STRANGER_HIDES names "${e.what}" at ${e.module}, but that file never CALLS isReviewerStranger — the sentence promises it is hidden and nothing hides it`
+    );
   }
 }
 
@@ -94,17 +94,23 @@ const files = [];
 (function walk(d) {
   for (const e of readdirSync(d)) {
     const p = join(d, e);
-    if (statSync(p).isDirectory()) { if (e !== '__tests__') walk(p); }
-    else if (/\.(js|jsx)$/.test(e)) files.push(p);
+    if (statSync(p).isDirectory()) {
+      if (e !== '__tests__') walk(p);
+    } else if (/\.(js|jsx)$/.test(e)) files.push(p);
   }
 })(SRC);
 
 const named = new Set(entries.map((e) => e.module));
 for (const p of files) {
-  const rel = p.slice(SRC.length + 1).split('\\').join('/');
+  const rel = p
+    .slice(SRC.length + 1)
+    .split('\\')
+    .join('/');
   if (named.has(rel) || NOT_A_SURFACE.has(rel)) continue;
   if (/isReviewerStranger/.test(readFileSync(p, 'utf8'))) {
-    fail(`${rel} honours the stranger lens but is not in STRANGER_HIDES — the steward is never told these rows are hidden, so the banner under-describes what it does`);
+    fail(
+      `${rel} honours the stranger lens but is not in STRANGER_HIDES — the steward is never told these rows are hidden, so the banner under-describes what it does`
+    );
   }
 }
 
@@ -113,7 +119,10 @@ for (const p of files) {
 // while reviewing, and the Admin cards he reads before entering. Both had the
 // four nouns typed in, and both stayed four. Either one left hand-written is
 // the same defect waiting to happen again, so both are held to the registry.
-for (const [file, least] of [[COPY, 2], [ADMIN, 4]]) {
+for (const [file, least] of [
+  [COPY, 2],
+  [ADMIN, 4],
+]) {
   const rel = file.slice(SRC.length + 1);
   if (!existsSync(file)) {
     fail(`app/src/${rel} is missing — nothing holds the words that describe the lens`);
@@ -122,7 +131,9 @@ for (const [file, least] of [[COPY, 2], [ADMIN, 4]]) {
   const copy = readFileSync(file, 'utf8');
   const uses = (copy.match(/strangerHidesList\(\)/g) || []).length;
   if (uses < least) {
-    fail(`${rel} must build every lens description from strangerHidesList() (found ${uses}, expected at least ${least}) — a hand-typed list is a promise nothing holds`);
+    fail(
+      `${rel} must build every lens description from strangerHidesList() (found ${uses}, expected at least ${least}) — a hand-typed list is a promise nothing holds`
+    );
   }
   for (const e of entries) {
     if (new RegExp(`['\`][^'\`]*\\b${e.what}\\b[^'\`]*(hidden|still show|of yours)`).test(copy)) {
@@ -140,6 +151,5 @@ if (findings.length) {
 }
 
 console.log(
-  `reviewer-lens-registry-guard: OK — ${entries.length} named rows, every one honoured, `
-  + 'every honouring surface named, both banner lines generated.',
+  `reviewer-lens-registry-guard: OK — ${entries.length} named rows, every one honoured, ` + 'every honouring surface named, both banner lines generated.'
 );

@@ -39,13 +39,17 @@ beforeAll(() => {
   cpSync(join(REPO, 'app', 'src'), join(sandbox, 'app', 'src'), { recursive: true });
   cpSync(GUARD, join(sandbox, 'scripts', 'reviewer-lens-registry-guard.mjs'), { recursive: true });
 });
-afterAll(() => { if (sandbox) rmSync(sandbox, { recursive: true, force: true }); });
+afterAll(() => {
+  if (sandbox) rmSync(sandbox, { recursive: true, force: true });
+});
 
 // Run the guard against the sandbox. Returns { code, out }.
 const run = () => {
   try {
     const out = execFileSync(process.execPath, [join(sandbox, 'scripts', 'reviewer-lens-registry-guard.mjs')], {
-      cwd: sandbox, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: sandbox,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     return { code: 0, out };
   } catch (e) {
@@ -109,11 +113,7 @@ describe('RULE 2 — a surface that hides rows must be named', () => {
   // THIS IS THE ORIGINAL DRIFT, inverted: the four nouns stayed four precisely
   // because wiring a surface never obliged anyone to say so.
   it('fails when a lens-honouring surface is left out of the registry', () => {
-    const undo = edit(
-      'lib/reviewer-lens.js',
-      "  Object.freeze({ what: 'payments', module: 'components/PaymentsLedgerPanel.jsx' }),\n",
-      '',
-    );
+    const undo = edit('lib/reviewer-lens.js', "  Object.freeze({ what: 'payments', module: 'components/PaymentsLedgerPanel.jsx' }),\n", '');
     const { code, out } = run();
     undo();
     expect(code).toBe(1);
@@ -126,7 +126,7 @@ describe('RULE 3 — the words come from the registry, never a hand-typed list',
     const undo = edit(
       'lib/reviewer-mode.jsx',
       'A person with no invite sees this: your own ${strangerHidesList()} are hidden.',
-      'A person with no invite sees this: your own doors, vault, contacts and research are hidden.',
+      'A person with no invite sees this: your own doors, vault, contacts and research are hidden.'
     );
     const { code, out } = run();
     undo();
@@ -138,11 +138,7 @@ describe('RULE 3 — the words come from the registry, never a hand-typed list',
     // The Admin cards are the OTHER place that describes the lens, read before
     // entering it. Both were four-nouns-by-hand; leaving either one unheld
     // would be the same defect with a different file name.
-    const undo = edit(
-      'lib/admin-console.js',
-      'none of your ${strangerHidesList()}',
-      'no doors, no vault, no contacts, no research of yours',
-    );
+    const undo = edit('lib/admin-console.js', 'none of your ${strangerHidesList()}', 'no doors, no vault, no contacts, no research of yours');
     const { code, out } = run();
     undo();
     expect(code).toBe(1);
