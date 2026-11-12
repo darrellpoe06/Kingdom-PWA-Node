@@ -51,6 +51,12 @@ export function churchSubTabs({ signedIn = false, reviewerMode = false, officeRo
       </>,
     ],
     [
+      'youth',
+      <>
+        <UiIcon name="sparkle" /> Youth Zone
+      </>,
+    ],
+    [
       'program',
       <>
         <UiIcon name="bookOpen" /> Order of Service
@@ -152,6 +158,7 @@ export const CHURCH_TAB_WORDS = Object.freeze({
   program: 'Order of Service',
   learn: 'Learn',
   institute: 'TLC Theological Institute',
+  youth: 'Youth Zone',
   conference: 'Conference',
   events: 'Campus Rentals',
   projects: 'Projects',
@@ -179,6 +186,7 @@ export const CHURCH_TAB_ICONS = Object.freeze({
   program: 'bookOpen',
   learn: 'pencil',
   institute: 'landmark',
+  youth: 'sparkle',
   conference: 'calendar',
   events: 'calendar',
   projects: 'sliders',
@@ -201,7 +209,7 @@ export const CHURCH_TAB_ICONS = Object.freeze({
  */
 export const CHURCH_TAB_GROUPS = Object.freeze([
   { key: 'worship', label: 'Worship & the Word', ids: ['home', 'pulpit', 'scripture', 'program', 'engagement'] },
-  { key: 'ministries', label: 'Ministries', ids: ['ministries', 'choir', 'bus'] },
+  { key: 'ministries', label: 'Ministries', ids: ['ministries', 'choir', 'bus', 'youth'] },
   { key: 'learning', label: 'Learning', ids: ['learn', 'institute', 'eternal-algorithms'] },
   { key: 'campus', label: 'Events & the campus', ids: ['conference', 'events', 'projects'] },
   { key: 'mine', label: 'My church', ids: ['my-record', 'access', 'members'] },

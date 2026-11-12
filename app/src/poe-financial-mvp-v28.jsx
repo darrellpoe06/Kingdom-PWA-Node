@@ -111,6 +111,7 @@ import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
 import { useChurchAccess, isChurchOfficeRole } from './lib/church-access-store.js';
+import { isChurchStaffEmail } from './lib/church-staff.js';
 import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
@@ -165,7 +166,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library, MoneySurfaces,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection, Storefront,
-  surfaceById, canSeeCameras, churchSubTabs, ChurchInstitute, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
+  surfaceById, canSeeCameras, churchSubTabs, ChurchInstitute, YouthZone, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
@@ -597,17 +598,7 @@ const FAMILY_EMAIL_PROFILES = {
 export const isFamilyEmail = (email) =>
   Object.prototype.hasOwnProperty.call(FAMILY_EMAIL_PROFILES, String(email || '').toLowerCase());
 
-// Church staff (The Church of the Living God). DISTINCT from family/Governor:
-// church staff get access to church STAFF-ONLY surfaces (e.g. the Observation
-// board) and NOTHING else — no family data, no financials, no Governor powers,
-// no real family names. Tenancy boundary stays intact (see DR-0074). Add staff
-// emails here as they get accounts; an allowlist (not a domain match) keeps it
-// auditable and avoids over-granting to anyone the church ever issues mail to.
-export const CHURCH_STAFF_EMAILS = new Set([
-  'bg@thechurchofthelivinggod.com', // Bishop Gwin
-]);
-export const isChurchStaffEmail = (email) =>
-  CHURCH_STAFF_EMAILS.has(String(email || '').toLowerCase());
+export { CHURCH_STAFF_EMAILS, isChurchStaffEmail } from './lib/church-staff.js'; // the church staff allowlist, moved out (2026-11-12)
 
 // Darrell's Study circle — the SMALLEST possible access set, by deliberate design
 // (no-leak, sovereign, private). Exactly: Darrell (owner), Christina (family /
@@ -4648,6 +4639,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
         {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} />}
+        {view === 'church' && churchView === 'youth' && <YouthZone church={data.church} signedIn={!!authSession} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
         {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} />}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}

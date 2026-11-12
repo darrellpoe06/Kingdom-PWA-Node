@@ -96,7 +96,7 @@ const TRIVIA = [
 // authored anchor set with its honest dating. Both paths write answers through
 // the same uploadTriviaAnswer lane.
 // -----------------------------------------------------------------------------
-function TriviaCard({ signedIn }) {
+export function TriviaCard({ signedIn }) {
   const [liveQuestion, setLiveQuestion] = useState(null);
   const [recentQuestions, setRecentQuestions] = useState([]);
 
