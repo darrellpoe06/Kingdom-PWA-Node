@@ -1,4 +1,4 @@
-# DR-1452: Thirty-three pictures arrive in one ask, and a tap leaves no frame
+# DR-1454: Thirty-three pictures arrive in one ask, and a tap leaves no frame
 
 **Date:** 2026-11-12
 **Status:** Accepted (built and proven)

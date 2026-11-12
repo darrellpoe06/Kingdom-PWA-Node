@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// THIRTY-THREE PICTURES ARRIVE IN ONE ASK, AND A TAP LEAVES NO FRAME (DR-1452)
+// THIRTY-THREE PICTURES ARRIVE IN ONE ASK, AND A TAP LEAVES NO FRAME (DR-1454)
 // =============================================================================
 // Darrell, 2026-11-12, on work order #13 (33 pictures) from the Teams tab:
 // "The color keeps changing to another color without me doing anything...
@@ -30,14 +30,27 @@ const here = dirname(fileURLToPath(import.meta.url));
 const T = (id) => `data:image/jpeg;base64,T${id}`;
 const ids33 = Array.from({ length: 33 }, (_, i) => `p${i + 1}`);
 
-let container; let root;
-async function flush() { for (let i = 0; i < 8; i += 1) await act(async () => { await Promise.resolve(); }); }
+let container;
+let root;
+async function flush() {
+  for (let i = 0; i < 8; i += 1)
+    await act(async () => {
+      await Promise.resolve();
+    });
+}
 async function mount(el) {
-  container = document.createElement('div'); document.body.appendChild(container);
-  await act(async () => { root = createRoot(container); root.render(el); });
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  await act(async () => {
+    root = createRoot(container);
+    root.render(el);
+  });
   await flush();
 }
-beforeEach(() => { _forgetSharpened(); delete globalThis.IntersectionObserver; });
+beforeEach(() => {
+  _forgetSharpened();
+  delete globalThis.IntersectionObserver;
+});
 afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
@@ -48,7 +61,10 @@ afterEach(() => {
 describe('warmThumbs: a set of ids, one ask per batch', () => {
   it('asks in chunks of the batch size and seeds the cache every tile reads', async () => {
     const asks = [];
-    const loadMany = async (ids) => { asks.push(ids); return Object.fromEntries(ids.map((id) => [id, T(id)])); };
+    const loadMany = async (ids) => {
+      asks.push(ids);
+      return Object.fromEntries(ids.map((id) => [id, T(id)]));
+    };
     const got = await warmThumbs(ids33, loadMany, 12);
     expect(asks.map((a) => a.length)).toEqual([12, 12, 9]);
     expect(Object.keys(got).length).toBe(33);
@@ -58,7 +74,12 @@ describe('warmThumbs: a set of ids, one ask per batch', () => {
   });
   it('a tile that asks while the batch is in flight waits for it instead of asking again; an unanswered id reads as no thumbnail', async () => {
     let release;
-    const loadMany = vi.fn(() => new Promise((r) => { release = r; }));
+    const loadMany = vi.fn(
+      () =>
+        new Promise((r) => {
+          release = r;
+        })
+    );
     const warming = warmThumbs(['a', 'b'], loadMany, 12);
     const perTile = vi.fn(async (id) => T(id));
     const waiting = thumbOnce('a', perTile);

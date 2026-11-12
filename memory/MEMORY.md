@@ -244,14 +244,11 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
-<<<<<<< HEAD
 - **2026-11-12 — "the color keeps changing" on a card = a `focus:` ring left by a
-  TAP (DR-1452)** — on touch, `focus:outline` paints after a tap and stays until
+  TAP (DR-1454)** — on touch, `focus:outline` paints after a tap and stays until
   the next tap elsewhere; a card-wide toggle wants `focus-visible:`. And "it
   populates slowly" on a picture strip = one thumbnail request per tile;
   `warmThumbs(ids, loadMany)` in SharpPicture batches them on the same queue.
-=======
->>>>>>> origin/main
 - **2026-11-12 — Square is the second processor on the SAME seam (DR-1451)** —
   `functions/_lib/square.js` + `/api/square-webhook`; the request names
   `processor`, `GET /api/checkout` lists `processors` (owner's

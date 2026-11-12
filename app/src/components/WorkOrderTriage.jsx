@@ -65,7 +65,7 @@ const PHOTO_OPS = {
   remember: rememberPictureName,
   add: addPhoto,
   thumb: async (id) => { const r = await loadPhotoThumbs([id]); return r.ok ? r.thumbs[id] || null : null; },
-  // Every picture on an opened work order, one ask (DR-1452).
+  // Every picture on an opened work order, one ask (DR-1454).
   thumbs: async (ids) => { const r = await loadPhotoThumbs(ids); return r.ok ? r.thumbs : {}; },
   image: async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; },
   instanceId: getInstanceId,

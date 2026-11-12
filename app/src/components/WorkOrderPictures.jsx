@@ -95,7 +95,7 @@ function Opened({ photo, loadImage, onClose }) {
 /** Thumbnails for a set of pictures; tap to open. */
 export function PictureStrip({ photos = [], loadThumb = null, loadImage = null, loadThumbs = null, label = 'Pictures' }) {
   const [open, setOpen] = useState(null);
-  // The strip's thumbnails arrive in one ask, not one per tile (DR-1452).
+  // The strip's thumbnails arrive in one ask, not one per tile (DR-1454).
   const ids = photos.map((p) => p && p.id).filter(Boolean).join(',');
   useEffect(() => {
     if (typeof loadThumbs !== 'function' || !ids) return;

@@ -69,7 +69,7 @@ export function sharpenOnce(id, loadImage) { return fetchOnce(cache, inflight, i
 export function thumbOnce(id, loadThumb) { return fetchOnce(thumbs, thumbWait, id, loadThumb); }
 
 /**
- * The thumbnails for a SET of ids in one ask (DR-1452). Darrell 2026-11-12,
+ * The thumbnails for a SET of ids in one ask (DR-1454). Darrell 2026-11-12,
  * on a work order with 33 pictures: "I'm populating slowly". Each tile was
  * asking for its own thumbnail, one request per picture, three at a time,
  * so a phone watched 33 round trips fill the grid one by one. The store can
