@@ -173,7 +173,8 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
       <details className="mt-2">
         <summary className="text-xs cursor-pointer min-h-[36px] flex items-center text-[#1A1815]">Every course, by the words a reader's book would hold</summary>
         <table className="mt-2 text-[0.6875rem] w-full text-[#1A1815]" data-testid="book-fitness-table">
-          <thead><tr className="text-left text-[#5A5751]"><th>Course</th><th>Department</th><th className="text-right">Lessons</th><th className="text-right">Words</th><th>Size</th></tr></thead>
+          <caption className="text-left text-[#5A5751] mb-1">Every course, measured by the words a reader's book would hold, largest first</caption>
+          <thead><tr className="text-left text-[#5A5751]"><th scope="col">Course</th><th scope="col">Department</th><th scope="col" className="text-right">Lessons</th><th scope="col" className="text-right">Words</th><th scope="col">Size</th></tr></thead>
           <tbody>
             {list.map((l) => (
               <tr key={l.key} data-fitness={l.measured.fitness}>
