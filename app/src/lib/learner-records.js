@@ -325,3 +325,39 @@ export function aggregateLearnerRecords(rows = [], { courseTotals = null } = {})
     },
   };
 }
+
+// WHAT THIS DEVICE HOLDS THAT THE RECORD DOES NOT (DR-1450). Darrell
+// 2026-11-12: the strip read 125 lessons and 62 exams; his record read 116 and
+// 57. A finished reading or exam is filed once, when it happens, and a save
+// that failed (a stalled road) was never tried again, because the device
+// already held it and the filer skips what the device holds. This names, for
+// ONE learner, each lesson the device marks read or has an exam score for that
+// his record rows lack, so it can be filed until the record holds it. Pure.
+// Only facts the record lacks are named: a score the record already has is
+// never sent twice (the wall appends every sent attempt to the ledger).
+export function deviceFactsMissingFromRecord({ records = [], userId = null, progress = {}, quizState = {}, courseOf = () => null, max = 25 } = {}) {
+  const mine = new Map();
+  for (const r of records || []) {
+    if (!r || !r.lessonId) continue;
+    if (userId && r.userId && r.userId !== userId) continue;
+    mine.set(r.lessonId, r);
+  }
+  const out = new Map();
+  const entry = (lessonId) => {
+    if (!out.has(lessonId)) out.set(lessonId, { lessonId, courseKey: courseOf(lessonId) || null });
+    return out.get(lessonId);
+  };
+  for (const [lessonId, at] of Object.entries(progress || {})) {
+    if (!lessonId || !at) continue;
+    const r = mine.get(lessonId);
+    if (r && r.completedAt) continue;
+    entry(lessonId).completedAt = iso(at) || new Date().toISOString();
+  }
+  for (const [lessonId, q] of Object.entries(quizState || {})) {
+    if (!lessonId || !q || !Number.isFinite(q.pct)) continue;
+    const r = mine.get(lessonId);
+    if (r && Number.isFinite(r.quizPct)) continue;
+    entry(lessonId).quiz = { pct: q.pct, passed: !!q.passed, at: q.at || null, attempts: Number.isFinite(q.attempts) && q.attempts > 0 ? q.attempts : 1 };
+  }
+  return [...out.values()].slice(0, max);
+}

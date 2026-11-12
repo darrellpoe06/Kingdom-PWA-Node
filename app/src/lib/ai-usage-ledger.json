@@ -1837,6 +1837,21 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 5,
       "notes": "Two ticks reported build-failed 3 with no way to tell a retry from a stall; the tailnet was shut both times"
+    },
+    {
+      "id": "record-door-stall",
+      "date": "2026-11-12",
+      "task": "Records would not open and PoeTech switched to Love Corner during a stalled sign-in",
+      "drs": [
+        "DR-1450"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
     }
   ]
 }

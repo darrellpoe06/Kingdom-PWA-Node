@@ -23,10 +23,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { saveLearnerRecord, subscribeLearnerRecords, requestLearnerRecordsRefresh } from './learner-records-sync.js';
-import { mergeRecordsIntoState } from './learner-records.js';
+import { mergeRecordsIntoState, deviceFactsMissingFromRecord } from './learner-records.js';
+import { listPlaces } from './learn-resume.js';
 import { accountName } from './learner-identity.js';
 
-export function useLearnerRecords({ authSession = null, demo = false, ageBand = 'adult', setData = null } = {}) {
+export function useLearnerRecords({ authSession = null, demo = false, ageBand = 'adult', setData = null, data = null } = {}) {
   // Every learner record this account may read — his own, or every learner's
   // when he is the Governor. The READ WALL decides the scope, never this code.
   const [learnerRecords, setLearnerRecords] = useState([]);
@@ -35,6 +36,12 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
   who.current = { authSession, demo, ageBand };
 
   const signedIn = !!authSession;
+  // The device's own state, read by the catch-up below (DR-1450).
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  // When each lesson was last sent by the catch-up, so a failed save is tried
+  // again later, never in a burst (DR-1450).
+  const lastCatchUp = useRef(new Map());
 
   // A record that cannot be filed never breaks the read (best-effort by design).
   const keep = useCallback((lessonId, courseKey, extra) => {
@@ -42,7 +49,8 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     if (!s || d || !lessonId) return;
     Promise.resolve(saveLearnerRecord({
       lessonId,
-      courseKey: courseKey || null,
+      // A course is named only when it is known, so a catch-up never blanks the row's own (DR-1450).
+      ...(courseKey ? { courseKey } : {}),
       // The reader's own name when the account carries one, so the record is in their name (DR-1421).
       learnerLabel: accountName(s?.user) || s?.user?.email || null,
       ageBand: band || 'adult',
@@ -123,6 +131,30 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     if (!signedIn || demo) { setLearnerRecords([]); return undefined; }
     const stop = subscribeLearnerRecords((records) => {
       setLearnerRecords(records || []);
+      // CATCH-UP (DR-1450): what this device holds and the record lacks is
+      // filed again, until the record holds it -- a save lost to a stalled
+      // road is not lost for good. Bounded: 25 a read, each lesson at most
+      // once a minute.
+      const d0 = dataRef.current;
+      if (d0) {
+        const placesCourse = new Map(listPlaces().map((p) => [p.lessonId, p.courseKey]));
+        const missing = deviceFactsMissingFromRecord({
+          records: records || [],
+          userId: who.current.authSession?.user?.id || null,
+          progress: d0.classProgress || {},
+          quizState: d0.classQuiz || {},
+          courseOf: (id) => placesCourse.get(id) || null,
+        });
+        const t = Date.now();
+        for (const m of missing) {
+          if (t - (lastCatchUp.current.get(m.lessonId) || 0) < 60000) continue;
+          lastCatchUp.current.set(m.lessonId, t);
+          const extra = {};
+          if (m.completedAt) extra.completedAt = m.completedAt;
+          if (m.quiz) extra.quiz = m.quiz;
+          keep(m.lessonId, m.courseKey || undefined, extra);
+        }
+      }
       if (typeof setData !== 'function') return;
       setData((d) => {
         const merged = mergeRecordsIntoState(records || [], {
@@ -136,7 +168,7 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       });
     });
     return stop;
-  }, [signedIn, demo, setData]);
+  }, [signedIn, demo, setData, keep]);
 
   return { learnerRecords, toggleClassModule, recordClassQuiz };
 }
