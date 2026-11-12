@@ -40,12 +40,16 @@ beforeAll(() => {
   cpSync(join(REPO, 'infra'), join(box, 'infra'), { recursive: true });
   cpSync(join(REPO, 'app', 'src', 'lib'), join(box, 'app', 'src', 'lib'), { recursive: true });
 });
-afterAll(() => { if (box) rmSync(box, { recursive: true, force: true }); });
+afterAll(() => {
+  if (box) rmSync(box, { recursive: true, force: true });
+});
 
 const run = (args = []) => {
   try {
     const out = execFileSync(process.execPath, [join(box, 'scripts', 're-review-ratchet-guard.mjs'), ...args], {
-      cwd: box, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: box,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, RE_REVIEW_TODAY: TODAY },
     });
     return { code: 0, out };
@@ -78,7 +82,10 @@ describe('RULE 1 — a NEW past-due date fails, which is the whole point', () =>
     // already past due — so it swapped one overdue date for another, the count
     // never moved, and the case failed while the guard was working correctly.
     const future = [...before.matchAll(/reReview: '(\d{4}-\d{2}-\d{2})'/g)]
-      .map((x) => x[1]).filter((d) => d > TODAY).sort().pop();
+      .map((x) => x[1])
+      .filter((d) => d > TODAY)
+      .sort()
+      .pop();
     expect(future, 'fixture needs one not-yet-due date to age').toBeTruthy();
     writeFileSync(p, before.replace(`reReview: '${future}'`, "reReview: '2026-01-01'"));
     const { code, out } = run();
@@ -104,7 +111,8 @@ describe('RULE 2 — the ceiling cannot be raised to admit it', () => {
     const b = readBase();
     const before = JSON.stringify(b);
     const f = b.files.find((x) => x.where.endsWith('contrast-guard.mjs'));
-    f.overdue += 1; b.maxOverdue += 1;
+    f.overdue += 1;
+    b.maxOverdue += 1;
     writeBase(b);
     const { code, out } = run();
     writeBase(JSON.parse(before));
@@ -149,7 +157,8 @@ describe('RULE 3 — a cleared promise comes off the list', () => {
     writeFileSync(p, src.replace("reReview: '2026-08-01'", "reReview: '2027-06-01'"));
     run(['--generate']);
     const after = readBase();
-    writeFileSync(p, src); writeBase(JSON.parse(b));
+    writeFileSync(p, src);
+    writeBase(JSON.parse(b));
     expect(after.files.some((x) => x.where.endsWith('contrast-guard.mjs'))).toBe(false);
     expect(after.maxOverdue).toBe(53);
   });

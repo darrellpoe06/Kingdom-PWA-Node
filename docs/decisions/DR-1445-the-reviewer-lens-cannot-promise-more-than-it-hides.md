@@ -1,4 +1,4 @@
-# DR-1441: The reviewer lens cannot promise more than it hides
+# DR-1445: The reviewer lens cannot promise more than it hides
 
 **Date:** 2026-11-12
 **Status:** Accepted

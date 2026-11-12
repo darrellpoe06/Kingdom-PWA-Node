@@ -108,9 +108,7 @@ export function judge(found, baseline, now) {
   const allowed = new Map();
   for (const f of files) {
     if (!String(f.blockersLiveIn || '').trim()) {
-      findings.push(
-        `${BASELINE}: ${f.where} does not say where its blockers live — parked is never silent about its blocker (DR-0075)`,
-      );
+      findings.push(`${BASELINE}: ${f.where} does not say where its blockers live — parked is never silent about its blocker (DR-0075)`);
     }
     if (!Number.isInteger(f.overdue)) {
       findings.push(`${BASELINE}: ${f.where} has no integer overdue count`);
@@ -122,8 +120,7 @@ export function judge(found, baseline, now) {
   const sum = [...allowed.values()].reduce((a, b) => a + b, 0);
   if (max !== null && sum !== max) {
     findings.push(
-      `${BASELINE}: the per-file counts add to ${sum} but maxOverdue is ${max} — `
-      + 'the ceiling is the sum of what is parked, so these cannot disagree',
+      `${BASELINE}: the per-file counts add to ${sum} but maxOverdue is ${max} — ` + 'the ceiling is the sum of what is parked, so these cannot disagree'
     );
   }
 
@@ -132,13 +129,13 @@ export function judge(found, baseline, now) {
     const cap = allowed.get(where);
     if (cap === undefined) {
       findings.push(
-        `${where} carries ${n} re-review date(s) that have passed and the file is not in ${BASELINE} — `
-        + 'either re-review them and move the dates, or record the file with where its blockers live (DR-0075)',
+        `${where} carries ${n} re-review date(s) that have passed and the file is not in ${BASELINE} — ` +
+          'either re-review them and move the dates, or record the file with where its blockers live (DR-0075)'
       );
     } else if (n > cap) {
       findings.push(
-        `${where} now has ${n} past-due re-review date(s), up from ${cap} — a promise went past its date and nothing moved it. `
-        + 'Re-review it, or clear another in the same file; the ceiling never rises (DR-0075)',
+        `${where} now has ${n} past-due re-review date(s), up from ${cap} — a promise went past its date and nothing moved it. ` +
+          'Re-review it, or clear another in the same file; the ceiling never rises (DR-0075)'
       );
     }
   }
@@ -149,8 +146,8 @@ export function judge(found, baseline, now) {
     const n = actual.get(where) || 0;
     if (n < cap) {
       findings.push(
-        `${BASELINE}: ${where} is allowed ${cap} past-due date(s) but now has only ${n} — `
-        + 'work was done, so re-freeze the ceiling lower: node scripts/re-review-ratchet-guard.mjs --generate',
+        `${BASELINE}: ${where} is allowed ${cap} past-due date(s) but now has only ${n} — ` +
+          'work was done, so re-freeze the ceiling lower: node scripts/re-review-ratchet-guard.mjs --generate'
       );
     }
   }
@@ -176,10 +173,11 @@ function main() {
     // DOWN ONLY. Each file's count re-freezes at what the tree really carries,
     // never above it, and a file that cleared entirely leaves the list.
     const { perFile } = judge(found, baseline, now);
-    baseline.files = (baseline.files || [])
-      .map((f) => ({ ...f, overdue: Math.min(f.overdue ?? 0, perFile.get(f.where) || 0) }))
-      .filter((f) => f.overdue > 0);
-    const next = Math.min(baseline.maxOverdue ?? overdue, baseline.files.reduce((a, f) => a + f.overdue, 0));
+    baseline.files = (baseline.files || []).map((f) => ({ ...f, overdue: Math.min(f.overdue ?? 0, perFile.get(f.where) || 0) })).filter((f) => f.overdue > 0);
+    const next = Math.min(
+      baseline.maxOverdue ?? overdue,
+      baseline.files.reduce((a, f) => a + f.overdue, 0)
+    );
     baseline.maxOverdue = next;
     writeFileSync(bPath, `${JSON.stringify(baseline, null, 2)}\n`);
     console.log(`re-review-ratchet-guard: re-froze the overdue ceiling at ${next}, down only.`);
@@ -194,8 +192,8 @@ function main() {
     return 1;
   }
   console.log(
-    `re-review-ratchet-guard: OK — ${total} parked promise(s) dated, ${overdue} past due `
-    + `and every one on the baseline (ceiling ${baseline.maxOverdue}), each saying what would clear it.`,
+    `re-review-ratchet-guard: OK — ${total} parked promise(s) dated, ${overdue} past due ` +
+      `and every one on the baseline (ceiling ${baseline.maxOverdue}), each saying what would clear it.`
   );
   return 0;
 }
