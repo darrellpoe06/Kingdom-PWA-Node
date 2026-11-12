@@ -482,17 +482,6 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
   color: #0A0A0A;
 }
 
-/* =============================================================================
-   Focus ring — the only thing a TV remote has instead of a cursor
-   =============================================================================
-   Darrell 2026-09-20, asking how to get the app onto a Firestick. The browser
-   is the route that works there (the .apk is portrait-locked and carries no
-   leanback entry), and lib/remote-navigation.js makes the D-pad move focus
-   spatially. But focus that cannot be SEEN is focus that does not exist: on a
-   TV the viewer is across the room, there is no pointer to fall back on, and
-   before this rule the app shipped no focus styling at all — so the browser
-   route was technically navigable and practically unusable.
-
 /* ===================================================================
    THE LOVE CORNER HOME (2026-11-12 redesign; components/lovecorner/).
    Darrell: "make the colors red black white with a touch gold."
@@ -625,6 +614,17 @@ button.lc-tile{cursor:pointer}
 .lc-cert-rule{height:1px;background:var(--lc-gold);margin:.5rem 1.875rem;opacity:.6}
 .lc-empty{background:var(--lc-paper);border:1px dashed var(--lc-line);border-radius:.875rem;padding:.75rem .875rem;font-size:.82rem;color:var(--lc-muted);line-height:1.45;margin:0}
 @media (prefers-reduced-motion:reduce){.lc-feat-track{scroll-behavior:auto}}
+
+/* =============================================================================
+   Focus ring — the only thing a TV remote has instead of a cursor
+   =============================================================================
+   Darrell 2026-09-20, asking how to get the app onto a Firestick. The browser
+   is the route that works there (the .apk is portrait-locked and carries no
+   leanback entry), and lib/remote-navigation.js makes the D-pad move focus
+   spatially. But focus that cannot be SEEN is focus that does not exist: on a
+   TV the viewer is across the room, there is no pointer to fall back on, and
+   before this rule the app shipped no focus styling at all — so the browser
+   route was technically navigable and practically unusable.
 
 
    :focus-visible, not :focus, so a tap or click never paints a ring on a
