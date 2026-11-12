@@ -213,3 +213,71 @@ class LedgerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WhyABuildFailed(unittest.TestCase):
+    """by_stall: the failure CLASS, never the reason's text (0322).
+
+    MEASURED 2026-11-12 on the lane this census exists for. The tailnet key was
+    shut, the public road answered as designed, and all it could say was
+    `build-failed: 3`, oldest 1 h. That cannot be acted on: `rate-limited` and
+    `transient` HEAL THEMSELVES -- lesson_builder.eligibility() reads the class
+    back off the front of the build-reason tag and retries -- while anything
+    else is stuck and wants a person. For an hour the honest answer was "three
+    failed and I cannot tell you which kind", which is the blindness this
+    census was written to end, one field short.
+    """
+
+    def _rows(self):
+        return [
+            {"source": "research-inbox", "created_at": "2026-11-12T12:17:12Z",
+             "tags": ["lesson", "build-failed",
+                      "build-reason:rate-limited: HTTP 429 Too Many Requests"]},
+            {"source": "research-inbox", "created_at": "2026-11-12T12:20:00Z",
+             "tags": ["lesson", "build-failed",
+                      "build-reason:transient: Failed to refresh OAuth token"]},
+            {"source": "research-inbox", "created_at": "2026-11-12T12:25:00Z",
+             "tags": ["lesson", "build-failed",
+                      "build-reason:no version passed every gate: SECRET WORDS"]},
+            {"source": "research-inbox", "created_at": "2026-11-12T12:30:00Z",
+             "tags": ["lesson"]},
+        ]
+
+    def test_each_failure_class_is_counted_and_sums_to_the_build_failed_shape(self):
+        c = qc.census_of(self._rows())
+        self.assertEqual(c["by_stall"], {"rate-limited": 1, "transient": 1, "other": 1})
+        self.assertEqual(sum(c["by_stall"].values()), c["by_shape"]["build-failed"])
+
+    def test_the_reasons_TEXT_never_leaves_the_house(self):
+        # reason_tag() keeps the class first so it survives the 200-character
+        # cut; the remainder can quote a gate error carrying a person's words,
+        # so the remainder is not read here at all.
+        blob = json.dumps(qc.census_of(self._rows()))
+        for leak in ("SECRET WORDS", "HTTP 429", "OAuth", "build-reason"):
+            self.assertNotIn(leak, blob)
+
+    def test_only_a_failed_row_is_classified_so_a_quiet_queue_says_nothing(self):
+        plain = [{"source": "research-inbox", "created_at": "2026-11-12T12:30:00Z",
+                  "tags": ["lesson"]}]
+        self.assertEqual(qc.census_of(plain)["by_stall"], {})
+        self.assertEqual(qc.census_of([])["by_stall"], {})
+
+    def test_a_failed_row_with_no_reason_tag_is_other_rather_than_missing(self):
+        # A build killed by the wall-clock budget can land without a reason.
+        # Counting it as nothing would make by_stall disagree with by_shape and
+        # quietly lose a stuck teaching.
+        rows = [{"source": "research-inbox", "created_at": "2026-11-12T12:00:00Z",
+                 "tags": ["lesson", "build-failed"]}]
+        c = qc.census_of(rows)
+        self.assertEqual(c["by_stall"], {"other": 1})
+        self.assertEqual(sum(c["by_stall"].values()), c["by_shape"]["build-failed"])
+
+    def test_PROVEN_TO_CATCH_a_classifier_that_matches_anywhere_not_only_the_front(self):
+        # reason_tag() puts the class FIRST on purpose. A substring match would
+        # call this row rate-limited because the words appear in a quoted gate
+        # error, and a stuck teaching would be left for a retry that never fixes
+        # it -- the same class of miss DR-1232 recorded when a cut tag hid a 429.
+        row = {"source": "research-inbox", "created_at": "2026-11-12T12:00:00Z",
+               "tags": ["lesson", "build-failed",
+                        "build-reason:no version passed every gate: the writer said rate-limited"]}
+        self.assertEqual(qc.stall_of(row), "other")
