@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 39,
+  "scheduled": 40,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -176,6 +176,13 @@
       "name": "ops-queue-health",
       "crons": [
         "23 */2 * * *"
+      ]
+    },
+    {
+      "file": "poetech-plus-keys.yml",
+      "name": "PoeTech+ keys",
+      "crons": [
+        "23 10 * * *"
       ]
     },
     {
