@@ -1760,6 +1760,23 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 6,
       "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
+    },
+    {
+      "id": "reviewer-lens-promise",
+      "date": "2026-11-12",
+      "task": "The reviewer lens cannot promise more than it hides: one registry generates every lens description, the work-order board and the payments ledger honour it, a gate holds the sentence equal to the surfaces",
+      "drs": [
+        "DR-1441"
+      ],
+      "prs": [
+        2627
+      ],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell reviewing as a new user on his phone: I can see all this as a new person with no record. Nothing was exposed (RLS; 0260 asserts it) -- the banner's global headline had a partial list"
     }
   ]
 }

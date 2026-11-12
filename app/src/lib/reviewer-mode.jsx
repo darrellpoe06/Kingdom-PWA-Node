@@ -45,10 +45,11 @@ import ReviewsPeek from '../components/ReviewsPeek.jsx';
 // own rows still show) and 'stranger' (as a new user — nothing of his shows);
 // the legacy '1' reads as 'self'. Darrell 2026-10-27: "I want both... as
 // myself and as a new user... a toggle or choices."
-import { REVIEWER_MODE_KEY, REVIEWER_LENS_MODES, reviewerLensMode } from './reviewer-lens.js';
+import { REVIEWER_MODE_KEY, REVIEWER_LENS_MODES, reviewerLensMode, strangerHidesList } from './reviewer-lens.js';
 export {
   REVIEWER_MODE_KEY, REVIEWER_LENS_MODES, reviewerLensMode,
   isReviewerModeOn, isReviewerSelf, isReviewerStranger, reviewerLensLine,
+  STRANGER_HIDES, strangerHidesList,
 } from './reviewer-lens.js';
 
 const defaultStorage = () => {
@@ -88,16 +89,24 @@ export function exitReviewerMode(storage = defaultStorage(), reload = defaultRel
 
 // What each mode SAYS, plainly (DR-0076): a steward must never read "exactly
 // as a user sees it" over his own doors again. 'self' admits his rows show.
+//
+// THE NOUNS COME FROM THE REGISTRY, not from this file (2026-11-12). They were
+// typed here once, as four, and stayed four while the app grew — so the global
+// headline "a person with no invite sees this" outran its own partial list, and
+// Darrell read the promise the sentence makes. strangerHidesList() is generated
+// from lib/reviewer-lens.js's STRANGER_HIDES, which a gate holds equal to the
+// surfaces that actually honour the lens. The sentence can no longer promise
+// more than the code does.
 export const REVIEWER_LENS_COPY = Object.freeze({
   self: {
     name: 'As yourself, privileges hidden',
-    line: 'Your own doors, vault, contacts and research still show; only family, Governor and staff privileges are hidden. Your family books, profile, and cloud snapshot are untouched.',
+    line: `Your own ${strangerHidesList()} still show; only family, Governor and staff privileges are hidden. Your family books, profile, and cloud snapshot are untouched.`,
     switchTo: 'stranger',
     switchLabel: 'See as a new user →',
   },
   stranger: {
     name: 'As a new user',
-    line: 'A person with no invite sees this: your own doors, vault, contacts and research are hidden. Your family books, profile, and cloud snapshot are untouched.',
+    line: `A person with no invite sees this: your own ${strangerHidesList()} are hidden. Your family books, profile, and cloud snapshot are untouched.`,
     switchTo: 'self',
     switchLabel: 'See as yourself →',
   },

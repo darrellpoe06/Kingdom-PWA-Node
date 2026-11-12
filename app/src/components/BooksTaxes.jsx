@@ -377,8 +377,12 @@ export default function BooksTaxes({ entities = [], demo = false }) {
         </div>
       ))}
       {/* DR-0230: the live payments ledger reads beside the tax archive — one
-          Books → Taxes surface, always accountant-current. */}
-      <PaymentsLedgerPanel entities={entities} />
+          Books → Taxes surface, always accountant-current.
+          AND IT IS TOLD WHAT THIS SURFACE IS (2026-11-12). The notice above
+          names "tax returns and payments"; passing `demo` is what makes that
+          notice true of the payments half too, instead of a real ledger read
+          sitting underneath it. */}
+      <PaymentsLedgerPanel entities={entities} demo={demo} />
     </section>
   );
 }

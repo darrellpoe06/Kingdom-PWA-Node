@@ -229,3 +229,37 @@ describe('BooksTaxes', () => {
     expect(notice.textContent).toMatch(/key the family publishes and the key on the NAS differ/);
   });
 });
+
+// THE WIRING ITSELF, PINNED (2026-11-12). This surface's sample notice names
+// "tax returns and PAYMENTS", and this surface mounts the live payments ledger
+// -- but it mounted it with no `demo` at all, so the ledger read the real
+// `payments` table underneath a notice promising it would not. `demo` here is
+// true in sample mode, in the isolated preview and under BOTH reviewer lenses
+// (poe-financial-mvp-v28.jsx), and the Money tab is ungated, so that was
+// reachable with real money on it in every one of those states.
+//
+// The panel's own quiet is pinned in payments-ledger-panel.test.jsx. What was
+// unpinned -- and what let this through -- is the ONE PROP between them: the
+// panel can be perfectly honest and still be handed nothing. Deleting `demo`
+// from that mount passed every suite in this repo until this case existed.
+describe('the payments ledger beside the archive is told what this surface is', () => {
+  it('in sample mode the ledger is quiet, so the notice is true of the payments half too', async () => {
+    archive([]);
+    await mount({ entities: [{ id: 'e1', name: 'Poe Family' }], demo: true });
+    expect(container.querySelector('[data-testid="sample-mode-taxes"]'), 'the sample notice is the promise being kept').toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="payments-ledger-sample"]'),
+      'the live payments ledger was mounted without `demo`, so it reads real rows under a sample notice',
+    ).toBeTruthy();
+  });
+
+  it('ANTI-VACUITY: outside sample mode the same ledger is live, not quiet', async () => {
+    archive([]);
+    await mount({ entities: [{ id: 'e1', name: 'Poe Family' }] });
+    expect(container.textContent).toMatch(/Live payments ledger/i);
+    expect(
+      container.querySelector('[data-testid="payments-ledger-sample"]'),
+      'the ledger went quiet for everyone, which would make the case above vacuous',
+    ).toBeFalsy();
+  });
+});

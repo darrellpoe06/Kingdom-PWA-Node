@@ -9,9 +9,23 @@
 //   · table not applied yet  → says so (0116 is Darrell's hand)
 //   · applied, no payments   → says the doors await the Governor's keys
 //   · rows                   → the same yearSummary truth the 1099s reports read
+//
+// AND IT IS QUIET WHERE ITS PARENT IS QUIET (2026-11-12). Found by taking the
+// defect Darrell caught on the work-order board -- a surface reading his own
+// rows under a banner promising a stranger's view -- and asking where else it
+// was true. Here: BooksTaxes honours `demo` for its own archive read and
+// renders a notice naming "tax returns and payments", while mounting this
+// panel with no `demo` at all, so the panel read the real `payments` table
+// underneath that notice. `demo` is true in sample mode, in the isolated
+// preview, AND under either reviewer lens, and the Money tab is ungated in
+// nav-items.jsx -- so this was reachable, with real money on it, in every one
+// of those states. Nothing was EXPOSED (RLS scopes `payments` to the steward
+// and under the lens he is still himself), but the surface was lying about
+// what it was showing, which is the thing the lens exists to answer.
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { fromTableRow, yearSummary } from '../lib/payments-ledger.js';
+import { isReviewerStranger, reviewerLensLine } from '../lib/reviewer-lens.js';
 
 const centsMoney = (c) =>
   '$' + (Math.round(c) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,13 +44,22 @@ export async function fetchPaymentRows() {
   }
 }
 
-export default function PaymentsLedgerPanel({ entities = [], fetchRows = fetchPaymentRows, year = new Date().getFullYear() }) {
+export default function PaymentsLedgerPanel({ entities = [], fetchRows = fetchPaymentRows, year = new Date().getFullYear(), demo = false, stranger = null }) {
+  // The lens is read here, at this panel's own cloud boundary, the way every
+  // other lens-honouring surface reads it -- not handed down a mount, because
+  // a per-mount flag is exactly how the work-order board was missed.
+  const lens = stranger == null ? isReviewerStranger() : !!stranger;
+  const quiet = demo || lens;
   const [result, setResult] = useState({ state: 'loading', rows: [] });
   useEffect(() => {
     let live = true;
+    // NOT EVEN ASKED when the surface is quiet: a read whose rows are then
+    // hidden still pulled them, and a panel that fetches under a sample notice
+    // is one refactor away from rendering them.
+    if (quiet) return undefined;
     fetchRows().then((r) => { if (live) setResult(r); });
     return () => { live = false; };
-  }, [fetchRows]);
+  }, [quiet, fetchRows]);
 
   const entityName = (id) => entities.find((e) => e.id === id)?.name || id;
   const summary = yearSummary(result.rows, year);
@@ -49,7 +72,22 @@ export default function PaymentsLedgerPanel({ entities = [], fetchRows = fetchPa
         Every settled payment, categorized to its entity the moment it clears — the books stay accountant-ready year-round, never an April scramble (DR-0230).
       </p>
 
-      {result.state === 'loading' && (
+      {/* It SAYS why it is quiet, in the words that are true of the state it is
+          in -- never blank, and never the wrong reason (DR-0381). Under the
+          stranger lens these are the steward's own rows being withheld from
+          him on purpose, which is what reviewerLensLine says; it is NOT the
+          database refusing them, and this panel does not claim that it is. */}
+      {lens && (
+        <p className="text-xs text-[#1A1815] mt-2" role="status" data-testid="payments-reviewer-lens">{reviewerLensLine('payments')}</p>
+      )}
+
+      {quiet && !lens && (
+        <p className="text-xs text-[#1A1815] mt-2" data-testid="payments-ledger-sample">
+          Sample mode: the live ledger is not read here, and no payment is invented to fill it.
+        </p>
+      )}
+
+      {!quiet && result.state === 'loading' && (
         <p className="text-xs text-[#5A5751] mt-2">Reading the ledger…</p>
       )}
 

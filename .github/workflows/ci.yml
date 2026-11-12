@@ -113,6 +113,9 @@ jobs:
       - run: node ../scripts/interconnect-guard.mjs
       # A DR cited in the code is a DR that exists (DR-0952).
       - run: node ../scripts/decision-citation-guard.mjs
+      # The reviewer lens cannot promise more than it hides: the banner's words
+      # are held equal to the surfaces that honour it (the guard says why).
+      - run: node ../scripts/reviewer-lens-registry-guard.mjs
       # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
       # fails the build if the backbone seam migration is missing, any *-ingest.py
       # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,
