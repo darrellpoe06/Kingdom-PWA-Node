@@ -42,4 +42,4 @@ A "Who am I?" Bible-character game needs authored clues with every verse fetched
 
 ## Verification after merge
 
-DR-0107: deploy on the merged SHA, boot check green, `site-health.yml` UP and fresh, then the Youth Zone opened on a phone from the front door's Youth door. Recorded here when done.
+DR-0107, done 2026-11-12: #2646 squash-merged as `4f3d3e70` at 22:36Z; Deploy (Cloudflare Pages) run 43321439138 on that SHA green at 22:43Z, its real-browser boot check BOOT OK on poetech.us, pages.dev, the Moore door and `?view=church`. DR-0125: `site-health.yml` run 43322549994 at 22:44Z: verdict UP, served build `4f3d3e7` = main. CI on the way found three things the local pinned suites had not (a duplicate `church-youth` feedback key, a stale legibility health file, a stale persistent-share ledger), each fixed on the PR before merge. The phone walk from the front door's Youth door is the DR-0104 reviewer pass Darrell makes.
