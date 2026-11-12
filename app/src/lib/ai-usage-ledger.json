@@ -1822,6 +1822,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 6,
       "notes": "Pulled forward between prompts; the oldest overdue promise is a sub-AA contrast exemption at 103 days"
+    },
+    {
+      "id": "census-says-why",
+      "date": "2026-11-12",
+      "task": "The census says WHY a waiting build failed, as a class: by_stall over the failed rows, published under its own allow-list",
+      "drs": [
+        "DR-1447"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 5,
+      "notes": "Two ticks reported build-failed 3 with no way to tell a retry from a stall; the tailnet was shut both times"
     }
   ]
 }

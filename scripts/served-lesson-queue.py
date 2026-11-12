@@ -210,7 +210,12 @@ def judge(receipt, why, now=None):
             d, h = ow // 1440, (ow % 1440) // 60
             waited = f"{d} d {h} h" if d else (f"{h} h" if h else f"{ow} min")
             lines.append(f"The oldest has waited {waited} ({oldest}).")
-    for field, label in (("by_road", "By road"), ("by_shape", "By shape")):
+    # WHY A FAILED BUILD FAILED, AS A CLASS (0322, measured 2026-11-12). On the
+    # tick that prompted it this road could say only `build-failed: 3`, and a
+    # count cannot be acted on: `rate-limited` and `transient` retry themselves,
+    # anything else is stuck and wants a person. The class is printed; the
+    # reason's text is never carried here (it can quote a person's words).
+    for field, label in (("by_road", "By road"), ("by_shape", "By shape"), ("by_stall", "Failed because")):
         d = receipt.get(field)
         if isinstance(d, dict) and d:
             parts = ", ".join(f"{k}: {v}" for k, v in sorted(d.items()))
