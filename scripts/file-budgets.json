@@ -217,11 +217,18 @@
       "to": 11352,
       "date": "2026-11-12",
       "why": "sov74 (DR-1441, with all thy getting get understanding) adds one lesson to this file: the Sovereign A.I. week built from a video on A.I. in schools that Darrell sent with one word, Lesson, taught Word-first and tied to the learner record settled the same night (DR-1439, DR-1440), with all four age bands and 80 quoted spans filled from app/public/bible/kjv. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size, not above it; inserted in the file's own native style (149 insertions, 0 deletions), never by a whole-file prettier run; the eighth recorded raise on this file, for the same stated reason as the seven before it."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 11352,
+      "to": 11512,
+      "date": "2026-11-12",
+      "why": "sov75 (DR-1442, safely - a tool and not a friend) adds one lesson to this file: the Sovereign A.I. week built from Sinead Bovell's SXSW EDU 2025 session that Darrell sent the same night as sov74, with his one-word follow-up, Safely, as its spine; all four age bands and 85 quoted spans filled from app/public/bible/kjv. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the MEASURED size (160 insertions, 0 deletions, native style); the ninth recorded raise on this file, for the same stated reason as the eight before it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 32192,
-    "app/src/lib/sovereign-ai-class.js": 11352,
+    "app/src/lib/sovereign-ai-class.js": 11512,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6004,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
