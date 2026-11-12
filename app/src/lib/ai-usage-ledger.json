@@ -1927,6 +1927,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 3,
       "notes": "No code shipped on purpose. The obvious fix - a timeout-minutes cap on the deploy's join step - was parked because DR-0107 forbids buying deploy-lane change with velocity and because every join measurement available is of a FAILING join, so there is no healthy baseline to size a cap against. Two of my own readings were wrong first (a 19 ms error-echo step mistaken for the join; a stale in_progress snapshot read as 8 minutes) and both are recorded in the DR."
+    },
+    {
+      "id": "pictures-in-one-ask",
+      "date": "2026-11-12",
+      "task": "A work order's thumbnails fetched in batches on the shared picture queue instead of one request per tile; the row toggle's focus ring made keyboard-only so a tap leaves no frame",
+      "drs": [
+        "DR-1454"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell's two screenshots from the Teams tab: a strip of empty squares under a 33-picture note, and an orange frame around the tapped card. Both read from the code: per-id thumbnail asks and a focus: ring on a touch target."
     }
   ]
 }

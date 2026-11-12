@@ -69,6 +69,48 @@ export function sharpenOnce(id, loadImage) { return fetchOnce(cache, inflight, i
 export function thumbOnce(id, loadThumb) { return fetchOnce(thumbs, thumbWait, id, loadThumb); }
 
 /**
+ * The thumbnails for a SET of ids in one ask (DR-1454). Darrell 2026-11-12,
+ * on a work order with 33 pictures: "I'm populating slowly". Each tile was
+ * asking for its own thumbnail, one request per picture, three at a time,
+ * so a phone watched 33 round trips fill the grid one by one. The store can
+ * answer up to `batch` ids at once; this asks for the ids not yet known in
+ * chunks of that size, registers each id as pending so a tile that comes on
+ * screen meanwhile waits for the batch instead of asking again, and seeds
+ * the same cache the tiles read. An id the batch does not answer is recorded
+ * as "no thumbnail", so the tile falls through to its full image as before.
+ * `loadMany(ids)` → { [id]: dataUrl } (a missing key means none exists).
+ */
+export function warmThumbs(ids, loadMany, batch = 12) {
+  if (typeof loadMany !== 'function') return Promise.resolve({});
+  const want = [...new Set((ids || []).filter(Boolean))].filter((id) => !thumbs.has(id) && !thumbWait.has(id));
+  if (!want.length) return Promise.resolve({});
+  const size = Math.max(1, Number(batch) || 12);
+  const rounds = [];
+  for (let i = 0; i < want.length; i += size) {
+    const chunk = want.slice(i, i + size);
+    const settle = new Map();
+    for (const id of chunk) {
+      thumbWait.set(id, new Promise((resolve) => settle.set(id, resolve)));
+    }
+    rounds.push(new Promise((resolve) => {
+      waiting.push({
+        run: () => loadMany(chunk),
+        done: (got) => {
+          const map = got && typeof got === 'object' ? got : {};
+          for (const id of chunk) {
+            const bytes = typeof map[id] === 'string' && map[id] ? map[id] : null;
+            thumbs.set(id, bytes); thumbWait.delete(id); settle.get(id)(bytes);
+          }
+          resolve(map);
+        },
+      });
+      pump();
+    }));
+  }
+  return Promise.all(rounds).then((maps) => Object.assign({}, ...maps));
+}
+
+/**
  * The sharpest image already known for a picture, without fetching.
  *
  * The first three are bytes already in hand: a full image fetched earlier,

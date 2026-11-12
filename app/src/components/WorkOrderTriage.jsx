@@ -65,6 +65,8 @@ const PHOTO_OPS = {
   remember: rememberPictureName,
   add: addPhoto,
   thumb: async (id) => { const r = await loadPhotoThumbs([id]); return r.ok ? r.thumbs[id] || null : null; },
+  // Every picture on an opened work order, one ask (DR-1454).
+  thumbs: async (ids) => { const r = await loadPhotoThumbs(ids); return r.ok ? r.thumbs : {}; },
   image: async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; },
   instanceId: getInstanceId,
 };
@@ -76,6 +78,7 @@ const appendLine = (notes, line) => [String(notes || '').trim(), line].filter(Bo
 
 const MUTED = 'text-[#5A5751]';
 const FOCUS_RING = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
+const TAP_RING = 'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B85838]';
 
 // Status colors carry meaning, never decoration, and true red is reserved
 // (CLAUDE.md, Color Theology): blue is a worker on it, amber is waiting on you,
@@ -310,12 +313,15 @@ function WorkersView({ board, openJob }) {
 function Row({ w, expanded, onToggle, act, contractors, movers, busy, message, photos = [], pictures = null }) {
   const crew = w.crew.length ? w.crew.join(', ') : '';
   const loose = loosePictures(photos, w);
-  const loaders = pictures ? { loadThumb: pictures.thumb, loadImage: pictures.image } : {};
+  const loaders = pictures ? { loadThumb: pictures.thumb, loadImage: pictures.image, loadThumbs: pictures.thumbs || null } : {};
   const age = ageOf(w);
   const t = tone(w, age);
   return (
     <li className={`border rounded-md bg-white ${age.overdue ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`} data-testid="work-order">
-      <button type="button" onClick={onToggle} aria-expanded={expanded} className={`w-full text-left p-2 ${FOCUS_RING}`}>
+      {/* A tap on a phone left the orange focus frame around the whole card
+          until the next tap somewhere else: "the color keeps changing" (Darrell
+          2026-11-12). focus-visible paints it for the keyboard only. */}
+      <button type="button" onClick={onToggle} aria-expanded={expanded} className={`w-full text-left p-2 ${TAP_RING}`}>
         <span className="flex items-baseline gap-2">
           <span className="text-[0.625rem] font-semibold text-[#B85838] whitespace-nowrap" data-testid="work-order-number">#{w.number}</span>
           {/* Two lines at most: a thought filed as a work order can be a whole

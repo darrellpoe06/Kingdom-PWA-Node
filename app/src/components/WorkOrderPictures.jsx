@@ -25,7 +25,7 @@
 // move-out set hangs on; the thinking is in lib/work-order-pictures.js.
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
-import SharpPicture from '../modules/properties/SharpPicture.jsx';
+import SharpPicture, { warmThumbs } from '../modules/properties/SharpPicture.jsx';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import {
   PICTURE_NAME_DEFAULTS, NEW_NAME_LABEL, mergePictureNames, isNewPictureName,
@@ -93,8 +93,14 @@ function Opened({ photo, loadImage, onClose }) {
 }
 
 /** Thumbnails for a set of pictures; tap to open. */
-export function PictureStrip({ photos = [], loadThumb = null, loadImage = null, label = 'Pictures' }) {
+export function PictureStrip({ photos = [], loadThumb = null, loadImage = null, loadThumbs = null, label = 'Pictures' }) {
   const [open, setOpen] = useState(null);
+  // The strip's thumbnails arrive in one ask, not one per tile (DR-1454).
+  const ids = photos.map((p) => p && p.id).filter(Boolean).join(',');
+  useEffect(() => {
+    if (typeof loadThumbs !== 'function' || !ids) return;
+    warmThumbs(ids.split(','), loadThumbs);
+  }, [ids, loadThumbs]);
   if (!photos.length) return null;
   return (
     <div className="mt-1" data-testid="work-order-pictures">
