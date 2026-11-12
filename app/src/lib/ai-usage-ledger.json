@@ -1700,6 +1700,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 2,
       "notes": "Darrell asked where checkout lives"
+    },
+    {
+      "id": "payments-firewall",
+      "date": "2026-11-12",
+      "task": "Payments firewall (only what the house made or tagged is recorded) and the map of every checkout; Square verified from its docs",
+      "drs": [
+        "DR-1438"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 6,
+      "notes": "Found while answering Darrell's store and Square question"
     }
   ]
 }
