@@ -13,8 +13,15 @@ import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
-beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
-afterEach(() => { act(() => root.unmount()); container.remove(); });
+beforeEach(() => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+});
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+});
 const mount = (props = {}) => act(() => root.render(createElement(ChurchInstitute, { church: COLG_DEFAULT_CHURCH, ...props })));
 const tab = (label) => {
   const t = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
@@ -47,7 +54,8 @@ describe('the Institute landing', () => {
     tab('Enrollment');
     expect(container.querySelector('[data-testid="institute-enrollment-not-filed"]').textContent).toContain('Enrollment opens when the office confirms');
     expect(container.textContent).not.toContain('Apply from My Record');
-    act(() => root.unmount()); root = createRoot(container);
+    act(() => root.unmount());
+    root = createRoot(container);
     mount({ settings: { exemption_status: 'confirmed', enrollment_open: true }, setChurchView: () => {} });
     tab('Enrollment');
     expect(container.querySelector('[data-testid="institute-enrollment-open"]')).toBeTruthy();
@@ -56,12 +64,16 @@ describe('the Institute landing', () => {
   it('Certificates and Announcements say their state; no accreditation or degree is claimed anywhere', () => {
     mount();
     tab('Certificates');
-    expect(container.querySelector('[data-testid="institute-credential-note"]').textContent).toBe('Religious certificates of completion. No accreditation or degrees are claimed.');
+    expect(container.querySelector('[data-testid="institute-credential-note"]').textContent).toBe(
+      'Religious certificates of completion. No accreditation or degrees are claimed.'
+    );
     tab('Announcements');
     expect(container.querySelector('[data-testid="institute-announcements-empty"]')).toBeTruthy();
     for (const label of ['About', 'Courses', 'Enrollment', 'Students', 'Certificates', 'Announcements']) {
       tab(label);
-      expect(container.textContent, label).not.toMatch(/\b(is|are|fully) accredited\b|\bdegree[- ]granting\b|\bearn (a|your) degree\b|coming soon|under construction/i);
+      expect(container.textContent, label).not.toMatch(
+        /\b(is|are|fully) accredited\b|\bdegree[- ]granting\b|\bearn (a|your) degree\b|coming soon|under construction/i
+      );
     }
   });
   it('every button carries a focus ring', () => {

@@ -4,7 +4,17 @@
 // does not have (the brief's rules 6 and 7, 2026-11-12).
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { INSTITUTE_META, PROGRAMS, programCourses, programStatus, availableCourses, unresolvedCourseKeys, launchState, enrollmentCopy, ENROLLMENT_STEPS } from '../lib/church-institute.js';
+import {
+  INSTITUTE_META,
+  PROGRAMS,
+  programCourses,
+  programStatus,
+  availableCourses,
+  unresolvedCourseKeys,
+  launchState,
+  enrollmentCopy,
+  ENROLLMENT_STEPS,
+} from '../lib/church-institute.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 
 describe('programs name only registered courses', () => {
@@ -29,7 +39,11 @@ describe('programs name only registered courses', () => {
     expect(programStatus({ key: 'y', courseKeys: ['no-such-course'] })).toBe('planned');
     const keys = availableCourses().map((x) => x.course.key);
     expect(new Set(keys).size).toBe(keys.length);
-    for (const k of keys) expect(LEARN_CATALOG.some((c) => c.key === k), k).toBe(true);
+    for (const k of keys)
+      expect(
+        LEARN_CATALOG.some((c) => c.key === k),
+        k
+      ).toBe(true);
   });
 });
 

@@ -31,8 +31,23 @@ describe('every Church sub-tab survives the redesign', () => {
   });
   it('the public viewer sees the public tabs and none of the gated ones', () => {
     const got = ids(churchSubTabs({}));
-    expect(got).toEqual(['home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program', 'learn', 'institute', 'conference', 'events', 'projects']);
-    for (const gated of ['my-record', 'access', 'members', 'giving-book', 'harvest', 'videowall', 'devices', 'infra-plan', 'observe']) expect(got).not.toContain(gated);
+    expect(got).toEqual([
+      'home',
+      'ministries',
+      'pulpit',
+      'scripture',
+      'engagement',
+      'choir',
+      'bus',
+      'program',
+      'learn',
+      'institute',
+      'conference',
+      'events',
+      'projects',
+    ]);
+    for (const gated of ['my-record', 'access', 'members', 'giving-book', 'harvest', 'videowall', 'devices', 'infra-plan', 'observe'])
+      expect(got).not.toContain(gated);
   });
   it('the gates still gate: signed-in adds the member tabs; office adds the Giving Book; reviewer mode hides it; staff adds the office tools', () => {
     expect(ids(churchSubTabs({ signedIn: true }))).toEqual(expect.arrayContaining(['my-record', 'access', 'members']));
@@ -69,14 +84,23 @@ describe('the phone groups every tab, names every tab, and the bar opens real su
     const flat = groups.flatMap((g) => g.items.map(([id]) => id));
     expect([...flat].sort()).toEqual([...ids(pairs)].sort());
     expect(groups.map((g) => g.key)).toEqual(['worship', 'ministries', 'learning', 'campus']);
-    expect(groups[2].items).toEqual([['learn', 'Learn'], ['institute', 'TLC Theological Institute']]);
+    expect(groups[2].items).toEqual([
+      ['learn', 'Learn'],
+      ['institute', 'TLC Theological Institute'],
+    ]);
   });
   it('an id the groups do not know is never hidden: it lands in the first group', () => {
-    const groups = churchTabGroups([['home', 'Church'], ['brand-new', 'Brand New']]);
+    const groups = churchTabGroups([
+      ['home', 'Church'],
+      ['brand-new', 'Brand New'],
+    ]);
     expect(groups[0].items.map(([id]) => id)).toContain('brand-new');
   });
   it('every valid sub has plain words and an icon', () => {
-    for (const id of VALID_CHURCH_SUBS) { expect(CHURCH_TAB_WORDS[id], id).toBeTruthy(); expect(CHURCH_TAB_ICONS[id], id).toBeTruthy(); }
+    for (const id of VALID_CHURCH_SUBS) {
+      expect(CHURCH_TAB_WORDS[id], id).toBeTruthy();
+      expect(CHURCH_TAB_ICONS[id], id).toBeTruthy();
+    }
     expect(CHURCH_TAB_WORDS.events).toBe('Campus Rentals');
   });
   it('the bottom bar is Home · Watch · Word, each a valid sub; Watch opens the Worship section', () => {

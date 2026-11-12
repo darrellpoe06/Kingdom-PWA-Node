@@ -29,13 +29,13 @@
 // Those two failing pairs are the rule, not a footnote: gold text lives on
 // black only; on white and red, gold is a fill under ink.
 export const LOVE_CORNER_PALETTE = Object.freeze({
-  red: '#C03222',       // the heart's own hue, deepened to carry words (DR-1060)
-  heart: '#E43C28',     // the emblem's red, a fill and a mark only
-  black: '#1A1012',     // the ring
-  white: '#FFFFFF',     // the field
-  cream: '#FFF8F7',     // the door's ground (theme-css lovecorner)
-  gold: '#CFA63C',      // the cross — the touch
-  goldInk: '#7A5C14',   // gold deep enough for small text on white (6.19)
+  red: '#C03222', // the heart's own hue, deepened to carry words (DR-1060)
+  heart: '#E43C28', // the emblem's red, a fill and a mark only
+  black: '#1A1012', // the ring
+  white: '#FFFFFF', // the field
+  cream: '#FFF8F7', // the door's ground (theme-css lovecorner)
+  gold: '#CFA63C', // the cross — the touch
+  goldInk: '#7A5C14', // gold deep enough for small text on white (6.19)
   goldTint: '#FBF3DC',
   redTint: '#FFF0EE',
   redDeep: '#8E2217',
@@ -47,15 +47,16 @@ export const LOVE_CORNER_PALETTE = Object.freeze({
 export function relativeLuminance(hex) {
   const h = String(hex || '').replace('#', '');
   if (h.length !== 6) return 0;
-  const ch = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const ch = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
 }
 
 /** WCAG contrast ratio between two hex colors, rounded to two places. */
 export function contrastRatio(a, b) {
-  const la = relativeLuminance(a); const lb = relativeLuminance(b);
-  const hi = Math.max(la, lb); const lo = Math.min(la, lb);
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
   return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
 }
 
@@ -65,13 +66,13 @@ export function contrastRatio(a, b) {
  * nudged "a little warmer" can never quietly drop a label below legibility.
  */
 export const TEXT_PAIRS = Object.freeze([
-  { name: 'ink on gold (button label)',     fg: LOVE_CORNER_PALETTE.black,   bg: LOVE_CORNER_PALETTE.gold },
-  { name: 'gold on black (tagline)',        fg: LOVE_CORNER_PALETTE.gold,    bg: LOVE_CORNER_PALETTE.black },
-  { name: 'white on red (band copy)',       fg: LOVE_CORNER_PALETTE.white,   bg: LOVE_CORNER_PALETTE.red },
-  { name: 'white on black (band copy)',     fg: LOVE_CORNER_PALETTE.white,   bg: LOVE_CORNER_PALETTE.black },
-  { name: 'red text on white',              fg: LOVE_CORNER_PALETTE.red,     bg: LOVE_CORNER_PALETTE.white },
-  { name: 'muted on white',                 fg: LOVE_CORNER_PALETTE.muted,   bg: LOVE_CORNER_PALETTE.white },
-  { name: 'deep red on red tint',           fg: LOVE_CORNER_PALETTE.redDeep, bg: LOVE_CORNER_PALETTE.redTint },
-  { name: 'gold ink on white (eyebrow)',    fg: LOVE_CORNER_PALETTE.goldInk, bg: LOVE_CORNER_PALETTE.white },
-  { name: 'gold ink on gold tint (chip)',   fg: LOVE_CORNER_PALETTE.goldInk, bg: LOVE_CORNER_PALETTE.goldTint },
+  { name: 'ink on gold (button label)', fg: LOVE_CORNER_PALETTE.black, bg: LOVE_CORNER_PALETTE.gold },
+  { name: 'gold on black (tagline)', fg: LOVE_CORNER_PALETTE.gold, bg: LOVE_CORNER_PALETTE.black },
+  { name: 'white on red (band copy)', fg: LOVE_CORNER_PALETTE.white, bg: LOVE_CORNER_PALETTE.red },
+  { name: 'white on black (band copy)', fg: LOVE_CORNER_PALETTE.white, bg: LOVE_CORNER_PALETTE.black },
+  { name: 'red text on white', fg: LOVE_CORNER_PALETTE.red, bg: LOVE_CORNER_PALETTE.white },
+  { name: 'muted on white', fg: LOVE_CORNER_PALETTE.muted, bg: LOVE_CORNER_PALETTE.white },
+  { name: 'deep red on red tint', fg: LOVE_CORNER_PALETTE.redDeep, bg: LOVE_CORNER_PALETTE.redTint },
+  { name: 'gold ink on white (eyebrow)', fg: LOVE_CORNER_PALETTE.goldInk, bg: LOVE_CORNER_PALETTE.white },
+  { name: 'gold ink on gold tint (chip)', fg: LOVE_CORNER_PALETTE.goldInk, bg: LOVE_CORNER_PALETTE.goldTint },
 ]);

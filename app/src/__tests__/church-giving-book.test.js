@@ -144,7 +144,7 @@ describe('the office, and only the office', () => {
     // The tab list moved to lib/church-tabs.jsx (2026-11-12, DR-1455): the shell
     // hands it the office role, and the list rides the same predicate.
     const tabs = read('app/src/lib/church-tabs.jsx');
-    expect(tabs).toMatch(/isChurchOfficeRole\(officeRole\) \? \[\['giving-book'/);
+    expect(tabs).toMatch(/isChurchOfficeRole\(officeRole\)\s*\?\s*\[\s*\[\s*'giving-book'/);
     expect(app).toMatch(/churchSubTabs\(\{ signedIn: !!authSession, reviewerMode, officeRole: churchAccess\.role/);
     expect(app).toMatch(/churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole\(churchAccess\.role\)/);
   });

@@ -24,39 +24,174 @@ import { isChurchOfficeRole } from './church-access-store.js';
 export function churchSubTabs({ signedIn = false, reviewerMode = false, officeRole = '', isChurchStaff = false } = {}) {
   return [
     ['home', 'Church'],
-    ['ministries', <><UiIcon name="heart" /> Ministries</>],
-    ['pulpit', <><UiIcon name="bookOpen" /> The Word</>],
-    ['scripture', <><UiIcon name="book" /> Scripture</>],
+    [
+      'ministries',
+      <>
+        <UiIcon name="heart" /> Ministries
+      </>,
+    ],
+    [
+      'pulpit',
+      <>
+        <UiIcon name="bookOpen" /> The Word
+      </>,
+    ],
+    [
+      'scripture',
+      <>
+        <UiIcon name="book" /> Scripture
+      </>,
+    ],
     ['engagement', 'Engagement'],
     ['choir', 'Choir'],
-    ['bus', <><UiIcon name="users" /> Bus Ministry</>],
-    ['program', <><UiIcon name="bookOpen" /> Order of Service</>],
+    [
+      'bus',
+      <>
+        <UiIcon name="users" /> Bus Ministry
+      </>,
+    ],
+    [
+      'program',
+      <>
+        <UiIcon name="bookOpen" /> Order of Service
+      </>,
+    ],
     ['learn', 'Learn'],
-    ['institute', <><UiIcon name="landmark" /> Institute</>],
+    [
+      'institute',
+      <>
+        <UiIcon name="landmark" /> Institute
+      </>,
+    ],
     ['conference', 'Conference'],
     ['events', 'Campus Rentals'],
-    ['projects', <><UiIcon name="sliders" /> Projects</>],
-    ...(signedIn ? [['my-record', <><UiIcon name="pencil" /> My Record</>], ['access', <><UiIcon name="lock" /> Access</>], ['members', <><UiIcon name="users" /> Members</>]] : []),
-    ...(!reviewerMode && isChurchOfficeRole(officeRole) ? [['giving-book', <><UiIcon name="coins" /> Giving Book</>]] : []),
-    ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>], ['videowall', <><UiIcon name="monitor" /> Video Wall</>], ['devices', <><UiIcon name="tools" /> Devices</>], ['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>], ['observe', <><UiIcon name="lock" /> Observation</>]] : []),
+    [
+      'projects',
+      <>
+        <UiIcon name="sliders" /> Projects
+      </>,
+    ],
+    ...(signedIn
+      ? [
+          [
+            'my-record',
+            <>
+              <UiIcon name="pencil" /> My Record
+            </>,
+          ],
+          [
+            'access',
+            <>
+              <UiIcon name="lock" /> Access
+            </>,
+          ],
+          [
+            'members',
+            <>
+              <UiIcon name="users" /> Members
+            </>,
+          ],
+        ]
+      : []),
+    ...(!reviewerMode && isChurchOfficeRole(officeRole)
+      ? [
+          [
+            'giving-book',
+            <>
+              <UiIcon name="coins" /> Giving Book
+            </>,
+          ],
+        ]
+      : []),
+    ...(isChurchStaff
+      ? [
+          [
+            'harvest',
+            <>
+              <UiIcon name="sparkle" /> Harvest
+            </>,
+          ],
+          [
+            'videowall',
+            <>
+              <UiIcon name="monitor" /> Video Wall
+            </>,
+          ],
+          [
+            'devices',
+            <>
+              <UiIcon name="tools" /> Devices
+            </>,
+          ],
+          [
+            'infra-plan',
+            <>
+              <UiIcon name="sliders" /> Infra Plan
+            </>,
+          ],
+          [
+            'observe',
+            <>
+              <UiIcon name="lock" /> Observation
+            </>,
+          ],
+        ]
+      : []),
   ].map(([id, label]) => [id, label] /* church-sub-tabs */); // the marker feedback-area-guard reads, as nav-items' top-level-nav
 }
 
 /** Plain words for each sub-tab, for aria and the phone's sheet. */
 export const CHURCH_TAB_WORDS = Object.freeze({
-  home: 'Church', ministries: 'Ministries', pulpit: 'The Word', scripture: 'Scripture', engagement: 'Engagement',
-  choir: 'Choir', bus: 'Bus Ministry', program: 'Order of Service', learn: 'Learn', institute: 'TLC Theological Institute',
-  conference: 'Conference', events: 'Campus Rentals', projects: 'Projects', 'my-record': 'My Record', access: 'Access',
-  members: 'Members', 'giving-book': 'Giving Book', harvest: 'Harvest', videowall: 'Video Wall', devices: 'Devices',
-  'infra-plan': 'Infra Plan', observe: 'Observation', 'eternal-algorithms': 'Eternal Algorithms',
+  home: 'Church',
+  ministries: 'Ministries',
+  pulpit: 'The Word',
+  scripture: 'Scripture',
+  engagement: 'Engagement',
+  choir: 'Choir',
+  bus: 'Bus Ministry',
+  program: 'Order of Service',
+  learn: 'Learn',
+  institute: 'TLC Theological Institute',
+  conference: 'Conference',
+  events: 'Campus Rentals',
+  projects: 'Projects',
+  'my-record': 'My Record',
+  access: 'Access',
+  members: 'Members',
+  'giving-book': 'Giving Book',
+  harvest: 'Harvest',
+  videowall: 'Video Wall',
+  devices: 'Devices',
+  'infra-plan': 'Infra Plan',
+  observe: 'Observation',
+  'eternal-algorithms': 'Eternal Algorithms',
 });
 
 /** An icon per sub-tab for the sheet (UiIcon names). */
 export const CHURCH_TAB_ICONS = Object.freeze({
-  home: 'home', ministries: 'heart', pulpit: 'bookOpen', scripture: 'book', engagement: 'dice', choir: 'volume', bus: 'users',
-  program: 'bookOpen', learn: 'pencil', institute: 'landmark', conference: 'calendar', events: 'calendar', projects: 'sliders',
-  'my-record': 'pencil', access: 'lock', members: 'users', 'giving-book': 'coins', harvest: 'sparkle', videowall: 'monitor',
-  devices: 'tools', 'infra-plan': 'sliders', observe: 'lock', 'eternal-algorithms': 'sparkle',
+  home: 'home',
+  ministries: 'heart',
+  pulpit: 'bookOpen',
+  scripture: 'book',
+  engagement: 'dice',
+  choir: 'volume',
+  bus: 'users',
+  program: 'bookOpen',
+  learn: 'pencil',
+  institute: 'landmark',
+  conference: 'calendar',
+  events: 'calendar',
+  projects: 'sliders',
+  'my-record': 'pencil',
+  access: 'lock',
+  members: 'users',
+  'giving-book': 'coins',
+  harvest: 'sparkle',
+  videowall: 'monitor',
+  devices: 'tools',
+  'infra-plan': 'sliders',
+  observe: 'lock',
+  'eternal-algorithms': 'sparkle',
 });
 
 /**
@@ -65,12 +200,12 @@ export const CHURCH_TAB_ICONS = Object.freeze({
  * does not know lands in the first group so a tab added later is never hidden.
  */
 export const CHURCH_TAB_GROUPS = Object.freeze([
-  { key: 'worship',    label: 'Worship & the Word', ids: ['home', 'pulpit', 'scripture', 'program', 'engagement'] },
-  { key: 'ministries', label: 'Ministries',         ids: ['ministries', 'choir', 'bus'] },
-  { key: 'learning',   label: 'Learning',           ids: ['learn', 'institute', 'eternal-algorithms'] },
-  { key: 'campus',     label: 'Events & the campus', ids: ['conference', 'events', 'projects'] },
-  { key: 'mine',       label: 'My church',          ids: ['my-record', 'access', 'members'] },
-  { key: 'office',     label: 'Church office',      ids: ['giving-book', 'harvest', 'videowall', 'devices', 'infra-plan', 'observe'] },
+  { key: 'worship', label: 'Worship & the Word', ids: ['home', 'pulpit', 'scripture', 'program', 'engagement'] },
+  { key: 'ministries', label: 'Ministries', ids: ['ministries', 'choir', 'bus'] },
+  { key: 'learning', label: 'Learning', ids: ['learn', 'institute', 'eternal-algorithms'] },
+  { key: 'campus', label: 'Events & the campus', ids: ['conference', 'events', 'projects'] },
+  { key: 'mine', label: 'My church', ids: ['my-record', 'access', 'members'] },
+  { key: 'office', label: 'Church office', ids: ['giving-book', 'harvest', 'videowall', 'devices', 'infra-plan', 'observe'] },
 ]);
 
 /** Group the gated pairs for the sheet: [{ key, label, items: [[id, words]] }], empty groups omitted. */
@@ -78,7 +213,12 @@ export function churchTabGroups(pairs = []) {
   const ids = pairs.map(([id]) => id);
   const seen = new Set();
   const out = CHURCH_TAB_GROUPS.map((g) => {
-    const items = g.ids.filter((id) => ids.includes(id) && !seen.has(id)).map((id) => { seen.add(id); return [id, CHURCH_TAB_WORDS[id] || id]; });
+    const items = g.ids
+      .filter((id) => ids.includes(id) && !seen.has(id))
+      .map((id) => {
+        seen.add(id);
+        return [id, CHURCH_TAB_WORDS[id] || id];
+      });
     return { key: g.key, label: g.label, items };
   });
   const strays = ids.filter((id) => !seen.has(id)).map((id) => [id, CHURCH_TAB_WORDS[id] || id]);
@@ -93,7 +233,7 @@ export function churchTabGroups(pairs = []) {
  * Church home on its Worship section (lib/church-home-section.js).
  */
 export const CHURCH_BOTTOM_NAV = Object.freeze([
-  { key: 'church-home',  churchView: 'home',   section: null,      icon: 'home',     words: 'Home' },
-  { key: 'church-watch', churchView: 'home',   section: 'worship', icon: 'monitor',  words: 'Watch' },
-  { key: 'church-word',  churchView: 'pulpit', section: null,      icon: 'bookOpen', words: 'Word' },
+  { key: 'church-home', churchView: 'home', section: null, icon: 'home', words: 'Home' },
+  { key: 'church-watch', churchView: 'home', section: 'worship', icon: 'monitor', words: 'Watch' },
+  { key: 'church-word', churchView: 'pulpit', section: null, icon: 'bookOpen', words: 'Word' },
 ]);

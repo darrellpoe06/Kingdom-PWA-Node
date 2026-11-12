@@ -15,17 +15,62 @@ import { subscribeChurchHomeSection } from '../lib/church-home-section.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root, origMM, origW;
 beforeEach(() => {
-  container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
-  origMM = window.matchMedia; origW = window.innerWidth; window.innerWidth = 390;
-  window.matchMedia = (q) => ({ matches: /max-width: (639|1023)/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  origMM = window.matchMedia;
+  origW = window.innerWidth;
+  window.innerWidth = 390;
+  window.matchMedia = (q) => ({
+    matches: /max-width: (639|1023)/.test(q),
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  });
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); window.matchMedia = origMM; window.innerWidth = origW; });
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+  window.matchMedia = origMM;
+  window.innerWidth = origW;
+});
 const mount = (nav) => act(() => root.render(createElement(ChromeDock, { onFeedback: () => {}, nav })));
 const q = (sel) => container.querySelector(sel);
 const click = (el) => act(() => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 
-const CHURCH_DOOR = (extra = {}) => ({ groups: [{ key: 'soul', label: 'Soul', items: [['church', 'Church']], links: [] }], view: 'church', churchView: 'home', homeView: 'current', churchTabs: churchSubTabs({}), onNavigate: () => {}, money: null, ...extra });
-const POETECH = (extra = {}) => ({ groups: [{ key: 'family', label: '', items: [['overview', 'Home'], ['books', 'Money']], links: [] }, { key: 'soul', label: 'Soul', items: [['church', 'Church']], links: [] }], view: 'church', churchView: 'home', homeView: 'current', churchTabs: churchSubTabs({}), onNavigate: () => {}, money: null, ...extra });
+const CHURCH_DOOR = (extra = {}) => ({
+  groups: [{ key: 'soul', label: 'Soul', items: [['church', 'Church']], links: [] }],
+  view: 'church',
+  churchView: 'home',
+  homeView: 'current',
+  churchTabs: churchSubTabs({}),
+  onNavigate: () => {},
+  money: null,
+  ...extra,
+});
+const POETECH = (extra = {}) => ({
+  groups: [
+    {
+      key: 'family',
+      label: '',
+      items: [
+        ['overview', 'Home'],
+        ['books', 'Money'],
+      ],
+      links: [],
+    },
+    { key: 'soul', label: 'Soul', items: [['church', 'Church']], links: [] },
+  ],
+  view: 'church',
+  churchView: 'home',
+  homeView: 'current',
+  churchTabs: churchSubTabs({}),
+  onNavigate: () => {},
+  money: null,
+  ...extra,
+});
 
 describe('on the church door', () => {
   it('the bar carries Home · Watch · Word and none of the platform tabs', () => {
@@ -35,13 +80,17 @@ describe('on the church door', () => {
     expect(q('[data-testid="dock-tab-church-home"]').getAttribute('aria-current')).toBe('page');
   });
   it('Watch opens the Church home on its Worship section; Word opens the Word tab', () => {
-    const went = []; const sections = [];
+    const went = [];
+    const sections = [];
     const off = subscribeChurchHomeSection((id) => sections.push(id));
     mount(CHURCH_DOOR({ onNavigate: (v, home, sub) => went.push([v, sub]) }));
     click(q('[data-testid="dock-tab-church-watch"]'));
     click(q('[data-testid="dock-tab-church-word"]'));
     off();
-    expect(went).toEqual([['church', 'home'], ['church', 'pulpit']]);
+    expect(went).toEqual([
+      ['church', 'home'],
+      ['church', 'pulpit'],
+    ]);
     expect(sections).toEqual(['worship']);
   });
   it('More lists every gated Church sub-tab, grouped, and a tap opens it', () => {

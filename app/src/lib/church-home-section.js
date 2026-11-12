@@ -14,12 +14,20 @@ let pending = null;
 /** Ask the Church home to show `sectionId` ('worship' | 'speak' | 'prayer' | 'give' | 'times' | 'about'). */
 export function requestChurchHomeSection(sectionId) {
   pending = sectionId ? String(sectionId) : null;
-  for (const fn of [...listeners]) { try { fn(pending); } catch { /* a listener's error never blocks the rest */ } }
+  for (const fn of [...listeners]) {
+    try {
+      fn(pending);
+    } catch {
+      /* a listener's error never blocks the rest */
+    }
+  }
 }
 
 /** The last request not yet consumed (so a home that mounts AFTER the tap still honors it). */
 export function takePendingChurchHomeSection() {
-  const p = pending; pending = null; return p;
+  const p = pending;
+  pending = null;
+  return p;
 }
 
 export function subscribeChurchHomeSection(fn) {

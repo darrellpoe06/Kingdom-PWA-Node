@@ -77,7 +77,11 @@ describe('the feature cards by weekday (brief §9)', () => {
     expect(cards.map((c) => c.id)).toEqual(['start', 'no-events', 'visit']);
   });
   it('with a future event the second card is that event', () => {
-    const cards = featureCards({ services: S, announcedEvents: [{ id: 'x', name: 'Harvest Dinner', date: '2026-11-21', detail: 'Fellowship hall' }], now: MON_9AM });
+    const cards = featureCards({
+      services: S,
+      announcedEvents: [{ id: 'x', name: 'Harvest Dinner', date: '2026-11-21', detail: 'Fellowship hall' }],
+      now: MON_9AM,
+    });
     expect(cards[1]).toMatchObject({ id: 'event-x', title: 'Harvest Dinner' });
     expect(cards[1].body).toBe('2026-11-21 · Fellowship hall');
   });

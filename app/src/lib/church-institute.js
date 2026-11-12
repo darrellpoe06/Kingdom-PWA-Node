@@ -26,7 +26,8 @@ export const INSTITUTE_META = Object.freeze({
   name: 'TLC Theological Institute',
   tagline: 'Equipping Believers. Developing Leaders. Deepening Faith.',
   of: 'The Church of the Living God',
-  about: 'An educational ministry of The Church of the Living God. The Institute teaches the Word, trains those who serve, and prepares leaders for the house. Credentials are religious certificates of completion. The Institute does not claim accreditation, state authorization, or degrees.',
+  about:
+    'An educational ministry of The Church of the Living God. The Institute teaches the Word, trains those who serve, and prepares leaders for the house. Credentials are religious certificates of completion. The Institute does not claim accreditation, state authorization, or degrees.',
   credentialKinds: ['certificate'],
   // What the public surface may say about credentials, verbatim. A test pins
   // that these words — and never "accredited", "degree", "authorized" as a
@@ -37,19 +38,22 @@ export const INSTITUTE_META = Object.freeze({
 /** The three programs the brief names. `courseKeys` reference LEARN_CATALOG. */
 export const PROGRAMS = Object.freeze([
   {
-    key: 'biblical-studies', title: 'Biblical Studies',
+    key: 'biblical-studies',
+    title: 'Biblical Studies',
     blurb: 'Old and New Testament survey, how to interpret the Word, Christian doctrine.',
     courseKeys: ['who-he-is', 'made-in-time'],
     planned: ['Old Testament Survey', 'New Testament Survey', 'Biblical Interpretation', 'Christian Doctrine'],
   },
   {
-    key: 'ministry-leadership', title: 'Ministry Leadership',
+    key: 'ministry-leadership',
+    title: 'Ministry Leadership',
     blurb: 'The offices of the house from the Word, stewardship, and handing the mission forward.',
     courseKeys: ['church-offices', 'handed-forward'],
     planned: ['Pastoral Care', 'Preaching and Teaching', 'Church Administration'],
   },
   {
-    key: 'christian-education', title: 'Christian Education',
+    key: 'christian-education',
+    title: 'Christian Education',
     blurb: 'Teaching the Word to every age, from the littlest learners to the founding generation.',
     courseKeys: ['little-learners'],
     planned: ['Teaching Children the Word', 'Youth Discipleship', 'Adult Bible Study Leadership'],
@@ -75,8 +79,15 @@ export function programStatus(program, catalog = catalogByKey()) {
 
 /** Every course the Institute can open today, across programs, de-duplicated. */
 export function availableCourses(programs = PROGRAMS, catalog = catalogByKey()) {
-  const seen = new Set(); const out = [];
-  for (const p of programs) for (const c of programCourses(p, catalog)) { if (!seen.has(c.key)) { seen.add(c.key); out.push({ course: c, program: p }); } }
+  const seen = new Set();
+  const out = [];
+  for (const p of programs)
+    for (const c of programCourses(p, catalog)) {
+      if (!seen.has(c.key)) {
+        seen.add(c.key);
+        out.push({ course: c, program: p });
+      }
+    }
   return out;
 }
 
@@ -98,10 +109,14 @@ export function launchState(settings) {
 /** What the Enrollment section says for each state, in the house's plain voice. */
 export function enrollmentCopy(state) {
   switch (state) {
-    case 'open': return 'Enrollment is open. Apply from your My Record page.';
-    case 'confirmed-closed': return 'The paperwork is confirmed. The office will open enrollment for the next cohort here.';
-    case 'filed': return 'The paperwork is filed and awaiting confirmation. Enrollment opens after that.';
-    default: return 'Enrollment opens when the office confirms the program and its paperwork. Until then the courses below are open to everyone in Learn.';
+    case 'open':
+      return 'Enrollment is open. Apply from your My Record page.';
+    case 'confirmed-closed':
+      return 'The paperwork is confirmed. The office will open enrollment for the next cohort here.';
+    case 'filed':
+      return 'The paperwork is filed and awaiting confirmation. Enrollment opens after that.';
+    default:
+      return 'Enrollment opens when the office confirms the program and its paperwork. Until then the courses below are open to everyone in Learn.';
   }
 }
 
