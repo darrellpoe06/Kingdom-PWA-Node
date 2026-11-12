@@ -1595,6 +1595,21 @@
       "notes": "Darrell: lessons in both still; access is what is paid for"
     },
     {
+      "id": "dr-1431-queue-readable-without-the-key",
+      "date": "2026-11-12",
+      "task": "The lesson lane's second road: migration 0320 turns the NAS's own lesson-queue census outward as a public receipt, the lane reads it when the tailnet is shut, and a green run must mean the queue was read",
+      "drs": [
+        "DR-1431"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.1,
+      "estimateWithoutAiHours": 9,
+      "notes": "Found by the hourly voice-lane tick reading its own run log, not asked for. Six prior ticks re-measured the same tailnet-join failure and waited on a key only Darrell can mint; DR-1360 had already decided that road was to be reversed. The census writer already existed and was enabled but had never been read from outside the house. Proof ran on a throwaway PostgreSQL 16 cluster: 8 executed cases, including a seeded lesson body that must not appear and SET ROLE anon both ways. That proof caught a clamp of my own that turned a corrupt total of -5 into 0 - a manufactured empty queue, the one lie this lane exists to prevent."
+    },
+    {
       "id": "poetech-plus-checkout",
       "date": "2026-11-12",
       "task": "PoeTech+ checkout: verified buyer, member_subscriptions row (0321), webhook lifecycle, money counted once, truthful button in both apps, cancel portal, one-secret keys workflow",
