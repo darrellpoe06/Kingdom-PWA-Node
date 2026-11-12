@@ -1745,6 +1745,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 3,
       "notes": "Darrell: courses should be rewarded"
+    },
+    {
+      "id": "sov74",
+      "date": "2026-11-12",
+      "task": "sov74, with all thy getting get understanding: the Sovereign A.I. week built from a video on A.I. in schools, taught Word-first and tied to the learner record settled the same night",
+      "drs": [
+        "DR-1441"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 12,
+      "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
     }
   ]
 }

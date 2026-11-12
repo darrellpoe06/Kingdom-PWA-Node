@@ -210,11 +210,18 @@
       "to": 11203,
       "date": "2026-11-11",
       "why": "sov73 (DR-1423, a credential you cannot check is not a credential) adds one lesson to this file: the Sovereign A.I. week on the credential that cannot be checked, the costume 2 Corinthians 11:13-14 already described, and the three-move pitch of Genesis 3:4-5, with all four age bands and 49 quoted spans swept verbatim against app/public/bible/kjv. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size, not above it; the seventh recorded raise on this file, for the same stated reason as the six before it. THE FIRST ATTEMPT AT THIS RAISE WOULD HAVE BEEN 2,142 LINES: `prettier --write` was run on the whole file to re-insert the module, which reformatted the other 72 lessons (8,962 insertions, 6,820 deletions for one added lesson). The insertion was redone against the unformatted file in its own native style -- 180 insertions, 0 deletions -- which is what this number measures."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 11203,
+      "to": 11352,
+      "date": "2026-11-12",
+      "why": "sov74 (DR-1441, with all thy getting get understanding) adds one lesson to this file: the Sovereign A.I. week built from a video on A.I. in schools that Darrell sent with one word, Lesson, taught Word-first and tied to the learner record settled the same night (DR-1439, DR-1440), with all four age bands and 80 quoted spans filled from app/public/bible/kjv. The corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size, not above it; inserted in the file's own native style (149 insertions, 0 deletions), never by a whole-file prettier run; the eighth recorded raise on this file, for the same stated reason as the seven before it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 32192,
-    "app/src/lib/sovereign-ai-class.js": 11203,
+    "app/src/lib/sovereign-ai-class.js": 11352,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6004,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
