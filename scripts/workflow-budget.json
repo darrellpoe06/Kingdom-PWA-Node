@@ -98,7 +98,14 @@
       "to": 22854,
       "dr": "DR-1414",
       "reason": "loops-health.yml now READS the lesson-queue-census loop, exactly as it was made to read nas-heartbeat: its last-run.json in its own home, its install path, its `lesson-queue-census:` cron lines, a red when that ledger says the count could not be written, and a line in the dark-loop diagnosis. The a-service-comes-home gate caught the services.json entry with the loop on NEITHER list and failed the first push of PR #2604 by name -- doing its job -- and a name beside a witness that never looks at it is the hollow version of walking the Way, so the witness was made to look first. Sixteen lines, six of them the comment recording that this ledger carries counts and never a person's words. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 22854,
+      "to": 22952,
+      "dr": "DR-1428",
+      "reason": "inbox-lessons-waiting.yml gains its second road (DR-1360/DR-1399's shape): the join carries continue-on-error, one step reads the lesson-queue census the NAS takes for itself over poetech.us/sb when the tailnet is shut, the run log reports WHICH road answered, and a closing step fails the job when NEITHER road read the queue. That last step is the reason this is not pure growth: making both read steps continue-on-error is exactly how a lane starts reporting success for work it did not do, so the brake had to ship with the capability. MEASURED cause: runs #500-#505 -- six consecutive firings of the PRIORITY lesson lane -- all died at the join on a key that expired 2026-11-04 and again by 11-10, while the queue sat on a machine that was up and the census that counts it had been running all along, unreadable from outside for the same reason. The ceiling refuses bloat, not a road that removes a single point of failure. First written at 22973; the three comment blocks were folded to 10, 11 and 8 lines (-21) with the narrative moved into the record, so this is the mechanism's cost and not its first draft. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22854
+  "totalLines": 22952
 }

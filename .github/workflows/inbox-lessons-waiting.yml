@@ -43,26 +43,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      # THIS LANE HAS TWO ROADS NOW, AND THE FIRST ONE IS ALLOWED TO FAIL
-      # (2026-11-12, DR-1428, under DR-1360).
-      #
-      # MEASURED: runs #500-#505 of this workflow — six consecutive firings of
-      # the PRIORITY lesson lane — all died at this join, because the runner's
-      # Tailscale key expired on 2026-11-04 and again by 2026-11-10. For six
-      # firings nothing could read a queue that was sitting on a machine that
-      # was up the whole time, and the only remedy on offer was a value only
-      # Darrell can mint, waited on while his teachings sat unread.
-      #
-      # So the join is `continue-on-error` and the read falls through to the
-      # public road the app itself uses (served-lesson-queue.py -> migration
-      # 0320 -> the census the NAS writes for itself each cycle). The NAS is
-      # still asked FIRST, because only it can name the individual rows; the
-      # served receipt can only ever repeat the count the house last took.
-      # This is the same two-road shape, in the same order, that DR-1269 proved
-      # for the deploy's anon key — reused, not rebuilt (DR-0621) — and it is
-      # the same legitimate exemption from DR-1284's verify-your-join rule that
-      # the Pages deploy carries: a step that may fail and HAS another road
-      # must not end the job.
+      # TWO ROADS NOW, AND THE FIRST MAY FAIL (2026-11-12, DR-1428/DR-1360).
+      # MEASURED: runs #500-#505 — six firings of the PRIORITY lesson lane —
+      # all died at this join on a Tailscale key that expired 2026-11-04 and
+      # again by 11-10, while the queue sat on a machine that was up. So the
+      # join is continue-on-error and the read falls through to the public road
+      # (served-lesson-queue.py -> migration 0320 -> the census the NAS takes
+      # for itself each cycle). NAS FIRST: only it names the individual rows.
+      # Same order DR-1269 proved for the deploy's anon key, reused not rebuilt
+      # (DR-0621), and the same DR-1284 exemption the Pages deploy carries —
+      # a step that may fail and HAS another road must not end the job.
       - name: Join the tailnet (to reach the live database)
         id: join
         continue-on-error: true
@@ -135,25 +125,17 @@ jobs:
           { printf '%s\n' "$out"; } > "$RUNNER_TEMP/waiting-rows.txt"
           { echo "### Waiting lesson rows: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
-      # ---------------------------------------------------------------------
-      # THE SECOND ROAD (DR-1428, under DR-1360): the house's own count, read
-      # over the public road the app uses.
-      #
-      # The NAS already counts its own queue every services-sync cycle
-      # (infra/nas-loops/lesson-queue-census.py, registered and enabled) and
-      # patches ONE row into agent_inbox. Until migration 0320 nothing outside
-      # the house could read that row, so the census sat unproven (its registry
-      # entry says so) behind the very key whose death it was built to survive.
-      # 0320 turns it outward as public.lesson_queue_receipt(), and this step
-      # asks it with the anon key the served site ships — the same two moves
-      # loops-health.yml already makes for the heartbeat (DR-1399).
-      #
-      # It runs only when the NAS road did not answer, so a working tailnet
-      # still gives the fuller answer (the individual rows). Its own refusals
-      # are exit codes, and every one of them reports the queue as UNKNOWN —
-      # never as zero (DR-1186): unasked (10), unreachable (11), never counted
-      # (12), no usable total (13), too stale to be current (14).
-      # ---------------------------------------------------------------------
+      # THE SECOND ROAD (DR-1428): the house's own count, read over the public
+      # road. lesson-queue-census.py (registered, enabled) has counted this
+      # queue on the NAS every cycle all along and patched ONE row into
+      # agent_inbox; until migration 0320 nothing outside the house could read
+      # it, so the census sat unproven behind the very key its death it was
+      # built to survive. 0320 turns it outward as lesson_queue_receipt() and
+      # this step asks it with the anon key the site ships — the same two moves
+      # loops-health.yml makes for the heartbeat (DR-1399). It runs only when
+      # the NAS road did not answer. Its refusals are exit codes and EVERY one
+      # reports UNKNOWN, never zero (DR-1186): unasked 10, unreachable 11,
+      # never counted 12, no usable total 13, too stale to be current 14.
       - name: When the tailnet is shut, read the house's own census
         id: served
         if: steps.waiting.outputs.read != 'ok'
@@ -267,17 +249,14 @@ jobs:
             gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/intake-body.md" || echo "::warning::could not open the run log; this run's measurement is in the step summary only"
           fi
 
-      # ---------------------------------------------------------------------
-      # A GREEN RUN MUST MEAN THE QUEUE WAS READ (DR-0076 section 3, DR-1428).
-      #
-      # Both read steps are now `continue-on-error`, which is what lets the
-      # second road be tried at all -- and that is precisely how a lane starts
-      # reporting success for work it did not do. Without this step a run where
-      # the tailnet was shut AND the house had no census would close green with
-      # "UNKNOWN" in its own log, which is the gate-that-always-passes this
-      # house has paid for before. So the job's conclusion is tied to the one
-      # fact that matters: did either road produce a count?
-      # ---------------------------------------------------------------------
+      # A GREEN RUN MUST MEAN THE QUEUE WAS READ (DR-0076 §3, DR-1428). Both
+      # read steps are continue-on-error, which is what lets the second road be
+      # tried at all -- and is precisely how a lane starts reporting success for
+      # work it did not do. Without this step a run where the tailnet was shut
+      # AND the house had no census would close green with "UNKNOWN" in its own
+      # log: the gate-that-always-passes this house has paid for before. So the
+      # conclusion is tied to the one fact that matters -- did either road
+      # produce a count?
       - name: A queue that was never read fails this run
         if: always()
         env:
