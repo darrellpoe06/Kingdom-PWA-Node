@@ -23,7 +23,12 @@ So the house was already counting its own queue, and nothing outside the house c
 - Runs #500–#505 of `inbox-lessons-waiting.yml`: all `failure`, all at step 3 of 7 (`Join the tailnet`), steps 4–6 `skipped`. Run #505's job 130847419637 is the one read in full.
 - `scripts/live-sql.sh`: the lane's only road is tailnet → ssh → `docker exec psql`, gated on `NAS_SSH_KEY` and a joined tailnet. No second road existed.
 - The public road, by contrast, was already proven twice for other values: `scripts/served-anon-key.py` recovers the anon key from the served bundle (DR-1269), and `scripts/served-heartbeat-receipt.py` already reads `public.nas_heartbeat_receipt()` over `poetech.us/sb` **from a GitHub runner with no tailnet at all** (DR-1399, migration 0318).
-- The sandbox has no route to `poetech.us` (DR-0125) — `served-anon-key.py` from here returns `URLError`. The live end-to-end read is a runner's measurement, not this session's, and is named below as the one thing still unproven.
+
+## Impact
+
+**What this obligates, and what it costs.** The queue is now answerable from outside the house over a road nobody has to mint a credential for, so "the queue could not be read" stops being an acceptable end to an intake tick — six ticks spent re-measuring one failure is the thing this record exists to make unrepeatable. The cost is accepted deliberately: `lesson_queue_receipt()` is callable by `anon`, and that key is public by nature, so this is a public endpoint stating how many teachings wait and their ages, roads and shapes. It is strictly narrower than the road it replaces — `inbox-lessons-waiting.yml` already prints `id / created_at / created_by / source / tags / body length` per row into a public run log and its rolling issue, while the receipt drops `created_by`, every id and the host name. Widening it later to a row id, a person, or a word of a teaching would cross a line this record draws rather than extend one.
+
+**What now depends on it, and what is NOT changed.** The census stops being unproven the moment this read answers (P66), and the lane's green stops meaning "the job finished" and starts meaning "the queue was read" — the amended gate (Decision 6) changes the fleet's definition of a verified intake lane with it: a door may be passed on a shut road only while something downstream still fails the run on an unread queue. The `TS_AUTHKEY` is still dead, the three other intake lanes still ride it, and only the NAS road names individual rows, so the builder still needs it. This removes a single point of failure from *knowing whether work waits*; it retires no tailnet road, and the remaining three reversals are not done.
 
 ## Decision
 
