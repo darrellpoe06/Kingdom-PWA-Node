@@ -35,18 +35,38 @@ function fakeClient({ rows = [], error = null, seats = 5, regs = [], token = 'to
   };
 }
 const row = (over = {}) => ({
-  id: EV, course_key: 'banking', title: 'Banking: a day', location_label: 'Champaign, IL', location_tier: 'city', format: 'day',
-  starts_at: '2099-12-06T15:00:00Z', capacity: 20, price_cents: 20000, currency: 'usd', status: 'open', ...over,
+  id: EV,
+  course_key: 'banking',
+  title: 'Banking: a day',
+  location_label: 'Champaign, IL',
+  location_tier: 'city',
+  format: 'day',
+  starts_at: '2099-12-06T15:00:00Z',
+  capacity: 20,
+  price_cents: 20000,
+  currency: 'usd',
+  status: 'open',
+  ...over,
 });
 
-let host = null; let root = null;
+let host = null;
+let root = null;
 async function draw(el) {
-  host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
-  await act(async () => { root.render(el); });
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  await act(async () => {
+    root.render(el);
+  });
   await flush();
   return host;
 }
-afterEach(() => { if (root) act(() => root.unmount()); if (host && host.parentNode) host.parentNode.removeChild(host); root = null; host = null; });
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  if (host && host.parentNode) host.parentNode.removeChild(host);
+  root = null;
+  host = null;
+});
 
 const lines = catalogProductLines();
 
@@ -61,7 +81,9 @@ describe('the courses shelf', () => {
     expect(h.querySelectorAll('[data-testid="course-product"][data-requires="poetech-plus"]').length).toBeGreaterThan(0);
     expect(h.querySelector('[data-testid="poetech-plus"]')).toBeTruthy();
     const more = [...h.querySelectorAll('button')].find((b) => /^All \d+ courses$/.test(b.textContent));
-    await act(async () => { more.click(); });
+    await act(async () => {
+      more.click();
+    });
     expect(h.querySelectorAll('[data-testid="course-product"]').length).toBe(LEARN_CATALOG.length);
   });
 });
@@ -75,7 +97,10 @@ describe('the workshops shelf', () => {
   });
   it('an open event shows its date in Central time, its price and seats, and a signed-in person can take a seat through /api/checkout', async () => {
     const calls = [];
-    const fetchImpl = vi.fn(async (url, init) => { calls.push({ url, init }); return { ok: false, status: 400, json: async () => ({ error: 'sold-out' }) }; });
+    const fetchImpl = vi.fn(async (url, init) => {
+      calls.push({ url, init });
+      return { ok: false, status: 400, json: async () => ({ error: 'sold-out' }) };
+    });
     const h = await draw(createElement(WorkshopsShelf, { client: fakeClient({ rows: [row()], seats: 3 }), fetchImpl, nowIso: '2026-11-12T00:00:00Z' }));
     const card = h.querySelector('[data-testid="workshop-event"]');
     expect(card.textContent).toMatch(/Dec 6, 2099/);
@@ -83,7 +108,9 @@ describe('the workshops shelf', () => {
     expect(card.querySelector('[data-testid="workshop-price"]').textContent).toBe('$200.00 a seat · 3 of 20 seats left');
     const buy = card.querySelector('[data-testid="take-a-seat"]');
     expect(buy.textContent).toBe('Take a seat');
-    await act(async () => { buy.click(); });
+    await act(async () => {
+      buy.click();
+    });
     await flush();
     expect(calls[0].url).toBe('/api/checkout');
     expect(JSON.parse(calls[0].init.body)).toMatchObject({ kind: 'workshop', eventId: EV });
@@ -93,15 +120,19 @@ describe('the workshops shelf', () => {
     const h = await draw(createElement(WorkshopsShelf, { client: fakeClient({ rows: [row()], token: '' }), nowIso: '2026-11-12T00:00:00Z' }));
     expect(h.querySelector('[data-testid="seat-sign-in"]').textContent).toMatch(/Sign in to take a seat/);
     expect(h.querySelector('[data-testid="take-a-seat"]')).toBeNull();
-    const h2 = await draw(createElement(WorkshopsShelf, { client: fakeClient({ rows: [row()], regs: [{ event_id: EV, status: 'paid' }] }), nowIso: '2026-11-12T00:00:00Z' }));
+    const h2 = await draw(
+      createElement(WorkshopsShelf, { client: fakeClient({ rows: [row()], regs: [{ event_id: EV, status: 'paid' }] }), nowIso: '2026-11-12T00:00:00Z' })
+    );
     expect(h2.querySelector('[data-testid="seat-held"]').textContent).toBe('Your seat is held');
-    const h3 = await draw(createElement(WorkshopsShelf, { client: fakeClient({ rows: [row({ status: 'sold-out' })], seats: 0 }), nowIso: '2026-11-12T00:00:00Z' }));
+    const h3 = await draw(
+      createElement(WorkshopsShelf, { client: fakeClient({ rows: [row({ status: 'sold-out' })], seats: 0 }), nowIso: '2026-11-12T00:00:00Z' })
+    );
     expect(h3.querySelector('[data-testid="take-a-seat"]')).toBeNull();
     expect(h3.textContent).toMatch(/Every seat is taken/);
   });
 });
 
-describe('the Governor\'s ledger', () => {
+describe("the Governor's ledger", () => {
   it('answers how many books the courses make, measured, and prices a seat with its parts', async () => {
     const h = await draw(createElement(GovernorLearningLedger, { lines }));
     const sec = h.querySelector('[data-testid="governor-learning-ledger"]');
@@ -120,7 +151,12 @@ describe('the Governor opens a workshop from the store', () => {
     const inserted = [];
     const client = {
       ...fakeClient(),
-      from: (t) => ({ insert: (row) => { inserted.push({ t, row }); return { select: () => ({ single: () => Promise.resolve({ data: { id: EV }, error: null }) }) }; } }),
+      from: (t) => ({
+        insert: (row) => {
+          inserted.push({ t, row });
+          return { select: () => ({ single: () => Promise.resolve({ data: { id: EV }, error: null }) }) };
+        },
+      }),
     };
     const INST = 'ffffffff-1111-4222-8333-444444444444';
     const h = await draw(createElement(GovernorLearningLedger, { lines, client, instanceId: INST }));
@@ -133,12 +169,20 @@ describe('the Governor opens a workshop from the store', () => {
       setter.call(input, value);
       input.dispatchEvent(new Event('input', { bubbles: true }));
     };
-    await act(async () => { set('Place', 'Champaign, IL'); });
-    await act(async () => { set('When', '2099-12-06T09:00'); });
-    await act(async () => { set('Seats', '20'); });
+    await act(async () => {
+      set('Place', 'Champaign, IL');
+    });
+    await act(async () => {
+      set('When', '2099-12-06T09:00');
+    });
+    await act(async () => {
+      set('Seats', '20');
+    });
     expect(h.querySelector('[data-testid="open-workshop"]').disabled).toBe(false);
     expect(h.querySelector('[data-testid="opener-waits-for"]')).toBeNull();
-    await act(async () => { h.querySelector('[data-testid="open-workshop"]').click(); });
+    await act(async () => {
+      h.querySelector('[data-testid="open-workshop"]').click();
+    });
     await flush();
     expect(h.querySelector('[data-testid="opener-result"]').getAttribute('data-ok')).toBe('yes');
     expect(inserted[0].t).toBe('workshop_events');

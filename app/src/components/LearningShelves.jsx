@@ -22,7 +22,8 @@ import { lessonUrl } from '../lib/lesson-links.js';
 import { PLUS_LABEL } from '../lib/poetech-plus.js';
 import PoeTechPlusButton from './PoeTechPlusButton.jsx';
 
-const btn = 'inline-flex items-center text-xs px-3 py-1.5 min-h-[36px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60';
+const btn =
+  'inline-flex items-center text-xs px-3 py-1.5 min-h-[36px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60';
 const eyebrow = 'text-[0.6875rem] uppercase tracking-wider font-semibold text-[#B85838] mb-1';
 const SHOWN_FIRST = 8;
 
@@ -35,7 +36,8 @@ export function CoursesShelf({ lines = null, client = supabase, fetchImpl }) {
     <section className="mt-6" data-testid="courses-shelf" data-count={list.length}>
       <div className={eyebrow}>Courses · self-paced, with a walk-through of each section</div>
       <p className="text-xs text-[#5A5751] mb-2">
-        Every course is read in the app. A spiritual course is free at every level; the deeper levels of a PoeTech subject open with {PLUS_LABEL}. Each section carries its walk-through video as it is recorded.
+        Every course is read in the app. A spiritual course is free at every level; the deeper levels of a PoeTech subject open with {PLUS_LABEL}. Each section
+        carries its walk-through video as it is recorded.
       </p>
       <PoeTechPlusButton client={client} fetchImpl={fetchImpl} />
       <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -44,14 +46,23 @@ export function CoursesShelf({ lines = null, client = supabase, fetchImpl }) {
           const href = lessonUrl({ courseKey: c.key, course: { meta: { category: c.department } } });
           return (
             <li key={c.id} className="border bg-white p-3 border-[#E8E4DC]" data-testid="course-product" data-key={c.key} data-requires={c.requires}>
-              <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{c.title}</div>
-              <div className="text-[0.6875rem] text-[#5A5751]">{c.department} · {c.lessons} lessons in {c.sections.length} sections</div>
+              <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {c.title}
+              </div>
+              <div className="text-[0.6875rem] text-[#5A5751]">
+                {c.department} · {c.lessons} lessons in {c.sections.length} sections
+              </div>
               <div className="text-[0.6875rem] mt-1 text-[#1A1815]" data-testid="course-video-coverage" data-recorded={c.coverage.recorded}>
-                Walk-throughs recorded: {c.coverage.recorded} of {c.coverage.lessons}{c.coverage.recorded ? ` (${c.coverage.pct}%)` : ''}
+                Walk-throughs recorded: {c.coverage.recorded} of {c.coverage.lessons}
+                {c.coverage.recorded ? ` (${c.coverage.pct}%)` : ''}
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="text-[0.6875rem] font-semibold text-[#B85838]">{c.free ? 'Free' : PLUS_LABEL}</span>
-                {href && <a href={href} className={`${btn} border-[#1A1815] text-[#1A1815]`}>Open course</a>}
+                {href && (
+                  <a href={href} className={`${btn} border-[#1A1815] text-[#1A1815]`}>
+                    Open course
+                  </a>
+                )}
               </div>
             </li>
           );
@@ -84,15 +95,26 @@ export function WorkshopsShelf({ client = supabase, fetchImpl, nowIso }) {
         if (t) mySeats(client).then((r) => alive && r.ok && setMine(r.eventIds));
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [client, nowIso]);
   const open = useMemo(() => buyable(state.events, nowIso), [state.events, nowIso]);
   const seat = async (ev) => {
-    setBusy(ev.id); setNote('');
+    setBusy(ev.id);
+    setNote('');
     const loc = typeof window !== 'undefined' ? window.location : {};
     const r = await startSeatCheckout({ token, eventId: ev.id, pathname: loc.pathname, search: loc.search, fetchImpl });
-    if (r.url) { try { window.location.assign(r.url); } catch { /* the note below tells the truth */ } return; }
-    setBusy(''); setNote(saySeatError(r.error));
+    if (r.url) {
+      try {
+        window.location.assign(r.url);
+      } catch {
+        /* the note below tells the truth */
+      }
+      return;
+    }
+    setBusy('');
+    setNote(saySeatError(r.error));
   };
   return (
     <section className="mt-6" data-testid="workshops-shelf" data-state={state.ok === null ? 'loading' : state.ok ? 'read' : 'unreachable'}>
@@ -100,35 +122,67 @@ export function WorkshopsShelf({ client = supabase, fetchImpl, nowIso }) {
       <p className="text-xs text-[#5A5751] mb-2">
         A day in the room with the teaching, priced for the place it is held. A seat is yours once it is paid; the Word's own workshops are an offering.
       </p>
-      {state.ok === false && <p className="text-xs text-[#5A5751]" data-testid="workshops-unreachable">The workshop list could not be read right now. Nothing is for sale until it can be.</p>}
-      {state.ok && !state.events.length && <p className="text-xs text-[#5A5751]" data-testid="workshops-none">No workshop is open for seats yet. When the house opens one, it appears here with its date, place and price.</p>}
+      {state.ok === false && (
+        <p className="text-xs text-[#5A5751]" data-testid="workshops-unreachable">
+          The workshop list could not be read right now. Nothing is for sale until it can be.
+        </p>
+      )}
+      {state.ok && !state.events.length && (
+        <p className="text-xs text-[#5A5751]" data-testid="workshops-none">
+          No workshop is open for seats yet. When the house opens one, it appears here with its date, place and price.
+        </p>
+      )}
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {state.events.map((ev) => {
           const held = mine.includes(ev.id);
           const canBuy = open.some((o) => o.id === ev.id);
           return (
             <li key={ev.id} className="border bg-white p-3 border-[#E8E4DC]" data-testid="workshop-event" data-status={ev.status}>
-              <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{ev.title}</div>
-              <div className="text-[0.6875rem] text-[#5A5751]">{whenLabel(ev.startsAt)} · {ev.location}</div>
+              <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {ev.title}
+              </div>
+              <div className="text-[0.6875rem] text-[#5A5751]">
+                {whenLabel(ev.startsAt)} · {ev.location}
+              </div>
               <div className="text-[0.6875rem] text-[#1A1815] mt-1" data-testid="workshop-price">
                 {ev.priceCents > 0 ? `${formatPrice(ev.priceCents)} a seat` : 'An offering (free seat)'}
                 {ev.seatsLeft !== null ? ` · ${ev.seatsLeft} of ${ev.capacity} seats left` : ''}
               </div>
               {ev.goingRateNote && <div className="text-[0.625rem] text-[#5A5751] mt-1">{ev.goingRateNote}</div>}
               <div className="mt-2">
-                {held
-                  ? <span className="text-[0.6875rem] font-semibold text-[#216E39]" data-testid="seat-held">Your seat is held</span>
-                  : !canBuy
-                    ? <span className="text-[0.6875rem] text-[#5A5751]">{ev.status === 'sold-out' || ev.seatsLeft === 0 ? 'Every seat is taken' : 'Not open for seats'}</span>
-                    : !token
-                      ? <span className="text-[0.6875rem] text-[#5A5751]" data-testid="seat-sign-in">Sign in to take a seat, so it is yours on every device.</span>
-                      : <button type="button" disabled={busy === ev.id} onClick={() => seat(ev)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`} data-testid="take-a-seat">{busy === ev.id ? 'Opening checkout…' : 'Take a seat'}</button>}
+                {held ? (
+                  <span className="text-[0.6875rem] font-semibold text-[#216E39]" data-testid="seat-held">
+                    Your seat is held
+                  </span>
+                ) : !canBuy ? (
+                  <span className="text-[0.6875rem] text-[#5A5751]">
+                    {ev.status === 'sold-out' || ev.seatsLeft === 0 ? 'Every seat is taken' : 'Not open for seats'}
+                  </span>
+                ) : !token ? (
+                  <span className="text-[0.6875rem] text-[#5A5751]" data-testid="seat-sign-in">
+                    Sign in to take a seat, so it is yours on every device.
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy === ev.id}
+                    onClick={() => seat(ev)}
+                    className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}
+                    data-testid="take-a-seat"
+                  >
+                    {busy === ev.id ? 'Opening checkout…' : 'Take a seat'}
+                  </button>
+                )}
               </div>
             </li>
           );
         })}
       </ul>
-      {note && <p className="text-xs text-[#5A5751] mt-2" role="status">{note}</p>}
+      {note && (
+        <p className="text-xs text-[#5A5751] mt-2" role="status">
+          {note}
+        </p>
+      )}
     </section>
   );
 }
@@ -139,11 +193,15 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
   const count = useMemo(() => bookCount(list.map((l) => l.measured)), [list]);
   const [pick, setPick] = useState({ key: list[0] ? list[0].key : '', location: 'city', format: 'day', requested: '', capacity: '' });
   const chosen = list.find((l) => l.key === pick.key) || list[0];
-  const rec = chosen ? recommendSeatPrice({
-    department: chosen.department, location: pick.location, format: pick.format,
-    requested: pick.requested === '' ? undefined : Number(pick.requested),
-    capacity: pick.capacity === '' ? undefined : Number(pick.capacity),
-  }) : null;
+  const rec = chosen
+    ? recommendSeatPrice({
+        department: chosen.department,
+        location: pick.location,
+        format: pick.format,
+        requested: pick.requested === '' ? undefined : Number(pick.requested),
+        capacity: pick.capacity === '' ? undefined : Number(pick.capacity),
+      })
+    : null;
   // The opener: a draft the Governor fills, the recommended price prefilled
   // until they type their own, every missing piece named before the button
   // can act (UX-PATTERNS 2f.3), and the row written under owner-scoped RLS.
@@ -153,35 +211,68 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
   const [opening, setOpening] = useState(false);
   const priceDollars = priceTouched ? draft.priceDollars : rec ? (rec.cents / 100).toFixed(2) : '';
   const eventDraft = {
-    courseKey: chosen ? chosen.key : '', title: draft.title || (chosen ? `${chosen.title}: a workshop` : ''), location: draft.location,
-    locationTier: pick.location, format: pick.format, startsAt: draft.startsAt, capacity: draft.capacity === '' ? NaN : Number(draft.capacity),
-    priceCents: priceDollars === '' ? NaN : Math.round(Number(priceDollars) * 100), goingRateNote: draft.note,
+    courseKey: chosen ? chosen.key : '',
+    title: draft.title || (chosen ? `${chosen.title}: a workshop` : ''),
+    location: draft.location,
+    locationTier: pick.location,
+    format: pick.format,
+    startsAt: draft.startsAt,
+    capacity: draft.capacity === '' ? NaN : Number(draft.capacity),
+    priceCents: priceDollars === '' ? NaN : Math.round(Number(priceDollars) * 100),
+    goingRateNote: draft.note,
   };
   const built = eventRowFrom(eventDraft, instanceId || 'pending');
   const openIt = async () => {
-    setOpening(true); setOpened(null);
+    setOpening(true);
+    setOpened(null);
     const r = await openWorkshopEvent(client, eventDraft, { instanceId: instanceId || undefined });
-    setOpening(false); setOpened(r);
+    setOpening(false);
+    setOpened(r);
   };
   const field = 'text-xs border px-1 py-1 min-h-[36px] border-[#E8E4DC] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
   return (
-    <section className="mt-6 border p-3 border-[#B85838] bg-[#FAF8F4]" data-testid="governor-learning-ledger" data-titles={count.titles} data-volumes={count.volumes}>
+    <section
+      className="mt-6 border p-3 border-[#B85838] bg-[#FAF8F4]"
+      data-testid="governor-learning-ledger"
+      data-titles={count.titles}
+      data-volumes={count.volumes}
+    >
       <div className={eyebrow}>Books from the courses (Governor) · measured on the live registry</div>
       <p className="text-xs text-[#1A1815]" data-testid="book-count-line">
-        {count.courses} courses measure to <strong>{count.titles} book titles</strong> ({count.volumes} volumes): {count.standalone.length} courses are a book on their own and {count.compilations.length} departments gather into one each; {count.remainder.length} chapter-sized courses stay with their department for now.
+        {count.courses} courses measure to <strong>{count.titles} book titles</strong> ({count.volumes} volumes): {count.standalone.length} courses are a book
+        on their own and {count.compilations.length} departments gather into one each; {count.remainder.length} chapter-sized courses stay with their department
+        for now.
       </p>
       <details className="mt-2">
-        <summary className="text-xs cursor-pointer min-h-[36px] flex items-center text-[#1A1815]">Every course, by the words a reader's book would hold</summary>
+        <summary className="text-xs cursor-pointer min-h-[36px] flex items-center text-[#1A1815]">
+          Every course, by the words a reader's book would hold
+        </summary>
         <table className="mt-2 text-[0.6875rem] w-full text-[#1A1815]" data-testid="book-fitness-table">
           <caption className="text-left text-[#5A5751] mb-1">Every course, measured by the words a reader's book would hold, largest first</caption>
-          <thead><tr className="text-left text-[#5A5751]"><th scope="col">Course</th><th scope="col">Department</th><th scope="col" className="text-right">Lessons</th><th scope="col" className="text-right">Words</th><th scope="col">Size</th></tr></thead>
+          <thead>
+            <tr className="text-left text-[#5A5751]">
+              <th scope="col">Course</th>
+              <th scope="col">Department</th>
+              <th scope="col" className="text-right">
+                Lessons
+              </th>
+              <th scope="col" className="text-right">
+                Words
+              </th>
+              <th scope="col">Size</th>
+            </tr>
+          </thead>
           <tbody>
             {list.map((l) => (
               <tr key={l.key} data-fitness={l.measured.fitness}>
-                <td>{l.title}</td><td>{l.department}</td>
+                <td>{l.title}</td>
+                <td>{l.department}</td>
                 <td className="text-right">{l.measured.lessons}</td>
                 <td className="text-right">{l.measured.words.toLocaleString()}</td>
-                <td>{FITNESS_LABEL[l.measured.fitness]}{l.measured.volumes > 1 ? ` · ${l.measured.volumes} volumes` : ''}</td>
+                <td>
+                  {FITNESS_LABEL[l.measured.fitness]}
+                  {l.measured.volumes > 1 ? ` · ${l.measured.volumes} volumes` : ''}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -189,7 +280,9 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
         {count.compilations.length > 0 && (
           <ul className="mt-2 text-[0.6875rem] text-[#1A1815]" data-testid="book-compilations">
             {count.compilations.map((c) => (
-              <li key={c.department}><strong>{c.department}</strong>: {c.courses.length} courses, {c.words.toLocaleString()} words, {FITNESS_LABEL[c.fitness]}</li>
+              <li key={c.department}>
+                <strong>{c.department}</strong>: {c.courses.length} courses, {c.words.toLocaleString()} words, {FITNESS_LABEL[c.fitness]}
+              </li>
             ))}
           </ul>
         )}
@@ -198,11 +291,57 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
       <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
         <div className={eyebrow}>Workshop seat price (a recommendation; the event row's price is what is charged)</div>
         <div className="flex flex-wrap gap-2 items-end text-[0.6875rem] text-[#5A5751]">
-          <label>Course <select className={field} value={chosen ? chosen.key : ''} onChange={(e) => setPick({ ...pick, key: e.target.value })}>{list.map((l) => <option key={l.key} value={l.key}>{l.title}</option>)}</select></label>
-          <label>Place <select className={field} value={pick.location} onChange={(e) => setPick({ ...pick, location: e.target.value })}>{Object.entries(LOCATION_TIERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
-          <label>Format <select className={field} value={pick.format} onChange={(e) => setPick({ ...pick, format: e.target.value })}>{Object.entries(FORMATS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
-          <label>Last time: asked <input className={`${field} w-14`} inputMode="numeric" aria-label="Seats asked for last time" value={pick.requested} onChange={(e) => setPick({ ...pick, requested: e.target.value })} /></label>
-          <label>of <input className={`${field} w-14`} inputMode="numeric" aria-label="Seats held last time" value={pick.capacity} onChange={(e) => setPick({ ...pick, capacity: e.target.value })} /> seats</label>
+          <label>
+            Course{' '}
+            <select className={field} value={chosen ? chosen.key : ''} onChange={(e) => setPick({ ...pick, key: e.target.value })}>
+              {list.map((l) => (
+                <option key={l.key} value={l.key}>
+                  {l.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Place{' '}
+            <select className={field} value={pick.location} onChange={(e) => setPick({ ...pick, location: e.target.value })}>
+              {Object.entries(LOCATION_TIERS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Format{' '}
+            <select className={field} value={pick.format} onChange={(e) => setPick({ ...pick, format: e.target.value })}>
+              {Object.entries(FORMATS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Last time: asked{' '}
+            <input
+              className={`${field} w-14`}
+              inputMode="numeric"
+              aria-label="Seats asked for last time"
+              value={pick.requested}
+              onChange={(e) => setPick({ ...pick, requested: e.target.value })}
+            />
+          </label>
+          <label>
+            of{' '}
+            <input
+              className={`${field} w-14`}
+              inputMode="numeric"
+              aria-label="Seats held last time"
+              value={pick.capacity}
+              onChange={(e) => setPick({ ...pick, capacity: e.target.value })}
+            />{' '}
+            seats
+          </label>
         </div>
         {rec && (
           <p className="text-xs mt-2 text-[#1A1815]" data-testid="seat-price" data-cents={rec.cents}>
@@ -215,20 +354,76 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
       <div className="mt-3 pt-3 border-t border-[#E8E4DC]" data-testid="workshop-opener">
         <div className={eyebrow}>Open this workshop for seats</div>
         <div className="flex flex-wrap gap-2 items-end text-[0.6875rem] text-[#5A5751]">
-          <label>Title <input className={`${field} w-56`} value={draft.title} placeholder={chosen ? `${chosen.title}: a workshop` : ''} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
-          <label>Place <input className={`${field} w-40`} value={draft.location} placeholder="Champaign, IL" onChange={(e) => setDraft({ ...draft, location: e.target.value })} /></label>
-          <label>When <input className={field} type="datetime-local" value={draft.startsAt} onChange={(e) => setDraft({ ...draft, startsAt: e.target.value })} /></label>
-          <label>Seats <input className={`${field} w-14`} inputMode="numeric" value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} /></label>
-          <label>Price $ <input className={`${field} w-20`} inputMode="decimal" value={priceDollars} onChange={(e) => { setPriceTouched(true); setDraft({ ...draft, priceDollars: e.target.value }); }} /></label>
-          <label>Going-rate note <input className={`${field} w-64`} value={draft.note} placeholder="What a day runs for here, and where you read it" onChange={(e) => setDraft({ ...draft, note: e.target.value })} /></label>
+          <label>
+            Title{' '}
+            <input
+              className={`${field} w-56`}
+              value={draft.title}
+              placeholder={chosen ? `${chosen.title}: a workshop` : ''}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+            />
+          </label>
+          <label>
+            Place{' '}
+            <input
+              className={`${field} w-40`}
+              value={draft.location}
+              placeholder="Champaign, IL"
+              onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+            />
+          </label>
+          <label>
+            When <input className={field} type="datetime-local" value={draft.startsAt} onChange={(e) => setDraft({ ...draft, startsAt: e.target.value })} />
+          </label>
+          <label>
+            Seats{' '}
+            <input className={`${field} w-14`} inputMode="numeric" value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} />
+          </label>
+          <label>
+            Price ${' '}
+            <input
+              className={`${field} w-20`}
+              inputMode="decimal"
+              value={priceDollars}
+              onChange={(e) => {
+                setPriceTouched(true);
+                setDraft({ ...draft, priceDollars: e.target.value });
+              }}
+            />
+          </label>
+          <label>
+            Going-rate note{' '}
+            <input
+              className={`${field} w-64`}
+              value={draft.note}
+              placeholder="What a day runs for here, and where you read it"
+              onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+            />
+          </label>
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-2">
-          <button type="button" disabled={!!built.errors || opening} onClick={openIt} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`} data-testid="open-workshop">{opening ? 'Opening…' : 'Open for seats'}</button>
-          {built.errors && <span className="text-[0.6875rem] text-[#5A5751]" data-testid="opener-waits-for">{built.errors[0]}</span>}
+          <button
+            type="button"
+            disabled={!!built.errors || opening}
+            onClick={openIt}
+            className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}
+            data-testid="open-workshop"
+          >
+            {opening ? 'Opening…' : 'Open for seats'}
+          </button>
+          {built.errors && (
+            <span className="text-[0.6875rem] text-[#5A5751]" data-testid="opener-waits-for">
+              {built.errors[0]}
+            </span>
+          )}
         </div>
         {opened && (
           <p className="text-xs mt-1 text-[#1A1815]" role="status" data-testid="opener-result" data-ok={opened.ok ? 'yes' : 'no'}>
-            {opened.ok ? 'Open. It is on the workshop shelf now, with its seats.' : (opened.errors ? opened.errors.join(' ') : `Not opened (${opened.error}). Nothing was posted.`)}
+            {opened.ok
+              ? 'Open. It is on the workshop shelf now, with its seats.'
+              : opened.errors
+                ? opened.errors.join(' ')
+                : `Not opened (${opened.error}). Nothing was posted.`}
           </p>
         )}
       </div>
@@ -237,7 +432,9 @@ export function GovernorLearningLedger({ lines = null, client = supabase, instan
         <div className="mt-3 pt-3 border-t border-[#E8E4DC]" data-testid="awaiting-sources">
           <div className={eyebrow}>Named sources not yet in the app</div>
           {AWAITING_SOURCES.map((s) => (
-            <p key={s.id} className="text-[0.6875rem] text-[#1A1815]"><strong>{s.title}</strong>. {s.why}</p>
+            <p key={s.id} className="text-[0.6875rem] text-[#1A1815]">
+              <strong>{s.title}</strong>. {s.why}
+            </p>
           ))}
         </div>
       )}

@@ -37,7 +37,8 @@ export default function LessonVideo({ lesson, isGovernor = false }) {
         )}
       </div>
       <figcaption className="text-[0.6875rem] text-[#5A5751] px-2 py-1">
-        {label}{v.seconds ? ` · ${Math.round(v.seconds / 60)} min` : ''}
+        {label}
+        {v.seconds ? ` · ${Math.round(v.seconds / 60)} min` : ''}
       </figcaption>
     </figure>
   );

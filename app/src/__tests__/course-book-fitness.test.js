@@ -13,8 +13,18 @@
 import { describe, it, expect } from 'vitest';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import {
-  lessonBookWords, bookWords, fitness, volumes, measureCourse, measureCatalog,
-  departmentCompilations, bookCount, FULL_BOOK_WORDS, SHORT_BOOK_WORDS, BOOKLET_WORDS, VOLUME_WORDS,
+  lessonBookWords,
+  bookWords,
+  fitness,
+  volumes,
+  measureCourse,
+  measureCatalog,
+  departmentCompilations,
+  bookCount,
+  FULL_BOOK_WORDS,
+  SHORT_BOOK_WORDS,
+  BOOKLET_WORDS,
+  VOLUME_WORDS,
 } from '../lib/course-book-fitness.js';
 
 const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');
@@ -22,8 +32,14 @@ const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');
 describe('what is counted', () => {
   it('counts the lesson body, big idea, benefits and the try-it note, never the facilitator notes, quiz or age rewrites', () => {
     const m = {
-      lesson: words(10), bigIdea: words(3), benefits: [words(2), words(2)], inApp: words(1),
-      facilitator: { say: words(100) }, quiz: [{ q: words(50) }], levels: { teen: words(200), senior: words(200) }, stories: [words(40)],
+      lesson: words(10),
+      bigIdea: words(3),
+      benefits: [words(2), words(2)],
+      inApp: words(1),
+      facilitator: { say: words(100) },
+      quiz: [{ q: words(50) }],
+      levels: { teen: words(200), senior: words(200) },
+      stories: [words(40)],
     };
     expect(lessonBookWords(m)).toBe(18);
     expect(bookWords([m, m])).toBe(36);
@@ -50,7 +66,13 @@ describe('what is counted', () => {
     const rows = [{ lesson: words(9000), title: 'a' }, { lesson: words(9000) }];
     const m = measureCourse({ key: 'k', meta: { title: 'T', category: 'D' } }, rows);
     expect(m).toMatchObject({ key: 'k', title: 'T', department: 'D', lessons: 2, words: 18000, fitness: 'booklet', volumes: 1 });
-    const broken = measureCourse({ key: 'b', meta: {}, buildScheduleRows: () => { throw new Error('x'); } });
+    const broken = measureCourse({
+      key: 'b',
+      meta: {},
+      buildScheduleRows: () => {
+        throw new Error('x');
+      },
+    });
     expect(broken).toMatchObject({ key: 'b', lessons: 0, words: 0, fitness: 'chapter', volumes: 0 });
   });
 });

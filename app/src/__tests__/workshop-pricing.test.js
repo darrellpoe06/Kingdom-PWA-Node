@@ -5,8 +5,16 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  knowledgeTypeFor, isSpiritualDepartment, demandFactor, recommendSeatPrice, explainPrice,
-  KNOWLEDGE_TYPES, LOCATION_TIERS, FORMATS, DEMAND_MIN, DEMAND_MAX,
+  knowledgeTypeFor,
+  isSpiritualDepartment,
+  demandFactor,
+  recommendSeatPrice,
+  explainPrice,
+  KNOWLEDGE_TYPES,
+  LOCATION_TIERS,
+  FORMATS,
+  DEMAND_MIN,
+  DEMAND_MAX,
 } from '../lib/workshop-pricing.js';
 import { LOVE_CORNER_DEPARTMENTS } from '../lib/lesson-links.js';
 
@@ -43,7 +51,16 @@ describe('the recommendation', () => {
   it('multiplies the named parts and rounds to $5', () => {
     const r = recommendSeatPrice({ department: 'Real Estate', location: 'city', format: 'day' });
     expect(r.cents).toBe(20000); // 19900 rounded to the nearest $5
-    expect(r.parts).toMatchObject({ type: 'business', dayRateCents: 19900, location: 'city', locationFactor: 1, format: 'day', formatFactor: 1, demand: 1, hours: 6 });
+    expect(r.parts).toMatchObject({
+      type: 'business',
+      dayRateCents: 19900,
+      location: 'city',
+      locationFactor: 1,
+      format: 'day',
+      formatFactor: 1,
+      demand: 1,
+      hours: 6,
+    });
     const big = recommendSeatPrice({ department: 'A.I. The Way', location: 'major-metro', format: 'two-day', requested: 30, capacity: 20 });
     // 24900 * 1.5 * 1.8 * 1.3 = 87399 -> 87500
     expect(big.cents).toBe(87500);

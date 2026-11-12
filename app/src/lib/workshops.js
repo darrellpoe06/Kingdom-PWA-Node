@@ -45,12 +45,19 @@ export async function listOpenWorkshops(client, nowIso = new Date().toISOString(
     // Seats left, one call per event, each with the same timeout; a count
     // that did not come back stays null (unknown is not "plenty").
     if (typeof client.rpc === 'function') {
-      await Promise.all(events.map(async (e) => {
-        try {
-          const r = await Promise.race([client.rpc('workshop_seats_left', { p_event: e.id }), new Promise((res) => setTimeout(() => res({ data: null }), TIMEOUT_MS))]);
-          if (r && Number.isFinite(r.data)) e.seatsLeft = r.data;
-        } catch { /* stays null */ }
-      }));
+      await Promise.all(
+        events.map(async (e) => {
+          try {
+            const r = await Promise.race([
+              client.rpc('workshop_seats_left', { p_event: e.id }),
+              new Promise((res) => setTimeout(() => res({ data: null }), TIMEOUT_MS)),
+            ]);
+            if (r && Number.isFinite(r.data)) e.seatsLeft = r.data;
+          } catch {
+            /* stays null */
+          }
+        })
+      );
     }
     return { ok: true, events };
   } catch {
@@ -163,7 +170,16 @@ export function whenLabel(iso) {
   const d = new Date(asStr(iso));
   if (!Number.isFinite(d.getTime())) return '';
   try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(d);
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    }).format(d);
   } catch {
     return d.toISOString();
   }

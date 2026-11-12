@@ -96,9 +96,14 @@ export function recommendSeatPrice({ department, knowledgeType, location = 'city
     cents,
     offering: type === 'spiritual',
     parts: {
-      type, typeLabel: kt.label, dayRateCents: kt.dayRateCents,
-      location: LOCATION_TIERS[location] ? location : 'city', locationFactor: loc.factor,
-      format: FORMATS[format] ? format : 'day', formatFactor: fmt.factor, hours: fmt.hours,
+      type,
+      typeLabel: kt.label,
+      dayRateCents: kt.dayRateCents,
+      location: LOCATION_TIERS[location] ? location : 'city',
+      locationFactor: loc.factor,
+      format: FORMATS[format] ? format : 'day',
+      formatFactor: fmt.factor,
+      hours: fmt.hours,
       demand: Math.round(demand * 100) / 100,
     },
   };

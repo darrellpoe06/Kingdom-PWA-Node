@@ -53,7 +53,9 @@ export function sectionVideo(section) {
 
 /** The sections (or lessons, for a short course) whose walk-through is still owed. Pure. */
 export function recordingPlan(sections) {
-  return asArr(sections).map(sectionVideo).filter((s) => s.status !== 'complete' && s.status !== 'empty')
+  return asArr(sections)
+    .map(sectionVideo)
+    .filter((s) => s.status !== 'complete' && s.status !== 'empty')
     .map((s) => ({ key: s.key, label: s.label, owed: s.lessons - s.recorded }));
 }
 

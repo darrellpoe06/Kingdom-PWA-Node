@@ -123,7 +123,11 @@ export function workshopOffer(measured, { location = 'city', format = 'day', req
 export function productLine(entry, { rows = null, location, format, requested, capacity } = {}) {
   let list = rows;
   if (!list) {
-    try { list = entry && entry.buildScheduleRows ? entry.buildScheduleRows() : []; } catch { list = []; }
+    try {
+      list = entry && entry.buildScheduleRows ? entry.buildScheduleRows() : [];
+    } catch {
+      list = [];
+    }
   }
   const measured = measureCourse(entry, list);
   return {
@@ -140,10 +144,14 @@ export function productLine(entry, { rows = null, location, format, requested, c
 
 /** Every registered course's product line, largest book first. */
 export function catalogProductLines(catalog = LEARN_CATALOG, opts = {}) {
-  return asArr(catalog).map((e) => productLine(e, opts)).sort((a, b) => b.measured.words - a.measured.words);
+  return asArr(catalog)
+    .map((e) => productLine(e, opts))
+    .sort((a, b) => b.measured.words - a.measured.words);
 }
 
 /** The lines' books only (the ones that exist), as Bookstore drafts. */
 export function derivedBookDrafts(lines) {
-  return asArr(lines).map((l) => l.book).filter(Boolean);
+  return asArr(lines)
+    .map((l) => l.book)
+    .filter(Boolean);
 }

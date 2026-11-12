@@ -64,7 +64,10 @@ export function volumes(wordCount) {
 }
 
 export const FITNESS_LABEL = Object.freeze({
-  full: 'a full book', short: 'a short book', booklet: 'a booklet', chapter: 'a chapter',
+  full: 'a full book',
+  short: 'a short book',
+  booklet: 'a booklet',
+  chapter: 'a chapter',
 });
 
 /**
@@ -74,7 +77,11 @@ export const FITNESS_LABEL = Object.freeze({
 export function measureCourse(entry, rows = null) {
   let modules = rows;
   if (!modules) {
-    try { modules = entry && entry.buildScheduleRows ? entry.buildScheduleRows() : []; } catch { modules = []; }
+    try {
+      modules = entry && entry.buildScheduleRows ? entry.buildScheduleRows() : [];
+    } catch {
+      modules = [];
+    }
   }
   const n = bookWords(modules);
   return {
@@ -90,7 +97,9 @@ export function measureCourse(entry, rows = null) {
 
 /** Every registered course, measured, largest first. */
 export function measureCatalog(catalog = LEARN_CATALOG) {
-  return asArr(catalog).map((e) => measureCourse(e)).sort((a, b) => b.words - a.words);
+  return asArr(catalog)
+    .map((e) => measureCourse(e))
+    .sort((a, b) => b.words - a.words);
 }
 
 /**
@@ -112,7 +121,11 @@ export function departmentCompilations(measured) {
     const n = courses.reduce((a, c) => a + c.words, 0);
     const f = fitness(n);
     out.push({
-      department, courses: courses.map((c) => c.key), words: n, fitness: f, volumes: volumes(n),
+      department,
+      courses: courses.map((c) => c.key),
+      words: n,
+      fitness: f,
+      volumes: volumes(n),
       // A compilation is a book when the gathered courses reach a short book;
       // below that the department stays a set of booklets and chapters.
       isBook: f === 'full' || f === 'short',

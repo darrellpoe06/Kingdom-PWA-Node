@@ -13,9 +13,15 @@ const entry = (key) => LEARN_CATALOG.find((e) => e.key === key);
 
 describe('a PoeTech subject (Inspections, Real Estate)', () => {
   const line = productLine(entry('inspections'));
-  it('its book is a booklet priced by size, in the Bookstore\'s own shape, publishable, a draft until the Governor says', () => {
+  it("its book is a booklet priced by size, in the Bookstore's own shape, publishable, a draft until the Governor says", () => {
     expect(line.measured.fitness).toBe('booklet');
-    expect(line.book).toMatchObject({ id: 'prod-course-inspections', recipeId: 'course-inspections', status: 'draft', priceCents: BOOK_PRICE_BY_FITNESS.booklet, author: 'Darrell Poe' });
+    expect(line.book).toMatchObject({
+      id: 'prod-course-inspections',
+      recipeId: 'course-inspections',
+      status: 'draft',
+      priceCents: BOOK_PRICE_BY_FITNESS.booklet,
+      author: 'Darrell Poe',
+    });
     expect(line.book.businesses).toEqual(['poetech', 'church']);
     expect(publishableProduct(line.book).ok).toBe(true);
     expect(line.book.blurb).toMatch(/a booklet of 8 lessons, [\d,]+ words/);
@@ -49,10 +55,13 @@ describe('a spiritual department (Living Lessons)', () => {
     expect(line.workshop.offering).toBe(true);
     expect(line.workshop.recommendedCents).toBe(0);
   });
-  it('a long course walks the Word\'s divisions as its sections; a short one walks lesson by lesson', () => {
+  it("a long course walks the Word's divisions as its sections; a short one walks lesson by lesson", () => {
     expect(line.course.sections.length).toBeLessThan(line.course.lessons);
     expect(line.course.sections.map((s) => s.key)).toContain('gospels');
-    const short = courseSections([{ id: 'x1', title: 'One' }, { id: 'x2', title: 'Two' }]);
+    const short = courseSections([
+      { id: 'x1', title: 'One' },
+      { id: 'x2', title: 'Two' },
+    ]);
     expect(short.map((s) => s.key)).toEqual(['x1', 'x2']);
     expect(short[0].lessons.length).toBe(1);
   });
@@ -78,7 +87,13 @@ describe('the whole registry', () => {
     for (const d of drafts) expect(publishableProduct(d).ok, d.id).toBe(true);
   });
   it('a builder that throws yields an honest empty line, never a crash', () => {
-    const line = productLine({ key: 'broken', meta: { title: 'B', category: 'Real Estate' }, buildScheduleRows: () => { throw new Error('x'); } });
+    const line = productLine({
+      key: 'broken',
+      meta: { title: 'B', category: 'Real Estate' },
+      buildScheduleRows: () => {
+        throw new Error('x');
+      },
+    });
     expect(line.book).toBeNull();
     expect(line.course.lessons).toBe(0);
     expect(line.workshop.recommendedCents).toBe(20000);
