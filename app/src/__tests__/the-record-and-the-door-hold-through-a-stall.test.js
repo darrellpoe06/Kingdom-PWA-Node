@@ -125,3 +125,37 @@ describe('a member is never dressed as a stranger while sign-in settles', () => 
     expect(shell).toMatch(/const churchBrand = wearsChurchBrand\(\{/);
   });
 });
+
+describe('what this device holds is filed until the record holds it', () => {
+  it('names the read and the exam the record lacks, for this learner only, and never a score it already has', async () => {
+    const { deviceFactsMissingFromRecord } = await import('../lib/learner-records.js');
+    const records = [
+      { userId: 'me', lessonId: 'a', completedAt: '2026-11-01T00:00:00.000Z', quizPct: 100 },
+      { userId: 'me', lessonId: 'b', completedAt: null, quizPct: null },
+      { userId: 'someone-else', lessonId: 'c', completedAt: '2026-11-01T00:00:00.000Z', quizPct: 90 },
+    ];
+    const progress = { a: '2026-11-01T00:00:00Z', b: '2026-11-02T00:00:00Z', c: '2026-11-03T00:00:00Z' };
+    const quizState = { a: { pct: 100, passed: true }, b: { pct: 80, passed: true, attempts: 2 }, c: { pct: 100, passed: true } };
+    const got = deviceFactsMissingFromRecord({ records, userId: 'me', progress, quizState, courseOf: (id) => (id === 'b' ? 'course-b' : null) });
+    expect(got.map((g) => g.lessonId).sort()).toEqual(['b', 'c']);
+    const b = got.find((g) => g.lessonId === 'b');
+    expect(b.courseKey).toBe('course-b');
+    expect(b.completedAt).toBe('2026-11-02T00:00:00.000Z');
+    expect(b.quiz).toMatchObject({ pct: 80, passed: true, attempts: 2 });
+    expect(got.find((g) => g.lessonId === 'c').quiz.pct).toBe(100); // another learner's row is not mine
+  });
+
+  it('a lesson the device marks read is named while the record lacks it, and dropped once the record holds it', async () => {
+    const { deviceFactsMissingFromRecord } = await import('../lib/learner-records.js');
+    const progress = { lost: '2026-11-12T13:00:00Z' };
+    expect(deviceFactsMissingFromRecord({ records: [], userId: 'me', progress }).map((g) => g.lessonId)).toEqual(['lost']);
+    const filed = [{ userId: 'me', lessonId: 'lost', completedAt: '2026-11-12T13:00:00.000Z' }];
+    expect(deviceFactsMissingFromRecord({ records: filed, userId: 'me', progress })).toEqual([]);
+  });
+
+  it('is bounded per read', async () => {
+    const { deviceFactsMissingFromRecord } = await import('../lib/learner-records.js');
+    const progress = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`l${i}`, '2026-11-12T00:00:00Z']));
+    expect(deviceFactsMissingFromRecord({ progress })).toHaveLength(25);
+  });
+});

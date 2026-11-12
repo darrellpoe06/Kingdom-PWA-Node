@@ -3301,7 +3301,7 @@ export default function PoeFinancialSystem() {
   // device, so they cross his devices and reach the Governor. All of the wiring
   // lives in lib/use-learner-records.js; this shell is frozen (DR-0078).
   const { learnerRecords, toggleClassModule, recordClassQuiz } = useLearnerRecords({
-    authSession, demo: isAnyDemoMode, ageBand: data.learnAgeBand || 'adult', setData,
+    authSession, demo: isAnyDemoMode, ageBand: data.learnAgeBand || 'adult', setData, data,
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
