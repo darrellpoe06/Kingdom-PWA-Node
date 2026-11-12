@@ -39,7 +39,7 @@ export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
   const shown = useMemo(() => CHURCH_MINISTRIES.filter((m) => matchesMinistry(m, query)), [query]);
   const withPage = shown.filter((m) => m.surface);
   const namedOnly = shown.filter((m) => !m.surface);
-  // THE LANDING (2026-11-12 redesign, DR-1457): the same registry sorted into
+  // THE LANDING (2026-11-12 redesign, DR-1458): the same registry sorted into
   // four families, each a card of doors. A ministry with a page opens it; one
   // without says so in the same words the tiles below use. Hidden while a
   // search narrows the list, so the search result is what the eye sees.

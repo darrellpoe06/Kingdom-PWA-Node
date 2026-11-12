@@ -1,4 +1,4 @@
-# DR-1457: The Ministries landing — four families over the one registry
+# DR-1458: The Ministries landing — four families over the one registry
 
 **Date:** 2026-11-12
 **Status:** Accepted (Phase 3 of the Love Corner redesign built)
