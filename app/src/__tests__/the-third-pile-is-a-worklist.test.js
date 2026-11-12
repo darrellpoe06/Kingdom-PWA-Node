@@ -735,12 +735,13 @@ const REPO = join(HERE, '..', '..', '..');
 // source and then relies on none of it is the shape this gap exists to HOLD
 // rather than hide -- the alternative, repeating the vendor's numbers and giving
 // them a row, would have lowered this count by asserting what we never read.
-// 2026-11-12 (DR-1441, DR-1442): sov74 and sov75 RAISE the gap to 30, by the
+// 2026-11-12 (DR-1446, DR-1442): sov74 and sov75 RAISE the gap to 30, by the
 // SECOND remedy. Both are built from YouTube talks Darrell sent with his own
-// point-by-point summaries (Hani Farid and the schools that met the machine;
+// point-by-point summaries (Hany Farid and the schools that met the machine;
 // Sinead Bovell at SXSW EDU 2025, then his one word, Safely). This build could
-// not reach YouTube, so neither talk was watched; a web search confirmed each
-// session happened. Every reader text says so in its own words and names what
+// not reach YouTube, so neither talk was watched. A web search confirmed the
+// SXSW EDU 2025 session (sov75) on the festival's own pages; for sov74 it
+// confirmed only Farid at UC Berkeley and Estonia's programme, not the video. Every reader text says so in its own words and names what
 // was NOT checked: the video, the speaker's exact words and minute marks, and
 // the research she cites on addiction and cognitive atrophy, which stand as
 // her claims. Neither lesson stakes a figure from the talks, so there is no

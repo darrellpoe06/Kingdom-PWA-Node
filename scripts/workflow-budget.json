@@ -131,8 +131,8 @@
       "date": "2026-11-12",
       "from": 23061,
       "to": 23064,
-      "dr": "DR-1446",
-      "reason": "A required guard step in ci.yml for reviewer-lens-registry-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment was five lines in its first draft (the whole Darrell-read-the-banner narrative) and was folded to two, with the narrative kept in the guard's own header and the record. Raised to the measured total, not above it. Re-froze at 23062 after merging main (DR-1443's PR landed fewer YAML lines than it replaced), so the ceiling sits at the measured total, not at the raise. (Recorded as DR-1441 at the time; renumbered to DR-1446 when sov74 was found already holding 1441 on main.)"
+      "dr": "DR-1441",
+      "reason": "A required guard step in ci.yml for reviewer-lens-registry-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment was five lines in its first draft (the whole Darrell-read-the-banner narrative) and was folded to two, with the narrative kept in the guard's own header and the record. Raised to the measured total, not above it. Re-froze at 23062 after merging main (DR-1443's PR landed fewer YAML lines than it replaced), so the ceiling sits at the measured total, not at the raise. (This record briefly moved to 1445 and then 1446 while two sessions renumbered the same collision from opposite sides; #2631 landed first and vacated 1441 by moving sov74 to 1446, so the record is back on the number it merged with and the renumbers are reverted.)"
     },
     {
       "date": "2026-11-12",
