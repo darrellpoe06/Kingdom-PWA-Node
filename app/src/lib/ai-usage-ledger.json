@@ -1715,6 +1715,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 6,
       "notes": "Found while answering Darrell's store and Square question"
+    },
+    {
+      "id": "understanding-by-repetition",
+      "date": "2026-11-12",
+      "task": "One reading of the learner record: understood in either order and any tries, reading counted on its own, most studied named",
+      "drs": [
+        "DR-1439"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell's screenshots: Understood 5 of 47 beside Mastered 51 of 923"
     }
   ]
 }

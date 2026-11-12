@@ -13,7 +13,7 @@
 //      read but never tested, or passed before it was ever read, must not
 //      close a course — the second case is already its own figure (DR-1386).
 import { describe, it, expect } from 'vitest';
-import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed } from '../lib/course-pace.js';
+import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed, mostStudied, growthOpportunities } from '../lib/course-pace.js';
 
 const DAY = 86400000;
 const T0 = Date.UTC(2026, 9, 1, 12, 0, 0);
@@ -224,5 +224,48 @@ describe('a pass the row holds counts, and the card names the exams still owed (
     expect(examsOwed(recs, 'k', ids.k)).toEqual([{ id: 'k2', n: 2 }]);
     expect(examsOwed([before('k1'), before('k2')], 'k', ids.k)).toEqual([]);
     expect(examsOwed(recs, 'k', [])).toEqual([]);
+  });
+});
+
+// DR-1439 (Darrell 2026-11-12): order means nothing, reading counts on its own, understanding comes by the repetition of
+// the study, and the most studied subjects are named.
+describe('reading counts on its own, every try is study, and the most studied are named (DR-1439)', () => {
+  const ids = { a: ['a1', 'a2'], b: ['b1'], c: ['c1'] };
+  const r = (courseKey, lessonId, over = {}) => ({ userId: 'u', courseKey, lessonId, completedAt: '2026-11-01T00:00:00Z', ...over });
+  const recs = [
+    r('a', 'a1', { quizPct: 100, quizPassed: true, quizAt: '2026-10-30T00:00:00Z', quizAttempts: 4 }), // passed BEFORE the reading
+    r('a', 'a2'),
+    r('b', 'b1', { quizPct: 60, quizPassed: false, quizAt: '2026-11-02T00:00:00Z', quizAttempts: 1 }),
+  ];
+  it('a course read in full counts, and a pass before the reading still counts once it is read', () => {
+    const s = standing(recs, ids);
+    expect(s.coursesRead).toBe(2); // a and b read in full; c never opened
+    expect(s.lessonsRead).toBe(3);
+    expect(s.lessonsDone).toBe(1);
+    expect(s.mastered).toBe(1);
+    expect(s.lessonsTested).toBe(2);
+    expect(s.tries).toBe(5);
+  });
+  it('most studied ranks by times tested, then lessons read, and leaves out what was never opened', () => {
+    expect(mostStudied(standing(recs, ids)).map((c) => [c.courseKey, c.tries, c.read])).toEqual([
+      ['a', 4, 2],
+      ['b', 1, 1],
+    ]);
+    expect(mostStudied(standing([], ids))).toEqual([]);
+  });
+});
+
+describe('the most opportunities to grow understanding are named (DR-1439)', () => {
+  const ids = { a: ['a1', 'a2', 'a3'], b: ['b1', 'b2'], c: ['c1'] };
+  const r = (courseKey, lessonId, over = {}) => ({ userId: 'u', courseKey, lessonId, completedAt: '2026-11-01T00:00:00Z', ...over });
+  it('ranks courses by lessons studied but not yet at 100%, and leaves out a course fully understood or never opened', () => {
+    const recs = [
+      r('a', 'a1'),
+      r('a', 'a2', { quizPct: 80, quizPassed: true, quizAt: '2026-11-02T00:00:00Z', quizAttempts: 2 }),
+      r('a', 'a3', { quizPct: 100, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }),
+      r('b', 'b1', { quizPct: 100, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }),
+      r('b', 'b2', { quizPct: 100, quizPassed: true, quizAt: '2026-11-02T00:00:00Z' }),
+    ];
+    expect(growthOpportunities(standing(recs, ids)).map((c) => [c.courseKey, c.grow])).toEqual([['a', 2]]);
   });
 });
