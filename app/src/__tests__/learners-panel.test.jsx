@@ -215,23 +215,35 @@ describe('every exam attempt is listed, and the doors to retake and reread are h
 
 describe('how the exams were taken, kept apart from what they scored (DR-1386)', () => {
   const fig = (label) => [...host.querySelectorAll('[data-testid="taken-and-graded"] *')].find((el) => el.textContent.trim().startsWith(label) && el.children.length >= 1);
-  it('names understood, taken after the lesson, passed before it, quick retakes and tries to first pass, from the record', () => {
+  // DR-1439 (Darrell 2026-11-12): before or after the reading means nothing; understanding comes by the repetition of the
+  // study, and it promotes rigor. So a quick retake that reaches 100% IS understanding, and a pass before the reading still
+  // counts once the lesson is read.
+  it('names understanding, read and passed, times tested and tries to first pass, from ONE reading of the record (DR-1439)', () => {
     const records = [
       rec({ lesson_id: 'L1', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 60, passed: false }, { at: '2026-10-28T01:00:30.000Z', pct: 100, passed: true }] }),
       rec({ lesson_id: 'L2', completed_at: null, quiz_history: [{ at: '2026-10-27T10:00:00.000Z', pct: 80, passed: true }] }),
     ];
     const text = draw({ records, currentUserId: SON, titleOf: () => null });
     expect(host.querySelector('[data-testid="taken-and-graded"]')).toBeTruthy();
-    expect(text).toContain('How the exams were taken');
-    // L1: 60, then 100 thirty seconds later: the answers given back, not understood (DR-1417). L2: passed before the lesson.
-    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 2 lessons tested');
-    expect(host.querySelector('[data-testid="understood-lions"]')).toBeNull();
-    expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('0');
+    expect(text).toContain('Understanding');
+    expect(host.querySelector('[data-testid="mindsets-to-master"]').textContent).toMatch(/Mindsets to master.*Read in full.*Repeat the study.*Hold the rigor/);
+    // L1: 60, then 100 thirty seconds later: repetition, understood. L2: tested, not read yet.
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('1 of 2 lessons tested');
+    expect(host.querySelectorAll('[data-testid="understood-lions"] [data-testid="black-lion"]').length).toBe(1);
     expect(fig('Read and passed').textContent).toMatch(/Read and passed\s*1/);
-    expect(fig('Taken after the lesson').textContent).toMatch(/2 of 3/);
-    expect(fig('Passed before the lesson').textContent).toMatch(/^Passed before the lesson\s*1/);
-    expect(fig('Retakes within a minute').textContent).toMatch(/^Retakes within a minute\s*1/);
+    expect(fig('Times tested').textContent).toMatch(/^Times tested\s*3/);
     expect(fig('Tries to first pass').textContent).toMatch(/1\.5/);
+    expect(host.querySelector('[data-testid="most-studied"]').textContent).toMatch(/living-lessons: tested 3 times, 1 of 2 read/);
+    // L2 is tested (80%) but not read and not at 100%: one studied lesson still to grow.
+    expect(host.querySelector('[data-testid="growth-opportunities"]').textContent).toMatch(/living-lessons: 1 studied lesson still to take to 100%/);
+    // PROVEN TO CATCH the order-and-timing figures Darrell set aside: none of them is drawn.
+    expect(text).not.toMatch(/Taken after the lesson|Passed before the lesson|Retakes within a minute|at your own pace/);
+  });
+
+  it('a pass before the reading counts as soon as the lesson is read: order means nothing (DR-1439)', () => {
+    const records = [rec({ lesson_id: 'L1', completed_at: '2026-10-29T10:00:00.000Z', quiz_history: [{ at: '2026-10-28T01:00:00.000Z', pct: 100, passed: true }] })];
+    draw({ records, currentUserId: SON, titleOf: () => null });
+    expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('1 of 1 lesson tested');
   });
 
   it('100% a few minutes after a miss, with the lesson on the record first, is understood: one Black Lion', () => {
@@ -247,7 +259,7 @@ describe('how the exams were taken, kept apart from what they scored (DR-1386)',
     draw({ records, currentUserId: SON, titleOf: () => null });
     expect(host.querySelector('[data-testid="understood-count"]').textContent).toBe('0 of 1 lesson tested');
     expect(host.querySelector('[data-testid="understood-lions"]')).toBeNull();
-    expect(host.querySelector('[data-testid="understood-one-step"]').textContent).toMatch(/1 more is read and passed\. Read the lesson in full, then take its exam to 100% at your own pace/);
+    expect(host.querySelector('[data-testid="understood-one-step"]').textContent).toMatch(/1 more is read and passed\. Take the exam again until every answer is right, as many times as it takes/);
     expect(fig('Read and passed').textContent).toMatch(/Read and passed\s*1/);
   });
 
@@ -283,12 +295,22 @@ describe('the record says where you stand, and never paints the date', () => {
     });
     expect(t).toMatch(/Courses fully completed/i);
     expect(t).toMatch(/1 of 1/);
-    expect(t).toMatch(/Read and tested/i);
+    expect(t).toMatch(/Read and passed/i);
     expect(t).toMatch(/2 of 2/);
-    // The total rides on mastery too, so the gap is visible and sought after.
-    expect(t).toMatch(/Mastered at 100%/i);
+    // Reading counts on its own (DR-1439), and understanding is the total sought after.
+    expect(t).toMatch(/Courses read in full/i);
+    expect(t).toMatch(/Lessons read/i);
+    expect(t).toMatch(/Understood at 100%/i);
     expect(t).toMatch(/1 of 2/);
-    expect(t).toMatch(/still to master/i);
+    // DR-1440: a completed course earns a crown, and the record STARTS with the crowns.
+    expect(host.querySelector('[data-testid="course-awards"]').textContent).toMatch(/Courses rewarded: 1 crown \(0 at 100%\), 1 read in full/);
+    expect(host.querySelector('[data-testid="course-awards"] [data-award="crown"]').textContent).toMatch(/living-lessons/);
+    expect(host.querySelector('[data-testid="record-crown-count"]').textContent).toBe('1 crown');
+    expect(host.querySelector('[data-testid="record-crowns-verse"]').textContent).toMatch(/striveth for the mastery.*1 Corinthians 9:25, KJV/);
+    // It comes before every other figure on the record.
+    const crowns = host.querySelector('[data-testid="record-crowns"]');
+    const firstFigure = host.querySelector('[data-testid="record-figures"]');
+    expect(crowns.compareDocumentPosition(firstFigure) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('PROVEN TO CATCH: one lesson read and tested gives NO date, and says why', () => {

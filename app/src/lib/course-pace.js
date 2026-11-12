@@ -146,7 +146,18 @@ export function standing(records = [], courseLessonIds = {}) {
     // One record per lesson wins: the earliest moment it was both read and passed.
     const t = doneAt(r);
     if (!prev || (t !== null && (prev.done === null || t < prev.done))) {
-      byCourse.get(r.courseKey).set(r.lessonId, { done: t, mastered: masteredAt(r) });
+      byCourse.get(r.courseKey).set(r.lessonId, {
+        done: t,
+        mastered: masteredAt(r),
+        read: !!(r.readEvidenceAt || r.completedAt) || !!(prev && prev.read),
+        tested: attemptsOf(r).length > 0 || !!(prev && prev.tested),
+        tries: Math.max(Number(r.quizAttempts) || 0, attemptsOf(r).length) + ((prev && prev.tries) || 0),
+      });
+    } else {
+      // A second row for a lesson already counted still adds its reading, its trying and its tries.
+      prev.read = prev.read || !!(r.readEvidenceAt || r.completedAt);
+      prev.tested = prev.tested || attemptsOf(r).length > 0;
+      prev.tries += Math.max(Number(r.quizAttempts) || 0, attemptsOf(r).length);
     }
   }
   const courses = [];
@@ -154,13 +165,24 @@ export function standing(records = [], courseLessonIds = {}) {
   let lessonsTotal = 0;
   let lessonsDone = 0;
   let mastered = 0;
+  let lessonsRead = 0;
+  let lessonsTested = 0;
+  let tries = 0;
   for (const [courseKey, ids] of Object.entries(courseLessonIds || {})) {
     if (!Array.isArray(ids) || !ids.length) continue; // unknown goal: not counted
     const seen = byCourse.get(courseKey) || new Map();
     let done = 0;
     let mast = 0;
+    let read = 0;
+    let courseTries = 0;
+    let grow = 0;
     for (const id of ids) {
       const hit = seen.get(id);
+      if (hit && hit.read) read += 1;
+      if (hit && hit.tested) lessonsTested += 1;
+      // Studied (read or tested) and not yet understood: the room to grow.
+      if (hit && (hit.read || hit.tested) && hit.mastered === null) grow += 1;
+      if (hit) courseTries += hit.tries || 0;
       if (hit && hit.done !== null) {
         done += 1;
         doneMoments.push(hit.done);
@@ -170,13 +192,21 @@ export function standing(records = [], courseLessonIds = {}) {
     lessonsTotal += ids.length;
     lessonsDone += done;
     mastered += mast;
-    courses.push({ courseKey, total: ids.length, done, toGo: ids.length - done, mastered: mast, complete: done === ids.length });
+    lessonsRead += read;
+    tries += courseTries;
+    courses.push({ courseKey, total: ids.length, done, read, tries: courseTries, grow, toGo: ids.length - done, mastered: mast, complete: done === ids.length, readInFull: read === ids.length, understoodAll: mast === ids.length });
   }
   const coursesComplete = courses.filter((c) => c.complete).length;
   return {
     courses,
     coursesTotal: courses.length,
     coursesComplete,
+    // DR-1439: reading counts on its own, and every try is study.
+    coursesRead: courses.filter((c) => c.readInFull).length,
+    coursesUnderstood: courses.filter((c) => c.understoodAll).length,
+    lessonsRead,
+    lessonsTested,
+    tries,
     coursesToGo: courses.length - coursesComplete,
     lessonsTotal,
     lessonsDone,
@@ -184,6 +214,61 @@ export function standing(records = [], courseLessonIds = {}) {
     mastered,
     doneMoments: doneMoments.sort((a, b) => a - b),
   };
+}
+
+/**
+ * COURSES EARN CROWNS (DR-1440, Darrell 2026-11-12: "Courses should be
+ * rewarded", "Courses should earn crowns", "Starting the record with how many
+ * crowns"). A lesson earns a lion; a course earns a crown:
+ *   crown        completed: every lesson read and its exam passed
+ *   crown, 100%  and every lesson understood at 100% (the crown made full)
+ *   book         every lesson read in full, exams still to pass
+ * Crowns first (100% before the rest), then books, then by name. Pure.
+ */
+export const COURSE_AWARDS = Object.freeze({
+  crownFull: 'Crown at 100%: every lesson understood',
+  crown: 'Crown: every lesson read and passed',
+  book: 'Read in full: every lesson read, exams still to pass',
+});
+export function courseAwards(stand) {
+  const rank = { crownFull: 0, crown: 1, book: 2 };
+  return (stand && Array.isArray(stand.courses) ? stand.courses : [])
+    .map((c) => ({ courseKey: c.courseKey, kind: c.complete && c.understoodAll ? 'crownFull' : c.complete ? 'crown' : c.readInFull ? 'book' : null }))
+    .filter((a) => a.kind)
+    .sort((a, b) => rank[a.kind] - rank[b.kind] || a.courseKey.localeCompare(b.courseKey))
+    .map((a) => ({ ...a, award: a.kind === 'book' ? 'book' : 'crown', label: COURSE_AWARDS[a.kind] }));
+}
+
+/** How many crowns this record holds: one for each course completed. Pure. */
+export function crownCount(stand) {
+  return stand && Number.isFinite(stand.coursesComplete) ? stand.coursesComplete : 0;
+}
+
+/**
+ * MOST STUDIED (DR-1439, Darrell 2026-11-12: "Most studied subjects and or
+ * material"). Understanding comes by the repetition of the study, so the
+ * courses are ranked by how often they were studied: times tested, then
+ * lessons read. A course never opened is not listed. Pure.
+ */
+export function mostStudied(stand, n = 3) {
+  return (stand && Array.isArray(stand.courses) ? stand.courses : [])
+    .filter((c) => (c.tries || 0) + (c.read || 0) > 0)
+    .sort((a, b) => (b.tries || 0) - (a.tries || 0) || (b.read || 0) - (a.read || 0) || a.courseKey.localeCompare(b.courseKey))
+    .slice(0, n);
+}
+
+/**
+ * MOST OPPORTUNITIES TO GROW UNDERSTANDING (DR-1439, Darrell 2026-11-12). The
+ * courses holding the most lessons already studied (read or tested) but not
+ * yet understood at 100%: the nearest gains, where one more round of study
+ * turns into understanding. Ranked by that count, then by how much was
+ * studied. A course with none is not listed. Pure.
+ */
+export function growthOpportunities(stand, n = 3) {
+  return (stand && Array.isArray(stand.courses) ? stand.courses : [])
+    .filter((c) => (c.grow || 0) > 0)
+    .sort((a, b) => b.grow - a.grow || (b.tries || 0) - (a.tries || 0) || a.courseKey.localeCompare(b.courseKey))
+    .slice(0, n);
 }
 
 /**
