@@ -140,7 +140,7 @@ describe('source pins — the door mounts the tab and the registry names it', ()
     expect(shell).toMatch(/churchSubTabs\(\{ signedIn: !!authSession/);
     const gated = tabs.match(/\.\.\.\(signedIn\s*\?\s*\[([\s\S]*?)\]\s*:\s*\[\]\)/);
     expect(gated, 'the authSession-gated church tab group is gone').toBeTruthy();
-    expect(gated[1]).toContain('[\'members\', <><UiIcon name="users" /> Members</>]');
+    expect(gated[1]).toMatch(/\[\s*'members',\s*<>\s*<UiIcon name="users" \/>\s*Members\s*<\/>,?\s*\]/);
   });
   it('the registry carries the surface with its real gate named', () => {
     const reg = readFileSync(join(SRC, 'surfaces.js'), 'utf8');
