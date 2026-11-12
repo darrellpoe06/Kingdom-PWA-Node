@@ -2,7 +2,7 @@
 
 Layer 4 working artifact (audit + reality-trace + plan). Branch `ccr-91fb688d-spyn2g`.
 Status: **mockup approved by Darrell ("Perfect keep going", 2026-11-12); Phase 0 and Phase 1 BUILT the same
-session (DR-1455), with the Institute's Slice A landing. Phase 2 (the Youth Zone, DR-1456) was built the same session once Phase 1 was live; Phases 3–6 remain as named in §7.** The real logo and
+session (DR-1455), with the Institute's Slice A landing. Phase 2 (the Youth Zone, DR-1456) and Phase 3 (the Ministries landing, DR-1458) were built the same session once Phase 1 was live; Phases 4–6 remain as named in §7.** The real logo and
 Bishop Gwin's photograph arrived mid-session and are in `app/public/lovecorner/`; the empty slot is gone.
 
 Deliverables in this folder and in `docs/design/love-corner-redesign/`:
