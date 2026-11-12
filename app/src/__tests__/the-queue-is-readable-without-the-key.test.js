@@ -31,24 +31,20 @@ import { join } from 'node:path';
 
 const repo = join(__dirname, '..', '..', '..');
 const wf = readFileSync(join(repo, '.github', 'workflows', 'inbox-lessons-waiting.yml'), 'utf8');
-const mig = readFileSync(
-  join(repo, 'infra', 'supabase', 'migrations-auto', '0320-the-house-says-which-teachings-wait.sql'),
-  'utf8'
-);
+const mig = readFileSync(join(repo, 'infra', 'supabase', 'migrations-auto', '0320-the-house-says-which-teachings-wait.sql'), 'utf8');
 const reader = readFileSync(join(repo, 'scripts', 'served-lesson-queue.py'), 'utf8');
 const census = readFileSync(join(repo, 'infra', 'nas-loops', 'lesson-queue-census.py'), 'utf8');
 
+/** Collapse whitespace, so a check about a VERDICT does not fail when a formatter rewraps it. */
+const flat = (s) => String(s).replace(/\s+/g, ' ');
+
 describe('the lesson lane reads its queue without the runner key', () => {
   it('PROVEN TO CATCH: the second road is wired, so a dead tailnet key no longer ends the lane', () => {
-    expect(wf, 'the served road is missing — a dead key is a hard stop again').toContain(
-      'scripts/served-lesson-queue.py'
-    );
+    expect(wf, 'the served road is missing — a dead key is a hard stop again').toContain('scripts/served-lesson-queue.py');
     expect(existsSync(join(repo, 'scripts', 'served-lesson-queue.py'))).toBe(true);
     // The join must be allowed to fail, or the job dies before either road.
     const joinBlock = wf.slice(wf.indexOf('Join the tailnet'), wf.indexOf('Verify the tailnet'));
-    expect(joinBlock, 'the join must be continue-on-error for the second road to be reachable').toMatch(
-      /continue-on-error:\s*true/
-    );
+    expect(joinBlock, 'the join must be continue-on-error for the second road to be reachable').toMatch(/continue-on-error:\s*true/);
   });
 
   it('the NAS is asked FIRST, because only it can name the individual rows', () => {
@@ -102,9 +98,7 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
 
   it('only rows the NAS itself wrote count, so a member’s lookalike cannot speak for the house', () => {
     expect(mig).toMatch(/tags @> '\["lesson-queue-census"\]'::jsonb/);
-    expect(mig, 'without the source check any member row with that tag would be read as the census').toMatch(
-      /AND source = 'nas-loops'/
-    );
+    expect(mig, 'without the source check any member row with that tag would be read as the census').toMatch(/AND source = 'nas-loops'/);
   });
 
   it('every road and shape name it will speak is one the repository already publishes', () => {
@@ -139,9 +133,7 @@ describe('an unread queue is never reported as an empty one (DR-1186)', () => {
     // Measured on this migration's own proof run: the first shape clamped into
     // [0, 100000], and a corrupt body carrying total -5 read back as total 0 —
     // a manufactured "nothing is waiting". The clamp is gone.
-    expect(mig, 'a clamp on total would turn a corrupt body into an empty queue').not.toMatch(
-      /'total'[\s\S]{0,120}GREATEST\(0/
-    );
+    expect(mig, 'a clamp on total would turn a corrupt body into an empty queue').not.toMatch(/'total'[\s\S]{0,120}GREATEST\(0/);
     expect(mig).toMatch(/\(b ->> 'total'\) ~ '\^\[0-9\]\{1,6\}\$'/);
     expect(mig).toMatch(/jsonb_strip_nulls/);
   });
@@ -152,10 +144,14 @@ describe('an unread queue is never reported as an empty one (DR-1186)', () => {
     for (const code of [10, 11, 12, 13, 14]) {
       expect(reader, `exit ${code} is not documented`).toMatch(new RegExp(`exit\\s+${code}\\b`));
     }
-    // And none of them may report a number.
-    const refusals = reader.match(/return 1[0-4], "failed", "unknown"/g) || [];
+    // And none of them may report a number. Matched on COLLAPSED whitespace:
+    // whether a return sits on one line or five is the formatter's call, and
+    // this check is about the verdict. It broke once on a reformat that
+    // changed no behaviour, which is a check coupled to the wrong thing.
+    const flatReader = flat(reader);
+    const refusals = flatReader.match(/return \( 1[0-4], "failed", "unknown"/g) || [];
     expect(refusals.length, 'a refusal that reports a count is a refusal that lies').toBeGreaterThanOrEqual(4);
-    expect(reader, 'a refusal must never report zero').not.toMatch(/return 1[0-4], "failed", 0/);
+    expect(flatReader, 'a refusal must never report zero').not.toMatch(/return \( 1[0-4], "failed", 0/);
   });
 
   it('a census too old to be current is unknown, not a stale number presented as today', () => {
@@ -163,15 +159,16 @@ describe('an unread queue is never reported as an empty one (DR-1186)', () => {
     // number from then is not an answer about now.
     expect(reader).toMatch(/SILENT_AFTER_MIN = CLOCK_MIN \* 4/);
     expect(reader).toMatch(/age > SILENT_AFTER_MIN/);
-    const stale = reader.slice(reader.indexOf('age > SILENT_AFTER_MIN'));
-    expect(stale.slice(0, 600)).toMatch(/return 14, "failed", "unknown"/);
+    // Matched on COLLAPSED whitespace, because the formatter decides whether a
+    // return is one line or five and this check is about the verdict, not the
+    // layout: it broke once on a reformat that changed no behaviour at all.
+    const stale = flat(reader.slice(reader.indexOf('age > SILENT_AFTER_MIN')));
+    expect(stale.slice(0, 700), 'a stale census must refuse with 14 and report no number').toMatch(/return \( 14, "failed", "unknown"/);
   });
 
   it('the exclusions travel WITH the count, so which question was answered is never assumed', () => {
     expect(mig).toMatch(/'excludes', v_excl/);
     expect(reader).toMatch(/Not counted as waiting/);
-    expect(reader, 'a census that named no exclusions must say so, not imply the full list').toMatch(
-      /did not say which tags it excluded/
-    );
+    expect(reader, 'a census that named no exclusions must say so, not imply the full list').toMatch(/did not say which tags it excluded/);
   });
 });

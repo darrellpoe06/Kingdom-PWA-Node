@@ -102,55 +102,82 @@ def judge(receipt, why, now=None):
     `count` is an int only when code is 0; otherwise the string 'unknown'.
     """
     if receipt is None:
-        return 11, "failed", "unknown", [
-            "### Waiting lesson rows: UNKNOWN",
-            f"The house could not be asked over the public road: {why}.",
-            "This is not an empty queue -- it is an unread one.",
-        ]
+        return (
+            11,
+            "failed",
+            "unknown",
+            [
+                "### Waiting lesson rows: UNKNOWN",
+                f"The house could not be asked over the public road: {why}.",
+                "This is not an empty queue -- it is an unread one.",
+            ],
+        )
     if not receipt.get("seen"):
-        return 12, "failed", "unknown", [
-            "### Waiting lesson rows: UNKNOWN",
-            (
-                "The NAS has written no lesson-queue census yet "
-                "(lesson_queue_receipt: seen false), so nothing has counted the queue."
-            ),
-            "This is not an empty queue -- it is an uncounted one.",
-        ]
+        return (
+            12,
+            "failed",
+            "unknown",
+            [
+                "### Waiting lesson rows: UNKNOWN",
+                (
+                    "The NAS has written no lesson-queue census yet "
+                    "(lesson_queue_receipt: seen false), so nothing has counted the queue."
+                ),
+                "This is not an empty queue -- it is an uncounted one.",
+            ],
+        )
     total = receipt.get("total")
     at = receipt.get("at")
     age = age_min(at, now)
     if not isinstance(total, int):
-        return 13, "failed", "unknown", [
-            "### Waiting lesson rows: UNKNOWN",
-            (
-                f"The census row exists (stamped {at or 'at an unreadable time'}) but carries "
-                "no usable total, so no number is reported for it."
-            ),
-            "This is not an empty queue -- it is an unread one.",
-        ]
+        return (
+            13,
+            "failed",
+            "unknown",
+            [
+                "### Waiting lesson rows: UNKNOWN",
+                (
+                    f"The census row exists (stamped {at or 'at an unreadable time'}) but carries "
+                    "no usable total, so no number is reported for it."
+                ),
+                "This is not an empty queue -- it is an unread one.",
+            ],
+        )
     if age is None:
-        return 13, "failed", "unknown", [
-            "### Waiting lesson rows: UNKNOWN",
-            (
-                f"The census says {total}, but its stamp could not be read, so there is no "
-                "way to know whether that number is current."
-            ),
-        ]
+        return (
+            13,
+            "failed",
+            "unknown",
+            [
+                "### Waiting lesson rows: UNKNOWN",
+                (
+                    f"The census says {total}, but its stamp could not be read, so there is no "
+                    "way to know whether that number is current."
+                ),
+            ],
+        )
     if age > SILENT_AFTER_MIN:
         hours = age // 60
         when = f"{hours} h" if hours >= 1 else f"{age} min"
-        return 14, "failed", "unknown", [
-            "### Waiting lesson rows: UNKNOWN",
-            (
-                f"The last census was taken {when} ago and says {total}. The NAS clock is "
-                f"{CLOCK_MIN} min, so a census this old means the loop is not running -- the "
-                "number is reported as unknown rather than as today's queue."
-            ),
-            "This is not an empty queue -- it is a stale count.",
-        ]
+        return (
+            14,
+            "failed",
+            "unknown",
+            [
+                "### Waiting lesson rows: UNKNOWN",
+                (
+                    f"The last census was taken {when} ago and says {total}. The NAS clock is "
+                    f"{CLOCK_MIN} min, so a census this old means the loop is not running -- the "
+                    "number is reported as unknown rather than as today's queue."
+                ),
+                "This is not an empty queue -- it is a stale count.",
+            ],
+        )
     lines = [f"### Waiting lesson rows: {total}"]
     fresh = "fresh" if age <= FRESH_WITHIN_MIN else f"late by the {CLOCK_MIN} min clock"
-    lines.append(f"Counted on the NAS itself {age} min ago ({fresh}), read over the public road.")
+    lines.append(
+        f"Counted on the NAS itself {age} min ago ({fresh}), read over the public road."
+    )
     oldest = receipt.get("oldest_waiting")
     if oldest:
         ow = age_min(oldest, now)
