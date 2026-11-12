@@ -13,6 +13,7 @@
 //   'gate'    — public host, auth checked, NO session → show PasswordAuth
 //   'app'     — signed in, OR a private/trusted host → render the app
 // =============================================================================
+import { hasPersistedSession } from './session-handoff.js';
 export function accessState({ isPublicHostVal, authChecked, authSession }) {
   if (!isPublicHostVal) return 'app';      // private/trusted host (NAS/LAN/Tailscale/dev)
   if (!authChecked) return 'loading';      // wait for the first auth check
@@ -97,8 +98,19 @@ export function isPublicChurchRoute(search = (typeof window !== 'undefined' && w
  *                    → wears the church, because that is what they came for;
  *   • inside the PoeTech app → PoeTech, on every tab including Church.
  */
-export function wearsChurchBrand({ churchDoorOnly = false, signedIn = false, route = false } = {}) {
-  return !!churchDoorOnly || (!signedIn && !!route);
+//
+// A MEMBER IS NEVER A STRANGER WHILE SIGN-IN SETTLES (DR-1450). Darrell
+// 2026-11-12, inside PoeTech on Learn: "I'm in PoeTech and it switched me to
+// Love Corner", then "I want to use either and only need one... I have access
+// to both". Learn's own address is a church route (?view=church&sub=learn), so
+// any moment the session was absent -- at boot before it is restored, or while
+// a token refresh stalled on the road -- read him as a signed-out visitor on a
+// church link and dressed PoeTech as the Love Corner. A device that holds a
+// stored session (hasPersistedSession) belongs to a member, so the stranger's
+// branding never applies to it; signing out removes that session and the rule
+// applies again.
+export function wearsChurchBrand({ churchDoorOnly = false, signedIn = false, route = false, memberOnDevice = hasPersistedSession() } = {}) {
+  return !!churchDoorOnly || (!signedIn && !memberOnDevice && !!route);
 }
 
 /**
