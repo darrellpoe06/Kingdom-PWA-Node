@@ -30,12 +30,7 @@ export const PRICE_LOOKUP_KEY = 'poetech-plus-monthly';
 export const PRICE_CENTS = 3900;
 export const WEBHOOK_URL = 'https://poetech.us/api/stripe-webhook';
 export const WEBHOOK_API_VERSION = '2024-06-20';
-export const WEBHOOK_EVENTS = Object.freeze([
-  'checkout.session.completed',
-  'invoice.paid',
-  'customer.subscription.updated',
-  'customer.subscription.deleted',
-]);
+export const WEBHOOK_EVENTS = Object.freeze(['checkout.session.completed', 'invoice.paid', 'customer.subscription.updated', 'customer.subscription.deleted']);
 const TIMEOUT_MS = 20000;
 
 /** 'test' | 'live' | null from the key's own prefix. Pure. */
@@ -105,7 +100,9 @@ async function main() {
   const found = await s('GET', `prices?lookup_keys[]=${PRICE_LOOKUP_KEY}&active=true&limit=1`);
   let price = found.data && found.data[0];
   if (price && !priceIsRight(price)) {
-    throw new Error(`The Price under ${PRICE_LOOKUP_KEY} (${price.id}) is not $39.00/month. It is what people would be charged, so nothing was changed; archive it in Stripe or fix it, then re-run.`);
+    throw new Error(
+      `The Price under ${PRICE_LOOKUP_KEY} (${price.id}) is not $39.00/month. It is what people would be charged, so nothing was changed; archive it in Stripe or fix it, then re-run.`
+    );
   }
   if (!price) {
     const product = await s('POST', 'products', {

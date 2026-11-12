@@ -16,15 +16,7 @@ import { join } from 'node:path';
 import { toStripeSessionParams, verifiedBuyer, openTiers, onRequestGet, onRequestPost as checkoutPost } from '../../functions/api/checkout.js';
 import { memberSubscriptionChange, renewalAsSettleEvent, onRequestPost as webhookPost } from '../../functions/api/stripe-webhook.js';
 import { onRequestPost as portalPost, portalReturnPath } from '../../functions/api/billing-portal.js';
-import {
-  paidTierFrom,
-  memberTierDecision,
-  returnPaths,
-  checkoutOpen,
-  startPlusCheckout,
-  sayCheckoutError,
-  PLUS_TIER,
-} from '../lib/poetech-plus.js';
+import { paidTierFrom, memberTierDecision, returnPaths, checkoutOpen, startPlusCheckout, sayCheckoutError, PLUS_TIER } from '../lib/poetech-plus.js';
 import { ACCESS_ENFORCEMENT } from '../lib/learn-access-tiers.js';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -106,7 +98,10 @@ describe('the buyer is the person signed in, proven by the auth server', () => {
       if (String(u).includes('/auth/v1/user')) return authOk();
       return new Response(JSON.stringify({ id: 'cs_1', url: 'https://checkout.stripe.com/c/cs_1' }), { status: 200 });
     });
-    const res = await checkoutPost({ env: ENV, request: req({ kind: 'subscription', tier: PLUS_TIER, successUrl: '/poetech-app/?poetech_plus=welcome' }, 'tok') });
+    const res = await checkoutPost({
+      env: ENV,
+      request: req({ kind: 'subscription', tier: PLUS_TIER, successUrl: '/poetech-app/?poetech_plus=welcome' }, 'tok'),
+    });
     expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/cs_1', id: 'cs_1' });
     const stripe = calls.find((c) => c.u.includes('api.stripe.com/v1/checkout/sessions'));
     const sent = new URLSearchParams(stripe.i.body);
@@ -134,7 +129,13 @@ describe('the app shows a buy button only when buying can really work', () => {
     const html = async () => new Response('<!doctype html><title>PoeTech</title>', { status: 200, headers: { 'content-type': 'text/html' } });
     expect(await checkoutOpen({ fetchImpl: html })).toBe(false);
     expect(await checkoutOpen({ fetchImpl: async () => new Response('{"subscriptions":[]}') })).toBe(false);
-    expect(await checkoutOpen({ fetchImpl: async () => { throw new Error('down'); } })).toBe(false);
+    expect(
+      await checkoutOpen({
+        fetchImpl: async () => {
+          throw new Error('down');
+        },
+      })
+    ).toBe(false);
     expect(await checkoutOpen({ fetchImpl: async () => new Response('{"subscriptions":["poetech-plus"]}') })).toBe(true);
   });
 
@@ -159,7 +160,12 @@ describe('the webhook keeps one person’s row true after the purchase', () => {
 
   it('a renewal, a failed card, and a cancellation each reach the same person, for that subscription only', () => {
     const upd = memberSubscriptionChange(
-      subEvt('customer.subscription.updated', { id: 'sub_1', status: 'past_due', current_period_end: 1797100000, metadata: { userId: BUYER, tier: PLUS_TIER } }),
+      subEvt('customer.subscription.updated', {
+        id: 'sub_1',
+        status: 'past_due',
+        current_period_end: 1797100000,
+        metadata: { userId: BUYER, tier: PLUS_TIER },
+      }),
       '2026-11-12T00:00:00.000Z'
     );
     expect(upd).toMatchObject({ op: 'patch', userId: BUYER, subscriptionId: 'sub_1', row: { status: 'past-due', tier: PLUS_TIER } });
@@ -168,7 +174,12 @@ describe('the webhook keeps one person’s row true after the purchase', () => {
     expect(del.row.status).toBe('cancelled');
     // Newer Stripe API versions carry the period on the item, not the subscription.
     const item = memberSubscriptionChange(
-      subEvt('customer.subscription.updated', { id: 'sub_1', status: 'active', items: { data: [{ current_period_end: 1797100000 }] }, metadata: { userId: BUYER } })
+      subEvt('customer.subscription.updated', {
+        id: 'sub_1',
+        status: 'active',
+        items: { data: [{ current_period_end: 1797100000 }] },
+        metadata: { userId: BUYER },
+      })
     );
     expect(item.row.current_period_end).toBe(new Date(1797100000 * 1000).toISOString());
     expect(memberSubscriptionChange(subEvt('customer.subscription.updated', { id: 'sub_1', status: 'incomplete', metadata: { userId: BUYER } }))).toBeNull();
@@ -214,7 +225,13 @@ describe('the webhook keeps one person’s row true after the purchase', () => {
       await hook(inv('subscription_cycle', nested));
       expect(calls).toHaveLength(1);
       const [row] = JSON.parse(calls[0].i.body);
-      expect(row).toMatchObject({ amount_cents: 3900, product_key: PLUS_TIER, status: 'settled', provider_event_id: 'evt_invoice.paid', entity_id: 'e-personal' });
+      expect(row).toMatchObject({
+        amount_cents: 3900,
+        product_key: PLUS_TIER,
+        status: 'settled',
+        provider_event_id: 'evt_invoice.paid',
+        entity_id: 'e-personal',
+      });
     }
   });
 

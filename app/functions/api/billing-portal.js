@@ -15,8 +15,7 @@
 // -> 503.
 // =============================================================================
 
-const json = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
 
@@ -37,14 +36,20 @@ export async function onRequestPost(context) {
   if (!jwt) return json({ error: 'sign-in-required' }, 401);
 
   let body = {};
-  try { body = await context.request.json(); } catch { body = {}; }
+  try {
+    body = await context.request.json();
+  } catch {
+    body = {};
+  }
 
   let read;
   try {
     read = await fetch(`${url}/rest/v1/member_subscriptions?select=stripe_customer_id&limit=1`, {
       headers: { apikey: anon, Authorization: `Bearer ${jwt}` },
     });
-  } catch { return json({ error: 'member-unreachable' }, 502); }
+  } catch {
+    return json({ error: 'member-unreachable' }, 502);
+  }
   if (read.status === 401 || read.status === 403) return json({ error: 'sign-in-required' }, 401);
   if (!read.ok) return json({ error: `member-${read.status}` }, 502);
   const rows = await read.json().catch(() => []);
@@ -64,7 +69,9 @@ export async function onRequestPost(context) {
       headers: { Authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded' },
       body: p.toString(),
     });
-  } catch { return json({ error: 'stripe-unreachable' }, 502); }
+  } catch {
+    return json({ error: 'stripe-unreachable' }, 502);
+  }
   if (!upstream.ok) return json({ error: `stripe-${upstream.status}` }, 502);
   const session = await upstream.json().catch(() => null);
   return json({ url: asStr(session?.url) });

@@ -66,18 +66,31 @@ export default function PoeTechPlusButton({ client = supabase, fetchImpl }) {
         <button type="button" disabled={busy} onClick={() => go(openPlusPortal)} className={`${btn} border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]`}>
           Manage or cancel
         </button>
-        {note && <p className="text-xs text-[#5A5751] mt-1" role="status">{note}</p>}
+        {note && (
+          <p className="text-xs text-[#5A5751] mt-1" role="status">
+            {note}
+          </p>
+        )}
       </div>
     );
   }
   if (open) {
     return (
       <div data-testid="poetech-plus" data-state="open">
-        <button type="button" disabled={busy} onClick={() => go(startPlusCheckout)} className={`${btn} bg-[#1A1815] text-white border-[#1A1815] hover:bg-[#B85838]`}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => go(startPlusCheckout)}
+          className={`${btn} bg-[#1A1815] text-white border-[#1A1815] hover:bg-[#B85838]`}
+        >
           {busy ? 'Opening checkout…' : `Get ${PLUS_LABEL}`}
         </button>
         <p className="text-[0.6875rem] text-[#5A5751] mt-1">Paid securely through Stripe. Cancel any time from here.</p>
-        {note && <p className="text-xs text-[#5A5751] mt-1" role="status">{note}</p>}
+        {note && (
+          <p className="text-xs text-[#5A5751] mt-1" role="status">
+            {note}
+          </p>
+        )}
       </div>
     );
   }
