@@ -24,10 +24,12 @@ A lesson link used to take the address of whatever page the sharer had open. One
 DR-0536 had kept every lesson free to read and called Mathematics and A.I. never priced. Its reason was this: "A child who cannot pay must never meet a locked lesson."
 
 ## What was measured
-
 - **Pricing.** No course was tied to a tier, and `ACCESS_ENFORCEMENT` was false. The app has **no checkout of any kind**; searching `lib/` and `components/` for a payment flow finds none.
 - **Departments.** Every course already declares a department, so where a lesson opens and what it costs can come from that department.
 - **Brand.** A signed-out visitor on any public church link wears the Love Corner brand (`wearsChurchBrand`, DR-0290). So a business lesson opening in PoeTech would have shown the church's welcome.
+
+## Impact
+Every lesson opens in its own app and wears its brand; every spiritual lesson and every child level stays free; the rigorous levels are ready for PoeTech+ the day a checkout exists.
 
 ## Decision
 
@@ -42,7 +44,6 @@ DR-0536 had kept every lesson free to read and called Mathematics and A.I. never
 - **Nothing is locked yet.** `ACCESS_ENFORCEMENT` stays false until a real way to pay exists. A lock with no way through it would only shut people out. Turning it on is the Tier C step, with checkout as its first requirement.
 
 ## Verification
-
 - **`learn-access-tiers.test.js`, 15 cases.**
   - Spiritual lessons are free at every level.
   - In a business course, the child level is free, the first lesson is free, and the four rigorous levels need PoeTech+.
