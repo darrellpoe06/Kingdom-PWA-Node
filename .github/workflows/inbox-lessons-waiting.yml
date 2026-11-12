@@ -43,7 +43,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
+      # TWO ROADS NOW, AND THE FIRST MAY FAIL (2026-11-12, DR-1431/DR-1360).
+      # MEASURED: runs #500-#505 — six firings of the PRIORITY lesson lane —
+      # all died at this join on a Tailscale key that expired 2026-11-04 and
+      # again by 11-10, while the queue sat on a machine that was up. So the
+      # join is continue-on-error and the read falls through to the public road
+      # (served-lesson-queue.py -> migration 0320 -> the census the NAS takes
+      # for itself each cycle). NAS FIRST: only it names the individual rows.
+      # Same order DR-1269 proved for the deploy's anon key, reused not rebuilt
+      # (DR-0621), and the same DR-1284 exemption the Pages deploy carries —
+      # a step that may fail and HAS another road must not end the job.
       - name: Join the tailnet (to reach the live database)
+        id: join
+        continue-on-error: true
         uses: ./.github/actions/join-tailnet
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -59,21 +71,30 @@ jobs:
       # in this repo join the tailnet and only 12 verified it; this is one of
       # the four carrying Darrell's own lesson intake, so it verifies first and
       # writes the outage to the fleet's one rolling entry (DR-1283).
+      # The join is still VERIFIED and a dead key is still filed on the fleet's
+      # rolling entry (DR-1283/DR-1284) — the outage is never silent. What
+      # changed is only the consequence: the lane says which road is open and
+      # carries on, instead of ending here with the queue unread.
       - name: Verify the tailnet actually joined
+        id: tailnet
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if ! tailscale status --peers=false > /tmp/ts-join.txt 2>&1; then
-            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            echo "::warning::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Falling through to the public road (DR-1431)."
             node scripts/tailnet-key-incident.mjs \
               --workflow "inbox-lessons-waiting (tailnet join)" \
               --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
               --measured-file /tmp/ts-join.txt || true
-            exit 1
+            echo "up=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           tailscale status --peers=false
+          echo "up=true" >> "$GITHUB_OUTPUT"
       - name: List the waiting lesson rows (never a body)
         id: waiting
+        if: steps.tailnet.outputs.up == 'true'
+        continue-on-error: true
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
@@ -84,11 +105,16 @@ jobs:
           # must fail -- but it left nothing behind, and a lane whose queue
           # cannot be read must not look like a lane with an empty queue. So the
           # outcome is written down first, then the run fails.
+          #
+          # SINCE DR-1431 the failure is also not the end: it is recorded the
+          # same way and the served road is asked next. The exit stays non-zero
+          # so this road's own failure is never dressed up as a success; the
+          # step is `continue-on-error` so the lane can still answer.
           if ! out=$(bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql); then
             echo "read=failed" >> "$GITHUB_OUTPUT"
             echo "count=unknown" >> "$GITHUB_OUTPUT"
-            { echo "### Waiting lesson rows: UNKNOWN"; echo "The live database could not be read. This is not an empty queue -- it is an unread one."; } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::could not read the live database"
+            { echo "### Waiting lesson rows: UNKNOWN (the NAS road)"; echo "The live database could not be read over the tailnet. This is not an empty queue -- it is an unread one. The public road is asked next (DR-1431)."; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::could not read the live database over the tailnet; falling through to the public road"
             exit 1
           fi
           n=$(printf '%s' "$out" | grep -c . || true)
@@ -98,7 +124,35 @@ jobs:
           echo "count=$n" >> "$GITHUB_OUTPUT"
           { printf '%s\n' "$out"; } > "$RUNNER_TEMP/waiting-rows.txt"
           { echo "### Waiting lesson rows: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE SECOND ROAD (DR-1431): the house's own count, read over the public
+      # road. lesson-queue-census.py (registered, enabled) has counted this
+      # queue on the NAS every cycle all along and patched ONE row into
+      # agent_inbox; until migration 0320 nothing outside the house could read
+      # it, so the census sat unproven behind the very key its death it was
+      # built to survive. 0320 turns it outward as lesson_queue_receipt() and
+      # this step asks it with the anon key the site ships — the same two moves
+      # loops-health.yml makes for the heartbeat (DR-1399). It runs only when
+      # the NAS road did not answer. Its refusals are exit codes and EVERY one
+      # reports UNKNOWN, never zero (DR-1186): unasked 10, unreachable 11,
+      # never counted 12, no usable total 13, too stale to be current 14.
+      - name: When the tailnet is shut, read the house's own census
+        id: served
+        if: steps.waiting.outputs.read != 'ok'
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          KEY=$(python3 scripts/served-anon-key.py) || KEY=""
+          [ -n "$KEY" ] && echo "::add-mask::$KEY"
+          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-lesson-queue.py \
+            --github-output "$GITHUB_OUTPUT" | tee "$RUNNER_TEMP/served-queue.txt"
+          rc=${PIPESTATUS[0]}
+          cat "$RUNNER_TEMP/served-queue.txt" >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
       - name: The NAS lesson builder's progress (never a body)
+        if: steps.tailnet.outputs.up == 'true'
+        continue-on-error: true
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -130,28 +184,50 @@ jobs:
       # person's words and this log is visible to the repository. This step
       # passes that output through unchanged and adds nothing to it.
       # ---------------------------------------------------------------------
+      #
+      # TWO ROADS, ONE LOG (DR-1431). READ/COUNT are the NAS road's when it
+      # answered and the served census's otherwise, and ROAD names which one
+      # spoke so a reader is never left guessing which question was answered.
+      # Neither answering still writes UNKNOWN, exactly as before.
       - name: Record the run (rolling log, pass or fail)
+        id: log
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          READ: ${{ steps.waiting.outputs.read }}
-          COUNT: ${{ steps.waiting.outputs.count }}
+          NAS_READ: ${{ steps.waiting.outputs.read }}
+          NAS_COUNT: ${{ steps.waiting.outputs.count }}
+          SERVED_READ: ${{ steps.served.outputs.read }}
+          SERVED_COUNT: ${{ steps.served.outputs.count }}
+          SERVED_AGE: ${{ steps.served.outputs.age_min }}
         run: |
           set -uo pipefail
           title='lesson-intake: the waiting queue, run log'
           at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           run_url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
-          # An absent output means the read step never got to say -- the job died
-          # before it, which is its own answer and is not "nothing waiting".
+          # WHICHEVER ROAD SPOKE (DR-1431). The NAS road is preferred because it
+          # names the individual rows; the served census answers when the
+          # tailnet is shut. An absent output from BOTH means neither got to say
+          # -- the job died before them, which is its own answer and is not
+          # "nothing waiting".
+          if [ "${NAS_READ:-}" = "ok" ]; then
+            READ=ok; COUNT="${NAS_COUNT}"; ROAD='the NAS over the tailnet'
+          elif [ "${SERVED_READ:-}" = "ok" ]; then
+            READ=ok; COUNT="${SERVED_COUNT}"
+            ROAD="the house's own census, read over the public road, taken ${SERVED_AGE:-unknown} min ago"
+          elif [ -n "${SERVED_READ:-}" ] || [ -n "${NAS_READ:-}" ]; then
+            READ=failed; COUNT=unknown; ROAD=''
+          else
+            READ=''; COUNT=unknown; ROAD=''
+          fi
           case "${READ:-}" in
-            ok)     head="**${COUNT}** lesson row(s) waiting" ;;
-            failed) head='**UNKNOWN** -- the live database could not be read. This is NOT an empty queue; it is an unread one.' ;;
-            *)      head='**UNKNOWN** -- the read step did not report (the job ended before it). Not an empty queue.' ;;
+            ok)     head="**${COUNT}** lesson row(s) waiting — ${ROAD}" ;;
+            failed) head='**UNKNOWN** -- neither road could read the queue: the tailnet was shut and the house had no current census to give. This is NOT an empty queue; it is an unread one.' ;;
+            *)      head='**UNKNOWN** -- the read step did not report on either road (the job ended before them). Not an empty queue.' ;;
           esac
           {
             printf -- '- %s — %s ([run](%s))\n' "$at" "$head" "$run_url"
-            if [ "${READ:-}" = "ok" ] && [ "${COUNT:-0}" != "0" ] && [ -s "$RUNNER_TEMP/waiting-rows.txt" ]; then
+            if [ "${NAS_READ:-}" = "ok" ] && [ "${COUNT:-0}" != "0" ] && [ -s "$RUNNER_TEMP/waiting-rows.txt" ]; then
               printf '\n  <details><summary>the rows (id | created_at | created_by | source | tags | body length — never a body)</summary>\n\n  ```\n'
               sed 's/^/  /' "$RUNNER_TEMP/waiting-rows.txt"
               printf '  ```\n  </details>\n'
@@ -172,3 +248,25 @@ jobs:
             } > "$RUNNER_TEMP/intake-body.md"
             gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/intake-body.md" || echo "::warning::could not open the run log; this run's measurement is in the step summary only"
           fi
+
+      # A GREEN RUN MUST MEAN THE QUEUE WAS READ (DR-0076 §3, DR-1431). Both
+      # read steps are continue-on-error, which is what lets the second road be
+      # tried at all -- and is precisely how a lane starts reporting success for
+      # work it did not do. Without this step a run where the tailnet was shut
+      # AND the house had no census would close green with "UNKNOWN" in its own
+      # log: the gate-that-always-passes this house has paid for before. So the
+      # conclusion is tied to the one fact that matters -- did either road
+      # produce a count?
+      - name: A queue that was never read fails this run
+        if: always()
+        env:
+          NAS_READ: ${{ steps.waiting.outputs.read }}
+          SERVED_READ: ${{ steps.served.outputs.read }}
+          TAILNET: ${{ steps.tailnet.outputs.up }}
+        run: |
+          if [ "${NAS_READ:-}" = "ok" ] || [ "${SERVED_READ:-}" = "ok" ]; then
+            echo "the queue was read (nas=${NAS_READ:-skipped}, served=${SERVED_READ:-skipped})"
+            exit 0
+          fi
+          echo "::error::the waiting queue was NOT read by either road (tailnet up=${TAILNET:-unknown}, nas=${NAS_READ:-skipped}, served=${SERVED_READ:-skipped}). The queue is UNKNOWN, not empty."
+          exit 1
