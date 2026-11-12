@@ -1747,6 +1747,21 @@
       "notes": "Darrell: courses should be rewarded"
     },
     {
+      "id": "research-nas-answerer",
+      "date": "2026-11-12",
+      "task": "Research space did not work: answer research items on the NAS itself (DR-1360 reversal)",
+      "drs": [
+        "DR-1443"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 6,
+      "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
+    },
+    {
       "id": "reviewer-lens-promise",
       "date": "2026-11-12",
       "task": "The reviewer lens cannot promise more than it hides: one registry generates every lens description, the work-order board and the payments ledger honour it, a gate holds the sentence equal to the surfaces",
