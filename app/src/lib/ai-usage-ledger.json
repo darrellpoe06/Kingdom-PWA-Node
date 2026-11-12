@@ -1884,6 +1884,21 @@
       "notes": "Darrell asked whether Payhip was needed or the capability could be sovereign; built sovereign on the existing Stripe seam. payhip.com and the Acrobat document are outside the sandbox allowlist (both allows declined), so both were filed as research items for the NAS lane (7b4128a5, e8294305). Found along the way: the register and the format guard read only tracked files, so a new function or file must be git-added before either regenerates; and a guard read through a pipe reported the pipe's exit, which let a merge commit with conflict markers reach the branch once before the guards were re-run with their real exit codes."
     },
     {
+      "id": "sov76-the-model-in-your-hand",
+      "date": "2026-11-12",
+      "task": "sov76, the model in your hand: the Sovereign A.I. week built from the ByteByteGo send Darrell forwarded on 2026-10-27 with one word above it, Lesson (Gmail thread 1a17e0a2846ca5b7), taught Word-first from Deuteronomy 30:11-14 in eight movements, with all four age bands, 204 quoted spans filled from the KJV corpus on disk, and a 44-case gate proven to catch five ways",
+      "drs": [
+        "DR-1452"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 26,
+      "notes": "TRUST BUT VERIFY: every primary host refused at the session's network boundary (machinelearning.apple.com and its mirror, arxiv.org, every publisher host), the proxy reported selective:false, and get_environment was denied, so the work was not widened and all five reader places say no figure rests on a primary-source read. An independent search road changed three things: the 37.5 per cent is the SHARE OF LAYERS reusing the earlier block's keys and values (what the 5:3 depth split makes three eighths of) rather than a published memory saving; the 6 GB and 1.39 GB figures are arithmetic and were re-derived; and two things the digest dropped were added back, Apple's own 3.5-bits-per-weight statement and the eight-bit holding of the working notes. The Google Cloud and NVIDIA line checked out stronger than its one sentence and is stated plainly. Gate findings closed in prose, not waived: child and youth shares under their floors; the teen band paid the DR-1306 overshoot from both sides (6.85 over its ceiling, then 3.56 below youth after the splits, about twenty rejoined by hand to 5.50); and the gate caught that the child band never named his word."
+    },
+    {
       "id": "square-joins-the-seam",
       "date": "2026-11-12",
       "task": "Square as the second processor on the same checkout seam: a payment link whose order carries the seam's metadata, a signature-verified webhook that writes the same ledger, entitlement and seat rows behind the same firewall, delivery on return by order id, the store offering the second processor beside Buy; a Square subscription named as not built",
