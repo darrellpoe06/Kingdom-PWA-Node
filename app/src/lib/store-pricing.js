@@ -52,7 +52,13 @@ export function parseCatalogEntry(raw) {
     const min = int(raw.pwyw.min);
     const preset = int(raw.pwyw.preset);
     if (min === null || min <= 0) return null;
-    return { kind: 'pwyw', cents: preset !== null && preset >= min ? preset : min, minCents: min, presetCents: preset !== null && preset >= min ? preset : min, grants };
+    return {
+      kind: 'pwyw',
+      cents: preset !== null && preset >= min ? preset : min,
+      minCents: min,
+      presetCents: preset !== null && preset >= min ? preset : min,
+      grants,
+    };
   }
   const cents = int(raw.cents);
   if (cents === null || cents <= 0) return null;

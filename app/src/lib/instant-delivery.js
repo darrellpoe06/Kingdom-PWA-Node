@@ -27,7 +27,8 @@ export function sessionIdFromSearch(search = '') {
 export function deliveryReturnPaths(pathname = '/poetech-app/', search = '') {
   const path = asStr(pathname).startsWith('/') && !asStr(pathname).startsWith('//') ? pathname : '/poetech-app/';
   const q = new URLSearchParams(asStr(search).replace(/^\?/, ''));
-  q.delete('paid'); q.delete('session_id');
+  q.delete('paid');
+  q.delete('session_id');
   const base = q.toString() ? `${path}?${q.toString()}` : path;
   const sep = base.includes('?') ? '&' : '?';
   // Stripe substitutes {CHECKOUT_SESSION_ID} itself; it must not be URL-encoded.
@@ -43,7 +44,10 @@ export async function readDelivery(sessionId, { fetchImpl } = {}) {
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;
   try {
-    const res = await f(`/api/deliver?session_id=${encodeURIComponent(id)}`, { headers: { accept: 'application/json' }, ...(ctl ? { signal: ctl.signal } : {}) });
+    const res = await f(`/api/deliver?session_id=${encodeURIComponent(id)}`, {
+      headers: { accept: 'application/json' },
+      ...(ctl ? { signal: ctl.signal } : {}),
+    });
     const data = await res.json().catch(() => null);
     if (res.ok && data && data.ok === true && asStr(data.product)) {
       return { ok: true, product: data.product, grants: asArr(data.grants).map(asStr).filter(Boolean), email: asStr(data.email) || null };

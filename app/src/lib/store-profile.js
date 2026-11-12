@@ -27,7 +27,7 @@ export const STORE_PROFILE = Object.freeze({
 
 /** The full share URL for the store, or for one product on it. Pure. */
 export function storeUrl({ origin, productId } = {}) {
-  const o = origin !== undefined ? origin : (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+  const o = origin !== undefined ? origin : typeof window !== 'undefined' && window.location ? window.location.origin : '';
   return `${o || ''}${STORE_PATH}${productId ? `&product=${encodeURIComponent(productId)}` : ''}`;
 }
 

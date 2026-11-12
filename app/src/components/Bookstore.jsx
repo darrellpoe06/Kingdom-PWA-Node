@@ -43,6 +43,7 @@ import { supabase } from '../lib/supabase.js';
 import { productPricing, priceLabel } from '../lib/store-pricing.js';
 import { readOpen } from '../lib/store-catalog.js';
 import { deliveryReturnPaths } from '../lib/instant-delivery.js';
+import BookReviews from './BookReviews.jsx';
 
 // Themed classes, never inline hex — same law as Library.jsx (2026-07-30
 // midnight-illegibility fix); pinned by library-theme-classes.test.js.
@@ -261,6 +262,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
                 {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={`${btn} border-[#E8E4DC] text-[#5A5751]`}  title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
               </div>
               {open && <div className="mt-2"><ConversationPanel product={product} sub={sub} userKey={userKey} /></div>}
+              {open && <div className="mt-2"><BookReviews product={product} sub={sub} userKey={userKey} nowIso={nowIso()} /></div>}
               {isFamilyMember && <GovernorEconomics product={product} onPublish={publish} onPrice={setPrice} />}
             </div>
           );

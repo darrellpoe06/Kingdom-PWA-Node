@@ -16,23 +16,45 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const flush = () => act(() => new Promise((r) => setTimeout(r, 0)));
 
 function fakeClient({ rows = [], token = '' } = {}) {
-  const chain = (data) => { const q = { data, error: null }; for (const m of ['select', 'in', 'gte', 'order']) q[m] = () => q; q.then = (res) => res({ data, error: null }); return q; };
-  return { from: () => chain(rows), rpc: async () => ({ data: 5 }), auth: { getSession: async () => ({ data: { session: token ? { access_token: token } : null } }) } };
+  const chain = (data) => {
+    const q = { data, error: null };
+    for (const m of ['select', 'in', 'gte', 'order']) q[m] = () => q;
+    q.then = (res) => res({ data, error: null });
+    return q;
+  };
+  return {
+    from: () => chain(rows),
+    rpc: async () => ({ data: 5 }),
+    auth: { getSession: async () => ({ data: { session: token ? { access_token: token } : null } }) },
+  };
 }
-const serverSays = (open, extra = {}) => vi.fn(async (url) => {
-  if (String(url).startsWith('/api/checkout')) return { ok: true, status: 200, json: async () => open };
-  if (String(url).startsWith('/api/deliver')) return extra.deliver ? extra.deliver() : { ok: false, status: 400, json: async () => ({ error: 'unknown-session' }) };
-  return { ok: false, status: 404, json: async () => ({}) };
-});
+const serverSays = (open, extra = {}) =>
+  vi.fn(async (url) => {
+    if (String(url).startsWith('/api/checkout')) return { ok: true, status: 200, json: async () => open };
+    if (String(url).startsWith('/api/deliver'))
+      return extra.deliver ? extra.deliver() : { ok: false, status: 400, json: async () => ({ error: 'unknown-session' }) };
+    return { ok: false, status: 404, json: async () => ({}) };
+  });
 
-let host = null; let root = null;
+let host = null;
+let root = null;
 async function draw(el) {
-  host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
-  await act(async () => { root.render(el); });
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  await act(async () => {
+    root.render(el);
+  });
   await flush();
   return host;
 }
-afterEach(() => { if (root) act(() => root.unmount()); if (host && host.parentNode) host.parentNode.removeChild(host); root = null; host = null; window.localStorage.clear(); });
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  if (host && host.parentNode) host.parentNode.removeChild(host);
+  root = null;
+  host = null;
+  window.localStorage.clear();
+});
 
 describe('the store is a registered public surface', () => {
   it('is in the registry with no sign-in requirement, a routable view, a nav entry for a visitor, a label and an icon', () => {
@@ -50,7 +72,9 @@ describe('the store is a registered public surface', () => {
 
 describe('the shelf', () => {
   it('opens with the seller, the bio and a share; lists books, courses and the membership; a book the server opened is buyable and the rest say so', async () => {
-    const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl: serverSays({ books: ['prod-living-lessons'], subscriptions: [] }), search: '' }));
+    const h = await draw(
+      createElement(Storefront, { client: fakeClient(), fetchImpl: serverSays({ books: ['prod-living-lessons'], subscriptions: [] }), search: '' })
+    );
     expect(h.querySelector('[data-testid="store-profile"]').textContent).toContain(STORE_PROFILE.seller);
     expect(h.querySelector('[data-testid="store-profile"]').textContent).toContain(STORE_PROFILE.tagline);
     expect(h.querySelector('[data-testid="store-counts"]').textContent).toMatch(/2 books · 0 bundles · \d+ courses · 0 workshops open · 1 membership/);
@@ -69,13 +93,19 @@ describe('the shelf', () => {
   it('buying posts to /api/checkout with a return path that carries the session id placeholder; a closed book never posts', async () => {
     const calls = [];
     const fetchImpl = vi.fn(async (url, init) => {
-      if (String(url).startsWith('/api/checkout') && (!init || init.method !== 'POST')) return { ok: true, status: 200, json: async () => ({ books: ['prod-living-lessons'], subscriptions: [] }) };
-      if (String(url).startsWith('/api/checkout')) { calls.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => ({ url: '' }) }; }
+      if (String(url).startsWith('/api/checkout') && (!init || init.method !== 'POST'))
+        return { ok: true, status: 200, json: async () => ({ books: ['prod-living-lessons'], subscriptions: [] }) };
+      if (String(url).startsWith('/api/checkout')) {
+        calls.push(JSON.parse(init.body));
+        return { ok: true, status: 200, json: async () => ({ url: '' }) };
+      }
       return { ok: false, status: 404, json: async () => ({}) };
     });
     const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl, search: '?view=store' }));
     const ll = [...h.querySelectorAll('[data-testid="store-item"]')].find((i) => i.getAttribute('data-id') === 'prod-living-lessons');
-    await act(async () => { ll.querySelector('[data-testid="buy"]').click(); });
+    await act(async () => {
+      ll.querySelector('[data-testid="buy"]').click();
+    });
     await flush();
     expect(calls.length).toBe(1);
     expect(calls[0]).toMatchObject({ kind: 'book', productId: 'prod-living-lessons' });
@@ -83,17 +113,34 @@ describe('the shelf', () => {
     expect(h.querySelector('[data-testid="store-note"]').textContent).toMatch(/could not start/);
   });
   it('a return from Stripe delivers the book: the panel says so, the downloads are offered, and the book reads as owned on the shelf', async () => {
-    const fetchImpl = serverSays({ books: [], subscriptions: [] }, { deliver: () => ({ ok: true, status: 200, json: async () => ({ ok: true, product: 'prod-living-lessons', grants: ['prod-living-lessons'], email: 'b@example.com' }) }) });
+    const fetchImpl = serverSays(
+      { books: [], subscriptions: [] },
+      {
+        deliver: () => ({
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true, product: 'prod-living-lessons', grants: ['prod-living-lessons'], email: 'b@example.com' }),
+        }),
+      }
+    );
     const dl = vi.fn();
-    const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl, search: '?view=store&paid=1&session_id=cs_test_abc', onDownloadProduct: dl }));
-    expect(h.querySelector('[data-testid="delivered"]').textContent).toMatch(/Your book is in your library on this device, and the receipt went to b@example.com/);
-    await act(async () => { h.querySelector('[data-testid="download-epub"]').click(); });
+    const h = await draw(
+      createElement(Storefront, { client: fakeClient(), fetchImpl, search: '?view=store&paid=1&session_id=cs_test_abc', onDownloadProduct: dl })
+    );
+    expect(h.querySelector('[data-testid="delivered"]').textContent).toMatch(
+      /Your book is in your library on this device, and the receipt went to b@example.com/
+    );
+    await act(async () => {
+      h.querySelector('[data-testid="download-epub"]').click();
+    });
     expect(dl).toHaveBeenCalledWith('prod-living-lessons', 'epub');
     const ll = [...h.querySelectorAll('[data-testid="store-item"]')].find((i) => i.getAttribute('data-id') === 'prod-living-lessons');
     expect(ll.querySelector('[data-testid="store-price"]').textContent).toBe('Yours');
   });
   it('a return the server will not confirm delivers nothing and says why', async () => {
-    const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl: serverSays({ books: [], subscriptions: [] }), search: '?paid=1&session_id=cs_test_nope' }));
+    const h = await draw(
+      createElement(Storefront, { client: fakeClient(), fetchImpl: serverSays({ books: [], subscriptions: [] }), search: '?paid=1&session_id=cs_test_nope' })
+    );
     expect(h.querySelector('[data-testid="delivery-failed"]').textContent).toMatch(/could not be found/);
     expect(h.querySelector('[data-testid="delivered"]')).toBeNull();
   });

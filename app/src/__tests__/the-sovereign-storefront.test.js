@@ -37,7 +37,8 @@ describe('one catalog entry shape, read alike by the store and the server', () =
     expect(parseCatalogEntry({ pwyw: { min: 500, preset: 1499 } })).toEqual({ kind: 'pwyw', cents: 1499, minCents: 500, presetCents: 1499, grants: [] });
     expect(parseCatalogEntry({ pwyw: { min: 500, preset: 100 } }).presetCents).toBe(500);
     expect(parseCatalogEntry(CATALOG['bundle-darrells-books']).grants).toEqual(['prod-living-lessons', 'prod-eternal-algorithms']);
-    for (const bad of [0, -5, null, 'x', [999], { cents: 0 }, { pwyw: { min: 0 } }, { pwyw: {} }]) expect(parseCatalogEntry(bad), JSON.stringify(bad)).toBeNull();
+    for (const bad of [0, -5, null, 'x', [999], { cents: 0 }, { pwyw: { min: 0 } }, { pwyw: {} }])
+      expect(parseCatalogEntry(bad), JSON.stringify(bad)).toBeNull();
   });
   it('CONFORMANCE: functions/api/checkout.js catalogEntry answers exactly as the store does, on every shape', () => {
     for (const [id, raw] of Object.entries(CATALOG)) expect(catalogEntry(raw), id).toEqual(parseCatalogEntry(raw));
@@ -59,7 +60,12 @@ describe('bundles', () => {
   const books = seedCatalog();
   it('a bundle is publishable only when every book it grants is published, and says its saving', () => {
     const b = SEED_BUNDLES[0];
-    expect(bundlePublishable(b, books.filter((x) => x.status === 'published').map((x) => x.id)).ok).toBe(true);
+    expect(
+      bundlePublishable(
+        b,
+        books.filter((x) => x.status === 'published').map((x) => x.id)
+      ).ok
+    ).toBe(true);
     expect(bundlePublishable(b, ['prod-living-lessons']).reasons[0]).toMatch(/prod-eternal-algorithms/);
     expect(bundlePublishable({ grants: [] }, []).ok).toBe(false);
     expect(bundleSaving(b, books)).toEqual({ aloneCents: 2498, savedCents: 499, pct: 20 });
@@ -70,9 +76,14 @@ describe('bundles', () => {
 
 describe('the storefront list', () => {
   const books = seedCatalog();
-  it('gathers books, published bundles, every course, open workshops and the membership, and reads buyable from the server\'s answer', () => {
+  it("gathers books, published bundles, every course, open workshops and the membership, and reads buyable from the server's answer", () => {
     const events = [{ id: 'e1', title: 'Banking: a day', location: 'Champaign, IL', priceCents: 20000, status: 'open', seatsLeft: 3, goingRateNote: '' }];
-    const items = storefrontItems({ books, overrides: [{ id: 'bundle-darrells-books', status: 'published' }], events, open: { books: ['prod-living-lessons', 'bundle-darrells-books'], subscriptions: ['poetech-plus'] } });
+    const items = storefrontItems({
+      books,
+      overrides: [{ id: 'bundle-darrells-books', status: 'published' }],
+      events,
+      open: { books: ['prod-living-lessons', 'bundle-darrells-books'], subscriptions: ['poetech-plus'] },
+    });
     const c = storefrontCounts(items);
     expect(c.book).toBe(2);
     expect(c.bundle).toBe(1);
@@ -91,14 +102,28 @@ describe('the storefront list', () => {
     const none = storefrontItems({ books, overrides: [], events: [], open: { books: [], subscriptions: [] } });
     expect(none.some((i) => i.kind === 'bundle')).toBe(false);
     const halfDraft = books.map((b) => (b.id === 'prod-eternal-algorithms' ? { ...b, status: 'draft' } : b));
-    const items = storefrontItems({ books: halfDraft, overrides: [{ id: 'bundle-darrells-books', status: 'published' }], events: [], open: { books: [], subscriptions: [] } });
+    const items = storefrontItems({
+      books: halfDraft,
+      overrides: [{ id: 'bundle-darrells-books', status: 'published' }],
+      events: [],
+      open: { books: [], subscriptions: [] },
+    });
     expect(items.some((i) => i.kind === 'bundle')).toBe(false);
     expect(items.find((i) => i.id === 'poetech-plus').buyable).toBe(false);
   });
-  it('readOpen: anything but the server\'s own JSON reads as nothing open', async () => {
-    expect(await readOpen({ fetchImpl: async () => ({ ok: true, json: async () => ({ books: ['a'], subscriptions: ['poetech-plus'] }) }) })).toEqual({ books: ['a'], subscriptions: ['poetech-plus'] });
+  it("readOpen: anything but the server's own JSON reads as nothing open", async () => {
+    expect(await readOpen({ fetchImpl: async () => ({ ok: true, json: async () => ({ books: ['a'], subscriptions: ['poetech-plus'] }) }) })).toEqual({
+      books: ['a'],
+      subscriptions: ['poetech-plus'],
+    });
     expect(await readOpen({ fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toEqual({ books: [], subscriptions: [] });
-    expect(await readOpen({ fetchImpl: async () => { throw new Error('x'); } })).toEqual({ books: [], subscriptions: [] });
+    expect(
+      await readOpen({
+        fetchImpl: async () => {
+          throw new Error('x');
+        },
+      })
+    ).toEqual({ books: [], subscriptions: [] });
   });
 });
 
@@ -128,19 +153,48 @@ describe('the server: pay what you want, coupons, the open list, the bundle stam
     const res = await onRequestGet({ env });
     expect((await res.json()).books).toContain('prod-living-lessons');
   });
-  it('the seam sends a signed-in buyer\'s token so the person is stamped', async () => {
+  it("the seam sends a signed-in buyer's token so the person is stamped", async () => {
     const calls = [];
-    await executeCheckout({ kind: 'book' }, { config: { enabled: true, endpoint: '/api/checkout' }, token: 'tok', fetchImpl: async (u, i) => { calls.push(i); return { ok: true, json: async () => ({ url: 'https://x' }) }; } });
+    await executeCheckout(
+      { kind: 'book' },
+      {
+        config: { enabled: true, endpoint: '/api/checkout' },
+        token: 'tok',
+        fetchImpl: async (u, i) => {
+          calls.push(i);
+          return { ok: true, json: async () => ({ url: 'https://x' }) };
+        },
+      }
+    );
     expect(calls[0].headers.Authorization).toBe('Bearer tok');
-    await executeCheckout({ kind: 'book' }, { config: { enabled: true, endpoint: '/api/checkout' }, fetchImpl: async (u, i) => { calls.push(i); return { ok: true, json: async () => ({ url: 'https://x' }) }; } });
+    await executeCheckout(
+      { kind: 'book' },
+      {
+        config: { enabled: true, endpoint: '/api/checkout' },
+        fetchImpl: async (u, i) => {
+          calls.push(i);
+          return { ok: true, json: async () => ({ url: 'https://x' }) };
+        },
+      }
+    );
     expect(calls[1].headers.Authorization).toBeUndefined();
   });
 });
 
 describe('instant delivery', () => {
-  const paid = { payment_status: 'paid', metadata: { kind: 'book', product: 'bundle-darrells-books', grants: 'prod-living-lessons,prod-eternal-algorithms', userId: BUYER }, customer_details: { email: 'b@example.com' } };
-  it('deliveryFromSession: only a PAID book session of ours; a bundle names every book; nothing of Stripe\'s leaks', () => {
-    expect(deliveryFromSession(paid)).toEqual({ kind: 'book', product: 'bundle-darrells-books', grants: ['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms'], email: 'b@example.com', userId: BUYER });
+  const paid = {
+    payment_status: 'paid',
+    metadata: { kind: 'book', product: 'bundle-darrells-books', grants: 'prod-living-lessons,prod-eternal-algorithms', userId: BUYER },
+    customer_details: { email: 'b@example.com' },
+  };
+  it("deliveryFromSession: only a PAID book session of ours; a bundle names every book; nothing of Stripe's leaks", () => {
+    expect(deliveryFromSession(paid)).toEqual({
+      kind: 'book',
+      product: 'bundle-darrells-books',
+      grants: ['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms'],
+      email: 'b@example.com',
+      userId: BUYER,
+    });
     expect(deliveryFromSession({ ...paid, payment_status: 'unpaid' }).error).toBe('not-paid');
     expect(deliveryFromSession({ ...paid, metadata: { kind: 'subscription', tier: 'poetech-plus' } }).error).toBe('not-a-book');
     expect(deliveryFromSession({ ...paid, metadata: { kind: 'therapy-session' } }).error).toBe('not-a-book');
@@ -148,17 +202,29 @@ describe('instant delivery', () => {
   });
   it('/api/deliver asks Stripe with the secret, refuses a malformed id, answers only the delivery', async () => {
     const seen = [];
-    vi.stubGlobal('fetch', async (u, i) => { seen.push({ u: String(u), i }); return new Response(JSON.stringify({ id: 'cs_test_1', amount_total: 1999, ...paid }), { status: 200 }); });
+    vi.stubGlobal('fetch', async (u, i) => {
+      seen.push({ u: String(u), i });
+      return new Response(JSON.stringify({ id: 'cs_test_1', amount_total: 1999, ...paid }), { status: 200 });
+    });
     const res = await deliverGet({ env: { STRIPE_SECRET_KEY: 'sk_test_1' }, request: new Request('https://poetech.us/api/deliver?session_id=cs_test_abc123') });
     const body = await res.json();
-    expect(body).toEqual({ ok: true, kind: 'book', product: 'bundle-darrells-books', grants: ['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms'], email: 'b@example.com', userId: BUYER });
+    expect(body).toEqual({
+      ok: true,
+      kind: 'book',
+      product: 'bundle-darrells-books',
+      grants: ['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms'],
+      email: 'b@example.com',
+      userId: BUYER,
+    });
     expect(seen[0].u).toBe('https://api.stripe.com/v1/checkout/sessions/cs_test_abc123');
     expect(seen[0].i.headers.Authorization).toBe('Bearer sk_test_1');
     expect(JSON.stringify(body)).not.toContain('amount_total');
     expect((await deliverGet({ env: { STRIPE_SECRET_KEY: 'sk' }, request: new Request('https://poetech.us/api/deliver?session_id=../x') })).status).toBe(400);
     expect((await deliverGet({ env: {}, request: new Request('https://poetech.us/api/deliver?session_id=cs_test_1') })).status).toBe(503);
     vi.stubGlobal('fetch', async () => new Response('{}', { status: 404 }));
-    expect((await deliverGet({ env: { STRIPE_SECRET_KEY: 'sk' }, request: new Request('https://poetech.us/api/deliver?session_id=cs_test_1') })).status).toBe(404);
+    expect((await deliverGet({ env: { STRIPE_SECRET_KEY: 'sk' }, request: new Request('https://poetech.us/api/deliver?session_id=cs_test_1') })).status).toBe(
+      404
+    );
   });
   it('the app side: reads the session id, builds the return path Stripe fills in, grants every delivered book on the device', async () => {
     expect(sessionIdFromSearch('?paid=1&session_id=cs_test_abc')).toBe('cs_test_abc');
@@ -167,9 +233,13 @@ describe('instant delivery', () => {
     expect(r.successUrl).toBe('/poetech-app/?view=store&paid=1&session_id={CHECKOUT_SESSION_ID}');
     expect(r.cancelUrl).toBe('/poetech-app/?view=store');
     expect(deliveryReturnPaths('//evil', '').successUrl.startsWith('/poetech-app/')).toBe(true);
-    const d = await readDelivery('cs_test_abc', { fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, product: 'p', grants: ['p', 'q'], email: 'b@example.com' }) }) });
+    const d = await readDelivery('cs_test_abc', {
+      fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, product: 'p', grants: ['p', 'q'], email: 'b@example.com' }) }),
+    });
     expect(d).toEqual({ ok: true, product: 'p', grants: ['p', 'q'], email: 'b@example.com' });
-    expect((await readDelivery('cs_test_abc', { fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({ error: 'not-paid' }) }) })).error).toBe('not-paid');
+    expect((await readDelivery('cs_test_abc', { fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({ error: 'not-paid' }) }) })).error).toBe(
+      'not-paid'
+    );
     expect((await readDelivery('')).error).toBe('no-session');
     const sub = applyDelivery(normalizeSubscriber({ userKey: 'anon' }), d);
     expect(entitledToBook(sub, { id: 'p', tierIncluded: [] }, new Date().toISOString())).toBe(true);
@@ -181,16 +251,44 @@ describe('instant delivery', () => {
 describe('the webhook hands over every book of a bundle', () => {
   const ENV = { STRIPE_WEBHOOK_SECRET: 'whsec_1', SUPABASE_URL: 'https://nas.example/sb', SUPABASE_SERVICE_KEY: 'srv_1' };
   const sign = (payload, t) => `t=${t},v1=${createHmac('sha256', 'whsec_1').update(`${t}.${payload}`).digest('hex')}`;
-  const evt = { id: 'evt_b', type: 'checkout.session.completed', created: 1760000000, data: { object: { id: 'cs_1', payment_intent: 'pi_1', payment_status: 'paid', amount_total: 1999, currency: 'usd', client_reference_id: BUYER, metadata: { kind: 'book', product: 'bundle-darrells-books', grants: 'prod-living-lessons,prod-eternal-algorithms', userId: BUYER }, customer_details: { email: 'b@example.com' } } } };
+  const evt = {
+    id: 'evt_b',
+    type: 'checkout.session.completed',
+    created: 1760000000,
+    data: {
+      object: {
+        id: 'cs_1',
+        payment_intent: 'pi_1',
+        payment_status: 'paid',
+        amount_total: 1999,
+        currency: 'usd',
+        client_reference_id: BUYER,
+        metadata: { kind: 'book', product: 'bundle-darrells-books', grants: 'prod-living-lessons,prod-eternal-algorithms', userId: BUYER },
+        customer_details: { email: 'b@example.com' },
+      },
+    },
+  };
   it('bookEntitlementGrants: the bundle id and each book, once each; a guest gets nothing', () => {
     expect(bookEntitlementGrants(evt).map((g) => g.p_product)).toEqual(['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms']);
-    expect(bookEntitlementGrants({ ...evt, data: { object: { ...evt.data.object, client_reference_id: null, metadata: { kind: 'book', product: 'x' } } } })).toEqual([]);
+    expect(
+      bookEntitlementGrants({ ...evt, data: { object: { ...evt.data.object, client_reference_id: null, metadata: { kind: 'book', product: 'x' } } } })
+    ).toEqual([]);
   });
   it('three grant calls, then a 200', async () => {
     const calls = [];
-    vi.stubGlobal('fetch', async (u, i) => { calls.push({ u: String(u), i }); return new Response('[]', { status: 201 }); });
+    vi.stubGlobal('fetch', async (u, i) => {
+      calls.push({ u: String(u), i });
+      return new Response('[]', { status: 201 });
+    });
     const payload = JSON.stringify(evt);
-    const res = await webhookPost({ env: ENV, request: new Request('https://poetech.us/api/stripe-webhook', { method: 'POST', body: payload, headers: { 'stripe-signature': sign(payload, Math.floor(Date.now() / 1000)) } }) });
+    const res = await webhookPost({
+      env: ENV,
+      request: new Request('https://poetech.us/api/stripe-webhook', {
+        method: 'POST',
+        body: payload,
+        headers: { 'stripe-signature': sign(payload, Math.floor(Date.now() / 1000)) },
+      }),
+    });
     expect((await res.json()).granted).toEqual(['bundle-darrells-books', 'prod-living-lessons', 'prod-eternal-algorithms']);
     expect(calls.filter((c) => c.u.endsWith('/rpc/grant_book_entitlement')).length).toBe(3);
   });

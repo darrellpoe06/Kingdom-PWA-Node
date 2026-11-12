@@ -17,8 +17,7 @@
 // builds the EPUB, HTML and Markdown itself (book-formats.js). This function
 // only says what was bought.
 // =============================================================================
-const json = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
 const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]+$/;
@@ -32,7 +31,10 @@ export function deliveryFromSession(session) {
   if (s.payment_status !== 'paid') return { error: 'not-paid' };
   const product = asStr(md.product) || asStr(md.productId);
   if (!product) return { error: 'no-product' };
-  const grants = asStr(md.grants).split(',').map((x) => x.trim()).filter(Boolean);
+  const grants = asStr(md.grants)
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
   return {
     kind: 'book',
     product,
@@ -51,7 +53,9 @@ export async function onRequestGet(context) {
   let upstream;
   try {
     upstream = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${secret}` } });
-  } catch { return json({ error: 'stripe-unreachable' }, 502); }
+  } catch {
+    return json({ error: 'stripe-unreachable' }, 502);
+  }
   if (!upstream.ok) return json({ error: upstream.status === 404 ? 'unknown-session' : `stripe-${upstream.status}` }, upstream.status === 404 ? 404 : 502);
   const session = await upstream.json().catch(() => null);
   const d = deliveryFromSession(session);
