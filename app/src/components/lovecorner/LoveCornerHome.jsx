@@ -58,7 +58,7 @@ export const QUICK_DOORS = Object.freeze([
   { key: 'events', words: 'Events', icon: 'calendar', sub: 'home', section: 'times' },
   { key: 'give', words: 'Give', icon: 'heart', sub: 'home', section: 'give', tone: 'heart' },
   { key: 'prayer', words: 'Prayer', icon: 'dove', sub: 'home', section: 'prayer' },
-  { key: 'youth', words: 'Youth Zone', icon: 'sparkle', sub: 'engagement', section: null, tone: 'gold' },
+  { key: 'youth', words: 'Youth Zone', icon: 'sparkle', sub: 'youth', section: null, tone: 'gold' },
   { key: 'connect', words: 'Connect', icon: 'chat', sub: 'home', section: 'about' },
 ]);
 
@@ -291,7 +291,7 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
             Youth Zone
           </h3>
         </div>
-        <button type="button" onClick={() => open('engagement')} className={`lc-yz ${FOCUS}`} data-testid="lc-youth">
+        <button type="button" onClick={() => open('youth')} className={`lc-yz ${FOCUS}`} data-testid="lc-youth">
           <b className="lc-h3">Play. Learn. Grow.</b>
           <span className="lc-band-p">Bible trivia this week, and every lesson in Learn has a kids and a teens reading. Pick yours inside any lesson.</span>
           <span className="lc-doors">
