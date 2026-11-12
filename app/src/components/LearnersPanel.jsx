@@ -21,7 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
-import { courseStanding, examsOwed } from '../lib/course-pace.js';
+import { courseStanding, examsOwed, mostStudied, growthOpportunities } from '../lib/course-pace.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
 import { learnerIdentity } from '../lib/learner-identity.js';
@@ -158,24 +158,68 @@ function Figure({ label, value, hint, mark = null }) {
 // comprehension as the main goal", and "No Condemnation.. evaluation". Each
 // attempt on the record is placed against the lesson's place on the record
 // (read or marked done), so the figures are a mirror, never a verdict.
-function TakenAndGraded({ rows = [], userId }) {
+function TakenAndGraded({ rows = [], userId, courseLessonIds = null }) {
   const mine = rows.map(rowToRecord).filter((r) => r.userId === userId);
+  // DR-1439: ONE reading of the record, the same one "Where you stand" uses, so the
+  // two can never disagree. Without the catalog's ids, the record's own lessons.
+  const ids = courseLessonIds && Object.keys(courseLessonIds).length ? courseLessonIds : idsFromRecords(mine);
+  const s = courseStanding(mine, ids);
+  if (!s.lessonsTested) return null;
   const k = testIntegrityKpis(mine);
-  if (!k.taken) return null;
   return (
     <div className="mt-2" data-testid="taken-and-graded">
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How the exams were taken</div>
-      {/* UNDERSTOOD IS MASTERY, shown as goals accomplished (DR-1417). */}
-      <UnderstoodGoals understood={k.understood} readAndPassed={k.readAndPassed} lessonsTested={k.lessonsTested} />
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Understanding</div>
+      {/* MINDSETS TO MASTER (DR-1439, Darrell 2026-11-12, rendered for meaning): reading counts on its own, understanding
+          comes by the repetition of the study, and repetition promotes rigor. */}
+      <ul className="mb-2 text-xs text-[#1A1815] space-y-0.5" data-testid="mindsets-to-master" aria-label="Mindsets to master">
+        <li className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] list-none">Mindsets to master</li>
+        <li>Read in full: the reading counts on its own.</li>
+        <li>Repeat the study: understanding comes by repetition, so every try is study.</li>
+        <li>Hold the rigor: every answer right, at 100%, however many tries it takes.</li>
+      </ul>
+      {/* UNDERSTOOD (DR-1417, DR-1439): read in full and every answer right, in either order, after as many tries as it takes. */}
+      <UnderstoodGoals understood={s.mastered} readAndPassed={s.lessonsDone} lessonsTested={s.lessonsTested} />
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
-        <Figure mark="sword" label="Read and passed" value={k.readAndPassed} hint="The lesson on the record and its exam passed after it. The sword of the Spirit, taken up (Ephesians 6:17)." />
-        <Figure mark="book" label="Taken after the lesson" value={`${k.afterReading} of ${k.taken}`} hint="Attempts after the lesson was on the record." />
-        <Figure label="Passed before the lesson" value={k.passedBeforeReading} hint="A pass with the lesson not yet on the record. The score is kept." />
-        <Figure label="Retakes within a minute" value={k.quickRetakes} hint="Another try less than a minute after the last." />
+        <Figure mark="sword" label="Read and passed" value={s.lessonsDone} hint="The lesson read and its exam passed, in either order. The sword of the Spirit, taken up (Ephesians 6:17)." />
+        <Figure mark="book" label="Times tested" value={s.tries} hint="Every try is study. Understanding comes by repetition, and repetition is rigor." />
         <Figure mark="target" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
       </div>
+      {mostStudied(s).length > 0 && (
+        <div className="mt-2" data-testid="most-studied">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Most studied</div>
+          <ol className="text-xs text-[#1A1815] space-y-0.5 list-decimal list-inside">
+            {mostStudied(s).map((c) => (
+              <li key={c.courseKey} className="[overflow-wrap:anywhere]">
+                {c.courseKey}: tested {c.tries} {c.tries === 1 ? 'time' : 'times'}, {c.read} of {c.total} read
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {growthOpportunities(s).length > 0 && (
+        <div className="mt-2" data-testid="growth-opportunities">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Most opportunities to grow understanding</div>
+          <ol className="text-xs text-[#1A1815] space-y-0.5 list-decimal list-inside">
+            {growthOpportunities(s).map((c) => (
+              <li key={c.courseKey} className="[overflow-wrap:anywhere]">
+                {c.courseKey}: {c.grow} studied {c.grow === 1 ? 'lesson' : 'lessons'} still to take to 100%
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
+}
+
+/** { courseKey: [lessonId, ...] } from the records themselves, when the catalog's ids are not at hand. Pure. */
+function idsFromRecords(records) {
+  const out = {};
+  for (const r of records) {
+    if (!r || !r.courseKey || !r.lessonId) continue;
+    (out[r.courseKey] = out[r.courseKey] || []).includes(r.lessonId) || out[r.courseKey].push(r.lessonId);
+  }
+  return out;
 }
 
 // WHERE YOU STAND AND WHERE THIS PACE LANDS (DR-1422). Darrell, 2026-11-11:
@@ -202,19 +246,11 @@ function StandingAndPace({ rows = [], userId, courseLessonIds }) {
     <div className="mt-2" data-testid="standing-and-pace">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Where you stand</div>
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="standing-figures">
-        <Figure label="Courses fully completed" value={`${s.coursesComplete} of ${s.coursesTotal}`} hint="Every lesson in the course read and its exam passed." />
-        <Figure label="Courses to go" value={s.coursesToGo} hint={`${s.lessonsToGo} lesson${s.lessonsToGo === 1 ? '' : 's'} still to read and test.`} />
-        {/* THE TOTAL IS SAID ON BOTH, SO MASTERY IS SOUGHT AFTER (Darrell,
-            2026-11-11: "Say the total passed and mastered with testing and
-            reading... so it will be sought after"). A bare count of mastered
-            lessons is a pat on the back; the same count against the whole
-            names what is still there to go and get. */}
-        <Figure label="Read and tested" value={`${s.lessonsDone} of ${s.lessonsTotal}`} hint={`The reading on the record and the exam passed. ${s.lessonsToGo} to go.`} />
-        <Figure
-          label="Mastered at 100%"
-          value={`${s.mastered} of ${s.lessonsTotal}`}
-          hint={`Read in full, and every answer right. ${s.lessonsTotal - s.mastered} still to master.`}
-        />
+        <Figure label="Courses read in full" value={`${s.coursesRead} of ${s.coursesTotal}`} hint="Every lesson in the course read. Reading counts on its own." />
+        <Figure label="Courses fully completed" value={`${s.coursesComplete} of ${s.coursesTotal}`} hint="Every lesson in the course read and its exam passed, in either order." />
+        <Figure label="Lessons read" value={`${s.lessonsRead} of ${s.lessonsTotal}`} hint={`${s.lessonsTotal - s.lessonsRead} still to read.`} />
+        <Figure label="Read and passed" value={`${s.lessonsDone} of ${s.lessonsTotal}`} hint={`The lesson read and its exam passed, in either order. ${s.lessonsToGo} to go.`} />
+        <Figure label="Understood at 100%" value={`${s.mastered} of ${s.lessonsTotal}`} hint="Read in full, and every answer right, after as many tries as it takes." />
         <Figure label="On pace" value={onPace} hint={basis} />
       </div>
     </div>
@@ -357,7 +393,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
           hint={learner.bestQuizPct === null ? 'Answer a lesson’s exam and the score lands here.' : `best ${pct(learner.bestQuizPct)}`}
         />
       </div>
-      <TakenAndGraded rows={rows} userId={learner.userId} />
+      <TakenAndGraded rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} />
       <StandingAndPace rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} />
 
       {learner.courses?.length ? (

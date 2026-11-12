@@ -9,8 +9,9 @@
 //
 // THE MARKS, each for one thing a row on the record already holds:
 //   the Black Lion   a lesson UNDERSTOOD: read in full and its exam at 100%,
-//                    in a try that was not rushed and not a retake within a
-//                    minute (lib/test-integrity.js isMastery). One lion a lesson.
+//                    in either order, after as many tries as it takes (DR-1439,
+//                    Darrell: understanding comes from the repetition of the
+//                    study; it promotes rigor). One lion a lesson.
 //   the sword        a lesson READ AND PASSED: on the record and passed after
 //                    it. "The sword of the Spirit" is the Word's own phrase
 //                    (KJV, Ephesians 6:17), named and never quoted past it.
@@ -71,7 +72,7 @@ export default function UnderstoodGoals({ understood = 0, readAndPassed = 0, les
           <div className="text-2xl leading-tight text-[#F6F1E7]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="understood-count">
             {understood} of {lessonsTested} {lessonsTested === 1 ? 'lesson' : 'lessons'} tested
           </div>
-          <div className="text-[0.75rem] text-[#F6F1E7] opacity-90">The lesson read in full, then every answer right at your own pace: mastered.</div>
+          <div className="text-[0.75rem] text-[#F6F1E7] opacity-90">Read in full, and every answer right, in either order: understood. Repetition is how understanding comes.</div>
         </div>
       </div>
       <div
@@ -101,14 +102,14 @@ export default function UnderstoodGoals({ understood = 0, readAndPassed = 0, les
       {!all && oneStep > 0 && (
         <p className="mt-3 text-[0.8125rem] text-[#F6F1E7]" data-testid="understood-one-step">
           <Mark name="sword" />
-          {oneStep} more {oneStep === 1 ? 'is' : 'are'} read and passed. Read the lesson in full, then take its exam to 100% at your own pace, and each becomes
-          a lion.
+          {oneStep} more {oneStep === 1 ? 'is' : 'are'} read and passed. Take the exam again until every answer is right, as many times as it takes, and
+          each becomes a lion.
         </p>
       )}
       {!all && understood === 0 && oneStep === 0 && (
         <p className="mt-3 text-[0.8125rem] text-[#F6F1E7]" data-testid="understood-start">
           <Mark name="book" />
-          The first lion is one lesson read in full, then its exam at 100% at your own pace. There is no limit on tries.
+          The first lion is one lesson read in full and its exam at 100%. There is no limit on tries; repetition is the study.
         </p>
       )}
     </section>
