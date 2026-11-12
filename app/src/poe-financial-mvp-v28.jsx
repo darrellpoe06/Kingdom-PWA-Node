@@ -63,7 +63,7 @@ import {
 // Data Systems, Handed Forward, Kingdom Economics, Prophetic Voices) all derive
 // from the ONE course registry — a finished course can never again be built but
 // left unsurfaced (Darrell 2026-07-08; lib/learn-catalog.js).
-import { buildSelfPacedDescriptors, helperTagForCourse, catalogMeta } from './lib/learn-catalog.js';
+import { buildSelfPacedDescriptors, helperTagForCourse, catalogMeta, isPoeTechLessonLink } from './lib/learn-catalog.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -1023,7 +1023,7 @@ export default function PoeFinancialSystem() {
   // tab: that collision made a RELOAD of the Church tab boot as the Love
   // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
-  const churchBrandRoute = useState(() => isPublicChurchRoute())[0]; // brand follows the DOOR, not the tab (DR-0290)
+  const [churchBrandRoute, poetechLessonLink] = useState(() => [isPublicChurchRoute(), isPoeTechLessonLink()])[0]; // brand follows the DOOR (DR-0290) and a PoeTech-subject lesson wears PoeTech (DR-1428)
   const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // ALL three interruptions (DR-0292)
   // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
   // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
@@ -3526,7 +3526,7 @@ export default function PoeFinancialSystem() {
   }
 
   const __gate = accessState({ isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession }); // a preview test household opens without a session: its client reaches nothing
-  const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
+  const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute && !poetechLessonLink });
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
@@ -4268,7 +4268,7 @@ ${THEME_CSS}
             <BooksUploadButton />
           </div>
         )}
-        {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
+        {!authSession && churchBrandRoute && !poetechLessonLink && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
@@ -4991,7 +4991,7 @@ ${THEME_CSS}
         )}
 
         {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is DEMO-only (DR-0713): it replaced the signed-in family's loaded ledger with SEED_DATA and saved that over this device's copy, and it showed under the real books. The guarded Admin action remains for the steward. */}
-        {!authSession && churchBrandRoute && <PublicWelcome placement="end" />}
+        {!authSession && churchBrandRoute && !poetechLessonLink && <PublicWelcome placement="end" />}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>

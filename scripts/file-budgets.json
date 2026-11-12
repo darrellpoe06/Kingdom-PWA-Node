@@ -198,6 +198,13 @@
       "why": "A real defect fix costs four lines more than the defect did. The all-lessons control armed a one-second window.setTimeout, kept no handle and cleared nothing on the popstate path, so a run finishing inside that second fired the callback with the environment torn down and threw ReferenceError: window is not defined -- failing `app - vitest shard 3/4` from a test file that never touches this component, while ci.yml was green on main. The fix keeps the handle, clears it when the listener is really removed, and guards the late callback. Shrunk first, as this ratchet asks: the incident's full account lives in leaving-a-lesson-lands-at-the-top.test.js (five new checks, four of which fail on the old line) and the component carries a three-line pointer to it instead. Raised to the measured size, not above it. This file is the monolith DR-1339's re-review (2026-11-19) covers."
     },
     {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 6002,
+      "to": 6004,
+      "date": "2026-11-11",
+      "why": "DR-1428: the Love Corner points a PoeTech-subject course home. Two lines and no more: the import of components/PoeTechShowcase.jsx and its one render under the course header. The card itself lives in its own file so this file grows by its wiring only."
+    },
+    {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 11023,
       "to": 11203,
@@ -209,7 +216,7 @@
     "app/src/lib/living-lessons-class.js": 32192,
     "app/src/lib/sovereign-ai-class.js": 11203,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 6002,
+    "app/src/components/ChurchLearn.jsx": 6004,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,

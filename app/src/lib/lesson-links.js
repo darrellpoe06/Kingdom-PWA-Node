@@ -28,6 +28,7 @@
 
 import { lessonShareText } from './lesson-format.js';
 import { SHARE_HOW_TO, lessonShareMessage, lessonSummary, withShareToken, isShareToken } from './lesson-share.js';
+import { courseDepartment } from './learn-organize.js';
 
 export const LEARN_LINK_PARAMS = { course: 'course', lesson: 'lesson' };
 
@@ -46,16 +47,58 @@ export function lessonQuery({ courseKey, lessonId } = {}) {
 }
 
 /**
+ * A LESSON LINK OPENS IN THE APP THE LESSON BELONGS TO (DR-1428).
+ *
+ * Darrell 2026-11-11, holding a shared L301 link that said "The Love Corner"
+ * and opened /poetech-app/: "Why do links to lessons go to PoeTech and not
+ * Love Corner?", then: "Or does it depend on what the lesson is about?...
+ * spiritual lessons for Love Corner you need PoeTech for Business... Ai...
+ * other etc... still Word first."
+ *
+ * The link used to take the path of whatever page the SHARER had open
+ * (window.location.pathname), so the same lesson opened in PoeTech or in the
+ * Love Corner depending on who sent it, while the message always named the
+ * Love Corner. Now the lesson's own department chooses: the spiritual and
+ * church-serving departments open in the Love Corner, everything else opens
+ * in PoeTech. Both doors are on the same origin and both open a lesson to a
+ * signed-out visitor (isPublicChurchRoute reads the query, never the path).
+ * Price lives in learn-access-tiers.js lessonAccess (DR-1428): spiritual
+ * lessons free at every level, the child level and each course's first lesson
+ * free everywhere, the rigorous levels of PoeTech subjects PoeTech+. Nothing is
+ * locked until a real way to pay exists. This list must equal
+ * SPIRITUAL_DEPARTMENTS (pinned by a-lesson-link-opens-in-its-own-app.test.js).
+ */
+export const LOVE_CORNER_DEPARTMENTS = Object.freeze([
+  'Living Lessons',
+  'The Word & The Way',
+  'Kingdom Life & Stewardship',
+  'Serve the House',
+  'The Eternal Algorithms',
+]);
+
+export const LESSON_DOORS = Object.freeze({
+  lovecorner: Object.freeze({ key: 'lovecorner', path: '/lovecorner/app/', brand: 'The Love Corner' }),
+  poetech: Object.freeze({ key: 'poetech', path: '/poetech-app/', brand: 'PoeTech' }),
+});
+
+/** The door a course's lessons open in, from its department. */
+export function lessonDoorFor(course) {
+  return LOVE_CORNER_DEPARTMENTS.includes(courseDepartment(course)) ? LESSON_DOORS.lovecorner : LESSON_DOORS.poetech;
+}
+
+/**
  * The full shareable URL. `origin` and `path` are injected (defaulting to the
  * live location) so a test — and a server-side render — can build links with no
- * browser at all.
+ * browser at all. Pass `course` and the path is the lesson's own door
+ * (lessonDoorFor); an explicit `path` still wins.
  */
-export function lessonUrl({ courseKey, lessonId, origin, path } = {}) {
+export function lessonUrl({ courseKey, lessonId, origin, path, course } = {}) {
   const q = lessonQuery({ courseKey, lessonId });
   if (!q) return '';
   const o = origin !== undefined ? origin
     : (typeof window !== 'undefined' && window.location ? window.location.origin : '');
   const p = path !== undefined ? path
+    : course ? lessonDoorFor(course).path
     : (typeof window !== 'undefined' && window.location ? window.location.pathname : '/');
   return `${o || ''}${p || '/'}${q}`;
 }

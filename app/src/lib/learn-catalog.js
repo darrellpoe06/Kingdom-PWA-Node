@@ -66,6 +66,7 @@ import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, d
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 import { PROJECT_MANAGEMENT_META, PROJECT_MANAGEMENT_SESSION_FLOW, buildProjectManagementSchedule, projectManagementProgressSummary, exportProjectManagementCurriculumMarkdown, PROJECT_MANAGEMENT_INTEREST_TAG, PROJECT_MANAGEMENT_HELPER_TAG, PROJECT_MANAGEMENT_TUTOR_META } from './project-management-course.js';
 import { SOFTWARE_PM_META, SOFTWARE_PM_SESSION_FLOW, buildSoftwarePmSchedule, softwarePmProgressSummary, exportSoftwarePmCurriculumMarkdown, SOFTWARE_PM_INTEREST_TAG, SOFTWARE_PM_HELPER_TAG, SOFTWARE_PM_TUTOR_META } from './software-project-management-course.js';
+import { LOVE_CORNER_DEPARTMENTS } from './lesson-links.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
 // bespoke cohort-dated descriptor; `wiring: 'self-paced'` = the descriptor is
@@ -852,6 +853,24 @@ export function learnCatalogSummary() {
 export function catalogCategory(key) {
   const entry = LEARN_CATALOG.find((c) => c.key === key);
   return (entry && entry.meta && entry.meta.category) || null;
+}
+
+/**
+ * IS THIS A LINK TO A POETECH-SUBJECT LESSON? (DR-1428) A signed-out visitor
+ * on a public church link wears the Love Corner brand (DR-0290). A lesson link
+ * for a PoeTech subject (Business, A.I., Real Estate...) now opens in PoeTech,
+ * so it must wear PoeTech. True only for a course this registry declares in a
+ * non-spiritual department; an unknown course stays the church's (the old
+ * default), so no link already sent changes for the worse.
+ */
+export function isPoeTechLessonLink(search = (typeof window !== 'undefined' && window.location ? window.location.search : '')) {
+  try {
+    const key = (new URLSearchParams(search || '').get('course') || '').trim();
+    const dept = key ? catalogCategory(key) : null;
+    return !!dept && !LOVE_CORNER_DEPARTMENTS.includes(dept);
+  } catch {
+    return false;
+  }
 }
 
 /** A mounted course's meta: its own, plus the key and the department the registry declares. */
