@@ -238,6 +238,35 @@ SHAPE -- return ONE JSON object and nothing else (no prose, no code fence):
 
 
 READING_HEADING = "THE READING UNDER THE LIGHT"
+HISTORY_HEADING = "FROM THE HOUSE'S HISTORY"
+# DR-1433 (Darrell 2026-11-12): Bishop Gwin has been teaching the history of the
+# church here in Champaign, and he sprinkles it into each weekly message.
+BG_MESSAGE_RULE = (
+    "- This is BISHOP GWIN'S OWN MESSAGE, preached at The Church of the Living God in Champaign, Illinois "
+    "(its header names the message, the day and the recording; the church's archive and channel name him as "
+    "the speaker). He is the teacher: call him Bishop Gwin or BG, never 'the teacher' alone, and never Darrell. "
+    "Its first line names the service: say 'Wednesday Bible Study taught by Bishop Lloyd E. Gwin' for a Wednesday, "
+    "and 'Sunday message preached by Bishop Lloyd E. Gwin' for a Sunday. Teach what he taught, Word first, in his "
+    "order. HE SPRINKLES THE HISTORY OF THE CHURCH HERE IN CHAMPAIGN INTO EACH WEEKLY MESSAGE: gather every piece "
+    "of that history he tells (people, years, places, buildings, how the house began and grew) exactly as he "
+    "tells it, in a part of lesson_intro headed exactly " + HISTORY_HEADING + "; add nothing he did not say; "
+    "where he gives no year or name, say so rather than supply one; if he tells none this time, say so in one "
+    "line. A thread of that history that is itself a lesson goes into further_lessons. Captions carry no speaker "
+    "marks: a line that is plainly someone else (a reader, a singer, a member) is not his."
+)
+
+
+def history_problems(obj, rows):
+    """DR-1433, deterministic: a lesson from Bishop Gwin's message carries the
+    church-history part. [] for any other row, so the gate cannot fire where
+    the rule does not apply."""
+    if not isinstance(obj, dict) or obj.get("verdict") != "lesson":
+        return []
+    if not any("bg-message" in (r.get("tags") or []) for r in (rows or [])):
+        return []
+    if HISTORY_HEADING not in str(obj.get("lesson_intro") or ""):
+        return ["a lesson from Bishop Gwin's message carries " + HISTORY_HEADING + " in lesson_intro (DR-1433)"]
+    return []
 MAX_FURTHER = 8
 
 
@@ -274,6 +303,12 @@ def row_rules(rows, owner_ids):
     for r in rows:
         tags = r.get("tags") or []
         who = str(r.get("created_by") or "")
+        if "bg-message" in tags:
+            # DR-1433: filed by the NAS from the church's own archive, not typed
+            # by Darrell. The words are Bishop Gwin's; the header names the
+            # message, the day and the recording.
+            lines.append(BG_MESSAGE_RULE)
+            continue
         if who in owner_ids:
             name = next((t[len("lesson-name:"):] for t in tags if str(t).startswith("lesson-name:")), "")
             lines.append("- This teaching is Darrell's own. Call him Darrell." +

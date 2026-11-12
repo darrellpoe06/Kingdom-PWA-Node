@@ -21,7 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
-import { courseStanding } from '../lib/course-pace.js';
+import { courseStanding, examsOwed } from '../lib/course-pace.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
 import { learnerIdentity } from '../lib/learner-identity.js';
@@ -237,6 +237,37 @@ function readIdsFor(rows, userId, courseKey) {
   return out;
 }
 
+// WHICH EXAMS ARE STILL OWED (DR-1434; Darrell 2026-11-12, "I have more than 2 courses completed.... fix it"). A course
+// counts as fully completed when every lesson is read AND its exam is passed (DR-1422). The list above says which lessons
+// are not read; this says which READ lessons still wait on a passed exam, each one tap to take when it is your own record,
+// so "Every lesson in this course is on the record" can never stand beside a course the count leaves out without a reason.
+function ExamsOwed({ owed = [], courseKey, titleOf, onRetake }) {
+  if (!owed.length) return null;
+  return (
+    <div className="mt-1" data-testid="learner-course-exams-owed">
+      <p className="text-[0.6875rem] text-[#5A5751]">
+        {owed.length} exam{owed.length === 1 ? '' : 's'} still to pass before this course counts as fully completed:
+      </p>
+      <ul className="mt-0.5 space-y-0.5 text-xs">
+        {owed.map((x) => {
+          const label = `${x.n}. ${(typeof titleOf === 'function' && titleOf(x.id, courseKey)) || x.id}`;
+          return (
+            <li key={x.id} className="min-w-0" data-lesson-id={x.id}>
+              {onRetake ? (
+                <button type="button" onClick={() => onRetake(courseKey, x.id)} className="text-left underline underline-offset-2 text-[#1A1815] min-h-[36px] [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                  {label}: take the exam
+                </button>
+              ) : (
+                <span className="[overflow-wrap:anywhere]">{label}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 // WHICH LESSONS ARE NOT ON THE RECORD YET (DR-1393; Darrell 2026-11-10: "No 100% even after completing all lessons... Evaluation
 // of systems"). Completion is read lessons over the course's lessons; when it is short of the whole, this names each lesson the
 // record does not hold yet, by number and title, each one tap to read when it is your own record. A long list folds.
@@ -281,6 +312,11 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
 function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null, contacts = null, household = null }) {
   const who = learnerIdentity(learner, { contacts, mine, household });
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
+  // DR-1434: each course says how many of its exams are passed, from the same
+  // standing the "Courses fully completed" figure counts, so the two can never
+  // disagree on one screen.
+  const myRecords = rows.map(rowToRecord).filter((r) => r.userId === learner.userId);
+  const standingOf = new Map(courseLessonIds ? courseStanding(myRecords, courseLessonIds).courses.map((c) => [c.courseKey, c]) : []);
   return (
     <li className="border border-[#E8E4DC] p-3">
       {/* THE RECORD IS IN THE READER'S NAME (DR-1421): the name first and largest, who they are beneath it, and the sign-in
@@ -339,6 +375,9 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
                 <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-0.5">
                   <CoursePair label="Read" value={`${c.lessonsRead}${c.courseLessons ? ` of ${c.courseLessons}` : ''}`} />
                   <CoursePair label="Completion" value={pct(c.completionPct)} />
+                  {standingOf.get(c.courseKey) && (
+                    <CoursePair label="Exams passed" value={`${standingOf.get(c.courseKey).done} of ${standingOf.get(c.courseKey).total}`} />
+                  )}
                   <CoursePair label="Average" value={c.examsTaken ? pct(c.avgQuizPct) : '—'} />
                   <CoursePair label="Last read" value={when(c.lastActivityAt)} />
                 </dl>
@@ -348,6 +387,12 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
                   courseKey={c.courseKey}
                   titleOf={titleOf}
                   onReadAgain={mine ? onReadAgain : null}
+                />
+                <ExamsOwed
+                  owed={examsOwed(myRecords, c.courseKey, courseLessonIds && courseLessonIds[c.courseKey])}
+                  courseKey={c.courseKey}
+                  titleOf={titleOf}
+                  onRetake={mine ? onRetake : null}
                 />
               </li>
             ))}

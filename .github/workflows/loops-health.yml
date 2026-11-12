@@ -133,7 +133,7 @@ jobs:
           python3 - <<'PY'
           import json, os, re, time
           from datetime import datetime, timezone
-          loops = ["lesson-voice","lesson-parity","church-mail","lesson-mail","family-key","agent-consumer","db-backup","sovereign-replay","choir-dates","stream-length","worship-song-harvest","nas-heartbeat","lesson-queue-census","content-sync"]
+          loops = ["lesson-voice","lesson-parity","church-mail","lesson-mail","family-key","agent-consumer","db-backup","sovereign-replay","choir-dates","stream-length","worship-song-harvest","nas-heartbeat","lesson-queue-census","content-sync","bg-message-lessons"]
           try:
               with open(os.environ["CRON_FILE"], encoding="utf-8", errors="replace") as fh: cron = fh.read().splitlines()
           except OSError: cron = []
@@ -184,7 +184,7 @@ jobs:
                   "worship-song-harvest": "infra/church-media-golive/worship_song_harvest_install.sh",
                   "nas-heartbeat": "infra/nas-loops/heartbeat-install.sh",
                   "lesson-queue-census": "infra/nas-loops/lesson-queue-census-install.sh",
-                  "content-sync": "infra/nas-supabase/content_sync_install.sh"}[name]))}
+                  "content-sync": "infra/nas-supabase/content_sync_install.sh", "bg-message-lessons": "infra/nas-loops/bg-message-lessons-install.sh"}[name]))}
               f, d = named_in(failed_sec, name), named_in(degraded_sec, name)
               if not isinstance(ev, dict):
                   e["last_run"] = "unknown"; e["why"] = "no services-sync run is recorded in the runner's events.jsonl (or it could not be read)"
@@ -204,7 +204,7 @@ jobs:
               prefixes = {"family-key": "family-key:", "agent-consumer": "agent-consumer:", "church-mail": "church-mail:", "lesson-mail": "lesson-mail", "db-backup": "db-backup:", "sovereign-replay": "sovereign-replay:",
                           "worship-song-harvest": "worship-song-harvest", "lesson-voice": "lesson-voice", "lesson-parity": "lesson-parity",
                           "choir-dates": "choir", "stream-length": "stream-length", "nas-heartbeat": "nas-heartbeat:",
-                          "lesson-queue-census": "lesson-queue-census:", "content-sync": "content-sync:"}
+                          "lesson-queue-census": "lesson-queue-census:", "content-sync": "content-sync:", "bg-message-lessons": "bg-message-lessons:"}
               own = [l[:240] for l in cron if l.startswith(prefixes[name])]
               e["own_lines"] = own[-3:]
               if name in ledgers:
@@ -226,7 +226,7 @@ jobs:
         run: |
           python3 scripts/served-heartbeat-receipt.py --needed /tmp/witness.json || exit 0
           KEY=$(python3 scripts/served-anon-key.py) || KEY=""; [ -n "$KEY" ] && echo "::add-mask::$KEY"
-          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-heartbeat-receipt.py --loops "lesson-voice,lesson-parity,church-mail,lesson-mail,family-key,agent-consumer,db-backup,sovereign-replay,choir-dates,stream-length,worship-song-harvest,nas-heartbeat,lesson-queue-census,content-sync" > /tmp/witness.next && mv /tmp/witness.next /tmp/witness.json
+          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-heartbeat-receipt.py --loops "lesson-voice,lesson-parity,church-mail,lesson-mail,family-key,agent-consumer,db-backup,sovereign-replay,choir-dates,stream-length,worship-song-harvest,nas-heartbeat,lesson-queue-census,content-sync,bg-message-lessons" > /tmp/witness.next && mv /tmp/witness.next /tmp/witness.json
 
       - name: Judge each loop on what it wrote, and report
         if: steps.gate.outputs.go == 'true'
@@ -426,6 +426,7 @@ jobs:
               sovereign-replay) (cat /volume1/PoeTech/sovereign-replay/status.json 2>/dev/null || sudo -n cat /volume1/PoeTech/sovereign-replay/status.json 2>/dev/null); tail -n 6 /volume1/PoeTech/sovereign-replay/replay.log 2>/dev/null | cut -c1-200 ;;
               nas-heartbeat) ls -la /volume1/PoeTech/nas-heartbeat/last-run.json 2>/dev/null; (cat /volume1/PoeTech/nas-heartbeat/last-run.json 2>/dev/null || sudo -n cat /volume1/PoeTech/nas-heartbeat/last-run.json 2>/dev/null); echo ;;
               lesson-queue-census) ls -la /volume1/PoeTech/lesson-queue-census/last-run.json 2>/dev/null; (cat /volume1/PoeTech/lesson-queue-census/last-run.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-queue-census/last-run.json 2>/dev/null); echo ;;
+              bg-message-lessons) (cat /volume1/PoeTech/bg-message-lessons/last-run.json 2>/dev/null || sudo -n cat /volume1/PoeTech/bg-message-lessons/last-run.json 2>/dev/null) | head -c 600; echo ;;
               content-sync) ls -la "$REPO/infra/nas-supabase/state" 2>/dev/null | head -6; tail -n 12 "$REPO/infra/nas-supabase/state/content-sync.out" 2>/dev/null | cut -c1-240 ;;
               church-mail) ls -la "$REPO/infra/nas-church-mail/out" 2>/dev/null | head -6; (cat "$REPO/infra/nas-church-mail/out/.church-mail.state.json" 2>/dev/null | head -c 400); echo ;;
               lesson-mail) ls -la /volume1/PoeTech/lesson-mail 2>/dev/null | head -6; (cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null || sudo -n cat /volume1/PoeTech/lesson-mail/.lesson-mail.state.json 2>/dev/null) | head -c 400; echo

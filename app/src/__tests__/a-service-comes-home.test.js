@@ -124,6 +124,10 @@ const LOOPS_ON_THE_WAY = {
   // names it in its loops, its install path, its `content-sync:` cron lines,
   // the heartbeat receipt, and its own state/content-sync.out in the diagnosis.
   'content-sync': { witness: 'loops-health.yml' },
+  // DR-1433: Bishop Gwin's messages become lessons from the NAS's side; the
+  // witness names it in its loops, install path, cron prefix, the heartbeat
+  // receipt, and reads its own last-run.json in the diagnosis.
+  'bg-message-lessons': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },

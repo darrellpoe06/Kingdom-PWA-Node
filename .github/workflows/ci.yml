@@ -370,6 +370,7 @@ jobs:
         run: |
           python3 -m unittest test_heartbeat -v
           python3 -m unittest test_lesson_queue_census -v
+          python3 -m unittest test_bg_message_lessons -v
       # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
       # transcript row -> cloud copy removed), idempotency by the database, the
       # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,

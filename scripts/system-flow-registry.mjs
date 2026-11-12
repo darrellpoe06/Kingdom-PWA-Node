@@ -384,6 +384,16 @@ const NODES = [
     ],
     seeds: ['nas-heartbeat-read'],
   }),
+  rider('service:bg-message-lessons', 'infra/nas-loops/bg-message-lessons.py', {
+    id: 'bg-message-lessons', name: "Bishop Gwin's messages become lessons (DR-1433)",
+    purpose: "Each services-sync cycle the NAS finds Bishop Gwin's messages that have their words and no lesson yet, Wednesdays first, and files each as a lesson row that rings the lesson builder on the same machine, with no runner reaching in.",
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'db:video_transcripts', token: 'video_transcripts?select' },
+    ],
+    writes: [{ res: 'db:agent_inbox#lesson', token: 'row_for' }],
+    seeds: ['lesson-builder'],
+  }),
   rider('service:lesson-queue-census', 'infra/nas-loops/lesson-queue-census.py', {
     id: 'lesson-queue-census', name: 'Lesson queue census (the house counts its own queue)',
     purpose: 'One row per services-sync cycle, patched in place: how many lesson rows wait, by road and by shape, the oldest wait, and the exclusion list used — so the queue is readable with no runner reaching into the NAS and no tailnet key alive (DR-1360). Counts and tag shapes only, never a body.',

@@ -64,12 +64,45 @@ const ms = (v) => {
  * the unit test had fabricated the array the live rows do not carry.
  */
 export function attemptsOf(record) {
-  const h = Array.isArray(record && record.quizHistory) ? record.quizHistory.filter(Boolean) : [];
-  if (h.length) return h;
   if (!record) return [];
-  const hasSummary = record.quizPassed === true || Number.isFinite(Number(record.quizPct));
-  if (!hasSummary) return [];
-  return [{ at: record.quizAt || record.updatedAt || record.completedAt, pct: record.quizPct, passed: record.quizPassed === true }];
+  const h = Array.isArray(record.quizHistory) ? record.quizHistory.filter(Boolean) : [];
+  const hasSummary = record.quizPassed === true || (record.quizPct !== null && Number.isFinite(Number(record.quizPct)));
+  const best = hasSummary
+    ? { at: record.quizAt || record.updatedAt || record.completedAt, pct: record.quizPct, passed: record.quizPassed === true ? true : record.quizPassed === false ? false : null }
+    : null;
+  if (!h.length) return best ? [best] : [];
+  // DR-1434 (Darrell 2026-11-12, "I have more than 2 courses completed"): the
+  // history is kept only from the day migration 0313 was applied, while the
+  // row's own quiz_passed / quiz_pct is the BEST of every attempt (0313's own
+  // words). A pass the row holds that the history does not is still a pass,
+  // so it stands beside the history instead of being dropped by it.
+  if (best && isPass(best) && !h.some(isPass)) return [...h, best];
+  return h;
+}
+
+/**
+ * Did this attempt pass? A score of 100% is a pass whatever the mark, even
+ * where an older write left `passed` empty; an attempt marked failed stays
+ * failed.
+ */
+export function isPass(e) {
+  if (!e) return false;
+  if (e.passed === true) return true;
+  if (e.passed === false) return false;
+  return Number(e.pct) >= 100;
+}
+
+/** The lessons of one course that are read but whose exam is not passed yet, in course order. */
+export function examsOwed(records = [], courseKey, ids = []) {
+  const read = new Map();
+  for (const r of Array.isArray(records) ? records : []) {
+    if (!r || r.courseKey !== courseKey || !r.lessonId) continue;
+    const prev = read.get(r.lessonId);
+    const isRead = !!(r.readEvidenceAt || r.completedAt);
+    const done = doneAt(r) !== null;
+    read.set(r.lessonId, { read: isRead || (prev && prev.read), done: done || (prev && prev.done) });
+  }
+  return (Array.isArray(ids) ? ids : []).map((id, i) => ({ id, n: i + 1 })).filter((x) => read.get(x.id)?.read && !read.get(x.id)?.done);
 }
 
 /**
@@ -82,7 +115,7 @@ export function doneAt(record) {
   const read = ms(record.readEvidenceAt) ?? ms(record.completedAt);
   if (read === null) return null;
   const passes = attemptsOf(record)
-    .filter((e) => e && e.passed)
+    .filter(isPass)
     .map((e) => ms(e.at))
     .filter((t) => t !== null);
   if (!passes.length) return null;
@@ -93,7 +126,7 @@ export function doneAt(record) {
 export function masteredAt(record) {
   const done = doneAt(record);
   if (done === null) return null;
-  const full = attemptsOf(record).some((e) => e && e.passed && Number(e.pct) >= 100);
+  const full = attemptsOf(record).some((e) => isPass(e) && Number(e.pct) >= 100);
   return full ? done : null;
 }
 

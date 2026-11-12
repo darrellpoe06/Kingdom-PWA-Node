@@ -1978,8 +1978,6 @@ class Migration(unittest.TestCase):
             self.assertIn("'{}'".format(m), sql)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 # =============================================================================
@@ -2086,3 +2084,46 @@ class NewsletterUnderTheLight(unittest.TestCase):
         out = lb.file_further(broken, self.group([self.MAIL]), body, "x")
         self.assertEqual(out["filed"], 0)
         self.assertIn("RuntimeError", out["error"])
+
+
+class BishopGwinMessageTest(unittest.TestCase):
+    """DR-1433: a lesson from Bishop Gwin's own message names HIM, gathers the
+    church's history he tells, and a Wednesday one is listed in the registry."""
+
+    BG_ROW = {"id": "r1", "created_by": "owner-1", "tags": ["lesson", "bg-message", "bg-message:7aCAdw5W-Nc", "voice:BG",
+                                                             "church-session-public", "service-date:2026-11-04", "service-type:wednesday"]}
+
+    def test_PROVEN_TO_CATCH_his_message_is_never_called_darrells_own(self):
+        rules = lw.row_rules([self.BG_ROW], {"owner-1"})
+        self.assertIn("BISHOP GWIN'S OWN MESSAGE", rules)
+        self.assertIn("HISTORY OF THE CHURCH HERE IN CHAMPAIGN", rules)
+        self.assertNotIn("This teaching is Darrell's own", rules)
+        # Without the tag, the same owner's row IS Darrell's: the branch is what decides.
+        plain = dict(self.BG_ROW, tags=["lesson"])
+        self.assertIn("This teaching is Darrell's own", lw.row_rules([plain], {"owner-1"}))
+
+    def test_PROVEN_TO_CATCH_a_lesson_from_his_message_without_the_history_part_fails(self):
+        obj = {"verdict": "lesson", "lesson_intro": "Bishop Gwin taught..."}
+        self.assertEqual(len(lw.history_problems(obj, [self.BG_ROW])), 1)
+        obj["lesson_intro"] += "\n" + lw.HISTORY_HEADING + "\nHe told how the house began."
+        self.assertEqual(lw.history_problems(obj, [self.BG_ROW]), [])
+        self.assertEqual(lw.history_problems({"verdict": "lesson", "lesson_intro": "x"}, [{"tags": ["lesson"]}]), [])
+
+    def test_a_wednesday_lesson_is_registered_once_and_a_sunday_one_is_not(self):
+        self.assertEqual(lb.bg_wednesday([self.BG_ROW]), ("2026-11-04", "7aCAdw5W-Nc"))
+        sunday = dict(self.BG_ROW, tags=[t.replace("wednesday", "sunday") for t in self.BG_ROW["tags"]])
+        self.assertIsNone(lb.bg_wednesday([sunday]))
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "app", "src", "lib", "bible-study-session.js")
+        with open(path, encoding="utf-8") as fh:
+            src = fh.read()
+        out = lb.register_bg_session(src, "ll999-test", "2026-11-04", "7aCAdw5W-Nc", "DR-0001")
+        self.assertIn("id: 'll999-test'", out)
+        self.assertIn("teacher: 'BG'", out[out.find("ll999-test"):])
+        self.assertEqual(lb.register_bg_session(out, "ll999-test", "2026-11-04", "7aCAdw5W-Nc", "DR-0001"), out)
+        self.assertEqual(out.count("export const BIBLE_STUDY_SESSION_IDS"), 1)
+        with self.assertRaises(lb.BuildFailed):
+            lb.register_bg_session("no list here", "ll999-test", "2026-11-04", "x", "DR-0001")
+
+
+if __name__ == "__main__":
+    unittest.main()
