@@ -60,7 +60,7 @@ they can be argued with.
   measured size).
 - `workshop-pricing.js`: knowledge type, place tier, format, demand; the Word's
   workshops at $0.
-- Migration 0322: `workshop_events`, `workshop_registrations`,
+- Migration 0323: `workshop_events`, `workshop_registrations`,
   `workshop_seats_left()`; open rows readable by anyone, the house's members
   open and edit events (owner-scoped RLS), only the service role seats.
 - `checkout.js`: `kind: workshop` priced from the row the server reads; a
@@ -84,7 +84,7 @@ they can be argued with.
 
 - The first live seat and the first live book grant are the watched steps:
   they need Christina's Stripe key on the Pages project (DR-1436) and
-  migration 0322 applied by the db lane. Nothing is a hand: the Governor opens
+  migration 0323 applied by the db lane. Nothing is a hand: the Governor opens
   an event from the store panel; the lanes carry the rest
   (`re-review: 2026-11-26`).
 - No walk-through video exists yet; every section reads "0 of N recorded".

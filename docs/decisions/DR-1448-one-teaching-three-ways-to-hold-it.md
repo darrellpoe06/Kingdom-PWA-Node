@@ -4,7 +4,7 @@
 **Status:** Accepted (built and proven; the first live seat and the first video are the watched steps)
 **Tier:** C (real money on two new checkout kinds; a schema)
 **Type:** decision
-**Area:** `lib/course-book-fitness.js`, `lib/learning-products.js`, `lib/lesson-video.js`, `lib/workshop-pricing.js`, `lib/workshops.js`, `lib/book-entitlements-cloud.js` (new); `functions/api/checkout.js`, `functions/api/stripe-webhook.js`; `components/LearningShelves.jsx`, `LessonVideo.jsx`, `Bookstore.jsx`; migration 0322
+**Area:** `lib/course-book-fitness.js`, `lib/learning-products.js`, `lib/lesson-video.js`, `lib/workshop-pricing.js`, `lib/workshops.js`, `lib/book-entitlements-cloud.js` (new); `functions/api/checkout.js`, `functions/api/stripe-webhook.js`; `components/LearningShelves.jsx`, `LessonVideo.jsx`, `Bookstore.jsx`; migration 0323
 **Sent in by:** Darrell, 2026-11-12, in substance: we have a store; this book as a paid resource; a course with no teacher under paid PoeTech, a video of each section walking through it; an in-person paid workshop, its cost varied by location, the going rate for the area, the kind of knowledge, whatever works for demand. And: how many books can we make out of my courses?
 **Pairs with:** DR-1428 (PoeTech+ opens the rigorous levels), DR-0536 (sell the accompaniment, never the content), DR-1432, DR-1437, DR-1438 (the firewall), DR-0051 book commerce, DR-0076
 

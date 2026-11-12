@@ -268,7 +268,7 @@ relying on it; memories reflect what was true when written.
   where none is recorded. A seat is charged at the `workshop_events` row's
   price read by `functions/api/checkout.js` (never the client's); the webhook
   grants the book (`grant_book_entitlement`) and seats the person
-  (`workshop_registrations`, 0322). Banking is in Kingdom Life & Stewardship,
+  (`workshop_registrations`, 0323). Banking is in Kingdom Life & Stewardship,
   a SPIRITUAL department by the registry: free course, offering workshop. The
   Acrobat share link Darrell sent is outside the sandbox allowlist and the
   allow was declined: the fastest road for a document is Google Drive (the

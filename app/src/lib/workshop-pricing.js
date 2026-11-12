@@ -11,7 +11,7 @@
 //   4. DEMAND, measured from the last offering's fill (seats asked for over
 //      seats held), clamped so a sell-out never doubles a price overnight.
 // The figure this module returns is a RECOMMENDATION. The price that is
-// charged is the one on the workshop_events row (migration 0322), which the
+// charged is the one on the workshop_events row (migration 0323), which the
 // server reads itself (functions/api/checkout.js) — never the client's number.
 //
 // The rates are OUR policy, anchored on the Academy's own ladder

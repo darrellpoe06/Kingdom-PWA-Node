@@ -179,7 +179,7 @@ export function bookEntitlementGrants(evt = {}) {
 }
 
 // workshopRegistrationChange — a PAID seat session seats THAT person at THAT
-// event (workshop_registrations, migration 0322; one row per person per
+// event (workshop_registrations, migration 0323; one row per person per
 // event, so a retry re-seats, never double-seats). Pure.
 export function workshopRegistrationChange(evt = {}, nowIso = new Date().toISOString()) {
   if (asStr(evt.type) !== 'checkout.session.completed') return null;

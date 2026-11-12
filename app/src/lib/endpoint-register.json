@@ -2471,13 +2471,13 @@
     },
     {
       "table": "workshop_events",
-      "definedIn": "infra/supabase/migrations-auto/0322-a-workshop-is-sold-by-the-seat.sql",
+      "definedIn": "infra/supabase/migrations-auto/0323-a-workshop-is-sold-by-the-seat.sql",
       "rls": true,
       "policies": 2
     },
     {
       "table": "workshop_registrations",
-      "definedIn": "infra/supabase/migrations-auto/0322-a-workshop-is-sold-by-the-seat.sql",
+      "definedIn": "infra/supabase/migrations-auto/0323-a-workshop-is-sold-by-the-seat.sql",
       "rls": true,
       "policies": 1
     },

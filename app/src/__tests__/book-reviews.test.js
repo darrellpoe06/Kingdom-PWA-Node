@@ -5,7 +5,18 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { validRating, normalizeReview, reviewGate, addReviewGated, summarize, starsLabel, mergedSummary, loadReviews, saveReviews, readReviewSummaries } from '../lib/book-reviews.js';
+import {
+  validRating,
+  normalizeReview,
+  reviewGate,
+  addReviewGated,
+  summarize,
+  starsLabel,
+  mergedSummary,
+  loadReviews,
+  saveReviews,
+  readReviewSummaries,
+} from '../lib/book-reviews.js';
 import { normalizeSubscriber, grantBookEntitlement } from '../lib/entitlements.js';
 
 const now = new Date().toISOString();
@@ -33,7 +44,10 @@ describe('the gate and the rating', () => {
 describe('the summary', () => {
   it('counts and averages only valid ratings of that book; the label says it plainly; the cloud count rules when it answered', () => {
     const rows = [
-      { productId: 'p', userKey: 'a', rating: 5 }, { productId: 'p', userKey: 'b', rating: 4 }, { productId: 'p', userKey: 'c', rating: 9 }, { productId: 'q', userKey: 'a', rating: 1 },
+      { productId: 'p', userKey: 'a', rating: 5 },
+      { productId: 'p', userKey: 'b', rating: 4 },
+      { productId: 'p', userKey: 'c', rating: 9 },
+      { productId: 'q', userKey: 'a', rating: 1 },
     ];
     expect(summarize(rows, 'p')).toEqual({ count: 2, average: 4.5 });
     expect(summarize(rows, 'z')).toEqual({ count: 0, average: null });
@@ -58,7 +72,7 @@ describe('the summary', () => {
 
 describe('the migration', () => {
   it('0323 adds the rating, the review kind, one review per person, and a numbers-only public summary', () => {
-    const sql = readFileSync(new URL('../../../infra/supabase/migrations-auto/0323-a-book-is-reviewed-by-those-who-hold-it.sql', import.meta.url), 'utf8');
+    const sql = readFileSync(new URL('../../../infra/supabase/migrations-auto/0324-a-book-is-reviewed-by-those-who-hold-it.sql', import.meta.url), 'utf8');
     expect(sql).toMatch(/rating smallint CHECK \(rating BETWEEN 1 AND 5\)/);
     expect(sql).toMatch(/'question', 'comment', 'answer', 'review'/);
     expect(sql).toMatch(/uq_book_conversations_one_review[\s\S]*WHERE kind = 'review'/);

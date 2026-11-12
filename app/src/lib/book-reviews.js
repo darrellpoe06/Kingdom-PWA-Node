@@ -75,27 +75,52 @@ export function mergedSummary(local, cloud) {
   return local || { count: 0, average: null };
 }
 
-export function reviewsKey(productId) { return `poe-book-reviews.${asStr(productId)}`; }
-function safeStore(store) { try { return store || ((typeof localStorage !== 'undefined' && localStorage) ? localStorage : null); } catch { return null; } }
+export function reviewsKey(productId) {
+  return `poe-book-reviews.${asStr(productId)}`;
+}
+function safeStore(store) {
+  try {
+    return store || (typeof localStorage !== 'undefined' && localStorage ? localStorage : null);
+  } catch {
+    return null;
+  }
+}
 export function loadReviews(productId, store) {
-  const ls = safeStore(store); if (!ls) return [];
-  try { const raw = ls.getItem(reviewsKey(productId)); return raw ? asArr(JSON.parse(raw)).map(normalizeReview) : []; } catch { return []; }
+  const ls = safeStore(store);
+  if (!ls) return [];
+  try {
+    const raw = ls.getItem(reviewsKey(productId));
+    return raw ? asArr(JSON.parse(raw)).map(normalizeReview) : [];
+  } catch {
+    return [];
+  }
 }
 export function saveReviews(productId, reviews, store) {
-  const ls = safeStore(store); if (!ls) return { skipped: 'no-storage' };
-  try { ls.setItem(reviewsKey(productId), JSON.stringify(asArr(reviews))); return { saved: true }; } catch (e) { return { skipped: 'write-error', error: e }; }
+  const ls = safeStore(store);
+  if (!ls) return { skipped: 'no-storage' };
+  try {
+    ls.setItem(reviewsKey(productId), JSON.stringify(asArr(reviews)));
+    return { saved: true };
+  } catch (e) {
+    return { skipped: 'write-error', error: e };
+  }
 }
 
 /** The cloud summaries for every book, keyed by product id: { ok, byProduct }. A client that did not answer is ok:false. */
 export async function readReviewSummaries(client) {
   try {
     if (!client || typeof client.rpc !== 'function') return { ok: false, byProduct: {} };
-    const r = await Promise.race([client.rpc('book_review_summary'), new Promise((res) => setTimeout(() => res({ data: null, error: 'timeout' }), TIMEOUT_MS))]);
+    const r = await Promise.race([
+      client.rpc('book_review_summary'),
+      new Promise((res) => setTimeout(() => res({ data: null, error: 'timeout' }), TIMEOUT_MS)),
+    ]);
     if (!r || r.error || !Array.isArray(r.data)) return { ok: false, byProduct: {} };
     const byProduct = {};
     for (const row of r.data) {
-      const id = asStr(row && row.product_id); if (!id) continue;
-      const count = Number(row.reviews); const average = Number(row.average);
+      const id = asStr(row && row.product_id);
+      if (!id) continue;
+      const count = Number(row.reviews);
+      const average = Number(row.average);
       byProduct[id] = { count: Number.isFinite(count) ? count : 0, average: Number.isFinite(average) ? average : null };
     }
     return { ok: true, byProduct };

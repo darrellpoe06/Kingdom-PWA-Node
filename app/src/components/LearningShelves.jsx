@@ -6,7 +6,7 @@
 // Real data only (DR-0061): the course shelf is derived from the live Learn
 // registry; its video coverage is measured from the lessons' own video field;
 // the workshop shelf reads workshop_events rows the house has opened (RLS,
-// migration 0322) and the seat count from the database's own function. An
+// migration 0323) and the seat count from the database's own function. An
 // empty shelf says so (P15); a control that cannot act says what it waits for
 // (UX-PATTERNS 2f.3); every button shows focus and clears the 36px floor
 // (2g). Themed classes, never inline hex (library-theme-classes).

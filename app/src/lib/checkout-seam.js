@@ -59,7 +59,7 @@ export function buildBookCheckoutRequest(product, sub, { successUrl, cancelUrl, 
 
 // Build the request for ONE SEAT at an in-person workshop (DR-1448). The seat
 // is a person's, so the server verifies the buyer; the price is the event
-// row's (workshop_events, migration 0322), read by the server, never sent.
+// row's (workshop_events, migration 0323), read by the server, never sent.
 export function buildWorkshopCheckoutRequest(event, { successUrl, cancelUrl, nowIso } = {}) {
   return {
     kind: 'workshop',

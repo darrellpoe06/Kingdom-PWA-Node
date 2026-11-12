@@ -2382,7 +2382,7 @@ const RESOURCES = {
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
   'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
-  'db:book_conversations': { label: "each book's purchaser-gated conversation and reviews (0051, 0323)", source: 'Written by holders of the book through RLS (user_owns_book); the app reads the review summary through book_review_summary(), numbers only.' },
+  'db:book_conversations': { label: "each book's purchaser-gated conversation and reviews (0051, 0324)", source: 'Written by holders of the book through RLS (user_owns_book); the app reads the review summary through book_review_summary(), numbers only.' },
   'local:book-reviews': { label: "the device's own copy of the reviews it left (book-reviews.js)", sink: 'Read back by the Bookstore and the storefront on this device until the cloud row answers.' },
   'http:deliver': { label: 'what a paid checkout bought, said to the app (never a key, an amount or a card)', sink: 'The app reads it once on return from Stripe and builds the book itself; nothing else consumes it.' },
   'local:book-entitlements': { label: "the device's own record of the books it holds (entitlements.js)", sink: 'Read back by the Bookstore and the storefront on this device; the cloud copy is the webhook\'s (book_entitlements).' },

@@ -24,7 +24,7 @@ A visitor browses the whole store without an account; a book bought as a guest i
 - **The server's answer is what is for sale.** `GET /api/checkout` now carries `books` (priced entries with a key); the Bookstore and the storefront read it, never a build flag.
 - **One catalog entry shape, mirrored and conformance-tested:** an integer or `{ cents }` is fixed; `{ pwyw: { min, preset } }` lets the buyer name the price on Stripe's page from a minimum the server holds; `grants` makes a bundle. Promotion codes are allowed unless `STRIPE_PROMOTION_CODES=off`.
 - **Instant delivery:** `/api/deliver` asks Stripe what a paid session of ours bought and answers only the product ids and the receipt email; the app grants the device entitlement and builds the EPUB, HTML and Markdown itself. A signed-in buyer's rows are written by the webhook too, one grant per book of a bundle.
-- **Reviews:** a holder of the book leaves one rating (1 to 5) and a line in its gated conversation (migration 0323, kind `review`); the shelf shows the count and average to anyone through `book_review_summary()`, numbers only.
+- **Reviews:** a holder of the book leaves one rating (1 to 5) and a line in its gated conversation (migration 0324, kind `review`); the shelf shows the count and average to anyone through `book_review_summary()`, numbers only.
 - **Carve-outs, named:** a delivery email of our own needs a sender key only Darrell holds (Stripe's receipt carries the line meanwhile); affiliates move money to third parties, a new bright line not yet decided. `re-review: 2026-11-26` with DR-1448's.
 
 ## Verification

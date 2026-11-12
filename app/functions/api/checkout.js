@@ -126,7 +126,7 @@ export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, orig
     return { params: p };
   }
   if (kind === 'workshop') {
-    // The seat's price is the EVENT ROW's (workshop_events, 0322), read by
+    // The seat's price is the EVENT ROW's (workshop_events, 0323), read by
     // this server; the client's figure never reaches Stripe (DR-1448).
     const ev = event && typeof event === 'object' ? event : null;
     if (!ev || !UUID.test(asStr(ev.id))) return { error: 'unknown-event' };

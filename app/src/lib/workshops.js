@@ -1,7 +1,7 @@
 // =============================================================================
 // workshops — the app's half of the in-person workshop seat (DR-1448)
 // =============================================================================
-// Reads the OPEN events the house has posted (workshop_events, migration 0322;
+// Reads the OPEN events the house has posted (workshop_events, migration 0323;
 // RLS shows only open and sold-out rows), counts the seats left through the
 // database's own function, and starts the Stripe checkout for a seat the way
 // PoeTech+ does (poetech-plus.js): a signed-in buyer, the server's price,

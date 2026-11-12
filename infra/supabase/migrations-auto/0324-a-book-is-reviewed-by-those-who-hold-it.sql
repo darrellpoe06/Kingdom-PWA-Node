@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0323 — a book is reviewed by those who hold it, and the shelf shows the
+-- 0324 — a book is reviewed by those who hold it, and the shelf shows the
 -- average to everyone (DR-1449)
 -- =============================================================================
 -- A Payhip-class storefront shows a rating on each product. Ours rests on
