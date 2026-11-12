@@ -36,13 +36,12 @@ checklist, component layout, navigation mapping, phases and a testing strategy. 
    default, measured from the same emblem.** Both are in the emblem. Measured from
    `lovecorner-icon-512.png` this session (DR-0076 §4): the L is `#582860` (most common purple
    bucket, 2,576 px), the cross is `#CFA63C` (207,166,60), the heart is `#E43C28` (DR-1060's red).
-   The mockup ships **purple + gold as the primary** (this brief is the latest word) with a one-tap
-   toggle to the DR-1060 red + white so the two can be compared on the same screen. **Red is kept on
-   the heart only** (Give, Prayer, the Bible's ribbon) — the Blood's color never spreads to buttons,
-   warnings or decoration (DR-0099). **This is a COLG-facing identity choice (DR-0111 carve-out #1):
-   the default is purple + gold per this brief; if Darrell or the Bishop prefers DR-1060's red, the
-   toggle shows what that looks like and a new DR supersedes DR-1060's default.** The existing
-   `lovecorner` theme in `lib/theme-css.js` is NOT removed either way; a `lovecorner-royal` theme is added.
+   **Decided by Darrell mid-session (2026-11-12): "make the colors red black white with a touch gold."**
+   The mockup's default is now red `#C03222` (DR-1060's measured red), black `#1A1012`, white, and
+   gold `#CFA63C` as the touch (the Watch button, the tagline, the laurel, the Give pill). Purple + gold
+   stays one tap away as a comparison only. This confirms DR-1060's red + white + black and adds the
+   gold accent; the production theme is the existing `lovecorner` theme with gold accent tokens added
+   (no new default theme needed; a new DR records the gold touch).
 4. **"TLC" collides with TLC Therapy Solutions in this codebase** (`app/tlc/`, `components/Tlc*.jsx`,
    `view === 'tlc'`; see the 2026-11-12 Institute note §2.1). The church's own face is The Love Corner.
    The Institute's **display name** is "TLC Theological Institute" exactly as the brief says; its
@@ -159,7 +158,7 @@ components/YouthZone.jsx       — the Youth Zone surface (churchView 'youth')
 components/MinistriesLanding.jsx — grouped landing over the existing ChurchMinistries directory
 lib/home-week.js               — pure: weekday → feature cards (now passed in; tests pin each day)
 lib/lovecorner-palette.js      — the measured tokens (purple #582860, gold #CFA63C, heart #E43C28)
-lib/theme-css.js               — + theme 'lovecorner-royal' (purple & gold); 'lovecorner' red stays
+lib/theme-css.js               — 'lovecorner' theme gains gold accent tokens (red, black, white + gold)
 ```
 
 Real data each part reads (DR-0061 trace): church record (`resolveChurch`), `liveStatus(now)`,
@@ -196,7 +195,7 @@ homepage grid widens to 2–3 columns; the bottom nav is phone-only (`ChromeDock
 
 | Phase | Scope | Tier | Files | Done when |
 |---|---|---|---|---|
-| 0 | Assets: the real Bishop photo into `app/public/lovecorner/`; `lovecorner-royal` theme tokens; `lib/lovecorner-palette.js` | A | public/, theme-css.js | photo renders at 2× on the hero; contrast gate passes for the new theme |
+| 0 | Assets: the real Bishop photo into `app/public/lovecorner/`; gold accent tokens on the `lovecorner` theme; `lib/lovecorner-palette.js` (red, black, white, gold, measured) | A | public/, theme-css.js | photo renders at 2× on the hero; contrast gate passes for the gold-on-red and gold-on-black pairs |
 | 1 | Homepage shell: `LoveCornerHome` + Hero + QuickAccess + ThisWeek + FeatureCarousel + bottom nav (ChromeDock tabs config) + More sheet; ChurchHome's existing sections mount below unchanged | A | components/lovecorner/*, ChromeDock config, surfaces.js, the one mount line in the shell | every §4 tab reachable in ≤2 taps on a 390px phone; monolith line count does not grow |
 | 2 | Learning Zone card + Youth Zone surface (Kids/Teens doors over AGE_BANDS, trivia from `trivia_questions`, memory verse from the Scripture reader, badges = derived from `learner_lesson_records` counts, never painted) + child-account guardrails (no public child profile, no messaging; youth content read-only until a parent/household row exists per DR-0093) | B | YouthZone.jsx, lib/youth-zone.js, tests | badges proven derived (test sets rows → badge appears; deletes rows → it does not) |
 | 3 | Ministries landing (grouped over the registry) + Institute Slice A (`ChurchInstitute.jsx`, `lib/church-institute.js`, featured card, registry entry, Learn category) | A | per Institute note §5 Slice A | Institute shows only the 4 existing courses as available; `launchState` never reads open without `confirmed` |
@@ -233,7 +232,8 @@ homepage can be reviewed live (DR-0104) before the rest stacks on it.
 
 - No file under `app/src` changed. Approval of the mockup is the gate (brief §12).
 - Bishop's photograph: a value only Darrell holds → attach it or drop it in `app/public/lovecorner/`.
-- Palette default (purple+gold vs DR-1060 red): COLG identity choice; default = purple+gold per this brief.
+- Palette: DECIDED — red, black, white with a touch of gold (Darrell, 2026-11-12). Phase 0 adds the
+  gold accent tokens to the `lovecorner` theme; `lovecorner-royal` is dropped from the plan.
 - Institute name "TLC Theological Institute": taken from this brief; the Institute note's §7.1 name
   decision is thereby answered unless the Bishop says otherwise.
 - The giving deep-link (`links.give`) and the Facebook URLs remain pending the office (unchanged).

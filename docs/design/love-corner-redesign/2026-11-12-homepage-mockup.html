@@ -4,21 +4,23 @@
 <style>
 /* Layout: one phone frame centered on a quiet studio ground; the mockup notes sit beside it on wide screens and under it on narrow ones. */
 :root{
-  /* measured from the church's own emblem (public/lovecorner-icon-512.png): the L is purple, the cross is gold, the heart is red */
-  --brand:#582860; --brand-deep:#3A1842; --brand-tint:#F1E8F3; --brand-ink:#FFFFFF;
+  /* Darrell 2026-11-12: "red black white with a touch gold". Measured from the church's own emblem
+     (public/lovecorner-icon-512.png): the heart is red (DR-1060 #C03222 on screen), the ring is black,
+     the field is white, the cross is gold. Gold is the touch: buttons, the tagline, the laurel. */
+  --brand:#C03222; --brand-deep:#1A1012; --brand-tint:#FFF0EE; --brand-ink:#FFFFFF;
   --accent:#CFA63C; --accent-deep:#A8832A; --accent-tint:#FBF3DC;
-  --heart:#E43C28;                /* the Blood's color: the heart, and nothing else (DR-0099 / DR-1060) */
-  --cream:#FAF8F4; --paper:#FFFFFF; --ink:#1A1012; --muted:#6B5A6E; --line:#E9E0EA;
+  --heart:#E43C28;                /* the heart's own red: Give, Prayer, the Bible's ribbon */
+  --cream:#FAF8F4; --paper:#FFFFFF; --ink:#1A1012; --muted:#6B4440; --line:#F2D9D5;
   --ok:#2F7D4F;
   --page-bg:#ECE7E9; --page-fg:#1A1012; --page-muted:#5E5460; --page-card:#FFFFFF; --page-line:#D9D0DA;
   --display:"Fraunces", Georgia, "Times New Roman", serif;
   --body:"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r:18px;
 }
-:root[data-palette="red"]{
-  --brand:#C03222; --brand-deep:#8E2217; --brand-tint:#FFF0EE; --brand-ink:#FFFFFF;
-  --accent:#1A1012; --accent-deep:#000000; --accent-tint:#F3EEEF;
-  --line:#F2D9D5; --muted:#6B4440;
+:root[data-palette="purple"]{
+  /* the earlier brief's purple + gold, also measured from the emblem (the L is purple) */
+  --brand:#582860; --brand-deep:#3A1842; --brand-tint:#F1E8F3;
+  --line:#E9E0EA; --muted:#6B5A6E;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --page-bg:#17121A; --page-fg:#F3ECF4; --page-muted:#B9ADBC; --page-card:#241C27; --page-line:#3A2F3E; color-scheme:dark }
@@ -58,7 +60,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;backgroun
 .scroll::-webkit-scrollbar{display:none}
 
 /* top band + hero */
-.band{background:linear-gradient(170deg,var(--brand-deep) 0%,var(--brand) 62%,var(--brand) 100%);color:var(--brand-ink);padding:10px 18px 22px;position:relative;overflow:hidden}
+.band{background:linear-gradient(168deg,var(--brand-deep) 0%,var(--brand-deep) 28%,var(--brand) 78%,var(--brand) 100%);color:var(--brand-ink);padding:10px 18px 22px;position:relative;overflow:hidden}
 .band::after{content:"";position:absolute;right:-70px;top:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0) 70%)}
 .brandrow{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
 .brandrow img{width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
@@ -94,7 +96,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;backgroun
 .feature{margin:-12px 14px 0;position:relative;z-index:2}
 .feat-track{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:6px}
 .feat-track::-webkit-scrollbar{display:none}
-.feat{flex:0 0 86%;scroll-snap-align:start;background:var(--paper);border-radius:var(--r);padding:14px 16px;box-shadow:0 10px 24px rgba(58,24,66,.14);border:1px solid var(--line);min-width:0}
+.feat{flex:0 0 86%;scroll-snap-align:start;background:var(--paper);border-radius:var(--r);padding:14px 16px;box-shadow:0 10px 24px rgba(26,16,18,.14);border:1px solid var(--line);min-width:0}
 .feat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--brand);font-weight:700}
 .feat h3{font-family:var(--display);font-weight:700;font-size:17px;margin-top:4px;line-height:1.2}
 .feat p{margin:6px 0 0;font-size:13px;line-height:1.45;color:var(--muted)}
@@ -184,10 +186,10 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;backgroun
 .legend i.p{background:transparent;border:1.5px solid var(--muted)}
 
 /* institute featured card */
-.inst-card{display:block;text-decoration:none;color:var(--ink);background:var(--paper);border:1.5px solid var(--accent);border-radius:22px;overflow:hidden;box-shadow:0 14px 30px rgba(58,24,66,.16);transition:transform .14s ease}
+.inst-card{display:block;text-decoration:none;color:var(--ink);background:var(--paper);border:1.5px solid var(--accent);border-radius:22px;overflow:hidden;box-shadow:0 14px 30px rgba(26,16,18,.16);transition:transform .14s ease}
 .inst-card:hover{transform:translateY(-2px)}
 .inst-card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.inst-art{background:linear-gradient(160deg,var(--brand-deep),var(--brand) 70%);padding:12px 20px 0;display:flex;justify-content:center;position:relative;overflow:hidden}
+.inst-art{background:linear-gradient(160deg,var(--brand-deep) 0%,var(--brand-deep) 35%,var(--brand) 100%);padding:12px 20px 0;display:flex;justify-content:center;position:relative;overflow:hidden}
 .inst-art::before{content:"";position:absolute;inset:auto -40% -70% -40%;height:160px;border-radius:50%;background:var(--accent);opacity:.18}
 .inst-svg{width:170px;height:auto;position:relative}
 .inst-svg .laurel{stroke:var(--accent)}
@@ -212,7 +214,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;backgroun
 /* institute landing screen */
 .inst-screen{position:absolute;inset:0;background:var(--cream);z-index:6;display:flex;flex-direction:column}
 .inst-screen .scroll{padding-bottom:28px}
-.inst-hero{background:linear-gradient(170deg,var(--brand-deep),var(--brand) 65%);color:var(--brand-ink);padding:10px 18px 22px;position:relative;overflow:hidden}
+.inst-hero{background:linear-gradient(168deg,var(--brand-deep) 0%,var(--brand-deep) 30%,var(--brand) 80%);color:var(--brand-ink);padding:10px 18px 22px;position:relative;overflow:hidden}
 .inst-hero::after{content:"";position:absolute;right:-60px;top:-50px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(207,166,60,.35),rgba(207,166,60,0) 70%)}
 .backrow{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
 .backrow button{border:0;background:rgba(255,255,255,.14);color:var(--brand-ink);border-radius:999px;min-height:40px;padding:0 14px 0 10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -564,12 +566,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;backgroun
     <p class="lede">A phone-first mockup of the Church of the Living God app. Nothing in the existing app has been changed. Everything on the screen maps to a tab, a record or a schedule the app already has.</p>
 
     <div class="controls" role="group" aria-label="Mockup controls">
-      <button type="button" class="ctl" data-palette="purple" aria-pressed="true"><span class="sw" style="background:#582860"></span><span class="sw" style="background:#CFA63C;margin-left:-6px"></span>Purple &amp; gold (this brief)</button>
-      <button type="button" class="ctl" data-palette="red" aria-pressed="false"><span class="sw" style="background:#C03222"></span><span class="sw" style="background:#1A1012;margin-left:-6px"></span>Red &amp; white (current, DR-1060)</button>
+      <button type="button" class="ctl" data-palette="red" aria-pressed="true"><span class="sw" style="background:#C03222"></span><span class="sw" style="background:#1A1012;margin-left:-6px"></span><span class="sw" style="background:#CFA63C;margin-left:-6px"></span>Red, black, white + gold (Darrell, today)</button>
+      <button type="button" class="ctl" data-palette="purple" aria-pressed="false"><span class="sw" style="background:#582860"></span><span class="sw" style="background:#CFA63C;margin-left:-6px"></span>Purple &amp; gold (earlier brief)</button>
       <label class="ctl" for="bishop-file">📷 Load Bishop Gwin's photo (stays on your device)<input id="bishop-file" type="file" accept="image/*"></label>
     </div>
 
-    <div class="fact"><b>The emblem is the real one.</b> It is the church seal the app already ships (<code>lovecorner-icon-512.png</code>). The purple and gold in this mockup were measured from it: the L is purple, the cross is gold, the heart is red. Red stays on the heart only.</div>
+    <div class="fact"><b>The emblem is the real one.</b> It is the church seal the app already ships (<code>lovecorner-icon-512.png</code>). The colors were measured from it: the heart is red, the ring is black, the field is white, the cross is gold. The default is Darrell's word today: red, black and white with a touch of gold. Purple and gold (the earlier brief) stays one tap away for comparison.</div>
     <div class="fact"><b>Bishop Gwin's photograph is not in the repository and was not attached to this session.</b> The slot is honest and empty. Use the loader above to preview the real photo in place; it never leaves your browser. No face has been generated.</div>
     <div class="fact"><b>The hero changes with the real schedule.</b> Sunday Worship 11:00 AM, Bible Study Wednesday 1:00 PM and 6:00 PM (Champaign time), from the church record the app already uses. Inside a service window the button reads Live now. Outside it, Latest message.</div>
     <div class="fact"><b>Upcoming shows the honest state.</b> The two announced events in the church record (the July Assembly, the August Gospel Fest) have passed, so the list shows the fallback and the weekly services, never an invented event.</div>
