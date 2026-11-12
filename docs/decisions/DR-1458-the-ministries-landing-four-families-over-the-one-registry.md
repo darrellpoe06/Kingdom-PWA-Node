@@ -35,4 +35,4 @@ A member opens Ministries and sees four cards: Music & Worship, Transportation, 
 
 ## Verification after merge
 
-DR-0107: deploy on the merged SHA, boot check green, `site-health.yml` UP, then the Ministries tab opened on a phone from the front door's Ministries card. Recorded here when done.
+DR-0107, done 2026-11-12: #2648 squash-merged as `5d42abc5` at 23:06Z; Deploy (Cloudflare Pages) run 43325967791 on that SHA green at 23:12Z, its real-browser boot check BOOT OK on poetech.us, pages.dev, the Moore door and `?view=church`. DR-0125: `site-health.yml` run 43326896479 at 23:13Z: verdict UP, served build `5d42abc` = main. The phone walk from the front door's Ministries card is the DR-0104 reviewer pass Darrell makes.
