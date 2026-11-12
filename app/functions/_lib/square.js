@@ -126,7 +126,9 @@ export function toSquarePaymentLink(
     order: {
       location_id: locationId,
       reference_id: (userId || asStr(req?.userKey) || 'guest').slice(0, 40),
-      line_items: [{ name: line.name.slice(0, 512), quantity: '1', base_price_money: { amount: line.amount, currency: (line.currency || 'usd').toUpperCase() } }],
+      line_items: [
+        { name: line.name.slice(0, 512), quantity: '1', base_price_money: { amount: line.amount, currency: (line.currency || 'usd').toUpperCase() } },
+      ],
       metadata,
     },
     checkout_options: { enable_coupon: !!couponsOn, ask_for_shipping_address: false, allow_tipping: false },
@@ -175,7 +177,10 @@ export function ourSquareOrder(order) {
   if (!OUR_KINDS.includes(kind)) return null;
   const product = asStr(md.product);
   if (!product) return null;
-  const grants = asStr(md.grants).split(',').map((s) => s.trim()).filter(Boolean);
+  const grants = asStr(md.grants)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return {
     kind,
     product,
@@ -310,7 +315,8 @@ export async function retrieveSquareOrder(orderId, { env = {}, fetchImpl = fetch
   } catch {
     return { error: 'square-unreachable', status: 502 };
   }
-  if (!res || !res.ok) return { error: res && res.status === 404 ? 'unknown-order' : `square-${res ? res.status : 'no-response'}`, status: res && res.status === 404 ? 404 : 502 };
+  if (!res || !res.ok)
+    return { error: res && res.status === 404 ? 'unknown-order' : `square-${res ? res.status : 'no-response'}`, status: res && res.status === 404 ? 404 : 502 };
   const data = await res.json().catch(() => null);
   const order = data && data.order && typeof data.order === 'object' ? data.order : null;
   if (!order) return { error: 'unknown-order', status: 404 };

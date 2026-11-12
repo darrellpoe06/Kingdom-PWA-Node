@@ -20,20 +20,24 @@
 // =============================================================================
 import { verifySquareSignature, retrieveSquareOrder, ourSquareOrder, normalizeSquarePayment, squareGrants, squareSeat } from '../_lib/square.js';
 
-const json = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 const asStr = (v) => (typeof v === 'string' ? v : '');
 
 export const HANDLED_EVENTS = ['payment.updated', 'payment.created'];
 
 // Mirror of PRODUCT_ENTITY in app/src/lib/payments-ledger.js (conformance-tested).
 export const PRODUCT_ENTITY = Object.freeze({
-  'poetech-plus': 'e-personal', 'family': 'e-personal', 'premium': 'e-personal', 'business': 'e-personal',
-  'client-build': 'e-personal', 'client-support': 'e-personal',
-  'moore-order': 'e-moore', 'moore-class': 'e-moore',
+  'poetech-plus': 'e-personal',
+  family: 'e-personal',
+  premium: 'e-personal',
+  business: 'e-personal',
+  'client-build': 'e-personal',
+  'client-support': 'e-personal',
+  'moore-order': 'e-moore',
+  'moore-class': 'e-moore',
   'tlc-session': 'e-tlc',
-  'book': 'e-personal',
-  'workshop': 'e-personal',
+  book: 'e-personal',
+  workshop: 'e-personal',
 });
 
 /** The payment a Square event carries, when it is one this door acts on and it is COMPLETED. Pure. */
@@ -79,7 +83,11 @@ export async function onRequestPost(context) {
   if (!ok) return json({ error: 'bad-signature' }, 400);
 
   let evt;
-  try { evt = JSON.parse(payload); } catch { return json({ error: 'bad-json' }, 400); }
+  try {
+    evt = JSON.parse(payload);
+  } catch {
+    return json({ error: 'bad-json' }, 400);
+  }
   const payment = completedPayment(evt);
   if (!payment) return json({ received: true, ignored: true });
 
@@ -101,7 +109,9 @@ export async function onRequestPost(context) {
       headers: { ...svc, Prefer: 'resolution=ignore-duplicates,return=minimal' },
       body: JSON.stringify([toTableRow(row, { instanceId })]),
     });
-  } catch { return json({ error: 'ledger-unreachable' }, 502); }
+  } catch {
+    return json({ error: 'ledger-unreachable' }, 502);
+  }
   if (!upstream.ok) return json({ error: `ledger-${upstream.status}` }, 502);
 
   // ── 2. THE BOOK, THE SEAT: handed to the person who bought it ────────────
@@ -110,7 +120,9 @@ export async function onRequestPost(context) {
     let g;
     try {
       g = await fetch(`${supabaseUrl}/rest/v1/rpc/grant_book_entitlement`, { method: 'POST', headers: svc, body: JSON.stringify(grant) });
-    } catch { return json({ error: 'entitlement-unreachable' }, 502); }
+    } catch {
+      return json({ error: 'entitlement-unreachable' }, 502);
+    }
     if (!g.ok) return json({ error: `entitlement-${g.status}` }, 500);
   }
   if (grants.length) return json({ received: true, counted: true, book: ours.product, granted: grants.map((g) => g.p_product) });
@@ -123,7 +135,9 @@ export async function onRequestPost(context) {
         headers: { ...svc, Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify([seat]),
       });
-    } catch { return json({ error: 'seat-unreachable' }, 502); }
+    } catch {
+      return json({ error: 'seat-unreachable' }, 502);
+    }
     if (!s.ok) return json({ error: `seat-${s.status}` }, 500);
     return json({ received: true, counted: true, seat: seat.event_id });
   }
