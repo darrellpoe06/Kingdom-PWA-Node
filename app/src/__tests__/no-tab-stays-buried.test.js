@@ -35,7 +35,18 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const SHARED = readFileSync(resolve(__dirname, '../components/shared.jsx'), 'utf8');
-const block = () => SHARED.slice(SHARED.indexOf('function TabScroll('), SHARED.indexOf('function TabScroll(') + 3200);
+// THE SLICE ENDS WHERE THE FUNCTION ENDS, not 3,200 characters in (2026-11-12).
+// The fixed window was a measurement of the file as it stood: adding a comment
+// INSIDE TabScroll pushed its button past the end, and four cases that had
+// nothing to do with that change went red while the code they check was still
+// right there. A check that fires on correct code teaches you to ignore it, so
+// the window is now the function itself -- up to the next top-level
+// declaration -- and grows with it.
+const block = () => {
+  const start = SHARED.indexOf('function TabScroll(');
+  const after = SHARED.indexOf('\nfunction ', start + 1);
+  return SHARED.slice(start, after > start ? after : undefined);
+};
 
 describe('the control exists, and it is on the ONE primitive', () => {
   it('TabScroll renders a show-all button', () => {
@@ -46,6 +57,24 @@ describe('the control exists, and it is on the ONE primitive', () => {
     const b = block();
     expect(b).toMatch(/showAll \? 'flex-wrap' : ''/);
     expect(b).toMatch(/showAll \? 'overflow-visible' : 'overflow-x-auto'/);
+  });
+
+  // THE WAY BACK MUST SURVIVE THE WAY OUT (Darrell 2026-11-12, from his phone
+  // on Learn with a narrow and a wide screenshot: "The less button is hidden on
+  // narrow screens"). Expanding is half the control; `Less` is the other half,
+  // and it is rendered ONLY while expanded. The scroll box flips to
+  // `overflow-visible` in that state, which returns its `min-width: auto` to
+  // MIN-CONTENT -- the widest single chip, wider than a phone on Learn -- so
+  // without `min-w-0` the box refuses to shrink and shoves `Less` off the right
+  // edge. The row then cannot be put back: this primitive's own expanded mode
+  // burying the one control that undoes it.
+  it('the box keeps its ability to shrink, so Less is never pushed off the edge', () => {
+    const b = block();
+    const box = b.slice(b.indexOf('ref={boxRef}'), b.indexOf('style={{ WebkitOverflowScrolling'));
+    expect(box, 'the scroll box must shrink below its min-content, in BOTH overflow states').toMatch(/min-w-0/);
+    // And the control beside it must still refuse to shrink, or the fix would
+    // only move the squeeze from the button's position to its width.
+    expect(b).toMatch(/data-testid="tabscroll-show-all"[\s\S]*?shrink-0/);
   });
 
   it('every tab strip in the app routes through this primitive', () => {
