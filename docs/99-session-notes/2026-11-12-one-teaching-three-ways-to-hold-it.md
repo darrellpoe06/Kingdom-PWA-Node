@@ -1,6 +1,6 @@
 # 2026-11-12 — One teaching, three ways to hold it: the store's product line from every course
 
-Narrative for **[DR-1447](../decisions/DR-1447-one-teaching-three-ways-to-hold-it.md)**.
+Narrative for **[DR-1448](../decisions/DR-1448-one-teaching-three-ways-to-hold-it.md)**.
 Branch `ccr-9828ca3e-88puaw`.
 
 ## What Darrell asked

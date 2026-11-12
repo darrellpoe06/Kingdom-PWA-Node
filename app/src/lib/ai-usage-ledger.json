@@ -1813,7 +1813,7 @@
       "date": "2026-11-12",
       "task": "One teaching, three ways to hold it: the course book line measured on the live registry (which courses are a book), the self-paced course with a walk-through video slot per section, the in-person workshop seat priced by knowledge type, place, format and demand, sold through the existing Stripe seam at the event row's price; the book entitlement the webhook never granted is now handed over",
       "drs": [
-        "DR-1447"
+        "DR-1448"
       ],
       "prs": [],
       "model": "claude-fable-5-1",

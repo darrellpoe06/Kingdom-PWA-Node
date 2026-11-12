@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // course-book-fitness — how many books the courses make, measured on the live
-// registry (DR-1447)
+// registry (DR-1448)
 // =============================================================================
 // Darrell 2026-11-12: "how many books can we make out of my courses ... that
 // would be considered appropriate for a book each?" These cases pin the

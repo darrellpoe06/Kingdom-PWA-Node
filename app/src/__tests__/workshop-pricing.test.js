@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // workshop-pricing — a seat's price has four named parts, and the Word's own
-// workshops are an offering (DR-1447)
+// workshops are an offering (DR-1448)
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {

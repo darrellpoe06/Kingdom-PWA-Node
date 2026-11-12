@@ -32,7 +32,7 @@ import {
   buildBookCheckoutRequest, buildSubscriptionCheckoutRequest, executeCheckout,
   checkoutEndpoint, PROCESSOR_NOTE,
 } from '../lib/checkout-seam.js';
-// DR-1447: one teaching, three ways to hold it — the book (above), the
+// DR-1448: one teaching, three ways to hold it — the book (above), the
 // self-paced video course, the in-person workshop seat; and a bought book is
 // owned on every device, read from the buyer's own cloud row.
 import { CoursesShelf, WorkshopsShelf, GovernorLearningLedger } from './LearningShelves.jsx';

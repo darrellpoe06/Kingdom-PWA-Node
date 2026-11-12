@@ -230,7 +230,7 @@
       "from": 6004,
       "to": 6006,
       "date": "2026-11-12",
-      "why": "DR-1447: the self-paced course walks each section with a video. The resolver lives in lib/lesson-video.js and the player in LessonVideo.jsx; ChurchLearn carries one import and one mount line above the lesson arc, nothing more. Raised to the measured size, not above it."
+      "why": "DR-1448: the self-paced course walks each section with a video. The resolver lives in lib/lesson-video.js and the player in LessonVideo.jsx; ChurchLearn carries one import and one mount line above the lesson arc, nothing more. Raised to the measured size, not above it."
     }
   ],
   "budgets": {

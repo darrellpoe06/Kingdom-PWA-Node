@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // lesson-video — a section's walk-through is measured from the lessons it
-// holds, and nothing is painted where nothing is recorded (DR-1447)
+// holds, and nothing is painted where nothing is recorded (DR-1448)
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import { lessonVideo, sameOriginMedia, sectionVideo, recordingPlan, videoCoverage } from '../lib/lesson-video.js';

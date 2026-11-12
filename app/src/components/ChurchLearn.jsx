@@ -159,7 +159,7 @@ import RecordStrip from './RecordStrip.jsx';
 import { recordHeadline } from '../lib/record-headline.js';
 import { aggregateLearnerRecords } from '../lib/learner-records.js';
 import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subject points home from the Love Corner
-import LessonVideo from './LessonVideo.jsx'; // DR-1447: the lesson's walk-through, when one is recorded
+import LessonVideo from './LessonVideo.jsx'; // DR-1448: the lesson's walk-through, when one is recorded
 
 const fmtDate = formatClassDate;
 

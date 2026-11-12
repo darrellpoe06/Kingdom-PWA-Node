@@ -1,7 +1,7 @@
 // =============================================================================
 // LearningShelves — the Bookstore's two other shelves: the self-paced video
 // courses and the in-person workshop seats; and the Governor's measured
-// "books from the courses" (DR-1447)
+// "books from the courses" (DR-1448)
 // =============================================================================
 // Real data only (DR-0061): the course shelf is derived from the live Learn
 // registry; its video coverage is measured from the lessons' own video field;

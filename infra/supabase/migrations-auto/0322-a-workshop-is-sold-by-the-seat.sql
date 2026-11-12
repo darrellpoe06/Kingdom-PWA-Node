@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0322 — a workshop is sold by the seat, and the seat is a person's (DR-1447)
+-- 0322 — a workshop is sold by the seat, and the seat is a person's (DR-1448)
 -- =============================================================================
 -- Darrell 2026-11-12: an in-person paid workshop, its cost varied on location
 -- and the going rate for the area or the kind of knowledge, whatever works

@@ -1,5 +1,5 @@
 // =============================================================================
-// workshops — the app's half of the in-person workshop seat (DR-1447)
+// workshops — the app's half of the in-person workshop seat (DR-1448)
 // =============================================================================
 // Reads the OPEN events the house has posted (workshop_events, migration 0322;
 // RLS shows only open and sold-out rows), counts the seats left through the
