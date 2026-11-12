@@ -257,17 +257,52 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
     }
   });
 
-  it('a verify step is a brake, not a log line: it exits non-zero on a shut road', () => {
+  // AMENDED 2026-11-12 by DR-1431, and the amendment is deliberately narrow.
+  //
+  // The rule was "the verify step must exit 1", written when dying at the door
+  // was the only honest answer an intake lane had to a shut road. It is not any
+  // more: inbox-lessons-waiting.yml now reads the census the NAS takes of
+  // itself when the tailnet is shut, so dying at the door would refuse an
+  // answer the house can still give — and runs #500-#505 did exactly that, six
+  // firings of the PRIORITY lane that read nothing while the queue sat on a
+  // machine that was up.
+  //
+  // What the rule was PROTECTING is not the exit code. It is that a shut road
+  // on a lane carrying his teachings is never silent. So the requirement is now
+  // stated as that: the run must fail when the queue was not read. A lane with
+  // no second road still fails at the door; a lane with one must fail at a
+  // closing step that reads BOTH roads' outcomes and exits 1 when neither
+  // answered. Either way the lane cannot go green on an unread queue, which is
+  // the whole of it. Both branches are proven to catch below.
+  it('a shut road is never silent on an intake lane: the run fails when the queue was not read', () => {
+    const { secondRoad } = classify();
     for (const fn of INTAKE_LANES) {
       const s = read(fn);
       const step = s.slice(s.indexOf('Verify the tailnet actually joined'));
       const body = step.slice(0, step.indexOf('\n      - name:') === -1 ? 1200 : step.indexOf('\n      - name:'));
-      expect(body, `${fn}: the verify step must fail the run`).toMatch(/exit 1/);
+      // Whichever branch a lane is on, the verify step still ASKS, and still
+      // names the cause a reader must act on.
       expect(body, `${fn}: the verify step must name the real cause`).toMatch(/TS_AUTHKEY/);
+      if (!secondRoad.includes(fn)) {
+        expect(body, `${fn}: no second road, so the verify step must fail the run at the door`).toMatch(/exit 1/);
+        continue;
+      }
+      // A lane with a second road: the door may be passed, but a run that read
+      // the queue by NEITHER road must still end red, or the second road has
+      // bought a green that means nothing (DR-0076 section 3).
+      const gate = s.slice(s.lastIndexOf('- name: '));
+      expect(gate, `${fn}: has a second road but no closing step that fails an unread queue`).toMatch(/exit 1/);
+      expect(gate, `${fn}: the closing step must read the first road's own outcome`).toMatch(
+        /steps\.\w+\.outputs\.read/
+      );
+      expect(gate, `${fn}: the closing step must read the second road's outcome too`).toMatch(
+        /SERVED_READ|steps\.served\.outputs\.read/
+      );
+      expect(gate, `${fn}: the closing step must say the queue is unknown, not empty`).toMatch(/not empty|UNKNOWN/i);
     }
   });
 
-  it('the six exempt lanes are exempt for a stated reason, not by accident', () => {
+  it('the seven exempt lanes are exempt for a stated reason, not by accident', () => {
     const { secondRoad } = classify();
     // Each of these declares `continue-on-error` on the join because it has
     // another way to the same value or reports DEGRADED rather than dying.
@@ -285,6 +320,16 @@ describe('every lane that joins the tailnet either asks whether it worked, or ha
       'db-migrate.yml',
       'deploy-cloudflare-pages.yml',
       'harvest-health.yml',
+      // DR-1431: the lesson intake's own join may fail because the queue has a
+      // second road: the census the NAS takes of itself each cycle, read over
+      // poetech.us/sb (served-lesson-queue.py, migration 0320). This is the
+      // FIRST lane in INTAKE_LANES to join this set, and it is allowed in only
+      // because a shut road is still never silent here — see the verify-is-a-
+      // brake case below, which now requires an intake lane with a second road
+      // to fail the run from its closing gate instead of from its door.
+      // Measured cause: runs #500-#505 all died at this join while the queue
+      // sat on a machine that was up.
+      'inbox-lessons-waiting.yml',
       // DR-1399: loops-health's join may fail because the witness has a second
       // road: the heartbeat the NAS writes itself, read over poetech.us/sb
       // (served-heartbeat-receipt.py). (It was once on this list by accident,

@@ -223,7 +223,7 @@ jobs:
           case "${READ:-}" in
             ok)     head="**${COUNT}** lesson row(s) waiting — ${ROAD}" ;;
             failed) head='**UNKNOWN** -- neither road could read the queue: the tailnet was shut and the house had no current census to give. This is NOT an empty queue; it is an unread one.' ;;
-            *)      head='**UNKNOWN** -- no read step reported (the job ended before them). Not an empty queue.' ;;
+            *)      head='**UNKNOWN** -- the read step did not report on either road (the job ended before them). Not an empty queue.' ;;
           esac
           {
             printf -- '- %s — %s ([run](%s))\n' "$at" "$head" "$run_url"
