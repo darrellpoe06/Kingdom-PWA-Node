@@ -119,7 +119,14 @@
       "to": 23042,
       "dr": "DR-1433",
       "reason": "Bishop Gwin's messages become lessons from the NAS's side. ci.yml +1 runs test_bg_message_lessons (a message with no named speaker is never sent as his; a message is sent once); loops-health.yml +1 reads the new loop's own last-run.json in the diagnosis, beside its name in the loops list, install map, cron prefix and heartbeat receipt (edited on existing lines). Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 23042,
+      "to": 23061,
+      "dr": "DR-1436",
+      "reason": "poetech-plus-keys.yml runs daily as well as by hand (Darrell: should he have to do this later, or can it be automated for consistency). +19 lines: the schedule, and a gate step that makes a daily run do nothing when no key is set, nothing when the live site already offers PoeTech+, and never install a live key (that still needs a dispatch typing CHARGE-REAL-MONEY), with every later step gated on it. So the one paste of his key is the only hand ever needed, and a lost Pages environment heals itself. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23042
+  "totalLines": 23061
 }

@@ -4,11 +4,17 @@
 # (scripts/poetech-plus-keys.mjs), installs the Pages secrets with wrangler,
 # redeploys (Pages binds env at deploy time), and proves the LIVE site now
 # offers PoeTech+ (DR-0125: prove the site, not the pipeline).
-# BRAKES: dispatch-only, no clock. A LIVE key (real money) is refused unless
-# the dispatch types CHARGE-REAL-MONEY: prove a test-mode purchase end to end
-# first (Tier C, activate on proof). Re-running is idempotent.
+# DR-1436: it also runs DAILY, so the one paste is the only hand ever needed.
+# A daily run does nothing when no key is set, nothing when the live site
+# already offers PoeTech+, and NEVER installs a live key (that needs the typed
+# word below); otherwise it installs and proves, which also heals a lost env.
+# BRAKES: one run at a time (concurrency), 20-minute cap, idempotent; stop by
+# deleting the secret. A LIVE key (real money) is refused unless a dispatch
+# types CHARGE-REAL-MONEY: prove a test-mode purchase end to end first.
 name: PoeTech+ keys
 on:
+  schedule:
+    - cron: '23 10 * * *'
   workflow_dispatch:
     inputs:
       live:
@@ -36,14 +42,24 @@ jobs:
         with:
           node-version: 22
       - name: The key must exist, and a live key must be meant
+        id: gate
         env:
           LIVE: ${{ github.event.inputs.live }}
+          EVENT: ${{ github.event_name }}
         run: |
-          [ -n "$STRIPE_SECRET_KEY" ] || { echo "::error::Repository secret STRIPE_SECRET_KEY is not set. Nothing was changed."; exit 1; }
+          if [ -z "$STRIPE_SECRET_KEY" ]; then
+            [ "$EVENT" = schedule ] && { echo "No STRIPE_SECRET_KEY yet - nothing to do."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; }
+            echo "::error::Repository secret STRIPE_SECRET_KEY is not set. Nothing was changed."; exit 1
+          fi
           case "$STRIPE_SECRET_KEY" in
-            sk_live_*|rk_live_*) [ "$LIVE" = "CHARGE-REAL-MONEY" ] || { echo "::error::This is a LIVE key. Prove a test-mode purchase first, then dispatch with CHARGE-REAL-MONEY. Nothing was changed."; exit 1; } ;;
+            sk_live_*|rk_live_*) [ "$LIVE" = "CHARGE-REAL-MONEY" ] || { echo "::warning::A LIVE key installs only by a dispatch typing CHARGE-REAL-MONEY. Nothing was changed."; echo "go=false" >> "$GITHUB_OUTPUT"; [ "$EVENT" = schedule ] && exit 0; exit 1; } ;;
           esac
+          if [ "$EVENT" = schedule ] && curl -sS --max-time 30 https://poetech.us/api/checkout | grep -q '"poetech-plus"'; then
+            echo "The live site already offers PoeTech+ - nothing to do."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
       - name: Make the Price, webhook and portal in Stripe (values never printed)
+        if: ${{ steps.gate.outputs.go == 'true' }}
         run: |
           set -o pipefail
           umask 077
@@ -51,6 +67,7 @@ jobs:
           FLAG=""; grep -q STRIPE_WEBHOOK_SECRET /tmp/before.txt && FLAG="--pages-has-webhook-secret"
           node scripts/poetech-plus-keys.mjs --out /tmp/stripe.json $FLAG
       - name: Install onto the Pages project, then read the names back
+        if: ${{ steps.gate.outputs.go == 'true' }}
         run: |
           set -o pipefail
           npx --yes wrangler@3 pages secret bulk /tmp/stripe.json --project-name="$PROJECT" > /tmp/up.out 2>&1 || { tail -5 /tmp/up.out; exit 1; }
@@ -63,6 +80,7 @@ jobs:
         if: ${{ always() }}
         run: rm -f /tmp/stripe.json
       - name: Redeploy and wait (Pages binds secrets at deploy time)
+        if: ${{ steps.gate.outputs.go == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -73,6 +91,7 @@ jobs:
           [ "$RUN" != "$BEFORE" ] || { echo "::error::No deploy run appeared in 5 minutes."; exit 1; }
           gh run watch "$RUN" --exit-status
       - name: WITNESS -- the live site offers PoeTech+
+        if: ${{ steps.gate.outputs.go == 'true' }}
         run: |
           BODY=$(curl -sS --max-time 30 -H 'accept: application/json' https://poetech.us/api/checkout || true)
           echo "GET https://poetech.us/api/checkout -> $BODY" | head -c 300; echo
