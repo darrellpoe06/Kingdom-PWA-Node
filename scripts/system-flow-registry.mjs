@@ -1975,13 +1975,29 @@ const NODES = [
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
   }),
   rider('service:research', 'infra/nas-research/research_forwarder.py', {
-    id: 'research-road', name: 'Research road (Vane behind the locked door, and the research bell)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101). Its installer also rings the research lane when an item waits (DR-1202).',
+    id: 'research-road', name: 'Research road (Vane behind the locked door, and the research bell)', purpose: 'Answers a question from the web with its sources, on our own SearxNG and our own model; the forwarder is the only door, because Vane has no login (DR-1101). Its installer starts the NAS research lane each cycle (DR-1443); the GitHub bell (DR-1202) is off by default.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' }, { res: 'db:agent_inbox#research', file: 'infra/nas-research/research_bell.py', token: '/rest/v1/agent_inbox' }],
     // THE BELL (DR-1202) rides this service's installer each cycle, before any
     // step that can stop it: when a research item waits it sends ONE
     // repository_dispatch research-waiting, because GitHub ran the lane's own
     // schedule three times in six hours.
     writes: [{ res: 'http:research', token: '/research' }, { res: 'gh:research-waiting', file: 'infra/nas-research/research_bell.py', token: 'research-waiting' }], seeds: ['research', 'research-inbox'],
+  }),
+  rider('service:research', 'infra/nas-research/research-inbox-nas.sh', {
+    id: 'research-inbox-nas', name: 'The NAS answers its own research items (DR-1443)',
+    purpose: 'Started by the research installer each services-sync cycle, detached under its own lock: claims one waiting research row at a time with the same SQL research-inbox.yml used, gets its words on this box (captions, the link road, or /ask), writes the answer with the unverified sentence first, reads it, and files what it was sent for -- no runner and no tailnet key, because that key expired 2026-11-04 and nothing was answered (DR-1360).',
+    reads: [
+      { res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'research' },
+      { res: 'nas:clock', file: 'infra/nas-research/install.sh', token: 'research-inbox-nas.sh' },
+      { res: 'db:agent_inbox#research', token: 'research-inbox-waiting.sql' },
+      { res: 'yt:channel', token: 'youtube-captions.py' },
+      { res: 'http:research', token: '127.0.0.1:8797' },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#research-answer', token: 'research-answer' },
+      { res: 'db:agent_inbox#lesson', token: 'research-create.sh' },
+    ],
+    seeds: ['research-section', 'lesson-builder'],
   }),
   rider('service:immich', 'infra/nas-immich/immich_forwarder.py', {
     id: 'photo-backup-road', name: 'Photo-backup road (Immich behind the locked door)', purpose: 'Takes the phones’ photos and videos onto the pool through Immich; the forwarder is the only door, passing Immich’s API under the family key and never its pages (DR-1120).',

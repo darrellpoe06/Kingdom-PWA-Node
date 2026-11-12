@@ -18,6 +18,12 @@
 # unchanged. ON_ERROR_STOP=1: a failed statement is a non-zero exit, never an
 # empty answer that reads like "the database holds none" (DR-0076). The exit
 # code is psql's: 0 ok, 1-3 a real failure; 10 = the NAS did not answer.
+#
+# ON THE NAS ITSELF (DR-1443): LIVE_SQL_LOCAL=1 runs the same remote half
+# right here, with no ssh and no key, because the NAS initiates its own roads
+# now (DR-1360) and a lane that runs ON the NAS has no tailnet to cross.
+# research-inbox-nas.sh uses it; the SQL, the psql flags and the exit codes
+# are the remote half's, unchanged.
 # Any size of SQL: the body travels on ssh's stdin, never its command line
 # (DR-1232; app/src/__tests__/live-sql-carries-any-size.test.js proves it).
 # =============================================================================
@@ -25,7 +31,8 @@ set -uo pipefail
 SEP="${1:-|}"
 NAS_HOST="${NAS_HOST:-dpoe@poetech.tail5a2f35.ts.net}"
 NAS_ENV="${NAS_ENV:-/volume1/docker/supabase/.env}"
-[ -n "${NAS_SSH_KEY:-}" ] || { echo "live-sql: NAS_SSH_KEY is not set" >&2; exit 10; }
+LOCAL="${LIVE_SQL_LOCAL:-}"
+[ "$LOCAL" = 1 ] || [ -n "${NAS_SSH_KEY:-}" ] || { echo "live-sql: NAS_SSH_KEY is not set" >&2; exit 10; }
 
 SQL="$(cat)"
 [ -n "$SQL" ] || { echo "live-sql: no SQL on stdin" >&2; exit 2; }
@@ -35,11 +42,12 @@ SEP_B64="$(printf '%s' "$SEP" | base64 -w0)"
 KEYFILE="$(mktemp)"
 REMOTE="$(mktemp)"
 trap 'rm -f "$KEYFILE" "$REMOTE"' EXIT
-printf '%s\n' "$NAS_SSH_KEY" > "$KEYFILE"
-chmod 600 "$KEYFILE"
-SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR $NAS_HOST"
-
-$SSH 'echo ok' 2>/dev/null | grep -q ok || { echo "live-sql: the NAS did not answer over the tailnet" >&2; exit 10; }
+if [ "$LOCAL" != 1 ]; then
+  printf '%s\n' "$NAS_SSH_KEY" > "$KEYFILE"
+  chmod 600 "$KEYFILE"
+  SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR $NAS_HOST"
+  $SSH 'echo ok' 2>/dev/null | grep -q ok || { echo "live-sql: the NAS did not answer over the tailnet" >&2; exit 10; }
+fi
 
 # QUOTED heredoc: what is written here is exactly what the NAS runs.
 cat > "$REMOTE" <<'REMOTE_EOF'
@@ -95,4 +103,8 @@ REMOTE_EOF
 # were the full transcript, so the item was never filed. Now the two values
 # are the first lines of the script bash -s reads from stdin, ahead of the
 # remote half; stdin has no size limit. Output and exit code are unchanged.
+if [ "$LOCAL" = 1 ]; then
+  { printf 'SQL_B64=%s\nSEP_B64=%s\n' "$SQL_B64" "$SEP_B64"; cat "$REMOTE"; } | NAS_ENV="$NAS_ENV" bash -s
+  exit $?
+fi
 { printf 'SQL_B64=%s\nSEP_B64=%s\n' "$SQL_B64" "$SEP_B64"; cat "$REMOTE"; } | $SSH "NAS_ENV='$NAS_ENV' bash -s"

@@ -32,9 +32,18 @@ describe('the tab-row wrapper is allowed to shrink', () => {
   it('carries min-w-0 flex-1 beside w-full, in that order, on the wrapper that holds .tab-scroll', () => {
     const at = SHARED.indexOf('<div className="min-w-0 flex-1 w-full flex items-start gap-1">');
     expect(at).toBeGreaterThan(0);
-    // The very next element is the scroll box — the wrapper is the one that
-    // sits in the header's flex row.
-    expect(SHARED.slice(at, at + 200)).toMatch(/className=\{`tab-scroll w-full/);
+    // THE FIRST ELEMENT INSIDE IT IS THE SCROLL BOX, and that is what makes
+    // this the right wrapper rather than some other div wearing the same
+    // classes. Found by WALKING to the next element (2026-11-12), not by a
+    // fixed 200-character window: that window was a measurement of the file as
+    // it stood, so a comment added inside the wrapper -- explaining why the box
+    // needs `min-w-0` too -- pushed the box past the end and failed this case
+    // while the shape it pins sat right there, correct. The box's own class
+    // list is pinned by no-tab-stays-buried.test.js; here only its POSITION
+    // matters, so this no longer spells out the classes that follow.
+    const box = SHARED.indexOf('<div', at + 1);
+    expect(box).toBeGreaterThan(at);
+    expect(SHARED.slice(box, box + 160)).toMatch(/className=\{`tab-scroll /);
   });
 
   it('the pre-fix wrapper is gone', () => {
