@@ -920,7 +920,7 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0242 applies, twice (idempotent)
         run: |
           set -euo pipefail
@@ -985,7 +985,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0244 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1023,7 +1023,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0246, 0252 and 0311 apply, twice (idempotent); the enqueue is one per teaching per event; a published push lands on the lesson; a stale row alarms once per window
         run: |
           set -euo pipefail
@@ -1060,7 +1060,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0247 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1095,7 +1095,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0248 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1129,7 +1129,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0249 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1165,7 +1165,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0304 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1210,7 +1210,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0315 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1256,7 +1256,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0251 applies, twice (idempotent), and every vault wall holds
         run: |
           set -euo pipefail
@@ -1296,7 +1296,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0297 applies, twice (idempotent), and every onboarding wall holds
         run: |
           set -euo pipefail
@@ -1341,7 +1341,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: 0250, 0312, 0313 and 0316 apply, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1419,7 +1419,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: The work-order chain, 0260/0261 twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
@@ -1760,7 +1760,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Install postgresql-client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh" # apt first, else psql from the postgres:16 image (DR-1435)
       - name: PostgREST 12.2.12 (pinned release, checksum verified)
         run: |
           set -euo pipefail

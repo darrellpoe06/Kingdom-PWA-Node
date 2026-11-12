@@ -975,16 +975,70 @@ export function extraDebtCapacity(data, opts = {}) {
   const chosen = buildSafeToSpend(data, opts);
   const month = buildSafeToSpend(data, { ...opts, period: '30d' });
   const amount = round2(Math.max(0, Math.min(chosen.safeToSpendNow, month.safeToSpendNow)));
+  // ONE POOL, TWO USES (Christina 2026-11-11: "Help me determine how much I
+  // can safely contribute toward my reserve and additional debt payments
+  // after accounting for upcoming bills"). What is safe today above the
+  // designated cushion can be set aside as reserve or paid toward debt; the
+  // suggestion fills the reserve goal first (an emergency reserve is what
+  // keeps the next missed paycheck from becoming new debt), and the rest goes
+  // to debt. Setting money aside raises the cushion, so the next read of this
+  // line is smaller by exactly that amount — never counted twice.
+  const rs = (chosen.lines && chosen.lines.reserve) || { goal: 0, designated: 0, remaining: 0 };
+  const toReserve = round2(Math.min(amount, Number(rs.remaining) || 0));
   return {
     amount,
     status: chosen.status === 'unavailable' || month.status === 'unavailable' ? 'unavailable' : (chosen.status === 'verified' && month.status === 'verified' ? 'verified' : 'estimate'),
     chosen: { label: chosen.period.label, safe: chosen.safeToSpendNow, lowest: chosen.lines.projectedLowest },
     month: { label: month.period.label, safe: month.safeToSpendNow, lowest: month.lines.projectedLowest },
+    reserve: { goal: rs.goal, designated: rs.designated, remaining: rs.remaining, suggested: toReserve, debtAfter: round2(amount - toReserve) },
   };
 }
 
 // A bank check older than this no longer counts as current.
 export const CHECKPOINT_FRESH_DAYS = 14;
+
+// The Personal pocket's emergency-reserve GOAL when none has been saved
+// (Christina 2026-11-11: "I am working toward saving $10,000"). A goal, never
+// a cushion: nothing is protected until money is actually set aside.
+export const DEFAULT_PERSONAL_RESERVE_GOAL = 10000;
+
+// What a pocket has set aside, what it is saving toward, and the cushion the
+// walk protects. Pure; shared by the walk, the capacity line and the panel.
+//   designated = the reserve typed under the pocket's key (money set aside by
+//                hand) + every designation in moneyPlan.reserveDesignations
+//                for the pocket (date, amount, note), newest last;
+//   goal       = settings.reserveGoalByEntity[key], else $10,000 for Personal,
+//                else 0;
+//   cushion    = designated when anything is set aside; else the explicit
+//                household cushion for Personal, or the business chain.
+export function reserveStatus(data, settings = {}, sc) {
+  const reserves = settings.reserveByEntity || {};
+  const goals = settings.reserveGoalByEntity || {};
+  const hasKey = (k) => reserves[k] != null && reserves[k] !== '' && Number.isFinite(Number(reserves[k]));
+  const key = sc.kind === 'personal' ? (hasKey('personal') || !hasKey(sc.id) ? 'personal' : sc.id) : sc.id;
+  const typed = hasKey(key) ? round2(Number(reserves[key])) : null;
+  const designations = (data?.moneyPlan?.reserveDesignations || [])
+    .filter((d) => d && (d.scope === key || (sc.kind === 'personal' && (d.scope === 'personal' || sc.entityIds.includes(d.scope)))) && Number.isFinite(Number(d.amount)))
+    .map((d) => ({ id: d.id, date: String(d.date || '').slice(0, 10), amount: round2(Number(d.amount)), note: d.note || '' }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const fromDesignations = round2(designations.reduce((s, d) => s + d.amount, 0));
+  const designated = round2(Math.max(0, (typed || 0) + fromDesignations));
+  const anySetAside = typed != null || designations.length > 0;
+  const goalKey = goals[key] != null && goals[key] !== '' && Number.isFinite(Number(goals[key])) ? Number(goals[key]) : (sc.kind === 'personal' && goals.personal != null && goals.personal !== '' ? Number(goals.personal) : null);
+  const goal = round2(goalKey != null ? goalKey : (sc.kind === 'personal' ? DEFAULT_PERSONAL_RESERVE_GOAL : 0));
+  const household = settings.minCushion != null && settings.minCushion !== '' ? round2(Number(settings.minCushion)) : null;
+  let cushion; let source;
+  if (anySetAside) { cushion = designated; source = 'designated'; }
+  else if (household != null) { cushion = household; source = 'household'; }
+  else if (sc.kind === 'personal') { cushion = 0; source = 'none'; }
+  else { cushion = round2(Number(data?.meta?.bufferTarget) || 0); source = cushion > 0 ? 'household' : 'none'; }
+  const remaining = round2(Math.max(0, goal - designated));
+  return {
+    key, goal, designated, typed, designations, remaining, cushion, source,
+    pct: goal > 0 ? Math.min(100, Math.round((designated / goal) * 100)) : null,
+    goalSource: goalKey != null ? 'saved' : (sc.kind === 'personal' ? 'default' : 'none'),
+  };
+}
 
 export function buildSafeToSpend(data, opts = {}) {
   const asOfRaw = opts.currentDate instanceof Date ? opts.currentDate : new Date();
@@ -1079,16 +1133,26 @@ function forScope(data, sc, asOf, settings, opts) {
   // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
   // reserve, as before.
-  const reserves = settings.reserveByEntity || {};
   // Every personal pocket (the Personal view, the Personal row of the combined
   // view) reads ONE key, 'personal', so the reserve she sets is the reserve
   // every Money screen uses.
-  const hasKey = (k) => reserves[k] != null && reserves[k] !== '';
-  const ownReserve = sc.kind === 'personal' ? (hasKey('personal') ? reserves.personal : (hasKey(sc.id) ? reserves[sc.id] : undefined)) : (hasKey(sc.id) ? reserves[sc.id] : undefined);
-  const hasOwnReserve = ownReserve != null && ownReserve !== '' && Number.isFinite(Number(ownReserve));
-  const minCushion = round2(hasOwnReserve ? Number(ownReserve) : (settings.minCushion != null && settings.minCushion !== '' ? Number(settings.minCushion) : (Number(data?.meta?.bufferTarget) || 0)));
+  // THE GOAL IS NOT THE CUSHION (Christina 2026-11-11: "The $10,000 reserve is
+  // my SAVINGS GOAL, not my current reserve balance... Only protect money I
+  // have actually designated as reserved"). The cushion every projected day
+  // must stay above is the money SET ASIDE for this pocket — the reserve
+  // figure typed under the pocket's key plus every designation recorded in
+  // moneyPlan.reserveDesignations — never the goal. The goal is tracked
+  // beside it (lines.reserve) with what is still to be saved. A Personal
+  // pocket with nothing set aside protects an explicit household cushion
+  // (settings.minCushion) if one was typed, else nothing: a target on file
+  // (meta.bufferTarget) is a goal too and is never subtracted from what is
+  // spendable. Business pockets keep their own chain (their key, else the
+  // household cushion, else the buffer target), unchanged.
+  const reserve = reserveStatus(data, settings, sc);
+  const minCushion = reserve.cushion;
+  if (reserve.source === 'none') assumptions.push(`${sc.label}: nothing is set aside as a reserve yet, so no cushion is protected; the $${reserve.goal.toLocaleString()} goal is tracked, not subtracted.`);
   const windows = comingUp(data, sc, start, settings, opts);
-  windows.reserveSource = hasOwnReserve ? 'entity' : 'household';
+  windows.reserveSource = reserve.source;
 
   // Day-by-day walk.
   const items = [...income.events, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
@@ -1200,6 +1264,7 @@ function forScope(data, sc, asOf, settings, opts) {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
       minCushion, otherCommitments, expectedIncome,
+      reserve: { goal: reserve.goal, designated: reserve.designated, remaining: reserve.remaining, pct: reserve.pct, source: reserve.source, goalSource: reserve.goalSource, key: reserve.key, typed: reserve.typed, designations: reserve.designations },
       projectedLowest: lowest,
       toLowest,
       nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred } : null,
@@ -1275,6 +1340,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       availableCash: sumLine('availableCash'), investmentsHeldApart: sumLine('investmentsHeldApart'), pendingHolds: 0,
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),
       minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'),
+      reserve: ['goal', 'designated', 'remaining'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + (((r.lines || {}).reserve || {})[k] || 0), 0)); return acc; }, { pct: null, source: 'summed', goalSource: 'summed', key: null, typed: null, designations: [] }),
       projectedLowest: { amount: lowestSum, date: null },
       toLowest: ['income', 'bills', 'debtMinimums', 'taxesDated', 'other', 'living', 'taxes', 'savings', 'reserves', 'obligations'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + ((r.lines.toLowest || {})[k] || 0), 0)); return acc; }, { date: null, days: null }),
       nextIncome, potentialDebtPayment: safe,

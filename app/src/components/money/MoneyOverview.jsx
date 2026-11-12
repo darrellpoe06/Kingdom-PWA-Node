@@ -264,7 +264,10 @@ export default function MoneyOverview({ money }) {
         </details>
       </section>
 
-      {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }} />}
+      {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} data={data} asOf={currentDate} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }}
+        onSaveReserveGoal={(id, amount) => { const next = { ...(settings.reserveGoalByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveGoalByEntity: next }); }}
+        onDesignate={(d) => setData && setData((prev) => { const plan = prev.moneyPlan || {}; const list = Array.isArray(plan.reserveDesignations) ? plan.reserveDesignations : []; const row = { id: `rd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`, scope: d.scope, date: d.date, amount: d.amount, note: d.note || '', recordedAt: new Date().toISOString() }; return { ...prev, moneyPlan: patchMoneyPlan(plan, { reserveDesignations: [...list, row] }) }; })}
+        onRemoveDesignation={(id) => setData && setData((prev) => { const plan = prev.moneyPlan || {}; const list = Array.isArray(plan.reserveDesignations) ? plan.reserveDesignations : []; return { ...prev, moneyPlan: patchMoneyPlan(plan, { reserveDesignations: list.filter((r) => r && r.id !== id) }) }; })} />}
 
       {/* Shortcuts — one tap to the three Christina named */}
       <nav aria-label="Money shortcuts" data-testid="money-shortcuts" className="grid grid-cols-3 gap-2">

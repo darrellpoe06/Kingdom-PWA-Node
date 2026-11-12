@@ -84,7 +84,9 @@ function household(overrides = {}) {
     ],
     taxCalendar: [{ id: 'tx-q4', month: 1, day: 15, name: 'Estimated tax Q4', entityIds: ['e-personal'], applies: true, amount: 1200 }],
     incidents: [], debts: [], events: [],
-    moneyPlan: { settings: { incomeSchedule: { 's-d': { frequency: 'biweekly', nextDate: '2026-11-06' }, 's-c': { frequency: 'semimonthly', nextDate: '2026-11-01' } }, debtDueDays: {}, rentDueDay: 1, mortgageDueDay: 1 } },
+    // minCushion is explicit (= the buffer the hand-checked walk below uses): with
+    // no cushion saved, the Personal pocket reserves the $10,000 default (DR-1435).
+    moneyPlan: { settings: { incomeSchedule: { 's-d': { frequency: 'biweekly', nextDate: '2026-11-06' }, 's-c': { frequency: 'semimonthly', nextDate: '2026-11-01' } }, debtDueDays: {}, rentDueDay: 1, mortgageDueDay: 1, minCushion: 1000 } },
   };
   return { ...base, ...overrides };
 }

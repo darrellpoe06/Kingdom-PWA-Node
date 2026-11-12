@@ -107,7 +107,7 @@ describe('Safe to Spend per entity — the cash is counted where it leaves', () 
     const tlc = buildSafeToSpend(w, opts('e-tlc'));
     expect([p.lines.availableCash, poe.lines.availableCash, tlc.lines.availableCash]).toEqual([6236.18, 3000, 4000]);
     expect([p.lines.minCushion, poe.lines.minCushion, tlc.lines.minCushion]).toEqual([2000, 500, 1500]);
-    expect([p.windows.reserveSource, tlc.windows.reserveSource]).toEqual(['entity', 'entity']);
+    expect([p.windows.reserveSource, tlc.windows.reserveSource]).toEqual(['designated', 'designated']);
     expect(tlc.safeToSpendNow).toBe(4000 - 900 - 1500);
     expect(labels(p)).not.toContain('Office rent');
     // Without a reserve of its own, an entity uses the household reserve, as before.
@@ -193,7 +193,7 @@ describe('the Bills Review screen shows the label on every bill and filters by e
     expect(next14).toMatch(/709 Water · 🏘️ POE PROPERTIES, paid from personal cash/);
     expect(next14).toMatch(/Unknown payee · ⚠️ NEEDS REVIEW/);
     expect(next14).not.toMatch(/Therapist pay/); // TLC's own bill, paid from TLC cash
-    expect(el.querySelector('[data-testid="coming-up-reserve"]').textContent).toMatch(/the household reserve/);
+    expect(el.querySelector('[data-testid="coming-up-reserve"]').textContent).toMatch(/the household cushion/);
   });
   it('the combined view shows one row per entity, and a reserve set for one entity is saved for that entity only', async () => {
     const w = saved();
