@@ -1760,6 +1760,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 12,
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
+    },
+    {
+      "id": "sov75",
+      "date": "2026-11-12",
+      "task": "sov75, safely - a tool and not a friend: the Sovereign A.I. week built from Sinead Bovell's SXSW EDU 2025 session, with Darrell's one-word follow-up, Safely, as its spine",
+      "drs": [
+        "DR-1442"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 12,
+      "notes": "Video https://youtu.be/dXxZwwCoO04 not watched (no YouTube from this session); built from his timestamped summary, her points credited to her. The session confirmed by web search on SXSW EDU's pages; her atrophy and addiction claims marked as hers. Five safe-use practices gated in every band and tested by the quiz. 85 spans filled from the KJV corpus. First-draft bands under their share floors, written up by hand."
     }
   ]
 }
