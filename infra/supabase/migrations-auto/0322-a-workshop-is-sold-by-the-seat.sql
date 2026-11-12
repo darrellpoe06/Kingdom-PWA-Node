@@ -107,3 +107,11 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION public.workshop_seats_left(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.workshop_seats_left(uuid) TO anon, authenticated, service_role;
+
+-- The overlays re-read every policy set (0153, 0185, 0309 and 0310 did the
+-- same): a viewer reads an open event and never writes one; the assistant's
+-- scope covers the new instance-scoped table.
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();
+
+NOTIFY pgrst, 'reload schema';
