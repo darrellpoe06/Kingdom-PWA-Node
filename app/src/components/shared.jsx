@@ -320,9 +320,24 @@ function TabScroll({ children, chrome = false, className = '', rowClassName = ''
   // pair is inert and `w-full` still fills.
   return (
     <div className="min-w-0 flex-1 w-full flex items-start gap-1">
+      {/* AND SO MUST THE BOX INSIDE IT (Darrell 2026-11-12, from his phone on
+          Learn, with a narrow and a wide screenshot side by side: "The less
+          button is hidden on narrow screens". The wrapper above was taught to
+          shrink; this box was not, and it only bites in ONE state. Collapsed,
+          the box is `overflow-x-auto`, so its `min-width: auto` resolves to 0
+          and it yields room to the control beside it. The moment ALL is tapped
+          it becomes `overflow-visible`, `min-width: auto` reverts to MIN-
+          CONTENT -- the width of the widest single chip, and on Learn that chip
+          is `AI-103 - AI LEGAL BLUEPRINT: WHAT NEVER TO TELL A CHATBOT`, wider
+          than a phone -- so the box refuses to shrink and pushes the `Less`
+          button past the right edge. The one control that undoes the state is
+          only rendered IN that state, so the row cannot be put back: the exact
+          "buried control" this primitive exists to prevent, reintroduced by its
+          own expanded mode. `min-w-0` holds the shrink in both states; the
+          wrapping row inside still lays out at whatever width is left. */}
       <div
         ref={boxRef}
-        className={`tab-scroll w-full ${showAll ? 'overflow-visible' : 'overflow-x-auto'} overscroll-x-contain ${className}`}
+        className={`tab-scroll min-w-0 flex-1 w-full ${showAll ? 'overflow-visible' : 'overflow-x-auto'} overscroll-x-contain ${className}`}
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
