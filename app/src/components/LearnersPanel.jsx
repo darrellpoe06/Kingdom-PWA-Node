@@ -21,7 +21,8 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
-import { courseStanding, examsOwed, mostStudied, growthOpportunities, courseAwards } from '../lib/course-pace.js';
+import { courseStanding, examsOwed, mostStudied, growthOpportunities, courseAwards, crownCount } from '../lib/course-pace.js';
+import { CROWN_VERSES } from '../lib/course-crowns.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
 import { learnerIdentity } from '../lib/learner-identity.js';
@@ -249,13 +250,14 @@ function StandingAndPace({ rows = [], userId, courseLessonIds }) {
       {courseAwards(s).length > 0 && (
         <div className="mb-2" data-testid="course-awards">
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-            Courses rewarded: {s.coursesUnderstood} understood, {s.coursesComplete} completed, {s.coursesRead} read in full
+            Courses rewarded: {s.coursesComplete} {s.coursesComplete === 1 ? 'crown' : 'crowns'} ({s.coursesUnderstood} at 100%), {s.coursesRead} read in full
           </div>
           <ul className="flex flex-wrap gap-1.5">
             {courseAwards(s).map((a) => (
-              <li key={a.courseKey} className="inline-flex items-center gap-1 border border-[#C9A227] px-2 py-1 text-xs text-[#1A1815] [overflow-wrap:anywhere]" title={a.label} data-award={a.award}>
+              <li key={a.courseKey} className="inline-flex items-center gap-1 border border-[#C9A227] px-2 py-1 text-xs text-[#1A1815] [overflow-wrap:anywhere]" title={a.kind === 'book' ? a.label : `${a.label}. “${CROWN_VERSES[a.kind].text}” (${CROWN_VERSES[a.kind].ref}, KJV)`} data-award={a.award} data-kind={a.kind}>
                 <RecordMark name={a.award} size={1.1} />
                 <span>{a.courseKey}</span>
+                {a.kind === 'crownFull' ? <span className="text-[0.625rem] text-[#5A5751] font-semibold">100%</span> : null}
                 <span className="sr-only">: {a.label}</span>
               </li>
             ))}
@@ -369,7 +371,8 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
   // standing the "Courses fully completed" figure counts, so the two can never
   // disagree on one screen.
   const myRecords = rows.map(rowToRecord).filter((r) => r.userId === learner.userId);
-  const standingOf = new Map(courseLessonIds ? courseStanding(myRecords, courseLessonIds).courses.map((c) => [c.courseKey, c]) : []);
+  const standingAll = courseLessonIds ? courseStanding(myRecords, courseLessonIds) : null;
+  const standingOf = new Map(standingAll ? standingAll.courses.map((c) => [c.courseKey, c]) : []);
   return (
     <li className="border border-[#E8E4DC] p-3">
       {/* THE RECORD IS IN THE READER'S NAME (DR-1421): the name first and largest, who they are beneath it, and the sign-in
@@ -392,6 +395,26 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
         <BandChip band={learner.competency} />
       </div>
 
+      {/* THE RECORD STARTS WITH ITS CROWNS (DR-1440, Darrell 2026-11-12): one crown for each course completed. */}
+      {courseLessonIds && Object.keys(courseLessonIds).length > 0 && (
+        <div className="mb-3 flex items-center gap-2 border-2 border-[#C9A227] rounded-xl px-3 py-2" data-testid="record-crowns">
+          <RecordMark name="crown" size={1.75} />
+          <div className="min-w-0">
+            <div className="text-xl leading-tight text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="record-crown-count">
+              {crownCount(standingAll)} {crownCount(standingAll) === 1 ? 'crown' : 'crowns'}
+            </div>
+            <div className="text-[0.6875rem] text-[#5A5751]">
+              {crownCount(standingAll) > 0
+                ? `One for each course completed: every lesson read and its exam passed. ${standingAll.coursesUnderstood} at 100%.`
+                : 'A course completed earns a crown: every lesson read and its exam passed.'}
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="record-crowns-verse">
+              “{CROWN_VERSES.mastery.text}” ({CROWN_VERSES.mastery.ref}, KJV). These crowns are earned here, by study; the incorruptible one is the Lord’s to
+              give.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="grid gap-2" style={FIGURE_GRID} data-testid="record-figures">
         <Figure label="Lessons read" value={learner.lessonsRead} />
         {/* WHICH VERSIONS (DR-1255, closed DR-1261): the same Word is written

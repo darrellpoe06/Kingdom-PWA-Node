@@ -302,9 +302,15 @@ describe('the record says where you stand, and never paints the date', () => {
     expect(t).toMatch(/Lessons read/i);
     expect(t).toMatch(/Understood at 100%/i);
     expect(t).toMatch(/1 of 2/);
-    // DR-1440: the course is rewarded with its highest award: read and passed, so the sword.
-    expect(host.querySelector('[data-testid="course-awards"]').textContent).toMatch(/Courses rewarded: 0 understood, 1 completed, 1 read in full/);
-    expect(host.querySelector('[data-testid="course-awards"] [data-award="sword"]').textContent).toMatch(/living-lessons/);
+    // DR-1440: a completed course earns a crown, and the record STARTS with the crowns.
+    expect(host.querySelector('[data-testid="course-awards"]').textContent).toMatch(/Courses rewarded: 1 crown \(0 at 100%\), 1 read in full/);
+    expect(host.querySelector('[data-testid="course-awards"] [data-award="crown"]').textContent).toMatch(/living-lessons/);
+    expect(host.querySelector('[data-testid="record-crown-count"]').textContent).toBe('1 crown');
+    expect(host.querySelector('[data-testid="record-crowns-verse"]').textContent).toMatch(/striveth for the mastery.*1 Corinthians 9:25, KJV/);
+    // It comes before every other figure on the record.
+    const crowns = host.querySelector('[data-testid="record-crowns"]');
+    const firstFigure = host.querySelector('[data-testid="record-figures"]');
+    expect(crowns.compareDocumentPosition(firstFigure) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('PROVEN TO CATCH: one lesson read and tested gives NO date, and says why', () => {

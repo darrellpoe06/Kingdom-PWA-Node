@@ -217,25 +217,31 @@ export function standing(records = [], courseLessonIds = {}) {
 }
 
 /**
- * COURSES ARE REWARDED (DR-1440, Darrell 2026-11-12: "Courses should be
- * rewarded"). Each course earns its highest award, as a lesson earns a lion:
- *   crown  understood: every lesson read in full and its exam at 100%
- *   sword  completed:  every lesson read and its exam passed
- *   book   read:       every lesson read in full
- * Highest first, then by name. A course with none earns nothing yet. Pure.
+ * COURSES EARN CROWNS (DR-1440, Darrell 2026-11-12: "Courses should be
+ * rewarded", "Courses should earn crowns", "Starting the record with how many
+ * crowns"). A lesson earns a lion; a course earns a crown:
+ *   crown        completed: every lesson read and its exam passed
+ *   crown, 100%  and every lesson understood at 100% (the crown made full)
+ *   book         every lesson read in full, exams still to pass
+ * Crowns first (100% before the rest), then books, then by name. Pure.
  */
 export const COURSE_AWARDS = Object.freeze({
-  crown: 'Understood: every lesson at 100%',
-  sword: 'Completed: every lesson read and passed',
-  book: 'Read in full: every lesson read',
+  crownFull: 'Crown at 100%: every lesson understood',
+  crown: 'Crown: every lesson read and passed',
+  book: 'Read in full: every lesson read, exams still to pass',
 });
 export function courseAwards(stand) {
-  const rank = { crown: 0, sword: 1, book: 2 };
+  const rank = { crownFull: 0, crown: 1, book: 2 };
   return (stand && Array.isArray(stand.courses) ? stand.courses : [])
-    .map((c) => ({ courseKey: c.courseKey, award: c.understoodAll ? 'crown' : c.complete ? 'sword' : c.readInFull ? 'book' : null }))
-    .filter((a) => a.award)
-    .sort((a, b) => rank[a.award] - rank[b.award] || a.courseKey.localeCompare(b.courseKey))
-    .map((a) => ({ ...a, label: COURSE_AWARDS[a.award] }));
+    .map((c) => ({ courseKey: c.courseKey, kind: c.complete && c.understoodAll ? 'crownFull' : c.complete ? 'crown' : c.readInFull ? 'book' : null }))
+    .filter((a) => a.kind)
+    .sort((a, b) => rank[a.kind] - rank[b.kind] || a.courseKey.localeCompare(b.courseKey))
+    .map((a) => ({ ...a, award: a.kind === 'book' ? 'book' : 'crown', label: COURSE_AWARDS[a.kind] }));
+}
+
+/** How many crowns this record holds: one for each course completed. Pure. */
+export function crownCount(stand) {
+  return stand && Number.isFinite(stand.coursesComplete) ? stand.coursesComplete : 0;
 }
 
 /**
