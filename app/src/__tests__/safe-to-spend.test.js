@@ -130,10 +130,13 @@ describe('the chronological walk', () => {
   });
   it('a positive period-end balance does not make money spendable today', () => {
     // Rent 1500 on 11-01 + water 200 on 11-03 drain the balance before the 11-06 paycheck lifts it.
-    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal' });
+    // The household cushion is passed explicitly: with none saved, the Personal
+    // pocket now reserves the $10,000 default (DR-1435), which is its own case.
+    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal', settings: { minCushion: 500 } });
     const end = r.timeline[r.timeline.length - 1].cash;
     expect(end).toBeGreaterThan(r.lines.projectedLowest.amount);
     expect(r.safeToSpendNow).toBeLessThan(end - r.lines.minCushion);
+    expect(r.lines.minCushion).toBe(500);
     expect(r.safeToSpendNow).toBe(Math.max(0, Math.round((r.lines.projectedLowest.amount - 500) * 100) / 100));
   });
   it('never shows a negative spendable amount; the shortfall is reported separately', () => {

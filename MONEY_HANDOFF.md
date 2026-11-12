@@ -81,6 +81,16 @@ Money -> Bills -> Review & confirm -> add a bill, one per loan: group "Rental pr
 
 **What the sandbox could not verify, said plainly:** whether the two business screenshots on Darrell's phone were approved, matched, or dated right. After deploy, Money -> Overview -> Coming Up -> "Current cash" opens the trail per account: it names the check in force, the rows since, any earlier checks and any check dated after today. Money -> Upload shows anything still waiting. That reading is the diagnosis; no record was changed by this thread.
 
+## Stacked on the three-accounts PR (2026-11-11; Christina's brief; DR-1435; PR #2610 on `ccr-f178819a-g2lhs2`, held)
+
+Built in a parallel session on the same brief and restacked on `fix/money-three-accounts` with only what that PR lacks:
+
+1. **Reserve: the goal is not the cushion** (Christina's correction, 2026-11-11). `settings.reserveGoalByEntity[key]` is the GOAL (`DEFAULT_PERSONAL_RESERVE_GOAL` = 10000 for Personal until saved); `moneyPlan.reserveDesignations[]` (`{ id, scope, date, amount, note }`) is money actually SET ASIDE, recorded from Coming Up's "Add to reserve" (negative = taken back out); `reserveByEntity[key]` stays honored as money set aside by hand. `reserveStatus(data, settings, sc)` gives designated / goal / remaining and the `cushion` the walk protects: designated money when any is set aside, else an explicit `minCushion` for Personal, else nothing (a target is never subtracted); business pockets keep their old chain. `lines.reserve` carries it; `windows.reserveSource` = designated | household | none. `extraDebtCapacity().reserve` = `{ remaining, suggested, debtAfter }`: one pool for the reserve and extra debt, goal filled first.
+2. **The rows.** `balanceTrace(data, accountId, asOf)` (financial-engineering.js) = latest checkpoint + every cleared row after its day = the displayed figure; Coming Up's `Trace` lists each row under the account beside the trail, with the fix (today's screenshot outranks the rows).
+3. **Day boundary.** `deriveAccountBalances` clears a row by its local calendar day; before, a row dated tomorrow was subtracted tonight after 6pm Central.
+
+Tests: `money-balance-trace.test.js` (5, under `TZ=America/Chicago`), `money-coming-up-30-days.test.jsx` (13: windows, goal vs set aside, designations, one pool, the panel); `safe-to-spend.test.js` and `money-functional-audit.test.js` pass their cushion explicitly. 24 Money suites, 315 green; 137 dependent files green. Merge order: #2609, then #2610 (it retargets to `main` by itself). No live record changed.
+
 ## The seven questions - what the engine can answer today
 
 | # | Question | Engine support | Blocked by |
