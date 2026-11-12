@@ -1897,6 +1897,21 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 24,
       "notes": "Darrell asked whether the Square account works too. developer.squareup.com is reachable from the sandbox, so the payment-link, order, webhook-signature and payment shapes were read from Square's reference rather than memory; the one page that did not answer (webhook validation steps) was confirmed by DR-1438's earlier reading. The live round trip waits on a token only the account owner mints."
+    },
+    {
+      "id": "pictures-in-one-ask",
+      "date": "2026-11-12",
+      "task": "A work order's thumbnails fetched in batches on the shared picture queue instead of one request per tile; the row toggle's focus ring made keyboard-only so a tap leaves no frame",
+      "drs": [
+        "DR-1452"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell's two screenshots from the Teams tab: a strip of empty squares under a 33-picture note, and an orange frame around the tapped card. Both read from the code: per-id thumbnail asks and a focus: ring on a touch target."
     }
   ]
 }
