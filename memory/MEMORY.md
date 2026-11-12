@@ -18,6 +18,10 @@ relying on it; memories reflect what was true when written.
   lowercase adversary names everywhere (lucifer, satan, the devil, the
   dragon, the adversary, the accuser, the deceiver). Every artifact, every
   response. Pairs with the Typographic Theology section of CLAUDE.md.
+- **feedback_use_central_time** — every time given to Darrell is in HIS time
+  zone, Central (America/Chicago; Champaign, IL), with CST/CDT named, never
+  UTC (declared 2026-11-12, emphatically: "Use my timezone!!!!!! Obviously").
+  UTC may ride in parentheses only beside a run id, never alone.
 - **feedback_surface_premise_conflicts** — when a step-by-step plan rests on
   a verifiably-wrong premise, stop before irreversible steps and offer
   options instead of executing as written.
