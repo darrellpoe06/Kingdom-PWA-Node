@@ -20,6 +20,7 @@ import {
   REVIEWER_MODE_KEY, isReviewerModeOn, enterReviewerMode, exitReviewerMode,
   ReviewerModeBanner, reviewerLensMode, isReviewerSelf, isReviewerStranger,
   enterReviewerModeAs, switchReviewerMode, REVIEWER_LENS_COPY,
+  STRANGER_HIDES, strangerHidesList,
 } from '../lib/reviewer-mode.jsx';
 import * as lens from '../lib/reviewer-lens.js';
 import { previewAction } from '../lib/admin-console.js';
@@ -100,8 +101,19 @@ describe('two modes, one value (DR-1240) — self keeps his rows, stranger hides
     const storage = fakeStorage(); enterReviewerMode(storage, vi.fn());
     expect(reviewerLensMode(storage)).toBe('self');
   });
+  // THE NOUNS ARE NOT SPELLED OUT HERE ANY MORE (2026-11-12). This case used to
+  // assert the literal four — "doors, vault, contacts and research" — which is
+  // how a stale promise passed its own test for weeks: the copy, the code and
+  // this assertion all agreed on four while the app grew past it, and Darrell
+  // read the global headline over his own work-order board. What matters is that
+  // the sentence names EVERY row the lens actually hides, so that is what this
+  // asserts, against the registry the gate holds equal to the surfaces.
   it('each mode SAYS what it hides and what still shows (DR-0076): self admits his rows show; stranger names the no-invite face', () => {
-    expect(REVIEWER_LENS_COPY.self.line).toMatch(/own doors, vault, contacts and research still show/);
+    expect(REVIEWER_LENS_COPY.self.line).toMatch(new RegExp(`own ${strangerHidesList()} still show`));
+    for (const e of STRANGER_HIDES) {
+      expect(REVIEWER_LENS_COPY.self.line, `the self lens does not mention ${e.what}`).toContain(e.what);
+      expect(REVIEWER_LENS_COPY.stranger.line, `the stranger lens promises nothing about ${e.what}`).toContain(e.what);
+    }
     expect(REVIEWER_LENS_COPY.self.line).toMatch(/only .* privileges are hidden/);
     expect(REVIEWER_LENS_COPY.stranger.line).toMatch(/A person with no invite sees this/);
     expect(REVIEWER_LENS_COPY.stranger.line).toMatch(/are hidden/);
@@ -154,7 +166,7 @@ describe('ReviewerModeBanner — the only way back is real', () => {
     await act(async () => { root.render(createElement(ReviewerModeBanner, { mode: 'self', onSwitch })); });
     expect(host.querySelector('[data-reviewer-lens="self"]')).toBeTruthy();
     expect(host.textContent).toContain('As yourself, privileges hidden');
-    expect(host.textContent).toMatch(/own doors, vault, contacts and research still show/);
+    expect(host.textContent).toMatch(new RegExp(`own ${strangerHidesList()} still show`));
     expect(host.textContent).not.toMatch(/exactly as a signed-in user sees it/);
     const sw = host.querySelector('[data-testid="reviewer-switch"]');
     expect(sw.textContent).toMatch(/See as a new user/);

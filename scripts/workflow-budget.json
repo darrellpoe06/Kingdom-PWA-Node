@@ -126,7 +126,14 @@
       "to": 23061,
       "dr": "DR-1436",
       "reason": "poetech-plus-keys.yml runs daily as well as by hand (Darrell: should he have to do this later, or can it be automated for consistency). +19 lines: the schedule, and a gate step that makes a daily run do nothing when no key is set, nothing when the live site already offers PoeTech+, and never install a live key (that still needs a dispatch typing CHARGE-REAL-MONEY), with every later step gated on it. So the one paste of his key is the only hand ever needed, and a lost Pages environment heals itself. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 23061,
+      "to": 23064,
+      "dr": "DR-1442",
+      "reason": "A required guard step in ci.yml for reviewer-lens-registry-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment was five lines in its first draft (the whole Darrell-read-the-banner narrative) and was folded to two, with the narrative kept in the guard's own header and the record. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23061
+  "totalLines": 23064
 }

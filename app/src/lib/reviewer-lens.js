@@ -67,3 +67,45 @@ export function isReviewerStranger(storage = defaultStorage()) {
 export function reviewerLensLine(what) {
   return `Reviewer lens: your own ${what} are hidden here; a person with no invite sees this.`;
 }
+
+// =============================================================================
+// WHAT THE STRANGER LENS HIDES — ONE LIST, and the only source of the words
+// =============================================================================
+// Darrell, 2026-11-12, reviewing as a new user on his phone: "I can see all
+// this as a new person with no record?! They can see our businesses?!" He was
+// looking at his own work-order board, and he was reading the banner exactly as
+// it is written.
+//
+// THE DEFECT WAS NOT A MISSING SURFACE. It was that the banner's headline is a
+// GLOBAL claim -- "a person with no invite sees this" -- while the list after
+// the colon was PARTIAL, and the two are one sentence. Four nouns were named;
+// four surfaces honoured it; the sentence and the code agreed with each other
+// perfectly and both under-described the app. Anything in the gap (the work
+// orders, which are doors' own work; the live payments ledger, which is money)
+// read through to the steward under a global promise that it would not.
+//
+// So the pairing is now MECHANICAL rather than remembered. This array is the
+// single source of BOTH the banner's wording and the gate
+// (scripts/reviewer-lens-registry-guard.mjs): wire a surface and it must be
+// named here or the build fails; name rows here and a surface must honour them
+// or the build fails. The banner can no longer promise more than the code does,
+// and the code can no longer hide something the banner never mentions.
+//
+// `what` is the words the steward reads. `module` is the file that honours it.
+export const STRANGER_HIDES = Object.freeze([
+  Object.freeze({ what: 'doors', module: 'modules/properties/PropertiesApp.jsx' }),
+  Object.freeze({ what: 'work orders', module: 'components/WorkOrderTriage.jsx' }),
+  Object.freeze({ what: 'vault', module: 'components/Vault.jsx' }),
+  Object.freeze({ what: 'contacts', module: 'components/Messages.jsx' }),
+  Object.freeze({ what: 'research', module: 'components/ResearchSection.jsx' }),
+  Object.freeze({ what: 'payments', module: 'components/PaymentsLedgerPanel.jsx' }),
+]);
+
+// "doors, work orders, vault, contacts, research and payments" — read by the
+// banner so its sentence grows with the list and never drifts from it.
+export function strangerHidesList(entries = STRANGER_HIDES) {
+  const what = entries.map((e) => e.what);
+  if (what.length === 0) return 'nothing yet';
+  if (what.length === 1) return what[0];
+  return `${what.slice(0, -1).join(', ')} and ${what[what.length - 1]}`;
+}
