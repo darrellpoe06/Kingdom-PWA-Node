@@ -17,6 +17,9 @@ DR-1438 planned Square as the second processor and left it waiting on whose acco
 - **Orders:** `GET /v2/orders/{id}` returns `metadata`, `state`, `tenders`, `net_amount_due_money`.
 - **A subscription** takes a plan variation and finds the buyer by phone; a renewal's order carries none of our metadata.
 
+## Impact
+Both of Christina's accounts can take the house's money on one checkout, one firewall and one set of rows; a book, bundle or seat sold through Square is counted once and handed over the same way. The owner chooses the processor by one variable, and the store shows both.
+
 ## Decision
 - **One seam.** The client POSTs the same request with `processor: 'square'`; `GET /api/checkout` names the open processors, the owner's `PAYMENTS_PROCESSOR` first; the store's Buy button is the first, the second is offered beside it. A processor that is not open is refused by name, never silently swapped.
 - **The same truth on the order.** The line item is the catalog's cents or the event row's; the order metadata carries `house: poetech`, kind, product, grants, userId, userKey, eventId, instanceId, exactly what the Stripe session carries.

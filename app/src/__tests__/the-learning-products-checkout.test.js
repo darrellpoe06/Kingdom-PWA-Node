@@ -122,7 +122,7 @@ describe("a workshop seat: the event row's price, a verified person", () => {
       return new Response(JSON.stringify({ id: 'cs_9', url: 'https://checkout.stripe.com/c/cs_9' }), { status: 200 });
     });
     const res = await checkoutPost({ env: ENV, request: req({ kind: 'workshop', eventId: EV, amountCents: 1 }, 'tok') });
-    expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/cs_9', id: 'cs_9' });
+    expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/cs_9', id: 'cs_9', processor: 'stripe' });
     const sent = new URLSearchParams(calls.find((c) => c.u.includes('api.stripe.com')).i.body);
     expect(sent.get('line_items[0][price_data][unit_amount]')).toBe('20000');
     expect(sent.get('metadata[eventId]')).toBe(EV);
