@@ -116,6 +116,9 @@ jobs:
       # The reviewer lens cannot promise more than it hides: the banner's words
       # are held equal to the surfaces that honour it (the guard says why).
       - run: node ../scripts/reviewer-lens-registry-guard.mjs
+      # A parked thing's re-review date is a promise; nothing checked whether it
+      # had passed, only that it was shaped like a date (DR-0075, DR-1444).
+      - run: node ../scripts/re-review-ratchet-guard.mjs
       # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
       # fails the build if the backbone seam migration is missing, any *-ingest.py
       # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,
