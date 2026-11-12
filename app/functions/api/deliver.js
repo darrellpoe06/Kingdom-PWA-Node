@@ -17,10 +17,24 @@
 // builds the EPUB, HTML and Markdown itself (book-formats.js). This function
 // only says what was bought.
 // =============================================================================
+// A SQUARE return carries `square_order` instead (DR-1451): the order is read
+// from Square with the access token, and only a PAID order our checkout made
+// (metadata house=poetech, kind book) is answered, the same line.
+import { squareConfigured, retrieveSquareOrder, ourSquareOrder, orderPaid } from '../_lib/square.js';
+
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
 const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]+$/;
+
+// A Square order (as Square returns it) -> what the app may deliver, or
+// { error }. Pure. Square's order holds no buyer email; the receipt is Square's.
+export function deliveryFromSquareOrder(order) {
+  const ours = ourSquareOrder(order);
+  if (!ours || ours.kind !== 'book') return { error: 'not-a-book' };
+  if (!orderPaid(order)) return { error: 'not-paid' };
+  return { kind: 'book', product: ours.product, grants: ours.grants, email: null, userId: ours.userId };
+}
 
 // A Stripe Checkout Session (as Stripe returns it) -> what the app may
 // deliver, or { error }. Pure. Only a paid book session our seam made.
@@ -46,9 +60,19 @@ export function deliveryFromSession(session) {
 
 export async function onRequestGet(context) {
   const env = context.env || {};
+  const params = new URL(context.request.url).searchParams;
+  const squareOrder = asStr(params.get('square_order'));
+  if (squareOrder) {
+    if (!squareConfigured(env)) return json({ error: 'processor-not-configured' }, 503);
+    const found = await retrieveSquareOrder(squareOrder, { env });
+    if (found.error) return json({ error: found.error === 'unknown-order' ? 'unknown-session' : found.error }, found.status);
+    const d = deliveryFromSquareOrder(found.order);
+    if (d.error) return json({ error: d.error }, 400);
+    return json({ ok: true, ...d });
+  }
   const secret = asStr(env.STRIPE_SECRET_KEY);
   if (!secret) return json({ error: 'processor-not-configured' }, 503);
-  const id = asStr(new URL(context.request.url).searchParams.get('session_id'));
+  const id = asStr(params.get('session_id'));
   if (!SESSION_ID.test(id)) return json({ error: 'bad-session' }, 400);
   let upstream;
   try {

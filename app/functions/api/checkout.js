@@ -27,6 +27,12 @@
 // renewal or cancellation finds them again. GET answers which tiers are open
 // for sale, so the app shows a buy button only when one can really work.
 
+// TWO PROCESSORS, ONE SEAM (DR-1451). Square joins as a second adapter:
+// the same request with `processor: 'square'` becomes a Square payment link
+// (functions/_lib/square.js) whose order carries the same metadata. GET names
+// the processors that are open, the owner's PAYMENTS_PROCESSOR first.
+import { squareConfigured, toSquarePaymentLink, createSquarePaymentLink } from '../_lib/square.js';
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
@@ -76,9 +82,30 @@ export function catalogEntry(raw) {
 // one priced entry in the owner's catalog. The store reads THIS, not a build
 // flag (DR-1438's named next build, closed by DR-1449). Pure.
 export function openBooks(env = {}) {
-  if (!asStr(env.STRIPE_SECRET_KEY)) return [];
+  if (!openProcessors(env).length) return [];
   const catalog = parseJsonEnv(env.STRIPE_CATALOG);
   return Object.keys(catalog).filter((id) => catalogEntry(catalog[id])).sort();
+}
+
+// The processors that can take a one-off payment right now, the owner's
+// choice (PAYMENTS_PROCESSOR) first. Stripe needs its secret key; Square a
+// token and a location (DR-1451). Pure.
+export const PROCESSORS = Object.freeze(['stripe', 'square']);
+export function openProcessors(env = {}) {
+  const open = [];
+  if (asStr(env.STRIPE_SECRET_KEY)) open.push('stripe');
+  if (squareConfigured(env)) open.push('square');
+  const first = asStr(env.PAYMENTS_PROCESSOR).toLowerCase();
+  return open.includes(first) ? [first, ...open.filter((p) => p !== first)] : open;
+}
+
+// Which processor this request pays through: the one it names when open,
+// else the first open one. '' when none is. Pure.
+export function chooseProcessor(req, env = {}) {
+  const open = openProcessors(env);
+  const asked = asStr(req?.processor).toLowerCase();
+  if (asked) return open.includes(asked) ? asked : '';
+  return open[0] || '';
 }
 
 export function toStripeSessionParams(req, { catalog = {}, tierPrices = {}, origin = '', instanceId = '', buyer = null, event = null, promotionCodesOn = true } = {}) {
@@ -232,7 +259,7 @@ export function openTiers(env = {}) {
 }
 
 export async function onRequestGet(context) {
-  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}), books: openBooks(context.env || {}) }), {
+  return new Response(JSON.stringify({ subscriptions: openTiers(context.env || {}), books: openBooks(context.env || {}), processors: openProcessors(context.env || {}) }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   });
@@ -241,10 +268,11 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const env = context.env || {};
   const secret = asStr(env.STRIPE_SECRET_KEY);
-  if (!secret) return json({ error: 'processor-not-configured' }, 503);
 
   let body;
   try { body = await context.request.json(); } catch { return json({ error: 'bad-json' }, 400); }
+  const processor = chooseProcessor(body, env);
+  if (!processor) return json({ error: asStr(body?.processor) ? 'processor-not-open' : 'processor-not-configured' }, 503);
 
   let buyer = null;
   const kind = asStr(body?.kind);
@@ -265,6 +293,24 @@ export async function onRequestPost(context) {
   }
 
   const origin = new URL(context.request.url).origin;
+  if (processor === 'square') {
+    // A subscription is Stripe's until the Square road is built (square.js);
+    // the same refusal names it rather than silently falling back.
+    const made = toSquarePaymentLink(body, {
+      catalog: parseJsonEnv(env.STRIPE_CATALOG),
+      instanceId: asStr(env.PAYMENTS_INSTANCE_ID),
+      buyer,
+      event,
+      locationId: asStr(env.SQUARE_LOCATION_ID),
+      couponsOn: asStr(env.SQUARE_COUPONS) !== 'off',
+      idempotencyKey: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '',
+    });
+    if (made.error) return json({ error: made.error }, 400);
+    const successUrl = origin + safeReturnPath(body?.successUrl, '/poetech-app/?paid=1');
+    const link = await createSquarePaymentLink(made.body, { env, successUrl });
+    if (link.error) return json({ error: link.error }, link.status);
+    return json({ url: link.url, id: link.orderId, processor: 'square', delivery: link.redirectSet ? 'on-return' : 'webhook-only' });
+  }
   const built = toStripeSessionParams(body, {
     catalog: parseJsonEnv(env.STRIPE_CATALOG),
     tierPrices: parseJsonEnv(env.STRIPE_TIER_PRICES),
@@ -290,5 +336,5 @@ export async function onRequestPost(context) {
   if (!upstream.ok) return json({ error: `stripe-${upstream.status}` }, 502);
   const session = await upstream.json();
   // The client only ever needs the redirect target — no Stripe internals leak.
-  return json({ url: asStr(session?.url), id: asStr(session?.id) });
+  return json({ url: asStr(session?.url), id: asStr(session?.id), processor: 'stripe' });
 }

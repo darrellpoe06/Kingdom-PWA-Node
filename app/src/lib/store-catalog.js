@@ -136,26 +136,36 @@ export function storefrontCounts(items) {
   return out;
 }
 
-/** What the server says can really be bought: { books: [ids], subscriptions: [tiers] }; anything else reads as nothing open. */
+/** The processors a store may name (DR-1451); the server's list is read in this order's words. */
+export const PROCESSOR_LABEL = Object.freeze({ stripe: 'Stripe', square: 'Square' });
+const NOTHING_OPEN = () => ({ books: [], subscriptions: [], processors: [] });
+
+/** What the server says can really be bought: { books: [ids], subscriptions: [tiers], processors: [names] }; anything else reads as nothing open. */
 export async function readOpen({ fetchImpl } = {}) {
   const f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
-  if (!f) return { books: [], subscriptions: [] };
+  if (!f) return NOTHING_OPEN();
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;
   try {
     const res = await f('/api/checkout', { method: 'GET', headers: { accept: 'application/json' }, ...(ctl ? { signal: ctl.signal } : {}) });
-    if (!res || !res.ok) return { books: [], subscriptions: [] };
+    if (!res || !res.ok) return NOTHING_OPEN();
     const data = await res.json();
+    const books = asArr(data && data.books)
+      .map(asStr)
+      .filter(Boolean);
+    const processors = asArr(data && data.processors)
+      .map(asStr)
+      .filter((p) => Object.prototype.hasOwnProperty.call(PROCESSOR_LABEL, p));
     return {
-      books: asArr(data && data.books)
-        .map(asStr)
-        .filter(Boolean),
+      books,
       subscriptions: asArr(data && data.subscriptions)
         .map(asStr)
         .filter(Boolean),
+      // An older server names no processors: a book it opened is Stripe's.
+      processors: processors.length || !books.length ? processors : ['stripe'],
     };
   } catch {
-    return { books: [], subscriptions: [] };
+    return NOTHING_OPEN();
   } finally {
     if (t) clearTimeout(t);
   }

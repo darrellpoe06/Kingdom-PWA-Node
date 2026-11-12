@@ -1882,6 +1882,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 30,
       "notes": "Darrell asked whether Payhip was needed or the capability could be sovereign; built sovereign on the existing Stripe seam. payhip.com and the Acrobat document are outside the sandbox allowlist (both allows declined), so both were filed as research items for the NAS lane (7b4128a5, e8294305). Found along the way: the register and the format guard read only tracked files, so a new function or file must be git-added before either regenerates; and a guard read through a pipe reported the pipe's exit, which let a merge commit with conflict markers reach the branch once before the guards were re-run with their real exit codes."
+    },
+    {
+      "id": "square-joins-the-seam",
+      "date": "2026-11-12",
+      "task": "Square as the second processor on the same checkout seam: a payment link whose order carries the seam's metadata, a signature-verified webhook that writes the same ledger, entitlement and seat rows behind the same firewall, delivery on return by order id, the store offering the second processor beside Buy; a Square subscription named as not built",
+      "drs": [
+        "DR-1451"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 24,
+      "notes": "Darrell asked whether the Square account works too. developer.squareup.com is reachable from the sandbox, so the payment-link, order, webhook-signature and payment shapes were read from Square's reference rather than memory; the one page that did not answer (webhook validation steps) was confirmed by DR-1438's earlier reading. The live round trip waits on a token only the account owner mints."
     }
   ]
 }

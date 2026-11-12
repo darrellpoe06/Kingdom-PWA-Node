@@ -244,6 +244,22 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-11-12 — Square is the second processor on the SAME seam (DR-1451)** —
+  `functions/_lib/square.js` + `/api/square-webhook`; the request names
+  `processor`, `GET /api/checkout` lists `processors` (owner's
+  `PAYMENTS_PROCESSOR` first); the order's metadata (`house: poetech`, kind,
+  product, grants, userId, eventId) is the firewall line; the payments row is
+  keyed by the PAYMENT id. A Square SUBSCRIPTION is not built (PoeTech+ stays
+  on Stripe). Activation = the owner pastes `SQUARE_ACCESS_TOKEN`,
+  `SQUARE_LOCATION_ID`, `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_WEBHOOK_URL`
+  on the Pages project; DR-1438's recommendation stands: a PoeTech account,
+  never TLC's.
+- **2026-11-12 — the NAS research lane (DR-1443) has NO witness row yet** —
+  at 17:15Z `agent_inbox` held zero `research-claimed`, `research-answer` AND
+  zero `nas-heartbeat` rows, so the NAS cycle itself has not been seen writing
+  since DR-1360/DR-1443 merged. Items 7b4128a5 (Payhip) and e8294305
+  (Acrobat) wait on it. Check the heartbeat row FIRST before saying the lane
+  is slow.
 - **2026-11-12 — a guard read through a pipe is not a guard; a register reads
   only tracked files (DR-1449 session)** — `node scripts/x-guard.mjs | tail -1`
   reports TAIL's exit, so business-systems-guard FAILED and ai-usage-ledger

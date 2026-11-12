@@ -23,28 +23,53 @@ export function sessionIdFromSearch(search = '') {
   return /^cs_(test|live)_[A-Za-z0-9]+$/.test(id) ? id : '';
 }
 
+/** The order id a Square return carries (DR-1451), or ''. Pure. */
+export function squareOrderFromSearch(search = '') {
+  const q = new URLSearchParams(String(search || '').replace(/^\?/, ''));
+  const id = asStr(q.get('square_order'));
+  return /^[A-Za-z0-9_-]{8,64}$/.test(id) ? id : '';
+}
+
+/** Whatever a return carries that names the purchase: { sessionId } | { squareOrder } | null. Pure. */
+export function deliveryRefFromSearch(search = '') {
+  const sessionId = sessionIdFromSearch(search);
+  if (sessionId) return { sessionId };
+  const squareOrder = squareOrderFromSearch(search);
+  return squareOrder ? { squareOrder } : null;
+}
+
 /** The return path the checkout asks Stripe for: this page, marked, with the session id Stripe fills in. Pure. */
 export function deliveryReturnPaths(pathname = '/poetech-app/', search = '') {
   const path = asStr(pathname).startsWith('/') && !asStr(pathname).startsWith('//') ? pathname : '/poetech-app/';
   const q = new URLSearchParams(asStr(search).replace(/^\?/, ''));
   q.delete('paid');
   q.delete('session_id');
+  q.delete('square_order');
   const base = q.toString() ? `${path}?${q.toString()}` : path;
   const sep = base.includes('?') ? '&' : '?';
   // Stripe substitutes {CHECKOUT_SESSION_ID} itself; it must not be URL-encoded.
   return { successUrl: `${base}${sep}paid=1&session_id={CHECKOUT_SESSION_ID}`, cancelUrl: base };
 }
 
-/** Ask the server what the session bought. -> { ok:true, product, grants, email } | { ok:false, error } */
-export async function readDelivery(sessionId, { fetchImpl } = {}) {
-  const id = asStr(sessionId);
-  if (!id) return { ok: false, error: 'no-session' };
+/**
+ * Ask the server what the purchase bought. `ref` is a Stripe session id, or
+ * { sessionId } | { squareOrder } (DR-1451).
+ * -> { ok:true, product, grants, email } | { ok:false, error }
+ */
+export async function readDelivery(ref, { fetchImpl } = {}) {
+  const r = typeof ref === 'string' ? { sessionId: ref } : ref && typeof ref === 'object' ? ref : {};
+  const query = asStr(r.sessionId)
+    ? `session_id=${encodeURIComponent(r.sessionId)}`
+    : asStr(r.squareOrder)
+      ? `square_order=${encodeURIComponent(r.squareOrder)}`
+      : '';
+  if (!query) return { ok: false, error: 'no-session' };
   const f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
   if (!f) return { ok: false, error: 'no-fetch' };
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;
   try {
-    const res = await f(`/api/deliver?session_id=${encodeURIComponent(id)}`, {
+    const res = await f(`/api/deliver?${query}`, {
       headers: { accept: 'application/json' },
       ...(ctl ? { signal: ctl.signal } : {}),
     });

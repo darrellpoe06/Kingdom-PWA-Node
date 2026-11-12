@@ -16,12 +16,12 @@ import ShareButton from './ShareButton.jsx';
 import PoeTechPlusButton from './PoeTechPlusButton.jsx';
 import { supabase } from '../lib/supabase.js';
 import { STORE_PROFILE, storeUrl, storeShareText, productFromSearch } from '../lib/store-profile.js';
-import { storefrontItems, storefrontCounts, readOpen } from '../lib/store-catalog.js';
+import { storefrontItems, storefrontCounts, readOpen, PROCESSOR_LABEL } from '../lib/store-catalog.js';
 import { loadCatalog, loadOverrides } from '../lib/book-catalog.js';
 import { listOpenWorkshops, startSeatCheckout, saySeatError } from '../lib/workshops.js';
 import { buildBookCheckoutRequest, executeCheckout, checkoutEndpoint, PROCESSOR_NOTE } from '../lib/checkout-seam.js';
 import { ensureSubscriber, loadSubscriber, saveSubscriber, entitledToBook } from '../lib/entitlements.js';
-import { sessionIdFromSearch, deliveryReturnPaths, readDelivery, applyDelivery, sayDeliveryError } from '../lib/instant-delivery.js';
+import { deliveryRefFromSearch, deliveryReturnPaths, readDelivery, applyDelivery, sayDeliveryError } from '../lib/instant-delivery.js';
 import { lessonUrl } from '../lib/lesson-links.js';
 import { PLUS_LABEL } from '../lib/poetech-plus.js';
 import { readReviewSummaries } from '../lib/book-reviews.js';
@@ -85,7 +85,7 @@ export default function Storefront({
 }) {
   const userKey = email || 'anon';
   const [sub, setSub] = useState(() => loadSubscriber(userKey));
-  const [open, setOpen] = useState({ books: [], subscriptions: [] });
+  const [open, setOpen] = useState({ books: [], subscriptions: [], processors: [] });
   const [events, setEvents] = useState([]);
   const [token, setToken] = useState('');
   const [note, setNote] = useState('');
@@ -107,9 +107,10 @@ export default function Storefront({
     Promise.resolve(client && client.auth ? client.auth.getSession() : { data: null })
       .then(({ data }) => alive && setToken((data && data.session && data.session.access_token) || ''))
       .catch(() => {});
-    const sid = sessionIdFromSearch(qs);
-    if (sid) {
-      readDelivery(sid, { fetchImpl }).then((d) => {
+    // A return from Stripe carries session_id; from Square, square_order (DR-1451).
+    const ref = deliveryRefFromSearch(qs);
+    if (ref) {
+      readDelivery(ref, { fetchImpl }).then((d) => {
         if (!alive) return;
         setDelivery(d);
         if (d.ok)
@@ -129,12 +130,19 @@ export default function Storefront({
   const counts = useMemo(() => storefrontCounts(items), [items]);
   const grouped = useMemo(() => KIND_ORDER.map((k) => ({ kind: k, items: items.filter((i) => i.kind === k) })).filter((g) => g.items.length), [items]);
 
+  // Two processors, one seam (DR-1451): the server names what is open, the
+  // owner's choice first; a second one is offered beside it. The request
+  // names the processor; the server holds every price and key.
+  const processors = Array.isArray(open.processors) ? open.processors : [];
+  const primary = processors[0] || '';
+  const alternate = processors[1] || '';
   const buyBook = useCallback(
-    async (it) => {
+    async (it, processor = '') => {
       setBusy(it.id);
       setNote('');
       const { successUrl, cancelUrl } = deliveryReturnPaths(loc.pathname, qs);
-      const req = buildBookCheckoutRequest(it.product, sub, { successUrl, cancelUrl, nowIso: nowIsoFn() });
+      const built = buildBookCheckoutRequest(it.product, sub, { successUrl, cancelUrl, nowIso: nowIsoFn() });
+      const req = processor ? { ...built, processor } : built;
       const res = await executeCheckout(req, { config: { enabled: it.buyable, endpoint: checkoutEndpoint() }, fetchImpl, token });
       setBusy('');
       if (res.ok && res.url) {
@@ -158,7 +166,7 @@ export default function Storefront({
     async (it) => {
       setBusy(it.id);
       setNote('');
-      const r = await startSeatCheckout({ token, eventId: it.id, pathname: loc.pathname, search: qs, fetchImpl });
+      const r = await startSeatCheckout({ token, eventId: it.id, pathname: loc.pathname, search: qs, fetchImpl, processor: primary });
       setBusy('');
       if (r.url) {
         try {
@@ -170,7 +178,7 @@ export default function Storefront({
       }
       setNote(saySeatError(r.error));
     },
-    [token, loc.pathname, qs, fetchImpl]
+    [token, loc.pathname, qs, fetchImpl, primary]
   );
 
   const shareUrl = storeUrl({ origin: loc.origin });
@@ -264,15 +272,34 @@ export default function Storefront({
                             ))}
                         </>
                       ) : it.buyable ? (
-                        <button
-                          type="button"
-                          disabled={busy === it.id}
-                          onClick={() => buyBook(it)}
-                          className={`${btn} text-white bg-[#B85838] border-[#B85838]`}
-                          data-testid="buy"
-                        >
-                          {busy === it.id ? 'Opening checkout…' : it.pricing.kind === 'pwyw' ? 'Name your price' : `Buy ${it.priceLabel}`}
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy === it.id}
+                            onClick={() => buyBook(it, primary)}
+                            className={`${btn} text-white bg-[#B85838] border-[#B85838]`}
+                            data-testid="buy"
+                            data-processor={primary}
+                          >
+                            {busy === it.id
+                              ? 'Opening checkout…'
+                              : it.pricing.kind === 'pwyw' && primary !== 'square'
+                                ? 'Name your price'
+                                : `Buy ${it.priceLabel}`}
+                          </button>
+                          {alternate && (
+                            <button
+                              type="button"
+                              disabled={busy === it.id}
+                              onClick={() => buyBook(it, alternate)}
+                              className={`${btn} border-[#1A1815] text-[#1A1815]`}
+                              data-testid="buy-alternate"
+                              data-processor={alternate}
+                            >
+                              Pay with {PROCESSOR_LABEL[alternate]}
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <span className="text-[0.6875rem] text-[#5A5751]" data-testid="not-open">
                           Checkout opens soon.

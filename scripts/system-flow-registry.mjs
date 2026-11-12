@@ -1594,6 +1594,23 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // Square joins the seam (DR-1451): the same request becomes a Square
+  // payment link; Square's verified webhook writes the same rows.
+  app('app/functions/api/square-webhook.js', {
+    id: 'square-webhook', name: "A Square payment lands on the buyer (DR-1451)", purpose: "Square's signed payment event is looked up by its order; only an order our checkout made writes the money once to the books, the book to its buyer or the seat in their name.",
+    reads: [{ res: 'http:square-webhook', token: 'x-square-hmacsha256-signature' }, { res: 'cf:square-env', token: 'SQUARE_WEBHOOK_SIGNATURE_KEY' }],
+    writes: [
+      { res: 'db:book_entitlements', token: 'grant_book_entitlement' },
+      { res: 'db:workshop_registrations', token: 'workshop_registrations' },
+    ],
+    seeds: ['workshop-seats', 'book-owned-everywhere'],
+  }),
+  app('app/functions/_lib/square.js', {
+    id: 'square-link', name: 'The checkout becomes a Square payment link (DR-1451)', purpose: "Turns the seam's request into a Square order with the same metadata the Stripe session carries, at the catalog's price; sets the return to carry the order id.",
+    reads: [{ res: 'cf:square-env', token: 'SQUARE_ACCESS_TOKEN' }],
+    writes: [{ res: 'http:square-link', token: 'online-checkout/payment-links' }],
+    seeds: [],
+  }),
   app('app/src/lib/book-reviews.js', {
     id: 'book-reviews', name: 'A book is reviewed by those who hold it (DR-1449)', purpose: 'A holder leaves one rating and a line; the shelf shows the count and average to anyone through a numbers-only function.',
     reads: [{ res: 'db:book_conversations', token: 'book_review_summary' }],
@@ -2388,6 +2405,9 @@ const RESOURCES = {
   'local:book-entitlements': { label: "the device's own record of the books it holds (entitlements.js)", sink: 'Read back by the Bookstore and the storefront on this device; the cloud copy is the webhook\'s (book_entitlements).' },
   'db:workshop_events': { label: 'the in-person workshops the house opened, with the price that is charged (DR-1448)' },
   'db:workshop_registrations': { label: "each person's paid workshop seat (written only by the Stripe webhook)" },
+  'cf:square-env': { label: 'the Square token, location and webhook key on the Pages project', source: 'The account owner pastes them in the Cloudflare dashboard (DR-1451: a value only they mint); no workflow writes them, and Cloudflare never returns them.' },
+  'http:square-webhook': { label: "Square's signed event about a payment", source: "Square sends it after a person pays on Square's own page; the signature over the notification URL + body is verified before a byte is trusted (DR-1451)." },
+  'http:square-link': { label: 'a Square payment link made for one order of ours', sink: "Square's own checkout page takes the payment; what comes back is the signed webhook event and the return with the order id (DR-1451)." },
   'cf:stripe-env': { label: 'the PoeTech+ Stripe secrets on the Pages project (Cloudflare never returns the values)' },
   'http:stripe-webhook': { label: "Stripe's signed event about a PoeTech+ purchase", source: "Stripe sends it after a person pays, renews, fails a card or cancels on Stripe's own pages; the signature is verified before a byte is trusted (DR-1432)." },
   'http:checkout': { label: 'a PoeTech+ checkout started', sink: "Stripe's own checkout page takes the payment; what comes back is the signed webhook event, not this request (DR-1432)." },

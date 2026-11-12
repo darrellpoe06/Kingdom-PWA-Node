@@ -47,7 +47,9 @@ export function normalizePayment(evt = {}, meta = {}) {
     netCents: amountCents - feeCents,
     currency: String(obj.currency || 'usd').toLowerCase(),
     productKey,
-    entityId: (productKey && PRODUCT_ENTITY[productKey]) || 'unassigned',
+    // A book or a seat is sold under its own id; the KIND names the entity
+    // (DR-1451) so a book sale no longer lands 'unassigned' for review.
+    entityId: (productKey && PRODUCT_ENTITY[productKey]) || PRODUCT_ENTITY[String((obj.metadata && obj.metadata.kind) || '')] || 'unassigned',
     payerEmail: String((obj.customer_details && obj.customer_details.email) || obj.receipt_email || '') || null,
     occurredAtIso: Number.isFinite(evt.created) ? new Date(evt.created * 1000).toISOString() : null,
   };
