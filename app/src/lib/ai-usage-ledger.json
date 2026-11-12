@@ -1912,6 +1912,21 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 24,
       "notes": "Darrell asked whether the Square account works too. developer.squareup.com is reachable from the sandbox, so the payment-link, order, webhook-signature and payment shapes were read from Square's reference rather than memory; the one page that did not answer (webhook validation steps) was confirmed by DR-1438's earlier reading. The live round trip waits on a token only the account owner mints."
+    },
+    {
+      "id": "the-lane-pays-four-minutes-for-a-dead-key",
+      "date": "2026-11-12",
+      "task": "Proving #2639's deploy on the merged SHA surfaced two lane findings: the expired tailnet key costs about four minutes at every join including the deploy's own, and PRs opened by the lane's bot are held at action_required until a hand approves them",
+      "drs": [
+        "DR-1453"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "No code shipped on purpose. The obvious fix - a timeout-minutes cap on the deploy's join step - was parked because DR-0107 forbids buying deploy-lane change with velocity and because every join measurement available is of a FAILING join, so there is no healthy baseline to size a cap against. Two of my own readings were wrong first (a 19 ms error-echo step mistaken for the join; a stale in_progress snapshot read as 8 minutes) and both are recorded in the DR."
     }
   ]
 }
