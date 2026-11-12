@@ -1550,11 +1550,11 @@
       "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
     },
     {
-      "id": "dr-1428-queue-readable-without-the-key",
+      "id": "dr-1431-queue-readable-without-the-key",
       "date": "2026-11-12",
       "task": "The lesson lane's second road: migration 0320 turns the NAS's own lesson-queue census outward as a public receipt, the lane reads it when the tailnet is shut, and a green run must mean the queue was read",
       "drs": [
-        "DR-1428"
+        "DR-1431"
       ],
       "prs": [],
       "model": "claude-opus-5",

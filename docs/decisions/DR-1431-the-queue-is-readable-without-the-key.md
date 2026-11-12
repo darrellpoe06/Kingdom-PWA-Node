@@ -1,4 +1,4 @@
-# DR-1428: The lesson lane reads its own queue without the runner's key — the census the NAS already took is turned outward, and a green run must mean the queue was read
+# DR-1431: The lesson lane reads its own queue without the runner's key — the census the NAS already took is turned outward, and a green run must mean the queue was read
 
 **Date:** 2026-11-12
 **Status:** Accepted
