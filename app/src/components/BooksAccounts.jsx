@@ -6,6 +6,7 @@
 // Moved verbatim (DR-0076 characterize-before-change); ACCOUNT_TYPES is
 // Books-only and travels with it. Depends on core only (fmt), never the shell.
 // =============================================================================
+import { latestCheckpoints } from '../lib/financial-engineering.js';
 import React, { useState, useMemo } from "react";
 import { fmt } from "../lib/format.js";
 import { cardPaymentSuggestions, debtNameFromPayee } from "../lib/debt-payments.js";
@@ -30,6 +31,8 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
   // the filename's first segment lowercased (e.g. "chase8168_activity_...").
   // We match an account by extracting digits from a.fragment and finding the
   // first institution slug that contains those digits.
+  // The bank check in force per account (a $0 checkpoint row in the ledger).
+  const verifiedBy = latestCheckpoints({ transactions }, new Date());
   const balanceFor = (acc) => {
     const last4 = (acc.fragment || '').match(/(\d{4})/)?.[1];
     if (!last4) return null;
@@ -361,6 +364,13 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                 <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
                 <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
                 {a.isPrimary && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
+                {['checking','savings','cash'].includes(a.type) && (
+                  <span className="block text-[0.625rem] text-[#5A5751]" data-testid={`account-verified-${a.id}`}>
+                    {verifiedBy[a.id] && verifiedBy[a.id].basis !== 'provisional'
+                      ? `bank-verified ${verifiedBy[a.id].day}${verifiedBy[a.id].basis ? ` (${verifiedBy[a.id].basis})` : ''}${verifiedBy[a.id].source ? ` · ${verifiedBy[a.id].source}` : ''}`
+                      : 'not bank-verified — upload a screenshot or statement, or enter the bank balance'}
+                  </span>
+                )}
                 {bal && (
                   <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                     style={{ backgroundColor: '#1F6FEB22', color: '#1F6FEB', border: '1px solid #1F6FEB' }}

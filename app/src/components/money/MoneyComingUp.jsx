@@ -35,6 +35,29 @@ function owner(it, entities) {
   return who;
 }
 
+// What arrives inside the same window, counted only on the day it lands.
+function incomeNote(w, show) {
+  if (!w) return '';
+  const n = (w.items || []).length;
+  return n ? `income expected before these are due: ${show(w.total)}${(w.items || []).some((i) => i.inferred) ? ' (some inferred)' : ''}` : 'no income expected in this window';
+}
+
+// The trail behind one account's figure: every bank check on file (newest
+// first), the rows since the one in force, and a check dated after today.
+function Trail({ b, show }) {
+  const cps = b.checkpoints || [];
+  const since = b.sinceVerified;
+  if (!cps.length && !b.laterCheckpoint) return null;
+  return (
+    <span className="block text-[0.6875rem] text-[#5A5751]" data-testid={`cash-trail-${b.id}`}>
+      {since && since.count > 0 && <span className="block">{since.count} row{since.count === 1 ? '' : 's'} since that check, net {since.net < 0 ? '−' : '+'}{show(Math.abs(since.net))}</span>}
+      {b.laterCheckpoint && <span className="block text-[#B85838]">A verified balance of {show(b.laterCheckpoint.balance)} is dated {b.laterCheckpoint.day}, after today, so it is not used yet — if that day is wrong, correct the screenshot's day.</span>}
+      {cps.length > 1 && <span className="block">Earlier checks: {cps.slice(1).map((c) => `${show(c.balance)} on ${c.day}`).join(', ')}</span>}
+      {cps.length > 0 && cps[0].source && <span className="block">Source: {cps[0].source}</span>}
+    </span>
+  );
+}
+
 function Items({ list, show, entities }) {
   if (!list || !list.length) return <p>Nothing in this window.</p>;
   return (
@@ -123,12 +146,17 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
           ledger-calculated figure never wears that word (DR-0076). */}
       <Line id="cash" label={allChecked ? 'Current verified cash' : 'Current cash — not bank-checked'} value={show(L.availableCash)} note={allChecked ? 'checked against the bank' : (counted.some((b) => b.verifiedOn) ? 'not every account is bank-checked yet' : 'from the ledger; enter a bank balance to verify it')}>
         <ul className="space-y-1">
-          {counted.map((b) => <li key={b.id}>{b.name}: {show(b.balance)} {b.verifiedOn ? `· bank-checked ${b.verifiedOn}${b.basis ? ` (${b.basis})` : ''}` : (b.provisional ? `· your approximate figure from ${b.provisionalOn}, not bank-checked` : '· ledger figure, not bank-checked')}</li>)}
-          {left.map((b) => <li key={b.id}>{b.name}: {show(b.balance)} · left out until checked against the bank</li>)}
+          {counted.map((b) => <li key={b.id} data-testid={`cash-source-${b.id}`}>{b.name}: {show(b.balance)} {b.verifiedOn ? `· bank-checked ${b.verifiedOn}${b.basis ? ` (${b.basis})` : ''}` : (b.provisional ? `· your approximate figure from ${b.provisionalOn}, not bank-checked` : '· ledger figure, not bank-checked')}<Trail b={b} show={show} /></li>)}
+          {left.map((b) => <li key={b.id} data-testid={`cash-source-${b.id}`}>{b.name}: {show(b.balance)} · left out until checked against the bank<Trail b={b} show={show} /></li>)}
         </ul>
       </Line>
-      <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
-      <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : ''}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
+      <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)} note={incomeNote(W.income7, show)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
+      <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={[inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : '', incomeNote(W.income14, show)].filter(Boolean).join(' · ')}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
+      <Line id="next30" label="Bills due in the next 30 days" value={show(W.next30 ? W.next30.total : 0)} note={incomeNote(W.income30, show)}><Items list={W.next30 && W.next30.items} show={show} entities={entities} /></Line>
+      <Line id="past-due" label="Past-due obligations (apart from regular bills)" value={show(W.pastDue ? W.pastDue.total : 0)} tone={W.pastDue && W.pastDue.total > 0 ? 'text-[#B85838]' : ''} note="missed payments, in or past their grace period, and past-due balances; the due date stays the contract's">
+        <Items list={W.pastDue && W.pastDue.items} show={show} entities={entities} />
+        {W.regular30 && <p className="mt-2">Regular bills in the next 30 days without these: {show(W.regular30.total)}.</p>}
+      </Line>
       <Line id="overdue" label="Overdue" value={show(W.overdue ? W.overdue.total : 0)} tone={W.overdue && W.overdue.total > 0 ? 'text-[#B85838]' : ''}><Items list={W.overdue && W.overdue.items} show={show} entities={entities} /></Line>
       <Line id="cleared" label="Paid and cleared (not subtracted again)" value={show(W.cleared ? W.cleared.total : 0)} note="already out of your bank balance">
         {W.cleared && W.cleared.items.length ? (

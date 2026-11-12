@@ -153,6 +153,21 @@ export function latestCheckpoints(data, asOf = new Date()) {
   return out;
 }
 
+// Every verified checkpoint an account carries, oldest first — the trail a
+// person reads to see WHICH figure is in force and why (Darrell 2026-11-11:
+// two business balances showed older figures; the trail says whether a newer
+// screenshot was ever recorded, or recorded with a later day).
+export function checkpointHistory(data) {
+  const out = {};
+  for (const t of data?.transactions || []) {
+    const cp = t && t.accountId ? balanceCheckpoint(t) : null;
+    if (!cp) continue;
+    (out[t.accountId] ||= []).push({ ...cp, id: t.id || null });
+  }
+  for (const id of Object.keys(out)) out[id].sort((x, y) => x.day.localeCompare(y.day));
+  return out;
+}
+
 // -----------------------------------------------------------------------------
 // applyManualBalance — honor a hand-entered CURRENT balance (Christina's books,
 // 2026-07-31). The number typed into the account editor is the account's current

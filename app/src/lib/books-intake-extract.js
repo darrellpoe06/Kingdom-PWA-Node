@@ -161,6 +161,9 @@ const ISSUER_RE = [
   ['American Express', /american\s*express|\bamex\b/i], ['Citi', /\bciti\b|citibank/i], ['Wells Fargo', /wells\s*fargo/i],
   ['Bank of America', /bank\s*of\s*america/i], ['Synchrony', /synchrony/i], ['Navy Federal', /navy federal/i],
   ['USAA', /\busaa\b/i], ['PNC', /\bpnc\b/i], ['Truist', /truist/i], ['Regions', /\bregions\b/i],
+  // The family's own banks (Darrell 2026-11-11): the First State Bank loans
+  // and the TLC and Cash App screens name them.
+  ['First State Bank', /first\s*state\s*(bank|bk)\b/i], ['Cash App', /\bcash\s*app\b/i],
 ];
 export function institutionOf(text = '') {
   const hit = ISSUER_RE.find(([, re]) => re.test(String(text)));
@@ -346,7 +349,7 @@ export function asOfDateOf(text = '') {
 }
 /** The account's last four as a phone app prints it: "(...7206)" or "...7206". */
 function snapshotLast4(text = '') {
-  const m = String(text).match(/\(\s*\.{2,}\s*(\d{4})\s*\)/) || String(text).match(/\.{3}\s*(\d{4})\b/);
+  const m = String(text).match(/\(\s*(?:\.{2,}|…)\s*(\d{4})\s*\)/) || String(text).match(/(?:\.{3}|…)\s*(\d{4})\b/);
   return m ? m[1] : accountFragment(text);
 }
 /**
@@ -374,7 +377,8 @@ export function snapshotLines(text, { asOf = null } = {}) {
     let m = line.match(numeric);
     if (m) {
       const mo = Number(m[1].split('/')[0]);
-      date = toIsoDate(m[1], /\/\d{2,4}$/.test(m[1]) ? null : (mo > asOfMonth ? year - 1 : year));
+      // "11/07" carries no year (its "/07" is the day); "11/07/26" does.
+      date = toIsoDate(m[1], /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(m[1]) ? null : (mo > asOfMonth ? year - 1 : year));
       description = m[2]; amount = m[3];
     } else if ((m = line.match(named))) {
       const mo = MONTHS[m[1].toLowerCase().slice(0, 3)];
@@ -386,9 +390,20 @@ export function snapshotLines(text, { asOf = null } = {}) {
     const row = { date, description: desc, amount: parseAmount(amount) };
     if (pending) row.pending = true;
     if (isOwnAccountTransfer(desc)) row.category = 'transfer';
+    else if (row.amount < 0 && isDebtPaymentRow(desc)) row.category = 'debt-payment';
     out.push(row);
   }
   return out;
+}
+/**
+ * A payment on a loan, mortgage or card as the bank prints it ("FIRST STATE
+ * BK LOAN PMT 5342", "CHASE CARD AUTOPAY", "ROCKET MTG"): a debt payment,
+ * never everyday spending and never an inferred bill of its own — the debt's
+ * minimum already carries it (Darrell 2026-11-11: "Distinguish deposits,
+ * expenses, transfers, and debt payments").
+ */
+export function isDebtPaymentRow(desc = '') {
+  return /\b(loan|ln)\s*(pmt|payment|pymt)\b|\bmortgage\b|\bmtg\b|\b(card|crd)\s*(member|pmt|payment|autopay)\b|\bautopay\b|\bepay\b/i.test(String(desc));
 }
 /** On a phone screen the figure often sits on the line BELOW its label; one line break is allowed, never two. */
 function moneyNear(text, labels) {

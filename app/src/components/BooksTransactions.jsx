@@ -25,6 +25,8 @@ import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import { runningBalanceByTxId } from '../lib/imported-view.js';
 import { deriveAccountBalances } from '../lib/financial-engineering.js';
+import { cashForecast, scopeForEntityFilter } from '../lib/cash-forecast.js';
+import { moneySettings } from '../lib/money-plan.js';
 import { commitReadout } from '../lib/import-commit.js';
 import { reconcileStatement } from '../lib/statement-reconciliation.js';
 import { matchParty, needsPartyPrompt, learnParty, forgetParty, PARTY_TYPES, PARTY_AUTO_CONFIDENCE } from '../lib/payee-entity-learning.js';
@@ -600,70 +602,48 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // the rest off the opening balance. Pure helper, unit-tested.
   const runningBalByTx = runningBalanceByTxId(data.transactions || [], accounts || []);
 
-  // Round 7 — 30/60/90 forecast revised:
-  //   · Cash-only (bank/savings/cash/investment). Credit + loan are tracked
-  //     separately because they don't hold cash you can spend; mixing them
-  //     inflates the negative balances and breaks the projection's meaning.
-  //   · Adds previous 30/60/90 days of ACTUALS (from settled transactions)
-  //     alongside the forward windows so you can sanity-check the forecast
-  //     against lived history — "is what we're projecting realistic?"
+  // 30/60/90 forecast — the Safe to Spend engine's own walk, read at each
+  // horizon and placed on the account that pays or receives each item
+  // (lib/cash-forecast.js; Darrell 2026-11-11: Now, +30, +60 and +90 showed
+  // one figure because only account-named upcoming rows were ever added).
+  // Confirmed (entered, dated) and estimated (inferred, assumed, accrued) are
+  // carried apart on every row. The trailing 30/60/90 actuals are the ledger's.
   const CASH_ACCOUNT_TYPES = ['checking','savings','cash','investment'];
+  const cashFc = useMemo(() => cashForecast(data, { currentDate, scope: scopeForEntityFilter(data, entityFilter, visibleEntities), visibleEntities, settings: moneySettings(data) }), [data, currentDate, entityFilter, visibleEntities]);
   const forecast = (() => {
     const today = currentDate;
-    const horizon = (days) => {
-      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
-      return d.toISOString().slice(0, 10);
-    };
     const lookback = (days) => {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days);
       return d.toISOString().slice(0, 10);
     };
-    const fw = { '30': horizon(30), '60': horizon(60), '90': horizon(90) };
     const bw = { '30': lookback(30), '60': lookback(60), '90': lookback(90) };
     const todayISO = today.toISOString().slice(0, 10);
-
-    const cashAccounts = (accounts || []).filter(a => CASH_ACCOUNT_TYPES.includes(a.type));
     const perAccount = {};
-    cashAccounts.forEach(a => {
-      // "Now" and the forward windows seed from the DERIVED balance (opening +
-      // cleared history), not the stored literal, so the forecast moves with the
-      // ledger and ties out to the primary card's "Right now".
+    for (const r of cashFc.rows) perAccount[r.id] = { ...r, a30: 0, a60: 0, a90: 0 };
+    // Investment accounts hold cash apart from the walk: Now only, no projection.
+    (accounts || []).filter(a => a.type === 'investment' && !perAccount[a.id]).forEach(a => {
       const now = liveBalance(a);
-      perAccount[a.id] = {
-        id: a.id, name: a.name, fragment: a.fragment, type: a.type,
-        balance: now, isPrimary: !!a.isPrimary,
-        // forward windows
-        w30: now, w60: now, w90: now,
-        // backward windows — net cash movement over the prior period (sum of actuals)
-        a30: 0, a60: 0, a90: 0,
-      };
+      perAccount[a.id] = { id: a.id, name: a.name, fragment: a.fragment, type: a.type, balance: now, isPrimary: !!a.isPrimary, verifiedOn: null, w30: now, w60: now, w90: now, confirmed30: 0, confirmed60: 0, confirmed90: 0, estimated30: 0, estimated60: 0, estimated90: 0, a30: 0, a60: 0, a90: 0, heldApart: true };
     });
-
-    // Forward projection from upcoming
-    upcoming.forEach(t => {
-      if (!t.accountId || !(t.accountId in perAccount)) return;
-      if (t.date <= fw['30']) perAccount[t.accountId].w30 += (t.amount || 0);
-      if (t.date <= fw['60']) perAccount[t.accountId].w60 += (t.amount || 0);
-      if (t.date <= fw['90']) perAccount[t.accountId].w90 += (t.amount || 0);
-    });
-
     // Trailing actuals from settled transactions (date <= today and >= lookback)
     (data.transactions || []).forEach(t => {
       if (!t.accountId || !(t.accountId in perAccount)) return;
-      if (!t.date || t.date > todayISO) return; // future tx already counted in forward
+      if (!t.date || t.date > todayISO) return;
+      if (String(t.category || '') === 'balance-checkpoint' || String(t.category || '') === 'balance-adjustment') return;
       if (t.date >= bw['30']) perAccount[t.accountId].a30 += (t.amount || 0);
       if (t.date >= bw['60']) perAccount[t.accountId].a60 += (t.amount || 0);
       if (t.date >= bw['90']) perAccount[t.accountId].a90 += (t.amount || 0);
     });
-
-    return Object.values(perAccount);
+    return Object.values(perAccount).filter(f => f.unattributed || CASH_ACCOUNT_TYPES.includes(f.type));
   })();
-  // Cash-only totals for the "Total cash" row below the per-account grid.
+  // Totals for the "All cash" row: the engine's own sum, plus investments held apart.
   const forecastTotals = forecast.reduce((acc, f) => ({
     balance: acc.balance + (f.balance || 0),
     w30: acc.w30 + (f.w30 || 0), w60: acc.w60 + (f.w60 || 0), w90: acc.w90 + (f.w90 || 0),
     a30: acc.a30 + (f.a30 || 0), a60: acc.a60 + (f.a60 || 0), a90: acc.a90 + (f.a90 || 0),
-  }), { balance: 0, w30: 0, w60: 0, w90: 0, a30: 0, a60: 0, a90: 0 });
+    estimated30: acc.estimated30 + (f.estimated30 || 0), estimated60: acc.estimated60 + (f.estimated60 || 0), estimated90: acc.estimated90 + (f.estimated90 || 0),
+    confirmed30: acc.confirmed30 + (f.confirmed30 || 0), confirmed60: acc.confirmed60 + (f.confirmed60 || 0), confirmed90: acc.confirmed90 + (f.confirmed90 || 0),
+  }), { balance: 0, w30: 0, w60: 0, w90: 0, a30: 0, a60: 0, a90: 0, estimated30: 0, estimated60: 0, estimated90: 0, confirmed30: 0, confirmed60: 0, confirmed90: 0 });
 
   // Per-row shortfall: if projected balance after this charge drops below FUNDS_BUFFER,
   // record how much short we'd be (using the buffer as the floor).
@@ -1887,7 +1867,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   <td className="p-2">
                     <span style={{ fontFamily: '"Fraunces", serif' }}>{f.name}{f.fragment ? ' ' + f.fragment : ''}</span>
                     {f.isPrimary && <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">★</span>}
-                    <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{f.type}</span>
+                    {!f.unattributed && <span className="ml-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{f.type}</span>}
+                    <span className="block text-[0.625rem] text-[#5A5751]" data-testid={`forecast-source-${f.id}`}>{f.unattributed ? 'no primary account in this pocket yet — mark one in Books → Accounts' : (f.verifiedOn ? `bank-verified ${f.verifiedOn}` : (f.heldApart ? 'held apart from the walk' : 'ledger figure, not bank-verified'))}</span>
                   </td>
                   {/* Trailing actuals — net change over the lookback window */}
                   <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.a90 < 0 ? 'text-[#B85838]' : f.a90 > 0 ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.a90 === 0 ? '—' : `${f.a90 > 0 ? '+' : ''}${fmt(f.a90)}`}</td>
@@ -1896,9 +1877,9 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   {/* Now */}
                   <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.balance < 0 ? 'text-[#B85838] font-semibold' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(f.balance)}</td>
                   {/* Forward projection */}
-                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w30)}</td>
-                  <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w60)}</td>
-                  <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(f.w90)}</td>
+                  <td className={`p-2 text-right border-l border-[#E8E4DC] ${f.w30 < 0 ? 'text-[#B85838] font-semibold' : f.w30 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid={`forecast-${f.id}-w30`}>{fmt(f.w30)}{f.estimated30 ? <sup className="ml-0.5 text-[0.5rem] text-[#B45309]" title={`includes ${fmt(f.estimated30)} of estimates (inferred bills, assumed due days, accrued living, tax and savings)`}>est</sup> : null}</td>
+                  <td className={`p-2 text-right ${f.w60 < 0 ? 'text-[#B85838] font-semibold' : f.w60 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid={`forecast-${f.id}-w60`}>{fmt(f.w60)}{f.estimated60 ? <sup className="ml-0.5 text-[0.5rem] text-[#B45309]" title={`includes ${fmt(f.estimated60)} of estimates (inferred bills, assumed due days, accrued living, tax and savings)`}>est</sup> : null}</td>
+                  <td className={`p-2 text-right ${f.w90 < 0 ? 'text-[#B85838] font-semibold' : f.w90 < FUNDS_BUFFER ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid={`forecast-${f.id}-w90`}>{fmt(f.w90)}{f.estimated90 ? <sup className="ml-0.5 text-[0.5rem] text-[#B45309]" title={`includes ${fmt(f.estimated90)} of estimates (inferred bills, assumed due days, accrued living, tax and savings)`}>est</sup> : null}</td>
                 </tr>
               ))}
               {forecast.length > 1 && (
@@ -1917,7 +1898,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           </table>
         </div>
         <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the projected balance at each forward window (current balance + upcoming charges + recurring). Compare the two sides to gut-check: if the forward projection drops faster than the prior 90 days bled, you're projecting tighter than reality — or you've got a real upcoming squeeze. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
+          <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the Safe to Spend engine's own walk read at each horizon: <strong>Now</strong> is the bank-verified balance where one is on file (the day is under the account name), then every dated bill, debt minimum, mortgage, rent and paycheck on the day it is expected, placed on the account that pays or receives it. <strong>Confirmed</strong> figures are entered and dated; a figure marked <em>est</em> also carries estimates (inferred bills, assumed due days, and the living, tax and savings reserves accrued day by day) — hover the mark for the amount. Through +90: {fmt(Math.abs(forecastTotals.confirmed90))} of confirmed items and {fmt(Math.abs(forecastTotals.estimated90))} of estimates. Nothing is invented: a day with nothing on file moves nothing. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion.
         </p>
       </section>
             ),
