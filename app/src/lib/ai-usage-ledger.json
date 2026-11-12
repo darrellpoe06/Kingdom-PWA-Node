@@ -1578,6 +1578,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
+    },
+    {
+      "id": "dr-1430-lessons-in-both-apps",
+      "date": "2026-11-12",
+      "task": "Every lesson stays in both apps; access by plan, not app: the Love Corner card reworded, and the no-app-filter and same-access rules pinned",
+      "drs": [
+        "DR-1430"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.25,
+      "estimateWithoutAiHours": 1.5,
+      "notes": "Darrell: lessons in both still; access is what is paid for"
     }
   ]
 }

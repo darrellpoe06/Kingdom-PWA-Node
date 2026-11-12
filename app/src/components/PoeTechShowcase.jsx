@@ -10,8 +10,9 @@
 //
 // Shown ONLY in the Love Corner app (the door is the page's path, DR-0731) and
 // ONLY on a course whose department is a PoeTech subject (lessonDoorFor). It
-// says what is true today: the child level and the first lesson are here, the
-// full course lives in PoeTech. It claims no lock, because nothing is locked
+// says what is true today: the course is in BOTH apps (DR-1430: access, not
+// the app, is what is paid for), the child level and the first lesson are free
+// to everyone, and PoeTech+ opens the deeper levels in either app. It claims no lock, because nothing is locked
 // until a real way to pay exists (ACCESS_ENFORCEMENT, DR-1428).
 // =============================================================================
 import React from 'react';
@@ -33,18 +34,18 @@ export default function PoeTechShowcase({ course }) {
   return (
     <div data-testid="poetech-showcase" className="mt-2 border border-[#B85838] bg-white p-3">
       <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-        This course lives in the PoeTech app. Here in the Love Corner, the child level of every lesson and the whole first lesson are yours, free.
+        This course is here in both apps, the Love Corner and PoeTech. The child level of every lesson and the whole first lesson are free to everyone.
       </p>
       <p className="text-xs text-[#5A5751] mt-1">
-        In PoeTech the course goes deeper: the full lessons at every level, for builders of A.I., business and real projects, with PoeTech+ ($39/mo) and
-        in-person workshops when they are offered.
+        The deeper levels come with PoeTech+ ($39/mo), in whichever app you read: for builders of A.I., business and real projects, with in-person workshops
+        when they are offered.
       </p>
       <a
         href={href}
         data-testid="poetech-showcase-link"
         className="inline-block mt-2 text-[0.6875rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
-        Continue in PoeTech ›
+        See it in PoeTech ›
       </a>
     </div>
   );

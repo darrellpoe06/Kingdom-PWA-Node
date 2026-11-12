@@ -25,7 +25,7 @@ import { createRoot } from 'react-dom/client';
 import PoeTechShowcase, { showcaseHref } from '../components/PoeTechShowcase.jsx';
 import { DOORS } from '../lib/app-doors.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
-import { SPIRITUAL_DEPARTMENTS } from '../lib/learn-access-tiers.js';
+import { SPIRITUAL_DEPARTMENTS, lessonAccess } from '../lib/learn-access-tiers.js';
 
 const ORIGIN = 'https://poetech.us';
 const SRC = join(process.cwd(), 'src');
@@ -177,7 +177,10 @@ describe('inside the Love Corner, a PoeTech subject points home (DR-1428)', () =
     act(() => root.render(createElement(PoeTechShowcase, { course: biz() })));
     const card = host.querySelector('[data-testid="poetech-showcase"]');
     expect(card).toBeTruthy();
-    expect(card.textContent).toMatch(/child level of every lesson and the whole first lesson are yours, free/);
+    expect(card.textContent).toMatch(/here in both apps, the Love Corner and PoeTech/);
+    expect(card.textContent).toMatch(/child level of every lesson and the whole first lesson are free to everyone/);
+    expect(card.textContent).toMatch(/in whichever app you read/);
+    expect(card.textContent).not.toMatch(/lives in the PoeTech app/);
     expect(card.textContent).toMatch(/PoeTech\+ \(\$39\/mo\)/);
     expect(card.textContent).not.toMatch(/locked|unlock|paywall/i);
     expect(host.querySelector('[data-testid="poetech-showcase-link"]').getAttribute('href')).toMatch(
@@ -192,5 +195,24 @@ describe('inside the Love Corner, a PoeTech subject points home (DR-1428)', () =
   it('ChurchLearn renders it under the course header', () => {
     const src = readFileSync(join(SRC, 'components', 'ChurchLearn.jsx'), 'utf8');
     expect(src).toMatch(/<PoeTechShowcase course=\{active\} \/>/);
+  });
+});
+
+// DR-1430 (Darrell 2026-11-12): "I want the ability to get lessons to be in
+// both still... access is what is paid for... for certain lessons."
+describe('every lesson is in both apps; access, not the app, is what is paid for (DR-1430)', () => {
+  it('the Learn catalog is never filtered by app: ChurchLearn reads no door, and only the showcase card does', () => {
+    const src = readFileSync(join(SRC, 'components', 'ChurchLearn.jsx'), 'utf8');
+    expect(src).not.toMatch(/currentDoor|from '\.\.\/lib\/app-doors\.js'|churchDoorOnly/);
+  });
+
+  it('access is decided by the lesson and the level, the same in either app', () => {
+    const d = courseDepartment(byKey('rent-to-own-business'));
+    const at = (path) => {
+      window.history.replaceState(null, '', path);
+      return ['child', 'teen'].map((band) => lessonAccess({ department: d, band, lessonIndex: 3 }).free);
+    };
+    expect(at('/lovecorner/app/?view=church&sub=learn')).toEqual(at('/poetech-app/?view=church&sub=learn'));
+    expect(lessonAccess.length).toBeLessThanOrEqual(1); // one object argument, and no app in it
   });
 });
