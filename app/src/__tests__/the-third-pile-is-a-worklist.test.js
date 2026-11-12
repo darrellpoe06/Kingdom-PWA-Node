@@ -735,7 +735,7 @@ const REPO = join(HERE, '..', '..', '..');
 // source and then relies on none of it is the shape this gap exists to HOLD
 // rather than hide -- the alternative, repeating the vendor's numbers and giving
 // them a row, would have lowered this count by asserting what we never read.
-// 2026-11-12 (DR-1441, DR-1442): sov74 and sov75 RAISE the gap to 30, by the
+// 2026-11-12 (DR-1445, DR-1442): sov74 and sov75 RAISE the gap to 30, by the
 // SECOND remedy. Both are built from YouTube talks Darrell sent with his own
 // point-by-point summaries (Hany Farid and the schools that met the machine;
 // Sinead Bovell at SXSW EDU 2025, then his one word, Safely). This build could

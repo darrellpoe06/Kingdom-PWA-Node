@@ -5,8 +5,8 @@
 **Tier:** A (one lesson added to an existing course; no schema, no door, no money)
 **Type:** lesson
 **Area:** `app/src/lib/sovereign-ai-class.js` (sov75, 75 modules), `app/src/__tests__/sovereign-ai-sov75-verses.test.js` (30), `app/src/lib/course-band-coverage-baseline.json`, `scripts/file-budgets.json`
-**Sent in by:** Darrell, 2026-11-12, straight after the video that became sov74 (DR-1441): a second video, https://youtu.be/dXxZwwCoO04, Sinead Bovell with Natalie Monbiot at SXSW EDU 2025, with a timestamped summary. His next message was one word: Safely.
-**Pairs with:** DR-1441 (sov74), DR-1439 (understanding by repetition), DR-1440 (courses earn crowns), DR-0098, DR-0100, DR-0076, DR-0456, DR-0331 (his words rendered for meaning, never in quotation marks)
+**Sent in by:** Darrell, 2026-11-12, straight after the video that became sov74 (DR-1445): a second video, https://youtu.be/dXxZwwCoO04, Sinead Bovell with Natalie Monbiot at SXSW EDU 2025, with a timestamped summary. His next message was one word: Safely.
+**Pairs with:** DR-1445 (sov74), DR-1439 (understanding by repetition), DR-1440 (courses earn crowns), DR-0098, DR-0100, DR-0076, DR-0456, DR-0331 (his words rendered for meaning, never in quotation marks)
 
 ## Context
 

@@ -1,4 +1,4 @@
-# DR-1441: With all thy getting get understanding (sov74)
+# DR-1445: With all thy getting get understanding (sov74)
 
 **Date:** 2026-11-12
 **Status:** Accepted
