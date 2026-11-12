@@ -735,7 +735,22 @@ const REPO = join(HERE, '..', '..', '..');
 // source and then relies on none of it is the shape this gap exists to HOLD
 // rather than hide -- the alternative, repeating the vendor's numbers and giving
 // them a row, would have lowered this count by asserting what we never read.
-const GAP = 28;
+// 2026-11-12 (DR-1441, DR-1442): sov74 and sov75 RAISE the gap to 30, by the
+// SECOND remedy. Both are built from YouTube talks Darrell sent with his own
+// point-by-point summaries (Hani Farid and the schools that met the machine;
+// Sinead Bovell at SXSW EDU 2025, then his one word, Safely). This build could
+// not reach YouTube, so neither talk was watched; a web search confirmed each
+// session happened. Every reader text says so in its own words and names what
+// was NOT checked: the video, the speaker's exact words and minute marks, and
+// the research she cites on addiction and cognitive atrophy, which stand as
+// her claims. Neither lesson stakes a figure from the talks, so there is no
+// row to add to lesson-sources.json (a 0-figure row is forbidden, DR-0076
+// section 3). THE ROAD TO LOWER IT NOW EXISTS (DR-1443): the NAS answers the
+// Research tab itself and reads a YouTube link's captions from its own
+// address. re-review: 2026-11-19 -- send both links through Research; if the
+// captions confirm her words, replace the "did not watch" clauses with what
+// was read and lower this pin to 28.
+const GAP = 30;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
