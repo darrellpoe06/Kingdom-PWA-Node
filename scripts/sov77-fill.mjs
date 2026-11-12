@@ -74,7 +74,11 @@ const TITLE = 'Prove all things - the ear that trieth words, the neighbor who co
 // -----------------------------------------------------------------------------
 // The corpus
 // -----------------------------------------------------------------------------
-const books = new Set(readdirSync(KJV).filter((f) => f.endsWith('.json') && f !== 'index.json').map((f) => f.slice(0, -5)));
+const books = new Set(
+  readdirSync(KJV)
+    .filter((f) => f.endsWith('.json') && f !== 'index.json')
+    .map((f) => f.slice(0, -5))
+);
 const cache = new Map();
 
 function bookFile(name) {
@@ -103,7 +107,10 @@ function fill(text, isReaderPlace = false) {
   return String(text).replace(/\[\[([^\]]+)\]\]/g, (_, ref) => {
     const r = ref.trim();
     const t = verseText(r);
-    if (isReaderPlace && !seenReader.has(r)) { seenReader.add(r); readerRefs.push(r); }
+    if (isReaderPlace && !seenReader.has(r)) {
+      seenReader.add(r);
+      readerRefs.push(r);
+    }
     return `"${t}" (${r})`;
   });
 }
@@ -124,7 +131,8 @@ function fillDeep(value) {
 // the talk-together close in this lesson's own words, written at each band's own
 // level, because a reader reads ONE band (DR-0795).
 // -----------------------------------------------------------------------------
-const RHYTHM = 'Do it once today, in one of the four places of Deuteronomy 6:7 - at the table, on the way, at lying down, or at rising up - and with one friend this week.';
+const RHYTHM =
+  'Do it once today, in one of the four places of Deuteronomy 6:7 - at the table, on the way, at lying down, or at rising up - and with one friend this week.';
 
 const TALK = {
   lesson: `TALK ABOUT IT TOGETHER. Parents, ask one of your children today what they believed this week only because somebody confident said it, and listen all the way to the end before you correct a syllable of it; have them retell the claim in their own words, then teach them one verse back, 1 Thessalonians 5:21. Children, ask your mother, your father or a grandparent about a time they trusted a seller's own number and found out later what it really was, hear the whole of it, then retell their answer to them in your own words. Then ask a friend this: which of the things you repeated this week did you actually check, and which did you just pass along? Teach each other one verse. ${RHYTHM} And measure the growth the Word's way, by the fruit, [[Galatians 5:22]] by the occasions, [[Deuteronomy 6:7]] and by the days. [[Hebrews 3:13]]`,
@@ -138,8 +146,7 @@ const TALK = {
 // The adult lesson, in eight numbered movements. The Word opens every one.
 // -----------------------------------------------------------------------------
 const LESSON = [
-
-`${TITLE.toUpperCase()}.
+  `${TITLE.toUpperCase()}.
 
 WHO SENT THIS, AND WHEN. On the twenty-seventh of October 2026, at 19:34 by universal time, Darrell forwarded a daily artificial-intelligence newsletter out of his university mailbox into this lane. Above the forwarded header he typed ONE WORD: Lesson. That word is the ask. The newsletter is the occasion, and the article is not the foundation. Sixteen days stood between his word and this hour, and that gap is on the record here rather than smoothed away.
 
@@ -147,7 +154,7 @@ What the issue carried was four stories and one question underneath all four. A 
 
 That question is not new and it is not theirs. The Word asked it, answered it, and told us whose proving is final.`,
 
-`MOVEMENT ONE: PROVE ALL THINGS. The frame of this whole hour is four words, and they are a command, not a mood: [[1 Thessalonians 5:21]] Not prove the things that look doubtful. All things. And the verse does not stop at suspicion, which is where most people stop; it ends in commitment - hold fast that which is good. Proving is how you get to holding, and a man who proves nothing holds nothing.
+  `MOVEMENT ONE: PROVE ALL THINGS. The frame of this whole hour is four words, and they are a command, not a mood: [[1 Thessalonians 5:21]] Not prove the things that look doubtful. All things. And the verse does not stop at suspicion, which is where most people stop; it ends in commitment - hold fast that which is good. Proving is how you get to holding, and a man who proves nothing holds nothing.
 
 Yahweh honors this so plainly that He commends a congregation for doing it to His own preachers. The Bereans heard Paul, and here is what the Word calls noble about them: [[Acts 17:11]] They received the word with readiness AND they searched, daily, whether those things were so. Readiness and checking in the same people, in the same week. That is the posture. Enthusiasm without checking is credulity, and checking without readiness is cynicism, and the Word has no use for either one.
 
@@ -155,7 +162,7 @@ John makes the duty general and names the reason: [[1 John 4:1]] Because many ar
 
 So when a newsletter asks how do you check the work, we are not being handed a new problem by the technology industry. We are being handed our own assignment back.`,
 
-`MOVEMENT TWO: THE EAR TRIETH WORDS. The newsletter's own suggestion was to race two models on the same dull chore and time them, and it described the exercise as a taste test with a stopwatch. That is a better sentence than its author knew, because Scripture already built the metaphor and built it twice: [[Job 12:11]] And again, in Job's own mouth, as a settled principle rather than a question: [[Job 34:3]]
+  `MOVEMENT TWO: THE EAR TRIETH WORDS. The newsletter's own suggestion was to race two models on the same dull chore and time them, and it described the exercise as a taste test with a stopwatch. That is a better sentence than its author knew, because Scripture already built the metaphor and built it twice: [[Job 12:11]] And again, in Job's own mouth, as a settled principle rather than a question: [[Job 34:3]]
 
 The ear is given the same office the mouth has. A mouth does not reason about meat; it tastes it, and the tasting is the test. So the Word's picture of discernment is not a clever argument at a distance. It is a thing put in the mouth and found out. That is why a claim you have never run is a claim you have never tasted, whatever you can recite about it.
 
@@ -163,7 +170,7 @@ And this faculty is not issued finished. It is trained by use: [[Hebrews 5:14]] 
 
 Here is where the article's figures can come in, now that the frame is set and not borrowed. The newsletter reported a fifteen-field web form, three runs on each of two models, and a median of 9.4 seconds against 17.3 seconds, with a third and cheaper model getting every field right in only one run out of three. This build did not verify those stopwatch numbers and could not; they come to us through secondary coverage, and they are attributed here and never asserted. But the SHAPE of the exercise is the whole point: he put the thing in his mouth, and the mouth tasted it, and he wrote down what happened.`,
 
-`MOVEMENT THREE: THE NEIGHBOR COMES AND SEARCHES HIM. Now to the hinge of the hour. The company said Terra finished more than three times faster. An independent tester saw a gap closer to 1.8 times. Both sentences can be honest at once, and Scripture explains how in a single verse: [[Proverbs 18:17]]
+  `MOVEMENT THREE: THE NEIGHBOR COMES AND SEARCHES HIM. Now to the hinge of the hour. The company said Terra finished more than three times faster. An independent tester saw a gap closer to 1.8 times. Both sentences can be honest at once, and Scripture explains how in a single verse: [[Proverbs 18:17]]
 
 He that is FIRST in his own cause seemeth just. Not is a liar. Seemeth just. A seller's account of his own goods is one-sided before anybody intends to deceive, because the seller chose the goods, chose the test, and chose which runs to report. The remedy the Word names is not suspicion; it is a second party. The neighbor comes. And the Word puts the matter of self-praise plainly: [[Proverbs 27:2]] Let another man praise thee. And again, on motive: [[John 7:18]]
 
@@ -173,7 +180,7 @@ The same chapter of the same newsletter carried a company's own filing about its
 
 And notice one thing the technology story got genuinely right, because under-claiming a good thing is its own failure. The group now sitting over that computer-science claim includes the very men who first proposed the hypothesis, and the raw data was made public at that group's own asking. That is a neighbor coming and searching the matter, arranged on purpose, with the authors of the belief invited to kill it. The Word has a name for that honor: [[Proverbs 25:2]] The honor of kings is to search out a matter.`,
 
-`MOVEMENT FOUR: LET EVERY MAN PROVE HIS OWN WORK. The newsletter's sharpest line was that vendor numbers are averages across their tasks, and your task is the one that matters. Scripture said it as a command about a man's own labor: [[Galatians 6:4]] And it closes the escape route, which is comparing yourself to somebody else's result: [[Galatians 6:5]]
+  `MOVEMENT FOUR: LET EVERY MAN PROVE HIS OWN WORK. The newsletter's sharpest line was that vendor numbers are averages across their tasks, and your task is the one that matters. Scripture said it as a command about a man's own labor: [[Galatians 6:4]] And it closes the escape route, which is comparing yourself to somebody else's result: [[Galatians 6:5]]
 
 Your task. Your burden. Your form, your spreadsheet, your invoices, your Friday afternoon. An average over a laboratory's chosen chores tells you something about the laboratory. It tells you nothing certain about the one chore that is actually yours, and no amount of reading the chart converts into having run it.
 
@@ -181,7 +188,7 @@ Paul turns the same instrument on the self, where it is far harder to hold: [[2 
 
 Consider your ways. That is the instruction, and it is addressed to the one person whose work you are actually responsible for.`,
 
-`MOVEMENT FIVE: A JUST WEIGHT AND A JUST MEASURE. If you are going to measure, the measure itself is under judgment. This is not a metaphor in the Word; it is law, and it is law about commerce: [[Leviticus 19:35]] [[Leviticus 19:36]] Just balances, just weights - and then the reason, which is not economics but identity: I am the LORD your God.
+  `MOVEMENT FIVE: A JUST WEIGHT AND A JUST MEASURE. If you are going to measure, the measure itself is under judgment. This is not a metaphor in the Word; it is law, and it is law about commerce: [[Leviticus 19:35]] [[Leviticus 19:36]] Just balances, just weights - and then the reason, which is not economics but identity: I am the LORD your God.
 
 Yahweh's delight and His abomination are both named over this one thing: [[Proverbs 11:1]] And the bag with two stones in it, a heavy one for buying and a light one for selling, is forbidden by name: [[Deuteronomy 25:13]] with the promise attached to the honest one: [[Deuteronomy 25:15]]
 
@@ -189,7 +196,7 @@ Read a benchmark through that law and it reads differently. Two models scored on
 
 So here is the honest loss, said rather than hidden, because compression of any kind loses detail and a page that hid that would be holding a crooked measure. The cheap model in the article got every field right in only one run of three. Cheaper was not worse at everything. It was worse at the one thing the job needed, which was being right every time, and a measure that averaged accuracy together with price would have concealed exactly that. The correct conclusion is the newsletter's own: switch to the cheaper tool only if accuracy holds.`,
 
-`MOVEMENT SIX: HOW LONG PROVING TAKES, AND WHY THAT IS NOT AN EXCUSE. A form verifies in seconds. A thirty-five-year-old conjecture takes months. The Word is not embarrassed by either timescale, and it gives a test that is explicitly built to wait: [[Deuteronomy 18:21]] [[Deuteronomy 18:22]] If the thing follow not. The test is time. You do not get to know yet, and the verse treats that as normal rather than as a crisis.
+  `MOVEMENT SIX: HOW LONG PROVING TAKES, AND WHY THAT IS NOT AN EXCUSE. A form verifies in seconds. A thirty-five-year-old conjecture takes months. The Word is not embarrassed by either timescale, and it gives a test that is explicitly built to wait: [[Deuteronomy 18:21]] [[Deuteronomy 18:22]] If the thing follow not. The test is time. You do not get to know yet, and the verse treats that as normal rather than as a crisis.
 
 Against that patience, Scripture sets the man who settles everything instantly: [[Proverbs 14:15]] The simple believeth every word. The prudent looks well to his going - which is to say, he watches where his own feet are actually landing. And haste is named as a sin and not a style: [[Proverbs 19:2]] The foundation itself is laid as a TRIED stone, and the clause that follows is the posture of everyone standing on it: [[Isaiah 28:16]] He that believeth shall not make haste.
 
@@ -197,7 +204,7 @@ James will not let the waiting be dead time either: [[James 1:4]] Let patience h
 
 So the honest status of the biggest claim in the forward is: not yet. A proof-checking program confirmed a formalization, and independent analyses of the published scope note say it does not cover the sharper running-time estimate the headline rested on. The working group had not returned a verdict when this was forwarded, and had not when it was built. Secondary coverage also reports that a second laboratory posted a parallel result the same day, which the digest did not mention; that reaches us through coverage only and is attributed, not asserted. The lesson does not teach the hypothesis as overturned. It teaches that the hour of checking had not finished, and that saying so is the discipline rather than a hedge.`,
 
-`MOVEMENT SEVEN: THE HALF WAS NOT TOLD ME. Proving is not a machine for shrinking claims. Sometimes the check makes the thing BIGGER, and refusing to say so is the same sin as exaggeration wearing a modest coat.
+  `MOVEMENT SEVEN: THE HALF WAS NOT TOLD ME. Proving is not a machine for shrinking claims. Sometimes the check makes the thing BIGGER, and refusing to say so is the same sin as exaggeration wearing a modest coat.
 
 The queen of Sheba came the whole distance for one purpose, and the Word states it as a test: [[1 Kings 10:1]] She came to prove him with hard questions. And her verdict after the testing was not a correction downward: [[1 Kings 10:7]] The half was not told me. The report she had been given had UNDER-stated the truth, and she said so out loud.
 
@@ -207,7 +214,7 @@ This is where our own checking has to be reported honestly in both directions, s
 
 WHAT WE CHECKED AND WHAT WE DID NOT. The newsletter is a lead and never the citation. No primary host was read by this build: openai.com, arxiv.org and sec.gov were NOT reachable from this build's network boundary, so no figure here rests on a primary-source read, and that is said in every band rather than only to the adult reader. An independent search road was walked on each load-bearing number instead, and what the checking changed is listed above rather than merely claimed. Attributed and not asserted on our own authority: the stopwatch figures, the names of the men on the working group, and the parallel result from the second laboratory, all of which reach us through secondary coverage this build could not set against a primary page. Not checked at all: every benchmark score, the datacenter and chip-lease numbers in the news column, and the disclosed data leak. A dated re-review stands against all of it - re-review: 2026-11-26 - because a blocked road must never be left reading like a verified claim.`,
 
-`MOVEMENT EIGHT: WHO TRIETH THE HEART. Everything above is a method for examining work. Now the bright line, because a method applied past its bound becomes a lie.
+  `MOVEMENT EIGHT: WHO TRIETH THE HEART. Everything above is a method for examining work. Now the bright line, because a method applied past its bound becomes a lie.
 
 No stopwatch, no score sheet and no model weighs a man. Scripture reserves that: [[Jeremiah 17:9]] Who can know it - and then the answer, in the first person: [[Jeremiah 17:10]] I the LORD search the heart. That is not a capability anybody is building toward. It is His by right, and a system that claims it is claiming His office.
 
@@ -221,8 +228,7 @@ And the close. The one Word that was proved all the way down and held fast is a 
 
 So: prove all things. Run your own chore, not the laboratory's. Keep one weight in your bag. Wait for the thing to follow or not follow. Say it plainly when the half was not told you. And remember that the last proving is not yours to run, and that the One who runs it already knows the answer.`,
 
-TALK.lesson,
-
+  TALK.lesson,
 ];
 
 // -----------------------------------------------------------------------------
@@ -483,7 +489,8 @@ Under the page write one verse you will have in you by next week, from the ancho
 Then open your record under Learn and take one exam again with nothing else open. Every try counts as study. The columns show you how much of your week was borrowed; the race shows you what the chart could not; and the verse you learn by heart is the part no outage and no vendor can reach.`,
   anchor: {
     ref: 'FILLED-BY-GENERATOR',
-    theme: 'Prove all things; hold fast that which is good (1 Thessalonians 5:21). Proving is a command, not a mood, and it ends in commitment rather than suspicion. The ear tries words the way the mouth tastes meat (Job 12:11), the one who is first in his own cause only seemeth just until a neighbor comes and searches him (Proverbs 18:17), every man is told to prove his OWN work rather than read somebody else’s average (Galatians 6:4), and the measure itself stands under judgment (Leviticus 19:36). Where the method must stop is the heart, which Yahweh alone searches (Jeremiah 17:10).',
+    theme:
+      'Prove all things; hold fast that which is good (1 Thessalonians 5:21). Proving is a command, not a mood, and it ends in commitment rather than suspicion. The ear tries words the way the mouth tastes meat (Job 12:11), the one who is first in his own cause only seemeth just until a neighbor comes and searches him (Proverbs 18:17), every man is told to prove his OWN work rather than read somebody else’s average (Galatians 6:4), and the measure itself stands under judgment (Leviticus 19:36). Where the method must stop is the heart, which Yahweh alone searches (Jeremiah 17:10).',
   },
   rpe: {
     research: `RESEARCH. Three readings, and every one of them yours rather than a chart's.
@@ -563,7 +570,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Prove nothing, because testing is a sign of unbelief',
         ],
         answer: 1,
-        explain: 'It says all things, not the doubtful ones, and it does not stop where most people stop. Proving is the road to holding, and a man who proves nothing in the end holds nothing either.',
+        explain:
+          'It says all things, not the doubtful ones, and it does not stop where most people stop. Proving is the road to holding, and a man who proves nothing in the end holds nothing either.',
       },
       {
         q: 'Why does Yahweh call the Bereans noble in Acts 17:11?',
@@ -573,7 +581,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Because they refused to listen until the apostle produced credentials',
         ],
         answer: 1,
-        explain: 'Readiness and checking in the same people, in the same week. Enthusiasm without checking is credulity and checking without readiness is cynicism, and the Word has no use for either one.',
+        explain:
+          'Readiness and checking in the same people, in the same week. Enthusiasm without checking is credulity and checking without readiness is cynicism, and the Word has no use for either one.',
       },
       {
         q: 'What office does Job 12:11 and Job 34:3 give to the ear?',
@@ -583,7 +592,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'The office of a witness, who only reports what was said',
         ],
         answer: 1,
-        explain: 'A mouth does not reason about meat; it tastes it. So a claim you have never run is a claim you have never tasted, however fluently you can recite it. And Hebrews 5:14 says the faculty is trained by use.',
+        explain:
+          'A mouth does not reason about meat; it tastes it. So a claim you have never run is a claim you have never tasted, however fluently you can recite it. And Hebrews 5:14 says the faculty is trained by use.',
       },
       {
         q: 'How does Proverbs 18:17 explain a vendor saying three times faster while an independent tester measures 1.8 times?',
@@ -593,7 +603,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Benchmarks cannot be compared at all, so neither number means anything',
         ],
         answer: 1,
-        explain: 'The verse does not call the first speaker a liar. It calls him first. A seller’s account of his own goods is one-sided before any intent to deceive, and Scripture’s answer is a second party rather than suspicion.',
+        explain:
+          'The verse does not call the first speaker a liar. It calls him first. A seller’s account of his own goods is one-sided before any intent to deceive, and Scripture’s answer is a second party rather than suspicion.',
       },
       {
         q: 'What phrase does Paul use in 2 Corinthians 10:12 that describes a vendor benchmark exactly?',
@@ -603,7 +614,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Casting about for a more favourable report',
         ],
         answer: 0,
-        explain: 'A figure produced on a self-selected task and scored on a self-written scale is self-comparison with a decimal point. Scripture does not call that lying; it calls it not wise.',
+        explain:
+          'A figure produced on a self-selected task and scored on a self-written scale is self-comparison with a decimal point. Scripture does not call that lying; it calls it not wise.',
       },
       {
         q: 'What does Galatians 6:4 command about measurement, and what escape route does Galatians 6:5 close?',
@@ -613,7 +625,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Submit your work to the elders; and it closes the route of private judgment',
         ],
         answer: 1,
-        explain: 'Your task, your burden. An average over a laboratory’s chosen chores tells you about the laboratory and nothing certain about the one chore that is genuinely yours.',
+        explain:
+          'Your task, your burden. An average over a laboratory’s chosen chores tells you about the laboratory and nothing certain about the one chore that is genuinely yours.',
       },
       {
         q: 'Why does the lesson read a benchmark through Leviticus 19:36 and Deuteronomy 25:13?',
@@ -623,7 +636,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Because the law of weights applies only to grain and oil',
         ],
         answer: 1,
-        explain: 'If you intend to measure, the measure stands under judgment too, and the reason given is identity rather than economics: I am the LORD your God. A scale written after the result is the light stone.',
+        explain:
+          'If you intend to measure, the measure stands under judgment too, and the reason given is identity rather than economics: I am the LORD your God. A scale written after the result is the light stone.',
       },
       {
         q: 'What is the honest status of the computer-science claim in the forwarded newsletter?',
@@ -633,7 +647,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'Disproved, since an independent tester found a smaller gap',
         ],
         answer: 1,
-        explain: 'Deuteronomy 18:22 gives a test built to wait: if the thing follow not. The lesson teaches that the checking was unfinished, and saying so plainly is the discipline rather than a hedge.',
+        explain:
+          'Deuteronomy 18:22 gives a test built to wait: if the thing follow not. The lesson teaches that the checking was unfinished, and saying so plainly is the discipline rather than a hedge.',
       },
       {
         q: 'What did the queen of Sheba conclude after she came to prove Solomon with hard questions?',
@@ -643,7 +658,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'That she could not tell whether the reports were true',
         ],
         answer: 1,
-        explain: 'Proving is not an apparatus for shrinking claims. Under-claiming a verified good is the same sin as exaggeration in a modest coat, which is why this lesson states plainly the figures that checked out stronger.',
+        explain:
+          'Proving is not an apparatus for shrinking claims. Under-claiming a verified good is the same sin as exaggeration in a modest coat, which is why this lesson states plainly the figures that checked out stronger.',
       },
       {
         q: 'Where must the method of this whole lesson stop?',
@@ -653,7 +669,8 @@ Two years later a visiting administrator asked her what had made her start the n
           'At the point where a claim becomes too expensive to check',
         ],
         answer: 0,
-        explain: 'Jeremiah 17:10 reserves it, and it is His by right rather than a capability anybody is building toward. Psalm 139:23 is the posture, 1 Corinthians 4:5 the timing, and the one Word proved all the way down is a Person - Jesus, the Lamb of Yahweh.',
+        explain:
+          'Jeremiah 17:10 reserves it, and it is His by right rather than a capability anybody is building toward. Psalm 139:23 is the posture, 1 Corinthians 4:5 the timing, and the one Word proved all the way down is a Person - Jesus, the Lamb of Yahweh.',
       },
     ],
   },
@@ -740,7 +757,9 @@ if (src2.includes(ID)) {
   const ends = [
     withComma >= 0 && withComma < end2 ? { at: withComma, len: '\n  },'.length, back: 0 } : null,
     atArrayEnd >= 0 && atArrayEnd < end2 ? { at: atArrayEnd, len: '\n  }'.length, back: ','.length } : null,
-  ].filter(Boolean).sort((a, b) => a.at - b.at);
+  ]
+    .filter(Boolean)
+    .sort((a, b) => a.at - b.at);
   if (!ends.length) throw new Error('sov77: could not find the end of the existing block; refusing to rebuild');
   const { at: closeAt, len, back } = ends[0];
   const excised = src2.slice(from, closeAt + len);
@@ -753,11 +772,12 @@ if (src2.includes(ID)) {
   if (src2.includes(ID)) throw new Error('sov77: the id survived the excision; refusing to rebuild');
 }
 
-const block = JSON.stringify(filled, null, 2).split('\n').map((l) => `  ${l}`).join('\n');
+const block = JSON.stringify(filled, null, 2)
+  .split('\n')
+  .map((l) => `  ${l}`)
+  .join('\n');
 const tailHasComma = /\}\s*,\s*$/.test(src2.slice(0, end2));
-const next = tailHasComma
-  ? `${src2.slice(0, end2)}\n${block},${src2.slice(end2)}`
-  : `${src2.slice(0, end2)},\n${block}${src2.slice(end2)}`;
+const next = tailHasComma ? `${src2.slice(0, end2)}\n${block},${src2.slice(end2)}` : `${src2.slice(0, end2)},\n${block}${src2.slice(end2)}`;
 
 const weeks = (text) => [...new Set([...text.matchAll(/sov(\d+)-/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
 const before = weeks(src2);
@@ -770,9 +790,14 @@ if (occurrences !== 1) throw new Error(`sov77: the new id appears ${occurrences}
 
 writeFileSync(CATALOG, next);
 
-const refs = filled.anchor.ref.split(';').map((s) => s.trim()).filter(Boolean);
+const refs = filled.anchor.ref
+  .split(';')
+  .map((s) => s.trim())
+  .filter(Boolean);
 for (const r of refs) verseText(r);
 console.log(`sov77: spliced ${ID}`);
 console.log(`sov77: modules ${before.length} -> ${after.length}; top week ${after[after.length - 1]}`);
 console.log(`sov77: ${refs.length} references on the anchor, every one quoted in a reader place and resolving in the corpus`);
-console.log(`sov77: lesson ${filled.lesson.length} chars; bands child ${filled.levels.child.length}, youth ${filled.levels.youth.length}, teen ${filled.levels.teen.length}, senior ${filled.levels.senior.length}`);
+console.log(
+  `sov77: lesson ${filled.lesson.length} chars; bands child ${filled.levels.child.length}, youth ${filled.levels.youth.length}, teen ${filled.levels.teen.length}, senior ${filled.levels.senior.length}`
+);

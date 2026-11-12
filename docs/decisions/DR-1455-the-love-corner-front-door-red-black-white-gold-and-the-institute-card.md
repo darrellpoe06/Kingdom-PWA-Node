@@ -42,4 +42,4 @@ The Youth Zone surface with badges derived from learner rows (Phase 2), the grou
 
 ## Verification after merge
 
-DR-0107: a real deploy run on the merged SHA, then the church door opened on a phone at `/lovecorner/app/` with the portrait loading and the Institute card opening its surface; `site-health.yml` green after. Recorded here when done.
+DR-0107, done 2026-11-12: #2644 squash-merged as `a4cc5593` at 21:40Z; the lane dispatched Deploy (Cloudflare Pages) run 43312569540 on that SHA, green at 21:46Z, its real-browser boot check reading BOOT OK on poetech.us, pages.dev, the Moore door and `?view=church` (the tab that now mounts the front door). DR-0125: `site-health.yml` run 43313591668 at 21:47Z: verdict UP, served build `a4cc559` = main, fresh. The phone-level walk of the live door (the portrait, the Institute card opening its surface) is the DR-0104 reviewer pass Darrell makes on his own phone; the sandbox has no route to the site.

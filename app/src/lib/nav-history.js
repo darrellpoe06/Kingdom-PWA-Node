@@ -133,7 +133,7 @@ export function initialBooksView(search) {
 // and the gate — not to a blank screen).
 export const VALID_CHURCH_SUBS = [
   'home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
-  'learn', 'institute', 'eternal-algorithms', 'conference', 'events', 'projects',
+  'learn', 'institute', 'youth', 'eternal-algorithms', 'conference', 'events', 'projects',
   'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members', 'my-record', 'access', 'giving-book',
 ];
 

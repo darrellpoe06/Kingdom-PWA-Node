@@ -39,6 +39,7 @@ describe('every Church sub-tab survives the redesign', () => {
       'engagement',
       'choir',
       'bus',
+      'youth',
       'program',
       'learn',
       'institute',

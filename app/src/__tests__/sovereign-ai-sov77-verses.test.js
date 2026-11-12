@@ -106,7 +106,10 @@ describe('sov77 exists and is whole', () => {
 
   it('the adult lesson runs in eight numbered movements, in order', () => {
     const order = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT'].map((n) => M.lesson.indexOf(`MOVEMENT ${n}:`));
-    expect(order.every((p) => p > 0), `movements found at ${order.join(',')}`).toBe(true);
+    expect(
+      order.every((p) => p > 0),
+      `movements found at ${order.join(',')}`
+    ).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
@@ -136,9 +139,7 @@ describe('the Word goes first, not the article (DR-0127 / DR-0282 / DR-1326)', (
   it('every reader place opens on the command and carries where the verse ENDS', () => {
     for (const [band, t] of Object.entries(TEXTS())) {
       const s = String(t);
-      expect(s, `${band} must quote the command verbatim`).toMatch(
-        /"Prove all things; hold fast that which is good\." \(1 Thessalonians 5:21\)/
-      );
+      expect(s, `${band} must quote the command verbatim`).toMatch(/"Prove all things; hold fast that which is good\." \(1 Thessalonians 5:21\)/);
       expect(s, `${band} must carry where it ends, not stop at suspicion`).toMatch(/hold fast that which is good/);
     }
   });
@@ -356,9 +357,7 @@ describe('TALK ABOUT IT TOGETHER, in the lesson AND in every band (DR-0733 / DR-
     for (const [band, t] of Object.entries(PLACES())) {
       const tail = String(t).slice(String(t).indexOf('TALK ABOUT IT TOGETHER'));
       expect(tail, `${band}: the skill -- ask`).toMatch(/ask|Ask/);
-      expect(tail, `${band}: listen to the end`).toMatch(
-        /listen all the way|all the way to the end|hear the whole|Hear the whole/i
-      );
+      expect(tail, `${band}: listen to the end`).toMatch(/listen all the way|all the way to the end|hear the whole|Hear the whole/i);
       expect(tail, `${band}: teach one verse`).toMatch(/teach (?:them |each other |one another )?(?:one verse|Deuteronomy)/i);
       expect(tail, `${band}: the rhythm -- once today in one of the four places`).toMatch(/once today|Do it once today/i);
       expect(tail, `${band}: one friend this week`).toMatch(/one friend this week/i);
@@ -463,7 +462,8 @@ describe('the house typography holds', () => {
     // living-lessons-class.js, so a course file's British spelling passes green.
     // This checks OUR prose with the quotations removed, and leaves honour,
     // neighbour, favour and laboured alone wherever the corpus wrote them.
-    const BRITISH = /\b(memorise|summaris|capitalis|realis|generalis|formalis|organis|recognis|colour|favour|honour|labour|neighbour|behaviour|centre|metre|defence|offence|licence|programme|whilst|amongst|judgement|manoeuvre|per cent)\b/i;
+    const BRITISH =
+      /\b(memorise|summaris|capitalis|realis|generalis|formalis|organis|recognis|colour|favour|honour|labour|neighbour|behaviour|centre|metre|defence|offence|licence|programme|whilst|amongst|judgement|manoeuvre|per cent)\b/i;
     for (const [band, t] of Object.entries(TEXTS())) {
       const ours = String(t).replace(/"[^"]*"/g, ' ');
       const hit = ours.match(BRITISH);

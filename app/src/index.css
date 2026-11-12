@@ -613,6 +613,26 @@ button.lc-tile{cursor:pointer}
 .lc-cert{background:linear-gradient(160deg,var(--lc-paper),var(--lc-gold-tint));border:1.5px solid var(--lc-gold);border-radius:1rem;padding:.875rem;text-align:center}
 .lc-cert-rule{height:1px;background:var(--lc-gold);margin:.5rem 1.875rem;opacity:.6}
 .lc-empty{background:var(--lc-paper);border:1px dashed var(--lc-line);border-radius:.875rem;padding:.75rem .875rem;font-size:.82rem;color:var(--lc-muted);line-height:1.45;margin:0}
+/* Youth Zone (Phase 2): the same tokens; kids and teens doors, the verse game, the badge shelf. */
+.yz-band{background:linear-gradient(135deg,var(--lc-red) 0%,var(--lc-black) 100%)}
+.yz-band::after{background:radial-gradient(circle,rgba(207,166,60,.35),rgba(207,166,60,0) 70%)}
+.yz-doors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:.875rem}
+.yz-door{display:flex;flex-direction:column;gap:.125rem;text-align:left;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:var(--lc-white);border-radius:.875rem;padding:.625rem .75rem;min-height:64px;cursor:pointer}
+.yz-door b{font-size:.9rem}.yz-door small{font-size:.72rem;opacity:.9}
+.yz-door-on{background:var(--lc-gold);color:var(--lc-black);border-color:var(--lc-gold)}
+.yz-game{display:flex;flex-direction:column;gap:.625rem;margin-top:.625rem}
+.yz-verse{font-family:var(--lc-display);font-size:1.05rem;line-height:2;margin:0;color:var(--lc-ink)}
+.yz-blank{display:inline-block;min-height:36px;border:0;border-bottom:2px solid var(--lc-red);background:var(--lc-red-tint);color:var(--lc-ink);font:inherit;font-size:1rem;padding:0 .4rem;border-radius:.4rem .4rem 0 0;text-align:center;max-width:12ch}
+.yz-blank-ok{border-bottom-color:#2F7D4F;background:#E8F3EC}.yz-blank-no{border-bottom-color:var(--lc-gold);background:var(--lc-gold-tint)}
+.yz-row{display:flex;flex-wrap:wrap;gap:.625rem;align-items:center;margin-top:.5rem}
+.yz-badges{list-style:none;margin:.625rem 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+@media (min-width:640px){.yz-badges{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.yz-badge{display:flex;flex-direction:column;align-items:center;gap:.2rem;text-align:center;border:1px dashed var(--lc-line);border-radius:.875rem;padding:.625rem .5rem;min-height:84px;color:var(--lc-muted);font-size:.72rem}
+.yz-badge b{font-size:.8rem;color:var(--lc-ink)}
+.yz-badge-ic{width:36px;height:36px;border-radius:50%;background:var(--lc-red-tint);color:var(--lc-red);display:grid;place-items:center}
+.yz-badge-on{border:1.5px solid var(--lc-gold);background:var(--lc-gold-tint)}.yz-badge-on .yz-badge-ic{background:var(--lc-gold);color:var(--lc-black)}
+.yz-bigidea{font-size:.78rem;letter-spacing:.02em;line-height:1.5}
+.lc-inline-link-ink{background:none;border:0;padding:0;color:var(--lc-red);text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:inherit;cursor:pointer;min-height:36px}
 @media (prefers-reduced-motion:reduce){.lc-feat-track{scroll-behavior:auto}}
 
 /* =============================================================================

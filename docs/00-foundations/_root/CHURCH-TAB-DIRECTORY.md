@@ -102,6 +102,8 @@ The exact per-tradition weighting and any COLG-specific tuning is a **Darrell + 
 
 **2026-11-12 — the front door (DR-1455).** The Church home now opens on the Love Corner's own front door (`components/lovecorner/LoveCornerHome.jsx`): the Love Corner Experience seal and Bishop Gwin's real portrait, Watch gated by the published schedule, day-aware cards from the record, eight quick doors, the Learning Zone, the Youth Zone door, four ministry groups, and the **TLC Theological Institute** featured card. The Institute is a sub-tab of its own (`churchView 'institute'`, `components/ChurchInstitute.jsx`; Slice A, no enrollment until the office confirms). The sub-tab list lives in `lib/church-tabs.jsx` — the strip, the phone's bar and its More sheet draw the one list; every existing tab is kept, pinned by `church-tabs.test.js`. Colors: red, black, white with a touch of gold, measured from the emblem (`lib/lovecorner-palette.js`).
 
+**2026-11-12 — the Youth Zone (DR-1456).** `churchView 'youth'` (`components/YouthZone.jsx`): Kids and Teens doors over the age bands, Bishop Gwin's trivia (the same card as Engagement), this week's memory verse from the hosted KJV, this week's real lesson, badges derived from the learner's own rows, youth events from the record. No profile, no chat, no scoreboard. The front door's Youth Zone door opens it.
+
 ## 8. The Test for this surface
 
 - **Religion check:** Scripture-grounded (Luke 2:49; the Word-first alignment frame), structurally sound, doctrinally honest (no improvised theology; doctrinal calls reserved for Darrell + Bishop Gwin).
