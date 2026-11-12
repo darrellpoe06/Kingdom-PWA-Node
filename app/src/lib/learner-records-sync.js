@@ -136,7 +136,27 @@ export function isMissingColumn(error, column) {
   return (error.code === '42703' || /does not exist|column/i.test(text)) && text.includes(column);
 }
 
-export async function fetchLearnerRecords({ client = defaultClient, limit = 2000 } = {}) {
+// A READ THAT STALLS IS A FAILED READ, SAID IN SECONDS (DR-1449). Darrell
+// 2026-11-12: "I can't open nor see my records". The record panel sat on
+// "Reading the record now." with none of his lessons while the road stalled:
+// the read had no ceiling, and one read in flight blocks every later one, so a
+// single hung request held the record shut until the page was reloaded. Now
+// the whole read (session + query) has a ceiling; past it the read is an error,
+// the panel says it could not reach the record, and the read is tried again.
+export const RECORD_READ_TIMEOUT_MS = 12000;
+function withCeiling(promise, ms) {
+  let timer = null;
+  const ceiling = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ records: [], error: new Error(`the record did not answer within ${Math.round(ms / 1000)} seconds`) }), ms);
+  });
+  return Promise.race([promise, ceiling]).finally(() => clearTimeout(timer));
+}
+
+export function fetchLearnerRecords({ client = defaultClient, limit = 2000, timeoutMs = RECORD_READ_TIMEOUT_MS } = {}) {
+  return withCeiling(readLearnerRecords({ client, limit }), timeoutMs);
+}
+
+async function readLearnerRecords({ client, limit }) {
   const session = await sessionOf(client);
   if (!session) return { records: [], skipped: 'signed-out' };
   const read = (columns) => client
@@ -201,24 +221,39 @@ export function requestLearnerRecordsRefresh() {
  * Fetch once, then re-fetch whenever a record changes or the record is asked
  * for again (see above). Returns an unsubscribe.
  */
-export function subscribeLearnerRecords(onRecords, { client = defaultClient, limit = 2000, now = () => Date.now(), minGapMs = MIN_REFRESH_MS } = {}) {
+// After a failed read the record is tried again by itself, a bounded number of
+// times, further apart each time (DR-1449): a stall clears without anyone
+// pressing Refresh, and a road that stays down is not hammered.
+export const RECORD_RETRY_MS = Object.freeze([3000, 10000, 30000]);
+
+export function subscribeLearnerRecords(onRecords, { client = defaultClient, limit = 2000, now = () => Date.now(), minGapMs = MIN_REFRESH_MS, timeoutMs = RECORD_READ_TIMEOUT_MS, retryMs = RECORD_RETRY_MS } = {}) {
   let live = true;
   let reading = false;
   let queued = false;
   let lastStart = -Infinity;
   let timer = null;
+  let retryTimer = null;
+  let failures = 0;
 
   const read = async () => {
     reading = true;
     lastStart = now();
     setFreshness({ reading: true });
-    const res = await fetchLearnerRecords({ client, limit });
+    const res = await fetchLearnerRecords({ client, limit, timeoutMs });
     reading = false;
     if (!live) return;
     if (res.error) {
       // What is on the screen stays; the panel says the last try did not reach the record.
       setFreshness({ reading: false, ok: false });
+      if (failures < retryMs.length && retryTimer === null) {
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          push();
+        }, retryMs[failures]);
+      }
+      failures += 1;
     } else {
+      failures = 0;
       setFreshness({ reading: false, ok: true, at: new Date(now()).toISOString() });
       if (typeof onRecords === 'function') onRecords(res.records);
     }
@@ -276,6 +311,7 @@ export function subscribeLearnerRecords(onRecords, { client = defaultClient, lim
   return () => {
     live = false;
     if (timer !== null) clearTimeout(timer);
+    if (retryTimer !== null) clearTimeout(retryTimer);
     if (hasWindow) {
       window.removeEventListener(REFRESH_EVENT, push);
       window.removeEventListener('focus', push);
