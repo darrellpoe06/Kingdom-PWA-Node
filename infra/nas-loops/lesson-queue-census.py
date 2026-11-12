@@ -123,17 +123,51 @@ def shape_of(row):
     return "plain"
 
 
+# WHY A FAILED BUILD FAILED, AS A CLASS AND NEVER AS ITS TEXT (2026-11-12).
+# Measured the same day: the census reported `build-failed: 3` for an hour while
+# the tailnet was shut, and that number cannot be acted on. `rate-limited` and
+# `transient` heal themselves -- lesson_builder.eligibility() reads the class
+# back off the front of the tag and retries -- while anything else is stuck and
+# wants a person. One word tells those apart; the count alone cannot.
+#
+# IT READS THE CLASSIFIER ONLY, never the reason's text. lesson_builder's
+# reason_tag() puts the class FIRST precisely so it survives the 200-character
+# cut, and the rest of that string can quote a gate error that carries a
+# person's words -- so the rest is not read here and never leaves the house.
+# A class name is a tag shape, which is what this file is permitted to emit.
+STALLS = ("rate-limited", "transient")
+
+
+def stall_of(row):
+    """For a build-failed row: 'rate-limited', 'transient' or 'other'."""
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    for t in tags:
+        if not isinstance(t, str) or not t.startswith("build-reason:"):
+            continue
+        why = t[len("build-reason:"):].strip().lower()
+        for cls in STALLS:
+            if why.startswith(cls):
+                return cls
+        return "other"
+    return "other"
+
+
 def census_of(rows, now=None):
     """Counts by road and by shape, plus the oldest wait. No ids, no bodies."""
     rows = rows or []
     by_road = {}
     by_shape = {}
+    by_stall = {}
     for r in rows:
         road = r.get("source") or ""
         bucket = road if road in ROADS else "other"
         by_road[bucket] = by_road.get(bucket, 0) + 1
         shape = shape_of(r)
         by_shape[shape] = by_shape.get(shape, 0) + 1
+        if shape == "build-failed":
+            cls = stall_of(r)
+            by_stall[cls] = by_stall.get(cls, 0) + 1
     oldest = None
     for r in rows:
         at = r.get("created_at")
@@ -150,6 +184,9 @@ def census_of(rows, now=None):
         "total": len(rows),
         "by_road": by_road,
         "by_shape": by_shape,
+        # Only the build-failed rows appear here, so it sums to by_shape's
+        # build-failed count and is empty when nothing has failed.
+        "by_stall": by_stall,
         "oldest_waiting": oldest,
         # The definition travels WITH the count, so a reader can tell which
         # question was asked and never has to assume it was this one.
