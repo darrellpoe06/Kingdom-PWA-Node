@@ -356,7 +356,7 @@ function TabScroll({ children, chrome = false, className = '', rowClassName = ''
           aria-expanded={showAll}
           aria-label={showAll ? 'Show fewer tabs on one line' : 'Show every tab, including the ones past the edge'}
           title={showAll ? 'Back to one line' : 'Show all tabs'}
-          className={`${chrome ? 'ts-chrome-region ' : ''}shrink-0 self-start px-2 py-2 text-[0.625rem] uppercase tracking-wider border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]`}
+          className={`${chrome ? 'ts-chrome-region ' : ''}shrink-0 self-start min-h-[36px] px-2 py-2 text-[0.625rem] uppercase tracking-wider border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]`}
         >
           {showAll ? 'Less' : 'All'}
         </button>

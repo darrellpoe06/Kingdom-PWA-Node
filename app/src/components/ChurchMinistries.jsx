@@ -112,9 +112,9 @@ export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
             {families.map((f) => (
               <section key={f.key} aria-labelledby={`fam-${f.key}`} className="lc-fam" data-testid={`ministry-family-${f.key}`}>
                 <i className="lc-min-bar" aria-hidden="true" />
-                <h3 id={`fam-${f.key}`} className="lc-h3">
+                <h2 id={`fam-${f.key}`} className="lc-h3">
                   {f.title}
-                </h3>
+                </h2>
                 <p className="lc-small">{f.caption}</p>
                 <ul className="lc-fam-list">
                   {f.ministries.map((m) => (
