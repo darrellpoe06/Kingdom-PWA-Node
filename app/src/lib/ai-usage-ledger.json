@@ -1685,6 +1685,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 3,
       "notes": "Darrell asked whether this is his to do later or automated"
+    },
+    {
+      "id": "poetech-plus-on-pricing",
+      "date": "2026-11-12",
+      "task": "PoeTech+ is bought from the pricing page's Checkout window",
+      "drs": [
+        "DR-1437"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 2,
+      "notes": "Darrell asked where checkout lives"
     }
   ]
 }

@@ -307,6 +307,10 @@ describe('the app’s tier follows the person’s own paid row', () => {
     expect(shell).toMatch(/\{requiredTier === 'poetech-plus' && <PoeTechPlusButton \/>\}/);
     const card = readFileSync(join(process.cwd(), 'src', 'components', 'PoeTechShowcase.jsx'), 'utf8');
     expect(card).toMatch(/<PoeTechPlusButton \/>/);
+    // DR-1437: the pricing page's own Checkout window carries it for the PoeTech+ tier.
+    const about = readFileSync(join(process.cwd(), 'src', 'components', 'About.jsx'), 'utf8');
+    expect(about).toMatch(/\{cartTier\.name === 'PoeTech\+' && \(/);
+    expect(about).toMatch(/data-testid="pricing-poetech-plus-checkout"[\s\S]{0,200}<PoeTechPlusButton \/>/);
   });
 
   it('nothing is locked yet: enforcement stays off until a real purchase is proven end to end', () => {

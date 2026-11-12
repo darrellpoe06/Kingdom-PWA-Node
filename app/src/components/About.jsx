@@ -14,6 +14,7 @@ import { ARI } from '../lib/ari.js';
 import { feedbackText, feedbackScreenshotCount } from '../lib/feedback-triage.js';
 import AccessibilityNote from './AccessibilityNote.jsx';
 import { ChurchCard, ChurchOptions } from './ChurchOffer.jsx';
+import PoeTechPlusButton from './PoeTechPlusButton.jsx';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
@@ -816,6 +817,15 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             </div>
 
             <div className="p-5 space-y-4">
+              {/* DR-1437: PoeTech+ is bought HERE, from the pricing page, through the real checkout (DR-1432). The button shows
+                  only when checkout is truly open, and becomes "Manage or cancel" once it is yours; the email request below
+                  stays for every other tier. */}
+              {cartTier.name === 'PoeTech+' && (
+                <div className="border-2 border-[#1A1815] p-3" data-testid="pricing-poetech-plus-checkout">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Pay for PoeTech+ now</div>
+                  <PoeTechPlusButton />
+                </div>
+              )}
               {cartTier.isSponsor ? (
                 <>
                   <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3">
