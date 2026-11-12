@@ -403,6 +403,11 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
   // (DR-1407): without one its work orders read as an empty list, not an error.
   const [reach, setReach] = useState({ state: 'loading' });
 
+  // `lens` is a DEPENDENCY of all four reads below, not only a guard they read
+  // once on mount: if it ever flips while this board is mounted, the read that
+  // was skipped has to run, and the read that ran must not stand as the last
+  // word. Leaving it out would also leave four lint warnings behind, and this
+  // repo ships zero.
   useEffect(() => {
     let live = true;
     if (lens || typeof reachOp !== 'function') return undefined;
@@ -410,7 +415,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       if (live) setReach(r && r.ok ? { state: 'read', email: r.email || null, seat: r.seat || null } : { state: 'failed' });
     }).catch(() => { if (live) setReach({ state: 'failed' }); });
     return () => { live = false; };
-  }, [reachOp, reads]);
+  }, [lens, reachOp, reads]);
 
   useEffect(() => {
     let live = true;
@@ -428,14 +433,14 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       });
     });
     return () => { live = false; };
-  }, [photoOps, reads]);
+  }, [lens, photoOps, reads]);
 
   useEffect(() => {
     let live = true;
     if (lens || !photoOps || typeof photoOps.instanceId !== 'function') return undefined;
     Promise.resolve(photoOps.instanceId()).then((id) => { if (live && id) setFamilyInstance(id); }).catch(() => {});
     return () => { live = false; };
-  }, [photoOps]);
+  }, [lens, photoOps]);
 
   useEffect(() => {
     let live = true;
@@ -446,7 +451,7 @@ export default function WorkOrderTriage({ incidents = [], rentals = [], contract
       else setCloud({ state: 'failed', requests: [], docs: [], events: [], notes: [], unreadable: [], reason: (res && (res.error || res.reason)) || 'could not be read' });
     }).catch((e) => { if (live) setCloud({ state: 'failed', requests: [], docs: [], events: [], notes: [], unreadable: [], reason: (e && e.message) || 'could not be read' }); });
     return () => { live = false; };
-  }, [load, reads]);
+  }, [lens, load, reads]);
 
   const doorLabelOf = useMemo(() => doorLabeller(rentals), [rentals]);
   const queue = useMemo(

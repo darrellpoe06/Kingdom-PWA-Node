@@ -36,22 +36,47 @@ let root = null;
 const render = async (props) => {
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { root = createRoot(container); root.render(createElement(WorkOrderTriage, props)); });
+  await act(async () => {
+    root = createRoot(container);
+    root.render(createElement(WorkOrderTriage, props));
+  });
 };
-afterEach(() => { if (root) act(() => root.unmount()); container?.remove(); root = null; container = null; });
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  container?.remove();
+  root = null;
+  container = null;
+});
 
 const DOOR = '11111111-2222-4333-8444-555555555555';
 // A row shaped like the one on his screen: a real business, a named worker.
-const incidents = [{
-  id: 'wo-1', title: 'Exhaust Fan and microwave installation inside apartment 2.',
-  createdAt: '2026-10-22T14:00:00Z', doorId: DOOR, status: 'open',
-  assignee: 'Coreyon Mallory', building: 'Poe Properties',
-}];
-const noop = { load: async () => ({ ok: true, photos: [] }), thumb: async () => null, image: async () => null, remember: async () => {}, instanceId: async () => 'inst-1' };
+const incidents = [
+  {
+    id: 'wo-1',
+    title: 'Exhaust Fan and microwave installation inside apartment 2.',
+    createdAt: '2026-10-22T14:00:00Z',
+    doorId: DOOR,
+    status: 'open',
+    assignee: 'Coreyon Mallory',
+    building: 'Poe Properties',
+  },
+];
+const noop = {
+  load: async () => ({ ok: true, photos: [] }),
+  thumb: async () => null,
+  image: async () => null,
+  remember: async () => {},
+  instanceId: async () => 'inst-1',
+};
 
 describe('under the stranger lens the board hides, and says so', () => {
   it('renders none of the work orders, the worker or the business', async () => {
-    await render({ incidents, stranger: true, load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }), photoOps: noop });
+    await render({
+      incidents,
+      stranger: true,
+      load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }),
+      photoOps: noop,
+    });
     const text = container.textContent;
     expect(text, 'a work order title reached a lens that promised none').not.toContain('apartment 2');
     expect(text, "a worker's name reached the stranger lens").not.toContain('Coreyon');
@@ -61,22 +86,41 @@ describe('under the stranger lens the board hides, and says so', () => {
   it('PROVEN TO CATCH: the same board DOES show them to the steward himself', async () => {
     // Anti-vacuity. Without this the case above would pass on a board that
     // renders nothing for anyone — a lens that "works" by being broken.
-    await render({ incidents, stranger: false, load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }), photoOps: noop });
+    await render({
+      incidents,
+      stranger: false,
+      load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }),
+      photoOps: noop,
+    });
     expect(container.textContent).toContain('apartment 2');
   });
 
   it('does not even ASK for the rows, so the preview reads nothing it would hide', async () => {
     let asked = 0;
-    const counting = async () => { asked += 1; return { ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }; };
+    const counting = async () => {
+      asked += 1;
+      return { ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] };
+    };
     let photosAsked = 0;
-    const countingPhotos = { ...noop, load: async () => { photosAsked += 1; return { ok: true, photos: [] }; } };
+    const countingPhotos = {
+      ...noop,
+      load: async () => {
+        photosAsked += 1;
+        return { ok: true, photos: [] };
+      },
+    };
     await render({ incidents, stranger: true, load: counting, photoOps: countingPhotos });
     expect(asked, 'the stranger lens still pulled the work orders from the database').toBe(0);
     expect(photosAsked, 'the stranger lens still pulled the pictures').toBe(0);
   });
 
   it('says it is hidden rather than going blank (DR-0381)', async () => {
-    await render({ incidents, stranger: true, load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }), photoOps: noop });
+    await render({
+      incidents,
+      stranger: true,
+      load: async () => ({ ok: true, requests: [], docs: [], events: [], notes: [], unreadable: [] }),
+      photoOps: noop,
+    });
     const panel = container.querySelector('[data-testid="work-order-triage-stranger"]');
     expect(panel, 'the board vanished silently — hidden and broken must not look alike').toBeTruthy();
     expect(panel.textContent).toMatch(/hidden under this lens/i);
