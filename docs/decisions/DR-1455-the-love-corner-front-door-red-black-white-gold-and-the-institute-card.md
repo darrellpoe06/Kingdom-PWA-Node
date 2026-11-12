@@ -1,4 +1,4 @@
-# DR-1454: The Love Corner's front door — red, black, white with a touch of gold, the real Bishop, and the Institute's own card
+# DR-1455: The Love Corner's front door — red, black, white with a touch of gold, the real Bishop, and the Institute's own card
 
 **Date:** 2026-11-12
 **Status:** Accepted (Phase 0 and 1 of the redesign built; Phases 2–6 named with their gates)

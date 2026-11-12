@@ -33,7 +33,7 @@ const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
 // list. The guard follows the list: it walks back from the `/* top-level-nav */`
 // marker there, exactly as it walked back from `setView(id)` in the shell.
 const NAV_ITEMS = join(ROOT, 'app/src/lib/nav-items.jsx');
-// The Church sub-tab list moved out of the shell (DR-1454): one list for the
+// The Church sub-tab list moved out of the shell (DR-1455): one list for the
 // strip, the phone's bar and its More sheet. Marked like nav-items' top-level-nav.
 const CHURCH_TABS = join(ROOT, 'app/src/lib/church-tabs.jsx');
 // FEEDBACK_AREAS moved out of the monolith with the FeedbackCenter extraction.
