@@ -1,0 +1,10 @@
+{
+  "_comment": "Bishop Gwin's messages that become lessons (DR-1433). bg-message-lessons.py reads this each cycle. `since` is how far back the house goes; widen it to go further back. `done` lists messages that already have a lesson, so the NAS never builds one twice; a message the NAS sends is remembered by its own agent_inbox row (tag bg-message:<video id>).",
+  "since": "2026-08-01",
+  "speaker_match": ["Gwin", "Llyod"],
+  "per_cycle": 4,
+  "done": {
+    "WQIcLeynG0w": "L124 Equipped to Win (Wednesday Bible Study, 2026-09-02)",
+    "J9U77lAIyjo": "L202 Prepared before the position (Wednesday Bible Study, 2026-09-30)"
+  }
+}

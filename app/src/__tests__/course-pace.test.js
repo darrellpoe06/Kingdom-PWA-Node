@@ -13,7 +13,7 @@
 //      read but never tested, or passed before it was ever read, must not
 //      close a course — the second case is already its own figure (DR-1386).
 import { describe, it, expect } from 'vitest';
-import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE } from '../lib/course-pace.js';
+import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed } from '../lib/course-pace.js';
 
 const DAY = 86400000;
 const T0 = Date.UTC(2026, 9, 1, 12, 0, 0);
@@ -181,5 +181,48 @@ describe('a record that keeps only the summary columns still counts', () => {
     expect(m(summary)).toBe(T0 + DAY);
     // A summary that did not pass is still not done.
     expect(d({ ...summary, quizPassed: false, quizPct: 40 })).toBeNull();
+  });
+});
+
+// DR-1434 (Darrell 2026-11-12, "I have more than 2 courses completed.... fix it", with a Learners screen showing
+// "Courses fully completed 2 of 51" above kingdom-economics, business-research-wars, rent-to-own-business and
+// buying-terms each read 9/9 or 8/8 at a 100% average).
+describe('a pass the row holds counts, and the card names the exams still owed (DR-1434)', () => {
+  const ids = { k: ['k1', 'k2'] };
+  // Passed at 100% before migration 0313 began keeping attempts: the row says so; the history began later and holds
+  // only an attempt with `passed` left empty.
+  const before = (id) => ({
+    userId: 'u',
+    courseKey: 'k',
+    lessonId: id,
+    completedAt: '2026-11-01T10:00:00Z',
+    quizPct: 100,
+    quizPassed: true,
+    quizAt: '2026-11-01T10:05:00Z',
+    quizHistory: [{ at: '2026-11-11T09:00:00Z', pct: 80, passed: null }],
+  });
+
+  it('PROVEN TO CATCH: the row’s pass stands beside a history that does not hold it, so the course is complete', () => {
+    const s = standing([before('k1'), before('k2')], ids);
+    expect(s.coursesComplete).toBe(1);
+    expect(s.lessonsDone).toBe(2);
+    // The old reading — history only — found no pass at all, which is the 2-of-51 Darrell saw.
+    const historyOnly = before('k1').quizHistory.filter((e) => e.passed === true);
+    expect(historyOnly).toHaveLength(0);
+  });
+
+  it('a 100% score is a pass even where `passed` was left empty; an attempt marked failed stays failed', () => {
+    expect(isPass({ pct: 100, passed: null })).toBe(true);
+    expect(isPass({ pct: 100, passed: false })).toBe(false);
+    expect(isPass({ pct: 90, passed: null })).toBe(false);
+    expect(isPass({ pct: 70, passed: true })).toBe(true);
+  });
+
+  it('a course read in full with an exam not yet passed is not complete, and examsOwed names that lesson', () => {
+    const recs = [before('k1'), { userId: 'u', courseKey: 'k', lessonId: 'k2', completedAt: '2026-11-02T10:00:00Z' }];
+    expect(standing(recs, ids).coursesComplete).toBe(0);
+    expect(examsOwed(recs, 'k', ids.k)).toEqual([{ id: 'k2', n: 2 }]);
+    expect(examsOwed([before('k1'), before('k2')], 'k', ids.k)).toEqual([]);
+    expect(examsOwed(recs, 'k', [])).toEqual([]);
   });
 });

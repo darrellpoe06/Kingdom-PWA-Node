@@ -1608,6 +1608,51 @@
       "wallClockHours": 1.1,
       "estimateWithoutAiHours": 9,
       "notes": "Found by the hourly voice-lane tick reading its own run log, not asked for. Six prior ticks re-measured the same tailnet-join failure and waited on a key only Darrell can mint; DR-1360 had already decided that road was to be reversed. The census writer already existed and was enabled but had never been read from outside the house. Proof ran on a throwaway PostgreSQL 16 cluster: 8 executed cases, including a seeded lesson body that must not appear and SET ROLE anon both ways. That proof caught a clamp of my own that turned a corrupt total of -5 into 0 - a manufactured empty queue, the one lie this lane exists to prevent."
+    },
+    {
+      "id": "poetech-plus-checkout",
+      "date": "2026-11-12",
+      "task": "PoeTech+ checkout: verified buyer, member_subscriptions row (0321), webhook lifecycle, money counted once, truthful button in both apps, cancel portal, one-secret keys workflow",
+      "drs": [
+        "DR-1432"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 24,
+      "notes": "Found household-row activation, missing cancellation path and a double count in the books; all closed with proven-to-catch tests"
+    },
+    {
+      "id": "bg-message-lessons",
+      "date": "2026-11-12",
+      "task": "Bishop Gwin's messages become lessons from the NAS: a loop files each message with words as a lesson row; the builder names him and gathers the church history he tells",
+      "drs": [
+        "DR-1433"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 14,
+      "notes": "The runner road to transcripts was dead (expired tailnet key); reversed per DR-1360"
+    },
+    {
+      "id": "courses-fully-completed",
+      "date": "2026-11-12",
+      "task": "Courses fully completed counts the row's own best pass and each course names the exams still owed",
+      "drs": [
+        "DR-1434"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell's screenshot: 2 of 51 beside courses read in full at 100%"
     }
   ]
 }

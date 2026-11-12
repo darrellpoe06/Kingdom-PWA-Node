@@ -43,7 +43,7 @@ describe('checkout — price truth is server-side', () => {
   it('builds a subscription from the owner-configured Stripe Price id', () => {
     const { params } = toStripeSessionParams(
       { kind: 'subscription', tier: 'family', userKey: 'u1' },
-      { tierPrices: TIERS, origin: 'https://poetech.us', instanceId: 'inst-1' },
+      { tierPrices: TIERS, origin: 'https://poetech.us', instanceId: 'inst-1', buyer: { userId: '11111111-2222-4333-8444-555555555555', email: 'b@example.com' } },
     );
     expect(params.get('mode')).toBe('subscription');
     expect(params.get('line_items[0][price]')).toBe('price_fam_123');
@@ -163,10 +163,11 @@ describe('stripe-webhook — the write path', () => {
   });
 });
 
-describe('stripe-webhook — a settled SUBSCRIPTION activates the tier (DR-0263: the ledger-only gap)', () => {
+describe('stripe-webhook — a settled SUBSCRIPTION activates the BUYER\'s tier (DR-0263 gap; DR-1432 person, not household)', () => {
+  const BUYER = '11111111-2222-4333-8444-555555555555';
   const subEvt = (over = {}) => ({
     id: 'evt_s1', type: 'checkout.session.completed', created: 1784592000,
-    data: { object: { id: 'cs_s1', payment_status: 'paid', amount_total: 900, currency: 'usd', customer: 'cus_1', subscription: 'sub_1', metadata: { kind: 'subscription', tier: 'poetech-plus', instanceId: 'inst-poe' }, ...over } },
+    data: { object: { id: 'cs_s1', payment_status: 'paid', amount_total: 3900, currency: 'usd', customer: 'cus_1', subscription: 'sub_1', client_reference_id: BUYER, metadata: { kind: 'subscription', tier: 'poetech-plus', userId: BUYER, instanceId: 'inst-poe' }, ...over } },
   });
   const env = { STRIPE_WEBHOOK_SECRET: 'whsec_1', SUPABASE_URL: 'https://db.example.co', SUPABASE_SERVICE_KEY: 'srv_1' };
   const post = (payload, header) =>
@@ -174,7 +175,7 @@ describe('stripe-webhook — a settled SUBSCRIPTION activates the tier (DR-0263:
 
   it('extracts the activation from a settled subscription checkout', () => {
     const a = subscriptionActivation(subEvt());
-    expect(a).toEqual({ tier: 'poetech-plus', stripeCustomerId: 'cus_1', stripeSubscriptionId: 'sub_1' });
+    expect(a).toEqual({ tier: 'poetech-plus', userId: BUYER, stripeCustomerId: 'cus_1', stripeSubscriptionId: 'sub_1' });
   });
 
   it('CATCHES the non-activating shapes — a book purchase, an unknown tier, an unpaid session never flip a tier', () => {
@@ -184,38 +185,38 @@ describe('stripe-webhook — a settled SUBSCRIPTION activates the tier (DR-0263:
     expect(ACTIVATABLE_TIERS).not.toContain('foundation'); // the free tier is never a purchase
   });
 
-  it('PATCHes the instance subscription row to the paid tier after the ledger write', async () => {
+  it('writes the BUYER\'s own member row after the ledger, and never the household row (DR-1432)', async () => {
     const calls = [];
     vi.stubGlobal('fetch', async (url, init) => {
       calls.push({ url, init });
       if (String(url).includes('/rest/v1/payments')) return new Response(null, { status: 201 });
-      return new Response(JSON.stringify([{ id: 'row1' }]), { status: 200 });
+      return new Response(JSON.stringify([{ user_id: BUYER }]), { status: 201 });
     });
     const payload = JSON.stringify(subEvt());
     const t = Math.floor(Date.now() / 1000);
     const res = await post(payload, sign(payload, 'whsec_1', t));
     const body = await res.json();
-    expect(body.activation).toBe('activated');
-    expect(body.tier).toBe('poetech-plus');
-    const patch = calls.find((c) => String(c.url).includes('instance_subscriptions'));
-    expect(patch.url).toContain('instance_id=eq.inst-poe');
-    expect(patch.init.method).toBe('PATCH');
-    const sent = JSON.parse(patch.init.body);
-    expect(sent.tier).toBe('poetech-plus');
-    expect(sent.status).toBe('active');
-    expect(sent.stripe_subscription_id).toBe('sub_1');
+    expect(body.member).toBe('active');
+    expect(calls.filter((c) => String(c.url).includes('/rest/v1/payments'))).toHaveLength(1);
+    const up = calls.find((c) => String(c.url).includes('member_subscriptions'));
+    expect(up.url).toContain('on_conflict=user_id');
+    expect(up.init.method).toBe('POST');
+    const [sent] = JSON.parse(up.init.body);
+    expect(sent).toMatchObject({ user_id: BUYER, tier: 'poetech-plus', status: 'active', stripe_subscription_id: 'sub_1' });
+    // PROVEN TO CATCH the DR-0263 fallback: the household (PAYMENTS_INSTANCE_ID
+    // or the session's instanceId) is never raised by one person's purchase.
+    expect(calls.some((c) => String(c.url).includes('instance_subscriptions'))).toBe(false);
   });
 
-  it('reports a MISSING subscription row honestly — the payment stays ledgered, the gap is named, Stripe still gets its 200', async () => {
-    vi.stubGlobal('fetch', async (url) => {
-      if (String(url).includes('/rest/v1/payments')) return new Response(null, { status: 201 });
-      return new Response(JSON.stringify([]), { status: 200 });
-    });
-    const payload = JSON.stringify(subEvt());
+  it('a session with no verified buyer writes the money and no tier at all', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', async (url, init) => { calls.push({ url, init }); return new Response(null, { status: 201 }); });
+    const payload = JSON.stringify(subEvt({ client_reference_id: null, metadata: { kind: 'subscription', tier: 'poetech-plus', instanceId: 'inst-poe' } }));
     const t = Math.floor(Date.now() / 1000);
     const res = await post(payload, sign(payload, 'whsec_1', t));
     expect(res.status).toBe(200);
-    expect((await res.json()).activation).toBe('no-subscription-row');
+    expect(calls).toHaveLength(1);
+    expect(String(calls[0].url)).toContain('/rest/v1/payments');
   });
 });
 

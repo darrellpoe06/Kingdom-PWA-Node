@@ -24,7 +24,19 @@ const json = (obj, status = 200) =>
 const asStr = (v) => (typeof v === 'string' ? v : '');
 const cents = (v) => (Number.isFinite(v) ? Math.round(v) : 0);
 
-export const HANDLED_EVENTS = ['checkout.session.completed', 'payment_intent.succeeded'];
+// DR-1432: the events this door acts on. MONEY is counted ONCE, where it is
+// named: a checkout session (first payment, product in its metadata) and a
+// subscription RENEWAL invoice. payment_intent.succeeded is acknowledged and
+// not counted: every purchase here goes through Checkout, whose session
+// already carries that money, and counting both put one sale in the year
+// summary twice (a subscription's first payment as cs_... AND pi_..., the
+// second one with no product). The two customer.subscription events carry a
+// member's status after the purchase: renewed, past due, or cancelled.
+export const HANDLED_EVENTS = [
+  'checkout.session.completed', 'payment_intent.succeeded', 'invoice.paid',
+  'customer.subscription.updated', 'customer.subscription.deleted',
+];
+export const MONEY_EVENTS = ['checkout.session.completed', 'invoice.paid'];
 export const SIGNATURE_TOLERANCE_SECONDS = 300;
 
 // Mirror of PRODUCT_ENTITY in app/src/lib/payments-ledger.js (conformance-tested).
@@ -115,10 +127,93 @@ export function subscriptionActivation(evt = {}) {
   if (!(obj.payment_status === 'paid' || obj.status === 'complete')) return null;
   const tier = asStr(md.tier);
   if (!ACTIVATABLE_TIERS.includes(tier)) return null;
+  const userId = asStr(md.userId) || asStr(obj.client_reference_id);
   return {
     tier,
+    userId: UUID.test(userId) ? userId : null,
     stripeCustomerId: asStr(obj.customer) || null,
     stripeSubscriptionId: asStr(obj.subscription) || null,
+  };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Stripe's subscription status -> ours. 'incomplete' (first payment still in
+// flight) changes nothing; the checkout event is what starts a membership.
+const STATUS_FROM_STRIPE = Object.freeze({
+  active: 'active', trialing: 'active',
+  past_due: 'past-due', unpaid: 'past-due',
+  canceled: 'cancelled', incomplete_expired: 'cancelled',
+});
+
+const isoFromSeconds = (n) => (Number.isFinite(n) && n > 0 ? new Date(n * 1000).toISOString() : null);
+
+// memberSubscriptionChange — what this verified event does to ONE PERSON's
+// member_subscriptions row (DR-1432, migration 0321), or null. Pure.
+//   checkout.session.completed (a paid subscription with a verified buyer)
+//     -> upsert the person's row: tier, active, Stripe ids
+//   customer.subscription.updated / .deleted
+//     -> patch the same person's row FOR THAT SUBSCRIPTION ONLY (an old,
+//        cancelled subscription can never overwrite a newer one)
+export function memberSubscriptionChange(evt = {}, nowIso = new Date().toISOString()) {
+  const type = asStr(evt.type);
+  if (type === 'checkout.session.completed') {
+    const a = subscriptionActivation(evt);
+    if (!a || !a.userId) return null;
+    return {
+      op: 'upsert',
+      userId: a.userId,
+      row: {
+        user_id: a.userId,
+        tier: a.tier,
+        status: 'active',
+        stripe_customer_id: a.stripeCustomerId,
+        stripe_subscription_id: a.stripeSubscriptionId,
+        updated_at: nowIso,
+      },
+    };
+  }
+  if (type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') {
+    const obj = (evt.data && evt.data.object) || {};
+    const md = obj.metadata || {};
+    const userId = asStr(md.userId);
+    const subscriptionId = asStr(obj.id);
+    if (!UUID.test(userId) || !subscriptionId) return null;
+    const status = type === 'customer.subscription.deleted' ? 'cancelled' : STATUS_FROM_STRIPE[asStr(obj.status)];
+    if (!status) return null;
+    const periodEnd = obj.current_period_end ?? obj.items?.data?.[0]?.current_period_end;
+    const row = { status, current_period_end: isoFromSeconds(periodEnd), updated_at: nowIso };
+    if (ACTIVATABLE_TIERS.includes(asStr(md.tier))) row.tier = asStr(md.tier);
+    return { op: 'patch', userId, subscriptionId, row };
+  }
+  return null;
+}
+
+// A subscription RENEWAL invoice, re-shaped as the settle event the ledger
+// mirror already reads, so normalizeStripeEvent stays identical to the engine
+// (conformance-tested). Only billing_reason 'subscription_cycle': the first
+// invoice's money is the checkout session's and is counted there. Pure.
+export function renewalAsSettleEvent(evt = {}) {
+  if (asStr(evt.type) !== 'invoice.paid') return null;
+  const inv = (evt.data && evt.data.object) || {};
+  if (asStr(inv.billing_reason) !== 'subscription_cycle') return null;
+  const smd = inv.parent?.subscription_details?.metadata || inv.subscription_details?.metadata || {};
+  const tier = asStr(smd.tier);
+  return {
+    id: evt.id,
+    type: 'invoice.paid',
+    created: evt.created,
+    data: {
+      object: {
+        id: asStr(inv.id),
+        payment_intent: asStr(inv.payment_intent) || asStr(inv.id),
+        payment_status: inv.status === 'paid' ? 'paid' : 'unpaid',
+        amount_total: inv.amount_paid,
+        currency: inv.currency,
+        metadata: { product: ACTIVATABLE_TIERS.includes(tier) ? tier : '' },
+        customer_details: { email: asStr(inv.customer_email) },
+      },
+    },
   };
 }
 
@@ -157,68 +252,50 @@ export async function onRequestPost(context) {
   try { evt = JSON.parse(payload); } catch { return json({ error: 'bad-json' }, 400); }
   if (!HANDLED_EVENTS.includes(asStr(evt?.type))) return json({ received: true, ignored: true });
 
-  const row = normalizeStripeEvent(evt);
-  if (!row.providerEventId) return json({ error: 'no-event-id' }, 400);
-
+  const type = asStr(evt?.type);
   const instanceId = asStr((evt.data?.object?.metadata || {}).instanceId) || asStr(env.PAYMENTS_INSTANCE_ID);
-  let upstream;
-  try {
-    upstream = await fetch(`${supabaseUrl}/rest/v1/payments?on_conflict=provider,provider_event_id`, {
-      method: 'POST',
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        'content-type': 'application/json',
+  const svc = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json' };
+
+  // ── 1. THE BOOKS: money is written once, where it is named ───────────────
+  const moneyEvt = type === 'invoice.paid' ? renewalAsSettleEvent(evt) : MONEY_EVENTS.includes(type) ? evt : null;
+  if (moneyEvt) {
+    const row = normalizeStripeEvent(moneyEvt);
+    if (!row.providerEventId) return json({ error: 'no-event-id' }, 400);
+    let upstream;
+    try {
+      upstream = await fetch(`${supabaseUrl}/rest/v1/payments?on_conflict=provider,provider_event_id`, {
+        method: 'POST',
         // Retries INSERT the same provider_event_id; duplicates are ignored,
         // never doubled, never an error Stripe would re-retry forever on.
-        Prefer: 'resolution=ignore-duplicates,return=minimal',
-      },
-      body: JSON.stringify([toTableRow(row, { instanceId })]),
-    });
-  } catch { return json({ error: 'ledger-unreachable' }, 502); }
-  if (!upstream.ok) return json({ error: `ledger-${upstream.status}` }, 502);
-
-  // ENTITLEMENT ACTIVATION (DR-0263): a settled SUBSCRIPTION flips the
-  // instance's existing subscription row to the paid tier — the ledger row
-  // alone never changed what the member could use. PATCH-only by design (see
-  // subscriptionActivation); a missing row is reported honestly in the
-  // response and in the row-less marker below, never retried forever (the
-  // ledger write above already succeeded, so Stripe gets its 200 either way).
-  const activation = subscriptionActivation(evt);
-  if (activation && instanceId) {
-    try {
-      const patch = await fetch(
-        `${supabaseUrl}/rest/v1/instance_subscriptions?instance_id=eq.${encodeURIComponent(instanceId)}`,
-        {
-          method: 'PATCH',
-          headers: {
-            apikey: serviceKey,
-            Authorization: `Bearer ${serviceKey}`,
-            'content-type': 'application/json',
-            Prefer: 'return=representation',
-          },
-          body: JSON.stringify({
-            tier: activation.tier,
-            status: 'active',
-            stripe_customer_id: activation.stripeCustomerId,
-            stripe_subscription_id: activation.stripeSubscriptionId,
-            current_period_start: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }),
-        }
-      );
-      const rows = patch.ok ? await patch.json().catch(() => []) : [];
-      if (!patch.ok) return json({ received: true, activation: `patch-${patch.status}` });
-      if (!Array.isArray(rows) || rows.length === 0) {
-        // No subscription row exists for this instance — the payment is in the
-        // ledger; the tier flip needs the steward's one-time row (visible in
-        // Admin, where the tier reads from this same table).
-        return json({ received: true, activation: 'no-subscription-row' });
-      }
-      return json({ received: true, activation: 'activated', tier: activation.tier });
-    } catch {
-      return json({ received: true, activation: 'activation-unreachable' });
-    }
+        headers: { ...svc, Prefer: 'resolution=ignore-duplicates,return=minimal' },
+        body: JSON.stringify([toTableRow(row, { instanceId })]),
+      });
+    } catch { return json({ error: 'ledger-unreachable' }, 502); }
+    if (!upstream.ok) return json({ error: `ledger-${upstream.status}` }, 502);
   }
-  return json({ received: true });
+
+  // ── 2. THE PERSON: a membership lands on the buyer's own row ─────────────
+  // (DR-1432; DR-0263's PATCH of the HOUSEHOLD row is retired: it fell back to
+  // the family instance, so a stranger's purchase would have raised the Poe
+  // household's tier and left the buyer on Foundation.) A failed write answers
+  // 500 so Stripe retries it; the ledger insert above is idempotent, so a
+  // retry never counts the money twice.
+  const change = memberSubscriptionChange(evt);
+  if (!change) return json({ received: true, counted: !!moneyEvt });
+  const target =
+    change.op === 'upsert'
+      ? `${supabaseUrl}/rest/v1/member_subscriptions?on_conflict=user_id`
+      : `${supabaseUrl}/rest/v1/member_subscriptions?user_id=eq.${encodeURIComponent(change.userId)}&stripe_subscription_id=eq.${encodeURIComponent(change.subscriptionId)}`;
+  let wrote;
+  try {
+    wrote = await fetch(target, {
+      method: change.op === 'upsert' ? 'POST' : 'PATCH',
+      headers: { ...svc, Prefer: change.op === 'upsert' ? 'resolution=merge-duplicates,return=representation' : 'return=representation' },
+      body: JSON.stringify(change.op === 'upsert' ? [change.row] : change.row),
+    });
+  } catch { return json({ error: 'member-unreachable' }, 502); }
+  if (!wrote.ok) return json({ error: `member-${wrote.status}` }, 500);
+  const rows = await wrote.json().catch(() => []);
+  const n = Array.isArray(rows) ? rows.length : 0;
+  return json({ received: true, counted: !!moneyEvt, member: n > 0 ? change.row.status : 'no-matching-subscription' });
 }

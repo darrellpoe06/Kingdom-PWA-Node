@@ -192,6 +192,23 @@ describe('inside the Love Corner, a PoeTech subject points home (DR-1428)', () =
     host.remove();
   });
 
+  it('DR-1432: in PoeTech the same card carries the way to PoeTech+, without the link to itself', () => {
+    window.history.replaceState(null, '', '/poetech-app/?view=church&sub=learn');
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => root.render(createElement(PoeTechShowcase, { course: biz() })));
+    const card = host.querySelector('[data-testid="poetech-showcase"]');
+    expect(card).toBeTruthy();
+    expect(card.textContent).toMatch(/whole first lesson of this course are free to everyone/);
+    expect(card.textContent).toMatch(/PoeTech\+ \(\$39\/mo\)/);
+    expect(host.querySelector('[data-testid="poetech-showcase-link"]')).toBeNull();
+    act(() => root.render(createElement(PoeTechShowcase, { course: ll() })));
+    expect(host.querySelector('[data-testid="poetech-showcase"]')).toBeNull();
+    act(() => root.unmount());
+    host.remove();
+  });
+
   it('ChurchLearn renders it under the course header', () => {
     const src = readFileSync(join(SRC, 'components', 'ChurchLearn.jsx'), 'utf8');
     expect(src).toMatch(/<PoeTechShowcase course=\{active\} \/>/);

@@ -93,6 +93,7 @@ SIMILAR = float(os.environ.get("LESSON_SIMILAR", "0.5"))
 
 LIVING = "app/src/lib/living-lessons-class.js"
 DATES = "app/src/lib/living-lessons-dates.js"
+SESSIONS = "app/src/lib/bible-study-session.js"
 CROSSLIST = "app/src/__tests__/learn-crosslist.test.js"
 INDEX = "docs/decisions/INDEX.md"
 # The counts a new Living Lesson moves (the set L192-L195 moved, DR-0643).
@@ -457,6 +458,43 @@ def insert_module(src, js):
 # lesson counts are no longer pinned. A new lesson then edits NO count line:
 # every bump below detects that regime and does nothing.
 DERIVED_WEEKS = re.compile(r"get weeks\(\)\s*\{\s*return\s+LIVING_LESSONS_MODULES\.length")
+
+
+def bg_wednesday(rows):
+    """(date, video id) when this teaching is Bishop Gwin's own Wednesday
+    message (bg-message-lessons.py, DR-1433), else None. Pure."""
+    for r in rows or []:
+        tags = [str(t) for t in (r.get("tags") or [])]
+        if "bg-message" not in tags or "service-type:wednesday" not in tags:
+            continue
+        date = next((t[len("service-date:"):] for t in tags if t.startswith("service-date:")), "")
+        vid = next((t[len("bg-message:"):] for t in tags if t.startswith("bg-message:")), "")
+        if date and vid:
+            return date, vid
+    return None
+
+
+def register_bg_session(src, lesson_id, date, vid, dr):
+    """Append one entry to BIBLE_STUDY_SESSION_LESSONS (app/src/lib/bible-study-
+    session.js) for a Wednesday lesson Bishop Gwin taught. Idempotent: a lesson
+    already listed is left as it is. Pure."""
+    if "id: '{}'".format(lesson_id) in src:
+        return src
+    marker = "export const BIBLE_STUDY_SESSION_LESSONS = Object.freeze(["
+    start = src.find(marker)
+    end = src.find("\n]);", start)
+    if start < 0 or end < 0:
+        raise BuildFailed("bible-study-session.js has no BIBLE_STUDY_SESSION_LESSONS list to add to")
+    entry = (
+        "\n  Object.freeze({{\n"
+        "    id: '{id}',\n"
+        "    file: 'living-lessons-class.js',\n"
+        "    date: '{date}',\n"
+        "    teacher: 'BG',\n"
+        "    evidence: 'its source: Bishop Lloyd E. Gwin\\'s own Wednesday Bible Study, video {vid}, which the church\\'s archive and channel name him as preaching; filed by bg-message-lessons on the NAS ({dr}, DR-1433)',\n"
+        "  }}),"
+    ).format(id=lesson_id, date=date, vid=vid, dr=dr)
+    return src[:end] + entry + src[end:]
 
 
 def counts_derived(living_src):
@@ -1189,7 +1227,7 @@ class Build:
     def shape_problems(self, obj):
         """The writer's shape check PLUS the reading-under-the-light gate for an
         emailed teaching (DR-1361): the rows decide whether the rule applies."""
-        return writer.schema_problems(obj) + writer.reading_problems(obj, self.group)
+        return writer.schema_problems(obj) + writer.reading_problems(obj, self.group) + writer.history_problems(obj, self.group)
 
     def _store(self, versions, chosen, lid=None):
         """Every version is kept: the database (lesson_versions) and a copy on
@@ -1224,6 +1262,12 @@ class Build:
         src, _ = bump_weeks(src, ll, module["title"], self.today)
         self.git.write(wt, LIVING, src)
         self.git.write(wt, DATES, insert_date(self.git.read(wt, DATES), module["id"], self.today, dr))
+        bg = bg_wednesday(self.group)
+        if bg:
+            # DR-1433: a Wednesday Bible Study lesson from Bishop Gwin's own
+            # message is listed with its teacher and its evidence, as the
+            # bible-study-session gate requires of every weekly-study lesson.
+            self.git.write(wt, SESSIONS, register_bg_session(self.git.read(wt, SESSIONS), module["id"], bg[0], bg[1], dr))
         self.git.write(wt, "app/src/__tests__/living-lessons-l{}-verses.test.js".format(ll),
                        verse_test_js(module, ll, dr, self.today, self.group, chosen))
         fname = dr_filename(dr, chosen["body"]["slug"])

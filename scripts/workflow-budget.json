@@ -105,7 +105,21 @@
       "to": 22952,
       "dr": "DR-1431",
       "reason": "inbox-lessons-waiting.yml gains its second road (DR-1360/DR-1399's shape): the join carries continue-on-error, one step reads the lesson-queue census the NAS takes for itself over poetech.us/sb when the tailnet is shut, the run log reports WHICH road answered, and a closing step fails the job when NEITHER road read the queue. That last step is the reason this is not pure growth: making both read steps continue-on-error is exactly how a lane starts reporting success for work it did not do, so the brake had to ship with the capability. MEASURED cause: runs #500-#505 -- six consecutive firings of the PRIORITY lesson lane -- all died at the join on a key that expired 2026-11-04 and again by 11-10, while the queue sat on a machine that was up and the census that counts it had been running all along, unreadable from outside for the same reason. The ceiling refuses bloat, not a road that removes a single point of failure. First written at 22973; the three comment blocks were folded to 10, 11 and 8 lines (-21) with the narrative moved into the record, so this is the mechanism's cost and not its first draft. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 22952,
+      "to": 23040,
+      "dr": "DR-1432",
+      "reason": "The PoeTech+ checkout. poetech-plus-keys.yml (80 lines) turns the one value only Darrell holds, his Stripe secret key, into the whole go-live DR-0263 left to his hand: it makes the $39/month Price (refusing any other amount), the webhook with its signing secret and the cancel portal, installs the Pages secrets, redeploys and proves the live site offers PoeTech+. A LIVE key is refused unless the dispatch types CHARGE-REAL-MONEY. ci.yml +4 runs the 0321 smoke (a member reads only their own row and cannot grant a tier) and rls-isolation.yml +3 adds it to the matrix. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-12",
+      "from": 23040,
+      "to": 23042,
+      "dr": "DR-1433",
+      "reason": "Bishop Gwin's messages become lessons from the NAS's side. ci.yml +1 runs test_bg_message_lessons (a message with no named speaker is never sent as his; a message is sent once); loops-health.yml +1 reads the new loop's own last-run.json in the diagnosis, beside its name in the loops list, install map, cron prefix and heartbeat receipt (edited on existing lines). Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 22952
+  "totalLines": 23042
 }
