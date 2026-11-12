@@ -20,13 +20,25 @@ const never = () => new Promise(() => {});
 
 /** A client whose session read hangs for ever: the stalled road. */
 function stalledClient() {
-  return { auth: { getSession: never }, from: () => { throw new Error('unreachable'); } };
+  return {
+    auth: { getSession: never },
+    from: () => {
+      throw new Error('unreachable');
+    },
+  };
 }
 
 /** A client that answers: one row, signed in. */
 function answeringClient(calls) {
   const rows = [{ user_id: 'u1', lesson_id: 'l1', course_key: 'c', completed: true, updated_at: '2026-11-12T00:00:00Z' }];
-  const chain = { select: () => chain, order: () => chain, limit: () => { calls.n += 1; return Promise.resolve({ data: rows, error: null }); } };
+  const chain = {
+    select: () => chain,
+    order: () => chain,
+    limit: () => {
+      calls.n += 1;
+      return Promise.resolve({ data: rows, error: null });
+    },
+  };
   return { auth: { getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1' } } } }) }, from: () => chain };
 }
 
@@ -45,7 +57,9 @@ describe('a stalled record read is a failed read, said in seconds', () => {
   it('PROVEN TO CATCH: without the ceiling the same read is still pending long after', async () => {
     vi.useFakeTimers();
     let settled = false;
-    fetchLearnerRecords({ client: stalledClient(), timeoutMs: 10 ** 9 }).then(() => { settled = true; });
+    fetchLearnerRecords({ client: stalledClient(), timeoutMs: 10 ** 9 }).then(() => {
+      settled = true;
+    });
     await vi.advanceTimersByTimeAsync(60000);
     expect(settled).toBe(false);
   });
@@ -55,7 +69,7 @@ describe('a stalled record read is a failed read, said in seconds', () => {
     const calls = { n: 0 };
     let first = true;
     const flaky = answeringClient(calls);
-    const client = { ...flaky, auth: { getSession: () => (first ? (first = false, never()) : flaky.auth.getSession()) } };
+    const client = { ...flaky, auth: { getSession: () => (first ? ((first = false), never()) : flaky.auth.getSession()) } };
     const got = [];
     const stop = subscribeLearnerRecords((r) => got.push(r), { client, timeoutMs: 1000, retryMs: [500], minGapMs: 0 });
     await vi.advanceTimersByTimeAsync(1000);
@@ -70,7 +84,15 @@ describe('a stalled record read is a failed read, said in seconds', () => {
   it('retries are bounded: a road that stays down is not hammered', async () => {
     vi.useFakeTimers();
     let reads = 0;
-    const client = { auth: { getSession: () => { reads += 1; return never(); } }, from: () => null };
+    const client = {
+      auth: {
+        getSession: () => {
+          reads += 1;
+          return never();
+        },
+      },
+      from: () => null,
+    };
     const stop = subscribeLearnerRecords(() => {}, { client, timeoutMs: 100, retryMs: [100, 100], minGapMs: 0 });
     await vi.advanceTimersByTimeAsync(5000);
     expect(reads).toBe(3); // the first read and two retries, then it waits for a real event
