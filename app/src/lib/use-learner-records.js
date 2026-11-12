@@ -36,11 +36,11 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
   who.current = { authSession, demo, ageBand };
 
   const signedIn = !!authSession;
-  // The device's own state, read by the catch-up below (DR-1449).
+  // The device's own state, read by the catch-up below (DR-1450).
   const dataRef = useRef(data);
   dataRef.current = data;
   // When each lesson was last sent by the catch-up, so a failed save is tried
-  // again later, never in a burst (DR-1449).
+  // again later, never in a burst (DR-1450).
   const lastCatchUp = useRef(new Map());
 
   // A record that cannot be filed never breaks the read (best-effort by design).
@@ -49,7 +49,7 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     if (!s || d || !lessonId) return;
     Promise.resolve(saveLearnerRecord({
       lessonId,
-      // A course is named only when it is known, so a catch-up never blanks the row's own (DR-1449).
+      // A course is named only when it is known, so a catch-up never blanks the row's own (DR-1450).
       ...(courseKey ? { courseKey } : {}),
       // The reader's own name when the account carries one, so the record is in their name (DR-1421).
       learnerLabel: accountName(s?.user) || s?.user?.email || null,
@@ -131,7 +131,7 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
     if (!signedIn || demo) { setLearnerRecords([]); return undefined; }
     const stop = subscribeLearnerRecords((records) => {
       setLearnerRecords(records || []);
-      // CATCH-UP (DR-1449): what this device holds and the record lacks is
+      // CATCH-UP (DR-1450): what this device holds and the record lacks is
       // filed again, until the record holds it -- a save lost to a stalled
       // road is not lost for good. Bounded: 25 a read, each lesson at most
       // once a minute.

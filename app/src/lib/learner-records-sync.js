@@ -136,7 +136,7 @@ export function isMissingColumn(error, column) {
   return (error.code === '42703' || /does not exist|column/i.test(text)) && text.includes(column);
 }
 
-// A READ THAT STALLS IS A FAILED READ, SAID IN SECONDS (DR-1449). Darrell
+// A READ THAT STALLS IS A FAILED READ, SAID IN SECONDS (DR-1450). Darrell
 // 2026-11-12: "I can't open nor see my records". The record panel sat on
 // "Reading the record now." with none of his lessons while the road stalled:
 // the read had no ceiling, and one read in flight blocks every later one, so a
@@ -222,7 +222,7 @@ export function requestLearnerRecordsRefresh() {
  * for again (see above). Returns an unsubscribe.
  */
 // After a failed read the record is tried again by itself, a bounded number of
-// times, further apart each time (DR-1449): a stall clears without anyone
+// times, further apart each time (DR-1450): a stall clears without anyone
 // pressing Refresh, and a road that stays down is not hammered.
 export const RECORD_RETRY_MS = Object.freeze([3000, 10000, 30000]);
 

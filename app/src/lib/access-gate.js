@@ -99,7 +99,7 @@ export function isPublicChurchRoute(search = (typeof window !== 'undefined' && w
  *   • inside the PoeTech app → PoeTech, on every tab including Church.
  */
 //
-// A MEMBER IS NEVER A STRANGER WHILE SIGN-IN SETTLES (DR-1449). Darrell
+// A MEMBER IS NEVER A STRANGER WHILE SIGN-IN SETTLES (DR-1450). Darrell
 // 2026-11-12, inside PoeTech on Learn: "I'm in PoeTech and it switched me to
 // Love Corner", then "I want to use either and only need one... I have access
 // to both". Learn's own address is a church route (?view=church&sub=learn), so

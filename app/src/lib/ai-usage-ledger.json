@@ -1843,7 +1843,7 @@
       "date": "2026-11-12",
       "task": "Records would not open and PoeTech switched to Love Corner during a stalled sign-in",
       "drs": [
-        "DR-1449"
+        "DR-1450"
       ],
       "prs": [],
       "model": "claude-opus-5-5",
