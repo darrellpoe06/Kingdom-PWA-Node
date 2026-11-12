@@ -29,8 +29,7 @@ export const CROWN_VERSES = Object.freeze({
     book: 'Proverbs',
     chapter: 4,
     verses: [7, 8, 9],
-    text:
-      'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding. Exalt her, and she shall promote thee: she shall bring thee to honour, when thou dost embrace her. She shall give to thine head an ornament of grace: a crown of glory shall she deliver to thee.',
+    text: 'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding. Exalt her, and she shall promote thee: she shall bring thee to honour, when thou dost embrace her. She shall give to thine head an ornament of grace: a crown of glory shall she deliver to thee.',
   }),
   // Striving for the mastery, and the crown that does not pass.
   mastery: Object.freeze({

@@ -9,7 +9,12 @@ const corpus = (book, chapter, verses) => {
   const d = JSON.parse(readFileSync(join(process.cwd(), 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
   const ch = d.chapters ? d.chapters[chapter - 1] : d[String(chapter)] || d[chapter - 1];
   const vs = ch && ch.verses ? ch.verses : ch;
-  return verses.map((n) => { const x = Array.isArray(vs) ? vs[n - 1] : vs[String(n)]; return typeof x === 'object' ? x.text : x; }).join(' ');
+  return verses
+    .map((n) => {
+      const x = Array.isArray(vs) ? vs[n - 1] : vs[String(n)];
+      return typeof x === 'object' ? x.text : x;
+    })
+    .join(' ');
 };
 
 describe('the crowns rest on the Word, quoted exactly (DR-1440)', () => {
