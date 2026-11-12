@@ -166,6 +166,29 @@ describe('live-sql.sh carries SQL of any size (DR-1232)', () => {
     expect(r.psqlBytes).toBeNull();
   });
 
+  it('ON THE NAS (LIVE_SQL_LOCAL=1): the same remote half runs here, with no ssh and no key (DR-1443)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'live-sql-local-'));
+    const argv = join(dir, 'argv.txt');
+    const bytes = join(dir, 'bytes.txt');
+    writeFileSync(argv, '');
+    const env = {
+      PATH: `${bin}:/usr/bin:/bin`,
+      LIVE_SQL_LOCAL: '1',
+      NAS_ENV: envFile,
+      LIVE_SQL_TEST_ARGV: argv,
+      LIVE_SQL_TEST_BYTES: bytes,
+    };
+    const stdout = execFileSync('bash', [shippedCopy(), '|'], { env, input: 'SELECT 1', encoding: 'utf8' });
+    expect(stdout).toBe('one-row\n');
+    expect(Number(readFileSync(bytes, 'utf8').trim())).toBe(8);
+    // ssh was never called: the shim writes a line for every call it gets
+    expect(readFileSync(argv, 'utf8')).toBe('');
+    // and without the local flag, no key still refuses (exit 10), as before
+    let code = 0;
+    try { execFileSync('bash', [shippedCopy(), '|'], { env: { ...env, LIVE_SQL_LOCAL: '' }, input: 'SELECT 1', stdio: 'pipe' }); } catch (e) { code = e.status; }
+    expect(code).toBe(10);
+  });
+
   it('place-doors-over-tailnet.sh, the other caller that put SQL on the command line, rides stdin too', () => {
     const src = readFileSync(PLACE_DOORS, 'utf8');
     expect(src).not.toMatch(/\$SSH "[^"]*SQL_B64='\$SQL_B64'/);

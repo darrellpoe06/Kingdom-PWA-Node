@@ -62,13 +62,11 @@
 
 name: research-inbox
 
+# RETIRED AS THE ANSWERER (DR-1443): its tailnet key expired 2026-11-04 and
+# every run died at the join. The NAS answers its own items now
+# (infra/nas-research/research-inbox-nas.sh, DR-1360); no schedule, the bell is
+# off by default. Kept for a dispatch; the research-claimed tag stops doubles.
 on:
-  schedule:
-    # Every 15 minutes, on a jittered minute so it does not land with the fleet
-    # that fires on :00. A research item he sent should not sit for an hour.
-    - cron: '7,22,37,52 * * * *'
-  # DR-1202: the NAS's own clock rings when work waits (research_bell.py),
-  # because GitHub ran the schedule above three times in six hours.
   repository_dispatch:
     types: [research-waiting]
   workflow_dispatch:
