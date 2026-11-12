@@ -60,7 +60,7 @@ describe('the store is a registered public surface', () => {
   it('is in the registry with no sign-in requirement, a routable view, a nav entry for a visitor, a label and an icon', () => {
     const s = SURFACES.find((x) => x.id === 'store');
     expect(s).toBeTruthy();
-    expect(s.requires).toBeUndefined();
+    expect(s.requires).toBe('anyone');
     expect(s.view).toBe('store');
     expect(VALID_VIEWS).toContain('store');
     const visitor = navItems({ authSession: null, isFamilyMember: false });
