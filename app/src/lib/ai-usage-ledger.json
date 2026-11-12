@@ -1796,7 +1796,7 @@
       "date": "2026-11-12",
       "task": "The reviewer lens cannot promise more than it hides: one registry generates every lens description, the work-order board and the payments ledger honour it, a gate holds the sentence equal to the surfaces",
       "drs": [
-        "DR-1445"
+        "DR-1441"
       ],
       "prs": [
         2627
@@ -1809,34 +1809,34 @@
       "notes": "Darrell reviewing as a new user on his phone: I can see all this as a new person with no record. Nothing was exposed (RLS; 0260 asserts it) -- the banner's global headline had a partial list"
     },
     {
-<<<<<<< HEAD
       "id": "learning-products-store",
       "date": "2026-11-12",
       "task": "One teaching, three ways to hold it: the course book line measured on the live registry (which courses are a book), the self-paced course with a walk-through video slot per section, the in-person workshop seat priced by knowledge type, place, format and demand, sold through the existing Stripe seam at the event row's price; the book entitlement the webhook never granted is now handed over",
-=======
-      "id": "re-review-ratchet",
-      "date": "2026-11-12",
-      "task": "A parked promise is checked against its own date: 54 of 73 re-review dates were past due and the gate only checked their shape",
->>>>>>> origin/main
       "drs": [
-        "DR-1444"
+        "DR-1447"
       ],
       "prs": [],
-<<<<<<< HEAD
       "model": "claude-fable-5-1",
       "tokens": null,
       "costUsd": null,
       "wallClockHours": 1.8,
       "estimateWithoutAiHours": 40,
       "notes": "Measured first: the curriculum export inflates every course by facilitator notes, quiz and age rewrites (2.55M words against 1.98M of book body); counting it would have overstated every answer. Found that the ledger counted book sales while grant_book_entitlement was called nowhere, and that the seam read metadata.productId while the server wrote metadata.product. The Acrobat share link Darrell sent could not be reached from this sandbox (host outside the allowlist; the allow request was declined), so that document is listed as awaiting its source, with no product painted over it."
-=======
+    },
+    {
+      "id": "re-review-ratchet",
+      "date": "2026-11-12",
+      "task": "A parked promise is checked against its own date: 54 of 73 re-review dates were past due and the gate only checked their shape",
+      "drs": [
+        "DR-1444"
+      ],
+      "prs": [],
       "model": "claude-opus-5",
       "tokens": null,
       "costUsd": null,
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 6,
       "notes": "Pulled forward between prompts; the oldest overdue promise is a sub-AA contrast exemption at 103 days"
->>>>>>> origin/main
     }
   ]
 }
