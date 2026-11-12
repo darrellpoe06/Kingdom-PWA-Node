@@ -64,7 +64,7 @@ Money -> Bills -> Review & confirm -> add a bill, one per loan: group "Rental pr
 
 **Not yet proven, said plainly:** real OCR on a real Fold screenshot. The tests feed the pipeline the text OCR would produce. The first real upload is the test (Money -> Upload -> the Chase 7206 screenshot). If OCR garbles the balance, the card shows what it read and the questions catch a missing day or balance; nothing is written until Approve.
 
-## Three accounts, the trail, the windows, the forecast (2026-11-11; PR on hold for Darrell's approval)
+## Three accounts, the trail, the windows, the forecast (2026-11-11; PR #2609 merged and deployed 2026-11-12)
 
 **Darrell's report:** screenshots uploaded for Personal Chase 7206 ($3,183.10), Poe Properties Chase 3322 ($4,479.53) and TLC Therapy Solutions 8168 ($370.69); FOS showed Personal right and the two business balances old (about $2,540 and $38). The sandbox cannot see his phone's intake queue or the NAS ledger, so the cause was found in the code paths that can silently leave a figure old, each one closed and pinned, and the trail behind every figure is now on the surface so the live cause reads off the phone:
 
@@ -125,10 +125,16 @@ repo or the cloud (only 1003 Koehn's note names First State Bank).
 
 ## Next unfinished task
 
-2026-11-11: branch `fix/money-three-accounts` carries the three-accounts work
-above; its PR is labeled `hold` until Darrell approves the merge. After the
-merge: watch the deploy run and site-health, then Darrell reads Coming Up's
-cash trail for 3322 and 8168 and the Transactions forecast on the Fold.
+2026-11-12: PR #2609 (the three-accounts work above) was merged by Darrell at
+08:23 UTC as 797b0b8; deploy run 2134 succeeded and site-health run 43183461603
+answered up + intact + fresh on that commit. Next is Darrell's hand on the Fold:
+Money -> Overview -> Coming Up -> "Current cash" opens the trail for Chase 3322
+and TLC 8168 (which check is in force, rows since, earlier checks, a check dated
+after today); Money -> Upload shows anything still waiting; Money ->
+Transactions shows the 30/60/90 forecast with the verified day under each
+account. Report what the trail says; if a business figure is still old, the
+trail names why, and that is the next fix. The six First State Bank loans and
+their property mapping remain Darrell's to enter in Bills -> Review.
 
 Earlier: PR #2540 squash-merged as be9db0d on 2026-11-06 (Darrell approved after CI run
 42283312999 was green on 6832063); deploy run 2081 succeeded and site-health run
