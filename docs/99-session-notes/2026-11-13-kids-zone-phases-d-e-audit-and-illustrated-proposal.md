@@ -1,6 +1,6 @@
 # Kids Zone, Phases D and E: audit, illustrated proposal, plan
 
-Date: 2026-11-13. Branch: `ccr-117befe9-n9u0iz`. Status: **audit done; illustrated proposal delivered; no file under `app/src` changed; waiting on Darrell's approval before any build.**
+Date: 2026-11-13. Branch: `ccr-117befe9-n9u0iz`. Status: **audit done; illustrated proposal delivered; the visual build waits on Darrell's approval of the screens (his own gate in the brief). What does not depend on the visuals shipped the same session, proven: the Word Builder and Who Am I? engines and Ari's child-mode read (DR-1505; no surface mounts them yet).**
 
 Deliverables, all in `docs/design/love-corner-kids/`:
 
