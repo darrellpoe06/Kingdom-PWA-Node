@@ -24,8 +24,11 @@
 //   photographed the three pieces photographed on 2026-10-09 (DR-0851);
 //   longest      the catalog pieces whose spoken sentences are still the
 //                longest after DR-0851's shaping (its 894 "no safe cut" class);
-//   citation-led pieces that open on a quotation mark and a reference, the
-//                shape both photographed pieces and the screenshot share;
+//   citation     a quoted verse closing on its reference. Until DR-1498 the
+//                cut left the closing quote and the reference at the HEAD of
+//                the next piece (the shape both photographed pieces and the
+//                screenshot share); the cut now keeps them on the verse, and
+//                this group listens to that shape as it is cut now;
 //   ordinary     short, plain pieces, sampled evenly: the control.
 //
 // Run from the repo root:  node scripts/voice-clarity-corpus.mjs --write
@@ -113,9 +116,9 @@ export function buildCorpus(modules = CORPUS_MODULES) {
   const longest = take([...scored].sort((a, b) => b.n - a.n), LONGEST_N)
     .map((p, i) => entry('longest', p.lesson, p.written, i));
 
-  // Opens on a quotation mark and a reference, and carries a sentence of its own after it.
-  const citationLed = take(scored.filter((p) => /^["']?\s*\([1-3]?\s?[A-Z][a-z]+ \d[^)]*\)\s+[A-Za-z]/.test(p.written) && p.written.length >= 80), CITATION_LED_N)
-    .map((p, i) => entry('citation-led', p.lesson, p.written, i));
+  // A quotation that closes on its reference (DR-1498: the reference rides with its verse).
+  const citationLed = take(scored.filter((p) => /["'\u201d\u2019]\s?\([1-3]?\s?[A-Z][a-z]+ \d[^)]*\)$/.test(p.written) && p.written.length >= 80), CITATION_LED_N)
+    .map((p, i) => entry('citation', p.lesson, p.written, i));
 
   const plain = scored.filter((p) => p.n <= ORDINARY_MAX_WORDS && p.written.length >= 60 && !seen.has(p.written));
   const step = Math.max(1, Math.floor(plain.length / ORDINARY_N));
