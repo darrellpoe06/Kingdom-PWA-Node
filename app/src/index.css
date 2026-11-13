@@ -668,6 +668,8 @@ button.lc-tile{cursor:pointer}
 .lch-bell button{min-width:40px;min-height:40px;border-radius:9999px}
 .lch-avatar{width:40px;height:40px;border-radius:50%;padding:0;border:0;background:none;box-shadow:0 0 0 2px var(--lc-paper),0 0 0 4px var(--lc-gold);cursor:pointer;display:grid;place-items:center;overflow:hidden}
 .lch-signin{min-height:40px;padding:0 .875rem;border-radius:9999px;background:var(--lc-red);color:#fff;font-weight:700;font-size:.82rem;border:0;cursor:pointer;white-space:nowrap}
+/* the narrowest phones (≤359px): the name alone beside the logo, so the bar stays one line (the probe's 320px case) */
+@media (max-width:359px){.lch-eyebrow,.lch-tag{display:none}.lch-name{font-size:.9rem;overflow:hidden;text-overflow:ellipsis}.lch-signin{padding:0 .6rem;font-size:.76rem}.lch-bar{gap:.375rem;padding-left:.5rem;padding-right:.5rem}}
 .lch-strip{border-top:1px solid var(--lc-line)}
 .lch-strip-tab{padding:.5rem .75rem;white-space:nowrap;border-bottom:2px solid transparent;color:var(--lc-muted);font-weight:600;font-size:.85rem;background:none;border-top:0;border-left:0;border-right:0;min-height:40px;cursor:pointer}
 .lch-strip-tab-on{color:var(--lc-ink);border-bottom-color:var(--lc-red)}
