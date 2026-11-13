@@ -60,7 +60,10 @@ function everyString(value, path = '', out = []) {
 }
 
 const STRINGS = MODULE ? everyString(MODULE) : [];
-const at = (p) => (STRINGS.find(([k]) => k === p) || [, ''])[1];
+const at = (p) => {
+  const hit = STRINGS.find(([k]) => k === p);
+  return hit ? hit[1] : '';
+};
 
 // A quotation, as this course writes one: the text in double quotes, then the
 // reference in parentheses. The book group allows a leading ordinal (1 Samuel)
