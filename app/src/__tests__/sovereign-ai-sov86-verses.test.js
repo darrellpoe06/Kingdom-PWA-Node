@@ -237,7 +237,11 @@ describe('the Word opens and frames the hour; no headline stands above it', () =
       const disclosure = text.indexOf('A DISCLOSURE');
       const digest = text.indexOf('TLDR');
       const application = text.search(/THREE THINGS THIS WEEK/);
-      for (const [name, i] of [['disclosure', disclosure], ['digest', digest], ['application', application]]) {
+      for (const [name, i] of [
+        ['disclosure', disclosure],
+        ['digest', digest],
+        ['application', application],
+      ]) {
         expect(i, `${p} carries the ${name}`).toBeGreaterThan(-1);
         expect(frame, `${p}: the Word comes before the ${name}`).toBeLessThan(i);
       }
@@ -319,7 +323,10 @@ describe('the disclosure stands in every teaching place, and the tiers hold', ()
 
   it('no verdict on the company or any person, and no reported claim told as shown or proven', () => {
     for (const [p, s] of STRINGS) {
-      expect(verdictsIn(s).map((m) => m[0]), p).toEqual([]);
+      expect(
+        verdictsIn(s).map((m) => m[0]),
+        p
+      ).toEqual([]);
       expect(s, p).not.toMatch(AS_FACT);
     }
   });

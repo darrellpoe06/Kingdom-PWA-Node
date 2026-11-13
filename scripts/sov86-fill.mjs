@@ -141,26 +141,26 @@ function fillDeep(value) {
 // -----------------------------------------------------------------------------
 const DISCLOSE = {
   lesson:
-    'A DISCLOSURE, BEFORE ANY NEWS. This app is built with the help of an A.I. tool made by a company called Anthropic, and this lesson was drafted with that same tool. Two items in this week\'s digest are about that company. So it is said plainly first, and the lesson is held to a stricter rule because of it: nothing about the company or anyone in it is praised or blamed beyond what was reported, and everything taught here applies to every maker of every tool, including the ones this house runs instead.',
+    "A DISCLOSURE, BEFORE ANY NEWS. This app is built with the help of an A.I. tool made by a company called Anthropic, and this lesson was drafted with that same tool. Two items in this week's digest are about that company. So it is said plainly first, and the lesson is held to a stricter rule because of it: nothing about the company or anyone in it is praised or blamed beyond what was reported, and everything taught here applies to every maker of every tool, including the ones this house runs instead.",
   child:
     'A DISCLOSURE. That means telling the truth about yourself first. Here it is. People who build our app use a computer helper. It is made by a company called Anthropic. This lesson was written with that helper too. The news this week was about that same company. So we tell you that first. We will not say good or bad things about them that we do not know.',
   youth:
     'A DISCLOSURE. Before the news, here is something you should know. Our app is built with help from an A.I. tool made by a company called Anthropic. This lesson was written with that same tool. And this week the news was about that same company. So we say it first. We will not praise them or blame them for anything beyond what was reported. And what we teach is true of every company that makes tools, not just this one.',
-  teen: 'A DISCLOSURE. You should know this before anything else. Our app is built with help from an A.I. tool made by a company called Anthropic. This lesson was drafted with that tool. Two items in this week\'s news were about that company. That is a reason to be more careful, not less. So we will not praise or blame the company, or anyone in it, past what was reported. And the lesson applies to every maker of every tool.',
+  teen: "A DISCLOSURE. You should know this before anything else. Our app is built with help from an A.I. tool made by a company called Anthropic. This lesson was drafted with that tool. Two items in this week's news were about that company. That is a reason to be more careful, not less. So we will not praise or blame the company, or anyone in it, past what was reported. And the lesson applies to every maker of every tool.",
   senior:
-    'A DISCLOSURE, STATED BEFORE THE NEWS. This app is built with the assistance of an A.I. tool made by a company called Anthropic, and this lesson was drafted with that same tool. Two items in the week\'s digest concern that company. A teacher with that relationship owes the class two things: to say it at the start, and to hold the lesson to a stricter standard because of it. Nothing about the company or anyone in it is praised or blamed beyond what was reported, and the teaching is applied to every maker, including those whose tools this house runs instead.',
+    "A DISCLOSURE, STATED BEFORE THE NEWS. This app is built with the assistance of an A.I. tool made by a company called Anthropic, and this lesson was drafted with that same tool. Two items in the week's digest concern that company. A teacher with that relationship owes the class two things: to say it at the start, and to hold the lesson to a stricter standard because of it. Nothing about the company or anyone in it is praised or blamed beyond what was reported, and the teaching is applied to every maker, including those whose tools this house runs instead.",
 };
 
 const BLOCKED = {
   lesson:
-    'WHAT WE DID NOT CHECK AT THE SOURCE. The digest gave three sentences about a profile it lists as a twenty-minute read, and we did not read the profile. Search listings we could see but not open name The New York Times, on the fifth of November 2026, as its publisher; the one copy we tried to open was refused from our network. Those same listings report, second-hand, that the chief executive said in 2023 that he does not count himself an effective altruist. We did not check that either, and it is set here so that a reported claim about a person is never told as more than it is. The figures about the planned sale of shares are the digest\'s report of what investors expect, not facts about any sale, and they are not taught. A shut road must never read like a verified fact. re-review: 2026-11-27.',
+    "WHAT WE DID NOT CHECK AT THE SOURCE. The digest gave three sentences about a profile it lists as a twenty-minute read, and we did not read the profile. Search listings we could see but not open name The New York Times, on the fifth of November 2026, as its publisher; the one copy we tried to open was refused from our network. Those same listings report, second-hand, that the chief executive said in 2023 that he does not count himself an effective altruist. We did not check that either, and it is set here so that a reported claim about a person is never told as more than it is. The figures about the planned sale of shares are the digest's report of what investors expect, not facts about any sale, and they are not taught. A shut road must never read like a verified fact. re-review: 2026-11-27.",
   child:
     'WHAT WE DID NOT CHECK. The news only gave us a few lines about a long story. We did not get to read the long story. Our computer could not open it. Some other pages said it came from a big newspaper, The New York Times. Those pages also said the boss of the company once said he does not call himself one of those thinkers. We did not check that. So we only tell you what was reported, and we say so. We will try again. re-review: 2026-11-27.',
   youth:
-    'WHAT WE DID NOT CHECK. The digest gave only three sentences about a long article, and we did not read the article. Other pages we found say it was printed in The New York Times on November 5, but our network could not open a copy. Those pages also say that the company\'s leader said in 2023 that he does not count himself an effective altruist. We did not check that either. So everything here about the company is what was reported, not what we proved. re-review: 2026-11-27.',
+    "WHAT WE DID NOT CHECK. The digest gave only three sentences about a long article, and we did not read the article. Other pages we found say it was printed in The New York Times on November 5, but our network could not open a copy. Those pages also say that the company's leader said in 2023 that he does not count himself an effective altruist. We did not check that either. So everything here about the company is what was reported, not what we proved. re-review: 2026-11-27.",
   teen: 'WHAT WE DID NOT CHECK. Be clear on what we read. We read three sentences in a digest. We did not read the profile they came from. Search results we could not open say it ran in The New York Times on November 5. The copy we tried was blocked on our network. Those results also report that the leader said in 2023 he does not count himself an effective altruist. We did not check that. And the money figures were what investors expect, not facts. So all of it stays in the reported pile. re-review: 2026-11-27.',
   senior:
-    'WHAT WE DID NOT CHECK AT THE SOURCE. What we hold is the digest\'s three-sentence summary of a profile it describes as a twenty-minute read; the profile itself was not read. Search listings that could be seen but not opened name The New York Times, 5 November 2026, as its publisher, and the one copy attempted was refused from our network. The same listings report, second-hand, that the chief executive said in 2023 that he does not regard himself as an effective altruist. That is unverified here, and it is recorded precisely so that a reported claim about a person is not allowed to harden into a verdict. The share-sale figures are the digest\'s account of investors\' expectations and are not taught. A shut road must never read like a verified fact. re-review: 2026-11-27.',
+    "WHAT WE DID NOT CHECK AT THE SOURCE. What we hold is the digest's three-sentence summary of a profile it describes as a twenty-minute read; the profile itself was not read. Search listings that could be seen but not opened name The New York Times, 5 November 2026, as its publisher, and the one copy attempted was refused from our network. The same listings report, second-hand, that the chief executive said in 2023 that he does not regard himself as an effective altruist. That is unverified here, and it is recorded precisely so that a reported claim about a person is not allowed to harden into a verdict. The share-sale figures are the digest's account of investors' expectations and are not taught. A shut road must never read like a verified fact. re-review: 2026-11-27.",
 };
 
 const RHYTHM =
@@ -562,11 +562,7 @@ At the end the boy said the helper was good at listing ways to think. The Bible 
     questions: [
       {
         q: 'According to 1 Chronicles 28:19, where did the pattern for the temple come from?',
-        options: [
-          'From the best builders of Tyre',
-          'From Yahweh, who made David understand it in writing by His hand',
-          'From Solomon’s own design',
-        ],
+        options: ['From the best builders of Tyre', 'From Yahweh, who made David understand it in writing by His hand', 'From Solomon’s own design'],
         answer: 1,
         explain: 'The plan was given, not invented. The builders brought skill; Yahweh brought the pattern.',
       },
@@ -612,11 +608,7 @@ At the end the boy said the helper was good at listing ways to think. The Bible 
       },
       {
         q: 'What does 1 Corinthians 13:2-3 add?',
-        options: [
-          'That knowledge is enough',
-          'That all knowledge and all giving, without Love, are nothing and profit nothing',
-          'That giving is wrong',
-        ],
+        options: ['That knowledge is enough', 'That all knowledge and all giving, without Love, are nothing and profit nothing', 'That giving is wrong'],
         answer: 1,
         explain: 'Love is senior to every calculation.',
       },
