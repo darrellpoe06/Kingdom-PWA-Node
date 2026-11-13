@@ -2344,6 +2344,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 36,
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
+    },
+    {
+      "id": "ll311-every-man-presseth-into-it",
+      "date": "2026-11-13",
+      "task": "L311 Every Man Presseth Into It, from the video on Matthew 11:12 Darrell sent with his summary under one word, Lesson; all four age bands, 16-case gate with five checks proven to catch",
+      "drs": [
+        "DR-1488"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 32,
+      "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
     }
   ]
 }
