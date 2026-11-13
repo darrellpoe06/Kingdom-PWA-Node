@@ -2389,6 +2389,36 @@
       "wallClockHours": 1.3,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a18cd240a3a03eb, forwarded 2026-10-30T12:54Z (7:54 AM Central), built 2026-11-13 draining the intake backlog. Whole article in the email. 40 anchor references, 158 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov83-fill.mjs and none typed. Our house traced to code: payments ledger CHECK and UNIQUE, the two-step payment (not atomic, finished by retry), the exam rule in the wall, the learner record off the phone, a latent workshop-seat oversell and the reservation referee that two spellings of week 82 got past (this build yielded to 83). www.postgresql.org refused (403 CONNECT); live tables not reached, the hosted project is the mirror. re-review 2026-11-27."
+    },
+    {
+      "id": "pm18-what-is-that-in-thine-hand",
+      "date": "2026-11-13",
+      "task": "pm18 What is that in thine hand: capability anxiety, the path a leader owes, and the One who teaches; Project Management lesson 18 from a LinkedIn column forwarded under one word, Lesson; all four age bands, 44-case gate",
+      "drs": [
+        "DR-1485"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 30,
+      "notes": "Reserved DR-1485 and reserve/pm18 on origin. 204 quoted spans filled from app/public/bible/kjv by scripts/pm18-fill.mjs, none typed. The email is a teaser; the rest of the column was never read and www.wtwco.com and www.shrm.org both failed to resolve, so no report figure is taught; re-review 2026-11-27. App skills-inventory gap named, re-review 2026-12-13."
+    },
+    {
+      "id": "pm19-let-these-also-first-be-proved",
+      "date": "2026-11-13",
+      "task": "pm19 Let these also first be proved: proof of readiness, the letter and the trial, and the apprentice down the hall; Project Management lesson 19 from a WGU LinkedIn digest forwarded twice under Lesson; all four age bands, lesson gate with tiered-figure check",
+      "drs": [
+        "DR-1496"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 30,
+      "notes": "Reserved DR-1496 and reserve/pm19 on origin. Verses filled from app/public/bible/kjv by scripts/pm19-fill.mjs, none typed. The three pieces were read whole from the second forward; www.wgu.edu, www.weforum.org, www.linkedin.com and Craft Education's site refused by the proxy (403), so figures are taught at their tier and one unsourced figure is left out; re-review 2026-11-27. Course hands-on work unrecorded (crowns record completion), named, re-review 2026-12-13."
     }
   ]
 }
