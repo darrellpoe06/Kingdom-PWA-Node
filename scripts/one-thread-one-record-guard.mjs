@@ -115,6 +115,20 @@ export const KNOWN_SHARED_THREADS = [
       + 'no new lesson id. DR-0610 one teaching, one lesson holds; the pair is a record and its '
       + 'amendment (DRs are append-only, DR-0011).',
   },
+  {
+    thread: '1a1c68295f781bbb',
+    drs: ['DR-1492', 'DR-1505'],
+    why: 'One Big Think essay (the Lucas Museum) forwarded 2026-11-10 17:30 UTC under one word in the '
+      + 'PLURAL, Lessons, and two teachings in it, which DR-0610 permits: one TEACHING one lesson, never '
+      + 'one SOURCE one lesson. DR-1492 (L314, Will My Work Live On) answers the essay’s OPENING '
+      + 'questions, will my work live on, will my children keep good values, have I done my duty, and '
+      + 'named the second as a candidate it did not teach. DR-1505 (L317, Who Judges Greatness) answers '
+      + 'its CLOSING claim, that the public voting with its dollars knows best, with who judges (Luke '
+      + '16:15) and what greatness is (Mark 10:43-45). Measured 2026-11-13: anchor verses 61 and 59, '
+      + '1 shared (John 1:29, the Lamb); shared chapters 1 Corinthians 4, Matthew 6, Exodus 31, John 15 '
+      + 'and John 1, each on a different verse; titles open on different words. Different landings. '
+      + 'The full comparison is in DR-1505; whether the two should be one lesson is Darrell’s call.',
+  },
 ];
 
 /** thread id -> sorted DR ids naming it, for every record in the ledger. */
