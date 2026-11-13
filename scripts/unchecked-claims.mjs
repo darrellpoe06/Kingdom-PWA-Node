@@ -41,6 +41,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { libLessonFiles } from './lib/living-lesson-files.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LIB = join(ROOT, 'app', 'src', 'lib');
@@ -83,9 +84,9 @@ export function recordIdAt(src, offset) {
  * [{ file, lesson, disclosures }] -- the worklist, derived from the lessons
  * themselves so a new one joins it the day it lands.
  */
-export function admits() {
+export function admits(files = catalogFiles()) {
   const byLesson = new Map();
-  for (const file of catalogFiles()) {
+  for (const file of files) {
     const src = readFileSync(join(LIB, file), 'utf8');
     DISCLOSURE.lastIndex = 0;
     for (let m = DISCLOSURE.exec(src); m; m = DISCLOSURE.exec(src)) {
@@ -121,6 +122,33 @@ export function gap() {
   return admits().filter((a) => !have.has(a.lesson));
 }
 
+// -----------------------------------------------------------------------------
+// THE PER-FILE LESSONS CARRY THEIR OWN REASON (DR-1468). A Living Lesson written
+// as its own file under app/src/lib/living-lessons/ is scanned here too, but it
+// does not move the GAP pin in the-third-pile-is-a-worklist.test.js: that pin is
+// one shared literal, and every lesson branch editing it is how parallel lessons
+// collided. Instead a per-file lesson that admits unchecked material must say
+// WHY in its own file, with a date to look again, as
+//   export const UNCHECKED = 'why it cannot be checked from here ... re-review: YYYY-MM-DD';
+// or give its figures a row in lesson-sources.json. Zero tolerance, no count.
+// -----------------------------------------------------------------------------
+export const UNCHECKED_DECLARATION = /export const UNCHECKED\s*=\s*(['"`])([\s\S]*?)\1/;
+export const RE_REVIEW = /re-review:\s*\d{4}-\d{2}-\d{2}/;
+
+/** Pure. Does this lesson file say why its unchecked material is unchecked? */
+export function declaresUnchecked(src) {
+  const m = UNCHECKED_DECLARATION.exec(String(src || ''));
+  return Boolean(m && m[2].trim().length >= 40 && RE_REVIEW.test(m[2]));
+}
+
+/** Per-file lessons that admit unchecked material, have no source row, and give no reason. */
+export function perFileUndeclared(files = libLessonFiles(ROOT)) {
+  const have = new Set(checked().map((c) => c.lesson));
+  return admits(files)
+    .filter((a) => !have.has(a.lesson))
+    .filter((a) => !declaresUnchecked(readFileSync(join(LIB, a.file), 'utf8')));
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const a = admits();
   const c = checked();
@@ -131,4 +159,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   for (const x of c) console.log(`   ${String(x.figures).padStart(3)} figure(s) in ${x.rows} row(s)  ${x.lesson}`);
   console.log(`\nTHE WORK: ${g.length} lesson(s) admit unchecked material with no source row yet.`);
   for (const x of g) console.log(`   ${x.lesson}`);
+  const pf = admits(libLessonFiles(ROOT));
+  const bare = perFileUndeclared();
+  console.log(`\nper-file lessons admitting unchecked material: ${pf.length}; with no source row and no UNCHECKED reason: ${bare.length}`);
+  for (const x of bare) console.log(`   ${x.file}`);
+  if (bare.length) process.exitCode = 1;
 }

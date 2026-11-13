@@ -14,10 +14,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { libLessonFiles } from '../../../scripts/lib/living-lesson-files.mjs';
 import { REAL_NAMES, storiesInSource, realNamesInParables, storyHeading, storyFootnote } from '../lib/story-truth.js';
 
 const LIB = join(process.cwd(), 'src', 'lib');
-const courseFiles = () => readdirSync(LIB).filter((f) => f.endsWith('.js') && /kind["']?\s*:\s*["'](parable|testimony)["']/.test(readFileSync(join(LIB, f), 'utf8')));
+// The per-file Living Lessons (app/src/lib/living-lessons/, DR-1468) are course files too.
+const courseFiles = () => [...readdirSync(LIB).filter((f) => f.endsWith('.js')), ...libLessonFiles()]
+  .filter((f) => /kind["']?\s*:\s*["'](parable|testimony)["']/.test(readFileSync(join(LIB, f), 'utf8')));
 
 describe('a parable never wears a real name (DR-0811)', () => {
   it('no parable in any course carries the family name or Darrell\'s', () => {

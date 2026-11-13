@@ -40,6 +40,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { libLessonFiles } from './lib/living-lesson-files.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LIB = join(ROOT, 'app', 'src', 'lib');
@@ -95,9 +96,9 @@ export function storySources() {
 const isShipped = (b) => b.body.trim().length > 0;
 
 /** Every testimony a reader meets, attributed or not. */
-export function allTestimonies() {
+export function allTestimonies(files = storySources()) {
   const out = [];
-  for (const file of storySources()) {
+  for (const file of files) {
     for (const b of storyBlocks(readFileSync(join(LIB, file), 'utf8'))) {
       if (b.kind === 'testimony' && isShipped(b)) out.push({ file, ...b });
     }
@@ -108,6 +109,19 @@ export function allTestimonies() {
 /** Testimony blocks with no source: the claim without the attribution. */
 export function unattributedTestimonies() {
   return allTestimonies().filter((b) => !b.source.trim());
+}
+
+/**
+ * The per-file Living Lessons (app/src/lib/living-lessons/, DR-1468) are read
+ * too, at ZERO tolerance and with no count: a true story in a new lesson file
+ * carries its source from its first commit. They stay out of the pinned counts
+ * above so that a new lesson never edits that shared literal.
+ */
+export function perFileTestimonies(files = libLessonFiles()) {
+  return allTestimonies(files);
+}
+export function perFileUnattributed(files = libLessonFiles()) {
+  return perFileTestimonies(files).filter((b) => !b.source.trim());
 }
 
 /**
@@ -146,4 +160,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (bare.length) {
     console.log(`\n${bare.length} block(s) tell a reader "this happened, told with the person's consent" while naming no person.`);
   }
+  const pfBare = perFileUnattributed();
+  console.log(`\nper-file lessons (DR-1468): ${perFileTestimonies().length} testimony block(s), ${pfBare.length} with no source (must be 0)`);
+  for (const b of pfBare) console.log(`   ${b.file}: ${b.title || '(untitled)'}`);
+  if (pfBare.length) process.exitCode = 1;
 }

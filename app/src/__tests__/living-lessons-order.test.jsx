@@ -34,6 +34,17 @@ const ascending = (list) => list.every((m, i) => i === 0 || lessonNumber(m) > le
 // lesson does not have to edit the pins below (L193 on 2026-09-24, DR-0642).
 const TOP = Math.max(...LIVING_LESSONS_MODULES.map((m) => lessonNumber(m)));
 
+
+// The newest lesson's day, as a rule rather than a pinned date (DR-1468).
+function newestDayProblem(byNum, today = new Date().toISOString().slice(0, 10)) {
+  const last = byNum[byNum.length - 1];
+  if (!last || !/^\d{4}-\d{2}-\d{2}$/.test(String(last.added || ''))) return 'the newest lesson has no day';
+  const latest = byNum.map((m) => m.added).filter(Boolean).sort().at(-1);
+  if (last.added !== latest) return `the newest lesson's day ${last.added} is not the latest (${latest})`;
+  if (last.added > today) return `the newest lesson's day ${last.added} is in the future`;
+  return '';
+}
+
 describe('the number is the lesson’s own, read from its id', () => {
   it('reads the digits after the course prefix, never the position', () => {
     expect(lessonNumber({ id: 'll192-two-hours-became-six' })).toBe(192);
@@ -203,7 +214,26 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // the Joel 2:28 / Acts 2:17 lesson Darrell sent on 2026-11-11 and built
     // the same day; the day moves forward with it, after L298 to L300 on
     // 2026-11-10.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-11'); // L301
+    //
+    // The highest is now L306 (DR-1466, "The Path of the Just Shineth"), the
+    // last of five teachings Darrell spoke on 2026-11-13 (L302 to L306), each
+    // built the day it was spoken; the day moves forward with them, after L301
+    // on 2026-11-11.
+    //
+    // DERIVED FROM HERE ON (DR-1468's re-review, closed 2026-11-13): the day
+    // was hand-edited by every lesson branch, so two lessons in parallel
+    // touched this one line. The rule it pinned is now checked as a rule: the
+    // highest-numbered lesson carries a real day, that day is the latest any
+    // lesson carries, and it is not in the future.
+    expect(newestDayProblem(byNum)).toBe('');
+  });
+
+  it('PROVEN TO CATCH: a newest lesson with no day, an older day, or a future day', () => {
+    const byNum = orderLessons(buildLivingLessonsSchedule(), 'number');
+    const last = byNum[byNum.length - 1];
+    expect(newestDayProblem([...byNum.slice(0, -1), { ...last, added: null }])).toMatch(/no day/);
+    expect(newestDayProblem([...byNum.slice(0, -1), { ...last, added: '2026-06-01' }])).toMatch(/not the latest/);
+    expect(newestDayProblem([...byNum.slice(0, -1), { ...last, added: '2999-01-01' }])).toMatch(/future/);
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

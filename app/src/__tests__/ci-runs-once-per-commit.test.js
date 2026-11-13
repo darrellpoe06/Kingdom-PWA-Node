@@ -70,7 +70,10 @@ describe('CI runs once per commit, on every branch (DR-1297)', () => {
   });
 
   it('a push to any branch runs it, so a PR from outside the old lane list still gets the required check', () => {
-    expect(pushBranches(CI)).toEqual(['**']);
+    // The one exclusion is reserve/** (DR-1468): an empty commit on main that
+    // holds a decision or lesson number. It never opens a PR, so it owes no
+    // required check, and a run there would only re-test main's own tree.
+    expect(pushBranches(CI)).toEqual(['**', '!reserve/**']);
   });
 
   it('every run of a branch shares one concurrency group, and main is never cancelled', () => {

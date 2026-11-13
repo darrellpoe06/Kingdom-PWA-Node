@@ -43,6 +43,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { livingLessonFiles } from './lib/living-lesson-files.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -66,6 +67,8 @@ export const SCANNED = [
   // The chronology module states both Egypt figures side by side, so it is the
   // likeliest place for the 400/430 collapse to reappear (DR-0281).
   'app/src/lib/scripture-chronology.js',
+  // Every Living Lesson written as its own file (DR-1468), read the day it lands.
+  ...livingLessonFiles(),
 ];
 
 // ---------------------------------------------------------------------------

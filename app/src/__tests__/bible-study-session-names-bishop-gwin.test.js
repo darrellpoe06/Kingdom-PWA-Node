@@ -29,6 +29,7 @@ import {
   bareTeacherMentionsInLesson,
 } from '../lib/bible-study-session.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import { libLessonFiles } from '../../../scripts/lib/living-lesson-files.mjs';
 
 const REPO = join(process.cwd(), '..');
 const LIB = join(process.cwd(), 'src', 'lib');
@@ -81,7 +82,8 @@ export function withoutWholeLineComments(src) {
 // Every lesson-shaped block in every course file, by its id line.
 function sessionLessonsInSource() {
   const found = [];
-  for (const f of readdirSync(LIB).filter((n) => n.endsWith('.js') && n !== 'bible-study-session.js')) {
+  // The per-file Living Lessons are read too (DR-1468).
+  for (const f of [...readdirSync(LIB).filter((n) => n.endsWith('.js') && n !== 'bible-study-session.js'), ...libLessonFiles()]) {
     const lines = withoutWholeLineComments(readFileSync(join(LIB, f), 'utf8')).split('\n');
     const starts = [];
     lines.forEach((l, i) => { const m = l.match(ID_LINE); if (m) starts.push([i, m[1]]); });
