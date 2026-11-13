@@ -2517,7 +2517,7 @@
       "date": "2026-11-13",
       "task": "Kids Zone Phases D and E: the audit, the illustrated proposal (six screens, a parametric SVG cast of Black children and teens), and the pure Word Builder and Who Am I? engines over the hosted KJV with Ari's child-mode flag finally read; surfaces held for approval",
       "drs": [
-        "DR-1505"
+        "DR-1508"
       ],
       "prs": [],
       "model": "claude-fable-5-1",
@@ -2532,7 +2532,7 @@
       "date": "2026-11-13",
       "task": "The lesson coloring page redrawn as a coloring-book page: frame, bubble title, dotted trace verse and words, a composed scene of the lesson's pieces; one element list for both renderers; 309 sheets measured in Chromium",
       "drs": [
-        "DR-1507"
+        "DR-1509"
       ],
       "prs": [],
       "model": "claude-fable-5-1",

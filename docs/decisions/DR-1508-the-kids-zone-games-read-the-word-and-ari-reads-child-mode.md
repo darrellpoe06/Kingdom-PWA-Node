@@ -1,4 +1,4 @@
-# DR-1505: The Kids Zone's games read the Word, and Ari reads child mode
+# DR-1508: The Kids Zone's games read the Word, and Ari reads child mode
 
 **Date:** 2026-11-13
 **Status:** Accepted

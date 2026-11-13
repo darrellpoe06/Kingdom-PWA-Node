@@ -1,4 +1,4 @@
-# DR-1507: The coloring page is a picture, not a form
+# DR-1509: The coloring page is a picture, not a form
 
 **Date:** 2026-11-13
 **Status:** Accepted

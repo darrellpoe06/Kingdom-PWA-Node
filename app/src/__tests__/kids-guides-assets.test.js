@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // The two guides are real files, cut from Darrell's approved reference, and
-// every surface reads them from one registry (DR-1505). Proven both ways: each
+// every surface reads them from one registry (DR-1508). Proven both ways: each
 // listed asset exists on disk and is a real PNG; a name that is not on disk is
 // caught; no guide name is invented here; every shot in the collection is
 // described in the artwork brief by its id; a shot that says it landed is on
