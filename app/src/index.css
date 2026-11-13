@@ -493,6 +493,7 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
    =================================================================== */
 :root{--lc-red:#C03222;--lc-heart:#E43C28;--lc-black:#1A1012;--lc-white:#FFFFFF;--lc-gold:#CFA63C;--lc-gold-ink:#7A5C14;--lc-gold-tint:#FBF3DC;--lc-red-tint:#FFF0EE;--lc-red-deep:#8E2217;--lc-muted:#6B4440;--lc-line:#F2D9D5;--lc-ink:#1A1012;--lc-paper:#FFFFFF;--lc-display:"Fraunces",Georgia,serif}
 [data-theme="midnight"]{--lc-paper:#141010;--lc-ink:#F3ECEC;--lc-muted:#C9B6B6;--lc-line:#3A2A2A;--lc-red-tint:#2A1614;--lc-gold-tint:#2A2412;--lc-gold-ink:#E2C66A;--lc-red-deep:#F0A79C}
+[data-theme="night"]{--lc-paper:#241617;--lc-ink:#F6ECE9;--lc-muted:#D8B9B2;--lc-line:#4F2C2C;--lc-red-tint:#30181A;--lc-gold-tint:#2E2416;--lc-gold-ink:#E4B93E;--lc-red-deep:#FFB3A7}
 .lc-home{display:flex;flex-direction:column;gap:1.125rem;color:var(--lc-ink)}
 .lc-home *{box-sizing:border-box}
 .lc-band{position:relative;overflow:hidden;color:var(--lc-white);padding:0.875rem 1.125rem 1.375rem;border-radius:1.25rem;background:linear-gradient(168deg,var(--lc-black) 0%,var(--lc-black) 28%,var(--lc-red) 78%,var(--lc-red) 100%)}
@@ -644,6 +645,88 @@ button.lc-tile{cursor:pointer}
 .lc-fam-named small{font-size:.66rem;font-weight:500;margin-left:.25rem}
 .lc-inline-link-ink{background:none;border:0;padding:0 .25rem;min-width:36px;display:inline-flex;align-items:center;justify-content:center;color:var(--lc-red);text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:inherit;cursor:pointer;min-height:36px}
 @media (prefers-reduced-motion:reduce){.lc-feat-track{scroll-behavior:auto}}
+/* ===================================================================
+   THE LOVE CORNER HEADER (DR-1483; components/shell/LoveCornerHeader.jsx).
+   One compact bar: menu · logo + name + eyebrow + tagline · search · bell ·
+   picture. Chrome is capped (ts-chrome-region) so large print scales the
+   page, not the bar (UX-PATTERNS 2b); every target is 40px+ (2g). Colors
+   ride the --lc-* tokens so the cream and the night themes both carry it.
+   =================================================================== */
+.lch{background:var(--lc-paper);border-bottom:1px solid var(--lc-line);color:var(--lc-ink)}
+[data-theme="night"] .lch{background:#120909;border-bottom-color:rgba(255,255,255,.08)}
+.lch-bar{display:flex;align-items:center;gap:.5rem;padding:.625rem .75rem .5rem}
+.lch-ic{width:40px;height:40px;border-radius:50%;display:inline-grid;place-items:center;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);flex:0 0 auto;cursor:pointer}
+[data-theme="night"] .lch-ic{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
+.lch-brand{display:flex;align-items:center;gap:.5rem;min-width:0;flex:1 1 auto;background:none;border:0;padding:0;text-align:left;color:inherit;cursor:pointer}
+.lch-logo{width:36px;height:36px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--lc-gold);flex:0 0 auto}
+.lch-words{display:flex;flex-direction:column;min-width:0;line-height:1.05}
+.lch-name{font-family:var(--lc-display);font-weight:700;font-size:1rem;white-space:nowrap;color:var(--lc-ink)}
+.lch-eyebrow{font-size:.5rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--lc-red);line-height:1.15}
+[data-theme="night"] .lch-eyebrow{color:var(--lc-gold)}
+.lch-tag{font-family:var(--lc-display);font-style:italic;font-size:.76rem;color:var(--lc-gold-ink);line-height:1.05}
+.lch-right{display:flex;align-items:center;gap:.4rem;flex:0 0 auto}
+.lch-bell button{min-width:40px;min-height:40px;border-radius:9999px}
+.lch-avatar{width:40px;height:40px;border-radius:50%;padding:0;border:0;background:none;box-shadow:0 0 0 2px var(--lc-paper),0 0 0 4px var(--lc-gold);cursor:pointer;display:grid;place-items:center;overflow:hidden}
+.lch-signin{min-height:40px;padding:0 .875rem;border-radius:9999px;background:var(--lc-red);color:#fff;font-weight:700;font-size:.82rem;border:0;cursor:pointer;white-space:nowrap}
+/* the narrowest phones (≤359px): the name alone beside the logo, so the bar stays one line (the probe's 320px case) */
+@media (max-width:359px){.lch-eyebrow,.lch-tag{display:none}.lch-name{font-size:.9rem;overflow:hidden;text-overflow:ellipsis}.lch-signin{padding:0 .6rem;font-size:.76rem}.lch-bar{gap:.375rem;padding-left:.5rem;padding-right:.5rem}}
+.lch-strip{border-top:1px solid var(--lc-line)}
+.lch-strip-tab{padding:.5rem .75rem;white-space:nowrap;border-bottom:2px solid transparent;color:var(--lc-muted);font-weight:600;font-size:.85rem;background:none;border-top:0;border-left:0;border-right:0;min-height:40px;cursor:pointer}
+.lch-strip-tab-on{color:var(--lc-ink);border-bottom-color:var(--lc-red)}
+[data-theme="night"] .lch-strip-tab-on{border-bottom-color:var(--lc-gold)}
+/* the profile menu */
+.lch-menu{position:absolute;top:calc(100% - .25rem);right:.75rem;z-index:30;width:min(17rem,calc(100vw - 1.5rem));background:var(--lc-paper);color:var(--lc-ink);border:1px solid var(--lc-line);border-radius:1rem;box-shadow:0 14px 40px rgba(26,16,18,.3);overflow:hidden}
+.lch-bar{position:relative}
+.lch-menu-who{padding:.75rem .875rem;border-bottom:1px solid var(--lc-line);display:flex;flex-direction:column;gap:.1rem}
+.lch-menu-who b{font-size:.95rem}.lch-menu-who small{color:var(--lc-muted);font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lch-menu-list{list-style:none;margin:0;padding:.25rem 0}
+.lch-menu-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;min-height:44px;padding:0 .875rem;background:none;border:0;color:inherit;font:inherit;font-size:.9rem;text-align:left;cursor:pointer}
+.lch-menu-row:hover{background:var(--lc-red-tint)}
+.lch-menu-out{color:var(--lc-red);font-weight:700;border-top:1px solid var(--lc-line);margin-top:.25rem}
+[data-theme="night"] .lch-menu-out{color:#FFB3A7}
+.lch-chip{background:var(--lc-red);color:#fff;border-radius:9999px;font-size:.66rem;padding:.1rem .5rem;font-weight:700}
+.lch-chip-muted{color:var(--lc-muted);font-size:.74rem}
+/* the sheets (inside the app's Modal) */
+.lch-sheet{padding:1rem;background:var(--lc-paper);color:var(--lc-ink);display:flex;flex-direction:column;gap:.875rem;max-height:80vh;overflow-y:auto}
+.lch-sheet-h{font-family:var(--lc-display);font-size:1.3rem;margin:0}
+.lch-group-h{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--lc-red);margin:0 0 .5rem;font-weight:700}
+[data-theme="night"] .lch-group-h{color:var(--lc-gold)}
+.lch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.lch-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-height:64px;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);font-size:.72rem;font-weight:700;padding:.4rem;cursor:pointer;text-align:center;line-height:1.1}
+[data-theme="night"] .lch-tile{background:linear-gradient(180deg,#2E2224,#140D0E);border-color:rgba(228,185,62,.45)}
+.lch-tile-on{box-shadow:0 0 0 2px var(--lc-red)}
+[data-theme="night"] .lch-tile-on{box-shadow:0 0 0 2px var(--lc-gold)}
+.lch-tile svg{width:20px;height:20px}
+.lch-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.lch-pill{min-height:40px;padding:0 .875rem;border-radius:9999px;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);font-weight:700;font-size:.85rem;cursor:pointer}
+.lch-pill-gold{background:var(--lc-gold);border-color:var(--lc-gold);color:#1A1012}
+.lch-build{font-size:.68rem;color:var(--lc-muted);margin:.5rem 0 0;font-family:"JetBrains Mono",monospace}
+.lch-search{display:block}
+.lch-input{width:100%;min-height:44px;padding:.5rem .75rem;border-radius:.75rem;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);font-size:1rem}
+.lch-results{display:flex;flex-direction:column;gap:.375rem}
+.lch-result{display:flex;align-items:center;gap:.5rem;min-height:44px;padding:.25rem .75rem;border-radius:.75rem;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);text-decoration:none;font-weight:600;cursor:pointer;text-align:left}
+.lch-result small{color:var(--lc-muted);font-weight:500;margin-left:auto;font-size:.72rem}
+.lch-result-kind{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-red);font-weight:700}
+[data-theme="night"] .lch-result-kind{color:var(--lc-gold)}
+.lch-empty{color:var(--lc-muted);font-size:.9rem;margin:0}
+/* personalize */
+.lch-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.lch-theme{position:relative;display:flex;flex-direction:column;gap:.3rem;padding:.4rem;border-radius:.875rem;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);cursor:pointer;text-align:left}
+.lch-theme-on{box-shadow:0 0 0 2px var(--lc-red)}
+[data-theme="night"] .lch-theme-on{box-shadow:0 0 0 2px var(--lc-gold)}
+.lch-theme small{font-size:.68rem;font-weight:700;line-height:1.15}
+.lch-swatch{display:block;height:40px;border-radius:.6rem;border:1px solid rgba(0,0,0,.12);position:relative;overflow:hidden}
+.lch-swatch::after{content:"";position:absolute;left:8px;right:34%;top:9px;height:6px;border-radius:3px;background:var(--b)}
+.lch-swatch::before{content:"";position:absolute;left:8px;width:22px;top:21px;height:9px;border-radius:3px;background:var(--b);opacity:.9}
+.lch-check{position:absolute;top:.4rem;right:.4rem;width:18px;height:18px;border-radius:50%;background:var(--lc-red);color:#fff;font-size:.65rem;display:grid;place-items:center}
+[data-theme="night"] .lch-check{background:var(--lc-gold);color:#1A1012}
+.lch-opt{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.9rem;font-weight:600;flex-wrap:wrap}
+.lch-opt small{display:block;font-weight:500;color:var(--lc-muted);font-size:.74rem}
+.lch-seg{display:inline-flex;border:1px solid var(--lc-line);border-radius:.75rem;overflow:hidden}
+.lch-seg-btn{min-height:40px;padding:0 .75rem;border:0;background:var(--lc-paper);color:var(--lc-ink);font-weight:700;cursor:pointer}
+.lch-seg-on{background:var(--lc-red);color:#fff}
+.lch-note{font-size:.76rem;color:var(--lc-muted);margin:.5rem 0 0;line-height:1.35}
+
 .lc-field{display:flex;flex-direction:column;gap:.25rem;margin:.5rem 0}
 .lc-field-row{display:flex;flex-direction:row;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
 .lc-input{min-height:40px;padding:.375rem .625rem;border:1px solid var(--lc-line);border-radius:.625rem;background:var(--lc-paper);color:var(--lc-ink);font-size:1rem;flex:1 1 10rem;min-width:0}
