@@ -12,6 +12,10 @@
 
 Darrell asked for a lesson that defines good, from the Word first. He saw that the popular saying contradicts itself. The saying is that evil triumphs when good men do nothing. Darrell asked how someone can be good and do nothing at the same time.
 
+## Impact
+
+A learner gets the Word's own definition of good, and a popular saying corrected by the Word rather than repeated. Content only; no data or behavior changes.
+
 ## Decision
 
 `ll303-what-good-is` is dated 2026-11-13, after L302. It is the second of a thread: the standard (L302), good (L303) and righteousness (L304).

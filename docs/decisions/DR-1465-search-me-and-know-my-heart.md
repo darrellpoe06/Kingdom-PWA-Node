@@ -14,6 +14,10 @@ Darrell said: if Yahweh ponders the heart, I must ponder mine too, and consider 
 
 He testified that studying Yahweh's will has been worth more than money, and that Yahweh taught him to create wealth; he said this is gratitude, not pride, and that it came through suffering. He often took the least pay while the best on the team, and worked fifty hours for what others made in forty. He named this among the stresses of African American men in America: real barriers, not Jim Crow. He said Yahweh calls them bread for us, and we still win.
 
+## Impact
+
+A learner is taught to search the heart with Yahweh rather than alone, and meets a measured barrier stated plainly beside Darrell's testimony. Content only; no data or behavior changes.
+
 ## Decision
 
 `ll305-search-me-and-know-my-heart` is dated 2026-11-13, after L304. Word first:

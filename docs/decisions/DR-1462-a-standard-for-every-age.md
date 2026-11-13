@@ -14,6 +14,10 @@ Darrell spoke with an older gentleman he respects and salutes: a veteran, once a
 
 Later the same day he added the heart of it. Yahweh says we need Him, and without Him we get a reprobate mind. Evil abounds when good men do nothing. Jesus said none is good but Yahweh, so good cannot stand apart from His eternal good and righteousness.
 
+## Impact
+
+A learner who is told no moral standard survives every age meets the Word's answer, His own Church's Catechism included, and an honest word on what man's agreement cannot do. Content only; no data or behavior changes.
+
 ## Decision
 
 `ll302-a-standard-for-every-age` is dated 2026-11-13, after L301. It is taught from the Word first:
@@ -36,9 +40,7 @@ Confirmed by web search on 2026-11-13. The results quoted or described the Vatic
 
 In its own words, the Catechism of the Catholic Church §1956 calls the natural law universal in its precepts, and §1958 calls it immutable and permanent throughout the variations of history. §1957 and §1960 are given as paraphrase, and the lesson says so: the application varies with circumstances, and not everyone perceives the precepts clearly and immediately.
 
-So the Catholic Church's own Catechism agrees with Darrell, not with the elder's sentence.
-
-Also confirmed by search. **Veritatis Splendor (1993)** teaches that some acts are always wrong and rejects theories that let an outcome justify the act; this rests on Catholic secondary reporting. **Joseph Fletcher** was an Episcopal priest, not a Catholic one, and his *Situation Ethics* came out in 1966, confirmed through the Episcopal Church's own dictionary entry as search showed it. **The Burke saying:** Quotation researchers and fact-checks report that the sentence has not been found in Burke's writings, and a similar line is reported from Mill in 1867. The attribution is held as unverified (DR-0100, tier 2, named narrowly), and the Word states the truth: James 4:17 and Ezekiel 22:30.
+So the Catholic Church's own Catechism agrees with Darrell, not with the elder's sentence. Also confirmed by search. **Veritatis Splendor (1993)** teaches that some acts are always wrong and rejects theories that let an outcome justify the act; this rests on Catholic secondary reporting. **Joseph Fletcher** was an Episcopal priest, not a Catholic one, and his *Situation Ethics* came out in 1966, confirmed through the Episcopal Church's own dictionary entry as search showed it. **The Burke saying:** Quotation researchers and fact-checks report that the sentence has not been found in Burke's writings, and a similar line is reported from Mill in 1867. The attribution is held as unverified (DR-0100, tier 2, named narrowly), and the Word states the truth: James 4:17 and Ezekiel 22:30.
 
 Roads refused from this sandbox (getaddrinfo ENOTFOUND): `www.vatican.va` and `usccb.org`. `peped.org` was refused in the coordinator's earlier attempt. So the Catechism's own pages, the encyclical, Burke's writings, Mill's address and Fletcher's book were **not read**. Every reader text says so.
 
@@ -54,6 +56,4 @@ Verses: 50 anchor references and 190 quoted spans, every one fetched from `app/p
 
 ## Honesty gap
 
-The lesson admits unchecked material and has no figure to give a source row, so the third-pile GAP pin rises by one, with a dated note in `the-third-pile-is-a-worklist.test.js`.
-
-re-review: 2026-11-27. Read the Catechism paragraphs from a runner with web access, and replace the paraphrase of §1957 and §1960 with their wording if the pages confirm it.
+The lesson admits unchecked material and has no figure for a source row, so the third-pile GAP pin rises by one, with a dated note in `the-third-pile-is-a-worklist.test.js`. re-review: 2026-11-27. Read the Catechism paragraphs from a runner with web access, and replace the §1957 and §1960 paraphrase with their wording if the pages confirm it.

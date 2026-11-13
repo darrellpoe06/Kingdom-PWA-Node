@@ -23,6 +23,10 @@ He spoke of six things he learned:
 
 He told of a friend of 20+ years who left a university after about 25 years of bullying leadership. The friend is a white man among white colleagues: this is not about race, it is people. He now earns about twice as much, keeps a state pension, and is moving into the public sector. Darrell helped him earn his business degree through Western Governors University, as Darrell did. He asked for a lesson on enduring with the Word first, with a salute to his friend and to the King, Jesus Christ.
 
+## Impact
+
+A learner meets endurance taught from the Word: no vengeance, discernment by fruit without prejudging, and Yahweh's promotion. Content only; no data or behavior changes.
+
 ## Decision
 
 `ll306-the-path-of-the-just-shineth` is dated 2026-11-13, after L305. Word first:

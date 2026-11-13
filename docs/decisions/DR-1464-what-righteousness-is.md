@@ -12,6 +12,10 @@
 
 Darrell asked for a lesson on what righteousness is according to Yahweh, and what it is not. He tied it to good. Some people say they are righteous, and Yahweh says no. He also asked two more things: what the precept-upon-precept standard is, and what understanding we must gain from the Word, whose jewels come in many facets.
 
+## Impact
+
+A learner can tell Yahweh's righteousness from a verdict a person passes on himself, with its seven facets named. Content only; no data or behavior changes.
+
 ## Decision
 
 `ll304-what-righteousness-is` is dated 2026-11-13, after L303. It works the Word line by line.
