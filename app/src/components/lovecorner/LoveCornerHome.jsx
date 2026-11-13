@@ -36,6 +36,7 @@ import { LEARN_CATALOG } from '../../lib/learn-catalog.js';
 import { CHURCH_MINISTRIES } from '../../lib/church-ministries.js';
 import { INSTITUTE_META } from '../../lib/church-institute.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
+import { isChurchDoorContext } from '../../lib/church-own-door.js';
 
 export const LOVE_CORNER_ASSETS = Object.freeze({
   // The Love Corner Experience seal and Bishop Gwin's portrait, attached by
@@ -112,6 +113,8 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
     <div className="lc-home" data-testid="lovecorner-home">
       {/* HERO */}
       <section className="lc-band lc-band-hero" aria-labelledby="lc-hero-h">
+        {/* On the door the header above carries the brand and the sign-in (DR-1483); inside the family app's Church tab this row still does. */}
+        {!isChurchDoorContext() && (
         <div className="lc-brandrow">
           <img
             src={LOVE_CORNER_ASSETS.logo}
@@ -133,6 +136,7 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
             </button>
           )}
         </div>
+        )}
         <div className="lc-hero">
           <div className="min-w-0">
             <h2 id="lc-hero-h" className="lc-h1 ts-chrome-region">

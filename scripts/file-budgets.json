@@ -294,13 +294,27 @@
       "to": 12957,
       "date": "2026-11-13",
       "why": "sov82 (How beautiful are the feet, DR-1486) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size of the spliced file (wc -l), not above it. The 204 lines are the module literal that scripts/sov82-fill.mjs generated from app/public/bible/kjv; none were hand-written into this file."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 12957,
+      "to": 13168,
+      "date": "2026-11-13",
+      "why": "sov83 (That they may continue many days, DR-1489) adds one lesson to this file after sov82 (DR-1486) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Re-measured with wc -l on the merged tree that holds both weeks (the sov83 module literal re-spliced by scripts/sov83-fill.mjs onto main's catalog), never taken from either side of the conflict."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 6006,
+      "to": 6012,
+      "date": "2026-11-13",
+      "why": "DR-1481: the record's course folds open a lesson and a course. The Latest list's inline lesson door is named once (openLessonFromList) and shared, so the wiring is three short lines, a title lookup and three props, net of the three lines it removed; the fold, the lesson lists and their order live in LearnersPanel.jsx and lib/course-pace.js. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 12957,
+    "app/src/lib/sovereign-ai-class.js": 13168,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 6006,
+    "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2682,
@@ -309,7 +323,7 @@
     "app/src/lib/godhead-study.js": 1993,
     "app/src/modules/properties/cloud.js": 1991,
     "app/src/components/Cameras.jsx": 1982,
-    "app/src/components/BooksTransactions.jsx": 1962,
+    "app/src/components/BooksTransactions.jsx": 1943,
     "app/src/components/Projects.jsx": 1939,
     "app/src/components/PracticeLearn.jsx": 1804,
     "app/src/lib/presentable.js": 1527,

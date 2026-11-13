@@ -354,11 +354,53 @@ export function speechSegments(text, maxLen = 180) {
  * engine gets the smoothed version of a segment whose raw form still matches
  * the page.
  */
+// A CLOSING MARK ENDS THE SENTENCE IT CLOSES (DR-1498). Darrell 2026-11-13,
+// reading a lesson of quoted verses: at a quote the man's voice paused and
+// went on in another voice, until he pushed forward. The cut fell AFTER the
+// full stop and BEFORE the closing quote, so `...your thoughts."` became
+// `...your thoughts.` and a next piece that began with a bare `"` (or, where
+// the follow map put a stop beside a reference chip, a piece that was only
+// `" (.`). A piece with no word in it is no sentence: the NAS voice answers
+// it with nothing, and that miss handed the rest of the reading to the phone.
+// So a closing quote or bracket stays on the sentence it closes, the
+// bracketed reference after a quote stays with the verse it names, and a
+// piece with no letter or digit joins its neighbour.
+const SENTENCE = /[^.!?]+[.!?]*["'”’)\]]*(?:\s?\([^()]{1,60}\))?/g;
+/** True when a piece has a letter or a digit a voice can say. */
+export const hasSpeakable = (t) => /[\p{L}\p{N}]/u.test(String(t || ''));
+const ONLY_CITATION = /^\([^()]+\)[.!?;:,]*$/;
+// A bracketed reference joins the sentence before it only while the two stay
+// inside a piece's hard ceiling (clip-queue PIECE_MAX = the cut + 20).
+const CITE_ROOM = 20;
+
 export function clauseSegments(text, maxLen = 180) {
   const clean = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
   if (!clean) return [];
+  // Each cut as [start, end) in `clean`, so a join is a slice of the text
+  // itself and every segment stays an exact substring (read-follow.js).
+  const spans = [];
+  const push = (from, piece) => {
+    const at = clean.indexOf(piece, from);
+    if (at >= 0) spans.push([at, at + piece.length]);
+    return at >= 0 ? at + piece.length : from;
+  };
+  let from = 0;
+  for (const piece of cutSentences(clean, maxLen)) from = push(from, piece);
+  const joined = [];
+  for (const sp of spans) {
+    const prev = joined[joined.length - 1];
+    const piece = clean.slice(sp[0], sp[1]);
+    const cite = prev && ONLY_CITATION.test(piece) && sp[1] - prev[0] <= maxLen + CITE_ROOM;
+    // (a first piece with nothing to say takes the one after it the same way)
+    if (prev && (!hasSpeakable(piece) || !hasSpeakable(clean.slice(prev[0], prev[1])) || cite)) prev[1] = sp[1];
+    else joined.push([sp[0], sp[1]]);
+  }
+  return joined.map(([a, b]) => clean.slice(a, b));
+}
+
+function cutSentences(clean, maxLen) {
   const out = [];
-  const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
+  const sentences = clean.match(SENTENCE) || [clean];
   for (const raw of sentences) {
     let s = raw.trim();
     if (!s) continue;
