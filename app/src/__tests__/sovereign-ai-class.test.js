@@ -173,7 +173,16 @@ describe('curriculum shape', () => {
     // take either side. Until 82 lands, the ten strict-contiguity gates
     // DR-1376 counted (sov52-54, sov57-63) are red on this branch by design,
     // which is what keeps it from merging ahead of its sibling.
-    const HELD_IN_FLIGHT = [];
+    // 84, 85 AND 86 HELD HERE, recorded 2026-11-13 (DR-1501). Sovereign A.I.
+    // week 87 (Cleanse thou me from secret faults) was built off an
+    // origin/main whose highest week was 83, while weeks 84, 85 and 86 were
+    // claimed on origin first (reserve/sov84, reserve/sov85, reserve/sov86) by
+    // sibling builders; this branch claimed reserve/sov87 under the empty
+    // lease. DELETE each entry in the merge that brings that week in --
+    // recompute from the merged tree, never take either side. Until all three
+    // land, the strict-contiguity gates DR-1376 counted are red on this branch
+    // by design, which is what keeps week 87 from merging ahead of them.
+    const HELD_IN_FLIGHT = [84, 85, 86];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
