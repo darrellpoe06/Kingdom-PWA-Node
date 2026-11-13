@@ -2451,6 +2451,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 4,
       "notes": "Traced on the live component before changing anything (DR-0061): the wiring was sound and the existing render test passed green the whole time the defect was live, because it asserts the section CHANGES, not that the reader arrives. Auditing every door rather than only the one he pressed (DR-0219) found two more roads with the same defect: a launch target's mount, which never touches the subscriber, and a handled request that was kept and replayed on the next mount. Each of the three mechanisms is proven to catch by its own named cases, and a section the viewer taps on the strip is deliberately not scrolled, so the fix cannot become the defect."
+    },
+    {
+      "id": "kids-zone-games-and-child-mode",
+      "date": "2026-11-13",
+      "task": "Kids Zone Phases D and E: the audit, the illustrated proposal (six screens, a parametric SVG cast of Black children and teens), and the pure Word Builder and Who Am I? engines over the hosted KJV with Ari's child-mode flag finally read; surfaces held for approval",
+      "drs": [
+        "DR-1505"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Audit first (DR-0061): the Youth Zone, its tests, the course bands and the in-flight Phase C PR, so the new files stay out of index.css and the shell. The ages conflict (Kids 6-10 reading a 3-6 course; the youth band unused) and two painted numbers on the approved screen were surfaced before drawing. The visual build waits on Darrell's own gate; what does not depend on it shipped proven."
     }
   ]
 }
