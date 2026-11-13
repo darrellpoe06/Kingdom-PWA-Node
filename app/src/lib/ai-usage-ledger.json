@@ -2601,6 +2601,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 6,
       "notes": "Closes DR-1254's open condition. Unmetered = navigator.connection type wifi/ethernet and no Save-Data; absent is metered. Found deviceVoiceReady hollow (cached is an always-truthy object), so DR-1482's keep button never showed; fixed per voice. 9 cases, 2 fail on origin/main, 5 mutations caught."
+    },
+    {
+      "id": "the-app-says-a-new-version-is-ready",
+      "date": "2026-11-13",
+      "task": "A newer version waiting on a reading is said in one line; a tap stops the reading and loads it",
+      "drs": [
+        "DR-1503"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Follow-up to PR 2688 (found 2026-11-13). sw-update deferred the reload while a reading played and told nobody. New lib/update-while-reading.js offers one line per build through the existing UpdatePrompt toast; the live-build timer no longer reloads mid-reading. use-read-aloud net zero (useReadingHold). 9 cases, 5 proven to catch against origin/main."
     }
   ]
 }

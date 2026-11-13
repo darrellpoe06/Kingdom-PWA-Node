@@ -52,7 +52,7 @@ import { provisionBridgeToken } from './bridge-provision.js';
 import { setDownloadVoice } from './lesson-downloads.js';
 import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
 import { createTripLog } from './reader-trip.js';
-import { useIntakeHold } from './intake-guard.js';
+import { useReadingHold } from './update-while-reading.js';
 
 /**
  * @param {object} opts
@@ -564,8 +564,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, [tts.isReading, tts.isPaused, cloudPlaying, cloudPaused, osControls]);
 
   // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a reading plays, the
-  // app holds still (no update reload under it; lib/intake-guard.js).
-  useIntakeHold('reading', !!(tts.isReading || cloudPlaying));
+  // app holds still; a waiting update says so and loads on a tap (DR-1503).
+  useReadingHold(!!(tts.isReading || cloudPlaying), stop);
 
   useEffect(() => () => { if (bgRef.current) bgRef.current.stop(); }, []);
 
