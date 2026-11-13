@@ -13,14 +13,24 @@ let pending = null;
 
 /** Ask the Church home to show `sectionId` ('worship' | 'speak' | 'prayer' | 'give' | 'times' | 'about'). */
 export function requestChurchHomeSection(sectionId) {
-  pending = sectionId ? String(sectionId) : null;
-  for (const fn of [...listeners]) {
+  const id = sectionId ? String(sectionId) : null;
+  pending = id;
+  const live = [...listeners];
+  for (const fn of live) {
     try {
-      fn(pending);
+      fn(id);
     } catch {
       /* a listener's error never blocks the rest */
     }
   }
+  // A LIVE LISTENER *IS* THE CONSUMPTION (DR-1499). `pending` exists for the
+  // home that mounts AFTER the tap; a home that was already listening has
+  // handled it, so holding the value makes it a STALE request that replays on
+  // the next mount — the reader presses Watch, wanders to Learn, comes back,
+  // and the page opens on Worship because of a tap two screens ago. Harmless
+  // enough to hide while nothing moved; it surfaced the moment a requested
+  // section began scrolling the reader to it.
+  if (live.length) pending = null;
 }
 
 /** The last request not yet consumed (so a home that mounts AFTER the tap still honors it). */

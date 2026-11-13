@@ -49,13 +49,62 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // doors (Watch, Prayer, Events, Connect) and the phone's bottom bar ask for
   // a section through lib/church-home-section.js; the strip below runs in
   // controlled mode so the request opens the section in place (UX 2e).
-  const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
-  useEffect(() => subscribeChurchHomeSection((id) => { if (id) setSection(id); }), []);
+  // What the reader ASKED FOR, taken once per mount, kept apart from what the
+  // page defaults to. The second road into a section does not go through the
+  // subscriber at all: the shell remounts this component with a `key` and an
+  // `initialSection` when a launch target names one — a class card's "Open the
+  // Council Chamber", the Library's links, a testimony (book-engine). Those
+  // doors name a place in their own words and had the same defect: the section
+  // was right and the reader was still at the top of the hero.
+  const [askedFor] = useState(() => takePendingChurchHomeSection() || initialSection || null);
+  const [section, setSection] = useState(askedFor || 'worship');
   // The bar reads which section is open (DR-1484); cleared when this home leaves the screen.
   useEffect(() => {
     publishChurchHomeSection(section);
     return () => publishChurchHomeSection(null);
   }, [section]);
+  // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
+  // Love Corner front door): "When pushing latest message we should open to the
+  // space with it... All buttons should work and go to the space it's
+  // descriptions saying." Pressing Watch changed the section CORRECTLY and then
+  // left the reader at the hero, with the player somewhere below the fold — the
+  // button did its work invisibly, which reads as a dead button. Changing the
+  // section is not arriving at it. So a requested section now scrolls its strip
+  // into view, the same way the follow-along reader already does below: one
+  // frame later, because the section's content mounts after this state settles,
+  // and `block: 'start'` so the strip's own tabs sit at the top of the view and
+  // the section begins right under them. A section the viewer picks by TAPPING
+  // the strip is NOT scrolled — their finger is already there, and moving the
+  // page under it is the jump this fix exists to remove.
+  const sectionStripRef = useRef(null);
+  const arriveAtSection = useCallback(
+    () =>
+      setTimeout(() => {
+        try {
+          sectionStripRef.current && sectionStripRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+        } catch {
+          /* no layout (jsdom, or a detached node) — the section still opened */
+        }
+      }, 60),
+    []
+  );
+  useEffect(
+    () =>
+      subscribeChurchHomeSection((id) => {
+        if (!id) return;
+        setSection(id);
+        arriveAtSection();
+      }),
+    [arriveAtSection]
+  );
+  // The mount road (a launch target's `initialSection`, or a request made
+  // before this component existed) arrives the same way. A page that opens on
+  // its own default is NOT scrolled: nobody asked to be moved.
+  useEffect(() => {
+    if (!askedFor) return undefined;
+    const t = arriveAtSection();
+    return () => clearTimeout(t);
+  }, [askedFor, arriveAtSection]);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -984,7 +1033,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      <div ref={sectionStripRef} data-testid="church-section-strip">
+        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      </div>
     </div>
   );
 }
