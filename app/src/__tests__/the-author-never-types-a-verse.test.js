@@ -214,7 +214,10 @@ describe('what new-lesson and fill-verses write is already formatted (DR-1477)',
     const filled = fillVerses(readFileSync(lessonFile, 'utf8'));
     expect(filled.errors).toEqual([]);
     writeFileSync(lessonFile, filled.text);
-    expect(formatFiles([lessonFile]).formatted, 'a file main does not hold is new, so it is formatted').toEqual([lessonFile]);
+    // base: HEAD, not origin/main: CI's checkout carries no origin/main ref, and an
+    // unreadable base reads as "already held" on purpose (never reformat an old file).
+    // HEAD always exists, and the temp file is never on it, so this asks the real question.
+    expect(formatFiles([lessonFile], { base: 'HEAD' }).formatted, 'a file the base does not hold is new, so it is formatted').toEqual([lessonFile]);
     expect(prettierCheck([lessonFile]).status).toBe(0);
   }, 90_000);
 
