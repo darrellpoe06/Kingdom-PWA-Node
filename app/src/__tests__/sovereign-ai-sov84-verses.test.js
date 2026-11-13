@@ -228,7 +228,12 @@ describe('sov84 quotes the corpus and nothing but the corpus', () => {
       const base = q.path.replace(/\[\d+\]$/, '');
       if (READER_PLACES.includes(base)) quotedInReaderPlaces.add(`${q.book} ${q.chapter}:${q.verse}`);
     }
-    const onAnchor = new Set(String(MODULE.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean));
+    const onAnchor = new Set(
+      String(MODULE.anchor.ref)
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
     const missing = [...quotedInReaderPlaces].filter((r) => !onAnchor.has(r));
     const extra = [...onAnchor].filter((r) => !quotedInReaderPlaces.has(r));
     expect(missing, 'quoted in a reader place but not on the anchor').toEqual([]);
@@ -282,9 +287,7 @@ describe('sov84 keeps the shut roads shut and names the one that opened', () => 
     for (const p of TEACHING_PLACES) {
       const t = at(p);
       if (/thirty billion|hundred and twenty-eight|128 experts/i.test(t)) {
-        expect(t, `${p} states a figure without marking whose claim it is`).toMatch(
-          /newsletter|article|email|letter said/i
-        );
+        expect(t, `${p} states a figure without marking whose claim it is`).toMatch(/newsletter|article|email|letter said/i);
       }
     }
   });
@@ -438,10 +441,7 @@ describe('sov84 gates are proven to catch', () => {
     const verse = everyQuotation([['lesson', at('lesson')]])[0];
     const asWritten = `"${verse.text}" (${verse.book} ${verse.chapter}:${verse.verse})`;
     expect(frameFaults([['ok', `The Word first. ${asWritten} Then a mamba layer keeps a compact state.`]])).toEqual([]);
-    expect(
-      frameFaults([['bad', `A mamba layer keeps a compact state. Then the Word. ${asWritten}`]]),
-      'material before the frame must fail'
-    ).toHaveLength(1);
+    expect(frameFaults([['bad', `A mamba layer keeps a compact state. Then the Word. ${asWritten}`]]), 'material before the frame must fail').toHaveLength(1);
     expect(frameFaults([['none', 'No Scripture here at all, only a router and some experts.']])).toHaveLength(1);
   });
 

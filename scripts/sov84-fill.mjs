@@ -178,7 +178,6 @@ const TALK = {
   senior: `TALK ABOUT IT TOGETHER. Parents and grandparents, sit with one younger person today and ask one open question - what do you carry that no one has asked you for yet - and listen all the way to the end before you add a word; have them retell their own answer in their own words, then teach them one verse back, 1 Corinthians 12:22. Younger ones, ask an older person about a long stretch when their gift sat unused, and what held them in it; hear the whole of it before you reply, then retell their story back to them in your own words. Then ask a friend this: who in our fellowship have we quietly stopped calling on. Teach each other one verse. ${RHYTHM} And measure the growth the Word's way, by the fruit, [[Galatians 5:22]] by the occasions, [[Deuteronomy 6:7]] and by the days. [[Hebrews 3:13]]`,
 };
 
-
 // -----------------------------------------------------------------------------
 // THE ADULT LESSON
 // -----------------------------------------------------------------------------
@@ -736,7 +735,8 @@ The older brother had the word in his heart. The younger brother had it bound ab
           'They are retrained on the words they missed',
         ],
         answer: 1,
-        explain: "The newsletter says it plainly and most readers skim it. You pay to keep every member whether it fires this second or not - which is 1 Corinthians 12:22 with the invoice attached.",
+        explain:
+          'The newsletter says it plainly and most readers skim it. You pay to keep every member whether it fires this second or not - which is 1 Corinthians 12:22 with the invoice attached.',
       },
       {
         q: 'What did reading Nvidia’s own published configuration add that the newsletter never mentioned?',
@@ -746,7 +746,8 @@ The older brother had the word in his heart. The younger brother had it bound ab
           'That the model refuses certain questions',
         ],
         answer: 0,
-        explain: 'Besides the routed experts there is one that serves every word always. That is Movement Five, and it is why 1 Corinthians 13 follows 1 Corinthians 12.',
+        explain:
+          'Besides the routed experts there is one that serves every word always. That is Movement Five, and it is why 1 Corinthians 13 follows 1 Corinthians 12.',
       },
       {
         q: 'According to 1 Corinthians 13:2, what is a member with prophecy, all knowledge and all faith, but without charity?',
@@ -778,27 +779,22 @@ The older brother had the word in his heart. The younger brother had it bound ab
           'Because the student would otherwise outperform it',
         ],
         answer: 1,
-        explain: 'Luke 6:40 and Hebrews 13:8 together. The aim is that the student answers as the Master answers, and that requires a Master who does not move.',
+        explain:
+          'Luke 6:40 and Hebrews 13:8 together. The aim is that the student answers as the Master answers, and that requires a Master who does not move.',
       },
       {
         q: 'In speculative decoding, where does generation continue after a drafted guess is rejected?',
-        options: [
-          'From the very beginning of the answer',
-          'From the furthest word that was guessed',
-          'From the last word that was actually verified',
-        ],
+        options: ['From the very beginning of the answer', 'From the furthest word that was guessed', 'From the last word that was actually verified'],
         answer: 2,
-        explain: 'Not a restart from nothing, and not pressing on from the furthest wrong place. Revelation 2:5 describes the same recovery: return to the last true point and do the first works.',
+        explain:
+          'Not a restart from nothing, and not pressing on from the furthest wrong place. Revelation 2:5 describes the same recovery: return to the last true point and do the first works.',
       },
       {
         q: 'Which three primary sources were refused from our network while building this lesson?',
-        options: [
-          'developer.nvidia.com, huggingface.co and arxiv.org',
-          'The Gmail API, GitHub and the KJV corpus',
-          'No sources were refused',
-        ],
+        options: ['developer.nvidia.com, huggingface.co and arxiv.org', 'The Gmail API, GitHub and the KJV corpus', 'No sources were refused'],
         answer: 0,
-        explain: 'So every specific figure is reported as the newsletter’s claim. The one road that did open was a public code host carrying Nvidia’s own configuration.',
+        explain:
+          'So every specific figure is reported as the newsletter’s claim. The one road that did open was a public code host carrying Nvidia’s own configuration.',
       },
       {
         q: 'What does this app carry on your device that you will almost certainly never read in full?',
@@ -808,7 +804,8 @@ The older brother had the word in his heart. The younger brother had it bound ab
           'Nothing; everything is downloaded only on demand',
         ],
         answer: 0,
-        explain: 'A lesson quotes a few dozen verses. The rest are the book beside the ark, carried for the week nobody has planned yet - the same principle as the expert that has not been called.',
+        explain:
+          'A lesson quotes a few dozen verses. The rest are the book beside the ark, carried for the week nobody has planned yet - the same principle as the expert that has not been called.',
       },
     ],
   },
