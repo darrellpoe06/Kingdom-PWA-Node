@@ -40,6 +40,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
+import { preloadPerFileLessonsForNode } from './lib/living-lesson-files.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const APP = join(ROOT, 'app/src');
@@ -133,6 +134,9 @@ export function analyzeSurfaces(deps) {
 }
 
 export async function runSurfaceHollowGuard() {
+  // Plain node has no import.meta.glob: load the per-file lessons first, so a
+  // lesson written as its own file is read like the rest (DR-1468).
+  await preloadPerFileLessonsForNode();
   const { LIVING_LESSONS_MODULES } = await import(pathToFileURL(join(APP, 'lib/living-lessons-class.js')).href);
   const { lessonPresentable } = await import(pathToFileURL(join(APP, 'lib/presentable.js')).href);
   const { lessonPoints, lessonSections } = await import(pathToFileURL(join(APP, 'lib/lesson-format.js')).href);

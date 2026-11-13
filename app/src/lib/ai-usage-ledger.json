@@ -2134,6 +2134,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 9,
       "notes": "Darrell, spoken: little foxes, a ram in the bush, no vengeance; a friend unnamed"
+    },
+    {
+      "id": "lesson-pipeline-2026-11-13",
+      "date": "2026-11-13",
+      "task": "The parallel-lesson pipeline: one file per new Living Lesson appended by glob and read by every path-listing guard, decision and lesson numbers reserved on origin with an empty lease and swept once main passes them, verse.mjs and fill-verses.mjs so the author never types a verse, a guard on unfilled tokens, and the new-lesson scaffold",
+      "drs": [
+        "DR-1468"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 20,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded on merge."
     }
   ]
 }

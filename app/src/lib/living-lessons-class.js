@@ -33041,12 +33041,12 @@ export function resolveLivingLessonsCohort(localCohort = null) {
 }
 
 import { LIVING_LESSONS_ADDED } from './living-lessons-dates.js';
-
-// Self-paced: one row per lesson with its lesson number, but NO computed date.
-// `added` is the real day the lesson joined the course (living-lessons-dates.js
-// — a recorded day, not a cohort date; null when a lesson has none).
+import { PER_FILE_CATALOG, PER_FILE_ADDED } from './living-lessons-per-file.js';
+LIVING_LESSONS_MODULES.push(...PER_FILE_CATALOG); // new lessons: one file each, by ORDER (DR-1468)
+// Self-paced, no computed date. `added` is the real day the lesson joined: a
+// per-file lesson's own ADDED first, then living-lessons-dates.js; null if none.
 function withAdded(m) {
-  return { ...m, added: LIVING_LESSONS_ADDED[m.id] || null };
+  return { ...m, added: PER_FILE_ADDED[m.id] || LIVING_LESSONS_ADDED[m.id] || null };
 }
 export function buildLivingLessonsSchedule() {
   return LIVING_LESSONS_MODULES.map((m, i) => ({ ...withAdded(m), week: i + 1, date: null, weekday: null }));

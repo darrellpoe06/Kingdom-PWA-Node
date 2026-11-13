@@ -123,6 +123,12 @@ jobs:
         with:
           node-version: 22
 
+      # Reservations (refs/heads/reserve/dr-*, ll-*) main has passed are deleted (DR-1468).
+      - name: Sweep the number reservations main has passed
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/sweep-reservations.mjs --apply
+
       - name: Sweep the live claude/* PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

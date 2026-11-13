@@ -271,5 +271,9 @@
     "app/src/components/Projects.jsx": 1939,
     "app/src/components/PracticeLearn.jsx": 1804,
     "app/src/lib/presentable.js": 1527
-  }
+  },
+  "dirBudgets": {
+    "app/src/lib/living-lessons/": 600
+  },
+  "_dirBudgets": "DR-1468: one Living Lesson per file under app/src/lib/living-lessons/, each held to the directory's ceiling, so a new lesson is born without editing this file. Measured 2026-11-13: the newest lessons (ll300, ll301) run about 145 lines in the shape scripts/new-lesson.mjs writes; the longest in the catalog file, ll203, runs 1,328 because it is JSON-formatted a phrase to a line, which is the shape this ceiling refuses for a new file."
 }

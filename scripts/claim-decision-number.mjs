@@ -51,10 +51,23 @@
 // number is still printed -- offline and in CI a base read alone is better than
 // no answer -- but the in-flight half is marked UNVERIFIED in plain words, so a
 // session takes the number knowing which half of the question went unanswered.
+//
+// AND A READ CANNOT STOP TWO READERS (DR-1468). Everything above answers "what
+// is free?" -- and two sessions asking in the same minute get the same answer.
+// MEASURED 2026-11-12: DR-1441 taken twice, numbers 1445 and 1449 contested by
+// open PRs, one day. `--reserve` turns the answer into a CLAIM the server
+// referees: it pushes an empty commit to refs/heads/reserve/dr-NNNN with an
+// empty --force-with-lease ("must not exist"), so exactly one claimant wins a
+// number and the other is refused and takes the next. The read path counts
+// every reserve/dr-* branch as held. scripts/lib/reserve-ref.mjs holds the
+// mechanism; scripts/sweep-reservations.mjs deletes what main has passed.
+//
+//   node scripts/claim-decision-number.mjs --reserve [--branch <name>] [--session <url>]
 import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { reservedNumbers, claimOnRemote, reserveNext, RESERVE_NS } from './lib/reserve-ref.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DECISIONS = join(ROOT, 'docs', 'decisions');
@@ -236,8 +249,13 @@ export function newestRefMs() {
  */
 export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {}) {
   const held = new Map();
-  const refs = git(['for-each-ref', '--sort=-committerdate', '--format=%(refname)',
-    `--count=${limit}`, 'refs/remotes/origin/']).split('\n').map((s) => s.trim()).filter(Boolean);
+  // Reservation refs hold their number by NAME (reserved() reads them) and no
+  // decision file, so they are left out BEFORE the limit: a burst of them must
+  // not push a real branch out of the 60 most recent (DR-1468).
+  const refs = git(['for-each-ref', '--sort=-committerdate', '--format=%(refname)', 'refs/remotes/origin/'])
+    .split('\n').map((s) => s.trim()).filter(Boolean)
+    .filter((r) => !r.startsWith(`refs/remotes/origin/${RESERVE_NS}/`))
+    .slice(0, limit);
 
   for (const ref of refs) {
     if (ref === `refs/remotes/${base}` || ref.endsWith('/HEAD')) continue;
@@ -262,6 +280,8 @@ export function claimedInFlight({ limit = SCAN_LIMIT, base = 'origin/main' } = {
 export function main({
   refresh = refreshRemote, readBase = onBase, noFetch = false,
   log = console.log, err = console.error, now = Date.now(),
+  readReserved = () => reservedNumbers({ kind: 'dr', cwd: ROOT }),
+  reserve = false, branch = '', session = '', claim = claimOnRemote, scanInFlight = claimedInFlight,
 } = {}) {
   // The view is refreshed BEFORE anything is read from it, so the base read and
   // the in-flight scan answer about the same moment. --no-fetch is for a caller
@@ -285,8 +305,9 @@ export function main({
     return 1;
   }
   const base = read.numbers;
-  const inFlight = claimedInFlight({ base: read.ref });
-  const taken = new Set([...disk, ...base, ...inFlight.keys()]);
+  const inFlight = scanInFlight({ base: read.ref });
+  const reserved = readReserved();
+  const taken = new Set([...disk, ...base, ...inFlight.keys(), ...reserved]);
   // What a session would take today, and what is actually free. The landed
   // floor is disk OR base, whichever is higher: a stale tree is behind main,
   // and main's numbers are taken whether or not this tree can see them.
@@ -308,6 +329,23 @@ export function main({
   // the in-flight half of the answer is only worth what its freshness is worth,
   // and that is not the reader's to guess (DR-1359).
   log(freshness());
+  const aheadReserved = [...reserved].filter((n) => n >= diskNext).sort((a, b) => a - b);
+  if (aheadReserved.length) log(`  reserved:  ${aheadReserved.map(pad).join(', ')} (refs/heads/${RESERVE_NS}/dr-*), counted as taken`);
+  if (reserve) {
+    const got = reserveNext({
+      start: free,
+      taken,
+      tryClaim: (n) => claim({ kind: 'dr', n, cwd: ROOT, base: read.ref, message: `reserve DR-${String(n).padStart(4, '0')} for ${branch || '(no branch named)'}${session ? ` -- ${session}` : ''}` }),
+    });
+    if (!got.ok) {
+      err(`claim-decision-number --reserve: NOT RESERVED — ${got.reason}`);
+      err('  Nothing is held on origin. The number printed above is only free, not yours.');
+      return 1;
+    }
+    for (const n of got.contested || []) log(`  ${pad(n)} was claimed by another session a moment before this one; stepped over`);
+    log(`RESERVED ${pad(got.n)} on origin as refs/heads/${got.branch} (${got.sha.slice(0, 10)})`);
+    return 0;
+  }
 
   if (inFlight.size === 0) {
     log('  in flight: none — no unmerged branch holds a decision number.');
@@ -332,6 +370,19 @@ export function main({
   return 0;
 }
 
+/** Pure. The value after a `--flag`, or ''. */
+export function flagValue(argv, flag) {
+  const i = argv.indexOf(flag);
+  return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '';
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  process.exit(main({ noFetch: process.argv.includes('--no-fetch') }));
+  const argv = process.argv.slice(2);
+  const currentBranch = () => git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+  process.exit(main({
+    noFetch: argv.includes('--no-fetch'),
+    reserve: argv.includes('--reserve'),
+    branch: flagValue(argv, '--branch') || currentBranch(),
+    session: flagValue(argv, '--session') || process.env.CLAUDE_SESSION_URL || '',
+  }));
 }

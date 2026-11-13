@@ -28,13 +28,29 @@ export function countLines(src) {
   return src.length ? src.replace(/\n$/, '').split('\n').length : 0;
 }
 
+/**
+ * A directory's ceiling for every file in it (DR-1468): one Living Lesson per
+ * file under app/src/lib/living-lessons/ is held to the directory's line, so a
+ * new lesson never edits this shared baseline to be born.
+ */
+export function dirCeiling(file, dirBudgets = {}) {
+  let best = null;
+  for (const [dir, ceiling] of Object.entries(dirBudgets || {})) {
+    if (file.startsWith(dir) && (!best || dir.length > best.dir.length)) best = { dir, ceiling };
+  }
+  return best;
+}
+
 /** @returns {string[]} findings */
-export function judge({ counts, budgets, newFileMax = NEW_FILE_MAX }) {
+export function judge({ counts, budgets, dirBudgets = {}, newFileMax = NEW_FILE_MAX }) {
   const out = [];
   for (const [file, lines] of Object.entries(counts)) {
     const ceiling = budgets[file];
+    const dir = dirCeiling(file, dirBudgets);
     if (typeof ceiling === 'number') {
       if (lines > ceiling) out.push(`${file}: ${lines} lines, over its ceiling of ${ceiling} (shrink it, or raise the ceiling by hand with a reason)`);
+    } else if (dir) {
+      if (lines > dir.ceiling) out.push(`${file}: ${lines} lines, over the ${dir.ceiling}-line ceiling every file in ${dir.dir} keeps (split the lesson's prose, or shorten it)`);
     } else if (lines > newFileMax) {
       out.push(`${file}: ${lines} lines, a file outside the baseline must stay under ${newFileMax} (split it)`);
     }
@@ -70,7 +86,7 @@ if (isMain) {
     console.log(`file-budget-guard: re-froze ${Object.keys(doc.budgets).length} ceiling(s), down only.`);
     process.exit(0);
   }
-  const findings = judge({ counts, budgets: doc.budgets });
+  const findings = judge({ counts, budgets: doc.budgets, dirBudgets: doc.dirBudgets });
   if (findings.length) {
     console.error(`file-budget-guard: ${findings.length} finding(s):\n  ${findings.join('\n  ')}`);
     process.exit(1);
