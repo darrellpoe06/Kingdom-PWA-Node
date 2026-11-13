@@ -25,6 +25,7 @@
 import { execFileSync } from 'node:child_process';
 
 export const RESERVE_NS = 'reserve';
+const IDENTITY = { name: 'number reservation', email: 'reservation@noreply.invalid' };
 export const KINDS = Object.freeze({ dr: 4, ll: 0 }); // zero-padding width per kind
 
 /** Pure. The branch name that holds a reservation. */
@@ -89,7 +90,20 @@ export function claimOnRemote({ kind, n, cwd = process.cwd(), remote = 'origin',
     const parent = exec(['rev-parse', '--verify', `${base}^{commit}`]).trim();
     const tree = exec(['rev-parse', '--verify', `${base}^{tree}`]).trim();
     const msg = message || `reserve ${branch}`;
-    sha = exec(['commit-tree', tree, '-p', parent, '-m', `${msg}\n\nat ${new Date().toISOString()} pid ${process.pid}`]).trim();
+    // A fallback identity, so a runner or a fresh clone with none configured can
+    // still reserve (an identity in the environment still wins over -c).
+    sha = exec([
+      '-c',
+      `user.name=${IDENTITY.name}`,
+      '-c',
+      `user.email=${IDENTITY.email}`,
+      'commit-tree',
+      tree,
+      '-p',
+      parent,
+      '-m',
+      `${msg}\n\nat ${new Date().toISOString()} pid ${process.pid}`,
+    ]).trim();
   } catch (err) {
     return {
       ok: false,
