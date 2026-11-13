@@ -175,11 +175,27 @@ describe('on the real Learn surface, a lesson picked on the record opens that le
     act(() =>
       root.render(
         createElement(ChurchLearn, {
-          extraCourses: courses, progress: {}, toggleModule: vi.fn(), quizState: {}, recordQuiz: () => {},
-          learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-          signedIn: true, currentUserId: ME,
+          extraCourses: courses,
+          progress: {},
+          toggleModule: vi.fn(),
+          quizState: {},
+          recordQuiz: () => {},
+          learnLevel: 'auto',
+          setLearnLevel: () => {},
+          ageBand: 'adult',
+          setAgeBand: () => {},
+          signedIn: true,
+          currentUserId: ME,
           learnerRecords: [
-            { userId: ME, lessonId: L61.id, courseKey: 'living-lessons', completedAt: '2026-11-01T00:00:00.000Z', quizPct: 80, quizPassed: true, quizAt: '2026-11-01T01:00:00.000Z' },
+            {
+              userId: ME,
+              lessonId: L61.id,
+              courseKey: 'living-lessons',
+              completedAt: '2026-11-01T00:00:00.000Z',
+              quizPct: 80,
+              quizPassed: true,
+              quizAt: '2026-11-01T01:00:00.000Z',
+            },
             { userId: ME, lessonId: L60.id, courseKey: 'living-lessons', completedAt: '2026-11-02T00:00:00.000Z' },
           ],
         })
