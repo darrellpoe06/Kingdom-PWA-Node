@@ -2513,6 +2513,66 @@
       "notes": "Gmail thread 1a1c5c715c76307d, forwarded 2026-11-10T14:04Z (8:04 AM Central), built 2026-11-13 from the intake backlog. One item of the digest taught (school closures); Congress, the Holmes teaser and the other briefs left out, Nvidia already L310. Reserved L313 and DR-1491 on origin (L311, L312 held by other sessions). 104 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. The analysis and research 1440 cites were not read; figures reported, re-review 2026-11-27."
     },
     {
+      "id": "ll314-will-my-work-live-on",
+      "date": "2026-11-13",
+      "task": "L314 Will My Work Live On: one Living Lesson from the Big Think Lucas Museum essay Darrell forwarded under one word, Lessons",
+      "drs": [
+        "DR-1492"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 14,
+      "notes": "Essay read whole from the forward; bigthink.com refused (proxy 403), figures stay reported, re-review 2026-11-27. 127 spans over 60 refs, all filled from the corpus. 14-case gate, four dangers proven to catch. Second teaching in the essay (the crowd as judge of greatness) left as a candidate."
+    },
+    {
+      "id": "ll315-of-one-blood",
+      "date": "2026-11-13",
+      "task": "L315 Of One Blood: Living Lesson from Darrell's video under one word, Lesson (purity-of-blood laws and racism), Word first, history tiered",
+      "drs": [
+        "DR-1493"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Subagent build; history confirmed via search results naming sources; britannica.com, en.wikipedia.org and kbwolf.sites.pomona.edu did not resolve from the sandbox"
+    },
+    {
+      "id": "lesson-ll316-riches-make-themselves-wings",
+      "date": "2026-11-13",
+      "task": "L316 Riches Make Themselves Wings: one Living Lesson from The Daily Upside forward (thread 1a1b29c5388a3be0)",
+      "drs": [
+        "DR-1495"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "Backlog build; Word first, figures tiered as the newsletter reported them; 104 quoted spans; 15-case gate"
+    },
+    {
+      "id": "ll317-who-judges-greatness",
+      "date": "2026-11-13",
+      "task": "L317 Who Judges Greatness: the second Living Lesson from the Big Think Lucas Museum essay Darrell forwarded under one word, Lessons",
+      "drs": [
+        "DR-1505"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 14,
+      "notes": "Gmail thread 1a1c68295f781bbb, forwarded 2026-11-10T17:30Z (11:30 AM CST); second teaching, the first is L314 (DR-1492), 1 shared verse. Essay read whole from the forward; bigthink.com refused (proxy 403), the writer's claims stay reported, re-review 2026-11-27. 129 spans over 47 refs, all filled from the corpus. 14-case gate, four dangers proven to catch, PoeTech facts pinned by file and line."
+    },
+    {
       "id": "kids-zone-games-and-child-mode",
       "date": "2026-11-13",
       "task": "Kids Zone Phases D and E: the audit, the illustrated proposal (six screens, a parametric SVG cast of Black children and teens), and the pure Word Builder and Who Am I? engines over the hosted KJV with Ari's child-mode flag finally read; surfaces held for approval",
