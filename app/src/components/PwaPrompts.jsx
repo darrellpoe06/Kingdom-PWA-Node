@@ -14,6 +14,9 @@
 //     (the `poetech:updated` window event). Pinned to the BOTTOM so it never
 //     covers the header. Auto-dismisses. role="status" + aria-live announces it
 //     to a screen reader without stealing focus (WCAG 4.1.3).
+//     It also carries the ONE line that says a newer version is waiting on a
+//     reading (DR-1503, lib/update-while-reading.js): shown through the hold,
+//     because the reading is the reason, and a tap loads the new version now.
 //   • InstallPrompt — PWA install nudge for iOS + Android visitors. Android
 //     Chrome/Edge catches beforeinstallprompt and fires the native prompt; iOS
 //     Safari shows manual "Share -> Add to Home Screen" instructions. Dismissal
@@ -21,6 +24,7 @@
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { useIntakeHeld } from '../lib/intake-guard.js';
+import { useUpdateReady, loadUpdateNow, UPDATE_READY_WORDS } from '../lib/update-while-reading.js';
 
 const UPDATED_TOAST_MS = 4000;
 
@@ -61,6 +65,7 @@ export function UpdatePrompt() {
   // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): no toast over a recording,
   // a dictation or a box being typed in.
   const held = useIntakeHeld();
+  const ready = useUpdateReady();
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -76,6 +81,16 @@ export function UpdatePrompt() {
       if (confirmTimer) clearTimeout(confirmTimer);
     };
   }, []);
+
+  if (ready) {
+    return (
+      <div className="update-ready fixed top-2 left-2 right-2 mx-auto z-[90] max-w-sm print:hidden" role="status" aria-live="polite">
+        <button type="button" onClick={() => loadUpdateNow()} data-testid="update-ready-line" className="w-full min-h-[44px] text-left bg-white text-[#1A1815] border-2 border-[#1A1815] shadow-lg px-3 py-2 text-xs leading-snug focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          {UPDATE_READY_WORDS}
+        </button>
+      </div>
+    );
+  }
 
   if (!confirmed || held) return null;
 

@@ -404,7 +404,10 @@ describe('every taker of the screen consults the hold', () => {
     const mic = codeOnly(read('lib', 'voice-dictation.js'));
     expect(mic).toContain("holdIntake('dictation')");
     const reader = codeOnly(read('lib', 'use-read-aloud.js'));
-    expect(reader).toContain("useIntakeHold('reading', !!(tts.isReading || cloudPlaying))");
+    // The reader's hold now rides useReadingHold, which also keeps the
+    // reader's stop for the "newer version is ready" tap (DR-1503).
+    expect(reader).toContain('useReadingHold(!!(tts.isReading || cloudPlaying), stop)');
+    expect(codeOnly(read('lib', 'update-while-reading.js'))).toContain("useIntakeHold('reading', on)");
     const dl = codeOnly(read('lib', 'lesson-downloads.js'));
     expect(dl).toContain("holdIntake('download')");
     expect(RESULT_HOLD_MS).toBe(10 * 60 * 1000);

@@ -52,6 +52,7 @@
 
 import { recordError } from './error-journal.js';
 import { whenIntakeFree, intakeWords } from './intake-guard.js';
+import { offerUpdateWhileReading, readingHeld } from './update-while-reading.js';
 
 export const UPDATE_EVENT = 'poetech:update-available';
 export const UPDATED_EVENT = 'poetech:updated';
@@ -294,17 +295,25 @@ export function wireUpdates(registration, nav, win) {
   // (lib/intake-guard.js) and runs once the person has been free for a few
   // seconds. The new worker already controls the page; the swap is not lost,
   // only the moment of the reload moves. state.deferred counts the waits.
+  //
+  // AND IT SAYS SO (DR-1503). While a READING is the reason it waits, one quiet
+  // line tells the person a newer version is ready and that a tap loads it now
+  // (lib/update-while-reading.js); before, a long reading stayed on the old
+  // build in silence. Any other hold waits exactly as it did.
   sw.addEventListener('controllerchange', () => {
     if (!hadController) return;
     if (state.reloaded) return;
     state.reloaded += 1;
-    const { deferred } = whenIntakeFree(() => {
-      markReloading(win);
-      doReload(win);
+    const reload = () => { markReloading(win); doReload(win); };
+    let line = null;
+    const { deferred, cancel } = whenIntakeFree(() => {
+      if (line) line.stop();
+      reload();
     }, { setTimeout: win && typeof win.setTimeout === 'function' ? win.setTimeout.bind(win) : undefined });
     if (deferred) {
       state.deferred += 1;
       state.deferredFor = intakeWords();
+      line = offerUpdateWhileReading({ key: 'sw', reload, cancel, win });
       try { recordError({ source: 'sw-update', kind: 'heal', message: `update reload waited: ${state.deferredFor}` }, win); } catch (_) { /* watcher never throws */ }
     }
   });
@@ -427,10 +436,18 @@ export function watchLiveBuild(registration, win, opts = {}) {
         // swap already reloaded us). Only when nothing moved do we reload.
         const waiting = !!(registration && (registration.waiting || registration.installing));
         if (waiting) return;
-        state.reloads += 1;
-        try { if (w) w.__pwaBehindSha = live.sha; } catch (_) { /* noop */ }
-        markReloading(w);
-        doReload(w);
+        const reload = () => {
+          state.reloads += 1;
+          try { if (w) w.__pwaBehindSha = live.sha; } catch (_) { /* noop */ }
+          markReloading(w);
+          doReload(w);
+        };
+        if (!readingHeld()) { reload(); return; }
+        // A reading is playing: never reload mid-sentence without a tap. Wait
+        // for it as the worker path does, and say so once (DR-1503).
+        let line = null;
+        const wait = whenIntakeFree(() => { if (line) line.stop(); reload(); }, { setTimeout: setT });
+        line = offerUpdateWhileReading({ key: live.sha, reload, cancel: wait.cancel, win: w });
       }, reloadAfter);
     }
     return verdict;
