@@ -203,7 +203,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // the Joel 2:28 / Acts 2:17 lesson Darrell sent on 2026-11-11 and built
     // the same day; the day moves forward with it, after L298 to L300 on
     // 2026-11-10.
-    expect(byNum[byNum.length - 1].added).toBe('2026-11-11'); // L301
+    //
+    // The highest is now L306 (DR-1466, "The Path of the Just Shineth"), the
+    // last of five teachings Darrell spoke on 2026-11-13 (L302 to L306), each
+    // built the day it was spoken; the day moves forward with them, after L301
+    // on 2026-11-11.
+    expect(byNum[byNum.length - 1].added).toBe('2026-11-13'); // L306
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
