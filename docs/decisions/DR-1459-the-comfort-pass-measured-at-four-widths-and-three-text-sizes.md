@@ -40,4 +40,4 @@ Every sub-tab row in the app, not only the new ones, now clears the house floor;
 
 ## Verification after merge
 
-DR-0107: deploy on the merged SHA, boot check green, `site-health.yml` UP. Recorded here when done.
+DR-0107, done 2026-11-12: #2649 squash-merged as `17aac936` at 23:44Z; Deploy (Cloudflare Pages) run 43331459141 on that SHA green at 23:58Z, its real-browser boot check BOOT OK on poetech.us, pages.dev, the Moore door and `?view=church`. DR-0125: `site-health.yml` run 43333298426 at 23:59Z: verdict UP, served build `17aac93` = main.
