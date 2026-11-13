@@ -7,6 +7,29 @@ Deliverables, all in `docs/design/love-corner-kids/`:
 - `2026-11-13-kids-zone-mockup.html` — six phone screens (open in any browser; artifact https://claude.ai/artifact/Tm31Uyr7cK8GUYZbeeDGSq), the cast, the palette, and the reality-trace table.
 - `2026-11-13-kids-preview-{1-kids-home,2-teens-home,3-adventure,4-word-builder,5-who-am-i,6-badges}.png` and `-cast.png` — stills of the same mockup at 390 px, 2×.
 
+## 0. Revised the same day: the whole Kids Zone (Darrell, 2026-11-13, two messages)
+
+Before approving the six screens Darrell widened the brief twice. First: **The Love Corner Bible Adventures**, two recurring realistic-looking Black child guides (his approved reference image, not yet received here), a **Bible Adventure Theater** for animated videos and eventually the church's own cartoon series, interactive storybooks, reading activities, games, rewards and progress; Christ-centered, biblically accurate, no magic or fantasy devices. Then the full ten points: the ENTIRE Kids Zone is the cartoon-rich experience; realistic 3D cartoon children, predominantly Black, diverse; a vibrant animated homepage; interactive Bible reading with storybooks, read-along, comprehension and reading challenges; the Theater; Word Builder, Who Am I?, trivia, memory verse, puzzles and more; maps, badges, rewards; characters on every screen that introduce, explain, celebrate and guide; a separate teen world 11–17; a grown-ups section; everything fully functional; miracles told faithfully as acts of God; the main church app's red, black, white and gold untouched.
+
+**What changed in the proposal.** The mockup now holds nine screens: the original six revised (the guides on the home and on every activity screen, the Theater and Storybook doors, a Reading corner, the dock Adventure · Theater · Games · Badges · Grown-ups, bobbing characters and twinkling stars off under reduced motion), plus Screen 7 Bible Adventure Theater, Screen 8 Storybook with read-along and comprehension, Screen 9 Grown-ups. The legend carries a table of the ten points and where each lands, and the content rule written as a gate. Stills: `2026-11-13-kids-preview-{7-theater,8-storybook,9-grown-ups}.png` beside the six.
+
+**Premise facts, said plainly.** (a) The reference image has not reached this session; the guides are labeled STAND-IN ART from the cast and no face is generated. (b) "Realistic 3D" is the reference artwork's look and is placed as an asset (`app/public/lovecorner/kids/guide-a.png`, `guide-b.png`, 2×); it is never hand-coded or generated here; the supporting cast stays the drawn system until assets in that style exist. (c) The Theater is honest: no episode of the original series exists, so it plays the church's own channel (the record's `media.youtube`) inside the app; episodes come from a registry and show as planned or in production until published. (d) Storybook pages are KJV verses loaded at read time; the guides' captions are our voice beside the verse, never inside it, and a machine gate scans every caption for magic, spells, the occult and fantasy devices, proven to catch. (e) The Grown-ups screen reads the lessons' real facilitator notes (howToRun, talkingPoints, discussionPrompts exist on every Living Lesson), real learner records and real device settings. (f) Phase C (#2695) merged to main at 19:30; this branch merges main after this commit, and still touches none of Phase C's files.
+
+**Phase D2 added** to §6: the Theater registry and in-app player, the first storybooks (Jonah, Noah, David) with read-along, the guides' captions, the Grown-ups screen and the content gate.
+
+**For the reference image:** attach it to a message in this session, or drop it in the repo. From anywhere in PowerShell:
+
+```
+cd C:\Users\dpoe\Kingdom-PWA-Node
+New-Item -ItemType Directory -Force -Path app\public\lovecorner\kids | Out-Null
+Copy-Item "C:\Users\dpoe\Downloads\guides-reference.png" app\public\lovecorner\kids\guides-reference.png
+git add app\public\lovecorner\kids\guides-reference.png
+git commit -m "The two guides' reference image (Darrell, 2026-11-13)"
+git push origin ccr-117befe9-n9u0iz
+```
+
+(Replace the Downloads filename with the real one; the folder and branch are the real ones.) The names of the two guides come with the image.
+
 ## 1. What was asked
 
 Take ownership of Phases D and E of the Love Corner redesign (the 2026-11-13 shell note §6): a colorful, interactive Kids Zone that reads as a professionally designed children's Bible app, in the church's red, black, white and gold with bright accents; separate experiences for 6–10 and 11–17; engaging Bible lessons; the Word Builder and Who Am I? games; better trivia, memory verses, challenges and badges; everything Darrell built preserved; mobile first. Audit first, show the design before building, a separate branch, no merge or deploy without approval. Mid-review Darrell approved Screen 3's layout and vibrant colors and asked for **illustrations of Black children throughout**: boys and girls 6–10 exploring, reading, playing, celebrating; diverse skin tones; natural hair, braids, twists, locs; treasure maps, stars, badges, Bible characters; a welcoming place that also shows children of other backgrounds; more mature art of Black teens for 11–17; no emoji, no clip art; enhance, do not redesign.
