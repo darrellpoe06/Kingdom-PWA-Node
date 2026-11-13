@@ -244,6 +244,57 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-11-12 — "the color keeps changing" on a card = a `focus:` ring left by a
+  TAP (DR-1454)** — on touch, `focus:outline` paints after a tap and stays until
+  the next tap elsewhere; a card-wide toggle wants `focus-visible:`. And "it
+  populates slowly" on a picture strip = one thumbnail request per tile;
+  `warmThumbs(ids, loadMany)` in SharpPicture batches them on the same queue.
+- **2026-11-12 — Square is the second processor on the SAME seam (DR-1451)** —
+  `functions/_lib/square.js` + `/api/square-webhook`; the request names
+  `processor`, `GET /api/checkout` lists `processors` (owner's
+  `PAYMENTS_PROCESSOR` first); the order's metadata (`house: poetech`, kind,
+  product, grants, userId, eventId) is the firewall line; the payments row is
+  keyed by the PAYMENT id. A Square SUBSCRIPTION is not built (PoeTech+ stays
+  on Stripe). Activation = the owner pastes `SQUARE_ACCESS_TOKEN`,
+  `SQUARE_LOCATION_ID`, `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_WEBHOOK_URL`
+  on the Pages project; DR-1438's recommendation stands: a PoeTech account,
+  never TLC's.
+- **2026-11-12 — the NAS research lane (DR-1443) has NO witness row yet** —
+  at 17:15Z `agent_inbox` held zero `research-claimed`, `research-answer` AND
+  zero `nas-heartbeat` rows, so the NAS cycle itself has not been seen writing
+  since DR-1360/DR-1443 merged. Items 7b4128a5 (Payhip) and e8294305
+  (Acrobat) wait on it. Check the heartbeat row FIRST before saying the lane
+  is slow.
+- **2026-11-12 — a guard read through a pipe is not a guard; a register reads
+  only tracked files (DR-1449 session)** — `node scripts/x-guard.mjs | tail -1`
+  reports TAIL's exit, so business-systems-guard FAILED and ai-usage-ledger
+  crashed on conflict markers while the chain printed green, and a merge
+  commit with markers reached the branch. Run each guard bare and echo `$?`.
+  `endpoint-register.mjs --write`, `format-guard.mjs` and the legibility
+  health regen walk `git ls-files`: `git add` a new function, migration or
+  component BEFORE regenerating or CI finds the file the local run did not.
+  Also: research items are `agent_inbox` rows on the COLG instance tagged
+  `research`, source `research-section`; the NAS lane answers them, which is
+  the road for any host the sandbox allowlist refuses (payhip.com, acrobat).
+
+- **2026-11-12 — the store's product line is DERIVED from the Learn registry
+  (DR-1447)** — `lib/learning-products.js` builds a book, a self-paced video
+  course and a workshop seat from every `LEARN_CATALOG` entry; the book count
+  is MEASURED on the lesson BODY (`course-book-fitness.js`: lesson + bigIdea +
+  benefits + inApp), never on the curriculum export, which carries facilitator
+  notes, quiz and age rewrites and overstates every course by a quarter or more
+  (2.55M vs 1.98M words on 2026-11-12). Live answer that day: 45 courses make
+  10 titles in 30 volumes. A lesson may carry `video: { url }` (YouTube or a
+  same-origin /media file; `lib/lesson-video.js`); nothing paints a player
+  where none is recorded. A seat is charged at the `workshop_events` row's
+  price read by `functions/api/checkout.js` (never the client's); the webhook
+  grants the book (`grant_book_entitlement`) and seats the person
+  (`workshop_registrations`, 0323). Banking is in Kingdom Life & Stewardship,
+  a SPIRITUAL department by the registry: free course, offering workshop. The
+  Acrobat share link Darrell sent is outside the sandbox allowlist and the
+  allow was declined: the fastest road for a document is Google Drive (the
+  connector is attached) or the repo.
+
 - **2026-07-08 — GITHUB_TOKEN suppression covers EVERY event, not just push
   (REV-0020)** — the `pull_request: closed` trigger added so "the merge
   deploys itself" (DR-0128) never fires for auto-merges: the native

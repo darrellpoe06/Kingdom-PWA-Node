@@ -32,6 +32,18 @@ import {
   buildBookCheckoutRequest, buildSubscriptionCheckoutRequest, executeCheckout,
   checkoutEndpoint, PROCESSOR_NOTE,
 } from '../lib/checkout-seam.js';
+// DR-1448: one teaching, three ways to hold it — the book (above), the
+// self-paced video course, the in-person workshop seat; and a bought book is
+// owned on every device, read from the buyer's own cloud row.
+import { CoursesShelf, WorkshopsShelf, GovernorLearningLedger } from './LearningShelves.jsx';
+import { readMyBookEntitlements, ownsBook } from '../lib/book-entitlements-cloud.js';
+import { supabase } from '../lib/supabase.js';
+// DR-1449: pricing shapes (fixed, pay what you want), the server's open list,
+// and Stripe's return path that delivers the book on arrival.
+import { productPricing, priceLabel } from '../lib/store-pricing.js';
+import { readOpen } from '../lib/store-catalog.js';
+import { deliveryReturnPaths } from '../lib/instant-delivery.js';
+import BookReviews from './BookReviews.jsx';
 
 // Themed classes, never inline hex — same law as Library.jsx (2026-07-30
 // midnight-illegibility fix); pinned by library-theme-classes.test.js.
@@ -39,7 +51,12 @@ import {
 // Darrell arms checkout by setting VITE_CHECKOUT_ENABLED=true in the deploy env
 // once his processor keys are configured (DR-0230 runbook Step 4) — an env flip,
 // never a source edit (2026-07-28 review, A1). Until then, checkout previews.
-const CHECKOUT_CONFIG = { enabled: import.meta.env?.VITE_CHECKOUT_ENABLED === 'true', endpoint: checkoutEndpoint() };
+// DR-1449 closes DR-1438's named next build: the store reads the SERVER's
+// open list (GET /api/checkout: `books`), the same road PoeTech+ uses; the
+// build flag is kept only as the Governor's hand to force a preview off.
+const FLAG_OFF = import.meta.env?.VITE_CHECKOUT_ENABLED === 'false';
+const checkoutConfigFor = (productId, open) => ({ enabled: !FLAG_OFF && Array.isArray(open?.books) && open.books.includes(productId), endpoint: checkoutEndpoint() });
+const SUBSCRIPTION_CONFIG = (open) => ({ enabled: !FLAG_OFF && Array.isArray(open?.subscriptions) && open.subscriptions.length > 0, endpoint: checkoutEndpoint() });
 
 const nowIso = () => new Date().toISOString();
 const btn = 'text-xs px-3 py-1.5 border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -142,15 +159,24 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
   );
 }
 
-export default function Bookstore({ email = '', isFamilyMember = false, onReadProduct }) {
+export default function Bookstore({ email = '', isFamilyMember = false, onReadProduct, onDownloadProduct = null, fetchImpl }) {
   const userKey = email || 'anon';
   const [sub, setSub] = useState(() => loadSubscriber(userKey));
   const [overrides, setOverrides] = useState([]);
   const [selected, setSelected] = useState(null);
   const [checkoutNote, setCheckoutNote] = useState('');
+  const [cloudOwned, setCloudOwned] = useState([]);
+  const [open, setOpen] = useState({ books: [], subscriptions: [] });
+  useEffect(() => { let alive = true; readOpen({ fetchImpl }).then((o) => { if (alive) setOpen(o); }); return () => { alive = false; }; }, [fetchImpl]);
 
   // First signed-in load starts the 90-day free app access (graceful, honest).
   useEffect(() => { setSub(ensureSubscriber(userKey, nowIso())); setOverrides(loadOverrides()); }, [userKey]);
+  // The books the webhook handed this person (their own rows; a read that did not answer changes nothing).
+  useEffect(() => {
+    let alive = true;
+    if (email) readMyBookEntitlements(supabase).then((r) => { if (alive && r.ok) setCloudOwned(r.productIds); });
+    return () => { alive = false; };
+  }, [email]);
 
   const catalog = useMemo(() => mergeCatalog(seedCatalog(), overrides), [overrides]);
   const forSale = useMemo(() => publishedProducts(catalog), [catalog]);
@@ -159,21 +185,23 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
   const refreshSub = useCallback((next) => { setSub(next); saveSubscriber(userKey, next); }, [userKey]);
 
   const buy = useCallback(async (product) => {
-    const req = buildBookCheckoutRequest(product, sub, { successUrl: '#/library', cancelUrl: '#/library', nowIso: nowIso() });
-    const res = await executeCheckout(req, { config: CHECKOUT_CONFIG });
+    const loc = typeof window !== 'undefined' ? window.location : { pathname: '/poetech-app/', search: '' };
+    const { successUrl, cancelUrl } = deliveryReturnPaths(loc.pathname, loc.search);
+    const req = buildBookCheckoutRequest(product, sub, { successUrl, cancelUrl, nowIso: nowIso() });
+    const res = await executeCheckout(req, { config: checkoutConfigFor(product.id, open), fetchImpl });
     if (res.ok && res.url) { try { window.location.assign(res.url); } catch (e) { /* noop */ } return; }
-    // Unconfigured processor: PREVIEW only, never charge.
-    setCheckoutNote(`Checkout staged for "${product.title}" (${formatPrice(product.priceCents)}). ${PROCESSOR_NOTE}`);
-  }, [sub]);
+    // Not open on the server: PREVIEW only, never charge.
+    setCheckoutNote(`Checkout staged for "${product.title}" (${priceLabel(productPricing(product))}). ${PROCESSOR_NOTE}`);
+  }, [sub, open, fetchImpl]);
 
   // Convert the unified subscriber to paid (after the 90 free days, or to upgrade).
   // One subscription across the whole app — previews until the processor is live.
   const subscribe = useCallback(async (tier) => {
     const req = buildSubscriptionCheckoutRequest(tier || sub.tier || 'poetech-plus', sub, { successUrl: '#/library', cancelUrl: '#/library', nowIso: nowIso() });
-    const res = await executeCheckout(req, { config: CHECKOUT_CONFIG });
+    const res = await executeCheckout(req, { config: SUBSCRIPTION_CONFIG(open), fetchImpl });
     if (res.ok && res.url) { try { window.location.assign(res.url); } catch (e) { /* noop */ } return; }
     setCheckoutNote(`Subscription checkout staged (${tier || sub.tier}). ${PROCESSOR_NOTE}`);
-  }, [sub]);
+  }, [sub, open, fetchImpl]);
 
   // Governor-only local grant so the entitlement + conversation can be exercised
   // before the processor is live. Real purchases grant via the webhook.
@@ -208,7 +236,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {forSale.map((product) => {
-          const owned = entitledToBook(sub, product, nowIso());
+          const owned = ownsBook(entitledToBook(sub, product, nowIso()), cloudOwned, product.id);
           const open = selected === product.id;
           return (
             <div key={product.id} className="border bg-white p-3 border-[#E8E4DC]" >
@@ -219,16 +247,22 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
                   <div className="text-[0.6875rem] italic text-[#5A5751]" >{product.subtitle} · {product.author}</div>
                   <p className="text-xs mt-1 text-[#1A1815]" >{product.blurb}</p>
                 </div>
-                <div className="text-sm font-semibold text-[#B85838]" >{owned ? 'Owned' : formatPrice(product.priceCents)}</div>
+                <div className="text-sm font-semibold text-[#B85838]" >{owned ? 'Owned' : priceLabel(productPricing(product))}</div>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {owned
-                  ? <button type="button" onClick={() => onReadProduct && onReadProduct(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Read</button>
-                  : <button type="button" onClick={() => buy(product)} className={`${btn} text-white bg-[#B85838] border-[#B85838]`}>Buy {formatPrice(product.priceCents)}</button>}
+                  ? <>
+                      <button type="button" onClick={() => onReadProduct && onReadProduct(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Read</button>
+                      {onDownloadProduct && ['epub', 'html', 'md'].map((k) => (
+                        <button key={k} type="button" onClick={() => onDownloadProduct(product, k)} className={`${btn} border-[#1A1815] text-[#1A1815]`} data-testid={`download-${k}`}>Download .{k}</button>
+                      ))}
+                    </>
+                  : <button type="button" onClick={() => buy(product)} className={`${btn} text-white bg-[#B85838] border-[#B85838]`} data-testid="buy" data-open={checkoutConfigFor(product.id, open).enabled ? 'yes' : 'no'}>{productPricing(product).kind === 'pwyw' ? 'Name your price' : `Buy ${formatPrice(product.priceCents)}`}</button>}
                 <button type="button" onClick={() => setSelected(open ? null : product.id)} className={`${btn} border-[#E8E4DC] text-[#5A5751]`} >{open ? 'Hide' : 'Conversation'}</button>
                 {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={`${btn} border-[#E8E4DC] text-[#5A5751]`}  title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
               </div>
               {open && <div className="mt-2"><ConversationPanel product={product} sub={sub} userKey={userKey} /></div>}
+              {open && <div className="mt-2"><BookReviews product={product} sub={sub} userKey={userKey} nowIso={nowIso()} /></div>}
               {isFamilyMember && <GovernorEconomics product={product} onPublish={publish} onPrice={setPrice} />}
             </div>
           );
@@ -248,6 +282,10 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
           ))}
         </div>
       )}
+
+      <CoursesShelf />
+      <WorkshopsShelf />
+      {isFamilyMember && <GovernorLearningLedger />}
     </div>
   );
 }

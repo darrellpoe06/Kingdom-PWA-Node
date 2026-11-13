@@ -43,6 +43,7 @@ export const VALID_VIEWS = [
   'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
   'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
   'forecast', 'cohorts', 'tlc-assistant', 'health', 'cameras', 'vault', 'research',
+  'store', // the public storefront (DR-1449): anyone browses, signed in or not
   // 'study' and 'moore' added 2026-11-05 (DR-1330 D1): both are registered
   // surfaces with render branches in the shell, and neither was listed here
   // nor in the shell's own copy of this list, so ?view=study and ?view=moore
@@ -132,7 +133,7 @@ export function initialBooksView(search) {
 // and the gate — not to a blank screen).
 export const VALID_CHURCH_SUBS = [
   'home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
-  'learn', 'eternal-algorithms', 'conference', 'events', 'projects',
+  'learn', 'institute', 'youth', 'eternal-algorithms', 'conference', 'events', 'projects',
   'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members', 'my-record', 'access', 'giving-book',
 ];
 

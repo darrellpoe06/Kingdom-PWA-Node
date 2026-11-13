@@ -356,6 +356,39 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // DR-1460: the Institute's roll. The office confirms the paperwork and opens
+  // enrollment; a member applies (the policy refuses it otherwise); the office
+  // marks attendance and issues a certificate only through the RPC that
+  // re-runs the completion standard over the learner's own lesson records.
+  app('app/src/lib/church-institute-sync.js', {
+    id: 'institute-roll', name: 'The Institute\u2019s roll (Church \u2192 Institute)',
+    purpose: 'Keeps the office\u2019s regulatory state, each member\u2019s own application, the sessions attended and the certificate issued; every wall stands in the database (0325).',
+    reads: [
+      { res: 'db:institute_settings', token: "from('institute_settings')" },
+      { res: 'db:institute_enrollments', token: "from('institute_enrollments')" },
+      { res: 'db:institute_attendance', token: "from('institute_attendance')" },
+      { res: 'db:institute_credentials', token: "from('institute_credentials')" },
+      { res: 'db:learner_lesson_records', file: 'infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql', token: 'public.learner_lesson_records r' },
+    ],
+    writes: [
+      { res: 'db:institute_settings', token: "onConflict: 'instance_id'" },
+      { res: 'db:institute_enrollments', token: "from('institute_enrollments')" },
+      { res: 'db:institute_attendance', token: "onConflict: 'enrollment_id,session_date'" },
+      { res: 'db:institute_credentials', token: "rpc('institute_issue_credential'" },
+    ],
+    seeds: ['institute-landing'],
+  }),
+  app('app/src/components/ChurchInstitute.jsx', {
+    id: 'institute-landing', name: 'The Institute landing (Church \u2192 Institute)',
+    purpose: 'Applies only while the office\u2019s row reads open, shows a student their own standing and certificate, lets anyone verify a code, and mounts the Office desk for owner/admin only.',
+    reads: [
+      { res: 'db:institute_settings', file: 'app/src/lib/church-institute-sync.js', token: 'readInstituteSettings' },
+      { res: 'db:institute_enrollments', file: 'app/src/lib/church-institute-sync.js', token: 'readMyEnrollments' },
+      { res: 'db:institute_credentials', file: 'app/src/lib/church-institute-sync.js', token: 'readMyCredentials' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
   // one voiceprint (kept only on the NAS) and writes back added or why not;
   // removal deletes the consent, and the print on the next pass.
@@ -1556,10 +1589,78 @@ const NODES = [
     seeds: ['poetech-plus-webhook'],
   }),
   app('app/functions/api/stripe-webhook.js', {
-    id: 'poetech-plus-webhook', name: 'A PoeTech+ purchase lands on the buyer (DR-1432)', purpose: "Stripe's verified events write the money once to the books and the paid tier, renewal or cancellation to the buyer's own row.",
+    id: 'poetech-plus-webhook', name: 'A PoeTech+ purchase lands on the buyer (DR-1432)', purpose: "Stripe's verified events write the money once to the books and the paid tier, renewal or cancellation to the buyer's own row; a paid book is handed to its buyer and a paid workshop seat is held in their name (DR-1448).",
     reads: [{ res: 'http:stripe-webhook', token: 'stripe-signature' }, { res: 'cf:stripe-env', token: 'STRIPE_WEBHOOK_SECRET' }],
-    writes: [{ res: 'db:member_subscriptions', token: 'member_subscriptions' }],
-    seeds: ['poetech-plus-tier'],
+    writes: [
+      { res: 'db:member_subscriptions', token: 'member_subscriptions' },
+      { res: 'db:book_entitlements', token: 'grant_book_entitlement' },
+      { res: 'db:workshop_registrations', token: 'workshop_registrations' },
+    ],
+    seeds: ['poetech-plus-tier', 'workshop-seats', 'book-owned-everywhere'],
+  }),
+  // One teaching, three ways to hold it (DR-1448): the store's workshop shelf
+  // reads the seats the house opened and the seat a person holds; the
+  // checkout function reads the event row's own price before Stripe is asked.
+  app('app/src/lib/book-entitlements-cloud.js', {
+    id: 'book-owned-everywhere', name: 'A bought book is owned on every device (DR-1448)', purpose: "The store reads the buyer's own entitlement rows, so a book the webhook handed them on one device is theirs on the next.",
+    reads: [{ res: 'db:book_entitlements', token: 'book_entitlements' }],
+    writes: [],
+    seeds: [],
+  }),
+  // The sovereign storefront (DR-1449): what the server says can be bought,
+  // and the book handed over the moment Stripe sends the buyer back.
+  app('app/functions/api/deliver.js', {
+    id: 'instant-delivery', name: 'The book is delivered on return from Stripe (DR-1449)', purpose: 'Asks Stripe what a paid checkout session bought (our seam only) and tells the app the product ids granted; the app builds the EPUB itself.',
+    reads: [{ res: 'http:checkout', token: 'checkout/sessions' }, { res: 'cf:stripe-env', token: 'STRIPE_SECRET_KEY' }],
+    writes: [{ res: 'http:deliver', token: 'json({ ok: true' }],
+    seeds: [],
+  }),
+  app('app/src/lib/instant-delivery.js', {
+    id: 'store-delivery', name: 'The store hands over the book on arrival (DR-1449)', purpose: "Reads Stripe's return, asks /api/deliver, grants the device entitlement and offers the downloads.",
+    reads: [{ res: 'http:deliver', token: '/api/deliver' }],
+    writes: [{ res: 'local:book-entitlements', token: 'grantBookEntitlement' }],
+    seeds: [],
+  }),
+  app('app/src/lib/store-catalog.js', {
+    id: 'storefront', name: 'The public storefront reads what can really be bought (DR-1449)', purpose: "One list of books, bundles, courses, open workshops and the membership; what is buyable is GET /api/checkout's answer, never a build flag.",
+    reads: [{ res: 'http:checkout', token: '/api/checkout' }, { res: 'db:workshop_events', file: 'app/src/components/Storefront.jsx', token: 'listOpenWorkshops' }],
+    writes: [],
+    seeds: [],
+  }),
+  // Square joins the seam (DR-1451): the same request becomes a Square
+  // payment link; Square's verified webhook writes the same rows.
+  app('app/functions/api/square-webhook.js', {
+    id: 'square-webhook', name: "A Square payment lands on the buyer (DR-1451)", purpose: "Square's signed payment event is looked up by its order; only an order our checkout made writes the money once to the books, the book to its buyer or the seat in their name.",
+    reads: [{ res: 'http:square-webhook', token: 'x-square-hmacsha256-signature' }, { res: 'cf:square-env', token: 'SQUARE_WEBHOOK_SIGNATURE_KEY' }],
+    writes: [
+      { res: 'db:book_entitlements', token: 'grant_book_entitlement' },
+      { res: 'db:workshop_registrations', token: 'workshop_registrations' },
+    ],
+    seeds: ['workshop-seats', 'book-owned-everywhere'],
+  }),
+  app('app/functions/_lib/square.js', {
+    id: 'square-link', name: 'The checkout becomes a Square payment link (DR-1451)', purpose: "Turns the seam's request into a Square order with the same metadata the Stripe session carries, at the catalog's price; sets the return to carry the order id.",
+    reads: [{ res: 'cf:square-env', token: 'SQUARE_ACCESS_TOKEN' }],
+    writes: [{ res: 'http:square-link', token: 'online-checkout/payment-links' }],
+    seeds: [],
+  }),
+  app('app/src/lib/book-reviews.js', {
+    id: 'book-reviews', name: 'A book is reviewed by those who hold it (DR-1449)', purpose: 'A holder leaves one rating and a line; the shelf shows the count and average to anyone through a numbers-only function.',
+    reads: [{ res: 'db:book_conversations', token: 'book_review_summary' }],
+    writes: [{ res: 'local:book-reviews', token: 'saveReviews' }],
+    seeds: [],
+  }),
+  app('app/src/lib/workshops.js', {
+    id: 'workshop-seats', name: 'A workshop seat is bought in the store (DR-1448)', purpose: 'The Governor opens a workshop from the store panel (owner-scoped RLS); the store shows the open ones with date, place, price and seats left; a signed-in person takes a seat through the checkout; their held seat shows on their own row.',
+    reads: [{ res: 'db:workshop_events', token: 'workshop_events' }, { res: 'db:workshop_registrations', token: 'workshop_registrations' }],
+    writes: [{ res: 'db:workshop_events', token: "from('workshop_events').insert" }, { res: 'http:checkout', token: '/api/checkout' }],
+    seeds: ['workshop-seat-price'],
+  }),
+  app('app/functions/api/checkout.js', {
+    id: 'workshop-seat-price', name: "The seat's price is the event row's (DR-1448)", purpose: 'Before a seat reaches Stripe the server reads the open event and its seats left itself; the client never names a price.',
+    reads: [{ res: 'db:workshop_events', token: 'workshop_events' }],
+    writes: [{ res: 'http:checkout', token: 'checkout/sessions' }],
+    seeds: [],
   }),
   app('app/src/lib/poetech-plus.js', {
     id: 'poetech-plus-tier', name: 'PoeTech+ is yours (the app reads your row)', purpose: "On sign-in the app's tier follows the person's own paid row; the buy and manage buttons start Stripe's own pages.",
@@ -2331,6 +2432,15 @@ const RESOURCES = {
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
   'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
+  'db:book_conversations': { label: "each book's purchaser-gated conversation and reviews (0051, 0324)", source: 'Written by holders of the book through RLS (user_owns_book); the app reads the review summary through book_review_summary(), numbers only.' },
+  'local:book-reviews': { label: "the device's own copy of the reviews it left (book-reviews.js)", sink: 'Read back by the Bookstore and the storefront on this device until the cloud row answers.' },
+  'http:deliver': { label: 'what a paid checkout bought, said to the app (never a key, an amount or a card)', sink: 'The app reads it once on return from Stripe and builds the book itself; nothing else consumes it.' },
+  'local:book-entitlements': { label: "the device's own record of the books it holds (entitlements.js)", sink: 'Read back by the Bookstore and the storefront on this device; the cloud copy is the webhook\'s (book_entitlements).' },
+  'db:workshop_events': { label: 'the in-person workshops the house opened, with the price that is charged (DR-1448)' },
+  'db:workshop_registrations': { label: "each person's paid workshop seat (written only by the Stripe webhook)" },
+  'cf:square-env': { label: 'the Square token, location and webhook key on the Pages project', source: 'The account owner pastes them in the Cloudflare dashboard (DR-1451: a value only they mint); no workflow writes them, and Cloudflare never returns them.' },
+  'http:square-webhook': { label: "Square's signed event about a payment", source: "Square sends it after a person pays on Square's own page; the signature over the notification URL + body is verified before a byte is trusted (DR-1451)." },
+  'http:square-link': { label: 'a Square payment link made for one order of ours', sink: "Square's own checkout page takes the payment; what comes back is the signed webhook event and the return with the order id (DR-1451)." },
   'cf:stripe-env': { label: 'the PoeTech+ Stripe secrets on the Pages project (Cloudflare never returns the values)' },
   'http:stripe-webhook': { label: "Stripe's signed event about a PoeTech+ purchase", source: "Stripe sends it after a person pays, renews, fails a card or cancels on Stripe's own pages; the signature is verified before a byte is trusted (DR-1432)." },
   'http:checkout': { label: 'a PoeTech+ checkout started', sink: "Stripe's own checkout page takes the payment; what comes back is the signed webhook event, not this request (DR-1432)." },

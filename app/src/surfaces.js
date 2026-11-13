@@ -73,6 +73,10 @@ export const SURFACES = [
   { id: 'voice',        label: 'Voice',            nav: 'top', view: 'voice',        sub: null,          load: () => import('./components/VoiceStudio.jsx') },
   { id: 'scribe',       label: 'Scribe',           nav: 'top', view: 'scribe',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/WorkflowScribe.jsx') },
   { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
+  // The store's public face (DR-1449): anyone browses; buying a seat or a
+  // membership signs in; a book may be bought as a guest and is delivered
+  // to the device that bought it.
+  { id: 'store',        label: 'Store',            nav: 'top', view: 'store',        sub: null,          requires: 'anyone', whenDenied: 'hide', gate: 'anyone — a public shelf; the server says what can be bought (DR-1449)', load: () => import('./components/Storefront.jsx') },
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          requires: 'study-circle', whenDenied: 'hide', gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
@@ -122,6 +126,8 @@ export const SURFACES = [
   { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
   { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    requires: 'church-staff', whenDenied: 'hide', gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
   { id: 'learn',            label: 'Learn',         nav: 'church', view: 'church', sub: 'learn',      load: () => import('./components/ChurchLearn.jsx') },
+  { id: 'youth',            label: 'Youth Zone',    nav: 'church', view: 'church', sub: 'youth',      requires: 'anyone', whenDenied: 'lock', gate: 'any church viewer — kids and teens doors over the age bands; no profile, no messaging, no leaderboard by design', load: () => import('./components/YouthZone.jsx') },
+  { id: 'institute',        label: 'TLC Theological Institute', nav: 'church', view: 'church', sub: 'institute', requires: 'anyone', whenDenied: 'lock', gate: 'any church viewer — the church\'s educational ministry, public by design (Slice A: no enrollment door until the office confirms)', load: () => import('./components/ChurchInstitute.jsx') },
   { id: 'eternal-algorithms', label: 'Eternal Algorithms', nav: 'church', view: 'church', sub: 'eternal-algorithms', load: () => import('./components/EternalAlgorithmsStudy.jsx') },
   { id: 'conference',       label: 'Conference',    nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceModule.jsx'), 'ConferenceModule') },
   { id: 'conference-var',   label: 'Conference Variance', nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceVariance.jsx'), 'ConferenceVariance') },
@@ -178,6 +184,10 @@ export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
 // The one camera predicate, re-exported so the shell's render gate rides its
 // existing surfaces import line (DR-1237; the shell cannot grow, DR-0078).
 export { canSeeCameras } from './lib/surface-access.js';
+// The Church sub-tab list rides out of here so the shell adds no import line
+// (monolith budget): lib/church-tabs.jsx is the one list the strip, the
+// phone's bar and its More sheet all draw from (2026-11-12 redesign).
+export { churchSubTabs } from './lib/church-tabs.jsx';
 
 // Named exports — the shell's render switch references these bare identifiers
 // today, so exporting them keeps that switch byte-for-byte unchanged while the
@@ -227,6 +237,8 @@ export const ChurchInfraPlan  = surfaceById['infra-plan'].component;
 export const HarvestLedger    = surfaceById['harvest'].component;
 export const ChurchObservation = surfaceById['observe'].component;
 export const ChurchLearn      = surfaceById['learn'].component;
+export const ChurchInstitute  = surfaceById['institute'].component;
+export const YouthZone        = surfaceById['youth'].component;
 export const EternalAlgorithmsStudy = surfaceById['eternal-algorithms'].component;
 export const ConferenceModule = surfaceById['conference'].component;
 export const ConferenceVariance = surfaceById['conference-var'].component;
@@ -245,3 +257,4 @@ export const Contractors1099  = surfaceById['k1099'].component;
 export const FamilyPlan       = surfaceById['plan'].component;
 export const Obligations      = surfaceById['owed'].component;
 export const MoneySurfaces    = surfaceById['money-overview'].component;
+export const Storefront       = surfaceById['store'].component;

@@ -6,12 +6,14 @@
 -- rls-isolation.yml.) One transaction, rolled back. The declared pairs are
 -- swapped for two @test.local sign-ins INSIDE that transaction only, so no real
 -- account is read or written. Seeded the way the bug left Christina's second
--- sign-in: a family seat one rung low, no Poe Properties seat, a renter seat
+-- sign-in: a family seat one rung low, no Poe Properties seat, a viewer seat
+-- (a seat 0319 never carries; `renter` was written here first and is not an
+-- instance_members role at all, which the live constraint refused, DR-1461)
 -- elsewhere. A stranger holds a seat of their own.
 --
 -- PROVEN TO CATCH: the bug is asserted PRESENT first. Then, signed in as the
 -- second sign-in, one call levels it: the same houses at the same roles; the
--- renter seat neither carried nor touched; the stranger untouched; a repeat
+-- viewer seat neither carried nor touched; the stranger untouched; a repeat
 -- call, the other sign-in, a stranger and nobody all change 0; anon cannot call
 -- it, and the signed-in cannot call the mirror or read the pairs.
 -- =============================================================================
@@ -35,7 +37,7 @@ INSERT INTO public.instance_members (instance_id, user_id, role, display_name) V
   ('f0000000-0000-4000-b000-000000010319', 'a0000000-0000-4000-a000-000000000319', 'admin',  'First'),
   ('f0000000-0000-4000-b000-000000020319', 'a0000000-0000-4000-a000-000000000319', 'owner',  'First'),
   ('f0000000-0000-4000-b000-000000000319', 'b0000000-0000-4000-a000-000000000319', 'member', 'Second'),
-  ('f0000000-0000-4000-b000-000000030319', 'b0000000-0000-4000-a000-000000000319', 'renter', 'Second'),
+  ('f0000000-0000-4000-b000-000000030319', 'b0000000-0000-4000-a000-000000000319', 'viewer', 'Second'),
   ('f0000000-0000-4000-b000-000000030319', 'c0000000-0000-4000-a000-000000000319', 'owner',  'Stranger');
 
 CREATE FUNCTION pg_temp.seats_0319(who uuid) RETURNS text LANGUAGE sql STABLE AS $f$
@@ -50,7 +52,7 @@ DECLARE
   n integer;
 BEGIN
   got := pg_temp.seats_0319('b0000000-0000-4000-a000-000000000319');
-  IF got <> 'elsewhere-0319=renter,family-0319=member' THEN
+  IF got <> 'elsewhere-0319=viewer,family-0319=member' THEN
     RAISE EXCEPTION 'set-up: the bug is not present (%), so this smoke could not catch it', got;
   END IF;
 
@@ -59,12 +61,12 @@ BEGIN
   IF n <> 3 THEN RAISE EXCEPTION 'the second sign-in was levelled by % changes, not 3 (2 seats added, 1 raised)', n; END IF;
 
   got := pg_temp.seats_0319('b0000000-0000-4000-a000-000000000319');
-  IF got <> 'elsewhere-0319=renter,family-0319=admin,landlord-0319=admin,practice-0319=owner' THEN
+  IF got <> 'elsewhere-0319=viewer,family-0319=admin,landlord-0319=admin,practice-0319=owner' THEN
     RAISE EXCEPTION 'the second sign-in holds %, not the same houses as the first', got;
   END IF;
   got := pg_temp.seats_0319('a0000000-0000-4000-a000-000000000319');
   IF got <> 'family-0319=admin,landlord-0319=admin,practice-0319=owner' THEN
-    RAISE EXCEPTION 'the first sign-in changed to % (a renter seat must never be carried)', got;
+    RAISE EXCEPTION 'the first sign-in changed to % (a viewer seat must never be carried)', got;
   END IF;
   got := pg_temp.seats_0319('c0000000-0000-4000-a000-000000000319');
   IF got <> 'elsewhere-0319=owner' THEN RAISE EXCEPTION 'a stranger was touched: %', got; END IF;

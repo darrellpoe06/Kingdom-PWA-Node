@@ -102,7 +102,7 @@ describe('the buyer is the person signed in, proven by the auth server', () => {
       env: ENV,
       request: req({ kind: 'subscription', tier: PLUS_TIER, successUrl: '/poetech-app/?poetech_plus=welcome' }, 'tok'),
     });
-    expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/cs_1', id: 'cs_1' });
+    expect(await res.json()).toEqual({ url: 'https://checkout.stripe.com/c/cs_1', id: 'cs_1', processor: 'stripe' });
     const stripe = calls.find((c) => c.u.includes('api.stripe.com/v1/checkout/sessions'));
     const sent = new URLSearchParams(stripe.i.body);
     expect(sent.get('line_items[0][price]')).toBe('price_plus39');
@@ -122,7 +122,8 @@ describe('the app shows a buy button only when buying can really work', () => {
   it('GET /api/checkout answers the open list and is never cached', async () => {
     const res = await onRequestGet({ env: ENV });
     expect(res.headers.get('cache-control')).toBe('no-store');
-    expect(await res.json()).toEqual({ subscriptions: [PLUS_TIER] });
+    // DR-1449: the same answer now carries the priced books (none in this env).
+    expect(await res.json()).toEqual({ subscriptions: [PLUS_TIER], books: [], processors: ['stripe'] });
   });
 
   it('PROVEN TO CATCH the #2057 class: the SPA shell answering 200 HTML reads as NOT open', async () => {

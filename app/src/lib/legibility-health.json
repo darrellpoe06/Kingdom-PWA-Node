@@ -5,8 +5,8 @@
     "midnight"
   ],
   "summary": {
-    "pages": 409,
-    "passing": 396,
+    "pages": 416,
+    "passing": 403,
     "trackedDebtPages": 13,
     "regressionPages": 0,
     "regressions": 0,

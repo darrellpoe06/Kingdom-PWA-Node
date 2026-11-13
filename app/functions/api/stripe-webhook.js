@@ -46,6 +46,7 @@ export const PRODUCT_ENTITY = Object.freeze({
   'moore-order': 'e-moore', 'moore-class': 'e-moore',
   'tlc-session': 'e-tlc',
   'book': 'e-personal',
+  'workshop': 'e-personal',
 });
 
 export function parseSignatureHeader(header) {
@@ -98,7 +99,7 @@ export function normalizeStripeEvent(evt = {}, meta = {}) {
     netCents: amountCents - feeCents,
     currency: String(obj.currency || 'usd').toLowerCase(),
     productKey,
-    entityId: (productKey && PRODUCT_ENTITY[productKey]) || 'unassigned',
+    entityId: (productKey && PRODUCT_ENTITY[productKey]) || PRODUCT_ENTITY[String((obj.metadata && obj.metadata.kind) || '')] || 'unassigned',
     payerEmail: String((obj.customer_details && obj.customer_details.email) || obj.receipt_email || '') || null,
     occurredAtIso: Number.isFinite(evt.created) ? new Date(evt.created * 1000).toISOString() : null,
   };
@@ -147,6 +148,59 @@ const STATUS_FROM_STRIPE = Object.freeze({
 });
 
 const isoFromSeconds = (n) => (Number.isFinite(n) && n > 0 ? new Date(n * 1000).toISOString() : null);
+
+// bookEntitlementGrant — a PAID book session with a verified buyer hands THAT
+// person the book (grant_book_entitlement, migration 0051, service role only).
+// DR-1448 closed the gap: the ledger counted every book sale and nobody was
+// ever handed the book. A guest purchase (no userId) grants nothing here —
+// there is no person to hand it to. Pure.
+export function bookEntitlementGrant(evt = {}) {
+  if (asStr(evt.type) !== 'checkout.session.completed') return null;
+  const obj = (evt.data && evt.data.object) || {};
+  const md = obj.metadata || {};
+  if (asStr(md.kind) !== 'book') return null;
+  if (!(obj.payment_status === 'paid' || obj.status === 'complete')) return null;
+  const userId = asStr(md.userId) || asStr(obj.client_reference_id);
+  const productId = asStr(md.product) || asStr(md.productId);
+  if (!UUID.test(userId) || !productId) return null;
+  return { p_user: userId, p_product: productId, p_source: 'purchase', p_stripe_ref: asStr(obj.payment_intent) || asStr(obj.id) || null };
+}
+
+// A bundle hands over every book it grants (DR-1449): the checkout stamped
+// metadata.grants from the owner's catalog; one grant call per book, the
+// bundle id itself recorded too so the ledger and the buyer agree. Pure.
+export function bookEntitlementGrants(evt = {}) {
+  const one = bookEntitlementGrant(evt);
+  if (!one) return [];
+  const md = ((evt.data && evt.data.object) || {}).metadata || {};
+  const grants = asStr(md.grants).split(',').map((s) => s.trim()).filter(Boolean);
+  const ids = [...new Set([one.p_product, ...grants])];
+  return ids.map((id) => ({ ...one, p_product: id }));
+}
+
+// workshopRegistrationChange — a PAID seat session seats THAT person at THAT
+// event (workshop_registrations, migration 0323; one row per person per
+// event, so a retry re-seats, never double-seats). Pure.
+export function workshopRegistrationChange(evt = {}, nowIso = new Date().toISOString()) {
+  if (asStr(evt.type) !== 'checkout.session.completed') return null;
+  const obj = (evt.data && evt.data.object) || {};
+  const md = obj.metadata || {};
+  if (asStr(md.kind) !== 'workshop') return null;
+  if (!(obj.payment_status === 'paid' || obj.status === 'complete')) return null;
+  const userId = asStr(md.userId) || asStr(obj.client_reference_id);
+  const eventId = asStr(md.eventId);
+  if (!UUID.test(userId) || !UUID.test(eventId)) return null;
+  return {
+    event_id: eventId,
+    user_id: userId,
+    status: 'paid',
+    stripe_session_id: asStr(obj.id) || null,
+    stripe_payment_id: asStr(obj.payment_intent) || null,
+    paid_cents: cents(obj.amount_total),
+    paid_at: isoFromSeconds(evt.created) || nowIso,
+    updated_at: nowIso,
+  };
+}
 
 // memberSubscriptionChange — what this verified event does to ONE PERSON's
 // member_subscriptions row (DR-1432, migration 0321), or null. Pure.
@@ -232,7 +286,7 @@ export function isOurs(evt = {}) {
   if (type === 'checkout.session.completed') {
     const md = obj.metadata || {};
     // Our seam's own sessions, or a product the house tagged for its books (PRODUCT_ENTITY).
-    return ['book', 'subscription'].includes(asStr(md.kind)) || Object.prototype.hasOwnProperty.call(PRODUCT_ENTITY, asStr(md.product));
+    return ['book', 'subscription', 'workshop'].includes(asStr(md.kind)) || Object.prototype.hasOwnProperty.call(PRODUCT_ENTITY, asStr(md.product));
   }
   if (type === 'invoice.paid') {
     const smd = obj.parent?.subscription_details?.metadata || obj.subscription_details?.metadata || {};
@@ -301,6 +355,35 @@ export async function onRequestPost(context) {
       });
     } catch { return json({ error: 'ledger-unreachable' }, 502); }
     if (!upstream.ok) return json({ error: `ledger-${upstream.status}` }, 502);
+  }
+
+  // ── 1b. THE BOOK, THE SEAT: a paid one-off is handed to its buyer ────────
+  // (DR-1448.) A failed write answers 500 so Stripe retries; the ledger insert
+  // above is idempotent and both writes below are keyed per person, so a
+  // retry hands the same book or seat once.
+  const grants = bookEntitlementGrants(evt);
+  if (grants.length) {
+    for (const grant of grants) {
+      let g;
+      try {
+        g = await fetch(`${supabaseUrl}/rest/v1/rpc/grant_book_entitlement`, { method: 'POST', headers: svc, body: JSON.stringify(grant) });
+      } catch { return json({ error: 'entitlement-unreachable' }, 502); }
+      if (!g.ok) return json({ error: `entitlement-${g.status}` }, 500);
+    }
+    return json({ received: true, counted: !!moneyEvt, book: grants[0].p_product, granted: grants.map((g) => g.p_product) });
+  }
+  const seat = workshopRegistrationChange(evt);
+  if (seat) {
+    let s;
+    try {
+      s = await fetch(`${supabaseUrl}/rest/v1/workshop_registrations?on_conflict=event_id,user_id`, {
+        method: 'POST',
+        headers: { ...svc, Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify([seat]),
+      });
+    } catch { return json({ error: 'seat-unreachable' }, 502); }
+    if (!s.ok) return json({ error: `seat-${s.status}` }, 500);
+    return json({ received: true, counted: !!moneyEvt, seat: seat.event_id });
   }
 
   // ── 2. THE PERSON: a membership lands on the buyer's own row ─────────────

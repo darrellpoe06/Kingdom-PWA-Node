@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS public.instances (
 CREATE TABLE IF NOT EXISTS public.instance_members (
   instance_id  uuid NOT NULL REFERENCES public.instances(id) ON DELETE CASCADE,
   user_id      uuid NOT NULL,
-  role         text NOT NULL,
+  role         text NOT NULL
+    CHECK (role IN ('owner','admin','member','viewer','specialist','child','successor','assistant')), -- the live 8-role wall (0100), so a smoke seating a role the database refuses fails here too (DR-1461)
   display_name text,
   title text, classification text, relationship text, -- live columns 0319 copies (DR-1407)
   PRIMARY KEY (instance_id, user_id)
