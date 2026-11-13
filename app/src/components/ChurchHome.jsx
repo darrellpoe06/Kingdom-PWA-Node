@@ -36,6 +36,18 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
 
+// serviceDate — a feed's ISO `published` as a short calendar date; '' when it
+// cannot be read, so a recording with no date still lists by its title.
+export function serviceDate(published) {
+  const t = Date.parse(String(published || ''));
+  if (!Number.isFinite(t)) return '';
+  try {
+    return new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
+
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
@@ -219,13 +231,19 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     let cancelled = false;
     fetch(`/api/church-recent?channel=${encodeURIComponent(liveChannelId)}`)
       .then((r) => (r.ok ? r.text() : ''))
-      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 6)); })
+      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 15)); })
       .catch(() => { if (!cancelled) setRecentVids([]); });
     return () => { cancelled = true; };
   }, [liveChannelId]);
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
-  const playerSrc = worshipPlayerSrc(liveChannelId, recentVids[0]?.videoId);
+  // PAST SERVICES PLAY (DR-1506; Darrell 2026-11-13, from the live door's Past
+  // sermons tab: "Past services don't have any.... fix it"). The tab used to be
+  // prose about a pipeline; it now lists the channel's own recordings, and a
+  // chosen one becomes the player's source (and opens in the shell's
+  // mini-player, so the reader stays where they are). Null = the newest.
+  const [chosenVideoId, setChosenVideoId] = useState(null);
+  const playerSrc = worshipPlayerSrc(liveChannelId, chosenVideoId || recentVids[0]?.videoId);
   // `enablejsapi=1` is what lets our own skip buttons drive the embed at all
   // (lib/youtube-embed-control.js). The KEY stays the bare playerSrc so adding
   // the parameter can never look like a different video and remount the frame.
@@ -598,10 +616,75 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                     icon: 'book',
                     render: () => (
                       <>
-          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
-            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
-            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
+          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4" data-testid="past-services">
+            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Past services · Bishop Gwin</h3>
+            {/* The channel's own recordings, newest first — the same no-key feed the
+                player follows (DR-1506). A tap plays it: the shell's mini-player opens
+                on it and the Live now player switches to it. Never a painted list:
+                an empty feed says so, and names the channel. */}
+            {recentVids.length > 0 ? (
+              <ul className="list-none p-0 m-0 divide-y divide-[#E8E4DC]" data-testid="past-services-list">
+                {recentVids.map((v) => (
+                  <li key={v.videoId} className="py-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChosenVideoId(v.videoId);
+                        openFloating({ src: worshipPlayerSrc(liveChannelId, v.videoId), title: v.title || 'Past service' });
+                      }}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left group focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      aria-label={`Play: ${v.title || 'Past service'}`}
+                      data-testid={`past-service-${v.videoId}`}
+                    >
+                      <span className="relative w-24 shrink-0 aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
+                        {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover" />}
+                        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-lg drop-shadow">▶</span>
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{serviceDate(v.published)}</span>
+                        <span className="block text-sm leading-snug text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                          {v.title || 'Past service'}
+                        </span>
+                      </span>
+                    </button>
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-[0.625rem] uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      YouTube
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="past-services-empty">
+                {liveChannelId
+                  ? 'The channel\u2019s recordings did not come back just now. Every past service is on the church\u2019s YouTube channel.'
+                  : 'No YouTube channel is set for this church yet, so there are no recordings to list.'}
+                {channelUrl && (
+                  <>
+                    {' '}
+                    <a href={channelUrl} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">
+                      Open the channel
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
+            {setChurchView && (
+              <button
+                type="button"
+                onClick={() => setChurchView('pulpit')}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#1A1815] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                data-testid="past-services-library"
+              >
+                <UiIcon name="book" /> Every message by date · The Word — Migdal
+              </button>
+            )}
+            <p className="mt-3 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Captions, the archive and search are the Sermon-to-Content pipeline; its progress is on the Harvest Ledger (Church → Harvest). The church owns every master file.
             </p>
             <button
               type="button"
