@@ -5,24 +5,24 @@
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons/ll310-the-hidden-life-and-the-empty-chair.js`, its own file per DR-1468)
-**Forwarded by:** Darrell, three newsletters, each with one word above it: Lesson
+**Forwarded by:** Darrell, newsletters, each with one word above it: Lesson
 **Pairs with:** DR-0610 (one teaching, one lesson), DR-1468 / DR-1477 (the parallel pipeline), DR-0098, DR-0100, DR-0076, DR-0331
 
 ## Context
 
-Darrell forwarded three newsletters into the app, each with one word above it, Lesson: Morning Brew, Everyone's problem, 2026-11-10 (Gmail thread `1a1c5c35c2357a0f`, 14:01Z); the 1440 Daily Digest, Nvidia Shakeup, 2026-11-13 (thread `1a1d4fa73bc93705`, 12:55Z); and Morning Brew, Jensen's out, 2026-11-13 (thread `1a1d4fb3c21f7744`, 12:56Z). All three lead with one story in two stages: the scandal reported, then the resignation of Nvidia's chief executive after 33 years, amid reported affairs, one reportedly with a senior executive who reported directly to him, and, Morning Brew reports, 60 direct reports with no succession plan. One teaching, so one lesson. His only word is Lesson; it is rendered, never quoted. L309 was already reserved by another session (`reserve/ll-309`, He Shall Stand Before Kings), so this lesson took L310.
+Darrell forwarded two newsletters into the app on 2026-11-13, each with one word above it, Lesson: the 1440 Daily Digest, Nvidia Shakeup (Gmail thread `1a1d4fa73bc93705`, 12:55Z), and Morning Brew, Jensen's out (thread `1a1d4fb3c21f7744`, 12:56Z). A related earlier forward of the same story, Morning Brew, Everyone's problem, 2026-11-10 (thread `1a1c5c35c2357a0f`, 14:01Z), belongs to this lesson, but its text was not read in this build and nothing is stated from it (`re-review: 2026-11-27`: read it and fold in anything it adds). Both read newsletters lead with one story: the board's investigation announced on Sunday, then the resignation of Nvidia's chief executive after 33 years, amid reported affairs, one reportedly with a senior executive who reported directly to him, and, Morning Brew reports, 60 direct reports with no succession plan. One teaching, so one lesson. His only word is Lesson; it is rendered, never quoted. L309 was already reserved by another session (`reserve/ll-309`, He Shall Stand Before Kings), so this lesson took L310.
 
 ## What was measured
 
 | what | measured |
 | --- | --- |
 | verses | 37 anchor references; 130 quoted spans over 43 references, every one filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults; 0 double-quoted spans without a reference |
-| length | adult 2,160 words; child 946 (ceiling 2,000) |
-| band shares | child 0.52, youth 0.61, teen 0.62, senior 0.64 |
-| reading ladder | child 1.1, youth 4.2, teen 5.9, senior 8.3 |
+| length | adult 2,148 words; child 946 (ceiling 2,000) |
+| band shares | child 0.52, youth 0.62, teen 0.63, senior 0.64 |
+| reading ladder | child 1.1, youth 4.3, teen 6.0, senior 8.4 |
 | band overlap | worst pair 0.06 (ceiling 0.5) |
 | news, tiered | fact where both 2026-11-13 newsletters state it (the resignation, the interim chief, 1993, 33 years); reported by the named outlet (the affairs, the New York Times and Reuters; the 60 direct reports and no plan, Morning Brew; the $550 billion, 1440); unknown (the spying suspicion: no finding) |
-| not read | the body of the 2026-11-10 Morning Brew issue (the mail connector answered Service Unavailable through the session; its date, subject and preview line only); the New York Times and Reuters reports themselves; market data; the cause of the Brooklyn collapse (under investigation) |
+| not read | the 2026-11-10 Morning Brew forward (not read in this build; nothing drawn from it; re-review 2026-11-27); the New York Times and Reuters reports themselves; market data; the cause of the Brooklyn collapse (under investigation) |
 
 ## Impact
 

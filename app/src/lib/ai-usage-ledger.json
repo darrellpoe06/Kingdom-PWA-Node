@@ -2303,7 +2303,7 @@
     {
       "id": "ll310-the-hidden-life-and-the-empty-chair",
       "date": "2026-11-13",
-      "task": "L310 The Hidden Life and the Empty Chair, from three newsletters Darrell forwarded under one word, Lesson; all four age bands, 16-case gate with six dangers proven to catch",
+      "task": "L310 The Hidden Life and the Empty Chair, from the newsletters Darrell forwarded under one word, Lesson; all four age bands, 16-case gate with six dangers proven to catch",
       "drs": [
         "DR-1480"
       ],
@@ -2313,7 +2313,7 @@
       "costUsd": null,
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 36,
-      "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the newsletters only; NYT and Reuters reports not read; the Gmail connector was unavailable for the 2026-11-10 thread body. re-review 2026-12-13."
+      "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
     }
   ]
 }

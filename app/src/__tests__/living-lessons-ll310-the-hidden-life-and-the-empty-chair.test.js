@@ -1,5 +1,5 @@
 // @vitest-environment node
-// L310 — The Hidden Life and the Empty Chair (DR-1480). Three newsletters Darrell
+// L310 — The Hidden Life and the Empty Chair (DR-1480). The newsletters Darrell
 // forwarded with one word above each, Lesson, make one lesson (DR-0610). The
 // shared Living Lesson gate (helpers/living-lesson-gate.js, DR-1477) runs on the
 // spine below; what is particular to this lesson is its dangers, each proven to
@@ -14,7 +14,8 @@
 //      or spying; it carries the transferable truth only.
 //  (5) A CAUSE CLAIMED FOR THE COLLAPSE. Wherever Brooklyn appears, the same
 //      text says the cause is still being investigated.
-//  (6) THE PROVENANCE LOST. The file names all three Gmail threads.
+//  (6) THE PROVENANCE LOST. The file names all three Gmail threads, the two read
+//      and the earlier 2026-11-10 forward that was not read in this build.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
