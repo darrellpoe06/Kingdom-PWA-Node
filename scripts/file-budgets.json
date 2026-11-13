@@ -294,11 +294,18 @@
       "to": 12957,
       "date": "2026-11-13",
       "why": "sov82 (How beautiful are the feet, DR-1486) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size of the spliced file (wc -l), not above it. The 204 lines are the module literal that scripts/sov82-fill.mjs generated from app/public/bible/kjv; none were hand-written into this file."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 12957,
+      "to": 13174,
+      "date": "2026-11-13",
+      "why": "sov85 (And it fell not, DR-1500) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Raised to the MEASURED size of the spliced file (wc -l), not above it. The 217 lines are the module literal that scripts/sov85-fill.mjs generated from app/public/bible/kjv; none were hand-written into this file. sov83 and sov84 are in flight; whichever merge lands second re-measures on the merged tree."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 12957,
+    "app/src/lib/sovereign-ai-class.js": 13174,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6006,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
