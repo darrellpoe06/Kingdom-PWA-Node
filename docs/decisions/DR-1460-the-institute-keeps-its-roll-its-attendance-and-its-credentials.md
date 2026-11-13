@@ -36,4 +36,4 @@ Four tables under RLS: `institute_settings` (one row per church; office writes, 
 
 ## Verification after merge
 
-Recorded on merge: the PR number, the squash SHA, the deploy run on that SHA with BOOT OK, and the `site-health.yml` verdict (DR-0107 / DR-0125). The smoke's PASS line in the `institute-walls` job is the schema's witness.
+DR-0107, done 2026-11-13: #2651 squash-merged as `a6fddb15` at 00:41Z; db-migrate run 43339007968 applied 0325 on the real database; Deploy (Cloudflare Pages) run 43339062389 on that SHA green at 00:48Z, BOOT OK on poetech.us, pages.dev, the Moore door and `?view=church`. DR-0125: `site-health.yml` run 43340181003 at 00:50Z: verdict UP, served build `a6fddb1` = main. The matrix run 43339993126 on the same SHA: the `institute-roll` leg green at 01:02Z, `INSTITUTE WALLS SMOKE: PASS` against the real database. (Its `one-person-one-house` leg is red on the 0319 smoke's `renter` role against `instance_members_role_check`, red on the previous run too; not this change's, carried in the session note with a date.)
