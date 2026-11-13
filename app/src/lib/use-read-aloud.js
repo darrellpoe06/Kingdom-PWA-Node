@@ -30,7 +30,7 @@ import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
 import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
-import { heldForVoiceNotice } from './reading-voice-hold.js';
+import { heldForVoiceNotice, speakPieceOnPhone } from './reading-voice-hold.js';
 import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -789,6 +789,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       },
       schedule: (fn, ms) => setTimeout(fn, ms),
       unschedule: (id) => clearTimeout(id),
+      standIn: (t, i, why) => { trip().note('stand-in', { i, reason: why }); return speakPieceOnPhone({ text: t, pin: readingPinRef.current, rate: rateRef.current, hidden: pageHidden() }); }, // one piece, then the NAS voice again (DR-1498)
       // The pace of every piece, measured (DR-0794): the trip says it in one line.
       onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
