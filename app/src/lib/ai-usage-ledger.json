@@ -891,6 +891,21 @@
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
     },
     {
+      "id": "past-services-play-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Past services play: the Worship row's Past sermons panel lists the channel's recordings and a tap plays one (DR-1506)",
+      "drs": [
+        "DR-1506"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
+    },
+    {
       "id": "the-lesson-lane-says-why-it-is-asleep",
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
@@ -1287,6 +1302,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "shell-dock-home-order-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phase C of the Love Corner shell redesign: the seven-tab church bar measured at 360 and 390 px, the home publishing its open section so Watch and Events light, the homepage in the picture's order with the Customize strip, the pair and the trio, Giving Book's locked surface",
+      "drs": [
+        "DR-1484"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
       "id": "dr-1411-ll299-read-with-the-heart",
