@@ -2374,6 +2374,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
+    },
+    {
+      "id": "sov84-the-body-hath-many-members",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 84 from one forwarded newsletter and one typed word",
+      "drs": [
+        "DR-1497"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.9,
+      "estimateWithoutAiHours": 26,
+      "notes": "One lesson, four bands, 168 quoted spans generator-filled from the KJV corpus, a 33-case proven-to-catch test, and the verification pass that found a shared expert the article never mentions. Three primary hosts refused; raw.githubusercontent.com and gh code search opened."
     }
   ]
 }
