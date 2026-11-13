@@ -60,8 +60,11 @@ export const QUICK_DOORS = Object.freeze([
   { key: 'give', words: 'Give', icon: 'heart', sub: 'home', section: 'give', tone: 'heart' },
   { key: 'prayer', words: 'Prayer', icon: 'dove', sub: 'home', section: 'prayer' },
   { key: 'youth', words: 'Youth Zone', icon: 'sparkle', sub: 'youth', section: null, tone: 'gold' },
-  { key: 'connect', words: 'Connect', icon: 'chat', sub: 'home', section: 'about' },
+  { key: 'institute', words: 'TLC Institute', icon: 'landmark', sub: 'institute', section: null },
 ]);
+
+/** The door Connect became when the Institute took the eighth tile: the Family & community card (home → about). */
+export const CONNECT_DOOR = Object.freeze({ key: 'connect', words: 'Connect', icon: 'chat', sub: 'home', section: 'about' });
 
 /** The four ministry groups on the homepage, each a door into the registry's directory. */
 export const MINISTRY_GROUPS = Object.freeze([
@@ -115,27 +118,27 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
       <section className="lc-band lc-band-hero" aria-labelledby="lc-hero-h">
         {/* On the door the header above carries the brand and the sign-in (DR-1483); inside the family app's Church tab this row still does. */}
         {!isChurchDoorContext() && (
-        <div className="lc-brandrow">
-          <img
-            src={LOVE_CORNER_ASSETS.logo}
-            width="40"
-            height="40"
-            alt="The Love Corner Experience seal: a gold cross and the letters C L G over a red heart, with a dove"
-            className="lc-seal"
-          />
-          <div className="lc-brand-t ts-chrome-region">
-            <b>The Love Corner</b>
-            <span>
-              {c.name}
-              {c.address ? ' · Champaign, IL' : ''}
-            </span>
+          <div className="lc-brandrow">
+            <img
+              src={LOVE_CORNER_ASSETS.logo}
+              width="40"
+              height="40"
+              alt="The Love Corner Experience seal: a gold cross and the letters C L G over a red heart, with a dove"
+              className="lc-seal"
+            />
+            <div className="lc-brand-t ts-chrome-region">
+              <b>The Love Corner</b>
+              <span>
+                {c.name}
+                {c.address ? ' · Champaign, IL' : ''}
+              </span>
+            </div>
+            {!signedIn && onSignIn && (
+              <button type="button" onClick={onSignIn} className={`lc-acct ${FOCUS}`} data-testid="lc-sign-in">
+                Sign in
+              </button>
+            )}
           </div>
-          {!signedIn && onSignIn && (
-            <button type="button" onClick={onSignIn} className={`lc-acct ${FOCUS}`} data-testid="lc-sign-in">
-              Sign in
-            </button>
-          )}
-        </div>
         )}
         <div className="lc-hero">
           <div className="min-w-0">
@@ -144,6 +147,9 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
               <br />
               <em>Where Love Lives.</em>
             </h2>
+            <p className="lc-place" data-testid="lc-place">
+              A place to <b>Worship</b> · <b>Learn</b> · <b>Serve</b> · <b>Belong</b>
+            </p>
             <p className="lc-band-p">You belong here. Worship with us, learn the Word all week, and find your place in the house.</p>
           </div>
           <figure className="lc-bishop">
@@ -180,6 +186,117 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
         </p>
       </section>
 
+      {/* QUICK ACCESS */}
+      <section className="lc-sec" aria-labelledby="lc-qa-h">
+        <h3 id="lc-qa-h" className="sr-only">
+          Where do you want to go?
+        </h3>
+        <nav className="lc-quick" aria-label="Quick access">
+          {QUICK_DOORS.map((d) => (
+            <button key={d.key} type="button" onClick={() => open(d.sub, d.section)} className={`lc-q ${FOCUS}`} data-testid={`lc-quick-${d.key}`}>
+              <span className={`lc-q-ic${d.tone === 'gold' ? ' lc-q-gold' : ''}${d.tone === 'heart' ? ' lc-q-heart' : ''}`} aria-hidden="true">
+                <UiIcon name={d.icon} />
+              </span>
+              <span>{d.words}</span>
+            </button>
+          ))}
+        </nav>
+      </section>
+
+      {/* CUSTOMIZE — one strip, the Personalize sheet behind it (the header listens; DR-1483) */}
+      <button
+        type="button"
+        onClick={() => {
+          try {
+            window.dispatchEvent(new CustomEvent('lovecorner:personalize'));
+          } catch {
+            /* no window */
+          }
+        }}
+        className={`lc-cust ${FOCUS}`}
+        data-testid="lc-customize"
+      >
+        <span aria-hidden="true">🎨</span>
+        <b>Customize Your App</b>
+        <span className="lc-cust-dots" aria-hidden="true">
+          <i style={{ background: '#C03222' }} />
+          <i style={{ background: '#1A1012' }} />
+          <i style={{ background: '#FFFFFF' }} />
+          <i style={{ background: '#CFA63C' }} />
+        </span>
+        <span aria-hidden="true">›</span>
+      </button>
+
+      {/* THE WORD · LEARNING ZONE and KIDS & YOUTH ZONE, side by side (the picture) */}
+      <div className="lc-pair">
+        <button type="button" onClick={() => open('learn')} className={`lc-pair-card lc-pair-word ${FOCUS}`} data-testid="lc-learning-zone">
+          <b className="lc-h3">The Word</b>
+          <em>Learning Zone</em>
+          <span className="lc-small">Bible lessons · study plans · quizzes · memory verses</span>
+          <span className="lc-pair-go">Start learning ›</span>
+        </button>
+        <button type="button" onClick={() => open('youth')} className={`lc-pair-card lc-pair-kids ${FOCUS}`} data-testid="lc-youth">
+          <b className="lc-h3">Kids &amp; Youth Zone</b>
+          <span className="lc-small">Games · challenges · Bible stories · rewards</span>
+          <span className="lc-pair-go">Explore the Youth Zone ›</span>
+        </button>
+      </div>
+
+      {/* TLC THEOLOGICAL INSTITUTE — the featured card, its own door (Darrell 2026-11-12) */}
+      <section className="lc-sec" aria-labelledby="lc-in-h">
+        <div className="lc-sec-h">
+          <h3 id="lc-in-h" className="lc-h2">
+            A major educational ministry
+          </h3>
+        </div>
+        <div className="lc-inst-card" data-testid="lc-institute-card">
+          <div className="lc-inst-art-band" aria-hidden="true">
+            <InstituteArt />
+          </div>
+          <div className="lc-inst-body">
+            <span className="lc-eyebrow lc-eyebrow-gold">{INSTITUTE_META.of}</span>
+            <b className="lc-inst-title">{INSTITUTE_META.name}</b>
+            <span className="lc-inst-tag">{INSTITUTE_META.tagline}</span>
+            <span className="lc-tracks">
+              <span>Biblical Studies</span>
+              <span>Ministry Leadership</span>
+              <span>Christian Education</span>
+            </span>
+            <span className="lc-inst-btns">
+              <button type="button" onClick={() => open('institute')} className={`lc-btn lc-btn-gold ${FOCUS}`} data-testid="lc-institute-explore">
+                Explore the Institute
+              </button>
+              <button type="button" onClick={() => open('institute')} className={`lc-btn lc-btn-red ${FOCUS}`} data-testid="lc-institute-courses">
+                View Courses
+              </button>
+            </span>
+            <small className="lc-small lc-mt">{INSTITUTE_META.credentialNote}</small>
+          </div>
+        </div>
+      </section>
+
+      {/* MINISTRIES · UPCOMING EVENTS · FAMILY & COMMUNITY (the picture's row) */}
+      <div className="lc-trio">
+        <button type="button" onClick={() => open('ministries')} className={`lc-trio-card ${FOCUS}`} data-testid="lc-trio-ministries">
+          <span className="lc-eyebrow">Serve</span>
+          <b>Ministries</b>
+          <small>Serve · connect · make a difference</small>
+          <span className="lc-trio-go">Explore ›</span>
+        </button>
+        <button type="button" onClick={() => open('home', 'times')} className={`lc-trio-card ${FOCUS}`} data-testid="lc-trio-events">
+          <span className="lc-eyebrow">This week</span>
+          <b>Upcoming events</b>
+          <small>{nextLine}</small>
+          <span className="lc-trio-go">Service times ›</span>
+        </button>
+        <button type="button" onClick={() => open(CONNECT_DOOR.sub, CONNECT_DOOR.section)} className={`lc-trio-card ${FOCUS}`} data-testid="lc-trio-connect">
+          <span className="lc-eyebrow">Connect</span>
+          <b>Family &amp; community</b>
+          <small>Stronger together in Christ</small>
+          <span className="lc-trio-go">Get involved ›</span>
+        </button>
+      </div>
+
       {/* ROTATING FEATURE — swiped by the reader, never auto-advanced */}
       <div className="lc-feature" role="region" aria-label="This week at The Love Corner">
         <div className="lc-feat-track" data-testid="lc-feature-cards">
@@ -198,25 +315,6 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
           ))}
         </div>
       </div>
-
-      {/* QUICK ACCESS */}
-      <section className="lc-sec" aria-labelledby="lc-qa-h">
-        <div className="lc-sec-h">
-          <h3 id="lc-qa-h" className="lc-h2">
-            Where do you want to go?
-          </h3>
-        </div>
-        <nav className="lc-quick" aria-label="Quick access">
-          {QUICK_DOORS.map((d) => (
-            <button key={d.key} type="button" onClick={() => open(d.sub, d.section)} className={`lc-q ${FOCUS}`} data-testid={`lc-quick-${d.key}`}>
-              <span className={`lc-q-ic${d.tone === 'gold' ? ' lc-q-gold' : ''}${d.tone === 'heart' ? ' lc-q-heart' : ''}`} aria-hidden="true">
-                <UiIcon name={d.icon} />
-              </span>
-              <span>{d.words}</span>
-            </button>
-          ))}
-        </nav>
-      </section>
 
       {/* THIS WEEK */}
       <section className="lc-sec" aria-labelledby="lc-wk-h">
@@ -288,29 +386,6 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
         </div>
       </section>
 
-      {/* YOUTH ZONE — opens the trivia that exists today; the kids and teens surface is Phase 2 */}
-      <section className="lc-sec" aria-labelledby="lc-yz-h">
-        <div className="lc-sec-h">
-          <h3 id="lc-yz-h" className="lc-h2">
-            Youth Zone
-          </h3>
-        </div>
-        <button type="button" onClick={() => open('youth')} className={`lc-yz ${FOCUS}`} data-testid="lc-youth">
-          <b className="lc-h3">Play. Learn. Grow.</b>
-          <span className="lc-band-p">Bible trivia this week, and every lesson in Learn has a kids and a teens reading. Pick yours inside any lesson.</span>
-          <span className="lc-doors">
-            <span className="lc-door lc-door-gold">
-              <b>Kids 6–10</b>
-              <small>Short bursts, pictures, quick wins</small>
-            </span>
-            <span className="lc-door">
-              <b>Teens 11–17</b>
-              <small>Real questions, real challenges</small>
-            </span>
-          </span>
-        </button>
-      </section>
-
       {/* MINISTRIES */}
       <section className="lc-sec" aria-labelledby="lc-mn-h">
         <div className="lc-sec-h">
@@ -329,39 +404,6 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
               <small>{g.caption}</small>
             </button>
           ))}
-        </div>
-      </section>
-
-      {/* TLC THEOLOGICAL INSTITUTE — the featured card, its own door (Darrell 2026-11-12) */}
-      <section className="lc-sec" aria-labelledby="lc-in-h">
-        <div className="lc-sec-h">
-          <h3 id="lc-in-h" className="lc-h2">
-            A major educational ministry
-          </h3>
-        </div>
-        <div className="lc-inst-card" data-testid="lc-institute-card">
-          <div className="lc-inst-art-band" aria-hidden="true">
-            <InstituteArt />
-          </div>
-          <div className="lc-inst-body">
-            <span className="lc-eyebrow lc-eyebrow-gold">{INSTITUTE_META.of}</span>
-            <b className="lc-inst-title">{INSTITUTE_META.name}</b>
-            <span className="lc-inst-tag">{INSTITUTE_META.tagline}</span>
-            <span className="lc-tracks">
-              <span>Biblical Studies</span>
-              <span>Ministry Leadership</span>
-              <span>Christian Education</span>
-            </span>
-            <span className="lc-inst-btns">
-              <button type="button" onClick={() => open('institute')} className={`lc-btn lc-btn-gold ${FOCUS}`} data-testid="lc-institute-explore">
-                Explore the Institute
-              </button>
-              <button type="button" onClick={() => open('institute')} className={`lc-btn lc-btn-red ${FOCUS}`} data-testid="lc-institute-courses">
-                View Courses
-              </button>
-            </span>
-            <small className="lc-small lc-mt">{INSTITUTE_META.credentialNote}</small>
-          </div>
         </div>
       </section>
     </div>

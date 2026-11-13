@@ -891,6 +891,21 @@
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
     },
     {
+      "id": "past-services-play-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Past services play: the Worship row's Past sermons panel lists the channel's recordings and a tap plays one (DR-1506)",
+      "drs": [
+        "DR-1506"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
+    },
+    {
       "id": "the-lesson-lane-says-why-it-is-asleep",
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
@@ -1287,6 +1302,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "shell-dock-home-order-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phase C of the Love Corner shell redesign: the seven-tab church bar measured at 360 and 390 px, the home publishing its open section so Watch and Events light, the homepage in the picture's order with the Customize strip, the pair and the trio, Giving Book's locked surface",
+      "drs": [
+        "DR-1484"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
       "id": "dr-1411-ll299-read-with-the-heart",
@@ -2451,6 +2481,51 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 4,
       "notes": "Traced on the live component before changing anything (DR-0061): the wiring was sound and the existing render test passed green the whole time the defect was live, because it asserts the section CHANGES, not that the reader arrives. Auditing every door rather than only the one he pressed (DR-0219) found two more roads with the same defect: a launch target's mount, which never touches the subscriber, and a handled request that was kept and replayed on the next mount. Each of the three mechanisms is proven to catch by its own named cases, and a section the viewer taps on the strip is deliberately not scrolled, so the fix cannot become the defect."
+    },
+    {
+      "id": "ll311-every-man-presseth-into-it",
+      "date": "2026-11-13",
+      "task": "L311 Every Man Presseth Into It, from the video on Matthew 11:12 Darrell sent with his summary under one word, Lesson; all four age bands, 16-case gate with five checks proven to catch",
+      "drs": [
+        "DR-1488"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 32,
+      "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
+    },
+    {
+      "id": "ll313-children-are-a-heritage-when-the-school-closes-the-house",
+      "date": "2026-11-13",
+      "task": "L313 Children Are a Heritage, When the School Closes, the House Still Teaches, from the 1440 Daily Digest Darrell forwarded under one word, Lesson; all four age bands, 15-case gate with four dangers proven to catch",
+      "drs": [
+        "DR-1491"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 30,
+      "notes": "Gmail thread 1a1c5c715c76307d, forwarded 2026-11-10T14:04Z (8:04 AM Central), built 2026-11-13 from the intake backlog. One item of the digest taught (school closures); Congress, the Holmes teaser and the other briefs left out, Nvidia already L310. Reserved L313 and DR-1491 on origin (L311, L312 held by other sessions). 104 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. The analysis and research 1440 cites were not read; figures reported, re-review 2026-11-27."
+    },
+    {
+      "id": "ll314-will-my-work-live-on",
+      "date": "2026-11-13",
+      "task": "L314 Will My Work Live On: one Living Lesson from the Big Think Lucas Museum essay Darrell forwarded under one word, Lessons",
+      "drs": [
+        "DR-1492"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 14,
+      "notes": "Essay read whole from the forward; bigthink.com refused (proxy 403), figures stay reported, re-review 2026-11-27. 127 spans over 60 refs, all filled from the corpus. 14-case gate, four dangers proven to catch. Second teaching in the essay (the crowd as judge of greatness) left as a candidate."
     },
     {
       "id": "ll315-of-one-blood",

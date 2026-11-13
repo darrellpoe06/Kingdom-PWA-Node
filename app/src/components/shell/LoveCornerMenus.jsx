@@ -21,6 +21,7 @@ import { churchTabGroups, CHURCH_TAB_ICONS } from '../../lib/church-tabs.jsx';
 import { requestChurchHomeSection } from '../../lib/church-home-section.js';
 import { LEARN_CATALOG } from '../../lib/learn-catalog.js';
 import { lessonUrl } from '../../lib/lesson-links.js';
+import { motionBehavior } from '../../lib/gentle-motion.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#CFA63C]';
 
@@ -205,6 +206,7 @@ export function AllFeaturesSheet({
   setBooksView,
   isFamilyMember = false,
   onPersonalize,
+  onFeedback = null,
   theme = null,
 }) {
   const [q, setQ] = useState('');
@@ -284,6 +286,26 @@ export function AllFeaturesSheet({
               <div className="lch-row">
                 <button type="button" onClick={onPersonalize} className={`lch-pill ${FOCUS}`} data-testid="lch-personalize">
                   🎨 Personalize My App
+                </button>
+                {onFeedback && (
+                  <button type="button" onClick={onFeedback} className={`lch-pill ${FOCUS}`} data-testid="lch-feedback">
+                    Tell us what is working
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    try {
+                      window.scrollTo({ top: 0, behavior: motionBehavior() });
+                    } catch (_) {
+                      /* no window */
+                    }
+                  }}
+                  className={`lch-pill ${FOCUS}`}
+                  data-testid="lch-top"
+                >
+                  Back to top
                 </button>
                 <HelpButton
                   variant="header"
