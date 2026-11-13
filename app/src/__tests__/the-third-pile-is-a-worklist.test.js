@@ -798,7 +798,23 @@ const REPO = join(HERE, '..', '..', '..');
 // nobody read (DR-0076 section 3). re-review: 2026-11-27 -- try those hosts from
 // a runner; if the lawyer's interview and a primary account of the PHP fix
 // read back, replace the not-checked clauses and lower this pin.
-const GAP = 35;
+//
+// 35 -> 36 on 2026-11-13 for sov82-how-beautiful-are-the-feet (DR-1486), by
+// the SECOND remedy. Darrell forwarded a ByteByteGo newsletter (Data Movement
+// Strategies In System Design; Gmail thread 1a1885689c5c2ffc) with one word:
+// Lesson. The email was a PREVIEW of a paid article -- four paragraphs and nine
+// topic headings -- and blog.bytebytego.com and bytebytego.substack.com both
+// answered `curl: (56) CONNECT tunnel failed, response 403`. Then stopped. The
+// lesson reports NOTHING from the article: no benefit, no advice on choosing,
+// no figure. Every figure it states is measured on our own repository (37
+// listener files, the 15-second heartbeat, the 5-minute Inbound poll, the
+// site checker's measured ~67-minute cadence, the ten unpublished tables, the
+// outbox), and each is pinned in sovereign-ai-sov82-verses.test.js against
+// the code it came from -- which no publisher could read back. So no
+// lesson-sources.json row (DR-0076 section 3). re-review: 2026-11-27 -- try
+// those hosts from a runner; if the article reads back, compare its account
+// of each strategy with what the lesson teaches and lower this pin.
+const GAP = 36;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
