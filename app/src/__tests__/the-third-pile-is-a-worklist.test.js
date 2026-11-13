@@ -814,7 +814,23 @@ const REPO = join(HERE, '..', '..', '..');
 // lesson-sources.json row (DR-0076 section 3). re-review: 2026-11-27 -- try
 // those hosts from a runner; if the article reads back, compare its account
 // of each strategy with what the lesson teaches and lower this pin.
-const GAP = 36;
+//
+// 36 -> 37 on 2026-11-13 for sov86-all-the-works-of-this-pattern (DR-1502), by
+// the SECOND remedy. Darrell forwarded the TLDR digest of 2026-11-06 (Gmail
+// thread 1a1b29d09bf45870) with one word: Lesson. The item taught is the
+// digest's three-sentence summary of a profile; the profile was NOT read
+// (search listings name The New York Times, 2026-11-05; the repost host
+// dnyuz.com did not resolve, ENOTFOUND; no further hosts tried). The lesson
+// states NO figure from it and keeps every claim in the reported pile, gated
+// in sovereign-ai-sov86-verses.test.js; the household figures it does state
+// (the ai-usage ledger, CLAUDE.md, llm-providers.js) are read back there from
+// their files, which no publisher could read back. So no lesson-sources.json
+// row (DR-0076 section 3). Raised on a main whose top week was 83; sov84 and
+// sov85 may each raise it too, so the merge recomputes it from the merged
+// tree rather than taking either side. re-review: 2026-11-27 -- read the
+// profile from a runner; if it reads back, compare it with the three
+// sentences taught and lower this pin.
+const GAP = 37;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
