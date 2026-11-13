@@ -16,13 +16,17 @@ Eight movements: promotion handed down; the ranking quarrel at the supper and it
 
 Both counterweights in every band: Solomon hiring Sidonian craftsmen for Yahweh's own house, so this is no slogan about trade; and Proverbs 18:17, so raising a real grievance is not made sinful. Bright line in every band: a market rank is **no verdict on worth and none on righteousness**. Every verse is filled from `app/public/bible/kjv` by `scripts/sov79-fill.mjs` and **none typed**; `anchor.ref` is derived from the placeholders that occur in reader places.
 
-## Trust but verify (DR-0190 / DR-0100 / DR-0076 §8)
+## What was measured — trust but verify (DR-0190 / DR-0100 / DR-0076 §8)
 
 **The primary was not read.** Four hosts refused with the identical `CONNECT tunnel failed, response 403`: `www.coca-colacompany.com`, `www.kearney.com`, `www.qualcomm.com`, `www.sec.gov`. Named in **every** reader place with `re-review: 2026-11-27`. Checking changed four things.
 
 **STRONGER:** the reshoring pair held on a second road (about 2.8% domestic growth against about 29% imports) and checking *enlarged* it — computers and electronics is the largest low-cost-country import category, about $453bn, about 44% of the total, which the digest never reached. **SOFTER, and that is the honest reading:** the beverage quarter's home market was flat in *volume* while home operating income still rose about 5%, so the headline ran sharper than the number. **NOT ESTABLISHED:** ">90% of the prototypes' components" is better supported as a *target* for the first laptop than as a present property; taught as a target in all five places. **CORRECTED:** the rank change was credited to a phone "launch" that was a sale date (2026-10-23) for an announcement six weeks older (2026-09-09); the rank-trading itself and the five-trillion first of October 2025 are established.
 
 Attributed, never asserted: the Ohio assembly site, the processor part, the 2027 timing, the Arizona foundry (a chief executive via a newspaper; the written announcement names neither foundry nor state). Not checked at all, listed so silence is not mistaken for a check: the heir's debt figure and remarks, Boeing's share move and delivery target, the confidence reading, the analyst tally, the year-to-date share moves, two brand volume figures, the hybrid plan, the war-cost sentence.
+
+## Impact
+
+The congregation's Sovereign A.I. class gains a week on the question it meets every morning in a headline — who is counted first, who makes the machines, whether a household can hold its own tools — taught from Psalm 75, Luke 22 and 1 Samuel 13 rather than from a market table. A reader in any of the four bands meets the whole teaching, both counterweights, the bright line, and the four refused hosts with their date; none of them is handed a figure dressed as verified when the road to it was shut. One lesson's worth of debt did NOT move: `adultOnly` and `adultRegister` are both still 0.
 
 ## Verification
 
