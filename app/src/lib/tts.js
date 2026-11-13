@@ -268,6 +268,53 @@ export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => Strin
   return n;
 }
 
+// THE VOICE CHOSEN AT THE START IS THE VOICE AT THE END (DR-1482; Darrell
+// 2026-11-13: the reader keeps switching from the man's voice he chose to a
+// woman's voice part-way through, and only a rewind or a skip brings his voice
+// back). The engine used to hold the chosen voice as one OBJECT, taken from
+// getVoices() at the moment it was picked, and every sentence was handed that
+// object. Android and Chrome rebuild the voice list more than once (on load,
+// after a pause, after the screen comes back), and a hook that looked the pick
+// up by URI while the list was briefly empty set NO voice at all, which is the
+// phone's default: on most phones, a woman's. Nothing said so.
+//
+// So the pick is held as what does not change: its voiceURI, with its name and
+// language beside it. Every sentence resolves it again against the list as it
+// is NOW. An empty list says nothing either way: the voice already in hand
+// speaks, and a pick with none in hand yet (wantVoice) waits for the list, a
+// beat at a time, up to VOICE_WAIT_MS. A list that answers WITHOUT the chosen
+// voice is waited on the same way (it may be partway rebuilt); still without
+// it after that, the reader
+// HOLDS the reading where it is (heldWhy 'voice-missing'), and the caller says
+// so; it is never read on in a voice nobody chose. "No voice" is still a
+// choice the caller can make on purpose (the phone's own default), and then
+// nothing is resolved.
+export const VOICE_WAIT_MS = 1500;
+export const VOICE_WAIT_STEP_MS = 100;
+
+/**
+ * Find a chosen voice in the device's CURRENT list. Pure.
+ * @returns {{voice: object|null, state: 'none'|'found'|'wait'|'missing'}}
+ *   'none'    nothing was chosen (the device default is intended);
+ *   'found'   the chosen voice, as the list holds it now;
+ *   'wait'    the list is empty (the engine is rebuilding it);
+ *   'missing' the list answered without the chosen voice.
+ */
+export function resolveChosenVoice(list, chosen) {
+  if (!chosen || !chosen.uri) return { voice: null, state: 'none' };
+  const voices = Array.isArray(list) ? list.filter(Boolean) : [];
+  if (!voices.length) return { voice: null, state: 'wait' };
+  const byUri = voices.find((v) => v.voiceURI === chosen.uri);
+  if (byUri) return { voice: byUri, state: 'found' };
+  // A rebuilt list can carry the same voice under a re-issued URI; the name
+  // and language together are the same voice. A name alone is not enough.
+  const byName = chosen.name
+    ? voices.find((v) => v.name === chosen.name && utteranceLangFor(v) === utteranceLangFor({ lang: chosen.lang }))
+    : null;
+  if (byName) return { voice: byName, state: 'found' };
+  return { voice: null, state: 'missing' };
+}
+
 /**
  * Pick the most NATURAL-sounding English voice available on this device. Honors
  * a saved choice first; otherwise ranks known high-quality engines (Natural /
@@ -355,6 +402,10 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
     rate: clampRate(p.rate),
     pitch: Number.isFinite(Number(p.pitch)) ? Number(p.pitch) : DEFAULT_PITCH,
     voice: null,
+    // The chosen voice as what does not change: { uri, name, lang }, or null
+    // for "the device default, on purpose" (DR-1482). Resolved per sentence.
+    chosen: null,
+    _voiceWaited: 0, // ms waited for an empty voice list this sentence
     status: 'idle', // 'idle' | 'playing' | 'paused'
     failed: false,  // last play() produced no audio at all (surfaced to the UI)
     _gen: 0,
@@ -464,7 +515,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
         status: this.status,
         rate: this.rate,
         pitch: this.pitch,
-        voiceURI: this.voice ? this.voice.voiceURI : null,
+        voiceURI: this.voice ? this.voice.voiceURI : (this.chosen ? this.chosen.uri : null),
         segmentIndex: this.idx,
         segmentCount: this.segments.length,
         failed: this.failed,
@@ -480,6 +531,39 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
       this._clearWatch();
       const seg = this.segments[this.idx];
       if (seg == null) { this._finish(); return; }
+      // THE CHOSEN VOICE, FOUND AGAIN FOR THIS SENTENCE (DR-1482). An engine
+      // with no list to ask (a bare test fake) keeps the object it was given.
+      if (this.chosen && this.synth && typeof this.synth.getVoices === 'function') {
+        let list;
+        try { list = this.synth.getVoices() || []; } catch (_) { list = []; }
+        let found = resolveChosenVoice(list, this.chosen);
+        // An EMPTY list says nothing either way. The voice object already in
+        // hand is that same voice (the engine names it by name), so it speaks;
+        // only a pick with no object yet (wantVoice) waits for the list.
+        if (found.state === 'wait' && this.voice && this.voice.voiceURI === this.chosen.uri) {
+          found = { voice: this.voice, state: 'found' };
+        }
+        // A list being rebuilt can be empty, or partway full, for a beat: wait.
+        if (found.state !== 'found' && this._voiceWaited < VOICE_WAIT_MS && typeof setTimeout === 'function') {
+          this._voiceWaited += VOICE_WAIT_STEP_MS;
+          setTimeout(() => { if (gen === this._gen && this.status === 'playing') this._speakSegment(); }, VOICE_WAIT_STEP_MS);
+          return;
+        }
+        if (found.state !== 'found') {
+          // Gone, or never came back: hold the place, never read on in
+          // another voice. Play goes on from this sentence (DR-1251's hold).
+          this._voiceWaited = 0;
+          this._disarmBackground();
+          this.heldAt = this.idx;
+          this.heldWhy = 'voice-missing';
+          this.status = 'idle';
+          this._dirty = false;
+          this._emit();
+          return;
+        }
+        this._voiceWaited = 0;
+        this.voice = found.voice;
+      }
       // SPOKEN FORM, not written form: "2 Timothy" is said "2nd Timothy" (see
       // lib/speech-text.js). The SEGMENT stays the written text — the follow
       // map, the highlight and every offset are computed from it — and only the
@@ -692,6 +776,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
       this._dirty = false;
       this.failed = false;
       this._retried = false;
+      this._voiceWaited = 0;
       this._armBackground();
       this._speakSegment();
     },
@@ -727,6 +812,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
       this.status = 'playing';
       this._dirty = false;
       this._retried = false;
+      this._voiceWaited = 0;
       // Un-suspend first: a synth parked by the OS (backgrounding, a prior
       // cancel) accepts speak() and stays silent until it is resumed.
       try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
@@ -765,6 +851,23 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } =
 
     setVoice(voice) {
       this.voice = voice || null;
+      this.chosen = voice && voice.voiceURI
+        ? { uri: voice.voiceURI, name: voice.name || '', lang: voice.lang || '' }
+        : null;
+      if (this.status === 'playing') this._restartCurrent();
+      else { if (this.status === 'paused') this._dirty = true; this._emit(); }
+    },
+
+    /**
+     * Choose a voice by its URI when the list does not hold it right now (it
+     * is being rebuilt). Each sentence looks for it; none is spoken in another
+     * voice meanwhile (DR-1482). An empty URI means the device default.
+     */
+    wantVoice(uri, { name = '', lang = '' } = {}) {
+      if (!uri) { this.setVoice(null); return; }
+      const keep = this.chosen && this.chosen.uri === uri ? this.chosen : null;
+      this.voice = null;
+      this.chosen = { uri, name: name || (keep && keep.name) || '', lang: lang || (keep && keep.lang) || '' };
       if (this.status === 'playing') this._restartCurrent();
       else { if (this.status === 'paused') this._dirty = true; this._emit(); }
     },
@@ -875,7 +978,11 @@ export function useTextToSpeech() {
       const v = useDefault
         ? null
         : ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null);
-      eng.setVoice(v); // transient — does not touch saved prefs
+      // Transient: does not touch saved prefs. A URI the list does not hold
+      // right now is WANTED, not dropped: a missed lookup used to set no voice
+      // at all, and the whole piece read in the phone's default (DR-1482).
+      if (useDefault || v) eng.setVoice(v);
+      else eng.wantVoice(voiceURI);
     }
     eng.pitch = Number.isFinite(Number(pitch))
       ? Number(pitch)
@@ -915,8 +1022,11 @@ export function useTextToSpeech() {
     const eng = engineRef.current;
     if (!eng) return;
     const v = (window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === uri) || null;
-    eng.setVoice(v);
-    setPrefs((prev) => { const next = { ...prev, voiceURI: v ? v.voiceURI : '' }; saveTTSPrefs(next); return next; });
+    // A pick the list does not hold this instant (Android rebuilding it) is
+    // kept as the pick, never saved over with '' (DR-1482).
+    if (v || !uri) eng.setVoice(v);
+    else eng.wantVoice(uri);
+    setPrefs((prev) => { const next = { ...prev, voiceURI: v ? v.voiceURI : (uri || '') }; saveTTSPrefs(next); return next; });
   }, []);
 
   return {
