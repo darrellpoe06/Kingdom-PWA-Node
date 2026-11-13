@@ -31,6 +31,7 @@ import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from '.
 import { joinClipBlobs } from './joined-clip.js';
 import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
 import { heldForVoiceNotice } from './reading-voice-hold.js';
+import { keepVoiceOnWifi } from './keep-voice-on-wifi.js';
 import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -70,26 +71,23 @@ const pageHidden = () => typeof document !== 'undefined' && document.visibilityS
 export const DARK_RETRY_MS = [5000, 10000, 20000, 40000, 60000, 120000];
 const sentenceCase = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
-// THE VOICE ALREADY ON THIS DEVICE (DR-0881) — session state for the fallback.
-// `ready` is answered once per session (checkDeviceVoice touches Cache Storage,
-// and the answer cannot change without a download); `stoodDown` latches when a
-// piece proves this device synthesises slower than it speaks, so a slow box
-// tries once rather than stuttering through a whole reading.
-const deviceVoice = { ready: null, stoodDown: false, lastFactor: null };
+// THE VOICE ALREADY ON THIS DEVICE (DR-0881). `ready` holds the voices found
+// KEPT (state 'ready'; `cached` is an always-truthy object, DR-1494); a voice
+// not kept is asked again, so one kept mid-session (on wifi, by the button) is
+// used at once. `stoodDown` latches when a piece proves this device synthesises
+// slower than it speaks, so a slow box tries once rather than stuttering.
+const deviceVoice = { ready: {}, stoodDown: false, lastFactor: null };
 
 /** Tests only — the session latch would otherwise leak between cases. */
 export function _resetDeviceVoiceFallback() {
-  deviceVoice.ready = null; deviceVoice.stoodDown = false; deviceVoice.lastFactor = null;
+  deviceVoice.ready = {}; deviceVoice.stoodDown = false; deviceVoice.lastFactor = null;
 }
 
-/** Is the model already in this device's cache? Answered once. Never throws. */
-async function deviceVoiceReady() {
-  if (deviceVoice.ready !== null) return deviceVoice.ready;
-  try {
-    const v = await checkDeviceVoice({});
-    deviceVoice.ready = !!(v && v.cached);
-  } catch (_) { deviceVoice.ready = false; }
-  return deviceVoice.ready;
+/** Is this voice's model kept in this device's cache? Never throws. */
+async function deviceVoiceReady(voice = 'male') {
+  if (deviceVoice.ready[voice]) return true;
+  try { const v = await checkDeviceVoice({ voice }); deviceVoice.ready[voice] = !!(v && v.state === 'ready'); } catch (_) { return false; }
+  return deviceVoice.ready[voice];
 }
 
 /**
@@ -98,10 +96,10 @@ async function deviceVoiceReady() {
  * answer and stands the voice down for the session if it cannot keep ahead of
  * its own playback — stuttering is not an improvement on the device engine.
  */
-async function deviceVoicePiece(text, speed) {
-  if (!mayUseDeviceVoice({ speed, ready: await deviceVoiceReady(), stoodDown: deviceVoice.stoodDown })) return null;
+async function deviceVoicePiece(text, speed, voice = 'male') {
+  if (!mayUseDeviceVoice({ speed, ready: await deviceVoiceReady(voice), stoodDown: deviceVoice.stoodDown })) return null;
   let got;
-  try { got = await synthesizeOnDevice({ text }); } catch (_) { return null; }
+  try { got = await synthesizeOnDevice({ text, voice }); } catch (_) { return null; }
   if (!got || got.error) return null;
   const ahead = keepsAhead(got);
   if (ahead === false) {
@@ -683,7 +681,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       // background player exactly as a NAS clip does. Hooking the fallback
       // would have needed all of that again.
       if (got.error) {
-        const d = await deviceVoicePiece(forVoice(t), sp);
+        const d = await deviceVoicePiece(forVoice(t), sp, voice);
         if (d) { trip().note('device-voice', { ms: d.ms, audioSeconds: d.audioSeconds }); got = d; }
       }
       // The source keeps the blob and makes its own URL for the player.
@@ -1134,6 +1132,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const continuing = readingNowRef.current && !!readingPinRef.current;
     if (!continuing) readingPinRef.current = newReadingPin(liteVoiceFor());
     if (!continuing) { if (trip().open()) trip().end('left'); trip().start({ title: title || '' }); }
+    // The man's voice kept on the phone by itself, on wifi only (DR-1494).
+    if (!continuing) keepVoiceOnWifi({ voice: readingPinRef.current.gender, note: (k, d) => trip().note(k, d) });
     setNotice('');
     setStandInWhy('');
     stopCloud();

@@ -2586,6 +2586,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 8,
       "notes": "Gmail thread 1a1c5c35c2357a0f, forwarded 2026-11-10T14:01Z (08:01 Central), read 2026-11-13 ahead of DR-1480's re-review 2026-11-27. 7 quoted spans (Proverbs 16:18, Proverbs 27:1) filled from app/public/bible/kjv by fill-verses.mjs, none typed. Analyst read only as Morning Brew reported him, not named; the newsletter's political aside left out."
+    },
+    {
+      "id": "keep-the-mans-voice-on-wifi",
+      "date": "2026-11-13",
+      "task": "Keep the Piper man's voice on the phone automatically on an unmetered connection, so a NAS hiccup reads on in the same man's voice",
+      "drs": [
+        "DR-1494"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Closes DR-1254's open condition. Unmetered = navigator.connection type wifi/ethernet and no Save-Data; absent is metered. Found deviceVoiceReady hollow (cached is an always-truthy object), so DR-1482's keep button never showed; fixed per voice. 9 cases, 2 fail on origin/main, 5 mutations caught."
     }
   ]
 }
