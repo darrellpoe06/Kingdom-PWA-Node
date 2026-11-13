@@ -1,5 +1,5 @@
 // @vitest-environment node
-// L317 — Who Judges Greatness (DR-1499). The second teaching from the Big Think
+// L317 — Who Judges Greatness (DR-1505). The second teaching from the Big Think
 // essay Darrell forwarded with one word above it, Lessons (Gmail thread
 // 1a1c68295f781bbb); the first is L314, Will My Work Live On (DR-1492). The
 // shared Living Lesson gate (helpers/living-lesson-gate.js, DR-1477) runs on the

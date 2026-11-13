@@ -1,4 +1,4 @@
-// L317 — Who Judges Greatness (DR-1499). The SECOND teaching from one Big Think
+// L317 — Who Judges Greatness (DR-1505). The SECOND teaching from one Big Think
 // essay Darrell forwarded into the app on 2026-11-10 at 17:30:05 UTC (11:30 AM
 // Central), Gmail thread 1a1c68295f781bbb, with one word typed above the
 // forwarded header: Lessons, in the plural. His word is rendered, never quoted

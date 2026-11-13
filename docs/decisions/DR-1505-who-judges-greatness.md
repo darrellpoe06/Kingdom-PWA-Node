@@ -1,4 +1,4 @@
-# DR-1499: L317 — Who Judges Greatness
+# DR-1505: L317 — Who Judges Greatness
 
 **Date:** 2026-11-13
 **Status:** Accepted
