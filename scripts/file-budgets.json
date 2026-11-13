@@ -251,7 +251,7 @@
       "from": 11889,
       "to": 12098,
       "date": "2026-11-13",
-      "why": "sov78 (Count the cost, DR-1468) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size of the spliced file, not above it. The 208 lines are the module literal that scripts/sov78-fill.mjs generated; none of them were hand-written into this file. 12096 first, then 12097 after CI's curriculum course-quotation gate correctly refused a bigIdea that recited two decision records and the rewrite ran one line longer, and 12098 after surety was glossed in the same sentence as its plain meaning (DR-0521) and both stories were given a kind the completeness census counts."
+      "why": "sov78 (Count the cost, DR-1470) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size of the spliced file, not above it. The 208 lines are the module literal that scripts/sov78-fill.mjs generated; none of them were hand-written into this file. 12096 first, then 12097 after CI's curriculum course-quotation gate correctly refused a bigIdea that recited two decision records and the rewrite ran one line longer, and 12098 after surety was glossed in the same sentence as its plain meaning (DR-0521) and both stories were given a kind the completeness census counts."
     }
   ],
   "budgets": {

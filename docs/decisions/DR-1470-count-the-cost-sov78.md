@@ -1,4 +1,4 @@
-# DR-1468 — Count the cost: sov78 from one word over a business newsletter
+# DR-1470 — Count the cost: sov78 from one word over a business newsletter
 
 **Date:** 2026-11-13 · **Status:** accepted · **Tier:** A · **Area:** Sovereign A.I. week 78; the lesson lane
 **Principles:** WORD-FIRST, VERIFICATION-DOCTRINE, THREE-TIERS, TEACH-NOT-DEBATE, FOUR-BANDS, DECISION-RECORDS
@@ -19,11 +19,7 @@ place. The occasion was a company filing to sell shares; the lesson is not about
 and counteth the cost — and keeps the ending nobody wants, the ambassage of Luke 14:32. A test
 asserts no newsletter figure stands above that frame. Eight movements, each from the Word.
 
-**Bands.** Ladder child 1.41 < youth 2.82 < teen 5.32 < senior 8.24, adult 7.81, child under
-5.0 and teen 0.68 under 6.0; shares 0.540 / 0.651 / 0.628 / 0.949 against floors 0.50 / 0.60;
-worst overlap 0.094 band-pair and 0.209 band-to-adult against 0.25. **301 quoted spans swept
-verbatim** against 23 books of `app/public/bible/kjv`, 0 faults; 62 anchor references, each
-quoted in a reader place. Every verse filled by `scripts/sov78-fill.mjs`, none typed.
+**Bands.** Ladder child 1.41 < youth 2.82 < teen 5.32 < senior 8.24, adult 7.81, child under 5.0 and teen 0.68 under 6.0; shares 0.540 / 0.651 / 0.628 / 0.949 against floors 0.50 / 0.60; worst overlap 0.094 band-pair and 0.209 band-to-adult against 0.25. **301 quoted spans swept verbatim** against 23 books of `app/public/bible/kjv`, 0 faults; 62 anchor references, each quoted in a reader place. Every verse filled by `scripts/sov78-fill.mjs`, none typed.
 
 **Trust but verify (DR-0190 / DR-0100).** `www.sec.gov` refused twice by two roads (`CONNECT
 tunnel failed, response 403`; `ENOTFOUND www.sec.gov`), so the primary filing was NOT read —
@@ -50,6 +46,8 @@ Ship `sov78-count-the-cost`, Word-first on Luke 14:28, the refused road named in
 record** (that verse lives in other lessons, so a file-scoped check would pass on another's
 copy, DR-1146), Yahweh substituted into a quote, and one band's friend line stripped alone,
 naming that band while the pooled check stays green (DR-0795).
+
+**MY OWN GATE WAS NARROWER THAN ITS NAME TWICE, in the same file, on the same night.** It claimed to sweep the lesson's verses and left `Revelation` out of its book list, so Revelation 3:7 stood quoted in all five reader places and was swept by nothing; and it claimed no decision record was recited to the reader while reading only the five reader places, so a `bigIdea` that recited two of them passed. One shape, twice: a check whose name covers the whole and whose reach covers a part. Both now read every string in the module, each with a proven-to-catch case. This is recorded as my gate's gap rather than as CI's catch.
 
 **My own gate caught five things in my own authored text**: a recited `DR-0100` in the youth band, and — the DR-1467 class again — **Revelation missing from the swept book list**, so Revelation 3:7 stood quoted in all five reader places and swept by nothing. The bands failed first exactly as P60 predicts; every fix was authored by hand, never by script (DR-1306).
 

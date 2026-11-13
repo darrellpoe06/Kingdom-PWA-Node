@@ -1,8 +1,8 @@
-# Session note — sov78, Count the cost (DR-1468)
+# Session note — sov78, Count the cost (DR-1470)
 
 **Module id:** `sov78-count-the-cost`
 **Course:** Sovereign A.I.: Why We Build Local, week 78
-**Decision record:** `docs/decisions/DR-1468-count-the-cost-sov78.md`
+**Decision record:** `docs/decisions/DR-1470-count-the-cost-sov78.md`
 **Gmail thread:** `1a17edb6eaedf195` (forwarded 2026-10-27 19:34 UTC, built 2026-11-13)
 
 **Date:** 2026-11-13

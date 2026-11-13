@@ -364,7 +364,7 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     'Isaiah 26': 'sov41', 'Colossians 1': 'sov41', 'John 1': 'sov44', 'John 3': 'sov44',
     'Hebrews 1': 'sov44', 'Galatians 5': 'sov44', 'Deuteronomy 6': 'sov47', 'Hebrews 3': 'sov44',
     // MOVED FROM FREE TO SHARED 2026-11-13, a measurement that changed rather
-    // than a defect: sov78 (Count the cost, DR-1468) anchors Isaiah 22:22, the
+    // than a defect: sov78 (Count the cost, DR-1470) anchors Isaiah 22:22, the
     // key of the house of David that Revelation 3:7 takes up. DR-1317 records a
     // shared foundation and never vetoes it, so neither lesson's reading moved.
     'Isaiah 22': 'sov78',

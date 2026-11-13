@@ -531,7 +531,7 @@ describe('the house typography holds', () => {
   });
 
   it('PROVEN TO CATCH: a recited decision record in a field other than a band fails', () => {
-    const broken = { ...M, bigIdea: `${M.bigIdea} Recorded as DR-1468.` };
+    const broken = { ...M, bigIdea: `${M.bigIdea} Recorded as DR-1470.` };
     const offenders = allStrings(broken).filter((t) => /DR-\d{3,4}/.test(t));
     expect(offenders.length).toBeGreaterThan(0);
     expect(allStrings(M).filter((t) => /DR-\d{3,4}/.test(t))).toEqual([]);
@@ -543,7 +543,7 @@ describe('the house typography holds', () => {
     // file's British spelling passes green. sov77's own version of this check
     // reads the adult lesson and the four bands ONLY -- and sov77 ships
     // "favourable" in a story title, which is exactly the hole that leaves
-    // (recorded in DR-1468, `re-review: 2026-11-27`). This one reads EVERY
+    // (recorded in DR-1470, `re-review: 2026-11-27`). This one reads EVERY
     // string in the module -- bigIdea, inApp, anchor, rpe, benefits, stories,
     // quiz, facilitator and all five reader places -- with the quotations
     // removed, so honour, neighbour, favour and laboured are left exactly where
