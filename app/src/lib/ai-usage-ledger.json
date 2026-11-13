@@ -2012,23 +2012,6 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
-      "id": "shell-header-night-2026-11-13",
-      "date": "2026-11-13",
-      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
-      "drs": [
-        "DR-1483"
-      ],
-      "prs": [
-        2672
-      ],
-      "model": "claude-fable-5-1",
-      "tokens": null,
-      "costUsd": null,
-      "wallClockHours": 1.3,
-      "estimateWithoutAiHours": 24,
-      "notes": "No token meter in this session; tokens and cost are null."
-    },
-    {
       "id": "sov77-prove-all-things",
       "date": "2026-11-12",
       "task": "Sovereign A.I. week 77 from the oldest uncaptured emailed teaching: Word-first lesson in four age bands, verse generator, pinned gate, decision record",
@@ -2346,6 +2329,38 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1d0d054cd67ed2, forwarded 2026-11-12T17:31Z, built 2026-11-13 after the scheduled intake missed it. 45 anchor references, 162 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov81-fill.mjs and none typed. www.itbrew.com, www.copyright.gov and www.php.net refused (403 CONNECT), the law firm's newsroom ENOTFOUND; named in every teaching place with re-review 2026-11-27. Our own record measured: IP register 24 rows (11 human, 13 mixed, 0 generated); 1,895 of 2,980 commits on main carry a co-author line."
+    },
+    {
+      "id": "shell-header-night-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
+      "drs": [
+        "DR-1483"
+      ],
+      "prs": [
+        2672
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
+      "id": "shell-dock-home-order-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phase C of the Love Corner shell redesign: the seven-tab church bar measured at 360 and 390 px, the home publishing its open section so Watch and Events light, the homepage in the picture's order with the Customize strip, the pair and the trio, Giving Book's locked surface",
+      "drs": [
+        "DR-1484"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
       "id": "ll310-the-hidden-life-and-the-empty-chair",

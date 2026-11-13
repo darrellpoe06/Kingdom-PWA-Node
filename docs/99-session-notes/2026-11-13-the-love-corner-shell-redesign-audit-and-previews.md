@@ -1,6 +1,6 @@
 # The Love Corner shell redesign: audit, preservation checklist, three previews
 
-Date: 2026-11-13. Branch: `ccr-91fb688d-spyn2g`. Status: **audit and previews delivered; no file under `app/src` changed; waiting on Darrell's approval of the three screens (brief, Phase 10).**
+Date: 2026-11-13. Branch: `ccr-91fb688d-spyn2g`. Status: **approved ("Go", 2026-11-13). Phases A and B built as DR-1483: the header, the profile menu, the All Features sheet, Personalize My App and the Night theme. Phase C built as DR-1484: the seven-tab bar, the homepage in the picture's order, the two dock findings fixed. Phases D–F follow.**
 
 Previews: `docs/design/love-corner-shell/2026-11-13-shell-previews.html` (artifact https://claude.ai/artifact/8ai6La7jakepWyYNe3MbSe) and the stills `2026-11-13-preview-screen-{1-home,1b-profile-menu,2-personalize,3-kids-zone}.png` beside it. The current top of the app, measured, is `2026-11-13-current-top-390.png`.
 

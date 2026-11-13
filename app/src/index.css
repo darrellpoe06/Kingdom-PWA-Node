@@ -726,6 +726,44 @@ button.lc-tile{cursor:pointer}
 .lch-seg-btn{min-height:40px;padding:0 .75rem;border:0;background:var(--lc-paper);color:var(--lc-ink);font-weight:700;cursor:pointer}
 .lch-seg-on{background:var(--lc-red);color:#fff}
 .lch-note{font-size:.76rem;color:var(--lc-muted);margin:.5rem 0 0;line-height:1.35}
+/* THE HOMEPAGE IN THE PICTURE'S ORDER (DR-1484): the tagline line, a scroll row of
+   eight doors on a phone, the Customize strip, the paired cards, the trio. */
+.lc-place{font-family:var(--lc-display);font-size:.98rem;line-height:1.3;margin:.5rem 0 0;color:#fff}
+.lc-place b{color:var(--lc-gold);font-weight:600}
+@media (max-width:639px){.lc-quick{display:flex;overflow-x:auto;gap:.5rem;padding-bottom:.25rem;scrollbar-width:none;margin-right:-.75rem;padding-right:.75rem}.lc-quick::-webkit-scrollbar{display:none}.lc-q{flex:0 0 78px}}
+.lc-cust{display:flex;align-items:center;gap:.5rem;width:100%;min-height:50px;padding:0 .75rem;border-radius:.875rem;background:#fff;border:1px solid var(--lc-line);color:#1A1012;cursor:pointer;text-align:left;font-size:.9rem}
+.lc-cust b{flex:1 1 auto;min-width:0;color:var(--lc-red)}
+.lc-cust-dots{display:flex;gap:.25rem}.lc-cust-dots i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
+.lc-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lc-pair-card{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-height:150px;border-radius:1rem;padding:.75rem;text-align:left;color:#fff;border:0;cursor:pointer;justify-content:flex-end}
+.lc-pair-card .lc-h3{color:#fff;margin:0}
+.lc-pair-card em{font-family:var(--lc-display);font-style:italic;color:var(--lc-gold);font-size:.9rem}
+.lc-pair-card .lc-small{color:#F6E8E3}
+.lc-pair-go{margin-top:.375rem;background:var(--lc-gold);color:#1A1012;border-radius:.625rem;min-height:36px;display:inline-grid;place-items:center;padding:0 .75rem;font-weight:700;font-size:.78rem}
+.lc-pair-word{background:linear-gradient(160deg,#1A0A0B,#5A1510 70%,#8E2418)}
+.lc-pair-kids{background:linear-gradient(145deg,#C03222,#E43C28 55%,#CFA63C)}
+.lc-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+.lc-trio-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.15rem;min-height:118px;padding:.625rem;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);text-align:left;cursor:pointer}
+.lc-trio-card b{font-family:var(--lc-display);font-size:.9rem;line-height:1.1}
+.lc-trio-card small{font-size:.66rem;color:var(--lc-muted);line-height:1.2}
+.lc-trio-go{font-size:.68rem;font-weight:700;color:var(--lc-red);margin-top:.25rem}
+/* THE SEVEN-TAB BAR (DR-1484): 40px minimums and 8px words; at 390px all seven and the
+   reader's slot share one row. On a 360px phone the labels need more than the row holds,
+   so the tab group SCROLLS sideways inside the bar instead of wrapping under it (a wrapped
+   bar would stand taller than the page's spacer and cover the last line). */
+.poe-dock-church{min-width:2.5rem!important;padding-left:.125rem!important;padding-right:.125rem!important}
+.poe-dock-church .poe-dock-label,.poe-dock-church span:last-child{font-size:.5rem!important;letter-spacing:0!important}
+.chrome-dock-row:has(.poe-dock-church){flex-wrap:nowrap}
+.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"]{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"]::-webkit-scrollbar{display:none}
+/* NIGHT: black glass with a gold edge on every homepage tile */
+[data-theme="night"] .lc-q,[data-theme="night"] .lc-tile,[data-theme="night"] .lc-min,[data-theme="night"] .lc-feat,[data-theme="night"] .lc-card,[data-theme="night"] .lc-day,[data-theme="night"] .lc-trio-card,[data-theme="night"] .lc-prog,[data-theme="night"] .lc-course{background:linear-gradient(180deg,#2E2224,#140D0E);border-color:rgba(228,185,62,.4)}
+[data-theme="night"] .lc-q-ic{background:rgba(255,255,255,.08);color:#fff}
+[data-theme="night"] .lc-q-gold{color:var(--lc-gold)}[data-theme="night"] .lc-q-heart{color:#FF8A7A}
+[data-theme="night"] .lc-trio-go{color:var(--lc-gold)}
+[data-theme="night"] .lc-lz{background:linear-gradient(160deg,#30181A,#241617);border-color:rgba(228,185,62,.4)}
+[data-theme="night"] .lc-inst-card{box-shadow:0 0 0 1px rgba(228,185,62,.45),0 14px 30px rgba(0,0,0,.5)}
+
 
 .lc-field{display:flex;flex-direction:column;gap:.25rem;margin:.5rem 0}
 .lc-field-row{display:flex;flex-direction:row;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}

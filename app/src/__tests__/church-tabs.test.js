@@ -104,9 +104,11 @@ describe('the phone groups every tab, names every tab, and the bar opens real su
     }
     expect(CHURCH_TAB_WORDS.events).toBe('Campus Rentals');
   });
-  it('the bottom bar is Home · Watch · Word, each a valid sub; Watch opens the Worship section', () => {
-    expect(CHURCH_BOTTOM_NAV.map((t) => t.words)).toEqual(['Home', 'Watch', 'Word']);
-    for (const t of CHURCH_BOTTOM_NAV) expect(VALID_CHURCH_SUBS).toContain(t.churchView);
+  it('the bottom bar is the seven tabs of the picture (DR-1484), each a valid sub or Give; Watch and Events open home sections', () => {
+    expect(CHURCH_BOTTOM_NAV.map((t) => t.words)).toEqual(['Home', 'Watch', 'Bible', 'Events', 'Give', 'Ministries', 'Institute']);
+    for (const t of CHURCH_BOTTOM_NAV.filter((x) => !x.give)) expect(VALID_CHURCH_SUBS).toContain(t.churchView);
     expect(CHURCH_BOTTOM_NAV[1]).toMatchObject({ churchView: 'home', section: 'worship' });
+    expect(CHURCH_BOTTOM_NAV[3]).toMatchObject({ churchView: 'home', section: 'times' });
+    expect(CHURCH_BOTTOM_NAV.filter((x) => x.give)).toHaveLength(1);
   });
 });

@@ -7,10 +7,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import LoveCornerHome, { LOVE_CORNER_ASSETS, QUICK_DOORS, MINISTRY_GROUPS } from '../components/lovecorner/LoveCornerHome.jsx';
+import LoveCornerHome, { LOVE_CORNER_ASSETS, QUICK_DOORS, MINISTRY_GROUPS, CONNECT_DOOR } from '../components/lovecorner/LoveCornerHome.jsx';
 import { ChurchHome } from '../components/ChurchHome.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { subscribeChurchHomeSection, requestChurchHomeSection } from '../lib/church-home-section.js';
+import { subscribeChurchHomeSection, requestChurchHomeSection, takePendingChurchHomeSection } from '../lib/church-home-section.js';
 import { VALID_CHURCH_SUBS } from '../lib/nav-history.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { CHURCH_MINISTRIES } from '../lib/church-ministries.js';
@@ -81,7 +81,8 @@ describe('the hero is the real church', () => {
 
 describe('every door opens something that exists', () => {
   it('the eight quick doors (brief §2) each name a valid sub-tab', () => {
-    expect(QUICK_DOORS.map((d) => d.words)).toEqual(['Watch Live', 'The Word', 'Ministries', 'Events', 'Give', 'Prayer', 'Youth Zone', 'Connect']);
+    expect(QUICK_DOORS.map((d) => d.words)).toEqual(['Watch Live', 'The Word', 'Ministries', 'Events', 'Give', 'Prayer', 'Youth Zone', 'TLC Institute']);
+    expect(VALID_CHURCH_SUBS).toContain(CONNECT_DOOR.sub);
     for (const d of QUICK_DOORS) expect(VALID_CHURCH_SUBS, d.key).toContain(d.sub);
     for (const g of MINISTRY_GROUPS) expect(VALID_CHURCH_SUBS, g.key).toContain(g.sub);
   });
@@ -121,6 +122,34 @@ describe('no number is painted', () => {
     expect(card.textContent).toContain('Equipping Believers. Developing Leaders. Deepening Faith.');
     expect(card.textContent).toContain('No accreditation or degrees are claimed.');
     expect(container.textContent).not.toMatch(/coming soon|under construction|placeholder/i);
+  });
+  it("the picture's order (DR-1484): the tagline line, the Customize strip asks for the sheet by one event, the pair and the trio route to real doors", () => {
+    const views = [];
+    const sections = [];
+    const asked = [];
+    const off = subscribeChurchHomeSection((id) => sections.push(id));
+    const onAsk = () => asked.push(1);
+    window.addEventListener('lovecorner:personalize', onAsk);
+    mount({ setChurchView: (v) => views.push(v) });
+    expect(q('[data-testid="lc-place"]').textContent).toContain('Worship');
+    click(q('[data-testid="lc-customize"]'));
+    click(q('[data-testid="lc-learning-zone"]'));
+    click(q('[data-testid="lc-youth"]'));
+    click(q('[data-testid="lc-trio-ministries"]'));
+    click(q('[data-testid="lc-trio-events"]'));
+    click(q('[data-testid="lc-trio-connect"]'));
+    window.removeEventListener('lovecorner:personalize', onAsk);
+    off();
+    takePendingChurchHomeSection(); // drain the last request so the next mount opens on Worship
+    expect(asked).toEqual([1]);
+    expect(views).toEqual(['learn', 'youth', 'ministries']);
+    expect(sections).toEqual(['times', 'about']);
+    const order = [...container.querySelectorAll('[data-testid]')].map((e) => e.getAttribute('data-testid'));
+    const at = (id) => order.indexOf(id);
+    expect(at('lc-quick-watch')).toBeLessThan(at('lc-customize'));
+    expect(at('lc-customize')).toBeLessThan(at('lc-learning-zone'));
+    expect(at('lc-learning-zone')).toBeLessThan(at('lc-institute-card'));
+    expect(at('lc-institute-card')).toBeLessThan(at('lc-trio-ministries'));
   });
   it('every button carries a focus ring and the house target floor', () => {
     mount();
