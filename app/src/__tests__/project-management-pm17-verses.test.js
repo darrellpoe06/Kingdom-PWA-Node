@@ -76,8 +76,7 @@ const READER_PLACES = () => ({ lesson: M.lesson, ...M.levels });
 const SPAN = /"([^"]+)"\s*\(((?:[1-3]\s)?[A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)*)\s(\d+):(\d+)\)/g;
 
 /** Every span anywhere in the module: [path, quoted, book, chapter, verse]. */
-const spans = () =>
-  ALL().flatMap(([path, text]) => [...String(text).matchAll(SPAN)].map((m) => [path, m[1], m[2], Number(m[3]), Number(m[4])]));
+const spans = () => ALL().flatMap(([path, text]) => [...String(text).matchAll(SPAN)].map((m) => [path, m[1], m[2], Number(m[3]), Number(m[4])]));
 
 // --- the KJV corpus on disk, opened by the module's OWN book names -----------
 const KJV = join(process.cwd(), 'public', 'bible', 'kjv');
@@ -216,7 +215,11 @@ describe('every quoted span anywhere in the module is the corpus verse, verbatim
 });
 
 describe('anchor.ref names every verse the lesson stands on, and nothing more (DR-0734)', () => {
-  const anchorRefs = () => M.anchor.ref.split(';').map((s) => s.trim()).filter(Boolean);
+  const anchorRefs = () =>
+    M.anchor.ref
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
   it('it is derived, not typed: every anchor reference resolves in the corpus', () => {
     const bad = anchorRefs().filter((r) => {
@@ -331,7 +334,9 @@ describe('the blocked road is named in every reader place, with its date (DR-007
     // ENUMERATION, which is what a leak would actually look like, and the
     // refusal is asserted separately, positively, below.
     const ENUMERATED = /\bstep (?:one|two|three|four|five|six|1|2|3|4|5|6)\b|\b(?:first|second|third|fourth|fifth|sixth) step\b/i;
-    const faults = ALL().filter(([, t]) => ENUMERATED.test(t)).map(([p]) => p);
+    const faults = ALL()
+      .filter(([, t]) => ENUMERATED.test(t))
+      .map(([p]) => p);
     expect(faults, 'a step from an article nobody read leaked into the lesson').toEqual([]);
   });
 
@@ -414,7 +419,9 @@ describe('typographic theology is kept, in our voice and not inside a quotation 
     expect((M.lesson.match(/Yahweh/g) || []).length).toBeGreaterThanOrEqual(3);
     // Haggai 2:8 and 2 Corinthians 8:21 both carry the KJV's own words; they are
     // quoted, never rewritten.
-    const quotedTexts = spans().map(([, q]) => q).join(' ');
+    const quotedTexts = spans()
+      .map(([, q]) => q)
+      .join(' ');
     expect(quotedTexts).toMatch(/\bthe LORD\b/);
     expect(quotedTexts).not.toMatch(/Yahweh/);
   });

@@ -194,13 +194,13 @@ const MODULE = {
 
   benefits: [
     "You get the question that finds the problem before the budget does: not 'are our two leaders getting along?' but 'what is the ONE number each of them is judged by, and can both of those numbers improve while the house gets poorer?' That second question is answerable in ten minutes and it is the whole diagnosis.",
-    "You get a written dual-control procedure out of the Word rather than out of a policy template - two people see the money together and both set their hand to the count (2 Kings 12:10) - and you get the reason it is worth the minutes it costs, from a man who adopted it voluntarily for a collection he was already trusted with (2 Corinthians 8:20-21).",
+    'You get a written dual-control procedure out of the Word rather than out of a policy template - two people see the money together and both set their hand to the count (2 Kings 12:10) - and you get the reason it is worth the minutes it costs, from a man who adopted it voluntarily for a collection he was already trusted with (2 Corinthians 8:20-21).',
     "You get the test for whether your controls are working, and it is a surprising one: the sign of a sound system in 2 Kings 12:15 is not more auditing but LESS - the workmen's accounts were not reckoned at all, because they dealt faithfully. Control at the gate buys trust downstream. Control everywhere buys suspicion everywhere.",
-    "You get the right reading of a complaint about money. Acts 6:1 is a numbers complaint, and the apostles did not answer it with a sermon about contentment. They answered it with an org chart, a stated qualification, and seven named men. A distribution problem is a structure problem, and it is answered in structure.",
-    "You get the one recorded case of procurement being told to STOP, and it is worth more than any sourcing strategy: in Exodus 36:5-7 the people brought MUCH MORE than enough, and the craftsmen themselves reported the surplus and the buying was restrained. The office closest to the material is the office that can see the over-buy first.",
-    "You get a sober frame for the person who is both offices at once - which is most households and many small churches. Joseph was set over the gathering AND over the numbering (Genesis 41:35, 41:48-49), and the text records the day the numbering stopped because the quantity passed counting. One person holding both seats is not a sin; losing the count is where it goes wrong.",
-    "You get the Resources named in their order - Wisdom builds the house, Understanding establishes it, Knowledge fills the chambers with riches (Proverbs 24:3-4) - so you stop treating a finance-versus-procurement argument as a personality problem and start treating it as a missing supply of the thing a house is actually built out of.",
-    "You get a lesson that tells you plainly what it could not check. The article behind the forwarded headline was never read and all three roads to it were shut, so none of its six steps is taught here. You are never handed a shut road dressed as a verified fact, and the date we will try again is written down where you can hold us to it.",
+    'You get the right reading of a complaint about money. Acts 6:1 is a numbers complaint, and the apostles did not answer it with a sermon about contentment. They answered it with an org chart, a stated qualification, and seven named men. A distribution problem is a structure problem, and it is answered in structure.',
+    'You get the one recorded case of procurement being told to STOP, and it is worth more than any sourcing strategy: in Exodus 36:5-7 the people brought MUCH MORE than enough, and the craftsmen themselves reported the surplus and the buying was restrained. The office closest to the material is the office that can see the over-buy first.',
+    'You get a sober frame for the person who is both offices at once - which is most households and many small churches. Joseph was set over the gathering AND over the numbering (Genesis 41:35, 41:48-49), and the text records the day the numbering stopped because the quantity passed counting. One person holding both seats is not a sin; losing the count is where it goes wrong.',
+    'You get the Resources named in their order - Wisdom builds the house, Understanding establishes it, Knowledge fills the chambers with riches (Proverbs 24:3-4) - so you stop treating a finance-versus-procurement argument as a personality problem and start treating it as a missing supply of the thing a house is actually built out of.',
+    'You get a lesson that tells you plainly what it could not check. The article behind the forwarded headline was never read and all three roads to it were shut, so none of its six steps is taught here. You are never handed a shut road dressed as a verified fact, and the date we will try again is written down where you can hold us to it.',
   ],
 
   stories: [
@@ -208,15 +208,13 @@ const MODULE = {
       kind: 'parable',
       tone: 'serious',
       title: 'The Two Ledgers',
-      body:
-        "A congregation set out to re-roof its fellowship hall, and it put two men over the work. Brother Hale was sent to the suppliers, because he could find a price nobody else could find. Brother Ames kept the books, because he had never in thirty years let an account go unreconciled.\n\nHale came back the first week delighted. He had bought the whole roof - every bundle of it - at a discount that would not come again, and he had bought it in one lot, which was where the discount lived. Ames wrote it down and said nothing, because the thing was already done.\n\nThe bundles sat in the side yard through a wet April. Some warped. The crew that was supposed to start in March started in June, because the money that would have paid their deposit had gone, all of it, into one lot of shingles in February. Ames had known in February that the deposit would be short. He had not been asked, and he had not volunteered, because he had learned that volunteering made him the man who said no.\n\nWhen it was all finished the elders asked what went wrong, and both men answered honestly and gave opposite answers. Hale said he had saved the church eleven hundred dollars. Ames said the delay had cost two thousand four hundred. Both numbers were correct. Each man had improved the only number he was judged by, and the house was poorer than if neither of them had tried.\n\nThe elders went looking for the man who had made the mistake, and there was not one. There were two men, each doing his own work well, who had never once been asked the same question in the same room.",
+      body: 'A congregation set out to re-roof its fellowship hall, and it put two men over the work. Brother Hale was sent to the suppliers, because he could find a price nobody else could find. Brother Ames kept the books, because he had never in thirty years let an account go unreconciled.\n\nHale came back the first week delighted. He had bought the whole roof - every bundle of it - at a discount that would not come again, and he had bought it in one lot, which was where the discount lived. Ames wrote it down and said nothing, because the thing was already done.\n\nThe bundles sat in the side yard through a wet April. Some warped. The crew that was supposed to start in March started in June, because the money that would have paid their deposit had gone, all of it, into one lot of shingles in February. Ames had known in February that the deposit would be short. He had not been asked, and he had not volunteered, because he had learned that volunteering made him the man who said no.\n\nWhen it was all finished the elders asked what went wrong, and both men answered honestly and gave opposite answers. Hale said he had saved the church eleven hundred dollars. Ames said the delay had cost two thousand four hundred. Both numbers were correct. Each man had improved the only number he was judged by, and the house was poorer than if neither of them had tried.\n\nThe elders went looking for the man who had made the mistake, and there was not one. There were two men, each doing his own work well, who had never once been asked the same question in the same room.',
     },
     {
       kind: 'parable',
       tone: 'hopeful',
       title: 'The Chest With Two Hands On It',
-      body:
-        "The second year they did it differently, and the difference was small enough to describe in a sentence.\n\nBefore anything was bought, the two men sat down with the pastor and wrote one page. At the top of it they wrote the ONE number the church actually cared about: the hall dry and usable by the first Sunday in October, at the lowest total cost of getting there. Not the lowest price. The lowest total.\n\nThen they wrote their own numbers underneath, and looked at them side by side for the first time. Hale's was price per bundle. Ames's was cash on hand at month end. Written one above the other, it took about four seconds to see that both could improve while October slipped.\n\nSo they made a rule, and they took it out of 2 Kings. No money left the account unless the two of them were in the same room and both set a hand to the count. It cost them, in the end, about forty minutes a month.\n\nWhat it bought was stranger than they expected. Three months in, the pastor stopped asking either of them for an accounting. He had watched the rule run and he trusted the two men more, not less, because the control stood at the gate where the money moved rather than hovering over every man who touched it afterward. The crew was never audited at all. They did the work and were paid.\n\nThe hall was dry on the twenty-ninth of September. The thing that fixed it was not a better buyer and not a stricter bookkeeper. It was one page, one number both of them owned, and two hands on the chest.",
+      body: "The second year they did it differently, and the difference was small enough to describe in a sentence.\n\nBefore anything was bought, the two men sat down with the pastor and wrote one page. At the top of it they wrote the ONE number the church actually cared about: the hall dry and usable by the first Sunday in October, at the lowest total cost of getting there. Not the lowest price. The lowest total.\n\nThen they wrote their own numbers underneath, and looked at them side by side for the first time. Hale's was price per bundle. Ames's was cash on hand at month end. Written one above the other, it took about four seconds to see that both could improve while October slipped.\n\nSo they made a rule, and they took it out of 2 Kings. No money left the account unless the two of them were in the same room and both set a hand to the count. It cost them, in the end, about forty minutes a month.\n\nWhat it bought was stranger than they expected. Three months in, the pastor stopped asking either of them for an accounting. He had watched the rule run and he trusted the two men more, not less, because the control stood at the gate where the money moved rather than hovering over every man who touched it afterward. The crew was never audited at all. They did the work and were paid.\n\nThe hall was dry on the twenty-ninth of September. The thing that fixed it was not a better buyer and not a stricter bookkeeper. It was one page, one number both of them owned, and two hands on the chest.",
     },
   ],
 
@@ -822,19 +820,19 @@ ${TALK.senior}`,
     howToRun:
       "Run this alone, or with the person who handed you the project, in about an hour. OPEN WITH THE ADMISSION, not with the Word: say out loud that the article behind the forwarded headline was never read, that all three roads to it were shut, and that none of its six steps is taught here. If anyone in the room has read it, say so and keep it separate from what is taught. THEN read Amos 3:3 aloud and ask the room the question before anybody explains it: who are our two offices, and are they agreed? Write the two names on paper where everyone can see them. SECOND, read Exodus 38:21-22 and ask what it means that the Word recorded BOTH names. Most rooms have quietly decided one of the two offices is the real one. THIRD, read 2 Kings 12:9-11 slowly, then verse 15, and sit with the reversal: the tightest control in the Old Testament produced LESS auditing downstream, not more. Ask what your house audits out of fear rather than at the gate. FOURTH, read 2 Corinthians 8:20-21 and ask the uncomfortable question: could an outsider read our record and call it honest, or only Yahweh? FIFTH, read Genesis 41:49 and ask the person who holds both seats where their own stop-counting line is. Do not let the hour end without the TWO NUMBERS written down, one above the other. That page is the week's work; everything else is commentary on it.",
     talkingPoints: [
-      "Say first what was not read. The article is a headline and a blurb in our hands, nothing more, and three roads to the body were refused. Nothing here is attributed to its six steps, and the date we will try again is written in the lesson.",
-      "Amos 3:3 is a constraint, not an encouragement. Agreement is upstream of walking together, which means every tool that produces coordination without producing agreement is treating a symptom.",
-      "Exodus 38:21-22 names the maker and the counter in consecutive verses. If your house treats one of those two offices as administrative overhead, the Word has already disagreed with you.",
-      "Exodus 36:5-7 is the only recorded restraint on procurement in Scripture, and the craftsmen raised it. The office nearest the material sees the over-buy first - so ask the crew, not the committee.",
-      "2 Kings 12:10 is dual control written down. 2 Kings 12:15 is the payoff: control at the gate buys trust downstream, and the workmen were not reckoned with at all.",
-      "2 Corinthians 8:21 names two audiences. Honesty that cannot be seen does not do the work honesty is for, which is why a readable record is a spiritual matter and not a clerical one.",
-      "Acts 6:1-5 answers a numbers complaint with an org chart and a character qualification stated before the appointment. Parents, sit with your children this week and ask where they have seen somebody overlooked in a distribution, and listen all the way to the end before you teach.",
-      "Genesis 41:49 records the hour the counting stopped, in a plan that worked. Prosperity is when the count is lost. Set the line before you reach it.",
+      'Say first what was not read. The article is a headline and a blurb in our hands, nothing more, and three roads to the body were refused. Nothing here is attributed to its six steps, and the date we will try again is written in the lesson.',
+      'Amos 3:3 is a constraint, not an encouragement. Agreement is upstream of walking together, which means every tool that produces coordination without producing agreement is treating a symptom.',
+      'Exodus 38:21-22 names the maker and the counter in consecutive verses. If your house treats one of those two offices as administrative overhead, the Word has already disagreed with you.',
+      'Exodus 36:5-7 is the only recorded restraint on procurement in Scripture, and the craftsmen raised it. The office nearest the material sees the over-buy first - so ask the crew, not the committee.',
+      '2 Kings 12:10 is dual control written down. 2 Kings 12:15 is the payoff: control at the gate buys trust downstream, and the workmen were not reckoned with at all.',
+      '2 Corinthians 8:21 names two audiences. Honesty that cannot be seen does not do the work honesty is for, which is why a readable record is a spiritual matter and not a clerical one.',
+      'Acts 6:1-5 answers a numbers complaint with an org chart and a character qualification stated before the appointment. Parents, sit with your children this week and ask where they have seen somebody overlooked in a distribution, and listen all the way to the end before you teach.',
+      'Genesis 41:49 records the hour the counting stopped, in a plan that worked. Prosperity is when the count is lost. Set the line before you reach it.',
     ],
     discussionPrompts: [
-      "Name the two offices in this house by name, and then name the single number each of them is judged by. Can both of those numbers improve in a month while the house gets poorer? Answer honestly before you move on.",
-      "Where do our two offices actually meet, how often, and who holds the book when they do? If the honest answer is nowhere, say so out loud - that is the finding, and it costs nothing to admit and everything to hide.",
-      "Children, ask your mom, your dad or a grandparent about a purchase they regret and what they were measuring when they made it. Then tell a friend one thing this hour showed you, ask what they saw, and pray one for another.",
+      'Name the two offices in this house by name, and then name the single number each of them is judged by. Can both of those numbers improve in a month while the house gets poorer? Answer honestly before you move on.',
+      'Where do our two offices actually meet, how often, and who holds the book when they do? If the honest answer is nowhere, say so out loud - that is the finding, and it costs nothing to admit and everything to hide.',
+      'Children, ask your mom, your dad or a grandparent about a purchase they regret and what they were measuring when they made it. Then tell a friend one thing this hour showed you, ask what they saw, and pray one for another.',
     ],
   },
 
@@ -844,20 +842,20 @@ ${TALK.senior}`,
         q: 'What was actually forwarded, and what was the ask?',
         options: [
           'A devotional on stewardship, with the ask being to teach it',
-          "A trade newsletter whose subject line was about chip production, with one word typed above it - Lesson. - and one item lifted by hand out of the body: 6 Steps to Better CFO-CPO Alignment. The lifted item is the ask; the subject line is not",
+          'A trade newsletter whose subject line was about chip production, with one word typed above it - Lesson. - and one item lifted by hand out of the body: 6 Steps to Better CFO-CPO Alignment. The lifted item is the ask; the subject line is not',
           'An article about CFO-CPO alignment, read in full and summarised here',
           'A recording of a Bible study on Amos 3:3',
         ],
         answer: 1,
         explain:
-          "The subject line of the forward is about chip production and is NOT the ask. Darrell typed Lesson. above the forwarded header and then lifted ONE item out of the body and set it on top - the CFO-CPO alignment piece and its one-sentence blurb. Judge by the body, never the subject. Gmail thread 1a1837bf55922f04, 2026-10-28 at 17:08 UTC, built sixteen days later.",
+          'The subject line of the forward is about chip production and is NOT the ask. Darrell typed Lesson. above the forwarded header and then lifted ONE item out of the body and set it on top - the CFO-CPO alignment piece and its one-sentence blurb. Judge by the body, never the subject. Gmail thread 1a1837bf55922f04, 2026-10-28 at 17:08 UTC, built sixteen days later.',
       },
       {
         q: 'How much of the article behind that headline is taught in this lesson?',
         options: [
           'All six steps, each matched to a verse',
           'The first three steps only',
-          "None of it. The article was never read - the email carries the headline and one blurb and nothing else, and all three roads to the body were refused from this session, so no step is taught and nothing is attributed to them. re-review: 2026-11-27",
+          'None of it. The article was never read - the email carries the headline and one blurb and nothing else, and all three roads to the body were refused from this session, so no step is taught and nothing is attributed to them. re-review: 2026-11-27',
           'Its statistics, but not its recommendations',
         ],
         answer: 2,
@@ -905,12 +903,12 @@ ${TALK.senior}`,
         options: [
           'That their accounts were examined monthly by the high priest',
           'That they were required to post a surety before receiving any money',
-          "That they were NOT reckoned with at all, because they dealt faithfully - the control stood at the gate where the money moved, and trust ran downstream of it",
+          'That they were NOT reckoned with at all, because they dealt faithfully - the control stood at the gate where the money moved, and trust ran downstream of it',
           'That they were paid only after the work was inspected',
         ],
         answer: 2,
         explain:
-          'The same chapter that sets out the tightest dual control in the Old Testament - the king\'s scribe and the high priest coming up together to the same money at verse 10 - produces LESS auditing afterward, not more. A frightened house audits everybody a little and nobody properly.',
+          "The same chapter that sets out the tightest dual control in the Old Testament - the king's scribe and the high priest coming up together to the same money at verse 10 - produces LESS auditing afterward, not more. A frightened house audits everybody a little and nobody properly.",
       },
       {
         q: 'Why did Paul build a control over a collection nobody had accused him of mishandling?',
@@ -978,9 +976,7 @@ const block = JSON.stringify(filled, null, 2)
 // The array may or may not already carry a trailing comma; a second one would
 // open a hole in the array and the course would serve `undefined` as a lesson.
 const tailHasComma = /\}\s*,\s*$/.test(src.slice(0, end));
-const next = tailHasComma
-  ? `${src.slice(0, end)}\n${block},${src.slice(end)}`
-  : `${src.slice(0, end)},\n${block}${src.slice(end)}`;
+const next = tailHasComma ? `${src.slice(0, end)}\n${block},${src.slice(end)}` : `${src.slice(0, end)},\n${block}${src.slice(end)}`;
 
 const weeks = (text) => [...new Set([...text.matchAll(/'pm(\d+)-/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
 const before = weeks(src);
