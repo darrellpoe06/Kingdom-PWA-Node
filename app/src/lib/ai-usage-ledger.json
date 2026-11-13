@@ -2209,6 +2209,21 @@
       "wallClockHours": 1.7,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a182d6bb1fd6fa6, forwarded 2026-10-28T14:07Z, built 2026-11-13; sixteen days kept on the record. 62 anchor references, every verse filled from app/public/bible/kjv by scripts/sov79-fill.mjs and none typed. Four primary hosts refused the proxy (403 CONNECT), named in every reader place with re-review 2026-11-27."
+    },
+    {
+      "id": "sov80-discovery-is-not-permission",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 80 built from one word over a forwarded engineering newsletter, all four age bands, 24-case gate",
+      "drs": [
+        "DR-1472"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a18330341dec7b0, forwarded 2026-10-28T15:49Z, built 2026-11-13; sixteen days kept on the record. 45 anchor references, 203 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov80-fill.mjs and none typed. www.uber.com and modelcontextprotocol.io would not resolve (getaddrinfo ENOTFOUND), named in every teaching place with re-review 2026-11-27; the Model Context Protocol specification WAS read at its own source by git clone at commit 06e9234."
     }
   ]
 }
