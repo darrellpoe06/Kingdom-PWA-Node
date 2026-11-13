@@ -2299,6 +2299,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 16,
       "notes": "Each item proven to catch: a planted gap with and without reserve/ll-307; a real git merge of two record branches with and without the typed pointer; the raw skeleton failing prettier --check; 14 defects planted into L308 for the shared gate; preflight inside a worktree of a real shallow clone."
+    },
+    {
+      "id": "ll310-the-hidden-life-and-the-empty-chair",
+      "date": "2026-11-13",
+      "task": "L310 The Hidden Life and the Empty Chair, from three newsletters Darrell forwarded under one word, Lesson; all four age bands, 16-case gate with six dangers proven to catch",
+      "drs": [
+        "DR-1480"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 36,
+      "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the newsletters only; NYT and Reuters reports not read; the Gmail connector was unavailable for the 2026-11-10 thread body. re-review 2026-12-13."
     }
   ]
 }
