@@ -40,8 +40,8 @@
 // dropped here for a collision. The anchor census ran over the whole "A.I. The
 // Way" department and the prose census over 925 files and 44.4 million
 // characters of `app/src/lib`; both are recorded below as MEASUREMENTS that name
-// the other holder, never as a veto. ELEVEN of this lesson's chapters are
-// untouched at anchor level anywhere in the department; twenty are shared
+// the other holder, never as a veto. TEN of this lesson's chapters are
+// untouched at anchor level anywhere in the department; twenty-one are shared
 // (Isaiah 22 moved to shared on 2026-11-13 when sov78 anchored Isaiah 22:22).
 //
 // ONE CITATION MOVED TO THE WORD'S OTHER WITNESS, AND THE READING WAS NOT
@@ -352,10 +352,10 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     return out;
   };
 
-  // The eleven chapters measured UNTOUCHED at anchor level anywhere in the
+  // The ten chapters measured UNTOUCHED at anchor level anywhere in the
   // department, which is where the whole spine of this teaching lives.
-  const FREE = ['Ezekiel 38', 'Jeremiah 49', 'Judges 18', 'Judges 8', 'Obadiah 1', 'Nahum 3', 'Zephaniah 2', 'Isaiah 36', 'Job 8', 'Amos 6', '1 Corinthians 10'];
-  // The nineteen chapters measured SHARED, each with a lesson that really holds
+  const FREE = ['Ezekiel 38', 'Jeremiah 49', 'Judges 18', 'Judges 8', 'Nahum 3', 'Zephaniah 2', 'Isaiah 36', 'Job 8', 'Amos 6', '1 Corinthians 10'];
+  // The twenty-one chapters measured SHARED, each with a lesson that really holds
   // it. This is the DR-1317 shape: a shared foundation is recorded, not vetoed.
   const SHARED = {
     'Proverbs 18': 'sov15', 'Luke 11': 'sov44', 'Exodus 21': 'sov43', 'Deuteronomy 22': 'sov46',
@@ -368,16 +368,22 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     // key of the house of David that Revelation 3:7 takes up. DR-1317 records a
     // shared foundation and never vetoes it, so neither lesson's reading moved.
     'Isaiah 22': 'sov78',
+    // MOVED FROM FREE TO SHARED 2026-11-13, the same shape again: sov79
+    // (Promotion cometh not from the east, DR-1471) anchors Obadiah 1:3-4, the
+    // nest among the stars that Yahweh brings down. A measurement that changed,
+    // not a defect; DR-1317 records a shared foundation and never vetoes it, so
+    // neither lesson's reading moved.
+    'Obadiah 1': 'sov79',
   };
 
   it('ANTI-VACUITY: the department really holds a large chapter set, so an empty set cannot fake a pass', () => {
     const all = chaptersOf(dept());
-    // Measured 491 across 79 lessons before this one; it adds 12 of its own.
+    // Measured 491 across 79 lessons; the department holds 80 after sov79.
     expect(all.size).toBeGreaterThan(480);
     expect(dept().length).toBeGreaterThan(75);
   });
 
-  it('the ELEVEN chapters recorded as untouched really are untouched by every other department lesson', () => {
+  it('the TEN chapters recorded as untouched really are untouched by every other department lesson', () => {
     const others = chaptersOf(dept().filter((m) => m.id !== ID));
     const held = FREE.filter((c) => others.has(c)).map((c) => `${c} <- ${[...others.get(c)].join(', ')}`);
     expect(held, `recorded as untouched but actually held:\n${held.join('\n')}`).toEqual([]);
@@ -386,7 +392,7 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     for (const c of FREE) expect(mine.has(c), `${c} is recorded as this lesson's ground and is absent`).toBe(true);
   });
 
-  it('the TWENTY shared chapters really are shared, by the lesson named for each — and none was dropped', () => {
+  it('the TWENTY-ONE shared chapters really are shared, by the lesson named for each — and none was dropped', () => {
     const others = chaptersOf(dept().filter((m) => m.id !== ID));
     const mine = [...new Set(SPINE.map(chapterKey))];
     // The census is a MEASUREMENT (DR-1317). Every chapter of this lesson is

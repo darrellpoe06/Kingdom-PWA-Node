@@ -146,6 +146,26 @@ senior sentences to bring senior from 10.15 to 9.86.
    places passed. The band was saying the right thing in words the gate could not see, which is the
    DR-1467 shape pointed inward.
 
+## And one defect only a neighbour's file could see
+
+The brief said to run every suite that imports the course catalog rather than one shard at a time.
+**62 suites, 2,712 cases, one failure** — and it was a real content defect, not a flake.
+
+`sovereign-ai-sov66-verses.test.js` keeps a chapter census: eleven chapters it measured as
+**untouched at anchor level anywhere in the department**, and twenty it measured as shared with the
+lesson that really holds each. sov79 anchors **Obadiah 1:3-4** — *though thou set thy nest among
+the stars, thence will I bring thee down* — and Obadiah 1 was on sov66's untouched list.
+
+Per **DR-1317** a shared foundation is **recorded, not vetoed**. So Obadiah 1 moved from that
+file's `FREE` list to its `SHARED` map naming sov79, with the move and its reason written in place;
+the counts went eleven/twenty to ten/twenty-one in the comments and both test names; and
+**neither lesson's reading was thinned by a single verse**. sov78 hit the identical shape with
+Isaiah 22 the night before, which is now twice in two nights.
+
+This is the argument for the instruction. A lesson's own gate cannot see this collision at all —
+the census lives in another lesson's file, and nothing in sov79's 51 cases reads it. Running one
+shard would have had roughly a one-in-four chance of catching it.
+
 ## Where this gate is narrower than its name (DR-1467, stated rather than smoothed)
 
 **The book list is DERIVED, not typed.** DR-1467's second measured example was a verse sweep whose
