@@ -356,6 +356,39 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // DR-1460: the Institute's roll. The office confirms the paperwork and opens
+  // enrollment; a member applies (the policy refuses it otherwise); the office
+  // marks attendance and issues a certificate only through the RPC that
+  // re-runs the completion standard over the learner's own lesson records.
+  app('app/src/lib/church-institute-sync.js', {
+    id: 'institute-roll', name: 'The Institute\u2019s roll (Church \u2192 Institute)',
+    purpose: 'Keeps the office\u2019s regulatory state, each member\u2019s own application, the sessions attended and the certificate issued; every wall stands in the database (0325).',
+    reads: [
+      { res: 'db:institute_settings', token: "from('institute_settings')" },
+      { res: 'db:institute_enrollments', token: "from('institute_enrollments')" },
+      { res: 'db:institute_attendance', token: "from('institute_attendance')" },
+      { res: 'db:institute_credentials', token: "from('institute_credentials')" },
+      { res: 'db:learner_lesson_records', file: 'infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql', token: 'public.learner_lesson_records r' },
+    ],
+    writes: [
+      { res: 'db:institute_settings', token: "onConflict: 'instance_id'" },
+      { res: 'db:institute_enrollments', token: "from('institute_enrollments')" },
+      { res: 'db:institute_attendance', token: "onConflict: 'enrollment_id,session_date'" },
+      { res: 'db:institute_credentials', token: "rpc('institute_issue_credential'" },
+    ],
+    seeds: ['institute-landing'],
+  }),
+  app('app/src/components/ChurchInstitute.jsx', {
+    id: 'institute-landing', name: 'The Institute landing (Church \u2192 Institute)',
+    purpose: 'Applies only while the office\u2019s row reads open, shows a student their own standing and certificate, lets anyone verify a code, and mounts the Office desk for owner/admin only.',
+    reads: [
+      { res: 'db:institute_settings', file: 'app/src/lib/church-institute-sync.js', token: 'readInstituteSettings' },
+      { res: 'db:institute_enrollments', file: 'app/src/lib/church-institute-sync.js', token: 'readMyEnrollments' },
+      { res: 'db:institute_credentials', file: 'app/src/lib/church-institute-sync.js', token: 'readMyCredentials' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
   // one voiceprint (kept only on the NAS) and writes back added or why not;
   // removal deletes the consent, and the print on the next pass.

@@ -4638,7 +4638,7 @@ ${THEME_CSS}
         )}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
-        {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} />}
+        {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} instanceId={churchAccess.instanceId} myUserId={authSession?.user?.id || null} isOffice={!reviewerMode && ['owner','admin'].includes(churchAccess.role)} />}
         {view === 'church' && churchView === 'youth' && <YouthZone church={data.church} signedIn={!!authSession} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
         {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} />}

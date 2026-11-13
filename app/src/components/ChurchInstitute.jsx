@@ -1,26 +1,31 @@
 // =============================================================================
 // ChurchInstitute — the TLC Theological Institute landing (churchView 'institute')
 // =============================================================================
-// Slice A of the Institute (docs/99-session-notes/2026-11-12-the-institute-in-
-// the-love-corner-app.md §5): the public surface, no schema, no money. Opened
-// from the homepage's featured card (components/lovecorner/LoveCornerHome.jsx),
-// the Church sub-nav, and the phone's More sheet.
+// Slice A (DR-1455): the public surface. Slice B (DR-1460, migration 0325):
+// the roll, attendance and credentials, read and written through
+// lib/church-institute-sync.js, every wall standing in the database.
 //
 // WHAT IS TRUE ON THIS SCREEN (DR-0076 §1; the brief's rules 6 and 7):
 //   • "Available today" lists ONLY courses registered in LEARN_CATALOG; each
 //     opens in Learn through the same link a shared lesson uses (DR-1428).
 //   • A program with no registered course reads Planned, with its planned
 //     course names shown as a plan, never as an offer.
-//   • Enrollment, certificates and announcements render their honest state
-//     from lib/church-institute.js (launchState over the office's settings,
-//     which Slice B writes; until then: closed, said plainly — P15: a surface
-//     never goes blank, it says what it sees and what is missing).
+//   • Enrollment opens ONLY when the office's institute_settings row reads
+//     confirmed + open (launchState); the Apply button then writes the
+//     applicant's own row, and the database policy refuses it otherwise.
+//   • A student sees their own applications, attendance count against the
+//     floor, the courses still to pass, and their own certificate. Nothing of
+//     anyone else's (USER-ACCOUNTS-AND-HISTORIES-STANDARD; RLS is the gate).
+//   • The office (owner/admin) keeps the settings, the roll, attendance and
+//     issues a certificate ONLY through the server RPC that re-runs the
+//     completion standard; a verify code goes to anyone, minimal fields out.
 //   • No accreditation, authorization or degree is claimed anywhere; the
 //     credential note is the one sentence INSTITUTE_META carries.
 // Patterns kept: SectionTabs (sliding tabs, not a long scroll); rem text so
 // large print scales it (UX-PATTERNS 2b); 36px+ targets with a focus ring
-// (2g); in-place opens, no scroll flight (2e).
-import React, { useMemo, useState } from 'react';
+// (2g); in-place opens, no scroll flight (2e); a surface never goes blank, it
+// says what it sees and what is missing (P15).
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import SectionTabs from './SectionTabs.jsx';
 import {
   INSTITUTE_META,
@@ -32,10 +37,17 @@ import {
   enrollmentCopy,
   ENROLLMENT_STEPS,
 } from '../lib/church-institute.js';
+import * as defaultSync from '../lib/church-institute-sync.js';
 import { lessonUrl } from '../lib/lesson-links.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
+const dateWord = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
 function Status({ kind }) {
   const cls = kind === 'available' ? 'lc-status lc-status-ok' : 'lc-status lc-status-plan';
@@ -46,14 +58,411 @@ function Status({ kind }) {
   );
 }
 
-export default function ChurchInstitute({ church = null, settings = null, setChurchView = null, initialSection = 'about' }) {
+function Said({ answer, testid }) {
+  const s = defaultSync.instituteSentence(answer);
+  if (!s) return null;
+  return (
+    <p className="lc-notice" role="status" data-testid={testid}>
+      {s}
+    </p>
+  );
+}
+
+/** The student's own applications: apply, see the status, withdraw while still applied. */
+function ApplyPanel({ programs, state, mine, busy, onApply, onWithdraw, signedIn }) {
+  if (state !== 'open') return null;
+  const byKey = new Map(mine.map((e) => [e.program_key, e]));
+  if (!signedIn) {
+    return (
+      <p className="lc-notice" data-testid="institute-apply-signed-out">
+        Sign in to apply; your application is kept on your own account.
+      </p>
+    );
+  }
+  return (
+    <ul className="lc-stack mt-3" aria-label="Apply to a program" data-testid="institute-apply">
+      {programs
+        .filter((p) => p.status === 'available')
+        .map((p) => {
+          const e = byKey.get(p.key);
+          const word = e ? STATUS_WORD[e.status] || e.status : '';
+          return (
+            <li key={p.key} className="lc-course" data-testid={`institute-apply-${p.key}`}>
+              <span className="min-w-0 flex-1">
+                <b className="lc-prog-t">{p.title}</b>
+                {e && (
+                  <small className="lc-small block" data-testid={`institute-mine-${p.key}`}>
+                    {word}
+                    {e.cohort_start ? ` · cohort begins ${dateWord(e.cohort_start)}` : ''} · applied {dateWord(e.applied_at)}
+                  </small>
+                )}
+              </span>
+              {!e || e.status === 'withdrawn' ? (
+                <button type="button" disabled={busy} onClick={() => onApply(p)} className={`lc-btn lc-btn-gold ${FOCUS}`}>
+                  Apply
+                </button>
+              ) : e.status === 'applied' ? (
+                <button type="button" disabled={busy} onClick={() => onWithdraw(e)} className={`lc-btn lc-btn-ghost ${FOCUS}`}>
+                  Withdraw
+                </button>
+              ) : null}
+            </li>
+          );
+        })}
+    </ul>
+  );
+}
+
+/** The student's standing against the completion standard, one row per application. */
+function MyStanding({ mine, standing }) {
+  const live = mine.filter((e) => e.status !== 'withdrawn');
+  if (live.length === 0) {
+    return (
+      <p className="lc-small" data-testid="institute-standing-none">
+        No application on your account yet.
+      </p>
+    );
+  }
+  return (
+    <ul className="lc-stack" aria-label="My standing" data-testid="institute-standing">
+      {live.map((e) => {
+        const c = standing[e.id];
+        return (
+          <li key={e.id} className="lc-card" data-testid={`institute-standing-${e.program_key}`}>
+            <b className="lc-prog-t">{e.program_title}</b>
+            <p className="lc-small">
+              {STATUS_WORD[e.status] || e.status}
+              {e.cohort_start ? ` · cohort begins ${dateWord(e.cohort_start)}` : ' · no cohort date set yet'}
+            </p>
+            {c ? (
+              <p className="lc-small" data-testid={`institute-standing-detail-${e.program_key}`}>
+                Sessions present: {c.present} of {c.floor} required
+                {Array.isArray(c.coursesMissing) && c.coursesMissing.length > 0
+                  ? ` · courses still to pass: ${c.coursesMissing.join(', ')}`
+                  : ' · every course passed'}
+                {c.complete ? ' · the standard is met' : ''}
+              </p>
+            ) : (
+              <p className="lc-small">Standing not read yet.</p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Anyone checks a certificate by its code; the server returns the minimal fields or nothing. */
+export function VerifyForm({ verify = defaultSync.verifyCredential }) {
+  const [code, setCode] = useState('');
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async (ev) => {
+    ev.preventDefault();
+    setBusy(true);
+    const a = await verify(code);
+    setResult(a);
+    setBusy(false);
+  };
+  return (
+    <form onSubmit={submit} className="lc-card mt-3" aria-labelledby="inst-verify-h" data-testid="institute-verify">
+      <h4 id="inst-verify-h" className="lc-h3">
+        Verify a certificate
+      </h4>
+      <label className="lc-field">
+        <span className="lc-small">Verify code (printed on the certificate)</span>
+        <input
+          className="lc-input"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoComplete="off"
+          spellCheck="false"
+          data-testid="institute-verify-code"
+        />
+      </label>
+      <button type="submit" disabled={busy || !code.trim()} className={`lc-btn lc-btn-ghost ${FOCUS}`}>
+        Check
+      </button>
+      {result && result.ok && result.found && (
+        <p className="lc-status lc-status-ok mt-2 inline-block" data-testid="institute-verify-found">
+          {result.found.holderName} · {result.found.programTitle} · No. {result.found.credentialNo} · issued {dateWord(result.found.issuedAt)}
+        </p>
+      )}
+      {result && result.ok && !result.found && (
+        <p className="lc-status lc-status-plan mt-2 inline-block" data-testid="institute-verify-none">
+          No certificate carries that code.
+        </p>
+      )}
+      {result && !result.ok && <Said answer={result} testid="institute-verify-said" />}
+    </form>
+  );
+}
+
+/** The office's desk: settings, the roll, attendance and issuing. Mounted only for owner/admin. */
+function OfficePanel({ instanceId, settings, roll, sync, reload }) {
+  const [form, setForm] = useState(() => ({
+    exemption_status: (settings && settings.exemption_status) || 'not-filed',
+    filing_reference: (settings && settings.filing_reference) || '',
+    filed_at: (settings && settings.filed_at) || '',
+    enrollment_open: !!(settings && settings.enrollment_open),
+    attendance_floor: settings && Number.isFinite(settings.attendance_floor) ? settings.attendance_floor : 0,
+  }));
+  useEffect(() => {
+    if (!settings) return;
+    setForm({
+      exemption_status: settings.exemption_status || 'not-filed',
+      filing_reference: settings.filing_reference || '',
+      filed_at: settings.filed_at || '',
+      enrollment_open: !!settings.enrollment_open,
+      attendance_floor: Number.isFinite(settings.attendance_floor) ? settings.attendance_floor : 0,
+    });
+  }, [settings]);
+  const [said, setSaid] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [dates, setDates] = useState({});
+  const [names, setNames] = useState({});
+  const [standing, setStanding] = useState({});
+  const run = async (fn) => {
+    setBusy(true);
+    const a = await fn();
+    setSaid(a && a.ok ? null : a);
+    setBusy(false);
+    if (a && a.ok) reload();
+    return a;
+  };
+  const save = (ev) => {
+    ev.preventDefault();
+    run(() =>
+      sync.saveInstituteSettings(instanceId, {
+        exemption_status: form.exemption_status,
+        filing_reference: form.filing_reference || null,
+        filed_at: form.filed_at || null,
+        enrollment_open: form.enrollment_open,
+        attendance_floor: Math.max(0, Number(form.attendance_floor) || 0),
+      })
+    );
+  };
+  const readStanding = async (e) => {
+    const a = await sync.readCompletion(e.id);
+    if (a.ok) setStanding((s) => ({ ...s, [e.id]: a.completion }));
+    else setSaid(a);
+  };
+  const set = (k) => (ev) => setForm((f) => ({ ...f, [k]: ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value }));
+  return (
+    <div className="lc-stack" data-testid="institute-office">
+      <form onSubmit={save} className="lc-card" aria-labelledby="inst-office-h">
+        <h3 id="inst-office-h" className="lc-h3">
+          The office's settings
+        </h3>
+        <p className="lc-small">
+          Enrollment opens only when the exemption reads confirmed and the switch is on; the database refuses an application otherwise.
+        </p>
+        <label className="lc-field">
+          <span className="lc-small">Religious exemption filing</span>
+          <select className="lc-input" value={form.exemption_status} onChange={set('exemption_status')} data-testid="institute-office-exemption">
+            <option value="not-filed">Not filed</option>
+            <option value="filed">Filed, awaiting confirmation</option>
+            <option value="confirmed">Confirmed</option>
+          </select>
+        </label>
+        <label className="lc-field">
+          <span className="lc-small">Filing reference</span>
+          <input className="lc-input" value={form.filing_reference} onChange={set('filing_reference')} />
+        </label>
+        <label className="lc-field">
+          <span className="lc-small">Filed on</span>
+          <input className="lc-input" type="date" value={form.filed_at} onChange={set('filed_at')} />
+        </label>
+        <label className="lc-field">
+          <span className="lc-small">Sessions a student must attend</span>
+          <input className="lc-input" type="number" min="0" value={form.attendance_floor} onChange={set('attendance_floor')} />
+        </label>
+        <label className="lc-field lc-field-row">
+          <input type="checkbox" checked={form.enrollment_open} onChange={set('enrollment_open')} data-testid="institute-office-open" />
+          <span className="lc-small">Enrollment is open</span>
+        </label>
+        <button type="submit" disabled={busy} className={`lc-btn lc-btn-gold ${FOCUS}`}>
+          Save settings
+        </button>
+      </form>
+      <section aria-labelledby="inst-roll-h" className="lc-card">
+        <h3 id="inst-roll-h" className="lc-h3">
+          The roll
+        </h3>
+        {roll.length === 0 ? (
+          <p className="lc-small" data-testid="institute-roll-empty">
+            No applications yet.
+          </p>
+        ) : (
+          <ul className="lc-stack" data-testid="institute-roll">
+            {roll.map((e) => {
+              const c = standing[e.id];
+              return (
+                <li key={e.id} className="lc-roll-row" data-testid={`institute-roll-${e.id}`}>
+                  <b className="lc-prog-t">{e.program_title}</b>
+                  <p className="lc-small">
+                    {STATUS_WORD[e.status] || e.status} · applied {dateWord(e.applied_at)} · student {String(e.user_id || '').slice(0, 8)}
+                    {e.cohort_start ? ` · cohort ${dateWord(e.cohort_start)}` : ''}
+                  </p>
+                  {e.note && <p className="lc-small">Note: {e.note}</p>}
+                  <div className="lc-inst-btns">
+                    {e.status === 'applied' && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => run(() => sync.setEnrollmentStatus(e.id, { status: 'accepted' }))}
+                        className={`lc-btn lc-btn-gold ${FOCUS}`}
+                      >
+                        Accept
+                      </button>
+                    )}
+                    {(e.status === 'applied' || e.status === 'accepted') && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => run(() => sync.setEnrollmentStatus(e.id, { status: 'withdrawn' }))}
+                        className={`lc-btn lc-btn-ghost ${FOCUS}`}
+                      >
+                        Withdraw
+                      </button>
+                    )}
+                    <button type="button" disabled={busy} onClick={() => readStanding(e)} className={`lc-btn lc-btn-ghost ${FOCUS}`}>
+                      Read standing
+                    </button>
+                  </div>
+                  {c && (
+                    <p className="lc-small" data-testid={`institute-roll-standing-${e.id}`}>
+                      Present {c.present} of {c.floor}
+                      {Array.isArray(c.coursesMissing) && c.coursesMissing.length > 0
+                        ? ` · still to pass: ${c.coursesMissing.join(', ')}`
+                        : ' · every course passed'}
+                      {c.complete ? ' · standard met' : ' · standard not yet met'}
+                    </p>
+                  )}
+                  {e.status === 'accepted' && (
+                    <div className="lc-field-row">
+                      <input
+                        className="lc-input"
+                        type="date"
+                        aria-label="Session date"
+                        value={dates[e.id] || ''}
+                        onChange={(ev) => setDates((d) => ({ ...d, [e.id]: ev.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        disabled={busy || !dates[e.id]}
+                        onClick={() => run(() => sync.markAttendance(instanceId, e.id, dates[e.id], true))}
+                        className={`lc-btn lc-btn-ghost ${FOCUS}`}
+                      >
+                        Mark present
+                      </button>
+                    </div>
+                  )}
+                  {e.status === 'accepted' && (
+                    <div className="lc-field-row">
+                      <input
+                        className="lc-input"
+                        aria-label="Name on the certificate"
+                        placeholder="Name on the certificate"
+                        value={names[e.id] || ''}
+                        onChange={(ev) => setNames((n) => ({ ...n, [e.id]: ev.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        disabled={busy || !(names[e.id] || '').trim()}
+                        onClick={() => run(() => sync.issueCredential(e.id, names[e.id]))}
+                        className={`lc-btn lc-btn-gold ${FOCUS}`}
+                      >
+                        Issue certificate
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+      <Said answer={said} testid="institute-office-said" />
+    </div>
+  );
+}
+
+export default function ChurchInstitute({
+  church = null,
+  settings = null,
+  setChurchView = null,
+  initialSection = 'about',
+  instanceId = null,
+  myUserId = null,
+  isOffice = false,
+  sync = defaultSync,
+}) {
   const c = resolveChurch(church);
   const programs = useMemo(() => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p) })), []);
   const open = useMemo(() => availableCourses(), []);
-  const state = launchState(settings);
+  const [live, setLive] = useState(null);
+  const [mine, setMine] = useState([]);
+  const [standing, setStanding] = useState({});
+  const [creds, setCreds] = useState([]);
+  const [roll, setRoll] = useState([]);
+  const [said, setSaid] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const effective = live || settings;
+  const state = launchState(effective);
   const [active, setActive] = useState(initialSection);
   const goLearn = () => {
     if (setChurchView) setChurchView('learn');
+  };
+
+  useEffect(() => {
+    if (!instanceId) return undefined;
+    let on = true;
+    (async () => {
+      const s = await sync.readInstituteSettings(instanceId);
+      if (!on) return;
+      if (s.ok) setLive(s.settings);
+      else setSaid(s);
+      if (myUserId) {
+        const m = await sync.readMyEnrollments(instanceId, myUserId);
+        if (!on) return;
+        if (m.ok) {
+          setMine(m.enrollments);
+          const next = {};
+          for (const e of m.enrollments.filter((x) => x.status !== 'withdrawn')) {
+            const r = await sync.readCompletion(e.id);
+            if (r.ok) next[e.id] = r.completion;
+          }
+          if (on) setStanding(next);
+        } else setSaid(m);
+        const k = await sync.readMyCredentials(instanceId);
+        if (on && k.ok) setCreds(k.credentials);
+      }
+      if (isOffice) {
+        const r = await sync.readInstituteRoll(instanceId);
+        if (on && r.ok) setRoll(r.roll);
+      }
+    })();
+    return () => {
+      on = false;
+    };
+  }, [instanceId, myUserId, isOffice, sync, tick]);
+
+  const apply = async (p) => {
+    setBusy(true);
+    const a = await sync.applyToProgram(instanceId, { programKey: p.key, programTitle: p.title, courseKeys: p.courseKeys || [] });
+    setSaid(a.ok ? null : a);
+    setBusy(false);
+    if (a.ok) reload();
+  };
+  const withdraw = async (e) => {
+    setBusy(true);
+    const a = await sync.withdrawMyEnrollment(e.id);
+    setSaid(a.ok ? null : a);
+    setBusy(false);
+    if (a.ok) reload();
   };
 
   const sections = [
@@ -135,7 +544,7 @@ export default function ChurchInstitute({ church = null, settings = null, setChu
       render: () => (
         <section aria-labelledby="inst-enroll-h" className="lc-card">
           <h3 id="inst-enroll-h" className="lc-h3">
-            How enrollment will work
+            How enrollment works
           </h3>
           <ol className="lc-steps">
             {ENROLLMENT_STEPS.map((s, i) => (
@@ -145,16 +554,11 @@ export default function ChurchInstitute({ church = null, settings = null, setChu
               </li>
             ))}
           </ol>
-          <p className="lc-status lc-status-plan mt-3 inline-block" data-testid={`institute-enrollment-${state}`}>
+          <p className={`lc-status ${state === 'open' ? 'lc-status-ok' : 'lc-status-plan'} mt-3 inline-block`} data-testid={`institute-enrollment-${state}`}>
             {enrollmentCopy(state)}
           </p>
-          {state === 'open' && setChurchView && (
-            <div className="mt-3">
-              <button type="button" onClick={() => setChurchView('my-record')} className={`lc-btn lc-btn-gold ${FOCUS}`}>
-                Apply from My Record
-              </button>
-            </div>
-          )}
+          <ApplyPanel programs={programs} state={state} mine={mine} busy={busy} onApply={apply} onWithdraw={withdraw} signedIn={!!myUserId} />
+          <Said answer={said} testid="institute-said" />
         </section>
       ),
     },
@@ -163,24 +567,38 @@ export default function ChurchInstitute({ church = null, settings = null, setChu
       label: 'Students',
       icon: 'users',
       render: () => (
-        <div className="lc-tiles">
-          <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
-            <b>My dashboard</b>
-            <small>Your lesson progress and quiz grades, saved to your account in Learn</small>
-          </button>
-          <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
-            <b>Course materials</b>
-            <small>Lessons, print and download, read aloud</small>
-          </button>
-          <div className="lc-tile">
-            <b>Instructors</b>
-            <small>
-              {c.pastor || 'The pastor'} and the teaching staff of {c.name}
-            </small>
-          </div>
-          <div className="lc-tile">
-            <b>Schedule</b>
-            <small>Cohort dates are published by the office with the true weekday shown; none are set yet</small>
+        <div className="lc-stack">
+          <section aria-labelledby="inst-standing-h" className="lc-card">
+            <h3 id="inst-standing-h" className="lc-h3">
+              My standing
+            </h3>
+            {myUserId ? (
+              <MyStanding mine={mine} standing={standing} />
+            ) : (
+              <p className="lc-small" data-testid="institute-standing-signed-out">
+                Sign in to see your applications, attendance and courses.
+              </p>
+            )}
+          </section>
+          <div className="lc-tiles">
+            <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
+              <b>My dashboard</b>
+              <small>Your lesson progress and quiz grades, saved to your account in Learn</small>
+            </button>
+            <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
+              <b>Course materials</b>
+              <small>Lessons, print and download, read aloud</small>
+            </button>
+            <div className="lc-tile">
+              <b>Instructors</b>
+              <small>
+                {c.pastor || 'The pastor'} and the teaching staff of {c.name}
+              </small>
+            </div>
+            <div className="lc-tile">
+              <b>Schedule</b>
+              <small>Cohort dates are set by the office on each accepted application and shown on your standing above</small>
+            </div>
           </div>
         </div>
       ),
@@ -190,20 +608,39 @@ export default function ChurchInstitute({ church = null, settings = null, setChu
       label: 'Certificates',
       icon: 'sparkle',
       render: () => (
-        <section aria-labelledby="inst-cert-h" className="lc-cert">
-          <div className="lc-cert-rule" aria-hidden="true" />
-          <h3 id="inst-cert-h" className="lc-h3">
-            Religious Certificate of Completion
-          </h3>
-          <p className="lc-small">
-            Issued by the church office when a program's completion standard is met. Each will carry a certificate number and a verify code.
-          </p>
-          <div className="lc-cert-rule" aria-hidden="true" />
-          <span className="lc-status lc-status-plan">Planned</span>
-          <p className="lc-small mt-2" data-testid="institute-credential-note">
-            {INSTITUTE_META.credentialNote}
-          </p>
-        </section>
+        <div className="lc-stack">
+          <section aria-labelledby="inst-cert-h" className="lc-cert">
+            <div className="lc-cert-rule" aria-hidden="true" />
+            <h3 id="inst-cert-h" className="lc-h3">
+              Religious Certificate of Completion
+            </h3>
+            <p className="lc-small">
+              Issued by the church office when a program's completion standard is met: every course passed and the sessions attended. Each carries a certificate
+              number and a verify code.
+            </p>
+            <div className="lc-cert-rule" aria-hidden="true" />
+            <span className={`lc-status ${state === 'open' ? 'lc-status-ok' : 'lc-status-plan'}`} data-testid={`institute-cert-state-${state}`}>
+              {state === 'open' ? 'Issued by the office on completion' : 'Planned'}
+            </span>
+            <p className="lc-small mt-2" data-testid="institute-credential-note">
+              {INSTITUTE_META.credentialNote}
+            </p>
+          </section>
+          {myUserId && creds.length > 0 && (
+            <ul className="lc-stack" aria-label="My certificates" data-testid="institute-my-credentials">
+              {creds.map((k) => (
+                <li key={k.id} className="lc-card">
+                  <b className="lc-prog-t">{k.program_title}</b>
+                  <p className="lc-small">
+                    {k.holder_name} · No. {k.credential_no} · issued {dateWord(k.issued_at)}
+                  </p>
+                  <p className="lc-small">Verify code: {k.verify_code}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <VerifyForm verify={sync.verifyCredential} />
+        </div>
       ),
     },
     {
@@ -217,6 +654,14 @@ export default function ChurchInstitute({ church = null, settings = null, setChu
       ),
     },
   ];
+  if (isOffice && instanceId) {
+    sections.push({
+      id: 'office',
+      label: 'Office',
+      icon: 'shield',
+      render: () => <OfficePanel instanceId={instanceId} settings={effective} roll={roll} sync={sync} reload={reload} />,
+    });
+  }
 
   return (
     <div className="lc-home" data-testid="church-institute">

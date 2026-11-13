@@ -1358,6 +1358,45 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0250-learner-records-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'LEARNER RECORD SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
 
+  # THE INSTITUTE'S WALLS (DR-1460), ON A REAL POSTGRESQL: the learner-records
+  # chain, then 0325 twice (idempotent), then the ten-assertion smoke (its
+  # header names each wall). A guard CI never runs is not a guard (DR-0076 §3).
+  institute-walls:
+    name: app — the Institute's walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install postgresql-client
+        run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh"
+      - name: 0325 applies on the real chain, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -q -f infra/supabase/schema-v1.sql
+          psql -v ON_ERROR_STOP=1 -q -f infra/supabase/schema-v1.1-tenant-join.sql
+          psql -v ON_ERROR_STOP=1 -q -f infra/supabase/schema-v2.1-infra.sql
+          psql -v ON_ERROR_STOP=1 -q -f scripts/church-onboarding-ci-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -q -f infra/supabase/migrations-auto/0012-church-instance-multi-membership.sql
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -q -f infra/supabase/migrations-auto/0250-a-learners-record-reaches-the-governor.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q -f infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0325-institute-walls-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'INSTITUTE WALLS SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # WORK IS FILED ON THE DOOR (DR-0897), ON A REAL POSTGRESQL. The real schema
   # files and migrations that own the work-order tables apply in order, 0260
   # applies twice (idempotent), then the smoke proves: the landlord files on a
@@ -1812,7 +1851,7 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
+    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, institute-walls, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
     runs-on: ubuntu-latest
     steps:
       - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)

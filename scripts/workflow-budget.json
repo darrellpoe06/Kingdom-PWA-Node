@@ -140,7 +140,14 @@
       "to": 23065,
       "dr": "DR-1444",
       "reason": "A required guard step in ci.yml for re-review-ratchet-guard: one `- run:` line and two comment lines. It must be in ci.yml and not only verify:gates, because a guard CI never runs is not a guard (DR-0076 section 3) -- verify-covers-ci-guards.test.js fails the build without it. The comment is two lines, the same shape as the reviewer-lens step beside it, with the narrative in the guard's own header and DR-1444. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-13",
+      "from": 23065,
+      "to": 23110,
+      "dr": "DR-1460",
+      "reason": "The institute-walls job in ci.yml and the institute-roll leg in rls-isolation.yml: 0325's ten-assertion smoke must run on a bare postgres:16 in CI and against the real database after db-migrate, because a guard CI never runs is not a guard (DR-0076 section 3) and the matrix guard refuses an orphan smoke. Each comment folded to three lines, the walls named in the smoke's own header and DR-1460. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23065
+  "totalLines": 23110
 }
