@@ -4,7 +4,7 @@
     "functions": 30,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 323,
+    "tables": 327,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -1488,6 +1488,30 @@
       "definedIn": "infra/supabase/schema-v2.1-infra.sql",
       "rls": true,
       "policies": 3
+    },
+    {
+      "table": "institute_attendance",
+      "definedIn": "infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql",
+      "rls": true,
+      "policies": 2
+    },
+    {
+      "table": "institute_credentials",
+      "definedIn": "infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "institute_enrollments",
+      "definedIn": "infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "institute_settings",
+      "definedIn": "infra/supabase/migrations-auto/0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql",
+      "rls": true,
+      "policies": 2
     },
     {
       "table": "intake_fix_queue",

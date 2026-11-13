@@ -2025,6 +2025,23 @@
       "wallClockHours": 1.1,
       "estimateWithoutAiHours": 40,
       "notes": "Thread 1a17edb181a9c1f6, forwarded 2026-10-27 19:34Z, built 2026-11-12 — sixteen days. Independent checking corrected four of the digest's load-bearing figures and confirmed two. No primary host reachable (openai.com, arxiv.org, sec.gov); re-review 2026-11-26."
+    },
+    {
+      "id": "institute-slice-b-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Slice B of the Institute (Phase 5 of the Love Corner redesign): migration 0325 with four tables under RLS and three RPCs, the ten-assertion walls smoke proven on a real PostgreSQL 16, the institute-walls CI job, the church-institute-sync seam, and the landing's Apply, My standing, Certificates with verify, and the Office desk",
+      "drs": [
+        "DR-1460"
+      ],
+      "prs": [
+        2651
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 16,
+      "notes": "No token meter in this session; tokens and cost are null."
     }
   ]
 }

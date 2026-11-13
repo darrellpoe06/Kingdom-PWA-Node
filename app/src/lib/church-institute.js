@@ -110,7 +110,7 @@ export function launchState(settings) {
 export function enrollmentCopy(state) {
   switch (state) {
     case 'open':
-      return 'Enrollment is open. Apply from your My Record page.';
+      return 'Enrollment is open. Apply below; your application is kept on your own account.';
     case 'confirmed-closed':
       return 'The paperwork is confirmed. The office will open enrollment for the next cohort here.';
     case 'filed':
@@ -124,6 +124,6 @@ export function enrollmentCopy(state) {
 export const ENROLLMENT_STEPS = Object.freeze([
   'Create your account or sign in. One sign-in serves the whole church app.',
   'Choose a program and read the student handbook.',
-  'Submit the application from your My Record page.',
+  'Submit the application on this page; it is kept on your own account.',
   'The church office confirms your seat and your cohort start date.',
 ]);

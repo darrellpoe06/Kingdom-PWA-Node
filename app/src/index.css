@@ -644,6 +644,12 @@ button.lc-tile{cursor:pointer}
 .lc-fam-named small{font-size:.66rem;font-weight:500;margin-left:.25rem}
 .lc-inline-link-ink{background:none;border:0;padding:0 .25rem;min-width:36px;display:inline-flex;align-items:center;justify-content:center;color:var(--lc-red);text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:inherit;cursor:pointer;min-height:36px}
 @media (prefers-reduced-motion:reduce){.lc-feat-track{scroll-behavior:auto}}
+.lc-field{display:flex;flex-direction:column;gap:.25rem;margin:.5rem 0}
+.lc-field-row{display:flex;flex-direction:row;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
+.lc-input{min-height:40px;padding:.375rem .625rem;border:1px solid var(--lc-line);border-radius:.625rem;background:var(--lc-paper);color:var(--lc-ink);font-size:1rem;flex:1 1 10rem;min-width:0}
+.lc-input:focus{outline:2px solid var(--lc-gold);outline-offset:2px}
+.lc-field-row input[type=checkbox]{width:1.25rem;height:1.25rem;accent-color:var(--lc-red)}
+.lc-roll-row{background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:.875rem;padding:.625rem .75rem;display:flex;flex-direction:column;gap:.25rem}
 
 /* =============================================================================
    Focus ring — the only thing a TV remote has instead of a cursor

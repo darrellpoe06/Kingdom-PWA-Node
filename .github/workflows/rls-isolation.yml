@@ -257,6 +257,12 @@ jobs:
           - feature: learner-records
             migrations: "0250-a-learners-record-reaches-the-governor.sql"
             smokes: "0250-learner-records-smoke.sql"
+          # Added 2026-11-13 (DR-1460): the Institute's roll; the smoke's header
+          # names its ten walls. Only 0325 is listed: the real database already
+          # carries 0250, which the completion standard reads.
+          - feature: institute-roll
+            migrations: "0325-the-institute-keeps-its-roll-its-attendance-and-its-credentials.sql"
+            smokes: "0325-institute-walls-smoke.sql"
           # Added 2026-10-20 (DR-1142): a person withdraws their OWN inbox row
           # (and its of:<id> children) from the lesson door, and only their
           # own: a member of the same house, an outsider and anon are refused;
