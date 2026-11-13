@@ -46,7 +46,7 @@ No Catechism wording is put in double quotes. Double quotes in a lesson are rese
 
 ## What was measured
 
-Verses: 50 anchor references and 190 quoted spans, every one fetched from `app/public/bible/kjv`. There are 0 verse faults and 0 quotes lacking a reference. Length: The adult text is 3,417 words, with 2,641 words of prose. Band shares are child 0.50, youth 0.60, teen 0.60 and senior 0.60. Reading ladder: Child 2.2, youth 4.2, teen 5.4, senior 7.3. Band overlap: The worst pair is 0.06. Voice: No generic God, GOD or LORD in our voice. Darrell's words are never in quotes.
+Verses: 50 anchor references and 190 quoted spans, every one fetched from `app/public/bible/kjv`. There are 0 verse faults and 0 quotes lacking a reference. Length: The adult text is 3,432 words, with 2,656 words of prose. Band shares are child 0.50, youth 0.60, teen 0.60 and senior 0.60. Reading ladder: Child 2.2, youth 4.2, teen 5.4, senior 7.3. Band overlap: The worst pair is 0.06. Voice: No generic God, GOD or LORD in our voice. Darrell's words are never in quotes. The plain-meaning gate (DR-0521) caught "reprobate" used before its meaning in all five texts; each now says, at first use, that it is a mind that has failed the test.
 
 ## Verification
 
