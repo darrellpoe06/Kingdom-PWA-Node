@@ -2359,6 +2359,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "ll315-of-one-blood",
+      "date": "2026-11-13",
+      "task": "L315 Of One Blood: Living Lesson from Darrell's video under one word, Lesson (purity-of-blood laws and racism), Word first, history tiered",
+      "drs": [
+        "DR-1493"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Subagent build; history confirmed via search results naming sources; britannica.com, en.wikipedia.org and kbwolf.sites.pomona.edu did not resolve from the sandbox"
     }
   ]
 }
