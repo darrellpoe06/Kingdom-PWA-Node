@@ -32,6 +32,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DERIVED_POINTER, isDerivedPointer, isPointerLine } from './lib/decision-pointer.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -77,16 +78,22 @@ export function drLedgerFindings({ indexText, diskIds }) {
     if (seenRows.has(r[1])) findings.push(`INDEX.md has DR-${r[1]} as a row twice — a merge kept both sides' copy.`);
     seenRows.add(r[1]);
   }
-  const nextLines = lines.filter((l) => /^\*\*Next ID:\*\*/.test(l)).length;
-  if (nextLines > 1) {
-    findings.push(`INDEX.md has ${nextLines} "**Next ID:**" lines — there must be exactly one pointer.`);
+  const pointers = lines.filter((l) => isPointerLine(l));
+  if (pointers.length > 1) {
+    findings.push(`INDEX.md has ${pointers.length} "**Next ID:**" lines — there must be exactly one pointer.`);
   }
-  const max = diskIds.length ? diskIds[diskIds.length - 1] : 0;
-  const m = /\*\*Next ID:\*\*\s*DR-(\d{4})/.exec(indexText);
-  if (!m) {
-    findings.push('INDEX.md is missing its "**Next ID:** DR-XXXX" pointer.');
-  } else if (Number(m[1]) !== max + 1) {
-    findings.push(`INDEX.md Next ID says DR-${m[1]} but the newest decision on disk is DR-${String(max).padStart(4, '0')} — the pointer must read DR-${String(max + 1).padStart(4, '0')}.`);
+  // THE POINTER IS DERIVED (DR-1477). It used to carry a typed number every
+  // branch rewrote, which made it the one line two record-adding branches
+  // always conflicted on. It is now one fixed sentence; the number is the
+  // highest record on disk plus one, past every reservation on origin
+  // (claim-decision-number --reserve). A branch typing a number back into it
+  // is the old collision returning, so it is a finding.
+  if (!pointers.length) {
+    findings.push(`INDEX.md is missing its pointer line; restore it exactly: ${DERIVED_POINTER}`);
+  } else if (!isDerivedPointer(pointers[0])) {
+    findings.push(
+      `INDEX.md's "**Next ID:**" line was edited (${pointers[0].slice(0, 60)}…). The pointer is derived, never typed (DR-1477): restore it exactly — ${DERIVED_POINTER}`
+    );
   }
   return findings;
 }
@@ -170,5 +177,5 @@ if (isMain) {
     for (const f of findings) console.error('  - ' + f);
     process.exit(1);
   }
-  console.log(`business-systems-guard: OK — ledger whole (newest DR-${String(scan.diskIds[scan.diskIds.length - 1]).padStart(4, '0')}, pointer correct), n8n contained to ${scan.n8nFiles.length} legacy files, vendor forms contained to ${scan.vendorFormFiles.length}.`);
+  console.log(`business-systems-guard: OK — ledger whole (newest DR-${String(scan.diskIds[scan.diskIds.length - 1]).padStart(4, '0')}, pointer derived: next on disk DR-${String(scan.diskIds[scan.diskIds.length - 1] + 1).padStart(4, '0')}), n8n contained to ${scan.n8nFiles.length} legacy files, vendor forms contained to ${scan.vendorFormFiles.length}.`);
 }

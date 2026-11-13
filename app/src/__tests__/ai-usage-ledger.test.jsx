@@ -45,6 +45,17 @@ describe('ai-usage-ledger: proven to catch', () => {
     expect(validateLedger(ledger([ok, { ...ok }]))).toContain('x: duplicate id');
     expect(validateLedger(ledger([{ ...ok, model: 'gpt-nope' }]))[0]).toMatch(/not described in models/);
   });
+  it('a line written BEFORE the PR exists is sound: prs empty or absent (DR-1477)', () => {
+    expect(validateEntry({ ...ok, prs: [] })).toEqual([]);
+    const { prs, ...noPrs } = ok;
+    expect(prs).toEqual([1]);
+    expect(validateEntry(noPrs)).toEqual([]);
+  });
+  it('PROVEN TO CATCH: a PR field that is not PR numbers', () => {
+    expect(validateEntry({ ...ok, prs: ['#2665'] })[0]).toMatch(/prs, when given, must be PR numbers/);
+    expect(validateEntry({ ...ok, prs: [0] })[0]).toMatch(/prs, when given/);
+    expect(validateEntry({ ...ok, prs: 2665 })[0]).toMatch(/prs, when given/);
+  });
   it('refuses a session token reading that is not a subtraction of two readings', () => {
     const s = { id: 's', tokensBudgetAtStart: 100, tokensBudgetAtRead: 60, sessionTokensObserved: 50, tasks: ['x'] };
     expect(validateLedger(ledger([ok], [s]))[0]).toMatch(/must equal budgetAtStart - budgetAtRead/);

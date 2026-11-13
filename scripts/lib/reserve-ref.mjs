@@ -66,6 +66,69 @@ export function reservedNumbers({ kind = 'dr', cwd = process.cwd(), remote = 'or
   return held;
 }
 
+/**
+ * Numbers of one kind reserved on origin RIGHT NOW, for a gate (DR-1477).
+ *
+ * A CI checkout is depth 1 with a single-branch refspec, so it has no
+ * refs/remotes/origin/reserve/* at all and reservedNumbers() reads nothing
+ * there. This asks the server first (`git ls-remote`, one round trip, under
+ * `timeoutMs`), then falls back to the remote-tracking refs, then to nothing.
+ * The fallback is SAFE: an empty set excuses no hole, so a gate that cannot
+ * reach origin fails exactly as it did before reservations were read.
+ *
+ * Returns { numbers: Set, source: 'origin' | 'tracking' | 'none', reason }.
+ */
+export function reservedNumbersOnOrigin({ kind = 'll', cwd = process.cwd(), remote = 'origin', run = null, timeoutMs = 8_000 } = {}) {
+  if (!(kind in KINDS)) throw new Error(`unknown reservation kind '${kind}'`);
+  const exec =
+    run ||
+    ((args) =>
+      execFileSync('git', args, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: timeoutMs,
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      }));
+  let reason = '';
+  try {
+    const out = exec(['ls-remote', '--heads', remote, `refs/heads/${RESERVE_NS}/${kind}-*`]);
+    const numbers = new Set();
+    for (const line of String(out).split('\n')) {
+      const r = parseReserveRef(line.split('\t')[1] || '');
+      if (r && r.kind === kind) numbers.add(r.n);
+    }
+    return { numbers, source: 'origin', reason: '' };
+  } catch (err) {
+    reason = String(err.stderr || err.message || err)
+      .trim()
+      .split('\n')[0];
+  }
+  try {
+    const out = exec(['for-each-ref', '--format=%(refname)', `refs/remotes/${remote}/${RESERVE_NS}/`]);
+    const numbers = new Set();
+    for (const line of String(out).split('\n')) {
+      const r = parseReserveRef(line);
+      if (r && r.kind === kind) numbers.add(r.n);
+    }
+    return { numbers, source: 'tracking', reason: `origin unreachable (${reason}); read the remote-tracking refs` };
+  } catch {
+    return { numbers: new Set(), source: 'none', reason: `origin unreachable (${reason}) and no remote-tracking refs` };
+  }
+}
+
+/**
+ * Pure. Split numbers missing from a sequence into the ones a reservation holds
+ * (in flight on their own branch) and the real holes. A reservation excuses a
+ * hole; it never excuses a duplicate, and an empty set excuses nothing.
+ */
+export function holesNotReserved(missing = [], reserved = new Set()) {
+  const held = [];
+  const holes = [];
+  for (const n of missing) (reserved.has(n) ? held : holes).push(n);
+  return { held, holes };
+}
+
 /** Pure. Did a failed push fail because the ref already exists (someone else holds it)? */
 export function isHeldRefusal(stderr) {
   // "cannot lock ref" is the same race lost a moment earlier: another claimant

@@ -19,6 +19,10 @@ export function validateEntry(e) {
     out.push(`${e.id}: tokens must be null (no meter) or {in,out}`);
   if (!(e.costUsd === null || typeof e.costUsd === 'number')) out.push(`${e.id}: costUsd must be null (no meter) or a number`);
   if (e.tokens === null && typeof e.costUsd === 'number') out.push(`${e.id}: a cost with no tokens is a guess, not a meter`);
+  // The PR number is OPTIONAL (DR-1477): a line is written before the PR exists,
+  // and the squash commit names the PR. When given, it is a real PR number.
+  if (e.prs !== undefined && !(Array.isArray(e.prs) && e.prs.every((n) => Number.isInteger(n) && n > 0)))
+    out.push(`${e.id}: prs, when given, must be PR numbers (leave it empty before the PR exists)`);
   return out;
 }
 

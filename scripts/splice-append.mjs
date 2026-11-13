@@ -36,7 +36,7 @@
 //   * a block that does not hold exactly one lesson id, for the catalog.
 // It writes NOTHING when it refuses, and it never touches the ledger files
 // (`docs/decisions/INDEX.md`, `legibility-health.json`) — those belong to
-// `scripts/resolve-ledger-conflicts.mjs`, which owns the `Next ID` pointer.
+// `scripts/resolve-ledger-conflicts.mjs`, which keeps the derived `Next ID` line (DR-1477).
 // Two things computing one line is how they drift (DR-1021).
 //
 // A NEW lesson is its own file under app/src/lib/living-lessons/ (DR-1468) and

@@ -14,9 +14,10 @@
 // merge renumbers by hand. Nothing is wrong with either session; the number was
 // simply free when each of them looked.
 //
-// WHAT THIS CHANGES: nothing about the convention. `**Next ID:**` stays one
-// line, the resolver still owns it, DR-0644's refusal still refuses, and no
-// past record moves. This only widens the QUESTION asked before a number is
+// WHAT THIS CHANGES: nothing about the convention. DR-0644's refusal still
+// refuses and no past record moves. (Since DR-1477 the `**Next ID:**` line is
+// one fixed sentence that names this tool; the number is derived here, from
+// disk, main, branches in flight and the reservations, and no branch types it.) This only widens the QUESTION asked before a number is
 // taken -- from "what is free on disk?" to "what is free on disk AND not
 // already claimed by a branch still in flight?"
 //
@@ -28,8 +29,7 @@
 //
 // IT DECIDES NOTHING AND WRITES NOTHING. It reports the lowest free number and
 // who holds the ones it skipped, so a session (or a person) takes it knowingly.
-// The resolver remains the only thing that writes the pointer, because two
-// things computing one line is how they drift.
+// --reserve is the one write: a ref on origin, never a line in INDEX.md.
 //
 // THE IN-FLIGHT VIEW HAS AN AGE, AND SILENCE ABOUT IT IS THE THIRD DOOR INTO
 // THE SAME COLLISION (DR-1359). claimedInFlight() walks `refs/remotes/origin/`,

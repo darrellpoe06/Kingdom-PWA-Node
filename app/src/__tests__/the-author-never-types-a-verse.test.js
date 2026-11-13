@@ -11,6 +11,7 @@
 // is why a new lesson needs no per-lesson verse test of its own.
 import { describe, it, expect, afterEach } from 'vitest';
 import vm from 'node:vm';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +21,7 @@ import { fillVerses, contextAt, escapeFor, quotationFor } from '../../../scripts
 import { unfilledTokens, scan } from '../../../scripts/unfilled-verse-token-guard.mjs';
 import { slugify, lessonNumbersIn, lessonSkeleton, testSkeleton, run } from '../../../scripts/new-lesson.mjs';
 import { scanQuotedVerses } from '../../../scripts/quoted-verse-is-the-verse.mjs';
+import { formatFiles, prettierArgs } from '../../../scripts/lib/prettier-write.mjs';
 import { readerTexts } from '../../../scripts/quotation-integrity.mjs';
 
 const KJV = join(__dirname, '..', '..', 'public', 'bible', 'kjv');
@@ -128,7 +130,7 @@ describe('new-lesson writes the skeleton in the newest lessons’ full shape', (
     ]);
   });
 
-  it('the skeleton has four bands, the adult lesson, two parables and eight questions, and parses once filled', () => {
+  it('the skeleton has four bands, the adult lesson, two parables, ten questions and an UNCHECKED slot, and parses once filled', () => {
     const src = lessonSkeleton({ id: 'll302-a', n: 302, title: "Let's Go", anchor: 'Joel 2:28', added: '2026-11-13', dr: 'DR-1468' });
     const { text, errors, filled } = fillVerses(src);
     expect(errors).toEqual([]);
@@ -136,14 +138,20 @@ describe('new-lesson writes the skeleton in the newest lessons’ full shape', (
     expect(parses(text)).toBe(true);
     for (const band of ['child:', 'youth:', 'teen:', 'senior:', 'lesson:', 'quiz:', 'facilitator:', 'benefits:', 'stories:']) expect(text).toContain(band);
     expect((text.match(/kind: 'parable'/g) || []).length).toBe(2);
-    expect((text.match(/^ {8}\{\n {10}q: /gm) || []).length).toBe(8);
+    expect((text.match(/^ {8}\{\n {10}q: /gm) || []).length, 'ten questions, as L307 and L308 carry (DR-1477)').toBe(10);
+    // The UNCHECKED slot: commented, and a {{write:}} the guard refuses until it is filled or deleted.
+    expect(text).toMatch(/\/\/ UNCHECKED: fill this in, or DELETE these lines/);
+    expect(text).toMatch(/^export const UNCHECKED = '\{\{write: /m);
     expect(text).toMatch(/export const ORDER = 302;/);
     // What is left after filling is prose owed, and the guard still refuses it.
     expect(unfilledTokens(text).every((t) => t.kind === 'write')).toBe(true);
     expect(unfilledTokens(text).length).toBeGreaterThan(10);
-    expect(testSkeleton({ id: 'll302-a', n: 302, added: '2026-11-13' })).toMatch(
-      /import lesson, \{ ORDER, ADDED \} from '\.\.\/lib\/living-lessons\/ll302-a\.js'/
-    );
+    const t = testSkeleton({ id: 'll302-a', n: 302, added: '2026-11-13', anchor: 'Joel 2:28' });
+    expect(t).toMatch(/import lesson, \{ ORDER, ADDED, UNCHECKED \} from '\.\.\/lib\/living-lessons\/ll302-a\.js'/);
+    // The test is a few lines on the shared gate, naming its spine (DR-1477).
+    expect(t).toMatch(/import \{ livingLessonGate \} from '\.\/helpers\/living-lesson-gate\.js'/);
+    expect(t).toMatch(/spine: \[\['Joel 2:28', '\{\{write: /);
+    expect(t.split('\n').length).toBeLessThan(30);
   });
 
   it('takes the next number above the catalog, writes both files, and refuses a taken --id', () => {
@@ -153,17 +161,71 @@ describe('new-lesson writes the skeleton in the newest lessons’ full shape', (
     writeFileSync(join(tmp, 'app/src/lib/living-lessons-class.js'), "  {\n    id: 'll301-x',\n  },\n");
     writeFileSync(join(tmp, 'app/src/lib/living-lessons/ll302-y.js'), 'export default {};\n');
     const out = [];
+    const formatted = [];
     const code = run(['--title', 'A Fresh Word', '--anchor', 'Joel 2:28', '--added', '2026-11-13', '--no-reserve'], {
       cwd: tmp,
       log: (s) => out.push(s),
       err: (s) => out.push(s),
+      preflight: false,
+      format: (paths, opts) => {
+        formatted.push(...paths, opts);
+        return { ok: true, formatted: paths, skipped: [], reason: '' };
+      },
     });
     expect(code, out.join('\n')).toBe(0);
     const made = readFileSync(join(tmp, 'app/src/lib/living-lessons/ll303-a-fresh-word.js'), 'utf8');
     expect(made).toMatch(/id: 'll303-a-fresh-word'/);
-    expect(readFileSync(join(tmp, 'app/src/__tests__/living-lessons-ll303-a-fresh-word.test.js'), 'utf8')).toMatch(/expect\(ORDER\)\.toBe\(303\)/);
+    expect(readFileSync(join(tmp, 'app/src/__tests__/living-lessons-ll303-a-fresh-word.test.js'), 'utf8')).toMatch(/order: 303,/);
     expect(out.join('\n')).toMatch(/claude\/lesson-ll303/);
-    expect(run(['--title', 'Again', '--id', 'll302', '--no-reserve'], { cwd: tmp, log: () => {}, err: (s) => out.push(s) })).toBe(1);
+    expect(formatted.slice(0, 2).map((p) => p.replace(tmp, ''))).toEqual([
+      '/app/src/lib/living-lessons/ll303-a-fresh-word.js',
+      '/app/src/__tests__/living-lessons-ll303-a-fresh-word.test.js',
+    ]);
+    expect(formatted[2], 'new files are formatted whatever the base says').toEqual({ force: true });
+    expect(run(['--title', 'Again', '--id', 'll302', '--no-reserve'], { cwd: tmp, log: () => {}, err: (s) => out.push(s), preflight: false })).toBe(1);
     expect(out.join('\n')).toMatch(/ll302 is taken/);
+  });
+});
+
+describe('what new-lesson and fill-verses write is already formatted (DR-1477)', () => {
+  let tmp = null;
+  afterEach(() => {
+    if (tmp) rmSync(tmp, { recursive: true, force: true });
+    tmp = null;
+  });
+  const APP = join(__dirname, '..', '..');
+  // format-guard's own check, on the same files (it runs from app/ with the repo config).
+  const prettierCheck = (paths) =>
+    spawnSync('npx', ['--no-install', 'prettier', '--check', ...prettierArgs(paths).slice(3)], { cwd: APP, encoding: 'utf8', timeout: 20_000 });
+
+  it('PROVEN TO CATCH: the raw skeleton is not what format-guard accepts, and the formatted one is, filled or not', () => {
+    tmp = mkdtempSync(join(tmpdir(), 'new-lesson-fmt-'));
+    const lessonFile = join(tmp, 'll303-a-fresh-word.js');
+    const testFile = join(tmp, 'living-lessons-ll303-a-fresh-word.test.js');
+    const raw = lessonSkeleton({ id: 'll303-a-fresh-word', n: 303, title: 'A Fresh Word', anchor: 'Joel 2:28', added: '2026-11-13', dr: 'DR-1477' });
+    writeFileSync(lessonFile, raw);
+    writeFileSync(testFile, testSkeleton({ id: 'll303-a-fresh-word', n: 303, added: '2026-11-13', anchor: 'Joel 2:28' }));
+    expect(prettierCheck([lessonFile]).status, 'the unformatted skeleton must fail the check, or this case proves nothing').not.toBe(0);
+    const fmt = formatFiles([lessonFile, testFile], { force: true });
+    expect(fmt.ok, fmt.reason).toBe(true);
+    const checked = prettierCheck([lessonFile, testFile]);
+    expect(checked.status, checked.stdout + checked.stderr).toBe(0);
+    // fill-verses then fills, and formats again: the filled file still checks clean.
+    const filled = fillVerses(readFileSync(lessonFile, 'utf8'));
+    expect(filled.errors).toEqual([]);
+    writeFileSync(lessonFile, filled.text);
+    // base: HEAD, not origin/main: CI's checkout carries no origin/main ref, and an
+    // unreadable base reads as "already held" on purpose (never reformat an old file).
+    // HEAD always exists, and the temp file is never on it, so this asks the real question.
+    expect(formatFiles([lessonFile], { base: 'HEAD' }).formatted, 'a file the base does not hold is new, so it is formatted').toEqual([lessonFile]);
+    expect(prettierCheck([lessonFile]).status).toBe(0);
+  }, 90_000);
+
+  it('never reformats a file main already holds unless forced (DR-1343)', () => {
+    const old = join(__dirname, '..', 'lib', 'living-lessons', 'll308-only-yahweh-can-judge-me.js');
+    const calls = [];
+    const r = formatFiles([old], { run: (args) => (calls.push(args), { status: 0, out: '' }) });
+    expect(r.skipped).toEqual([old]);
+    expect(calls).toEqual([]);
   });
 });

@@ -14,6 +14,13 @@
 // Budget: at most MAX_DELETE refs per run, every git call under a timeout.
 // A reservation ABOVE main's highest is left alone, whatever its age: its
 // branch may still be in flight, and a held number only ever leaves a gap.
+//
+// A LESSON reservation is swept only once main HOLDS that very number, never
+// because main holds a higher one (DR-1477). L308 landed before L307 on
+// 2026-11-13; "at or below the highest" would have deleted reserve/ll-307 the
+// moment L308 merged, and the gap gates read that reservation to know 307 is
+// in flight rather than a hole. A decision-record gap is allowed, so a DR
+// reservation keeps the "at or below the highest" rule.
 // =============================================================================
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -53,12 +60,28 @@ export function highestLesson(catalogText, perFileNames = []) {
   return max;
 }
 
-/** Pure. Which reservation refs main has passed. */
-export function sweepable(refs, { dr, ll }) {
+/** Pure. Every Living Lesson number in the catalog text and the per-file names. */
+export function lessonNumbersOnMain(catalogText, perFileNames = []) {
+  const out = new Set();
+  for (const m of String(catalogText || '').matchAll(/\bid["']?\s*:\s*["']ll(\d+)-/g)) out.add(Number(m[1]));
+  for (const f of perFileNames) {
+    const m = /(?:^|\/)ll(\d+)-[^/]*\.js$/.exec(f);
+    if (m) out.add(Number(m[1]));
+  }
+  return out;
+}
+
+/**
+ * Pure. Which reservation refs main has passed. A lesson reservation is passed
+ * only when `landed` (main's lesson numbers) holds it; with no `landed` given it
+ * falls back to the old "at or below the highest" reading.
+ */
+export function sweepable(refs, { dr, ll, landed = null }) {
   return refs.filter((ref) => {
     const r = parseReserveRef(ref);
     if (!r) return false;
-    return r.kind === 'dr' ? r.n <= dr : r.n <= ll;
+    if (r.kind === 'dr') return r.n <= dr;
+    return landed ? landed.has(r.n) : r.n <= ll;
   });
 }
 
@@ -73,7 +96,7 @@ function readMain() {
   } catch {
     /* the directory does not exist on main yet */
   }
-  return { dr: highestDecision(decisions), ll: highestLesson(catalog, perFile) };
+  return { dr: highestDecision(decisions), ll: highestLesson(catalog, perFile), landed: lessonNumbersOnMain(catalog, perFile) };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -15,9 +15,9 @@ import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { reserveBranch, parseReserveRef, isHeldRefusal, reserveNext, reservedNumbers, claimOnRemote } from '../../../scripts/lib/reserve-ref.mjs';
+import { reserveBranch, parseReserveRef, isHeldRefusal, reserveNext, reservedNumbers, claimOnRemote, reservedNumbersOnOrigin } from '../../../scripts/lib/reserve-ref.mjs';
 import { main, lowestFree } from '../../../scripts/claim-decision-number.mjs';
-import { highestDecision, highestLesson, sweepable } from '../../../scripts/sweep-reservations.mjs';
+import { highestDecision, highestLesson, sweepable, lessonNumbersOnMain } from '../../../scripts/sweep-reservations.mjs';
 
 const RESERVE_LIB = resolve(__dirname, '../../../scripts/lib/reserve-ref.mjs');
 const ID = { GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.invalid', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.invalid' };
@@ -212,5 +212,46 @@ describe('the sweep deletes only what main has passed', () => {
     ];
     expect(sweepable(refs, { dr: 1461, ll: 301 })).toEqual(['refs/heads/reserve/dr-1461', 'refs/heads/reserve/ll-301']);
     expect(sweepable(refs, { dr: 1400, ll: 1 })).toEqual([]);
+  });
+});
+
+describe('lessons land in any order: a gate reads lesson reservations off origin (DR-1477)', () => {
+  it('reads a reserve/ll-NNN another clone pushed, with no fetch, straight from origin', () => {
+    const got = claimOnRemote({ kind: 'll', n: 307, cwd: clones[2], message: 'reserve L307 for claude/lesson-ll307' });
+    expect(got.ok, JSON.stringify(got)).toBe(true);
+    // clones[3] never fetched: its remote-tracking view holds nothing, origin holds 307.
+    expect(reservedNumbers({ kind: 'll', cwd: clones[3] }).has(307)).toBe(false);
+    const live = reservedNumbersOnOrigin({ kind: 'll', cwd: clones[3] });
+    expect(live.source).toBe('origin');
+    expect([...live.numbers]).toEqual([307]);
+    expect(reservedNumbersOnOrigin({ kind: 'dr', cwd: clones[3] }).numbers.has(307)).toBe(false);
+  }, 30_000);
+
+  it('falls back safely when origin cannot be reached: the tracking view, then nothing', () => {
+    const run = (args) => {
+      if (args[0] === 'ls-remote') throw Object.assign(new Error('x'), { stderr: 'fatal: unable to access origin' });
+      if (args[0] === 'for-each-ref') return 'refs/remotes/origin/reserve/ll-310\nrefs/remotes/origin/reserve/dr-1480\n';
+      throw new Error('unexpected');
+    };
+    const tracking = reservedNumbersOnOrigin({ kind: 'll', run });
+    expect(tracking.source).toBe('tracking');
+    expect([...tracking.numbers]).toEqual([310]);
+    const none = reservedNumbersOnOrigin({
+      kind: 'll',
+      run: () => {
+        throw new Error('no git');
+      },
+    });
+    expect(none.source).toBe('none');
+    expect(none.numbers.size, 'an unreachable origin excuses no hole').toBe(0);
+  });
+
+  it('PROVEN TO CATCH: the sweep keeps a lesson reservation main has passed but not landed', () => {
+    const refs = ['refs/heads/reserve/ll-307', 'refs/heads/reserve/ll-308', 'refs/heads/reserve/dr-1475'];
+    const landed = lessonNumbersOnMain("  id: 'll306-a',\n", ['app/src/lib/living-lessons/ll308-b.js']);
+    expect([...landed].sort((a, b) => a - b)).toEqual([306, 308]);
+    // The old rule (at or below the highest) would have deleted reserve/ll-307 the moment L308 landed.
+    expect(sweepable(refs, { dr: 1476, ll: 308 })).toContain('refs/heads/reserve/ll-307');
+    expect(sweepable(refs, { dr: 1476, ll: 308, landed })).toEqual(['refs/heads/reserve/ll-308', 'refs/heads/reserve/dr-1475']);
   });
 });

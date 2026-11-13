@@ -80,9 +80,11 @@ export const INDEX_REL = 'docs/decisions/INDEX.md';
 /**
  * The one line this tool must never rewrite (DR-1362).
  *
- * `**Next ID:**` is computed from disk by resolve-ledger-conflicts.mjs, which
- * owns it, because two things computing one line is how they drift (DR-0644 /
- * DR-1021). This pattern holds it back from the bare-id rewrite.
+ * `**Next ID:**` is one fixed, derived sentence since DR-1477 (it names no
+ * number, so a renumber never needs it); an INDEX from before then carries a
+ * number that resolve-ledger-conflicts.mjs folds into that sentence. Either
+ * way it is not this tool's line (DR-0644 / DR-1021), and this pattern holds it
+ * back from the bare-id rewrite.
  */
 export const POINTER_LINE = /^\s*\*\*Next ID:\*\*/;
 
@@ -330,7 +332,7 @@ export function renumberInTree(cwd, from, to, { force = false, file = null, log 
     log('number and a bare id may belong to either. Read these and fix the ones that meant the moved record:');
     for (const a of ambiguousFiles) log(`  ${a}`);
   }
-  log('The pointer is resolve-ledger-conflicts.mjs\'s to set — run it next.');
+  log('The pointer is derived (DR-1477): nothing to set. resolve-ledger-conflicts.mjs folds an old-shape one.');
   return { ...plan, rewrote, ambiguous, ambiguousFiles };
 }
 

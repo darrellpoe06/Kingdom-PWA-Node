@@ -15,8 +15,16 @@
 //   --add     appends an entry from flags, so a session records its own
 //             delivery in one command:
 //             node scripts/ai-usage-ledger.mjs --add --id <task-id> --date YYYY-MM-DD \
-//               --task "..." --drs <the record's id> --prs <pr number> --model claude-fable-5-1 \
+//               --task "..." --drs <the record's id> [--prs <pr number>] --model claude-fable-5-1 \
 //               --wall 0.3 --estimate 8 [--tokens-in N --tokens-out N --usd X] [--notes "..."]
+//
+//             --prs is OPTIONAL (DR-1477): the line is written in the same commit
+//             as the record, before the PR exists. NOTHING fills it in later, on
+//             purpose: no workflow writes this file, and a later branch editing
+//             an old entry would make resolve-ledger-conflicts refuse every open
+//             branch on that id (unionById refuses an id that differs between
+//             sides). The PR is read from the squash commit that adds the record,
+//             whose subject ends "(#NNNN)".
 //
 // Tokens and dollars stay null where no meter exposes them; the validator
 // refuses a cost with no tokens behind it (a guess, not a meter).

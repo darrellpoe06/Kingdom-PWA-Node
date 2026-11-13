@@ -16,6 +16,12 @@
 //
 //   node scripts/fill-verses.mjs app/src/lib/living-lessons/ll302-x.js [more ...]
 //   node scripts/fill-verses.mjs --check <file ...>   # exit 1 if any token would change
+//   node scripts/fill-verses.mjs --no-format <file ...>  # fill, leave the layout alone
+//
+// A filled file that main does not hold yet is then Prettier-formatted, the way
+// format-guard checks every file added since main (DR-1477): filling changes
+// line lengths and quoting, which used to cost a hand `format-guard --fix`. A
+// file main already holds is never reformatted (DR-1343's ratchet).
 //
 // The text is escaped for the string it lands in ('...', "..." or `...`), so a
 // filled file still parses. A token that is not inside a string or a comment is
@@ -27,6 +33,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseRef, formatRef, kjvText } from './lib/kjv.mjs';
+import { formatFiles } from './lib/prettier-write.mjs';
 
 export const TOKEN = /\{\{kjv:([^}|]+?)(?:\|([^}]*))?\}\}/g;
 
@@ -110,7 +117,9 @@ export function fillVerses(src) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const check = process.argv.includes('--check');
-  const files = process.argv.slice(2).filter((a) => a !== '--check');
+  const noFormat = process.argv.includes('--no-format');
+  const files = process.argv.slice(2).filter((a) => a !== '--check' && a !== '--no-format');
+  const written = [];
   if (!files.length) {
     console.error('usage: node scripts/fill-verses.mjs [--check] <lesson file> ...');
     process.exit(2);
@@ -132,8 +141,20 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       }
       continue;
     }
-    if (filled) writeFileSync(file, text);
+    if (filled) {
+      writeFileSync(file, text);
+      written.push(file);
+    }
     console.log(`fill-verses: ${file} — ${filled} verse(s) filled from app/public/bible/kjv`);
+  }
+  if (written.length && !noFormat) {
+    const fmt = formatFiles(written);
+    if (fmt.formatted.length) console.log(`fill-verses: formatted ${fmt.formatted.length} new file(s) with the repo Prettier`);
+    if (fmt.skipped.length) console.log(`fill-verses: left the layout of ${fmt.skipped.length} file(s) main already holds`);
+    if (!fmt.ok) {
+      bad += 1;
+      console.error(`fill-verses: the verses are filled but the file is NOT formatted — ${fmt.reason}`);
+    }
   }
   process.exit(bad ? 1 : 0);
 }

@@ -15,8 +15,23 @@
 // The next number therefore comes from the catalog in the tree being built on,
 // never from another checkout — the cause of the original mistake was asking a
 // repository directory that was parked on an older branch.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { join } from 'node:path';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import { reservedNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+
+// A NUMBER RESERVED ON ORIGIN IS IN FLIGHT, NOT A HOLE (DR-1477). L307 and L308
+// were built side by side on 2026-11-13, each on a number reserved as
+// refs/heads/reserve/ll-NNN (DR-1468); L308's branch was red here until L307
+// merged, because a number held by a branch still in flight read as a skip.
+// The gap checks below read the reservations the same way new-lesson.mjs and
+// claim-decision-number do (scripts/lib/reserve-ref.mjs), asking origin first.
+// Offline the set is empty and excuses nothing, so the check fails closed.
+const REPO = join(__dirname, '..', '..', '..');
+let RESERVED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
+beforeAll(() => {
+  RESERVED = reservedNumbersOnOrigin({ kind: 'll', cwd: REPO });
+}, 30_000);
 
 /** The numeric part of a lesson id: `ll241-advice…` -> 241. Null if unnumbered. */
 export function lessonNumber(id) {
@@ -174,8 +189,11 @@ describe('Living Lessons — the lesson number is unique', () => {
   it('no NEW number goes unclaimed, and a filled one may always be removed', () => {
     const gaps = unclaimedNumbers(LIVING_LESSONS_MODULES);
     const excused = [...KNOWN_GAPS, ...FOLDED_NUMBERS];
-    const appeared = gaps.filter((n) => !excused.includes(n));
-    expect(appeared, 'a lesson number nobody claims is a hole a reader can fall into').toEqual([]);
+    const { held, holes: appeared } = holesNotReserved(
+      gaps.filter((n) => !excused.includes(n)),
+      RESERVED.numbers
+    );
+    expect(appeared, `a lesson number nobody claims is a hole a reader can fall into (reservations read from ${RESERVED.source}${RESERVED.reason ? `: ${RESERVED.reason}` : ''})`).toEqual([]);
     // SHRINK-ONLY, UNCHANGED. KNOWN_GAPS is still measured against its own
     // length alone: it may lose entries and never gain them, which is the whole
     // ratchet. A folded number is counted separately because it is a different
@@ -183,7 +201,21 @@ describe('Living Lessons — the lesson number is unique', () => {
     expect(gaps.filter((n) => KNOWN_GAPS.includes(n)).length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
       .toBeLessThanOrEqual(KNOWN_GAPS.length);
     expect(KNOWN_GAPS.length, 'KNOWN_GAPS itself must not grow').toBe(2);
-    expect(gaps.length).toBe(excused.length);
+    expect(gaps.length).toBe(excused.length + held.length);
+  });
+
+  // PROVEN TO CATCH (DR-1477): the same planted gap, once with no reservation
+  // and once with reserve/ll-307 on origin. The first is a hole; the second is a
+  // lesson in flight on its own branch, which is how L308 should have read.
+  it('PROVEN TO CATCH: a planted gap with no reservation fails, and the same gap reserved passes', () => {
+    const planted = [{ id: 'll305-a' }, { id: 'll306-b' }, { id: 'll308-only-yahweh-can-judge-me' }];
+    expect(unclaimedNumbers(planted)).toEqual([307]);
+    expect(holesNotReserved(unclaimedNumbers(planted), new Set()).holes, 'no reservation: 307 is a hole').toEqual([307]);
+    const reserved = holesNotReserved(unclaimedNumbers(planted), new Set([307, 999]));
+    expect(reserved.holes, 'reserve/ll-307 on origin: 307 is in flight').toEqual([]);
+    expect(reserved.held).toEqual([307]);
+    // A reservation never excuses a duplicate.
+    expect(duplicateNumbers([...planted, { id: 'll308-again' }]).map((d) => d.number)).toEqual([308]);
   });
 
   it('a FOLDED number names the lesson that absorbed it, and that lesson is really there', () => {

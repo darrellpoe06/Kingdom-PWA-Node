@@ -37,8 +37,19 @@
 //     reader does not mistake it for something this gate blessed.
 // So the gate holds the one property the incident proves must hold: a lesson
 // number is claimed at most once.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { join } from 'node:path';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
+import { reservedNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+
+// A number reserved on origin (refs/heads/reserve/ll-NNN, DR-1468) is a lesson
+// in flight on its own branch, not a skip (DR-1477): lessons land in any order.
+// Read the way new-lesson.mjs reads them, origin first; offline it excuses none.
+const REPO = join(__dirname, '..', '..', '..');
+let RESERVED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
+beforeAll(() => {
+  RESERVED = reservedNumbersOnOrigin({ kind: 'll', cwd: REPO });
+}, 30_000);
 
 const ID_SHAPE = /^ll(\d+)-[a-z0-9-]+$/;
 
@@ -152,9 +163,11 @@ describe('the numbering gaps are recorded, not hidden — shrink-only ratchet', 
     const highest = Math.max(...claimed);
     const missing = [];
     for (let n = 1; n <= highest; n += 1) if (!claimed.has(n)) missing.push(n);
+    const { holes } = holesNotReserved(missing.filter((n) => !KNOWN_MISSING.includes(n)), RESERVED.numbers);
+    const unexplained = [...missing.filter((n) => KNOWN_MISSING.includes(n)), ...holes].sort((a, b) => a - b);
     expect(
-      missing,
-      `unrecorded gap(s) in the lesson numbering — a session skipped a number: ${missing.join(', ')}`,
+      unexplained,
+      `unrecorded gap(s) in the lesson numbering — a session skipped a number: ${holes.join(', ')} (reservations read from ${RESERVED.source})`,
     ).toEqual(KNOWN_MISSING);
   });
 
@@ -205,6 +218,13 @@ describe('PROVEN-TO-CATCH — the gate fails on the exact 2026-09-02 collision',
     const gaps = [];
     for (let n = 116; n <= 118; n += 1) if (!claimed.has(n)) gaps.push(n);
     expect(gaps).toEqual([117]);
+  });
+
+  it('CATCHES a skipped number with no reservation, and lets the same number pass while reserve/ll-NNN holds it (DR-1477)', () => {
+    const missing = [307];
+    expect(holesNotReserved(missing, new Set()).holes).toEqual([307]);
+    expect(holesNotReserved(missing, new Set([307])).holes).toEqual([]);
+    expect(holesNotReserved(missing, new Set([306, 308])).holes, 'a neighbour’s reservation excuses nothing').toEqual([307]);
   });
 
   it('CATCHES an id that is not shaped like a lesson id at all', () => {
