@@ -794,3 +794,9 @@ relying on it; memories reflect what was true when written.
   a WORK ORDER — "AGED ITEMS NEED REFRESH OBVIOUSLY" — worked or honestly re-dated (DR-0075),
   never merely re-counted. Pairs with DR-0111 (do the work), DR-0219 (spec-conformance),
   DR-0108 (ways-review).
+- **2026-11-13 — `project_parallel_lesson_branches_approved` (DR-1468).** Darrell: "Build 1,
+  2 and 3, and allow parallel branches." Parallel lesson branches are APPROVED: each Living
+  Lesson on its own `claude/lesson-llNNN` branch and its own PR, each with its own DR
+  reserved atomically on origin (`node scripts/new-lesson.mjs --title ... --anchor ...`,
+  which reserves `reserve/ll-NNN` and `reserve/dr-NNNN` and writes
+  `app/src/lib/living-lessons/<id>.js`). Never type a verse: `{{kjv:Ref}}` + fill-verses.

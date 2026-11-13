@@ -32,7 +32,8 @@ on:
   # the branch head; keep-prs-current (DR-0644) keeps live PRs current with main.
   # Fork PRs get no run; this repository takes none.
   push:
-    branches: ['**']
+    # reserve/** holds decision and lesson numbers as empty commits on main (DR-1468).
+    branches: ['**', '!reserve/**']
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
@@ -119,6 +120,8 @@ jobs:
       # A parked thing's re-review date is a promise; nothing checked whether it
       # had passed, only that it was shaped like a date (DR-0075, DR-1444).
       - run: node ../scripts/re-review-ratchet-guard.mjs
+      # No {{kjv:}} or {{write:}} token from the lesson scaffold ships (DR-1468).
+      - run: node ../scripts/unfilled-verse-token-guard.mjs
       # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
       # fails the build if the backbone seam migration is missing, any *-ingest.py
       # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,

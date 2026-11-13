@@ -39,6 +39,9 @@
 // `scripts/resolve-ledger-conflicts.mjs`, which owns the `Next ID` pointer.
 // Two things computing one line is how they drift (DR-1021).
 //
+// A NEW lesson is its own file under app/src/lib/living-lessons/ (DR-1468) and
+// never needs this tool; it applies to the 300 lessons still in the catalog file.
+//
 // Usage, from the worktree, DURING a conflicted merge:
 //   node scripts/splice-append.mjs app/src/lib/living-lessons-class.js [more…]
 import { execFileSync } from 'node:child_process';
@@ -73,6 +76,12 @@ const commonSuffix = (a, b, cap) => {
 export function spliceAppend({ base: baseT, ours: oursT, theirs: theirsT, file = '' }) {
   if (LEDGER_FILES.some((f) => file.endsWith(f))) {
     return { ok: false, reason: 'this is a ledger file — resolve-ledger-conflicts.mjs owns it, including the pointer' };
+  }
+  // A lesson written as its own file (app/src/lib/living-lessons/, DR-1468) is
+  // a new file on each branch, so it has nothing to splice. A conflict there
+  // means two branches wrote the SAME lesson id: a person reads that one.
+  if (/(?:^|\/)app\/src\/lib\/living-lessons\/[^/]+\.js$/.test(file)) {
+    return { ok: false, reason: 'a per-file lesson cannot be spliced: two branches wrote the same lesson file — one of them must take another id (scripts/new-lesson.mjs)' };
   }
   if (baseT == null || oursT == null || theirsT == null) {
     return { ok: false, reason: 'not a three-stage conflict (is it actually conflicted?)' };

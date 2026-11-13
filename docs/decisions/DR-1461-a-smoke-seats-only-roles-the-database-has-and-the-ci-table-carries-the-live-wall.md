@@ -35,4 +35,4 @@ The matrix's `one-person-one-house` leg goes green on its next dispatch with no 
 
 ## Verification after merge
 
-Recorded on merge: the PR number, the squash SHA, and the next `rls-isolation.yml` run's `one-person-one-house` leg green on the real database.
+DR-0107, done 2026-11-13: #2652 squash-merged as `6765b972` at 01:23Z; Deploy (Cloudflare Pages) run 43344591091 on that SHA green. The matrix, `rls-isolation.yml` run 43347774242 dispatched on that SHA: every leg green, `one-person-one-house` green at 01:50Z on the real database (red on the two runs before), `institute-roll` green at 02:03Z.

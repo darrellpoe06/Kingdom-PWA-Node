@@ -751,7 +751,21 @@ const REPO = join(HERE, '..', '..', '..');
 // address. re-review: 2026-11-19 -- send both links through Research; if the
 // captions confirm her words, replace the "did not watch" clauses with what
 // was read and lower this pin to 28.
-const GAP = 30;
+// 2026-11-13 (DR-1462, DR-1463, DR-1465): ll302, ll303 and ll305 RAISE the gap
+// to 33, by the SECOND remedy, measured on this tree after merging main. The
+// three lessons Darrell spoke that day name research this build could not open:
+// vatican.va, usccb.org and www.bls.gov all answered getaddrinfo ENOTFOUND from
+// the sandbox, so the Catechism's own pages, Burke's writings, Mill's address,
+// Fletcher's book and the BLS release page were NOT read, and every reader text
+// of the three says so. ll305 states the BLS Q3 2026 medians ($1,040 and $1,394)
+// as search results showed them from the release and a news report of it; no
+// lesson-sources.json row was written, because no runner has been shown to read
+// bls.gov back, and a row the witness cannot read would count a figure nobody
+// read back (DR-0076 section 3). ll304 and ll306 make no outside claim and
+// their own gates assert they admit nothing. re-review: 2026-11-27 -- read the
+// BLS release and the Catechism paragraphs from a runner; if they read back,
+// give ll305's medians a row, replace the not-read clauses, and lower this pin.
+const GAP = 33;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {

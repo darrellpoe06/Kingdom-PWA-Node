@@ -459,6 +459,8 @@ export default defineConfig({
           // DR-1214: the build-time manifests ride in their own file, once.
           if (/[\\/]src[\\/]lib[\\/]build-manifests\.js$/.test(id)) return 'build-manifests';
           if (/[\\/]src[\\/]lib[\\/]living-lessons-class\.js$/.test(id)) return 'living-lessons';
+          // DR-1462: a new Living Lesson is its own file; it rides the same chunk.
+          if (/[\\/]src[\\/]lib[\\/]living-lessons(-per-file\.js|[\\/]ll[^\\/]*\.js)$/.test(id)) return 'living-lessons';
           if (/[\\/]src[\\/]lib[\\/][a-z0-9-]+-(course|class|study)\.js$/.test(id)) return 'learn-courses';
           return undefined;
         },

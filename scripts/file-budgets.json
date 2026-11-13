@@ -191,6 +191,13 @@
       "why": "ll301, Your Old Men Shall Dream Dreams (DR-1426): the Joel 2:28 / Acts 2:17 lesson Darrell sent into the app with one word over it, Lesson. One lesson of four bands, two parables and an eight-question test, raised by its own measured size and nothing more, until DR-1339's lesson-content-out-of-JS re-review (2026-11-19)."
     },
     {
+      "file": "app/src/lib/living-lessons-class.js",
+      "from": 32192,
+      "to": 33072,
+      "date": "2026-11-13",
+      "why": "ll302-ll306 (DR-1462 to DR-1466): the five-lesson thread Darrell spoke on 2026-11-13, A Standard for Every Age, What Good Is, What Righteousness Is, Search Me and Know My Heart, and The Path of the Just Shineth. Five lessons of four bands, two parables and a quiz each, raised by their own measured size and nothing more, until DR-1339 lesson-content-out-of-JS re-review (2026-11-19)."
+    },
+    {
       "file": "app/src/components/ChurchLearn.jsx",
       "from": 5998,
       "to": 6002,
@@ -255,7 +262,7 @@
     }
   ],
   "budgets": {
-    "app/src/lib/living-lessons-class.js": 32192,
+    "app/src/lib/living-lessons-class.js": 33072,
     "app/src/lib/sovereign-ai-class.js": 12098,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6006,
@@ -271,5 +278,9 @@
     "app/src/components/Projects.jsx": 1939,
     "app/src/components/PracticeLearn.jsx": 1804,
     "app/src/lib/presentable.js": 1527
-  }
+  },
+  "dirBudgets": {
+    "app/src/lib/living-lessons/": 600
+  },
+  "_dirBudgets": "DR-1468: one Living Lesson per file under app/src/lib/living-lessons/, each held to the directory's ceiling, so a new lesson is born without editing this file. Measured 2026-11-13: the newest lessons (ll300, ll301) run about 145 lines in the shape scripts/new-lesson.mjs writes; the longest in the catalog file, ll203, runs 1,328 because it is JSON-formatted a phrase to a line, which is the shape this ceiling refuses for a new file."
 }

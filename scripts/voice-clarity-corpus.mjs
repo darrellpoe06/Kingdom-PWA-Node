@@ -37,7 +37,19 @@ import { dirname, join } from 'node:path';
 import { chunkForClips } from '../app/src/lib/clip-queue.js';
 import { toSpokenForm } from '../app/src/lib/speech-text.js';
 import { forSynthesis, longestSentenceWords } from '../app/src/lib/synthesis-text.js';
-import { LIVING_LESSONS_MODULES } from '../app/src/lib/living-lessons-class.js';
+import { preloadPerFileLessonsForNode } from './lib/living-lesson-files.mjs';
+
+// THE SAMPLE IS DRAWN FROM THE LESSONS THAT LIVE IN THE CATALOG FILE (DR-1468).
+// A lesson written as its own file under app/src/lib/living-lessons/ is left
+// out of the population on purpose: the fixture pins what it was cut from, so
+// every new lesson would otherwise rewrite this one shared fixture and two
+// lesson branches would collide on it. The witness listens to a SAMPLE; it is
+// not the catalog's verse or text gate, which reads every lesson.
+await preloadPerFileLessonsForNode(); // plain node has no import.meta.glob
+const { LIVING_LESSONS_MODULES } = await import('../app/src/lib/living-lessons-class.js');
+const { PER_FILE_CATALOG } = await import('../app/src/lib/living-lessons-per-file.js');
+const PER_FILE_IDS = new Set(PER_FILE_CATALOG.map((m) => m.id));
+export const CORPUS_MODULES = LIVING_LESSONS_MODULES.filter((m) => !PER_FILE_IDS.has(m.id));
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FIXTURE = join(HERE, '..', 'infra', 'nas-voice-lite', 'fixtures', 'clarity-corpus.json');
@@ -68,7 +80,7 @@ const entry = (group, source, written, i) => ({
 });
 
 /** Every piece of every Living Lesson, in catalog order, with its lesson id. */
-export function catalogPieces(modules = LIVING_LESSONS_MODULES) {
+export function catalogPieces(modules = CORPUS_MODULES) {
   const out = [];
   for (const L of modules) {
     for (const c of chunkForClips(L.lesson)) out.push({ lesson: L.id, written: c.text });
@@ -77,7 +89,7 @@ export function catalogPieces(modules = LIVING_LESSONS_MODULES) {
 }
 
 /** The corpus, deterministic for a given catalog. */
-export function buildCorpus(modules = LIVING_LESSONS_MODULES) {
+export function buildCorpus(modules = CORPUS_MODULES) {
   const all = catalogPieces(modules);
   const seen = new Set();
   // Takes the first n pieces not yet in the corpus, marking ONLY those taken
