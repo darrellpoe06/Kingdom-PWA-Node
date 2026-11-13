@@ -2018,13 +2018,15 @@
       "drs": [
         "DR-1460"
       ],
-      "prs": [],
+      "prs": [
+        2651
+      ],
       "model": "claude-fable-5-1",
       "tokens": null,
       "costUsd": null,
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 16,
-      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
+      "notes": "No token meter in this session; tokens and cost are null."
     }
   ]
 }
