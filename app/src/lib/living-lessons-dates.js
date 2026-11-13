@@ -583,4 +583,9 @@ export const LIVING_LESSONS_ADDED = {
   'll299-read-with-the-heart': '2026-11-10',
   'll300-put-not-your-trust-in-princes': '2026-11-10',
   'll301-old-men-dream-young-men-see': '2026-11-11',
+  'll302-a-standard-for-every-age': '2026-11-13',
+  'll303-what-good-is': '2026-11-13',
+  'll304-what-righteousness-is': '2026-11-13',
+  'll305-search-me-and-know-my-heart': '2026-11-13',
+  'll306-the-path-of-the-just-shineth': '2026-11-13',
 };
