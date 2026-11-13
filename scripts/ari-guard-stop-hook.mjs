@@ -108,11 +108,17 @@ async function main() {
     } catch { knownDocs = []; }
     // THE LEDGER POINTER, so reporting `Next ID` is not mistaken for citing a
     // record that cannot exist yet. If the read fails it stays null and the
-    // check polices every cited id exactly as it did before.
+    // check polices every cited id exactly as it did before. The INDEX line
+    // carries no number since DR-1477 (it is derived), so the number is the
+    // highest record on disk plus one; an old-shape line still wins if present.
     let nextDrId = null;
     try {
       const index = readFileSync(join(HERE, '..', 'docs', 'decisions', 'INDEX.md'), 'utf8');
       nextDrId = index.match(/^\*\*Next ID:\*\*\s*DR-(\d{4})/m)?.[1] ?? null;
+      if (nextDrId === null) {
+        const { nextIdOnDisk } = await import(join(HERE, 'lib', 'decision-pointer.mjs'));
+        nextDrId = String(nextIdOnDisk(join(HERE, '..', 'docs', 'decisions'))).padStart(4, '0');
+      }
     } catch { nextDrId = null; }
     const cite = checkCitedButUnread({
       claimText: text, readPaths: paths, shellText: shell, knownDocs, nextDrId,

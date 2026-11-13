@@ -17,14 +17,21 @@
 //    an empty commit pushed to refs/heads/reserve/ll-NNN with an empty lease, so
 //    two sessions scaffolding at once cannot both get it. --id names a number
 //    instead; it is refused if taken, and reserved like any other.
+// 0. PREFLIGHT (DR-1477, scripts/lib/lesson-preflight.mjs): a shallow clone is
+//    refused with `git fetch --unshallow origin`; a worktree with no
+//    app/node_modules is linked to the main checkout's, and says so.
 // 2. THE FILES. app/src/lib/living-lessons/<id>.js in the newest lessons' full
-//    shape (four age bands, the adult lesson, two parables, an eight-question
-//    quiz, the facilitator's notes), with {{kjv:...}} where Scripture is quoted
-//    and {{write:...}} where prose is owed; and its test stub. Fill the verses
-//    with `node scripts/fill-verses.mjs <file>`. unfilled-verse-token-guard
-//    fails the build while any token is left, so a skeleton cannot ship.
+//    shape (four age bands, the adult lesson, two parables, a ten-question
+//    quiz, the facilitator's notes, and a commented UNCHECKED slot to fill or
+//    delete), with {{kjv:...}} where Scripture is quoted and {{write:...}}
+//    where prose is owed; and its test, which mounts the shared gate
+//    (app/src/__tests__/helpers/living-lesson-gate.js) on a spine you name.
+//    Both are Prettier-formatted as written (format-guard passes with no hand
+//    step), and fill-verses.mjs formats what it fills. unfilled-verse-token-
+//    guard fails the build while any token is left, so a skeleton cannot ship.
 // 3. THE RECORD. claim-decision-number --reserve, so the lesson's DR number is
-//    held on origin before a word of the record is written.
+//    held on origin before a word of the record is written. Its ledger line
+//    (ai-usage-ledger.mjs --add) needs no PR number: --prs is optional.
 //
 // A new lesson needs NO per-lesson verse test: quoted-verse-is-the-verse.test.js
 // reads every quotation of every lesson in LIVING_LESSONS_MODULES against the
@@ -37,6 +44,8 @@ import { fileURLToPath } from 'node:url';
 import { claimOnRemote, reserveNext, reservedNumbers, RESERVE_NS } from './lib/reserve-ref.mjs';
 import { LIVING_LESSONS_DIR_REL, lessonFileNames } from './lib/living-lesson-files.mjs';
 import { flagValue, main as claimDecision } from './claim-decision-number.mjs';
+import { formatFiles } from './lib/prettier-write.mjs';
+import { preflight as runPreflight } from './lib/lesson-preflight.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CATALOG = 'app/src/lib/living-lessons-class.js';
@@ -125,6 +134,11 @@ export function lessonSkeleton({ id, n, title, anchor, added, dr }) {
 export const ORDER = ${n};
 export const ADDED = '${added}';
 
+// UNCHECKED: fill this in, or DELETE these lines if every claim was read back
+// from its source. Name what was not checked, the hosts that refused you, and
+// a date to look again, e.g. 'www.example.gov refused (proxy 403); re-review: 2026-12-01'.
+export const UNCHECKED = '${W('what was not read back, which hosts refused, and re-review: YYYY-MM-DD; or delete this export')}';
+
 export default {
   id: '${id}',
   title: '${title.replace(/'/g, '’')} — ${W('the subtitle')}',
@@ -165,7 +179,7 @@ export default {
   },
   quiz: {
     questions: [
-${[1, 2, 3, 4, 5, 6, 7, 8].map(q).join('\n')}
+${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(q).join('\n')}
     ],
   },
   facilitator: {
@@ -185,36 +199,34 @@ ${[1, 2, 3, 4, 5, 6, 7, 8].map(q).join('\n')}
 `;
 }
 
-/** Pure. The lesson's test stub. */
-export function testSkeleton({ id, n, added }) {
-  return `// L${n} — the lesson joins the catalog once, on its own number and day, whole.
-// Its quotations need no test here: quoted-verse-is-the-verse.test.js reads every
-// quotation of every Living Lesson, this one included, against its verse.
-import { describe, it, expect } from 'vitest';
-import lesson, { ORDER, ADDED } from '../lib/living-lessons/${id}.js';
-import { LIVING_LESSONS_MODULES, buildLivingLessonsSchedule } from '../lib/living-lessons-class.js';
+/** Pure. The lesson's test: the shared gate on a spine you name, plus what is particular to it. */
+export function testSkeleton({ id, n, added, anchor = '' }) {
+  return `// L${n} — the shared Living Lesson gate (helpers/living-lesson-gate.js, DR-1477):
+// on its own number and day, the spine in every band, every quotation verbatim,
+// our voice naming Yahweh, the three talk-together directions per band, real
+// band shares and no reworded copy, two parables and ten questions, and no
+// spoken word put in double quotes. Add below what is particular to this lesson.
+import lesson, { ORDER, ADDED, UNCHECKED } from '../lib/living-lessons/${id}.js';
+import { livingLessonGate } from './helpers/living-lesson-gate.js';
 
-const ID = '${id}';
-
-describe('L${n}', () => {
-  it('is in the catalog exactly once, on its own number and day', () => {
-    expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(ORDER).toBe(${n});
-    expect(ADDED).toBe('${added}');
-    expect(buildLivingLessonsSchedule().find((m) => m.id === ID).added).toBe('${added}');
-  });
-
-  it('carries the adult lesson, all four age bands, two parables and a test', () => {
-    expect(lesson.lesson.length).toBeGreaterThan(2000);
-    for (const band of ['child', 'youth', 'teen', 'senior']) expect(lesson.levels[band].length, band).toBeGreaterThan(800);
-    expect(lesson.stories.filter((s) => s.kind === 'parable')).toHaveLength(2);
-    expect(lesson.quiz.questions.length).toBeGreaterThanOrEqual(8);
-  });
+livingLessonGate({
+  id: '${id}',
+  lesson,
+  ORDER,
+  ADDED,
+  UNCHECKED,
+  order: ${n},
+  added: '${added}',
+  // [reference, a span every text quotes]: at least five the lesson cannot teach without.
+  spine: [['${anchor || 'Book C:V'}', '${W('a span of this verse that every band quotes')}']],
 });
 `;
 }
 
-export function run(argv = process.argv.slice(2), { cwd = ROOT, log = console.log, err = console.error, reserve = true } = {}) {
+export function run(
+  argv = process.argv.slice(2),
+  { cwd = ROOT, log = console.log, err = console.error, reserve = true, preflight = true, format = formatFiles } = {}
+) {
   const title = flagValue(argv, '--title');
   if (!title) {
     err('usage: node scripts/new-lesson.mjs --title "..." [--anchor "Book C:V"] [--id llNNN] [--added YYYY-MM-DD] [--no-reserve]');
@@ -224,6 +236,7 @@ export function run(argv = process.argv.slice(2), { cwd = ROOT, log = console.lo
   const added = flagValue(argv, '--added') || new Date().toISOString().slice(0, 10);
   const wantId = flagValue(argv, '--id');
   const doReserve = reserve && !argv.includes('--no-reserve');
+  if (preflight && runPreflight({ cwd, log, err }) !== 0) return 1;
 
   if (doReserve) gitIn(cwd)(['fetch', '--quiet', '--prune', '--no-tags', 'origin', '+refs/heads/*:refs/remotes/origin/*']);
   const { landed, inFlight, reserved } = lessonNumbersTaken({ cwd });
@@ -284,8 +297,13 @@ export function run(argv = process.argv.slice(2), { cwd = ROOT, log = console.lo
   }
   mkdirSync(dirname(lessonPath), { recursive: true });
   writeFileSync(lessonPath, lessonSkeleton({ id, n, title, anchor, added, dr }));
-  writeFileSync(testPath, testSkeleton({ id, n, added }));
+  writeFileSync(testPath, testSkeleton({ id, n, added, anchor }));
   log(`wrote ${LIVING_LESSONS_DIR_REL}/${id}.js and app/src/__tests__/living-lessons-${id}.test.js`);
+  // Both files are new, so they are formatted whatever the base says (DR-1343's
+  // ratchet reads files ADDED since main, which these are).
+  const fmt = format([lessonPath, testPath], { force: true });
+  if (fmt.ok) log('formatted both with the repo Prettier (format-guard will read them clean)');
+  else err(`new-lesson: the files are written but NOT formatted — ${fmt.reason}`);
   log(
     `next: git switch -c claude/lesson-ll${n} origin/main · write the {{write:}} prose · node scripts/fill-verses.mjs ${LIVING_LESSONS_DIR_REL}/${id}.js${dr ? ` · record ${dr}` : ''}`
   );

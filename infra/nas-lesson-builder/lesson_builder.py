@@ -632,7 +632,9 @@ def update_index(text, row, dr, slug, date):
     text = text[:line_end + 1] + row + "\n" + text[line_end + 1:]
     m = re.search(r"\*\*Next ID:\*\* DR-(\d{4})\.", text)
     if m:
-        # business-systems-guard: the pointer is the newest record + 1, exactly.
+        # Only an INDEX from before DR-1477 still types a number here. Since
+        # then the pointer is one derived sentence with no number, this search
+        # finds nothing, and the line is left exactly as it is.
         nxt = max(top[0], dr) + 1
         text = text[:m.start()] + "**Next ID:** DR-{:04d}. (DR-{:04d} = {}, {}, built on the NAS.)".format(
             nxt, dr, slug, date) + text[m.end():]

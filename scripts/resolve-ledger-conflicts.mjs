@@ -34,8 +34,10 @@
 //
 //   INDEX.md   union of every line from both sides; DR rows de-duplicated by
 //              id (first kept, table order kept); every "**Next ID:**" line
-//              folded into ONE, the pointer RECOMPUTED as newest-DR-file-on-
-//              disk + 1, every parenthetical annotation from both sides kept.
+//              folded into ONE, written as the DERIVED pointer (DR-1477: one
+//              fixed sentence, no number, no branch edits it); every
+//              annotation an old-shape pointer carried is kept on the frozen
+//              history line, never dropped.
 //   health     regenerated with `node scripts/legibility-guard.mjs --health`.
 //   usage      UNIONED BY `id`, never merged as text, main's order kept and
 //              ours appended — and REFUSED when the same id differs between
@@ -53,9 +55,8 @@
 //       conflict; they are named); 1 = verification failed.
 //   node scripts/resolve-ledger-conflicts.mjs --driver %O %A %B
 //       Git merge-driver mode for INDEX.md (.gitattributes `merge=dr-ledger`).
-//       Writes the resolved text to %A. The pointer here is rows-max + 1
-//       (the tree is mid-checkout, so disk is not yet authoritative); the
-//       post-merge mode above re-derives it from disk.
+//       Writes the resolved text to %A. The pointer is the derived line
+//       either way (DR-1477), so neither mode writes a number into it.
 //
 // Pure functions exported for vitest (proven-to-catch in
 // app/src/__tests__/resolve-ledger-conflicts.test.js).
@@ -65,6 +66,17 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+
+// THE DERIVED POINTER (DR-1477), written out here and NOT imported: this file
+// is copied ALONE to $RUNNER_TEMP by keep-prs-current.yml (the copy on main
+// resolves every branch), so it may import nothing of its own. The canonical
+// copy is scripts/lib/decision-pointer.mjs; the-pointer-is-derived.test.js
+// fails the build if the two ever differ by a byte.
+export const DERIVED_POINTER =
+  '**Next ID:** derived, never typed. Run `node scripts/claim-decision-number.mjs --reserve`: it reads the highest record on disk and on origin/main, every unlanded branch and every `reserve/dr-*` on origin, and holds the next number for you. No branch edits this line.';
+export const HISTORY_PREFIX = '**Pointer history, frozen by DR-1477 when the pointer became derived; no branch edits it:**';
+const isDerivedPointer = (line) => String(line || '').trimEnd() === DERIVED_POINTER;
+const isHistoryLine = (line) => String(line || '').startsWith(HISTORY_PREFIX);
 
 export const LEDGER_INDEX = 'docs/decisions/INDEX.md';
 export const LEGIBILITY_HEALTH = 'app/src/lib/legibility-health.json';
@@ -347,7 +359,7 @@ export function nextIdAnnotations(line) {
  * @param {{maxPasses?: number}} opts
  * @returns {{line: string, passes: number, segments: number}}
  */
-export function renderPointerLine(pointer, lists, { maxPasses = 6 } = {}) {
+export function renderPointerLine(pointer, lists, { maxPasses = 6, parse = nextIdAnnotations } = {}) {
   const first = unionAnnotations(lists);
   if (!first.length) return { line: pointer, passes: 0, segments: 0 };
 
@@ -355,13 +367,13 @@ export function renderPointerLine(pointer, lists, { maxPasses = 6 } = {}) {
   let line = `${pointer} ${ann.join(' ')}`;
   let passes = 1;
   for (; passes <= maxPasses; passes += 1) {
-    const readBack = nextIdAnnotations(line);
+    const readBack = parse(line);
     if (readBack.length === new Set(readBack).size) break;
     ann = unionAnnotations([readBack]);
     line = `${pointer} ${ann.join(' ')}`;
   }
 
-  const readBack = nextIdAnnotations(line);
+  const readBack = parse(line);
   if (readBack.length !== new Set(readBack).size) {
     throw new Error(
       `renderPointerLine: the pointer line still reads back with duplicate segments after ${maxPasses} passes `
@@ -416,10 +428,22 @@ export function maxRowId(text) {
   return max;
 }
 
+/** Pure. The annotation groups on the frozen history line (DR-1477). */
+export function historyAnnotations(line) {
+  return nextIdAnnotations(String(line).slice(HISTORY_PREFIX.length));
+}
+
 /**
  * Normalize a (marker-free) INDEX.md: DR rows de-duplicated by id (first kept),
- * all "**Next ID:**" lines folded into one at the first one's position with the
- * pointer set to `nextId` (default: highest row id + 1).
+ * all "**Next ID:**" lines folded into one at the first one's position, written
+ * as the DERIVED pointer (DR-1477). `nextId` (default: highest row id + 1) is
+ * no longer written anywhere; it is returned for the caller to report.
+ *
+ * WHERE THE OLD ANNOTATIONS GO. A branch cut before DR-1477 still rewrites the
+ * old numbered line and may have prepended a note to it. That note is the
+ * record (DR-0011), so it is moved onto the frozen history line, newest first,
+ * and every group already there is kept as it was. A merge with no old-shape
+ * line and one history line leaves the history line byte for byte.
  */
 export function normalizeLedger(text, { nextId } = {}) {
   if (conflictMarkerLines(text).length) throw new Error('normalizeLedger: text still carries conflict markers');
@@ -435,7 +459,10 @@ export function normalizeLedger(text, { nextId } = {}) {
   const removedRows = [];
   const out = [];
   const annotationLists = [];
+  const historyLists = [];
   let nextAt = -1;
+  let historyAt = -1;
+  let pointerLines = 0;
   for (const line of lines) {
     const row = ROW_RE.exec(line);
     if (row) {
@@ -494,26 +521,51 @@ export function normalizeLedger(text, { nextId } = {}) {
       continue;
     }
     if (NEXT_RE.test(line)) {
-      annotationLists.push(nextIdAnnotations(line));
+      // The derived line carries no annotations; an old-shape line's are kept.
+      if (!isDerivedPointer(line)) annotationLists.push(nextIdAnnotations(line));
+      pointerLines += 1;
       if (nextAt === -1) { nextAt = out.length; out.push(line); }
+      continue;
+    }
+    if (isHistoryLine(line)) {
+      historyLists.push(historyAnnotations(line));
+      if (historyAt === -1) { historyAt = out.length; out.push(line); }
       continue;
     }
     out.push(line);
   }
   const id = nextId ?? maxRowId(text) + 1;
-  const pointer = `**Next ID:** DR-${String(id).padStart(4, '0')}.`;
-  if (nextAt === -1) throw new Error('normalizeLedger: INDEX.md has no "**Next ID:**" line');
-  // Rendered through renderPointerLine, which proves the line reads back as
-  // what was written instead of trusting that join is the inverse of the
-  // parse. It is not, and PR #2487's red shard was the proof (DR-1292).
-  const rendered = renderPointerLine(pointer, annotationLists);
-  out[nextAt] = rendered.line;
+  // No pointer line at all: the rows still union. Nothing is invented here; a
+  // ledger without its pointer is business-systems-guard's finding, and the
+  // resolver runs that guard before it calls a merge resolved.
+  if (nextAt !== -1) out[nextAt] = DERIVED_POINTER;
+  let historyPasses = 0;
+  let historySegments = historyLists.length ? historyLists[0].length : 0;
+  const before = new Set(historyLists.flat());
+  const arriving = [...new Set(annotationLists.flat())].filter((g) => !before.has(g));
+  if (arriving.length || historyLists.length > 1) {
+    // Old-shape notes first (they are the newest, as every PR prepended), then
+    // the history as it stood. Rendered through renderPointerLine so the line
+    // is proven to read back as written (DR-1292).
+    const rendered = renderPointerLine(HISTORY_PREFIX, [...annotationLists, ...historyLists].filter((l) => l.length), {
+      parse: historyAnnotations,
+    });
+    historyPasses = rendered.passes;
+    historySegments = rendered.segments;
+    if (historyAt === -1) {
+      out.splice(nextAt + 1, 0, rendered.line);
+    } else {
+      out[historyAt] = rendered.line;
+    }
+  }
   return {
     text: out.join('\n'),
     removedRows,
-    foldedNextIdLines: annotationLists.length,
-    pointerPasses: rendered.passes,
-    pointerSegments: rendered.segments,
+    nextId: id,
+    foldedNextIdLines: pointerLines,
+    movedToHistory: arriving.length,
+    pointerPasses: historyPasses,
+    pointerSegments: historySegments,
   };
 }
 
@@ -858,7 +910,8 @@ export function resolveInTree(cwd, { log = console.log, err = console.error } = 
     const r = resolveLedgerText(text, { nextId });
     writeFileSync(indexAbs, r.text);
     git(['add', '--', LEDGER_INDEX], { cwd });
-    log(`INDEX.md: pointer DR-${String(nextId).padStart(4, '0')}, ${r.foldedNextIdLines} Next-ID line(s) folded into one` +
+    log(`INDEX.md: pointer derived (next on disk DR-${String(nextId).padStart(4, '0')}), ${r.foldedNextIdLines} Next-ID line(s) folded into one` +
+      (r.movedToHistory ? `, ${r.movedToHistory} old-shape annotation(s) kept on the history line` : '') +
       (r.removedRows.length ? `, duplicate rows dropped: ${r.removedRows.join(', ')}` : ', no duplicate rows') + '.');
   }
 

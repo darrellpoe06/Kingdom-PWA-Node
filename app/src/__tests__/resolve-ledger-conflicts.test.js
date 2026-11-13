@@ -18,6 +18,7 @@ import {
   conflictMarkerLines, unionConflictHunks, unionKeepingOrder, nextIdAnnotations, unionAnnotations,
   normalizeLedger, resolveLedgerText, unionUsageLedgerText, unionById,
   unionBudgetText, BUDGET_SPECS, BUDGET_GUARDS, RESOLVED_FILES,
+  DERIVED_POINTER, HISTORY_PREFIX, historyAnnotations,
 } from '../../../scripts/resolve-ledger-conflicts.mjs';
 import { regenerate } from '../../../scripts/file-budget-guard.mjs';
 import { canonicalFault } from '../../../scripts/ai-usage-ledger.mjs';
@@ -41,29 +42,31 @@ describe('resolve-ledger-conflicts — the real 2026-09-24 conflict', () => {
     expect(f.some((x) => x.includes('"**Next ID:**" lines'))).toBe(true);
   });
 
-  it('CATCHES the naive "take theirs" resolution: the branch pointer DR-0636 is stale', () => {
+  it('CATCHES the naive "take theirs" resolution: a typed pointer, and main\u2019s rows dropped', () => {
     const takeTheirs = REAL.replace(/^<{7}.*\n[\s\S]*?^={7}\n([\s\S]*?)^>{7}.*\n/gm, '$1');
     expect(conflictMarkerLines(takeTheirs)).toEqual([]);
     const f = drLedgerFindings({ indexText: takeTheirs, diskIds: [637, 638] });
-    expect(f.some((x) => x.includes('pointer must read DR-0639'))).toBe(true);
+    // The pointer is derived now (DR-1477): a typed number in it is the finding.
+    expect(f.some((x) => x.includes('derived, never typed'))).toBe(true);
     expect(f.some((x) => x.includes('no row for DR-0637'))).toBe(true); // main's rows were dropped
   });
 
-  it('resolves it: every row from both sides once, one pointer at disk+1, guard clean', () => {
-    const { text } = resolveLedgerText(REAL, { nextId: 639 });
+  it('resolves it: every row from both sides once, one derived pointer, guard clean', () => {
+    const { text, nextId } = resolveLedgerText(REAL, { nextId: 639 });
+    expect(nextId).toBe(639);
     expect(conflictMarkerLines(text)).toEqual([]);
     const ids = rowIds(text);
     for (const id of ['0637', '0638', '0629', '0627', '0630', '0631', '0635']) expect(ids).toContain(id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(text.split('\n').filter((l) => l.startsWith('**Next ID:**'))).toHaveLength(1);
-    expect(text).toMatch(/^\*\*Next ID:\*\* DR-0639\. /m);
+    expect(text.split('\n')).toContain(DERIVED_POINTER);
     expect(drLedgerFindings({ indexText: text, diskIds: [631, 635, 637, 638] })).toEqual([]);
   });
 
-  it('keeps every annotation from both Next ID lines (nothing silently dropped)', () => {
+  it('keeps every annotation from both old Next ID lines, on the frozen history line (nothing silently dropped)', () => {
     const [ours, theirs] = REAL.split('\n').filter((l) => l.startsWith('**Next ID:**'));
     const { text } = resolveLedgerText(REAL, { nextId: 639 });
-    const out = new Set(nextIdAnnotations(text.split('\n').find((l) => l.startsWith('**Next ID:**'))));
+    const out = new Set(historyAnnotations(text.split('\n').find((l) => l.startsWith(HISTORY_PREFIX))));
     for (const g of [...nextIdAnnotations(ours), ...nextIdAnnotations(theirs)]) expect(out.has(g)).toBe(true);
   });
 });
@@ -88,14 +91,18 @@ describe('resolve-ledger-conflicts — pure pieces, each proven to catch', () =>
     '>>>>>>> theirs',
   ].join('\n');
 
-  it('a Next ID clash resolves to disk+1, not to either side', () => {
-    const { text } = resolveLedgerText(clash, { nextId: 105 }); // a DR-0104 file landed elsewhere
-    expect(text).toContain('**Next ID:** DR-0105. ');
+  it('a Next ID clash resolves to the derived line, never to either side\u2019s number', () => {
+    const r = resolveLedgerText(clash, { nextId: 105 }); // a DR-0104 file landed elsewhere
+    expect(r.text.split('\n').filter((l) => l.startsWith('**Next ID:**'))).toEqual([DERIVED_POINTER]);
+    expect(r.text).not.toMatch(/\*\*Next ID:\*\* DR-\d/);
+    expect(r.nextId).toBe(105);
+    expect(r.movedToHistory).toBe(3);
   });
 
-  it('without a disk pointer it falls back to highest row + 1', () => {
-    const { text } = resolveLedgerText(clash);
-    expect(text).toContain('**Next ID:** DR-0104. ');
+  it('without a disk number it reports highest row + 1, and still writes no number', () => {
+    const r = resolveLedgerText(clash);
+    expect(r.nextId).toBe(104);
+    expect(r.text).not.toMatch(/\*\*Next ID:\*\* DR-\d/);
   });
 
   it('duplicate rows are dropped by id and reported; table order is kept', () => {
@@ -168,7 +175,7 @@ describe('resolve-ledger-conflicts — pure pieces, each proven to catch', () =>
       '>>>>>>> theirs', '',
     ].join('\n');
     const { text } = resolveLedgerText(hunk, { nextId: 103 });
-    expect(text).toBe('| [DR-0100](a.md) | a |\n| [DR-0101](b.md) | pr |\n| [DR-0102](c.md) | main |\n\n**Next ID:** DR-0103. (main.) (pr.)\n');
+    expect(text).toBe(`| [DR-0100](a.md) | a |\n| [DR-0101](b.md) | pr |\n| [DR-0102](c.md) | main |\n\n${DERIVED_POINTER}\n${HISTORY_PREFIX} (main.) (pr.)\n`);
     expect(unionKeepingOrder(['a', '', 'P1'], ['b', '', 'P2'])).toEqual(['a', 'b', '', 'P1', 'P2']);
   });
 
@@ -201,6 +208,8 @@ function makeRepo() {
   g('config', 'user.email', 't@t'); g('config', 'user.name', 't'); g('config', 'commit.gpgsign', 'false');
   mkdirSync(join(dir, 'scripts'), { recursive: true });
   copyFileSync(join(REPO, 'scripts/business-systems-guard.mjs'), join(dir, 'scripts/business-systems-guard.mjs'));
+  mkdirSync(join(dir, 'scripts/lib'), { recursive: true });
+  copyFileSync(join(REPO, 'scripts/lib/decision-pointer.mjs'), join(dir, 'scripts/lib/decision-pointer.mjs'));
   // Stand-in generator: deterministic output from the pages in app/src/pages.
   w('scripts/legibility-guard.mjs', [
     "import { readdirSync, writeFileSync } from 'node:fs';",
@@ -211,7 +220,8 @@ function makeRepo() {
   w('app/src/pages/a.jsx', 'export default 1;\n');
   w('app/src/lib/legibility-health.json', JSON.stringify({ pages: ['a.jsx'] }, null, 2) + '\n');
   w('docs/decisions/DR-0100-a.md', '# a\n');
-  w('docs/decisions/INDEX.md', '| [DR-0100](DR-0100-a.md) | a |\n\n**Next ID:** DR-0101. (DR-0100 = a.)\n');
+  // The derived pointer (DR-1477): neither side below edits it.
+  w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n\n${DERIVED_POINTER}\n`);
   g('add', '-A'); g('commit', '-qm', 'base');
   return { dir, g, w, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
@@ -219,7 +229,7 @@ function makeRepo() {
 function twoSides({ g, w }, { extraOnPr, extraOnMain } = {}) {
   g('checkout', '-qb', 'pr');
   w('docs/decisions/DR-0101-pr.md', '# pr\n');
-  w('docs/decisions/INDEX.md', '| [DR-0100](DR-0100-a.md) | a |\n| [DR-0101](DR-0101-pr.md) | pr |\n\n**Next ID:** DR-0102. (DR-0101 = pr.) (DR-0100 = a.)\n');
+  w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n| [DR-0101](DR-0101-pr.md) | pr |\n\n${DERIVED_POINTER}\n`);
   w('app/src/pages/pr.jsx', 'export default 2;\n');
   w('app/src/lib/legibility-health.json', JSON.stringify({ pages: ['a.jsx', 'pr.jsx'] }, null, 2) + '\n');
   if (extraOnPr) extraOnPr();
@@ -228,7 +238,7 @@ function twoSides({ g, w }, { extraOnPr, extraOnMain } = {}) {
   // main took DR-0101 AND DR-0102 first — the PR's own number is now a clash too,
   // but that is a rename for the owner; the ledger rows and pointer still union.
   w('docs/decisions/DR-0102-main.md', '# main\n');
-  w('docs/decisions/INDEX.md', '| [DR-0100](DR-0100-a.md) | a |\n| [DR-0102](DR-0102-main.md) | main |\n\n**Next ID:** DR-0103. (DR-0102 = main.) (DR-0100 = a.)\n');
+  w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n| [DR-0102](DR-0102-main.md) | main |\n\n${DERIVED_POINTER}\n`);
   w('app/src/pages/main.jsx', 'export default 3;\n');
   w('app/src/lib/legibility-health.json', JSON.stringify({ pages: ['a.jsx', 'main.jsx'] }, null, 2) + '\n');
   if (extraOnMain) extraOnMain();
@@ -254,9 +264,9 @@ describe('resolve-ledger-conflicts — end to end in a real merge', () => {
       const index = readFileSync(join(r.dir, 'docs/decisions/INDEX.md'), 'utf8');
       expect(rowIds(index)).toEqual(['0100', '0101', '0102']);
       expect(rowIds(index.split('**Next ID:**')[1])).toEqual([]); // no row below the pointer
-      expect(index).toContain('**Next ID:** DR-0103. ');
-      expect(index).toContain('(DR-0101 = pr.)');
-      expect(index).toContain('(DR-0102 = main.)');
+      // Two appends at the table's end still conflict as text; the pointer
+      // itself was not part of the conflict and is not touched (DR-1477).
+      expect(index.split('\n').filter((l) => l.startsWith('**Next ID:**'))).toEqual([DERIVED_POINTER]);
       const health = JSON.parse(readFileSync(join(r.dir, 'app/src/lib/legibility-health.json'), 'utf8'));
       expect(health.pages).toEqual(['a.jsx', 'main.jsx', 'pr.jsx']); // regenerated, not picked
       expect(r.g('diff', '--name-only', '--diff-filter=U')).toBe('');
@@ -328,6 +338,33 @@ describe('resolve-ledger-conflicts — end to end in a real merge', () => {
       expect(rowIds(index)).toEqual(['0100', '0101', '0102']);
       expect(rowIds(index.split('**Next ID:**')[1])).toEqual([]); // no row below the pointer
       expect(run(r.dir).status).toBe(0); // the post-merge pass finishes the health file
+    } finally { r.cleanup(); }
+  });
+
+  it('a branch cut BEFORE the pointer was derived merges main: its typed pointer folds in and its note moves to the history line (DR-1477)', () => {
+    const r = makeRepo(); r.g.dir = r.dir;
+    try {
+      const OLD = `**Next ID:** DR-0101. (DR-0100 = a.)`;
+      r.w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n\n${OLD}\n`);
+      r.g('add', '-A'); r.g('commit', '-qm', 'the old shape');
+      r.g('checkout', '-qb', 'stale');
+      r.w('docs/decisions/DR-0101-stale.md', '# stale\n');
+      r.w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n| [DR-0101](DR-0101-stale.md) | stale |\n\n**Next ID:** DR-0102. (DR-0101 = stale, typed the old way.) (DR-0100 = a.)\n`);
+      r.g('add', '-A'); r.g('commit', '-qm', 'stale');
+      r.g('checkout', '-q', 'main');
+      r.w('docs/decisions/INDEX.md', `| [DR-0100](DR-0100-a.md) | a |\n\n${DERIVED_POINTER}\n${HISTORY_PREFIX} (DR-0100 = a.)\n`);
+      r.g('add', '-A'); r.g('commit', '-qm', 'derived');
+      r.g('checkout', '-q', 'stale');
+      const m = spawnSync('git', ['merge', '--no-commit', '--no-ff', 'main'], { cwd: r.dir, encoding: 'utf8' });
+      expect(m.stdout + m.stderr).toMatch(/CONFLICT.*INDEX\.md/);
+      const out = run(r.dir);
+      expect(out.stderr).toBe('');
+      expect(out.status).toBe(0);
+      const index = readFileSync(join(r.dir, 'docs/decisions/INDEX.md'), 'utf8');
+      expect(index.split('\n').filter((l) => l.startsWith('**Next ID:**'))).toEqual([DERIVED_POINTER]);
+      const history = index.split('\n').filter((l) => l.startsWith(HISTORY_PREFIX));
+      expect(history).toHaveLength(1);
+      expect(historyAnnotations(history[0])).toEqual(['(DR-0101 = stale, typed the old way.)', '(DR-0100 = a.)']);
     } finally { r.cleanup(); }
   });
 

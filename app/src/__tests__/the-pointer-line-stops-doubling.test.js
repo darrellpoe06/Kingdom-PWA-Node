@@ -26,11 +26,18 @@ import {
   unionAnnotations,
   renderPointerLine,
   normalizeLedger,
+  historyAnnotations,
+  DERIVED_POINTER,
+  HISTORY_PREFIX,
 } from '../../../scripts/resolve-ledger-conflicts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..', '..');
 const INDEX = join(REPO, 'docs/decisions/INDEX.md');
+// The pointer is derived since DR-1477: one fixed sentence. What the old line
+// had collected lives on the frozen history line under it, and the budgets
+// below now hold THAT line, which is where the annotation record is.
+const historyLine = () => readFileSync(INDEX, 'utf8').split('\n').find((l) => l.startsWith(HISTORY_PREFIX));
 
 /** The shape that caused it: three segments, and an unclosed paren in prose. */
 const UNCLOSED = '**Next ID:** DR-1118. '
@@ -107,15 +114,17 @@ describe('the ledger pointer line cannot double itself again', () => {
 
   // The budget. 41,091 bytes when repaired; 200 KB leaves room for many years
   // of real annotations and still catches a doubling while it is small.
-  it('the real pointer line stays within its budget', () => {
+  it('the real pointer and history lines stay within their budget', () => {
     const line = readFileSync(INDEX, 'utf8').split('\n').find((l) => l.startsWith('**Next ID:**'));
     expect(line, 'INDEX.md must have a "**Next ID:**" line').toBeTruthy();
     expect(line.length).toBeLessThan(200 * 1024);
+    expect(historyLine(), 'INDEX.md must keep the frozen history line').toBeTruthy();
+    expect(historyLine().length).toBeLessThan(200 * 1024);
   });
 
-  it('the real pointer line carries no duplicate annotation segments', () => {
-    const line = readFileSync(INDEX, 'utf8').split('\n').find((l) => l.startsWith('**Next ID:**'));
-    const groups = nextIdAnnotations(line);
+  it('the real history line carries no duplicate annotation segments', () => {
+    const groups = historyAnnotations(historyLine());
+    expect(groups.length).toBeGreaterThan(3);
     expect(groups.length).toBe(new Set(groups).size);
   });
 
@@ -125,9 +134,10 @@ describe('the ledger pointer line cannot double itself again', () => {
     expect(readFileSync(INDEX, 'utf8').length).toBeLessThan(4 * 1024 * 1024);
   });
 
-  it('the pointer VALUE still parses, and the repair did not eat it', () => {
+  it('the pointer is the derived line and carries no number a branch could rewrite (DR-1477)', () => {
     const line = readFileSync(INDEX, 'utf8').split('\n').find((l) => l.startsWith('**Next ID:**'));
-    expect(line).toMatch(/^\*\*Next ID:\*\* DR-\d{4}\./);
+    expect(line).toBe(DERIVED_POINTER);
+    expect(line).not.toMatch(/DR-\d{4}/);
   });
 });
 
@@ -210,10 +220,12 @@ describe('the pointer line is rendered, read back, and proved (DR-1292)', () => 
     expect(renderPointerLine(POINTER, [[]])).toEqual({ line: POINTER, passes: 0, segments: 0 });
   });
 
-  it('the live ledger needs no repair pass, and still reads back clean', () => {
-    const out = normalizeLedger(readFileSync(INDEX, 'utf8'));
-    expect(out.pointerPasses, 'a pass above 1 means the committed line is already doubling').toBe(1);
-    const groups = nextIdAnnotations(out.text.split('\n').find((l) => l.startsWith('**Next ID:**')));
+  it('the live ledger needs no repair pass: normalizing it changes not a byte, and it reads back clean', () => {
+    const live = readFileSync(INDEX, 'utf8');
+    const out = normalizeLedger(live);
+    expect(out.pointerPasses, 'nothing to move: no old-shape pointer, one history line').toBe(0);
+    expect(out.text === live, 'a merge that touches no pointer must leave the history line byte for byte').toBe(true);
+    const groups = historyAnnotations(out.text.split('\n').find((l) => l.startsWith(HISTORY_PREFIX)));
     expect(groups.length).toBe(new Set(groups).size);
     expect(out.pointerSegments).toBe(groups.length);
   });
@@ -243,7 +255,7 @@ describe('the pointer line is rendered, read back, and proved (DR-1292)', () => 
     const src = readFileSync(join(REPO, 'scripts/resolve-ledger-conflicts.mjs'), 'utf8');
     const body = src.slice(src.indexOf('export function normalizeLedger'));
     const fn = body.slice(0, body.indexOf('\nexport '));
-    expect(fn, 'normalizeLedger must render through renderPointerLine').toMatch(/renderPointerLine\(pointer, annotationLists\)/);
+    expect(fn, 'normalizeLedger must render through renderPointerLine').toMatch(/renderPointerLine\(HISTORY_PREFIX, \[\.\.\.annotationLists, \.\.\.historyLists\]/);
     expect(fn, 'and must not build the line by joining annotations itself').not.toMatch(/ann\.join\(/);
     expect(fn).toMatch(/pointerPasses/);
   });
@@ -251,7 +263,7 @@ describe('the pointer line is rendered, read back, and proved (DR-1292)', () => 
   it('normalizeLedger reports the passes and the segment count it rendered', () => {
     const out = normalizeLedger(readFileSync(INDEX, 'utf8'));
     expect(typeof out.pointerPasses).toBe('number');
-    const groups = nextIdAnnotations(out.text.split('\n').find((l) => l.startsWith('**Next ID:**')));
+    const groups = historyAnnotations(out.text.split('\n').find((l) => l.startsWith(HISTORY_PREFIX)));
     expect(out.pointerSegments).toBe(groups.length);
   });
 });

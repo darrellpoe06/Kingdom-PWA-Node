@@ -13,6 +13,7 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { DERIVED_POINTER } from '../../../scripts/lib/decision-pointer.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..', '..');
@@ -91,6 +92,9 @@ function world(script) {
   for (let k = 1; k <= 26; k++) g(seed, 'branch', `claude/idle-${k}`, 'main');
   mkdirSync(join(seed, 'scripts'), { recursive: true });
   for (const f of ['business-systems-guard.mjs', 'resolve-ledger-conflicts.mjs']) copyFileSync(join(REPO, 'scripts', f), join(seed, 'scripts', f));
+  // business-systems-guard reads the derived pointer from its lib (DR-1477).
+  mkdirSync(join(seed, 'scripts', 'lib'), { recursive: true });
+  copyFileSync(join(REPO, 'scripts', 'lib', 'decision-pointer.mjs'), join(seed, 'scripts', 'lib', 'decision-pointer.mjs'));
   w('scripts/legibility-guard.mjs', "import { readdirSync, writeFileSync } from 'node:fs';\nconst pages = readdirSync('app/src/pages').sort();\nwriteFileSync('app/src/lib/legibility-health.json', JSON.stringify({ pages }, null, 2) + '\\n');\nconsole.log('# legibility-guard --health');\n");
   w('app/src/pages/a.jsx', '1;\n');
   w('app/src/lib/legibility-health.json', JSON.stringify({ pages: ['a.jsx'] }, null, 2) + '\n');
@@ -199,7 +203,9 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
       expect(w.origin('log', '-1', '--format=%s', 'claude/one')).toMatch(/^Merge main into claude\/one/);
       const index = w.origin('show', 'claude/one:docs/decisions/INDEX.md');
       expect(index).toContain('| [DR-0101](DR-0101-one.md) | one |\n| [DR-0102](DR-0102-main.md) | main |');
-      expect(index).toContain('**Next ID:** DR-0103.');
+      // Both sides here still type the old numbered pointer (a branch cut
+      // before DR-1477); the resolution writes the derived line instead.
+      expect(index).toContain(DERIVED_POINTER);
       expect(w.log()).not.toContain('gh workflow run ci.yml'); // the attributed push starts CI
       expect(w.log()).toContain('gh workflow run auto-merge.yml');
       expect(w.log()).not.toMatch(/gh pr comment 1 /);
