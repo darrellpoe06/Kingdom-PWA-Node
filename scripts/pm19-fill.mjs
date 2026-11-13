@@ -155,10 +155,10 @@ const BLOCKED_ADULT =
   "WHAT WE COULD NOT CHECK AT THE SOURCE. We hold all three pieces whole, from the fuller copy he sent second. We did not open what they point to: the sites of WGU, the World Economic Forum, LinkedIn and Craft Education were refused by our network. A search index of the Forum's own report page carries its figure, and of WGU's own press release the survey's size, dates and title, The Verification Gap; neither page was opened. So each figure is taught at its tier: the Forum's is an expectation employers gave, WGU's are WGU reporting its own survey, and one figure the first piece gives with no source is named and not taught. A shut road must never read like a verified fact. re-review: 2026-11-27.";
 
 const BLOCKED_SENIOR =
-  'WHAT WE COULD NOT CHECK AT THE SOURCE. We hold all three pieces in full, because the second forward carried them. We did not open what they point to. The sites of the university, the World Economic Forum, LinkedIn and the apprenticeship group would not open from our network. A search shows the Forum\'s own page with its figure and the university\'s own press release with the size and dates of its survey, but we did not read either page itself. So every number in this hour is told as what it is: a forecast employers gave, or a university reporting its own survey. One number in the first piece names no source at all, and we do not teach it as fact. A road we could not walk is never written up as a thing we checked. re-review: 2026-11-27.';
+  "WHAT WE COULD NOT CHECK AT THE SOURCE. We hold all three pieces in full, because the second forward carried them. We did not open what they point to. The sites of the university, the World Economic Forum, LinkedIn and the apprenticeship group would not open from our network. A search shows the Forum's own page with its figure and the university's own press release with the size and dates of its survey, but we did not read either page itself. So every number in this hour is told as what it is: a forecast employers gave, or a university reporting its own survey. One number in the first piece names no source at all, and we do not teach it as fact. A road we could not walk is never written up as a thing we checked. re-review: 2026-11-27.";
 
 const BLOCKED_TEEN =
-  'WHAT WE COULD NOT CHECK. We have all three pieces, but not the reports they point to. The sites were shut to our network. A search shows the numbers on the reports\' own pages, but we did not open those pages. So when we give a number, we say who reported it. One number came with no source, so we do not teach it. A door we could not open is not a thing we checked. re-review: 2026-11-27.';
+  "WHAT WE COULD NOT CHECK. We have all three pieces, but not the reports they point to. The sites were shut to our network. A search shows the numbers on the reports' own pages, but we did not open those pages. So when we give a number, we say who reported it. One number came with no source, so we do not teach it. A door we could not open is not a thing we checked. re-review: 2026-11-27.";
 
 const BLOCKED_YOUTH =
   'WHAT WE COULD NOT CHECK. We read all three parts of the letter. But they point to reports, and we could not open those. The sites were shut to us. So we say who gave each number, and we do not act like we checked it. One number had no source at all, so we leave it out. re-review: 2026-11-27.';
@@ -202,12 +202,12 @@ const MODULE = {
   benefits: [
     'You get the order the Word set for any appointment, and it is short: let these also first be proved; then let them use the office (1 Timothy 3:10). Proof comes before the role, not after it, and lay hands suddenly on no man (1 Timothy 5:22) is the brake on rushing it.',
     "You get a worked case of every credible signal at once, in one chapter: Daniel's credentials (Daniel 1:4), three years of training (Daniel 1:5), a ten-day trial the candidate himself proposed (Daniel 1:12), and an examination in person by the one who would rely on him (Daniel 1:19-20). The digest says employers use every signal they can get. Daniel 1 shows what that looks like.",
-    'You get the end of the false choice between credentials and capability. Apollos carried a letter from the brethren (Acts 18:27) AND mightily convinced in public (Acts 18:28). Phebe carried Paul\'s commendation, and the commendation was a record of her work - a succourer of many (Romans 16:1-2). The Word never chose; it used both.',
+    "You get the end of the false choice between credentials and capability. Apollos carried a letter from the brethren (Acts 18:27) AND mightily convinced in public (Acts 18:28). Phebe carried Paul's commendation, and the commendation was a record of her work - a succourer of many (Romans 16:1-2). The Word never chose; it used both.",
     'You get the test for a polished page that the Word gave long before anyone could generate one: whoso boasteth himself of a false gift is like clouds and wind without rain (Proverbs 25:14), and let not him that girdeth on his harness boast himself as he that putteth it off (1 Kings 20:11).',
     "You get the answer to the digest's hardest question - where do new workers learn judgment if the first rung disappears? The Word says judgment is learned by reason of use (Hebrews 5:14). Whoever removes the use owes another way to get it, and the young are told plainly, let no man despise thy youth (1 Timothy 4:12).",
     'You get the oldest apprenticeship there is, and the pay that goes with it: the trade in the house (Mark 6:3), the teacher as the scholar serving in the same rotation (1 Chronicles 25:8), the ox that eats while it treads (Deuteronomy 25:4), and the labourer worthy of his reward (1 Timothy 5:18).',
-    "You get the approval no page can fake and no proof can buy: a workman approved unto Yahweh (2 Timothy 2:15), saved by grace and not of works (Ephesians 2:8-9), created unto the good works he then walks in (Ephesians 2:10). Readiness for work is proved. Standing before Yahweh is a gift.",
-    "You get the industry's words in their right place - second, as their words: work-sample test, skills-based hiring, reference check, probationary period, stackable credential, credit for prior learning, registered apprenticeship and degree apprenticeship. Each is a good name for a shape Daniel 1 and Acts 18 already gave.",
+    'You get the approval no page can fake and no proof can buy: a workman approved unto Yahweh (2 Timothy 2:15), saved by grace and not of works (Ephesians 2:8-9), created unto the good works he then walks in (Ephesians 2:10). Readiness for work is proved. Standing before Yahweh is a gift.',
+    "You get what the industry calls these shapes, in its right place - second, as their words: work-sample test, skills-based hiring, reference check, probationary period, stackable credential, credit for prior learning, registered apprenticeship and degree apprenticeship. Each is a good name for a shape Daniel 1 and Acts 18 already gave.",
     'You get a lesson that tells you plainly what it could not check. Every figure is taught at its tier - a forecast employers gave, or a university reporting its own survey - one unsourced figure is named and left untaught, and the date we try the shut roads again is written where you can hold us to it.',
   ],
 
@@ -817,7 +817,7 @@ And the one who learns while he works should be fed. [[Deuteronomy 25:4]] Paul c
 
 The university's survey says 76% of employers count work experience as worth as much as a degree or more, and 53% say they invest in apprenticeships or other learning on the job. The third piece also reports that North Carolina began the school year with 2,009 teacher openings, by the superintendents' own count, and it asks the honest question of its own grant: will the districts keep the path going when the money ends? Count the cost.
 
-Today they call this a registered apprenticeship, or a degree apprenticeship, or credit for prior learning. It is Acts 16:3 with paperwork.
+What the industry calls this today is a registered apprenticeship, or a degree apprenticeship, or credit for prior learning. It is Acts 16:3 with paperwork.
 
 THE APPROVAL ABOVE ALL.
 
@@ -851,10 +851,10 @@ ${TALK.senior}`,
       'Say first what was not opened. The three pieces were read in full; the reports behind them were not, because the sites were shut. A forecast is called a forecast, a university reporting its own survey is called that, and an unsourced number is not taught.',
       '1 Timothy 3:10 is the order: proved first, then the office. 1 Timothy 5:22 is the brake: lay hands suddenly on no man. A hurried appointment makes the one who appoints a partner in what follows.',
       'Daniel 1 uses every credible signal at once - credentials, three years of training, a ten-day trial the candidate proposed himself, and an examination face to face - and then says the skill was given by Yahweh (Daniel 1:17).',
-      'The Word never chose between credentials and capability. Apollos carried a letter (Acts 18:27) and his work bore it out (Acts 18:28); Phebe\'s commendation was a record of her work (Romans 16:2).',
+      "The Word never chose between credentials and capability. Apollos carried a letter (Acts 18:27) and his work bore it out (Acts 18:28); Phebe's commendation was a record of her work (Romans 16:2).",
       'Even the gifted keep learning. Aquila and Priscilla, tentmakers with no title, taught Apollos the way more perfectly (Acts 18:26). Paul said he had not already attained (Philippians 3:12).',
       'Hebrews 5:14: judgment is learned by reason of use. If the first rung is automated away, the leader owes the young another place to use their senses. Parents, sit with your children this week and give them one real piece of work to do and to show, and listen all the way to the end when they tell you how it went.',
-      'Deuteronomy 25:4 and 1 Timothy 5:18: the learner is fed while he works. A path only the comfortable can walk is not the Word\'s default.',
+      "Deuteronomy 25:4 and 1 Timothy 5:18: the learner is fed while he works. A path only the comfortable can walk is not the Word's default.",
       'Ephesians 2:8-10: we prove our work, never our worth. Standing before Yahweh is a gift; the good works come after and were prepared for us.',
     ],
     discussionPrompts: [
@@ -870,7 +870,7 @@ ${TALK.senior}`,
         q: 'What was the forwarded email, and how much of it was read?',
         options: [
           'A sermon transcript about work',
-          'WGU\'s LinkedIn digest Proving Readiness in a Changing Job Market, forwarded twice - all three pieces were read in full from the second copy, but the reports they cite sat behind sites that would not open, so every figure is taught at its tier. re-review: 2026-11-27',
+          "WGU's LinkedIn digest Proving Readiness in a Changing Job Market, forwarded twice - all three pieces were read in full from the second copy, but the reports they cite sat behind sites that would not open, so every figure is taught at its tier. re-review: 2026-11-27",
           'A government jobs report, read in full',
           'Only a headline, with nothing behind it',
         ],
@@ -887,8 +887,7 @@ ${TALK.senior}`,
           'No order at all',
         ],
         answer: 1,
-        explain:
-          'Let these also first be proved; then let them use the office. And 1 Timothy 5:22 adds the brake: lay hands suddenly on no man.',
+        explain: 'Let these also first be proved; then let them use the office. And 1 Timothy 5:22 adds the brake: lay hands suddenly on no man.',
       },
       {
         q: 'In Daniel 1, who proposed the ten-day trial?',
@@ -919,7 +918,7 @@ ${TALK.senior}`,
         options: ['By reading alone', 'By reason of use', 'By age alone', 'By a certificate'],
         answer: 1,
         explain:
-          'Judgment is learned by use. That answers the digest\'s hardest question: if the routine first rung is automated away, whoever removes the use owes the young another place to get it.',
+          "Judgment is learned by use. That answers the digest's hardest question: if the routine first rung is automated away, whoever removes the use owes the young another place to get it.",
       },
       {
         q: 'What does the Word say about the learner being provided for while he works?',
@@ -931,31 +930,31 @@ ${TALK.senior}`,
         ],
         answer: 2,
         explain:
-          'The ox eats while it treads. Paul carries the law into the church. A path open only to those who can afford to work for nothing is not the Word\'s default.',
+          "The ox eats while it treads. Paul carries the law into the church. A path open only to those who can afford to work for nothing is not the Word's default.",
       },
       {
         q: 'Which of these figures in the digest is given WITHOUT a source, and so is not taught as fact?',
         options: [
-          'The World Economic Forum\'s forecast about core skills changing by 2030',
-          'WGU\'s survey of more than 3,100 hiring professionals',
+          "The World Economic Forum's forecast about core skills changing by 2030",
+          "WGU's survey of more than 3,100 hiring professionals",
           'Roughly one in three early-career professionals working in industries heavily exposed to the new tools',
-          'The North Carolina superintendents\' vacancy count',
+          "The North Carolina superintendents' vacancy count",
         ],
         answer: 2,
         explain:
-          'The Forum figure is an employer forecast with a named source; the WGU figures are WGU reporting its own survey; the vacancy count is the superintendents\' own survey as reported. The one-in-three figure names no source at all.',
+          "The Forum figure is an employer forecast with a named source; the WGU figures are WGU reporting its own survey; the vacancy count is the superintendents' own survey as reported. The one-in-three figure names no source at all.",
       },
       {
         q: 'Measured from the code, what does a course crown on this platform prove, and what is missing?',
         options: [
           'It proves a skill was performed on a real project',
-          'It proves every lesson was read and its exam passed - completion - while the course\'s own Work it on a real project step leaves no record of the work done; named, with a date to look again',
+          "It proves every lesson was read and its exam passed - completion - while the course's own Work it on a real project step leaves no record of the work done; named, with a date to look again",
           'It proves nothing',
           'It proves supervised hours',
         ],
         answer: 1,
         explain:
-          'course-pace.js lines 223 to 231 define the crown as every lesson read and passed. ChurchLearn.jsx line 1555 shows the Apply step as text. The only apprenticeship-shaped record is the Practice\'s training-hours ledger (practice-academy.js lines 302 to 313).',
+          "course-pace.js lines 223 to 231 define the crown as every lesson read and passed. ChurchLearn.jsx line 1555 shows the Apply step as text. The only apprenticeship-shaped record is the Practice's training-hours ledger (practice-academy.js lines 302 to 313).",
       },
       {
         q: 'What does Ephesians 2:8-10 keep proof from claiming?',
@@ -966,7 +965,8 @@ ${TALK.senior}`,
           'That anyone should work',
         ],
         answer: 1,
-        explain: 'We prove our work. We do not prove our worth. Even the Son heard the Father\'s approval spoken over Him at the Jordan before the Gospel records His public ministry (Matthew 3:17).',
+        explain:
+          "We prove our work. We do not prove our worth. Even the Son heard the Father's approval spoken over Him at the Jordan before the Gospel records His public ministry (Matthew 3:17).",
       },
     ],
   },

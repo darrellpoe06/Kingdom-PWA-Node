@@ -132,7 +132,10 @@ describe('every quoted span anywhere in the module is the corpus verse, verbatim
       expect(paths, `the walk missed ${p}`).toContain(p);
     }
     for (const pre of ['$.benefits[', '$.stories[', '$.quiz.questions[', '$.facilitator.']) {
-      expect(paths.some((p) => p.startsWith(pre)), pre).toBe(true);
+      expect(
+        paths.some((p) => p.startsWith(pre)),
+        pre
+      ).toBe(true);
     }
   });
 
@@ -376,11 +379,19 @@ describe('typographic theology is kept, in our voice and not inside a quotation 
   });
 
   it('our voice never uses the generic name, anywhere in the module (DR-0210)', () => {
-    expect(ALL().filter(([, t]) => /\bGod\b/.test(ourVoice(t))).map(([p]) => p)).toEqual([]);
+    expect(
+      ALL()
+        .filter(([, t]) => /\bGod\b/.test(ourVoice(t)))
+        .map(([p]) => p)
+    ).toEqual([]);
   });
 
   it('the adversary is never capitalised as a proper name, anywhere in the module', () => {
-    expect(ALL().filter(([, t]) => /\b(?:Satan|Lucifer|The Devil|The Adversary|Baal)\b/.test(t)).map(([p]) => p)).toEqual([]);
+    expect(
+      ALL()
+        .filter(([, t]) => /\b(?:Satan|Lucifer|The Devil|The Adversary|Baal)\b/.test(t))
+        .map(([p]) => p)
+    ).toEqual([]);
   });
 
   it('our voice says Yahweh, and the KJV’s own God / the LORD is left exactly as written inside quotations', () => {

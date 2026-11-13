@@ -798,7 +798,39 @@ const REPO = join(HERE, '..', '..', '..');
 // nobody read (DR-0076 section 3). re-review: 2026-11-27 -- try those hosts from
 // a runner; if the lawyer's interview and a primary account of the PHP fix
 // read back, replace the not-checked clauses and lower this pin.
-const GAP = 35;
+//
+// 35 -> 36 on 2026-11-13 for sov82-how-beautiful-are-the-feet (DR-1486), by
+// the SECOND remedy. Darrell forwarded a ByteByteGo newsletter (Data Movement
+// Strategies In System Design; Gmail thread 1a1885689c5c2ffc) with one word:
+// Lesson. The email was a PREVIEW of a paid article -- four paragraphs and nine
+// topic headings -- and blog.bytebytego.com and bytebytego.substack.com both
+// answered `curl: (56) CONNECT tunnel failed, response 403`. Then stopped. The
+// lesson reports NOTHING from the article: no benefit, no advice on choosing,
+// no figure. Every figure it states is measured on our own repository (37
+// listener files, the 15-second heartbeat, the 5-minute Inbound poll, the
+// site checker's measured ~67-minute cadence, the ten unpublished tables, the
+// outbox), and each is pinned in sovereign-ai-sov82-verses.test.js against
+// the code it came from -- which no publisher could read back. So no
+// lesson-sources.json row (DR-0076 section 3). re-review: 2026-11-27 -- try
+// those hosts from a runner; if the article reads back, compare its account
+// of each strategy with what the lesson teaches and lower this pin.
+//
+// 36 -> 37 on 2026-11-13 for pm19-let-these-also-first-be-proved (DR-1496), by
+// the SECOND remedy. Darrell forwarded WGU's LinkedIn digest IgnitED (Proving
+// Readiness in a Changing Job Market; Gmail thread 1a1b17065b1eee52) twice under
+// Lesson. The three pieces were read WHOLE from the second forward; what they
+// cite was not: www.wgu.edu, www.weforum.org, www.linkedin.com and Craft
+// Education's site all answered `CONNECT tunnel failed, response 403`. The
+// lesson teaches its figures at their tier and names the reporter in every
+// sentence that carries one (pinned in project-management-pm19-verses.test.js):
+// the WEF's 39% as an expectation employers gave; WGU's 60 / 73 / 91 / 43 / 76
+// percent as WGU reporting its own survey; one unsourced figure left untaught.
+// A search index showed the WEF page and WGU's 2026-09-30 press release
+// carrying them, but neither page was opened, so no lesson-sources.json row:
+// a row the witness cannot read would count a figure nobody read (DR-0076
+// section 3). re-review: 2026-11-27 -- try those hosts from a runner; if WGU's
+// release and the WEF page read back, give the figures a row and lower this pin.
+const GAP = 37;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
