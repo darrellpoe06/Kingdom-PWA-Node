@@ -15,7 +15,7 @@
 // read(text) never fails silently: any clone error falls back to a browser voice;
 // the System voice always works.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTextToSpeech, waitForVoices } from './tts.js';
+import { useTextToSpeech, waitForVoices, PHONE_DEFAULT_VOICE } from './tts.js';
 import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
@@ -198,6 +198,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const liteAudioRef = useRef(null);
   const liteMissRef = useRef('');
   const heldLiteRef = useRef('');
+  // A reading held because the phone has no voice like the one it was reading
+  // in (DR-1482). It waits for a press, never for the screen coming back.
+  const heldForVoiceRef = useRef(false);
   // WHERE THE TEXT NOW PLAYING SITS IN THE READING (DR-1254; Darrell
   // 2026-10-27: "It cuts off the reader while I was in the lesson and then
   // starts me from the beginning instead of the 13 part!!!"). A hand-off —
@@ -469,6 +472,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // and the source is dropped, so a silenced element stays silent.
   const silenceAudio = useCallback(() => {
     heldLiteRef.current = '';
+    heldForVoiceRef.current = false;
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
     if (aheadRef.current) { aheadRef.current.aborted = true; aheadRef.current = null; }
     setCloudPiece(-1);
@@ -535,6 +539,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (tts.heldAt == null) return;
     const n = Number(tts.heldAt) + 1;
     const of = Number(tts.segmentCount) || 0;
+    // THE CHOSEN VOICE LEFT THE PHONE'S LIST (DR-1482): the reading waits in
+    // place rather than go on in a voice nobody picked, and says so.
+    if (tts.heldWhy === 'voice-missing') {
+      setNotice(`The voice you chose is not answering on this phone right now, so the reading waits at sentence ${n}${of ? ` of ${of}` : ''} rather than go on in a different voice. Press play to go on in your voice, or pick another voice.`);
+      return;
+    }
     const why = tts.heldWhy && tts.heldWhy !== 'error' ? ` (${String(tts.heldWhy).replace(/-/g, ' ')})` : '';
     setNotice(`This phone’s voice stopped at sentence ${n}${of ? ` of ${of}` : ''}${why} — press play to go on from there.`);
   }, [tts.heldAt, tts.heldWhy, tts.segmentCount, setNotice]);
@@ -869,7 +879,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // PINNED for this reading, never a fresh pick from a list that may still be
   // empty. The switch is said in one line. A device with no voice of its own
   // (a Fire TV) hears nothing from a hand-off, so it is told why instead.
-  deviceRestRef.current = async (rest, reason) => {
+  deviceRestRef.current = async (rest, reason, { anyVoice = false } = {}) => {
     silenceAudio();
     trip().note('handoff', { reason: reason || '' });
     const pin = readingPinRef.current || (readingPinRef.current = newReadingPin(liteVoiceFor()));
@@ -886,9 +896,40 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       return;
     }
     const pick = deviceVoiceForPin(pin, { voices, preferredURI: resolveSpeakURI(voiceId) });
+    const man = pin.gender === 'male';
+    // NEVER A DIFFERENT VOICE ON ITS OWN (DR-1482; Darrell 2026-11-13: the
+    // man's voice he chose turned into a woman's part-way through, again and
+    // again, until a rewind or a skip asked the NAS voice afresh). This is the
+    // seam where it happened: a NAS piece failed and the rest went to the
+    // phone's own engine, which on his phone has no man's voice, so the rest
+    // was read by a woman. DR-1254 told him so; it did not stop it.
+    //
+    // Now a phone with a voice like the reading's carries on in it, as
+    // before. A phone without one HOLDS the reading at the sentence that
+    // failed and says why. Play asks the reading's own voice again; if it
+    // still cannot answer, the rest is read in the phone's voice, because he
+    // has been told and pressed play (`anyVoice`). Nothing switches unasked.
+    if (rest && !pick.matched && !anyVoice) {
+      heldLiteRef.current = rest;
+      heldForVoiceRef.current = true;
+      setCloudPlaying(true); setCloudPaused(true);
+      try { if (bgRef.current) bgRef.current.setState('paused'); } catch (_) { /* ignore */ }
+      trip().note('held-for-voice', { reason: reason || '', gender: pin.gender });
+      let keepIt = null;
+      try {
+        if (!(await deviceVoiceReady())) {
+          const dv = await checkDeviceVoice({});
+          if (dv && dv.state === 'downloadable' && typeof window !== 'undefined' && window.location) {
+            keepIt = { href: `${window.location.pathname}?view=voice`, label: `Keep the ${man ? 'man’s' : 'woman’s'} voice on this phone` };
+          }
+        }
+      } catch (_) { keepIt = null; }
+      const who = man ? 'man’s' : 'woman’s';
+      setNotice(`The church’s ${who} reading voice did not answer, and this phone has no ${who} voice of its own, so the reading waits here instead of going on in a different voice. Press play to try the ${who} voice again; if it still cannot answer, the rest reads in this phone’s own voice.`, keepIt);
+      return;
+    }
     pin.uri = pick.uri; pin.matched = pick.matched;
     if (rest) tts.speak(rest, pick.uri);
-    const man = pin.gender === 'male';
     // THE BETTER ROAD IS OFFERED, NOT ONLY DESCRIBED (DR-1254; Darrell
     // 2026-10-27: "the male voice changes mid-lesson to a female voice... are
     // we using the same solutions or researching better options based on our
@@ -920,13 +961,17 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     clearDarkRetry();
     const rest = heldLiteRef.current;
     if (!rest) return false;
+    // A hold for the voice was answered by a press: if the reading's own voice
+    // still cannot answer, the listener has been told and may hear the phone's.
+    const pressedThroughVoiceHold = heldForVoiceRef.current;
     heldLiteRef.current = '';
+    heldForVoiceRef.current = false;
     setCloudPaused(false);
     trip().note('resumed', {});
     playLiteVoice(rest).then((played) => {
       if (played) return;
       setCloudPlaying(false); setCloudProgress(0);
-      deviceRestRef.current(rest, liteMissRef.current);
+      deviceRestRef.current(rest, liteMissRef.current, { anyVoice: pressedThroughVoiceHold });
     });
     return true;
   };
@@ -967,7 +1012,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (typeof document === 'undefined' || !document.addEventListener) return undefined;
     const onVisible = () => {
       trip().note(pageHidden() ? 'hidden' : 'visible');
-      if (!pageHidden() && heldLiteRef.current) resumeHeldRef.current();
+      if (!pageHidden() && heldLiteRef.current && !heldForVoiceRef.current) resumeHeldRef.current();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
@@ -1363,6 +1408,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!isSystemVoiceId(voiceId) && !isPersonVoiceId(voiceId) && deviceVoices.length
       && !deviceVoices.some((v) => v && v.voiceURI === voiceId)) {
       setNotice('The voice you picked is not on this device, so it is reading in the phone’s default voice. Pick again from the Voice list to change it.');
+      // Said, so it is the phone's default from the first word to the last,
+      // on purpose; the engine never waits for a voice that is not here.
+      uri = PHONE_DEFAULT_VOICE;
     }
     const cid = catalogIdOf(voiceId);
     // A cast stand-in sets its own pitch to tell characters apart; everything
@@ -1377,6 +1425,14 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // pins the voice it starts in, and its gender, so a later hand-over to the
     // NAS voice speaks as the same kind of voice.
     const pin = readingPinRef.current;
+    // A READING ALREADY UNDER WAY IN THE NAS VOICE keeps its kind of voice
+    // when a jump finds the NAS voice resting (DR-1482): a phone voice of the
+    // same gender, or the reading waits here and says so.
+    if (pin && continuing && !pin.uri && nasRead && pin.gender) {
+      const same = deviceVoiceForPin(pin, { voices: deviceVoices, preferredURI: uri });
+      if (!same.matched) { deviceRestRef.current(clean, liteMissRef.current || 'voice-lite-error'); return; }
+      uri = same.uri;
+    }
     if (pin && continuing && pin.uri) uri = pin.uri;
     else if (pin) {
       pin.uri = uri;
