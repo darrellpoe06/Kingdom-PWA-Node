@@ -205,6 +205,7 @@ export function AllFeaturesSheet({
   setBooksView,
   isFamilyMember = false,
   onPersonalize,
+  onFeedback = null,
   theme = null,
 }) {
   const [q, setQ] = useState('');
@@ -284,6 +285,26 @@ export function AllFeaturesSheet({
               <div className="lch-row">
                 <button type="button" onClick={onPersonalize} className={`lch-pill ${FOCUS}`} data-testid="lch-personalize">
                   🎨 Personalize My App
+                </button>
+                {onFeedback && (
+                  <button type="button" onClick={onFeedback} className={`lch-pill ${FOCUS}`} data-testid="lch-feedback">
+                    Tell us what is working
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    try {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } catch (_) {
+                      /* no window */
+                    }
+                  }}
+                  className={`lch-pill ${FOCUS}`}
+                  data-testid="lch-top"
+                >
+                  Back to top
                 </button>
                 <HelpButton
                   variant="header"

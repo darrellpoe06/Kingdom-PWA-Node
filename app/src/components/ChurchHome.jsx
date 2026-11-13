@@ -34,12 +34,31 @@ import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
-import { subscribeChurchHomeSection, takePendingChurchHomeSection } from '../lib/church-home-section.js';
+import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false }) {
+export function ChurchHome({
+  church,
+  prayerRequests,
+  addPrayerRequest,
+  markPrayerRequestSent,
+  deletePrayerRequest,
+  addEvent,
+  conference,
+  updateConference,
+  churchVoice = [],
+  addChurchVoice,
+  sendToPoeTech,
+  addIncident,
+  addInquiry,
+  initialSection = null,
+  setChurchView = null,
+  email = null,
+  canStudy = false,
+  signedIn = false,
+}) {
   // Obvious, prominent LOG IN / CREATE ACCOUNT for the public Love Corner door
   // (Darrell 2026-07-14). The community is public; this is the clear way in for a
   // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
@@ -50,7 +69,18 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // a section through lib/church-home-section.js; the strip below runs in
   // controlled mode so the request opens the section in place (UX 2e).
   const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
-  useEffect(() => subscribeChurchHomeSection((id) => { if (id) setSection(id); }), []);
+  useEffect(
+    () =>
+      subscribeChurchHomeSection((id) => {
+        if (id) setSection(id);
+      }),
+    []
+  );
+  // The bar reads which section is open (DR-1484); cleared when this home leaves the screen.
+  useEffect(() => {
+    publishChurchHomeSection(section);
+    return () => publishChurchHomeSection(null);
+  }, [section]);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -94,7 +124,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // per project_testimony_diary_glory_to_glory; this is the door). PIN is held
   // on-device only; nothing leaves the browser.
 
-
   // Default church home (D21): COLG / The Love Corner is the platform default
   // that every user lands on until they set their own church home in Settings
   // (the Father's Business anchor — the unchurched get access to OUR church).
@@ -135,7 +164,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // live/offline detector (same-origin n8n proxy, no key) is the follow-up.
   const liveChannelId = (c.youtubeChannelId || '').trim();
   const channelUrl = c.media?.youtube || (liveChannelId ? `https://www.youtube.com/channel/${liveChannelId}` : null);
-  const onlineServices = (c.services || []).filter(s => s && s.online !== false);
+  const onlineServices = (c.services || []).filter((s) => s && s.online !== false);
   // The ONE reliable embed: the uploads-playlist player (newest-first). A broadcast
   // that is currently LIVE is the channel's newest item, so it plays here on its
   // own, and the most recent message keeps playing between services — no API key,
@@ -161,13 +190,22 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // BELOW it. Degrades to nothing on any failure — never blocks the page.
   const [recentVids, setRecentVids] = useState([]);
   useEffect(() => {
-    if (!/^UC[A-Za-z0-9_-]{22}$/.test(liveChannelId)) { setRecentVids([]); return undefined; }
+    if (!/^UC[A-Za-z0-9_-]{22}$/.test(liveChannelId)) {
+      setRecentVids([]);
+      return undefined;
+    }
     let cancelled = false;
     fetch(`/api/church-recent?channel=${encodeURIComponent(liveChannelId)}`)
       .then((r) => (r.ok ? r.text() : ''))
-      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 6)); })
-      .catch(() => { if (!cancelled) setRecentVids([]); });
-    return () => { cancelled = true; };
+      .then((xml) => {
+        if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 6));
+      })
+      .catch(() => {
+        if (!cancelled) setRecentVids([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [liveChannelId]);
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
@@ -193,14 +231,26 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const openFollowAlong = useCallback(() => {
     setFollowAlong(true);
     openFloating({ src: playerSrc, title: 'Message' }); // pop it to the SHELL's mini-player so the Word reads clean below
-    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
+    setTimeout(() => {
+      try {
+        followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+      } catch (e) {
+        /* non-fatal */
+      }
+    }, 60);
   }, [playerSrc]);
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
     const request = (prForm.request || '').trim();
-    if (!request) { setPrError('Please describe the prayer request.'); return; }
-    if (!prForm.anonymous && !requester) { setPrError('Add your name, or check anonymous.'); return; }
+    if (!request) {
+      setPrError('Please describe the prayer request.');
+      return;
+    }
+    if (!prForm.anonymous && !requester) {
+      setPrError('Add your name, or check anonymous.');
+      return;
+    }
     setPrError('');
     addPrayerRequest({ requester, request, shareWithChurch: !!prForm.shareWithChurch });
     setPrForm({ requester: '', request: '', shareWithChurch: true, anonymous: false });
@@ -217,7 +267,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     return c.links?.stayConnected || c.site || null;
   };
-
 
   // ANNOUNCED EVENTS -> THE CALENDAR. Reported 2026-09-11 18:06 and 18:07, twice
   // in ninety seconds: "The add to calendar feature isn't working and I can only
@@ -243,8 +292,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     if (!addEvent || savedEventIds.includes(ev.id)) return;
     addEvent({
       title: `${c.nickname || c.name || 'Church'} · ${ev.name}`,
-      description: [ev.detail, ev.endDate ? `Runs ${ev.date} through ${ev.endDate}.` : null]
-        .filter(Boolean).join(' — ') || 'Saved from the Church tab.',
+      description: [ev.detail, ev.endDate ? `Runs ${ev.date} through ${ev.endDate}.` : null].filter(Boolean).join(' — ') || 'Saved from the Church tab.',
       notes: ev.detail || '',
       date: ev.date,
       time: '',
@@ -264,7 +312,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const saveServiceToCalendar = (svc) => {
     if (!addEvent) return;
     // Build the next occurrence of this day-of-week + time.
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const targetDow = days.indexOf(svc.day);
     if (targetDow < 0) return;
     const now = new Date();
@@ -273,7 +321,8 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     const isoDate = next.toISOString().slice(0, 10);
     // Parse "11:00 AM" → "11:00"
     const m = (svc.time || '').match(/(\d+):(\d+)\s*(AM|PM)?/i);
-    let hh = m ? parseInt(m[1]) : 11; const mm = m ? parseInt(m[2]) : 0;
+    let hh = m ? parseInt(m[1]) : 11;
+    const mm = m ? parseInt(m[2]) : 0;
     if (m && m[3] && m[3].toUpperCase() === 'PM' && hh < 12) hh += 12;
     if (m && m[3] && m[3].toUpperCase() === 'AM' && hh === 12) hh = 0;
     addEvent({
@@ -288,7 +337,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   };
 
   const submitMinistry = () => {
-    if (!ministryInterest.email) { setMinistryNote('Add an email so the church can follow up.'); return; }
+    if (!ministryInterest.email) {
+      setMinistryNote('Add an email so the church can follow up.');
+      return;
+    }
     setMinistryNote('');
     // Persist the interest as a REAL inquiry first (addInquiry -> local + the
     // inquiries table when signed in) so leadership actually sees it in-app —
@@ -296,9 +348,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     // invited action must land somewhere, not evaporate if there's no mail client).
     if (typeof addInquiry === 'function') {
       addInquiry({
-        kind: 'ministry-interest', source: 'church-home',
-        name: ministryInterest.name, email: ministryInterest.email,
-        interest: ministryInterest.interest || 'general', skills: ministryInterest.skills || '',
+        kind: 'ministry-interest',
+        source: 'church-home',
+        name: ministryInterest.name,
+        email: ministryInterest.email,
+        interest: ministryInterest.interest || 'general',
+        skills: ministryInterest.skills || '',
       });
     }
     const subject = `Ministry interest — ${ministryInterest.interest || 'general'}`;
@@ -320,23 +375,23 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       label: 'Worship',
       icon: 'volume',
       render: () => (
-              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
-              // Worship stacked six unrelated sections in one read-down: the live
-              // player, Follow Along, past sermons, messages, media and the app QR.
-              // Same Way, one row further in (SectionTabs variant="sub").
-              <SectionTabs
-                variant="sub"
-                idBase="church-worship"
-                ariaLabel="Worship sections"
-                defaultId="live"
-                sections={[
-                  {
-                    id: 'live',
-                    label: 'Live now',
-                    icon: 'volume',
-                    render: () => (
-                      <>
-          {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
+        // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+        // Worship stacked six unrelated sections in one read-down: the live
+        // player, Follow Along, past sermons, messages, media and the app QR.
+        // Same Way, one row further in (SectionTabs variant="sub").
+        <SectionTabs
+          variant="sub"
+          idBase="church-worship"
+          ariaLabel="Worship sections"
+          defaultId="live"
+          sections={[
+            {
+              id: 'live',
+              label: 'Live now',
+              icon: 'volume',
+              render: () => (
+                <>
+                  {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
               2026-06-17) — TOP of the Church tab by Darrell's direction: worship is
               the most prominent thing on the unchurched on-ramp. Embedded by CHANNEL
               (never a single video id) so it auto-follows every future stream with
@@ -349,274 +404,364 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               (the client cannot truthfully detect live state without the YouTube
               Data API — Reality-Trace P15). A real live/offline detector
               (same-origin n8n proxy, no key) is the follow-up. */}
-          {hasWorshipPlayer && (
-            // When "Follow along" is open, the player PINS to the top (sticky) and goes
-            // compact — so it stays watchable while you scroll + work the Word below it,
-            // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
-            <section aria-labelledby="live-worship-h" className="bg-white border border-[#E8E4DC] p-4">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
-                  Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
-                </h3>
-                <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                  <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
-                  {showLive ? 'Live service' : 'Latest message'}
-                </span>
-              </div>
-              {!followAlong && (
-                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                  When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
-                </p>
-              )}
+                  {hasWorshipPlayer && (
+                    // When "Follow along" is open, the player PINS to the top (sticky) and goes
+                    // compact — so it stays watchable while you scroll + work the Word below it,
+                    // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
+                    <section aria-labelledby="live-worship-h" className="bg-white border border-[#E8E4DC] p-4">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+                          Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : c.name || 'Church'}
+                        </h3>
+                        <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                          <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
+                          {showLive ? 'Live service' : 'Latest message'}
+                        </span>
+                      </div>
+                      {!followAlong && (
+                        <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                          When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message
+                          keeps playing — and the next live stream rolls in on its own when it starts.
+                        </p>
+                      )}
 
-              {playerSrc ? (
-                <>
-                  {/* Size + float controls — pure layout on the SAME iframe (no reload).
+                      {playerSrc ? (
+                        <>
+                          {/* Size + float controls — pure layout on the SAME iframe (no reload).
                       Shown whenever there's a player; float pops it to a corner mini so
                       the Word reads full-width. */}
-                  <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
-                    <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
-                    {!floating && !followAlong && ['s', 'm', 'l'].map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => setPlayerScale(sz)}
-                        aria-pressed={playerScale === sz}
-                        className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${playerScale === sz ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
-                      >
-                        {sz === 's' ? 'Small' : sz === 'm' ? 'Medium' : 'Large'}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => (floating ? closeFloating() : openFloating({ src: playerSrc, title: showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message` }))}
-                      aria-pressed={floating}
-                      className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
-                    >
-                      {floating ? '⤡ Dock' : '⤢ Pop out'}
-                    </button>
-                  </div>
-                  <div
-                    className="mt-2 aspect-video bg-[#1A1815]"
-                    style={{ width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
-                  >
-                    {/* DOCKED ONLY. When the player is popped out the shell's
+                          <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
+                            <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
+                            {!floating &&
+                              !followAlong &&
+                              ['s', 'm', 'l'].map((sz) => (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => setPlayerScale(sz)}
+                                  aria-pressed={playerScale === sz}
+                                  className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${playerScale === sz ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                                >
+                                  {sz === 's' ? 'Small' : sz === 'm' ? 'Medium' : 'Large'}
+                                </button>
+                              ))}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                floating
+                                  ? closeFloating()
+                                  : openFloating({
+                                      src: playerSrc,
+                                      title: showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`,
+                                    })
+                              }
+                              aria-pressed={floating}
+                              className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                            >
+                              {floating ? '⤡ Dock' : '⤢ Pop out'}
+                            </button>
+                          </div>
+                          <div className="mt-2 aspect-video bg-[#1A1815]" style={{ width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}>
+                            {/* DOCKED ONLY. When the player is popped out the shell's
                         FloatingPlayer holds the one live iframe; rendering a
                         second one here would start the stream twice and play
                         the sermon over itself. */}
-                    <div className="contents">
-                      {!floating && <iframe
-                        ref={frameRef}
-                        key={playerSrc}
-                        src={playerEmbedSrc}
-                        title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
-                        className="w-full h-full border-0"
-                        allow="encrypted-media; picture-in-picture; fullscreen"
-                        allowFullScreen
-                        loading="lazy"
-                      />}
-                    </div>
-                  </div>
-                  {/* FAST FORWARD THE REMOTE CAN REACH. YouTube's scrub bar is
+                            <div className="contents">
+                              {!floating && (
+                                <iframe
+                                  ref={frameRef}
+                                  key={playerSrc}
+                                  src={playerEmbedSrc}
+                                  title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
+                                  className="w-full h-full border-0"
+                                  allow="encrypted-media; picture-in-picture; fullscreen"
+                                  allowFullScreen
+                                  loading="lazy"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          {/* FAST FORWARD THE REMOTE CAN REACH. YouTube's scrub bar is
                       inside the iframe — a four-pixel line a D-pad cursor
                       cannot hit. These are ours, and the remote walks them. */}
-                  {!floating && <VideoSkip frameRef={frameRef} src={playerSrc} />}
-                  {floating && (
-                    <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                      Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back. It keeps playing while you move around the app.
-                    </p>
-                  )}
-                </>
-              ) : (
-                /* Fallback ONLY when no embeddable source resolves (e.g. a
+                          {!floating && <VideoSkip frameRef={frameRef} src={playerSrc} />}
+                          {floating && (
+                            <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                              Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to
+                              bring it back. It keeps playing while you move around the app.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        /* Fallback ONLY when no embeddable source resolves (e.g. a
                    non-standard channel id with no derivable uploads playlist):
                    never a dead frame — link straight out to the channel. */
-                <div className="mt-3 aspect-video bg-[#1A1815] text-white flex flex-col items-center justify-center text-center gap-3 p-4">
-                  <p className="text-sm font-semibold">Watch {c.name || 'the church'} on YouTube</p>
-                  {channelUrl && (
-                    <a
-                      href={channelUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#9A4729] focus:outline focus:outline-2 focus:outline-white"
-                    >
-                      Open the channel
-                    </a>
-                  )}
-                </div>
-              )}
+                        <div className="mt-3 aspect-video bg-[#1A1815] text-white flex flex-col items-center justify-center text-center gap-3 p-4">
+                          <p className="text-sm font-semibold">Watch {c.name || 'the church'} on YouTube</p>
+                          {channelUrl && (
+                            <a
+                              href={channelUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#9A4729] focus:outline focus:outline-2 focus:outline-white"
+                            >
+                              Open the channel
+                            </a>
+                          )}
+                        </div>
+                      )}
 
-              {/* Follow along in the Word (Darrell 2026-07-14): open the Scripture
+                      {/* Follow along in the Word (Darrell 2026-07-14): open the Scripture
                   reader INLINE — below the player, on THIS page — so you watch the
                   service AND read the Word together. It used to navigate to the
                   Scripture tab, which moved you off the live video. */}
-              <button
-                type="button"
-                onClick={() => (followAlong ? setFollowAlong(false) : openFollowAlong())}
-                aria-expanded={followAlong}
-                className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
-              </button>
+                      <button
+                        type="button"
+                        onClick={() => (followAlong ? setFollowAlong(false) : openFollowAlong())}
+                        aria-expanded={followAlong}
+                        className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
+                      </button>
 
-              {!followAlong && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                {onlineServices.length > 0 && (
-                  <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
-                    {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
-                  </p>
-                )}
-                {channelUrl && (
-                  <a
-                    href={channelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-                  >
-                    Watch on YouTube
-                  </a>
-                )}
-              </div>
-              )}
-              {/* Recent livestreams — the last 5 below the one now playing, pulled
+                      {!followAlong && (
+                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                          {onlineServices.length > 0 && (
+                            <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                              <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
+                              {onlineServices.map((s) => `${s.day} ${s.time}`).join(' · ')}
+                            </p>
+                          )}
+                          {channelUrl && (
+                            <a
+                              href={channelUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              Watch on YouTube
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {/* Recent livestreams — the last 5 below the one now playing, pulled
                   straight from the channel so they're always here (Darrell 2026-07-19). */}
-              {!followAlong && priorStreams.length > 0 && (
-                <div className="mt-4">
-                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-2">Recent livestreams</div>
-                  <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 list-none p-0 m-0">
-                    {priorStreams.map((v) => (
-                      <li key={v.videoId}>
-                        <a
-                          href={v.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block group focus:outline focus:outline-2 focus:outline-[#B85838]"
-                          title={v.title}
-                        >
-                          <div className="relative aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
-                            {v.thumbnail && (
-                              <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover opacity-95 group-hover:opacity-100" />
-                            )}
-                            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-2xl drop-shadow">▶</span>
-                          </div>
-                          <div className="mt-1 text-[0.6875rem] leading-tight text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
-                            {v.title || 'Livestream'}
-                          </div>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-          )}
+                      {!followAlong && priorStreams.length > 0 && (
+                        <div className="mt-4">
+                          <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-2">Recent livestreams</div>
+                          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 list-none p-0 m-0">
+                            {priorStreams.map((v) => (
+                              <li key={v.videoId}>
+                                <a
+                                  href={v.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block group focus:outline focus:outline-2 focus:outline-[#B85838]"
+                                  title={v.title}
+                                >
+                                  <div className="relative aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
+                                    {v.thumbnail && (
+                                      <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover opacity-95 group-hover:opacity-100" />
+                                    )}
+                                    <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-2xl drop-shadow">
+                                      ▶
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="mt-1 text-[0.6875rem] leading-tight text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]"
+                                    style={{ fontFamily: '"Fraunces", serif' }}
+                                  >
+                                    {v.title || 'Livestream'}
+                                  </div>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </section>
+                  )}
 
-          {/* The Word, INLINE — the Scripture reader opens right here on the same page
+                  {/* The Word, INLINE — the Scripture reader opens right here on the same page
               as the live player above, so watching + following along happen together
               (never a navigate-away). Public: works signed in or not. */}
-          {followAlong && (
-            <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#E8E4DC] p-3 sm:p-4">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
-                <button
-                  type="button"
-                  onClick={() => setFollowAlong(false)}
-                  className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-                >
-                  × Close
-                </button>
-              </div>
-              <ScriptureLibrary email={email} canStudy={canStudy} setChurchView={setChurchView} />
-            </section>
-          )}
+                  {followAlong && (
+                    <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#E8E4DC] p-3 sm:p-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
+                        <button
+                          type="button"
+                          onClick={() => setFollowAlong(false)}
+                          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        >
+                          × Close
+                        </button>
+                      </div>
+                      <ScriptureLibrary email={email} canStudy={canStudy} setChurchView={setChurchView} />
+                    </section>
+                  )}
 
-          {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
+                  {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
               LIVE (choir_sermons + video_transcripts + the Harvest Ledger); this
               entry point names the real progress and the real next action, never a
               dead end (audit: no-dead-ends, DR-0075). */}
-                      </>
-                    ),
-                  },
-                  {
-                    id: 'sermons',
-                    label: 'Past sermons',
-                    icon: 'book',
-                    render: () => (
-                      <>
-          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
-            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
-            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
-            </p>
-            <button
-              type="button"
-              onClick={openFollowAlong}
-              className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              <UiIcon name="book" /> Follow along in the Word
-            </button>
-          </section>
+                </>
+              ),
+            },
+            {
+              id: 'sermons',
+              label: 'Past sermons',
+              icon: 'book',
+              render: () => (
+                <>
+                  <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
+                    <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">
+                      Pastoral Content · Bishop Gwin
+                    </h3>
+                    <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the
+                      Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openFollowAlong}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      <UiIcon name="book" /> Follow along in the Word
+                    </button>
+                  </section>
 
-          {/* MESSAGES — start a chat from the obvious place (Darrell 2026-07-27:
+                  {/* MESSAGES — start a chat from the obvious place (Darrell 2026-07-27:
               "Put the ability to start chats or dms in obvious locations."). The
               rail already exists (?view=messages, E2E DMs + group threads); this
               puts the DOOR where members actually stand. Deep link, full reload OK. */}
-                      </>
-                    ),
-                  },
-                  {
-                    id: 'connect',
-                    label: 'Stay connected',
-                    icon: 'mail',
-                    render: () => (
-                      <>
-          <section aria-labelledby="msg-h">
-            <h3 id="msg-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Messages — reach someone privately</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a href="?view=messages" className="bg-white border-2 border-[#5A6E3D] hover:border-[#1A1815] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
-                <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="mail" /> Start a direct message</div>
-                <div className="text-[0.625rem] text-[#5A5751] mt-1">One-to-one, end-to-end encrypted — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Type it or speak it.</div>
-              </a>
-              <a href="?view=messages" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
-                <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="users" /> Message a group</div>
-                <div className="text-[0.625rem] text-[#5A5751] mt-1">Everyone · Choir · Bus Ministry · Security — private to the roster, no phone numbers.</div>
-              </a>
-            </div>
-          </section>
+                </>
+              ),
+            },
+            {
+              id: 'connect',
+              label: 'Stay connected',
+              icon: 'mail',
+              render: () => (
+                <>
+                  <section aria-labelledby="msg-h">
+                    <h3 id="msg-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">
+                      Messages — reach someone privately
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <a
+                        href="?view=messages"
+                        className="bg-white border-2 border-[#5A6E3D] hover:border-[#1A1815] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5">
+                          <UiIcon name="mail" /> Start a direct message
+                        </div>
+                        <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                          One-to-one, end-to-end encrypted — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Type it or speak it.
+                        </div>
+                      </a>
+                      <a
+                        href="?view=messages"
+                        className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5">
+                          <UiIcon name="users" /> Message a group
+                        </div>
+                        <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                          Everyone · Choir · Bus Ministry · Security — private to the roster, no phone numbers.
+                        </div>
+                      </a>
+                    </div>
+                  </section>
 
-          {/* MEDIA / BROADCAST */}
-          {c.media && (
-            <section aria-labelledby="media-h">
-              <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[0.625rem] text-[#5A5751]">Recorded services</div></a>}
-                {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div></a>}
-                {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div></a>}
-                {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true"><UiIcon name="radio" /></div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[0.625rem] text-[#5A5751]">All channels</div></a>}
-              </div>
-            </section>
-          )}
+                  {/* MEDIA / BROADCAST */}
+                  {c.media && (
+                    <section aria-labelledby="media-h">
+                      <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">
+                        Watch · Listen · Follow
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {c.media.youtube && (
+                          <a
+                            href={c.media.youtube}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            <div className="text-2xl mb-1" aria-hidden="true">
+                              ▶
+                            </div>
+                            <div className="text-xs uppercase tracking-wider font-semibold">YouTube</div>
+                            <div className="text-[0.625rem] text-[#5A5751]">Recorded services</div>
+                          </a>
+                        )}
+                        {c.media.facebook && (
+                          <a
+                            href={c.media.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            <div className="text-2xl mb-1" aria-hidden="true">
+                              f
+                            </div>
+                            <div className="text-xs uppercase tracking-wider font-semibold">Facebook</div>
+                            <div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div>
+                          </a>
+                        )}
+                        {c.media.instagram && (
+                          <a
+                            href={c.media.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            <div className="text-2xl mb-1" aria-hidden="true">
+                              ◉
+                            </div>
+                            <div className="text-xs uppercase tracking-wider font-semibold">Instagram</div>
+                            <div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div>
+                          </a>
+                        )}
+                        {c.media.broadcast && (
+                          <a
+                            href={c.media.broadcast}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            <div className="text-2xl mb-1" aria-hidden="true">
+                              <UiIcon name="radio" />
+                            </div>
+                            <div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div>
+                            <div className="text-[0.625rem] text-[#5A5751]">All channels</div>
+                          </a>
+                        )}
+                      </div>
+                    </section>
+                  )}
 
-          {/* GET / SHARE OUR APP (DR-0174) — the church's own door as a scannable
+                  {/* GET / SHARE OUR APP (DR-0174) — the church's own door as a scannable
               code the congregation can pass on: project it, print it for the
               bulletin, or show a phone. Encodes SHARE_DOOR_URL (poetech.us/lovecorner
               → installs "The Love Corner"), one source with the door + manifest. */}
-          <section aria-labelledby="shareapp-h">
-            <h3 id="shareapp-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Get our app · Share it</h3>
-            <AppShareQR
-              url={SHARE_DOOR_URL}
-              shown="poetech.us/lovecorner"
-              title="The Love Corner app"
-              blurb="Point a phone camera at this code to install our church app — services, live worship, sermons, giving, and prayer, all in one place. Project it, print it for the bulletin, or just show your phone."
-              ariaLabel="QR code to install The Love Corner church app"
-            />
-          </section>
-                      </>
-                    ),
-                  },
-                ]}
-              />
+                  <section aria-labelledby="shareapp-h">
+                    <h3 id="shareapp-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">
+                      Get our app · Share it
+                    </h3>
+                    <AppShareQR
+                      url={SHARE_DOOR_URL}
+                      shown="poetech.us/lovecorner"
+                      title="The Love Corner app"
+                      blurb="Point a phone camera at this code to install our church app — services, live worship, sermons, giving, and prayer, all in one place. Project it, print it for the bulletin, or just show your phone."
+                      ariaLabel="QR code to install The Love Corner church app"
+                    />
+                  </section>
+                </>
+              ),
+            },
+          ]}
+        />
       ),
     },
     {
@@ -625,10 +770,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'mic',
       render: () => (
         <>
-      {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
+          {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
           one input, the system deduces; MODE-ROUTING: suggestion visible,
           person decides). Ordered first so speaking is always one tap away. */}
-      {/* THE ONE INPUT SURFACE (DR-0131; Darrell 2026-07-09: "only have one
+          {/* THE ONE INPUT SURFACE (DR-0131; Darrell 2026-07-09: "only have one
           input surface from PoeTech on any and all tabs"). The former second
           widget below this box saved notes to MEMORY ONLY and its Send was a
           raw mailto that yanked the whole surface into the mail app (the
@@ -638,23 +783,23 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           thought-inbox), the log below is the synced record, and emailing the
           office is an explicit secondary link that never navigates this
           surface. */}
-      <ChurchOneVoice
-        addPrayerRequest={addPrayerRequest}
-        updateConference={updateConference}
-        conference={conference}
-        addChurchVoice={addChurchVoice}
-        churchVoice={churchVoice}
-        sendToPoeTech={sendToPoeTech}
-        addIncident={addIncident}
-        addInquiry={addInquiry}
-        officeEmail={c.contactEmail || null}
-      />
+          <ChurchOneVoice
+            addPrayerRequest={addPrayerRequest}
+            updateConference={updateConference}
+            conference={conference}
+            addChurchVoice={addChurchVoice}
+            churchVoice={churchVoice}
+            sendToPoeTech={sendToPoeTech}
+            addIncident={addIncident}
+            addInquiry={addInquiry}
+            officeEmail={c.contactEmail || null}
+          />
 
-      {/* CONFERENCE / EVENT CENTER moved to its own Church sub-tab (sibling to
+          {/* CONFERENCE / EVENT CENTER moved to its own Church sub-tab (sibling to
           Learn) on 2026-06-16 — see the churchView === 'conference' branch.
           ChurchOneVoice above still carries conference RSVPs via updateConference. */}
 
-      {/* TESTIMONY DIARY — removed from the live surface (2026-07-21): the MVP V0
+          {/* TESTIMONY DIARY — removed from the live surface (2026-07-21): the MVP V0
           isn't built, so it rendered a not-yet-ready notice, which the surface-
           audit no-dead-ends gate (DR-0086/DR-0219) correctly rejects on a shipped
           surface. Parishioners see nothing unfinished; the section returns here
@@ -669,61 +814,147 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'dove',
       render: () => (
         <>
-      {/* PRAYER REQUESTS — local log, optional send-out */}
-      <section aria-labelledby="pr-h">
-        <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h3 id="pr-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Prayer Requests · {prayerRequests.length}</h3>
-          <button type="button" onClick={() => { setShowPrForm(!showPrForm); setPrError(''); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showPrForm ? '× Cancel' : '+ Add request'}</button>
-        </div>
-        <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Logged locally on your device. With an office email on file, "Send" opens your email client — you stay in control of what leaves your device. Until then, "Open contact page" takes you to the church’s contact form.
-        </p>
-        {showPrForm && (
-          <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label htmlFor="pr-name" className={labelCls}>Requested by</label><input id="pr-name" className={fieldCls} value={prForm.requester} onChange={e => setPrForm({ ...prForm, requester: e.target.value })} disabled={prForm.anonymous} placeholder={prForm.anonymous ? '(anonymous)' : 'Your name'} /></div>
-              <div className="flex items-end gap-3">
-                <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <input type="checkbox" checked={prForm.anonymous} onChange={e => setPrForm({ ...prForm, anonymous: e.target.checked })} className="accent-[#B85838]" /> Submit anonymously
-                </label>
-              </div>
+          {/* PRAYER REQUESTS — local log, optional send-out */}
+          <section aria-labelledby="pr-h">
+            <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+              <h3 id="pr-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">
+                Prayer Requests · {prayerRequests.length}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPrForm(!showPrForm);
+                  setPrError('');
+                }}
+                className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {showPrForm ? '× Cancel' : '+ Add request'}
+              </button>
             </div>
-            <div><label htmlFor="pr-text" className={labelCls}>Prayer request</label><textarea id="pr-text" rows="3" className={fieldCls} value={prForm.request} onChange={e => setPrForm({ ...prForm, request: e.target.value })} /></div>
-            <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-              <input type="checkbox" checked={prForm.shareWithChurch} onChange={e => setPrForm({ ...prForm, shareWithChurch: e.target.checked })} className="accent-[#B85838]" /> Mark as ready to share with the church
-            </label>
-            <button type="button" onClick={submitPrayer} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save Prayer Request</button>
-            {prError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{prError}</p>}
-          </div>
-        )}
-        {prayerRequests.length === 0 ? (
-          <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No prayer requests logged yet.</p>
-        ) : (
-          <div className="bg-white border border-[#1A1815]">
-            {[...prayerRequests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((pr, i, arr) => (
-              <div key={pr.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{pr.createdAt.slice(0, 10)} · {pr.requester || '(anonymous)'}</div>
-                    <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}><EmojiText text={pr.request} /></div>
-                    <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#5A5751]">{pr.sentAt ? `✓ sent ${pr.sentAt.slice(0, 10)}` : pr.shareWithChurch ? 'ready to share' : 'private'}</div>
+            <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              Logged locally on your device. With an office email on file, "Send" opens your email client — you stay in control of what leaves your device.
+              Until then, "Open contact page" takes you to the church’s contact form.
+            </p>
+            {showPrForm && (
+              <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="pr-name" className={labelCls}>
+                      Requested by
+                    </label>
+                    <input
+                      id="pr-name"
+                      className={fieldCls}
+                      value={prForm.requester}
+                      onChange={(e) => setPrForm({ ...prForm, requester: e.target.value })}
+                      disabled={prForm.anonymous}
+                      placeholder={prForm.anonymous ? '(anonymous)' : 'Your name'}
+                    />
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {pr.shareWithChurch && !pr.sentAt && mailtoFor(pr) && (
-                      // Only render Send — and only mark "sent" — when a real
-                      // destination resolves; never report success for a link that
-                      // opens nothing (the request stays saved + "ready to share").
-                      <a href={mailtoFor(pr)} target={c.contactEmail ? '_self' : '_blank'} rel="noopener noreferrer" onClick={() => { if (c.contactEmail) markPrayerRequestSent(pr.id); }} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">{c.contactEmail ? 'Send →' : 'Open contact page →'}</a>
-                    )}
-                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
-                    <button type="button" onClick={() => { if (confirm('Delete this prayer request?')) deletePrayerRequest(pr.id); }} aria-label={`Delete prayer request from ${pr.requester}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                  <div className="flex items-end gap-3">
+                    <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <input
+                        type="checkbox"
+                        checked={prForm.anonymous}
+                        onChange={(e) => setPrForm({ ...prForm, anonymous: e.target.checked })}
+                        className="accent-[#B85838]"
+                      />{' '}
+                      Submit anonymously
+                    </label>
                   </div>
                 </div>
+                <div>
+                  <label htmlFor="pr-text" className={labelCls}>
+                    Prayer request
+                  </label>
+                  <textarea
+                    id="pr-text"
+                    rows="3"
+                    className={fieldCls}
+                    value={prForm.request}
+                    onChange={(e) => setPrForm({ ...prForm, request: e.target.value })}
+                  />
+                </div>
+                <label className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <input
+                    type="checkbox"
+                    checked={prForm.shareWithChurch}
+                    onChange={(e) => setPrForm({ ...prForm, shareWithChurch: e.target.checked })}
+                    className="accent-[#B85838]"
+                  />{' '}
+                  Mark as ready to share with the church
+                </label>
+                <button
+                  type="button"
+                  onClick={submitPrayer}
+                  className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  Save Prayer Request
+                </button>
+                {prError && (
+                  <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {prError}
+                  </p>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            )}
+            {prayerRequests.length === 0 ? (
+              <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                No prayer requests logged yet.
+              </p>
+            ) : (
+              <div className="bg-white border border-[#1A1815]">
+                {[...prayerRequests]
+                  .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                  .map((pr, i, arr) => (
+                    <div key={pr.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                            {pr.createdAt.slice(0, 10)} · {pr.requester || '(anonymous)'}
+                          </div>
+                          <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                            <EmojiText text={pr.request} />
+                          </div>
+                          <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#5A5751]">
+                            {pr.sentAt ? `✓ sent ${pr.sentAt.slice(0, 10)}` : pr.shareWithChurch ? 'ready to share' : 'private'}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {pr.shareWithChurch && !pr.sentAt && mailtoFor(pr) && (
+                            // Only render Send — and only mark "sent" — when a real
+                            // destination resolves; never report success for a link that
+                            // opens nothing (the request stays saved + "ready to share").
+                            <a
+                              href={mailtoFor(pr)}
+                              target={c.contactEmail ? '_self' : '_blank'}
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                if (c.contactEmail) markPrayerRequestSent(pr.id);
+                              }}
+                              className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              {c.contactEmail ? 'Send →' : 'Open contact page →'}
+                            </a>
+                          )}
+                          <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Delete this prayer request?')) deletePrayerRequest(pr.id);
+                            }}
+                            aria-label={`Delete prayer request from ${pr.requester}`}
+                            className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
         </>
       ),
     },
@@ -733,88 +964,221 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'coins',
       render: () => (
         <>
-      {/* GIVE + PARISH LIFE */}
-      <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {c.links?.give && (
-          <div className="bg-white border-2 border-[#B85838] p-4">
-            <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
-            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs on the church's own website, where the giving options are published — no payment data passes through this app.</p>
-            <div className="flex gap-2 mt-3 flex-wrap">
-              <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
-              {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
-            </div>
-          </div>
-        )}
-        <div className="bg-white border border-[#1A1815] p-4">
-          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
-          {Array.isArray(c.announcedEvents) && c.announcedEvents.length > 0 && (
-            <ul className="text-xs space-y-1.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              {c.announcedEvents.map((ev) => (
-                <li key={ev.id} className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span>
-                    <UiIcon name="calendar" /> <strong>{ev.name}</strong>
-                    {' '}· {ev.date}{ev.endDate ? ` → ${ev.endDate}` : ''}{ev.detail ? ` · ${ev.detail}` : ''}
-                  </span>
-                  {addEvent && (
-                    <button
-                      type="button"
-                      onClick={() => saveAnnouncedEvent(ev)}
-                      disabled={savedEventIds.includes(ev.id)}
-                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          {/* GIVE + PARISH LIFE */}
+          <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {c.links?.give && (
+              <div className="bg-white border-2 border-[#B85838] p-4">
+                <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+                  Tithes · Offering · Gifts
+                </h3>
+                <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Giving runs on the church's own website, where the giving options are published — no payment data passes through this app.
+                </p>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <a
+                    href={c.links.give}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    Give →
+                  </a>
+                  {c.links.giversCreed && (
+                    <a
+                      href={c.links.giversCreed}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     >
-                      {savedEventIds.includes(ev.id) ? '✓ On your calendar' : '+ Calendar'}
-                    </button>
+                      Givers Creed
+                    </a>
                   )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {addEvent && Array.isArray(c.announcedEvents) && c.announcedEvents.length > 1 && (
-            <button
-              type="button"
-              onClick={saveAllAnnouncedEvents}
-              disabled={c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))}
-              className="mb-2 text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              {c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))
-                ? '✓ All on your calendar'
-                : `+ Add all ${c.announcedEvents.length} to my calendar`}
-            </button>
-          )}
-          <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
-            {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
-            {c.links?.bibleChallenge && <li><UiIcon name="bookOpen" /> <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible Reading Challenge 2026</a></li>}
-            {c.links?.classPoints && <li><UiIcon name="pencil" /> <a href={c.links.classPoints} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible study class points</a></li>}
-            {c.links?.lettersFromBG && <li><UiIcon name="mail" /> <a href={c.links.lettersFromBG} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Letters from Bishop Gwin</a></li>}
-            {c.links?.assembly && <li><UiIcon name="landmark" /> <a href={c.links.assembly} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">National Assembly</a></li>}
-            {c.links?.stayConnected && <li><UiIcon name="link" /> <a href={c.links.stayConnected} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Stay connected</a></li>}
-          </ul>
-        </div>
-      </section>
-
-      {/* MINISTRY INTEREST */}
-      {c.links?.ministries && (
-        <section aria-labelledby="min-h" className="bg-white border border-[#1A1815] p-4">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <h3 id="min-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Ministry Opportunities</h3>
-            <button type="button" onClick={() => setShowMinistryForm(!showMinistryForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showMinistryForm ? '× Cancel' : '+ Express interest'}</button>
-          </div>
-          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where you'd like to serve, what hours fit your life. Your note goes to the church office via your email client — nothing is sent through us.</p>
-          <a href={c.links.ministries} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-[#B85838] underline hover:text-[#1A1815] inline-block mt-2">See current openings →</a>
-          {showMinistryForm && (
-            <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div><label htmlFor="min-name" className={labelCls}>Your name</label><input id="min-name" className={fieldCls} value={ministryInterest.name} onChange={e => setMinistryInterest({ ...ministryInterest, name: e.target.value })} /></div>
-                <div><label htmlFor="min-email" className={labelCls}>Email (so they can reply)</label><input id="min-email" type="email" className={fieldCls} value={ministryInterest.email} onChange={e => setMinistryInterest({ ...ministryInterest, email: e.target.value })} /></div>
+                </div>
               </div>
-              <div><label htmlFor="min-interest" className={labelCls}>Ministry of interest</label><input id="min-interest" className={fieldCls} placeholder="e.g., Music · Youth · Tech · Outreach" value={ministryInterest.interest} onChange={e => setMinistryInterest({ ...ministryInterest, interest: e.target.value })} /></div>
-              <div><label htmlFor="min-skills" className={labelCls}>Skills · availability</label><textarea id="min-skills" rows="3" className={fieldCls} value={ministryInterest.skills} onChange={e => setMinistryInterest({ ...ministryInterest, skills: e.target.value })} /></div>
-              <button type="button" onClick={submitMinistry} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send to Church Office</button>
-              {ministryNote && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{ministryNote}</p>}
+            )}
+            <div className="bg-white border border-[#1A1815] p-4">
+              <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
+              {Array.isArray(c.announcedEvents) && c.announcedEvents.length > 0 && (
+                <ul className="text-xs space-y-1.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {c.announcedEvents.map((ev) => (
+                    <li key={ev.id} className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span>
+                        <UiIcon name="calendar" /> <strong>{ev.name}</strong> · {ev.date}
+                        {ev.endDate ? ` → ${ev.endDate}` : ''}
+                        {ev.detail ? ` · ${ev.detail}` : ''}
+                      </span>
+                      {addEvent && (
+                        <button
+                          type="button"
+                          onClick={() => saveAnnouncedEvent(ev)}
+                          disabled={savedEventIds.includes(ev.id)}
+                          className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        >
+                          {savedEventIds.includes(ev.id) ? '✓ On your calendar' : '+ Calendar'}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {addEvent && Array.isArray(c.announcedEvents) && c.announcedEvents.length > 1 && (
+                <button
+                  type="button"
+                  onClick={saveAllAnnouncedEvents}
+                  disabled={c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))}
+                  className="mb-2 text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  {c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))
+                    ? '✓ All on your calendar'
+                    : `+ Add all ${c.announcedEvents.length} to my calendar`}
+                </button>
+              )}
+              <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                {c.links?.calendar && (
+                  <li>
+                    <UiIcon name="calendar" />{' '}
+                    <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      Church calendar
+                    </a>
+                  </li>
+                )}
+                {c.links?.bibleChallenge && (
+                  <li>
+                    <UiIcon name="bookOpen" />{' '}
+                    <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      Bible Reading Challenge 2026
+                    </a>
+                  </li>
+                )}
+                {c.links?.classPoints && (
+                  <li>
+                    <UiIcon name="pencil" />{' '}
+                    <a href={c.links.classPoints} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      Bible study class points
+                    </a>
+                  </li>
+                )}
+                {c.links?.lettersFromBG && (
+                  <li>
+                    <UiIcon name="mail" />{' '}
+                    <a href={c.links.lettersFromBG} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      Letters from Bishop Gwin
+                    </a>
+                  </li>
+                )}
+                {c.links?.assembly && (
+                  <li>
+                    <UiIcon name="landmark" />{' '}
+                    <a href={c.links.assembly} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      National Assembly
+                    </a>
+                  </li>
+                )}
+                {c.links?.stayConnected && (
+                  <li>
+                    <UiIcon name="link" />{' '}
+                    <a href={c.links.stayConnected} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">
+                      Stay connected
+                    </a>
+                  </li>
+                )}
+              </ul>
             </div>
+          </section>
+
+          {/* MINISTRY INTEREST */}
+          {c.links?.ministries && (
+            <section aria-labelledby="min-h" className="bg-white border border-[#1A1815] p-4">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <h3 id="min-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+                  Ministry Opportunities
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowMinistryForm(!showMinistryForm)}
+                  className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  {showMinistryForm ? '× Cancel' : '+ Express interest'}
+                </button>
+              </div>
+              <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                Where you'd like to serve, what hours fit your life. Your note goes to the church office via your email client — nothing is sent through us.
+              </p>
+              <a
+                href={c.links.ministries}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs uppercase tracking-wider text-[#B85838] underline hover:text-[#1A1815] inline-block mt-2"
+              >
+                See current openings →
+              </a>
+              {showMinistryForm && (
+                <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="min-name" className={labelCls}>
+                        Your name
+                      </label>
+                      <input
+                        id="min-name"
+                        className={fieldCls}
+                        value={ministryInterest.name}
+                        onChange={(e) => setMinistryInterest({ ...ministryInterest, name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="min-email" className={labelCls}>
+                        Email (so they can reply)
+                      </label>
+                      <input
+                        id="min-email"
+                        type="email"
+                        className={fieldCls}
+                        value={ministryInterest.email}
+                        onChange={(e) => setMinistryInterest({ ...ministryInterest, email: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="min-interest" className={labelCls}>
+                      Ministry of interest
+                    </label>
+                    <input
+                      id="min-interest"
+                      className={fieldCls}
+                      placeholder="e.g., Music · Youth · Tech · Outreach"
+                      value={ministryInterest.interest}
+                      onChange={(e) => setMinistryInterest({ ...ministryInterest, interest: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="min-skills" className={labelCls}>
+                      Skills · availability
+                    </label>
+                    <textarea
+                      id="min-skills"
+                      rows="3"
+                      className={fieldCls}
+                      value={ministryInterest.skills}
+                      onChange={(e) => setMinistryInterest({ ...ministryInterest, skills: e.target.value })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={submitMinistry}
+                    className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    Send to Church Office
+                  </button>
+                  {ministryNote && (
+                    <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {ministryNote}
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
           )}
-        </section>
-      )}
         </>
       ),
     },
@@ -824,24 +1188,41 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'calendar',
       render: () => (
         <>
-      {/* SERVICE TIMES + SAVE TO CALENDAR */}
-      {(c.services || []).length > 0 && (
-        <section aria-labelledby="svc-h">
-          <h3 id="svc-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Service Times · in-person + online</h3>
-          <div className="bg-white border border-[#1A1815]">
-            {c.services.map((svc, i, arr) => (
-              <div key={svc.id} className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="min-w-0">
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}{svc.endTime ? `–${svc.endTime}` : ''}</span></div>
-                  {svc.online && <div className="text-[0.625rem] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
-                </div>
-                <button type="button" onClick={() => saveServiceToCalendar(svc)} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"><UiIcon name="calendar" /> Save next one</button>
+          {/* SERVICE TIMES + SAVE TO CALENDAR */}
+          {(c.services || []).length > 0 && (
+            <section aria-labelledby="svc-h">
+              <h3 id="svc-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">
+                Service Times · in-person + online
+              </h3>
+              <div className="bg-white border border-[#1A1815]">
+                {c.services.map((svc, i, arr) => (
+                  <div
+                    key={svc.id}
+                    className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                        {svc.label} ·{' '}
+                        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>
+                          {svc.time}
+                          {svc.endTime ? `–${svc.endTime}` : ''}
+                        </span>
+                      </div>
+                      {svc.online && <div className="text-[0.625rem] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => saveServiceToCalendar(svc)}
+                      className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      <UiIcon name="calendar" /> Save next one
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </section>
+          )}
         </>
       ),
     },
@@ -851,93 +1232,239 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'landmark',
       render: () => (
         <>
-      {/* HEADER (moved to bottom 2026-05-25 per Darrell — the church-identity "ad"
+          {/* HEADER (moved to bottom 2026-05-25 per Darrell — the church-identity "ad"
           lives below the spiritual + parish-life surfaces so the page opens with
           the actions, not with the marquee). */}
-      <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
-        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}{c.founded && <span className="text-sm text-[#5A5751] font-normal ml-2" style={{ letterSpacing: 0 }}>· Est. {c.founded}</span>}</h2>
-        {c.nickname && <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.nickname}</div>}
-        {c.tagline && <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{c.tagline}</p>}
-        {c.verse && (
-          <blockquote className="mt-3 border-l-2 border-[#B85838] pl-3 text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            "{c.verse.text}" <span className="not-italic text-[#5A5751] text-xs"> — {c.verse.ref}</span>
-          </blockquote>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-          {c.address && <div><div className={labelCls}>Location</div><div>{c.address}</div></div>}
-          {c.pastor && <div><div className={labelCls}>Pastor</div><div>{c.pastor}</div></div>}
-          {c.phone && <div><div className={labelCls}>Phone</div><a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">{c.phone}</a></div>}
-          {c.officeHours && <div><div className={labelCls}>Office</div><div>{c.officeHours}</div></div>}
-        </div>
-        <div className="mt-3 flex gap-2 flex-wrap">
-          {c.site && <a href={c.site} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Visit Church Site →</a>}
-          {c.links?.about && <a href={c.links.about} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">About Us →</a>}
-        </div>
-      </section>
+          <section className="bg-white border border-[#1A1815] p-5">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
+            <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              {c.name}
+              {c.founded && (
+                <span className="text-sm text-[#5A5751] font-normal ml-2" style={{ letterSpacing: 0 }}>
+                  · Est. {c.founded}
+                </span>
+              )}
+            </h2>
+            {c.nickname && (
+              <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                {c.nickname}
+              </div>
+            )}
+            {c.tagline && (
+              <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                {c.tagline}
+              </p>
+            )}
+            {c.verse && (
+              <blockquote className="mt-3 border-l-2 border-[#B85838] pl-3 text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                "{c.verse.text}" <span className="not-italic text-[#5A5751] text-xs"> — {c.verse.ref}</span>
+              </blockquote>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              {c.address && (
+                <div>
+                  <div className={labelCls}>Location</div>
+                  <div>{c.address}</div>
+                </div>
+              )}
+              {c.pastor && (
+                <div>
+                  <div className={labelCls}>Pastor</div>
+                  <div>{c.pastor}</div>
+                </div>
+              )}
+              {c.phone && (
+                <div>
+                  <div className={labelCls}>Phone</div>
+                  <a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">
+                    {c.phone}
+                  </a>
+                </div>
+              )}
+              {c.officeHours && (
+                <div>
+                  <div className={labelCls}>Office</div>
+                  <div>{c.officeHours}</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex gap-2 flex-wrap">
+              {c.site && (
+                <a
+                  href={c.site}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  Visit Church Site →
+                </a>
+              )}
+              {c.links?.about && (
+                <a
+                  href={c.links.about}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  About Us →
+                </a>
+              )}
+            </div>
+          </section>
 
-      {/* MULTI-CHURCH DIRECTORY (D21, skeleton) — one church today (COLG, the
+          {/* MULTI-CHURCH DIRECTORY (D21, skeleton) — one church today (COLG, the
           public anchor entry); grows as partners join. Partner-church alignment
           is Word-first + non-denominational + Christ-confessing (Q8 framework
           per project_non_denominational_word_first_body_undivided). Full
           partner-onboarding flow ships V2. */}
-      <section aria-labelledby="dir-h" className="bg-white border border-[#1A1815] p-4">
-        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2 pb-2 border-b border-[#1A1815]">
-          <h3 id="dir-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Church Directory</h3>
-          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">My church home: COLG (default)</span>
-        </div>
-        <div className="border border-[#E8E4DC]">
-          <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>The Church of the Living God</div>
-              <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Love Corner · Champaign, IL · your default church home</div>
+          <section aria-labelledby="dir-h" className="bg-white border border-[#1A1815] p-4">
+            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2 pb-2 border-b border-[#1A1815]">
+              <h3 id="dir-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+                Church Directory
+              </h3>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">My church home: COLG (default)</span>
             </div>
-            <span className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] shrink-0">Default</span>
-          </div>
-        </div>
-        <p className="text-xs text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>More churches coming as they join PoeTech.</p>
-        <div className="mt-2">
-          <button type="button" onClick={() => { setShowInviteForm(!showInviteForm); setInviteSent(false); setInviteError(''); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">{showInviteForm ? '× Close' : 'Your church not here? Invite them'}</button>
-        </div>
-        {showInviteForm && !inviteSent && (
-          <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
-            <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tell us about your church home and we'll reach out about joining the PoeTech partner directory.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label htmlFor="inv-church" className={labelCls}>Church name</label><input id="inv-church" className={fieldCls} value={inviteForm.churchName} onChange={e => setInviteForm({ ...inviteForm, churchName: e.target.value })} /></div>
-              <div><label htmlFor="inv-city" className={labelCls}>City / state</label><input id="inv-city" className={fieldCls} value={inviteForm.city} onChange={e => setInviteForm({ ...inviteForm, city: e.target.value })} /></div>
-              <div><label htmlFor="inv-name" className={labelCls}>Your name</label><input id="inv-name" className={fieldCls} value={inviteForm.contactName} onChange={e => setInviteForm({ ...inviteForm, contactName: e.target.value })} /></div>
-              <div><label htmlFor="inv-email" className={labelCls}>Email (so we can reply)</label><input id="inv-email" type="email" className={fieldCls} value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} /></div>
+            <div className="border border-[#E8E4DC]">
+              <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>The Church of the Living God</div>
+                  <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    The Love Corner · Champaign, IL · your default church home
+                  </div>
+                </div>
+                <span className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] shrink-0">Default</span>
+              </div>
             </div>
-            <div><label htmlFor="inv-note" className={labelCls}>Anything else? (optional)</label><textarea id="inv-note" rows="2" className={fieldCls} value={inviteForm.note} onChange={e => setInviteForm({ ...inviteForm, note: e.target.value })} /></div>
-            <button type="button" onClick={() => {
-              if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; }
-              setInviteError('');
-              // Persist it as a REAL inquiry (addInquiry -> local + the inquiries
-              // table when signed in), so "we'll reach out" is true — not a
-              // dropped local-only write (DR-0219: deliver the promise).
-              if (typeof addInquiry === 'function') {
-                addInquiry({
-                  kind: 'partner-church-invite', source: 'church-home',
-                  churchName: inviteForm.churchName, city: inviteForm.city,
-                  contactName: inviteForm.contactName, email: inviteForm.email,
-                  message: inviteForm.note || '',
-                });
-              }
-              setInviteSent(true);
-            }} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send invite</button>
-            {inviteError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{inviteError}</p>}
-          </div>
-        )}
-        {inviteSent && (
-          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#5A6E3D] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            Thank you — we'll reach out about joining the PoeTech partner directory. Partner churches are Word-first, non-denominational in posture, and Christ-confessing.
-          </p>
-        )}
-      </section>
+            <p className="text-xs text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+              More churches coming as they join PoeTech.
+            </p>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInviteForm(!showInviteForm);
+                  setInviteSent(false);
+                  setInviteError('');
+                }}
+                className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {showInviteForm ? '× Close' : 'Your church not here? Invite them'}
+              </button>
+            </div>
+            {showInviteForm && !inviteSent && (
+              <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+                <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Tell us about your church home and we'll reach out about joining the PoeTech partner directory.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="inv-church" className={labelCls}>
+                      Church name
+                    </label>
+                    <input
+                      id="inv-church"
+                      className={fieldCls}
+                      value={inviteForm.churchName}
+                      onChange={(e) => setInviteForm({ ...inviteForm, churchName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="inv-city" className={labelCls}>
+                      City / state
+                    </label>
+                    <input
+                      id="inv-city"
+                      className={fieldCls}
+                      value={inviteForm.city}
+                      onChange={(e) => setInviteForm({ ...inviteForm, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="inv-name" className={labelCls}>
+                      Your name
+                    </label>
+                    <input
+                      id="inv-name"
+                      className={fieldCls}
+                      value={inviteForm.contactName}
+                      onChange={(e) => setInviteForm({ ...inviteForm, contactName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="inv-email" className={labelCls}>
+                      Email (so we can reply)
+                    </label>
+                    <input
+                      id="inv-email"
+                      type="email"
+                      className={fieldCls}
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="inv-note" className={labelCls}>
+                    Anything else? (optional)
+                  </label>
+                  <textarea
+                    id="inv-note"
+                    rows="2"
+                    className={fieldCls}
+                    value={inviteForm.note}
+                    onChange={(e) => setInviteForm({ ...inviteForm, note: e.target.value })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!inviteForm.churchName || !inviteForm.email) {
+                      setInviteError('Add at least your church name and an email.');
+                      return;
+                    }
+                    setInviteError('');
+                    // Persist it as a REAL inquiry (addInquiry -> local + the inquiries
+                    // table when signed in), so "we'll reach out" is true — not a
+                    // dropped local-only write (DR-0219: deliver the promise).
+                    if (typeof addInquiry === 'function') {
+                      addInquiry({
+                        kind: 'partner-church-invite',
+                        source: 'church-home',
+                        churchName: inviteForm.churchName,
+                        city: inviteForm.city,
+                        contactName: inviteForm.contactName,
+                        email: inviteForm.email,
+                        message: inviteForm.note || '',
+                      });
+                    }
+                    setInviteSent(true);
+                  }}
+                  className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  Send invite
+                </button>
+                {inviteError && (
+                  <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {inviteError}
+                  </p>
+                )}
+              </div>
+            )}
+            {inviteSent && (
+              <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#5A6E3D] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
+                Thank you — we'll reach out about joining the PoeTech partner directory. Partner churches are Word-first, non-denominational in posture, and
+                Christ-confessing.
+              </p>
+            )}
+          </section>
 
-      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-        Content links to the church's own pages. Service times, media, and ministry openings live on <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">{(c.site || '').replace(/^https?:\/\//, '')}</a> — this tab is a shortcut, not a copy. Edits to service times can be made in the seed data ({`data.church.services`}) as the church publishes them.
-      </p>
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            Content links to the church's own pages. Service times, media, and ministry openings live on{' '}
+            <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">
+              {(c.site || '').replace(/^https?:\/\//, '')}
+            </a>{' '}
+            — this tab is a shortcut, not a copy. Edits to service times can be made in the seed data ({`data.church.services`}) as the church publishes them.
+          </p>
         </>
       ),
     },
@@ -954,7 +1481,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         <div className="bg-white border-2 border-[#1A1815] p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-0.5">The Love Corner</div>
-            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Members &amp; staff — log in to your account. New here? Create one to request a ride and save your place.</p>
+            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Members &amp; staff — log in to your account. New here? Create one to request a ride and save your place.
+            </p>
           </div>
           <button
             type="button"
@@ -965,9 +1494,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           </button>
         </div>
       )}
-      {!signedIn && (
-        <AuthModal open={loginOpen} onClose={() => setLoginOpen(false)} onSignedIn={() => setLoginOpen(false)} mode="signup" />
-      )}
+      {!signedIn && <AuthModal open={loginOpen} onClose={() => setLoginOpen(false)} onSignedIn={() => setLoginOpen(false)} mode="signup" />}
 
       {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
           own church home; COLG / The Love Corner is the platform default (the
@@ -975,11 +1502,19 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           navigates to this tab is opted-in to deeper engagement. */}
       {showingDefaultHome && (
         <p className="text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          This is your default church home — The Church of the Living God, the platform&apos;s first community. Choosing your own church home opens as partner churches join the directory; until then, the real next step is inviting yours from the Church Directory (About section).
+          This is your default church home — The Church of the Living God, the platform&apos;s first community. Choosing your own church home opens as partner
+          churches join the directory; until then, the real next step is inviting yours from the Church Directory (About section).
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      <SectionTabs
+        sections={sections}
+        ariaLabel="Church"
+        idBase="church"
+        defaultId={initialSection || 'worship'}
+        activeId={section}
+        onActiveChange={setSection}
+      />
     </div>
   );
 }

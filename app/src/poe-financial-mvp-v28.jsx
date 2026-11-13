@@ -1243,7 +1243,7 @@ export default function PoeFinancialSystem() {
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
   const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
   const { homeView } = useHomePrefs();
-  const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
+  const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
@@ -4120,7 +4120,7 @@ ${THEME_CSS}
       {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} churchView={churchView} onQuickLink={(q) => { setChurchView(q.churchView); setView(q.view); }} />}
       <div className="min-w-0 flex-1">
       {/* THE LOVE CORNER DOOR WEARS ITS OWN HEADER (DR-1483; components/shell/LoveCornerHeader.jsx); the family app keeps the one below. */}
-      {churchDoorOnly ? <LoveCornerHeader churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} /> : (
+      {churchDoorOnly ? <LoveCornerHeader churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} onFeedback={() => setFeedbackOpen(true)} /> : (
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not scale with the root multiplier; HEADER HIDEAWAY: the top block hides when collapsed, only the tab row stays. */}
         {!headerCollapsed && (
@@ -4637,7 +4637,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} instanceId={churchAccess.instanceId} myUserId={authSession?.user?.id || null} isOffice={!reviewerMode && ['owner','admin'].includes(churchAccess.role)} />}
         {view === 'church' && churchView === 'youth' && <YouthZone church={data.church} signedIn={!!authSession} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
-        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} />}
+        {view === 'church' && churchView === 'giving-book' && (!reviewerMode && isChurchOfficeRole(churchAccess.role) ? <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} /> : <LockedSurface surface={surfaceById['giving-book']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The church's giving record, kept by the office." />)}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
         {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} patchNote={patchNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
