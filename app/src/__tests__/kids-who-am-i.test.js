@@ -64,7 +64,12 @@ describe('the blank hides only the name, and the verse comes back whole', () => 
     const tokens = blankName(text, 'Jonah');
     expect(tokens.filter((t) => t.blank).length).toBe(2);
     expect(tokens.map((t) => t.word).join('')).toBe(text);
-    expect(tokens.filter((t) => !t.blank).map((t) => t.word).join('')).not.toMatch(/Jonah/);
+    expect(
+      tokens
+        .filter((t) => !t.blank)
+        .map((t) => t.word)
+        .join('')
+    ).not.toMatch(/Jonah/);
   });
   it('a possessive keeps its apostrophe-s outside the blank', () => {
     const tokens = blankName("Noah's ark", 'Noah');

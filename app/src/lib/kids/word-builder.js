@@ -48,7 +48,7 @@ export function buildableWords(text, { min = 4 } = {}) {
 
 /** A small deterministic generator (mulberry32) so a seed replays the same shuffle. */
 export function seededRandom(seed) {
-  let a = (Number(seed) >>> 0) || 1;
+  let a = Number(seed) >>> 0 || 1;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
@@ -78,7 +78,10 @@ export function seededShuffle(items, seed) {
 export function scrambleLetters(word, seed = 0) {
   const letters = lettersOf(word).split('');
   if (letters.length === 0) return [];
-  let order = seededShuffle(letters.map((_, i) => i), seed);
+  let order = seededShuffle(
+    letters.map((_, i) => i),
+    seed
+  );
   const sameAsWord = order.every((idx, pos) => letters[idx] === letters[pos]);
   if (sameAsWord && new Set(letters).size > 1) order = order.slice(1).concat(order.slice(0, 1));
   return order.map((idx) => ({ id: idx, letter: letters[idx] }));
@@ -98,14 +101,20 @@ export function hintTokens(text, index) {
 /** True when the tiles placed so far are the word's start, in order. */
 export function placedSoFarIsRight(word, placed) {
   const w = lettersOf(word);
-  const p = (placed || []).map((t) => String(t && t.letter != null ? t.letter : t)).join('').toLowerCase();
+  const p = (placed || [])
+    .map((t) => String(t && t.letter != null ? t.letter : t))
+    .join('')
+    .toLowerCase();
   return w.startsWith(p);
 }
 
 /** True when the placed tiles spell the whole word. */
 export function spelled(word, placed) {
   const w = lettersOf(word);
-  const p = (placed || []).map((t) => String(t && t.letter != null ? t.letter : t)).join('').toLowerCase();
+  const p = (placed || [])
+    .map((t) => String(t && t.letter != null ? t.letter : t))
+    .join('')
+    .toLowerCase();
   return w.length > 0 && w === p;
 }
 

@@ -51,15 +51,24 @@ describe('the seed replays the same shuffle all week', () => {
     expect(a).not.toEqual(c);
     expect(a.slice().sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
-  it('a scramble holds exactly the word\'s letters and is never the word itself', () => {
+  it("a scramble holds exactly the word's letters and is never the word itself", () => {
     for (let seed = 0; seed < 200; seed += 1) {
       const tiles = scrambleLetters('shepherd', seed);
-      expect(tiles.map((t) => t.letter).sort().join('')).toBe('deehhprs');
+      expect(
+        tiles
+          .map((t) => t.letter)
+          .sort()
+          .join('')
+      ).toBe('deehhprs');
       expect(tiles.map((t) => t.letter).join('')).not.toBe('shepherd');
       expect(new Set(tiles.map((t) => t.id)).size).toBe(8);
     }
     // a word of one repeated letter cannot be scrambled away from itself, and says so by staying
-    expect(scrambleLetters('aaa', 3).map((t) => t.letter).join('')).toBe('aaa');
+    expect(
+      scrambleLetters('aaa', 3)
+        .map((t) => t.letter)
+        .join('')
+    ).toBe('aaa');
     expect(scrambleLetters('', 3)).toEqual([]);
   });
 });
@@ -71,7 +80,7 @@ describe('spelling a word', () => {
     expect(tokens[4]).toEqual({ word: 'shepherd;', blank: true, answer: 'shepherd' });
     expect(tokens.map((t) => t.word).join(' ')).toBe(PSALM_23_1);
   });
-  it('placed tiles are right while they are the word\'s start, and the word is spelled only when whole', () => {
+  it("placed tiles are right while they are the word's start, and the word is spelled only when whole", () => {
     expect(placedSoFarIsRight('shepherd', [{ letter: 's' }, { letter: 'h' }])).toBe(true);
     expect(placedSoFarIsRight('shepherd', [{ letter: 's' }, { letter: 'x' }])).toBe(false);
     expect(spelled('shepherd', 'shepherd'.split(''))).toBe(true);
@@ -87,7 +96,7 @@ describe('spelling a word', () => {
   });
 });
 
-describe('the teens\' form: phrases in order', () => {
+describe("the teens' form: phrases in order", () => {
   it('cuts the verse at its own punctuation into phrases in order, and shuffles them out of order by the seed', () => {
     const phrases = phrasesOf(PSALM_23_1);
     expect(phrases.map((p) => p.phrase)).toEqual(['The LORD is my shepherd;', 'I shall not want.']);

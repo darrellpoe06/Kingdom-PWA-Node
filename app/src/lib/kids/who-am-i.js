@@ -92,7 +92,7 @@ export function blankName(text, name) {
 
 /** A small deterministic generator (mulberry32), the same as the Word Builder's. */
 function seededRandom(seed) {
-  let a = (Number(seed) >>> 0) || 1;
+  let a = Number(seed) >>> 0 || 1;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
