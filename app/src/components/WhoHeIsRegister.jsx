@@ -166,8 +166,13 @@ export default function WhoHeIsRegister({ spec }) {
   if (spec.edge) return <div className="mt-3"><TimelineToggle /><div className="mt-3"><Edge /></div></div>;
   const { primary, pointing } = registerFor(spec);
   const groups = byBook(primary);
+  // THE REGISTER IS SEEN, NOT READ ALOUD (DR-1482; Darrell 2026-11-13). It is
+  // the list of passages at the end of the lesson -- where, when, what -- that
+  // a reader pauses on; the lesson's own prose already reads the Word it
+  // teaches. data-read-skip keeps it out of the spoken text, and
+  // data-read-no-expand keeps the reader from opening its book groups.
   return (
-    <section className="mt-3 border-t border-[#E8E4DC] pt-3" aria-label="Every passage in this lesson">
+    <section className="mt-3 border-t border-[#E8E4DC] pt-3" aria-label="Every passage in this lesson" data-read-skip="" data-read-no-expand="" data-testid="who-he-is-register">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>
         Every passage set here — {primary.length}
       </div>

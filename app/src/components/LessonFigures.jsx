@@ -36,10 +36,11 @@ function TimelineLink({ book }) {
   );
 }
 
-export function FigureFrame({ figure, children, link = null }) {
+export function FigureFrame({ figure, children, link = null, skipReading = false }) {
   const titleId = `fig-${figure.id}-title`;
   return (
     <figure
+      {...(skipReading ? { 'data-read-skip': '' } : {})}
       className="mt-2 border border-[#E8E4DC] bg-white p-2 min-w-0"
       data-testid="lesson-figure"
       data-figure-kind={figure.kind}
@@ -273,15 +274,26 @@ export default function LessonFigures({ module }) {
   // figures fold CLOSED here (the whole timeline lives open in the Bible, one
   // tap away through the link inside), and the reader mounts them after the
   // stories. DR-1296's chart is still the chart; it is now an option, picked.
+  // THE LIST OF THE BOOKS IS SEEN, NOT READ ALOUD (DR-1482; Darrell
+  // 2026-11-13). The timeline of the books a lesson quotes -- each book, when
+  // it was written, and why we hold that date -- is a list a reader pauses on
+  // to look at; spoken, it is a run of book names and dates after the
+  // teaching has ended. `data-read-skip` keeps its words out of what the
+  // reader speaks (lib/read-follow.js SKIP_SELECTOR, TTSControl's page read),
+  // and `data-read-no-expand` keeps the reader from opening the fold it would
+  // not read (lib/read-reveal.js). It stays on the page, one tap away. A
+  // figure that is NOT the books' list (a sequence, a quadrant) is still read.
+  const allLists = figures.every((f) => f.timeline);
+  const quiet = allLists ? { 'data-read-skip': '', 'data-read-no-expand': '' } : {};
   return (
-    <details className="mt-2" data-testid="lesson-figures" data-count={figures.length}>
+    <details className="mt-2" data-testid="lesson-figures" data-count={figures.length} {...quiet}>
       <summary className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#1A1815]" style={SERIF} data-testid="lesson-figures-summary">
         {(timeline ? timeline.title : figures[0].title) + (figures.length > 1 ? ` and ${figures.length - 1} more` : '')} — optional, open to review
       </summary>
       {figures.map((f) => {
         const Body = BODY[f.kind];
         return (
-          <FigureFrame key={f.id} figure={f} link={f.timeline ? <TimelineLink /> : null}>
+          <FigureFrame key={f.id} figure={f} link={f.timeline ? <TimelineLink /> : null} skipReading={!!f.timeline}>
             <Body figure={f} />
           </FigureFrame>
         );
