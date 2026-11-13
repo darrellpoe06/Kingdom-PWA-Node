@@ -202,7 +202,7 @@ So the warnings are not the strange part. They are the honorable part, and a les
 
 The Word's sentence about that posture is seven words long and it is not a warning about poverty: [[Proverbs 22:7]] Servant to the lender. The point is not that the borrower suffers. The point is that the borrower's choices now belong, in part, to somebody else. A house that has promised four hundred billion dollars to the people who own the machines has handed those people a vote in what it does next, whatever the share certificates say.
 
-Scripture is sharpest of all about standing surety - promising to cover what you do not yet have: [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth. Taken with the words of thy mouth. Not snared by a creditor. By your own promise. And again, bluntly: [[Proverbs 11:15]] He that hateth suretiship is sure.
+Scripture is sharpest of all about standing surety - signing for somebody else, so that when he does not pay you owe it instead: [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth. Taken with the words of thy mouth. Not snared by a creditor. By your own promise. And again, bluntly: [[Proverbs 11:15]] He that hateth suretiship is sure.
 
 And yet - this is where the Word is better than a slogan about debt - Scripture will not let you escape by simply not paying. A vow made is a vow owed: [[Ecclesiastes 5:5]] [[Deuteronomy 23:21]] The LORD thy God will surely require it of thee. And the man Yahweh welcomes into His hill is described, among other things, by this: [[Psalm 15:4]] He that sweareth to his own hurt, and changeth not. Keeping a promise that turned out to cost more than you thought is righteousness, not foolishness.
 
@@ -537,7 +537,7 @@ THE OBLIGATION, WHICH IS THE NUMBER TO WATCH. About four hundred and seventeen b
 
 [[Proverbs 22:7]] Servant to the lender. Read it precisely. The lesson is not poverty. The lesson is that part of your next decision now belongs to somebody else. A company that has promised four hundred billion dollars to the owners of the machines has given those owners a vote in its direction, whatever the share classes say.
 
-Scripture is hardest on surety - promising to cover what you do not hold. [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth. Not by a creditor. By your own promise. [[Proverbs 11:15]]
+Scripture is hardest on surety - signing for somebody else, so you owe it instead. [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth. Not by a creditor. By your own promise. [[Proverbs 11:15]]
 
 And the Word will not let you escape through non-payment either. [[Ecclesiastes 5:5]] [[Deuteronomy 23:21]] The man Yahweh receives is described in part by this. [[Psalm 15:4]] He swore, it cost more than he expected, and he did not change. That is righteousness, and it is expensive.
 
@@ -651,7 +651,7 @@ MOVEMENT THREE: THE BORROWER IS SERVANT TO THE LENDER. Here is the figure that o
 
 Scripture's sentence upon that posture is seven words long, and it is not principally a warning about poverty. [[Proverbs 22:7]] Servant to the lender. The point is not that the borrower suffers; many borrowers prosper. The point is that the borrower's subsequent decisions belong, in some measure, to another man. A house that has promised four hundred billion dollars to the owners of the machinery has conferred upon those owners a vote in its own direction, whatever its share certificates may declare about control.
 
-Scripture is sharpest of all upon suretyship - the undertaking to cover what one does not presently hold. [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth, taken with the words of thy mouth. Not ensnared by a creditor. Ensnared by one's own promise. And again, without softening. [[Proverbs 11:15]] He that hateth suretiship is sure.
+Scripture is sharpest of all upon surety - signing for somebody else, so that when he does not pay you owe it instead. [[Proverbs 6:1]] [[Proverbs 6:2]] Snared with the words of thy mouth, taken with the words of thy mouth. Not ensnared by a creditor. Ensnared by one's own promise. And again, without softening. [[Proverbs 11:15]] He that hateth suretiship is sure.
 
 And yet - and this is where the Word surpasses every slogan about debt - Scripture will not permit a man to escape by simply declining to pay. A vow undertaken is a vow owed. [[Ecclesiastes 5:5]] [[Deuteronomy 23:21]] The LORD thy God will surely require it of thee. And the man whom Yahweh receives upon His holy hill is characterized, among other marks, by this one. [[Psalm 15:4]] He that sweareth to his own hurt, and changeth not. To keep a promise which proved more expensive than you estimated is righteousness, and it is nearly the most expensive righteousness there is. Some of you have paid it.
 
@@ -729,7 +729,7 @@ WHO SENT THIS. On the twenty-seventh of October 2026 at 19:34 UTC Darrell forwar
 
 WORD FIRST. The hour opens on Luke 14:28 - the man intending to build a tower who sitteth not down FIRST and counteth the cost - and on the king who sits down and consults whether he be able with ten thousand. A prospectus is, in its form, a man sitting down to count out loud, and Jesus taught the form before any exchange on earth required it. He also supplied the ending nobody wants: an honest count sometimes ends in an ambassage and conditions of peace (Luke 14:32). Not one figure from the newsletter stands above that frame.
 
-EIGHT MOVEMENTS. Sitteth not down first, and counteth the cost (Luke 14:28-32). The prudent man foreseeth the evil, and the watchman whose silence is required at his own hand (Proverbs 22:3; 27:12; 14:16; Ezekiel 33:6-7; Proverbs 28:13). The borrower is servant to the lender, and surety snares a man with the words of his own mouth - with the counterweight that a vow is still owed (Proverbs 22:7; 6:1-2; 11:15; Ecclesiastes 5:5; Deuteronomy 23:21; Psalm 15:4; Romans 13:8). Go to, let us build us a tower - the one project counted well, resourced well and wrong, against the city whose builder is Yahweh (Genesis 11:4-8; Hebrews 11:10; Psalm 127:1). The ground brought forth plentifully, and the accounting was correct while the accountant was being audited elsewhere (Luke 12:16-21; Proverbs 13:11; 1 Timothy 6:9; Proverbs 23:5). Every way of a man is right in his own eyes - one confident witness is not evidence (Deuteronomy 19:15; Proverbs 21:2; 1 Corinthians 4:4; Isaiah 5:20-21; Jeremiah 17:5). Who sits as trustee, and who holds the key - hating covetousness, a gift that blinds, and the keys that belong to Jesus (Exodus 18:21; Deuteronomy 16:19; Isaiah 22:22; Revelation 3:7; Proverbs 21:1; Daniel 4:35; Daniel 2:21). Build ye houses, and dwell in them - the sovereign posture, and the two builders in one storm (Jeremiah 29:5; Micah 4:4; 1 Thessalonians 4:11; 2 Thessalonians 3:12; Matthew 7:24-27).
+EIGHT MOVEMENTS. Sitteth not down first, and counteth the cost (Luke 14:28-32). The prudent man foreseeth the evil, and the watchman whose silence is required at his own hand (Proverbs 22:3; 27:12; 14:16; Ezekiel 33:6-7; Proverbs 28:13). The borrower is servant to the lender, and surety - signing for somebody else, so you owe it instead - snares a man with the words of his own mouth - with the counterweight that a vow is still owed (Proverbs 22:7; 6:1-2; 11:15; Ecclesiastes 5:5; Deuteronomy 23:21; Psalm 15:4; Romans 13:8). Go to, let us build us a tower - the one project counted well, resourced well and wrong, against the city whose builder is Yahweh (Genesis 11:4-8; Hebrews 11:10; Psalm 127:1). The ground brought forth plentifully, and the accounting was correct while the accountant was being audited elsewhere (Luke 12:16-21; Proverbs 13:11; 1 Timothy 6:9; Proverbs 23:5). Every way of a man is right in his own eyes - one confident witness is not evidence (Deuteronomy 19:15; Proverbs 21:2; 1 Corinthians 4:4; Isaiah 5:20-21; Jeremiah 17:5). Who sits as trustee, and who holds the key - hating covetousness, a gift that blinds, and the keys that belong to Jesus (Exodus 18:21; Deuteronomy 16:19; Isaiah 22:22; Revelation 3:7; Proverbs 21:1; Daniel 4:35; Daniel 2:21). Build ye houses, and dwell in them - the sovereign posture, and the two builders in one storm (Jeremiah 29:5; Micah 4:4; 1 Thessalonians 4:11; 2 Thessalonians 3:12; Matthew 7:24-27).
 
 TRUST BUT VERIFY. The newsletter is a lead, never the citation. THE PRIMARY WAS NOT READ: www.sec.gov refused this build twice by two different roads, a proxy tunnel refusal and a hostname that would not resolve, so no figure here rests on a primary-source read, and that is said in EVERY reader place with a dated re-review. Independent secondary roads were walked on each load-bearing number, and the checking CHANGED five things. STRONGER, and said plainly rather than hedged, because under-claiming a verified truth is its own failure: the fourteen-fold rise to about 16.3 billion dollars in half-year revenue holds by a SECOND arithmetic road that does not pass through the first - a live account of the filing reports consumption revenue of 13.1 billion as 80 percent of the total, and 13.1 over 0.80 is about 16.4 billion - and the filing's own halves as reported elsewhere, 16.286 billion against 1.163 billion, give 14.0 exactly; this digest got it right where a DIFFERENT digest forwarded the SAME day under-stated the same rise, which this course checked and recorded three weeks earlier. BIGGER IN MEANING: the 417 billion dollars is COMPUTE obligations specifically - data centers, the equipment inside them, cloud services - which is harder to exit than general supplier debt. CORRECTED IN THE DIGEST'S FAVOR: has yet to make a profit was the careful phrase, since the enormous loss figure circulating about the same filing is almost wholly a non-cash revaluation with the operating loss near 693 million, and this digest printed no loss figure at all. NOT ESTABLISHED: the 94 pages of risk warnings did not survive checking - coverage puts that section at roughly 80 to 93 pages and disagrees on the total, while one analysis puts the hazard material at nearly a third of the prospectus - so no page count is taught here. STRONGER, AND THE FINDING OF THE HOUR: the self-warning is real and more striking than the digest's phrasing, with coverage quoting the document on systems that could take harmful actions independently and at scale, on capability advancing past the company's own ability to evaluate and safeguard new models, and on safety commitments that may come at shareholders' expense. ATTRIBUTED, NEVER ASSERTED: the up-to-100-billion raise and the record comparison (the digest itself says analysts believe it), the governance account, and the critics' objection. NOT CHECKED AT ALL: the two chatbots' opinions, every index and share price, and every other story in the issue. \`re-review: 2026-11-27\``,
   inApp: `No new screens this week. One page in your Study, and one count you run on your own household.
@@ -778,7 +778,7 @@ Then say the verse in all four places of Deuteronomy 6:7 until it is in you rath
     'The heaviest frame on disclosure: the watchman who sees the sword and does not blow the trumpet answers for the silence at his own hand (Ezekiel 33:6-7).',
     'The obligation number taught above the revenue number, because four hundred and seventeen billion dollars of compute promises is the figure that decides what a house may do next.',
     'The borrower read correctly: not that he suffers, but that part of his next decision now belongs to somebody else (Proverbs 22:7).',
-    "Surety named as the sharpest hazard in Scripture's whole treatment of money - snared with the words of thy mouth, by your own promise and not by a creditor (Proverbs 6:1-2; Proverbs 11:15).",
+    "Surety - signing for somebody else, so you owe it instead - named as the sharpest hazard in Scripture's treatment of money, snaring a man with the words of his own mouth and not with a creditor (Proverbs 6:1-2; Proverbs 11:15).",
     'The counterweight kept so the lesson is not a slogan about debt: a vow undertaken is still owed, and swearing to your own hurt and not changing is righteousness (Ecclesiastes 5:5; Psalm 15:4).',
     'Babel taught as the one project that was counted well, resourced well, skilled and wrong - because the stated aim was to make us a name (Genesis 11:4-6).',
     'The difference between the two cities put in one clause: Abraham waited for a city whose architect was not Abraham (Hebrews 11:10).',
@@ -801,7 +801,7 @@ Then say the verse in all four places of Deuteronomy 6:7 until it is in you rath
   ],
   stories: [
     {
-      kind: 'example',
+      kind: 'parable',
       tone: 'plain',
       title: 'The deck that had no risk page',
       body: `ILLUSTRATIVE, NOT A REAL EVENT. A family decided to add a room. The father built a careful page of costs: lumber, permit, the trades he could not do himself, a figure for mistakes. He counted first, the way Luke 14:28 says, and the count came out yes.
@@ -813,7 +813,7 @@ The room was finished. It was well built. He was not able to say, afterward, tha
 The lesson is not that he should not have built it. It is that his count was half a count. He had the costs page and no risk page, and a filing that spends a third of itself on what could go wrong is doing the half he left out. Proverbs 22:3 is about writing the second page while you can still act on it.`,
     },
     {
-      kind: 'example',
+      kind: 'parable',
       tone: 'plain',
       title: 'The one witness with a confident voice',
       body: `ILLUSTRATIVE, NOT A REAL EVENT. A young man in the congregation wanted to know whether a thing was a good purchase. He asked an assistant on his phone, and it answered in a full paragraph, in order, with reasons. He read the paragraph twice and bought the thing.
@@ -867,7 +867,7 @@ He is not foolish. He is all of us. The remedy is not to distrust the tool. It i
           'The lesson is servitude, not poverty. Many borrowers prosper. What changes is who holds a vote in the next decision, which is why the obligation figure matters more than the revenue figure.',
       },
       {
-        q: 'In Proverbs 6:2, what snares the man who has stood surety?',
+        q: 'In Proverbs 6:2, what snares the man who has stood surety - who signed for somebody else, so he owes it instead?',
         options: ['The creditor', 'The words of his own mouth', 'The stranger he signed for'],
         answer: 1,
         explain:
@@ -926,7 +926,7 @@ CLOSE WITH THE THREE DIRECTIONS. Parents to children, children to parents, frien
       'The watchman answers for his silence, which is the heaviest frame Scripture puts on disclosure (Ezekiel 33:6-7).',
       'Teach the obligation above the revenue. Four hundred and seventeen billion dollars of compute promises decides more than any growth rate does.',
       'The borrower is servant to the lender - about votes, not about poverty. Ask the room who holds a vote in their week (Proverbs 22:7).',
-      'Surety snares a man with the words of his own mouth, not with a creditor (Proverbs 6:1-2; Proverbs 11:15).',
+      'Surety, which is signing for somebody else so you owe it instead, snares a man with the words of his own mouth and not with a creditor (Proverbs 6:1-2).',
       'Keep the counterweight or it becomes a slogan: a vow is still owed, and swearing to your own hurt and not changing is righteousness (Ecclesiastes 5:5; Psalm 15:4).',
       'Babel was competent. Yahweh says nothing will be restrained from them. The judgment was about the name, not the engineering (Genesis 11:4-6).',
       'Abraham waited for a city whose architect was not Abraham. That is the whole difference between the two towers (Hebrews 11:10).',

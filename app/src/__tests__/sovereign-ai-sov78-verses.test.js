@@ -50,6 +50,7 @@ import { join } from 'node:path';
 import { SOVEREIGN_AI_MODULES } from '../lib/sovereign-ai-class.js';
 import { placesMissingDirections, hasAllThree } from '../lib/talk-together.js';
 import { fourBandFaults, fk, overlapOf, FOUR_BANDS } from './fixtures/four-band-ladder.js';
+import { storyCount, MIN_STORIES } from '../lib/lesson-completeness.js';
 
 const ID = 'sov78-count-the-cost';
 const THREAD = '1a17edb6eaedf195';
@@ -573,5 +574,23 @@ describe('the illustrations are invented people, and say so', () => {
       expect(s.body.length, s.title).toBeGreaterThan(400);
       expect(s.body, s.title).not.toMatch(/Darrell|Bishop|Gwin/);
     }
+  });
+
+  // CAUGHT BY CI, NOT BY THIS FILE (DR-0239). The first draft gave both stories
+  // `kind: 'example'`, and lesson-completeness counts a story only when its kind
+  // is 'parable' or 'testimony' -- so the lesson read as carrying ZERO stories
+  // against a MIN_STORIES of 2, and `shortOfStories` named it. The field is now
+  // asserted here by the same rule the census uses, because "two stories" is
+  // only true if the house counts them.
+  it('both stories carry a kind the completeness census actually counts', () => {
+    expect(storyCount(M), 'storyCount must see both stories').toBe(2);
+    expect(storyCount(M)).toBeGreaterThanOrEqual(MIN_STORIES);
+    for (const s of M.stories) expect(['parable', 'testimony'], s.title).toContain(s.kind);
+  });
+
+  it('PROVEN TO CATCH: a story whose kind the census does not count reads as missing', () => {
+    const broken = { ...M, stories: M.stories.map((s) => ({ ...s, kind: 'example' })) };
+    expect(storyCount(broken)).toBe(0);
+    expect(storyCount(broken)).toBeLessThan(MIN_STORIES);
   });
 });

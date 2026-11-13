@@ -207,6 +207,46 @@ Which is the point of a gate. 54 tests, 7 failing on the first run:
 
 All five were fixed in the authored text or the gate, and the suite is green at 54/54.
 
+### Four more that CI caught and this file did not — each leaves a gate behind (DR-0239)
+
+The first push was green on `lint + guards` and red on three vitest shards. Every finding was
+real and in my own content, and none of them was a flake:
+
+1. **`curriculum gates: FAIL` — `sov78-count-the-cost :: bigIdea :: recites a decision record`.**
+   `bigIdea` is read in the app, and it named DR-0100 and DR-1457. My own check for this read
+   the adult lesson and the four bands **only** — the same narrowness that left Revelation
+   unswept, in the same file, on the same day. Both now say what the record says instead of
+   naming it, and the check reads **every string in the module**, with a proven-to-catch case
+   that plants a record number in a field that is not a band.
+2. **`the-plain-meaning-comes-first` (DR-0521): `surety` used before its plain meaning** in
+   `bigIdea`, teen and senior. I had glossed it — *"surety - promising to cover what you do not
+   hold"* — and a dash-gloss is not one of the cues the measure accepts, which is correct: the
+   cue list holds phrasings a reader genuinely has (`signing for somebody else`, `you owe it
+   instead`, `on the hook for`). All four sites, benefit line and quiz question included, now
+   carry a real cue **in the same sentence**. The debt counter went 65 → 68 and back to 65.
+3. **`lesson-completeness`: `shortOfStories: sovereign-ai: sov78-count-the-cost`.** Both stories
+   carried `kind: 'example'`. `storyCount` counts only `parable` and `testimony`, so a lesson
+   carrying two written parables measured as carrying **zero**, against `MIN_STORIES` of 2. They
+   are `parable` now, and my test asserts the kind **by the census's own rule** rather than by
+   counting array entries — "two stories" is only true if the house counts them.
+4. **sov66's chapter census recorded `Isaiah 22` as untouched**, and sov78 anchors Isaiah 22:22 —
+   the key of the house of David that Revelation 3:7 takes up. Two precedents were in tension
+   here. sov66 itself once **moved its own citation** to the Word's other witness rather than
+   edit sov65's gate. But sov65's gate claimed every chapter was free, with no way to record a
+   share, while **sov66's own gate carries a `SHARED` map for exactly this** — and DR-1317 is
+   explicit that a shared foundation is **recorded, never vetoed**, and that no reading is
+   dropped for a collision. So Isaiah 22 moved from that file's `FREE` list into its `SHARED`
+   map naming `sov78`, with the counts and the test names updated (TWELVE → ELEVEN untouched,
+   NINETEEN → TWENTY shared) and the reason written at the line. **Neither lesson's reading was
+   thinned, and nothing was skipped or quarantined to get green.**
+
+**What I did differently after that round.** Rather than discover the rest shard by shard at
+~12 minutes a round, I ran every suite in the repo that reads the catalog: **68 files importing
+`LEARN_CATALOG` (2,119 tests)** and **61 files touching `SOVEREIGN_AI_MODULES` (2,661 tests)**,
+all green, plus the curriculum gate, `lesson-dates:check` and the guard chain again. The full
+1,921-file suite was deliberately not run locally — CI shards it four ways and that is the gate
+that counts.
+
 ### Proven to catch, eight ways
 
 - one altered word inside a quoted span;
@@ -233,11 +273,19 @@ All five were fixed in the authored text or the gate, and the suite is green at 
    `neighbour`, `favour` and `laboured` are left exactly where the corpus wrote them. sov77's
    prose belongs to another record and a blind sweep of authored prose is forbidden (DR-1306),
    so it is named here rather than changed. **`re-review: 2026-11-27`.**
-2. **`one-teaching-one-lesson-guard.mjs` dies on this sandbox's Node 22.23.4** with
+2. **This clone re-shallowed itself THREE times mid-build.** `.git/shallow` reappeared at
+   02:40 and twice more after that, each time making `derive-lesson-dates` report *"this clone
+   is shallow, so first commits cannot be seen"* — a false failure that looks exactly like a
+   content error. `git fetch --unshallow` restored 2,966 commits each time. Another session is
+   sharing this `.git`, which is the likely cause; it is named here because the next builder
+   will hit it. **`re-review: 2026-11-27`.**
+3. **`one-teaching-one-lesson-guard.mjs` dies on this sandbox's Node 22.23.4** with
    `ERR_IMPORT_ATTRIBUTE_MISSING`, and fails **identically on `origin/main`** at 6765b972d14.
    Confirmed pre-existing, not caused by this branch, and not "fixed" here. It is run under
-   `npx vite-node` in CI, which is the runner it needs.
-3. **The blocked primary road.** `www.sec.gov` is unreadable from this session. Every figure
+   `npx vite-node` in CI, where it passes: `OK - 44 courses, 764 lessons, 0 pair(s) found`.
+   So the accurate statement is narrower than the brief's: it is broken under plain `node` only,
+   and CI never runs it that way.
+4. **The blocked primary road.** `www.sec.gov` is unreadable from this session. Every figure
    that depends on it is tiered and dated. **`re-review: 2026-11-27`.**
 
 ## What this lesson does not do
