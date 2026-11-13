@@ -115,7 +115,8 @@
    "sov77-prove-all-things": ["2026-11-12", "a3de21ee"],
    "sov78-count-the-cost": ["2026-11-13", "a7f66ddf"],
    "sov79-promotion-cometh-not-from-the-east": ["2026-11-13", "19a41508"],
-   "sov80-discovery-is-not-permission": ["2026-11-13", "fcd64375"]
+   "sov80-discovery-is-not-permission": ["2026-11-13", "fcd64375"],
+   "sov81-what-hast-thou-that-thou-didst-not-receive": ["2026-11-13", "50b59c7a"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
