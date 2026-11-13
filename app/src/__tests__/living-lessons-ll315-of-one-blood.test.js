@@ -11,9 +11,9 @@
 //  (2) A PRESENT-DAY POLITICAL CLAIM CARRIED IN. The video's claim about
 //      present-day policy in one country is left out entirely: no text names
 //      Israel's present policies or the modern state.
-//  (3) RED FOR THE WRONG BLOOD. No colour word that marks red appears anywhere
+//  (3) RED FOR THE WRONG BLOOD. No color word that marks red appears anywhere
 //      (Color Theology, DR-0099): true red belongs to His Blood only, and this
-//      lesson marks nothing in colour at all.
+//      lesson marks nothing in color at all.
 //  (4) GRAPHIC CONTENT FOR A CHILD. The child band carries one blood and no
 //      ranking, without the Inquisition's violence: no burning, torture,
 //      execution or killing.
