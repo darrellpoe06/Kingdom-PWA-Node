@@ -99,10 +99,15 @@ const BLOCK_BOUNDARY_TAGS = new Set([
 ]);
 
 /** The nearest block-level ancestor of `el` within `root` (or root itself). */
+// A reference chip KEPT in its sentence (WordInline, DR-0417) is a word of
+// that sentence, not a block (DR-1498): as a block it put a full stop either
+// side of itself, so "(Isaiah 55:8-9, KJV)" was spoken as "(. Isaiah 55:8-9.
+// , KJV)" and the piece "(." had no word in it for the voice to say.
+const inlineKept = (n) => n.tagName === 'BUTTON' && n.hasAttribute && n.hasAttribute('data-read-keep');
 function closestBlock(el, root) {
   let n = el;
   while (n && n !== root) {
-    if (BLOCK_BOUNDARY_TAGS.has(n.tagName)) return n;
+    if (BLOCK_BOUNDARY_TAGS.has(n.tagName) && !inlineKept(n)) return n;
     n = n.parentElement;
   }
   return root;
