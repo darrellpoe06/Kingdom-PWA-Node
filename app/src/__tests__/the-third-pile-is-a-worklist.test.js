@@ -781,7 +781,24 @@ const REPO = join(HERE, '..', '..', '..');
 // two hands on it -- not on the article, which is why it could be built at all
 // with the source shut. re-review: 2026-11-27 -- try those three hosts from a
 // runner; if the item reads back, give it a row and lower this pin.
-const GAP = 34;
+//
+// 34 -> 35 on 2026-11-13 for sov81-what-hast-thou-that-thou-didst-not-receive
+// (DR-1478), by the SECOND remedy. Darrell forwarded an IT Brew issue
+// (Copyright, copyleft; Gmail thread 1a1d0d054cd67ed2) with one word: Lesson.
+// The articles behind it were never readable: www.itbrew.com, www.copyright.gov
+// and www.php.net answered `curl: (56) CONNECT tunnel failed, response 403`, and
+// the law firm's newsroom and copyright.gov again answered getaddrinfo ENOTFOUND
+// through the fetch tool. Then stopped. The lesson teaches NO figure from the
+// issue: the seventy-percent share, the 2014 date and the finder are named in
+// every reader place as the newsletter's account, and a web search's news
+// summaries made the finder and the date LESS certain, not more. Its only
+// figures are measured on our own repository (1,895 of 2,980 commits; the
+// 24-row IP register), which no publisher could read back. So no
+// lesson-sources.json row: a row the witness cannot read would count a figure
+// nobody read (DR-0076 section 3). re-review: 2026-11-27 -- try those hosts from
+// a runner; if the lawyer's interview and a primary account of the PHP fix
+// read back, replace the not-checked clauses and lower this pin.
+const GAP = 35;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
