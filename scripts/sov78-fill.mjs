@@ -93,8 +93,7 @@ const CATALOG = join(ROOT, 'app', 'src', 'lib', 'sovereign-ai-class.js');
 
 const WEEK = 78;
 const ID = 'sov78-count-the-cost';
-const TITLE =
-  'Count the cost - the tower that wrote down its own danger, the four hundred billion promised, and the city whose builder is Yahweh';
+const TITLE = 'Count the cost - the tower that wrote down its own danger, the four hundred billion promised, and the city whose builder is Yahweh';
 
 // -----------------------------------------------------------------------------
 // The corpus
@@ -102,7 +101,7 @@ const TITLE =
 const books = new Set(
   readdirSync(KJV)
     .filter((f) => f.endsWith('.json') && f !== 'index.json')
-    .map((f) => f.slice(0, -5)),
+    .map((f) => f.slice(0, -5))
 );
 const cache = new Map();
 
@@ -776,7 +775,7 @@ Then say the verse in all four places of Deuteronomy 6:7 until it is in you rath
     'The test for your own planning stated plainly - planning that can only ever return go was never planning, only a decision with decoration laid over it.',
     'A company writing down its own danger read as prudence and not oddity, from a proverb the Word states twice in nearly the same words (Proverbs 22:3; Proverbs 27:12).',
     'Confidence separated from courage, so a man unwilling to record what could go wrong is not braver than the man who records it (Proverbs 14:16).',
-    "The heaviest frame on disclosure: the watchman who sees the sword and does not blow the trumpet answers for the silence at his own hand (Ezekiel 33:6-7).",
+    'The heaviest frame on disclosure: the watchman who sees the sword and does not blow the trumpet answers for the silence at his own hand (Ezekiel 33:6-7).',
     'The obligation number taught above the revenue number, because four hundred and seventeen billion dollars of compute promises is the figure that decides what a house may do next.',
     'The borrower read correctly: not that he suffers, but that part of his next decision now belongs to somebody else (Proverbs 22:7).',
     "Surety named as the sharpest hazard in Scripture's whole treatment of money - snared with the words of thy mouth, by your own promise and not by a creditor (Proverbs 6:1-2; Proverbs 11:15).",
@@ -794,7 +793,7 @@ Then say the verse in all four places of Deuteronomy 6:7 until it is in you rath
     'A safety trustee with no financial stake commended in principle from the Word’s own specification for judges - men of truth, hating covetousness (Exodus 18:21).',
     'Why the requirement exists, in one word the Word chooses deliberately: a gift does not tempt the wise man, it BLINDS him (Deuteronomy 16:19).',
     'The ceiling over every charter, trust and board seat: the key belongs to Jesus, who openeth and no man shutteth, and Yahweh removeth kings and setteth up kings (Revelation 3:7; Daniel 2:21).',
-    "The sovereign posture given its own text, spoken to exiles in the actual Babylon: build ye houses, and dwell in them; and plant gardens, and eat the fruit of them (Jeremiah 29:5).",
+    'The sovereign posture given its own text, spoken to exiles in the actual Babylon: build ye houses, and dwell in them; and plant gardens, and eat the fruit of them (Jeremiah 29:5).',
     'The unimpressive New Testament answer to a season of enormous numbers - study to be quiet, do your own business, work with your own hands (1 Thessalonians 4:11).',
     'The last count taught as the two builders in one storm, where the audit was about the foundation, the one part no prospectus can disclose (Matthew 7:24-27).',
     'A trust-but-verify note that names the refused host and both roads it refused by, lists what checking strengthened AND what it failed to corroborate, and carries a dated re-review.',
@@ -837,33 +836,21 @@ He is not foolish. He is all of us. The remedy is not to distrust the tool. It i
       },
       {
         q: 'According to Luke 14:32, what can an honest count legitimately end in?',
-        options: [
-          'A bigger plan to win anyway',
-          'An ambassage, and conditions of peace - not doing the thing',
-          'Borrowing the difference',
-        ],
+        options: ['A bigger plan to win anyway', 'An ambassage, and conditions of peace - not doing the thing', 'Borrowing the difference'],
         answer: 1,
         explain:
           'The king sends an embassy and desires conditions of peace. A real count sometimes returns no, and that is the count working. If your planning can only ever return go, you were not planning.',
       },
       {
         q: 'How does Scripture treat a man who writes down the dangers ahead of him?',
-        options: [
-          'As faithless for dwelling on evil',
-          'As prudent - he foreseeth the evil and hideth himself',
-          'As indifferent to the outcome',
-        ],
+        options: ['As faithless for dwelling on evil', 'As prudent - he foreseeth the evil and hideth himself', 'As indifferent to the outcome'],
         answer: 1,
         explain:
           'Proverbs 22:3 and 27:12 say it twice in nearly the same words. The prudent man is not the one with no hazard ahead; he is the one who looked at it and moved. The simple pass on because they never looked.',
       },
       {
         q: 'In Ezekiel 33:6, what happens to the watchman who sees the sword and does not blow the trumpet?',
-        options: [
-          'He is excused, since the sword was not his doing',
-          'His blood will Yahweh require at his own hand',
-          'He is replaced by another watchman',
-        ],
+        options: ['He is excused, since the sword was not his doing', 'His blood will Yahweh require at his own hand', 'He is replaced by another watchman'],
         answer: 1,
         explain:
           'The silence is charged to him. That is the heaviest frame on disclosure in Scripture, and it is why writing your own danger in the room where it costs you something is honorable rather than odd.',
@@ -895,33 +882,21 @@ He is not foolish. He is all of us. The remedy is not to distrust the tool. It i
       },
       {
         q: 'According to Psalm 127:1, what happens when Yahweh does not build the house?',
-        options: [
-          'The builders labor in vain',
-          'The house collapses immediately',
-          'The builders are forgiven the attempt',
-        ],
+        options: ['The builders labor in vain', 'The house collapses immediately', 'The builders are forgiven the attempt'],
         answer: 0,
         explain:
           'In vain - wasted, not necessarily wicked. A house can be structurally excellent and the waste of a life. That is the sharpest instrument in the hour, and it is pointed at this house too.',
       },
       {
         q: 'In Luke 12:20, what does Yahweh dispute about the rich man’s accounting?',
-        options: [
-          'His figures were wrong',
-          'Nothing - the arithmetic was correct; his soul was required that night',
-          'He had underpaid his workers',
-        ],
+        options: ['His figures were wrong', 'Nothing - the arithmetic was correct; his soul was required that night', 'He had underpaid his workers'],
         answer: 1,
         explain:
           'The accounting was accurate. The accountant was about to be examined by a different office. Growth is not the sin; the sentence take thine ease, said over a sufficient pile, is.',
       },
       {
         q: 'Why is a tool asked whether its own maker is a good buy not two witnesses?',
-        options: [
-          'Because machines always lie',
-          'Because it is one voice, and one voice does not establish a matter',
-          'Because it has not read the filing',
-        ],
+        options: ['Because machines always lie', 'Because it is one voice, and one voice does not establish a matter', 'Because it has not read the filing'],
         answer: 1,
         explain:
           'Deuteronomy 19:15 never calls the single witness a liar; it says establishing is a higher bar than hearing. The confident, orderly paragraph gives you the experience of evidence, which is a different product.',
@@ -1004,9 +979,7 @@ const BANDS = ['child', 'youth', 'teen', 'senior'];
 const adultWords = words(filled.lesson);
 console.log(`sov78: adult prose ${adultWords} words`);
 for (const b of BANDS) {
-  console.log(
-    `sov78: ${b} share ${(words(filled.levels[b]) / adultWords).toFixed(3)} words ${words(filled.levels[b])} fk ${fk(filled.levels[b])}`,
-  );
+  console.log(`sov78: ${b} share ${(words(filled.levels[b]) / adultWords).toFixed(3)} words ${words(filled.levels[b])} fk ${fk(filled.levels[b])}`);
 }
 for (const [a, b] of [
   ['child', 'youth'],

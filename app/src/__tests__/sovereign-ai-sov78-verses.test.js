@@ -125,12 +125,10 @@ describe('sov78 exists and is whole', () => {
   });
 
   it('the adult lesson runs in eight numbered movements, in order', () => {
-    const order = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT'].map((n) =>
-      M.lesson.indexOf(`MOVEMENT ${n}:`),
-    );
+    const order = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT'].map((n) => M.lesson.indexOf(`MOVEMENT ${n}:`));
     expect(
       order.every((p) => p > 0),
-      `movements found at ${order.join(',')}`,
+      `movements found at ${order.join(',')}`
     ).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
@@ -161,11 +159,9 @@ describe('the Word goes first, not the article (DR-0127 / DR-0282 / DR-1326)', (
     for (const [band, t] of Object.entries(TEXTS())) {
       const s = String(t);
       expect(s, `${band} must quote Luke 14:28 verbatim`).toContain(
-        '"For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28)',
+        '"For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28)'
       );
-      expect(s, `${band} must carry the ambassage, so an honest count may end in no`).toMatch(
-        /conditions of peace|asks for peace/i,
-      );
+      expect(s, `${band} must carry the ambassage, so an honest count may end in no`).toMatch(/conditions of peace|asks for peace/i);
     }
   });
 
@@ -173,7 +169,7 @@ describe('the Word goes first, not the article (DR-0127 / DR-0282 / DR-1326)', (
     for (const [band, t] of Object.entries(TEXTS())) {
       expect(String(t), band).toMatch(/\bfirst\b/i);
       expect(String(t), `${band} must put the weight on that word`).toMatch(
-        /sitteth (?:not )?down first|sits down first|the word is first|You do that FIRST|on one word|on a single adverb/i,
+        /sitteth (?:not )?down first|sits down first|the word is first|You do that FIRST|on one word|on a single adverb/i
       );
     }
   });
@@ -208,18 +204,14 @@ describe('TRUST BUT VERIFY: the blocked road is named everywhere, and what check
   it('EVERY reader place says the primary was not read and names the host', () => {
     for (const [band, t] of Object.entries(TEXTS())) {
       const s = String(t);
-      expect(s, `${band} must say the primary road was refused`).toMatch(
-        /sec\.gov|the government's own (?:website|site|archive)|the real paper|that paper/i,
-      );
+      expect(s, `${band} must say the primary road was refused`).toMatch(/sec\.gov|the government's own (?:website|site|archive)|the real paper|that paper/i);
       expect(s, `${band} must say it was refused twice, by two roads`).toMatch(/twice/i);
     }
   });
 
   it('EVERY reader place carries the dated re-review, so a blocked road never reads as verified', () => {
     for (const [band, t] of Object.entries(TEXTS())) {
-      expect(String(t), `${band} must carry the date`).toMatch(
-        /re-review: 2026-11-27|re-review 2026-11-27|twenty-seventh of November 2026/,
-      );
+      expect(String(t), `${band} must carry the date`).toMatch(/re-review: 2026-11-27|re-review 2026-11-27|twenty-seventh of November 2026/);
     }
   });
 
@@ -228,7 +220,7 @@ describe('TRUST BUT VERIFY: the blocked road is named everywhere, and what check
       const s = String(t);
       expect(s, `${band} must state the verified growth plainly`).toMatch(/fourteen/i);
       expect(s, `${band} must say under-claiming is also a failure`).toMatch(
-        /under-claiming|making a true thing sound small|a true thing said small|we do not make a true thing sound small|shrink that to sound careful|do not hedge a true thing|understate a verified truth/i,
+        /under-claiming|making a true thing sound small|a true thing said small|we do not make a true thing sound small|shrink that to sound careful|do not hedge a true thing|understate a verified truth/i
       );
     }
     // The second arithmetic road is the evidence, not a claim of diligence.
@@ -242,9 +234,7 @@ describe('TRUST BUT VERIFY: the blocked road is named everywhere, and what check
     }
     // ...and no page count is ever taught as a fact.
     for (const [band, t] of Object.entries(TEXTS())) {
-      expect(String(t), `${band} must not assert a page count`).not.toMatch(
-        /(?:the|its) ninety-four pages of (?:risk|warnings) (?:are|is|were)\b/i,
-      );
+      expect(String(t), `${band} must not assert a page count`).not.toMatch(/(?:the|its) ninety-four pages of (?:risk|warnings) (?:are|is|were)\b/i);
     }
   });
 
@@ -269,8 +259,7 @@ describe('TRUST BUT VERIFY: the blocked road is named everywhere, and what check
 });
 
 describe('every quoted span is the KJV on disk, letter for letter (DR-0456)', () => {
-  const spans = () =>
-    Object.entries(TEXTS()).flatMap(([band, t]) => [...String(t).matchAll(/"([^"]+)"/g)].map((m) => [band, m[1]]));
+  const spans = () => Object.entries(TEXTS()).flatMap(([band, t]) => [...String(t).matchAll(/"([^"]+)"/g)].map((m) => [band, m[1]]));
 
   it('the lesson quotes a great many verses, and they are swept rather than trusted', () => {
     expect(spans().length).toBeGreaterThan(150);
@@ -351,7 +340,7 @@ describe('anchor.ref names every verse the lesson stands on, and nothing it does
     const quotedRefs = new Set(
       Object.values(TEXTS())
         .flatMap((t) => [...String(t).matchAll(/" \(([1-3]?\s?[A-Z][a-z]+ \d+:\d+)\)/g)].map((m) => m[1]))
-        .map(normaliseRef),
+        .map(normaliseRef)
     );
     function normaliseRef(r) {
       return r.trim();
@@ -380,10 +369,7 @@ describe('the four bands clear the gate, measured not claimed', () => {
     for (let i = 0; i < FOUR_BANDS.length; i += 1) {
       expect(overlapOf(M.levels[FOUR_BANDS[i]], M.lesson), `${FOUR_BANDS[i]}~adult`).toBeLessThan(0.25);
       for (let j = i + 1; j < FOUR_BANDS.length; j += 1) {
-        expect(
-          overlapOf(M.levels[FOUR_BANDS[i]], M.levels[FOUR_BANDS[j]]),
-          `${FOUR_BANDS[i]}~${FOUR_BANDS[j]}`,
-        ).toBeLessThan(0.25);
+        expect(overlapOf(M.levels[FOUR_BANDS[i]], M.levels[FOUR_BANDS[j]]), `${FOUR_BANDS[i]}~${FOUR_BANDS[j]}`).toBeLessThan(0.25);
       }
     }
   });
@@ -464,9 +450,7 @@ describe('the teaching itself: eight movements, each from the Word', () => {
 
   it('the counterweight on debt is kept in every band, so it is not a slogan', () => {
     for (const [band, t] of Object.entries(TEXTS())) {
-      expect(String(t), `${band} must keep that a vow is still owed`).toMatch(
-        /sweareth to his own hurt|still owed|a promise is a promise|did not change/i,
-      );
+      expect(String(t), `${band} must keep that a vow is still owed`).toMatch(/sweareth to his own hurt|still owed|a promise is a promise|did not change/i);
     }
   });
 
@@ -479,9 +463,7 @@ describe('the teaching itself: eight movements, each from the Word', () => {
   it('the bright line is kept in every band: governance is not sovereignty, and the key is Jesus’', () => {
     for (const [band, t] of Object.entries(TEXTS())) {
       const s = String(t);
-      expect(s, `${band} must keep the ceiling over every charter`).toMatch(
-        /not sovereignty|not the throne|rules are not Yahweh/i,
-      );
+      expect(s, `${band} must keep the ceiling over every charter`).toMatch(/not sovereignty|not the throne|rules are not Yahweh/i);
       expect(s, `${band} must close on Jesus as the foundation`).toMatch(/Lamb of Yahweh/);
     }
   });

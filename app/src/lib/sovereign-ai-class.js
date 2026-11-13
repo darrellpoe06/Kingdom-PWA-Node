@@ -11847,6 +11847,7 @@ export const SOVEREIGN_AI_MODULES = [
     }
   },
 
+
   {
     "id": "sov78-count-the-cost",
     "title": "Count the cost - the tower that wrote down its own danger, the four hundred billion promised, and the city whose builder is Yahweh",
