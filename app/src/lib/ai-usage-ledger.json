@@ -2389,6 +2389,21 @@
       "wallClockHours": 1.3,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a18cd240a3a03eb, forwarded 2026-10-30T12:54Z (7:54 AM Central), built 2026-11-13 draining the intake backlog. Whole article in the email. 40 anchor references, 158 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov83-fill.mjs and none typed. Our house traced to code: payments ledger CHECK and UNIQUE, the two-step payment (not atomic, finished by retry), the exam rule in the wall, the learner record off the phone, a latent workshop-seat oversell and the reservation referee that two spellings of week 82 got past (this build yielded to 83). www.postgresql.org refused (403 CONNECT); live tables not reached, the hosted project is the mirror. re-review 2026-11-27."
+    },
+    {
+      "id": "sov85-and-it-fell-not",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 85 built from one word over a forwarded Level Up Coding newsletter (Chaos Engineering Clearly Explained), all four age bands, 38-case gate",
+      "drs": [
+        "DR-1500"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
     }
   ]
 }
