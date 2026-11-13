@@ -23,6 +23,10 @@
 // =============================================================================
 import { segmentText } from './tts.js';
 import { pieceAt, pieceFractionAt } from './joined-clip.js';
+import { hasSpeakable } from './speech-shape.js';
+// The stand-in the reader lends this queue for one piece (DR-1498), handed on
+// from here so the reader's hook takes it with the queue on one import line.
+export { speakPieceOnPhone } from './reading-voice-hold.js';
 
 /** Where the reading is cut (tts.js segmentText breathes at about this length). */
 export const PIECE_CUT = 180;
@@ -111,7 +115,17 @@ export const STALL_MS = 30000;
 // `unschedule` arm the stall watch; the queue itself holds no timer (a saved
 // reading must advance inside the ended event with the screen off —
 // saved-voice-keeps-playing.test.js), so the caller lends it one.
-export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now(), schedule = null, unschedule = null }) {
+// ONE PIECE THAT FAILS IS ONE PIECE (DR-1498). Darrell 2026-11-13: at a
+// quoted verse the man's voice paused and went on in another voice, and only
+// pushing forward brought his back. A piece the voice could not give used to
+// hand the WHOLE REST of the reading to the phone. Now it is asked for once
+// more, fresh; if it still does not come, `standIn(text, i, reason)` may say
+// THAT ONE piece another way (it resolves true when it did), and the next
+// piece is the reading's own voice again. Only a stand-in that cannot (it
+// resolves false: no voice of the same kind, the screen off) hands the rest
+// on, as before, so DR-1482's hold still decides there. A piece with no word
+// in it is never asked for: its highlight passes and nothing is said.
+export function createClipQueue({ chunks, fetchClip, fetchFresh = null, standIn = null, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now(), schedule = null, unschedule = null }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
   // THE VOICE IS ASKED AGAIN AT THE NEW PACE (2026-10-07, DR-0794; Darrell:
   // "Why does the male voice sound like it's slowing down while it's
@@ -171,6 +185,7 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
   // was. A fault inside the joined file drops the join and carries on piece
   // by piece from the sentence it was at.
   const recovered = new Set();   // pieces already asked for again
+  let stoodIn = -2;              // the last piece another voice said (DR-1498)
   let stallTimer = null;
   const timeNow = () => { try { return Number(audio.currentTime) || 0; } catch (_) { return 0; } };
   const clearStall = () => { if (stallTimer != null) { try { if (typeof unschedule === 'function') unschedule(stallTimer); } catch (_) { /* ignore */ } stallTimer = null; } };
@@ -196,14 +211,36 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
       playAt(at);
       return;
     }
-    if (recovered.has(i) || typeof fetchFresh !== 'function') { fallBack(i, reason); return; }
-    recovered.add(i);
-    release(i);
-    waitFrom = now();
-    const p = Promise.resolve().then(() => fetchFresh(chunks[i].text, i, pace))
-      .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }));
-    urls.set(i, p);
-    p.then((got) => { if (urls.get(i) === p) ready.set(i, got); if (stopped) return; return startPiece(i, got, false); });
+    miss(i, reason);
+  };
+  // Asked again once, fresh; then the stand-in for this piece alone; then, as
+  // ever, the rest handed on.
+  const miss = (i, reason) => {
+    if (stopped) return Promise.resolve(false);
+    if (!recovered.has(i) && typeof fetchFresh === 'function') {
+      recovered.add(i);
+      release(i);
+      waitFrom = now();
+      const p = Promise.resolve().then(() => fetchFresh(chunks[i].text, i, pace))
+        .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }));
+      urls.set(i, p);
+      return p.then((got) => { if (urls.get(i) === p) ready.set(i, got); if (stopped) return false; return startPiece(i, got, false); });
+    }
+    // Two pieces in a row is the voice gone, not one bad piece: the rest is
+    // handed on, as before, rather than asking the road twice per sentence.
+    if (typeof standIn !== 'function' || stoodIn === i - 1) return Promise.resolve(fallBack(i, reason));
+    index = i;
+    try { audio.pause(); } catch (_) { /* a fake */ }
+    if (onPiece) onPiece(i, { waitMs: 0, inHand: false, standIn: true });
+    if (onProgress) onProgress(overallFraction(chunks, i, 0));
+    return Promise.resolve().then(() => standIn(chunks[i].text, i, reason)).catch(() => false)
+      .then((said) => {
+        if (stopped || index !== i) return false;
+        if (!said) return fallBack(i, reason);
+        stoodIn = i;
+        waitFrom = now();
+        return playAt(i + 1);
+      });
   };
   listen('error', () => { if (!stopped && index >= 0) recover(index, 'piece-unplayable'); });
   listen('playing', () => { if (!stopped && index >= 0 && playFrom == null) playFrom = now(); clearStall(); });
@@ -222,6 +259,7 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
 
   const want = (i) => {
     if (i < 0 || i >= chunks.length) return null;
+    if (!hasSpeakable(chunks[i].text)) return Promise.resolve({ silent: true });
     if (!urls.has(i)) {
       const p = Promise.resolve().then(() => fetchClip(chunks[i].text, i, pace))
         .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }))
@@ -278,7 +316,7 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
   // answer already in hand, the next sentence is on the element before the
   // event returns.
   const startPiece = (i, got, inHand = false) => {
-    if (!got || got.error || !got.url) return Promise.resolve(fallBack(i, got && got.error));
+    if (!got || got.error || !got.url) return miss(i, (got && got.error) || 'voice-lite-empty');
     const waitMs = waitFrom != null ? Math.max(0, now() - waitFrom) : 0;
     waitFrom = null;
     index = i;
@@ -327,6 +365,12 @@ export function createClipQueue({ chunks, fetchClip, fetchFresh = null, audio, r
     if (stopped) return Promise.resolve(false);
     if (waitFrom == null) waitFrom = now();
     if (i >= chunks.length) return Promise.resolve(finish());
+    if (!hasSpeakable(chunks[i].text)) {
+      // Nothing a voice can say: the highlight passes it, nothing is asked for.
+      index = i;
+      if (onPiece) onPiece(i, { waitMs: 0, inHand: true, silent: true });
+      return playAt(i + 1);
+    }
     if (pendingJoin) return startJoined(i);
     if (ready.has(i)) return startPiece(i, ready.get(i), true); // in hand: no await at all
     const p = want(i);

@@ -1290,6 +1290,12 @@ const NODES = [
     writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
     runToken: 'uses: ./.github/workflows/_browser-probe.yml', // the run is the harness's job, not a runs-on of its own
   }),
+  wf('live-homepage-still.yml', {
+    id: 'live-homepage-still', name: 'Live homepage still (the production door, from a runner)', purpose: 'A still of the live Love Corner door at a phone and a desktop width, with the door\u2019s header measured, left as an artifact for the live review (DR-1483; DR-0104).',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
+    runToken: 'uses: ./.github/workflows/_browser-probe.yml',
+  }),
   wf('_browser-probe.yml', {
     id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
     reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
