@@ -27,13 +27,14 @@
 // every run is escaped by the library itself.
 // =============================================================================
 import React from 'react';
-import { coloringPage, coloringSvg, sheetLayout, coloringBooklet, bookletCount, SHEET } from '../lib/coloring-page.js';
+import { coloringPage, coloringSvg, sheetElements, coloringBooklet, bookletCount, SHEET } from '../lib/coloring-page.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
 
-/** The sheet as React elements — same layout as the printable string. */
+/** The sheet as React elements — the same element list the printable string draws. */
 export function SheetSvg({ page, className = '', title = '' }) {
-  const lay = React.useMemo(() => (page ? sheetLayout(page) : null), [page]);
-  if (!lay) return null;
+  const els = React.useMemo(() => (page ? sheetElements(page) : []), [page]);
+  if (!page || !els.length) return null;
+  const strokeProps = (e) => (e.sw ? { stroke: '#000', strokeWidth: e.sw, strokeLinejoin: 'round', strokeLinecap: 'round' } : {});
   return (
     <svg
       viewBox={`0 0 ${SHEET.width} ${SHEET.height}`}
@@ -42,53 +43,35 @@ export function SheetSvg({ page, className = '', title = '' }) {
       aria-label={title || `${page.title} — a coloring page`}
       data-testid="coloring-sheet-svg"
     >
-      <rect x="0" y="0" width={SHEET.width} height={SHEET.height} fill="#fff" />
-      {lay.runs.map((r, i) => (
-        <text
-          key={`${r.role}-${i}`}
-          x={r.x}
-          y={Math.round(r.y)}
-          textAnchor={r.anchor === 'middle' ? 'middle' : undefined}
-          fontFamily="Georgia, serif"
-          fontSize={r.size}
-          fill={r.outline ? 'none' : '#000'}
-          stroke={r.outline ? '#000' : undefined}
-          strokeWidth={r.outline ? r.weight : undefined}
-        >
-          {r.text}
-        </text>
-      ))}
-      {lay.symbols.map((s, i) => (
-        <g
-          key={`${s.id}-${i}`}
-          transform={`translate(${s.x},${s.y}) scale(${s.scale})`}
-          fill="none"
-          stroke="#000"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        >
-          <path d={s.d} />
-        </g>
-      ))}
-      <text x={SHEET.margin} y={lay.traceY} fontFamily="Georgia, serif" fontSize="20" fill="#000">Trace the words:</text>
-      {page.words.map((w, i) => (
-        <text
-          key={w}
-          x={SHEET.margin + (i % 5) * 130}
-          y={lay.traceY + 34}
-          fontFamily="Georgia, serif"
-          fontSize="30"
-          fill="none"
-          stroke="#000"
-          strokeWidth="1"
-        >
-          {w}
-        </text>
-      ))}
-      <text x={SHEET.width / 2} y="990" textAnchor="middle" fontFamily="Georgia, serif" fontSize="16" fill="#000">
-        Color it in while a grown-up reads the lesson to you.
-      </text>
+      {els.map((e, i) => {
+        const key = `${e.t}-${i}`;
+        if (e.t === 'rect') return <rect key={key} x={e.x} y={e.y} width={e.w} height={e.h} rx={e.rx} fill={e.fill || 'none'} strokeDasharray={e.dash} {...strokeProps(e)} />;
+        if (e.t === 'line') return <line key={key} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} strokeDasharray={e.dash} {...strokeProps(e)} />;
+        if (e.t === 'path') return <path key={key} d={e.d} fill={e.fill || 'none'} transform={e.transform} strokeDasharray={e.dash} {...strokeProps(e)} />;
+        if (e.t === 'text') {
+          return (
+            <text
+              key={key}
+              x={e.x}
+              y={e.y}
+              textAnchor={e.anchor === 'middle' ? 'middle' : undefined}
+              fontFamily={e.family}
+              fontSize={e.size}
+              fontWeight={e.weight}
+              letterSpacing={e.spacing}
+              paintOrder={e.paintOrder}
+              fill={e.fill || 'none'}
+              stroke={e.stroke}
+              strokeWidth={e.stroke ? e.sw : undefined}
+              strokeDasharray={e.dash}
+              strokeLinejoin={e.stroke ? 'round' : undefined}
+            >
+              {e.text}
+            </text>
+          );
+        }
+        return null;
+      })}
     </svg>
   );
 }

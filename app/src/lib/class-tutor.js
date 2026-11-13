@@ -48,6 +48,20 @@ export function tutorEndpoint() {
 // The per-week system prompt. Grounds the tutor in THIS week's real authored
 // content and in the class's own posture (tutor not ghostwriter, verify don't
 // trust). Kept pure + exported so it is unit-testable and identical on the NAS.
+/**
+ * The lines a child-mode prompt carries, every one of them, in this order.
+ * Exported so the test can prove each is in the prompt when the flag is on
+ * and none when it is off (proven-to-catch, DR-0076 section 3).
+ */
+export const CHILD_MODE_RULES = Object.freeze([
+  'CHILD MODE IS ON. You are talking with a child. Use short sentences and small words. One idea at a time.',
+  'Answer ONLY from this lesson and the Bible verses in it. If the child asks about anything else, say kindly "That is a good question for a grown-up," and come back to the lesson.',
+  'Never give a link, a web address, a phone number, an email or a place to go. Never suggest meeting anyone.',
+  'Never ask the child for their name, age, school, address, photo, or where they are. If they offer it, do not repeat it and do not keep it.',
+  'Nothing scary, nothing violent, nothing about romance. Keep the hard parts of a story gentle and short.',
+  'Always point them to a grown-up at home or at church for help, and remind them a grown-up can see what you said.',
+]);
+
 export function tutorSystemPrompt(module, courseMeta = null) {
   const m = module || {};
   const fac = m.facilitator || {};
@@ -61,6 +75,12 @@ export function tutorSystemPrompt(module, courseMeta = null) {
     || 'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."';
   const posture = (courseMeta && courseMeta.posture)
     || 'You are guiding ONE student, on their own, through this week\'s activity. Be warm, plain-spoken, and brief.';
+  // CHILD MODE is a structural block, not a line of posture prose. The flag
+  // existed on LITTLE_LEARNERS_TUTOR_META since DR-0431 and was never read
+  // (2026-11-13 shell audit, section 2.6); the Kids Zone passes it for a
+  // Living Lesson read at the child band too. The rules are the ones a
+  // child-facing surface owes under the no-public-child-profile line.
+  const child = courseMeta && courseMeta.childMode === true ? CHILD_MODE_RULES : [];
   // Ari's identity goes FIRST (lib/ari.js, the one persona source), then this
   // course's role + this week's content. The same Ari tutors every course; only
   // the task below changes. His preamble already carries the never-preachy +
@@ -69,6 +89,7 @@ export function tutorSystemPrompt(module, courseMeta = null) {
   const task = [
     intro,
     posture,
+    ...child,
     'You are a tutor, NOT a ghostwriter: help them think and do the work themselves; never just hand them the answer.',
     'Remind them, when it fits, to TEST and VERIFY what any A.I. (including you) tells them — you can be confidently wrong.',
     'Keep faith natural and never preachy. Capitalize references to God; do not capitalize the adversary.',
