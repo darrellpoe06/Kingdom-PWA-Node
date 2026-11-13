@@ -19,7 +19,7 @@ Darrell forwarded ByteByteGo's *How Nvidia's New Nemotron Model Works* (sent 202
 
 Checking made the teaching **bigger**: the config's numbers are class defaults, not Lightning's, so the article's figures were softened to "the newsletter's claim" — while the shared expert it omits became Movement Five, and the interleaving it calls emergent is a declared per-layer list.
 
-All four bands failed the floors on the first commit and were extended **by hand** (DR-1306), never by a script on authored prose. Landed: shares 0.512 / 0.603 / 0.612 / 0.817; FK 1.55 < 4.39 < 5.40 < 9.81 (child ≤ 5.0, teen ≤ 6.0, senior ≤ 10.0); worst band overlap 0.111, worst band~adult 0.096. 168 quoted spans, 19 books, 55 anchor references, every one generator-filled from `app/public/bible/kjv` by `scripts/sov84-fill.mjs` and swept in the lesson's test.
+All four bands failed the floors on the first commit and were extended **by hand** (DR-1306), never by a script on authored prose. Landed: shares 0.510 / 0.601 / 0.609 / 0.813; FK 1.55 < 4.39 < 5.40 < 9.81 (child ≤ 5.0, teen ≤ 6.0, senior ≤ 10.0); worst band overlap 0.111, worst band~adult 0.096. 168 quoted spans, 19 books, 55 anchor references, every one generator-filled from `app/public/bible/kjv` by `scripts/sov84-fill.mjs` and swept in the lesson's test.
 
 ## Impact
 
