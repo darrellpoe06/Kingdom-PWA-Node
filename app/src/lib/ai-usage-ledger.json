@@ -2346,6 +2346,21 @@
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
     },
     {
+      "id": "reader-keeps-the-voice-you-chose",
+      "date": "2026-11-13",
+      "task": "The reader keeps the chosen voice through a NAS hand-off and a rebuilt voice list, skips the end-of-lesson books list, and names what blocks my voice",
+      "drs": [
+        "DR-1482"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
       "id": "shell-header-night-2026-11-13",
       "date": "2026-11-13",
       "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",

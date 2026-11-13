@@ -158,9 +158,11 @@ describe('the reader wires it up', () => {
     expect(code).toMatch(/builtInVoiceSupport\(\)\s*!==\s*'no'/);
     // DR-0654: the clip's error goes through the ONE hand-off to the device
     // voice, which silences the audio first and speaks in the reading's
-    // pinned voice; that hand-off still ends in tts.speak.
+    // pinned voice; that hand-off still ends in tts.speak. DR-1482: it first
+    // holds a reading the phone has no voice of the same gender for, so the
+    // signature carries `anyVoice` and the speak sits after that hold.
     expect(code).toMatch(/a\.onerror[\s\S]{0,200}deviceRestRef\.current\(/);
-    expect(code).toMatch(/deviceRestRef\.current = async \(rest, reason\) => \{[\s\S]{0,2000}tts\.speak\(rest, pick\.uri\)/);
+    expect(code).toMatch(/deviceRestRef\.current = async \(rest, reason, \{ anyVoice = false \} = \{\}\) => \{[\s\S]{0,4000}tts\.speak\(rest, pick\.uri\)/);
   });
 });
 
