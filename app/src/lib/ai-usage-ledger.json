@@ -2241,6 +2241,36 @@
       "notes": "Found by the pm17 builder, whose clone re-shallowed twice mid-build while its own check reported it healthy. Demonstrated rather than reasoned: a scratch worktree was created on a shallow clone, both checks run inside it at the same instant - .git/shallow clean, common-dir/shallow PRESENT - and the worktree removed. No shared helper was built, for the same reason DR-1467 parked its chain-runner."
     },
     {
+      "id": "dr-1475-ll307-love-walks-training-ground",
+      "date": "2026-11-13",
+      "task": "L307 Love Walks With You on the Training Ground: the first Living Lesson built as its own file on the parallel pipeline",
+      "drs": [
+        "DR-1475"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell, spoken: Love walks with you; the Pattern Maker; body, soul and spirit aligned; trained in the fire; NIMH read through search only"
+    },
+    {
+      "id": "ll308-only-yahweh-can-judge-me",
+      "date": "2026-11-13",
+      "task": "L308 Only Yahweh Can Judge Me, spoken by Darrell, all four age bands, 50-case gate; the first lesson built beside another on the parallel per-file pipeline",
+      "drs": [
+        "DR-1476"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 40,
+      "notes": "Reserved L308 and DR-1476 on origin with new-lesson.mjs, skipping L307 and DR-1475 held for claude/lesson-ll307. 229 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. www.irs.gov refused direct fetch (ENOTFOUND); Publication 527 read through a search restricted to irs.gov, re-review 2026-12-13."
+    },
+    {
       "id": "pm17-can-two-walk-together",
       "date": "2026-11-13",
       "task": "Project Management lesson 17 built from one word over a forwarded trade newsletter, all four age bands, 42-case gate",
