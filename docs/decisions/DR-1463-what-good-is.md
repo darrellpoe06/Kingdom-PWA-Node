@@ -1,12 +1,12 @@
-# DR-1462: L303 — What Good Is: being good and doing good are one
+# DR-1463: L303 — What Good Is: being good and doing good are one
 
 **Date:** 2026-11-13
-**Status:** Accepted
+**Status:** Accepted (renumbered from DR-1462 the same day, after main took DR-1461 for the 0319 smoke record)
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons-class.js`, `living-lessons-dates.js`)
 **Spoken by:** Darrell, 2026-11-13, the same day as L302
-**Pairs with:** DR-1461 (L302, the standard that survives every age), DR-0098, DR-0100, DR-0076, DR-0331, DR-0210
+**Pairs with:** DR-1462 (L302, the standard that survives every age), DR-0098, DR-0100, DR-0076, DR-0331, DR-0210
 
 ## Context
 

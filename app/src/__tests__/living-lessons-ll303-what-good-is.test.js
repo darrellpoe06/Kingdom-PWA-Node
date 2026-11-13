@@ -6,7 +6,7 @@
 // popular saying about evil winning when good men do nothing contradicts itself,
 // for how can someone be good and do nothing at the same time? He asked for good
 // to be defined, Word first (DR-0098). Every verse is fetched from
-// app/public/bible/kjv (DR-0076). (DR-NUMBER.)
+// app/public/bible/kjv (DR-0076). (DR-1463.)
 //
 // THIS LESSON'S DANGERS are four. (1) Good set by man: every text says none is
 // good but Yahweh (Mark 10:18) and carries the key verse, Psalms 119:68. (2) Good

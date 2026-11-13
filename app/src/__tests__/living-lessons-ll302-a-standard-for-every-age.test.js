@@ -6,7 +6,7 @@
 // after an older gentleman he respects (a veteran, once a military police
 // officer, and a Catholic) told him no moral standard can survive every age.
 // Word first (DR-0098), then research named narrowly (DR-0100), every verse
-// fetched from app/public/bible/kjv (DR-0076). (DR-NUMBER.)
+// fetched from app/public/bible/kjv (DR-0076). (DR-1462.)
 //
 // THIS LESSON'S DANGERS are four. (1) The Golden Rule taught as a man-made
 // agreement: every text gives it to Jesus (Matthew 7:12), carries Mark 10:18 and

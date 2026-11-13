@@ -1,12 +1,12 @@
-# DR-1465: L306 — The Path of the Just Shineth: enduring with the Word first
+# DR-1466: L306 — The Path of the Just Shineth: enduring with the Word first
 
 **Date:** 2026-11-13
-**Status:** Accepted
+**Status:** Accepted (renumbered from DR-1465 the same day, after main took DR-1461 for the 0319 smoke record)
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons-class.js`, `living-lessons-dates.js`)
 **Spoken by:** Darrell, 2026-11-13, the fifth of a thread
-**Pairs with:** DR-1464 (L305, whose "bread for us" this takes up), DR-1463 (L304, tied in through Isaiah 54:17), DR-0098, DR-0076, DR-0331
+**Pairs with:** DR-1465 (L305, whose "bread for us" this takes up), DR-1464 (L304, tied in through Isaiah 54:17), DR-0098, DR-0076, DR-0331
 
 ## Context
 

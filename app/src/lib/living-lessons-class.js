@@ -32142,7 +32142,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // L302 — A Standard for Every Age. Spoken by Darrell on 2026-11-13, in two parts
-  // the same day (DR-XXXX). An older gentleman he respects and salutes, a veteran,
+  // the same day (DR-1462). An older gentleman he respects and salutes, a veteran,
   // once a military police officer, and a Catholic, told him no moral standard can
   // survive every age. Darrell held that not killing, stealing or destroying, and
   // treating your neighbor as you would be treated, fits everyone, even the one who
@@ -32326,7 +32326,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // L303 — What Good Is. Spoken by Darrell on 2026-11-13, the same day as L302
-  // (DR-YYYY). He saw that the popular saying about evil triumphing when good
+  // (DR-1463). He saw that the popular saying about evil triumphing when good
   // men do nothing contradicts itself: how can someone be good and do nothing at
   // the same time? Word first (DR-0098): good is what Yahweh is and does (Mark
   // 10:18; Psalms 119:68), a good tree bears fruit, the priest and the Levite
@@ -32498,7 +32498,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // L304 — What Righteousness Is. Spoken by Darrell on 2026-11-13, the third of
-  // a thread with L302 and L303 (DR-ZZZZ). Some say they are righteous and
+  // a thread with L302 and L303 (DR-1464). Some say they are righteous and
   // Yahweh says no; he asked what righteousness is by Yahweh, and what it is not,
   // precept upon precept, with its jewels in many facets. Word first (DR-0098):
   // His nature and His standard; man's verdict on himself (Proverbs 21:2; Luke
@@ -32679,7 +32679,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // L305 — Search Me, and Know My Heart. Spoken by Darrell on 2026-11-13, the
-  // fourth of a thread with L302-L304 (DR-WWWW). If Yahweh ponders the heart
+  // fourth of a thread with L302-L304 (DR-1465). If Yahweh ponders the heart
   // (Proverbs 21:2, from L304), I ponder mine with Him: consider it, keep it, and
   // search it in His company with His Word (Psalms 139:23-24), bring the Prince
   // of Peace to the gaps, and adapt to His perfect will. His testimony of working
@@ -32850,7 +32850,7 @@ export const LIVING_LESSONS_MODULES = [
     },
   },
   // L306 — The Path of the Just Shineth. Spoken by Darrell on 2026-11-13, the
-  // fifth of a thread with L302-L305 (DR-VVVV). Enduring with the Word first:
+  // fifth of a thread with L302-L305 (DR-1466). Enduring with the Word first:
   // the little foxes (Song of Solomon 2:15), the ram in the thicket, people for
   // you and against you who sharpen you, rigor with the rules so no occasion is
   // found (Daniel 6:4-5), seeing it coming by fruit without prejudging, no

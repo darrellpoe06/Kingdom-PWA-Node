@@ -8,7 +8,7 @@
 // rules so no occasion is found, fruit without prejudging, no vengeance, the
 // course kept, and the path that shines more and more. A friend's story is his
 // testimony; the friend and his university are not named. Word first (DR-0098),
-// every verse fetched from app/public/bible/kjv (DR-0076). (DR-NUMBER.)
+// every verse fetched from app/public/bible/kjv (DR-0076). (DR-1466.)
 //
 // THIS LESSON'S DANGERS are four. (1) Vengeance: every text carries Romans
 // 12:19 and Matthew 5:44. (2) Discernment taught as prejudging: every text

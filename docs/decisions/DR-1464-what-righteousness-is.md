@@ -1,12 +1,12 @@
-# DR-1463: L304 — What Righteousness Is: precept upon precept, jewel by jewel
+# DR-1464: L304 — What Righteousness Is: precept upon precept, jewel by jewel
 
 **Date:** 2026-11-13
-**Status:** Accepted
+**Status:** Accepted (renumbered from DR-1463 the same day, after main took DR-1461 for the 0319 smoke record)
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons-class.js`, `living-lessons-dates.js`)
 **Spoken by:** Darrell, 2026-11-13, the third of a thread
-**Pairs with:** DR-1461 (L302), DR-1462 (L303), DR-0098, DR-0076, DR-0331, DR-0210
+**Pairs with:** DR-1462 (L302), DR-1463 (L303), DR-0098, DR-0076, DR-0331, DR-0210
 
 ## Context
 

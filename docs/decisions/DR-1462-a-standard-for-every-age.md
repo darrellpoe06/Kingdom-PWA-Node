@@ -1,7 +1,7 @@
-# DR-1461: L302 — A Standard for Every Age: the Golden Rule, its Author, and the only Good
+# DR-1462: L302 — A Standard for Every Age: the Golden Rule, its Author, and the only Good
 
 **Date:** 2026-11-13
-**Status:** Accepted
+**Status:** Accepted (renumbered from DR-1461 the same day, after main took DR-1461 for the 0319 smoke record)
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons-class.js`, `living-lessons-dates.js`)

@@ -8,7 +8,7 @@
 // fifty hours for forty is given as his, beside the measured BLS figure
 // (DR-0100), and the Word's "bread for us" (Numbers 14:9) carries the end. Word
 // first (DR-0098), every verse fetched from app/public/bible/kjv (DR-0076).
-// (DR-NUMBER.)
+// (DR-1465.)
 //
 // THIS LESSON'S DANGERS are four. (1) Self-examination taught as a solo audit:
 // every text carries Jeremiah 17:9 and Psalms 139:23. (2) His testimony passed

@@ -1,12 +1,12 @@
-# DR-1464: L305 — Search Me, and Know My Heart: pondering the heart with Yahweh
+# DR-1465: L305 — Search Me, and Know My Heart: pondering the heart with Yahweh
 
 **Date:** 2026-11-13
-**Status:** Accepted
+**Status:** Accepted (renumbered from DR-1464 the same day, after main took DR-1461 for the 0319 smoke record)
 **Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons-class.js`, `living-lessons-dates.js`)
 **Spoken by:** Darrell, 2026-11-13, the fourth of a thread
-**Pairs with:** DR-1463 (L304, whose Proverbs 21:2 this takes up), DR-0100 (established data stated plainly, named narrowly), DR-0076, DR-0331, DR-1126 (the third pile)
+**Pairs with:** DR-1464 (L304, whose Proverbs 21:2 this takes up), DR-0100 (established data stated plainly, named narrowly), DR-0076, DR-0331, DR-1126 (the third pile)
 
 ## Context
 

@@ -6,7 +6,7 @@
 // standard, L303 good). Some say they are righteous and Yahweh says no: what is
 // righteousness by Yahweh, what is it not, and what is the precept-upon-precept
 // way, its jewels seen in many facets? Word first (DR-0098), every verse fetched
-// from app/public/bible/kjv (DR-0076). No outside research. (DR-NUMBER.)
+// from app/public/bible/kjv (DR-0076). No outside research. (DR-1464.)
 //
 // THIS LESSON'S DANGERS are four. (1) Self-righteousness taught as
 // righteousness: every text carries Proverbs 21:2 and the publican going home
