@@ -101,6 +101,22 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 .guides b{display:block;font-size:.95rem;font-weight:900}
 .guides small{display:block;font-size:.72rem;font-weight:700;color:#5E4B8A;line-height:1.3}
 .standin{display:inline-block;background:var(--lc-red);color:#fff;border-radius:999px;padding:2px 8px;font-size:.6rem;font-weight:900;letter-spacing:.08em;vertical-align:middle}
+.interim{display:inline-block;background:var(--kz-ink);color:#fff;border-radius:999px;padding:2px 8px;font-size:.58rem;font-weight:900;letter-spacing:.08em}
+.face{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 auto;border:3px solid #fff;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+.face.lg{width:84px;height:84px}
+.heroimg{display:block;width:100%;height:150px;object-fit:cover;object-position:50% 30%;border-radius:16px;margin-top:10px;border:3px solid rgba(255,255,255,.7)}
+.logo{display:block;width:210px;height:auto;margin:2px 0 4px}
+.rslot{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;background:repeating-linear-gradient(135deg,#F3E7C9 0 10px,#FBF3DC 10px 20px);border:3px dashed var(--lc-gold);border-radius:14px;padding:8px 10px;color:#7A5C14;font-weight:900;font-size:.64rem;line-height:1.25;min-height:84px}
+.rslot b{font-size:.7rem;letter-spacing:.06em}
+.rslot i{font-style:normal;font-weight:700;opacity:.9}
+.kcard .rslot{position:absolute;right:8px;top:8px;width:120px;min-height:76px;font-size:.58rem;padding:6px 8px}
+.kcard.big .rslot{position:static;width:132px;flex:0 0 auto}
+.scene-slot{width:100%;aspect-ratio:34/15;margin:0 0 8px;min-height:0}
+.guidebubble .face{width:56px;height:56px}
+.guidebubble .who{display:flex;flex-direction:column;align-items:center;gap:2px}
+.guidebubble .who small{font-size:.5rem;font-weight:900;letter-spacing:.06em;color:#7A5C14}
+.poster{display:block;width:100%;height:auto}
+.now .play{top:50%}
 .guidebubble{margin:12px 12px 0;display:flex;gap:10px;align-items:flex-end}
 .guidebubble svg{width:64px;height:auto;flex:0 0 auto}
 .guidebubble p{flex:1;min-width:0;margin:0;background:#F3EAFF;border:3px solid var(--kz-violet);border-radius:18px 18px 18px 4px;padding:10px 12px;font-weight:800;font-size:.9rem;line-height:1.3}
@@ -279,7 +295,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 </style>
 
 <h1>The Love Corner Kids Zone — the illustrated proposal, revised</h1>
-<p class="lede">Screen 3 of the 2026-11-13 previews is kept as drawn: <b>same layout, same vibrant palette</b>, the church's red, black, white and gold as the frame. What is new is the art: an illustration system of <b>Black boys and girls, ages 6 to 10</b>, drawn as inline SVG in the same dignity lineage as the games' art (a range of rich brown skin tones; afro, puffs, braids with beads, twists, locs, coils, a fresh fade; whole children in motion, never caricature), with friends of other backgrounds beside them. Teens get their own, more grown art. <b>Revised 2026-11-13 to Darrell's whole-zone vision:</b> the entire Kids Zone is the cartoon-rich experience, not one section. Two recurring guides (his approved reference, a girl and a boy) are on every screen: they introduce activities, explain games, celebrate rewards and walk the lessons. A Bible Adventure Theater, illustrated storybooks with read-along and comprehension, games and puzzles, adventure maps and badges, a Grown-ups section, a separate teen world, and everything Christ-centered with no magic or fantasy devices. <b>The reference image has not reached this session</b>, so the guides are drawn here as labeled stand-ins from the cast; the approved artwork drops into those slots and the realistic 3D look is that artwork's, never hand-coded or generated here. Every number on these screens is named below as real or as an example. Scroll sideways for the nine screens; the legend under them says what each part reads and where each of the ten points lands.</p>
+<p class="lede">Screen 3 of the 2026-11-13 previews is kept as drawn: <b>same layout, same vibrant palette</b>, the church's red, black, white and gold as the frame. What is new is the art: an illustration system of <b>Black boys and girls, ages 6 to 10</b>, drawn as inline SVG in the same dignity lineage as the games' art (a range of rich brown skin tones; afro, puffs, braids with beads, twists, locs, coils, a fresh fade; whole children in motion, never caricature), with friends of other backgrounds beside them. Teens get their own, more grown art. <b>Revised 2026-11-13 to Darrell's whole-zone vision:</b> the entire Kids Zone is the cartoon-rich experience, not one section. Two recurring guides (his approved reference, a girl and a boy) are on every screen: they introduce activities, explain games, celebrate rewards and walk the lessons. A Bible Adventure Theater, illustrated storybooks with read-along and comprehension, games and puzzles, adventure maps and badges, a Grown-ups section, a separate teen world, and everything Christ-centered with no magic or fantasy devices. <b>The approved reference image is in hand</b> and is used where it fits as is (the hero, Meet your guides, the Theater's key art). Every other appearance of the two guides is an <b>interim cutout from that image, labeled INTERIM</b>, or a <b>labeled slot naming the render it waits for</b> from the character artwork brief (52 images: poses, expressions and Bible scenes generated from the same reference). Nothing is drawn, generated or imitated to stand in for the two of them. Every number on these screens is named below as real or as an example. Scroll sideways for the nine screens; the legend under them says what each part reads and where each of the ten points lands.</p>
 
 <div class="row">
 
@@ -293,52 +309,52 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
       <svg class="sky" viewBox="0 0 390 230" preserveAspectRatio="xMidYMid slice" aria-hidden="true" data-art="stars"></svg>
       <div class="doorsw"><span class="on">Kids 6–10</span><span>Teens 11–17</span></div>
       <div class="heroart">
-        <div class="words">
-          <h2>Bible Adventures</h2>
+        <div class="words" style="flex:1 1 100%">
+          <img class="logo" src="assets/logo.png" alt="The Love Corner Bible Adventures">
           <p>Your guides are ready. This week: <b>Prove All Things</b>.</p>
+          <img class="heroimg" src="assets/guides-pair.png" alt="The two approved guides at a table over an open Bible, from the reference image">
         </div>
-        <svg viewBox="0 0 200 190" role="img" aria-label="The two guides on a hill at sunrise: a girl with afro puffs holds a treasure map and a boy with a fade holds a lantern and points up the winding path to a treasure chest; stand-ins until the reference image arrives" data-art="guides-hero"></svg>
       </div>
       <div class="prog"><small>Your adventure map · sign in and every lesson you finish lights a stop</small><div class="bar"><i class="w44"></i></div></div>
       <span class="n" style="right:12px;bottom:12px">2</span>
     </div>
 
-    <div class="guides"><span class="n" style="left:-8px;top:-8px">9</span><svg viewBox="0 0 120 110" role="img" aria-label="The two guides, side by side, waving; stand-ins" data-art="guides-pair"></svg><div><b>Meet your guides <span class="standin">STAND-IN ART</span></b><small>Two friends who walk every story with you. Their names and faces come from Darrell's approved reference; these drawings hold the place.</small></div></div>
+    <div class="guides"><span class="n" style="left:-8px;top:-8px">9</span><img class="face lg" src="assets/guide-girl-face.png" alt="The girl guide, from the reference"><img class="face lg" src="assets/guide-boy-face.png" alt="The boy guide, from the reference"><div><b>Meet your guides</b><small>Two friends who walk every story with you. <span class="interim">INTERIM CUTOUT</span> until <code>girl-wave</code> and <code>boy-wave</code> land.</small></div></div>
 
     <div class="kgrid">
       <div class="kcard big k1"><span class="n" style="left:-6px;top:-6px">3</span>
         <div class="words"><b>This week's adventure</b><small>Living Lessons · read, listen, play</small><span class="kplay red">Start &#9654;</span></div>
-        <svg class="art" viewBox="0 0 150 170" role="img" aria-label="A boy with locs reads a big open Bible by lantern light, a glowing star above the page" data-art="reader"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>girl-reading-lantern</i><i>the girl on a rug, Bible on her lap, lantern beside her</i></div>
       </div>
       <div class="kcard big k2"><span class="n" style="left:-6px;top:-6px">10</span>
         <div class="words"><b>Bible Adventure Theater</b><small>Animated Bible stories · the church channel today, our own series next</small><span class="kplay">Open the Theater &#9654;</span></div>
-        <svg class="art" viewBox="0 0 150 170" role="img" aria-label="A glowing screen with the two guides watching from beanbags" data-art="theater-tile"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>pair-theater-tile</i><i>the two on beanbags, lit by a screen</i></div>
       </div>
       <div class="kcard k2"><span class="n" style="left:-6px;top:-6px">4</span>
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A girl with afro puffs, eyes closed, remembering words that float above her" data-art="memory"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>girl-remembering</i><i>eyes closed, remembering</i></div>
         <div class="words"><b>Memory verse</b><small>Psalm 23:1 · fill the words</small></div>
       </div>
       <div class="kcard k3">
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A boy with a fresh fade raises his hand with a big question mark" data-art="trivia"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>boy-question</i><i>hand up, gold question mark</i></div>
         <div class="words"><b>Bible trivia</b><small>From the message</small></div>
       </div>
       <div class="kcard k4"><span class="n" style="left:-6px;top:-6px">5</span>
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A girl with beaded braids stacks letter blocks that spell W O R D" data-art="builder"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>girl-blocks</i><i>lifting the W block</i></div>
         <div class="words"><b>Word builder</b><small>Spell the Bible word</small></div>
       </div>
       <div class="kcard k5">
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A boy with twists holds a magnifying glass up to a mystery figure behind a curtain" data-art="whoami"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>boy-magnifier</i><i>magnifying glass, curtain</i></div>
         <div class="words"><b>Who am I?</b><small>Guess the Bible hero</small></div>
       </div>
     </div>
 
     <div class="kgrid" style="margin-top:10px">
       <div class="kcard k4"><span class="n" style="left:-6px;top:-6px">11</span>
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="An open storybook with a great fish leaping from its pages" data-art="storybook-tile"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>girl-storybook</i><i>holding up a storybook</i></div>
         <div class="words"><b>Storybooks</b><small>Jonah · Noah · David · page by page</small></div>
       </div>
       <div class="kcard k6">
-        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A boy with locs reading with headphones, letters floating up" data-art="reading-tile"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>boy-reading-headphones</i><i>headphones, finger on the line</i></div>
         <div class="words"><b>Reading corner</b><small>Read to me · trace it · color it</small></div>
       </div>
     </div>
@@ -364,8 +380,8 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 <figcaption><b>Screen 1 · Kids home (the approved layout, revised to the whole-zone vision)</b>
 <ul>
 <li><i>1</i>The church's frame: seal, the Love Corner wordmark in red, a gold rule. Everything inside it is the Kids Zone's own world.</li>
-<li><i>2</i>The hero: the two guides on the path to the treasure; the stars twinkle and the guides bob (off under reduced motion). The lesson named is this week's REAL pick (Living Lessons, child band). The map bar is derived from the signed-in child's real rows; signed out it says so.</li>
-<li><i>9</i>Meet your guides: the two recurring characters, introduced once and present on every screen after. Drawn here as STAND-INS; the approved reference artwork replaces them in the same slots, and their names come with it.</li>
+<li><i>2</i>The hero: the approved logo lockup and the two guides from the reference, as they are. When <code>home-hero</code> (the two on the sunrise path) lands, it takes this place. The lesson named is this week's REAL pick (Living Lessons, child band). The map bar is derived from the signed-in child's real rows; signed out it says so.</li>
+<li><i>9</i>Meet your guides: the two approved children, interim face cutouts until their waving cutouts land. Their names come from Darrell. Every striped gold slot on this screen names the render it waits for, from the artwork brief; no drawing stands in for the two of them.</li>
 <li><i>10</i>The Bible Adventure Theater door (Screen 7). Today it plays the church's own channel; episodes of the original series appear as they are published, never painted before.</li>
 <li><i>11</i>Storybooks (Screen 8) and the Reading corner: read-aloud, tracing and coloring, all of which exist today.</li>
 <li><i>3</i>This week's adventure opens the real lesson in-zone (Screen 3). The art is one of a small pool of adventure scenes, chosen by the lesson id, never per-lesson paintings.</li>
@@ -392,14 +408,14 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
           <p>This week's challenge: <b>Prove All Things</b> · 1 Thessalonians 5:21</p>
           <div class="readat"><span class="on">Read at 11–14</span><span>15–17</span></div>
         </div>
-        <svg viewBox="0 0 200 200" role="img" aria-label="Two teens at dusk: a girl with twists and a backpack holding her phone and a Bible, and a boy with a fade and headphones around his neck, a city skyline and the first stars behind them" data-art="teens"></svg>
+        <div class="rslot" style="width:150px;min-height:150px;flex:0 0 auto;background:repeating-linear-gradient(135deg,#2A1A1C 0 10px,#3A2528 10px 20px);border-color:var(--lc-gold);color:var(--lc-gold)" aria-label="reference pending"><b>TEEN GUIDES</b><i>their own approved reference, a girl and a boy of about fifteen, same style</i></div>
       </div>
       <span class="n" style="right:12px;bottom:12px">2</span>
     </div>
     <div class="kgrid">
       <div class="kcard big"><span class="n" style="left:-6px;top:-6px">3</span>
         <div class="words"><span class="tag">This week's challenge</span><b>Prove All Things</b><small>Test what you are told. Keep what is true. 10 min · quiz · talk it over with Ari</small><span class="kplay">Take it on &#9654;</span></div>
-        <svg class="art" viewBox="0 0 120 150" role="img" aria-label="A teen boy with a fade plants a flag on a summit" data-art="summit"></svg>
+        <div class="rslot" aria-label="render pending"><b>RENDER</b><i>teen-summit</i><i>a teen planting a flag on a summit</i></div>
       </div>
       <div class="kcard"><span class="tag">Memory</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="Headphones and a verse card" data-art="tmemory"></svg><div class="words"><b>Philippians 4:13</b><small>Fill it in, then say it</small></div></div>
       <div class="kcard"><span class="tag">Trivia</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="A lightning bolt over an open book" data-art="ttrivia"></svg><div class="words"><b>From the message</b><small>Bishop Gwin's question</small></div></div>
@@ -423,7 +439,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 <figcaption><b>Screen 2 · Teens home (its own, more grown world)</b>
 <ul>
 <li><i>1</i>The teens' house is the church's house by night: black into deep red, gold on it, white words, the Fraunces display face. Same frame, no candy.</li>
-<li><i>2</i>Real ages, fixed: Teens reads at the youth band (11–14) by default and at teen (15–17) on a tap. Today the Teens door reads at teen only and the youth band is unused. The hero: two teens, a skyline, the first stars.</li>
+<li><i>2</i>Real ages, fixed: Teens reads at the youth band (11–14) by default and at teen (15–17) on a tap. Today the Teens door reads at teen only and the youth band is unused. The hero waits for the teen guides' own approved reference (not these two children, who are 9 and 10); the slot says so.</li>
 <li><i>3</i>The weekly challenge is the same real pick as the Kids door, read at the teen's band, with its real quiz and Ari.</li>
 <li><i>4</i>Events are the church record's announced events, future only, with the honest fallback that exists today; music is the church's channel.</li>
 <li><i>5</i>Teen dock: Challenge · Games · Badges · Events · Read.</li>
@@ -440,7 +456,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
     <div class="verse"><span class="n" style="left:-8px;top:-8px">2</span>"Prove all things; hold fast that which is good."<span class="ref">1 Thessalonians 5:21 · KJV</span><svg viewBox="0 0 60 60" data-art="bible"></svg></div>
     <div class="steps"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
     <div class="story"><span class="n" style="right:-8px;top:-8px">3</span>
-      <svg class="scene" viewBox="0 0 340 150" role="img" aria-label="A girl with twists and a boy with a fade examine a scroll with a magnifying glass on a desk, a lamp and stacked books beside them" data-art="scene-detective"></svg>
+      <div class="rslot scene-slot" aria-label="render pending"><b>RENDER · lesson scene pool</b><i>The two guides examining a scroll with a magnifying glass at a desk, a lamp and stacked books beside them (the step's scene, chosen by lesson id).</i></div>
       There were some people in a city called Berea. When Paul taught them, they did not just nod. They opened the Scriptures every day to see if what he said was so. And the Bible calls them "more noble" for checking!
     </div>
     <div class="actions"><span class="n" style="left:-8px;top:-8px">4</span>
@@ -448,7 +464,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
       <span class="act" style="background:var(--kz-violet)"><svg viewBox="0 0 24 24" data-art="ic:ari"></svg>Ask Ari</span>
       <span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:crayon"></svg>Color it</span>
     </div>
-    <div class="guidebubble r"><svg viewBox="0 0 80 100" role="img" aria-label="The girl guide, stand-in" data-art="guide-a"></svg><p>You read it! Now a quick check. The answer is in the verse you just heard.</p></div>
+    <div class="guidebubble r"><span class="who"><img class="face" src="assets/guide-girl-face.png" alt="The girl guide, interim cutout"><small>girl-encourage</small></span><p>You read it! Now a quick check. The answer is in the verse you just heard.</p></div>
     <div class="quiz"><span class="n" style="right:-8px;top:-8px">5</span>
       <b>Quick check: what does the Bible say about testing what you are told?</b>
       <div class="opt"><i style="background:var(--kz-coral)">A</i>Never question what respected people say<span class="spk" data-art="ic:spk"></span></div>
@@ -476,16 +492,16 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
   <div class="scroll">
     <div class="gamehead g-orange"><span class="n" style="right:12px;top:10px">1</span>
       <div class="words"><h2>Spell the Bible word</h2><p>Tap the letters in order. Word 2 of 4 from this week's verse.</p></div>
-      <svg viewBox="0 0 150 160" role="img" aria-label="A girl with beaded braids lifts a letter block onto a stack" data-art="builder-big"></svg>
+      <div class="rslot" style="width:150px;min-height:120px;flex:0 0 auto" aria-label="render pending"><b>RENDER</b><i>word-builder-header</i><i>the girl placing a letter block on a tall stack</i></div>
     </div>
     <div class="hint"><span class="n" style="left:-8px;top:-8px">2</span>The LORD is my <span class="blank">S _ _ _ _ _ _ _</span>; I shall not want.<span class="ref">Psalm 23:1 · KJV</span></div>
-    <div class="guidebubble"><svg viewBox="0 0 80 100" role="img" aria-label="The boy guide, stand-in" data-art="guide-b"></svg><p>Tap the letters in order to spell the missing word. Stuck? Show a letter costs one star.</p></div>
+    <div class="guidebubble"><span class="who"><img class="face" src="assets/guide-boy-face.png" alt="The boy guide, interim cutout"><small>boy-explain</small></span><p>Tap the letters in order to spell the missing word. Stuck? Show a letter costs one star.</p></div>
     <div class="slots"><span class="n" style="left:4px;top:-10px">3</span><div class="slot f">S</div><div class="slot f">H</div><div class="slot f">E</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
     <div class="tiles"><div class="tile">D</div><div class="tile used">E</div><div class="tile">P</div><div class="tile used">H</div><div class="tile">R</div><div class="tile used">S</div><div class="tile">E</div><div class="tile">H</div></div>
     <div class="stars"><svg viewBox="0 0 24 24" data-art="ic:starfill"></svg><svg viewBox="0 0 24 24" data-art="ic:starfill"></svg><svg viewBox="0 0 24 24" data-art="ic:starline"></svg><svg viewBox="0 0 24 24" data-art="ic:starline"></svg></div>
     <div class="actions" style="margin:12px 12px 0"><span class="n" style="left:-8px;top:-8px">4</span><span class="act" style="background:var(--kz-blue)"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>Hear the verse</span><span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:bulb"></svg>Show a letter</span></div>
     <div class="story" style="margin:12px 12px 0">
-      <svg class="scene" viewBox="0 0 340 120" role="img" aria-label="A shepherd boy with coils leads three sheep up a green hill under a gold sun" data-art="scene-shepherd"></svg>
+      <div class="rslot scene-slot" style="aspect-ratio:34/12" aria-label="render pending"><b>RENDER · Psalm 23 scene</b><i>A shepherd boy leading three sheep up a green hill under a gold sun (a Scripture scene for the verse being spelled).</i></div>
       <b>Teens play it differently:</b> the verse arrives as shuffled phrases to drag into order, then a longer word to spell with no hints.
     </div>
   </div>
@@ -507,15 +523,15 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
   <div class="scroll">
     <div class="gamehead g-violet"><span class="n" style="right:12px;top:10px">1</span>
       <div class="words"><h2>Guess the Bible hero</h2><p>Three clues from the Word. Fewer clues, more stars.</p></div>
-      <svg viewBox="0 0 150 160" role="img" aria-label="A boy with twists holds a magnifying glass toward a mystery figure behind a purple curtain" data-art="whoami-big"></svg>
+      <div class="rslot" style="width:150px;min-height:120px;flex:0 0 auto" aria-label="render pending"><b>RENDER</b><i>who-am-i-header</i><i>the boy with the magnifying glass before the curtain</i></div>
     </div>
     <div class="cluecard"><span class="n" style="left:-8px;top:-8px">2</span><span class="k">CLUE 1</span><q>Now the word of the LORD came unto <span class="blank"></span> the son of Amittai, saying, Arise, go to Nineveh, that great city</q><span class="ref">Jonah 1:1-2 · KJV</span></div>
     <div class="cluecard"><span class="k">CLUE 2</span><q>Now the LORD had prepared a great fish to swallow up <span class="blank"></span>. And <span class="blank"></span> was in the belly of the fish three days and three nights.</q><span class="ref">Jonah 1:17 · KJV</span></div>
     <div class="cluecard locked"><span class="k">CLUE 3 · tap to reveal</span><q>…</q></div>
-    <div class="guidebubble r"><svg viewBox="0 0 80 100" role="img" aria-label="The girl guide, stand-in" data-art="guide-a"></svg><p>Who is it? Guess early for three stars, or reveal clue 3 for one. No wrong answers here, only "not yet".</p></div>
+    <div class="guidebubble r"><span class="who"><img class="face" src="assets/guide-girl-face.png" alt="The girl guide, interim cutout"><small>girl-point</small></span><p>Who is it? Guess early for three stars, or reveal clue 3 for one. No wrong answers here, only "not yet".</p></div>
     <div class="names"><span class="n" style="left:-8px;top:-8px">3</span><div class="name">Noah</div><div class="name pick">Jonah</div><div class="name">Daniel</div><div class="name">Moses</div></div>
     <div class="story" style="margin:12px 12px 0;background:#F3EAFF;border-color:var(--kz-violet)"><span class="n" style="right:-8px;top:-8px">4</span>
-      <svg class="scene" viewBox="0 0 340 120" role="img" aria-label="A great fish in a stormy sea and a small boat, with a girl with afro puffs watching from the shore" data-art="scene-fish"></svg>
+      <div class="rslot scene-slot" style="aspect-ratio:34/12" aria-label="render pending"><b>RENDER · jonah-3 reused</b><i>The reveal shows the storybook's own scene for the person guessed.</i></div>
       <b>Yes! Jonah.</b> Read his story in the Scripture tab, or hear it read to you. <span style="color:var(--kz-purple)">Next hero &#9654;</span>
     </div>
   </div>
@@ -537,7 +553,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
   <div class="scroll">
     <div class="celebrate"><span class="n" style="right:12px;top:10px">1</span>
       <div class="words"><h2>Look at you go!</h2><p>2 badges earned. Kindness and showing up count as much as answers.</p></div>
-      <svg viewBox="0 0 160 170" role="img" aria-label="A girl with braids jumps with both arms up in a burst of gold confetti and stars" data-art="celebrate"></svg>
+      <div class="rslot" style="width:150px;min-height:120px;flex:0 0 auto;margin-bottom:12px" aria-label="render pending"><b>RENDER</b><i>pair-celebrate</i><i>both guides jumping in gold confetti</i></div>
     </div>
     <div class="bgrid"><span class="n" style="left:4px;top:-10px">2</span>
       <div class="bcard on"><svg viewBox="0 0 60 60" data-art="badge:sparkle"></svg>First Step<small>Earned</small></div>
@@ -547,7 +563,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
       <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:crown"></svg>Three in a Row<small>Pass 3 quizzes</small></div>
       <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:calendar"></svg>Showed Up<small>3 days in a week</small></div>
     </div>
-    <div class="guidebubble"><svg viewBox="0 0 80 100" role="img" aria-label="The boy guide, stand-in, cheering" data-art="guide-b-cheer"></svg><p>Little Reader, earned! Two stops lit on your map. Read tomorrow and the third one lights.</p></div>
+    <div class="guidebubble"><span class="who"><img class="face" src="assets/guide-boy-face.png" alt="The boy guide, interim cutout"><small>boy-cheer</small></span><p>Little Reader, earned! Two stops lit on your map. Read tomorrow and the third one lights.</p></div>
     <div class="mapcard"><span class="n" style="right:-6px;top:-8px">3</span><h3>Your adventure map</h3>
       <svg viewBox="0 0 340 150" role="img" aria-label="A winding treasure map path with numbered stops; the first two are lit gold and the rest wait, ending at a treasure chest" data-art="treasuremap"></svg>
     </div>
@@ -570,18 +586,18 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
   <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>Adventure Theater</b><small>THE LOVE CORNER BIBLE ADVENTURES</small></div><span class="seal" data-art="seal"></span></div>
   <div class="scroll">
     <div class="now"><span class="n" style="right:12px;top:10px">1</span>
-      <svg class="scene" viewBox="0 0 390 190" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dark theater: a glowing screen showing the great fish scene, the two guides watching from beanbags in the front row" data-art="theater-now"></svg>
+      <img class="poster" src="assets/guides-reference.png" alt="The Love Corner Bible Adventures key art: the two guides at a table over an open Bible, the approved reference">
       <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span>
       <div class="bar2"><b>Now showing: the church channel</b><small>No episode of our own series is published yet. Worship and the Word from @TheLoveCorner play here today.</small></div>
     </div>
     <div class="epis"><span class="n" style="right:-6px;top:-8px">2</span>
       <h3>The Love Corner Bible Adventures <small>our own series</small></h3>
-      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" data-art="thumb-fish"></svg></span><div><b>Jonah and the Great Fish</b><small>Jonah 1–3 · the guides go to Nineveh</small></div><span class="st plan">IN PRODUCTION</span></div>
-      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" data-art="thumb-ark"></svg></span><div><b>Noah and the Door Yahweh Shut</b><small>Genesis 6–9 · two by two</small></div><span class="st plan">PLANNED</span></div>
-      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" data-art="thumb-sling"></svg></span><div><b>David and the Giant</b><small>1 Samuel 17 · five smooth stones</small></div><span class="st plan">PLANNED</span></div>
+      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" aria-hidden="true"><rect width="64" height="44" fill="#F3E7C9"/><text x="32" y="26" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="9" fill="#7A5C14">STILL</text></svg></span><div><b>Jonah and the Great Fish</b><small>Jonah 1–3 · the guides go to Nineveh</small></div><span class="st plan">IN PRODUCTION</span></div>
+      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" aria-hidden="true"><rect width="64" height="44" fill="#F3E7C9"/><text x="32" y="26" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="9" fill="#7A5C14">STILL</text></svg></span><div><b>Noah and the Door Yahweh Shut</b><small>Genesis 6–9 · two by two</small></div><span class="st plan">PLANNED</span></div>
+      <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" aria-hidden="true"><rect width="64" height="44" fill="#F3E7C9"/><text x="32" y="26" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="9" fill="#7A5C14">STILL</text></svg></span><div><b>David and the Giant</b><small>1 Samuel 17 · five smooth stones</small></div><span class="st plan">PLANNED</span></div>
       <div class="epi"><span class="thumb"><svg viewBox="0 0 64 44" data-art="thumb-chan"></svg></span><div><b>The church channel</b><small>Live worship and messages · youtube.com/@TheLoveCorner</small></div><span class="st chan">WATCH</span></div>
     </div>
-    <div class="guidebubble"><span class="n" style="left:-8px;top:-8px">3</span><svg viewBox="0 0 80 100" role="img" aria-label="The girl guide, stand-in" data-art="guide-a"></svg><p>Every episode is a true story from the Word. Open the Storybook to read it first, then watch it with me!</p></div>
+    <div class="guidebubble"><span class="n" style="left:-8px;top:-8px">3</span><span class="who"><img class="face" src="assets/guide-girl-face.png" alt="The girl guide, interim cutout"><small>girl-point</small></span><p>Every episode is a true story from the Word. Open the Storybook to read it first, then watch it with me!</p></div>
     <div class="strip"><span class="n" style="right:-6px;top:-8px">4</span>
       <h3>After you watch <small>earns a stop on your map</small></h3>
       <div class="actions" style="margin:0"><span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>Read the story</span><span class="act" style="background:var(--kz-teal)"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>3 questions</span></div>
@@ -592,7 +608,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 </div></div>
 <figcaption><b>Screen 7 · Bible Adventure Theater (new)</b>
 <ul>
-<li><i>1</i>Now showing is honest: no episode of the original series exists yet, so the player plays the church's own channel (the record's <code>media.youtube</code>, which exists today) inside the app, the way Live Worship already embeds it.</li>
+<li><i>1</i>The approved reference is the series' key art and sits here as is. Now showing is honest: no episode of the original series exists yet, so the player plays the church's own channel (the record's <code>media.youtube</code>, which exists today) inside the app, the way Live Worship already embeds it. When nothing plays, <code>pair-theater-wide</code> takes this frame once it lands.</li>
 <li><i>2</i>The series shelf reads an episode registry (title, Scripture range, status, source). An episode shows as PLANNED or IN PRODUCTION until its video is published, then WATCH. Nothing is painted as available before it is.</li>
 <li><i>3</i>A guide's line is our authored voice; it never replaces or paraphrases the Word, and the no-magic content gate scans every line.</li>
 <li><i>4</i>After-you-watch opens the matching Storybook and three real quiz questions; a pass writes the same learner record Learn writes, which lights a map stop.</li>
@@ -606,14 +622,14 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
   <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>Jonah and the Great Fish</b><small>STORYBOOK · KIDS</small></div><span class="seal" data-art="seal"></span></div>
   <div class="scroll">
     <div class="book"><span class="n" style="right:4px;top:4px">1</span>
-      <svg class="scene" viewBox="0 0 340 150" role="img" aria-label="A great fish in a stormy sea beside a small boat; the boy guide watches from the shore with his lantern" data-art="scene-fish-guide"></svg>
+      <div class="rslot scene-slot" style="border-radius:0" aria-label="render pending"><b>RENDER · jonah-3 · Jonah 1:17</b><i>From the shore: the great fish the LORD prepared rises beside the ship, enormous, calm and strong, not a monster; Jonah already in the water; the two guides on the beach, the boy holding his lantern high, the girl pointing.</i></div>
       <div class="page">
         <div class="pn"><span>PAGE 3 OF 8</span><span>READ-ALONG</span></div>
         <p class="v">"Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in <mark>the belly of the fish</mark> three days and three nights."</p>
         <span class="ref">Jonah 1:17 · KJV · the Word, word for word</span>
       </div>
     </div>
-    <div class="guidebubble"><span class="n" style="left:-8px;top:-8px">2</span><svg viewBox="0 0 80 100" role="img" aria-label="The boy guide, stand-in" data-art="guide-b"></svg><p>Three days inside a fish! Yahweh had a plan for Jonah even there. Tap the words to hear them.</p></div>
+    <div class="guidebubble"><span class="n" style="left:-8px;top:-8px">2</span><span class="who"><img class="face" src="assets/guide-boy-face.png" alt="The boy guide, interim cutout"><small>boy-reading-point</small></span><p>Three days inside a fish! Yahweh had a plan for Jonah even there. Tap the words to hear them.</p></div>
     <div class="actions" style="margin:12px 12px 0"><span class="n" style="left:-8px;top:-8px">3</span>
       <span class="act" style="background:var(--kz-blue)"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>Hear this page</span>
       <span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:crayon"></svg>Color this page</span>
@@ -631,7 +647,7 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 </div></div>
 <figcaption><b>Screen 8 · Interactive storybook with read-along (new)</b>
 <ul>
-<li><i>1</i>A storybook is a list of REFERENCES (Jonah 1:1-3, 1:4, 1:17, 2:1, 2:10, 3:1-3, 3:5, 3:10) with one scene each. The page text is the KJV verse loaded at read time, word for word, never retold. Read-along highlights the phrase being read by the app's own voice. Scenes come from the adventure pool; the leads are the guides.</li>
+<li><i>1</i>A storybook is a list of REFERENCES (Jonah 1:1-3, 1:4, 1:17, 2:1, 2:10, 3:1-3, 3:5, 3:10) with one scene each. The page text is the KJV verse loaded at read time, word for word, never retold. Read-along highlights the phrase being read by the app's own voice. Each page's scene is a render from the artwork brief (<code>jonah-1</code> to <code>jonah-8</code>) with the two guides as witnesses; the slot names the render until it lands.</li>
 <li><i>2</i>The guide's caption is our authored voice, written beside the verse and never inside it. A content gate scans every caption: no magic, spells, wizards, fairies, potions, wishes or fantasy devices; miracles stay the acts of Yahweh the text says they are.</li>
 <li><i>3</i>Hear this page is the app's read-aloud; Color this page is the existing coloring page over the same verse. Reading challenges per band: Kids read three pages aloud with the voice; Teens read the chapter in the Scripture tab and answer five.</li>
 <li><i>4</i>The last page asks three questions whose answers are in the verses just read (a test proves each answer's words appear in the storybook's own verses). A pass writes the learner record that lights the map stop and earns the badge.</li>
@@ -730,21 +746,8 @@ figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20
 <span><i style="background:#5B2DD6"></i>purple</span><span><i style="background:#2F7BF5"></i>blue</span><span><i style="background:#19B5A6"></i>teal</span><span><i style="background:#FF7A59"></i>coral</span><span><i style="background:#FF3D7F"></i>pink</span><span><i style="background:#FFB020"></i>orange</span><span><i style="background:#8E44F0"></i>violet</span><span><i style="background:#2BB24C"></i>green</span><span><i style="background:#FFD84D"></i>sun</span><span><i style="background:#FFF6DF"></i>cream</span>
 </div>
 
-<h3>The cast (the illustration system)</h3>
-<p>Drawn once as components, reused everywhere: five rich brown skin tones with lit and shaded sides; afro, afro-puffs, braids with gold beads, twists, locs, coils, a fresh fade, a head wrap; expressive faces (brows, bright eyes, open smiles); whole bodies in motion. Friends of other backgrounds appear beside them in group scenes. No emoji, no clip art, no generated faces. Dignity is the binding rule, as in the games' art: never caricature.</p>
-<div class="cast">
-<figure><svg viewBox="0 0 120 150" data-art="cast:puffs"></svg><figcaption>afro puffs · reads</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:fade"></svg><figcaption>fresh fade · points</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:braids"></svg><figcaption>beaded braids · builds</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:locs"></svg><figcaption>locs · cheers</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:twists"></svg><figcaption>twists · wonders</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:coils"></svg><figcaption>coils · waves</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:afro"></svg><figcaption>afro · a friend</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:straight"></svg><figcaption>a friend of another background</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:teen-g"></svg><figcaption>teen · twists, backpack</figcaption></figure>
-<figure><svg viewBox="0 0 120 150" data-art="cast:teen-b"></svg><figcaption>teen · fade, headphones</figcaption></figure>
-</div>
-
+<h3>The artwork collection, not a drawn cast</h3>
+<p>Darrell, 2026-11-13: the approved children appear in different poses, expressions and activities, generated from the same reference; repeated cutouts are never the final artwork. So the drawn cast of earlier versions is retired for characters. What the screens show now: the reference used as is where it fits; interim cutouts labeled INTERIM; and striped gold slots that each name the render they wait for. The full list, 52 images with prompt-ready descriptions, file names and sizes, is <code>docs/design/love-corner-kids/2026-11-13-character-artwork-brief.md</code>, mirrored by <code>app/src/lib/kids/guides.js</code> (SHOT_LIST), whose test proves every id is described and every landed file is on disk. Props, icons, badges and the treasure map stay drawn: they are not characters.</p>
 <h3>Phases (each its own PR, held until approved)</h3>
 <div class="tw"><table>
 <tr><th>Phase</th><th>Builds</th><th>Proof</th></tr>
