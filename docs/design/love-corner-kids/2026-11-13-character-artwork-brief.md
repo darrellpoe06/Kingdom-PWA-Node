@@ -110,7 +110,14 @@ Half-body CUTOUTS, waist up, facing slightly left so they sit beside a bubble on
 | `boy-map` | CUTOUT | The boy holding an unrolled treasure map, pointing at a lit stop on it. |
 | `pair-chest` | SCENE | The two opening the treasure chest at the end of the path; inside, an open Bible glowing warm gold; their faces lit by it. |
 
-### 3g. Not these two
+### 3g. Coloring pages (every lesson's sheet)
+
+| id | Kind | Description |
+|---|---|---|
+| `girl-lineart` | CUTOUT | The girl, full body, as clean black LINE ART with no shading and no fill: thick even outlines, big closed regions a crayon can fill, holding an open Bible. For the printed coloring sheets. |
+| `boy-lineart` | CUTOUT | The boy, full body, the same line-art treatment, one hand raised in a wave. |
+
+### 3h. Not these two
 
 - **Teens 11–17** need their own two approved characters (a girl and a boy of about fifteen) in the same style; the Teens screens show a labeled slot until a reference arrives. Decision: Darrell's.
 - **Little Ones 3–6** reuse the guides as big-sibling helpers; no extra character.
@@ -119,4 +126,4 @@ Half-body CUTOUTS, waist up, facing slightly left so they sit beside a bubble on
 
 ## 4. Count and order
 
-52 images in all: 11 home, 8 bubbles, 1 theater, 24 storybook pages, 4 game headers, 4 achievement pieces, plus the reference (already in hand). Suggested order: the 8 bubble cutouts and `home-hero` first (they unlock every screen), then `girl-wave`, `boy-wave`, the 7 home headers, then the Jonah pages, then games and achievements, then Noah and David.
+54 images in all: 11 home, 8 bubbles, 1 theater, 24 storybook pages, 4 game headers, 4 achievement pieces, 2 line-art cutouts for the coloring sheets, plus the reference (already in hand). Suggested order: the 8 bubble cutouts and `home-hero` first (they unlock every screen), then `girl-wave`, `boy-wave`, the 7 home headers, then the Jonah pages, then games and achievements, then Noah and David.

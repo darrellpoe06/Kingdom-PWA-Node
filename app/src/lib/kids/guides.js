@@ -122,6 +122,9 @@ export const SHOT_LIST = Object.freeze([
   shot('girl-badge', 'cutout', 'Badges'),
   shot('boy-map', 'cutout', 'Adventure map'),
   shot('pair-chest', 'scene', 'Adventure map, the end of the path'),
+  // the coloring sheets
+  shot('girl-lineart', 'cutout', 'Coloring page'),
+  shot('boy-lineart', 'cutout', 'Coloring page'),
 ]);
 
 /** The shots whose renders have landed, by id. */

@@ -45,9 +45,9 @@ describe('the guides are real assets from the approved reference', () => {
 
 describe('the artwork collection', () => {
   const brief = readFileSync(BRIEF, 'utf8');
-  it('holds 52 distinct shots, each described in the brief by its id, each with a kind, a surface and a status', () => {
-    expect(SHOT_LIST.length).toBe(52);
-    expect(new Set(SHOT_LIST.map((s) => s.id)).size).toBe(52);
+  it('holds 54 distinct shots, each described in the brief by its id, each with a kind, a surface and a status', () => {
+    expect(SHOT_LIST.length).toBe(54);
+    expect(new Set(SHOT_LIST.map((s) => s.id)).size).toBe(54);
     for (const s of SHOT_LIST) {
       expect(['needed', 'landed']).toContain(s.status);
       expect(['scene', 'header', 'cutout']).toContain(s.kind);
