@@ -230,7 +230,7 @@ MOVEMENT ONE: THE AGREEMENT IS NOT THE LAST STEP, IT IS THE FIRST.
 
 [[Amos 3:3]]
 
-It is a question with one answer, and it is the governing constraint on every project that has two offices in it. Not "can two walk together if they are agreeable." Not "if they report to the same person." EXCEPT THEY BE AGREED. Walking together is downstream of the agreement, and every attempt to produce the walking without first producing the agreement is an attempt to run a river uphill.
+It is a question with one answer, and it is the governing constraint on every project that has two offices in it. Not: can two walk together if they are agreeable. Not: if they report to the same person. EXCEPT THEY BE AGREED. Walking together is downstream of the agreement, and every attempt to produce the walking without first producing the agreement is an attempt to run a river uphill.
 
 Hear what sits beside it. [[Psalms 133:1]] Good AND pleasant - two separate claims, and most houses chase the second and never get the first. And the plainest statement of why two is better than one is not sentiment, it is arithmetic about failure: [[Ecclesiastes 4:9]] [[Ecclesiastes 4:10]] Woe to him that is alone when he falleth. The second man is not there for company. He is there for the fall.
 
@@ -257,6 +257,8 @@ Then the count: [[2 Kings 12:10]] CAME UP - both of them, together, to the same 
 Then the disbursement: [[2 Kings 12:11]] Told the money, then delivered it into the hand of the doers. Counted first, released second, into named hands.
 
 AND NOW THE VERSE THAT TURNS EVERY ASSUMPTION ABOUT CONTROL AROUND. [[2 Kings 12:15]] They reckoned NOT. The workmen's accounts were not audited at all. Not because the house was careless - the house had just demonstrated the tightest money control in the Old Testament - but because the control stood AT THE GATE where the money moved, and faithful men downstream were trusted. This is the opposite of what a frightened organization does. A frightened organization audits everybody a little and nobody properly. The Word's pattern is: two hands at the chest, and trust past it.
+
+AND NOW NAME WHAT THE INDUSTRY CALLS IT, second, as THEIR word and never as the authority. Two officers at one chest is what control practice calls SEGREGATION OF DUTIES; the rule that two sets of eyes must pass a payment is the four-eyes principle; PMBOK's vocabulary for separating who decides from who merely performs is RACI; and sitting the two offices down to agree their measures before the work starts is what a project manager would call stakeholder alignment. Every one of those is a serviceable name. Not one of them is older than 2 Kings 12:10, and not one of them supplies the reason Paul wrote down. Naming is faster than learning - which is precisely why the Word's own case is taught first and the vocabulary second, and never the other way round.
 
 MOVEMENT FOUR: HONEST IN THE SIGHT OF MEN, AND NOT ONLY BEFORE YAHWEH.
 
@@ -314,7 +316,7 @@ All of it rests on one fact that settles who is actually CFO here.
 
 Which makes the standard what it is: [[Luke 16:10]] And the reckoning certain: [[Matthew 25:19]] After a long time the lord of those servants cometh, and reckoneth with them.
 
-And the One we answer to is the Lamb, [[John 1:29]] the Eternal Son of Yahweh, [[John 3:16]] addressed by the Father as God with a throne for ever, [[Hebrews 1:8]] and the One by whom the whole of it holds together. [[Colossians 1:17]]
+And the One we answer to is the Lamb, [[John 1:29]] the Eternal Son of Yahweh, [[John 3:16]] addressed by the Father Himself as the One whose throne is for ever, [[Hebrews 1:8]] and the One by whom the whole of it holds together. [[Colossians 1:17]]
 
 THIS WEEK, THREE THINGS.
 
@@ -383,6 +385,8 @@ Now here is the good part. When they counted the money, TWO men came. Not one. T
 
 Two men. Same money. Same time. Both of them saw it. That way nobody has to wonder.
 
+Grown-ups at work have a name for this. They call it two sets of eyes. It just means two people have to look. The name is not the important part. The Word had it first.
+
 Then they gave the money to the workers. [[2 Kings 12:11]]
 
 And then the Word says something that will surprise you. They did NOT check up on the workers. [[2 Kings 12:15]]
@@ -407,7 +411,7 @@ In the early church, food was given out every day. Some widows got missed. [[Act
 
 That is a counting problem. So what did they do?
 
-They did not just say "be happy." They picked seven good men to do that job. [[Acts 6:3]]
+They did not just tell them to be happy. They picked seven good men to do that job. [[Acts 6:3]]
 
 Good men. Named out loud. Given the job.
 
@@ -521,6 +525,8 @@ Two men came up together. The king's scribe and the high priest. Same money, sam
 
 Then the money went out to the workers. [[2 Kings 12:11]]
 
+People at work have a name for this. They call it SEGREGATION OF DUTIES. The rule that two sets of eyes have to pass a payment is called the four-eyes principle. Those are good names. But neither name is older than 2 Kings 12:10, and neither one tells you why. That is why we read the Word first and learn the word for it second.
+
 And then comes the surprise. [[2 Kings 12:15]]
 
 They did not audit the workers at all. Not because they were careless. They had just done the strictest counting in the book. The care was at the chest, where the money moved. After that, honest men were trusted.
@@ -611,7 +617,7 @@ MOVEMENT ONE: THE AGREEMENT COMES FIRST.
 
 [[Amos 3:3]]
 
-One question, one answer. Not "can two walk together if they are agreeable." Except they be AGREED. Walking together comes after the agreement, never before it. Every attempt to get the walking without first getting the agreement is running a river uphill.
+One question, one answer. Not: can two walk together if they are agreeable. Except they be AGREED. Walking together comes after the agreement, never before it. Every attempt to get the walking without first getting the agreement is running a river uphill.
 
 The reason two is better than one is not sentiment. It is arithmetic about failure. [[Ecclesiastes 4:9]] [[Ecclesiastes 4:10]] The second person is there for the fall.
 
@@ -648,6 +654,8 @@ Then the release. [[2 Kings 12:11]] Counted first, then delivered into named han
 And then the verse that turns every assumption about control around. [[2 Kings 12:15]]
 
 They reckoned NOT. The workmen were not audited at all - not from carelessness, but because the control stood at the GATE where the money moved, and faithful men past the gate were trusted. A frightened organisation audits everybody a little and nobody properly. The Word's pattern is two hands at the chest and trust downstream.
+
+NOW NAME WHAT THE INDUSTRY CALLS IT, second, as their word. Two officers at one chest is what control practice calls SEGREGATION OF DUTIES; the rule that two sets of eyes pass a payment is the four-eyes principle; PMBOK's term for sorting who decides from who performs is RACI. Good names, all three. None of them older than 2 Kings 12:10, and none of them supplying Paul's reason. Naming is faster than learning, which is why the Word's case comes first here and the vocabulary second.
 
 MOVEMENT FIVE: HONEST IN THE SIGHT OF MEN.
 
@@ -753,6 +761,8 @@ Then the disbursement. [[2 Kings 12:11]] Told first, delivered afterward, into n
 
 And then the verse that overturns the common assumption about control. [[2 Kings 12:15]] They reckoned not. The workmen's accounts were never examined - not from negligence, for the house had just demonstrated the strictest handling of money in the Old Testament, but because the control stood at the gate where the money moved, and faithful men beyond that gate were trusted. A frightened house audits everyone a little and no one properly. The pattern here is two hands at the chest, and trust past it.
 
+And now the industry's own name for it, second, as their word and not as the authority. What is set out in the tenth verse is what control practice calls SEGREGATION OF DUTIES; the requirement that two sets of eyes pass a payment is known as the four-eyes principle; and PMBOK's vocabulary for distinguishing who decides from who performs is RACI. These are serviceable names. Not one of them is older than the chest, and not one supplies the reason Paul set down. Naming is quicker than learning, which is why the case is taught first and the vocabulary after it.
+
 MOVEMENT FOUR: HONEST IN THE SIGHT OF MEN.
 
 Paul carried a collection for the saints. He was an apostle, and no accusation had been laid against him. He constructed a control notwithstanding, and recorded his reason.
@@ -801,7 +811,7 @@ MOVEMENT NINE: WHOSE MONEY IT IS.
 
 And David, standing over the largest building fund in Scripture, says the only honest thing a man may say over a budget. [[1 Chronicles 29:14]] [[1 Chronicles 29:16]] Of Thine own have we given Thee. Every order you place is a steward moving Yahweh's property between two of His own accounts.
 
-Which fixes the standard. [[Luke 16:10]] And the reckoning is certain. [[Matthew 25:19]] And He to whom the account is rendered is the Lamb of Yahweh, [[John 1:29]] the Eternal Son of Yahweh, [[John 3:16]] addressed by the Father as God with a throne for ever, [[Hebrews 1:8]] and the One by whom the whole of it holds together. [[Colossians 1:17]]
+Which fixes the standard. [[Luke 16:10]] And the reckoning is certain. [[Matthew 25:19]] And He to whom the account is rendered is the Lamb of Yahweh, [[John 1:29]] the Eternal Son of Yahweh, [[John 3:16]] addressed by the Father Himself as the One whose throne is for ever, [[Hebrews 1:8]] and the One by whom the whole of it holds together. [[Colossians 1:17]]
 
 THREE THINGS THIS WEEK.
 

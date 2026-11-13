@@ -60,10 +60,10 @@ Two parables carry it in story: *The Two Ledgers* (two men, each improving the o
 
 | Measure | Result | Floor / ceiling |
 |---|---|---|
-| Reading ladder (FK) | child **1.20** < youth **3.05** < teen **5.67** < senior **6.94**; adult 7.15 | monotone; child ≤ 5.0, teen ≤ 6.0, senior ≤ 10.0 |
-| Share of the adult lesson | **0.528 / 0.638 / 0.628 / 0.819** | 0.50 / 0.60 / 0.60 / 0.60 |
-| Worst band-pair overlap | **0.127** (teen~senior) | < 0.25 |
-| Worst band-to-adult overlap | **0.236** (senior) | < 0.25 |
+| Reading ladder (FK) | child **1.17** < youth **3.04** < teen **5.72** < senior **7.03**; adult 7.32 | monotone; child ≤ 5.0, teen ≤ 6.0, senior ≤ 10.0 |
+| Share of the adult lesson | **0.512 / 0.625 / 0.627 / 0.811** | 0.50 / 0.60 / 0.60 / 0.60 |
+| Worst band-pair overlap | **0.122** (teen~senior) | < 0.25 |
+| Worst band-to-adult overlap | **0.223** (senior) | < 0.25 |
 | Quoted spans swept | **206**, all in the five reader places (49 / 31 / 36 / 41 / 49) | 0 faults, exact equality |
 | Books, derived from the module | **21** | every one opens |
 | `anchor.ref` references | **49** | every one quoted; nothing on it unquoted |
