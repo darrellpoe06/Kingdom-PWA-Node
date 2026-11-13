@@ -102,7 +102,7 @@ describe('DR-0099: the brand red is not the Blood marker', () => {
 
 describe('the Love Corner door opens in the Love Corner’s colors', () => {
   it('the church door has its own fallback', () => {
-    expect(CHURCH_DEFAULT_THEME).toBe('lovecorner');
+    expect(CHURCH_DEFAULT_THEME).toBe('night'); // the door opens by night since DR-1483 (Darrell 2026-11-13); the cream Love Corner stays one tap away
     expect(THEMES.some((t) => t.key === 'lovecorner')).toBe(true);
   });
 

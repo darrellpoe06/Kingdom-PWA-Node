@@ -1,0 +1,27 @@
+# A still of the LIVE Love Corner door (DR-1483; DR-0104's live review).
+# The sandbox has no route to poetech.us (DR-0125), so a runner's Chrome
+# opens the production door at a phone and a desktop width, waits for the
+# door's own header, measures it and leaves the stills as an artifact.
+# Dispatch only; it reads the site and changes nothing. Budget: the job
+# ceiling below. No schedule, so no lock or kill-switch is owed (DR-0247).
+# The run is found by its own id after the dispatch, never by a list's
+# first item (P62).
+name: Live homepage still (the production door, from a runner)
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'The door to open'
+        required: false
+        default: 'https://poetech.us/lovecorner/app/'
+permissions:
+  contents: read
+jobs:
+  still:
+    uses: ./.github/workflows/_browser-probe.yml
+    with:
+      script: scripts/live-homepage-still.mjs
+      args: ${{ format('"{0}" live-still', inputs.base) }}
+      title: The live Love Corner door, as a phone and a desktop see it
+      artifact: live-still
+      timeout-minutes: 8
