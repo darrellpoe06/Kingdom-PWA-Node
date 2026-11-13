@@ -348,22 +348,21 @@ try {
   }
   if (SELFTEST && hideawayTripped < 2) fail(`selftest: the hideaway break tripped ${hideawayTripped} invariants, expected at least 2 — the pass is theater`);
   // ---------------------------------------------------------------------------
-  // THE ONE-TAB ROW CARRIES THE BRAND pass (DR-0640). Darrell 2026-09-24, on
-  // his Fold in The Love Corner with the header tucked away: "Why does the
-  // Church tab space need that? Can we save even more space if not... can we
-  // add another Love Corner etc tag in the space?" and then "Both places are
-  // good... why not". Measured in Chromium before the change, on
-  // /?lovecorner=1&view=church collapsed: a full-width row held back/forward,
-  // ONE tab ("Church") and the chevron, under a second row holding the brand.
-  // Invariants, header collapsed, on the one-tab door:
-  //  15. NO LONE TAB ROW — the top nav never draws a tab strip of one tab.
-  //  16. THE BRAND IS IN THE TOP ROW, on screen, at every size.
-  //  17. ONE ROW, NOT TWO — while the collapsed row is in the flow (Normal to
-  //      Larger) it sits INSIDE the top row; at Largest / Big Print it is the
-  //      fixed bottom bar (DR-0438) and carries the brand too ("both places").
-  //  18. THE WAY BACK IS ON SCREEN, in words, and nothing overflows the page.
-  // Proven against the pre-change build (all of 15-17 trip there) and by the
-  // self-test below, which puts a lone tab strip back and hides the brand.
+  // THE DOOR'S OWN HEADER pass (DR-1483; it replaces the one-tab pass of
+  // DR-0640, whose collapsed one-tab row the door no longer draws). Darrell
+  // 2026-11-13: one compact header on the Love Corner door: menu, the brand,
+  // search, the bell, the picture or Sign in. Measured on
+  // /?lovecorner=1&view=church at a narrow phone, a phone, a desktop, and at
+  // Largest and Big Print. Invariants:
+  //  15. THE BRAND IS ON SCREEN — the logo and the name, inside the viewport.
+  //  16. EVERY CONTROL IS ON SCREEN — menu, search, bell, and Sign in or the
+  //      picture, each a real box inside the viewport.
+  //  17. THE BAR IS CHROME — its height stays under 80px at every text size
+  //      (the words are chrome-capped; the page scales, the bar does not).
+  //  18. NOTHING OVERFLOWS the page; the sub-tab strip, where drawn, is a
+  //      scroll box with its Show-all when it overflows.
+  // Selftest: the brand name and the search control are hidden; 15 and 16
+  // MUST trip.
   // ---------------------------------------------------------------------------
   const ONE_TAB_CASES = SELFTEST
     ? [{ width: 1812, size: 'normal' }]
@@ -375,30 +374,19 @@ try {
     await page.addInitScript((sz) => {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
-        localStorage.setItem('poe-header-collapsed', '1');
         localStorage.setItem('poe-text-size', sz);
       } catch (_) { /* private mode */ }
     }, size);
     await page.goto(`${origin}${BASE}/?lovecorner=1&view=church`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
-    await page.waitForSelector('header nav', { timeout: 20000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lovecorner-header"]', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
-      // The pre-change shape, put back: a one-tab strip in the top row, and
-      // no brand in it. 15 and 16 MUST trip.
-      await page.addStyleTag({ content: 'header nav [data-testid="top-brand-name"], header nav [data-testid="collapsed-site-name"] { display: none !important }' });
-      await page.evaluate(() => {
-        const row = document.querySelector('header nav > div');
-        if (!row) return;
-        const strip = document.createElement('div');
-        strip.className = 'tab-scroll';
-        strip.innerHTML = '<button type="button">Church</button>';
-        row.appendChild(strip);
-      });
+      // The break: the name gone and the search control gone; 15 and 16 MUST trip.
+      await page.addStyleTag({ content: '[data-testid="lovecorner-header"] .lch-name { display: none !important } [data-testid="lovecorner-header"] [data-testid="lch-search"] { display: none !important }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const om = await page.evaluate(() => {
-      const header = document.querySelector('header');
-      const nav = header && header.querySelector('nav');
-      if (!nav) return { none: true };
+      const header = document.querySelector('[data-testid="lovecorner-header"]');
+      if (!header) return { none: true };
       const vw = document.documentElement.clientWidth;
       const vh = window.innerHeight;
       const onScreen = (el) => {
@@ -406,48 +394,40 @@ try {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= vw + 1 && r.top >= 0 && r.bottom <= vh + 1;
       };
-      const strips = [...nav.querySelectorAll('.tab-scroll')].map((s) => [...s.querySelectorAll('button')].filter((b) => b.getBoundingClientRect().width > 0).length);
-      const topBrand = [...nav.querySelectorAll('[data-testid="top-brand-name"], [data-testid="collapsed-site-name"]')].some(onScreen);
-      // With the header collapsed the comfort row is unmounted, so the only
-      // .ts-escape-hatch left is the collapsed row (the class is older than
-      // its testid, so the pre-change build is measured by the same line).
-      const row = header.querySelector('[data-testid="collapsed-row"]') || header.querySelector('.ts-escape-hatch');
-      const rowPos = row ? getComputedStyle(row).position : null;
-      const rowInNav = !!(row && nav.contains(row));
-      const barBrand = row && rowPos === 'fixed' ? onScreen(row.querySelector('[data-testid="collapsed-site-name"]')) : null;
+      const q = (sel) => header.querySelector(sel);
+      const bar = q('.lch-bar');
+      const strip = q('[data-testid="lch-strip"] .tab-scroll');
       return {
         vw,
         size: document.documentElement.getAttribute('data-text-size'),
-        strips,
-        topBrand,
-        row: !!row,
-        rowPos,
-        rowInNav,
-        barBrand,
-        words: onScreen(header.querySelector('[data-testid="show-full-header"]')),
-        overflow: document.documentElement.scrollWidth > vw + 1,
-        navH: Math.round(nav.getBoundingClientRect().height),
+        brand: onScreen(q('[data-testid="lch-brand"] img')) && onScreen(q('[data-testid="lch-brand"] .lch-name')),
+        controls: {
+          menu: onScreen(q('[data-testid="lch-menu"]')),
+          search: onScreen(q('[data-testid="lch-search"]')),
+          bell: onScreen(q('[data-testid="lch-bell"] button')),
+          account: onScreen(q('[data-testid="lch-signin"]')) || onScreen(q('[data-testid="lch-avatar"]')),
+        },
+        barH: bar ? Math.round(bar.getBoundingClientRect().height) : 0,
+        overflow: document.documentElement.scrollWidth > vw + 1 || (bar && bar.scrollWidth > bar.clientWidth + 1),
+        strip: strip ? { scroll: strip.scrollWidth, client: strip.clientWidth, showAll: !!header.querySelector('[data-testid="tabscroll-show-all"]') } : null,
       };
     });
     await page.close();
     const obefore = failures;
-    const owhere = `one-tab@${width}px${om.size && om.size !== 'normal' ? ` [${om.size}]` : ''}`;
+    const owhere = `door-header@${width}px${om.size && om.size !== 'normal' ? ` [${om.size}]` : ''}`;
     if (om.none) { fail(`${owhere}: the header never rendered`); continue; }
     if (om.size !== size) { fail(`${owhere}: data-text-size="${om.size}", expected ${size} — nothing was measured`); continue; }
     oneTabMeasured += 1;
-    if (om.strips.some((n) => n === 1)) fail(`${owhere}: the top nav draws a lone tab row (a strip of one tab) — the row should carry the brand (DR-0640)`);
-    if (!om.topBrand) fail(`${owhere}: the brand is not in the top row, on screen (DR-0640)`);
-    if (!om.row) fail(`${owhere}: the collapsed row never rendered`);
-    else if (om.rowPos === 'fixed') {
-      if (!om.barBrand) fail(`${owhere}: the bottom bar lost the brand — Darrell asked for both places (DR-0640)`);
-    } else if (!om.rowInNav) fail(`${owhere}: the collapsed row sits in its own row above the top row — two rows where one fits (DR-0640)`);
-    if (!om.words) fail(`${owhere}: the "Show header" way back is not on screen`);
-    if (om.overflow) fail(`${owhere}: the page overflows horizontally`);
-    if (failures === obefore) console.log(`one-tab ok  ${owhere} — no lone tab row, brand in the top row, collapsed row ${om.rowPos === 'fixed' ? 'is the bottom bar with the brand' : 'inside the top row'}, top row ${om.navH}px`);
+    if (!om.brand) fail(`${owhere}: the brand (logo and name) is not on screen (DR-1483)`);
+    for (const [k, ok] of Object.entries(om.controls)) if (!ok) fail(`${owhere}: the ${k} control is not on screen (DR-1483)`);
+    if (om.barH > 80) fail(`${owhere}: the header bar is ${om.barH}px tall — chrome is capped at every text size (UX-PATTERNS 2b)`);
+    if (om.overflow) fail(`${owhere}: the header or the page overflows horizontally`);
+    if (om.strip && om.strip.scroll > om.strip.client + 4 && !om.strip.showAll) fail(`${owhere}: the sub-tab strip overflows (${om.strip.scroll} > ${om.strip.client}) and offers no Show-all control`);
+    if (failures === obefore) console.log(`door-header ok  ${owhere} — brand and every control on screen, bar ${om.barH}px, no overflow${om.strip ? `, strip ${om.strip.scroll}/${om.strip.client}` : ''}`);
     else oneTabTripped += failures - obefore;
   }
-  if (!SELFTEST && oneTabMeasured !== ONE_TAB_CASES.length) fail(`coverage: ${oneTabMeasured}/${ONE_TAB_CASES.length} one-tab cases measured`);
-  if (SELFTEST && oneTabTripped < 2) fail(`selftest: the one-tab break tripped ${oneTabTripped} invariants, expected at least 2 — the pass is theater`);
+  if (!SELFTEST && oneTabMeasured !== ONE_TAB_CASES.length) fail(`coverage: ${oneTabMeasured}/${ONE_TAB_CASES.length} door-header cases measured`);
+  if (SELFTEST && oneTabTripped < 2) fail(`selftest: the door-header break tripped ${oneTabTripped} invariants, expected at least 2 — the pass is theater`);
   // ---------------------------------------------------------------------------
   // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
   // a reader gets, and nothing is boxed inside a sentence.

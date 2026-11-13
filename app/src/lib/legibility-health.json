@@ -2,11 +2,12 @@
   "generatedFrom": "scripts/legibility-guard.mjs",
   "standard": "WCAG 2.1 AA, per-page, per-theme (dark-on-dark + light-on-light)",
   "themesChecked": [
-    "midnight"
+    "midnight",
+    "night"
   ],
   "summary": {
-    "pages": 416,
-    "passing": 403,
+    "pages": 419,
+    "passing": 406,
     "trackedDebtPages": 13,
     "regressionPages": 0,
     "regressions": 0,

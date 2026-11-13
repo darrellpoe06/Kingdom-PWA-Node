@@ -36,7 +36,7 @@
 // twice). Each BUTTON is its own chrome region, in rem, like the text-size
 // chips, so the bar is the same 48px at Normal and at A44.
 // =============================================================================
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import NetworkStatus from './NetworkStatus.jsx';
 import ArrivalsBell from './ArrivalsBell.jsx';
 import { ChurchGiveDockButton } from './ChurchGiving.jsx';
@@ -46,13 +46,22 @@ import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
 import { CHURCH_BOTTOM_NAV, CHURCH_TAB_ICONS, churchTabGroups } from '../lib/church-tabs.jsx';
-import { requestChurchHomeSection } from '../lib/church-home-section.js';
+import { requestChurchHomeSection, readChurchHomeSection, subscribeCurrentChurchHomeSection } from '../lib/church-home-section.js';
 import { MONEY_BOTTOM_NAV, moneyMoreSections, sectionFor } from '../lib/money-nav.js';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import {
-  DOCK_BTN, DOCK_BTN_ON, DOCK_HEIGHT_PX, DOCK_ICON, DOCK_LABEL,
-  scrollPageToTop, setDockSlot, useScrolledDeep, usePhoneWidth, useMoneyPhoneWidth, useReaderLive,
+  DOCK_BTN,
+  DOCK_BTN_ON,
+  DOCK_HEIGHT_PX,
+  DOCK_ICON,
+  DOCK_LABEL,
+  scrollPageToTop,
+  setDockSlot,
+  useScrolledDeep,
+  usePhoneWidth,
+  useMoneyPhoneWidth,
+  useReaderLive,
 } from '../lib/chrome-dock.js';
 
 export function DockLabel({ children }) {
@@ -68,7 +77,10 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
 
   // The reader's slot: TTSControl portals into it while it is mounted.
   const [slotEl, setSlotEl] = useState(null);
-  const slotRef = useCallback((el) => { setSlotEl(el || null); setDockSlot(el); }, []);
+  const slotRef = useCallback((el) => {
+    setSlotEl(el || null);
+    setDockSlot(el);
+  }, []);
   useEffect(() => () => setDockSlot(null), []);
 
   // Publish the bar's real height so the reader's panel and the app's passing
@@ -83,22 +95,38 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
     };
     publish();
     let ro = null;
-    if (el && typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(publish); ro.observe(el); }
-    return () => { if (ro) ro.disconnect(); doc.style.setProperty('--chrome-dock-h', '0px'); };
+    if (el && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(publish);
+      ro.observe(el);
+    }
+    return () => {
+      if (ro) ro.disconnect();
+      doc.style.setProperty('--chrome-dock-h', '0px');
+    };
   }, []);
 
   // The More menu closes on a tap outside it and on Escape.
   useEffect(() => {
     if (!moreOpen || typeof document === 'undefined') return undefined;
-    const onDown = (e) => { if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setMoreOpen(false); };
+    const onDown = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
     document.addEventListener('pointerdown', onDown, true);
     document.addEventListener('keydown', onKey, true);
-    return () => { document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('keydown', onKey, true); };
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
   }, [moreOpen]);
 
   const onHealthChange = useCallback((h) => setNetHealthy(!!h), []);
-  const toTop = () => { setMoreOpen(false); scrollPageToTop(); };
+  const toTop = () => {
+    setMoreOpen(false);
+    scrollPageToTop();
+  };
   // A TV PAGES BY CLICKING (2026-10-07; Darrell on the Firestick: "Can't
   // scroll lists of lessons on Firestick... how can we choose from the whole
   // list?"). Silk's pointer scrolls only at the screen edge and never an inner
@@ -106,8 +134,14 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // page most of a screen per click. lib/tv-paging.js.
   const deviceClass = useDeviceClass();
   const pageChips = showsPageChips(deviceClass);
-  const pageUp = () => { setMoreOpen(false); pageBy('up', { behavior: motionBehavior() }); };
-  const pageDown = () => { setMoreOpen(false); pageBy('down', { behavior: motionBehavior() }); };
+  const pageUp = () => {
+    setMoreOpen(false);
+    pageBy('up', { behavior: motionBehavior() });
+  };
+  const pageDown = () => {
+    setMoreOpen(false);
+    pageBy('down', { behavior: motionBehavior() });
+  };
   const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
   // THE READER'S ONE SLIM ROW (Darrell 2026-10-01, the Fold folded, L202 at
@@ -176,15 +210,37 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const churchOnly = allowedViews.size === 1 && allowedViews.has('church') && Array.isArray(nav && nav.churchTabs);
   const churchTabs = churchOnly ? CHURCH_BOTTOM_NAV : [];
   const churchGroups = churchOnly ? churchTabGroups(nav.churchTabs) : [];
-  const churchTabActive = (t) => nav && nav.view === 'church' && nav.churchView === t.churchView && (!t.section || nav.churchHomeSection === t.section);
-  const goChurchTab = (t) => { setMoreOpen(false); if (t.section) requestChurchHomeSection(t.section); if (nav && nav.onNavigate) nav.onNavigate('church', null, t.churchView); };
+  // The home's open section: the shell's (when it passes one) or what the home publishes (DR-1484).
+  const liveSection = useSyncExternalStore(subscribeCurrentChurchHomeSection, readChurchHomeSection, () => null);
+  const homeSection = (nav && nav.churchHomeSection) || liveSection;
+  // Home lights only while no other bar tab claims the home's open section (Watch → worship, Events → times).
+  const claimedSection = (sec) => !!sec && CHURCH_BOTTOM_NAV.some((x) => x.section === sec);
+  const churchTabActive = (t) =>
+    nav && nav.view === 'church' && nav.churchView === t.churchView && (t.section ? homeSection === t.section : !claimedSection(homeSection));
+  const goChurchTab = (t) => {
+    setMoreOpen(false);
+    if (t.section) requestChurchHomeSection(t.section);
+    if (nav && nav.onNavigate) nav.onNavigate('church', null, t.churchView);
+  };
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
-  const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
-  const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
-  const goQuick = (q) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(q.view, null, q.churchView); };
+  const goTab = (t) => {
+    setMoreOpen(false);
+    if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home);
+  };
+  const goSection = (id) => {
+    setMoreOpen(false);
+    if (nav && nav.onNavigate) nav.onNavigate(id, null);
+  };
+  const goQuick = (q) => {
+    setMoreOpen(false);
+    if (nav && nav.onNavigate) nav.onNavigate(q.view, null, q.churchView);
+  };
   const [comfortCollapsed, setComfortCollapsed] = useComfortCollapsed();
   const [size, setSize, steps] = useTextSize();
-  const sizeAt = Math.max(0, steps.findIndex((st) => st.key === size));
+  const sizeAt = Math.max(
+    0,
+    steps.findIndex((st) => st.key === size)
+  );
   const sizeNow = steps[sizeAt] || steps[0];
   const stepSize = (d) => {
     const j = Math.min(steps.length - 1, Math.max(0, sizeAt + d));
@@ -194,18 +250,24 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const feedbackBtn = (
     <button
       type="button"
-      onClick={() => { setMoreOpen(false); if (onFeedback) onFeedback(); }}
+      onClick={() => {
+        setMoreOpen(false);
+        if (onFeedback) onFeedback();
+      }}
       aria-label="Open feedback"
       aria-pressed={feedbackOpen || undefined}
       title="Tell us what's working / not working / missing"
       data-testid="dock-feedback"
       className={`${DOCK_BTN} ${FOCUS}`}
     >
-      <span aria-hidden="true" className={`poe-dock-accent text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
+      <span aria-hidden="true" className={`poe-dock-accent text-[#B85838] ${DOCK_ICON}`}>
+        <UiIcon name="chat" />
+      </span>
       <DockLabel>Feedback</DockLabel>
     </button>
   );
-  const giveBtn = showGive ? <ChurchGiveDockButton church={church} /> : null;
+  // On the church door Give is a bar tab (CHURCH_BOTTOM_NAV); elsewhere it rides beside Feedback as before.
+  const giveBtn = showGive && !churchOnly ? <ChurchGiveDockButton church={church} /> : null;
 
   // The reader's comfort buttons: inline on the slim row, or inside More
   // while the Word plays on a phone (oneRow). One set of buttons either way.
@@ -217,24 +279,45 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
       <button
         type="button"
         data-testid="dock-controls"
-        onClick={() => { setMoreOpen(false); setComfortCollapsed(!comfortCollapsed); }}
+        onClick={() => {
+          setMoreOpen(false);
+          setComfortCollapsed(!comfortCollapsed);
+        }}
         aria-expanded={!comfortCollapsed}
         aria-label={comfortCollapsed ? 'Controls: show account, subscribe, help, every text size, voice and colors' : 'Controls: fold them away again'}
         title={comfortCollapsed ? 'Show the controls' : 'Fold the controls'}
         className={`dock-controls ${comfortCollapsed ? DOCK_BTN : DOCK_BTN_ON} ${FOCUS}`}
       >
-        <span aria-hidden="true" className={DOCK_ICON}>{comfortCollapsed ? '▴' : '▾'}</span>
+        <span aria-hidden="true" className={DOCK_ICON}>
+          {comfortCollapsed ? '▴' : '▾'}
+        </span>
         <DockLabel>Controls</DockLabel>
       </button>
-      <button type="button" data-testid="dock-text-smaller" onClick={() => stepSize(-1)} disabled={sizeAt === 0}
-        aria-label={sizeAt === 0 ? 'Smaller text (already the smallest)' : `Smaller text size (now ${sizeNow.name})`} title="Smaller text"
-        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
-        <span aria-hidden="true" className="text-[0.875rem] leading-none">A−</span>
+      <button
+        type="button"
+        data-testid="dock-text-smaller"
+        onClick={() => stepSize(-1)}
+        disabled={sizeAt === 0}
+        aria-label={sizeAt === 0 ? 'Smaller text (already the smallest)' : `Smaller text size (now ${sizeNow.name})`}
+        title="Smaller text"
+        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}
+      >
+        <span aria-hidden="true" className="text-[0.875rem] leading-none">
+          A−
+        </span>
       </button>
-      <button type="button" data-testid="dock-text-bigger" onClick={() => stepSize(1)} disabled={sizeAt === steps.length - 1}
-        aria-label={sizeAt === steps.length - 1 ? 'Bigger text (already the biggest)' : `Bigger text size (now ${sizeNow.name})`} title="Bigger text"
-        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
-        <span aria-hidden="true" className="text-[1.125rem] leading-none">A+</span>
+      <button
+        type="button"
+        data-testid="dock-text-bigger"
+        onClick={() => stepSize(1)}
+        disabled={sizeAt === steps.length - 1}
+        aria-label={sizeAt === steps.length - 1 ? 'Bigger text (already the biggest)' : `Bigger text size (now ${sizeNow.name})`}
+        title="Bigger text"
+        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}
+      >
+        <span aria-hidden="true" className="text-[1.125rem] leading-none">
+          A+
+        </span>
       </button>
       {feedbackBtn}
       {giveBtn}
@@ -270,7 +353,8 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               what the N is made of in its name, the same list behind it, and
               it opens that list itself once per launch when something is new.
               Drawn only while N > 0, so the bar keeps its room otherwise. */}
-          <ArrivalsBell variant="dock" />
+          {/* On the church door the header's bell never collapses (DR-1483), so the bar carries no second one. */}
+          {!churchOnly && <ArrivalsBell variant="dock" />}
           {inReader && !oneRow && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
               {comfortButtons}
@@ -278,145 +362,220 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
           )}
           {tabsMode && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-tabs" role="group" aria-label="Sections">
-              {moneyNav ? MONEY_BOTTOM_NAV.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  data-testid={`dock-money-${t.key}`}
-                  onClick={() => { setMoreOpen(false); moneyNav.setBooksView(t.sub); }}
-                  aria-current={moneySection === t.sub ? 'page' : undefined}
-                  title={t.words}
-                  className={`${moneySection === t.sub ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
-                >
-                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
-                  <DockLabel>{t.words}</DockLabel>
-                </button>
-              )) : churchTabs.length ? churchTabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  data-testid={`dock-tab-${t.key}`}
-                  onClick={() => goChurchTab(t)}
-                  aria-current={churchTabActive(t) ? 'page' : undefined}
-                  title={t.words}
-                  className={`${churchTabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
-                >
-                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
-                  <DockLabel>{t.words}</DockLabel>
-                </button>
-              )) : bottomTabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  data-testid={`dock-tab-${t.key}`}
-                  onClick={() => goTab(t)}
-                  aria-current={tabActive(t) ? 'page' : undefined}
-                  title={t.words}
-                  className={`${tabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
-                >
-                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
-                  <DockLabel>{t.words}</DockLabel>
-                </button>
-              ))}
+              {moneyNav
+                ? MONEY_BOTTOM_NAV.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      data-testid={`dock-money-${t.key}`}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        moneyNav.setBooksView(t.sub);
+                      }}
+                      aria-current={moneySection === t.sub ? 'page' : undefined}
+                      title={t.words}
+                      className={`${moneySection === t.sub ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                    >
+                      <span aria-hidden="true" className={DOCK_ICON}>
+                        <UiIcon name={t.icon} />
+                      </span>
+                      <DockLabel>{t.words}</DockLabel>
+                    </button>
+                  ))
+                : churchTabs.length
+                  ? churchTabs.map((t) =>
+                      t.give ? (
+                        <ChurchGiveDockButton key={t.key} church={church} className="poe-dock-church" />
+                      ) : (
+                        <button
+                          key={t.key}
+                          type="button"
+                          data-testid={`dock-tab-${t.key}`}
+                          onClick={() => goChurchTab(t)}
+                          aria-current={churchTabActive(t) ? 'page' : undefined}
+                          title={t.words}
+                          className={`${churchTabActive(t) ? DOCK_BTN_ON : DOCK_BTN} poe-dock-church ${FOCUS}`}
+                        >
+                          <span aria-hidden="true" className={DOCK_ICON}>
+                            <UiIcon name={t.icon} />
+                          </span>
+                          <DockLabel>{t.words}</DockLabel>
+                        </button>
+                      )
+                    )
+                  : bottomTabs.map((t) => (
+                      <button
+                        key={t.key}
+                        type="button"
+                        data-testid={`dock-tab-${t.key}`}
+                        onClick={() => goTab(t)}
+                        aria-current={tabActive(t) ? 'page' : undefined}
+                        title={t.words}
+                        className={`${tabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                      >
+                        <span aria-hidden="true" className={DOCK_ICON}>
+                          <UiIcon name={t.icon} />
+                        </span>
+                        <DockLabel>{t.words}</DockLabel>
+                      </button>
+                    ))}
             </div>
           )}
-          <div ref={moreRef} className="dock-more-wrap flex items-center gap-[3px] shrink-0">
-            {/* Below 640px: ONE button holds the rest, so a 360px phone keeps
+          {(!churchOnly || oneRow) && (
+            <div ref={moreRef} className="dock-more-wrap flex items-center gap-[3px] shrink-0">
+              {/* Below 640px: ONE button holds the rest, so a 360px phone keeps
                 the read-aloud mini-bar on the same line. A mark on it when the
                 network status folded inside is not healthy. */}
-            <button
-              type="button"
-              data-testid="dock-more"
-              onClick={() => setMoreOpen((o) => !o)}
-              aria-expanded={moreOpen}
-              aria-haspopup="true"
-              aria-label={moreLabel}
-              title="More"
-              className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
-            >
-              <span aria-hidden="true" className={DOCK_ICON}>⋯</span>
-              <DockLabel>More</DockLabel>
-              {!netHealthy && <span aria-hidden="true" data-testid="dock-more-alert" className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#C2410C] border border-white" />}
-            </button>
-            {/* ONE list, two shapes: a menu above More on a phone, the bar's
+              <button
+                type="button"
+                data-testid="dock-more"
+                onClick={() => setMoreOpen((o) => !o)}
+                aria-expanded={moreOpen}
+                aria-haspopup="true"
+                aria-label={moreLabel}
+                title="More"
+                className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+              >
+                <span aria-hidden="true" className={DOCK_ICON}>
+                  ⋯
+                </span>
+                <DockLabel>More</DockLabel>
+                {!netHealthy && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="dock-more-alert"
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#C2410C] border border-white"
+                  />
+                )}
+              </button>
+              {/* ONE list, two shapes: a menu above More on a phone, the bar's
                 own buttons from 640px up. One NetworkStatus instance either way,
                 so the connection is probed once, not twice. In the reader,
                 Feedback and Give ride the slim row instead; while the Word
                 plays on a phone the whole slim row rides here (DR-0744), as a
                 wrapped row of the same square buttons. */}
-            <div
-              data-testid="dock-items"
-              role="group"
-              aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto ${moneyMode ? 'lg:static lg:flex lg:mb-0 lg:p-0 lg:border-0 lg:shadow-none lg:min-w-0 lg:bg-transparent' : 'sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent'}`}
-            >
-              {moneyNav && (
-                <div data-testid="dock-more-group-money" className="w-full flex flex-wrap items-center gap-[4px]">
-                  <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">Money</span>
-                  {moneyMoreSections().map((s) => (
-                    <button key={s.id} type="button" data-testid={`dock-more-money-${s.id}`} onClick={() => { setMoreOpen(false); moneyNav.setBooksView(s.id); }} aria-current={moneySection === s.id ? 'page' : undefined} title={s.label} className={`${moneySection === s.id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
-                      <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={s.icon} /></span>
-                      <DockLabel>{s.label}</DockLabel>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {tabsMode && churchGroups.map((g) => (
-                <div key={`church-${g.key}`} data-testid={`dock-more-church-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
-                  <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>
-                  {g.items.map(([id, words]) => {
-                    const on = nav.view === 'church' && nav.churchView === id;
-                    return (
-                      <button key={id} type="button" data-testid={`dock-more-church-tab-${id}`} onClick={() => goChurchTab({ churchView: id, section: null })} aria-current={on ? 'page' : undefined} title={words} className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
-                        <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={CHURCH_TAB_ICONS[id] || 'folder'} /></span>
-                        <DockLabel>{words}</DockLabel>
+              <div
+                data-testid="dock-items"
+                role="group"
+                aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
+                className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto ${moneyMode ? 'lg:static lg:flex lg:mb-0 lg:p-0 lg:border-0 lg:shadow-none lg:min-w-0 lg:bg-transparent' : 'sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent'}`}
+              >
+                {moneyNav && (
+                  <div data-testid="dock-more-group-money" className="w-full flex flex-wrap items-center gap-[4px]">
+                    <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">Money</span>
+                    {moneyMoreSections().map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        data-testid={`dock-more-money-${s.id}`}
+                        onClick={() => {
+                          setMoreOpen(false);
+                          moneyNav.setBooksView(s.id);
+                        }}
+                        aria-current={moneySection === s.id ? 'page' : undefined}
+                        title={s.label}
+                        className={`${moneySection === s.id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                      >
+                        <span aria-hidden="true" className={DOCK_ICON}>
+                          <UiIcon name={s.icon} />
+                        </span>
+                        <DockLabel>{s.label}</DockLabel>
                       </button>
-                    );
-                  })}
-                </div>
-              ))}
-              {tabsMode && nav.groups && !churchOnly && nav.groups.map((g) => (
-                <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
-                  {g.label && <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>}
-                  {g.items.map(([id]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      data-testid={`dock-more-${id}`}
-                      onClick={() => goSection(id)}
-                      aria-current={nav.view === id ? 'page' : undefined}
-                      title={NAV_WORDS[id] || id}
-                      className={`${nav.view === id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
-                    >
-                      <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={NAV_ICONS[id] || 'folder'} /></span>
-                      <DockLabel>{NAV_WORDS[id] || id}</DockLabel>
-                    </button>
+                    ))}
+                  </div>
+                )}
+                {tabsMode &&
+                  churchGroups.map((g) => (
+                    <div key={`church-${g.key}`} data-testid={`dock-more-church-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
+                      <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>
+                      {g.items.map(([id, words]) => {
+                        const on = nav.view === 'church' && nav.churchView === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            data-testid={`dock-more-church-tab-${id}`}
+                            onClick={() => goChurchTab({ churchView: id, section: null })}
+                            aria-current={on ? 'page' : undefined}
+                            title={words}
+                            className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                          >
+                            <span aria-hidden="true" className={DOCK_ICON}>
+                              <UiIcon name={CHURCH_TAB_ICONS[id] || 'folder'} />
+                            </span>
+                            <DockLabel>{words}</DockLabel>
+                          </button>
+                        );
+                      })}
+                    </div>
                   ))}
-                  {/* Quick links (DR-1424): a door straight to a tab inside a
+                {tabsMode &&
+                  nav.groups &&
+                  !churchOnly &&
+                  nav.groups.map((g) => (
+                    <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
+                      {g.label && <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>}
+                      {g.items.map(([id]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          data-testid={`dock-more-${id}`}
+                          onClick={() => goSection(id)}
+                          aria-current={nav.view === id ? 'page' : undefined}
+                          title={NAV_WORDS[id] || id}
+                          className={`${nav.view === id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                        >
+                          <span aria-hidden="true" className={DOCK_ICON}>
+                            <UiIcon name={NAV_ICONS[id] || 'folder'} />
+                          </span>
+                          <DockLabel>{NAV_WORDS[id] || id}</DockLabel>
+                        </button>
+                      ))}
+                      {/* Quick links (DR-1424): a door straight to a tab inside a
                       section, e.g. Learn, Church's lessons and courses. */}
-                  {(g.links || []).map((q) => {
-                    const on = nav.view === q.view && nav.churchView === q.churchView;
-                    return (
-                      <button key={`q-${q.key}`} type="button" data-testid={`dock-more-quick-${q.key}`} onClick={() => goQuick(q)} aria-current={on ? 'page' : undefined} title={q.title} className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}>
-                        <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={q.icon} /></span>
-                        <DockLabel>{q.words}</DockLabel>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              {oneRow && comfortButtons}
-              {!inReader && feedbackBtn}
-              {!inReader && giveBtn}
-              <NetworkStatus variant="dock" onHealthChange={onHealthChange} />
-              {/* On a phone Top also rides in the menu, so it is reachable
+                      {(g.links || []).map((q) => {
+                        const on = nav.view === q.view && nav.churchView === q.churchView;
+                        return (
+                          <button
+                            key={`q-${q.key}`}
+                            type="button"
+                            data-testid={`dock-more-quick-${q.key}`}
+                            onClick={() => goQuick(q)}
+                            aria-current={on ? 'page' : undefined}
+                            title={q.title}
+                            className={`${on ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                          >
+                            <span aria-hidden="true" className={DOCK_ICON}>
+                              <UiIcon name={q.icon} />
+                            </span>
+                            <DockLabel>{q.words}</DockLabel>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                {oneRow && comfortButtons}
+                {!inReader && feedbackBtn}
+                {!inReader && giveBtn}
+                <NetworkStatus variant="dock" onHealthChange={onHealthChange} />
+                {/* On a phone Top also rides in the menu, so it is reachable
                   even while the reader's mini-bar fills the line. */}
-              <button type="button" onClick={toTop} data-testid="dock-more-top" aria-label="Back to the top of the page" title="Back to top" className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${DOCK_BTN} ${FOCUS}`}>
-                <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>
-                <DockLabel>Top</DockLabel>
-              </button>
+                <button
+                  type="button"
+                  onClick={toTop}
+                  data-testid="dock-more-top"
+                  aria-label="Back to the top of the page"
+                  title="Back to top"
+                  className={`${moneyMode ? 'lg:hidden' : 'sm:hidden'} ${DOCK_BTN} ${FOCUS}`}
+                >
+                  <span aria-hidden="true" className={DOCK_ICON}>
+                    <UiIcon name="chevronUp" />
+                  </span>
+                  <DockLabel>Top</DockLabel>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           {/* BACK TO TOP, in the bar (Darrell 2026-08-15: "a way to get back to
               the top"). Shown once the page is more than a screen deep, as
               before. On a phone, in the reader or while the reader's mini-bar
@@ -424,19 +583,46 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               and the one in More carries it. */}
           {pageChips && (
             <>
-              <button type="button" onClick={pageUp} data-testid="dock-page-up" aria-label="Up one screen" title="Up one screen" className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}>
-                <span aria-hidden="true" className={DOCK_ICON}>▲</span>
+              <button
+                type="button"
+                onClick={pageUp}
+                data-testid="dock-page-up"
+                aria-label="Up one screen"
+                title="Up one screen"
+                className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}
+              >
+                <span aria-hidden="true" className={DOCK_ICON}>
+                  ▲
+                </span>
                 <DockLabel>Up</DockLabel>
               </button>
-              <button type="button" onClick={pageDown} data-testid="dock-page-down" aria-label="Down one screen" title="Down one screen" className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}>
-                <span aria-hidden="true" className={DOCK_ICON}>▼</span>
+              <button
+                type="button"
+                onClick={pageDown}
+                data-testid="dock-page-down"
+                aria-label="Down one screen"
+                title="Down one screen"
+                className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}
+              >
+                <span aria-hidden="true" className={DOCK_ICON}>
+                  ▼
+                </span>
                 <DockLabel>Down</DockLabel>
               </button>
             </>
           )}
           {deep && (
-            <button type="button" onClick={toTop} data-testid="dock-top" aria-label="Back to the top of the page" title="Back to top" className={`dock-top-inline shrink-0 ${DOCK_BTN} ${FOCUS}`}>
-              <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>
+            <button
+              type="button"
+              onClick={toTop}
+              data-testid="dock-top"
+              aria-label="Back to the top of the page"
+              title="Back to top"
+              className={`dock-top-inline shrink-0 ${DOCK_BTN} ${FOCUS}`}
+            >
+              <span aria-hidden="true" className={DOCK_ICON}>
+                <UiIcon name="chevronUp" />
+              </span>
               <DockLabel>Top</DockLabel>
             </button>
           )}

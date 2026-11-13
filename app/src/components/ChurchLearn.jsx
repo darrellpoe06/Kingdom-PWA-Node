@@ -4593,6 +4593,8 @@ export default function ChurchLearn({
     }
     return out;
   }, [courses]);
+  // A course's own title from the mounted catalog, so the record never shows a key where a title exists (DR-1481).
+  const courseTitleOf = React.useCallback((k) => (courses || []).find((c) => c && c.key === k)?.meta?.title || null, [courses]);
   // The fold's own summary is LIVE (DR-0381): it says what the record holds
   // before anyone opens it, and says plainly when it holds nothing.
   // The library's own live summary line (DR-1266), on the fold before it opens.
@@ -4845,6 +4847,10 @@ export default function ChurchLearn({
     resumeNow({ courseKey, lessonId });
     requestRead(lessonId, { startSentence: 0 });
   };
+  // DR-1481: the Latest list's lesson door, named once and shared with the record's course folds; the course door is DR-1233's.
+  const leaveDeptFor = (k) => { if (dept && !visibleCourses.some((c) => c.key === k)) setDeptId('all'); };
+  const openLessonFromList = (k, id) => { leaveDeptFor(k); setActiveKey(k); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); setLearnArea('lessons'); };
+  const openCourseFromRecord = (k) => { setResumeLessonId(null); setResumeOpenGuide(false); leaveDeptFor(k); openCourseKey(k); setLearnArea('lessons'); };
   const resumeNowRef = React.useRef(resumeNow);
   resumeNowRef.current = resumeNow;
   React.useEffect(() => {
@@ -5201,10 +5207,7 @@ export default function ChurchLearn({
           <LatestLessons
             courses={dept ? [active] : courses}
             scope={dept ? 'this course' : 'every course'}
-            onOpen={(courseKey, id) => {
-              if (dept && !visibleCourses.some((c) => c.key === courseKey)) setDeptId('all');
-              setActiveKey(courseKey); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1);
-            }}
+            onOpen={openLessonFromList}
             /* The same ▶ Play and the same Continue the course list's rows
                carry (Darrell 2026-10-27: "not giving the count or the play
                buttons"). */
@@ -5946,6 +5949,9 @@ export default function ChurchLearn({
               titleOf={lessonTitleOf}
               onRetake={retakeExam}
               onReadAgain={readAgain}
+              onOpenLesson={openLessonFromList}
+              onOpenCourse={openCourseFromRecord}
+              courseTitleOf={courseTitleOf}
             />
           </div>
         </details>
