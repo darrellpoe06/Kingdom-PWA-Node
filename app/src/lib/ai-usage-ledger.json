@@ -2374,6 +2374,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
+    },
+    {
+      "id": "sov83-that-they-may-continue-many-days",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 83 built from one word over a forwarded Level Up Coding issue (ACID Clearly Explained), all four age bands, 36-case gate",
+      "drs": [
+        "DR-1489"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a18cd240a3a03eb, forwarded 2026-10-30T12:54Z (7:54 AM Central), built 2026-11-13 draining the intake backlog. Whole article in the email. 40 anchor references, 158 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov83-fill.mjs and none typed. Our house traced to code: payments ledger CHECK and UNIQUE, the two-step payment (not atomic, finished by retry), the exam rule in the wall, the learner record off the phone, a latent workshop-seat oversell and the reservation referee that two spellings of week 82 got past (this build yielded to 83). www.postgresql.org refused (403 CONNECT); live tables not reached, the hosted project is the mirror. re-review 2026-11-27."
     }
   ]
 }
