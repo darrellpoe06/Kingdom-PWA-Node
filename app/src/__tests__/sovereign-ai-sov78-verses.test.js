@@ -515,8 +515,25 @@ describe('the house typography holds', () => {
     for (const s of allStrings(M)) expect(s, s.slice(0, 60)).not.toMatch(/\bthe word of Yahweh\b/);
   });
 
-  it('no decision-record number is recited to the reader', () => {
-    for (const [band, t] of Object.entries(TEXTS())) expect(String(t), band).not.toMatch(/DR-\d{4}/);
+  // CAUGHT BY CI, NOT BY THIS FILE, AND WIDENED HERE BECAUSE OF IT (DR-0239).
+  // The first version of this check read the adult lesson and the four bands
+  // only -- the same narrowness that let Revelation go unswept -- so it passed a
+  // bigIdea that recited two decision records. The curriculum course-quotation
+  // gate caught it (`sov78-count-the-cost :: bigIdea :: recites a decision
+  // record`), which is the right instrument doing its job and the wrong place
+  // for this lesson to learn it. Now it reads EVERY string in the module.
+  it('no decision-record number is recited anywhere a reader can see it', () => {
+    const offenders = allStrings(M)
+      .filter((t) => /DR-\d{3,4}/.test(t))
+      .map((t) => `${(t.match(/DR-\d{3,4}/g) || []).join(',')} in: ${t.slice(0, 70)}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: a recited decision record in a field other than a band fails', () => {
+    const broken = { ...M, bigIdea: `${M.bigIdea} Recorded as DR-1468.` };
+    const offenders = allStrings(broken).filter((t) => /DR-\d{3,4}/.test(t));
+    expect(offenders.length).toBeGreaterThan(0);
+    expect(allStrings(M).filter((t) => /DR-\d{3,4}/.test(t))).toEqual([]);
   });
 
   it('our own prose spells American EVERYWHERE in the module, while the KJV’s spellings inside a quote are untouched', () => {
