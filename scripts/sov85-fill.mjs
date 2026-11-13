@@ -126,7 +126,7 @@ const FACTS = {
     'WHAT IS SURE AND WHAT IS NOT. The whole email came to us. One picture in it did not come as words, so we left it out. Testing a thing by breaking a small part on purpose is real. Builders really do it. The stories in the email about a part that stops and a crowd that doubles are made up to teach. They did not really happen. What we say about our own app, we checked in its code and in its records from that day. The home computer was out of reach, so we could not see if its last practice went well. We will look again. re-review: 2026-11-27.',
   youth:
     "WHAT IS SURE AND WHAT IS NOT. The newsletter came whole in the email. One table in it came as a picture and not as words, so it is not taught here. Chaos engineering is established. Real teams test their systems by breaking them on purpose, a little at a time, and the five steps in this lesson are how they do it. The server that stops and the traffic that doubles are examples made up to teach, not real events. What this lesson says about our own app was checked in its code and in the records of the thirteenth of November. The family's own server was out of reach, so we know how its practice restore is built but not how the last one went. re-review: 2026-11-27.",
-  teen: "WHAT IS SURE AND WHAT IS NOT. Know what we had. The whole article came in the email. One table in it came as a picture, so we left it out. Chaos engineering is established. It is a real practice, and its steps are the ones in this lesson. The server that drops and the crowd that doubles are teaching examples, not real events. Our own app was checked in its code and in the logs from the thirteenth. The home server was out of reach, so we know how its weekly drill is built, not how the last one went. re-review: 2026-11-27.",
+  teen: 'WHAT IS SURE AND WHAT IS NOT. Know what we had. The whole article came in the email. One table in it came as a picture, so we left it out. Chaos engineering is established. It is a real practice, and its steps are the ones in this lesson. The server that drops and the crowd that doubles are teaching examples, not real events. Our own app was checked in its code and in the logs from the thirteenth. The home server was out of reach, so we know how its weekly drill is built, not how the last one went. re-review: 2026-11-27.',
   senior:
     'WHERE WE STAND ON THE FACTS. The newsletter arrived whole within the email, so this hour rests on the entire article; a single table of practices came as an image rather than text, and nothing is taught from it. Chaos engineering is an established discipline, and the method described here is the one its practitioners use; that is stated plainly. The failing server and the doubling of traffic are illustrations, not reported events. Everything said about our own house is traced to its code and to the run records of the thirteenth of November. The household server was out of reach from this session, so the lesson describes how the weekly restore drill is built and claims nothing about its most recent result. re-review: 2026-11-27.',
 };
@@ -529,9 +529,14 @@ Four months later the board quit in the middle of the first hymn. Within a minut
     questions: [
       {
         q: 'In Matthew 7:24-27, what is different about the weather that reaches the two houses?',
-        options: ['Only the foolish man’s house is struck by the storm', 'Nothing: the same rain, floods and winds beat on both houses', 'Only the wise man’s house is tested'],
+        options: [
+          'Only the foolish man’s house is struck by the storm',
+          'Nothing: the same rain, floods and winds beat on both houses',
+          'Only the wise man’s house is tested',
+        ],
         answer: 1,
-        explain: 'The storm reaches both. What differs is the foundation, and only the storm shows it. A system that has never met its storm is unproven, not strong.',
+        explain:
+          'The storm reaches both. What differs is the foundation, and only the storm shows it. A system that has never met its storm is unproven, not strong.',
       },
       {
         q: 'What is chaos engineering, as the newsletter describes it?',
@@ -571,13 +576,10 @@ Four months later the board quit in the middle of the first hymn. Within a minut
       },
       {
         q: 'What does this project require before any automated check is trusted?',
-        options: [
-          'That it passes on the first run',
-          'That it is shown to catch a break planted on purpose',
-          'That it runs once a month',
-        ],
+        options: ['That it passes on the first run', 'That it is shown to catch a break planted on purpose', 'That it runs once a month'],
         answer: 1,
-        explain: 'A check that always passes is itself a lie. More than five hundred of the app’s test files carried such a planted-break case on the morning this was built.',
+        explain:
+          'A check that always passes is itself a lie. More than five hundred of the app’s test files carried such a planted-break case on the morning this was built.',
       },
       {
         q: 'How does Genesis 32:7-8 picture limiting the blast radius?',
@@ -597,7 +599,8 @@ Four months later the board quit in the middle of the first hymn. Within a minut
           'It emails the backup to everyone',
         ],
         answer: 1,
-        explain: 'A backup that has never been restored is a claim. The drill reads the live database and never writes to it. Its last result was out of reach from this session, so the lesson claims nothing about it.',
+        explain:
+          'A backup that has never been restored is a claim. The drill reads the live database and never writes to it. Its last result was out of reach from this session, so the lesson claims nothing about it.',
       },
       {
         q: 'What happened on the thirteenth of November, the day the lesson was built?',
@@ -607,7 +610,8 @@ Four months later the board quit in the middle of the first hymn. Within a minut
           'Nothing went wrong all day',
         ],
         answer: 1,
-        explain: 'Two storms in one hour, neither planned. The second road held, and the outside witness found the site up but behind and asked for the deploy again.',
+        explain:
+          'Two storms in one hour, neither planned. The second road held, and the outside witness found the site up but behind and asked for the deploy again.',
       },
       {
         q: 'What honest gap does the lesson name in our own house?',
@@ -617,7 +621,8 @@ Four months later the board quit in the middle of the first hymn. Within a minut
           'That the site has no outside witness',
         ],
         answer: 1,
-        explain: 'Code-level tests plant breaks by the hundred and the server rehearses its restore weekly, but the deploy’s roads have only been exercised when the weather chose. It is written down for the Governor with a date.',
+        explain:
+          'Code-level tests plant breaks by the hundred and the server rehearses its restore weekly, but the deploy’s roads have only been exercised when the weather chose. It is written down for the Governor with a date.',
       },
       {
         q: 'Which verse does the lesson use for the review after a failure?',
@@ -633,7 +638,8 @@ Four months later the board quit in the middle of the first hymn. Within a minut
           'That the newsletter’s doubling traffic really happened somewhere',
         ],
         answer: 1,
-        explain: 'The discipline is established. The newsletter’s examples are illustrations. The drill’s last result is not measured, because the server was out of reach. re-review: 2026-11-27.',
+        explain:
+          'The discipline is established. The newsletter’s examples are illustrations. The drill’s last result is not measured, because the server was out of reach. re-review: 2026-11-27.',
       },
     ],
   },

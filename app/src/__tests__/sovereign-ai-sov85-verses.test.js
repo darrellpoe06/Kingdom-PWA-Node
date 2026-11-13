@@ -323,7 +323,9 @@ describe('three tiers held apart: established, illustration, and not measured', 
   it('every teaching place states the discipline as established and carries the dated re-review', () => {
     for (const p of TEACHING_PLACES) {
       expect(at(p), `${p} carries the re-review date`).toContain('re-review: 2026-11-27');
-      expect(at(p), `${p} names the illustrations as made up`).toMatch(/not (real events|reported happenings|reported events)|did not really happen|illustrations?, not/i);
+      expect(at(p), `${p} names the illustrations as made up`).toMatch(
+        /not (real events|reported happenings|reported events)|did not really happen|illustrations?, not/i
+      );
     }
     for (const p of OLDER_PLACES) expect(at(p), `${p} says it is settled`).toMatch(/ESTABLISHED|established/);
     // DR-0100: under-claiming a verified truth is a failure too.
