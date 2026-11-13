@@ -55,9 +55,10 @@ describe('the page never asks the browser to guess a form palette', () => {
     }
   });
 
-  it('midnight says dark and every light theme says light', () => {
-    expect(themeBlock('midnight')).toMatch(/color-scheme:\s*dark/);
-    for (const t of THEMES.filter((x) => x.key !== 'midnight')) {
+  it('the dark themes (midnight, and the Love Corner by night) say dark; every light theme says light', () => {
+    const DARK = ['midnight', 'night'];
+    for (const k of DARK) expect(themeBlock(k), k).toMatch(/color-scheme:\s*dark/);
+    for (const t of THEMES.filter((x) => !DARK.includes(x.key))) {
       expect(themeBlock(t.key), t.key).toMatch(/color-scheme:\s*light/);
     }
   });

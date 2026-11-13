@@ -34,7 +34,19 @@ import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
-import { subscribeChurchHomeSection, takePendingChurchHomeSection } from '../lib/church-home-section.js';
+import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
+
+// serviceDate — a feed's ISO `published` as a short calendar date; '' when it
+// cannot be read, so a recording with no date still lists by its title.
+export function serviceDate(published) {
+  const t = Date.parse(String(published || ''));
+  if (!Number.isFinite(t)) return '';
+  try {
+    return new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
@@ -49,8 +61,62 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // doors (Watch, Prayer, Events, Connect) and the phone's bottom bar ask for
   // a section through lib/church-home-section.js; the strip below runs in
   // controlled mode so the request opens the section in place (UX 2e).
-  const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
-  useEffect(() => subscribeChurchHomeSection((id) => { if (id) setSection(id); }), []);
+  // What the reader ASKED FOR, taken once per mount, kept apart from what the
+  // page defaults to. The second road into a section does not go through the
+  // subscriber at all: the shell remounts this component with a `key` and an
+  // `initialSection` when a launch target names one — a class card's "Open the
+  // Council Chamber", the Library's links, a testimony (book-engine). Those
+  // doors name a place in their own words and had the same defect: the section
+  // was right and the reader was still at the top of the hero.
+  const [askedFor] = useState(() => takePendingChurchHomeSection() || initialSection || null);
+  const [section, setSection] = useState(askedFor || 'worship');
+  // The bar reads which section is open (DR-1484); cleared when this home leaves the screen.
+  useEffect(() => {
+    publishChurchHomeSection(section);
+    return () => publishChurchHomeSection(null);
+  }, [section]);
+  // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
+  // Love Corner front door): "When pushing latest message we should open to the
+  // space with it... All buttons should work and go to the space it's
+  // descriptions saying." Pressing Watch changed the section CORRECTLY and then
+  // left the reader at the hero, with the player somewhere below the fold — the
+  // button did its work invisibly, which reads as a dead button. Changing the
+  // section is not arriving at it. So a requested section now scrolls its strip
+  // into view, the same way the follow-along reader already does below: one
+  // frame later, because the section's content mounts after this state settles,
+  // and `block: 'start'` so the strip's own tabs sit at the top of the view and
+  // the section begins right under them. A section the viewer picks by TAPPING
+  // the strip is NOT scrolled — their finger is already there, and moving the
+  // page under it is the jump this fix exists to remove.
+  const sectionStripRef = useRef(null);
+  const arriveAtSection = useCallback(
+    () =>
+      setTimeout(() => {
+        try {
+          sectionStripRef.current && sectionStripRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+        } catch {
+          /* no layout (jsdom, or a detached node) — the section still opened */
+        }
+      }, 60),
+    []
+  );
+  useEffect(
+    () =>
+      subscribeChurchHomeSection((id) => {
+        if (!id) return;
+        setSection(id);
+        arriveAtSection();
+      }),
+    [arriveAtSection]
+  );
+  // The mount road (a launch target's `initialSection`, or a request made
+  // before this component existed) arrives the same way. A page that opens on
+  // its own default is NOT scrolled: nobody asked to be moved.
+  useEffect(() => {
+    if (!askedFor) return undefined;
+    const t = arriveAtSection();
+    return () => clearTimeout(t);
+  }, [askedFor, arriveAtSection]);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -165,13 +231,19 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     let cancelled = false;
     fetch(`/api/church-recent?channel=${encodeURIComponent(liveChannelId)}`)
       .then((r) => (r.ok ? r.text() : ''))
-      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 6)); })
+      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 15)); })
       .catch(() => { if (!cancelled) setRecentVids([]); });
     return () => { cancelled = true; };
   }, [liveChannelId]);
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
-  const playerSrc = worshipPlayerSrc(liveChannelId, recentVids[0]?.videoId);
+  // PAST SERVICES PLAY (DR-1506; Darrell 2026-11-13, from the live door's Past
+  // sermons tab: "Past services don't have any.... fix it"). The tab used to be
+  // prose about a pipeline; it now lists the channel's own recordings, and a
+  // chosen one becomes the player's source (and opens in the shell's
+  // mini-player, so the reader stays where they are). Null = the newest.
+  const [chosenVideoId, setChosenVideoId] = useState(null);
+  const playerSrc = worshipPlayerSrc(liveChannelId, chosenVideoId || recentVids[0]?.videoId);
   // `enablejsapi=1` is what lets our own skip buttons drive the embed at all
   // (lib/youtube-embed-control.js). The KEY stays the bare playerSrc so adding
   // the parameter can never look like a different video and remount the frame.
@@ -544,10 +616,75 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                     icon: 'book',
                     render: () => (
                       <>
-          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
-            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
-            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
+          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4" data-testid="past-services">
+            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Past services · Bishop Gwin</h3>
+            {/* The channel's own recordings, newest first — the same no-key feed the
+                player follows (DR-1506). A tap plays it: the shell's mini-player opens
+                on it and the Live now player switches to it. Never a painted list:
+                an empty feed says so, and names the channel. */}
+            {recentVids.length > 0 ? (
+              <ul className="list-none p-0 m-0 divide-y divide-[#E8E4DC]" data-testid="past-services-list">
+                {recentVids.map((v) => (
+                  <li key={v.videoId} className="py-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChosenVideoId(v.videoId);
+                        openFloating({ src: worshipPlayerSrc(liveChannelId, v.videoId), title: v.title || 'Past service' });
+                      }}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left group focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      aria-label={`Play: ${v.title || 'Past service'}`}
+                      data-testid={`past-service-${v.videoId}`}
+                    >
+                      <span className="relative w-24 shrink-0 aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
+                        {v.thumbnail && <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover" />}
+                        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-lg drop-shadow">▶</span>
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{serviceDate(v.published)}</span>
+                        <span className="block text-sm leading-snug text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                          {v.title || 'Past service'}
+                        </span>
+                      </span>
+                    </button>
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-[0.625rem] uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      YouTube
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="past-services-empty">
+                {liveChannelId
+                  ? 'The channel\u2019s recordings did not come back just now. Every past service is on the church\u2019s YouTube channel.'
+                  : 'No YouTube channel is set for this church yet, so there are no recordings to list.'}
+                {channelUrl && (
+                  <>
+                    {' '}
+                    <a href={channelUrl} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">
+                      Open the channel
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
+            {setChurchView && (
+              <button
+                type="button"
+                onClick={() => setChurchView('pulpit')}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#1A1815] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                data-testid="past-services-library"
+              >
+                <UiIcon name="book" /> Every message by date · The Word — Migdal
+              </button>
+            )}
+            <p className="mt-3 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Captions, the archive and search are the Sermon-to-Content pipeline; its progress is on the Harvest Ledger (Church → Harvest). The church owns every master file.
             </p>
             <button
               type="button"
@@ -979,7 +1116,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      <div ref={sectionStripRef} data-testid="church-section-strip">
+        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      </div>
     </div>
   );
 }
