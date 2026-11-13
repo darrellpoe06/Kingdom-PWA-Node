@@ -14,6 +14,16 @@ The 2026-11-13 shell audit (§2.6) measured that `LITTLE_LEARNERS_TUTOR_META.chi
 
 Darrell's brief set its own gate for the visual work: show the proposed design before implementing. That gate is honored (the six screens and the cast are in `docs/design/love-corner-kids/`, held on the PR). What does not depend on the visuals is built here: the two games' engines and the tutor's child mode, each proven.
 
+## What was measured
+
+- `LITTLE_LEARNERS_TUTOR_META.childMode` (little-learners-class.js:222) is `true`; `tutorSystemPrompt` (class-tutor.js) read only `intro` and `posture`. No test named the flag. The Kids door (youth-zone.js:34) reads Little Learners, whose meta says ages 3 to 6; the youth band is written on 242 of 307 Living Lessons and unused by any door.
+- The hosted KJV is 66 book files under `app/public/bible/kjv/`; all 72 candidate clue references were opened there before the roster was written, and 5 first candidates that did not name their person (Nehemiah 2:5, 2 Kings 23:25, 2 Chronicles 34:3, 1 Samuel 1:27, 1 Kings 3:12) were replaced.
+- The approved Screen 3 painted "3 questions today" and "4 of 9 lessons"; trivia today is one live row or two anchor questions.
+
+## Impact
+
+Without this, a child-facing tutor carries its child rules only as a sentence of posture, so a prompt change could drop them and nothing would turn red; and the two games would have to type Scripture into the app to exist, which DR-0076 forbids. With it, the engines can be mounted by the Phase D1 and E surfaces without a line of verse in the code, and the child rules are a block a test owns. Nothing about a child is stored.
+
 ## Decision
 
 1. **Nothing in a game types a word of Scripture.** The Word Builder is handed the weekly verse's words by its caller, which loads them from the hosted King James text at play time (`verseText`); every word the child spells is one of those words, in verse order, four letters or more, once each. The Who Am I? roster carries only REFERENCES (three per person, hardest first); the verses load at play time and the only change on screen is the person's own name blanked while the child guesses, then shown whole.
