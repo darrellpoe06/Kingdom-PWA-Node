@@ -2344,6 +2344,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 36,
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
+    },
+    {
+      "id": "ll310-the-third-forward",
+      "date": "2026-11-13",
+      "task": "L310 folds in the third forward Darrell sent under one word, Lesson (Morning Brew, 2026-11-10), now read: the admission's timing, the 4.3% fall, no clear succession plan, and a new Too big to replace section in all four bands; provenance test proven to catch an unread claim",
+      "drs": [
+        "DR-1487"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "Gmail thread 1a1c5c35c2357a0f, forwarded 2026-11-10T14:01Z (08:01 Central), read 2026-11-13 ahead of DR-1480's re-review 2026-11-27. 7 quoted spans (Proverbs 16:18, Proverbs 27:1) filled from app/public/bible/kjv by fill-verses.mjs, none typed. Analyst read only as Morning Brew reported him, not named; the newsletter's political aside left out."
     }
   ]
 }
