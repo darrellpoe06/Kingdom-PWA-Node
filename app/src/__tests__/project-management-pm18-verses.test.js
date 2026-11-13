@@ -91,7 +91,11 @@ describe('pm18 exists, is whole, and is in the course', () => {
     expect(PROJECT_MANAGEMENT_MODULES.every((m) => m && typeof m.id === 'string')).toBe(true);
     const ids = PROJECT_MANAGEMENT_MODULES.map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids[ids.length - 1]).toBe(ID);
+    // 2026-11-13 (pm19, DR-1496): this read `ids[ids.length - 1]` - "pm18 is
+    // last" - which every later lesson would break. It now pins what was meant:
+    // pm18 is the eighteenth lesson and follows pm17, so pm20 owes this file nothing.
+    expect(ids.indexOf(ID)).toBe(17);
+    expect(ids.indexOf(ID)).toBe(ids.indexOf('pm17-can-two-walk-together') + 1);
   });
 
   it('the course header tracks the module count rather than a literal (DR-0677)', () => {
