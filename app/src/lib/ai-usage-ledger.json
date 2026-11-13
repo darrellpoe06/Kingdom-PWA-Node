@@ -2314,6 +2314,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 30,
       "notes": "Reserved L309 and DR-1479 on origin with new-lesson.mjs and claim-decision-number through intermittent 503s. 157 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Every personal detail of the source emails withheld; the second thread was not read back (session permission check), re-review 2026-11-27."
+    },
+    {
+      "id": "shell-header-night-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
+      "drs": [
+        "DR-1483"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     }
   ]
 }
