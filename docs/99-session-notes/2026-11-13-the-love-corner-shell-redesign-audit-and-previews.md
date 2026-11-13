@@ -18,6 +18,12 @@ Modernize the shell of the Love Corner app without removing, replacing or rebuil
 6. **Ari's child mode flag is never read.** `LITTLE_LEARNERS_TUTOR_META.childMode` exists (`little-learners-class.js:220-225`) but only its `intro`/`posture` text reaches the prompt. Phase 7 should read the flag for real.
 7. **Themes number eleven**, not "every color" plus blue/red/purple: Heritage, The Love Corner, TLC, Anchor, Bedrock, Cream, Snow, Glacier, Sapphire, Rose, Midnight (`theme-css.js:620-640`). There is no purple theme; the brief's "Purple" is not offered unless a palette is added, which is a separate decision.
 
+## 2b. Darrell's picture (sent 2026-11-13, mid-review) and what it decided
+
+Darrell sent a generated mockup of the homepage and said: "I still want the red black white and gold, but this is the design type I am going for." So the **palette stays red, black, white and gold** (his 2026-11-12 word; DR-1060; what the site wears), and the **arrangement follows the picture**: menu on the left; logo, name, "The Church of the Living God" and "Where Love Lives" in the brand lockup; search, bell and profile picture on the right; the Bishop beside "A place to Worship · Learn · Serve · Belong"; eight doors in one row (Watch Live, The Word · Learning Zone, Ministries, Events, Give, Prayer, Youth Zone, TLC Institute); a "Customize Your App" strip beneath them (one button with four theme dots as its preview, opening the Personalize sheet); paired cards for The Word Learning Zone and the Kids & Youth Zone; the Institute banner with its two buttons; a Ministries · Upcoming events · Family & community row; seven dock tabs (Home · Watch · Bible · Events · Give · Ministries · Institute).
+
+What in the picture is not used, and why: the church building and the children are generated images (the brief forbids generated replacements for official assets), so the hero keeps the real Bishop and leaves a marked slot for a real building photo from the office; the Bishop's arms-crossed pose is generated, so the real photograph stays; the picture's "Ged" misspelling is ignored. Search is the one new function the picture introduces (today the app searches inside Scripture and Learn only) and is listed as its own phase item. Screen 1 is redrawn to this; Screens 1b, 2 and 3 are unchanged.
+
 ## 3. Audit: what the app is today (the fifteen items of Phase 1)
 
 | # | Item | Where it lives (file:line) |
@@ -61,7 +67,7 @@ Every item maps to where it is today and where it lives in the redesign. Nothing
 | PublicWelcome "free to read, no account" | The sentence moves into the sign-in sheet; the component's `end` placement stays. |
 | "Projections, not promises" strip | Shown where money is shown (Books, Giving Book, finance); not on the church homepage. |
 | Back / Forward (`NavControls`) | Browser history untouched (`useBrowserHistoryNav`); a ← in the header on every non-home church screen. |
-| Church sub-tab strip (TabScroll) | Dock + the menu's All Features (grouped exactly as `churchTabGroups`); the strip stays on tablet and desktop widths. |
+| Church sub-tab strip (TabScroll) | Seven dock tabs + the menu's All Features (grouped exactly as `churchTabGroups`); the strip stays on tablet and desktop widths. |
 
 ### 4b. Every church tab (ids are the real ones; none renamed)
 
@@ -114,9 +120,10 @@ Real data each part reads: the header reads `authSession`, `profiles`, arrivals;
 
 | Phase | Scope | Tier | Done when |
 |---|---|---|---|
-| A | `AppHeader` + `ProfileMenu` + `AllFeaturesSheet`, mounted in place of the header block (:4124-4283) on the church door only; the family app's header untouched until reviewed | A | every control in §4a reachable; shell line count below 5,178; header tests green or updated with a why |
+| A | `AppHeader` (menu · brand · search · bell · picture) + `ProfileMenu` + `AllFeaturesSheet`, mounted in place of the header block (:4124-4283) on the church door only; the family app's header untouched until reviewed | A | every control in §4a reachable; shell line count below 5,178; header tests green or updated with a why |
 | B | `PersonalizeSheet` (themes, text size, voice, speed, save/restore/reset) | A | theme and text size persist exactly as before (same keys); the swatches test moves to the sheet |
-| C | Dock: Church tab, `churchHomeSection` fix, Giving Book locked surface | A | lovecorner-dock test extended; Watch lights up |
+| C | Dock: the seven tabs of the picture (Home · Watch · Bible · Events · Give · Ministries · Institute), `churchHomeSection` fix, Giving Book locked surface; homepage sections in the picture's order (eight doors, Customize strip, paired cards, Institute banner, the three-card row) | A | lovecorner-dock and home-render tests extended; Watch lights up; 390 px measured with no overflow |
+| C2 | Search: one box over church tabs, lessons and verses, reusing the Scripture and Learn search code | B | results come only from real registries; no network search |
 | D | Kids Zone shell over Youth Zone; true age labels; Teens at the youth band; Ari child mode read | B | child-safety tests (no profile/chat/leaderboard) still green; progress derived; Ari posture proven in the prompt |
 | E | Word builder and Who am I? games (verses verbatim, DR-0076) | B | each game reads only module/verse data; re-review 2026-11-19 honored |
 | F | Tablet and desktop: header + strip; comfort probe re-run at 360/390/768/1440 and three text sizes | A | zero overflow, 36px floor, keyboard walk |
