@@ -73,7 +73,7 @@ import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
 import TopNavRow from './components/TopNavRow.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
-import HeaderAuthButton from './components/HeaderAuthButton.jsx';
+import HeaderAuthButton from './components/HeaderAuthButton.jsx'; import LoveCornerHeader from './components/shell/LoveCornerHeader.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView, VALID_VIEWS } from './lib/nav-history.js'; import { NEW_SUBS as NEW_MONEY_SUBS } from './lib/money-nav.js';
@@ -3558,9 +3558,7 @@ html{scroll-padding-bottom:280px}
 ${THEME_CSS}
       `}</style>
 
-      <div className="ts-chrome-region bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
-        Projections, not promises · Verify with licensed professionals
-      </div>
+      {!churchDoorOnly && <div className="ts-chrome-region bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">Projections, not promises · Verify with licensed professionals</div>}{/* money's own line; not on the church door (DR-1483) */}
 
       <ClaimInviteBanner />
       {persistIssue && (
@@ -4121,13 +4119,10 @@ ${THEME_CSS}
       <div className="lg:flex lg:items-start">
       {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} churchView={churchView} onQuickLink={(q) => { setChurchView(q.churchView); setView(q.view); }} />}
       <div className="min-w-0 flex-1">
+      {/* THE LOVE CORNER DOOR WEARS ITS OWN HEADER (DR-1483; components/shell/LoveCornerHeader.jsx); the family app keeps the one below. */}
+      {churchDoorOnly ? <LoveCornerHeader churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} /> : (
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
-        {/* Header vertical padding is CHROME: pinned to fixed px so it does not
-            scale with the root multiplier (text-size scope split) — keeps the bar
-            from growing taller and pushing content down at larger sizes. */}
-        {/* HEADER HIDEAWAY: this whole top block (title, date/time, build line,
-            account/subscribe row, voice + font controls, theme swatches) hides
-            when collapsed; only the <nav> tab row below stays pinned. */}
+        {/* Header vertical padding is CHROME: pinned to fixed px so it does not scale with the root multiplier; HEADER HIDEAWAY: the top block hides when collapsed, only the tab row stays. */}
         {!headerCollapsed && (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
@@ -4281,6 +4276,7 @@ ${THEME_CSS}
           </div>
         )}
       </header>
+      )}
 
       <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <Suspense fallback={<div role="status" aria-live="polite" className="py-16 text-center text-sm opacity-60">Loading...</div>}>
