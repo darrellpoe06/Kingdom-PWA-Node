@@ -58,10 +58,7 @@ const READER_PLACES = () => ({ lesson: M.lesson, ...M.levels });
 const SPAN = /"([^"]+)"\s*\(((?:[1-3]\s)?[A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)*)\s(\d+):(\d+)\)/g;
 
 /** Every span anywhere in the module: [path, quoted, book, chapter, verse]. */
-const spans = () =>
-  ALL().flatMap(([path, text]) =>
-    [...String(text).matchAll(SPAN)].map((m) => [path, m[1], m[2], Number(m[3]), Number(m[4])])
-  );
+const spans = () => ALL().flatMap(([path, text]) => [...String(text).matchAll(SPAN)].map((m) => [path, m[1], m[2], Number(m[3]), Number(m[4])]));
 
 // --- the KJV corpus on disk, opened by the module's OWN book names -----------
 const KJV = join(process.cwd(), 'public', 'bible', 'kjv');

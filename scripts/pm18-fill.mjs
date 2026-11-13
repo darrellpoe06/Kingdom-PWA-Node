@@ -145,10 +145,10 @@ function fillDeep(value) {
 // band still gets the blocked road, its date, and all three directions (DR-0795).
 // -----------------------------------------------------------------------------
 const BLOCKED_ADULT =
-  'WHAT WE COULD NOT CHECK AT THE SOURCE. The email is a teaser. It carries the opening of the column and then stops at Keep reading on LinkedIn, and the link itself was not in what we hold, so everything after the three things the employer owes was never read and nothing here is laid at its door. The part we hold points at two pieces of outside research, and we tried both roads. The advisory firm WTW is reported to call capability anxiety an emerging workforce risk; its site would not resolve from our network, and a search index shows the firm publishing a 2026 study of the same worry under a different name, fear of becoming obsolete. We did not find the phrase capability anxiety in the firm\'s own words. So the worry is reported by two outlets, and the name, as theirs, is reported by the newsletter alone. SHRM reports that its 2026 Skills (R)evolution report found employers asking for more skills in new job postings every year since 2015; the society\'s own site would not resolve either, so the report was not opened and no figure from it is taught. A shut road must never read like a verified fact. re-review: 2026-11-27.';
+  "WHAT WE COULD NOT CHECK AT THE SOURCE. The email is a teaser. It carries the opening of the column and then stops at Keep reading on LinkedIn, and the link itself was not in what we hold, so everything after the three things the employer owes was never read and nothing here is laid at its door. The part we hold points at two pieces of outside research, and we tried both roads. The advisory firm WTW is reported to call capability anxiety an emerging workforce risk; its site would not resolve from our network, and a search index shows the firm publishing a 2026 study of the same worry under a different name, fear of becoming obsolete. We did not find the phrase capability anxiety in the firm's own words. So the worry is reported by two outlets, and the name, as theirs, is reported by the newsletter alone. SHRM reports that its 2026 Skills (R)evolution report found employers asking for more skills in new job postings every year since 2015; the society's own site would not resolve either, so the report was not opened and no figure from it is taught. A shut road must never read like a verified fact. re-review: 2026-11-27.";
 
 const BLOCKED_SENIOR =
-  'WHAT WE COULD NOT CHECK AT THE SOURCE. We hold only the opening of the column. The email stops at Keep reading on LinkedIn, and the rest was never read, so nothing in this hour is laid at its door. Two reports are named in the part we hold. The first is a claim that the advisory firm WTW calls this worry an emerging risk. Its site would not open from our network. A search shows the firm studying the same fear in 2026 under another name, fear of becoming obsolete, and we did not find the words capability anxiety in its own pages. The second is SHRM\'s own report that job postings ask for more skills each year since 2015. That site would not open either, so we teach no number from it. A road we could not walk is never written up as a thing we checked. re-review: 2026-11-27.';
+  "WHAT WE COULD NOT CHECK AT THE SOURCE. We hold only the opening of the column. The email stops at Keep reading on LinkedIn, and the rest was never read, so nothing in this hour is laid at its door. Two reports are named in the part we hold. The first is a claim that the advisory firm WTW calls this worry an emerging risk. Its site would not open from our network. A search shows the firm studying the same fear in 2026 under another name, fear of becoming obsolete, and we did not find the words capability anxiety in its own pages. The second is SHRM's own report that job postings ask for more skills each year since 2015. That site would not open either, so we teach no number from it. A road we could not walk is never written up as a thing we checked. re-review: 2026-11-27.";
 
 const BLOCKED_TEEN =
   'WHAT WE COULD NOT CHECK. We only have the start of the column. The email stops and says keep reading on LinkedIn, and we never read the rest. It names two reports. One is a firm that is said to call this worry a new risk. We could not open its site. A search shows it calls the same fear by another name, fear of becoming obsolete. The other is a report that jobs ask for more skills each year. We could not open that site either. So we teach no number from them. A door we could not open is not a thing we checked. re-review: 2026-11-27.';
@@ -190,16 +190,16 @@ const MODULE = {
   },
 
   inApp:
-    "No new screens this week. What changes is one page you write by hand, and it takes about an hour. FIRST, THE HAND. List the people you lead - your children, the volunteers on your team, the crew on a rehab, the people who report to you at work - and beside each name write two things they can ALREADY do well. Not what you wish they could do. What is in the hand. If you cannot fill a line, ask that person this week rather than guess; Yahweh asked Moses before He told him anything. SECOND, THE WAY. Beside each name write ONE piece of work they could grow into next, and then ask yourself whether they know it exists. If the next step is only in your head, it is not visible to them, and Exodus 18:20 says show it. THIRD, THE TIME. Pick ONE person on the list and put one hour on the calendar in the next fourteen days to do real work beside them - not a review, not a talk about development, the work itself, with them watching and then with you watching. Mark 3:14 put being with Him before being sent. FOURTH, YOUR OWN HAND. Write one skill you are afraid will not matter in a year, and under it write 2 Corinthians 3:5. Then write one thing you will learn this month and the person you will ask to show you. Bring the page to the person who handed you the project.",
+    'No new screens this week. What changes is one page you write by hand, and it takes about an hour. FIRST, THE HAND. List the people you lead - your children, the volunteers on your team, the crew on a rehab, the people who report to you at work - and beside each name write two things they can ALREADY do well. Not what you wish they could do. What is in the hand. If you cannot fill a line, ask that person this week rather than guess; Yahweh asked Moses before He told him anything. SECOND, THE WAY. Beside each name write ONE piece of work they could grow into next, and then ask yourself whether they know it exists. If the next step is only in your head, it is not visible to them, and Exodus 18:20 says show it. THIRD, THE TIME. Pick ONE person on the list and put one hour on the calendar in the next fourteen days to do real work beside them - not a review, not a talk about development, the work itself, with them watching and then with you watching. Mark 3:14 put being with Him before being sent. FOURTH, YOUR OWN HAND. Write one skill you are afraid will not matter in a year, and under it write 2 Corinthians 3:5. Then write one thing you will learn this month and the person you will ask to show you. Bring the page to the person who handed you the project.',
 
   benefits: [
     "You get the right first question for a worried person, and it is not 'what do you need to learn?' It is 'what is already in your hand?' - Exodus 4:2, asked by Yahweh before He gave Moses one instruction. A worker who is shown what he already has can hear about what he lacks without hearing a verdict.",
-    'You get the three things a leader owes his people, all out of the Word and all in one book of it: the inventory (Exodus 4:2), the way made visible (Exodus 18:20 - shew them the way wherein they must walk, and the work that they must do), and the Teacher who stays (Exodus 4:12). The column calls this the employer\'s job. The Word has called it that for a long time.',
+    "You get the three things a leader owes his people, all out of the Word and all in one book of it: the inventory (Exodus 4:2), the way made visible (Exodus 18:20 - shew them the way wherein they must walk, and the work that they must do), and the Teacher who stays (Exodus 4:12). The column calls this the employer's job. The Word has called it that for a long time.",
     'You get the measure of coaching that actually works, and it is time, not content: Mark 3:14 ordained the twelve that they should be with Him before they were sent, and Acts 4:13 records what onlookers saw in the result - unlearned men, recognised by one thing, that they had been with Jesus.',
-    'You get a succession plan written as a command, not a suggestion: charge Joshua, encourage him, strengthen him (Deuteronomy 3:28). And you get the years it took - Joshua is called Moses\' minister in Exodus 24:13, and Elisha ministered to Elijah (1 Kings 19:21) long before he asked for the double portion.',
+    "You get a succession plan written as a command, not a suggestion: charge Joshua, encourage him, strengthen him (Deuteronomy 3:28). And you get the years it took - Joshua is called Moses' minister in Exodus 24:13, and Elisha ministered to Elijah (1 Kings 19:21) long before he asked for the double portion.",
     'You get the honest line between fear and refusal. Exodus 4:10-12 is anxiety, and it is answered with teaching. Exodus 4:13-14 is a refusal after the promise, and THAT is where the anger is kindled - and even then Yahweh kept teaching both brothers (Exodus 4:15). Fear met with a promise is not sin. Refusing the promise is a different thing.',
-    'You get the part no employer can supply, said plainly instead of left out: not that we are sufficient of ourselves (2 Corinthians 3:5), but who also hath made us able (2 Corinthians 3:6), and a spirit not of fear but of power, of love, and of a sound mind (2 Timothy 1:7). A career path answers the worry about tomorrow\'s job. It does not answer the worry about whether you are enough.',
-    'You get the industry\'s vocabulary in its right place - second, as their word: a skills inventory or skills matrix, career pathing, an individual development plan, coaching and mentoring, PMBOK\'s develop-team work, succession planning. Every one is a serviceable name for a shape Exodus 4 and Mark 3 gave first.',
+    "You get the part no employer can supply, said plainly instead of left out: not that we are sufficient of ourselves (2 Corinthians 3:5), but who also hath made us able (2 Corinthians 3:6), and a spirit not of fear but of power, of love, and of a sound mind (2 Timothy 1:7). A career path answers the worry about tomorrow's job. It does not answer the worry about whether you are enough.",
+    "You get the industry's vocabulary in its right place - second, as their word: a skills inventory or skills matrix, career pathing, an individual development plan, coaching and mentoring, PMBOK's develop-team work, succession planning. Every one is a serviceable name for a shape Exodus 4 and Mark 3 gave first.",
     'You get a lesson that tells you plainly what it could not check. The column is a teaser, the rest was never read, and both reports it names sat behind sites that would not open from our network, so no figure from either is taught - and the date we will try again is written where you can hold us to it.',
   ],
 
@@ -800,22 +800,22 @@ ${TALK.senior}`,
         ],
         answer: 1,
         explain:
-          'Gmail thread 1a1892ae1e2618e8, forwarded 2026-10-29 at 18:29 UTC with one word, Lesson. The email is a teaser, so the lesson tests the author\'s stated prescription against the Word and teaches no figure from either report. A shut road must never read like a verified fact.',
+          "Gmail thread 1a1892ae1e2618e8, forwarded 2026-10-29 at 18:29 UTC with one word, Lesson. The email is a teaser, so the lesson tests the author's stated prescription against the Word and teaches no figure from either report. A shut road must never read like a verified fact.",
       },
       {
         q: 'What did Yahweh ask Moses BEFORE giving him any instruction (Exodus 4:2)?',
         options: [
           'Whether he was willing to go',
           'What he lacked for the task',
-          'What was in his hand - and the answer, a plain shepherd\'s rod, became the instrument of the whole commission (Exodus 4:17)',
+          "What was in his hand - and the answer, a plain shepherd's rod, became the instrument of the whole commission (Exodus 4:17)",
           'Whether he had told his family',
         ],
         answer: 2,
         explain:
-          'The inventory comes before the instruction. That is the column\'s first thing - a clear picture of the skills people already have - and the Word puts it first too. The old tool was carried into the new work, not thrown away.',
+          "The inventory comes before the instruction. That is the column's first thing - a clear picture of the skills people already have - and the Word puts it first too. The old tool was carried into the new work, not thrown away.",
       },
       {
-        q: 'Which verse gives the column\'s SECOND thing - visible information about the work a person could grow into - almost word for word?',
+        q: "Which verse gives the column's SECOND thing - visible information about the work a person could grow into - almost word for word?",
         options: [
           'Exodus 18:20 - shew them the way wherein they must walk, and the work that they must do',
           'Proverbs 22:6 - train up a child',
@@ -824,16 +824,11 @@ ${TALK.senior}`,
         ],
         answer: 0,
         explain:
-          'Jethro\'s counsel makes two things visible: the road and the work at the end of it. Shewing is the leader\'s verb. A next step that lives only in the leader\'s head has not been shown.',
+          "Jethro's counsel makes two things visible: the road and the work at the end of it. Shewing is the leader's verb. A next step that lives only in the leader's head has not been shown.",
       },
       {
         q: 'According to Mark 3:14, what came FIRST for the twelve?',
-        options: [
-          'Being sent out to preach',
-          'Being with Him - the sending came after',
-          'Passing an examination',
-          'Receiving written instructions',
-        ],
+        options: ['Being sent out to preach', 'Being with Him - the sending came after', 'Passing an examination', 'Receiving written instructions'],
         answer: 1,
         explain:
           'That they should be with Him, and that He might send them forth. The order is the method. Acts 4:13 records the result: unlearned and ignorant men, recognised because they had been with Jesus.',
@@ -860,7 +855,7 @@ ${TALK.senior}`,
         ],
         answer: 1,
         explain:
-          'Succession in the Word is preparation, not appointment, and it took years - Joshua is Moses\' minister already at Exodus 24:13. The industry calls this succession planning; the Word wrote it as a command.',
+          "Succession in the Word is preparation, not appointment, and it took years - Joshua is Moses' minister already at Exodus 24:13. The industry calls this succession planning; the Word wrote it as a command.",
       },
       {
         q: 'What is the one thing this lesson says no employer can supply?',
@@ -872,7 +867,7 @@ ${TALK.senior}`,
         ],
         answer: 2,
         explain:
-          'The three things answer the worry about tomorrow\'s job. They cannot answer the deeper worry, whether I am enough. The Word answers that one, and gives a spirit not of fear but of power, of love and of a sound mind (2 Timothy 1:7).',
+          "The three things answer the worry about tomorrow's job. They cannot answer the deeper worry, whether I am enough. The Word answers that one, and gives a spirit not of fear but of power, of love and of a sound mind (2 Timothy 1:7).",
       },
       {
         q: 'Measured from the code, which of the three things does this platform NOT yet hold for its own people?',
@@ -884,7 +879,7 @@ ${TALK.senior}`,
         ],
         answer: 2,
         explain:
-          'The app shows done, total and a percentage for each course (church-classes.js lines 453 to 456) and awards crowns for study (course-crowns.js). It does not hold a picture of anyone\'s working skills. The lesson says so rather than claiming the platform already practises what it teaches.',
+          "The app shows done, total and a percentage for each course (church-classes.js lines 453 to 456) and awards crowns for study (course-crowns.js). It does not hold a picture of anyone's working skills. The lesson says so rather than claiming the platform already practises what it teaches.",
       },
     ],
   },
