@@ -496,7 +496,7 @@ describe('the four bands, measured on this tree', () => {
 
   it('the measurements are what the record says they are', () => {
     // MEASURED 2026-11-13 by scripts/sov87-fill.mjs: adult 2,288 words; child
-    // 0.554 / youth 0.681 / teen 0.734 / senior 0.757; grades 1.30 < 3.37 <
+    // 0.555 / youth 0.681 / teen 0.734 / senior 0.757; grades 1.31 < 3.37 <
     // 4.78 < 8.35. Pinned with tolerance.
     const adult = words(MODULE.lesson);
     expect(adult).toBeGreaterThanOrEqual(2200);

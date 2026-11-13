@@ -20,7 +20,7 @@ Darrell forwarded IT Brew's *Site unseen* (sent 2026-11-09 15:01 UTC) from his u
 - `registry.npmjs.org`, 2026-11-13: 5 of the 11 list one maintainer (libheif-js, libsodium-wrappers, phonemizer, qrcode.react, xlsx); xlsx latest 2022-03-24. Not re-checkable offline, so the test requires the date beside it.
 - `scripts/dependency-audit-allowlist.json`: xlsx prod, no fixed release, moved off npm, reReview 2026-12-05. `.github/dependabot.yml:1-5`; `scripts/dependency-audit-guard.mjs:6-10` (95 workflows, first run 21 known, 2 critical, 6 high, 8 cleared); `ci.yml:158`; `exposure-report.yml:18`; `OpsBoard.jsx:427`.
 
-The ladder passed on the first draft, every band authored by hand (DR-1306): child 1.30 < youth 3.37 < teen 4.78 < senior 8.35 (adult 7.37); shares 0.554 / 0.681 / 0.734 / 0.757; worst overlap 0.130.
+The ladder passed on the first draft, every band authored by hand (DR-1306): child 1.31 < youth 3.37 < teen 4.78 < senior 8.35 (adult 7.37); shares 0.555 / 0.681 / 0.734 / 0.757; worst overlap 0.130.
 
 ## Impact
 

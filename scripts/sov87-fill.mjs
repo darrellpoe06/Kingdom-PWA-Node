@@ -251,7 +251,7 @@ WE DID NOT SEE IT EITHER. Our app had holes it did not know about, too. For a lo
 
 THE BOX WITH A HOLE. Now back to King Jehoash. He did not yell. He did something smart. [[2 Kings 12:9]] A box with a hole in the top! People put money in it. Then the money went right to the workers who fixed the house. And those workers were good and honest. [[2 Kings 12:15]]
 
-The people who keep our apps are workers too. Many of them work for free. One hundred and sixty-one of the parts in our app ask for help from the people who use them. Should our family help them? That is a big money question. So we asked Darrell, and he will decide.
+The people who keep our apps are workers too. Many of them work for free. One hundred and sixty-one of the parts in our app ask for help from the people who use them. Should our family help them? That is a big money question. So the question goes to Darrell, and he will decide.
 
 A STORY TO HELP YOU THINK. This story is made up. It did not really happen.
 
