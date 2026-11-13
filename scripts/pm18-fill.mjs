@@ -294,7 +294,7 @@ MOVEMENT SEVEN: THE WORK CHANGES; THE TEACHER DOES NOT.
 
 The column is right that work keeps changing. The Word is not surprised by that, and it gives the worker a steadier place to stand than any forecast of skills. [[Hebrews 13:8]] The Teacher is the same yesterday, today and for ever, even when the tools are not.
 
-The Word even says that ordinary trade skill is taught by Yahweh. Isaiah describes a farmer working his field, and then says: [[Isaiah 28:26]] His instructor in the craft is not only his father; it is Yahweh.
+The Word even says that ordinary trade skill is taught by Yahweh. Isaiah describes a farmer working his field, and then says: [[Isaiah 28:26]] The farmer's instructor in his craft is Yahweh.
 
 So keep learning, and expect to. [[Proverbs 1:5]] A wise man WILL HEAR, and will increase learning. [[Proverbs 9:9]] Teach a just man, and he will increase. Learning is not a sign you have fallen behind; it is what the wise do at every age. Even the Son, as a boy, [[Luke 2:52]] increased in wisdom. And the diligent worker is not forgotten: [[Proverbs 22:29]]
 
