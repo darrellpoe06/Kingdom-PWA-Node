@@ -71,24 +71,37 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const MAN = { name: 'English (United States) Male', voiceURI: 'en-us-male', lang: 'en-US', localService: true };
 const WOMAN = { name: 'English (United States) Female', voiceURI: 'en-us-female', lang: 'en-US', localService: true };
 const WOMAN2 = { name: 'English (United Kingdom) Female', voiceURI: 'en-gb-female', lang: 'en-GB', localService: true };
-const LESSON = 'In the beginning was the Word. And the Word was with God. And the Word was God. The same was in the beginning with God. All things were made by Him. And without Him was not any thing made that was made. In Him was life. And the life was the light of men.';
+const LESSON =
+  'In the beginning was the Word. And the Word was with God. And the Word was God. The same was in the beginning with God. All things were made by Him. And without Him was not any thing made that was made. In Him was life. And the life was the light of men.';
 
-const flush = async (n = 8) => { for (let i = 0; i < n; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+const flush = async (n = 8) => {
+  for (let i = 0; i < n; i += 1)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+};
 
 // =============================================================================
 describe('1. the list of the books at the end of a lesson is seen, not read', () => {
-  let container; let root;
-  beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
-  afterEach(() => { act(() => root.unmount()); container.remove(); });
+  let container;
+  let root;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+  });
 
   const LESSON_MODULE = { id: 'test-lesson', anchor: { ref: 'Genesis 1:1; Isaiah 40:8; John 1:1; Hebrews 11:3' } };
   const BODY = 'As the Word says, "In the beginning God created the heaven and the earth" (Genesis 1:1), and that is where we stand.';
 
   async function lessonEnd() {
-    await act(async () => root.render(createElement('div', { id: 'read-root' },
-      createElement('p', null, BODY),
-      createElement(LessonFigures, { module: LESSON_MODULE }),
-    )));
+    await act(async () =>
+      root.render(createElement('div', { id: 'read-root' }, createElement('p', null, BODY), createElement(LessonFigures, { module: LESSON_MODULE })))
+    );
     return container.querySelector('#read-root');
   }
 
@@ -120,10 +133,9 @@ describe('1. the list of the books at the end of a lesson is seen, not read', ()
   it('the Who He Is register (every passage, where and when) is seen, not read', async () => {
     const m = WHO_HE_IS_MODULES.find((x) => x.whoHeIs && !x.whoHeIs.edge);
     expect(m, 'a Who He Is lesson with a register').toBeTruthy();
-    await act(async () => root.render(createElement('div', { id: 'read-root' },
-      createElement('p', null, BODY),
-      createElement(WhoHeIsRegister, { spec: m.whoHeIs }),
-    )));
+    await act(async () =>
+      root.render(createElement('div', { id: 'read-root' }, createElement('p', null, BODY), createElement(WhoHeIsRegister, { spec: m.whoHeIs })))
+    );
     const el = container.querySelector('#read-root');
     const reg = el.querySelector('[data-testid="who-he-is-register"]');
     expect(reg).toBeTruthy();
@@ -140,17 +152,37 @@ function fakeSynth(initial) {
   const s = {
     list: initial,
     spoken: [],
-    speaking: false, paused: false, pending: false,
-    getVoices() { return typeof s.list === 'function' ? s.list() : s.list; },
-    speak(u) { s.spoken.push(u); s.speaking = true; if (u.onstart) u.onstart(); },
-    cancel() { s.speaking = false; },
-    pause() {}, resume() {},
+    speaking: false,
+    paused: false,
+    pending: false,
+    getVoices() {
+      return typeof s.list === 'function' ? s.list() : s.list;
+    },
+    speak(u) {
+      s.spoken.push(u);
+      s.speaking = true;
+      if (u.onstart) u.onstart();
+    },
+    cancel() {
+      s.speaking = false;
+    },
+    pause() {},
+    resume() {},
   };
   return s;
 }
-class Utt { constructor(t) { this.text = t; this.voice = null; this.lang = ''; } }
+class Utt {
+  constructor(t) {
+    this.text = t;
+    this.voice = null;
+    this.lang = '';
+  }
+}
 const clone = (v) => ({ ...v });
-const endCurrent = (s) => { const u = s.spoken.at(-1); if (u && u.onend) u.onend(); };
+const endCurrent = (s) => {
+  const u = s.spoken.at(-1);
+  if (u && u.onend) u.onend();
+};
 
 describe('2a. the engine speaks every sentence in the voice chosen at the start', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -237,7 +269,8 @@ function voiceLiteFetch(url, init) {
   const n = road.calls.length;
   const status = road.answer ? road.answer({ n, body }) : 200;
   return Promise.resolve({
-    ok: status === 200, status,
+    ok: status === 200,
+    status,
     headers: { get: (k) => (k.toLowerCase() === 'content-type' ? (status === 200 ? 'audio/wav' : 'application/json') : null) },
     blob: async () => ({ size: 3200 }),
   });
@@ -253,11 +286,26 @@ function installMedia() {
 }
 function installPhone(voices) {
   const s = {
-    spoken: [], speaking: false, paused: false, pending: false,
-    speak(u) { s.spoken.push(u); s.speaking = true; if (u.onstart) u.onstart(); },
-    cancel() { s.speaking = false; }, pause() {}, resume() {},
-    getVoices() { return [...voices]; },
-    addEventListener() {}, removeEventListener() {}, onvoiceschanged: null,
+    spoken: [],
+    speaking: false,
+    paused: false,
+    pending: false,
+    speak(u) {
+      s.spoken.push(u);
+      s.speaking = true;
+      if (u.onstart) u.onstart();
+    },
+    cancel() {
+      s.speaking = false;
+    },
+    pause() {},
+    resume() {},
+    getVoices() {
+      return [...voices];
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    onvoiceschanged: null,
   };
   window.speechSynthesis = s;
   window.SpeechSynthesisUtterance = Utt;
@@ -265,15 +313,22 @@ function installPhone(voices) {
 }
 
 describe('2b. a NAS piece that fails never hands a man’s reading to a woman’s voice', () => {
-  let container; let root; let api;
-  function Probe() { api = useReadAloud({ isOwner: true }); return null; }
+  let container;
+  let root;
+  let api;
+  function Probe() {
+    api = useReadAloud({ isOwner: true });
+    return null;
+  }
   beforeEach(async () => {
     localStorage.clear();
     family.key = 'fam-key';
     localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 'fam-key');
     // He picked his own voice: a man's, read by the NAS man's voice meanwhile.
     saveReadingVoiceId('person:darrell');
-    road.calls = []; road.answer = null; media.plays = [];
+    road.calls = [];
+    road.answer = null;
+    media.plays = [];
     _resetLiteVoiceForTests();
     _setDeviceClipCacheForTests(null);
     globalThis.fetch = vi.fn(voiceLiteFetch);
@@ -281,23 +336,35 @@ describe('2b. a NAS piece that fails never hands a man’s reading to a woman’
     URL.revokeObjectURL = () => {};
     installMedia();
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
-    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
   });
   afterEach(() => {
-    act(() => root.unmount()); container.remove();
-    delete window.speechSynthesis; delete window.SpeechSynthesisUtterance;
+    act(() => root.unmount());
+    container.remove();
+    delete window.speechSynthesis;
+    delete window.SpeechSynthesisUtterance;
   });
-  async function mount() { await act(async () => root.render(createElement(Probe))); await flush(); }
+  async function mount() {
+    await act(async () => root.render(createElement(Probe)));
+    await flush();
+  }
   async function press() {
     api.claimAudio('Lesson');
     const reading = api.read(LESSON, { title: 'Lesson' });
-    await act(async () => { await reading; });
+    await act(async () => {
+      await reading;
+    });
     await flush();
   }
   async function playOn(times = 4) {
     for (let i = 0; i < times; i += 1) {
       const el = media.plays.filter((p) => p.blob).at(-1);
-      if (el && el.el.onended) await act(async () => { el.el.onended(); });
+      if (el && el.el.onended)
+        await act(async () => {
+          el.el.onended();
+        });
       await flush();
     }
   }
@@ -309,7 +376,10 @@ describe('2b. a NAS piece that fails never hands a man’s reading to a woman’
     await press();
     expect(road.calls[0].voice, 'the NAS voice for his pick is a man’s').toBe('male');
     await playOn();
-    expect(phone.spoken.map((u) => u.voice && u.voice.voiceURI), 'a woman’s voice took over the man’s reading').toEqual([]);
+    expect(
+      phone.spoken.map((u) => u.voice && u.voice.voiceURI),
+      'a woman’s voice took over the man’s reading'
+    ).toEqual([]);
     expect(api.isReading).toBe(true);
     expect(api.isPaused).toBe(true);
     expect(api.notice).toMatch(/waits here instead of going on in a different voice/);
@@ -325,7 +395,9 @@ describe('2b. a NAS piece that fails never hands a man’s reading to a woman’
     await playOn();
     fail = false;
     const asked = road.calls.length;
-    await act(async () => { api.resume(); });
+    await act(async () => {
+      api.resume();
+    });
     await flush();
     expect(road.calls.length, 'play did not ask the NAS voice again').toBeGreaterThan(asked);
     expect(road.calls.at(-1).voice).toBe('male');
@@ -351,7 +423,9 @@ describe('2b. a NAS piece that fails never hands a man’s reading to a woman’
     road.answer = ({ n }) => (n === 1 ? 200 : 404);
     await press();
     await playOn();
-    await act(async () => { api.resume(); });
+    await act(async () => {
+      api.resume();
+    });
     await flush(12);
     expect(phone.spoken.length, 'after the press the rest is read').toBeGreaterThan(0);
   });

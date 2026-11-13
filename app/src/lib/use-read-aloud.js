@@ -30,6 +30,7 @@ import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
 import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
+import { heldForVoiceNotice } from './reading-voice-hold.js';
 import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -915,17 +916,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       setCloudPlaying(true); setCloudPaused(true);
       try { if (bgRef.current) bgRef.current.setState('paused'); } catch (_) { /* ignore */ }
       trip().note('held-for-voice', { reason: reason || '', gender: pin.gender });
-      let keepIt = null;
-      try {
-        if (!(await deviceVoiceReady())) {
-          const dv = await checkDeviceVoice({});
-          if (dv && dv.state === 'downloadable' && typeof window !== 'undefined' && window.location) {
-            keepIt = { href: `${window.location.pathname}?view=voice`, label: `Keep the ${man ? 'man’s' : 'woman’s'} voice on this phone` };
-          }
-        }
-      } catch (_) { keepIt = null; }
-      const who = man ? 'man’s' : 'woman’s';
-      setNotice(`The church’s ${who} reading voice did not answer, and this phone has no ${who} voice of its own, so the reading waits here instead of going on in a different voice. Press play to try the ${who} voice again; if it still cannot answer, the rest reads in this phone’s own voice.`, keepIt);
+      const held = await heldForVoiceNotice({ man, ready: deviceVoiceReady, check: checkDeviceVoice });
+      setNotice(held.text, held.keepIt);
       return;
     }
     pin.uri = pick.uri; pin.matched = pick.matched;
