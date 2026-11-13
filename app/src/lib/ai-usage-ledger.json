@@ -2344,6 +2344,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 36,
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
+    },
+    {
+      "id": "pm18-what-is-that-in-thine-hand",
+      "date": "2026-11-13",
+      "task": "pm18 What is that in thine hand: capability anxiety, the path a leader owes, and the One who teaches; Project Management lesson 18 from a LinkedIn column forwarded under one word, Lesson; all four age bands, 44-case gate",
+      "drs": [
+        "DR-1485"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 30,
+      "notes": "Reserved DR-1485 and reserve/pm18 on origin. 204 quoted spans filled from app/public/bible/kjv by scripts/pm18-fill.mjs, none typed. The email is a teaser; the rest of the column was never read and www.wtwco.com and www.shrm.org both failed to resolve, so no report figure is taught; re-review 2026-11-27. App skills-inventory gap named, re-review 2026-12-13."
     }
   ]
 }
