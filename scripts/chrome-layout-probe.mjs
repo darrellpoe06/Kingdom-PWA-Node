@@ -361,8 +361,8 @@ try {
   //      (the words are chrome-capped; the page scales, the bar does not).
   //  18. NOTHING OVERFLOWS the page; the sub-tab strip, where drawn, is a
   //      scroll box with its Show-all when it overflows.
-  // Selftest: the brand name is hidden and the bar forced to 2600px wide;
-  // 15 and 18 MUST trip.
+  // Selftest: the brand name and the search control are hidden; 15 and 16
+  // MUST trip.
   // ---------------------------------------------------------------------------
   const ONE_TAB_CASES = SELFTEST
     ? [{ width: 1812, size: 'normal' }]
@@ -380,7 +380,8 @@ try {
     await page.goto(`${origin}${BASE}/?lovecorner=1&view=church`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="lovecorner-header"]', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
-      await page.addStyleTag({ content: '[data-testid="lovecorner-header"] .lch-name { display: none !important } [data-testid="lovecorner-header"] .lch-bar { min-width: 2600px !important }' });
+      // The break: the name gone and the search control gone; 15 and 16 MUST trip.
+      await page.addStyleTag({ content: '[data-testid="lovecorner-header"] .lch-name { display: none !important } [data-testid="lovecorner-header"] [data-testid="lch-search"] { display: none !important }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const om = await page.evaluate(() => {
