@@ -52,9 +52,10 @@ export const STAND_IN_POLL_MS = 250;
  * @param {object} o.pin       the reading's pin ({ gender, uri?, matched? })
  * @param {number} [o.rate]
  * @param {boolean} [o.hidden] the page is not on the screen
+ * @param {(text: string) => void} [o.say] the reader's notice line
  * @returns {Promise<boolean>} true once the phone has said it
  */
-export function speakPieceOnPhone({ text, pin, rate = 1, hidden = false, synth, Utterance, poll = STAND_IN_POLL_MS } = {}) {
+export function speakPieceOnPhone({ text, pin, rate = 1, hidden = false, say = null, synth, Utterance, poll = STAND_IN_POLL_MS } = {}) {
   const s = synth || (typeof window !== 'undefined' ? window.speechSynthesis : null);
   const U = Utterance || (typeof window !== 'undefined' ? window.SpeechSynthesisUtterance : null);
   const words = toSpokenForm(String(text || '')).trim();
@@ -64,6 +65,9 @@ export function speakPieceOnPhone({ text, pin, rate = 1, hidden = false, synth, 
   const pick = deviceVoiceForPin(pin, { voices });
   if (!pick.matched || !pick.uri) return Promise.resolve(false);
   pin.uri = pick.uri; pin.matched = true;
+  // Said in one line, as every change of voice is (DR-1254).
+  const who = pin.gender === 'male' ? 'a man’s' : 'a woman’s';
+  if (typeof say === 'function') say(`One sentence the church’s reading voice could not give is read in this phone’s own voice, ${who} voice like it; then the church’s voice reads on.`);
   return new Promise((resolve) => {
     let done = false;
     let heard = false;

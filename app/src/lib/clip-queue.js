@@ -24,6 +24,9 @@
 import { segmentText } from './tts.js';
 import { pieceAt, pieceFractionAt } from './joined-clip.js';
 import { hasSpeakable } from './speech-shape.js';
+// The stand-in the reader lends this queue for one piece (DR-1498), handed on
+// from here so the reader's hook takes it with the queue on one import line.
+export { speakPieceOnPhone } from './reading-voice-hold.js';
 
 /** Where the reading is cut (tts.js segmentText breathes at about this length). */
 export const PIECE_CUT = 180;

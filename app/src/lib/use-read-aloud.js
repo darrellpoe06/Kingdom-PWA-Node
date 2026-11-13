@@ -26,11 +26,11 @@ import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './v
 import { loadVoiceShapes, saveVoiceShape, shapeFor, clampPitch, nextPitch, DEFAULT_PITCH as SHAPE_DEFAULT_PITCH } from './voice-shape.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
-import { chunkForClips, createClipQueue } from './clip-queue.js';
+import { chunkForClips, createClipQueue, speakPieceOnPhone } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
 import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
-import { heldForVoiceNotice, speakPieceOnPhone } from './reading-voice-hold.js';
+import { heldForVoiceNotice } from './reading-voice-hold.js';
 import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -787,9 +787,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         const at = Number(sp) > 0 ? Number(sp) : pinned;
         return sourceFor(at).fresh(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
       },
-      schedule: (fn, ms) => setTimeout(fn, ms),
-      unschedule: (id) => clearTimeout(id),
-      standIn: (t, i, why) => { trip().note('stand-in', { i, reason: why }); return speakPieceOnPhone({ text: t, pin: readingPinRef.current, rate: rateRef.current, hidden: pageHidden() }); }, // one piece, then the NAS voice again (DR-1498)
+      schedule: (fn, ms) => setTimeout(fn, ms), unschedule: (id) => clearTimeout(id),
+      standIn: (t, i, why) => { trip().note('stand-in', { i, reason: why }); return speakPieceOnPhone({ text: t, pin: readingPinRef.current, rate: rateRef.current, hidden: pageHidden(), say: setNotice }); }, // one piece, then the NAS voice again (DR-1498)
       // The pace of every piece, measured (DR-0794): the trip says it in one line.
       onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },

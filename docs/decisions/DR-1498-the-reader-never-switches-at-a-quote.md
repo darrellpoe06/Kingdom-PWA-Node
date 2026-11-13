@@ -1,6 +1,6 @@
 # DR-1498: The reader never switches voice at a quote
 
-**Date:** 2026-11-13 · **Status:** Accepted · **Tier:** B (reader behaviour) · **Area:** `app/src/lib/speech-shape.js`, `app/src/lib/read-follow.js`, `app/src/lib/clip-queue.js`, `app/src/lib/reading-voice-hold.js`, `app/src/lib/use-read-aloud.js`, `app/src/components/LessonFigures.jsx`
+**Date:** 2026-11-13 · **Status:** Accepted · **Tier:** B (reader behaviour) · **Area:** `scripts/voice-clarity-corpus.mjs`, `app/src/lib/speech-shape.js`, `app/src/lib/read-follow.js`, `app/src/lib/clip-queue.js`, `app/src/lib/reading-voice-hold.js`, `app/src/lib/use-read-aloud.js`, `app/src/components/LessonFigures.jsx`
 **Follows:** DR-1482 (keep the voice you chose; the books list is seen, not read), DR-1254 (the hand-off offered the man's voice), DR-1251 (a bad piece is asked for again), DR-0417 (a reference chip is a word of its sentence)
 
 ## Context
@@ -28,8 +28,10 @@ Darrell, 2026-11-13, after DR-1482 deployed (c5f2ec387ae), rendered for meaning 
 
 - Saved readings: clip keys are per piece text, so the few pieces at a quote boundary are fetched once more, then kept.
 - The studio (my voice) queue is unchanged: it passes no fresh ask and no stand-in.
+- A stand-in is said in one line on the panel (DR-1254): one sentence read in the phone's own voice of the same kind, then the church's voice reads on.
+- The clarity witness corpus (`infra/nas-voice-lite/fixtures/clarity-corpus.json`) is regenerated from the new cut: its citation-led group (pieces that opened on `" (Ref)`) no longer exists in the catalog, so it becomes `citation`, a quoted verse closing on its reference.
 
 ## Verification
 
 - `the-reader-never-switches-at-a-quote.test.jsx`: his paragraph cut with no wordless piece and no piece starting with a closing mark; the real WordInline paragraph mapped with the reference as written; the queue skips a bare quote without a fallback; one bad piece retried, stood in, and the NAS voice resumes; the hook speaks exactly that one piece in a man's voice and asks the NAS for the next; the books fold (closed and opened, list-only and L140) absent from the spoken map and from the composed reading.
-- Proven to catch: run against origin/main's six source files (results recorded in the PR).
+- Proven to catch: run against origin/main's six source files, 11 of 15 fail (on main the hook test's phone spoke 5 utterances, the whole rest, where 1 is right; the L140 fold reads optional, open to review); the 4 that pass are controls (a stand-in that cannot hands on; the list-only fold; the composed reading).
