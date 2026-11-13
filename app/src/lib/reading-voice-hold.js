@@ -18,8 +18,9 @@ export async function heldForVoiceNotice({ man, ready, check }) {
   const who = man ? 'man’s' : 'woman’s';
   let keepIt = null;
   try {
-    if (!(await ready())) {
-      const dv = await check({});
+    // The reading's own voice is asked about, not the man's by default (DR-1494).
+    if (!(await ready(man ? 'male' : 'female'))) {
+      const dv = await check({ voice: man ? 'male' : 'female' });
       if (dv && dv.state === 'downloadable' && typeof window !== 'undefined' && window.location) {
         keepIt = { href: `${window.location.pathname}?view=voice`, label: `Keep the ${who} voice on this phone` };
       }

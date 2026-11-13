@@ -33,8 +33,9 @@
 //   checkDeviceVoice({ voice })         -> { state: 'ready'|'downloadable'|'unsupported', reason }
 //   downloadDeviceVoice({ voice, onProgress }) -> { ok, bytes } | { error }
 //
-// Not wired into the reader yet (DR-0656: after the clip-queue / read-aloud
-// PRs land). The card in the Voice surface is the only caller today.
+// Callers: the card in the Voice surface; the reader's stand-in for a failed
+// NAS piece (DR-0881); and keep-voice-on-wifi.js, which keeps the man's voice
+// on the phone by itself on an unmetered connection (DR-1494).
 // =============================================================================
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
 import { forSynthesis } from './synthesis-text.js';
