@@ -50,7 +50,35 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // a section through lib/church-home-section.js; the strip below runs in
   // controlled mode so the request opens the section in place (UX 2e).
   const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
-  useEffect(() => subscribeChurchHomeSection((id) => { if (id) setSection(id); }), []);
+  // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
+  // Love Corner front door): "When pushing latest message we should open to the
+  // space with it... All buttons should work and go to the space it's
+  // descriptions saying." Pressing Watch changed the section CORRECTLY and then
+  // left the reader at the hero, with the player somewhere below the fold — the
+  // button did its work invisibly, which reads as a dead button. Changing the
+  // section is not arriving at it. So a requested section now scrolls its strip
+  // into view, the same way the follow-along reader already does below: one
+  // frame later, because the section's content mounts after this state settles,
+  // and `block: 'start'` so the strip's own tabs sit at the top of the view and
+  // the section begins right under them. A section the viewer picks by TAPPING
+  // the strip is NOT scrolled — their finger is already there, and moving the
+  // page under it is the jump this fix exists to remove.
+  const sectionStripRef = useRef(null);
+  useEffect(
+    () =>
+      subscribeChurchHomeSection((id) => {
+        if (!id) return;
+        setSection(id);
+        setTimeout(() => {
+          try {
+            sectionStripRef.current && sectionStripRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+          } catch {
+            /* no layout (jsdom, or a detached node) — the section still opened */
+          }
+        }, 60);
+      }),
+    []
+  );
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -979,7 +1007,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      <div ref={sectionStripRef} data-testid="church-section-strip">
+        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+      </div>
     </div>
   );
 }
