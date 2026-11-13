@@ -144,7 +144,19 @@ describe('sov80 is in the catalog and is the whole lesson', () => {
     expect(STRINGS.length).toBeGreaterThanOrEqual(140);
     const paths = STRINGS.map(([p]) => p);
     for (const p of READER_PLACES) expect(paths, `${p} must be swept`).toContain(p);
-    for (const p of ['title', 'anchor.theme', 'rpe.research', 'rpe.plan', 'rpe.execute', 'benefits[0]', 'stories[0].body', 'quiz.questions[0].explain', 'facilitator.howToRun', 'facilitator.talkingPoints[0]', 'facilitator.discussionPrompts[0]']) {
+    for (const p of [
+      'title',
+      'anchor.theme',
+      'rpe.research',
+      'rpe.plan',
+      'rpe.execute',
+      'benefits[0]',
+      'stories[0].body',
+      'quiz.questions[0].explain',
+      'facilitator.howToRun',
+      'facilitator.talkingPoints[0]',
+      'facilitator.discussionPrompts[0]',
+    ]) {
       expect(paths, `${p} must be swept`).toContain(p);
     }
     // And the sweep genuinely finds quotations OUTSIDE the reader places —
@@ -201,10 +213,11 @@ describe('every quotation is the corpus verbatim', () => {
 });
 
 describe('anchor.ref names every verse quoted in a reader place, and nothing more', () => {
-  const anchor = MODULE.anchor.ref.split(';').map((s) => s.trim()).filter(Boolean);
-  const readerQuoted = new Set(
-    QUOTATIONS.filter((q) => READER_PLACES.includes(q.path)).map((q) => `${q.book} ${q.chapter}:${q.verse}`)
-  );
+  const anchor = MODULE.anchor.ref
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const readerQuoted = new Set(QUOTATIONS.filter((q) => READER_PLACES.includes(q.path)).map((q) => `${q.book} ${q.chapter}:${q.verse}`));
 
   it('the anchor carries no reference that is not quoted to a reader', () => {
     expect(anchor.filter((r) => !readerQuoted.has(r))).toEqual([]);

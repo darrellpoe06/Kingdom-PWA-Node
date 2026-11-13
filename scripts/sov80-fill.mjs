@@ -86,8 +86,7 @@ const CATALOG = join(ROOT, 'app', 'src', 'lib', 'sovereign-ai-class.js');
 
 const WEEK = 80;
 const ID = 'sov80-discovery-is-not-permission';
-const TITLE =
-  'Discovery is not permission - the key laid on a shoulder, the tree that was seen before it was taken, and the porter who opens to the shepherd';
+const TITLE = 'Discovery is not permission - the key laid on a shoulder, the tree that was seen before it was taken, and the porter who opens to the shepherd';
 
 // -----------------------------------------------------------------------------
 // The corpus
@@ -797,11 +796,7 @@ She said afterward that she had not understood until that week how heavy an ungr
       },
       {
         q: 'Genesis 3:6 records the fall in the language of what?',
-        options: [
-          'A prayer',
-          'An inventory - good for food, pleasant to the eyes, to be desired',
-          'A legal argument',
-        ],
+        options: ['A prayer', 'An inventory - good for food, pleasant to the eyes, to be desired', 'A legal argument'],
         answer: 1,
         explain:
           'Every item in that list is a property of the thing itself. Not one of them is a grant. She had an accurate catalog and no permission, and she treated the first as though it were the second.',
@@ -822,22 +817,13 @@ She said afterward that she had not understood until that week how heavy an ungr
       },
       {
         q: 'In John 10:1, what condemns the man who climbs up some other way?',
-        options: [
-          'That he was unable to reach the door',
-          'His ROUTE - he could get in, but not by the door',
-          'That he owned no sheep',
-        ],
+        options: ['That he was unable to reach the door', 'His ROUTE - he could get in, but not by the door', 'That he owned no sheep'],
         answer: 1,
-        explain:
-          'He is perfectly able to get in. He is not stopped by weakness; he is condemned entirely by the way he came. Ability was never the question.',
+        explain: 'He is perfectly able to get in. He is not stopped by weakness; he is condemned entirely by the way he came. Ability was never the question.',
       },
       {
         q: 'What is the porter’s office in John 10:3?',
-        options: [
-          'To decide who the shepherd is',
-          'To open to the one who already is the shepherd',
-          'To keep the sheep from leaving',
-        ],
+        options: ['To decide who the shepherd is', 'To open to the one who already is the shepherd', 'To keep the sheep from leaving'],
         answer: 1,
         explain:
           'He does not determine who the shepherd is; he opens to the one who already is, and the sheep are known by a voice rather than by a token. That is a gate with a keeper, and the Word had the office first.',
@@ -855,11 +841,7 @@ She said afterward that she had not understood until that week how heavy an ungr
       },
       {
         q: 'Which verse is used in this lesson to teach the OUTBOUND gate - what a request is entitled to receive back?',
-        options: [
-          'Proverbs 11:13, where one man reveals a secret and the faithful spirit conceals the matter',
-          'Proverbs 3:5',
-          'Psalm 23:1',
-        ],
+        options: ['Proverbs 11:13, where one man reveals a secret and the faithful spirit conceals the matter', 'Proverbs 3:5', 'Psalm 23:1'],
         answer: 0,
         explain:
           'With Proverbs 4:23 (out of the heart are the issues) and Psalm 141:3 (keep the door of my lips). Deciding what goes back out is a faithful spirit standing at the door of an answer, not a compliance task.',
