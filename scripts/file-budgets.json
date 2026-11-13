@@ -238,11 +238,18 @@
       "to": 6006,
       "date": "2026-11-12",
       "why": "DR-1448: the self-paced course walks each section with a video. The resolver lives in lib/lesson-video.js and the player in LessonVideo.jsx; ChurchLearn carries one import and one mount line above the lesson arc, nothing more. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 11697,
+      "to": 11889,
+      "date": "2026-11-12",
+      "why": "sov77 (DR-1457, prove all things) adds one lesson to this file: the Sovereign A.I. week built from The Neuron send Darrell forwarded on 2026-10-27 with one word above it, Lesson (Gmail thread 1a17edb181a9c1f6), taught Word-first from 1 Thessalonians 5:21 -- prove all things, hold fast that which is good -- with all four age bands and 231 quoted spans filled from the KJV corpus on disk. Twelfth raise for the same reason as every one before it: the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 32192,
-    "app/src/lib/sovereign-ai-class.js": 11697,
+    "app/src/lib/sovereign-ai-class.js": 11889,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6006,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
