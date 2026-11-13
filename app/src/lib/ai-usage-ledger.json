@@ -2496,6 +2496,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 32,
       "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
+    },
+    {
+      "id": "ll313-children-are-a-heritage-when-the-school-closes-the-house",
+      "date": "2026-11-13",
+      "task": "L313 Children Are a Heritage, When the School Closes, the House Still Teaches, from the 1440 Daily Digest Darrell forwarded under one word, Lesson; all four age bands, 15-case gate with four dangers proven to catch",
+      "drs": [
+        "DR-1491"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 30,
+      "notes": "Gmail thread 1a1c5c715c76307d, forwarded 2026-11-10T14:04Z (8:04 AM Central), built 2026-11-13 from the intake backlog. One item of the digest taught (school closures); Congress, the Holmes teaser and the other briefs left out, Nvidia already L310. Reserved L313 and DR-1491 on origin (L311, L312 held by other sessions). 104 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. The analysis and research 1440 cites were not read; figures reported, re-review 2026-11-27."
     }
   ]
 }
