@@ -765,7 +765,23 @@ const REPO = join(HERE, '..', '..', '..');
 // their own gates assert they admit nothing. re-review: 2026-11-27 -- read the
 // BLS release and the Catechism paragraphs from a runner; if they read back,
 // give ll305's medians a row, replace the not-read clauses, and lower this pin.
-const GAP = 33;
+//
+// 33 -> 34 on 2026-11-13 for pm17-can-two-walk-together, by the SECOND remedy
+// again. Darrell forwarded a Supply Chain Connect send and lifted ONE item by
+// hand above the forward -- 6 Steps to Better CFO-CPO Alignment -- and that
+// item was never readable: endeavor.omeclk.com answered getaddrinfo ENOTFOUND
+// and www.supplychainconnect.com and www.sourcetoday.com were both refused by
+// the proxy with 403 CONNECT. Three roads, three refusals, then stopped. So
+// NOT ONE of the six steps is taught, and all five reader places plus the
+// bigIdea say the article was not read, with the date. No lesson-sources.json
+// row was written for the same reason ll305 has none: no runner has been shown
+// to read those hosts back, and a row the witness cannot read would count a
+// figure nobody read (DR-0076 section 3). The lesson stands on the Word --
+// Amos 3:3, Bezaleel and Ithamar named in consecutive verses, the chest with
+// two hands on it -- not on the article, which is why it could be built at all
+// with the source shut. re-review: 2026-11-27 -- try those three hosts from a
+// runner; if the item reads back, give it a row and lower this pin.
+const GAP = 34;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
