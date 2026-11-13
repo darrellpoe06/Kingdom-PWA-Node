@@ -64,7 +64,9 @@ import { planAbbreviationFixes, proseName } from '../../../scripts/fix-quote-abb
 // including device-voice.worker.js, whose first statement is `self.onmessage`
 // and which throws on sight outside a worker. Only the modules on the derived
 // list are ever loaded.
-const LOADERS = import.meta.glob('../lib/*.js');
+// The per-file Living Lessons (lib/living-lessons/, DR-1468) are stores too, each
+// held at the default pin of zero faults with no line here to edit.
+const LOADERS = import.meta.glob(['../lib/*.js', '../lib/living-lessons/ll*.js']);
 const key = (rel) => `../lib/${rel.replace('app/src/lib/', '')}`;
 const load = (rel) => LOADERS[key(rel)]();
 

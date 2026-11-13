@@ -66,6 +66,7 @@
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { livingLessonFiles } from './lib/living-lesson-files.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BIBLE = join(ROOT, 'app/public/bible');
@@ -76,6 +77,9 @@ const OUT = join(ROOT, 'app/src/lib/scripture-provenance.json');
 export const SCANNED = [
   'app/src/lib/living-lessons-class.js',
   'app/src/lib/yahweh-by-century.js',
+  // Every Living Lesson written as its own file (DR-1468): the directory is the
+  // decision, so a new lesson is in scope the day it lands.
+  ...livingLessonFiles(),
 ];
 
 // Writers abbreviate. "Phil 3:12" and "1 Sam 16:7" are ordinary citations, not

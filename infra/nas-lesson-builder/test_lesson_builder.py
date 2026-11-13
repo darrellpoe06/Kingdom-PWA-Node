@@ -895,7 +895,9 @@ class Gates(unittest.TestCase):
         # by node from the real catalog, gated by both layers.
         script = ("import('{}/app/src/lib/living-lessons-class.js').then(m => process.stdout.write("
                   "JSON.stringify(m.LIVING_LESSONS_MODULES.find(x => x.id.startsWith('ll205-')))))").format(REPO)
-        mod = json.loads(subprocess.run(["node", "-e", script], capture_output=True, check=True).stdout)
+        # Plain node reads the per-file lessons only through the preload (DR-1468).
+        mod = json.loads(subprocess.run(["node", "--import", "./scripts/register-json-imports.mjs", "-e", script],
+                                        cwd=REPO, capture_output=True, check=True).stdout)
         js = gates.node_band_gates(mod, repo=REPO)
         self.assertNotIn("skipped", js, js)
         py = gates.verse_gate(mod, CORPUS)

@@ -147,7 +147,14 @@
       "to": 23110,
       "dr": "DR-1460",
       "reason": "The institute-walls job in ci.yml and the institute-roll leg in rls-isolation.yml: 0325's ten-assertion smoke must run on a bare postgres:16 in CI and against the real database after db-migrate, because a guard CI never runs is not a guard (DR-0076 section 3) and the matrix guard refuses an orphan smoke. Each comment folded to three lines, the walls named in the smoke's own header and DR-1460. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-13",
+      "from": 23110,
+      "to": 23119,
+      "dr": "DR-1468",
+      "reason": "The parallel-lesson pipeline: ci.yml's push filter skips reserve/** (a reservation is an empty commit on main and needs no CI run) and its guards leg runs unfilled-verse-token-guard, because a guard CI never runs is not a guard (DR-0076 section 3); keep-prs-current.yml gains one step that deletes the number reservations main has passed. One comment line per change, the narrative in DR-1468. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23110
+  "totalLines": 23119
 }
