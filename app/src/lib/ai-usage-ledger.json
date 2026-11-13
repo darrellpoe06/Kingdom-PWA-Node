@@ -2571,6 +2571,21 @@
       "wallClockHours": 1.25,
       "estimateWithoutAiHours": 14,
       "notes": "Gmail thread 1a1c68295f781bbb, forwarded 2026-11-10T17:30Z (11:30 AM CST); second teaching, the first is L314 (DR-1492), 1 shared verse. Essay read whole from the forward; bigthink.com refused (proxy 403), the writer's claims stay reported, re-review 2026-11-27. 129 spans over 47 refs, all filled from the corpus. 14-case gate, four dangers proven to catch, PoeTech facts pinned by file and line."
+    },
+    {
+      "id": "ll310-the-third-forward",
+      "date": "2026-11-13",
+      "task": "L310 folds in the third forward Darrell sent under one word, Lesson (Morning Brew, 2026-11-10), now read: the admission's timing, the 4.3% fall, no clear succession plan, and a new Too big to replace section in all four bands; provenance test proven to catch an unread claim",
+      "drs": [
+        "DR-1487"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "Gmail thread 1a1c5c35c2357a0f, forwarded 2026-11-10T14:01Z (08:01 Central), read 2026-11-13 ahead of DR-1480's re-review 2026-11-27. 7 quoted spans (Proverbs 16:18, Proverbs 27:1) filled from app/public/bible/kjv by fill-verses.mjs, none typed. Analyst read only as Morning Brew reported him, not named; the newsletter's political aside left out."
     }
   ]
 }

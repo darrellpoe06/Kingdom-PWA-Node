@@ -105,6 +105,17 @@ export const KNOWN_SHARED_THREADS = [
       + 'The full comparison is in DR-1285; whether the two should be one lesson is Darrell’s call.',
   },
   {
+    thread: '1a1c5c35c2357a0f',
+    drs: ['DR-1480', 'DR-1487'],
+    why: 'ONE lesson, not two: the Morning Brew forward of 2026-11-10 belongs to L310 (The Hidden '
+      + 'Life and the Empty Chair). DR-1480 built L310 from the two 2026-11-13 forwards of the same '
+      + 'story and named this earlier thread as related but NOT READ (Gmail was down and subagents '
+      + 'may not read it). DR-1487 read it and folded it into the same file, '
+      + 'app/src/lib/living-lessons/ll310-the-hidden-life-and-the-empty-chair.js: no second lesson, '
+      + 'no new lesson id. DR-0610 one teaching, one lesson holds; the pair is a record and its '
+      + 'amendment (DRs are append-only, DR-0011).',
+  },
+  {
     thread: '1a1c68295f781bbb',
     drs: ['DR-1492', 'DR-1505'],
     why: 'One Big Think essay (the Lucas Museum) forwarded 2026-11-10 17:30 UTC under one word in the '
