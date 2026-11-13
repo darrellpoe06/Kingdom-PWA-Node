@@ -245,7 +245,7 @@ homepage can be reviewed live (DR-0104) before the rest stacks on it.
 - Finding carried from the 2026-11-13 matrix run (not this work's): the `one-person-one-house` leg fails at
   `0319-one-person-one-house-smoke.sql:39`, inserting an `instance_members` row with role `renter`, which the
   live `instance_members_role_check` refuses; it failed identically on the previous run (21:06Z, 917a8d05e). The
-  smoke or the constraint is out of step with the other; `re-review: 2026-11-14` — trace which is right from
-  0319's own record and fix the wrong one.
+  smoke was wrong: `renter` was never an `instance_members` role. CLOSED the same day as DR-1461: the smoke
+  seats `viewer` and the CI bootstrap table carries the live eight-role wall, proven to catch.
 - `re-review: 2026-11-19` — regulatory text for the Institute (Institute note §2.2), and this
   plan's Phase 1 start once approved.
