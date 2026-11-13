@@ -1,0 +1,739 @@
+<title>Kids Zone Bible Adventures</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fraunces:ital,wght@0,600;0,700;1,500&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: a row of 390px phone frames you scroll sideways, each with a numbered caption;
+   the legend below says what is real on every screen. Screen 3 of the 2026-11-13 shell
+   previews (approved by Darrell) is the base: its layout and vibrant palette are kept,
+   and the frame carries the church's red, black, white and gold. */
+:root{
+  --bg:#FBF7F1; --fg:#1A1012; --muted:#6B5A57; --paper:#fff; --line:#E9DED8; --accent:#C03222; --gold:#CFA63C;
+  --display:"Fraunces",Georgia,serif; --body:"DM Sans",system-ui,sans-serif; --kid:"Nunito","DM Sans",system-ui,sans-serif;
+  /* the church (fixed by design: the brand) */
+  --lc-red:#C03222; --lc-heart:#E43C28; --lc-black:#1A1012; --lc-gold:#CFA63C; --lc-gold-ink:#7A5C14; --lc-cream:#FFF8F7;
+  /* the Kids Zone's own vibrant palette (Screen 3, kept) */
+  --kz-cream:#FFF6DF; --kz-ink:#2A1A4D; --kz-purple:#5B2DD6; --kz-blue:#2F7BF5; --kz-teal:#19B5A6; --kz-teal-deep:#0E8F82;
+  --kz-coral:#FF7A59; --kz-pink:#FF3D7F; --kz-orange:#FFB020; --kz-orange-deep:#FF7A00; --kz-violet:#8E44F0; --kz-magenta:#D23CFF;
+  --kz-green:#2BB24C; --kz-green-deep:#0E8F3A; --kz-sun:#FFD84D; --kz-butter:#FFE08A;
+  /* the Teens Zone: the church's house by night, with one cool accent */
+  --tz-bg:#120B0C; --tz-card:#1F1416; --tz-line:#3A2528; --tz-ink:#F6ECE9; --tz-muted:#D3B8B1; --tz-blue:#3FA7FF; --tz-teal:#19B5A6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15100F;--fg:#F3ECE9;--muted:#C9B4AE;--paper:#201716;--line:#3B2B29;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15100F;--fg:#F3ECE9;--muted:#C9B4AE;--paper:#201716;--line:#3B2B29;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);padding-block:22px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:700;font-size:1.7rem;margin:0 0 .25rem;text-wrap:balance}
+.lede{max-width:70ch;color:var(--muted);margin:0 0 1rem;line-height:1.5}
+.lede b{color:var(--fg)}
+.row{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 18px;scroll-snap-type:x proximity}
+figure{margin:0;flex:0 0 auto;scroll-snap-align:start;width:390px;max-width:100%}
+.phone{width:390px;max-width:100%;border:10px solid #111;border-radius:40px;background:#111;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
+.screen{position:relative;height:844px;overflow:hidden;background:var(--kz-cream);font-family:var(--kid);color:var(--kz-ink);display:flex;flex-direction:column}
+.scroll{flex:1;overflow:hidden;position:relative}
+.scroll>*,.kgrid>*,.actions,.quiz,.hint,.slots,.names,.bgrid,.mapcard,.safety{position:relative}
+figcaption{font-size:.84rem;color:var(--muted);margin-top:10px;line-height:1.4}
+figcaption b{color:var(--fg);display:block;font-size:.95rem;margin-bottom:4px}
+figcaption ul{margin:4px 0 0;padding-left:0;list-style:none}
+figcaption li{display:flex;gap:7px;margin:3px 0}
+figcaption li i,.n{flex:0 0 auto;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--lc-red);color:#fff;font-style:normal;font-weight:800;font-size:.7rem;font-family:var(--kid)}
+.n{position:absolute;z-index:5;width:24px;height:24px;font-size:.8rem;box-shadow:0 2px 0 rgba(0,0,0,.25);border:2px solid #fff}
+
+/* ---- header: the church's own frame around the Kids Zone ---- */
+.hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:3px solid var(--lc-gold);min-height:58px}
+.hdr .seal{width:38px;height:38px;border-radius:50%;background:#fff;border:3px solid var(--lc-gold);display:grid;place-items:center;flex:0 0 auto}
+.hdr .t{flex:1;min-width:0;line-height:1.05}
+.hdr .t b{display:block;font-size:1.1rem;font-weight:900;color:var(--kz-purple)}
+.hdr .t small{display:block;font-size:.66rem;font-weight:800;letter-spacing:.14em;color:var(--lc-red)}
+.hdr .back{width:40px;height:40px;border-radius:50%;border:2px solid var(--lc-gold);display:grid;place-items:center;color:var(--kz-ink);font-weight:900}
+/* ---- the hero band ---- */
+.top{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--kz-purple) 0%,var(--kz-blue) 55%,var(--kz-teal) 100%);color:#fff;padding:12px 14px 14px;border-radius:0 0 26px 26px}
+.top .sky{position:absolute;inset:0;pointer-events:none}
+.top>*:not(.sky){position:relative}
+.doorsw{display:flex;background:rgba(255,255,255,.2);border-radius:999px;padding:3px;width:max-content;gap:2px;margin-bottom:6px}
+.doorsw span{padding:6px 14px;border-radius:999px;font-weight:800;font-size:.8rem}
+.doorsw .on{background:#fff;color:var(--kz-purple)}
+.top h2{font-size:1.75rem;line-height:1;margin:2px 0 4px;font-weight:900;text-wrap:balance}
+.top p{margin:0;font-size:.9rem;font-weight:700;opacity:.96;max-width:22ch}
+.heroart{display:flex;gap:6px;align-items:flex-end}
+.heroart .words{flex:1;min-width:0}
+.heroart svg{width:168px;height:auto;flex:0 0 auto;margin:-6px -8px -10px 0}
+.prog{margin:10px 0 0;background:rgba(255,255,255,.22);border-radius:14px;padding:9px 12px}
+.prog small{font-size:.74rem;font-weight:800}
+.bar{height:12px;border-radius:6px;background:rgba(255,255,255,.35);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--kz-sun),var(--lc-gold));border-radius:6px}
+.bar i.w44{width:44%}
+/* ---- cards ---- */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 12px 0}
+.kcard{border-radius:20px;padding:12px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 0 rgba(0,0,0,.14)}
+.kcard.big{grid-column:1 / -1;min-height:150px;flex-direction:row;align-items:center;justify-content:space-between;gap:8px}
+.kcard b{display:block;font-size:1.05rem;line-height:1.1;font-weight:900}
+.kcard small{display:block;font-size:.74rem;font-weight:700;opacity:.95}
+.kcard .art{position:absolute;right:-4px;top:-2px;width:112px;height:auto}
+.kcard.big .art{position:static;width:132px;flex:0 0 auto;margin:-10px -8px -14px 0}
+.kcard .words{position:relative;z-index:1;min-width:0}
+.k1{background:linear-gradient(145deg,var(--kz-coral),var(--kz-pink))}
+.k2{background:linear-gradient(145deg,var(--kz-blue),var(--kz-purple))}
+.k3{background:linear-gradient(145deg,var(--kz-teal),var(--kz-teal-deep))}
+.k4{background:linear-gradient(145deg,var(--kz-orange),var(--kz-orange-deep))}
+.k5{background:linear-gradient(145deg,var(--kz-violet),var(--kz-magenta))}
+.k6{background:linear-gradient(145deg,var(--kz-green),var(--kz-green-deep))}
+.kplay{background:#fff;color:var(--kz-purple);border-radius:999px;padding:9px 14px;font-weight:900;font-size:.82rem;white-space:nowrap;display:inline-block;margin-top:6px}
+.kplay.red{background:var(--lc-red);color:#fff}
+.strip{margin:12px 12px 0;background:#fff;border-radius:20px;padding:12px;border:2px solid var(--kz-butter)}
+.strip h3{margin:0 0 8px;font-size:1rem;font-weight:900;display:flex;align-items:center;justify-content:space-between}
+.strip h3 small{font-size:.7rem;color:var(--kz-purple);font-weight:800}
+.brow{display:flex;gap:8px}
+.badge{flex:1;text-align:center;font-size:.64rem;font-weight:800;line-height:1.15}
+.badge svg{width:50px;height:50px;display:block;margin:0 auto 4px}
+.badge.off{opacity:.45;filter:grayscale(1)}
+.ari{margin:12px 12px 0;display:flex;gap:10px;align-items:center;background:#fff;border-radius:18px;padding:10px 12px;border:2px solid #CFE3FF}
+.ari svg{width:52px;height:52px;flex:0 0 auto}
+.ari p{margin:0;font-size:.82rem;font-weight:700;line-height:1.3}
+.ari small{display:block;font-weight:800;color:var(--kz-purple);font-size:.7rem}
+.lil{margin:12px 12px 0;display:flex;gap:10px;align-items:center;background:linear-gradient(135deg,#FFF1C2,#FFE08A);border-radius:18px;padding:8px 12px;border:2px solid var(--lc-gold)}
+.lil svg{width:70px;height:auto;flex:0 0 auto;margin:-6px 0 -10px}
+.lil b{display:block;font-size:.95rem;font-weight:900}
+.lil small{display:block;font-size:.72rem;font-weight:700;color:#5A4210}
+.safety{margin:12px 12px 0;font-size:.7rem;font-weight:700;color:#5E4B8A;line-height:1.35}
+/* ---- the kid dock ---- */
+.dock{display:flex;gap:6px;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:2px solid var(--kz-butter)}
+.tab{flex:1;min-height:52px;border-radius:16px;border:2px solid var(--kz-butter);background:var(--kz-cream);color:var(--kz-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.62rem;font-weight:900;letter-spacing:.04em}
+.tab svg{width:20px;height:20px}
+.tab.on{background:var(--kz-purple);border-color:var(--kz-purple);color:#fff}
+/* ---- lesson (adventure) screen ---- */
+.lesson{padding:0 12px}
+.bubble{margin:12px 0 0;background:#fff;border:3px solid var(--kz-purple);border-radius:22px;padding:12px 14px;position:relative;font-weight:800;font-size:.98rem;line-height:1.3}
+.bubble::after{content:"";position:absolute;left:28px;bottom:-14px;border:8px solid transparent;border-top-color:var(--kz-purple);border-bottom:0}
+.verse{margin:14px 0 0;background:linear-gradient(135deg,var(--lc-red),#8E2217);color:#fff;border-radius:20px;padding:12px 14px;font-family:var(--display);font-size:1.02rem;line-height:1.45;position:relative;overflow:hidden}
+.verse .ref{display:block;font-family:var(--kid);font-weight:900;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-gold);margin-top:6px}
+.verse svg{position:absolute;right:-8px;bottom:-14px;width:84px;height:84px;opacity:.95}
+.steps{display:flex;gap:6px;margin:12px 0 0}
+.steps i{flex:1;height:10px;border-radius:5px;background:#E8DFC8}
+.steps i.done{background:var(--kz-green)}
+.steps i.now{background:var(--kz-orange)}
+.story{margin:10px 0 0;background:#fff;border-radius:20px;padding:12px 14px;font-size:.95rem;line-height:1.5;font-weight:600;border:2px solid var(--kz-butter)}
+.story .scene{display:block;width:100%;height:auto;border-radius:14px;margin:0 0 8px}
+.actions{display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap}
+.act{flex:1;min-width:0;min-height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:900;font-size:.8rem;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.act svg{width:18px;height:18px}
+.quiz{margin:12px 0 0;background:#fff;border-radius:20px;padding:12px;border:3px solid var(--kz-teal)}
+.quiz b{display:block;font-size:.95rem;margin-bottom:8px}
+.opt{display:flex;align-items:center;gap:10px;min-height:48px;border-radius:14px;padding:6px 10px;font-weight:800;font-size:.86rem;margin-top:6px;border:2px solid var(--kz-butter);background:var(--kz-cream)}
+.opt i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;font-weight:900;flex:0 0 auto}
+.opt .spk{margin-left:auto;width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid var(--kz-butter);display:grid;place-items:center;flex:0 0 auto}
+.opt.yes{border-color:var(--kz-green);background:#E9F8EC}
+/* ---- games ---- */
+.gamehead{position:relative;overflow:hidden;color:#fff;padding:12px 14px 14px;border-radius:0 0 26px 26px;display:flex;align-items:flex-end;gap:8px}
+.gamehead .words{flex:1;min-width:0}
+.gamehead svg{width:140px;height:auto;flex:0 0 auto;margin:-8px -10px -14px 0}
+.gamehead h2{font-size:1.6rem;line-height:1;margin:0 0 4px;font-weight:900}
+.gamehead p{margin:0;font-size:.86rem;font-weight:700;opacity:.96}
+.g-orange{background:linear-gradient(145deg,var(--kz-orange),var(--kz-orange-deep))}
+.g-violet{background:linear-gradient(145deg,var(--kz-violet),var(--kz-magenta))}
+.g-green{background:linear-gradient(145deg,var(--kz-green),var(--kz-green-deep))}
+.hint{margin:12px 12px 0;background:#fff;border-radius:18px;padding:10px 12px;border:2px solid var(--kz-butter);font-family:var(--display);font-size:1rem;line-height:1.6}
+.hint .blank{display:inline-block;min-width:4.5ch;border-bottom:3px solid var(--kz-orange-deep);background:#FFF1D6;border-radius:6px 6px 0 0;padding:0 .3rem;text-align:center;font-family:var(--kid);font-weight:900;letter-spacing:.12em;color:var(--kz-orange-deep)}
+.hint .ref{display:block;font-family:var(--kid);font-weight:900;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-red);margin-top:4px}
+.slots,.tiles{display:flex;gap:8px;margin:12px 12px 0;flex-wrap:wrap;justify-content:center}
+.slot{width:48px;height:56px;border-radius:12px;border:3px dashed var(--kz-orange-deep);background:#fff;display:grid;place-items:center;font-weight:900;font-size:1.5rem;color:var(--kz-ink)}
+.slot.f{border-style:solid;background:#FFF1D6}
+.tile{width:52px;height:56px;border-radius:12px;background:linear-gradient(180deg,#fff,#FFE9C2);border:3px solid var(--kz-orange-deep);box-shadow:0 5px 0 var(--kz-orange-deep);display:grid;place-items:center;font-weight:900;font-size:1.5rem;color:var(--kz-ink)}
+.tile.used{opacity:.35;box-shadow:none;transform:translateY(5px)}
+.stars{display:flex;gap:4px;justify-content:center;margin:12px 0 0}
+.stars svg{width:28px;height:28px}
+.cluecard{margin:12px 12px 0;background:#fff;border-radius:20px;padding:12px 14px;border:3px solid var(--kz-violet);position:relative}
+.cluecard .k{display:inline-block;background:var(--kz-violet);color:#fff;border-radius:999px;padding:3px 10px;font-weight:900;font-size:.68rem;letter-spacing:.1em;margin-bottom:6px}
+.cluecard q{display:block;font-family:var(--display);font-size:1rem;line-height:1.5;quotes:"“" "”"}
+.cluecard .blank{display:inline-block;min-width:5ch;border-bottom:3px solid var(--kz-violet);text-align:center}
+.cluecard .ref{display:block;font-weight:900;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-red);margin-top:4px}
+.cluecard.locked{opacity:.55;border-style:dashed}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 12px 0}
+.name{min-height:52px;border-radius:16px;background:#fff;border:3px solid var(--kz-violet);display:grid;place-items:center;font-weight:900;font-size:.95rem;box-shadow:0 5px 0 var(--kz-violet)}
+.name.pick{background:var(--kz-violet);color:#fff}
+/* ---- badges screen ---- */
+.celebrate{position:relative;overflow:hidden;background:linear-gradient(145deg,var(--kz-green),var(--kz-teal));color:#fff;padding:12px 14px 0;border-radius:0 0 26px 26px;display:flex;align-items:flex-end;gap:8px}
+.celebrate .words{flex:1;min-width:0;padding-bottom:14px}
+.celebrate h2{font-size:1.6rem;line-height:1;margin:0 0 4px;font-weight:900}
+.celebrate p{margin:0;font-size:.86rem;font-weight:700}
+.celebrate svg{width:150px;height:auto;flex:0 0 auto;margin:-8px -10px 0 0}
+.bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 12px 0}
+.bcard{background:#fff;border-radius:18px;padding:10px 6px;border:2px solid var(--kz-butter);text-align:center;font-size:.68rem;font-weight:800;line-height:1.15}
+.bcard svg{width:56px;height:56px;display:block;margin:0 auto 4px}
+.bcard.on{border-color:var(--lc-gold);background:linear-gradient(180deg,#fff,#FFF4CF)}
+.bcard.off{opacity:.5;filter:grayscale(1)}
+.bcard small{display:block;color:var(--kz-purple);font-weight:800;margin-top:2px}
+.bcard.on small{color:var(--lc-gold-ink)}
+.mapcard{margin:12px 12px 0;background:#fff;border-radius:20px;padding:10px 12px;border:2px solid var(--kz-butter)}
+.mapcard h3{margin:0 0 6px;font-size:.95rem;font-weight:900}
+.mapcard svg{width:100%;height:auto;display:block}
+/* ---- TEENS ---- */
+.tz{background:var(--tz-bg);color:var(--tz-ink);font-family:var(--body)}
+.tz .hdr{background:var(--tz-bg);border-bottom:2px solid var(--lc-gold)}
+.tz .hdr .t b{color:#fff;font-family:var(--display);font-weight:700;font-size:1.05rem}
+.tz .hdr .t small{color:var(--lc-gold)}
+.tz .hdr .back{color:#fff}
+.tz .top{background:linear-gradient(165deg,#1A1012 0%,#3A1013 55%,var(--lc-red) 100%);border-radius:0 0 22px 22px;padding:12px 14px 14px}
+.tz .doorsw{background:rgba(255,255,255,.12)}
+.tz .doorsw .on{background:var(--lc-gold);color:var(--lc-black)}
+.tz .top h2{font-family:var(--display);font-weight:700;font-size:1.55rem;letter-spacing:-.01em}
+.tz .top h2 em{color:var(--lc-gold);font-style:italic;font-weight:500}
+.tz .top p{font-family:var(--body);font-weight:500;font-size:.86rem;opacity:.92}
+.tz .heroart svg{width:176px}
+.readat{display:flex;gap:6px;margin:10px 0 0}
+.readat span{border:1.5px solid rgba(255,255,255,.5);border-radius:999px;padding:5px 11px;font-size:.72rem;font-weight:700}
+.readat .on{background:#fff;color:var(--lc-black);border-color:#fff}
+.tz .kgrid{gap:8px}
+.tz .kcard{border-radius:16px;box-shadow:none;border:1px solid var(--tz-line);background:var(--tz-card);min-height:124px}
+.tz .kcard.big{background:linear-gradient(135deg,#1F1416,#3A1013);border-color:#5A2A2E;min-height:140px}
+.tz .kcard b{font-family:var(--display);font-weight:700;font-size:1rem}
+.tz .kcard small{color:var(--tz-muted)}
+.tz .kcard .tag{display:block;margin-bottom:4px;font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--lc-gold);font-family:var(--body)}
+.tz .kcard .art{width:92px}
+.tz .kplay{background:var(--lc-gold);color:var(--lc-black)}
+.tz .strip{background:var(--tz-card);border-color:var(--tz-line);color:var(--tz-ink)}
+.tz .strip h3 small{color:var(--lc-gold)}
+.tz .evt{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--tz-line);font-size:.84rem}
+.tz .evt:first-of-type{border-top:0}
+.tz .evt .d{width:40px;height:40px;border-radius:10px;background:var(--lc-red);color:#fff;display:grid;place-items:center;font-weight:800;font-family:var(--display);flex:0 0 auto}
+.tz .evt small{display:block;color:var(--tz-muted);font-size:.72rem}
+.tz .safety{color:var(--tz-muted)}
+.tz .dock{background:var(--tz-bg);border-top:1px solid var(--tz-line)}
+.tz .tab{background:var(--tz-card);border-color:var(--tz-line);color:var(--tz-ink);border-radius:12px}
+.tz .tab.on{background:linear-gradient(135deg,var(--lc-gold),var(--lc-red));border-color:transparent;color:#fff}
+/* ---- legend ---- */
+.legend{margin-top:26px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+.legend h2{font-family:var(--display);margin:0 0 .5rem;font-size:1.3rem}
+.legend h3{font-family:var(--display);margin:1.1rem 0 .4rem;font-size:1.05rem}
+.legend p{line-height:1.5;max-width:80ch}
+.tw{overflow-x:auto}
+.legend table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:640px}
+.legend th,.legend td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+.legend th{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sw{display:flex;flex-wrap:wrap;gap:8px;margin:.4rem 0}
+.sw span{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 4px}
+.sw i{width:20px;height:20px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
+.cast{display:flex;flex-wrap:wrap;gap:12px;margin:.5rem 0 0}
+.cast figure{width:118px;text-align:center;font-size:.72rem;color:var(--muted)}
+.cast svg{width:100%;height:auto;background:var(--kz-cream);border-radius:14px}
+.cast figcaption{margin-top:4px}
+@media (prefers-reduced-motion:no-preference){.kcard:hover{transform:translateY(-2px);transition:transform .15s}}
+:focus-visible{outline:3px solid var(--kz-orange-deep);outline-offset:2px}
+</style>
+
+<h1>Kids Zone · Bible Adventures — the illustrated proposal</h1>
+<p class="lede">Screen 3 of the 2026-11-13 previews is kept as drawn: <b>same layout, same vibrant palette</b>, the church's red, black, white and gold as the frame. What is new is the art: an illustration system of <b>Black boys and girls, ages 6 to 10</b>, drawn as inline SVG in the same dignity lineage as the games' art (a range of rich brown skin tones; afro, puffs, braids with beads, twists, locs, coils, a fresh fade; whole children in motion, never caricature), with friends of other backgrounds beside them. Teens get their own, more grown art. Every number on these screens is named below as real or as an example. Scroll sideways for the six screens; the legend under them says what each part reads.</p>
+
+<div class="row">
+
+<!-- ============ 1 · KIDS HOME ============ -->
+<figure>
+<div class="phone"><div class="screen">
+  <div class="hdr"><span class="seal" data-art="seal"></span><div class="t"><b>Kids Zone</b><small>THE LOVE CORNER</small></div><span class="back">&#8249;</span></div>
+  <div class="scroll">
+    <span class="n" style="right:12px;top:10px">1</span>
+    <div class="top">
+      <svg class="sky" viewBox="0 0 390 230" preserveAspectRatio="xMidYMid slice" aria-hidden="true" data-art="stars"></svg>
+      <div class="doorsw"><span class="on">Kids 6–10</span><span>Teens 11–17</span></div>
+      <div class="heroart">
+        <div class="words">
+          <h2>Bible Adventures</h2>
+          <p>Hi, explorer! This week: <b>Prove All Things</b>.</p>
+        </div>
+        <svg viewBox="0 0 200 190" role="img" aria-label="Three children on a hill at sunrise: a girl with afro puffs holds a treasure map, a boy with a fade points up the winding path, and a girl with braids carries a big red Bible" data-art="hero"></svg>
+      </div>
+      <div class="prog"><small>Your adventure map · sign in and every lesson you finish lights a stop</small><div class="bar"><i class="w44"></i></div></div>
+      <span class="n" style="right:12px;bottom:12px">2</span>
+    </div>
+
+    <div class="kgrid">
+      <div class="kcard big k1"><span class="n" style="left:-6px;top:-6px">3</span>
+        <div class="words"><b>This week's adventure</b><small>Living Lessons · read, listen, play</small><span class="kplay red">Start &#9654;</span></div>
+        <svg class="art" viewBox="0 0 150 170" role="img" aria-label="A boy with locs reads a big open Bible by lantern light, a glowing star above the page" data-art="reader"></svg>
+      </div>
+      <div class="kcard k2"><span class="n" style="left:-6px;top:-6px">4</span>
+        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A girl with afro puffs, eyes closed, remembering words that float above her" data-art="memory"></svg>
+        <div class="words"><b>Memory verse</b><small>Psalm 23:1 · fill the words</small></div>
+      </div>
+      <div class="kcard k3">
+        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A boy with a fresh fade raises his hand with a big question mark" data-art="trivia"></svg>
+        <div class="words"><b>Bible trivia</b><small>From the message</small></div>
+      </div>
+      <div class="kcard k4"><span class="n" style="left:-6px;top:-6px">5</span>
+        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A girl with beaded braids stacks letter blocks that spell W O R D" data-art="builder"></svg>
+        <div class="words"><b>Word builder</b><small>Spell the Bible word</small></div>
+      </div>
+      <div class="kcard k5">
+        <svg class="art" viewBox="0 0 120 130" role="img" aria-label="A boy with twists holds a magnifying glass up to a mystery figure behind a curtain" data-art="whoami"></svg>
+        <div class="words"><b>Who am I?</b><small>Guess the Bible hero</small></div>
+      </div>
+    </div>
+
+    <div class="strip"><span class="n" style="right:-6px;top:-8px">6</span>
+      <h3>My badges <small>0 of 6 · sign in to earn</small></h3>
+      <div class="brow">
+        <div class="badge"><svg viewBox="0 0 60 60" data-art="badge:sparkle"></svg>First Step</div>
+        <div class="badge off"><svg viewBox="0 0 60 60" data-art="badge:book"></svg>Five Lessons</div>
+        <div class="badge off"><svg viewBox="0 0 60 60" data-art="badge:check"></svg>Quiz Star</div>
+        <div class="badge off"><svg viewBox="0 0 60 60" data-art="badge:crown"></svg>Three in a Row</div>
+        <div class="badge off"><svg viewBox="0 0 60 60" data-art="badge:heart"></svg>Little Reader</div>
+      </div>
+    </div>
+
+    <div class="ari"><span class="n" style="left:-8px;top:-8px">7</span><svg viewBox="0 0 60 60" role="img" aria-label="Ari, a friendly gold star with a book" data-art="ari"></svg><p><small>ASK ARI · your lesson helper</small>Stuck on a word? Ask me. I only talk about the lesson, and a grown-up can always see what we said.</p></div>
+    <div class="lil"><svg viewBox="0 0 90 90" role="img" aria-label="A toddler with coils on a parent's lap, holding an A block" data-art="littleone"></svg><div><b>Little Ones (3–6)</b><small>Letters, numbers and first words from the Word · read aloud</small></div></div>
+  </div>
+  <div class="dock"><span class="n" style="right:6px;top:-30px">8</span>
+    <div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>ADVENTURE</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:adult"></svg>GROWN-UPS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div>
+  </div>
+</div></div>
+<figcaption><b>Screen 1 · Kids home (the approved layout, now illustrated)</b>
+<ul>
+<li><i>1</i>The church's frame: seal, the Love Corner wordmark in red, a gold rule. Everything inside it is the Kids Zone's own world.</li>
+<li><i>2</i>The hero scene: three explorers with a treasure map, a path and a big red Bible. The lesson named is this week's REAL pick (Living Lessons, child band). The map bar is derived from the signed-in child's real rows; signed out it says so.</li>
+<li><i>3</i>This week's adventure opens the real lesson in-zone (Screen 3). The art is one of a small pool of adventure scenes, chosen by the lesson id, never per-lesson paintings.</li>
+<li><i>4</i>Memory verse and Bible trivia: the games that exist today, restyled. The verse reference is the real weekly pick; the words load from the hosted KJV.</li>
+<li><i>5</i>Word builder and Who am I? are new (Phase E). Each character is drawn once and reused.</li>
+<li><i>6</i>Badges are the six derived badges, as gold stickers; locked ones are grey. No scoreboard.</li>
+<li><i>7</i>Ari in child mode (the flag that exists and is unread today) and the Little Learners course for 3–6, kept and reachable.</li>
+<li><i>8</i>The kid dock: Adventure · Games · Badges · Grown-ups · Read (the app's read-aloud).</li>
+</ul></figcaption>
+</figure>
+
+<!-- ============ 2 · TEENS HOME ============ -->
+<figure>
+<div class="phone"><div class="screen tz">
+  <div class="hdr"><span class="seal" data-art="seal"></span><div class="t"><b>Teens Zone</b><small>THE LOVE CORNER</small></div><span class="back">&#8249;</span></div>
+  <div class="scroll">
+    <span class="n" style="right:12px;top:10px">1</span>
+    <div class="top">
+      <svg class="sky" viewBox="0 0 390 230" preserveAspectRatio="xMidYMid slice" aria-hidden="true" data-art="skyline"></svg>
+      <div class="doorsw"><span>Kids 6–10</span><span class="on">Teens 11–17</span></div>
+      <div class="heroart">
+        <div class="words">
+          <h2>Real questions. <em>Real answers.</em></h2>
+          <p>This week's challenge: <b>Prove All Things</b> · 1 Thessalonians 5:21</p>
+          <div class="readat"><span class="on">Read at 11–14</span><span>15–17</span></div>
+        </div>
+        <svg viewBox="0 0 200 200" role="img" aria-label="Two teens at dusk: a girl with twists and a backpack holding her phone and a Bible, and a boy with a fade and headphones around his neck, a city skyline and the first stars behind them" data-art="teens"></svg>
+      </div>
+      <span class="n" style="right:12px;bottom:12px">2</span>
+    </div>
+    <div class="kgrid">
+      <div class="kcard big"><span class="n" style="left:-6px;top:-6px">3</span>
+        <div class="words"><span class="tag">This week's challenge</span><b>Prove All Things</b><small>Test what you are told. Keep what is true. 10 min · quiz · talk it over with Ari</small><span class="kplay">Take it on &#9654;</span></div>
+        <svg class="art" viewBox="0 0 120 150" role="img" aria-label="A teen boy with a fade plants a flag on a summit" data-art="summit"></svg>
+      </div>
+      <div class="kcard"><span class="tag">Memory</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="Headphones and a verse card" data-art="tmemory"></svg><div class="words"><b>Philippians 4:13</b><small>Fill it in, then say it</small></div></div>
+      <div class="kcard"><span class="tag">Trivia</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="A lightning bolt over an open book" data-art="ttrivia"></svg><div class="words"><b>From the message</b><small>Bishop Gwin's question</small></div></div>
+      <div class="kcard"><span class="tag">Word builder</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="Verse phrases on cards in order" data-art="torder"></svg><div class="words"><b>Put it in order</b><small>The verse, phrase by phrase</small></div></div>
+      <div class="kcard"><span class="tag">Who am I?</span><svg class="art" viewBox="0 0 120 130" role="img" aria-label="A spotlight on a silhouette" data-art="tsil"></svg><div class="words"><b>Three clues</b><small>Name the person</small></div></div>
+    </div>
+    <div class="strip"><span class="n" style="right:-6px;top:-8px">4</span>
+      <h3>Youth events <small>from the office</small></h3>
+      <div class="evt"><span class="d">Sun</span><div>Sunday Worship, 11:00 AM<small>Every week · no youth event is posted yet; when the office posts one, it shows here</small></div></div>
+    </div>
+    <div class="strip">
+      <h3>Music &amp; messages <small>the church channel</small></h3>
+      <div class="evt"><span class="d" style="background:var(--tz-blue)">&#9654;</span><div>Worship and the Word<small>Opens the church's own channel</small></div></div>
+    </div>
+    <p class="safety">Safe here: no profile, no chat, no scoreboard. Your door and reading level stay on this phone only.</p>
+  </div>
+  <div class="dock"><span class="n" style="right:6px;top:-30px">5</span>
+    <div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:flag"></svg>CHALLENGE</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:cal"></svg>EVENTS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div>
+  </div>
+</div></div>
+<figcaption><b>Screen 2 · Teens home (its own, more grown world)</b>
+<ul>
+<li><i>1</i>The teens' house is the church's house by night: black into deep red, gold on it, white words, the Fraunces display face. Same frame, no candy.</li>
+<li><i>2</i>Real ages, fixed: Teens reads at the youth band (11–14) by default and at teen (15–17) on a tap. Today the Teens door reads at teen only and the youth band is unused. The hero: two teens, a skyline, the first stars.</li>
+<li><i>3</i>The weekly challenge is the same real pick as the Kids door, read at the teen's band, with its real quiz and Ari.</li>
+<li><i>4</i>Events are the church record's announced events, future only, with the honest fallback that exists today; music is the church's channel.</li>
+<li><i>5</i>Teen dock: Challenge · Games · Badges · Events · Read.</li>
+</ul></figcaption>
+</figure>
+
+<!-- ============ 3 · THE ADVENTURE (LESSON) ============ -->
+<figure>
+<div class="phone"><div class="screen">
+  <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>This week's adventure</b><small>LIVING LESSONS · KIDS 6–10</small></div><span class="seal" data-art="seal"></span></div>
+  <div class="scroll lesson">
+    <span class="n" style="right:0;top:6px">1</span>
+    <div class="bubble">Have you ever heard something, and everybody said it was true, but when you looked closer, nobody had really checked? The Bible says it is GOOD to check!</div>
+    <div class="verse"><span class="n" style="left:-8px;top:-8px">2</span>"Prove all things; hold fast that which is good."<span class="ref">1 Thessalonians 5:21 · KJV</span><svg viewBox="0 0 60 60" data-art="bible"></svg></div>
+    <div class="steps"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+    <div class="story"><span class="n" style="right:-8px;top:-8px">3</span>
+      <svg class="scene" viewBox="0 0 340 150" role="img" aria-label="A girl with twists and a boy with a fade examine a scroll with a magnifying glass on a desk, a lamp and stacked books beside them" data-art="scene-detective"></svg>
+      There were some people in a city called Berea. When Paul taught them, they did not just nod. They opened the Scriptures every day to see if what he said was so. And the Bible calls them "more noble" for checking!
+    </div>
+    <div class="actions"><span class="n" style="left:-8px;top:-8px">4</span>
+      <span class="act" style="background:var(--kz-blue)"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>Read to me</span>
+      <span class="act" style="background:var(--kz-violet)"><svg viewBox="0 0 24 24" data-art="ic:ari"></svg>Ask Ari</span>
+      <span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:crayon"></svg>Color it</span>
+    </div>
+    <div class="quiz"><span class="n" style="right:-8px;top:-8px">5</span>
+      <b>Quick check: what does the Bible say about testing what you are told?</b>
+      <div class="opt"><i style="background:var(--kz-coral)">A</i>Never question what respected people say<span class="spk" data-art="ic:spk"></span></div>
+      <div class="opt yes"><i style="background:var(--kz-green)">B</i>Test it, and keep what is really true<span class="spk" data-art="ic:spk"></span></div>
+      <div class="opt"><i style="background:var(--kz-blue)">C</i>Believe whatever is said loudest<span class="spk" data-art="ic:spk"></span></div>
+    </div>
+    <div class="actions"><span class="act" style="background:var(--kz-green);flex:1 1 100%"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>Next step &#9654;</span></div>
+  </div>
+  <div class="dock"><div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>ADVENTURE</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:adult"></svg>GROWN-UPS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div></div>
+</div></div>
+<figcaption><b>Screen 3 · The adventure: the existing lesson, made a journey</b>
+<ul>
+<li><i>1</i>The lesson's own child-band opening, in a speech bubble. The words are the lesson's (ll28, child level, verbatim); nothing is rewritten.</li>
+<li><i>2</i>The anchor verse, red and gold (the Blood's color on the Word, DR-0099), fetched from the hosted KJV.</li>
+<li><i>3</i>The child band is cut into short steps by the age-paced plan that already exists (5-minute segments, a check after each). One scene per step from the adventure pool, matched to the lesson id. The step bar is the plan's real segment count.</li>
+<li><i>4</i>Read to me (the app's TTS), Ask Ari in child mode, Color it (the coloring page that already exists, DR-0866).</li>
+<li><i>5</i>The lesson's real quiz as big tappable answers with a speaker on each (the Little Learners read-aloud rule, extended to the Kids door). A pass writes the same learner record it writes in Learn, which is what lights a badge.</li>
+</ul></figcaption>
+</figure>
+
+<!-- ============ 4 · WORD BUILDER ============ -->
+<figure>
+<div class="phone"><div class="screen">
+  <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>Word builder</b><small>GAMES · KIDS</small></div><span class="seal" data-art="seal"></span></div>
+  <div class="scroll">
+    <div class="gamehead g-orange"><span class="n" style="right:12px;top:10px">1</span>
+      <div class="words"><h2>Spell the Bible word</h2><p>Tap the letters in order. Word 2 of 4 from this week's verse.</p></div>
+      <svg viewBox="0 0 150 160" role="img" aria-label="A girl with beaded braids lifts a letter block onto a stack" data-art="builder-big"></svg>
+    </div>
+    <div class="hint"><span class="n" style="left:-8px;top:-8px">2</span>The LORD is my <span class="blank">S _ _ _ _ _ _ _</span>; I shall not want.<span class="ref">Psalm 23:1 · KJV</span></div>
+    <div class="slots"><span class="n" style="left:4px;top:-10px">3</span><div class="slot f">S</div><div class="slot f">H</div><div class="slot f">E</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+    <div class="tiles"><div class="tile">D</div><div class="tile used">E</div><div class="tile">P</div><div class="tile used">H</div><div class="tile">R</div><div class="tile used">S</div><div class="tile">E</div><div class="tile">H</div></div>
+    <div class="stars"><svg viewBox="0 0 24 24" data-art="ic:starfill"></svg><svg viewBox="0 0 24 24" data-art="ic:starfill"></svg><svg viewBox="0 0 24 24" data-art="ic:starline"></svg><svg viewBox="0 0 24 24" data-art="ic:starline"></svg></div>
+    <div class="actions" style="margin:12px 12px 0"><span class="n" style="left:-8px;top:-8px">4</span><span class="act" style="background:var(--kz-blue)"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>Hear the verse</span><span class="act" style="background:var(--kz-orange-deep)"><svg viewBox="0 0 24 24" data-art="ic:bulb"></svg>Show a letter</span></div>
+    <div class="story" style="margin:12px 12px 0">
+      <svg class="scene" viewBox="0 0 340 120" role="img" aria-label="A shepherd boy with coils leads three sheep up a green hill under a gold sun" data-art="scene-shepherd"></svg>
+      <b>Teens play it differently:</b> the verse arrives as shuffled phrases to drag into order, then a longer word to spell with no hints.
+    </div>
+  </div>
+  <div class="dock"><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>ADVENTURE</div><div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:adult"></svg>GROWN-UPS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div></div>
+</div></div>
+<figcaption><b>Screen 4 · Word builder (new, Phase E)</b>
+<ul>
+<li><i>1</i>The words come from this week's memory verse, loaded verbatim from the hosted KJV at play time: every word of four letters or more, in verse order. Nothing is typed into the game.</li>
+<li><i>2</i>The hint is the verse with that one word blanked (the same blanking the memory game already does).</li>
+<li><i>3</i>Letter tiles are the word's own letters, shuffled by the week's seed so the game is the same all week. Tap to fill a slot; a wrong letter shakes and returns.</li>
+<li><i>4</i>Hear the verse uses the app's read-aloud; Show a letter costs one star. Stars are this round's, shown once, never a record of anyone.</li>
+</ul></figcaption>
+</figure>
+
+<!-- ============ 5 · WHO AM I ============ -->
+<figure>
+<div class="phone"><div class="screen">
+  <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>Who am I?</b><small>GAMES · KIDS</small></div><span class="seal" data-art="seal"></span></div>
+  <div class="scroll">
+    <div class="gamehead g-violet"><span class="n" style="right:12px;top:10px">1</span>
+      <div class="words"><h2>Guess the Bible hero</h2><p>Three clues from the Word. Fewer clues, more stars.</p></div>
+      <svg viewBox="0 0 150 160" role="img" aria-label="A boy with twists holds a magnifying glass toward a mystery figure behind a purple curtain" data-art="whoami-big"></svg>
+    </div>
+    <div class="cluecard"><span class="n" style="left:-8px;top:-8px">2</span><span class="k">CLUE 1</span><q>Now the word of the LORD came unto <span class="blank"></span> the son of Amittai, saying, Arise, go to Nineveh, that great city</q><span class="ref">Jonah 1:1-2 · KJV</span></div>
+    <div class="cluecard"><span class="k">CLUE 2</span><q>Now the LORD had prepared a great fish to swallow up <span class="blank"></span>. And <span class="blank"></span> was in the belly of the fish three days and three nights.</q><span class="ref">Jonah 1:17 · KJV</span></div>
+    <div class="cluecard locked"><span class="k">CLUE 3 · tap to reveal</span><q>…</q></div>
+    <div class="names"><span class="n" style="left:-8px;top:-8px">3</span><div class="name">Noah</div><div class="name pick">Jonah</div><div class="name">Daniel</div><div class="name">Moses</div></div>
+    <div class="story" style="margin:12px 12px 0;background:#F3EAFF;border-color:var(--kz-violet)"><span class="n" style="right:-8px;top:-8px">4</span>
+      <svg class="scene" viewBox="0 0 340 120" role="img" aria-label="A great fish in a stormy sea and a small boat, with a girl with afro puffs watching from the shore" data-art="scene-fish"></svg>
+      <b>Yes! Jonah.</b> Read his story in the Scripture tab, or hear it read to you. <span style="color:var(--kz-purple)">Next hero &#9654;</span>
+    </div>
+  </div>
+  <div class="dock"><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>ADVENTURE</div><div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:adult"></svg>GROWN-UPS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div></div>
+</div></div>
+<figcaption><b>Screen 5 · Who am I? (new, Phase E)</b>
+<ul>
+<li><i>1</i>A roster of Bible people, each with three clue REFERENCES (no clue text is typed in the app). The verses load verbatim from the hosted KJV; the person's name is blanked in the clue and shown whole after the guess.</li>
+<li><i>2</i>Clues reveal one at a time; the third is the easiest. Kids get people from the stories they meet first (Noah, Jonah, David, Ruth, Daniel, Esther, Moses, Peter…); teens get a wider roster.</li>
+<li><i>3</i>Four names to tap. A wrong tap says "not yet, try the next clue", never "wrong".</li>
+<li><i>4</i>The reveal names the person, shows the full verses, and opens the Scripture tab to the book. A test proves each clue verse really contains the name it blanks.</li>
+</ul></figcaption>
+</figure>
+
+<!-- ============ 6 · BADGES ============ -->
+<figure>
+<div class="phone"><div class="screen">
+  <div class="hdr"><span class="back">&#8249;</span><div class="t"><b>My badges</b><small>KIDS ZONE</small></div><span class="seal" data-art="seal"></span></div>
+  <div class="scroll">
+    <div class="celebrate"><span class="n" style="right:12px;top:10px">1</span>
+      <div class="words"><h2>Look at you go!</h2><p>2 badges earned. Kindness and showing up count as much as answers.</p></div>
+      <svg viewBox="0 0 160 170" role="img" aria-label="A girl with braids jumps with both arms up in a burst of gold confetti and stars" data-art="celebrate"></svg>
+    </div>
+    <div class="bgrid"><span class="n" style="left:4px;top:-10px">2</span>
+      <div class="bcard on"><svg viewBox="0 0 60 60" data-art="badge:sparkle"></svg>First Step<small>Earned</small></div>
+      <div class="bcard on"><svg viewBox="0 0 60 60" data-art="badge:heart"></svg>Little Reader<small>Earned</small></div>
+      <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:book"></svg>Five Lessons<small>Read 5 lessons</small></div>
+      <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:check"></svg>Quiz Star<small>Pass a quiz</small></div>
+      <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:crown"></svg>Three in a Row<small>Pass 3 quizzes</small></div>
+      <div class="bcard off"><svg viewBox="0 0 60 60" data-art="badge:calendar"></svg>Showed Up<small>3 days in a week</small></div>
+    </div>
+    <div class="mapcard"><span class="n" style="right:-6px;top:-8px">3</span><h3>Your adventure map</h3>
+      <svg viewBox="0 0 340 150" role="img" aria-label="A winding treasure map path with numbered stops; the first two are lit gold and the rest wait, ending at a treasure chest" data-art="treasuremap"></svg>
+    </div>
+    <p class="safety"><span class="n" style="left:-4px;top:-10px">4</span>Badges are yours alone. There is no scoreboard here: learning, kindness and showing up are the prize.</p>
+  </div>
+  <div class="dock"><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:map"></svg>ADVENTURE</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:game"></svg>GAMES</div><div class="tab on"><svg viewBox="0 0 24 24" data-art="ic:star"></svg>BADGES</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:adult"></svg>GROWN-UPS</div><div class="tab"><svg viewBox="0 0 24 24" data-art="ic:read"></svg>READ</div></div>
+</div></div>
+<figcaption><b>Screen 6 · Badges and the adventure map (derived, celebrated)</b>
+<ul>
+<li><i>1</i>The celebration scene and the sentence are chosen by how many badges the real rows earn (the encouragement copy that exists today).</li>
+<li><i>2</i>The six badges that exist, as gold stickers. Earned ones glow; locked ones say what earns them. (Example state shown: two earned.)</li>
+<li><i>3</i>The adventure map is the course's lessons as stops; a stop lights when the child's real record for that lesson exists. Signed out, no stop is lit and the card says why.</li>
+<li><i>4</i>The safety line stays, word for word.</li>
+</ul></figcaption>
+</figure>
+
+</div>
+
+<section class="legend">
+<h2>What is real on every screen (the reality trace)</h2>
+<div class="tw"><table>
+<tr><th>Part</th><th>Reads</th><th>Where it lives today</th><th>Change</th></tr>
+<tr><td>Doors Kids 6–10 / Teens 11–17</td><td>device preference (no child record)</td><td><code>lib/youth-zone.js</code> YOUTH_DOORS</td><td>Kids reads Living Lessons at the <b>child</b> band (every lesson has one, screened); Teens reads <b>youth</b> (11–14) by default and <b>teen</b> on a tap. Little Learners (3–6) stays as the Little Ones door.</td></tr>
+<tr><td>This week's adventure / challenge</td><td>a real module, by ISO week</td><td><code>weeklyLesson()</code></td><td>opened in-zone through the existing age-paced plan, quiz and tutor; the record it writes is the one Learn writes</td></tr>
+<tr><td>Memory verse</td><td>reference list; words from the hosted KJV</td><td><code>MemoryVerseGame</code></td><td>restyled only</td></tr>
+<tr><td>Bible trivia</td><td>Bishop Gwin's live <code>trivia_questions</code> row, else the anchor set</td><td><code>Engagement.jsx</code> TriviaCard</td><td>kid-styled wrapper; the free-text anchor gains a verse-grounded kids set (each question carries its reference; a test proves the KJV verse holds the answer)</td></tr>
+<tr><td>Word builder</td><td>the weekly verse's own words (KJV, verbatim)</td><td>new <code>lib/kids/word-builder.js</code></td><td>Phase E</td></tr>
+<tr><td>Who am I?</td><td>references only; verses from the KJV at play time</td><td>new <code>lib/kids/who-am-i.js</code></td><td>Phase E</td></tr>
+<tr><td>Badges + adventure map</td><td><code>learner_lesson_records</code>, derived</td><td><code>badgesFor()</code>, <code>BadgeShelf</code></td><td>sticker art; the map lights stops from the same rows</td></tr>
+<tr><td>Ari</td><td><code>/llm/chat</code>, the existing tutor seam</td><td><code>class-tutor.js</code></td><td><code>childMode</code> is read for real: short sentences, the lesson only, always "ask a grown-up"</td></tr>
+<tr><td>Youth events, music</td><td>church record, future only; the church channel</td><td><code>upcomingAnnounced()</code></td><td>unchanged</td></tr>
+<tr><td>Illustrations</td><td>inline SVG components, no network, no generated images</td><td>new <code>components/kids/KidsArt.jsx</code>, the <code>GameArt.jsx</code> lineage</td><td>Phase D</td></tr>
+</table></div>
+
+<h3>The palette, resolved</h3>
+<p>Darrell, 2026-11-13: keep Screen 3's layout and vibrant colors; the church is red, black, white and gold. Both hold: the Kids Zone wears its own bright world <b>inside</b> the church's frame (header, seal, gold rule, the red Start, the gold badges, the Bible's red cover with its gold cross). The Teens Zone wears the house by night (black into deep red, gold) with one cool accent. True red on the Word stays the Blood's color (DR-0099) and marks nothing else.</p>
+<div class="sw">
+<span><i style="background:#C03222"></i>church red</span><span><i style="background:#1A1012"></i>church black</span><span><i style="background:#fff"></i>white</span><span><i style="background:#CFA63C"></i>church gold</span>
+<span><i style="background:#5B2DD6"></i>purple</span><span><i style="background:#2F7BF5"></i>blue</span><span><i style="background:#19B5A6"></i>teal</span><span><i style="background:#FF7A59"></i>coral</span><span><i style="background:#FF3D7F"></i>pink</span><span><i style="background:#FFB020"></i>orange</span><span><i style="background:#8E44F0"></i>violet</span><span><i style="background:#2BB24C"></i>green</span><span><i style="background:#FFD84D"></i>sun</span><span><i style="background:#FFF6DF"></i>cream</span>
+</div>
+
+<h3>The cast (the illustration system)</h3>
+<p>Drawn once as components, reused everywhere: five rich brown skin tones with lit and shaded sides; afro, afro-puffs, braids with gold beads, twists, locs, coils, a fresh fade, a head wrap; expressive faces (brows, bright eyes, open smiles); whole bodies in motion. Friends of other backgrounds appear beside them in group scenes. No emoji, no clip art, no generated faces. Dignity is the binding rule, as in the games' art: never caricature.</p>
+<div class="cast">
+<figure><svg viewBox="0 0 120 150" data-art="cast:puffs"></svg><figcaption>afro puffs · reads</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:fade"></svg><figcaption>fresh fade · points</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:braids"></svg><figcaption>beaded braids · builds</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:locs"></svg><figcaption>locs · cheers</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:twists"></svg><figcaption>twists · wonders</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:coils"></svg><figcaption>coils · waves</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:afro"></svg><figcaption>afro · a friend</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:straight"></svg><figcaption>a friend of another background</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:teen-g"></svg><figcaption>teen · twists, backpack</figcaption></figure>
+<figure><svg viewBox="0 0 120 150" data-art="cast:teen-b"></svg><figcaption>teen · fade, headphones</figcaption></figure>
+</div>
+
+<h3>Phases (each its own PR, held until approved)</h3>
+<div class="tw"><table>
+<tr><th>Phase</th><th>Builds</th><th>Proof</th></tr>
+<tr><td>D1</td><td>KidsArt.jsx (the cast, scenes, badges, icons) + the Kids Zone shell over YouthZone's doors; kids-zone.css as its own file (no edit to index.css, which Phase C holds); true ages; Teens at youth/teen; the adventure reader (age-paced plan + quiz + read-aloud + coloring); Ari childMode read for real; trivia, memory verse and badges restyled</td><td>existing youth-zone tests green; new render tests (doors, derived badges, no profile/chat/scoreboard strings); childMode proven in the prompt; 390 px measured, no overflow</td></tr>
+<tr><td>E1</td><td>Word builder (kids: letters; teens: phrase order) over the weekly verse</td><td>pure tests: every word from the loaded text; the seed shuffles the same all week; a verse that does not load says so</td></tr>
+<tr><td>E2</td><td>Who am I? (kids roster, teens roster) over clue references</td><td>a test loads every clue verse from the in-repo KJV and proves the blanked name is in it</td></tr>
+<tr><td>F</td><td>Comfort pass at 360/390/768/1440 and three text sizes</td><td>the layout probe; keyboard walk</td></tr>
+</table></div>
+</section>
+
+<script>
+/* ===================== KidsArt: the illustration system (SVG strings) =====================
+   Written as functions so the production port is mechanical: each becomes a React
+   component in components/kids/KidsArt.jsx. Skin tones and hair follow GameArt.jsx. */
+(function(){
+const SKIN=['#5F4230','#7A5237','#8F5E3D','#A56E45','#BE855A'];
+const HI=['#7A5941','#96694A','#AB7A52','#C1885B','#D6A074'];
+const LO=['#402C1D','#553824','#66442C','#774E31','#8E6440'];
+const OTHER={skin:'#E8B892',hi:'#F3CBA8',lo:'#C99670',hair:'#4A2C14'};
+const HAIR='#231A15', SHINE='#4A382C', GOLD='#CFA63C', RED='#C03222';
+const P={purple:'#5B2DD6',blue:'#2F7BF5',teal:'#19B5A6',coral:'#FF7A59',pink:'#FF3D7F',orange:'#FFB020',orangeD:'#FF7A00',violet:'#8E44F0',green:'#2BB24C',sun:'#FFD84D',cream:'#FFF6DF',ink:'#2A1A4D',white:'#fff'};
+
+function hair(style,cx,cy,r,color){
+  color=color||HAIR; const cap=(y)=>`<path d="M${cx-r*1.02} ${cy-r*y} A${r*1.02} ${r*1.02} 0 0 1 ${cx+r*1.02} ${cy-r*y} Z" fill="${color}"/>`;
+  switch(style){
+    case 'afro': return {back:`<circle cx="${cx}" cy="${cy-r*.3}" r="${r*1.36}" fill="${color}"/><circle cx="${cx-r*.6}" cy="${cy-r*1.1}" r="${r*.4}" fill="${SHINE}" opacity=".5"/>`, front:cap(.42)};
+    case 'puffs': return {back:`<circle cx="${cx-r*1.15}" cy="${cy-r*.9}" r="${r*.72}" fill="${color}"/><circle cx="${cx+r*1.15}" cy="${cy-r*.9}" r="${r*.72}" fill="${color}"/><circle cx="${cx-r*1.3}" cy="${cy-r*1.05}" r="${r*.24}" fill="${SHINE}" opacity=".6"/><circle cx="${cx+r*1.0}" cy="${cy-r*1.1}" r="${r*.24}" fill="${SHINE}" opacity=".6"/>`, front:cap(.42)+`<circle cx="${cx-r*.72}" cy="${cy-r*.82}" r="${r*.14}" fill="${P.pink}"/><circle cx="${cx+r*.72}" cy="${cy-r*.82}" r="${r*.14}" fill="${P.pink}"/>`};
+    case 'fade': return {back:'', front:cap(.45)+`<path d="M${cx-r*1.02} ${cy-r*.45} v${r*.5} M${cx+r*1.02} ${cy-r*.45} v${r*.5}" stroke="${color}" stroke-width="${r*.16}" stroke-linecap="round"/><path d="M${cx-r*.85} ${cy-r*.7} A${r*.9} ${r*.9} 0 0 1 ${cx+r*.85} ${cy-r*.7}" fill="none" stroke="${SHINE}" stroke-width="${r*.1}" opacity=".6"/>`};
+    case 'locs': { let b=''; [-0.95,-0.62,0.62,0.95].forEach((f,i)=>{b+=`<rect x="${cx+f*r-r*.11}" y="${cy-r*.3}" width="${r*.22}" height="${r*(1.6+(i%2)*.35)}" rx="${r*.11}" fill="${color}"/>`;}); let fr=cap(.4); [-0.75,-0.25,0.25,0.75].forEach((f)=>{fr+=`<rect x="${cx+f*r-r*.1}" y="${cy-r*1.05}" width="${r*.2}" height="${r*.55}" rx="${r*.1}" fill="${color}"/>`;}); return {back:b, front:fr}; }
+    case 'braids': { let b=''; [-0.95,-0.65,0.65,0.95].forEach((f)=>{b+=`<rect x="${cx+f*r-r*.07}" y="${cy-r*.3}" width="${r*.14}" height="${r*1.5}" rx="${r*.07}" fill="${color}"/><circle cx="${cx+f*r}" cy="${cy+r*1.25}" r="${r*.12}" fill="${GOLD}"/>`;}); let fr=cap(.4); [-0.6,-0.2,0.2,0.6].forEach((f)=>{fr+=`<path d="M${cx+f*r} ${cy-r*1.02} v${r*.55}" stroke="${SHINE}" stroke-width="${r*.07}" stroke-linecap="round"/>`;}); return {back:b, front:fr}; }
+    case 'twists': { let b=`<circle cx="${cx}" cy="${cy-r*.3}" r="${r*1.15}" fill="${color}"/>`; [-1.0,-0.7,0.7,1.0].forEach((f,i)=>{b+=`<path d="M${cx+f*r} ${cy-r*.3} q${r*.18} ${r*.5} ${-r*.05} ${r*(1.2+(i%2)*.3)}" fill="none" stroke="${color}" stroke-width="${r*.22}" stroke-linecap="round"/>`;}); let fr=cap(.42); [-0.55,-0.18,0.18,0.55].forEach((f)=>{fr+=`<path d="M${cx+f*r} ${cy-r*1.05} q${r*.1} ${r*.3} 0 ${r*.55}" fill="none" stroke="${SHINE}" stroke-width="${r*.08}" stroke-linecap="round"/>`;}); return {back:b, front:fr}; }
+    case 'coils': { let b=`<circle cx="${cx}" cy="${cy-r*.3}" r="${r*1.14}" fill="${color}"/>`; [-0.7,-0.28,0.28,0.7].forEach((f)=>{b+=`<circle cx="${cx+f*r}" cy="${cy-r*1.22}" r="${r*.26}" fill="${color}"/>`;}); return {back:b, front:cap(.42)}; }
+    case 'knots': { let b=''; [-0.6,0,0.6].forEach((f)=>{b+=`<circle cx="${cx+f*r}" cy="${cy-r*1.1}" r="${r*.3}" fill="${color}"/><circle cx="${cx+f*r}" cy="${cy-r*1.1}" r="${r*.3}" fill="none" stroke="${SHINE}" stroke-width="${r*.06}"/>`;}); return {back:b, front:cap(.42)}; }
+    case 'straight': return {back:`<path d="M${cx-r*1.08} ${cy+r*1.0} L${cx-r*1.08} ${cy-r*.2} A${r*1.08} ${r*1.08} 0 0 1 ${cx+r*1.08} ${cy-r*.2} L${cx+r*1.08} ${cy+r*1.0} Z" fill="${color}"/>`, front:`<path d="M${cx-r*1.02} ${cy-r*.3} A${r*1.02} ${r*1.02} 0 0 1 ${cx+r*1.02} ${cy-r*.3} L${cx+r*.9} ${cy-r*.3} Q${cx+r*.3} ${cy-r*.75} ${cx-r*.5} ${cy-r*.45} L${cx-r*1.02} ${cy-r*.3} Z" fill="${color}"/>`};
+    default: return {back:`<circle cx="${cx}" cy="${cy-r*.3}" r="${r*1.2}" fill="${color}"/>`, front:cap(.42)};
+  }
+}
+function face(cx,cy,r,o){
+  o=o||{}; const closed=o.closed, big=o.big;
+  const eyes = closed
+    ? `<path d="M${cx-r*.5} ${cy+r*.02} q${r*.14} ${r*.14} ${r*.28} 0" fill="none" stroke="${HAIR}" stroke-width="${r*.09}" stroke-linecap="round"/><path d="M${cx+r*.22} ${cy+r*.02} q${r*.14} ${r*.14} ${r*.28} 0" fill="none" stroke="${HAIR}" stroke-width="${r*.09}" stroke-linecap="round"/>`
+    : `<circle cx="${cx-r*.36}" cy="${cy+r*.02}" r="${r*.13}" fill="${HAIR}"/><circle cx="${cx+r*.36}" cy="${cy+r*.02}" r="${r*.13}" fill="${HAIR}"/><circle cx="${cx-r*.31}" cy="${cy-r*.03}" r="${r*.045}" fill="#fff"/><circle cx="${cx+r*.41}" cy="${cy-r*.03}" r="${r*.045}" fill="#fff"/>`;
+  const smile = big
+    ? `<path d="M${cx-r*.4} ${cy+r*.38} Q${cx} ${cy+r*.95} ${cx+r*.4} ${cy+r*.38} Q${cx} ${cy+r*.6} ${cx-r*.4} ${cy+r*.38} Z" fill="#3A2018"/><path d="M${cx-r*.25} ${cy+r*.48} Q${cx} ${cy+r*.6} ${cx+r*.25} ${cy+r*.48} L${cx+r*.25} ${cy+r*.44} Q${cx} ${cy+r*.48} ${cx-r*.25} ${cy+r*.44} Z" fill="#fff"/>`
+    : `<path d="M${cx-r*.3} ${cy+r*.45} Q${cx} ${cy+r*.72} ${cx+r*.3} ${cy+r*.45}" fill="none" stroke="#3A2018" stroke-width="${r*.09}" stroke-linecap="round"/>`;
+  return `<circle cx="${cx-r*.52}" cy="${cy+r*.33}" r="${r*.17}" fill="#D86A4A" opacity=".3"/><circle cx="${cx+r*.52}" cy="${cy+r*.33}" r="${r*.17}" fill="#D86A4A" opacity=".3"/>
+  <path d="M${cx-r*.56} ${cy-r*.22} q${r*.2} ${-r*.16} ${r*.4} 0" fill="none" stroke="${HAIR}" stroke-width="${r*.08}" stroke-linecap="round"/><path d="M${cx+r*.16} ${cy-r*.22} q${r*.2} ${-r*.16} ${r*.4} 0" fill="none" stroke="${HAIR}" stroke-width="${r*.08}" stroke-linecap="round"/>${eyes}${smile}`;
+}
+/* a child, chunky proportions (head ~ a third of the height), head radius r */
+function kid(o){
+  const r=o.r||16, cx=o.x||60, cy=o.y||40, t=o.tone==null?2:o.tone;
+  const other = o.other;
+  const skin = other?OTHER.skin:SKIN[t], hi = other?OTHER.hi:HI[t], lo = other?OTHER.lo:LO[t], hc = other?OTHER.hair:(o.hairColor||HAIR);
+  const top=o.top||P.coral, bottom=o.bottom||P.blue, pose=o.pose||'stand';
+  const shY=cy+r*1.35, hipY=cy+r*2.75, sx=r*.95, armW=r*.46, legW=r*.55;
+  const limb=(x1,y1,x2,y2,w,c)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="${armW*.62}" fill="${skin}"/>`;
+  const shoe=(x,y)=>`<ellipse cx="${x}" cy="${y+legW*.25}" rx="${legW*.75}" ry="${legW*.42}" fill="${P.ink}"/>`;
+  let arms='',legs='';
+  const legsStand=limb(cx-r*.45,hipY,cx-r*.55,hipY+r*1.55,legW,bottom)+limb(cx+r*.45,hipY,cx+r*.55,hipY+r*1.55,legW,bottom)+shoe(cx-r*.55,hipY+r*1.55)+shoe(cx+r*.55,hipY+r*1.55);
+  switch(pose){
+    case 'cheer': arms=limb(cx-sx,shY,cx-sx*1.7,cy-r*1.0,armW,skin)+limb(cx+sx,shY,cx+sx*1.7,cy-r*1.0,armW,skin)+hand(cx-sx*1.7,cy-r*1.0)+hand(cx+sx*1.7,cy-r*1.0); legs=legsStand; break;
+    case 'jump': arms=limb(cx-sx,shY,cx-sx*1.8,cy-r*1.1,armW,skin)+limb(cx+sx,shY,cx+sx*1.8,cy-r*1.1,armW,skin)+hand(cx-sx*1.8,cy-r*1.1)+hand(cx+sx*1.8,cy-r*1.1); legs=limb(cx-r*.45,hipY,cx-r*1.2,hipY+r*1.0,legW,bottom)+limb(cx+r*.45,hipY,cx+r*1.2,hipY+r*1.0,legW,bottom)+shoe(cx-r*1.2,hipY+r*1.0)+shoe(cx+r*1.2,hipY+r*1.0); break;
+    case 'point': arms=limb(cx-sx,shY,cx-sx*1.3,shY+r*1.1,armW,skin)+limb(cx+sx,shY,cx+sx*2.1,cy-r*.6,armW,skin)+hand(cx-sx*1.3,shY+r*1.1)+hand(cx+sx*2.1,cy-r*.6); legs=legsStand; break;
+    case 'wave': arms=limb(cx-sx,shY,cx-sx*1.4,shY+r*1.1,armW,skin)+limb(cx+sx,shY,cx+sx*1.8,cy-r*.9,armW,skin)+hand(cx-sx*1.4,shY+r*1.1)+hand(cx+sx*1.8,cy-r*.9); legs=legsStand; break;
+    case 'hold': /* both hands forward at chest, holding a prop drawn by the scene */ arms=limb(cx-sx,shY,cx-r*.5,shY+r*.9,armW,skin)+limb(cx+sx,shY,cx+r*.5,shY+r*.9,armW,skin)+hand(cx-r*.5,shY+r*.95)+hand(cx+r*.5,shY+r*.95); legs=legsStand; break;
+    case 'think': arms=limb(cx-sx,shY,cx-sx*1.3,shY+r*1.1,armW,skin)+limb(cx+sx,shY,cx+r*.75,cy+r*.5,armW,skin)+hand(cx-sx*1.3,shY+r*1.1)+hand(cx+r*.8,cy+r*.45); legs=legsStand; break;
+    case 'raise': arms=limb(cx-sx,shY,cx-sx*1.3,shY+r*1.1,armW,skin)+limb(cx+sx,shY,cx+sx*1.3,cy-r*1.3,armW,skin)+hand(cx-sx*1.3,shY+r*1.1)+hand(cx+sx*1.3,cy-r*1.3); legs=legsStand; break;
+    case 'lift': arms=limb(cx-sx,shY,cx-sx*1.4,shY-r*.9,armW,skin)+limb(cx+sx,shY,cx+sx*1.4,shY-r*.9,armW,skin)+hand(cx-sx*1.4,shY-r*.95)+hand(cx+sx*1.4,shY-r*.95); legs=legsStand; break;
+    case 'sit': arms=limb(cx-sx,shY,cx-r*.6,shY+r*1.0,armW,skin)+limb(cx+sx,shY,cx+r*.6,shY+r*1.0,armW,skin)+hand(cx-r*.6,shY+r*1.05)+hand(cx+r*.6,shY+r*1.05); legs=limb(cx-r*.4,hipY-r*.2,cx-r*1.5,hipY+r*.2,legW,bottom)+limb(cx+r*.4,hipY-r*.2,cx+r*1.5,hipY+r*.2,legW,bottom)+shoe(cx-r*1.55,hipY+r*.25)+shoe(cx+r*1.55,hipY+r*.25); break;
+    default: arms=limb(cx-sx,shY,cx-sx*1.3,shY+r*1.2,armW,skin)+limb(cx+sx,shY,cx+sx*1.3,shY+r*1.2,armW,skin)+hand(cx-sx*1.3,shY+r*1.2)+hand(cx+sx*1.3,shY+r*1.2); legs=legsStand;
+  }
+  const torsoH = pose==='sit'? r*1.4 : r*1.6;
+  const torso=`<path d="M${cx-sx} ${shY-r*.2} Q${cx} ${shY-r*.55} ${cx+sx} ${shY-r*.2} L${cx+sx*1.02} ${shY+torsoH} Q${cx} ${shY+torsoH+r*.3} ${cx-sx*1.02} ${shY+torsoH} Z" fill="${top}"/>`;
+  const collar=o.collar?`<path d="M${cx-r*.45} ${shY-r*.3} L${cx} ${shY+r*.15} L${cx+r*.45} ${shY-r*.3}" fill="none" stroke="#fff" stroke-width="${r*.12}" stroke-linecap="round"/>`:'';
+  const neck=`<rect x="${cx-r*.3}" y="${cy+r*.75}" width="${r*.6}" height="${r*.7}" fill="${lo}"/>`;
+  const head=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${skin}"/><path d="M${cx-r*.2} ${cy-r} A${r} ${r} 0 0 1 ${cx+r} ${cy+r*.2} A${r*.85} ${r*.85} 0 0 0 ${cx-r*.2} ${cy-r} Z" fill="${hi}" opacity=".55"/><ellipse cx="${cx-r*.98}" cy="${cy+r*.05}" rx="${r*.14}" ry="${r*.22}" fill="${skin}"/><ellipse cx="${cx+r*.98}" cy="${cy+r*.05}" rx="${r*.14}" ry="${r*.22}" fill="${skin}"/>`;
+  const extra = o.extra?o.extra(cx,cy,r):'';
+  const hh=hair(o.hair||'afro',cx,cy,r,hc); const g=`<g transform="${o.flip?`translate(${2*cx} 0) scale(-1 1)`:''}">${hh.back}${legs}${neck}${torso}${collar}${arms}${head}${face(cx,cy,r,o.face)}${hh.front}${extra}</g>`;
+  return g;
+}
+/* a teen: taller, slimmer, head ~ a fifth of the height */
+function teen(o){
+  const r=o.r||13, cx=o.x||60, cy=o.y||30, t=o.tone==null?1:o.tone;
+  const skin=SKIN[t], hi=HI[t], lo=LO[t], top=o.top||P.ink, bottom=o.bottom||'#2B2B3A', pose=o.pose||'stand';
+  const shY=cy+r*1.5, sx=r*1.05, armW=r*.4, legW=r*.5, torsoH=r*2.4, hipY=shY+torsoH;
+  const limb=(x1,y1,x2,y2,w,c)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="${armW*.6}" fill="${skin}"/>`;
+  const shoe=(x,y)=>`<ellipse cx="${x}" cy="${y+legW*.2}" rx="${legW*.8}" ry="${legW*.4}" fill="${o.shoe||'#fff'}"/>`;
+  const legs=limb(cx-r*.45,hipY,cx-r*.6,hipY+r*2.6,legW,bottom)+limb(cx+r*.45,hipY,cx+r*.7,hipY+r*2.6,legW,bottom)+shoe(cx-r*.6,hipY+r*2.6)+shoe(cx+r*.7,hipY+r*2.6);
+  let arms='';
+  switch(pose){
+    case 'phone': arms=limb(cx-sx,shY,cx-sx*1.2,shY+r*1.9,armW,skin)+limb(cx+sx,shY,cx+r*.4,shY+r*1.2,armW,skin)+hand(cx-sx*1.2,shY+r*1.95)+hand(cx+r*.35,shY+r*1.15); break;
+    case 'flag': arms=limb(cx-sx,shY,cx-sx*1.2,shY+r*1.9,armW,skin)+limb(cx+sx,shY,cx+sx*1.6,cy-r*1.2,armW,skin)+hand(cx-sx*1.2,shY+r*1.95)+hand(cx+sx*1.6,cy-r*1.2); break;
+    case 'cross': arms=limb(cx-sx,shY,cx+r*.3,shY+r*1.1,armW,skin)+limb(cx+sx,shY,cx-r*.3,shY+r*1.2,armW,skin)+hand(cx+r*.35,shY+r*1.1)+hand(cx-r*.35,shY+r*1.2); break;
+    default: arms=limb(cx-sx,shY,cx-sx*1.25,shY+r*2.0,armW,skin)+limb(cx+sx,shY,cx+sx*1.25,shY+r*2.0,armW,skin)+hand(cx-sx*1.25,shY+r*2.0)+hand(cx+sx*1.25,shY+r*2.0);
+  }
+  const torso=`<path d="M${cx-sx} ${shY-r*.2} Q${cx} ${shY-r*.6} ${cx+sx} ${shY-r*.2} L${cx+sx*.95} ${hipY} L${cx-sx*.95} ${hipY} Z" fill="${top}"/>`;
+  const hood=o.hood?`<path d="M${cx-r*.9} ${shY+r*.1} Q${cx} ${shY+r*.9} ${cx+r*.9} ${shY+r*.1}" fill="none" stroke="${o.hood}" stroke-width="${r*.3}" stroke-linecap="round"/>`:'';
+  const neck=`<rect x="${cx-r*.28}" y="${cy+r*.8}" width="${r*.56}" height="${r*.8}" fill="${lo}"/>`;
+  const head=`<ellipse cx="${cx}" cy="${cy}" rx="${r*.95}" ry="${r*1.05}" fill="${skin}"/><path d="M${cx-r*.1} ${cy-r} A${r} ${r} 0 0 1 ${cx+r*.9} ${cy+r*.3} A${r*.8} ${r*.8} 0 0 0 ${cx-r*.1} ${cy-r} Z" fill="${hi}" opacity=".5"/>`;
+  const extra=o.extra?o.extra(cx,cy,r,shY,hipY):'';
+  const hh=hair(o.hair||'fade',cx,cy,r,o.hairColor); return `<g transform="${o.flip?`translate(${2*cx} 0) scale(-1 1)`:''}">${hh.back}${legs}${neck}${torso}${hood}${arms}${head}${face(cx,cy,r,{big:false})}${hh.front}${extra}</g>`;
+}
+/* props */
+const bible=(x,y,w,rot)=>`<g transform="translate(${x} ${y}) rotate(${rot||0})"><rect x="${-w/2}" y="${-w*.62}" width="${w}" height="${w*1.24}" rx="${w*.08}" fill="${RED}"/><rect x="${-w/2+w*.1}" y="${-w*.62}" width="${w*.08}" height="${w*1.24}" fill="#8E2217"/><path d="M0 ${-w*.32} v${w*.5} M${-w*.18} ${-w*.14} h${w*.36}" stroke="${GOLD}" stroke-width="${w*.09}" stroke-linecap="round"/></g>`;
+const openBible=(x,y,w)=>`<g transform="translate(${x} ${y})"><path d="M${-w/2} ${-w*.05} Q${-w*.25} ${-w*.18} 0 ${-w*.05} Q${w*.25} ${-w*.18} ${w/2} ${-w*.05} L${w/2} ${w*.3} Q${w*.25} ${w*.2} 0 ${w*.3} Q${-w*.25} ${w*.2} ${-w/2} ${w*.3} Z" fill="${RED}"/><path d="M${-w*.46} ${-w*.02} Q${-w*.23} ${-w*.14} ${-w*.02} ${-w*.02} L${-w*.02} ${w*.25} Q${-w*.23} ${w*.14} ${-w*.46} ${w*.25} Z" fill="#fff"/><path d="M${w*.46} ${-w*.02} Q${w*.23} ${-w*.14} ${w*.02} ${-w*.02} L${w*.02} ${w*.25} Q${w*.23} ${w*.14} ${w*.46} ${w*.25} Z" fill="#FFF8EC"/>${[0,1,2].map(i=>`<path d="M${-w*.4} ${w*(.04+i*.07)} q${w*.17} ${-w*.05} ${w*.34} 0 M${w*.06} ${w*(.04+i*.07)} q${w*.17} ${-w*.05} ${w*.34} 0" fill="none" stroke="#C9B8A8" stroke-width="${w*.02}"/>`).join('')}</g>`;
+const star=(x,y,r,fill)=>{let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;p+=`${i?'L':'M'}${(x+rr*Math.cos(a)).toFixed(1)} ${(y+rr*Math.sin(a)).toFixed(1)} `;}return `<path d="${p}Z" fill="${fill||P.sun}"/>`;};
+const sparkle=(x,y,r,fill)=>`<path d="M${x} ${y-r} Q${x} ${y} ${x+r} ${y} Q${x} ${y} ${x} ${y+r} Q${x} ${y} ${x-r} ${y} Q${x} ${y} ${x} ${y-r} Z" fill="${fill||'#fff'}"/>`;
+const map=(x,y,w,h,rot)=>`<g transform="translate(${x} ${y}) rotate(${rot||0})"><path d="M${-w/2} ${-h/2} h${w} v${h} h${-w} Z" fill="#F6E3B4" stroke="#C9A86A" stroke-width="2"/><path d="M${-w*.38} ${h*.3} C${-w*.2} ${-h*.1} ${w*.05} ${h*.4} ${w*.3} ${-h*.25}" fill="none" stroke="${RED}" stroke-width="2.2" stroke-dasharray="4 3"/><path d="M${w*.24} ${-h*.32} l${w*.12} ${h*.14} M${w*.36} ${-h*.32} l${-w*.12} ${h*.14}" stroke="${RED}" stroke-width="3" stroke-linecap="round"/><circle cx="${-w*.38}" cy="${h*.3}" r="3" fill="${P.blue}"/></g>`;
+const lens=(x,y,r,rot)=>`<g transform="translate(${x} ${y}) rotate(${rot||40})"><circle cx="0" cy="0" r="${r}" fill="#CFEFFF" stroke="${P.ink}" stroke-width="${r*.28}"/><circle cx="${-r*.3}" cy="${-r*.3}" r="${r*.25}" fill="#fff" opacity=".8"/><rect x="${-r*.18}" y="${r*1.05}" width="${r*.36}" height="${r*1.3}" rx="${r*.18}" fill="${P.orangeD}"/></g>`;
+const block=(x,y,s,letter,fill)=>`<g transform="translate(${x} ${y})"><rect x="${-s/2}" y="${-s/2}" width="${s}" height="${s}" rx="${s*.18}" fill="${fill}"/><rect x="${-s/2+s*.1}" y="${-s/2+s*.1}" width="${s*.8}" height="${s*.8}" rx="${s*.12}" fill="#fff" opacity=".9"/><text x="0" y="${s*.26}" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="900" font-size="${s*.68}" fill="${P.ink}">${letter}</text></g>`;
+const chest=(x,y,w)=>`<g transform="translate(${x} ${y})"><rect x="${-w/2}" y="${-w*.1}" width="${w}" height="${w*.55}" rx="${w*.08}" fill="#8B5A2B"/><path d="M${-w/2} ${-w*.1} a${w/2} ${w*.35} 0 0 1 ${w} 0 Z" fill="#A86F38"/><rect x="${-w*.1}" y="${-w*.05}" width="${w*.2}" height="${w*.22}" rx="3" fill="${GOLD}"/>${star(-w*.25,-w*.4,w*.12)}${star(w*.3,-w*.5,w*.16)}${sparkle(0,-w*.7,w*.12,P.sun)}</g>`;
+const lantern=(x,y,h)=>`<g transform="translate(${x} ${y})"><rect x="${-h*.22}" y="${-h*.5}" width="${h*.44}" height="${h}" rx="${h*.08}" fill="${P.ink}"/><rect x="${-h*.16}" y="${-h*.4}" width="${h*.32}" height="${h*.78}" rx="${h*.06}" fill="${P.sun}"/><circle cx="0" cy="0" r="${h*.1}" fill="#fff"/><rect x="${-h*.08}" y="${-h*.62}" width="${h*.16}" height="${h*.14}" fill="${P.ink}"/></g>`;
+const cloud=(x,y,w,fill)=>`<g fill="${fill||'#fff'}" opacity=".9"><ellipse cx="${x}" cy="${y}" rx="${w*.5}" ry="${w*.22}"/><circle cx="${x-w*.2}" cy="${y-w*.1}" r="${w*.2}"/><circle cx="${x+w*.1}" cy="${y-w*.16}" r="${w*.25}"/></g>`;
+const starsField=(w,h,n,seed)=>{let s='';for(let i=0;i<n;i++){const x=((i*73+seed*31)%w),y=((i*47+seed*17)%(h*.7));s+=sparkle(x,y,2+(i%3),'#fff');}return s;};
+
+const ART={
+  seal:()=>`<svg viewBox="0 0 40 40" aria-hidden="true" style="width:28px;height:28px"><circle cx="20" cy="20" r="18" fill="#fff" stroke="#1A1012" stroke-width="2"/><path d="M20 9v18M13 15h14" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/><path d="M20 30c-3-2.5-6-4.5-6-7.5a3.2 3.2 0 0 1 6-1.5 3.2 3.2 0 0 1 6 1.5c0 3-3 5-6 7.5z" fill="${RED}"/></svg>`,
+  stars:()=>starsField(390,230,26,3)+cloud(40,160,80,'rgba(255,255,255,.18)')+cloud(330,70,70,'rgba(255,255,255,.14)'),
+  skyline:()=>{let s=starsField(390,120,18,7);const bs=[[0,150,40],[40,120,36],[76,160,30],[106,100,50],[156,135,34],[190,90,44],[234,140,40],[274,110,36],[310,150,44],[354,125,36]];bs.forEach(([x,y,w])=>{s+=`<rect x="${x}" y="${y}" width="${w}" height="${230-y}" fill="#0E0809" opacity=".8"/>`;for(let i=0;i<5;i++){s+=`<rect x="${x+6+(i%2)*14}" y="${y+10+i*18}" width="6" height="8" fill="${GOLD}" opacity="${0.4+((i+x)%3)*0.2}"/>`;}});s+=`<path d="M0 230 Q195 200 390 230 Z" fill="#1A1012"/>`;return s;},
+  hero:()=>{ // three explorers on a hill with a map, a path, the treasure
+    let s=`<path d="M0 150 Q100 100 200 150 L200 190 L0 190 Z" fill="#2BB24C"/><path d="M0 165 Q100 125 200 165 L200 190 L0 190 Z" fill="#1E9A3E"/>`;
+    s+=`<path d="M30 185 C70 150 110 175 150 140 C170 125 185 128 190 118" fill="none" stroke="#FFF1B8" stroke-width="4" stroke-dasharray="7 6" stroke-linecap="round"/>`;
+    s+=chest(176,112,30);
+    s+=star(20,28,8)+star(178,30,6)+sparkle(60,14,5)+sparkle(150,60,5)+sparkle(110,22,4);
+    s+=kid({x:52,y:104,r:15,tone:0,hair:'puffs',top:P.sun,bottom:P.purple,pose:'hold',face:{big:true}});
+    s+=map(52,135,40,30,-6);
+    s+=kid({x:106,y:98,r:15,tone:2,hair:'fade',top:P.teal,bottom:P.orangeD,pose:'point',face:{big:true},collar:true});
+    s+=kid({x:154,y:112,r:14,tone:4,hair:'braids',top:P.pink,bottom:P.blue,pose:'hold',face:{big:true}});
+    s+=bible(154,140,26,8);
+    return s;},
+  reader:()=>{ let s=`<ellipse cx="75" cy="160" rx="62" ry="10" fill="rgba(0,0,0,.14)"/>`; s+=lantern(126,96,44); s+=`<circle cx="126" cy="96" r="30" fill="${P.sun}" opacity=".22"/>`; s+=kid({x:70,y:70,r:17,tone:1,hair:'locs',top:P.sun,bottom:P.ink,pose:'sit',face:{big:true}}); s+=openBible(70,118,70); s+=star(36,28,9)+sparkle(112,34,6)+sparkle(20,70,5); return s;},
+  memory:()=>{ let s=kid({x:60,y:58,r:17,tone:3,hair:'puffs',top:P.sun,bottom:P.purple,pose:'think',face:{closed:true}}); ['shepherd','want','LORD'].forEach((w,i)=>{s+=`<g transform="translate(${14+i*36} ${16+(i%2)*10}) rotate(${-8+i*8})"><rect x="-16" y="-8" width="34" height="16" rx="8" fill="#fff" opacity=".92"/><text x="1" y="4" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="8" fill="${P.purple}">${w}</text></g>`;}); s+=sparkle(100,40,5)+sparkle(12,52,4); return s;},
+  trivia:()=>{ let s=kid({x:58,y:62,r:17,tone:2,hair:'fade',top:P.orange,bottom:P.ink,pose:'raise',face:{big:true},collar:true}); s+=`<text x="96" y="34" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="40" fill="${P.sun}" stroke="${P.ink}" stroke-width="2">?</text>`; s+=sparkle(18,30,5)+sparkle(108,70,4); return s;},
+  builder:()=>{ let s=kid({x:50,y:58,r:16,tone:0,hair:'braids',top:P.blue,bottom:P.pink,pose:'lift',face:{big:true}}); s+=block(100,112,24,'D',P.violet)+block(100,88,24,'R',P.green)+block(100,64,24,'O',P.blue)+block(50,24,22,'W',P.pink); s+=sparkle(20,22,5); return s;},
+  whoami:()=>{ let s=`<path d="M70 10 h50 v120 h-50 Z" fill="#3A0F6E"/><path d="M78 10 q10 60 0 120 M94 10 q-8 60 0 120 M110 10 q8 60 0 120" stroke="#5B2DD6" stroke-width="5" fill="none"/>`; s+=`<g opacity=".55">${kid({x:98,y:52,r:11,tone:1,hair:'afro',top:'#2A0A52',bottom:'#2A0A52'})}</g><rect x="70" y="10" width="50" height="120" fill="#2A0A52" opacity=".55"/>`; s+=kid({x:42,y:60,r:16,tone:2,hair:'twists',top:P.green,bottom:P.ink,pose:'raise',face:{big:true}}); s+=lens(70,30,12,35); s+=`<text x="96" y="80" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="30" fill="${P.sun}">?</text>`; return s;},
+  'whoami-big':()=>{ let s=`<path d="M88 6 h62 v154 h-62 Z" fill="#3A0F6E"/>${[98,116,134].map(x=>`<path d="M${x} 6 q${x%2?8:-8} 70 0 154" stroke="#5B2DD6" stroke-width="6" fill="none"/>`).join('')}`; s+=`<g opacity=".5">${kid({x:120,y:62,r:14,tone:1,hair:'afro',top:'#2A0A52',bottom:'#2A0A52'})}</g><rect x="88" y="6" width="62" height="154" fill="#2A0A52" opacity=".5"/>`; s+=kid({x:52,y:70,r:19,tone:2,hair:'twists',top:P.green,bottom:P.ink,pose:'raise',face:{big:true}}); s+=lens(86,34,15,35); s+=`<text x="122" y="100" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="38" fill="${P.sun}">?</text>`; return s;},
+  'builder-big':()=>{ let s=`<ellipse cx="75" cy="152" rx="60" ry="8" fill="rgba(0,0,0,.14)"/>`; s+=block(112,136,30,'D',P.violet)+block(112,106,30,'R',P.green)+block(112,76,30,'O',P.blue); s+=kid({x:55,y:66,r:19,tone:0,hair:'braids',top:P.blue,bottom:P.pink,pose:'lift',face:{big:true}}); s+=block(55,22,28,'W',P.pink); s+=sparkle(20,30,6)+sparkle(140,40,5); return s;},
+  ari:()=>`${star(30,30,24,GOLD)}${star(30,30,24,'none')}<circle cx="23" cy="28" r="2.4" fill="${P.ink}"/><circle cx="37" cy="28" r="2.4" fill="${P.ink}"/><path d="M24 36 q6 6 12 0" fill="none" stroke="${P.ink}" stroke-width="2.2" stroke-linecap="round"/><circle cx="19" cy="34" r="2" fill="#E88"/><circle cx="41" cy="34" r="2" fill="#E88"/>${bible(50,48,12,15)}`,
+  littleone:()=>{ let s=`<rect x="10" y="60" width="70" height="26" rx="12" fill="${P.purple}"/>`; s+=kid({x:44,y:42,r:14,tone:4,hair:'coils',top:P.coral,bottom:P.teal,pose:'hold',face:{big:true}}); s+=block(44,66,18,'A',P.orangeD); s+=sparkle(14,20,4)+sparkle(78,26,5); return s;},
+  teens:()=>{ let s=`<path d="M0 185 Q100 170 200 185 L200 200 L0 200 Z" fill="#1A1012"/>`;
+    s+=teen({x:70,y:48,r:14,tone:1,hair:'twists',hairColor:'#2A1A12',top:'#F1E6DD',bottom:'#2B2B3A',pose:'phone',shoe:GOLD,extra:(cx,cy,r,shY)=>`<rect x="${cx}" y="${shY+r*.6}" width="${r*.9}" height="${r*1.4}" rx="3" fill="#111" stroke="#fff" stroke-width="1.5"/><rect x="${cx-r*1.9}" y="${shY-r*.2}" width="${r*1.1}" height="${r*1.9}" rx="5" fill="${P.teal}"/>`+bible(cx-r*1.75,shY+r*2.05,16,-12)});
+    s+=teen({x:134,y:44,r:14,tone:0,hair:'fade',top:'#C03222',bottom:'#1F1F2A',pose:'cross',hood:'#8E2217',shoe:'#fff',extra:(cx,cy,r,shY)=>`<path d="M${cx-r*1.0} ${shY+r*.1} a${r} ${r*.8} 0 0 0 ${r*2} 0" fill="none" stroke="#111" stroke-width="${r*.35}"/><circle cx="${cx-r*1.0}" cy="${shY+r*.15}" r="${r*.3}" fill="#111"/><circle cx="${cx+r*1.0}" cy="${shY+r*.15}" r="${r*.3}" fill="#111"/>`});
+    s+=sparkle(20,20,5)+sparkle(180,30,4)+sparkle(100,14,3)+star(186,70,5,GOLD);
+    return s;},
+  summit:()=>{ let s=`<path d="M0 150 L50 70 L90 110 L120 60 L120 150 Z" fill="#3A1013"/><path d="M0 150 L50 70 L90 110 Z" fill="#5A1A1E"/>`; s+=teen({x:92,y:56,r:11,tone:2,hair:'fade',top:GOLD,bottom:'#2B2B3A',pose:'flag',shoe:'#fff'}); s+=`<line x1="110" y1="26" x2="110" y2="72" stroke="#fff" stroke-width="3"/><path d="M110 26 l22 7 l-22 7 Z" fill="${RED}"/>`; s+=sparkle(20,30,5)+sparkle(60,20,4); return s;},
+  tmemory:()=>`<path d="M30 70 a30 26 0 0 1 60 0" fill="none" stroke="#fff" stroke-width="6"/><rect x="24" y="66" width="14" height="22" rx="5" fill="${GOLD}"/><rect x="82" y="66" width="14" height="22" rx="5" fill="${GOLD}"/><rect x="44" y="84" width="34" height="28" rx="6" fill="#fff"/><path d="M50 92 h22 M50 99 h16 M50 106 h20" stroke="${RED}" stroke-width="2.5" stroke-linecap="round"/>`,
+  ttrivia:()=>`${openBible(60,96,64)}<path d="M66 20 L52 58 L66 56 L56 92 L84 46 L68 48 L80 20 Z" fill="${GOLD}" stroke="#fff" stroke-width="2"/>`,
+  torder:()=>`${[0,1,2].map(i=>`<g transform="translate(${30+i*8} ${48+i*22}) rotate(${-6+i*6})"><rect x="0" y="0" width="70" height="18" rx="5" fill="${i===1?GOLD:'#fff'}"/><path d="M8 9 h40" stroke="${i===1?'#1A1012':RED}" stroke-width="3" stroke-linecap="round"/></g>`).join('')}`,
+  tsil:()=>`<path d="M60 10 L10 120 L110 120 Z" fill="${GOLD}" opacity=".18"/><path d="M60 10 L30 120 L90 120 Z" fill="${GOLD}" opacity=".25"/><g opacity=".9">${teen({x:60,y:62,r:9,tone:0,hair:'afro',top:'#0E0809',bottom:'#0E0809',shoe:'#0E0809'})}</g><text x="60" y="52" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="22" fill="${GOLD}">?</text>`,
+  bible:()=>bible(30,30,28,-14),
+  'scene-detective':()=>{ let s=`<rect x="0" y="0" width="340" height="150" rx="14" fill="#FFF1D6"/><rect x="0" y="108" width="340" height="42" fill="#C98B4F"/><rect x="0" y="104" width="340" height="8" fill="#E0A66A"/>`;
+    s+=`<rect x="246" y="26" width="48" height="56" rx="6" fill="#F6E3B4" stroke="#C9A86A" stroke-width="2"/>${[0,1,2,3].map(i=>`<path d="M254 ${38+i*11} h32" stroke="#B89A6A" stroke-width="2.5" stroke-linecap="round"/>`).join('')}`;
+    s+=`<rect x="20" y="74" width="40" height="12" rx="3" fill="${P.blue}"/><rect x="24" y="62" width="40" height="12" rx="3" fill="${P.coral}"/><rect x="18" y="50" width="40" height="12" rx="3" fill="${P.green}"/>`;
+    s+=lantern(300,80,40)+`<circle cx="300" cy="80" r="34" fill="${P.sun}" opacity=".18"/>`;
+    s+=kid({x:120,y:46,r:16,tone:0,hair:'twists',top:P.pink,bottom:P.purple,pose:'raise',face:{big:true}});
+    s+=lens(150,22,13,30);
+    s+=kid({x:200,y:50,r:16,tone:3,hair:'fade',top:P.teal,bottom:P.orangeD,pose:'hold',face:{big:true},collar:true});
+    s+=`<rect x="178" y="80" width="46" height="26" rx="4" fill="#F6E3B4" stroke="#C9A86A" stroke-width="2"/><path d="M186 90 h30 M186 97 h22" stroke="#B89A6A" stroke-width="2.5" stroke-linecap="round"/>`;
+    s+=sparkle(80,20,6)+sparkle(236,14,5)+sparkle(40,30,4);
+    return s;},
+  'scene-shepherd':()=>{ let s=`<rect x="0" y="0" width="340" height="120" rx="14" fill="#CDEBFF"/><circle cx="290" cy="34" r="20" fill="${P.sun}"/><path d="M0 120 Q90 50 200 95 Q270 120 340 80 L340 120 Z" fill="${P.green}"/><path d="M0 120 Q120 80 340 110 L340 120 Z" fill="#1E9A3E"/>`;
+    const sheep=(x,y,sc)=>`<g transform="translate(${x} ${y}) scale(${sc})"><ellipse cx="0" cy="0" rx="16" ry="11" fill="#fff"/><circle cx="-8" cy="-6" r="7" fill="#fff"/><circle cx="8" cy="-7" r="7" fill="#fff"/><circle cx="14" cy="2" r="6" fill="#3A2018"/><circle cx="16" cy="1" r="1.3" fill="#fff"/><line x1="-8" y1="9" x2="-8" y2="16" stroke="#3A2018" stroke-width="3"/><line x1="6" y1="9" x2="6" y2="16" stroke="#3A2018" stroke-width="3"/></g>`;
+    s+=sheep(70,92,1)+sheep(120,86,.9)+sheep(165,96,1.05);
+    s+=kid({x:240,y:46,r:15,tone:2,hair:'coils',top:P.orange,bottom:P.blue,pose:'raise',face:{big:true}});
+    s+=`<path d="M266 20 q10 -6 10 8 v62" fill="none" stroke="#8B5A2B" stroke-width="4" stroke-linecap="round"/>`;
+    s+=cloud(60,24,50)+cloud(190,30,40);
+    return s;},
+  'scene-fish':()=>{ let s=`<rect x="0" y="0" width="340" height="120" rx="14" fill="#1F4E8C"/><path d="M0 60 Q40 50 80 60 T160 60 T240 60 T320 60 T400 60 L400 120 L0 120 Z" fill="#2F7BF5"/><path d="M0 80 Q40 70 80 80 T160 80 T240 80 T320 80 T400 80 L400 120 L0 120 Z" fill="#1E5FC9"/>`;
+    s+=`<g transform="translate(110 78)"><ellipse cx="0" cy="0" rx="54" ry="24" fill="#19B5A6"/><path d="M50 0 l26 -18 l-6 18 l6 18 Z" fill="#19B5A6"/><circle cx="-30" cy="-6" r="6" fill="#fff"/><circle cx="-29" cy="-6" r="3" fill="${P.ink}"/><path d="M-48 6 q10 6 20 0" fill="none" stroke="${P.ink}" stroke-width="2.5"/><path d="M-10 -24 l10 -10 l10 10 Z" fill="#0E8F82"/></g>`;
+    s+=`<g transform="translate(230 54)"><path d="M-30 0 q30 14 60 0 l-8 14 h-44 Z" fill="#8B5A2B"/><line x1="0" y1="0" x2="0" y2="-30" stroke="#5A3A1A" stroke-width="3"/><path d="M0 -30 l26 10 l-26 8 Z" fill="#fff"/></g>`;
+    s+=`<path d="M260 120 Q300 90 340 100 L340 120 Z" fill="#F6E3B4"/>`;
+    s+=kid({x:308,y:70,r:12,tone:1,hair:'puffs',top:P.sun,bottom:P.purple,pose:'wave',face:{big:true}});
+    s+=`<path d="M20 30 l-6 10 l12 -4 l-6 -6" fill="#fff" opacity=".8"/>`+cloud(40,22,60,'#fff')+cloud(180,18,44,'#fff');
+    return s;},
+  celebrate:()=>{ let s=''; const conf=[[20,30,P.pink],[40,80,P.blue],[130,24,P.orange],[150,70,P.violet],[30,120,P.teal],[140,120,P.pink],[100,10,P.sun],[60,20,P.green]]; conf.forEach(([x,y,c],i)=>{s+=`<rect x="${x}" y="${y}" width="8" height="12" rx="2" fill="${c}" transform="rotate(${i*40} ${x} ${y})"/>`;}); s+=star(24,60,8)+star(140,44,10)+star(90,150,7)+sparkle(70,40,6)+sparkle(120,100,5); s+=kid({x:82,y:66,r:19,tone:3,hair:'braids',top:P.purple,bottom:P.sun,pose:'jump',face:{big:true}}); return s;},
+  treasuremap:()=>{ let s=`<rect x="2" y="2" width="336" height="146" rx="12" fill="#F6E3B4" stroke="#C9A86A" stroke-width="3"/>`; s+=`<path d="M30 110 C70 40 110 140 150 80 S230 40 270 90 S300 60 310 50" fill="none" stroke="${RED}" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"/>`; const stops=[[30,110,true],[86,76,true],[150,80,false],[214,62,false],[270,90,false]]; stops.forEach(([x,y,lit],i)=>{s+=`<circle cx="${x}" cy="${y}" r="13" fill="${lit?GOLD:'#fff'}" stroke="${lit?'#7A5C14':'#C9A86A'}" stroke-width="3"/><text x="${x}" y="${y+5}" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="900" font-size="12" fill="${lit?'#1A1012':'#8B7A5A'}">${i+1}</text>`;}); s+=chest(308,48,28); s+=`<path d="M40 34 l6 -10 l6 10 Z" fill="#8FAF6E"/><path d="M200 120 l6 -10 l6 10 Z" fill="#8FAF6E"/><path d="M60 130 q6 -8 12 0" fill="none" stroke="#3F6DB5" stroke-width="2"/>`; s+=kid({x:86,y:40,r:8,tone:2,hair:'afro',top:P.coral,bottom:P.blue,pose:'wave',face:{big:true}}); return s;},
+  'badge:sparkle':()=>`${star(30,30,26,GOLD)}${sparkle(30,30,11,'#fff')}`,
+  'badge:book':()=>`<circle cx="30" cy="30" r="26" fill="${GOLD}"/>${openBible(30,30,34)}`,
+  'badge:check':()=>`<circle cx="30" cy="30" r="26" fill="${GOLD}"/><path d="M18 31 l8 8 l16 -18" fill="none" stroke="#1A1012" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  'badge:crown':()=>`<circle cx="30" cy="30" r="26" fill="${GOLD}"/><path d="M15 38 L15 22 L23 30 L30 18 L37 30 L45 22 L45 38 Z" fill="#1A1012"/><rect x="15" y="38" width="30" height="5" fill="#1A1012"/><circle cx="23" cy="36" r="2" fill="${RED}"/><circle cx="30" cy="36" r="2" fill="${P.blue}"/><circle cx="37" cy="36" r="2" fill="${P.green}"/>`,
+  'badge:heart':()=>`<circle cx="30" cy="30" r="26" fill="${GOLD}"/><path d="M30 43c-6-5-14-10-14-17a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-8 12-14 17z" fill="${RED}"/>`,
+  'badge:calendar':()=>`<circle cx="30" cy="30" r="26" fill="${GOLD}"/><rect x="17" y="19" width="26" height="24" rx="4" fill="#fff"/><rect x="17" y="19" width="26" height="7" fill="#1A1012"/>${[0,1,2].map(i=>`<circle cx="${23+i*7}" cy="34" r="2.2" fill="${i<3?P.green:'#ccc'}"/>`).join('')}`,
+  'ic:map':()=>`<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>`,
+  'ic:game':()=>`<rect x="2" y="7" width="20" height="11" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 10v5M4.5 12.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="11" r="1.3" fill="currentColor"/><circle cx="18.5" cy="13.5" r="1.3" fill="currentColor"/>`,
+  'ic:star':()=>`<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>`,
+  'ic:starfill':()=>`<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="${GOLD}" stroke="#7A5C14" stroke-width="1.5" stroke-linejoin="round"/>`,
+  'ic:starline':()=>`<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="none" stroke="#C9A86A" stroke-width="1.5" stroke-linejoin="round"/>`,
+  'ic:adult':()=>`<circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  'ic:read':()=>`<path d="M4 6a8 8 0 0 1 8 0 8 8 0 0 1 8 0v13a8 8 0 0 0-8 0 8 8 0 0 0-8 0z M12 6v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>`,
+  'ic:flag':()=>`<path d="M5 21V4h12l-3 4 3 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>`,
+  'ic:cal':()=>`<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2"/>`,
+  'ic:ari':()=>`<path d="M12 3l2.2 5 5.3.5-4 3.6 1.2 5.3L12 14.8 7.3 17.4l1.2-5.3-4-3.6 5.3-.5z" fill="currentColor"/>`,
+  'ic:crayon':()=>`<path d="M4 20l4-1 10-10-3-3L5 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 6l3 3" stroke="currentColor" stroke-width="2"/>`,
+  'ic:bulb':()=>`<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.1 1 1.9h5c.1-.8.4-1.4 1-1.9A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>`,
+  'ic:spk':()=>`<svg viewBox="0 0 24 24" style="width:18px;height:18px" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="${P.purple}"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="${P.purple}" stroke-width="2" stroke-linecap="round"/></svg>`,
+  'cast:puffs':()=>kid({x:60,y:50,r:20,tone:3,hair:'puffs',top:P.sun,bottom:P.purple,pose:'hold',face:{big:true}})+openBible(60,100,56),
+  'cast:fade':()=>kid({x:60,y:50,r:20,tone:2,hair:'fade',top:P.teal,bottom:P.orangeD,pose:'point',face:{big:true},collar:true}),
+  'cast:braids':()=>kid({x:60,y:50,r:20,tone:0,hair:'braids',top:P.blue,bottom:P.pink,pose:'lift',face:{big:true}})+block(60,14,22,'W',P.pink),
+  'cast:locs':()=>kid({x:60,y:50,r:20,tone:1,hair:'locs',top:P.sun,bottom:P.ink,pose:'cheer',face:{big:true}}),
+  'cast:twists':()=>kid({x:60,y:50,r:20,tone:2,hair:'twists',top:P.green,bottom:P.ink,pose:'think',face:{big:false}}),
+  'cast:coils':()=>kid({x:60,y:50,r:20,tone:4,hair:'coils',top:P.coral,bottom:P.teal,pose:'wave',face:{big:true}}),
+  'cast:afro':()=>kid({x:60,y:50,r:20,tone:1,hair:'afro',top:P.orange,bottom:P.blue,pose:'stand',face:{big:true},collar:true}),
+  'cast:straight':()=>kid({x:60,y:50,r:20,other:true,hair:'straight',top:P.violet,bottom:P.green,pose:'wave',face:{big:true}}),
+  'cast:teen-g':()=>teen({x:60,y:30,r:13,tone:1,hair:'twists',hairColor:'#2A1A12',top:'#F1E6DD',bottom:'#2B2B3A',pose:'phone',shoe:GOLD}),
+  'cast:teen-b':()=>teen({x:60,y:30,r:13,tone:0,hair:'fade',top:RED,bottom:'#1F1F2A',pose:'cross',hood:'#8E2217',shoe:'#fff',extra:(cx,cy,r,shY)=>`<path d="M${cx-r} ${shY+r*.1} a${r} ${r*.8} 0 0 0 ${r*2} 0" fill="none" stroke="#111" stroke-width="${r*.35}"/>`}),
+};
+document.querySelectorAll('[data-art]').forEach(el=>{
+  const key=el.getAttribute('data-art'); const fn=ART[key]; if(!fn) return;
+  const out=fn();
+  if(el.tagName.toLowerCase()==='svg'){ el.innerHTML=out; } else { el.innerHTML=out; }
+});
+})();
+</script>
