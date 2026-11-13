@@ -2012,6 +2012,23 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "shell-header-night-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
+      "drs": [
+        "DR-1483"
+      ],
+      "prs": [
+        2672
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
       "id": "sov77-prove-all-things",
       "date": "2026-11-12",
       "task": "Sovereign A.I. week 77 from the oldest uncaptured emailed teaching: Word-first lesson in four age bands, verse generator, pinned gate, decision record",
@@ -2389,23 +2406,6 @@
       "wallClockHours": 1.3,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a18cd240a3a03eb, forwarded 2026-10-30T12:54Z (7:54 AM Central), built 2026-11-13 draining the intake backlog. Whole article in the email. 40 anchor references, 158 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov83-fill.mjs and none typed. Our house traced to code: payments ledger CHECK and UNIQUE, the two-step payment (not atomic, finished by retry), the exam rule in the wall, the learner record off the phone, a latent workshop-seat oversell and the reservation referee that two spellings of week 82 got past (this build yielded to 83). www.postgresql.org refused (403 CONNECT); live tables not reached, the hosted project is the mirror. re-review 2026-11-27."
-    },
-    {
-      "id": "shell-header-night-2026-11-13",
-      "date": "2026-11-13",
-      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
-      "drs": [
-        "DR-1483"
-      ],
-      "prs": [
-        2672
-      ],
-      "model": "claude-fable-5-1",
-      "tokens": null,
-      "costUsd": null,
-      "wallClockHours": 1.3,
-      "estimateWithoutAiHours": 24,
-      "notes": "No token meter in this session; tokens and cost are null."
     }
   ]
 }
