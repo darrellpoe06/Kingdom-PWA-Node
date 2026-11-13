@@ -2,10 +2,11 @@
 
 Written 2026-11-13 ~17:00Z by the session that built it (session_01Y64aURLMxqfDbS9NsqA82o). Read this first; then the two notes it points to. Update the "Live status" section when PR #2672 deploys.
 
-## 0. Live status (update this)
+## 0. Live status (updated 2026-11-13 18:20Z)
 
-- **PR #2672** (`ccr-91fb688d-spyn2g`, head `1deb240b1`): CI running, native squash auto-merge armed, mergeable state "blocked" (CI pending), not "dirty". **Not yet merged, not yet live.** Last CI on the previous head `77d96df1a` was fully green; every later push was only a merge of main or the ledger-line move below.
-- Production today still serves the pre-redesign shell on top of the redesigned homepage of DR-1455–1459 (those are live since 2026-11-12).
+- **Phases A+B are LIVE on poetech.us.** PR #2672 squash-merged to `main` as `336c6c09b` at 17:56Z (26/26 checks green). Deploy run 43477681732 printed `BOOT OK` on all four doors; `site-health.yml` run 43479910924 read `UP · fresh` on build `336c6c09b`; `live-homepage-still.yml` run 43479914709 photographed the production door at 390 and 1440 px (theme `night`, the new header, zero page errors). The stills: `docs/design/love-corner-shell/live-2026-11-13/`.
+- The runner pool was the only delay (about 5 concurrent jobs shared with the lesson lanes); Darrell paused the lesson lanes for the window and they were resumed at 18:16Z.
+- **Phase C (DR-1484)** rides the next PR from this same branch (see §2 and §9).
 
 ## 1. Completed and merged (live on poetech.us)
 
@@ -26,9 +27,9 @@ Written 2026-11-13 ~17:00Z by the session that built it (session_01Y64aURLMxqfDb
 
 ## 3. Branches, SHAs, deployment
 
-- `ccr-91fb688d-spyn2g` @ `1deb240b1` = PR #2672 (auto-merge armed).
-- `phase-c-wip` @ `b959b1b22` + the handoff commit (this file). Its other commits are already in #2672.
-- `main` @ `152cfb3b3` at writing; lesson PRs land every 20–40 min.
+- `main` @ `336c6c09b` = Phases A+B merged and live (PR #2672).
+- `ccr-91fb688d-spyn2g` restarted from `336c6c09b` and carries Phase C (`dbaae99e4` the work, `f98835c7e` the stills), this handoff, and the live-verification docs; its PR is the Phase C PR.
+- `phase-c-wip` is superseded by that branch and can be deleted once the Phase C PR merges.
 - Deployment: merge = deploy (`deploy-cloudflare-pages.yml` dispatched by auto-merge); `site-health.yml` is the witness.
 
 ## 4. Blockers and the race, with the fix
@@ -55,14 +56,14 @@ All 24 church routes (`church-tabs.jsx`), every top view (`nav-history.js` VALID
 
 ## 9. Remaining phases, in order
 
-1. Land #2672; prove the deploy (BOOT OK on the merged SHA; `site-health.yml` UP; dispatch `live-homepage-still.yml` and download `live-still`); write the verification line into DR-1483 (docs commit).
-2. Phase C: restart `ccr-91fb688d-spyn2g` from main (`git reset --hard origin/main`, force-with-lease only against the known old head), `git cherry-pick d9ba672e2 b959b1b22`, resolve the ledger if needed, push; PR; prove the deploy; verification line in DR-1484.
+1. DONE 18:11Z: #2672 landed and the deploy, site-health and live-still proofs are written into DR-1483.
+2. Phase C: the PR from `ccr-91fb688d-spyn2g` (opened after this update); on merge, prove the deploy the same way and write the verification into DR-1484. Downloading `live-still` here needs the artifact host `productionresultssa3.blob.core.windows.net` on the environment allowlist (added 2026-11-13; the host number can differ per run).
 3. Phase D (Kids Zone shell, ages, Ari child mode), E (Word builder, Who am I?), F (comfort pass at four widths and three text sizes). Each: DR via `node scripts/claim-decision-number.mjs --reserve`, INDEX row ≤700 chars, `ai-usage-ledger.mjs --add`, tests, `legibility:health`, gates, PR.
 4. Findings for the fix list: every Modal portals outside the themed wrapper (the two new sheets carry `data-theme` themselves); search is the one new function of the picture (one box over tabs and courses, built).
 
 ## 10. Exact next steps for the next session
 
 1. Read `CLAUDE.md`, this file, then the audit note (§2 premise conflicts, §4 checklist, §6 phases).
-2. Check #2672: `gh api repos/darrellpoe06/Kingdom-PWA-Node/pulls/2672 --jq '[.state,.merged,.merge_commit_sha,.mergeable_state]'`. If merged → step 1 of §9. If "dirty" → the merge recipe in §4. If a check is red on the **current head** → read that job's log; red checks on superseded heads are cancelled runs, ignore them.
-3. Never push to `ccr-91fb688d-spyn2g` while its CI is green and waiting to merge; a push restarts CI.
+2. Check the Phase C PR (the open PR from `ccr-91fb688d-spyn2g`): if merged → prove the deploy and write DR-1484's verification. If "dirty" → the merge recipe in §4. If a check is red on the **current head** → read that job's log; red checks on superseded heads are cancelled runs, ignore them.
+3. Never push to a PR branch while its CI is green and waiting to merge; a push restarts CI.
 4. Do not redo the audit, the previews, the header, the sheets or the night theme; they exist. Do not re-ask what is decided here.

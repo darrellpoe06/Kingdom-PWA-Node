@@ -37,4 +37,8 @@ On the door only: menu · brand · search · bell · picture; the profile menu; 
 
 ## Verification after merge
 
-Recorded on merge: the PR, the squash SHA, the deploy run with BOOT OK, and `site-health.yml` UP (DR-0107 / DR-0125).
+- PR #2672 squash-merged to `main` as `336c6c09b` at 2026-11-13 17:56Z, 26 of 26 checks green on head `1deb240b1`.
+- Deploy run 43477681732 (`deploy-cloudflare-pages.yml`, dispatched by the lane for `336c6c09b`): success; the served-app boot check printed `BOOT OK` for `poetech.us/poetech-app/`, the Pages origin, `?moore=1` and `?view=church`.
+- `site-health.yml` run 43479910924 at 18:11Z: `UP · fresh`, served build `336c6c09b`.
+- `live-homepage-still.yml` run 43479914709 at 18:11Z (a runner's Chrome on the production door): 390 px header=yes theme=night bar=66px errors=0; 1440 px header=yes theme=night bar=58px errors=0; `LIVE STILL: OK (2/2)`. The stills are kept at `docs/design/love-corner-shell/live-2026-11-13/`.
+- Noted on the live still: the dock still reads Home · Watch · Word · More at 390 px, because the seven-tab bar is DR-1484 (Phase C), which follows this record.
