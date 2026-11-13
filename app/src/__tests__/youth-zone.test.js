@@ -31,8 +31,13 @@ const SAT = new Date('2026-11-21T15:00:00Z');
 const NEXT_MON = new Date('2026-11-23T15:00:00Z');
 
 describe('the two doors', () => {
-  it('are Kids and Teens, each reading at a real age band of a registered course', () => {
-    expect(YOUTH_DOORS.map((d) => d.key)).toEqual(['kids', 'teens']);
+  it('are Kids, Teens and Little Ones, each reading at a real age band of a registered course (true ages, DR-1508)', () => {
+    expect(YOUTH_DOORS.map((d) => d.key)).toEqual(['kids', 'teens', 'little']);
+    expect(YOUTH_DOORS.find((d) => d.key === 'kids').band).toBe('child');
+    expect(YOUTH_DOORS.find((d) => d.key === 'teens').band).toBe('youth');
+    expect(doorBandProfile('teens', 'teen').id).toBe('teen');
+    expect(doorBandProfile('teens', 'nonsense').id).toBe('youth');
+    expect(YOUTH_DOORS.find((d) => d.key === 'little').courseKey).toBe('little-learners');
     for (const d of YOUTH_DOORS) {
       expect(doorBandProfile(d.key), d.key).toBeTruthy();
       expect(
@@ -49,6 +54,7 @@ describe('memory verses are references the hosted Word can resolve', () => {
   it('every reference parses; Kids gets the short set, Teens all', () => {
     for (const v of MEMORY_VERSES) expect(parseRef(v.ref), v.ref).toBeTruthy();
     expect(versesFor('kids').every((v) => v.kids)).toBe(true);
+    expect(versesFor('little').every((v) => v.kids)).toBe(true);
     expect(versesFor('teens')).toHaveLength(MEMORY_VERSES.length);
     expect(MEMORY_VERSES[0].ref).toBe('Psalm 34:3');
   });
@@ -62,8 +68,11 @@ describe('memory verses are references the hosted Word can resolve', () => {
   it("the week's lesson is a real module of the door's course", () => {
     const k = weeklyLesson('kids', MON);
     const t = weeklyLesson('teens', MON);
-    expect(LITTLE_LEARNERS_MODULES.some((m) => m.id === k.lessonId)).toBe(true);
-    expect(k.courseKey).toBe('little-learners');
+    const l = weeklyLesson('little', MON);
+    expect(LIVING_LESSONS_MODULES.some((m) => m.id === k.lessonId)).toBe(true);
+    expect(k.courseKey).toBe('living-lessons');
+    expect(LITTLE_LEARNERS_MODULES.some((m) => m.id === l.lessonId)).toBe(true);
+    expect(l.courseKey).toBe('little-learners');
     expect(LIVING_LESSONS_MODULES.some((m) => m.id === t.lessonId)).toBe(true);
     expect(t.courseKey).toBe('living-lessons');
     expect(weeklyLesson('kids', MON)).toEqual(weeklyLesson('kids', SAT));

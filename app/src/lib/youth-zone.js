@@ -10,8 +10,14 @@
 // profiles or unrestricted messaging."
 //
 // GROUNDED, NOT PAINTED (P15; DR-0076):
-//   • The two doors are the app's own age bands (lib/learn-framework.js
-//     AGE_BANDS): Kids reads at `child`, Teens at `teen` (youth falls to teen).
+//   • The doors are the app's own age bands (lib/learn-framework.js
+//     AGE_BANDS). TRUE AGES (DR-1508; the 2026-11-13 audit found the Kids door
+//     labeled 6–10 over Little Learners, whose own meta says about 3 to 6,
+//     and the Teens door reading at teen with the 11–14 youth band unused):
+//     Kids 6–10 reads Living Lessons at `child` (every lesson carries an
+//     authored, screened child level); Teens 11–17 reads at `youth` by
+//     default and `teen` on a tap (TEEN_BANDS); Little Ones 3–6 is the
+//     Little Learners course, kept as its own door inside Kids.
 //   • A memory verse's text is never typed here: only the REFERENCE is listed,
 //     and the game loads the words from the hosted King James text
 //     (lib/bible-kjv.js verseText) at play time. A verse the device cannot
@@ -37,7 +43,7 @@ export const YOUTH_DOORS = Object.freeze([
     title: 'Kids',
     range: '6–10',
     band: 'child',
-    courseKey: 'little-learners',
+    courseKey: 'living-lessons',
     caption: 'Short bursts, pictures, quick wins',
     cheer: 'You are loved, and you are learning. One small step at a time!',
   },
@@ -45,12 +51,29 @@ export const YOUTH_DOORS = Object.freeze([
     key: 'teens',
     title: 'Teens',
     range: '11–17',
-    band: 'teen',
+    band: 'youth',
     courseKey: 'living-lessons',
     caption: 'Real questions, real challenges',
     cheer: 'Real questions deserve real answers. The Word has them.',
   },
+  {
+    key: 'little',
+    title: 'Little Ones',
+    range: '3–6',
+    band: 'child',
+    courseKey: 'little-learners',
+    caption: 'Letters, numbers and first words from the Word, read aloud',
+    cheer: 'Big words start small. Yahweh made you, and He loves you!',
+  },
 ]);
+
+/** The Teens door reads at one of these, youth (11–14) by default and teen (15–17) on a tap. */
+export const TEEN_BANDS = Object.freeze(['youth', 'teen']);
+export const TEEN_BAND_PREF_KEY = 'poetech.youth.teenBand';
+
+export function normalizeTeenBand(id) {
+  return TEEN_BANDS.includes(id) ? id : TEEN_BANDS[0];
+}
 
 export const DEFAULT_DOOR = 'kids';
 export const DOOR_PREF_KEY = 'poetech.youth.door';
@@ -59,9 +82,9 @@ export function normalizeDoor(key) {
   return YOUTH_DOORS.some((d) => d.key === key) ? key : DEFAULT_DOOR;
 }
 
-export function doorBandProfile(key) {
+export function doorBandProfile(key, teenBand = null) {
   const d = YOUTH_DOORS.find((x) => x.key === normalizeDoor(key));
-  return band(d.band);
+  return band(d.key === 'teens' && teenBand ? normalizeTeenBand(teenBand) : d.band);
 }
 
 /**
@@ -82,9 +105,9 @@ export const MEMORY_VERSES = Object.freeze([
   { ref: 'Matthew 22:37-39', kids: false },
 ]);
 
-/** The verses a door offers: Kids gets the short ones, Teens gets them all. */
+/** The verses a door offers: Kids and Little Ones get the short ones, Teens gets them all. */
 export function versesFor(doorKey) {
-  return normalizeDoor(doorKey) === 'kids' ? MEMORY_VERSES.filter((v) => v.kids) : MEMORY_VERSES;
+  return normalizeDoor(doorKey) === 'teens' ? MEMORY_VERSES : MEMORY_VERSES.filter((v) => v.kids);
 }
 
 /** ISO-ish week number of `now` in UTC (deterministic; a tie-breaker, not a date shown). */

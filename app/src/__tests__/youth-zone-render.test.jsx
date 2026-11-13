@@ -82,7 +82,8 @@ describe("the week's lesson and the events", () => {
     tab('This week');
     const open = q('[data-testid="weekly-lesson-open"]');
     const expected = weeklyLesson('kids', MON);
-    expect(open.getAttribute('href')).toContain(`course=little-learners`);
+    // Kids 6–10 reads Living Lessons at the child band (true ages, DR-1508).
+    expect(open.getAttribute('href')).toContain(`course=living-lessons`);
     expect(open.getAttribute('href')).toContain(`lesson=${encodeURIComponent(expected.lessonId)}`);
     expect(q('[data-testid="weekly-lesson"]').textContent).toContain(expected.title);
     expect(q('[data-testid="youth-events-empty"]').textContent).toContain('No upcoming youth events');
