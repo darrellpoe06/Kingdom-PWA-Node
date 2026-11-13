@@ -2337,13 +2337,15 @@
       "drs": [
         "DR-1483"
       ],
-      "prs": [],
+      "prs": [
+        2672
+      ],
       "model": "claude-fable-5-1",
       "tokens": null,
       "costUsd": null,
       "wallClockHours": 1.3,
       "estimateWithoutAiHours": 24,
-      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
+      "notes": "No token meter in this session; tokens and cost are null."
     }
   ]
 }
