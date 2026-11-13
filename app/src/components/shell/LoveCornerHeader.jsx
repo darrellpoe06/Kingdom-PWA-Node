@@ -92,6 +92,7 @@ export default function LoveCornerHeader({
   canAdmin = false,
   theme = null,
   setTheme = null,
+  onFeedback = null,
 }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -103,6 +104,12 @@ export default function LoveCornerHeader({
   const avatarRef = useRef(null);
 
   useEffect(() => onAuthChange((s) => setSession(s)), []);
+  // The homepage's Customize strip (components/lovecorner/LoveCornerHome.jsx) asks for the sheet by one event.
+  useEffect(() => {
+    const onAsk = () => setPersonalizeOpen(true);
+    window.addEventListener('lovecorner:personalize', onAsk);
+    return () => window.removeEventListener('lovecorner:personalize', onAsk);
+  }, []);
   const signedIn = !!(session && session.user);
   useEffect(() => {
     if (!signedIn) {
@@ -137,7 +144,7 @@ export default function LoveCornerHeader({
 
   return (
     <header className="lch ts-safe-sticky sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip data-testid="lovecorner-header">
-      <div className="lch-bar">
+      <div className="lch-bar ts-chrome-region">
         <button
           type="button"
           onClick={() => setSheet('all')}
