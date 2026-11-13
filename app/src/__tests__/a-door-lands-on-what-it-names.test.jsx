@@ -27,12 +27,13 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChurchHome } from '../components/ChurchHome.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { requestChurchHomeSection } from '../lib/church-home-section.js';
+import { requestChurchHomeSection, takePendingChurchHomeSection } from '../lib/church-home-section.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let container, root, scrolled, realScrollIntoView;
 beforeEach(() => {
+  takePendingChurchHomeSection(); // each case starts with nothing asked for
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -66,7 +67,7 @@ const props = {
   addIncident: () => {},
   addInquiry: () => {},
 };
-const mount = () => act(() => root.render(createElement(ChurchHome, props)));
+const mount = (extra = null) => act(() => root.render(createElement(ChurchHome, extra ? { ...props, ...extra } : props)));
 const q = (sel) => container.querySelector(sel);
 const strips = () => scrolled.filter((s) => s.testid === 'church-section-strip');
 
@@ -106,6 +107,42 @@ describe('a door lands you on the thing it names', () => {
       await settle();
     }
     expect(strips().length).toBe(3);
+  });
+
+  // THE SECOND ROAD, found by auditing every door rather than only the one
+  // Darrell pressed (DR-0219 SHOULD/ARE/GAPS/CLOSE). A launch target does NOT
+  // go through the subscriber: the shell remounts ChurchHome with a `key` and
+  // an `initialSection`. Those doors name a place in their own words — a class
+  // card's "Open the Council Chamber", the Library's links, a testimony — and
+  // had the identical defect, on a road the first fix did not touch.
+  it('a launch target that names a section arrives there too, on the mount road', async () => {
+    mount({ initialSection: 'speak' });
+    await settle();
+    const hit = strips()[0];
+    expect(hit, 'the launch target opened the right section and left the reader at the top of the hero').toBeTruthy();
+    expect(hit.opts && hit.opts.block).toBe('start');
+  });
+
+  // Found by this fix, not by the report: `requestChurchHomeSection` kept the
+  // value after the live home had already handled it, so the NEXT mount took
+  // it again. Press Watch, wander to Learn, come back — the page opened on
+  // Worship because of a tap two screens ago. It was quiet while nothing
+  // moved; a door that now scrolls would have made it a jump.
+  it('a request a live home already handled is not replayed on the next mount', async () => {
+    mount();
+    act(() => requestChurchHomeSection('give'));
+    await settle();
+    expect(takePendingChurchHomeSection(), 'a handled request was held and would replay on the next mount').toBe(null);
+  });
+
+  it('a request made with NO home listening is still kept for the mount that follows', async () => {
+    // The reason `pending` exists at all; clearing it on every request would
+    // have broken the door that opens the Church home from another view.
+    requestChurchHomeSection('prayer');
+    mount();
+    await settle();
+    expect(q('[role="tab"][aria-selected="true"]').textContent).toContain('Prayer');
+    expect(strips().length).toBe(1);
   });
 
   it('PROVEN TO CATCH: a section opened WITHOUT a request never scrolls', async () => {

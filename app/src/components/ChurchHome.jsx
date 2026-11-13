@@ -49,7 +49,15 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // doors (Watch, Prayer, Events, Connect) and the phone's bottom bar ask for
   // a section through lib/church-home-section.js; the strip below runs in
   // controlled mode so the request opens the section in place (UX 2e).
-  const [section, setSection] = useState(() => takePendingChurchHomeSection() || initialSection || 'worship');
+  // What the reader ASKED FOR, taken once per mount, kept apart from what the
+  // page defaults to. The second road into a section does not go through the
+  // subscriber at all: the shell remounts this component with a `key` and an
+  // `initialSection` when a launch target names one — a class card's "Open the
+  // Council Chamber", the Library's links, a testimony (book-engine). Those
+  // doors name a place in their own words and had the same defect: the section
+  // was right and the reader was still at the top of the hero.
+  const [askedFor] = useState(() => takePendingChurchHomeSection() || initialSection || null);
+  const [section, setSection] = useState(askedFor || 'worship');
   // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
   // Love Corner front door): "When pushing latest message we should open to the
   // space with it... All buttons should work and go to the space it's
@@ -64,21 +72,34 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // the strip is NOT scrolled — their finger is already there, and moving the
   // page under it is the jump this fix exists to remove.
   const sectionStripRef = useRef(null);
+  const arriveAtSection = useCallback(
+    () =>
+      setTimeout(() => {
+        try {
+          sectionStripRef.current && sectionStripRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+        } catch {
+          /* no layout (jsdom, or a detached node) — the section still opened */
+        }
+      }, 60),
+    []
+  );
   useEffect(
     () =>
       subscribeChurchHomeSection((id) => {
         if (!id) return;
         setSection(id);
-        setTimeout(() => {
-          try {
-            sectionStripRef.current && sectionStripRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
-          } catch {
-            /* no layout (jsdom, or a detached node) — the section still opened */
-          }
-        }, 60);
+        arriveAtSection();
       }),
-    []
+    [arriveAtSection]
   );
+  // The mount road (a launch target's `initialSection`, or a request made
+  // before this component existed) arrives the same way. A page that opens on
+  // its own default is NOT scrolled: nobody asked to be moved.
+  useEffect(() => {
+    if (!askedFor) return undefined;
+    const t = arriveAtSection();
+    return () => clearTimeout(t);
+  }, [askedFor, arriveAtSection]);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
