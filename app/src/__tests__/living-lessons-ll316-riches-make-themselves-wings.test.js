@@ -54,7 +54,8 @@ export function unattributedFigures(L) {
     .map(cut);
 }
 
-const ADVICE = /\bbuy the dip\b|\b(?:you|we) should (?:buy|sell)\b|\btime to (?:buy|sell)\b|\bwill (?:recover|rebound|bounce back)\b|\bprices will (?:rise|come back)\b/i;
+const ADVICE =
+  /\bbuy the dip\b|\b(?:you|we) should (?:buy|sell)\b|\btime to (?:buy|sell)\b|\bwill (?:recover|rebound|bounce back)\b|\bprices will (?:rise|come back)\b/i;
 export function adviceGiven(L) {
   return stringsOf(L)
     .filter((t) => ADVICE.test(t))
