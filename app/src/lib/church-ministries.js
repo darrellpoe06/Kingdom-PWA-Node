@@ -51,70 +51,88 @@ const FLYER = 'the Love Corner Experience volunteer flyer, published by the chur
 // matters.
 export const CHURCH_MINISTRIES = [
   {
-    id: 'bus', name: 'Bus / Van Ministry',
+    id: 'bus',
+    name: 'Bus / Van Ministry',
     blurb: 'Rides to service — routes, drivers, and a pickup you can ask for.',
-    surface: { view: 'church', sub: 'bus' }, feedbackKey: 'church-bus',
+    surface: { view: 'church', sub: 'bus' },
+    feedbackKey: 'church-bus',
     join: 'Ask for a ride, or ask the coordinator about driving.',
     source: 'live surface since 2026-07-12 (Deacon Anderson, coordinator)',
   },
   {
-    id: 'choir', name: 'Choir',
+    id: 'choir',
+    name: 'Choir',
     blurb: 'The worship team — set lists, rehearsal, availability, the songbook.',
-    surface: { view: 'church', sub: 'choir' }, feedbackKey: 'church-choir',
+    surface: { view: 'church', sub: 'choir' },
+    feedbackKey: 'church-choir',
     join: 'Ask the director about joining the choir.',
     source: 'live surface (director hub)',
   },
   {
-    id: 'band', name: 'Church Band / Instrumental Ministry',
+    id: 'band',
+    name: 'Church Band / Instrumental Ministry',
     blurb: 'The musicians who play with the choir and through the service.',
     // Named by Darrell 2026-09-11 precisely BECAUSE it was missing: "I don't
     // see the church band." It has no surface yet — saying so is the honest
     // state, and it is what makes the gap visible instead of silent.
-    surface: null, feedbackKey: 'church-band',
+    surface: null,
+    feedbackKey: 'church-band',
     join: 'Ask about playing with the band.',
     source: 'named by Darrell 2026-09-11 as missing from the app',
   },
   {
-    id: 'media', name: 'Media / Broadcast',
+    id: 'media',
+    name: 'Media / Broadcast',
     blurb: 'Cameras, sound, the stream, and the video wall.',
-    surface: { view: 'church', sub: 'videowall' }, feedbackKey: 'church-videowall',
+    surface: { view: 'church', sub: 'videowall' },
+    feedbackKey: 'church-videowall',
     join: 'Ask about serving on a station — every operator is taught one.',
     source: 'live surfaces + the broadcast team course (Deacon Wright founded)',
   },
   {
-    id: 'ushers', name: 'Ushers',
+    id: 'ushers',
+    name: 'Ushers',
     blurb: 'Greeting, seating, and the order of the house.',
-    surface: null, feedbackKey: 'church-ministries',
+    surface: null,
+    feedbackKey: 'church-ministries',
     join: 'Ask about serving on the usher board.',
     source: 'OPS_MINISTRIES (lib/ministry-ops.js, 2026-07-13)',
   },
   {
-    id: 'security', name: 'Security',
+    id: 'security',
+    name: 'Security',
     blurb: 'Watching over the house while the people worship.',
-    surface: null, feedbackKey: 'church-ministries',
+    surface: null,
+    feedbackKey: 'church-ministries',
     join: 'Ask about serving on the security team.',
     source: 'OPS_MINISTRIES (lib/ministry-ops.js, 2026-07-13)',
   },
   {
-    id: 'hospitality', name: 'Hospitality',
+    id: 'hospitality',
+    name: 'Hospitality',
     blurb: 'Meals, gatherings, and making room for people.',
-    surface: null, feedbackKey: 'church-ministries',
+    surface: null,
+    feedbackKey: 'church-ministries',
     join: 'Ask about helping with hospitality.',
     source: 'OPS_MINISTRIES (lib/ministry-ops.js, 2026-07-13)',
   },
   {
-    id: 'outreach', name: 'Outreach',
+    id: 'outreach',
+    name: 'Outreach',
     blurb: 'Who the church serves and reaches next.',
-    surface: null, feedbackKey: 'church-ministries',
+    surface: null,
+    feedbackKey: 'church-ministries',
     join: 'Ask about going out with the outreach team.',
     source: 'OPS_MINISTRIES + the church project board',
   },
   {
-    id: 'new-members', name: 'New Members & Membership Care',
+    id: 'new-members',
+    name: 'New Members & Membership Care',
     blurb: 'The welcome for someone who just joined — the card, and what comes next.',
     // Named by Darrell 2026-09-11 as the SECOND pilot after giving: "you wanna
     // deal with the new members?... I think November would be good."
-    surface: null, feedbackKey: 'church-ministries',
+    surface: null,
+    feedbackKey: 'church-ministries',
     join: 'Just joined? This is where the welcome starts.',
     source: 'named by Darrell 2026-09-11 as the second pilot (target November)',
   },
@@ -135,103 +153,132 @@ export const CHURCH_MINISTRIES = [
   // the office naming it, so the roster below is confirmed and the hedge that
   // stood in for it comes down.
   {
-    id: 'music', name: 'Music Ministry',
+    id: 'music',
+    name: 'Music Ministry',
     blurb: 'Singing and leading worship — the whole music side, beyond the choir alone.',
-    surface: null, feedbackKey: 'church-music',
+    surface: null,
+    feedbackKey: 'church-music',
     join: 'Ask about singing or leading worship.',
     source: FLYER,
   },
   {
-    id: 'it', name: 'IT Ministry',
+    id: 'it',
+    name: 'IT Ministry',
     blurb: 'The computers, the network and the screens that carry the service.',
-    surface: null, feedbackKey: 'church-it',
+    surface: null,
+    feedbackKey: 'church-it',
     join: 'Ask about helping with the tech.',
     source: FLYER,
   },
   {
-    id: 'parking', name: 'Parking & Traffic Ministry',
+    id: 'parking',
+    name: 'Parking & Traffic Ministry',
     blurb: 'The lot on a Sunday morning — safe arrivals, safe departures.',
-    surface: null, feedbackKey: 'church-parking',
+    surface: null,
+    feedbackKey: 'church-parking',
     join: 'Ask about helping in the lot.',
     source: FLYER,
   },
   {
-    id: 'deacons', name: 'Deacons',
+    id: 'deacons',
+    name: 'Deacons',
     blurb: 'Serving the congregation and supporting the pastor.',
-    surface: null, feedbackKey: 'church-deacons',
+    surface: null,
+    feedbackKey: 'church-deacons',
     join: 'Ask a deacon about the ministry.',
     source: FLYER,
   },
   {
-    id: 'prayer', name: 'Prayer Ministry',
+    id: 'prayer',
+    name: 'Prayer Ministry',
     blurb: 'Standing in prayer for the church and for whoever asks.',
-    surface: null, feedbackKey: 'church-prayer',
+    surface: null,
+    feedbackKey: 'church-prayer',
     join: 'Ask about joining the prayer ministry.',
     source: FLYER,
   },
   {
-    id: 'missions', name: 'Missions & Evangelism',
+    id: 'missions',
+    name: 'Missions & Evangelism',
     blurb: 'Carrying the Word beyond the building.',
-    surface: null, feedbackKey: 'church-missions',
+    surface: null,
+    feedbackKey: 'church-missions',
     join: 'Ask about missions and evangelism.',
     source: FLYER,
   },
   {
-    id: 'children', name: "Children's Ministry",
+    id: 'children',
+    name: "Children's Ministry",
     blurb: 'The youngest of the house — teaching, care and a safe room.',
-    surface: null, feedbackKey: 'church-children',
-    join: "Ask about serving with the children.",
+    surface: null,
+    feedbackKey: 'church-children',
+    join: 'Ask about serving with the children.',
     source: FLYER,
   },
   {
-    id: 'youth', name: 'Youth Ministry',
+    id: 'youth',
+    name: 'Youth Ministry',
     blurb: 'The teenagers — discipleship, activities and a place to belong.',
-    surface: null, feedbackKey: 'church-youth',
+    // the Youth Zone (DR-1456) is this ministry's page
+    surface: { view: 'church', sub: 'youth' },
+    feedbackKey: 'church-youth',
     join: 'Ask about serving with the youth.',
     source: FLYER,
   },
   {
-    id: 'college', name: 'College Ministry',
+    id: 'college',
+    name: 'College Ministry',
     blurb: 'Students away from home, kept close to the house.',
-    surface: null, feedbackKey: 'church-college',
+    surface: null,
+    feedbackKey: 'church-college',
     join: 'Ask about the college ministry.',
     source: FLYER,
   },
   {
-    id: 'school-outreach', name: 'School Outreach & Youth Education',
+    id: 'school-outreach',
+    name: 'School Outreach & Youth Education',
     blurb: 'Into the schools — tutoring, mentoring and the education of the young.',
-    surface: null, feedbackKey: 'church-school-outreach',
+    surface: null,
+    feedbackKey: 'church-school-outreach',
     join: 'Ask about school outreach and tutoring.',
     source: FLYER,
   },
   {
-    id: 'administration', name: 'Administration',
+    id: 'administration',
+    name: 'Administration',
     blurb: 'The office work that keeps everything else running.',
-    surface: null, feedbackKey: 'church-administration',
+    surface: null,
+    feedbackKey: 'church-administration',
     join: 'Ask about helping in the office.',
     source: FLYER,
   },
   {
-    id: 'events', name: 'Events & Special Programs',
+    id: 'events',
+    name: 'Events & Special Programs',
     blurb: 'Programs, banquets and the days the house sets apart.',
     // NOT `church-events` — that key is Campus Rentals, a different thing
     // entirely. Pointing here would have quietly filed a volunteer's note
     // about the Christmas program into the building-rental queue.
-    surface: null, feedbackKey: 'church-events-programs',
+    surface: null,
+    feedbackKey: 'church-events-programs',
     join: 'Ask about helping with events.',
     source: FLYER,
   },
   {
-    id: 'care', name: 'Care & Benevolence',
+    id: 'care',
+    name: 'Care & Benevolence',
     blurb: 'Practical help for members in need — quietly, and without shame.',
-    surface: null, feedbackKey: 'church-care',
+    surface: null,
+    feedbackKey: 'church-care',
     join: 'Ask about the care and benevolence ministry.',
     source: FLYER,
   },
   {
-    id: 'counseling', name: 'Counseling Support',
+    id: 'counseling',
+    name: 'Counseling Support',
     blurb: 'Walking alongside people through hard seasons.',
-    surface: null, feedbackKey: 'church-counseling',
+    surface: null,
+    feedbackKey: 'church-counseling',
     join: 'Ask about counseling support.',
     source: FLYER,
   },
@@ -258,16 +305,15 @@ export const ministriesWithoutSurface = () => CHURCH_MINISTRIES.filter((m) => !m
 
 // The ops picker's shape ([key, label] pairs), derived so the internal staff
 // list and the member-facing directory can never drift apart again.
-export const opsMinistryOptions = () => [
-  ['general', 'General / Platform'],
-  ...CHURCH_MINISTRIES.map((m) => [m.id, m.name]),
-];
+export const opsMinistryOptions = () => [['general', 'General / Platform'], ...CHURCH_MINISTRIES.map((m) => [m.id, m.name])];
 
 // matchesMinistry — the type-to-filter predicate, shared by every surface that
 // lets someone hunt for their ministry by name. Matches the name, the blurb, and
 // the id, so "band", "music", "ride" and "bus" all land somewhere sensible.
 export function matchesMinistry(ministry, query) {
-  const q = String(query || '').trim().toLowerCase();
+  const q = String(query || '')
+    .trim()
+    .toLowerCase();
   if (!q) return true;
   const hay = `${ministry.id} ${ministry.name} ${ministry.blurb} ${ministry.join}`.toLowerCase();
   return q.split(/\s+/).every((word) => hay.includes(word));
@@ -327,9 +373,7 @@ export function mergeMinistries(rows) {
   const bySlug = new Map(list.map((m) => [m.id, m]));
   const merged = CHURCH_MINISTRIES.map((seed) => bySlug.get(seed.id) || seed);
   const seeded = new Set(CHURCH_MINISTRIES.map((m) => m.id));
-  const added = list
-    .filter((m) => !seeded.has(m.id))
-    .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.name).localeCompare(String(b.name)));
+  const added = list.filter((m) => !seeded.has(m.id)).sort((a, b) => a.sortOrder - b.sortOrder || String(a.name).localeCompare(String(b.name)));
   return [...merged, ...added];
 }
 

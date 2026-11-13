@@ -632,7 +632,17 @@ button.lc-tile{cursor:pointer}
 .yz-badge-ic{width:36px;height:36px;border-radius:50%;background:var(--lc-red-tint);color:var(--lc-red);display:grid;place-items:center}
 .yz-badge-on{border:1.5px solid var(--lc-gold);background:var(--lc-gold-tint)}.yz-badge-on .yz-badge-ic{background:var(--lc-gold);color:var(--lc-black)}
 .yz-bigidea{font-size:.78rem;letter-spacing:.02em;line-height:1.5}
-.lc-inline-link-ink{background:none;border:0;padding:0;color:var(--lc-red);text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:inherit;cursor:pointer;min-height:36px}
+/* The Ministries landing (Phase 3): four families over the one registry. */
+.lc-mins-landing{grid-template-columns:1fr}
+@media (min-width:640px){.lc-mins-landing{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lc-fam{background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:1rem;padding:.75rem .875rem;display:flex;flex-direction:column;gap:.25rem;min-width:0}
+.lc-fam:nth-child(2) .lc-min-bar,.lc-fam:nth-child(4) .lc-min-bar{background:var(--lc-gold)}
+.lc-fam:nth-child(3) .lc-min-bar{background:var(--lc-black)}
+.lc-fam-list{list-style:none;margin:.375rem 0 0;padding:0;display:flex;flex-wrap:wrap;gap:.375rem}
+.lc-fam-door{min-height:36px;padding:.3rem .7rem;border-radius:999px;border:1px solid var(--lc-red);background:var(--lc-red-tint);color:var(--lc-red-deep);font-size:.78rem;font-weight:700;cursor:pointer}
+.lc-fam-named{min-height:36px;padding:.3rem .7rem;border-radius:999px;border:1px dashed var(--lc-line);background:var(--lc-paper);color:var(--lc-muted);font-size:.78rem;font-weight:600;cursor:pointer}
+.lc-fam-named small{font-size:.66rem;font-weight:500;margin-left:.25rem}
+.lc-inline-link-ink{background:none;border:0;padding:0 .25rem;min-width:36px;display:inline-flex;align-items:center;justify-content:center;color:var(--lc-red);text-decoration:underline;text-underline-offset:3px;font-weight:700;font-size:inherit;cursor:pointer;min-height:36px}
 @media (prefers-reduced-motion:reduce){.lc-feat-track{scroll-behavior:auto}}
 
 /* =============================================================================

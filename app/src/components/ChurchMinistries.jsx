@@ -25,10 +25,9 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
-import {
-  CHURCH_MINISTRIES, MINISTRY_ROSTER_NOTE, matchesMinistry,
-} from '../lib/church-ministries.js';
+import { CHURCH_MINISTRIES, MINISTRY_ROSTER_NOTE, matchesMinistry } from '../lib/church-ministries.js';
 import { MinistryRoster } from './MinistryRoster.jsx';
+import { groupedMinistries } from '../lib/ministry-groups.js';
 
 const CARD = 'border border-[#E8E4DC] bg-white p-3';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -37,40 +36,47 @@ const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outli
 export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
   const [query, setQuery] = useState('');
   const [openRoster, setOpenRoster] = useState(null);
-  const shown = useMemo(
-    () => CHURCH_MINISTRIES.filter((m) => matchesMinistry(m, query)),
-    [query],
-  );
+  const shown = useMemo(() => CHURCH_MINISTRIES.filter((m) => matchesMinistry(m, query)), [query]);
   const withPage = shown.filter((m) => m.surface);
   const namedOnly = shown.filter((m) => !m.surface);
+  // THE LANDING (2026-11-12 redesign, DR-1458): the same registry sorted into
+  // four families, each a card of doors. A ministry with a page opens it; one
+  // without says so in the same words the tiles below use. Hidden while a
+  // search narrows the list, so the search result is what the eye sees.
+  const families = useMemo(() => groupedMinistries(CHURCH_MINISTRIES), []);
 
   const tile = (m) => (
     <div key={m.id} className={`${CARD} space-y-1.5`}>
-      <div className="text-sm font-medium text-[#1A1815]" style={{ fontFamily: 'Fraunces, serif' }}>{m.name}</div>
+      <div className="text-sm font-medium text-[#1A1815]" style={{ fontFamily: 'Fraunces, serif' }}>
+        {m.name}
+      </div>
       <p className="text-xs text-[#5A5751]">{m.blurb}</p>
       <p className="text-xs text-[#1A1815]">{m.join}</p>
       <div className="flex flex-wrap gap-2 pt-1">
         {m.surface ? (
-          <button type="button" onClick={() => onOpen && onOpen(m.surface)}
-            className={`${BTN} bg-[#1A1815] text-white hover:bg-[#B85838]`}>
+          <button type="button" onClick={() => onOpen && onOpen(m.surface)} className={`${BTN} bg-[#1A1815] text-white hover:bg-[#B85838]`}>
             Open {m.name}
           </button>
         ) : (
-          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] self-center">
-            No page in the app yet
-          </span>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] self-center">No page in the app yet</span>
         )}
-        <button type="button" onClick={() => onFeedback && onFeedback(m.feedbackKey)}
-          className={`${BTN} border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}>
+        <button
+          type="button"
+          onClick={() => onFeedback && onFeedback(m.feedbackKey)}
+          className={`${BTN} border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}
+        >
           {m.surface ? 'Tell us about it' : 'Tell us what it needs'}
         </button>
         {/* EVERY ministry gets this, not only the ones with a page (DR-1052).
             A team without its own surface still has people on it, and before
             0296 only the choir could say who. The roster is read on demand so
             23 tiles do not each open a query on first paint. */}
-        <button type="button" onClick={() => setOpenRoster((o) => (o === m.id ? null : m.id))}
+        <button
+          type="button"
+          onClick={() => setOpenRoster((o) => (o === m.id ? null : m.id))}
           aria-expanded={openRoster === m.id}
-          className={`${BTN} border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838]`}>
+          className={`${BTN} border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838]`}
+        >
           {openRoster === m.id ? "Hide who's on this team" : "Who's on this team"}
         </button>
       </div>
@@ -82,17 +88,65 @@ export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
     <div className="w-full p-4 space-y-3">
       <SectionTitle>Ministries</SectionTitle>
       <p className="text-xs text-[#5A5751] italic">
-        &quot;And he gave some, apostles; and some, prophets; and some, evangelists; and some, pastors and teachers; For the perfecting of the saints, for the work of the ministry, for the edifying of the body of Christ.&quot; — Ephesians 4:11-12 (KJV)
+        &quot;And he gave some, apostles; and some, prophets; and some, evangelists; and some, pastors and teachers; For the perfecting of the saints, for the
+        work of the ministry, for the edifying of the body of Christ.&quot; — Ephesians 4:11-12 (KJV)
       </p>
 
       {/* The control is sized, not the surface: tab content stretches full width
           (CONSISTENCY-STANDARD rule 1, DR-0246). */}
       <label className="block">
         <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Find a ministry</span>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} className={`${FIELD} sm:w-80`}
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className={`${FIELD} sm:w-80`}
           aria-label="Find a ministry by name"
-          placeholder="e.g. bus, choir, band, ushers" />
+          placeholder="e.g. bus, choir, band, ushers"
+        />
       </label>
+
+      {!query && (
+        <div className="lc-home" data-testid="ministry-landing">
+          <div className="lc-mins lc-mins-landing">
+            {families.map((f) => (
+              <section key={f.key} aria-labelledby={`fam-${f.key}`} className="lc-fam" data-testid={`ministry-family-${f.key}`}>
+                <i className="lc-min-bar" aria-hidden="true" />
+                <h2 id={`fam-${f.key}`} className="lc-h3">
+                  {f.title}
+                </h2>
+                <p className="lc-small">{f.caption}</p>
+                <ul className="lc-fam-list">
+                  {f.ministries.map((m) => (
+                    <li key={m.id}>
+                      {m.surface ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpen && onOpen(m.surface)}
+                          className="lc-fam-door focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                          data-testid={`ministry-door-${m.id}`}
+                        >
+                          {m.name} <span aria-hidden="true">→</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onFeedback && onFeedback(m.feedbackKey)}
+                          className="lc-fam-named focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                          title="No page in the app yet. Tell us what it needs."
+                          data-testid={`ministry-named-${m.id}`}
+                        >
+                          {m.name} <small>no page yet</small>
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
 
       {shown.length === 0 && (
         <p className="text-sm text-[#5A5751]">
@@ -111,7 +165,8 @@ export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-[#1A1815]">Named, not built yet</h3>
           <p className="text-xs text-[#5A5751]">
-            These are real ministries of the house with no page of their own in the app so far. Saying that plainly is the point — what each one needs is what decides which gets built next.
+            These are real ministries of the house with no page of their own in the app so far. Saying that plainly is the point — what each one needs is what
+            decides which gets built next.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{namedOnly.map(tile)}</div>
         </div>
