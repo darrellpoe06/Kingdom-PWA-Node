@@ -2059,6 +2059,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 3,
       "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
+      "id": "a-check-narrower-than-its-name",
+      "date": "2026-11-13",
+      "task": "Three verification instruments measured reporting on less than their names claimed, in the hours after sov76 and sov77 landed: a guard list recalled as four where CI runs forty, format-guard reporting exit 0 from a directory where the script does not exist, and a shallow clone answering ancestry questions wrongly rather than refusing them",
+      "drs": [
+        "DR-1467"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "No instrument shipped, on purpose. The obvious fix - a wrapper that reads the chain out of ci.yml and runs it - is parked to 2026-11-20 because building a verification instrument on the night I proved three times that I check instruments poorly would put all forty guards behind one unproven place to silently pass. Also not claimed: whether the forty-entry extraction covers guards run by CI jobs other than app lint+guards."
     }
   ]
 }
