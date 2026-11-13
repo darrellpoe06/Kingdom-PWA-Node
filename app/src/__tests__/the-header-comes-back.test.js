@@ -77,7 +77,9 @@ describe('the way back from the hideaway is in words, on the left', () => {
 
   it('both header mounts wire the toggle into it', () => {
     // The shell also names the door on the row (2026-09-23); the toggle wiring is unchanged.
-    expect(SHELL).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} siteName=\{[^}]+\} siteTagline=\{[^}]+\} \/>/);
+    expect(SHELL).toMatch(
+      /<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} siteName=\{[^}]+\} siteTagline=\{[^}]+\} \/>/
+    );
     expect(TLC).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} \/>/);
   });
 
@@ -106,26 +108,31 @@ describe('the browser proves it, at every width, and can fail', () => {
   });
 });
 
-describe('the one-tab door spends no row on a lone tab (DR-0640)', () => {
-  // Darrell 2026-09-24: "Why does the Church tab space need that? Can we save
-  // even more space if not... can we add another Love Corner etc tag in the
-  // space?" and "Both places are good... why not".
-  it('the probe has a one-tab pass with its invariants, quoting him', () => {
-    expect(PROBE).toMatch(/THE ONE-TAB ROW CARRIES THE BRAND pass \(DR-0640\)/);
-    expect(PROBE).toMatch(/Both places are\s*\/\/\s*good\.\.\. why not/);
-    expect(PROBE).toMatch(/the top nav draws a lone tab row/);
-    expect(PROBE).toMatch(/the brand is not in the top row, on screen/);
-    expect(PROBE).toMatch(/two rows where one fits/);
-    expect(PROBE).toMatch(/the bottom bar lost the brand/);
+describe('the door wears its own header, and the probe measures it (DR-1483; the one-tab pass of DR-0640 is replaced)', () => {
+  // Darrell 2026-11-13: one compact header on the Love Corner door — menu,
+  // the brand, search, the bell, the picture or Sign in. The collapsed
+  // one-tab row of DR-0640 is no longer drawn on the door, so the probe
+  // measures the header that is.
+  it('the probe has a door-header pass with its invariants', () => {
+    expect(PROBE).toMatch(/THE DOOR'S OWN HEADER pass \(DR-1483/);
+    expect(PROBE).toMatch(/the brand \(logo and name\) is not on screen/);
+    expect(PROBE).toMatch(/control is not on screen/);
+    expect(PROBE).toMatch(/chrome is capped at every text size/);
+    expect(PROBE).toMatch(/the header or the page overflows horizontally/);
+    expect(PROBE).toMatch(/offers no Show-all control/);
   });
 
   it('measures the door at 320, 390 and the Fold, and at the bottom-bar sizes', () => {
-    expect(PROBE).toMatch(/\{ width: 320, size: 'normal' \}, \{ width: 390, size: 'normal' \}, \{ width: 1812, size: 'normal' \}, \{ width: 390, size: 'largest' \}, \{ width: 1812, size: 'bigprint' \}/);
+    expect(PROBE).toMatch(
+      /\{ width: 320, size: 'normal' \}, \{ width: 390, size: 'normal' \}, \{ width: 1812, size: 'normal' \}, \{ width: 390, size: 'largest' \}, \{ width: 1812, size: 'bigprint' \}/
+    );
     expect(PROBE).toMatch(/\/\?lovecorner=1&view=church/);
+    expect(PROBE).toMatch(/waitForSelector\('\[data-testid="lovecorner-header"\]'/);
   });
 
-  it('the self-test puts a lone tab strip back and hides the brand, and demands two trips', () => {
-    expect(PROBE).toMatch(/strip\.innerHTML = '<button type="button">Church<\/button>'/);
+  it('the self-test hides the name and the search control, and demands two trips', () => {
+    expect(PROBE).toMatch(/\.lch-name \{ display: none !important \}/);
+    expect(PROBE).toMatch(/\[data-testid="lch-search"\] \{ display: none !important \}/);
     expect(PROBE).toMatch(/oneTabTripped < 2/);
   });
 });
