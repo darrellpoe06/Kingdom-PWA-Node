@@ -2269,6 +2269,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Reserved L308 and DR-1476 on origin with new-lesson.mjs, skipping L307 and DR-1475 held for claude/lesson-ll307. 229 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. www.irs.gov refused direct fetch (ENOTFOUND); Publication 527 read through a search restricted to irs.gov, re-review 2026-12-13."
+    },
+    {
+      "id": "pm17-can-two-walk-together",
+      "date": "2026-11-13",
+      "task": "Project Management lesson 17 built from one word over a forwarded trade newsletter, all four age bands, 42-case gate",
+      "drs": [
+        "DR-1473"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a1837bf55922f04, forwarded 2026-10-28T17:08Z, built 2026-11-13; sixteen days kept on the record. He typed Lesson. and lifted one item above the forward: 6 Steps to Better CFO-CPO Alignment. 49 anchor references, 206 quoted spans across 21 books, every verse filled from app/public/bible/kjv by scripts/pm17-fill.mjs and none typed. THE ARTICLE WAS NEVER READ: endeavor.omeclk.com would not resolve (getaddrinfo ENOTFOUND) and www.supplychainconnect.com and www.sourcetoday.com were refused by the proxy CONNECT tunnel with 403; named in every reader place with re-review 2026-11-27, and not one of the six steps is taught."
     }
   ]
 }
