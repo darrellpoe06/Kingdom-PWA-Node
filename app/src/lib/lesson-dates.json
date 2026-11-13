@@ -118,7 +118,8 @@
    "sov80-discovery-is-not-permission": ["2026-11-13", "fcd64375"],
    "sov81-what-hast-thou-that-thou-didst-not-receive": ["2026-11-13", "50b59c7a"],
    "sov82-how-beautiful-are-the-feet": ["2026-11-13", "26a34987"],
-   "sov83-that-they-may-continue-many-days": ["2026-11-13", "73d794b8"]
+   "sov83-that-they-may-continue-many-days": ["2026-11-13", "73d794b8"],
+   "sov88-every-man-by-his-own-standard": ["2026-11-13", "15454f02"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
