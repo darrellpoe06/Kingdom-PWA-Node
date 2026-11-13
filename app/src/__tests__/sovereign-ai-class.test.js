@@ -162,7 +162,18 @@ describe('curriculum shape', () => {
     // `toEqual(nums.map((_, i) => i + 1))`. A count taken from one spelling is
     // not a measurement (DR-0076 §4). None of the ten was edited and all ten go
     // green on 72 landing, which is the proof that leaving them red was right.
-    const HELD_IN_FLIGHT = [];
+    // 82 HELD HERE, recorded 2026-11-13 (DR-1489). Sovereign A.I. week 82 is
+    // being written on a sibling branch (reserve/sov82 on origin, pushed
+    // 14:51:19 UTC) while week 83 (That they may continue many days) was
+    // built here off an origin/main whose highest week was 81. Two builders
+    // claimed 82 one second apart under two spellings (reserve/sov82 and
+    // reserve/sov-82); the empty-lease referee compares exact names, so it
+    // refused neither, and this branch yielded and took 83. DELETE this entry
+    // in the merge that brings 82 in -- recompute from the merged tree, never
+    // take either side. Until 82 lands, the ten strict-contiguity gates
+    // DR-1376 counted (sov52-54, sov57-63) are red on this branch by design,
+    // which is what keeps it from merging ahead of its sibling.
+    const HELD_IN_FLIGHT = [82];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
