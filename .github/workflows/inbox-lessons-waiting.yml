@@ -232,19 +232,11 @@ jobs:
               sed 's/^/  /' "$RUNNER_TEMP/waiting-rows.txt"
               printf '  ```\n  </details>\n'
             elif [ "${SERVED_READ:-}" = "ok" ] && [ -s "$RUNNER_TEMP/served-queue.txt" ]; then
-              # WHAT KIND OF WORK WAITS, not only how much (DR-1507). MEASURED on
-              # run 43956538893: the census answered 5 waiting, oldest 4 d 8 h,
-              # by shape build-failed 3 / plain 2, failed because other 2 /
-              # transient 1 -- and the log line carried the 5 alone. The census
-              # names no row, so these counts are the ONLY thing the public road
-              # can tell a reader about the queue's shape, and they are what
-              # decides the next move: a `voice-waiting-for-words` row is not
-              # buildable at all, a `build-failed` one wants a retry or a person,
-              # and the oldest-waited says how overdue the lane is. All of it was
-              # already printed -- to the step summary, which costs a cloud
-              # session thousands of tokens to reach. That cost is the exact
-              # reason DR-1186 opened this log. Counts and tag names only; the
-              # `never a body` contract above is unchanged.
+              # WHAT KIND OF WORK WAITS, not only how much (DR-1507, measured on
+              # run 43956538893). The census names no row, so its counts are all
+              # the public road can say about the queue's SHAPE -- and the shape
+              # is what decides the next move. Counts and tag names only; the
+              # `never a body` contract above is unchanged and is pinned.
               printf '\n  <details><summary>what kind of work waits (counts and tag names only — never a body)</summary>\n\n  ```\n'
               sed '/^### /d' "$RUNNER_TEMP/served-queue.txt" | sed 's/^/  /'
               printf '  ```\n  </details>\n'
