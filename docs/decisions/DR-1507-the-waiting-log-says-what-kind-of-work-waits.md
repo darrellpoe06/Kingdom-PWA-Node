@@ -17,19 +17,17 @@ and reading its rolling log. On 2026-11-16 it finally answered — with one numb
 
 Run **43956538893** on main `79388000ae8`, the first firing in which the second
 road answered at all. The tailnet was shut (`TAILNET: false`, step 5 `skipped`),
-so the only step that names rows did not run, and the public-road census answered
-in production for the first time (`SERVED_READ: ok`, `COUNT: 5`, `AGE: 6`). It
+so the only step that names rows did not run, and the census answered in
+production for the first time (`SERVED_READ: ok`, `COUNT: 5`, `AGE: 6`). It
 reported **six** facts and the log entry carried **one**. The oldest-waited
 (4 d 8 h), `by_shape` (build-failed 3, plain 2) and `by_stall` (other 2,
 transient 1) went to the step summary — the artifact DR-1186 opened this log to
 stop paying for — and those decide the next move: a `voice-waiting-for-words` row
 must not be built at all (DR-0611), a `build-failed` one wants a retry or a
-person, and `by_stall` says which. `5` alone cannot tell a session whether any of
-it is actionable. Never-a-body was checked rather than assumed (DR-0076 §7):
-`served-lesson-queue.py` reads no `body` under any spelling. The rows are still
-**unnamed**, both roads to naming them being the one dead key — verified: no
-self-pull loop in `infra/nas-loops/registry.json`, and a migration reaches the
-sovereign database over the tailnet.
+person, and `by_stall` says which. Never-a-body was checked, not assumed (DR-0076
+§7): `served-lesson-queue.py` reads no `body` under any spelling. The rows stay
+**unnamed**, both roads blocked by the one dead key — verified: `nas-loops` has
+no self-pull loop, and a migration rides the tailnet.
 
 ## Impact
 
@@ -54,7 +52,9 @@ oldest is, and what KIND of work it is — and nothing new leaves the house.
   fail, other 3 correctly green; header strip replaced with `cat` → exactly 1; a
   `body` read injected → exactly 1. Restored 6/6, 14/14; neighbours green over 9
   files naming this workflow, the census or that road.
-- **Not claimed:** the entry is asserted from the step's shell, not a posted
-  comment (`re-review: 2026-11-23`). The 3-min join is NOT fixed here (DR-0075
-  why + date): that means editing the shared `join-tailnet` action 64 workflows
-  use, deploy-adjacent, which DR-0107 forbids. `re-review: 2026-11-30`.
+- **CLOSED ON LIVE DATA the same night** — run 43976118454 on the deployed
+  `158c8a2fb06` posted the real entry to issue #2378 (comment 6932137294); its
+  `re-review: 2026-11-23` is retired. Measured in the session note.
+- **The 3-min join is NOT fixed here** (DR-0075 why + date): that means editing
+  the shared `join-tailnet` action 64 workflows use, deploy-adjacent, which
+  DR-0107 forbids. `re-review: 2026-11-30`.

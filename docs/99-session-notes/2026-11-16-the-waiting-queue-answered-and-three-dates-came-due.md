@@ -110,6 +110,30 @@ spelling, and prints only the total, a stamp, the oldest row's TIMESTAMP, three
 dicts whose keys are class names, and the excluded tag names. Its own comment
 records why: the stall's reason text "can quote a person's words".
 
+### The one unclaimed item, closed the same night on live data
+
+DR-1507 shipped with a stated gap: the rendered log entry was asserted from the
+step's own shell, not from a posted comment, carrying `re-review: 2026-11-23`.
+PR #2699 merged at 22:21:41 and deployed on `158c8a2fb06` (run 43969321480,
+success, `head_sha` matched by commit), with the site witnessed after it
+(site-health 43970476687, started 22:29:00Z, after the 22:28:28Z deploy).
+
+The 23:04 firing then produced the real thing. Run **43976118454** (success, on
+`158c8a2fb06`) wrote this to issue #2378, comment **6932137294**, 23:08:57Z:
+
+- head line: `**5** lesson row(s) waiting — the house's own census, read over the
+  public road, taken 6 min ago`;
+- the `<details>` block titled *what kind of work waits (counts and tag names
+  only — never a body)*, carrying the oldest-waited, `By road`, `By shape`,
+  `Failed because` and the excludes;
+- the census's own `### Waiting lesson rows: 5` header correctly stripped, so the
+  count is not repeated as a stray heading.
+
+**It is live data, not a fixture:** the oldest-waited read **4 d 8 h** in the
+21:09 run and **4 d 10 h** here — the same row (`2026-11-12T12:17:12`), two
+hours older. The queue is still 5, same shapes. So the promise was kept the same
+night rather than carried for a week, and the dated re-review is retired.
+
 ### A Ways finding recorded and deliberately not fixed
 
 The tailnet join burns **three minutes a run** (21:06:01→21:09:02) on a key that
