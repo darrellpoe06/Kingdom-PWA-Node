@@ -2616,6 +2616,36 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 6,
       "notes": "Follow-up to PR 2688 (found 2026-11-13). sw-update deferred the reload while a reading played and told nobody. New lib/update-while-reading.js offers one line per build through the existing UpdatePrompt toast; the live-build timer no longer reloads mid-reading. use-read-aloud net zero (useReadingHold). 9 cases, 5 proven to catch against origin/main."
+    },
+    {
+      "id": "the-waiting-log-says-what-kind-of-work-waits",
+      "date": "2026-11-16",
+      "task": "The lesson lane's rolling log carries the shape of the waiting queue, not only its count",
+      "drs": [
+        "DR-1507"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 5,
+      "notes": "Run 43956538893 was the first firing where the second road answered (tailnet shut, census read over the public road). It measured six facts; the log carried one. The census's own lines now ride the entry, header stripped. The never-a-body set gains one name, backed by a new check on served-lesson-queue.py rather than a comment. 6 green, executing the step's own shell against the real stdout; both mechanisms and the producer check proven to catch."
+    },
+    {
+      "id": "pre-way-service-audit-new-date",
+      "date": "2026-11-16",
+      "task": "The pre-Way service audit's expired ceiling gets a new date with the why it was owed",
+      "drs": [
+        "DR-1510"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "AUDIT_BY passed 2026-11-15; red on a clean tree, and main's last CI predated the ceiling, so the next PR to run would have gone red for an unrelated reason. The list is down to two, both with structural whys (supabase's compose converge the systemd reader cannot count; ytzero has no health route). Date moved to 2026-12-15, sized to the reader change; nothing struck, nothing exempted."
     }
   ]
 }

@@ -136,9 +136,33 @@ describe('never a body', () => {
     expect(LOG).toMatch(/waiting-rows\.txt/);
   });
 
-  it('the log step reads the rows ONLY from the file the query wrote', () => {
+  it('the log step reads the rows ONLY from the file the query wrote, or the census that carries no row at all', () => {
     expect(READ).toMatch(/> "\$RUNNER_TEMP\/waiting-rows\.txt"/);
     const reads = [...LOG.matchAll(/\$RUNNER_TEMP\/([a-z-]+\.(?:txt|md))/g)].map((m) => m[1]);
-    expect(new Set(reads)).toEqual(new Set(['waiting-rows.txt', 'intake-line.md', 'intake-body.md']));
+    // `served-queue.txt` ADMITTED 2026-11-16 (DR-1507), and the admission is
+    // backed by the next case rather than by this comment: it is the census's
+    // own stdout, which carries counts and tag names and no row at all. Still a
+    // CLOSED set -- a third file appearing here fails until someone says why.
+    expect(new Set(reads)).toEqual(
+      new Set(['waiting-rows.txt', 'served-queue.txt', 'intake-line.md', 'intake-body.md'])
+    );
+  });
+
+  it('the census whose output the log now carries cannot print a body', () => {
+    // WHY THIS EXISTS. The case above used to pin ONE readable file, and that
+    // single name was the whole privacy argument. Admitting a second file on
+    // the strength of a comment would have traded a check for a claim
+    // (DR-0076 §2), so the new file's PRODUCER is pinned instead.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    // It never asks the receipt for a body, under any spelling.
+    expect(served).not.toMatch(/\bget\(\s*["']body["']/);
+    expect(served).not.toMatch(/\[\s*["']body["']\s*\]/);
+    // And the receipt it reads is a count row: the fields it prints are the
+    // total, a stamp, the oldest row's TIMESTAMP, and three dicts whose keys
+    // are class names. `by_stall` is the nearest thing to prose and is printed
+    // by its class only -- the stall's own reason text can quote a person.
+    for (const field of ['total', 'at', 'oldest_waiting', 'by_road', 'by_shape', 'by_stall', 'excludes']) {
+      expect(served, field).toContain(field);
+    }
   });
 });
