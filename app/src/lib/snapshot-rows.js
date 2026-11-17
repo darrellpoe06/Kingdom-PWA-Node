@@ -50,13 +50,29 @@ function addDaysIso(day, n) {
 
 /** A bank's money token → { value, signed }. `signed` is true when the text itself carries the direction. */
 export function readMoney(token) {
-  let s = String(token || '').trim().replace(/[−–—]/g, '-');
+  let s = String(token || '')
+    .trim()
+    .replace(/[−–—]/g, '-');
   if (!s) return null;
-  let negative = false; let signed = false;
-  if (/^\(.*\)$/.test(s)) { negative = true; signed = true; s = s.slice(1, -1).trim(); }
-  if (/-$/.test(s)) { negative = true; signed = true; s = s.slice(0, -1).trim(); }
-  if (/-/.test(s)) { negative = true; signed = true; }
-  if (/\+/.test(s)) { signed = true; }
+  let negative = false;
+  let signed = false;
+  if (/^\(.*\)$/.test(s)) {
+    negative = true;
+    signed = true;
+    s = s.slice(1, -1).trim();
+  }
+  if (/-$/.test(s)) {
+    negative = true;
+    signed = true;
+    s = s.slice(0, -1).trim();
+  }
+  if (/-/.test(s)) {
+    negative = true;
+    signed = true;
+  }
+  if (/\+/.test(s)) {
+    signed = true;
+  }
   const digits = s.replace(/[^0-9.]/g, '');
   const n = parseFloat(digits);
   if (!Number.isFinite(n)) return null;
@@ -70,11 +86,16 @@ function dayOf(text, asOf) {
   if (m) return asOf ? (m[1].toLowerCase() === 'today' ? asOf : addDaysIso(asOf, -1)) : { open: m[1] };
   m = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
   if (m) {
-    const mo = Number(m[1]); const d = Number(m[2]);
+    const mo = Number(m[1]);
+    const d = Number(m[2]);
     if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-    if (m[3]) { const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]); return iso(y, mo, d); }
+    if (m[3]) {
+      const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+      return iso(y, mo, d);
+    }
     if (!asOf) return { open: `${mo}/${d}` };
-    const y = Number(asOf.slice(0, 4)); const asOfMonth = Number(asOf.slice(5, 7));
+    const y = Number(asOf.slice(0, 4));
+    const asOfMonth = Number(asOf.slice(5, 7));
     return iso(mo > asOfMonth ? y - 1 : y, mo, d);
   }
   m = s.match(new RegExp(`^${WEEKDAY_RE}${MONTH_RE}\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, 'i'));
@@ -84,7 +105,8 @@ function dayOf(text, asOf) {
     if (!mo || d < 1 || d > 31) return null;
     if (m[3]) return iso(Number(m[3]), mo, d);
     if (!asOf) return { open: `${m[1]} ${d}` };
-    const y = Number(asOf.slice(0, 4)); const asOfMonth = Number(asOf.slice(5, 7));
+    const y = Number(asOf.slice(0, 4));
+    const asOfMonth = Number(asOf.slice(5, 7));
     return iso(mo > asOfMonth ? y - 1 : y, mo, d);
   }
   return null;
@@ -92,11 +114,14 @@ function dayOf(text, asOf) {
 /** The part of a line after its leading date, if it starts with one. */
 function afterDate(text) {
   const s = String(text).trim();
-  const m = s.match(new RegExp(`^(?:today|yesterday|\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?|${WEEKDAY_RE}${MONTH_RE}\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?)\\s*`, 'i'));
+  const m = s.match(
+    new RegExp(`^(?:today|yesterday|\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?|${WEEKDAY_RE}${MONTH_RE}\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?)\\s*`, 'i')
+  );
   return m ? s.slice(m[0].length) : null;
 }
 
-const HEADING = /^(pending|posted|completed|recent (transactions|activity)|transactions|activity|available balance|present balance|current balance|available|balance)\b/i;
+const HEADING =
+  /^(pending|posted|completed|recent (transactions|activity)|transactions|activity|available balance|present balance|current balance|available|balance)\b/i;
 
 /**
  * Read the rows. Returns { rows, signsKnown }: each row is { date, description,
@@ -106,24 +131,47 @@ const HEADING = /^(pending|posted|completed|recent (transactions|activity)|trans
  */
 export function readSnapshotRows(text, { asOf = null } = {}) {
   const raw = [];
-  let pending = false; let heading = null; let carry = null;
+  let pending = false;
+  let heading = null;
+  let carry = null;
   for (const rawLine of String(text || '').split(/\r?\n/)) {
     const line = rawLine.replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim();
-    if (!line) { carry = null; continue; }
-    if (/^pending\b/i.test(line)) { pending = true; carry = null; continue; }
-    if (/^(posted|completed|recent (transactions|activity)|transactions|activity)\b/i.test(line)) { pending = false; carry = null; continue; }
+    if (!line) {
+      carry = null;
+      continue;
+    }
+    if (/^pending\b/i.test(line)) {
+      pending = true;
+      carry = null;
+      continue;
+    }
+    if (/^(posted|completed|recent (transactions|activity)|transactions|activity)\b/i.test(line)) {
+      pending = false;
+      carry = null;
+      continue;
+    }
     const day = dayOf(line, asOf);
     const rest = day ? afterDate(line) : line;
     const money = rest != null ? rest.match(MONEY_AT_END) : null;
     // A line that is only a date is the heading of the rows under it.
-    if (day && (!rest || !rest.trim())) { heading = day; carry = null; continue; }
+    if (day && (!rest || !rest.trim())) {
+      heading = day;
+      carry = null;
+      continue;
+    }
     if (money) {
       const desc = rest.slice(0, money.index).trim();
       const amt = readMoney(money[1]);
-      if (!amt) { carry = null; continue; }
+      if (!amt) {
+        carry = null;
+        continue;
+      }
       const rowDay = day || heading;
       if (desc) {
-        if (HEADING.test(desc) && !day) { carry = null; continue; } // "Available balance $4,687.18"
+        if (HEADING.test(desc) && !day) {
+          carry = null;
+          continue;
+        } // "Available balance $4,687.18"
         raw.push({ day: rowDay, description: desc, amt, pending, hadBalance: !!money[2] });
         carry = null;
         continue;
@@ -138,7 +186,10 @@ export function readSnapshotRows(text, { asOf = null } = {}) {
       continue;
     }
     // A description with no amount: hold it for an amount on the next line.
-    if (HEADING.test(line)) { carry = null; continue; }
+    if (HEADING.test(line)) {
+      carry = null;
+      continue;
+    }
     carry = { day: day || heading, description: (rest || line).trim() };
   }
   const signsKnown = raw.some((r) => r.amt.signed);

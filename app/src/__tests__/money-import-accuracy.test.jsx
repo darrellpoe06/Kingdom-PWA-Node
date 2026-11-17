@@ -21,14 +21,23 @@ const rowsOf = (text, asOf = AS_OF) => readSnapshotRows(text, { asOf }).rows.map
 
 describe('every money form a bank prints is read with its sign', () => {
   it.each([
-    ['-$12.00', -12], ['$-12.00', -12], ['($12.00)', -12], ['12.00-', -12], ['−12.00', -12], ['−$12.00', -12],
-    ['+$700.00', 700], ['$700.00', 700], ['1,912.40', 1912.4], ['-$1,234.56', -1234.56],
+    ['-$12.00', -12],
+    ['$-12.00', -12],
+    ['($12.00)', -12],
+    ['12.00-', -12],
+    ['−12.00', -12],
+    ['−$12.00', -12],
+    ['+$700.00', 700],
+    ['$700.00', 700],
+    ['1,912.40', 1912.4],
+    ['-$1,234.56', -1234.56],
   ])('%s → %d', (token, value) => {
     expect(readMoney(token).value).toBe(value);
   });
   it('a purchase written "$-45.00" or "−45.00" is money OUT, never a deposit (PROVEN TO CATCH)', () => {
     expect(rowsOf('Nov 14 CIRCLE K 1234 $-45.00\nNov 13 WALMART −82.10')).toEqual([
-      ['2026-11-14', 'CIRCLE K 1234', -45], ['2026-11-13', 'WALMART', -82.1],
+      ['2026-11-14', 'CIRCLE K 1234', -45],
+      ['2026-11-13', 'WALMART', -82.1],
     ]);
   });
   it('parentheses are money out', () => {
@@ -39,7 +48,8 @@ describe('every money form a bank prints is read with its sign', () => {
 describe('the running balance is never taken as the amount', () => {
   it('two amounts at the end of a row: the first is the transaction, the second the balance (PROVEN TO CATCH)', () => {
     expect(rowsOf('Nov 14 CIRCLE K 1234 -45.00 4,642.18\nNov 13 UIUC PAYROLL 1,912.40 4,687.18')).toEqual([
-      ['2026-11-14', 'CIRCLE K 1234', -45], ['2026-11-13', 'UIUC PAYROLL', 1912.4],
+      ['2026-11-14', 'CIRCLE K 1234', -45],
+      ['2026-11-13', 'UIUC PAYROLL', 1912.4],
     ]);
   });
 });
@@ -47,21 +57,31 @@ describe('the running balance is never taken as the amount', () => {
 describe('rows the old reader dropped are read', () => {
   it('Today and Yesterday take their day from the screenshot', () => {
     expect(rowsOf('Today ZELLE PAYMENT TO BG & MOM -$750.00\nYesterday CIRCLE K -$40.00')).toEqual([
-      ['2026-11-16', 'ZELLE PAYMENT TO BG & MOM', -750], ['2026-11-15', 'CIRCLE K', -40],
+      ['2026-11-16', 'ZELLE PAYMENT TO BG & MOM', -750],
+      ['2026-11-15', 'CIRCLE K', -40],
     ]);
   });
-  it('rows grouped under a date heading take the heading\'s day', () => {
-    const text = ['Monday, November 16', 'CIRCLE K 1234 -$45.00', 'WALMART SUPERCENTER -$82.10', 'Friday, Nov 13', 'UIUC PAYROLL DIRECT DEP $1,912.40'].join('\n');
+  it("rows grouped under a date heading take the heading's day", () => {
+    const text = ['Monday, November 16', 'CIRCLE K 1234 -$45.00', 'WALMART SUPERCENTER -$82.10', 'Friday, Nov 13', 'UIUC PAYROLL DIRECT DEP $1,912.40'].join(
+      '\n'
+    );
     expect(rowsOf(text)).toEqual([
-      ['2026-11-16', 'CIRCLE K 1234', -45], ['2026-11-16', 'WALMART SUPERCENTER', -82.1], ['2026-11-13', 'UIUC PAYROLL DIRECT DEP', 1912.4],
+      ['2026-11-16', 'CIRCLE K 1234', -45],
+      ['2026-11-16', 'WALMART SUPERCENTER', -82.1],
+      ['2026-11-13', 'UIUC PAYROLL DIRECT DEP', 1912.4],
     ]);
   });
   it('a description and its amount on two lines are one row', () => {
     const text = ['Nov 14', 'CIRCLE K 1234', '-$45.00', 'ZELLE PAYMENT TO BG & MOM', '-$750.00'].join('\n');
-    expect(rowsOf(text)).toEqual([['2026-11-14', 'CIRCLE K 1234', -45], ['2026-11-14', 'ZELLE PAYMENT TO BG & MOM', -750]]);
+    expect(rowsOf(text)).toEqual([
+      ['2026-11-14', 'CIRCLE K 1234', -45],
+      ['2026-11-14', 'ZELLE PAYMENT TO BG & MOM', -750],
+    ]);
   });
   it('a balance label and its figure are never read as a row', () => {
-    expect(rowsOf(['Available balance', '$4,687.18', 'Present balance $5,062.72', 'Nov 14 CIRCLE K -$45.00'].join('\n'))).toEqual([['2026-11-14', 'CIRCLE K', -45]]);
+    expect(rowsOf(['Available balance', '$4,687.18', 'Present balance $5,062.72', 'Nov 14 CIRCLE K -$45.00'].join('\n'))).toEqual([
+      ['2026-11-14', 'CIRCLE K', -45],
+    ]);
   });
   it('a row dated after the screenshot is left out; a month after it belongs to the year before', () => {
     expect(rowsOf('Nov 20 FUTURE -$1.00\nDec 30 LAST YEAR -$2.00')).toEqual([['2025-12-30', 'LAST YEAR', -2]]);
@@ -72,10 +92,20 @@ describe('signs are never guessed', () => {
   it('on a screen that signs its debits, an unsigned row is money in', () => {
     const { rows, signsKnown } = readSnapshotRows('Nov 14 CIRCLE K -$45.00\nNov 13 UIUC PAYROLL $1,912.40', { asOf: AS_OF });
     expect(signsKnown).toBe(true);
-    expect(rows.map((r) => [r.amount, !!r.signUnknown])).toEqual([[-45, false], [1912.4, false]]);
+    expect(rows.map((r) => [r.amount, !!r.signUnknown])).toEqual([
+      [-45, false],
+      [1912.4, false],
+    ]);
   });
   it('on a screen that signs nothing, every row is "in or out?" and a blocking question is asked (PROVEN TO CATCH)', () => {
-    const text = ['Chase', 'TOTAL CHECKING (...7206)', 'Available balance $4,687.18', 'as of Nov 16, 2026', 'Nov 14 CIRCLE K 1234 $45.00', 'Nov 13 WALMART $82.10'].join('\n');
+    const text = [
+      'Chase',
+      'TOTAL CHECKING (...7206)',
+      'Available balance $4,687.18',
+      'as of Nov 16, 2026',
+      'Nov 14 CIRCLE K 1234 $45.00',
+      'Nov 13 WALMART $82.10',
+    ].join('\n');
     const x = extractDocument({ text }, { name: 's.jpg' }, { hint: 'overview' });
     expect(x.doc_type).toBe('account-snapshot');
     expect(x.uncertain).toContain('signs');
@@ -89,19 +119,51 @@ describe('signs are never guessed', () => {
 describe('the pipeline: rows before the day, the sign question, and hold', () => {
   const ACCOUNTS = [{ id: 'a-7206', name: 'Chase 7206', fragment: '7206', type: 'checking', entityId: 'e-personal', balance: 0 }];
   const ENTITIES = [{ id: 'e-personal', name: 'Personal', type: 'personal' }];
-  const fakeFile = (name, body) => ({ name, type: 'image/jpeg', size: body.length, text: async () => body, arrayBuffer: async () => new TextEncoder().encode(body).buffer });
-  const ctx = (store) => ({ store, hint: 'overview', known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] }, reader: async (f) => ({ text: await f.text(), method: 'ocr:test' }) });
-  const NO_DATE = ['Chase', 'TOTAL CHECKING (...7206)', 'Available balance', '$4,687.18', 'Transactions', 'Nov 14 CIRCLE K 1234 -$45.00', 'Nov 13 UIUC PAYROLL DIRECT DEP $1,912.40'].join('\n');
-  const UNSIGNED = ['Chase', 'TOTAL CHECKING (...7206)', 'Available balance $4,687.18', 'as of Nov 16, 2026', 'Nov 14 CIRCLE K 1234 $45.00', 'Nov 13 WALMART $82.10'].join('\n');
+  const fakeFile = (name, body) => ({
+    name,
+    type: 'image/jpeg',
+    size: body.length,
+    text: async () => body,
+    arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+  });
+  const ctx = (store) => ({
+    store,
+    hint: 'overview',
+    known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] },
+    reader: async (f) => ({ text: await f.text(), method: 'ocr:test' }),
+  });
+  const NO_DATE = [
+    'Chase',
+    'TOTAL CHECKING (...7206)',
+    'Available balance',
+    '$4,687.18',
+    'Transactions',
+    'Nov 14 CIRCLE K 1234 -$45.00',
+    'Nov 13 UIUC PAYROLL DIRECT DEP $1,912.40',
+  ].join('\n');
+  const UNSIGNED = [
+    'Chase',
+    'TOTAL CHECKING (...7206)',
+    'Available balance $4,687.18',
+    'as of Nov 16, 2026',
+    'Nov 14 CIRCLE K 1234 $45.00',
+    'Nov 13 WALMART $82.10',
+  ].join('\n');
 
   it('a screenshot with no date shows its rows before the day is answered; nothing is written until then', async () => {
     const store = memoryStore();
     const [doc] = await intakeFiles([fakeFile('s.jpg', NO_DATE)], ctx(store));
     expect(doc.plan.kind).toBe('none');
-    expect(doc.extraction.preview_items.map((r) => [r.openDate, r.amount])).toEqual([['Nov 14', -45], ['Nov 13', 1912.4]]);
+    expect(doc.extraction.preview_items.map((r) => [r.openDate, r.amount])).toEqual([
+      ['Nov 14', -45],
+      ['Nov 13', 1912.4],
+    ]);
     const d2 = await answer(doc, `${doc.id}:as_of`, AS_OF, ctx(store));
     expect(d2.plan.kind).toBe('snapshot');
-    expect(d2.plan.rows.map((r) => [r.date, r.amount])).toEqual([['2026-11-14', -45], ['2026-11-13', 1912.4]]);
+    expect(d2.plan.rows.map((r) => [r.date, r.amount])).toEqual([
+      ['2026-11-14', -45],
+      ['2026-11-13', 1912.4],
+    ]);
   });
   it('unsigned rows wait for the answer; "money out" writes them as purchases', async () => {
     const store = memoryStore();
@@ -118,22 +180,39 @@ describe('the pipeline: rows before the day, the sign question, and hold', () =>
     const d2 = await answer(doc, `${doc.id}:signs`, 'hold', ctx(store));
     expect(d2.plan).toMatchObject({ kind: 'none', held: true });
     const ledger = [];
-    const out = await commitDoc(d2, { store, sinks: { commitImportedRows: async (rows) => { ledger.push(...rows); return { saved: rows.length }; } }, known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] } });
+    const out = await commitDoc(d2, {
+      store,
+      sinks: {
+        commitImportedRows: async (rows) => {
+          ledger.push(...rows);
+          return { saved: rows.length };
+        },
+      },
+      known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] },
+    });
     expect(ledger).toEqual([]);
     expect(out.status).not.toBe('added');
   });
 });
 
 describe('the review card lists the rows themselves', () => {
-  let root = null; let host = null;
-  afterEach(() => { if (root) act(() => root.unmount()); if (host) host.remove(); root = null; host = null; });
+  let root = null;
+  let host = null;
+  afterEach(() => {
+    if (root) act(() => root.unmount());
+    if (host) host.remove();
+    root = null;
+    host = null;
+  });
   async function until(fn, ms = 8000) {
     const t0 = Date.now();
     for (;;) {
       const v = fn();
       if (v) return v;
       if (Date.now() - t0 > ms) throw new Error('timed out waiting');
-      await act(async () => { await new Promise((r) => setTimeout(r, 25)); });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 25));
+      });
     }
   }
   it('shows each row with its day ("day needed" until answered) and signed amount, before anything is added', { timeout: 30000 }, async () => {
@@ -142,13 +221,44 @@ describe('the review card lists the rows themselves', () => {
       entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
       transactions: [],
     };
-    const body = ['Chase', 'TOTAL CHECKING (...7206)', 'Available balance', '$4,687.18', 'Transactions', 'Nov 14 CIRCLE K 1234 -$45.00', 'Nov 13 UIUC PAYROLL DIRECT DEP $1,912.40'].join('\n');
+    const body = [
+      'Chase',
+      'TOTAL CHECKING (...7206)',
+      'Available balance',
+      '$4,687.18',
+      'Transactions',
+      'Nov 14 CIRCLE K 1234 -$45.00',
+      'Nov 13 UIUC PAYROLL DIRECT DEP $1,912.40',
+    ].join('\n');
     const written = [];
-    host = document.createElement('div'); host.style.width = '360px'; document.body.appendChild(host);
+    host = document.createElement('div');
+    host.style.width = '360px';
+    document.body.appendChild(host);
     root = createRoot(host);
-    act(() => root.render(createElement(BooksUpload, { hint: 'overview', data: DATA, debts: [], commitImportedRows: async (rows) => { written.push(...rows); return { saved: rows.length }; }, addAccount: () => {}, updateAccount: () => {}, onClose: () => {} })));
+    act(() =>
+      root.render(
+        createElement(BooksUpload, {
+          hint: 'overview',
+          data: DATA,
+          debts: [],
+          commitImportedRows: async (rows) => {
+            written.push(...rows);
+            return { saved: rows.length };
+          },
+          addAccount: () => {},
+          updateAccount: () => {},
+          onClose: () => {},
+        })
+      )
+    );
     const input = await until(() => document.querySelector('[data-testid="books-upload-input"]'));
-    const file = { name: 'Screenshot_chase.txt', type: 'text/plain', size: body.length, text: async () => body, arrayBuffer: async () => new TextEncoder().encode(body).buffer };
+    const file = {
+      name: 'Screenshot_chase.txt',
+      type: 'text/plain',
+      size: body.length,
+      text: async () => body,
+      arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+    };
     await act(async () => {
       Object.defineProperty(input, 'files', { configurable: true, value: [file] });
       input.dispatchEvent(new Event('change', { bubbles: true }));
