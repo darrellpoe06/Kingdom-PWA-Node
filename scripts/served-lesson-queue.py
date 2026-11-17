@@ -327,10 +327,17 @@ def judge(receipt, why, now=None):
                 "cleared. The verdicts above are unaffected."
             )
         elif state == "ready":
+            # SAY `words`, NEVER THE OTHER NOUN FOR THEM, anywhere in this span.
+            # the-waiting-queue-has-a-witness.test.js slices from the verdict
+            # loop to `excl =` and refuses that noun anywhere inside, comments
+            # included -- a cheap, strong canary over the whole span, worth
+            # keeping at full strength rather than narrowing its slice so one
+            # sentence may use the word. This comment was itself rejected once
+            # for naming the guard it was explaining.
             lines.append(
                 "Readiness is NOT the cause: the builder has a writer and a push credential. "
                 "So a `ready` row it still refuses is refused by eligibility() -- and the one "
-                "branch this receipt cannot mirror is a body that is only whitespace."
+                "branch this receipt cannot mirror is words that are only whitespace."
             )
         elif isinstance(st, dict) and read.get("status") is not False:
             lines.append(

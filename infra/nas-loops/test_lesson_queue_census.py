@@ -957,6 +957,9 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
         self.assertIn("Readiness is NOT the cause", out)
         self.assertIn("eligibility()", out)
         self.assertIn("whitespace", out)
+        # The `never a body` guard refuses that word across this whole span of
+        # the reader, comments included; the sentence says `words` instead.
+        self.assertNotIn("body", out)
         self.assertNotIn("NOT working the queue", out)
 
     def test_stopped_says_the_kill_state_holds_it(self):
