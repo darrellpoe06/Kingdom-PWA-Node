@@ -23,6 +23,9 @@ export function isLanded(id, list = SHOT_LIST) {
 }
 
 /** The served URL of an asset file. */
+/** The focus ring every kids control wears: the same orange ring kids-zone.css draws, carried on the tag itself. */
+export const KZ_FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#FF7A00]';
+
 export function kidsAsset(file) {
   return assetUrl(file, BASE);
 }

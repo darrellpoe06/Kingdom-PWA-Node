@@ -19,7 +19,7 @@ import { upcomingAnnounced } from '../../lib/home-week.js';
 import { YOUTH_DOORS, TEEN_BANDS, weeklyVerse, weeklyLesson, weekIndex } from '../../lib/youth-zone.js';
 import { TriviaCard } from '../Engagement.jsx';
 import { MemoryVerseGame, BadgeShelf } from './MemoryAndBadges.jsx';
-import { ShotSlot, KidsIcon } from './GuideArt.jsx';
+import { ShotSlot, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 import KidsAdventure from './KidsAdventure.jsx';
 import WordBuilder from './WordBuilder.jsx';
 import WhoAmI from './WhoAmI.jsx';
@@ -103,8 +103,8 @@ export default function TeensZone({
       <section className="kz-panel" aria-labelledby="tz-mem-h" data-testid="memory-section">
         <h3 id="tz-mem-h">This week's verse: {verse ? verse.ref : ''}</h3>
         {verse && <MemoryVerseGame verseRef={verse.ref} seed={seed} load={loadVerse} />}
-        <div className="kz-actions kz-focus-visible">
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={back}>
+        <div className="kz-actions">
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={back}>
             ◀ Back
           </button>
         </div>
@@ -114,8 +114,8 @@ export default function TeensZone({
     body = (
       <section className="kz-panel" data-testid="trivia-section">
         <TriviaCard signedIn={signedIn} />
-        <div className="kz-actions kz-focus-visible">
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={back}>
+        <div className="kz-actions">
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={back}>
             ◀ Back
           </button>
         </div>
@@ -136,28 +136,28 @@ export default function TeensZone({
   else if (tab === 'games')
     body = (
       <div className="kz-grid" data-testid="games-grid">
-        <button type="button" className="kz-card kz-focus-visible" onClick={() => setSub('memory')} data-testid="tile-memory">
+        <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => setSub('memory')} data-testid="tile-memory">
           <div className="kz-words">
             <span className="kz-tag">Memory</span>
             <b>{verse ? verse.ref : ''}</b>
             <small>Fill it in, then say it</small>
           </div>
         </button>
-        <button type="button" className="kz-card kz-focus-visible" onClick={() => setSub('trivia')} data-testid="tile-trivia">
+        <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => setSub('trivia')} data-testid="tile-trivia">
           <div className="kz-words">
             <span className="kz-tag">Trivia</span>
             <b>From the message</b>
             <small>Bishop Gwin's question</small>
           </div>
         </button>
-        <button type="button" className="kz-card kz-focus-visible" onClick={() => setSub('builder')} data-testid="tile-builder">
+        <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => setSub('builder')} data-testid="tile-builder">
           <div className="kz-words">
             <span className="kz-tag">Word builder</span>
             <b>Put it in order</b>
             <small>The verse, phrase by phrase</small>
           </div>
         </button>
-        <button type="button" className="kz-card kz-focus-visible" onClick={() => setSub('whoami')} data-testid="tile-whoami">
+        <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => setSub('whoami')} data-testid="tile-whoami">
           <div className="kz-words">
             <span className="kz-tag">Who am I?</span>
             <b>Three clues</b>
@@ -207,7 +207,7 @@ export default function TeensZone({
               Music &amp; messages <small>the church channel</small>
             </h3>
             <p className="lc-p">Worship and the Word from the church's own channel.</p>
-            <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="kz-play kz-focus-visible" data-testid="youth-channel">
+            <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className={`kz-play ${KZ_FOCUS}`} data-testid="youth-channel">
               Open the church channel →
             </a>
           </section>
@@ -238,12 +238,12 @@ export default function TeensZone({
             This week's challenge: <b>{pick ? pick.title : ''}</b>
             {mod && mod.anchor ? ` · ${String(mod.anchor.ref).split(';')[0]}` : ''}
           </p>
-          <div className="tz-bands kz-focus-visible" role="group" aria-label="Read at">
+          <div className="tz-bands" role="group" aria-label="Read at">
             {TEEN_BANDS.map((b) => (
               <button
                 key={b}
                 type="button"
-                className="tz-band kz-focus-visible"
+                className={`tz-band ${KZ_FOCUS}`}
                 aria-pressed={teenBand === b}
                 onClick={() => setTeenBand && setTeenBand(b)}
                 data-testid={`teen-band-${b}`}
@@ -256,37 +256,37 @@ export default function TeensZone({
         </div>
         <div className="kz-body">
           <div className="kz-grid">
-            <button type="button" className="kz-card big kz-focus-visible" onClick={() => setSub('lesson')} data-testid="weekly-lesson-open">
+            <button type="button" className={`kz-card big ${KZ_FOCUS}`} onClick={() => setSub('lesson')} data-testid="weekly-lesson-open">
               <div className="kz-words">
                 <span className="kz-tag">This week's challenge</span>
                 <b>{pick ? pick.title : ''}</b>
                 <small>{mod && mod.bigIdea ? String(mod.bigIdea).slice(0, 120) : ''}</small>
-                <span className="kz-play kz-focus-visible">Take it on ▶</span>
+                <span className="kz-play">Take it on ▶</span>
               </div>
               <ShotSlot id="teen-summit" className="kz-art" what="a teen planting a flag" />
             </button>
-            <button type="button" className="kz-card kz-focus-visible" onClick={() => open('games', 'memory')} data-testid="home-memory">
+            <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => open('games', 'memory')} data-testid="home-memory">
               <div className="kz-words">
                 <span className="kz-tag">Memory</span>
                 <b>{verse ? verse.ref : ''}</b>
                 <small>Fill it in, then say it</small>
               </div>
             </button>
-            <button type="button" className="kz-card kz-focus-visible" onClick={() => open('games', 'trivia')} data-testid="home-trivia">
+            <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => open('games', 'trivia')} data-testid="home-trivia">
               <div className="kz-words">
                 <span className="kz-tag">Trivia</span>
                 <b>From the message</b>
                 <small>Bishop Gwin's question</small>
               </div>
             </button>
-            <button type="button" className="kz-card kz-focus-visible" onClick={() => open('games', 'builder')} data-testid="home-builder">
+            <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => open('games', 'builder')} data-testid="home-builder">
               <div className="kz-words">
                 <span className="kz-tag">Word builder</span>
                 <b>Put it in order</b>
                 <small>The verse, phrase by phrase</small>
               </div>
             </button>
-            <button type="button" className="kz-card kz-focus-visible" onClick={() => open('games', 'whoami')} data-testid="home-whoami">
+            <button type="button" className={`kz-card ${KZ_FOCUS}`} onClick={() => open('games', 'whoami')} data-testid="home-whoami">
               <div className="kz-words">
                 <span className="kz-tag">Who am I?</span>
                 <b>Three clues</b>
@@ -303,7 +303,7 @@ export default function TeensZone({
     <div className="tz" data-testid="teens-zone" data-band={teenBand} data-tab={tab} data-sub={sub || ''}>
       <div className="kz-hdr">
         {sub ? (
-          <button type="button" className="kz-back kz-focus-visible" onClick={back} aria-label="Back" data-testid="teens-back">
+          <button type="button" className={`kz-back ${KZ_FOCUS}`} onClick={back} aria-label="Back" data-testid="teens-back">
             ‹
           </button>
         ) : null}

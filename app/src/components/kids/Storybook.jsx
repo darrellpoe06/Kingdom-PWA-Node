@@ -15,7 +15,7 @@ import { storybookById, gradeStoryAnswer, storyProgress } from '../../lib/kids/s
 import { coloringPage, coloringBooklet, coloringSvg } from '../../lib/coloring-page.js';
 import { saveLearnerRecord } from '../../lib/learner-records-sync.js';
 import { printDocument, downloadText, sheetFileName } from '../ColoringSheet.jsx';
-import { Shot, ShotSlot, GuideBubble, KidsIcon } from './GuideArt.jsx';
+import { Shot, ShotSlot, GuideBubble, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 
 export const STORYBOOK_COURSE_KEY = 'kids-storybooks';
 
@@ -153,17 +153,17 @@ export default function Storybook({
           <GuideBubble who={page.who} shot={page.who === 'girl' ? 'girl-point' : 'boy-reading-point'} list={shotList}>
             {page.caption}
           </GuideBubble>
-          <div className="kz-actions kz-focus-visible">
+          <div className="kz-actions">
             <button
               type="button"
-              className="kz-act blue kz-focus-visible"
+              className={`kz-act blue ${KZ_FOCUS}`}
               onClick={() => hear(text)}
               disabled={!text || !(tts && tts.supported)}
               data-testid="storybook-hear"
             >
               <KidsIcon name="read" /> Hear this page
             </button>
-            <button type="button" className="kz-act orange kz-focus-visible" onClick={color} disabled={!text} data-testid="storybook-color">
+            <button type="button" className={`kz-act orange ${KZ_FOCUS}`} onClick={color} disabled={!text} data-testid="storybook-color">
               <KidsIcon name="crayon" /> Color this page
             </button>
           </div>
@@ -172,16 +172,16 @@ export default function Storybook({
               <i key={p.ref} className={i < index ? 'done' : i === index ? 'on' : ''} />
             ))}
           </div>
-          <div className="kz-actions kz-focus-visible">
+          <div className="kz-actions">
             <button
               type="button"
-              className="kz-act plain kz-focus-visible"
+              className={`kz-act plain ${KZ_FOCUS}`}
               onClick={() => (index === 0 ? onBack && onBack() : setIndex(index - 1))}
               data-testid="storybook-back"
             >
               ◀ Back
             </button>
-            <button type="button" className="kz-act green kz-focus-visible" onClick={() => setIndex(index + 1)} data-testid="storybook-next">
+            <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={() => setIndex(index + 1)} data-testid="storybook-next">
               {index === book.pages.length - 1 ? 'The questions ▶' : 'Next page ▶'}
             </button>
           </div>
@@ -199,7 +199,7 @@ export default function Storybook({
                   <button
                     key={o}
                     type="button"
-                    className={`kz-opt${pick === oi ? (graded && graded.right ? ' yes' : ' no') : ''} kz-focus-visible`}
+                    className={`kz-opt${pick === oi ? (graded && graded.right ? ' yes' : ' no') : ''} ${KZ_FOCUS}`}
                     onClick={() => setPicks((p) => ({ ...p, [qi]: oi }))}
                     data-testid={`story-q${qi}-o${oi}`}
                     aria-pressed={pick === oi}
@@ -227,13 +227,13 @@ export default function Storybook({
               </fieldset>
             );
           })}
-          <div className="kz-actions kz-focus-visible">
-            <button type="button" className="kz-act plain kz-focus-visible" onClick={() => setIndex(book.pages.length - 1)}>
+          <div className="kz-actions">
+            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setIndex(book.pages.length - 1)}>
               ◀ Back to the book
             </button>
             <button
               type="button"
-              className="kz-act green kz-focus-visible"
+              className={`kz-act green ${KZ_FOCUS}`}
               onClick={finish}
               disabled={Object.keys(picks).length < book.questions.length}
               data-testid="storybook-finish"

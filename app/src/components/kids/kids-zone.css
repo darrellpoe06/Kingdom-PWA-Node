@@ -46,6 +46,9 @@
 .k6{background:linear-gradient(145deg,var(--kz-green),var(--kz-green-deep))}
 .kz-play{display:inline-block;margin-top:.375rem;background:#fff;color:var(--kz-purple);border-radius:999px;padding:.5625rem .875rem;font-weight:900;font-size:.82rem;white-space:nowrap}
 .kz-play.red{background:var(--lc-red);color:#fff}
+.kz-play.soon{background:#F3E7C9;color:#7A5C14;font-size:.62rem}
+.kz-sub{font-weight:700;color:#5E4B8A}
+.kz-sub-line{display:block;font-size:.7rem}
 .kz-strip{margin-top:.75rem;background:#fff;border-radius:1.25rem;padding:.75rem;border:2px solid var(--kz-butter)}
 .kz-strip h3{margin:0 0 .5rem;font-size:1rem;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 .kz-strip h3 small{font-size:.7rem;color:var(--kz-purple);font-weight:800}

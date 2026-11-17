@@ -19,7 +19,7 @@ import { saveLearnerRecord } from '../../lib/learner-records-sync.js';
 import { lessonUrl } from '../../lib/lesson-links.js';
 import { AgePacedLesson, QuizBlock } from '../ChurchLearn.jsx';
 import ColoringSheet from '../ColoringSheet.jsx';
-import { GuideBubble, ShotSlot, Shot, KidsIcon, AriStar } from './GuideArt.jsx';
+import { GuideBubble, ShotSlot, Shot, KidsIcon, AriStar, KZ_FOCUS } from './GuideArt.jsx';
 
 /** Ari's meta for a child in the Kids Zone: child mode on, whichever course the lesson is from. */
 export function kidsTutorMeta(courseKey, band = 'child') {
@@ -90,7 +90,7 @@ export function AriChat({ module, meta, ask = askTutor }) {
             data-testid="ari-input"
             maxLength={300}
           />
-          <button type="submit" className="kz-act violet kz-focus-visible" style={{ flex: '0 0 auto' }} disabled={busy || !draft.trim()} data-testid="ari-send">
+          <button type="submit" className={`kz-act violet ${KZ_FOCUS}`} style={{ flex: '0 0 auto' }} disabled={busy || !draft.trim()} data-testid="ari-send">
             {busy ? '…' : 'Ask'}
           </button>
         </form>
@@ -195,10 +195,10 @@ export default function KidsAdventure({
           }}
         />
       </div>
-      <div className="kz-actions kz-focus-visible">
+      <div className="kz-actions">
         <button
           type="button"
-          className="kz-act blue kz-focus-visible"
+          className={`kz-act blue ${KZ_FOCUS}`}
           onClick={() => tts && tts.supported && tts.speak(speakable)}
           disabled={!(tts && tts.supported)}
           data-testid="adventure-read"
@@ -206,14 +206,14 @@ export default function KidsAdventure({
           <KidsIcon name="read" /> Read to me
         </button>
         <a
-          className="kz-act plain kz-focus-visible"
+          className={`kz-act plain ${KZ_FOCUS}`}
           href={lessonUrl({ courseKey: pick ? pick.courseKey : undefined, lessonId: module.id })}
           data-testid="adventure-learn"
         >
           Open in Learn
         </a>
         {onBack && (
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={onBack}>
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack}>
             ◀ Back
           </button>
         )}

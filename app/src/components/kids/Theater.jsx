@@ -10,7 +10,7 @@ import React from 'react';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable } from '../../lib/kids/theater.js';
-import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset } from './GuideArt.jsx';
+import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, KZ_FOCUS } from './GuideArt.jsx';
 import { KIDS_BRAND } from '../../lib/kids/guides.js';
 
 /** The embed URL of a published episode's YouTube watch link, or null. */
@@ -71,14 +71,14 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             </span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '.86rem', fontWeight: 900 }}>{e.title}</b>
-              <small style={{ display: 'block', fontSize: '.7rem', fontWeight: 700, color: '#5E4B8A' }}>{e.scripture}</small>
+              <small className="kz-sub kz-sub-line">{e.scripture}</small>
             </div>
             {watchable(e) ? (
-              <a href={e.source} target="_blank" rel="noopener noreferrer" className="kz-play red kz-focus-visible" style={{ marginTop: 0 }}>
+              <a href={e.source} target="_blank" rel="noopener noreferrer" className={`kz-play red ${KZ_FOCUS}`} style={{ marginTop: 0 }}>
                 WATCH
               </a>
             ) : (
-              <span className="kz-play kz-focus-visible" style={{ marginTop: 0, background: '#F3E7C9', color: '#7A5C14', fontSize: '.62rem' }}>
+              <span className="kz-play soon" style={{ marginTop: 0 }}>
                 {shelfLabel(e)}
               </span>
             )}
@@ -93,13 +93,13 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             </span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '.86rem', fontWeight: 900 }}>The church channel</b>
-              <small style={{ display: 'block', fontSize: '.7rem', fontWeight: 700, color: '#5E4B8A' }}>Live worship and messages</small>
+              <small className="kz-sub kz-sub-line">Live worship and messages</small>
             </div>
             <a
               href={c.media.youtube}
               target="_blank"
               rel="noopener noreferrer"
-              className="kz-play red kz-focus-visible"
+              className={`kz-play red ${KZ_FOCUS}`}
               style={{ marginTop: 0 }}
               data-testid="theater-channel"
             >
@@ -117,12 +117,12 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
         <h3>
           After you watch <small>earns a stop on your map</small>
         </h3>
-        <div className="kz-actions kz-focus-visible" style={{ marginTop: 0 }}>
+        <div className="kz-actions" style={{ marginTop: 0 }}>
           {episodes.slice(0, 3).map((e) => (
             <button
               key={e.id}
               type="button"
-              className="kz-act orange kz-focus-visible"
+              className={`kz-act orange ${KZ_FOCUS}`}
               onClick={() => onOpenStorybook && onOpenStorybook(e.storybook)}
               data-testid={`theater-read-${e.storybook}`}
             >

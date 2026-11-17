@@ -15,6 +15,7 @@ import { YOUTH_DOORS, TEEN_BANDS, weeklyLesson, normalizeRecord } from '../../li
 import { CHILD_MODE_RULES } from '../../lib/class-tutor.js';
 import { lessonUrl } from '../../lib/lesson-links.js';
 import { ColoringBookButton } from '../ColoringSheet.jsx';
+import { KZ_FOCUS } from './GuideArt.jsx';
 
 /** The module behind a weekly pick, from the course it names. */
 export function moduleFor(pick) {
@@ -136,7 +137,7 @@ export default function GrownUps({
               <button
                 key={x.key}
                 type="button"
-                className="kz-pill kz-focus-visible"
+                className={`kz-pill ${KZ_FOCUS}`}
                 aria-pressed={door === x.key}
                 onClick={() => setDoor && setDoor(x.key)}
                 data-testid={`set-door-${x.key}`}
@@ -155,7 +156,7 @@ export default function GrownUps({
                 <button
                   key={b}
                   type="button"
-                  className="kz-pill kz-focus-visible"
+                  className={`kz-pill ${KZ_FOCUS}`}
                   aria-pressed={teenBand === b}
                   onClick={() => setTeenBand && setTeenBand(b)}
                   data-testid={`set-band-${b}`}
@@ -169,7 +170,7 @@ export default function GrownUps({
         )}
         <div className="kz-set">
           <span>Reading band</span>
-          <span className="kz-pill kz-focus-visible" style={{ cursor: 'default' }}>
+          <span className="kz-pill" style={{ cursor: 'default' }}>
             {d.band === 'child' ? 'Child' : teenBand === 'teen' ? 'Teen' : 'Youth'}
           </span>
         </div>
@@ -190,15 +191,15 @@ export default function GrownUps({
         <p style={{ marginTop: '.375rem' }}>The chat is on the lesson screen, where you can read it.</p>
       </div>
 
-      <div className="kz-actions kz-focus-visible">
-        {mod && <ColoringBookButton modules={[mod]} title={`${pick.title} — Coloring Page`} className="kz-act orange kz-focus-visible" />}
+      <div className="kz-actions">
+        {mod && <ColoringBookButton modules={[mod]} title={`${pick.title} — Coloring Page`} className="kz-act orange" />}
         {pick && (
-          <a className="kz-act blue kz-focus-visible" href={lessonUrl({ courseKey: pick.courseKey, lessonId: pick.lessonId })} data-testid="grownups-learn">
+          <a className={`kz-act blue ${KZ_FOCUS}`} href={lessonUrl({ courseKey: pick.courseKey, lessonId: pick.lessonId })} data-testid="grownups-learn">
             Full lesson in Learn
           </a>
         )}
         {setChurchView && (
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={() => setChurchView('learn')}>
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setChurchView('learn')}>
             All courses
           </button>
         )}

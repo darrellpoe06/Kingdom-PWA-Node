@@ -22,7 +22,7 @@ import {
   inOrder,
   longestWord,
 } from '../../lib/kids/word-builder.js';
-import { Shot, ShotSlot, GuideBubble, KidsIcon } from './GuideArt.jsx';
+import { Shot, ShotSlot, GuideBubble, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 
 function Stars({ n, max = 4 }) {
   return (
@@ -89,7 +89,7 @@ export function SpellRound({ text, verseRef, word, seed, onNext, last = false })
           <button
             key={t.id}
             type="button"
-            className={`kz-tile${shake === t.id ? ' shake' : ''} kz-focus-visible`}
+            className={`kz-tile${shake === t.id ? ' shake' : ''} ${KZ_FOCUS}`}
             onClick={() => tap(t)}
             disabled={used.has(t.id) || done}
             data-testid={`tile-${t.id}`}
@@ -100,25 +100,20 @@ export function SpellRound({ text, verseRef, word, seed, onNext, last = false })
         ))}
       </div>
       <Stars n={starsFor({ hints })} />
-      <div className="kz-actions kz-focus-visible">
-        <button
-          type="button"
-          className="kz-act blue kz-focus-visible"
-          onClick={() => tts && tts.supported && tts.speak(text)}
-          disabled={!(tts && tts.supported)}
-        >
+      <div className="kz-actions">
+        <button type="button" className={`kz-act blue ${KZ_FOCUS}`} onClick={() => tts && tts.supported && tts.speak(text)} disabled={!(tts && tts.supported)}>
           <KidsIcon name="read" /> Hear the verse
         </button>
-        <button type="button" className="kz-act orange kz-focus-visible" onClick={showLetter} disabled={done} data-testid="show-letter">
+        <button type="button" className={`kz-act orange ${KZ_FOCUS}`} onClick={showLetter} disabled={done} data-testid="show-letter">
           <KidsIcon name="bulb" /> Show a letter
         </button>
       </div>
       {done && (
-        <div className="kz-actions kz-focus-visible">
+        <div className="kz-actions">
           <span className="lc-small" role="status" data-testid="spell-result">
             You spelled {word.display}! {starsFor({ hints })} stars.
           </span>
-          <button type="button" className="kz-act green kz-focus-visible" onClick={onNext} data-testid="spell-next">
+          <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={onNext} data-testid="spell-next">
             {last ? 'Finish ▶' : 'Next word ▶'}
           </button>
         </div>
@@ -163,7 +158,7 @@ export function OrderRound({ text, verseRef, seed, onNext }) {
             <button
               key={p.order}
               type="button"
-              className={`kz-phrase${wrong === p.order ? ' shake' : ''} kz-focus-visible`}
+              className={`kz-phrase${wrong === p.order ? ' shake' : ''} ${KZ_FOCUS}`}
               onClick={() => tap(p)}
               data-testid={`phrase-${p.order}`}
             >
@@ -177,11 +172,11 @@ export function OrderRound({ text, verseRef, seed, onNext }) {
         </p>
       )}
       {done && (
-        <div className="kz-actions kz-focus-visible">
+        <div className="kz-actions">
           <span className="lc-small" role="status" data-testid="order-result">
             In order! Now spell the longest word.
           </span>
-          <button type="button" className="kz-act green kz-focus-visible" onClick={onNext} data-testid="order-next">
+          <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={onNext} data-testid="order-next">
             Next ▶
           </button>
         </div>
@@ -270,12 +265,12 @@ export default function WordBuilder({ door = 'kids', now = null, loadVerse = ver
           <div className="kz-panel" data-testid="builder-finished">
             <h3>Every word of {verse.ref}!</h3>
             <p className="lc-p">"{text}"</p>
-            <div className="kz-actions kz-focus-visible">
-              <button type="button" className="kz-act plain kz-focus-visible" onClick={() => setStep(0)}>
+            <div className="kz-actions">
+              <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setStep(0)}>
                 Play again
               </button>
               {onBack && (
-                <button type="button" className="kz-act green kz-focus-visible" onClick={onBack}>
+                <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={onBack}>
                   Back to games
                 </button>
               )}

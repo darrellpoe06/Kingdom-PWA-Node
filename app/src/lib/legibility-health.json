@@ -7,10 +7,10 @@
   ],
   "summary": {
     "pages": 429,
-    "passing": 414,
+    "passing": 416,
     "trackedDebtPages": 13,
-    "regressionPages": 2,
-    "regressions": 4,
+    "regressionPages": 0,
+    "regressions": 0,
     "debtViolations": 86
   },
   "pages": [
@@ -55,15 +55,6 @@
       "status": "TRACKED-DEBT",
       "violations": 5,
       "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/kids/Theater.jsx",
-      "status": "REGRESSION",
-      "violations": 3,
-      "regressions": 3,
       "kinds": [
         "inline-dark-text"
       ]
@@ -118,15 +109,6 @@
       "status": "TRACKED-DEBT",
       "violations": 1,
       "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/kids/KidsZone.jsx",
-      "status": "REGRESSION",
-      "violations": 1,
-      "regressions": 1,
       "kinds": [
         "inline-dark-text"
       ]

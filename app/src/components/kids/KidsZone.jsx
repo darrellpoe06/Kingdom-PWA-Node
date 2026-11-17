@@ -21,7 +21,7 @@ import { YOUTH_DOORS, weeklyVerse, weeklyLesson, weekIndex, normalizeRecord, bad
 import { STORYBOOKS } from '../../lib/kids/storybooks.js';
 import { TriviaCard } from '../Engagement.jsx';
 import { MemoryVerseGame, BadgeShelf } from './MemoryAndBadges.jsx';
-import { KidsLogo, GuidesPair, GuideFace, GuideBubble, Shot, ShotSlot, AriStar, KidsIcon } from './GuideArt.jsx';
+import { KidsLogo, GuidesPair, GuideFace, GuideBubble, Shot, ShotSlot, AriStar, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 import KidsAdventure from './KidsAdventure.jsx';
 import Storybook from './Storybook.jsx';
 import Theater from './Theater.jsx';
@@ -47,7 +47,7 @@ export function KidsDock({ tabs = KIDS_TABS, active, onPick, idBase = 'kids' }) 
           type="button"
           role="tab"
           id={`${idBase}-tab-${t.id}`}
-          className="kz-tab kz-focus-visible"
+          className={`kz-tab ${KZ_FOCUS}`}
           aria-selected={active === t.id}
           onClick={() => onPick(t.id)}
           data-testid={`kids-tab-${t.id}`}
@@ -81,9 +81,7 @@ export function AdventureMap({ pick, records = [], signedIn = false }) {
     <div className="kz-map" data-testid="adventure-map" data-lit={signedIn ? lit : ''} data-total={list.length}>
       <h3>
         Your adventure map{' '}
-        <small style={{ fontWeight: 700, color: '#5E4B8A' }}>
-          {signedIn ? `${lit} of ${list.length} lessons` : 'sign in and every lesson you finish lights a stop'}
-        </small>
+        <small className="kz-sub">{signedIn ? `${lit} of ${list.length} lessons` : 'sign in and every lesson you finish lights a stop'}</small>
       </h3>
       <svg viewBox="0 0 340 150" role="img" aria-label={signedIn ? `${lit} of ${list.length} stops lit` : 'no stop lit until you sign in'}>
         <rect x="2" y="2" width="336" height="146" rx="12" fill="#F6E3B4" stroke="#C9A86A" strokeWidth="3" />
@@ -118,7 +116,7 @@ export function AdventureMap({ pick, records = [], signedIn = false }) {
 
 function Tile({ cls, big = false, title, sub, shot, what, onClick, testId, cta = null, list }) {
   return (
-    <button type="button" className={`kz-card ${cls}${big ? ' big' : ''} kz-focus-visible`} onClick={onClick} data-testid={testId}>
+    <button type="button" className={`kz-card ${cls}${big ? ' big' : ''} ${KZ_FOCUS}`} onClick={onClick} data-testid={testId}>
       <div className="kz-words">
         <b>{title}</b>
         <small>{sub}</small>
@@ -204,8 +202,8 @@ export default function KidsZone({
           Read it, say it, then fill in the missing words from memory.
         </GuideBubble>
         {verse && <MemoryVerseGame verseRef={verse.ref} seed={seed} load={loadVerse} />}
-        <div className="kz-actions kz-focus-visible">
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={back}>
+        <div className="kz-actions">
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={back}>
             ◀ Back to games
           </button>
         </div>
@@ -218,8 +216,8 @@ export default function KidsZone({
           Bible trivia from the message. Pick an answer and see the verse it came from.
         </GuideBubble>
         <TriviaCard signedIn={signedIn} />
-        <div className="kz-actions kz-focus-visible">
-          <button type="button" className="kz-act plain kz-focus-visible" onClick={back}>
+        <div className="kz-actions">
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={back}>
             ◀ Back to games
           </button>
         </div>
@@ -453,7 +451,7 @@ export default function KidsZone({
           </p>
         </div>
         {door !== 'little' && setDoor && (
-          <button type="button" className="kz-lil kz-focus-visible" onClick={() => setDoor('little')} data-testid="door-little-card">
+          <button type="button" className={`kz-lil ${KZ_FOCUS}`} onClick={() => setDoor('little')} data-testid="door-little-card">
             <GuideFace who="girl" />
             <span>
               <b>Little Ones (3–6)</b>
@@ -469,7 +467,7 @@ export default function KidsZone({
     <div className="kz" data-testid="kids-zone" data-door={door} data-tab={tab} data-sub={sub || ''}>
       <div className="kz-hdr">
         {sub ? (
-          <button type="button" className="kz-back kz-focus-visible" onClick={back} aria-label="Back" data-testid="kids-back">
+          <button type="button" className={`kz-back ${KZ_FOCUS}`} onClick={back} aria-label="Back" data-testid="kids-back">
             ‹
           </button>
         ) : null}
