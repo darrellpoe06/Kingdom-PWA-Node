@@ -88,7 +88,7 @@ function IncomeList({ W, show, entities, onConfirmIncome }) {
       <div role="group" aria-label="Income window" className="flex flex-wrap gap-1 mb-2">
         {HORIZONS.map((h) => (
           <button key={h} type="button" aria-pressed={days === h} onClick={() => setDays(h)} data-testid={`income-horizon-${h}`}
-            className={`min-h-[32px] px-2.5 rounded-full border text-[0.6875rem] ${days === h ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#1A1815]'} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}>{h} days</button>
+            className={`min-h-[36px] px-2.5 rounded-full border text-[0.6875rem] ${days === h ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#1A1815]'} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}>{h} days</button>
         ))}
       </div>
       <div className="space-y-0.5 mb-2" data-testid="income-totals">
@@ -111,7 +111,7 @@ function IncomeList({ W, show, entities, onConfirmIncome }) {
                   {ent ? `${ent.label} · ` : ''}{it.accountName ? `into ${it.accountName}` : 'account not set'}{it.frequency ? ` · ${FREQ_LABEL[it.frequency] || it.frequency}` : ''} · <span className={it.confirmed ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>{INCOME_STATUS_LABEL[it.status] || it.status}</span>
                   {it.statusNote ? <span className="block">{it.statusNote}</span> : null}
                   {!it.confirmed && it.confirm && onConfirmIncome && (
-                    <button type="button" onClick={() => onConfirmIncome(it.confirm)} data-testid={`income-confirm-${it.confirm.salaryId}`} className="mt-1 min-h-[32px] px-2.5 rounded-full border border-[#1A1815] text-[#1A1815] text-[0.6875rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                    <button type="button" onClick={() => onConfirmIncome(it.confirm)} data-testid={`income-confirm-${it.confirm.salaryId}`} className="mt-1 min-h-[36px] px-2.5 rounded-full border border-[#1A1815] text-[#1A1815] text-[0.6875rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
                       Confirm: {show(it.confirm.amount)} {FREQ_LABEL[it.confirm.frequency] || it.confirm.frequency}, next on {it.confirm.nextDate}
                     </button>
                   )}
