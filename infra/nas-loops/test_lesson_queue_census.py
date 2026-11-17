@@ -715,3 +715,81 @@ class TheHeadIsReadWithoutGit(unittest.TestCase):
     def test_a_head_that_is_neither_a_sha_nor_a_ref_reads_unknown(self):
         d = self._repo(head="gone fishing\n")
         self.assertIsNone(qc.census_code_sha(d, lambda a: ""))
+
+
+class ARowWithNoWordsSaysSo(unittest.TestCase):
+    """DR-1519. eligibility()'s last unmirrored branch refuses a row with no
+    words, and DR-1516 left it out because testing it LOOKED like it needed the
+    body. It does not: PostgREST answers it as a filter returning only ids. The
+    first design on the table was a generated body_length column -- a schema
+    change on the table holding people's teachings -- for an answer a `where`
+    gives for free."""
+
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+    EMPTY = "825019ca-969e-4f55-87a0-21bbcd15da2c"
+    FULL = "c671009b-04ee-4482-b5ef-921cb7f50d67"
+
+    def row(self, rid, *tags):
+        return {"id": rid, "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": self.OWNER, "tags": ["lesson"] + list(tags)}
+
+    def test_an_empty_row_reads_no_words_and_a_full_one_reads_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), (self.EMPTY,)), "no-words")
+        self.assertEqual(qc.why_of(self.row(self.FULL), (self.EMPTY,)), "ready")
+
+    def test_the_FILTER_asks_for_ids_only_and_never_the_body(self):
+        q = qc.empty_body_query()
+        self.assertIn("select=id", q)
+        self.assertNotIn("body.", q.split("or=(")[0], "no body in the select or the tag filters")
+        self.assertIn("or=(body.is.null,body.eq.)", q)
+        # The same five exclusions as the waiting query: one definition of waiting.
+        for tag in qc.EXCLUDED_TAGS:
+            self.assertIn(urllib_quote(tag), q)
+
+    def test_it_shares_the_waiting_definition_exactly(self):
+        w, e = qc.waiting_query(), qc.empty_body_query()
+        for tag in qc.EXCLUDED_TAGS:
+            self.assertEqual(w.count(urllib_quote(tag)), e.count(urllib_quote(tag)))
+
+    def test_an_unanswered_filter_leaves_a_row_READY_not_no_words(self):
+        # Narrower than the truth, never wider: a refusal must not invent an
+        # empty row, and must not kill the census either.
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), ()), "ready")
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), None), "ready")
+
+    def test_no_words_outranks_deferred_and_the_failure_classes(self):
+        r = self.row(self.EMPTY, "build:deferred@x", "build:failed@x")
+        self.assertEqual(qc.why_of(r, (self.EMPTY,)), "no-words")
+
+    def test_the_governor_still_outranks_no_words(self):
+        r = {"id": self.EMPTY, "created_by": "99999999-9999-9999-9999-999999999999",
+             "tags": ["lesson"], "created_at": "2026-11-17T00:00:00Z"}
+        self.assertEqual(qc.why_of(r, (self.EMPTY,)), "waits-for-governor")
+
+    def test_PROVEN_TO_CATCH_the_census_never_SELECTS_a_body(self):
+        """The property is about PROJECTION, not the word.
+
+        A blunter first draft asserted the file never contains `"body"` at all
+        and failed on the census WRITING ITS OWN row -- `publish()` sets
+        {"body": <the census json>}, which is this loop's own payload and not
+        anybody's teaching. The precise rule: `body` may appear in a PREDICATE
+        (the empty filter) and never in a `select`."""
+        for q in (qc.waiting_query(), qc.empty_body_query()):
+            select = [p for p in q.split("&") if "select=" in p]
+            self.assertTrue(select, q)
+            self.assertNotIn("body", select[0], "a body must never be PROJECTED")
+        # And the one predicate that may name it is exactly the empty test.
+        named = [p for p in qc.empty_body_query().split("&") if "body" in p]
+        self.assertEqual(named, ["or=(body.is.null,body.eq.)"])
+        self.assertEqual([p for p in qc.waiting_query().split("&") if "body" in p], [])
+
+    def test_the_census_threads_the_ids_through(self):
+        c = qc.census_of([self.row(self.EMPTY), self.row(self.FULL)], empty_ids=(self.EMPTY,))
+        self.assertEqual([w["why"] for w in c["waiting"]], ["no-words", "ready"])
+
+
+def urllib_quote(tag):
+    import json as _j
+    import urllib.parse as _u
+
+    return _u.quote(_j.dumps([tag]))
