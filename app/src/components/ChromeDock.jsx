@@ -75,13 +75,20 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const barRef = useRef(null);
   const moreRef = useRef(null);
 
-  // The reader's slot: TTSControl portals into it while it is mounted.
+  // The reader's slot: TTSControl portals into it while it is mounted. The
+  // slot is PUBLISHED from an effect keyed on the element, not from the ref
+  // callback: under React.StrictMode (main.jsx) the development tree runs
+  // every effect's cleanup and then the effect again, and a ref callback is
+  // not re-run with it, so a ref-time publish was wiped by the cleanup and the
+  // reader floated over the page in development while docking in production
+  // (measured 2026-11-17 on the church door at 390px: the slot in the DOM
+  // with 0 children, the pill and the speaker fixed at the corner).
   const [slotEl, setSlotEl] = useState(null);
-  const slotRef = useCallback((el) => {
-    setSlotEl(el || null);
-    setDockSlot(el);
-  }, []);
-  useEffect(() => () => setDockSlot(null), []);
+  const slotRef = useCallback((el) => setSlotEl(el || null), []);
+  useEffect(() => {
+    setDockSlot(slotEl);
+    return () => setDockSlot(null);
+  }, [slotEl]);
 
   // Publish the bar's real height so the reader's panel and the app's passing
   // prompts stand above it (index.css), and clear it when the bar leaves.

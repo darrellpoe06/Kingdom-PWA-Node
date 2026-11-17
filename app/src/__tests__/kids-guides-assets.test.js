@@ -17,16 +17,18 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DIR = join(HERE, '..', '..', 'public', KIDS_ASSET_DIR);
 const BRIEF = join(HERE, '..', '..', '..', 'docs', 'design', 'love-corner-kids', '2026-11-13-character-artwork-brief.md');
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+const JPEG = Buffer.from([0xff, 0xd8, 0xff]);
 const FANTASY = /\b(magic|spell|wand|wizard|witch|fairy|genie|potion|wish|superpower|occult)\b/i;
 
 describe('the guides are real assets from the approved reference', () => {
-  it('every listed file exists under public/lovecorner/kids and is a PNG', () => {
+  it('every listed file exists under public/lovecorner/kids and is a real image (PNG, or the JPEG key art)', () => {
     const files = listedAssets();
-    expect(files.length).toBeGreaterThanOrEqual(11);
+    expect(files.length).toBeGreaterThanOrEqual(8) // the key art, the logo, the pair, the Bible, two portraits, two faces (the five door crops of the earlier key art retired 2026-11-17);
     for (const f of files) {
       const p = join(DIR, f);
       expect(existsSync(p), `${f} is listed but not on disk`).toBe(true);
-      expect(readFileSync(p).subarray(0, 4).equals(PNG), `${f} is not a PNG`).toBe(true);
+      const head = readFileSync(p);
+      expect(head.subarray(0, 4).equals(PNG) || head.subarray(0, 3).equals(JPEG), `${f} is not a PNG or JPEG`).toBe(true);
     }
   });
   it('the gate catches a file that is not there', () => {

@@ -735,6 +735,8 @@ button.lc-tile{cursor:pointer}
 .lc-cust b{flex:1 1 auto;min-width:0;color:var(--lc-red)}
 .lc-cust-dots{display:flex;gap:.25rem}.lc-cust-dots i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
 .lc-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lc-pair-solo{grid-template-columns:1fr}
+.lc-pair-solo .lc-pair-card{min-height:120px}
 .lc-pair-card{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-height:150px;border-radius:1rem;padding:.75rem;text-align:left;color:#fff;border:0;cursor:pointer;justify-content:flex-end}
 .lc-pair-card .lc-h3{color:#fff;margin:0}
 .lc-pair-card em{font-family:var(--lc-display);font-style:italic;color:var(--lc-gold);font-size:.9rem}
@@ -742,6 +744,15 @@ button.lc-tile{cursor:pointer}
 .lc-pair-go{margin-top:.375rem;background:var(--lc-gold);color:#1A1012;border-radius:.625rem;min-height:36px;display:inline-grid;place-items:center;padding:0 .75rem;font-weight:700;font-size:.78rem}
 .lc-pair-word{background:linear-gradient(160deg,#1A0A0B,#5A1510 70%,#8E2418)}
 .lc-pair-kids{background:linear-gradient(145deg,#C03222,#E43C28 55%,#CFA63C)}
+/* Bible Adventures: the Kids Zone's front door on the church home (the approved illustration shown whole) */
+.lc-adv{margin-top:.875rem;border-radius:1.25rem;overflow:hidden;background:var(--lc-black);border:2px solid var(--lc-gold);color:var(--lc-white)}
+.lc-adv-art{display:block;width:100%;height:auto;aspect-ratio:1400/776;object-fit:cover}
+.lc-adv-body{padding:.75rem .875rem .875rem;display:flex;flex-direction:column;gap:.375rem;align-items:flex-start}
+.lc-adv-h{margin:0;font-family:var(--lc-display);font-weight:700;font-size:1.15rem;line-height:1.15;color:var(--lc-gold)}
+.lc-adv-p{margin:0;font-size:.84rem;line-height:1.4;color:var(--lc-white);opacity:.92}
+.lc-adv-go{margin-top:.25rem;width:100%;font-size:1rem;min-height:52px}
+@media (min-width:720px){.lc-adv{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center}.lc-adv-go{width:auto}}
+
 .lc-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
 .lc-trio-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.15rem;min-height:118px;padding:.625rem;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);text-align:left;cursor:pointer}
 .lc-trio-card b{font-family:var(--lc-display);font-size:.9rem;line-height:1.1}

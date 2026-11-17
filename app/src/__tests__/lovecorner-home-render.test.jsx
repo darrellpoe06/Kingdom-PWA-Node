@@ -134,7 +134,7 @@ describe('no number is painted', () => {
     expect(q('[data-testid="lc-place"]').textContent).toContain('Worship');
     click(q('[data-testid="lc-customize"]'));
     click(q('[data-testid="lc-learning-zone"]'));
-    click(q('[data-testid="lc-youth"]'));
+    click(q('[data-testid="lc-play-bible-adventures"]'));
     click(q('[data-testid="lc-trio-ministries"]'));
     click(q('[data-testid="lc-trio-events"]'));
     click(q('[data-testid="lc-trio-connect"]'));
@@ -183,5 +183,39 @@ describe('inside the Church home the front door drives the strip', () => {
     expect(selectedTab().textContent).toContain('Prayer');
     act(() => requestChurchHomeSection('give'));
     expect(selectedTab().textContent).toContain('Give');
+  });
+});
+
+describe('the Bible Adventures entrance (Darrell 2026-11-17: the Kids Zone, directly, from the church home)', () => {
+  it('shows the approved illustration whole, from a file that exists in public/, and a Play button', () => {
+    mount();
+    const img = q('[data-testid="lc-bible-adventures"] img');
+    expect(img).toBeTruthy();
+    expect(img.getAttribute('src')).toContain('/lovecorner/kids/bible-adventures-key-art.jpg');
+    expect(existsSync(join(PUBLIC, 'lovecorner', 'kids', 'bible-adventures-key-art.jpg'))).toBe(true);
+    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Explore Kids & Youth Zone/);
+  });
+  it('the Explore button opens the Youth tab and leaves the door to the family (no door is forced)', () => {
+    window.localStorage.setItem('poetech.youth.door', 'teens');
+    const views = [];
+    mount({ setChurchView: (v) => views.push(v) });
+    click(q('[data-testid="lc-play-bible-adventures"]'));
+    expect(views).toEqual(['youth']);
+    expect(window.localStorage.getItem('poetech.youth.door')).toBe('teens');
+    window.localStorage.removeItem('poetech.youth.door');
+    expect(q('[data-testid="lc-bible-adventures"] h3').textContent).toBe('The Love Corner Kids & Youth Adventures');
+    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Explore Kids & Youth Zone/);
+  });
+  it('the orange Kids & Youth card is gone: one illustrated entrance, and the Word card stands alone', () => {
+    mount();
+    expect(q('[data-testid="lc-youth"]')).toBeNull();
+    expect(q('[data-testid="lc-learning-zone"]')).toBeTruthy();
+    expect(q('.lc-pair').classList.contains('lc-pair-solo')).toBe(true);
+  });
+  it('sits above Quick access, right under the hero', () => {
+    mount();
+    const all = [...container.querySelectorAll('[data-testid]')].map((e) => e.getAttribute('data-testid'));
+    expect(all.indexOf('lc-bible-adventures')).toBeGreaterThan(all.indexOf('lc-next'));
+    expect(all.indexOf('lc-bible-adventures')).toBeLessThan(all.indexOf('lc-quick-watch'));
   });
 });
