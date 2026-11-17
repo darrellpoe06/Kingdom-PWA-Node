@@ -2721,6 +2721,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "0327's own first answer produced the question: the builder read active, building nothing, record fresh, while three teachings had waited five days. lesson_builder.eligibility() shows that past MAX_ATTEMPTS a row is left for the hourly Routine on purpose, so the handoff works and the receiver was blocked on the dead key. The census now publishes a five-word verdict and an attempt count per row, with the threshold deliberately NOT copied because it belongs to the builder's environment. Two latent holes in the vocabulary guard were found by actually breaking it: a word could be dropped from k_whys or k_stalls and nothing failed, because the check asked whether a literal appeared anywhere in the file and never read the STALLS constant at all. The guard now proves membership in the named array for every vocabulary."
+    },
+    {
+      "id": "members-teaching-waits-for-governor",
+      "date": "2026-11-17",
+      "task": "A member's teaching reads as awaiting the Governor rather than as the builder neglecting it",
+      "drs": [
+        "DR-1516"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1515's own first live answer corrected it inside the hour. Four rows read ready while the builder was active and building nothing, which reads as the builder neglecting four teachings. The cause was a branch of eligibility() I had not mirrored: a row whose created_by is not one of Darrell's two accounts is never built without lesson-approved, because a member's words are the Governor's to release. The account ids are compared on the box and one word is published, so no id rides the public road. The same read also corrected my own account of the failures: MAX_ATTEMPTS is 2 and the counts were 1, 1 and 2, so only one of the three had been handed to the hourly Routine, not all three as I had said an hour earlier."
     }
   ]
 }

@@ -117,7 +117,7 @@ def rest(url, key, method, path, body=None, extra_headers=None):
     return json.loads(raw) if raw.strip() else None
 
 
-def waiting_query(select="id,created_at,source,tags"):
+def waiting_query(select="id,created_at,source,tags,created_by"):
     """The ONE definition, as PostgREST filters. Same five exclusions as the SQL."""
     parts = [
         "agent_inbox?select=" + select,
@@ -196,7 +196,15 @@ def stall_of(row):
 #
 # Codes only, from the tags, never a reason's text: a verdict is a tag shape,
 # which is what this file may emit.
-WHYS = ("declined", "deferred", "rate-limited", "failed", "ready")
+WHYS = ("declined", "waits-for-governor", "deferred", "rate-limited", "failed", "ready")
+# Darrell's own two accounts (lesson_builder.OWNER_IDS). A row from anyone else
+# is a MEMBER's teaching and is never built without `lesson-approved` (DR-0635),
+# so it is not the builder neglecting it -- it waits for the Governor. The ids
+# are compared HERE and never published: what travels is one word.
+OWNER_IDS = (
+    "f13843f2-742b-4f8a-82af-7ecfbdc536ec",
+    "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc",
+)
 
 
 def attempts_of(row):
@@ -218,11 +226,24 @@ def why_of(row):
     awaiting-review and not-a-lesson are excluded before they reach here).
     `failed` carries no judgment about exhaustion -- `attempts` is published
     beside it so the reader compares against the builder's own threshold.
+
+    `ready` means NOTHING IN THE TAGS OR THE OWNER CHECK BLOCKS IT -- not that
+    the builder will certainly take it. One branch of eligibility() is
+    deliberately NOT mirrored: it refuses a row with no words, and testing that
+    would mean reading the body this file must never read. So `ready` can still
+    be refused for emptiness, and that limit is stated rather than hidden.
     """
     tags = row.get("tags") or []
     tags = tags if isinstance(tags, list) else []
     if "lesson-declined" in tags:
         return "declined"
+    # MEASURED AND CORRECTED 2026-11-17, the first read with verdicts live: four
+    # rows said `ready` while the builder sat active and idle, which read as the
+    # builder neglecting them. It was this branch missing. A member's row is
+    # never built without `lesson-approved`, so `ready` was overclaiming on the
+    # one case where it matters most -- somebody else's teaching.
+    if str(row.get("created_by") or "") not in OWNER_IDS and "lesson-approved" not in tags:
+        return "waits-for-governor"
     if any(isinstance(x, str) and x.startswith("build:deferred@") for x in tags):
         return "deferred"
     if attempts_of(row):
