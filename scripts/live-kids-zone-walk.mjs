@@ -34,9 +34,7 @@ mkdirSync(outDir, { recursive: true });
 const url = `${base}?view=church&sub=youth&lovecorner=1`;
 const PLACEHOLDER = /ART COMING|SCENE COMING|INTERIM|artwork coming|\bCOMING\b(?!\s+SOON)/i;
 
-const browser = await chromium
-  .launch({ channel: 'chrome', args: ['--no-sandbox'] })
-  .catch(() => chromium.launch({ args: ['--no-sandbox'] }));
+const browser = await chromium.launch({ channel: 'chrome', args: ['--no-sandbox'] }).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e && e.message)));
