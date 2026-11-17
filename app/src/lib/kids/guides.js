@@ -127,6 +127,32 @@ export const SHOT_LIST = Object.freeze([
   shot('boy-lineart', 'cutout', 'Coloring page'),
 ]);
 
+/**
+ * The interim art a surface shows for a shot that has not landed (Darrell,
+ * 2026-11-17: the best version NOW, from the assets we already have; the
+ * approved reference wherever it fits; a clear mark where new art is still
+ * needed). Every file here is a crop of the approved reference, never a
+ * drawing: a guide's portrait for a shot of that guide, the pair for a shot
+ * of both, the open Bible for a story scene (with the page's narrator). A
+ * shot no reference can stand in for (the teens' own guides) returns null and
+ * the surface keeps its labeled slot.
+ */
+const HEADER_WHO = Object.freeze({
+  'word-builder-header': 'girl',
+  'who-am-i-header': 'boy',
+  'memory-verse-header': 'girl',
+  'trivia-header': 'boy',
+});
+export function interimFor(id) {
+  const key = String(id || '');
+  const story = key.match(/^(jonah|noah|david)-\d+$/);
+  if (story) return { kind: 'story', book: story[1], who: null, file: KIDS_BRAND.bible };
+  const who = key.startsWith('girl-') ? 'girl' : key.startsWith('boy-') ? 'boy' : HEADER_WHO[key] || null;
+  if (who) return { kind: 'portrait', book: null, who, file: GUIDES[who].portrait };
+  if (key.startsWith('pair-') || key === 'home-hero') return { kind: 'pair', book: null, who: 'pair', file: KIDS_BRAND.pair };
+  return null;
+}
+
 /** The shots whose renders have landed, by id. */
 export function landedShots() {
   return SHOT_LIST.filter((s) => s.status === 'landed');

@@ -120,3 +120,21 @@ No schema, no auth, no RLS, no payment in any phase. Each PR is opened with the 
 - The signed-in Youth Zone was audited in code, not observed live: the local build has no Supabase. The live walk happens in reviewer mode after D1 (DR-0104).
 - The mockup's lesson words are the real child-band opening of ll28 and a paraphrase of its Berea paragraph for the still; the build reads the band verbatim.
 - Fonts: the mockup loads Nunito from Google Fonts for the stills; the app self-hosts Fraunces and DM Sans. D1 either self-hosts a rounded face under `public/fonts/` with its OFL, or uses DM Sans at 800 for the Kids Zone. Listed, not decided.
+
+## 9. 2026-11-17: the real app, previewed with the approved reference (Darrell's direction)
+
+Darrell, 2026-11-17: the children must look like the ORIGINAL approved reference (realistic, the girl's red bow, braids, earrings and red hoodie; the boy's twists and black-and-red hoodie); show the ACTUAL app, not a mockup; do not wait for all 54 images; use the reference wherever appropriate and clearly mark where new art is still needed; keep it sophisticated; PR #2696 stays on hold.
+
+**What changed in the app (same branch, held):**
+
+- `lib/kids/guides.js` gained `interimFor(id)`: the crop of the approved reference that stands in for a shot until its render lands (a guide's portrait for a shot of that guide, the pair for a shot of both, the open Bible with the page's narrator for a story scene); the teens' own shots return null and keep a labeled slot. `GuideArt.ShotSlot` renders that crop with a small "ART COMING" / "SCENE COMING" mark and the shot id in its title, `data-needed="true"` as before. The hatched boxes are gone from every kids surface.
+- Tiles: the art is a window at the top of each card (a side window on the two big cards); the words sit under it and never cross it (the Noah title overlapped its art before).
+- Theater: the approved key art is the poster; the player loads only on a tap (nothing from YouTube reaches the device until a child asks). Shelf thumbnails are the story cards.
+- Badges tab: the shelf wears the kids' world (white card, gold ring, cream badges) instead of the night card it inherited; the map shows a guide waiting at the next stop.
+- Who am I?: the clue quotes rendered as literal `\201C` (an escaped CSS `quotes` value); fixed.
+- The lesson reader and the quiz inside the adventure: the church night theme remapped their utility colors to light-on-dark (measured `#F6ECE9` on `#241617`), illegible on cream; pinned to ink on white inside `.kz-panel`.
+- Focus ring: every kids control carries `KZ_FOCUS` (the guard resolves rings from a literal token or an imported constant); three inline colors moved to classes for the legibility guard.
+
+**Previews of the running app at 390 px** (dev server with the CI stub env, Chromium, the real components): `docs/design/love-corner-kids/2026-11-17-app-preview-{1-kids-home,2-theater,3-storybook-p1,4-storybook-p3,5-word-builder,6-who-am-i,7-badges-map,8-games,9-adventure-lesson}.png`.
+
+**Still needed from the collection** (unchanged list, `SHOT_LIST`): the posed cutouts and headers of batch 1 replace the portrait crops; the 24 story scenes replace the scene cards; `pair-theater-wide` replaces the key-art poster when nothing plays. Each lands by file name and the registry flips it to `landed`; nothing else changes.

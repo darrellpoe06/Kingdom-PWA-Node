@@ -6,7 +6,7 @@
 // record, embedded the way Live Worship embeds it (worshipPlayerSrc). The
 // shelf reads the episode registry; nothing reads WATCH before it is. After
 // you watch, the matching storybook opens, where the questions live.
-import React from 'react';
+import React, { useState } from 'react';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable } from '../../lib/kids/theater.js';
@@ -23,10 +23,13 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
   const c = resolveChurch(church);
   const now = nowShowing(c, episodes);
   const src = now.kind === 'episode' ? episodeEmbedSrc(now.url) : now.kind === 'channel' ? worshipPlayerSrc(c.youtubeChannelId) : null;
+  // The player loads only on a tap (nothing from YouTube reaches the device
+  // until a child asks); until then the approved key art is the poster.
+  const [playing, setPlaying] = useState(false);
   return (
-    <div className="kz-theater" data-testid="theater" data-now={now.kind}>
-      <div className="kz-book" style={{ borderColor: 'var(--lc-gold)', background: '#1A1012', color: '#fff' }}>
-        {src ? (
+    <div className="kz-theater" data-testid="theater" data-now={now.kind} data-playing={playing ? 'true' : 'false'}>
+      <div className="kz-book kz-screen">
+        {src && playing ? (
           <div style={{ position: 'relative', paddingTop: '56.25%' }}>
             <iframe
               title={now.title}
@@ -38,13 +41,27 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             />
           </div>
         ) : (
-          <img className="kz-shot" src={kidsAsset(KIDS_BRAND.reference)} alt="The Love Corner Bible Adventures" style={{ width: '100%' }} />
+          <div className="kz-poster">
+            <img className="kz-poster-art" src={kidsAsset(KIDS_BRAND.reference)} alt="The Love Corner Bible Adventures" data-interim="true" />
+            {src ? (
+              <button
+                type="button"
+                className={`kz-poster-play ${KZ_FOCUS}`}
+                onClick={() => setPlaying(true)}
+                data-testid="theater-play"
+                aria-label={`Play: ${now.title}`}
+              >
+                <span className="kz-poster-btn">▶</span>
+                <span className="kz-poster-cap">Tap to play</span>
+              </button>
+            ) : null}
+          </div>
         )}
         <div className="kz-page" style={{ borderTop: '2px solid var(--lc-gold)' }}>
-          <b style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }} data-testid="theater-now">
+          <b className="kz-now" data-testid="theater-now">
             Now showing: {now.title}
           </b>
-          <small style={{ display: 'block', fontSize: '.72rem', fontWeight: 700, color: 'var(--lc-gold)' }}>
+          <small className="kz-nowsub">
             {now.kind === 'episode'
               ? now.episode.scripture
               : now.kind === 'channel'
@@ -66,7 +83,7 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             data-testid={`episode-${e.id}`}
             data-status={e.status}
           >
-            <span style={{ width: 64, height: 44, borderRadius: 10, overflow: 'hidden', flex: '0 0 auto' }}>
+            <span className="kz-shelf-thumb">
               <Shot id={`${e.storybook}-3`} alt="" list={shotList} fallback={<ShotSlot id={`${e.storybook}-3`} className="" what="" />} />
             </span>
             <div style={{ minWidth: 0, flex: 1 }}>

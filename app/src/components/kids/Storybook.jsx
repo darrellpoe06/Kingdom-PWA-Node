@@ -122,7 +122,7 @@ export default function Storybook({
                 id={page.shot}
                 alt={`${book.title}, page ${index + 1}`}
                 list={shotList}
-                fallback={<ShotSlot id={page.shot} what={`${page.ref}, with your guides`} />}
+                fallback={<ShotSlot id={page.shot} who={page.who} what={`${page.ref}, with your guides`} />}
               />
             </div>
             <div className="kz-page">

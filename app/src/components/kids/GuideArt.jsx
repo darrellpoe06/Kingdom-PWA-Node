@@ -12,7 +12,7 @@
 //     coming and names the render (P15: a surface never goes blank).
 // No name is shown for a guide until Darrell gives one (GUIDES[who].name).
 import React from 'react';
-import { GUIDES, KIDS_BRAND, SHOT_LIST, assetUrl } from '../../lib/kids/guides.js';
+import { GUIDES, KIDS_BRAND, SHOT_LIST, assetUrl, interimFor } from '../../lib/kids/guides.js';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 
@@ -36,13 +36,43 @@ export function Shot({ id, alt = '', className = '', fallback = null, list = SHO
   return fallback;
 }
 
-/** A labeled slot for a render that has not landed: says which one and that it is coming, never pretends. */
-export function ShotSlot({ id, what = '', className = '' }) {
+/**
+ * The stand-in for a render that has not landed. When the approved reference
+ * can stand in (a guide, the pair, a story page) it does, as a crop of the
+ * reference with a small mark naming the render still to come; when nothing
+ * approved can (the teens' own guides) a labeled slot says what is coming.
+ * `who` names the narrator a story page shows beside its open Bible.
+ */
+export function ShotSlot({ id, what = '', className = '', who = null }) {
+  const art = interimFor(id);
+  if (!art) {
+    return (
+      <div className={`kz-slot ${className}`} data-shot={id} data-needed="true" role="img" aria-label={`${what || id} (artwork coming)`}>
+        <b>COMING</b>
+        <i>{id}</i>
+        {what ? <i>{what}</i> : null}
+      </div>
+    );
+  }
+  const narrator = art.kind === 'story' ? who : null;
   return (
-    <div className={`kz-slot ${className}`} data-shot={id} data-needed="true" role="img" aria-label={`${what || id} (artwork coming)`}>
-      <b>COMING</b>
-      <i>{id}</i>
-      {what ? <i>{what}</i> : null}
+    <div
+      className={`kz-interim ${art.kind}${art.book ? ` ${art.book}` : ''} ${className}`}
+      data-shot={id}
+      data-needed="true"
+      role="img"
+      aria-label={`${what || id} (final artwork coming)`}
+      title={`${id}: final render still to come`}
+    >
+      {art.kind === 'story' ? (
+        <>
+          <img className="kz-interim-bible" src={kidsAsset(art.file)} alt="" data-interim="true" />
+          {narrator && GUIDES[narrator] ? <img className="kz-interim-narrator" src={kidsAsset(GUIDES[narrator].face)} alt="" data-interim="true" /> : null}
+        </>
+      ) : (
+        <img className="kz-interim-img" src={kidsAsset(art.file)} alt="" data-who={art.who} data-interim="true" />
+      )}
+      <b className="kz-needed">{art.kind === 'story' ? 'SCENE COMING' : 'ART COMING'}</b>
     </div>
   );
 }

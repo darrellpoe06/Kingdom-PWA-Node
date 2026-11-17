@@ -62,7 +62,7 @@
 .kz-slot b{font-size:.66rem;letter-spacing:.06em}
 .kz-slot i{font-style:normal;font-weight:700;opacity:.9}
 .kz-scene{width:100%;aspect-ratio:34/15;border-radius:.875rem;overflow:hidden}
-.kz-scene .kz-slot,.kz-scene .kz-shot{width:100%;height:100%;object-fit:cover}
+.kz-scene .kz-slot,.kz-scene .kz-shot,.kz-scene .kz-interim{width:100%;height:100%;object-fit:cover;border-radius:0}
 .kz-bubble{margin-top:.75rem;display:flex;gap:.625rem;align-items:flex-end}
 .kz-bubble.r{flex-direction:row-reverse}
 .kz-bubble .kz-who{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 0 auto}
@@ -140,7 +140,7 @@
 .kz-phrase.placed{background:var(--kz-violet);color:#fff;cursor:default}
 .kz-clue{margin-top:.75rem;background:#fff;border-radius:1.25rem;padding:.75rem .875rem;border:3px solid var(--kz-violet)}
 .kz-clue .kz-k{display:inline-block;background:var(--kz-violet);color:#fff;border-radius:999px;padding:3px 10px;font-weight:900;font-size:.68rem;letter-spacing:.1em;margin-bottom:.375rem}
-.kz-clue q{display:block;font-family:var(--lc-display,Georgia,serif);font-size:1rem;line-height:1.5;quotes:"\\201C" "\\201D"}
+.kz-clue q{display:block;font-family:var(--lc-display,Georgia,serif);font-size:1rem;line-height:1.5;quotes:"\201C" "\201D"}
 .kz-clue .kz-blankname{display:inline-block;min-width:5ch;border-bottom:3px solid var(--kz-violet)}
 .kz-clue .kz-ref{display:block;font-weight:900;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-red);margin-top:.25rem}
 .kz-clue.locked{opacity:.75;border-style:dashed;cursor:pointer;width:100%;text-align:left;font:inherit}
@@ -212,3 +212,69 @@
   .kz-card:hover{transform:translateY(-2px);transition:transform .15s}
 }
 .kz :focus-visible,.tz :focus-visible{outline:3px solid var(--kz-orange-deep,#FF7A00);outline-offset:2px}
+/* ---- interim art: the approved reference standing in until a render lands (2026-11-17) ---- */
+.kz-interim{position:relative;overflow:hidden;border-radius:.875rem;background:linear-gradient(160deg,#FFE9A8,#FFC65C);min-height:76px}
+.kz-interim .kz-interim-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+.kz-interim .kz-needed{position:absolute;left:6px;bottom:6px;z-index:2;background:rgba(26,16,18,.78);color:var(--lc-gold);border-radius:999px;padding:2px 8px;font-size:.52rem;font-weight:900;letter-spacing:.1em;line-height:1.5;pointer-events:none}
+.kz-interim.story{background:linear-gradient(180deg,var(--kz-story-a,#2F7BF5),var(--kz-story-b,#0E8F82))}
+.kz-interim.story.jonah{--kz-story-a:#1B3FA8;--kz-story-b:#19B5A6}
+.kz-interim.story.noah{--kz-story-a:#5B6B8F;--kz-story-b:#FFD84D}
+.kz-interim.story.david{--kz-story-a:#8E44F0;--kz-story-b:#FFB020}
+.kz-interim.story::before{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,246,223,.35))}
+.kz-interim .kz-interim-bible{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;object-fit:cover;object-position:50% 100%}
+.kz-interim .kz-interim-narrator{position:absolute;right:8%;bottom:14%;width:34%;max-width:120px;aspect-ratio:1;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 0 rgba(0,0,0,.18);background:#fff}
+.kz-card .kz-interim,.kz-gamehead .kz-interim,.kz-celebrate .kz-interim{border:3px solid rgba(255,255,255,.8);box-shadow:0 4px 0 rgba(0,0,0,.14)}
+/* tiles: the art is a window at the top of the card; the words never cross it */
+.kz-card{flex-direction:column;justify-content:flex-start;gap:.5rem;padding:.625rem .625rem .75rem;min-height:0}
+.kz-card .kz-art{position:relative;width:100%;height:112px;order:-1;border-radius:.875rem;overflow:hidden}
+.kz-card .kz-words{margin-top:auto}
+.kz-card.big{flex-direction:row;align-items:stretch;padding:.75rem;min-height:132px}
+.kz-card.big .kz-art{position:relative;order:1;width:128px;height:auto;min-height:108px;flex:0 0 auto}
+.kz-card.big .kz-words{margin-top:0;align-self:center}
+.kz-gamehead .kz-art{width:124px;height:112px;border-radius:.875rem;overflow:hidden}
+.kz-celebrate .kz-art{width:132px;height:100px;border-radius:.875rem;overflow:hidden}
+/* the Theater: key art poster, player on a tap */
+.kz-screen{border-color:var(--lc-gold);background:#1A1012;color:#fff}
+.kz-poster{position:relative;aspect-ratio:16/9;overflow:hidden;background:#1A1012}
+.kz-poster-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.kz-poster-play{position:absolute;inset:0;width:100%;height:100%;border:0;background:linear-gradient(180deg,rgba(26,16,18,0) 45%,rgba(26,16,18,.75));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.375rem;cursor:pointer;font-family:inherit}
+.kz-poster-btn{width:64px;height:64px;border-radius:50%;background:var(--lc-red);color:#fff;display:grid;place-items:center;font-size:1.6rem;padding-left:5px;box-shadow:0 6px 0 rgba(0,0,0,.3),0 0 0 6px rgba(255,255,255,.35)}
+.kz-poster-cap{font-weight:900;font-size:.8rem;letter-spacing:.08em;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.kz-screen .kz-page{border-top:2px solid var(--lc-gold)}
+.kz-screen .kz-now{display:block;font-size:1rem;font-weight:900}
+.kz-screen .kz-nowsub{display:block;font-size:.72rem;font-weight:700;color:var(--lc-gold)}
+.kz-shelf-thumb{width:64px;height:44px;border-radius:10px;overflow:hidden;flex:0 0 auto}
+.kz-shelf-thumb .kz-interim{min-height:44px;height:44px;border-radius:10px}
+.kz-shelf-thumb .kz-interim .kz-needed{display:none}
+.kz-shelf-thumb .kz-interim-narrator{display:none}
+/* badges: the shelf wears the kids' world, not the night card */
+.kz .lc-card{margin-top:.75rem;background:#fff;border:3px solid var(--lc-gold);border-radius:1.25rem;padding:.75rem;color:var(--kz-ink)}
+.kz .lc-card .lc-h3{margin:0 0 .375rem;font-family:"DM Sans",system-ui,sans-serif;font-size:1rem;font-weight:900;color:var(--kz-ink)}
+.kz .lc-card .lc-p,.kz .lc-card .lc-small{color:#5E4B8A;font-weight:700;font-size:.84rem;line-height:1.4;margin:0}
+.kz .lc-card .lc-small{font-size:.72rem}
+.kz .yz-badges{margin-top:.625rem;gap:.5rem}
+.kz .yz-badge{border:2px dashed var(--kz-butter);background:var(--kz-cream);color:#5E4B8A;border-radius:1rem;min-height:96px}
+.kz .yz-badge b{color:var(--kz-ink);font-weight:900}
+.kz .yz-badge-ic{width:40px;height:40px;background:#fff;color:#C9A86A;border:2px solid var(--kz-butter)}
+.kz .yz-badge-on{border:2px solid var(--lc-gold);background:linear-gradient(160deg,#FFF1C2,#FFE08A);color:#5A4210}
+.kz .yz-badge-on .yz-badge-ic{background:var(--lc-gold);color:#1A1012;border-color:var(--lc-gold)}
+/* the lesson reader and the quiz (ChurchLearn's own blocks) inside the kids' cream world: the night theme's remap of their
+   utility colors is for dark cards; here they read as ink on white (measured 2026-11-17: #F6ECE9 on #241617 before this) */
+.kz .kz-panel .text-\[\#1A1815\]{color:#2A1A4D!important}
+.kz .kz-panel .text-\[\#5A5751\],.kz .kz-panel .text-\[\#6B665E\]{color:#5E4B8A!important}
+.kz .kz-panel .text-\[\#5A6E3D\]{color:#0E8F3A!important}
+.kz .kz-panel .text-\[\#7A1F1F\]{color:#8E2217!important}
+.kz .kz-panel .text-\[\#B85838\]{color:#C03222!important}
+.kz .kz-panel .text-white{color:#fff!important}
+.kz .kz-panel .bg-white{background-color:#fff!important}
+.kz .kz-panel .bg-\[\#FAF8F4\]{background-color:#FFF6DF!important}
+.kz .kz-panel .bg-\[\#E8E4DC\]{background-color:#FFE08A!important}
+.kz .kz-panel .border-\[\#E8E4DC\]{border-color:#FFE08A!important}
+.kz .kz-panel .bg-\[\#1A1815\]{background-color:#5B2DD6!important}
+.kz .kz-panel .border-\[\#1A1815\]{border-color:#5B2DD6!important}
+.kz .kz-panel .bg-\[\#5A6E3D\]{background-color:#2BB24C!important}
+.kz .kz-panel .border-\[\#5A6E3D\]{border-color:#2BB24C!important}
+.kz .kz-panel .border-\[\#7A1F1F\]{border-color:#FF7A59!important}
+.kz .kz-panel label.border,.kz .kz-panel button{border-radius:.75rem}
+.kz .kz-panel label.border{border-width:2px;padding:.5rem .625rem;font-size:.9rem}
+.kz .kz-panel .space-y-3>*+*{margin-top:.75rem}

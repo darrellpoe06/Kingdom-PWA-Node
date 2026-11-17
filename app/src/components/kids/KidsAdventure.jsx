@@ -183,7 +183,7 @@ export default function KidsAdventure({
           id="home-hero"
           alt=""
           list={shotList}
-          fallback={<ShotSlot id="lesson-scene" what="your guides in this week's story (a render from the collection)" />}
+          fallback={<ShotSlot id="home-hero" what="your guides in this week's story (a render from the collection)" />}
         />
       </div>
       <div className="kz-panel" style={{ borderColor: 'var(--kz-butter)' }} data-testid="adventure-plan" data-segments={plan.totalSegments}>

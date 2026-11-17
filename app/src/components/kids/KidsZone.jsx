@@ -21,7 +21,8 @@ import { YOUTH_DOORS, weeklyVerse, weeklyLesson, weekIndex, normalizeRecord, bad
 import { STORYBOOKS } from '../../lib/kids/storybooks.js';
 import { TriviaCard } from '../Engagement.jsx';
 import { MemoryVerseGame, BadgeShelf } from './MemoryAndBadges.jsx';
-import { KidsLogo, GuidesPair, GuideFace, GuideBubble, Shot, ShotSlot, AriStar, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
+import { KidsLogo, GuidesPair, GuideFace, GuideBubble, Shot, ShotSlot, AriStar, KidsIcon, KZ_FOCUS, kidsAsset } from './GuideArt.jsx';
+import { GUIDES } from '../../lib/kids/guides.js';
 import KidsAdventure from './KidsAdventure.jsx';
 import Storybook from './Storybook.jsx';
 import Theater from './Theater.jsx';
@@ -77,6 +78,7 @@ export function AdventureMap({ pick, records = [], signedIn = false }) {
     y: 100 - 40 * Math.sin((i / Math.max(1, stops - 1)) * Math.PI * 1.5),
   }));
   const litStops = Math.min(stops, Math.round((lit / Math.max(1, list.length)) * stops) || (lit > 0 ? 1 : 0));
+  const here = pts[Math.min(litStops, stops - 1)]; // the guide waits at the next stop
   return (
     <div className="kz-map" data-testid="adventure-map" data-lit={signedIn ? lit : ''} data-total={list.length}>
       <h3>
@@ -93,6 +95,18 @@ export function AdventureMap({ pick, records = [], signedIn = false }) {
           strokeDasharray="6 5"
           strokeLinecap="round"
         />
+        {here && (
+          <image
+            href={kidsAsset(GUIDES.girl.face)}
+            x={here.x - 19}
+            y={here.y - 54}
+            width="38"
+            height="38"
+            data-interim="true"
+            data-testid="map-guide"
+            aria-label="Your guide waits at your next stop"
+          />
+        )}
         {pts.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="13" fill={i < litStops ? '#CFA63C' : '#fff'} stroke={i < litStops ? '#7A5C14' : '#C9A86A'} strokeWidth="3" />
