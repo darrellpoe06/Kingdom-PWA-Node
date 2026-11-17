@@ -2676,6 +2676,111 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 10,
       "notes": "Built Word-first rather than as a rebuttal (DR-0098): Acts 4:11, 1 Peter 2:4-7 and 1 Peter 5:1 let Peter answer the question about himself. Both halves of Matthew 16 read, the confession and the rebuke. 113 quotations filled from app/public/bible/kjv, none typed. Matthew 16:23 quoted from 'thou art an offence' onward so the KJV's capitalised adversary is neither altered nor reproduced, and the shared adversary gate was not weakened. Gate 9/9; ladder child 1.0 < youth 5.3 < teen 16.8 < senior 18.5. The video was unreachable from the sandbox and is named unwatched."
+    },
+    {
+      "id": "keyless-eye-not-gated-on-a-key",
+      "date": "2026-11-17",
+      "task": "A keyless outside-in witness no longer waits on a dead network key",
+      "drs": [
+        "DR-1513"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found by reading nas-health.yml end to end during the Ways review rather than trusting its summary. Its outside-in probe of poetech.us is pure curl over the public internet, and it had been placed after the step that exits 1 on a dead TS_AUTHKEY, so from 2026-11-04 a dead network key silently took the team's keyless eye with it. Moved ahead of the join with its if removed; the ssh steps keep their gate, so nothing gains reach. My own first claim that the step was pure curl came from grepping 85 of its 143 lines, and the new test caught ssh and tailscale inside it before I saw both hits were in my comment prose - the conclusion held, the method did not."
+    },
+    {
+      "id": "builder-says-whether-it-is-running",
+      "date": "2026-11-17",
+      "task": "The public road says whether the NAS lesson builder is running, not only that builds failed",
+      "drs": [
+        "DR-1514"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "Three of the six rows named by 0326 had failed on the NAS builder, whose state was reachable only over ssh behind the dead key. The census runs on the box and reads the unit's systemd word, .code.sha, the locks directory and status.json locally with no key; 0327 publishes them, rebuilt key by key so the SQL refuses independently of the Python. Proven on a real PostgreSQL 16 against a hostile builder block: an error string quoting a member, a last_row_body, a prose sha, a lock named for a row and a stray secret were all dropped, the systemd sentence read unknown rather than inactive, and anon was still refused the table by name."
+    },
+    {
+      "id": "why-a-row-still-waits",
+      "date": "2026-11-17",
+      "task": "The public road says why each teaching still waits and how many tries it has had",
+      "drs": [
+        "DR-1515"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "0327's own first answer produced the question: the builder read active, building nothing, record fresh, while three teachings had waited five days. lesson_builder.eligibility() shows that past MAX_ATTEMPTS a row is left for the hourly Routine on purpose, so the handoff works and the receiver was blocked on the dead key. The census now publishes a five-word verdict and an attempt count per row, with the threshold deliberately NOT copied because it belongs to the builder's environment. Two latent holes in the vocabulary guard were found by actually breaking it: a word could be dropped from k_whys or k_stalls and nothing failed, because the check asked whether a literal appeared anywhere in the file and never read the STALLS constant at all. The guard now proves membership in the named array for every vocabulary."
+    },
+    {
+      "id": "members-teaching-waits-for-governor",
+      "date": "2026-11-17",
+      "task": "A member's teaching reads as awaiting the Governor rather than as the builder neglecting it",
+      "drs": [
+        "DR-1516"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1515's own first live answer corrected it inside the hour. Four rows read ready while the builder was active and building nothing, which reads as the builder neglecting four teachings. The cause was a branch of eligibility() I had not mirrored: a row whose created_by is not one of Darrell's two accounts is never built without lesson-approved, because a member's words are the Governor's to release. The account ids are compared on the box and one word is published, so no id rides the public road. The same read also corrected my own account of the failures: MAX_ATTEMPTS is 2 and the counts were 1, 1 and 2, so only one of the three had been handed to the hourly Routine, not all three as I had said an hour earlier."
+    },
+    {
+      "id": "census-says-which-code-wrote-it",
+      "date": "2026-11-17",
+      "task": "A verdict on the public road can be read, because the census names the code that produced it",
+      "drs": [
+        "DR-1517"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "0329 shipped the owner check and the very next read returned four rows reading ready, which was consistent with two different worlds: the new code running and those four being Darrell's own, or the old code still on the box and the owner check not yet in play. The census reaches the NAS by the services-sync pull, so its version is always a question, and the receipt published the builder's code sha and never its own. That is the DR-0076 section 8 failure from the other side - not a count read as zero but a verdict read without knowing what computed it, which is easier to miss because the field looks authoritative. The mirror HEAD now travels beside the builder's sha at a different depth, absent rather than faked when git answers prose, and the reader says the unknown out loud. Proven on a real PostgreSQL 16: a real sha published verbatim and a planted sha of 'fatal: not a git repository (Mary Smith)' came back absent with the name nowhere in the receipt."
+    },
+    {
+      "id": "head-read-without-git",
+      "date": "2026-11-17",
+      "task": "The census can actually name its own code, because HEAD is read from files rather than through git",
+      "drs": [
+        "DR-1518"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "DR-1517 shipped census_code_sha as git rev-parse and the field never arrived: 59 minutes and about four services-sync cycles after merge, two separate reads still printed that the census did not name its own code. Not a pull delay - DR-1511's census change had appeared 16 minutes after its merge, one cycle, so code refresh works and this one call was failing. Every likely cause is a property of the subprocess rather than the question: git off the PATH of whichever user the clock runs the census as, or git refusing a mirror it does not own with fatal detected dubious ownership, which the shape test correctly turned into unknown instead of publishing a sentence. The files answer the same question with no PATH, no ownership check and no subprocess: .git/HEAD, the ref file, and packed-refs. A test harness that raises if git is called proves the files come first rather than merely being preferred. The cause on the NAS is explicitly NOT confirmed - the sandbox cannot reach the box - so what is claimed is only that the subprocess form never answered while a file read cannot fail for any of those reasons."
+    },
+    {
+      "id": "a-row-with-no-words-says-so",
+      "date": "2026-11-17",
+      "task": "The last branch of the builder's eligibility is mirrored, so a ready verdict can be trusted",
+      "drs": [
+        "DR-1519"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1516 left eligibility()'s no-words branch unmirrored on the stated grounds that testing it would require reading the body. That premise was wrong, the fourth such correction in one night: PostgREST answers has-this-row-any-words as a filter returning only ids, which already ride this road, so no body is read even to be measured. My first design was a generated body_length column, a schema change on the table holding people's teachings, for an answer a where clause gives for free. Also caught in the act: 0331 was first generated from 0329 by hand and would have silently deleted 0330's code_sha, the exact failure every header in this series warns about, made while writing the warning - the generator now derives the definition in force from disk and both shas were verified present after regeneration. The budget brake in the census header was corrected from one read to two rather than left stale."
     }
   ]
 }
