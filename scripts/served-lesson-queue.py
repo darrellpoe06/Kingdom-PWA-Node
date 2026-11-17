@@ -252,6 +252,40 @@ def judge(receipt, why, now=None):
             "The census named no rows, so this count cannot be acted on: a build needs "
             "the row id the already-shipped sweep takes."
         )
+    # IS THE THING THAT BUILDS EVEN RUNNING (0327, DR-1514). `build-failed: 3`
+    # means one thing under a live builder and another under a dead one, and
+    # until now the builder's own state was reachable only over ssh behind the
+    # refused key. An unreadable source prints as `unread`, never as 0.
+    bl = receipt.get("builder")
+    if isinstance(bl, dict) and bl:
+        read = bl.get("read") if isinstance(bl.get("read"), dict) else {}
+        bits = [f"service: {bl.get('service') or 'unknown'}"]
+        for key, label in (("building", "building now"), ("code_sha", "code")):
+            if read.get(key) is False:
+                bits.append(f"{label}: unread")
+            elif bl.get(key) is not None:
+                bits.append(f"{label}: {bl.get(key)}")
+        st = bl.get("status")
+        if read.get("status") is False:
+            bits.append("its own record: unread")
+        elif isinstance(st, dict) and st:
+            # Booleans read as JSON writes them: `ok: false`, not Python's `False`.
+            shown = {k: ("true" if v is True else "false" if v is False else v) for k, v in st.items()}
+            bits.append(
+                "its own record -- " + ", ".join(f"{k}: {v}" for k, v in sorted(shown.items()))
+            )
+        elif isinstance(st, dict):
+            bits.append("its own record: present but empty")
+        held = bl.get("status_withheld")
+        if isinstance(held, int) and held > 0:
+            # Said out loud so a short list never reads as a complete one.
+            bits.append(f"{held} field(s) withheld by shape (free text never rides this road)")
+        lines.append("The builder -- " + "; ".join(bits) + ".")
+    elif any(isinstance(d, dict) and d.get("build-failed") for d in [receipt.get("by_shape")]):
+        lines.append(
+            "A build has failed and this census carried no builder state, so whether the "
+            "builder is running is UNKNOWN -- not idle."
+        )
     excl = receipt.get("excludes")
     if isinstance(excl, list) and excl:
         lines.append(

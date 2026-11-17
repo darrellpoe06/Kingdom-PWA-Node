@@ -165,4 +165,25 @@ describe('never a body', () => {
       expect(served, field).toContain(field);
     }
   });
+
+  it('the builder state it prints is a closed set of fields, never free text (DR-1514)', () => {
+    // 0327 lets the receipt carry the NAS builder's own state, so a reader can
+    // weigh `build-failed: 3` against whether the builder is running. That is
+    // a NEW kind of field on this road, and a builder's error string can quote
+    // the teaching it failed on -- so what the reader may print is pinned here
+    // the same way the producer is pinned above.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('bl = receipt.get("builder")'));
+    const quoted = new Set([...block.matchAll(/\bbl\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    // `read` and `status` are containers whose own keys the SQL whitelists.
+    expect(quoted).toEqual(new Set(['read', 'status', 'service', 'status_withheld']));
+    // Nothing that could carry a sentence is ever asked for.
+    for (const never of ['error', 'reason', 'message', 'last_row_body', 'locks', 'stderr', 'log']) {
+      expect(block, never).not.toContain(`'${never}'`);
+      expect(block, never).not.toContain(`"${never}"`);
+    }
+    // An unreadable source must print as unread, never as a reassuring zero.
+    expect(block).toContain('unread');
+    expect(block).toMatch(/UNKNOWN -- not idle/);
+  });
 });

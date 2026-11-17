@@ -344,3 +344,107 @@ class WhichRowsWait(unittest.TestCase):
         c = qc.census_of([])
         self.assertEqual(c["waiting"], [])
         self.assertEqual(c["total"], 0)
+
+
+class TheBuilderSaysWhetherItIsRunning(unittest.TestCase):
+    """DR-1514. Three of six rows waiting on 2026-11-17 had failed ON the
+    builder, and its state was reachable only over ssh behind a key dead since
+    2026-11-04 -- so "3 build-failed" could not be read against whether the
+    thing that builds was even running. The census runs on the box, so it reads
+    the state locally. These cases hold the line on WHAT may leave the box."""
+
+    def _home(self, service="active", sha="a1b2c3d4e5f6", locks=None, status="{}"):
+        d = tempfile.mkdtemp()
+        if sha is not None:
+            with open(os.path.join(d, ".code.sha"), "w", encoding="utf-8") as fh:
+                fh.write(sha + "\n")
+        if locks is not None:
+            os.mkdir(os.path.join(d, "locks"))
+            for name in locks:
+                open(os.path.join(d, "locks", name), "w").close()
+        if status is not None:
+            with open(os.path.join(d, "status.json"), "w", encoding="utf-8") as fh:
+                fh.write(status)
+        return d, (lambda argv: service)
+
+    def test_it_reads_the_service_word_the_sha_and_the_build_count(self):
+        d, run = self._home(locks=["a", "b"])
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["service"], "active")
+        self.assertEqual(s["code_sha"], "a1b2c3d4e5f6")
+        self.assertEqual(s["building"], 2)
+        self.assertTrue(all(s["read"].values()))
+
+    def test_a_word_systemd_never_says_reads_unknown_not_stopped(self):
+        d, _ = self._home()
+        s = qc.builder_state(d, lambda argv: "Unit could not be found.")
+        self.assertEqual(s["service"], "unknown")
+
+    def test_a_crashed_systemctl_reads_unknown_not_stopped(self):
+        d, _ = self._home()
+
+        def boom(argv):
+            raise OSError("systemctl is not here")
+
+        self.assertEqual(qc.builder_state(d, boom)["service"], "unknown")
+
+    def test_an_UNREADABLE_source_is_null_and_flagged_never_zero(self):
+        # The whole point of DR-0076 section 8: a builder nobody could read is
+        # not an idle builder. `building: 0` would be a lie here.
+        d, run = self._home(sha=None, locks=None, status=None)
+        s = qc.builder_state(d, run)
+        self.assertIsNone(s["code_sha"])
+        self.assertIsNone(s["building"])
+        self.assertIsNone(s["status"])
+        self.assertEqual(s["read"], {"code_sha": False, "building": False, "status": False})
+
+    def test_it_keeps_the_booleans_counts_and_the_stamp(self):
+        d, run = self._home(
+            status=json.dumps({"ok": True, "attempts": 4, "at": "2026-11-17T03:02:12Z"})
+        )
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["status"], {"ok": True, "attempts": 4, "at": "2026-11-17T03:02:12Z"})
+        self.assertEqual(s["status_withheld"], 0)
+
+    def test_PROVEN_TO_CATCH_an_error_string_cannot_leave_the_box(self):
+        # A builder's error text can QUOTE the teaching it failed on, which is
+        # a person's own words, and this receipt rides the PUBLIC road.
+        d, run = self._home(
+            status=json.dumps(
+                {
+                    "ok": False,
+                    "error": "could not parse: Bishop Gwin said the Lord told Mary Smith",
+                    "last_row_body": "a member's teaching, verbatim",
+                    "at": "2026-11-17T03:02:12Z",
+                }
+            )
+        )
+        s = qc.builder_state(d, run)
+        blob = json.dumps(s)
+        for leak in ("error", "Bishop Gwin", "Mary Smith", "last_row_body", "verbatim"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual(s["status_withheld"], 2, "a withheld field must be COUNTED, not hidden")
+        self.assertEqual(s["status"], {"ok": False, "at": "2026-11-17T03:02:12Z"})
+
+    def test_PROVEN_TO_CATCH_a_lock_name_is_counted_never_published(self):
+        # A lock is named for the row it holds; a row the census did not count
+        # as waiting must not reach the public road by this side path.
+        d, run = self._home(locks=["7a79db92-f370-4a7a-830b-24e77caa4ace"])
+        blob = json.dumps(qc.builder_state(d, run))
+        self.assertNotIn("7a79db92", blob)
+        self.assertIn('"building": 1', blob)
+
+    def test_a_sha_shaped_like_prose_is_dropped(self):
+        d, run = self._home(sha="FAILED while reading Mary Smith's lesson")
+        self.assertIsNone(qc.builder_state(d, run)["code_sha"])
+        self.assertTrue(qc.builder_state(d, run)["read"]["code_sha"])
+
+    def test_a_stamp_shaped_like_prose_is_dropped(self):
+        d, run = self._home(status=json.dumps({"at": "right after Mary Smith's row"}))
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["status"], {})
+        self.assertEqual(s["status_withheld"], 1)
+
+    def test_the_census_omits_the_builder_rather_than_faking_it(self):
+        self.assertNotIn("builder", qc.census_of([]))
+        self.assertIn("builder", qc.census_of([], builder={"service": "active"}))

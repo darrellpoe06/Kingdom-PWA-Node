@@ -50,6 +50,7 @@
 import json
 import os
 import platform
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -73,6 +74,30 @@ DEFAULT_HOME = "/volume1/PoeTech/lesson-queue-census"
 # the ones the builders branch on, so the census answers "what kind of work
 # waits?" without carrying a single word of anyone's teaching.
 ROADS = ("thinking-space", "lesson-voice-transcribe", "research-inbox", "chat-split")
+
+# THE NAS LESSON BUILDER'S OWN STATE (DR-1514). Three of the six rows waiting on
+# 2026-11-17 had failed ON THE BUILDER, and the only road to its state was
+# `lesson-builder-status.sh --nas` -- ssh, behind the Tailscale key that has been
+# refused since 2026-11-04. So a session could see THAT builds failed and never
+# whether the builder was even running. The census already runs ON the box, so
+# it reads these four local paths with no key and no ssh at all.
+#
+# WHAT MAY TRAVEL. This receipt is read over the PUBLIC road, so nothing here is
+# passed through: a closed set for the service word, a hex sha, counts, and from
+# status.json only booleans, small integers and ISO-shaped timestamps under a
+# whitelist. No free text ever -- a builder's error string can quote the
+# teaching it failed on, which is a person's own words.
+BUILDER_HOME = "/volume1/PoeTech/lesson-builder"
+BUILDER_UNIT = "poetech-lesson-builder"
+# systemd's own vocabulary; anything else reads as "unknown", never as stopped.
+SERVICE_WORDS = ("active", "inactive", "failed", "activating", "deactivating", "reloading")
+# Keys of status.json that may be published AT ALL, and only when their value
+# passes the shape test below. A key outside this set is counted, never named.
+STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds")
+# A git sha and an ISO stamp are STRUCTURE, not prose: neither can carry a
+# sentence, which is why these two are the only strings allowed through.
+HEX_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+ISO_AT = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
@@ -153,7 +178,102 @@ def stall_of(row):
     return "other"
 
 
-def census_of(rows, now=None):
+def _service_word(run):
+    """systemd's word for the builder unit, or 'unknown'. Never 'inactive' on error."""
+    try:
+        out = run(["systemctl", "is-active", BUILDER_UNIT])
+    # DELIBERATELY BLIND. The census must not die because it could not ask a
+    # service word, and every outcome here is the same one: unknown, never
+    # stopped. Narrowing this would only let a new exception type kill the
+    # whole census for the least important field it publishes.
+    except Exception:  # noqa: BLE001
+        return "unknown"
+    word = (out or "").strip().split("\n")[0].strip()
+    return word if word in SERVICE_WORDS else "unknown"
+
+
+def _status_fields(raw):
+    """The publishable fields of status.json: whitelisted keys, shape-tested values.
+
+    Returns (fields, dropped) where `dropped` counts what was refused, so a
+    reader is told something was withheld rather than shown a short list that
+    looks complete.
+    """
+    fields, dropped = {}, 0
+    if not isinstance(raw, dict):
+        return fields, dropped
+    for k, v in raw.items():
+        if k not in STATUS_KEYS:
+            dropped += 1
+            continue
+        if isinstance(v, bool) or (isinstance(v, int) and -1 <= v <= 100000):
+            fields[k] = v
+        elif k == "at" and isinstance(v, str) and ISO_AT.match(v):
+            # The stamp only, never a free string: a timestamp cannot carry a
+            # sentence, and this one is what tells a reader whether the
+            # builder's own record is current or stale.
+            fields[k] = v
+        else:
+            dropped += 1
+    return fields, dropped
+
+
+def builder_state(home=BUILDER_HOME, run=None):
+    """The builder's own state, read locally with no key (DR-1514).
+
+    Every source is reported as read or NOT read. A path this cannot open is
+    `null` with `read: false`, never a zero or a reassuring default: an
+    unreadable builder is not an idle builder (DR-0076 section 8).
+    """
+    if run is None:
+
+        def run(argv):
+            # Imported here, not at the top: only the NAS path ever needs it.
+            import subprocess
+
+            return subprocess.run(
+                argv, capture_output=True, text=True, timeout=10, check=False
+            ).stdout
+
+    state = {"service": _service_word(run), "read": {}}
+
+    sha = None
+    try:
+        with open(os.path.join(home, ".code.sha"), encoding="utf-8") as fh:
+            cand = fh.read().strip()
+        sha = cand if HEX_SHA.match(cand) else None
+        state["read"]["code_sha"] = True
+    except OSError:
+        state["read"]["code_sha"] = False
+    state["code_sha"] = sha
+
+    try:
+        names = os.listdir(os.path.join(home, "locks"))
+        # The COUNT, never the names: a lock file is named for the row it holds,
+        # and a row this census did not count as waiting would otherwise be
+        # published by a path nobody reviewed for it.
+        state["building"] = len(names)
+        state["read"]["building"] = True
+    except OSError:
+        state["building"] = None
+        state["read"]["building"] = False
+
+    try:
+        with open(os.path.join(home, "status.json"), encoding="utf-8") as fh:
+            raw = json.load(fh)
+        fields, dropped = _status_fields(raw)
+        state["status"] = fields
+        state["status_withheld"] = dropped
+        state["read"]["status"] = True
+    except (OSError, ValueError):
+        state["status"] = None
+        state["status_withheld"] = None
+        state["read"]["status"] = False
+
+    return state
+
+
+def census_of(rows, now=None, builder=None):
     """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
     rows = rows or []
     by_road = {}
@@ -215,6 +335,10 @@ def census_of(rows, now=None):
         "oldest_waiting": oldest,
         # id, created_at, source and class per row. No tags, no body.
         "waiting": waiting,
+        # The builder's own state, so "3 build-failed" can be read against
+        # whether the thing that builds is even running (DR-1514). Omitted
+        # rather than faked when the caller did not gather it.
+        **({"builder": builder} if builder is not None else {}),
         # The definition travels WITH the count, so a reader can tell which
         # question was asked and never has to assume it was this one.
         "excludes": list(EXCLUDED_TAGS),
@@ -318,7 +442,7 @@ def main():
             print(f"lesson-queue-census: no instance with slug '{slug}'")
             return 1
         rows = rest(url, key, "GET", waiting_query()) or []
-        body = json.dumps(census_of(rows))
+        body = json.dumps(census_of(rows, builder=builder_state()))
         what = publish(
             url,
             key,
