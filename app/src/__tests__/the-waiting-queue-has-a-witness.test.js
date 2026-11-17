@@ -186,4 +186,31 @@ describe('never a body', () => {
     expect(block).toContain('unread');
     expect(block).toMatch(/UNKNOWN -- not idle/);
   });
+
+  it('the per-row verdict is a code with its try count, never a reason (DR-1515)', () => {
+    // 0328 adds `why` and `attempts` per waiting row, because the builder
+    // leaves a row to the hourly Routine past its MAX_ATTEMPTS on purpose and
+    // `plain` could not tell that from untouched. A build reason's TEXT can
+    // quote the teaching it failed on, so what the reader may print is pinned.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('why = r.get("why")'), served.indexOf('excl = receipt.get'));
+    expect(block, 'the verdict block was renamed or removed').toBeTruthy();
+    const asked = new Set([...block.matchAll(/\br\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    expect(asked).toEqual(new Set(['why', 'attempts']));
+    for (const never of ['build-reason', 'build_reason', 'reason', 'error', 'tags', 'body']) {
+      expect(block, never).not.toContain(never);
+    }
+    // A refused verdict must never read as ready.
+    expect(block).toContain('why unknown');
+    // THE THRESHOLD IS NOT DUPLICATED: the builder owns MAX_ATTEMPTS, so the
+    // reader prints the count and judges nothing. Code only, not comments —
+    // the comment explaining this names the constant on purpose.
+    const code = served
+      .split('\n')
+      .filter((l) => !l.trimStart().startsWith('#'))
+      .join('\n');
+    for (const forbidden of ['MAX_ATTEMPTS', 'max_attempts']) {
+      expect(code, forbidden).not.toContain(forbidden);
+    }
+  });
 });

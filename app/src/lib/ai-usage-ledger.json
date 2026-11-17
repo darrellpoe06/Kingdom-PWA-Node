@@ -2706,6 +2706,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "Three of the six rows named by 0326 had failed on the NAS builder, whose state was reachable only over ssh behind the dead key. The census runs on the box and reads the unit's systemd word, .code.sha, the locks directory and status.json locally with no key; 0327 publishes them, rebuilt key by key so the SQL refuses independently of the Python. Proven on a real PostgreSQL 16 against a hostile builder block: an error string quoting a member, a last_row_body, a prose sha, a lock named for a row and a stray secret were all dropped, the systemd sentence read unknown rather than inactive, and anon was still refused the table by name."
+    },
+    {
+      "id": "why-a-row-still-waits",
+      "date": "2026-11-17",
+      "task": "The public road says why each teaching still waits and how many tries it has had",
+      "drs": [
+        "DR-1515"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "0327's own first answer produced the question: the builder read active, building nothing, record fresh, while three teachings had waited five days. lesson_builder.eligibility() shows that past MAX_ATTEMPTS a row is left for the hourly Routine on purpose, so the handoff works and the receiver was blocked on the dead key. The census now publishes a five-word verdict and an attempt count per row, with the threshold deliberately NOT copied because it belongs to the builder's environment. Two latent holes in the vocabulary guard were found by actually breaking it: a word could be dropped from k_whys or k_stalls and nothing failed, because the check asked whether a literal appeared anywhere in the file and never read the STALLS constant at all. The guard now proves membership in the named array for every vocabulary."
     }
   ]
 }

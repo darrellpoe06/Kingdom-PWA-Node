@@ -448,3 +448,87 @@ class TheBuilderSaysWhetherItIsRunning(unittest.TestCase):
     def test_the_census_omits_the_builder_rather_than_faking_it(self):
         self.assertNotIn("builder", qc.census_of([]))
         self.assertIn("builder", qc.census_of([], builder={"service": "active"}))
+
+
+class WhyARowStillWaits(unittest.TestCase):
+    """DR-1515. The 06:08 read said the builder was active, building 0, its own
+    record 14 minutes fresh -- while three teachings had waited five days.
+    eligibility() explains it: past MAX_ATTEMPTS a row is left for the hourly
+    Routine ON PURPOSE. Nothing on the public road said so, and `plain` could
+    not tell an untouched row from a handed-over one."""
+
+    def row(self, *tags):
+        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox", "tags": list(tags)}
+
+    def test_an_untouched_row_is_ready_so_the_builder_should_take_it(self):
+        self.assertEqual(qc.why_of(self.row("lesson")), "ready")
+        self.assertEqual(qc.attempts_of(self.row("lesson")), 0)
+
+    def test_a_deferred_row_says_so_rather_than_reading_as_untouched(self):
+        # The exact confusion this record exists to remove: before it, this row
+        # and the one above were both just `plain`.
+        r = self.row("lesson", "build:deferred@2026-11-17T01:00:00Z")
+        self.assertEqual(qc.why_of(r), "deferred")
+        self.assertEqual(qc.shape_of(r), "plain", "shape still cannot tell them apart -- why is what does")
+
+    def test_failures_are_counted_so_exhaustion_is_the_readers_to_judge(self):
+        r = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                     "build:failed@2026-11-12T13:00:00Z", "build-reason:other: a gate refused it")
+        self.assertEqual(qc.why_of(r), "failed")
+        self.assertEqual(qc.attempts_of(r), 2)
+
+    def test_THE_THRESHOLD_IS_NOT_COPIED_so_the_two_files_cannot_drift(self):
+        """The census must never decide exhaustion: the builder owns that number
+        and its environment can change it, so two files computing it is drift.
+
+        CODE ONLY, never the comments. The first draft of this case scanned the
+        whole file and failed on the very comment that explains the threshold is
+        NOT copied -- the same trap the keyless-eye guard fell into hours
+        earlier. A check that fires on its own documentation teaches people to
+        delete the documentation."""
+        path = os.path.join(os.path.dirname(qc.__file__), "lesson-queue-census.py")
+        with open(path, encoding="utf-8") as fh:
+            code = "\n".join(ln for ln in fh.read().split("\n") if not ln.lstrip().startswith("#"))
+        for forbidden in ("MAX_ATTEMPTS", "max_attempts"):
+            self.assertNotIn(forbidden, code, f"{forbidden!r} would duplicate the builder's threshold")
+        # And the builder really does own it, so the pin above is not vacuous.
+        builder = os.path.join(os.path.dirname(qc.__file__), "..", "nas-lesson-builder", "lesson_builder.py")
+        if os.path.exists(builder):
+            with open(builder, encoding="utf-8") as fh:
+                self.assertIn("MAX_ATTEMPTS", fh.read())
+
+    def test_a_rate_limited_failure_is_told_apart_from_a_stuck_one(self):
+        limited = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                           "build-reason:rate-limited: HTTP 429 (success)")
+        stuck = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                         "build-reason:other: no version passed every gate")
+        self.assertEqual(qc.why_of(limited), "rate-limited")
+        self.assertEqual(qc.why_of(stuck), "failed")
+
+    def test_declined_outranks_everything_else(self):
+        r = self.row("lesson", "lesson-declined", "build:deferred@2026-11-17T01:00:00Z",
+                     "build:failed@2026-11-17T01:00:00Z")
+        self.assertEqual(qc.why_of(r), "declined")
+
+    def test_every_verdict_is_in_the_closed_set(self):
+        cases = [self.row("lesson"), self.row("lesson", "lesson-declined"),
+                 self.row("lesson", "build:deferred@x"),
+                 self.row("lesson", "build:failed@x", "build-reason:rate-limited: 429"),
+                 self.row("lesson", "build:failed@x", "build-reason:other: x")]
+        for r in cases:
+            self.assertIn(qc.why_of(r), qc.WHYS)
+
+    def test_PROVEN_TO_CATCH_a_reasons_text_cannot_ride_the_verdict(self):
+        r = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                     "build-reason:other: Bishop Gwin said the Lord told Mary Smith")
+        c = qc.census_of([r])
+        blob = json.dumps(c)
+        for leak in ("Bishop Gwin", "Mary Smith", "build-reason", "said the Lord"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual(c["waiting"][0]["why"], "failed")
+        self.assertEqual(c["waiting"][0]["attempts"], 1)
+
+    def test_a_malformed_tag_list_never_raises(self):
+        for bad in (None, "not a list", 7, {"a": 1}):
+            self.assertEqual(qc.why_of({"tags": bad}), "ready")
+            self.assertEqual(qc.attempts_of({"tags": bad}), 0)
