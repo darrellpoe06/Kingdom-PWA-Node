@@ -53,13 +53,15 @@
 // Tests: src/__tests__/safe-to-spend.test.js.
 // =============================================================================
 
-import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
+import { round2, isoDay, parseDay, addDays, addMonthsClamped, daysBetween, expandOccurrences } from './money-dates.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 import { cleanName, suggestBills, isOwnAccountTransfer } from './bill-review.js';
+import { MERCHANT_CATEGORIES, SUBSCRIPTION_CATEGORIES, payeeCategory, BILL_CLASSES, billClassOf } from './bill-classes.js';
+export { MERCHANT_CATEGORIES, SUBSCRIPTION_CATEGORIES, payeeCategory, isMerchantPurchase, BILL_CLASSES, BILL_CLASS_LABEL, billClassOf } from './bill-classes.js';
 import { isSampleSalary, isSampleOutflows, isSampleHousehold } from './sample-markers.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const DAYS_PER_MONTH = 365.25 / 12;
 
 export const SPENDABLE_TYPES = ['checking', 'savings', 'cash'];
@@ -85,88 +87,10 @@ const COVERED_BY_DATED_ITEMS = new Set(['debtService', 'rentalMortgages']);
 const PERSONAL_BUCKETS = new Set(['household', 'charitableGiving']);
 const PROPERTY_BUCKETS = new Set(['propertyUtilities']);
 
-export function round2(x) { return Math.round((Number(x) || 0) * 100) / 100; }
-
-// ── dates (local-day arithmetic; 'YYYY-MM-DD' in, 'YYYY-MM-DD' out) ─────────
-export function isoDay(d) {
-  const x = d instanceof Date ? d : new Date(d);
-  if (isNaN(x.getTime())) return null;
-  const y = x.getFullYear();
-  const m = String(x.getMonth() + 1).padStart(2, '0');
-  const day = String(x.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-export function parseDay(iso) {
-  if (!iso) return null;
-  const s = String(iso);
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) { const d = new Date(s); return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-export function addDays(date, n) { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); d.setDate(d.getDate() + n); return d; }
-export function addMonthsClamped(date, n, dayOfMonth) {
-  const y = date.getFullYear(); const m = date.getMonth() + n;
-  const last = new Date(y, m + 1, 0).getDate();
-  return new Date(y, m, Math.min(dayOfMonth || date.getDate(), last));
-}
-export function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / DAY_MS); }
-
-// ── twice a month: two FIXED days of the month (DEFECT-2, 2026-10-29) ─────────
-// "Twice a month (1st & 15th)" used to step the anchor + 15, so pay on the 1st
-// landed its second payday on the 16th. A semimonthly schedule is two days of
-// the month, not a fifteen-day stride: anchored on the 1st or the 15th it is the
-// 1st & 15th; on the 28th or later it is the 15th & the last day; any other day
-// d is d & d+14 (or d-14 & d past the 14th). Clamped to the month's last day.
-export function semimonthlyDays(anchorDay) {
-  const d = Number(anchorDay) || 1;
-  if (d === 1 || d === 15) return [1, 15];
-  if (d >= 28) return [15, 31];
-  return d <= 14 ? [d, d + 14] : [d - 14, d];
-}
-function semimonthlyAt(first, i) {
-  const [a, b] = semimonthlyDays(first.getDate());
-  // the i-th payday at or after `first`, walking month by month through the two days
-  const out = [];
-  let y = first.getFullYear(); let m = first.getMonth();
-  while (out.length <= i) {
-    const last = new Date(y, m + 1, 0).getDate();
-    for (const day of [a, b]) {
-      const at = new Date(y, m, Math.min(day, last));
-      if (at >= first && !out.some((x) => x.getTime() === at.getTime())) out.push(at);
-    }
-    m += 1; if (m > 11) { m = 0; y += 1; }
-  }
-  return out[i];
-}
-
-// ── occurrences of a cadence inside [start, end], rolling forward from `first`
-// (this is the roll-forward the Tx Upcoming view never had: a next-due date in
-// the past advances to its next occurrence instead of dropping out) ──────────
-export function expandOccurrences(first, frequency, start, end, maxGuard = 400) {
-  const out = [];
-  let due = first instanceof Date ? first : parseDay(first);
-  if (!due || isNaN(due.getTime())) return out;
-  const anchorDay = due.getDate();
-  const step = (d, i) => {
-    switch (frequency) {
-      case 'weekly': return addDays(due, 7 * i);
-      case 'biweekly': return addDays(due, 14 * i);
-      case 'semimonthly': return semimonthlyAt(due, i);
-      default: {
-        const months = freqToMonths(frequency) || (frequency === 'monthly' ? 1 : 0);
-        if (!months) return null;
-        return addMonthsClamped(d, months * i, anchorDay);
-      }
-    }
-  };
-  for (let i = 0; i < maxGuard; i++) {
-    const at = step(due, i);
-    if (!at) break;
-    if (at > end) break;
-    if (at >= start) out.push(at);
-  }
-  return out;
-}
+// Money arithmetic and local-day dates live in money-dates.js (split out
+// 2026-11-17 to keep this engine under its file budget); re-exported here so
+// every importer keeps reading them from safe-to-spend.js.
+export { round2, isoDay, parseDay, addDays, addMonthsClamped, daysBetween, semimonthlyDays, expandOccurrences } from './money-dates.js';
 
 // ── scope ────────────────────────────────────────────────────────────────────
 export function resolveScope(data, scope = 'personal', visibleEntities = null) {
@@ -448,7 +372,8 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   //    linkedMortgageId) is that bill and is not walked again here.
   const linkedMortgages = new Set((data?.recurringObligations || []).filter((o) => o && o.enabled !== false && o.linkedMortgageId).map((o) => o.linkedMortgageId));
   const debtDueDays = settings.debtDueDays || {};
-  const mortgageDay = Number(settings.mortgageDueDay) || 1;
+  const dateNeeded = [];
+  const notBills = [];
   let assumedDebtTiming = 0;
   for (const dbt of deriveDebts(data, asOf)) {
     if (!inScope(sc, dbt.entityId)) continue;
@@ -456,23 +381,42 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (dbt.source === 'rental' && linkedMortgages.has(dbt.rentalId)) continue; // a confirmed bill already carries it
     if (scheduledKeys.has(payeeKey(dbt.name || ''))) continue; // a scheduled row already carries it
     const min = Number(dbt.minPayment) || 0; if (min <= 0) continue;
-    let day; let assumed = false;
-    if (dbt.source === 'rental') { day = mortgageDay; assumed = !settings.mortgageDueDay; }
-    else {
-      const acct = accountsById.get(dbt.accountId);
-      day = Number(debtDueDays[dbt.id]) || Number(acct && acct.dueDay) || 0;
-      if (!day) { day = 1; assumed = true; assumedDebtTiming += 1; }
-    }
+    // NO INVENTED DUE DATE (Christina 2026-11-16: "Do not assign all credit
+    // cards a December 1 due date unless that is their actual confirmed due
+    // date"; approved 2026-11-17: "Debts without confirmed due dates should
+    // appear under 'Due date needed' ... without assigning fictional dates").
+    // A debt with no due day on file (and a rental mortgage when no mortgage
+    // due day is set) keeps its known minimum in the plan: one payment per
+    // month is reserved from TODAY (the earliest it could be owed), marked
+    // dateUnknown with no due date, never shown as due on a day.
+    const acct = dbt.source === 'rental' ? null : accountsById.get(dbt.accountId);
+    const day = dbt.source === 'rental' ? (Number(settings.mortgageDueDay) || 0) : (Number(debtDueDays[dbt.id]) || Number(acct && acct.dueDay) || 0);
     const amount = dbt.source === 'rental'
       ? min + (Number((data?.inflows?.rentals || []).find((r) => r.id === dbt.rentalId)?.mortgage?.escrow) || 0)
       : min;
+    const label = dbt.source === 'rental' ? `${dbt.name} (P&I + escrow)` : `${dbt.name} · minimum`;
+    const base = { amount: -round2(amount), label, kind: dbt.source === 'rental' ? 'mortgage' : 'debt-min', source: dbt.source, refId: dbt.id, entityId: dbt.entityId ?? null, accountId: dbt.source === 'rental' ? null : (dbt.accountId || null) };
+    if (!day) {
+      assumedDebtTiming += 1;
+      dateNeeded.push({ refId: dbt.id, label, amount: round2(amount), kind: base.kind, entityId: dbt.entityId ?? null });
+      // One payment per month-long period: today, then the day after each
+      // month boundary, so a 30-day window holds exactly one (not today AND
+      // day 30), 60 days two, 90 days three.
+      for (let k = 0; k < 24; k++) {
+        const at = k === 0 ? start : addDays(addMonthsClamped(start, k, start.getDate()), 1);
+        if (at > end) break;
+        const occKey = `${dbt.id}:date-needed:${isoDay(at).slice(0, 7)}`;
+        events.push({ ...base, date: isoDay(at), dueDate: null, dateUnknown: true, assumed: true, occKey, key: occKey });
+      }
+      continue;
+    }
     const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
     const first = anchor < start ? addMonthsClamped(anchor, 1, day) : anchor;
     for (const at of expandOccurrences(first, 'monthly', start, end)) {
-      events.push({ date: isoDay(at), amount: -round2(amount), label: dbt.source === 'rental' ? `${dbt.name} (P&I + escrow)` : `${dbt.name} · minimum`, kind: dbt.source === 'rental' ? 'mortgage' : 'debt-min', source: dbt.source, refId: dbt.id, entityId: dbt.entityId ?? null, assumed });
+      events.push({ ...base, date: isoDay(at), dueDate: isoDay(at), assumed: false });
     }
   }
-  if (assumedDebtTiming) assumptions.push(`${assumedDebtTiming} debt payment${assumedDebtTiming === 1 ? '' : 's'} assumed due on the 1st (no due day on file); set due days in Money → Settings.`);
+  if (assumedDebtTiming) assumptions.push(`${assumedDebtTiming} debt payment${assumedDebtTiming === 1 ? ' has' : 's have'} no due date on file (${dateNeeded.map((d) => d.label).slice(0, 4).join(', ')}${dateNeeded.length > 4 ? ', …' : ''}): each known minimum is reserved once a month starting today and listed under "Due date needed", never shown as due on a day. Enter the due date from the statement in Money → Setup.`);
 
   // 4) Tax calendar items that land inside the window (dated; the rest accrue).
   for (const tx of (data?.taxCalendar || [])) {
@@ -530,13 +474,20 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       if (seenPayees.has(p.key) || scheduledKeys.has(p.key)) continue;
       if (confirmedNames.has(cleanName(p.label || '').toLowerCase())) continue;
       if (looksLikeDebtPayment(p.label)) continue; // the debt minimum already carries it
+      const pRows = rows.filter((t) => (p.txIds || []).includes(t.id));
+      const pCat = payeeCategory(p.label, pRows);
+      if (MERCHANT_CATEGORIES.has(pCat)) {
+        notBills.push({ key: p.key, label: p.label, category: pCat, monthly: round2(p.amount * (DAYS_PER_MONTH / p.cadenceDays)), cadence: p.cadenceLabel, count: p.count || pRows.length, lastPaid: pRows.length ? String(pRows.map((t) => t.date).sort().pop()).slice(0, 10) : null });
+        continue;
+      }
+      const subscription = SUBSCRIPTION_CATEGORIES.has(pCat);
       let next = new Date(p.nextExpected.getFullYear(), p.nextExpected.getMonth(), p.nextExpected.getDate());
       let guard = 0;
       while (next < start && guard++ < 120) next = addDays(next, p.cadenceDays);
       const occ = expandOccurrences(next, cadenceToFrequency(p.cadence), start, end);
       const lastRow = rows.filter((t) => (p.txIds || []).includes(t.id)).sort((a, b) => String(a.date).localeCompare(String(b.date))).pop();
       for (const at of occ) {
-        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel, accountId: lastRow ? lastRow.accountId : null });
+        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel, accountId: lastRow ? lastRow.accountId : null, category: pCat, subscription });
       }
       const monthly = round2(p.amount * (DAYS_PER_MONTH / p.cadenceDays));
       inferredMonthly.total = round2(inferredMonthly.total + monthly);
@@ -569,6 +520,14 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       if (confirmedNames.has(cleanName(s.name || '').toLowerCase())) continue;
       if (cleanName(s.name || '').toLowerCase().split(/\W+/).some((w) => w.length > 3 && debtWords.has(w))) continue; // a debt minimum already carries it
       if (looksLikeDebtPayment(s.name) && debtMins.some((m) => Math.abs(m - Number(s.amount)) <= m * 0.05)) continue; // an autopay of that debt's minimum
+      {
+        const sRows = (data?.transactions || []).filter((t) => t && t.accountId === s.accountId && cleanName(t.description || '').toLowerCase().slice(0, 40) === cleanName(s.name || '').toLowerCase().slice(0, 40));
+        const sCat = payeeCategory(s.name, sRows);
+        if (MERCHANT_CATEGORIES.has(sCat)) {
+          if (!notBills.some((n) => payeeKey(n.label || '') === key)) notBills.push({ key: s.key, label: s.name, category: sCat, monthly: round2(Number(s.amount) * historyOccurrences(s, start, end).perMonth), cadence: null, count: s.evidence ? s.evidence.payments : sRows.length, lastPaid: s.evidence ? s.evidence.lastPaid : null });
+          continue;
+        }
+      }
       const acct = accountsById.get(s.accountId);
       if (!acct || !SPENDABLE_TYPES.includes(acct.type) || !inScope(sc, accountEntity.get(s.accountId))) continue;
       const amount = Number(s.amount) || 0; if (!(amount > 0)) continue;
@@ -626,7 +585,8 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   //    want incorrect calculations influencing my financial decisions").
   const settledOut = settleOccurrences(live, data, asOf);
   assumptions.push(...settledOut.assumptions);
-  return { events: settledOut.events, assumptions, inferredMonthly, settled: [...inBalance, ...settledOut.settled], duplicates, waitingOnLedger: settledOut.waitingOnLedger };
+  if (notBills.length) assumptions.push(`${notBills.length} repeating purchase${notBills.length === 1 ? '' : 's'} (${notBills.slice(0, 3).map((n) => n.label).join(', ')}${notBills.length > 3 ? ', …' : ''}) ${notBills.length === 1 ? 'is' : 'are'} everyday spending, not ${notBills.length === 1 ? 'a bill' : 'bills'}: counted in the spending budget, not projected as future bills.`);
+  return { events: settledOut.events, assumptions, inferredMonthly, settled: [...inBalance, ...settledOut.settled], duplicates, waitingOnLedger: settledOut.waitingOnLedger, notBills, dateNeeded };
 }
 
 // The words that name a payee, without the bank's noise (Zelle codes, "Online
@@ -728,7 +688,9 @@ export const OBLIGATION_TYPE_LABEL = {
 };
 
 export const BILL_STATUSES = ['scheduled', 'paid', 'paid-outside', 'partial-outside', 'canceled', 'overdue', 'needs-review'];
-export function occurrenceKey(ev) { return `${ev.refId || ev.label}:${ev.date}`; }
+// A payment with no due date on file is reserved on a moving day (today), so
+// its key is its calendar month instead: a "paid" mark on it holds all month.
+export function occurrenceKey(ev) { return ev.occKey || `${ev.refId || ev.label}:${ev.date}`; }
 function samePayee(a, b) {
   if (!a || !b) return false;
   if (a === b) return true;
@@ -878,6 +840,18 @@ export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) 
   }
   // Inferred recurring payments are carved out of the household figure so they
   // count once (a MEASURED figure already leaves them out).
+  // REPEATING PURCHASES ARE SPENDING, NOT BILLS (Phase 1.2, 2026-11-17). Fuel,
+  // grocery, dining and household repeats are no longer projected as dated
+  // bills. With the sample's figures they are inside the measured figure
+  // above; with the family's own household figure they are inside that figure
+  // (no longer carved out of it, since they are no longer itemized); with
+  // neither, their monthly amount is reserved here, day by day, so the plan
+  // holds the same money without inventing a due date for a store.
+  const repeating = Number(opts.notBillsMonthly) || 0;
+  if (!sampleOutflows && !(Number(outflows.household) > 0) && repeating > 0 && sc.kind !== 'business') {
+    out.livingParts.repeatingPurchases = round2(repeating); out.living += repeating;
+    out.notes.push(`$${Math.round(repeating).toLocaleString()}/mo of repeating purchases (fuel, groceries, dining, household) reserved as everyday spending, not as bills; enter a household spending figure in Money → Setup to replace it.`);
+  }
   const carve = sampleOutflows ? 0 : Math.min(out.livingParts.household || 0, Number(opts.inferredMonthlyTotal) || 0);
   if (carve > 0) { out.livingParts.household = round2(out.livingParts.household - carve); out.living = round2(out.living - carve); out.notes.push(`$${Math.round(carve).toLocaleString()}/mo of itemized recurring payments carved out of the household figure so they are counted once.`); }
   out.living = round2(out.living);
@@ -948,7 +922,7 @@ function comingUp(data, sc, start, settings, opts) {
   const incomeAll = [...inc90.events, ...typed].sort((a, b) => a.date.localeCompare(b.date) || String(a.label).localeCompare(String(b.label)));
   const out30 = ob.events.filter((e) => e.amount < 0);
   const out = out30.filter((e) => e.date <= isoDay(end14));
-  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
+  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', dateUnknown: !!e.dateUnknown, subscription: !!e.subscription, billClass: billClassOf(e), entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
   // Past-due obligations are their own list, apart from the regular monthly
   // bills (Darrell 2026-11-11): a missed loan payment (overdue, in or past
@@ -1015,6 +989,14 @@ function comingUp(data, sc, start, settings, opts) {
     income60: incomeThrough(end60),
     income90: incomeThrough(end90),
     billsBefore30: { items: billsBefore },
+    // THE 30 DAYS OF BILLS IN SIX GROUPS (Christina 2026-11-16, Task 3): what
+    // makes up the bills total, by how much is known about each. The groups
+    // partition next30 exactly (their totals add up to it to the cent).
+    // `notBills` is apart: repeating purchases counted in the spending budget,
+    // never in this total.
+    groups30: Object.fromEntries(BILL_CLASSES.map((c) => [c, pick(out30.filter((e) => billClassOf(e) === c))])),
+    notBills: { items: ob.notBills || [], monthly: round2((ob.notBills || []).reduce((a, n) => a + (Number(n.monthly) || 0), 0)) },
+    dateNeeded: { items: ob.dateNeeded || [] },
   };
 }
 
@@ -1030,6 +1012,7 @@ export const BILL_DUE_STATUS_LABEL = {
   pending: 'Pending',
   confirmed: 'Confirmed upcoming',
   inferred: 'Inferred from history, not confirmed',
+  'needs-verification': 'Needs verification',
 };
 export function billStatusOf(e) {
   // A loan with a grace period on file: within it, or past it (both still owed).
@@ -1037,6 +1020,8 @@ export function billStatusOf(e) {
   if (e.overdue) return 'overdue';
   if (e.markedPaid || e.kind === 'scheduled') return 'pending';
   if (e.kind === 'inferred-bill') return 'inferred';
+  // No due date on file: the amount is known, the day is not. Never "confirmed".
+  if (e.dateUnknown) return 'needs-verification';
   return 'confirmed';
 }
 
@@ -1224,7 +1209,7 @@ function forScope(data, sc, asOf, settings, opts) {
   const income = incomeEvents(data, sc, start, end, settings, asOf);
   const obligations = obligationEvents(data, sc, start, end, settings, { asOf, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const countedNames = new Set([...obligations.events.filter((e) => e.amount < 0), ...(obligations.settled || [])].map((e) => cleanName(e.label || '').toLowerCase().slice(0, 40)));
-  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta, countedNames });
+  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, notBillsMonthly: (obligations.notBills || []).reduce((a, n) => a + (Number(n.monthly) || 0), 0), goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta, countedNames });
   assumptions.push(...income.assumptions, ...obligations.assumptions, ...accrual.notes);
   // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
@@ -1477,7 +1462,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     // The combined view lists every entity's bills and income side by side,
     // each item tagged with the pocket it comes out of — a total of what is
     // DUE, never a pool of who may spend what.
-    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30', 'income60', 'income90', 'billsBefore30'].reduce((w, k) => {
+    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30', 'income60', 'income90', 'billsBefore30', 'notBills', 'dateNeeded'].reduce((w, k) => {
       const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
       w[k] = {
         ...(k.startsWith('income') ? {
@@ -1489,7 +1474,10 @@ function consolidated(data, sc, asOf, settings, opts) {
         items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))),
       };
       return w;
-    }, {}),
+    }, { groups30: Object.fromEntries(BILL_CLASSES.map((c) => {
+      const parts = byEntity.map((r) => ({ r, part: ((r.windows || {}).groups30 || {})[c] || { total: 0, items: [] } }));
+      return [c, { total: round2(parts.reduce((a, { part }) => a + (Number(part.total) || 0), 0)), items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))) }];
+    })) }),
     balanceSources: byEntity.flatMap((r) => (r.balanceSources || []).map((b) => ({ ...b, scopeLabel: r.scope.label }))),
     byEntity,
   };
