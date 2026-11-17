@@ -1296,6 +1296,12 @@ const NODES = [
     writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
     runToken: 'uses: ./.github/workflows/_browser-probe.yml',
   }),
+  wf('live-kids-zone-walk.yml', {
+    id: 'live-kids-zone-walk', name: 'Live Kids Zone walk (the production door, from a runner)', purpose: 'The live Kids Zone v1 walked at a phone width the way a child does (home, Theater, games, a storybook page, badges and map, the Teens door, the church\u2019s Home tab), every stop asserted and stilled, the served build matched to the merged commit (DR-1520; DR-0104).',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    writes: [{ res: 'gh:call:browser-probe', token: 'uses: ./.github/workflows/_browser-probe.yml' }], seeds: ['browser-probe'],
+    runToken: 'uses: ./.github/workflows/_browser-probe.yml',
+  }),
   wf('_browser-probe.yml', {
     id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
     reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
