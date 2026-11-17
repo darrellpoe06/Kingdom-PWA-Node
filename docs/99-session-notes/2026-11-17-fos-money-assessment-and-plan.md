@@ -182,6 +182,20 @@ Consumers:
 
 Not in 1.1 (stated, not dropped): an inferred paycheck NOT tied to an income source cannot be confirmed in one tap (it needs an income-source record); the row says so. re-review: with PR 1.3 (import review), 2026-11-24.
 
+## 4d. PR 1.2 Bills Accuracy — what changed and why (2026-11-17)
+
+Engine (`app/src/lib/safe-to-spend.js`):
+- `payeeCategory` / `isMerchantPurchase` (new): a repeating payee whose rows (else its name, via `categorize`) read as fuel, groceries, dining or household is a purchase, not a bill. `obligationEvents` steps 6 and 6b no longer project it; it is listed in `notBills` (label, category, monthly, cadence, last paid). Subscriptions, utilities, insurance, phone are still projected, subscriptions flagged `subscription: true`.
+- `monthlyAccruals`: the removed repeats stay in the plan once. Sample figures: inside the measured spending (unchanged rule). Family's own household figure: inside that figure (no longer carved out). Neither: their monthly amount is reserved day by day as `livingParts.repeatingPurchases`.
+- Step 3: a debt with no due day (and a rental mortgage with no mortgage due day) is no longer dated the 1st. Its known minimum is reserved once per month from today, `dateUnknown`, `dueDate: null`, status "Needs verification", listed in `dateNeeded`. A stable key per calendar month (`occKey`) keeps a "paid" mark on it all month.
+- `billClassOf` / `BILL_CLASSES` (new): confirmed · inferred-review · one-time · arrangement · past-due · due-date-needed. `windows.groups30` partitions the 30-day bills exactly.
+
+UI: Coming Up's 30-day bills open grouped with subtotals; "date needed" in place of a date (Coming Up and the Bills tab); a "Repeating purchases (not bills)" line.
+
+Measured on the test household: 30-day bills $675.49 → $375.49 ($300 of Circle K / Walmart purchases no longer counted as bills); the everyday-spending reserve $0 → $317.42/mo; Safe to Spend $4,824.51 → $4,811.65 (the money moved, it was not dropped).
+
+Tests: `money-bills-accuracy.test.jsx` (12); 11 fail on the 1.1 base, all pass here. One forecast test comment updated (its numbers hold).
+
 ## 5. Recommended first implementation
 
 PR 1.1 Income truth. Pure engine + UI, no migration, no stored record touched,

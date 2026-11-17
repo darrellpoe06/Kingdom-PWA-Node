@@ -6,7 +6,7 @@
 // this panel can never disagree.
 // =============================================================================
 import React, { useState } from 'react';
-import { OBLIGATION_TYPE_LABEL, BILL_DUE_STATUS_LABEL } from '../../lib/safe-to-spend.js';
+import { OBLIGATION_TYPE_LABEL, BILL_DUE_STATUS_LABEL, BILL_CLASSES, BILL_CLASS_LABEL } from '../../lib/safe-to-spend.js';
 import { balanceTrace } from '../../lib/financial-engineering.js';
 import { entityLabel } from '../../lib/entity-labels.js';
 
@@ -127,6 +127,24 @@ function IncomeList({ W, show, entities, onConfirmIncome }) {
   );
 }
 
+// THE 30-DAY BILLS IN SIX GROUPS (Christina 2026-11-16, Task 3), each with its
+// own subtotal; the subtotals add up to the line's total.
+function BillGroups({ groups, show, entities }) {
+  if (!groups) return null;
+  const shown = BILL_CLASSES.filter((c) => groups[c] && groups[c].items.length);
+  if (!shown.length) return <p>Nothing in this window.</p>;
+  return (
+    <div className="space-y-2" data-testid="bill-groups">
+      {shown.map((c) => (
+        <div key={c} data-testid={`bill-group-${c}`}>
+          <div className="flex justify-between gap-2 text-[#1A1815] font-semibold"><span>{BILL_CLASS_LABEL[c]}</span><span className="shrink-0" data-testid={`bill-group-${c}-total`}>{show(groups[c].total)}</span></div>
+          <Items list={groups[c].items} show={show} entities={entities} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // INCOME BEFORE EACH BILL (Christina 2026-11-16), a different calculation from
 // the 30-day total: for every bill, what has come in from tomorrow THROUGH its
 // due date, beside the bills due by then.
@@ -172,8 +190,8 @@ function Items({ list, show, entities }) {
     <ul className="space-y-1">
       {list.map((it, i) => (
         <li key={`${it.date}-${it.label}-${i}`} className="flex gap-2">
-          <span className="w-[5.5rem] shrink-0">{it.overdue ? `overdue${it.dueDate ? ` (due ${it.dueDate})` : ''}` : it.date}</span>
-          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.assumed ? ' · due day assumed' : ''}{it.graceState ? ` · ${BILL_DUE_STATUS_LABEL[it.graceState]}${it.graceEndsOn ? ` (ends ${it.graceEndsOn})` : ''}` : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
+          <span className="w-[5.5rem] shrink-0">{it.overdue ? `overdue${it.dueDate ? ` (due ${it.dueDate})` : ''}` : (it.dateUnknown ? 'date needed' : it.date)}</span>
+          <span className="flex-1 min-w-0">{it.label}{it.obligationType && it.obligationType !== 'regular' ? ` · ${OBLIGATION_TYPE_LABEL[it.obligationType] || it.obligationType}` : ''}{it.dateUnknown ? ' · no due date on file; minimum reserved' : (it.assumed ? ' · due day assumed' : '')}{it.subscription ? ' · subscription, verify it' : ''}{it.graceState ? ` · ${BILL_DUE_STATUS_LABEL[it.graceState]}${it.graceEndsOn ? ` (ends ${it.graceEndsOn})` : ''}` : ''}{owner(it, entities)}{it.scopeLabel ? ` · counted in ${it.scopeLabel}` : ''}{it.status && it.status !== 'overdue' ? ` · ${it.status === 'pending' ? (it.kind === 'scheduled' ? 'Pending: scheduled in your register' : 'Pending: marked paid, waiting for the bank') : BILL_DUE_STATUS_LABEL[it.status]}` : (it.inferred ? ' · guessed from past payments, not confirmed' : '')}</span>
           <span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span>
         </li>
       ))}
@@ -333,7 +351,20 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       </Line>
       <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)} note={incomeNote(W.income7, show, 7)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
       <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={[inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : '', incomeNote(W.income14, show, 14)].filter(Boolean).join(' · ')}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
-      <Line id="next30" label="Bills due in the next 30 days" value={show(W.next30 ? W.next30.total : 0)} note={incomeNote(W.income30, show, 30)}><Items list={W.next30 && W.next30.items} show={show} entities={entities} /></Line>
+      <Line id="next30" label="Bills due in the next 30 days" value={show(W.next30 ? W.next30.total : 0)} note={incomeNote(W.income30, show, 30)}>{W.groups30 ? <BillGroups groups={W.groups30} show={show} entities={entities} /> : <Items list={W.next30 && W.next30.items} show={show} entities={entities} />}</Line>
+      {W.notBills && W.notBills.items.length > 0 && (
+        <Line id="not-bills" label="Repeating purchases (not bills)" value={`${show(W.notBills.monthly)}/mo`} note="everyday spending, counted in your spending budget, not projected as bills">
+          <ul className="space-y-1" data-testid="not-bills-list">
+            {W.notBills.items.map((n, i) => (
+              <li key={`${n.key || n.label}-${i}`} className="flex gap-2" data-testid="not-bills-item">
+                <span className="flex-1 min-w-0">{n.label} · {n.category}{n.cadence ? ` · ${n.cadence}` : ''}{n.lastPaid ? ` · last ${n.lastPaid}` : ''}{n.scopeLabel ? ` · ${n.scopeLabel}` : ''}</span>
+                <span className="shrink-0 text-[#1A1815]">{show(n.monthly)}/mo</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1">These are paid often but are not contractual bills. If one IS a bill or subscription, confirm it in Money → Bills → Review.</p>
+        </Line>
+      )}
       <Line id="past-due" label="Past-due obligations (apart from regular bills)" value={show(W.pastDue ? W.pastDue.total : 0)} tone={W.pastDue && W.pastDue.total > 0 ? 'text-[#B85838]' : ''} note="missed payments, in or past their grace period, and past-due balances; the due date stays the contract's">
         <Items list={W.pastDue && W.pastDue.items} show={show} entities={entities} />
         {W.regular30 && <p className="mt-2">Regular bills in the next 30 days without these: {show(W.regular30.total)}.</p>}

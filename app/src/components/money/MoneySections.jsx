@@ -250,7 +250,7 @@ export function MoneyBills({ money }) {
           <ul className="mt-2 divide-y divide-[#E8E4DC]">
             {list.map((it) => (
               <li key={it.key} className="py-2 flex flex-wrap items-center gap-2 text-[0.8125rem]">
-                <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{it.date}</span>
+                <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{it.dateUnknown ? 'date needed' : it.date}</span>
                 <span className="min-w-0 flex-1 truncate text-[#1A1815]">{it.label}<span className="block text-[0.625rem] text-[#5A5751]">{it.confirmed ? 'confirmed' : 'inferred'}{it.cadence ? ` · ${it.cadence}` : ''} <span aria-hidden="true">·</span> {entityName(it.entityId)}{it.accountId ? ` · ${accountName(it.accountId)}` : ''}</span></span>
                 <span className="shrink-0 text-[#1A1815]" style={SERIF}>{fmt(Math.abs(it.fullAmount != null ? it.fullAmount : it.amount))}{(it.partial || it.settled) && <span data-testid="bill-paid-so-far" className="block text-[0.625rem] text-[#5A5751]">{it.settled ? (it.settled === 'canceled' ? 'not counted' : 'paid · not counted') : `${fmt(it.paidSoFar)} paid · ${fmt(it.remaining)} left`}</span>}{it.markedPaid && !it.partial && <span data-testid="bill-waiting-on-ledger" className="block text-[0.625rem] text-[#5A5751]">still counted until the payment shows in the ledger</span>}</span>
                 {it.status === 'partial-outside' && (
