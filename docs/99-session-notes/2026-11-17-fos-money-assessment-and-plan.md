@@ -214,6 +214,47 @@ Tests: `money-import-accuracy.test.jsx` (24): the pipeline, hold and card cases 
 
 Phase 1.3b (next): per-row approve / reject / edit / category on the card, learned category rules applied on import, refund / reimbursement / tithes categories. Not started in this PR.
 
+## 4f. PR 1.3b Import review — what changed and why (2026-11-17)
+
+`lib/intake-row-review.js` (new): every imported row can be added or left out and given a category before Approve; categories are suggested from the family's own rules first, then the built-in rules (spending categories only). `commitDoc` now writes the reviewed rows. Found and fixed: Approve used to re-read the raw extraction and wrote a row the person had left out; the built-in rules file every Zelle as "transfer", which the engine treats as never a payment, so they no longer suggest it. Tests: `money-import-review.test.jsx` (9).
+
+## 6. Morning report (overnight 2026-11-17)
+
+### Pull requests (all labeled `hold`; nothing merged or deployed)
+
+| PR | Phase | Branch | Base | CI |
+|---|---|---|---|---|
+| #2704 | 1.1 Income accuracy | `ccr-a1ebb734-6nt3v4` | `main` | all green on c281ad7 |
+| #2705 | 1.2 Bills accuracy | `money/phase-1-2-bills` | #2704 | all app checks green; `probe` red (preview workflow builds the wrong Vercel URL, not this code; commented on the PR) |
+| #2706 | 1.3a Import accuracy | `money/phase-1-3-import` | #2705 | see PR |
+| #2707 | 1.3b Import review | `money/phase-1-3b-review` | #2706 | see PR |
+
+Merge order when authorized: #2704, then #2705, #2706, #2707 (each retargets to `main` when its base merges). Auto-merge: the bot armed #2704 once at 04:52:01 and it was disabled at 04:52:02 and confirmed off; the `money/*` branches are outside the auto-merge lane entirely.
+
+### Test results
+- Full local suite on the 1.3a head (1.1 + 1.2 + 1.3a): 1,979 files, 37,685 tests, all green.
+- 1.3b: all Money, intake, categorize and UI-standards suites (37 files, 476 tests) green; full lint and the 41 `lint + guards` scripts green.
+- Each new suite was shown failing on the code before it (proven to catch).
+
+### Found and fixed overnight (beyond the plan)
+- The `$3,200` vs `$0` unconfirmed-income question: both right (Safe to Spend's window ended on a payday one day past the 30-day list); every unconfirmed dollar is now listed with its deposit, date, account and status, and a test reconciles the two to the cent.
+- New Coming Up buttons were 32px; the UI-standards test caught it; now 36px.
+- Debts with no due date: a first version reserved two payments in 30 days; corrected to one per month.
+- A no-due-date debt showed "Confirmed upcoming"; now "Needs verification".
+- The old screenshot reader saved a $45 purchase as a +$4,642.18 deposit (running balance); fixed.
+- A left-out import row was still written on Approve; fixed.
+
+### Outstanding / needs your decision
+1. **Merge authorization** for #2704 → #2707, in order.
+2. **"Tithes / Church Giving" as its own category**: `charitable` is in the sync allow-list and possibly a database check; recommended with the Phase 1.4 database work. Today: file the $837 Zelle as Charitable under Personal.
+3. **Saving import-card corrections as rules**: needs a one-line hook in the app shell (frozen line budget) or using the existing rule-saver, which also rewrites past rows from that payee. Recommendation: a rule-only hook in Phase 1.4.
+4. **Preview probe workflow** (Darrell's): its Vercel hostname for `money/*` branches is wrong (`…git-money-phase-7b032e…` for every such branch). Not touched.
+5. **Database access**: Phase 1.4 (outstanding checks, the $2,201 check ↔ $2,201 reimbursement link with its $0.12 difference, pending/posted matching, document links) needs additive columns; per your rule no migration runs until `TS_AUTHKEY` is renewed, a backup is confirmed and the migration is tested.
+6. **Christiana's accounts**: needed when Phase 2 starts.
+
+### Phone verification after deploy
+Listed in each PR body. In short: Money → Overview → Coming Up (income list, income before each bill, the Safe to Spend note, the six bill groups, repeating purchases, "date needed"); Money → Upload a Chase screenshot (rows listed, signs right, add/leave out/recategorize, Hold adds nothing).
+
 ## 5. Recommended first implementation
 
 PR 1.1 Income truth. Pure engine + UI, no migration, no stored record touched,
