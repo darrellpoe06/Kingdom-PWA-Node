@@ -286,3 +286,30 @@ describe('Coming Up on a phone', () => {
     expect(note).toContain(show(result.lines.ifUnconfirmedArrives.safeToSpend));
   });
 });
+
+// Christina 2026-11-17: the browser showed "$3,200 of unconfirmed income" on
+// Safe to Spend beside "$0 not confirmed" in the 30-day list. Both were right:
+// Safe to Spend's window ran to the next payday, one day past the list. Every
+// unconfirmed dollar is now traceable to its deposit, date, account, status and
+// the window it falls in, and the two figures reconcile to the cent.
+describe('the Safe to Spend unconfirmed figure reconciles with the income lists', () => {
+  it('a window longer than 30 days: unconfirmed = the 30-day list + the deposits after it, each one named', () => {
+    const data = household();
+    const r = buildSafeToSpend(data, { currentDate: TODAY, period: 'custom', customEnd: '2026-12-31', scope: 'personal', settings: data.moneyPlan.settings });
+    const what = r.lines.ifUnconfirmedArrives;
+    const w30 = r.windows.income30;
+    expect(what.through).toBe('2026-12-31');
+    expect(what.income).toBe(r.lines.unconfirmedIncome);
+    expect(what.income).toBe(sum(what.items.map((i) => i.amount)));
+    const after = what.items.filter((i) => i.date > w30.through);
+    expect(after.length).toBeGreaterThan(0);
+    expect(what.income).toBe(sum([w30.unconfirmed, ...after.map((i) => i.amount)]));
+    for (const it of what.items) {
+      expect(it.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(it.accountName).toBe('Chase 7206');
+      expect(it.status).toBe('inferred');
+      expect(it.frequency).toBe('biweekly');
+      expect(it.statusNote).toMatch(/inferred from 3 deposits/);
+    }
+  });
+});

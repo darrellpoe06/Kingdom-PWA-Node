@@ -1318,7 +1318,11 @@ function forScope(data, sc, asOf, settings, opts) {
   // days projected. Shown beside the figure, never in its place.
   const ifUnconfirmedArrives = {
     income: unconfirmedIncome,
-    items: unconfirmedIncomeEvents.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), status: e.status || 'inferred', statusNote: e.statusNote || null })),
+    // Each deposit behind the figure, traceable: source, date, account, status,
+    // and the window it falls in (Safe to Spend's period, which can end on a
+    // payday past the 30-day list, Christina 2026-11-17).
+    through: isoDay(end),
+    items: unconfirmedIncomeEvents.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), status: e.status || 'inferred', statusNote: e.statusNote || null, frequency: e.frequency || null, accountId: e.accountId || null, accountName: e.accountId ? ((data?.accounts || []).find((a) => a.id === e.accountId)?.name || null) : null, entityId: e.entityId ?? null })),
     lowest: withUnconfirmed.lowest,
     safeToSpend: reconciliationRequired ? 0 : round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
     unreconciledSafe: round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
@@ -1450,6 +1454,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'), unconfirmedIncome: sumLine('unconfirmedIncome'),
       ifUnconfirmedArrives: {
         income: sumLine('unconfirmedIncome'),
+        through: ((byEntity[0] && byEntity[0].lines.ifUnconfirmedArrives) || {}).through || null,
         items: byEntity.flatMap((r) => ((r.lines.ifUnconfirmedArrives || {}).items || [])),
         lowest: { amount: round2(byEntity.reduce((s, r) => s + (((r.lines.ifUnconfirmedArrives || {}).lowest || r.lines.projectedLowest).amount || 0), 0)), date: null },
         safeToSpend: round2(byEntity.reduce((s, r) => s + ((r.lines.ifUnconfirmedArrives || {}).safeToSpend ?? r.safeToSpendNow), 0)),

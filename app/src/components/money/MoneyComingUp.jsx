@@ -359,8 +359,21 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       <Line id="reserve-goal" label="Emergency reserve goal" value={show(L.reserve ? L.reserve.goal : 0)} note={L.reserve ? `${show(L.reserve.designated)} set aside \u00b7 ${show(L.reserve.remaining)} still to save${L.reserve.goalSource === 'default' ? ' \u00b7 the $10,000 target, until you save another' : ''}` : ''} tone={L.reserve && L.reserve.remaining === 0 && L.reserve.goal > 0 ? 'text-[#5A6E3D]' : ''}>
         <p>You are building this reserve while keeping bills current and paying down debt. Set money aside above as funds become available; each amount raises the protected cushion by exactly that much and lowers what reads as spendable, so nothing is counted twice.</p>
       </Line>
-      <Line id="safe" label="Safe to Spend" value={show(result.safeToSpendNow)} note={L.unconfirmedIncome > 0 && L.ifUnconfirmedArrives ? `${result.period.label} · confirmed income only; if ${show(L.unconfirmedIncome)} of unconfirmed income arrives as projected: ${show(L.ifUnconfirmedArrives.safeToSpend)}` : result.period.label}>
+      <Line id="safe" label="Safe to Spend" value={show(result.safeToSpendNow)} note={L.unconfirmedIncome > 0 && L.ifUnconfirmedArrives ? `${result.period.label} · confirmed income only; if ${show(L.unconfirmedIncome)} of unconfirmed income${L.ifUnconfirmedArrives.through ? ` through ${L.ifUnconfirmedArrives.through}` : ''} arrives as projected: ${show(L.ifUnconfirmedArrives.safeToSpend)}` : result.period.label}>
         <ol className="list-decimal pl-4 space-y-1">{(result.explanation || []).map((e) => <li key={e}>{e}</li>)}</ol>
+        {L.ifUnconfirmedArrives && (L.ifUnconfirmedArrives.items || []).length > 0 && (
+          <div className="mt-2" data-testid="safe-unconfirmed-items">
+            <p>Not counted in Safe to Spend (its window runs through {L.ifUnconfirmedArrives.through || result.period.end}, so it can include a deposit dated after the 30-day income list ends):</p>
+            <ul className="mt-1 space-y-1">
+              {L.ifUnconfirmedArrives.items.map((it, i) => (
+                <li key={`${it.date}-${it.label}-${i}`} data-testid="safe-unconfirmed-item">
+                  <div className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0 text-[#1A1815]">{it.label}</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></div>
+                  <div className="pl-[6rem] text-[0.6875rem]">{it.accountName ? `into ${it.accountName}` : 'account not set'}{it.frequency ? ` · ${FREQ_LABEL[it.frequency] || it.frequency}` : ''} · {it.statusNote || INCOME_STATUS_LABEL[it.status] || it.status}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Line>
       <Line id="extra" label="Safe to put toward your reserve or extra debt today" value={show(extra.amount)} note={extra.reserve ? `suggested: ${show(extra.reserve.suggested)} to the reserve, ${show(extra.reserve.debtAfter)} to extra debt` : 'never more than keeps the next 30 days above your reserve'}>
         <p>The smaller of: Safe to Spend {extra.chosen.label.toLowerCase()} ({show(extra.chosen.safe)}; lowest day {show(extra.chosen.lowest.amount)} on {extra.chosen.lowest.date}) and Safe to Spend for the {extra.month.label.toLowerCase()} ({show(extra.month.safe)}; lowest day {show(extra.month.lowest.amount)} on {extra.month.lowest.date}). This is one pool: money set aside for the reserve or paid toward debt today beyond it would put a projected day below the cushion. The suggestion fills the reserve goal first ({extra.reserve ? show(extra.reserve.remaining) : show(0)} still to save), then the rest goes to debt; set money aside under Protected cash reserve and this line falls by exactly that amount.</p>
