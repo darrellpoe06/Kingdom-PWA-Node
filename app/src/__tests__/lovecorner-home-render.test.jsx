@@ -185,3 +185,29 @@ describe('inside the Church home the front door drives the strip', () => {
     expect(selectedTab().textContent).toContain('Give');
   });
 });
+
+describe('the Bible Adventures entrance (Darrell 2026-11-17: the Kids Zone, directly, from the church home)', () => {
+  it('shows the approved illustration whole, from a file that exists in public/, and a Play button', () => {
+    mount();
+    const img = q('[data-testid="lc-bible-adventures"] img');
+    expect(img).toBeTruthy();
+    expect(img.getAttribute('src')).toContain('/lovecorner/kids/bible-adventures-key-art.jpg');
+    expect(existsSync(join(PUBLIC, 'lovecorner', 'kids', 'bible-adventures-key-art.jpg'))).toBe(true);
+    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Play Bible Adventures/);
+  });
+  it('the Play button opens the Youth tab with the Kids door chosen, whatever door this phone chose last', () => {
+    window.localStorage.setItem('poetech.youth.door', 'teens');
+    const views = [];
+    mount({ setChurchView: (v) => views.push(v) });
+    click(q('[data-testid="lc-play-bible-adventures"]'));
+    expect(views).toEqual(['youth']);
+    expect(window.localStorage.getItem('poetech.youth.door')).toBe('kids');
+    window.localStorage.removeItem('poetech.youth.door');
+  });
+  it('sits above Quick access, right under the hero', () => {
+    mount();
+    const all = [...container.querySelectorAll('[data-testid]')].map((e) => e.getAttribute('data-testid'));
+    expect(all.indexOf('lc-bible-adventures')).toBeGreaterThan(all.indexOf('lc-next'));
+    expect(all.indexOf('lc-bible-adventures')).toBeLessThan(all.indexOf('lc-quick-watch'));
+  });
+});

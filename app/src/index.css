@@ -742,6 +742,15 @@ button.lc-tile{cursor:pointer}
 .lc-pair-go{margin-top:.375rem;background:var(--lc-gold);color:#1A1012;border-radius:.625rem;min-height:36px;display:inline-grid;place-items:center;padding:0 .75rem;font-weight:700;font-size:.78rem}
 .lc-pair-word{background:linear-gradient(160deg,#1A0A0B,#5A1510 70%,#8E2418)}
 .lc-pair-kids{background:linear-gradient(145deg,#C03222,#E43C28 55%,#CFA63C)}
+/* Bible Adventures: the Kids Zone's front door on the church home (the approved illustration shown whole) */
+.lc-adv{margin-top:.875rem;border-radius:1.25rem;overflow:hidden;background:var(--lc-black);border:2px solid var(--lc-gold);color:var(--lc-white)}
+.lc-adv-art{display:block;width:100%;height:auto;aspect-ratio:1400/776;object-fit:cover}
+.lc-adv-body{padding:.75rem .875rem .875rem;display:flex;flex-direction:column;gap:.375rem;align-items:flex-start}
+.lc-adv-h{margin:0;font-family:var(--lc-display);font-weight:700;font-size:1.15rem;line-height:1.15;color:var(--lc-gold)}
+.lc-adv-p{margin:0;font-size:.84rem;line-height:1.4;color:var(--lc-white);opacity:.92}
+.lc-adv-go{margin-top:.25rem;width:100%;font-size:1rem;min-height:52px}
+@media (min-width:720px){.lc-adv{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center}.lc-adv-go{width:auto}}
+
 .lc-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
 .lc-trio-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.15rem;min-height:118px;padding:.625rem;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);text-align:left;cursor:pointer}
 .lc-trio-card b{font-family:var(--lc-display);font-size:.9rem;line-height:1.1}

@@ -36,6 +36,7 @@ import { LEARN_CATALOG } from '../../lib/learn-catalog.js';
 import { CHURCH_MINISTRIES } from '../../lib/church-ministries.js';
 import { INSTITUTE_META } from '../../lib/church-institute.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
+import { DOOR_PREF_KEY } from '../../lib/youth-zone.js';
 import { isChurchDoorContext } from '../../lib/church-own-door.js';
 
 export const LOVE_CORNER_ASSETS = Object.freeze({
@@ -52,6 +53,9 @@ export const BISHOP = Object.freeze({ name: 'Bishop Lloyd E. Gwin', role: 'Senio
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 /** The eight quick-access doors (brief §2). Each opens a tab or a section that exists today. */
+const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
+const KEY_ART = `${BASE}lovecorner/kids/bible-adventures-key-art.jpg`;
+
 export const QUICK_DOORS = Object.freeze([
   { key: 'watch', words: 'Watch Live', icon: 'monitor', sub: 'home', section: 'worship', tone: 'gold' },
   { key: 'word', words: 'The Word', icon: 'bookOpen', sub: 'pulpit', section: null },
@@ -103,6 +107,16 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
     } catch {
       /* no window */
     }
+  };
+
+  // The Kids Zone, directly: the door pref is set to Kids before the tab opens.
+  const openKids = () => {
+    try {
+      window.localStorage.setItem(DOOR_PREF_KEY, 'kids');
+    } catch {
+      /* no storage */
+    }
+    open('youth');
   };
 
   const watchLabel = status.live && status.current ? `Live now · ${status.current.label}` : 'Watch · latest message';
@@ -184,6 +198,23 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
             We saved you a seat. See what to expect →
           </button>
         </p>
+      </section>
+
+      {/* BIBLE ADVENTURES: the Kids Zone's front door on the church home (Darrell 2026-11-17: a prominent
+          "Play Bible Adventures" entrance that opens the existing Kids Zone directly; the approved
+          illustration shown whole, never cropped). The tap sets the Kids door so the zone opens on Kids
+          whatever door this phone chose last. */}
+      <section className="lc-adv" aria-labelledby="lc-adv-h" data-testid="lc-bible-adventures">
+        <img className="lc-adv-art" src={KEY_ART} alt="The Love Corner Bible Adventures: two children with their Bibles, ready for the adventure" />
+        <div className="lc-adv-body">
+          <h3 id="lc-adv-h" className="lc-adv-h">
+            The Love Corner Bible Adventures
+          </h3>
+          <p className="lc-adv-p">Play, read, watch and learn His Word: games, storybooks, the Theater, badges and your adventure map. Ages 3 to 17.</p>
+          <button type="button" onClick={openKids} className={`lc-btn lc-btn-red lc-adv-go ${FOCUS}`} data-testid="lc-play-bible-adventures">
+            Play Bible Adventures ▶
+          </button>
+        </div>
       </section>
 
       {/* QUICK ACCESS */}
