@@ -226,8 +226,8 @@ Phase 1.3b (next): per-row approve / reject / edit / category on the card, learn
 |---|---|---|---|---|
 | #2704 | 1.1 Income accuracy | `ccr-a1ebb734-6nt3v4` | `main` | all green on c281ad7 |
 | #2705 | 1.2 Bills accuracy | `money/phase-1-2-bills` | #2704 | all app checks green; `probe` red (preview workflow builds the wrong Vercel URL, not this code; commented on the PR) |
-| #2706 | 1.3a Import accuracy | `money/phase-1-3-import` | #2705 | see PR |
-| #2707 | 1.3b Import review | `money/phase-1-3b-review` | #2706 | see PR |
+| #2706 | 1.3a Import accuracy | `money/phase-1-3-import` | #2705 | all app checks green on 67bd586; `probe` red (same preview-URL cause; commented) |
+| #2707 | 1.3b Import review | `money/phase-1-3b-review` | #2706 | all app checks green on a3952c5; `probe` red (same preview-URL cause; commented) |
 
 Merge order when authorized: #2704, then #2705, #2706, #2707 (each retargets to `main` when its base merges). Auto-merge: the bot armed #2704 once at 04:52:01 and it was disabled at 04:52:02 and confirmed off; the `money/*` branches are outside the auto-merge lane entirely.
 
