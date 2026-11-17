@@ -56,11 +56,98 @@ function owner(it, entities) {
   return who;
 }
 
-// What arrives inside the same window, counted only on the day it lands.
-function incomeNote(w, show) {
+// What arrives inside the same window (from tomorrow through its last day),
+// counted only on the day it lands. This is the window's TOTAL income; it was
+// labeled "income expected before these are due" until 2026-11-17, which it is
+// not (Christina 2026-11-16). Income arriving before each bill is its own list.
+export function incomeNote(w, show, days) {
   if (!w) return '';
   const n = (w.items || []).length;
-  return n ? `income expected before these are due: ${show(w.total)}${(w.items || []).some((i) => i.inferred) ? ' (some inferred)' : ''}` : 'no income expected in this window';
+  if (!n) return `no income expected in the next ${days} days`;
+  const unconfirmed = Number(w.unconfirmed) || 0;
+  return `income expected in the next ${days} days: ${show(w.total)}${unconfirmed > 0 ? ` (${show(w.confirmed)} confirmed, ${show(unconfirmed)} not confirmed)` : ''}`;
+}
+
+const INCOME_STATUS_LABEL = {
+  confirmed: 'confirmed',
+  inferred: 'inferred, not confirmed',
+  'date-assumed': 'amount on file, day assumed',
+};
+const FREQ_LABEL = { weekly: 'weekly', biweekly: 'every 2 weeks', semimonthly: 'twice a month', monthly: 'monthly', quarterly: 'quarterly', annual: 'yearly', once: 'one time' };
+const HORIZONS = [7, 14, 30, 60, 90];
+
+// EVERY PROJECTED DEPOSIT, NAMED (Christina 2026-11-16): source, amount, date,
+// entity, the account it lands in, how often, and whether it is confirmed.
+// Confirmed income is what Safe to Spend counts; the rest is shown, not counted.
+function IncomeList({ W, show, entities, onConfirmIncome }) {
+  const [days, setDays] = useState(30);
+  const w = W[`income${days}`] || { total: 0, confirmed: 0, unconfirmed: 0, items: [] };
+  const items = w.items || [];
+  return (
+    <div data-testid="coming-up-income-list">
+      <div role="group" aria-label="Income window" className="flex flex-wrap gap-1 mb-2">
+        {HORIZONS.map((h) => (
+          <button key={h} type="button" aria-pressed={days === h} onClick={() => setDays(h)} data-testid={`income-horizon-${h}`}
+            className={`min-h-[36px] px-2.5 rounded-full border text-[0.6875rem] ${days === h ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#1A1815]'} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}>{h} days</button>
+        ))}
+      </div>
+      <div className="space-y-0.5 mb-2" data-testid="income-totals">
+        <div className="flex justify-between gap-2"><span>Total expected, next {days} days (from tomorrow through {w.through || ''})</span><span className="shrink-0 font-semibold text-[#1A1815]" data-testid="income-total">{show(w.total)}</span></div>
+        <div className="flex justify-between gap-2"><span>Confirmed (counted in Safe to Spend)</span><span className="shrink-0" data-testid="income-confirmed">{show(w.confirmed)}</span></div>
+        <div className="flex justify-between gap-2"><span>Not confirmed (shown, not counted)</span><span className="shrink-0" data-testid="income-unconfirmed">{show(w.unconfirmed)}</span></div>
+      </div>
+      {items.length === 0 ? <p>No income expected in this window. Enter pay schedules in Money → Setup.</p> : (
+        <ul className="space-y-1.5">
+          {items.map((it, i) => {
+            const ent = entities && it.entityId !== undefined ? entityLabel(entities, it.entityId) : null;
+            return (
+              <li key={`${it.date}-${it.label}-${i}`} className="border-t border-[#F0ECE4] pt-1" data-testid="income-item" data-status={it.status}>
+                <div className="flex gap-2">
+                  <span className="w-[5.5rem] shrink-0">{it.date}</span>
+                  <span className="flex-1 min-w-0 text-[#1A1815]">{it.label}</span>
+                  <span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span>
+                </div>
+                <div className="pl-[6rem] text-[0.6875rem]">
+                  {ent ? `${ent.label} · ` : ''}{it.accountName ? `into ${it.accountName}` : 'account not set'}{it.frequency ? ` · ${FREQ_LABEL[it.frequency] || it.frequency}` : ''} · <span className={it.confirmed ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>{INCOME_STATUS_LABEL[it.status] || it.status}</span>
+                  {it.statusNote ? <span className="block">{it.statusNote}</span> : null}
+                  {!it.confirmed && it.confirm && onConfirmIncome && (
+                    <button type="button" onClick={() => onConfirmIncome(it.confirm)} data-testid={`income-confirm-${it.confirm.salaryId}`} className="mt-1 min-h-[36px] px-2.5 rounded-full border border-[#1A1815] text-[#1A1815] text-[0.6875rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                      Confirm: {show(it.confirm.amount)} {FREQ_LABEL[it.confirm.frequency] || it.confirm.frequency}, next on {it.confirm.nextDate}
+                    </button>
+                  )}
+                  {!it.confirmed && !it.confirm && it.source === 'inferred' && <span className="block">Not tied to an income source yet: add it as income, then set its pay schedule in Money → Setup.</span>}
+                  {it.status === 'date-assumed' && <span className="block">Set the rent day in Money → Setup to confirm it.</span>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// INCOME BEFORE EACH BILL (Christina 2026-11-16), a different calculation from
+// the 30-day total: for every bill, what has come in from tomorrow THROUGH its
+// due date, beside the bills due by then.
+function BillsBefore({ list, show }) {
+  if (!list || !list.length) return <p>No bills in the next 30 days.</p>;
+  return (
+    <ul className="space-y-1.5" data-testid="bills-before-list">
+      {list.map((b, i) => (
+        <li key={`${b.date}-${b.label}-${i}`} className="border-t border-[#F0ECE4] pt-1" data-testid="bills-before-item">
+          <div className="flex gap-2">
+            <span className="w-[5.5rem] shrink-0">{b.overdue ? `owed now${b.dueDate ? ` (due ${b.dueDate})` : ''}` : b.date}</span>
+            <span className="flex-1 min-w-0 text-[#1A1815]">{b.label}{b.inferred ? ' · guessed, not confirmed' : ''}{b.assumed && !b.inferred ? ' · due day assumed' : ''}</span>
+            <span className="shrink-0 text-[#1A1815]">{show(b.amount)}</span>
+          </div>
+          <div className="pl-[6rem] text-[0.6875rem]">
+            Bills due by then: {show(b.billsThrough)} · confirmed income arriving by then: {show(b.confirmedIncomeBy)}{b.unconfirmedIncomeBy > 0 ? ` (+${show(b.unconfirmedIncomeBy)} not confirmed)` : ''}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 // The trail behind one account's figure: every bank check on file (newest
@@ -223,7 +310,7 @@ function EntityTable({ result, show, entities }) {
   );
 }
 
-export default function MoneyComingUp({ result, extra, show, onReview, entities = null, settings = null, onSaveReserve = null, onSaveReserveGoal = null, onDesignate = null, onRemoveDesignation = null, data = null, asOf = null }) {
+export default function MoneyComingUp({ result, extra, show, onReview, entities = null, settings = null, onSaveReserve = null, onSaveReserveGoal = null, onDesignate = null, onRemoveDesignation = null, onConfirmIncome = null, data = null, asOf = null }) {
   const accountOf = (id) => ((data && data.accounts) || []).find((a) => a && a.id === id) || null;
   const W = result.windows || {};
   const L = result.lines;
@@ -244,9 +331,9 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
           {left.map((b) => <li key={b.id} data-testid={`cash-source-${b.id}`}>{b.name}: {show(b.balance)} · left out until checked against the bank<Trail b={b} show={show} /><Trace data={data} asOf={asOf} account={accountOf(b.id)} show={show} /></li>)}
         </ul>
       </Line>
-      <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)} note={incomeNote(W.income7, show)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
-      <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={[inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : '', incomeNote(W.income14, show)].filter(Boolean).join(' · ')}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
-      <Line id="next30" label="Bills due in the next 30 days" value={show(W.next30 ? W.next30.total : 0)} note={incomeNote(W.income30, show)}><Items list={W.next30 && W.next30.items} show={show} entities={entities} /></Line>
+      <Line id="next7" label="Bills due in the next 7 days" value={show(W.next7 ? W.next7.total : 0)} note={incomeNote(W.income7, show, 7)}><Items list={W.next7 && W.next7.items} show={show} entities={entities} /></Line>
+      <Line id="next14" label="Bills due in the next 14 days" value={show(W.next14 ? W.next14.total : 0)} note={[inferred14 ? `${inferred14} guessed from past payments — confirm them in Bills` : '', incomeNote(W.income14, show, 14)].filter(Boolean).join(' · ')}><Items list={W.next14 && W.next14.items} show={show} entities={entities} /></Line>
+      <Line id="next30" label="Bills due in the next 30 days" value={show(W.next30 ? W.next30.total : 0)} note={incomeNote(W.income30, show, 30)}><Items list={W.next30 && W.next30.items} show={show} entities={entities} /></Line>
       <Line id="past-due" label="Past-due obligations (apart from regular bills)" value={show(W.pastDue ? W.pastDue.total : 0)} tone={W.pastDue && W.pastDue.total > 0 ? 'text-[#B85838]' : ''} note="missed payments, in or past their grace period, and past-due balances; the due date stays the contract's">
         <Items list={W.pastDue && W.pastDue.items} show={show} entities={entities} />
         {W.regular30 && <p className="mt-2">Regular bills in the next 30 days without these: {show(W.regular30.total)}.</p>}
@@ -263,7 +350,8 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
         ) : <p>None found.</p>}
       </Line>
       <Line id="arrangements" label="Creditor arrangements (next 14 days)" value={show(W.arrangements ? W.arrangements.total : 0)}><Items list={W.arrangements && W.arrangements.items} show={show} entities={entities} /></Line>
-      <Line id="income" label="Expected income (next 14 days)" value={show(W.income14 ? W.income14.total : 0)} note="counted only on the day it arrives"><Items list={W.income14 && W.income14.items} show={show} entities={entities} /></Line>
+      <Line id="income" label="Expected income (next 30 days)" value={show(W.income30 ? W.income30.total : 0)} note={W.income30 && W.income30.unconfirmed > 0 ? `${show(W.income30.confirmed)} confirmed · ${show(W.income30.unconfirmed)} not confirmed, not counted as cash` : 'counted only on the day it arrives'}><IncomeList W={W} show={show} entities={entities} onConfirmIncome={onConfirmIncome} /></Line>
+      <Line id="bills-before" label="Income arriving before each bill (next 30 days)" value={`${(W.billsBefore30 && W.billsBefore30.items.length) || 0} bills`} note="for each bill: the bills due by its date and the income that arrives by then"><BillsBefore list={W.billsBefore30 && W.billsBefore30.items} show={show} /></Line>
       <Line id="reserve" label="Protected cash reserve (money set aside)" value={show(L.minCushion)} note={result.byEntity ? 'each entity\u2019s own set-aside money, added up' : (W.reserveSource === 'designated' ? `${result.scope.label}\u2019s own money set aside` : (W.reserveSource === 'household' ? 'the household cushion from Money \u2192 Settings' : 'nothing set aside yet; the goal is tracked, not subtracted'))}>
         <p>Safe to Spend never lets a projected day drop below this amount. Only money you have actually set aside is protected; the goal is a target you are saving toward. {result.byEntity ? 'Each entity keeps its own; choose one entity to change it.' : ''}</p>
         <ReservePanel key={result.scope ? result.scope.id : "none"} result={result} settings={settings} show={show} asOf={asOf} onSaveReserve={onSaveReserve} onSaveReserveGoal={onSaveReserveGoal} onDesignate={onDesignate} onRemoveDesignation={onRemoveDesignation} />
@@ -271,8 +359,21 @@ export default function MoneyComingUp({ result, extra, show, onReview, entities 
       <Line id="reserve-goal" label="Emergency reserve goal" value={show(L.reserve ? L.reserve.goal : 0)} note={L.reserve ? `${show(L.reserve.designated)} set aside \u00b7 ${show(L.reserve.remaining)} still to save${L.reserve.goalSource === 'default' ? ' \u00b7 the $10,000 target, until you save another' : ''}` : ''} tone={L.reserve && L.reserve.remaining === 0 && L.reserve.goal > 0 ? 'text-[#5A6E3D]' : ''}>
         <p>You are building this reserve while keeping bills current and paying down debt. Set money aside above as funds become available; each amount raises the protected cushion by exactly that much and lowers what reads as spendable, so nothing is counted twice.</p>
       </Line>
-      <Line id="safe" label="Safe to Spend" value={show(result.safeToSpendNow)} note={result.period.label}>
+      <Line id="safe" label="Safe to Spend" value={show(result.safeToSpendNow)} note={L.unconfirmedIncome > 0 && L.ifUnconfirmedArrives ? `${result.period.label} · confirmed income only; if ${show(L.unconfirmedIncome)} of unconfirmed income${L.ifUnconfirmedArrives.through ? ` through ${L.ifUnconfirmedArrives.through}` : ''} arrives as projected: ${show(L.ifUnconfirmedArrives.safeToSpend)}` : result.period.label}>
         <ol className="list-decimal pl-4 space-y-1">{(result.explanation || []).map((e) => <li key={e}>{e}</li>)}</ol>
+        {L.ifUnconfirmedArrives && (L.ifUnconfirmedArrives.items || []).length > 0 && (
+          <div className="mt-2" data-testid="safe-unconfirmed-items">
+            <p>Not counted in Safe to Spend (its window runs through {L.ifUnconfirmedArrives.through || result.period.end}, so it can include a deposit dated after the 30-day income list ends):</p>
+            <ul className="mt-1 space-y-1">
+              {L.ifUnconfirmedArrives.items.map((it, i) => (
+                <li key={`${it.date}-${it.label}-${i}`} data-testid="safe-unconfirmed-item">
+                  <div className="flex gap-2"><span className="w-[5.5rem] shrink-0">{it.date}</span><span className="flex-1 min-w-0 text-[#1A1815]">{it.label}</span><span className="shrink-0 text-[#1A1815]">{show(it.amount)}</span></div>
+                  <div className="pl-[6rem] text-[0.6875rem]">{it.accountName ? `into ${it.accountName}` : 'account not set'}{it.frequency ? ` · ${FREQ_LABEL[it.frequency] || it.frequency}` : ''} · {it.statusNote || INCOME_STATUS_LABEL[it.status] || it.status}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Line>
       <Line id="extra" label="Safe to put toward your reserve or extra debt today" value={show(extra.amount)} note={extra.reserve ? `suggested: ${show(extra.reserve.suggested)} to the reserve, ${show(extra.reserve.debtAfter)} to extra debt` : 'never more than keeps the next 30 days above your reserve'}>
         <p>The smaller of: Safe to Spend {extra.chosen.label.toLowerCase()} ({show(extra.chosen.safe)}; lowest day {show(extra.chosen.lowest.amount)} on {extra.chosen.lowest.date}) and Safe to Spend for the {extra.month.label.toLowerCase()} ({show(extra.month.safe)}; lowest day {show(extra.month.lowest.amount)} on {extra.month.lowest.date}). This is one pool: money set aside for the reserve or paid toward debt today beyond it would put a projected day below the cushion. The suggestion fills the reserve goal first ({extra.reserve ? show(extra.reserve.remaining) : show(0)} still to save), then the rest goes to debt; set money aside under Protected cash reserve and this line falls by exactly that amount.</p>
