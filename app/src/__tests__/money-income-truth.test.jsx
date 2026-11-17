@@ -31,11 +31,13 @@ const sum = (xs) => Math.round(xs.reduce((a, x) => a + x, 0) * 100) / 100;
 function household({ confirmInferred = false, withInferredDeposits = true } = {}) {
   const settings = { incomeSchedule: { 's-darrell': { frequency: 'biweekly', nextDate: '2026-11-21', amount: 2099.93 } }, minCushion: 500 };
   if (confirmInferred) settings.incomeSchedule['s-tlc'] = { frequency: 'biweekly', nextDate: '2026-11-19', amount: 1250 };
-  const payroll = withInferredDeposits ? [
-    { id: 'p1', date: '2026-10-08', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
-    { id: 'p2', date: '2026-10-22', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
-    { id: 'p3', date: '2026-11-05', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
-  ] : [];
+  const payroll = withInferredDeposits
+    ? [
+        { id: 'p1', date: '2026-10-08', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
+        { id: 'p2', date: '2026-10-22', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
+        { id: 'p3', date: '2026-11-05', accountId: 'a-7206', amount: 1250, description: 'TLC THERAPY PAYROLL', category: 'salary' },
+      ]
+    : [];
   return {
     meta: {},
     entities: [
@@ -47,13 +49,21 @@ function household({ confirmInferred = false, withInferredDeposits = true } = {}
       { id: 'a-3322', name: 'Chase 3322', fragment: '...3322', type: 'checking', entityId: 'e-props', balance: 0, isPrimary: true },
     ],
     transactions: [
-      { id: 'cp1', ...balanceCheckpointRow('a-7206', 3183.10, '2026-11-17', { basis: 'available', source: 'screenshot chase7206.png' }) },
+      { id: 'cp1', ...balanceCheckpointRow('a-7206', 3183.1, '2026-11-17', { basis: 'available', source: 'screenshot chase7206.png' }) },
       { id: 'cp2', ...balanceCheckpointRow('a-3322', 4479.53, '2026-11-17', { basis: 'available', source: 'screenshot chase3322.png' }) },
       ...payroll,
       // typed into the register ahead of time: a confirmed one-time deposit
       { id: 'dep1', date: '2026-11-25', accountId: 'a-7206', amount: 400, description: 'CHURCH STIPEND', category: 'other' },
       // a transfer between own accounts is never income
-      { id: 'x1', date: '2026-11-26', accountId: 'a-7206', amount: 2201, description: 'TRANSFER FROM POE PROPERTIES 3322', category: 'transfer', isTransfer: true },
+      {
+        id: 'x1',
+        date: '2026-11-26',
+        accountId: 'a-7206',
+        amount: 2201,
+        description: 'TRANSFER FROM POE PROPERTIES 3322',
+        category: 'transfer',
+        isTransfer: true,
+      },
     ],
     inflows: {
       salaries: [
@@ -65,7 +75,16 @@ function household({ confirmInferred = false, withInferredDeposits = true } = {}
     recurringObligations: [
       { id: 'b-early', name: 'Phone', amount: 120, frequency: 'monthly', nextDue: '2026-11-18', entityId: 'e-personal', accountId: 'a-7206', enabled: true },
       { id: 'b-mid', name: 'BG & Mom', amount: 750, frequency: 'monthly', nextDue: '2026-11-22', entityId: 'e-personal', accountId: 'a-7206', enabled: true },
-      { id: 'b-late', name: 'Car insurance', amount: 180, frequency: 'monthly', nextDue: '2026-12-05', entityId: 'e-personal', accountId: 'a-7206', enabled: true },
+      {
+        id: 'b-late',
+        name: 'Car insurance',
+        amount: 180,
+        frequency: 'monthly',
+        nextDue: '2026-12-05',
+        entityId: 'e-personal',
+        accountId: 'a-7206',
+        enabled: true,
+      },
     ],
     moneyPlan: { settings },
   };
@@ -120,7 +139,14 @@ describe('every projected deposit is named, with its source, date, entity, accou
     expect(personal.some((i) => /Rent/.test(i.label))).toBe(false);
     const props = run(household(), 'e-props').windows.income30.items.filter((i) => /Rent/.test(i.label));
     expect(props.length).toBe(1);
-    expect(props[0]).toMatchObject({ date: '2026-12-01', amount: 950, status: 'date-assumed', confirmed: false, entityId: 'e-props', accountName: 'Chase 3322' });
+    expect(props[0]).toMatchObject({
+      date: '2026-12-01',
+      amount: 950,
+      status: 'date-assumed',
+      confirmed: false,
+      entityId: 'e-props',
+      accountName: 'Chase 3322',
+    });
   });
 });
 
@@ -146,7 +172,9 @@ describe('income before each bill is its own calculation, not the window total',
     const W = run(household()).windows;
     const note = incomeNote(W.income30, show, 30);
     expect(note).not.toMatch(/before these are due/);
-    expect(note).toBe(`income expected in the next 30 days: ${show(W.income30.total)} (${show(W.income30.confirmed)} confirmed, ${show(W.income30.unconfirmed)} not confirmed)`);
+    expect(note).toBe(
+      `income expected in the next 30 days: ${show(W.income30.total)} (${show(W.income30.confirmed)} confirmed, ${show(W.income30.unconfirmed)} not confirmed)`
+    );
   });
 });
 
@@ -201,8 +229,14 @@ describe('unconfirmed income is never counted as cash in Safe to Spend', () => {
 });
 
 describe('Coming Up on a phone', () => {
-  let root; let host;
-  afterEach(() => { if (root) act(() => root.unmount()); if (host) host.remove(); root = null; host = null; });
+  let root;
+  let host;
+  afterEach(() => {
+    if (root) act(() => root.unmount());
+    if (host) host.remove();
+    root = null;
+    host = null;
+  });
   async function render(data, handlers = {}) {
     const result = buildSafeToSpend(data, { currentDate: TODAY, period: '14d', scope: 'personal', settings: data.moneyPlan.settings });
     const extra = extraDebtCapacity(data, { currentDate: TODAY, period: '14d', scope: 'personal' });
@@ -211,7 +245,9 @@ describe('Coming Up on a phone', () => {
     document.body.appendChild(host);
     await act(async () => {
       root = createRoot(host);
-      root.render(createElement(MoneyComingUp, { result, extra, show, entities: data.entities, settings: data.moneyPlan.settings, data, asOf: TODAY, ...handlers }));
+      root.render(
+        createElement(MoneyComingUp, { result, extra, show, entities: data.entities, settings: data.moneyPlan.settings, data, asOf: TODAY, ...handlers })
+      );
     });
     return { host, result };
   }
@@ -223,7 +259,9 @@ describe('Coming Up on a phone', () => {
     expect(h.querySelector('[data-testid="income-total"]').textContent).toBe(show(result.windows.income30.total));
     expect(h.querySelector('[data-testid="income-confirmed"]').textContent).toBe(show(result.windows.income30.confirmed));
     expect(h.querySelector('[data-testid="income-unconfirmed"]').textContent).toBe(show(result.windows.income30.unconfirmed));
-    await act(async () => { h.querySelector('[data-testid="income-horizon-90"]').click(); });
+    await act(async () => {
+      h.querySelector('[data-testid="income-horizon-90"]').click();
+    });
     expect(h.querySelectorAll('[data-testid="income-item"]').length).toBe(result.windows.income90.items.length);
     expect(h.querySelector('[data-testid="income-total"]').textContent).toBe(show(result.windows.income90.total));
   });
@@ -231,10 +269,14 @@ describe('Coming Up on a phone', () => {
     const saved = [];
     const { host: h } = await render(household(), { onConfirmIncome: (c) => saved.push(c) });
     expect(h.querySelectorAll('[data-testid="bills-before-item"]').length).toBe(3);
-    expect(h.querySelector('[data-testid="bills-before-list"]').textContent).toMatch(/confirmed income arriving by then: \$2,099\.93 \(\+\$1,250\.00 not confirmed\)/);
+    expect(h.querySelector('[data-testid="bills-before-list"]').textContent).toMatch(
+      /confirmed income arriving by then: \$2,099\.93 \(\+\$1,250\.00 not confirmed\)/
+    );
     const btns = h.querySelectorAll('[data-testid="income-confirm-s-tlc"]');
     expect(btns.length).toBeGreaterThan(0);
-    await act(async () => { btns[0].click(); });
+    await act(async () => {
+      btns[0].click();
+    });
     expect(saved).toEqual([{ salaryId: 's-tlc', frequency: 'biweekly', nextDate: '2026-11-19', amount: 1250 }]);
   });
   it('the Safe to Spend line says it counts confirmed income only and what it would read if the rest arrives', async () => {
