@@ -344,3 +344,452 @@ class WhichRowsWait(unittest.TestCase):
         c = qc.census_of([])
         self.assertEqual(c["waiting"], [])
         self.assertEqual(c["total"], 0)
+
+
+class TheBuilderSaysWhetherItIsRunning(unittest.TestCase):
+    """DR-1514. Three of six rows waiting on 2026-11-17 had failed ON the
+    builder, and its state was reachable only over ssh behind a key dead since
+    2026-11-04 -- so "3 build-failed" could not be read against whether the
+    thing that builds was even running. The census runs on the box, so it reads
+    the state locally. These cases hold the line on WHAT may leave the box."""
+
+    def _home(self, service="active", sha="a1b2c3d4e5f6", locks=None, status="{}"):
+        d = tempfile.mkdtemp()
+        if sha is not None:
+            with open(os.path.join(d, ".code.sha"), "w", encoding="utf-8") as fh:
+                fh.write(sha + "\n")
+        if locks is not None:
+            os.mkdir(os.path.join(d, "locks"))
+            for name in locks:
+                open(os.path.join(d, "locks", name), "w").close()
+        if status is not None:
+            with open(os.path.join(d, "status.json"), "w", encoding="utf-8") as fh:
+                fh.write(status)
+        return d, (lambda argv: service)
+
+    def test_it_reads_the_service_word_the_sha_and_the_build_count(self):
+        d, run = self._home(locks=["a", "b"])
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["service"], "active")
+        self.assertEqual(s["code_sha"], "a1b2c3d4e5f6")
+        self.assertEqual(s["building"], 2)
+        self.assertTrue(all(s["read"].values()))
+
+    def test_a_word_systemd_never_says_reads_unknown_not_stopped(self):
+        d, _ = self._home()
+        s = qc.builder_state(d, lambda argv: "Unit could not be found.")
+        self.assertEqual(s["service"], "unknown")
+
+    def test_a_crashed_systemctl_reads_unknown_not_stopped(self):
+        d, _ = self._home()
+
+        def boom(argv):
+            raise OSError("systemctl is not here")
+
+        self.assertEqual(qc.builder_state(d, boom)["service"], "unknown")
+
+    def test_an_UNREADABLE_source_is_null_and_flagged_never_zero(self):
+        # The whole point of DR-0076 section 8: a builder nobody could read is
+        # not an idle builder. `building: 0` would be a lie here.
+        d, run = self._home(sha=None, locks=None, status=None)
+        s = qc.builder_state(d, run)
+        self.assertIsNone(s["code_sha"])
+        self.assertIsNone(s["building"])
+        self.assertIsNone(s["status"])
+        self.assertEqual(s["read"], {"code_sha": False, "building": False, "status": False})
+
+    def test_it_keeps_the_booleans_counts_and_the_stamp(self):
+        d, run = self._home(
+            status=json.dumps({"ok": True, "attempts": 4, "at": "2026-11-17T03:02:12Z"})
+        )
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["status"], {"ok": True, "attempts": 4, "at": "2026-11-17T03:02:12Z"})
+        self.assertEqual(s["status_withheld"], 0)
+
+    def test_PROVEN_TO_CATCH_an_error_string_cannot_leave_the_box(self):
+        # A builder's error text can QUOTE the teaching it failed on, which is
+        # a person's own words, and this receipt rides the PUBLIC road.
+        d, run = self._home(
+            status=json.dumps(
+                {
+                    "ok": False,
+                    "error": "could not parse: Bishop Gwin said the Lord told Mary Smith",
+                    "last_row_body": "a member's teaching, verbatim",
+                    "at": "2026-11-17T03:02:12Z",
+                }
+            )
+        )
+        s = qc.builder_state(d, run)
+        blob = json.dumps(s)
+        for leak in ("error", "Bishop Gwin", "Mary Smith", "last_row_body", "verbatim"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual(s["status_withheld"], 2, "a withheld field must be COUNTED, not hidden")
+        self.assertEqual(s["status"], {"ok": False, "at": "2026-11-17T03:02:12Z"})
+
+    def test_PROVEN_TO_CATCH_a_lock_name_is_counted_never_published(self):
+        # A lock is named for the row it holds; a row the census did not count
+        # as waiting must not reach the public road by this side path.
+        d, run = self._home(locks=["7a79db92-f370-4a7a-830b-24e77caa4ace"])
+        blob = json.dumps(qc.builder_state(d, run))
+        self.assertNotIn("7a79db92", blob)
+        self.assertIn('"building": 1', blob)
+
+    def test_a_sha_shaped_like_prose_is_dropped(self):
+        d, run = self._home(sha="FAILED while reading Mary Smith's lesson")
+        self.assertIsNone(qc.builder_state(d, run)["code_sha"])
+        self.assertTrue(qc.builder_state(d, run)["read"]["code_sha"])
+
+    def test_a_stamp_shaped_like_prose_is_dropped(self):
+        d, run = self._home(status=json.dumps({"at": "right after Mary Smith's row"}))
+        s = qc.builder_state(d, run)
+        self.assertEqual(s["status"], {})
+        self.assertEqual(s["status_withheld"], 1)
+
+    def test_the_census_omits_the_builder_rather_than_faking_it(self):
+        self.assertNotIn("builder", qc.census_of([]))
+        self.assertIn("builder", qc.census_of([], builder={"service": "active"}))
+
+
+class WhyARowStillWaits(unittest.TestCase):
+    """DR-1515. The 06:08 read said the builder was active, building 0, its own
+    record 14 minutes fresh -- while three teachings had waited five days.
+    eligibility() explains it: past MAX_ATTEMPTS a row is left for the hourly
+    Routine ON PURPOSE. Nothing on the public road said so, and `plain` could
+    not tell an untouched row from a handed-over one."""
+
+    # created_by is DARRELL'S on purpose: these cases are about how the builder
+    # handles HIS rows. Without it every verdict is `waits-for-governor`, which
+    # is the correct answer for an unknown author and is pinned in
+    # AMembersRowWaitsForTheGovernor below.
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+
+    def row(self, *tags):
+        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": self.OWNER, "tags": list(tags)}
+
+    def test_an_untouched_row_is_ready_so_the_builder_should_take_it(self):
+        self.assertEqual(qc.why_of(self.row("lesson")), "ready")
+        self.assertEqual(qc.attempts_of(self.row("lesson")), 0)
+
+    def test_a_deferred_row_says_so_rather_than_reading_as_untouched(self):
+        # The exact confusion this record exists to remove: before it, this row
+        # and the one above were both just `plain`.
+        r = self.row("lesson", "build:deferred@2026-11-17T01:00:00Z")
+        self.assertEqual(qc.why_of(r), "deferred")
+        self.assertEqual(qc.shape_of(r), "plain", "shape still cannot tell them apart -- why is what does")
+
+    def test_failures_are_counted_so_exhaustion_is_the_readers_to_judge(self):
+        r = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                     "build:failed@2026-11-12T13:00:00Z", "build-reason:other: a gate refused it")
+        self.assertEqual(qc.why_of(r), "failed")
+        self.assertEqual(qc.attempts_of(r), 2)
+
+    def test_THE_THRESHOLD_IS_NOT_COPIED_so_the_two_files_cannot_drift(self):
+        """The census must never decide exhaustion: the builder owns that number
+        and its environment can change it, so two files computing it is drift.
+
+        CODE ONLY, never the comments. The first draft of this case scanned the
+        whole file and failed on the very comment that explains the threshold is
+        NOT copied -- the same trap the keyless-eye guard fell into hours
+        earlier. A check that fires on its own documentation teaches people to
+        delete the documentation."""
+        path = os.path.join(os.path.dirname(qc.__file__), "lesson-queue-census.py")
+        with open(path, encoding="utf-8") as fh:
+            code = "\n".join(ln for ln in fh.read().split("\n") if not ln.lstrip().startswith("#"))
+        for forbidden in ("MAX_ATTEMPTS", "max_attempts"):
+            self.assertNotIn(forbidden, code, f"{forbidden!r} would duplicate the builder's threshold")
+        # And the builder really does own it, so the pin above is not vacuous.
+        builder = os.path.join(os.path.dirname(qc.__file__), "..", "nas-lesson-builder", "lesson_builder.py")
+        if os.path.exists(builder):
+            with open(builder, encoding="utf-8") as fh:
+                self.assertIn("MAX_ATTEMPTS", fh.read())
+
+    def test_a_rate_limited_failure_is_told_apart_from_a_stuck_one(self):
+        limited = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                           "build-reason:rate-limited: HTTP 429 (success)")
+        stuck = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                         "build-reason:other: no version passed every gate")
+        self.assertEqual(qc.why_of(limited), "rate-limited")
+        self.assertEqual(qc.why_of(stuck), "failed")
+
+    def test_declined_outranks_everything_else(self):
+        r = self.row("lesson", "lesson-declined", "build:deferred@2026-11-17T01:00:00Z",
+                     "build:failed@2026-11-17T01:00:00Z")
+        self.assertEqual(qc.why_of(r), "declined")
+
+    def test_every_verdict_is_in_the_closed_set(self):
+        cases = [self.row("lesson"), self.row("lesson", "lesson-declined"),
+                 self.row("lesson", "build:deferred@x"),
+                 self.row("lesson", "build:failed@x", "build-reason:rate-limited: 429"),
+                 self.row("lesson", "build:failed@x", "build-reason:other: x")]
+        for r in cases:
+            self.assertIn(qc.why_of(r), qc.WHYS)
+
+    def test_PROVEN_TO_CATCH_a_reasons_text_cannot_ride_the_verdict(self):
+        r = self.row("lesson", "build-failed", "build:failed@2026-11-12T12:00:00Z",
+                     "build-reason:other: Bishop Gwin said the Lord told Mary Smith")
+        c = qc.census_of([r])
+        blob = json.dumps(c)
+        for leak in ("Bishop Gwin", "Mary Smith", "build-reason", "said the Lord"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual(c["waiting"][0]["why"], "failed")
+        self.assertEqual(c["waiting"][0]["attempts"], 1)
+
+    def test_a_malformed_tag_list_never_raises(self):
+        # No author either, so the safe verdict is the Governor's queue rather
+        # than `ready`: an unknown row is never asserted as the builder's.
+        for bad in (None, "not a list", 7, {"a": 1}):
+            self.assertEqual(qc.why_of({"tags": bad}), "waits-for-governor")
+            self.assertEqual(qc.attempts_of({"tags": bad}), 0)
+            self.assertEqual(qc.why_of({"tags": bad, "created_by": self.OWNER}), "ready")
+
+
+class AMembersRowWaitsForTheGovernor(unittest.TestCase):
+    """Corrected 2026-11-17, from the first read with verdicts live: four rows
+    said `ready` while the builder sat active and idle, which READ AS the
+    builder neglecting them. The branch was missing. A member's row is never
+    built without `lesson-approved` (DR-0635), so `ready` was overclaiming on
+    the one case where it matters most -- somebody else's teaching."""
+
+    DARRELL = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+    PHONE = "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc"
+    MEMBER = "99999999-9999-9999-9999-999999999999"
+
+    def row(self, who, *tags):
+        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": who, "tags": ["lesson"] + list(tags)}
+
+    def test_both_of_darrells_accounts_read_ready(self):
+        for who in (self.DARRELL, self.PHONE):
+            self.assertEqual(qc.why_of(self.row(who)), "ready")
+
+    def test_a_members_row_waits_for_the_governor_not_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER)), "waits-for-governor")
+
+    def test_an_approved_members_row_becomes_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER, "lesson-approved")), "ready")
+
+    def test_a_declined_members_row_reads_declined_not_governor(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER, "lesson-declined")), "declined")
+
+    def test_a_missing_created_by_is_treated_as_NOT_an_owner(self):
+        # The safe direction: an unknown author waits for the Governor rather
+        # than reading as the builder's to take.
+        self.assertEqual(qc.why_of({"tags": ["lesson"]}), "waits-for-governor")
+        self.assertEqual(qc.why_of({"tags": ["lesson"], "created_by": None}), "waits-for-governor")
+
+    def test_PROVEN_TO_CATCH_no_account_id_rides_the_public_road(self):
+        c = qc.census_of([self.row(self.MEMBER), self.row(self.DARRELL)])
+        blob = json.dumps(c)
+        for leak in (self.MEMBER, self.DARRELL, self.PHONE, "created_by"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual([w["why"] for w in c["waiting"]], ["waits-for-governor", "ready"])
+
+    def test_the_query_carries_created_by_so_the_check_can_happen_at_all(self):
+        self.assertIn("created_by", qc.waiting_query())
+
+    def test_the_OWNER_IDS_here_match_the_builders(self):
+        builder = os.path.join(os.path.dirname(qc.__file__), "..", "nas-lesson-builder", "lesson_builder.py")
+        if os.path.exists(builder):
+            with open(builder, encoding="utf-8") as fh:
+                src = fh.read()
+            for who in qc.OWNER_IDS:
+                self.assertIn(who, src, "the census and the builder disagree about whose rows these are")
+
+
+class WhichCodeAnswered(unittest.TestCase):
+    """DR-1517. 2026-11-17 09:11: DR-1516 taught the census to tell a member's
+    row from Darrell's, and the next read came back with four rows reading
+    `ready`. That was consistent with TWO worlds -- the new code running and
+    those rows being his, or the old code still on the box -- and nothing in
+    the payload told them apart. An answer whose code version is unknown cannot
+    be acted on, so the census names the code that wrote it."""
+
+    SHA = "9e9c90446c3e7769adb7d341fe0d9dedc26b5be8"
+
+    def test_it_reports_the_mirror_head(self):
+        self.assertEqual(qc.census_code_sha("/r", lambda a: self.SHA + "\n"), self.SHA)
+
+    def test_a_short_sha_is_still_a_sha(self):
+        self.assertEqual(qc.census_code_sha("/r", lambda a: "297a00d"), "297a00d")
+
+    def test_PROSE_IS_NOT_A_SHA_so_it_reads_unknown(self):
+        for junk in ("fatal: not a git repository", "", "   ", "HEAD -> main"):
+            self.assertIsNone(qc.census_code_sha("/r", lambda a, j=junk: j))
+
+    def test_a_crashed_git_reads_unknown_not_a_guess(self):
+        def boom(argv):
+            raise OSError("git is not here")
+
+        self.assertIsNone(qc.census_code_sha("/r", boom))
+
+    def test_it_asks_the_repo_it_was_told_about(self):
+        seen = {}
+
+        def spy(argv):
+            seen["argv"] = argv
+            return self.SHA
+
+        qc.census_code_sha("/somewhere/else", spy)
+        self.assertEqual(seen["argv"], ["git", "-C", "/somewhere/else", "rev-parse", "HEAD"])
+
+    def test_the_census_omits_it_rather_than_faking_it(self):
+        self.assertNotIn("code_sha", qc.census_of([]))
+        self.assertEqual(qc.census_of([], code_sha=self.SHA)["code_sha"], self.SHA)
+
+    def test_the_builders_sha_and_the_censuss_are_not_confused(self):
+        # Two different code shas ride this receipt: the builder's own, and the
+        # census's. They sit at different depths on purpose.
+        c = qc.census_of([], builder={"code_sha": "297a00d80ade4aba"}, code_sha=self.SHA)
+        self.assertEqual(c["builder"]["code_sha"], "297a00d80ade4aba")
+        self.assertEqual(c["code_sha"], self.SHA)
+
+
+class TheHeadIsReadWithoutGit(unittest.TestCase):
+    """DR-1518, measured. DR-1517 shipped census_code_sha as `git rev-parse` and
+    the field stayed ABSENT for 59 minutes across about four services-sync
+    cycles -- while DR-1511's census change had reached the box in 16. So the
+    shell-out was failing on the NAS, not waiting on a pull, and every likely
+    cause is a property of calling git as the clock's user: git off that user's
+    PATH, or git refusing a mirror it does not own. The files answer the same
+    question with no PATH, no ownership check and no subprocess."""
+
+    SHA = "e427b604119aa1b2c3d4e5f6a7b8c9d0e1f20304"
+
+    def _repo(self, head=None, ref=None, packed=None):
+        d = tempfile.mkdtemp()
+        g = os.path.join(d, ".git")
+        os.makedirs(g)
+        if head is not None:
+            with open(os.path.join(g, "HEAD"), "w", encoding="utf-8") as fh:
+                fh.write(head)
+        if ref is not None:
+            os.makedirs(os.path.join(g, "refs", "heads"), exist_ok=True)
+            with open(os.path.join(g, "refs", "heads", "main"), "w", encoding="utf-8") as fh:
+                fh.write(ref)
+        if packed is not None:
+            with open(os.path.join(g, "packed-refs"), "w", encoding="utf-8") as fh:
+                fh.write(packed)
+        return d
+
+    def _never(self, argv):
+        raise AssertionError("git must not be called when the files answer")
+
+    def test_a_symbolic_head_resolves_through_the_loose_ref(self):
+        d = self._repo(head="ref: refs/heads/main\n", ref=self.SHA + "\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_detached_head_holds_the_sha_itself(self):
+        d = self._repo(head=self.SHA + "\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_PACKED_ref_is_found_when_the_loose_one_is_gone(self):
+        d = self._repo(head="ref: refs/heads/main\n",
+                       packed="# pack-refs with: peeled fully-peeled sorted \n"
+                              f"{self.SHA} refs/heads/main\n"
+                              "^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_peeled_line_is_never_mistaken_for_the_ref(self):
+        d = self._repo(head="ref: refs/heads/main\n",
+                       packed=f"^{self.SHA}\n0123456789abcdef0123456789abcdef01234567 refs/heads/main\n")
+        self.assertEqual(qc.census_code_sha(d, self._never),
+                         "0123456789abcdef0123456789abcdef01234567")
+
+    def test_GIT_IS_THE_FALLBACK_not_the_first_road(self):
+        # No .git at all: the files cannot answer, so git is asked.
+        d = tempfile.mkdtemp()
+        self.assertEqual(qc.census_code_sha(d, lambda a: self.SHA), self.SHA)
+
+    def test_PROVEN_TO_CATCH_gits_dubious_ownership_refusal(self):
+        # The exact failure this record exists for: git answers prose, not a
+        # sha, and the field must be absent rather than carry the sentence.
+        d = tempfile.mkdtemp()
+        msg = "fatal: detected dubious ownership in repository at '/volume1/PoeTech/repos'"
+        self.assertIsNone(qc.census_code_sha(d, lambda a: msg))
+
+    def test_an_unreadable_ref_falls_through_rather_than_raising(self):
+        d = self._repo(head="ref: refs/heads/main\n")  # no ref file, no packed-refs
+        self.assertIsNone(qc.census_code_sha(d, lambda a: ""))
+
+    def test_a_head_that_is_neither_a_sha_nor_a_ref_reads_unknown(self):
+        d = self._repo(head="gone fishing\n")
+        self.assertIsNone(qc.census_code_sha(d, lambda a: ""))
+
+
+class ARowWithNoWordsSaysSo(unittest.TestCase):
+    """DR-1519. eligibility()'s last unmirrored branch refuses a row with no
+    words, and DR-1516 left it out because testing it LOOKED like it needed the
+    body. It does not: PostgREST answers it as a filter returning only ids. The
+    first design on the table was a generated body_length column -- a schema
+    change on the table holding people's teachings -- for an answer a `where`
+    gives for free."""
+
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+    EMPTY = "825019ca-969e-4f55-87a0-21bbcd15da2c"
+    FULL = "c671009b-04ee-4482-b5ef-921cb7f50d67"
+
+    def row(self, rid, *tags):
+        return {"id": rid, "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": self.OWNER, "tags": ["lesson"] + list(tags)}
+
+    def test_an_empty_row_reads_no_words_and_a_full_one_reads_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), (self.EMPTY,)), "no-words")
+        self.assertEqual(qc.why_of(self.row(self.FULL), (self.EMPTY,)), "ready")
+
+    def test_the_FILTER_asks_for_ids_only_and_never_the_body(self):
+        q = qc.empty_body_query()
+        self.assertIn("select=id", q)
+        self.assertNotIn("body.", q.split("or=(")[0], "no body in the select or the tag filters")
+        self.assertIn("or=(body.is.null,body.eq.)", q)
+        # The same five exclusions as the waiting query: one definition of waiting.
+        for tag in qc.EXCLUDED_TAGS:
+            self.assertIn(urllib_quote(tag), q)
+
+    def test_it_shares_the_waiting_definition_exactly(self):
+        w, e = qc.waiting_query(), qc.empty_body_query()
+        for tag in qc.EXCLUDED_TAGS:
+            self.assertEqual(w.count(urllib_quote(tag)), e.count(urllib_quote(tag)))
+
+    def test_an_unanswered_filter_leaves_a_row_READY_not_no_words(self):
+        # Narrower than the truth, never wider: a refusal must not invent an
+        # empty row, and must not kill the census either.
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), ()), "ready")
+        self.assertEqual(qc.why_of(self.row(self.EMPTY), None), "ready")
+
+    def test_no_words_outranks_deferred_and_the_failure_classes(self):
+        r = self.row(self.EMPTY, "build:deferred@x", "build:failed@x")
+        self.assertEqual(qc.why_of(r, (self.EMPTY,)), "no-words")
+
+    def test_the_governor_still_outranks_no_words(self):
+        r = {"id": self.EMPTY, "created_by": "99999999-9999-9999-9999-999999999999",
+             "tags": ["lesson"], "created_at": "2026-11-17T00:00:00Z"}
+        self.assertEqual(qc.why_of(r, (self.EMPTY,)), "waits-for-governor")
+
+    def test_PROVEN_TO_CATCH_the_census_never_SELECTS_a_body(self):
+        """The property is about PROJECTION, not the word.
+
+        A blunter first draft asserted the file never contains `"body"` at all
+        and failed on the census WRITING ITS OWN row -- `publish()` sets
+        {"body": <the census json>}, which is this loop's own payload and not
+        anybody's teaching. The precise rule: `body` may appear in a PREDICATE
+        (the empty filter) and never in a `select`."""
+        for q in (qc.waiting_query(), qc.empty_body_query()):
+            select = [p for p in q.split("&") if "select=" in p]
+            self.assertTrue(select, q)
+            self.assertNotIn("body", select[0], "a body must never be PROJECTED")
+        # And the one predicate that may name it is exactly the empty test.
+        named = [p for p in qc.empty_body_query().split("&") if "body" in p]
+        self.assertEqual(named, ["or=(body.is.null,body.eq.)"])
+        self.assertEqual([p for p in qc.waiting_query().split("&") if "body" in p], [])
+
+    def test_the_census_threads_the_ids_through(self):
+        c = qc.census_of([self.row(self.EMPTY), self.row(self.FULL)], empty_ids=(self.EMPTY,))
+        self.assertEqual([w["why"] for w in c["waiting"]], ["no-words", "ready"])
+
+
+def urllib_quote(tag):
+    import json as _j
+    import urllib.parse as _u
+
+    return _u.quote(_j.dumps([tag]))
