@@ -102,7 +102,11 @@ export default {
       },
       {
         q: 'Eight verses after the confession, what does Jesus say to the same man?',
-        options: ['Well done, good and faithful servant', 'Get thee behind me — he was savouring the things of men, not the things of Yahweh', 'Nothing; the chapter ends'],
+        options: [
+          'Well done, good and faithful servant',
+          'Get thee behind me — he was savouring the things of men, not the things of Yahweh',
+          'Nothing; the chapter ends',
+        ],
         answer: 1,
         explain:
           '"But he turned, and said unto Peter, Get thee behind me, satan: thou art an offence unto me: for thou savourest not the things that be of God, but those that be of men." (Matthew 16:23) The same mouth that confessed by revelation spoke against the cross by its own wisdom. Read both halves of the chapter.',
