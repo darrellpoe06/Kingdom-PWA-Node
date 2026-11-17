@@ -26,12 +26,27 @@
 // three is proven by looking at the migration's own SELECT list, not by trusting
 // its comment.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const repo = join(__dirname, '..', '..', '..');
 const wf = readFileSync(join(repo, '.github', 'workflows', 'inbox-lessons-waiting.yml'), 'utf8');
-const mig = readFileSync(join(repo, 'infra', 'supabase', 'migrations-auto', '0320-the-house-says-which-teachings-wait.sql'), 'utf8');
+// THE DEFINITION IN FORCE, DERIVED FROM DISK (2026-11-17). This was pinned to
+// 0320 by name, and `lesson_queue_receipt()` has been REPLACED three times
+// since — 0322 added `by_stall`, 0326 added `waiting`, 0327 added `builder`. So
+// every check below was reading the FIRST definition while the live function
+// came from the last: the guard was green about text no longer in use. The
+// newest migration that replaces the function is the one that matters, and
+// taking it from disk means this can never go stale by name again.
+const MIG_DIR = join(repo, 'infra', 'supabase', 'migrations-auto');
+const receiptMigs = readdirSync(MIG_DIR)
+  .filter((f) => f.endsWith('.sql'))
+  .filter((f) =>
+    readFileSync(join(MIG_DIR, f), 'utf8').includes('FUNCTION public.lesson_queue_receipt()')
+  )
+  .sort();
+const migFile = receiptMigs[receiptMigs.length - 1];
+const mig = readFileSync(join(MIG_DIR, migFile), 'utf8');
 const reader = readFileSync(join(repo, 'scripts', 'served-lesson-queue.py'), 'utf8');
 const census = readFileSync(join(repo, 'infra', 'nas-loops', 'lesson-queue-census.py'), 'utf8');
 
@@ -110,12 +125,40 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
     const roads = roadsBlock[1].match(/"([a-z-]+)"/g).map((s) => s.replace(/"/g, ''));
     for (const r of roads) expect(mig, `by_road key ${r} is missing from the allowed list`).toContain(`'${r}'`);
     expect(mig, 'a road the census buckets as "other" must be sayable too').toContain("'other'");
-    // Scoped to shape_of's own body: publish() also returns bare strings
-    // ('patched', 'inserted') and those are not shapes the census ever speaks.
-    const shapeFn = census.slice(census.indexOf('def shape_of('), census.indexOf('def census_of('));
-    const shapes = [...shapeFn.matchAll(/return "([a-z-]+)"/g)].map((m) => m[1]);
+    // SCOPED TO ONE FUNCTION AT A TIME, which this never actually was. The slice
+    // ran from `shape_of` all the way to `census_of`, so it harvested every
+    // sibling in between and called them shapes. It passed only by luck —
+    // `stall_of`'s returns happen to be whitelisted too — and broke the moment
+    // 0327's `_service_word` landed in that span and offered `unknown` as a
+    // shape. Each function is now read to the next `def` and checked against
+    // the list that actually publishes it.
+    const bodyOf = (name) => {
+      const start = census.indexOf(`def ${name}(`);
+      expect(start, `${name} is not in the census — the parse is wrong, not the migration`).toBeGreaterThan(-1);
+      const next = census.indexOf('\ndef ', start + 1);
+      return census.slice(start, next === -1 ? census.length : next);
+    };
+    const returnsOf = (name) => [...bodyOf(name).matchAll(/return "([a-z-]+)"/g)].map((m) => m[1]);
+
+    const shapes = returnsOf('shape_of');
     expect(shapes.length, 'shape_of returned nothing — the parse is wrong, not the migration').toBeGreaterThan(3);
     for (const s of shapes) expect(mig, `by_shape key ${s} is missing from the allowed list`).toContain(`'${s}'`);
+
+    // by_stall is published too, so its classes are checked rather than merely
+    // swept up by a loose slice.
+    const stalls = returnsOf('stall_of');
+    expect(stalls.length, 'stall_of returned nothing').toBeGreaterThan(1);
+    for (const s of stalls) expect(mig, `by_stall key ${s} is missing from the allowed list`).toContain(`'${s}'`);
+
+    // The builder's service word (0327): systemd's vocabulary plus the census's
+    // own fallback. A word the migration cannot say would be dropped silently.
+    const svcBlock = census.match(/^SERVICE_WORDS = \(([^)]*)\)/m);
+    if (svcBlock) {
+      const words = svcBlock[1].match(/"([a-z]+)"/g).map((s) => s.replace(/"/g, ''));
+      for (const w of words) expect(mig, `service word ${w} is missing from the allowed list`).toContain(`'${w}'`);
+      for (const w of returnsOf('_service_word'))
+        expect(mig, `service fallback ${w} is missing from the allowed list`).toContain(`'${w}'`);
+    }
     expect(mig).toMatch(/k = ANY\(k_roads\)/);
     expect(mig).toMatch(/k = ANY\(k_shapes\)/);
   });
