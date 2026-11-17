@@ -195,7 +195,8 @@ describe('Coming Up on the phone', () => {
       { onDesignate: () => {} }
     );
     expect(h.querySelector('[data-testid="coming-up-next30-value"]').textContent).toBe('$930');
-    expect(h.querySelector('[data-testid="coming-up-next30"]').textContent).toMatch(/income expected before these are due: \$4,000/);
+    expect(h.querySelector('[data-testid="coming-up-next30"]').textContent).toMatch(/income expected in the next 30 days: \$4,000/);
+    expect(h.querySelector('[data-testid="coming-up-next30"]').textContent).not.toMatch(/before these are due/); // the old mislabel (Christina 2026-11-16)
     expect(h.querySelector('[data-testid="coming-up-reserve-value"]').textContent).toBe('$1,500');
     expect(h.querySelector('[data-testid="coming-up-reserve"]').textContent).toMatch(/Personal’s own money set aside/);
     expect(h.querySelector('[data-testid="coming-up-reserve-goal-value"]').textContent).toBe('$10,000');
