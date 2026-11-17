@@ -41,8 +41,11 @@
 # a person had marked not a lesson or TAKEN BACK (DR-1142). An overcount of the
 # queue is a plan to build from words somebody withdrew.
 #
-# BRAKES (DR-0248, P10): BUDGET -- at most one read and one write per cycle, no
-# retry loop, no pagination beyond the one request. LOCK -- one row, patched in
+# BRAKES (DR-0248, P10): BUDGET -- at most TWO reads and one write per cycle, no
+# retry loop, no pagination beyond those requests. (It was one read until
+# DR-1519 added the empty-body FILTER, which asks for ids only and whose own
+# failure is caught so a refusal costs that one answer and not the census.)
+# LOCK -- one row, patched in
 # place, so a second run in the same cycle overwrites rather than accumulates.
 # STOP -- `enabled: false` on its registry entry, which is deterministic logic
 # the clock reads, and a missing credential is a named quiet no-op (exit 0) that
@@ -50,6 +53,7 @@
 import json
 import os
 import platform
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -74,6 +78,39 @@ DEFAULT_HOME = "/volume1/PoeTech/lesson-queue-census"
 # waits?" without carrying a single word of anyone's teaching.
 ROADS = ("thinking-space", "lesson-voice-transcribe", "research-inbox", "chat-split")
 
+# THE NAS LESSON BUILDER'S OWN STATE (DR-1514). Three of the six rows waiting on
+# 2026-11-17 had failed ON THE BUILDER, and the only road to its state was
+# `lesson-builder-status.sh --nas` -- ssh, behind the Tailscale key that has been
+# refused since 2026-11-04. So a session could see THAT builds failed and never
+# whether the builder was even running. The census already runs ON the box, so
+# it reads these four local paths with no key and no ssh at all.
+#
+# WHAT MAY TRAVEL. This receipt is read over the PUBLIC road, so nothing here is
+# passed through: a closed set for the service word, a hex sha, counts, and from
+# status.json only booleans, small integers and ISO-shaped timestamps under a
+# whitelist. No free text ever -- a builder's error string can quote the
+# teaching it failed on, which is a person's own words.
+# WHICH CODE ANSWERED (DR-1517). Measured 2026-11-17 09:11: DR-1516 taught the
+# census to tell a member's row from Darrell's, and minutes later the read came
+# back with four rows reading `ready`. That is consistent with TWO different
+# worlds -- the new code running and those rows being his own, OR the old code
+# still on the box and the owner check not yet in play -- and nothing in the
+# payload could tell them apart. An answer whose code version is unknown cannot
+# be acted on (DR-0076 section 8), so the census now says which code wrote it:
+# the mirror's HEAD, the same value replay-on-clock reads for the same reason.
+CENSUS_REPO = "/volume1/PoeTech/repos/Kingdom-PWA-Node"
+BUILDER_HOME = "/volume1/PoeTech/lesson-builder"
+BUILDER_UNIT = "poetech-lesson-builder"
+# systemd's own vocabulary; anything else reads as "unknown", never as stopped.
+SERVICE_WORDS = ("active", "inactive", "failed", "activating", "deactivating", "reloading")
+# Keys of status.json that may be published AT ALL, and only when their value
+# passes the shape test below. A key outside this set is counted, never named.
+STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds")
+# A git sha and an ISO stamp are STRUCTURE, not prose: neither can carry a
+# sentence, which is why these two are the only strings allowed through.
+HEX_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+ISO_AT = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
+
 
 def rest(url, key, method, path, body=None, extra_headers=None):
     headers = {
@@ -92,7 +129,7 @@ def rest(url, key, method, path, body=None, extra_headers=None):
     return json.loads(raw) if raw.strip() else None
 
 
-def waiting_query(select="id,created_at,source,tags"):
+def waiting_query(select="id,created_at,source,tags,created_by"):
     """The ONE definition, as PostgREST filters. Same five exclusions as the SQL."""
     parts = [
         "agent_inbox?select=" + select,
@@ -101,6 +138,37 @@ def waiting_query(select="id,created_at,source,tags"):
     for tag in EXCLUDED_TAGS:
         parts.append("tags=not.cs." + urllib.parse.quote(json.dumps([tag])))
     parts.append("order=created_at.asc")
+    return "&".join(parts)
+
+
+def empty_body_query():
+    """The ids of waiting rows WITH NO WORDS, asked as a FILTER (DR-1519).
+
+    WHY A FILTER AND NOT A COLUMN. `eligibility()` refuses a row whose body is
+    empty -- "no words" -- and DR-1516 left that branch unmirrored because
+    testing it looked like it needed the body. It does not: PostgREST can ask
+    the question as a `where` and return only IDS, which already ride this road.
+    The first design on the table was a generated `body_length` column, a schema
+    change on the table holding people's teachings, for an answer a filter gives
+    for free.
+    
+    NO WORDS CROSS THE WIRE, not even to be measured. The census never selects
+    `body` -- here or anywhere -- so there is nothing to leak and nothing to
+    forget to drop.
+    
+    ITS LIMIT, STATED: `eligibility()` also refuses a body that is only
+    whitespace, and PostgREST cannot express `btrim(body) = ''` as a filter. A
+    whitespace-only row therefore still reads `ready`. Narrower than the
+    builder, never wider, and said out loud rather than discovered.
+    """
+    parts = [
+        "agent_inbox?select=id",
+        "tags=cs." + urllib.parse.quote(json.dumps([REQUIRED_TAG])),
+    ]
+    for tag in EXCLUDED_TAGS:
+        parts.append("tags=not.cs." + urllib.parse.quote(json.dumps([tag])))
+    # NULL or the empty string; the two the builder's `or ""` collapses together.
+    parts.append("or=(body.is.null,body.eq.)")
     return "&".join(parts)
 
 
@@ -153,7 +221,262 @@ def stall_of(row):
     return "other"
 
 
-def census_of(rows, now=None):
+# WHY A ROW IS STILL WAITING, AND HOW MANY TRIES IT HAS HAD (DR-1515).
+# Measured 2026-11-17, the first read with 0327's builder block live: the
+# builder was `active`, `building now: 0`, its own record 14 minutes fresh --
+# and three teachings had waited five days. Reading
+# lesson_builder.eligibility() explained it: past LESSON_BUILD_MAX_ATTEMPTS a
+# row is "left for the hourly Routine" ON PURPOSE. The handoff works. Nothing
+# on the public road said so, and four more rows read `plain`, which means only
+# "none of the special tags" -- so a row nobody has touched looked exactly like
+# one the builder had handed over and was waiting on. Those ask for different
+# acts from a reader.
+#
+# THE THRESHOLD IS NOT COPIED HERE. MAX_ATTEMPTS is the builder's, settable by
+# its own environment, and two files computing one number is how they drift
+# (the lesson this repository already wrote about `Next ID`). So the ATTEMPT
+# COUNT travels and the comparison is the reader's.
+#
+# Codes only, from the tags, never a reason's text: a verdict is a tag shape,
+# which is what this file may emit.
+WHYS = ("declined", "waits-for-governor", "no-words", "deferred", "rate-limited", "failed", "ready")
+# Darrell's own two accounts (lesson_builder.OWNER_IDS). A row from anyone else
+# is a MEMBER's teaching and is never built without `lesson-approved` (DR-0635),
+# so it is not the builder neglecting it -- it waits for the Governor. The ids
+# are compared HERE and never published: what travels is one word.
+OWNER_IDS = (
+    "f13843f2-742b-4f8a-82af-7ecfbdc536ec",
+    "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc",
+)
+
+
+def attempts_of(row):
+    """How many times a build of this row has FAILED, from its stage tags."""
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    n = 0
+    for tag in tags:
+        if isinstance(tag, str) and tag.startswith("build:failed@"):
+            n += 1
+    return n
+
+
+def why_of(row, empty_ids=()):
+    """Why this row still waits, as one word from WHYS.
+
+    Mirrors the ORDER of lesson_builder.eligibility()'s remaining branches for
+    a row this census already counts as waiting (captured, withdrawn, building,
+    awaiting-review and not-a-lesson are excluded before they reach here).
+    `failed` carries no judgment about exhaustion -- `attempts` is published
+    beside it so the reader compares against the builder's own threshold.
+
+    `ready` means NOTHING IN THE TAGS OR THE OWNER CHECK BLOCKS IT -- not that
+    the builder will certainly take it. One branch of eligibility() is
+    deliberately NOT mirrored: it refuses a row with no words, and testing that
+    would mean reading the body this file must never read. So `ready` can still
+    be refused for emptiness, and that limit is stated rather than hidden.
+    """
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    if "lesson-declined" in tags:
+        return "declined"
+    # MEASURED AND CORRECTED 2026-11-17, the first read with verdicts live: four
+    # rows said `ready` while the builder sat active and idle, which read as the
+    # builder neglecting them. It was this branch missing. A member's row is
+    # never built without `lesson-approved`, so `ready` was overclaiming on the
+    # one case where it matters most -- somebody else's teaching.
+    if str(row.get("created_by") or "") not in OWNER_IDS and "lesson-approved" not in tags:
+        return "waits-for-governor"
+    # NO WORDS YET (DR-1519). eligibility()'s last branch, mirrored at last: the
+    # research road can write a row before its words arrive, and such a row read
+    # `ready` while the builder refused it -- which is how an idle builder came
+    # to look like a neglectful one. `empty_ids` comes from a FILTER; no body is
+    # ever read to learn this.
+    if row.get("id") in (empty_ids or ()):
+        return "no-words"
+    if any(isinstance(x, str) and x.startswith("build:deferred@") for x in tags):
+        return "deferred"
+    if attempts_of(row):
+        return "rate-limited" if stall_of(row) == "rate-limited" else "failed"
+    return "ready"
+
+
+def _service_word(run):
+    """systemd's word for the builder unit, or 'unknown'. Never 'inactive' on error."""
+    try:
+        out = run(["systemctl", "is-active", BUILDER_UNIT])
+    # DELIBERATELY BLIND. The census must not die because it could not ask a
+    # service word, and every outcome here is the same one: unknown, never
+    # stopped. Narrowing this would only let a new exception type kill the
+    # whole census for the least important field it publishes.
+    except Exception:  # noqa: BLE001
+        return "unknown"
+    word = (out or "").strip().split("\n")[0].strip()
+    return word if word in SERVICE_WORDS else "unknown"
+
+
+def _status_fields(raw):
+    """The publishable fields of status.json: whitelisted keys, shape-tested values.
+
+    Returns (fields, dropped) where `dropped` counts what was refused, so a
+    reader is told something was withheld rather than shown a short list that
+    looks complete.
+    """
+    fields, dropped = {}, 0
+    if not isinstance(raw, dict):
+        return fields, dropped
+    for k, v in raw.items():
+        if k not in STATUS_KEYS:
+            dropped += 1
+            continue
+        if isinstance(v, bool) or (isinstance(v, int) and -1 <= v <= 100000):
+            fields[k] = v
+        elif k == "at" and isinstance(v, str) and ISO_AT.match(v):
+            # The stamp only, never a free string: a timestamp cannot carry a
+            # sentence, and this one is what tells a reader whether the
+            # builder's own record is current or stale.
+            fields[k] = v
+        else:
+            dropped += 1
+    return fields, dropped
+
+
+def builder_state(home=BUILDER_HOME, run=None):
+    """The builder's own state, read locally with no key (DR-1514).
+
+    Every source is reported as read or NOT read. A path this cannot open is
+    `null` with `read: false`, never a zero or a reassuring default: an
+    unreadable builder is not an idle builder (DR-0076 section 8).
+    """
+    if run is None:
+
+        def run(argv):
+            # Imported here, not at the top: only the NAS path ever needs it.
+            import subprocess
+
+            return subprocess.run(
+                argv, capture_output=True, text=True, timeout=10, check=False
+            ).stdout
+
+    state = {"service": _service_word(run), "read": {}}
+
+    sha = None
+    try:
+        with open(os.path.join(home, ".code.sha"), encoding="utf-8") as fh:
+            cand = fh.read().strip()
+        sha = cand if HEX_SHA.match(cand) else None
+        state["read"]["code_sha"] = True
+    except OSError:
+        state["read"]["code_sha"] = False
+    state["code_sha"] = sha
+
+    try:
+        names = os.listdir(os.path.join(home, "locks"))
+        # The COUNT, never the names: a lock file is named for the row it holds,
+        # and a row this census did not count as waiting would otherwise be
+        # published by a path nobody reviewed for it.
+        state["building"] = len(names)
+        state["read"]["building"] = True
+    except OSError:
+        state["building"] = None
+        state["read"]["building"] = False
+
+    try:
+        with open(os.path.join(home, "status.json"), encoding="utf-8") as fh:
+            raw = json.load(fh)
+        fields, dropped = _status_fields(raw)
+        state["status"] = fields
+        state["status_withheld"] = dropped
+        state["read"]["status"] = True
+    except (OSError, ValueError):
+        state["status"] = None
+        state["status_withheld"] = None
+        state["read"]["status"] = False
+
+    return state
+
+
+def _head_from_files(repo):
+    """The mirror's HEAD read as FILES, with no subprocess at all.
+
+    WHY NOT git (DR-1518, measured): DR-1517 shipped this as
+    `git -C <repo> rev-parse HEAD` and the field stayed ABSENT for 59 minutes
+    across about four services-sync cycles, while DR-1511's census change had
+    reached the box in 16. So the shell-out was failing on the NAS, not waiting
+    on a pull. Every likely cause is a property of calling git as whichever user
+    the clock runs the census as -- `git` not on that user's PATH, or git
+    refusing the mirror it does not own with "fatal: detected dubious
+    ownership", which my shape test correctly turned into unknown rather than
+    publishing prose.
+    
+    Reading the files sidesteps all of it: `.git/HEAD` is a symbolic ref, the
+    ref file holds the sha, and `.git/packed-refs` holds it when the loose ref
+    has been packed away. No PATH, no ownership check, no subprocess.
+    """
+    try:
+        with open(os.path.join(repo, ".git", "HEAD"), encoding="utf-8") as fh:
+            head = fh.read().strip()
+    except OSError:
+        return None
+    if HEX_SHA.match(head):
+        return head  # a detached HEAD holds the sha itself
+    if not head.startswith("ref: "):
+        return None
+    ref = head[len("ref: "):].strip()
+    try:
+        with open(os.path.join(repo, ".git", *ref.split("/")), encoding="utf-8") as fh:
+            cand = fh.read().strip()
+        if HEX_SHA.match(cand):
+            return cand
+    except OSError:
+        pass
+    # The loose ref can be packed away; packed-refs is the same answer, written
+    # as "<sha> <ref>" lines with comments and peeled tags mixed in.
+    try:
+        with open(os.path.join(repo, ".git", "packed-refs"), encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith(("#", "^")):
+                    continue
+                parts = line.split()
+                if len(parts) == 2 and parts[1] == ref and HEX_SHA.match(parts[0]):
+                    return parts[0]
+    except OSError:
+        pass
+    return None
+
+
+def census_code_sha(repo=None, run=None):
+    """The mirror HEAD the census is running from, or None when unreadable.
+
+    None rather than a guess: a reader must be able to tell "this came from code
+    I can name" from "I do not know which code answered" (DR-1517). The FILES
+    are asked first and `git` only as a fallback, for the reasons in
+    _head_from_files -- the subprocess is the part that failed in practice.
+    """
+    sha = _head_from_files(repo or CENSUS_REPO)
+    if sha:
+        return sha
+    if run is None:
+
+        def run(argv):
+            # Imported here, not at the top: only the NAS path ever needs it.
+            import subprocess
+
+            return subprocess.run(
+                argv, capture_output=True, text=True, timeout=10, check=False
+            ).stdout
+
+    try:
+        out = run(["git", "-C", repo or CENSUS_REPO, "rev-parse", "HEAD"])
+    # DELIBERATELY BLIND, as the service word is: the census must not die for
+    # failing to name itself, and every failure means the same thing -- unknown.
+    except Exception:  # noqa: BLE001
+        return None
+    cand = (out or "").strip().split("\n")[0].strip()
+    return cand if HEX_SHA.match(cand) else None
+
+
+def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=()):
     """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
     rows = rows or []
     by_road = {}
@@ -192,6 +515,11 @@ def census_of(rows, now=None):
         }
         if shape == "build-failed":
             entry["stall"] = stall_of(r)
+        # WHY it waits, and how many tries it has had (DR-1515). `ready` means
+        # the builder should take it; `deferred` and an exhausted `failed` mean
+        # it was handed to the hourly Routine on purpose.
+        entry["why"] = why_of(r, empty_ids)
+        entry["attempts"] = attempts_of(r)
         waiting.append(entry)
     oldest = None
     for r in rows:
@@ -215,6 +543,15 @@ def census_of(rows, now=None):
         "oldest_waiting": oldest,
         # id, created_at, source and class per row. No tags, no body.
         "waiting": waiting,
+        # The builder's own state, so "3 build-failed" can be read against
+        # whether the thing that builds is even running (DR-1514). Omitted
+        # rather than faked when the caller did not gather it.
+        **({"builder": builder} if builder is not None else {}),
+        # WHICH CODE WROTE THIS (DR-1517). Without it a verdict cannot be read:
+        # `ready` means different things before and after DR-1516's owner check,
+        # and nothing else in the payload distinguishes them. Absent, never
+        # faked, when the caller did not gather it.
+        **({"code_sha": code_sha} if code_sha is not None else {}),
         # The definition travels WITH the count, so a reader can tell which
         # question was asked and never has to assume it was this one.
         "excludes": list(EXCLUDED_TAGS),
@@ -318,7 +655,24 @@ def main():
             print(f"lesson-queue-census: no instance with slug '{slug}'")
             return 1
         rows = rest(url, key, "GET", waiting_query()) or []
-        body = json.dumps(census_of(rows))
+        # ONE extra request, ids only, and the BUDGET says so (two reads and one
+        # write per cycle now). A refusal here must not cost the whole census,
+        # so an unanswered question leaves empty_ids empty -- which means a row
+        # with no words reads `ready` rather than the census dying. Narrower
+        # than the truth, never wider.
+        try:
+            empty = rest(url, key, "GET", empty_body_query()) or []
+            empty_ids = tuple(r.get("id") for r in empty if isinstance(r, dict) and r.get("id"))
+        except (OSError, ValueError, KeyError):
+            empty_ids = ()
+        body = json.dumps(
+            census_of(
+                rows,
+                builder=builder_state(),
+                code_sha=census_code_sha(),
+                empty_ids=empty_ids,
+            )
+        )
         what = publish(
             url,
             key,
