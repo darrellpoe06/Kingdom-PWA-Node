@@ -270,6 +270,17 @@ def judge(receipt, why, now=None):
     # means one thing under a live builder and another under a dead one, and
     # until now the builder's own state was reachable only over ssh behind the
     # refused key. An unreadable source prints as `unread`, never as 0.
+    # WHICH CODE WROTE THIS CENSUS (0330, DR-1517). A verdict read without it is
+    # ambiguous: `ready` means one thing before DR-1516's owner check and
+    # another after. Unknown is SAID, never passed over in silence.
+    cs = receipt.get("code_sha")
+    if isinstance(cs, str) and cs:
+        lines.append(f"Written by census code {cs[:12]}.")
+    else:
+        lines.append(
+            "The census did not name its own code, so which version produced these "
+            "verdicts is UNKNOWN -- read `ready` with that in mind."
+        )
     bl = receipt.get("builder")
     if isinstance(bl, dict) and bl:
         read = bl.get("read") if isinstance(bl.get("read"), dict) else {}

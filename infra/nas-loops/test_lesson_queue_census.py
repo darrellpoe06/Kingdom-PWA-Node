@@ -595,3 +595,51 @@ class AMembersRowWaitsForTheGovernor(unittest.TestCase):
                 src = fh.read()
             for who in qc.OWNER_IDS:
                 self.assertIn(who, src, "the census and the builder disagree about whose rows these are")
+
+
+class WhichCodeAnswered(unittest.TestCase):
+    """DR-1517. 2026-11-17 09:11: DR-1516 taught the census to tell a member's
+    row from Darrell's, and the next read came back with four rows reading
+    `ready`. That was consistent with TWO worlds -- the new code running and
+    those rows being his, or the old code still on the box -- and nothing in
+    the payload told them apart. An answer whose code version is unknown cannot
+    be acted on, so the census names the code that wrote it."""
+
+    SHA = "9e9c90446c3e7769adb7d341fe0d9dedc26b5be8"
+
+    def test_it_reports_the_mirror_head(self):
+        self.assertEqual(qc.census_code_sha("/r", lambda a: self.SHA + "\n"), self.SHA)
+
+    def test_a_short_sha_is_still_a_sha(self):
+        self.assertEqual(qc.census_code_sha("/r", lambda a: "297a00d"), "297a00d")
+
+    def test_PROSE_IS_NOT_A_SHA_so_it_reads_unknown(self):
+        for junk in ("fatal: not a git repository", "", "   ", "HEAD -> main"):
+            self.assertIsNone(qc.census_code_sha("/r", lambda a, j=junk: j))
+
+    def test_a_crashed_git_reads_unknown_not_a_guess(self):
+        def boom(argv):
+            raise OSError("git is not here")
+
+        self.assertIsNone(qc.census_code_sha("/r", boom))
+
+    def test_it_asks_the_repo_it_was_told_about(self):
+        seen = {}
+
+        def spy(argv):
+            seen["argv"] = argv
+            return self.SHA
+
+        qc.census_code_sha("/somewhere/else", spy)
+        self.assertEqual(seen["argv"], ["git", "-C", "/somewhere/else", "rev-parse", "HEAD"])
+
+    def test_the_census_omits_it_rather_than_faking_it(self):
+        self.assertNotIn("code_sha", qc.census_of([]))
+        self.assertEqual(qc.census_of([], code_sha=self.SHA)["code_sha"], self.SHA)
+
+    def test_the_builders_sha_and_the_censuss_are_not_confused(self):
+        # Two different code shas ride this receipt: the builder's own, and the
+        # census's. They sit at different depths on purpose.
+        c = qc.census_of([], builder={"code_sha": "297a00d80ade4aba"}, code_sha=self.SHA)
+        self.assertEqual(c["builder"]["code_sha"], "297a00d80ade4aba")
+        self.assertEqual(c["code_sha"], self.SHA)

@@ -2736,6 +2736,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 3,
       "notes": "DR-1515's own first live answer corrected it inside the hour. Four rows read ready while the builder was active and building nothing, which reads as the builder neglecting four teachings. The cause was a branch of eligibility() I had not mirrored: a row whose created_by is not one of Darrell's two accounts is never built without lesson-approved, because a member's words are the Governor's to release. The account ids are compared on the box and one word is published, so no id rides the public road. The same read also corrected my own account of the failures: MAX_ATTEMPTS is 2 and the counts were 1, 1 and 2, so only one of the three had been handed to the hourly Routine, not all three as I had said an hour earlier."
+    },
+    {
+      "id": "census-says-which-code-wrote-it",
+      "date": "2026-11-17",
+      "task": "A verdict on the public road can be read, because the census names the code that produced it",
+      "drs": [
+        "DR-1517"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "0329 shipped the owner check and the very next read returned four rows reading ready, which was consistent with two different worlds: the new code running and those four being Darrell's own, or the old code still on the box and the owner check not yet in play. The census reaches the NAS by the services-sync pull, so its version is always a question, and the receipt published the builder's code sha and never its own. That is the DR-0076 section 8 failure from the other side - not a count read as zero but a verdict read without knowing what computed it, which is easier to miss because the field looks authoritative. The mirror HEAD now travels beside the builder's sha at a different depth, absent rather than faked when git answers prose, and the reader says the unknown out loud. Proven on a real PostgreSQL 16: a real sha published verbatim and a planted sha of 'fatal: not a git repository (Mary Smith)' came back absent with the name nowhere in the receipt."
     }
   ]
 }
