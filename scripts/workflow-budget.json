@@ -161,7 +161,14 @@
       "to": 23147,
       "dr": "DR-1483",
       "reason": "live-homepage-still.yml, dispatch only: a runner's Chrome opens the production Love Corner door at a phone and a desktop width, waits for the door's own header (DR-1483) and leaves the stills as an artifact, because the sandbox has no route to poetech.us (DR-0125) and DR-0104 asks that the live push be reviewed on the live site. It calls the reusable _browser-probe.yml; the caller is the trigger, the brake and the arguments only. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-16",
+      "from": 23147,
+      "to": 23156,
+      "dr": "DR-1507",
+      "reason": "inbox-lessons-waiting.yml's rolling-log step gains one elif: when the tailnet is shut and the house's own census answered, its lines ride the log entry instead of only the count, because the shape and the stall reasons are what decide whether a waiting teaching is buildable at all and reaching them in the step summary costs a cloud session thousands of tokens (DR-1186). The comment is folded to five lines with the measurement in DR-1507 and its session note. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23147
+  "totalLines": 23156
 }

@@ -136,9 +136,81 @@ describe('never a body', () => {
     expect(LOG).toMatch(/waiting-rows\.txt/);
   });
 
-  it('the log step reads the rows ONLY from the file the query wrote', () => {
+  it('the log step reads the rows ONLY from the file the query wrote, or the census that carries no row at all', () => {
     expect(READ).toMatch(/> "\$RUNNER_TEMP\/waiting-rows\.txt"/);
     const reads = [...LOG.matchAll(/\$RUNNER_TEMP\/([a-z-]+\.(?:txt|md))/g)].map((m) => m[1]);
-    expect(new Set(reads)).toEqual(new Set(['waiting-rows.txt', 'intake-line.md', 'intake-body.md']));
+    // `served-queue.txt` ADMITTED 2026-11-16 (DR-1507), and the admission is
+    // backed by the next case rather than by this comment: it is the census's
+    // own stdout, which carries counts and tag names and no row at all. Still a
+    // CLOSED set -- a third file appearing here fails until someone says why.
+    expect(new Set(reads)).toEqual(
+      new Set(['waiting-rows.txt', 'served-queue.txt', 'intake-line.md', 'intake-body.md'])
+    );
+  });
+
+  it('the census whose output the log now carries cannot print a body', () => {
+    // WHY THIS EXISTS. The case above used to pin ONE readable file, and that
+    // single name was the whole privacy argument. Admitting a second file on
+    // the strength of a comment would have traded a check for a claim
+    // (DR-0076 §2), so the new file's PRODUCER is pinned instead.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    // It never asks the receipt for a body, under any spelling.
+    expect(served).not.toMatch(/\bget\(\s*["']body["']/);
+    expect(served).not.toMatch(/\[\s*["']body["']\s*\]/);
+    // And the receipt it reads is a count row: the fields it prints are the
+    // total, a stamp, the oldest row's TIMESTAMP, and three dicts whose keys
+    // are class names. `by_stall` is the nearest thing to prose and is printed
+    // by its class only -- the stall's own reason text can quote a person.
+    for (const field of ['total', 'at', 'oldest_waiting', 'by_road', 'by_shape', 'by_stall', 'excludes']) {
+      expect(served, field).toContain(field);
+    }
+  });
+
+  it('the builder state it prints is a closed set of fields, never free text (DR-1514)', () => {
+    // 0327 lets the receipt carry the NAS builder's own state, so a reader can
+    // weigh `build-failed: 3` against whether the builder is running. That is
+    // a NEW kind of field on this road, and a builder's error string can quote
+    // the teaching it failed on -- so what the reader may print is pinned here
+    // the same way the producer is pinned above.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('bl = receipt.get("builder")'));
+    const quoted = new Set([...block.matchAll(/\bbl\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    // `read` and `status` are containers whose own keys the SQL whitelists.
+    expect(quoted).toEqual(new Set(['read', 'status', 'service', 'status_withheld']));
+    // Nothing that could carry a sentence is ever asked for.
+    for (const never of ['error', 'reason', 'message', 'last_row_body', 'locks', 'stderr', 'log']) {
+      expect(block, never).not.toContain(`'${never}'`);
+      expect(block, never).not.toContain(`"${never}"`);
+    }
+    // An unreadable source must print as unread, never as a reassuring zero.
+    expect(block).toContain('unread');
+    expect(block).toMatch(/UNKNOWN -- not idle/);
+  });
+
+  it('the per-row verdict is a code with its try count, never a reason (DR-1515)', () => {
+    // 0328 adds `why` and `attempts` per waiting row, because the builder
+    // leaves a row to the hourly Routine past its MAX_ATTEMPTS on purpose and
+    // `plain` could not tell that from untouched. A build reason's TEXT can
+    // quote the teaching it failed on, so what the reader may print is pinned.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('why = r.get("why")'), served.indexOf('excl = receipt.get'));
+    expect(block, 'the verdict block was renamed or removed').toBeTruthy();
+    const asked = new Set([...block.matchAll(/\br\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    expect(asked).toEqual(new Set(['why', 'attempts']));
+    for (const never of ['build-reason', 'build_reason', 'reason', 'error', 'tags', 'body']) {
+      expect(block, never).not.toContain(never);
+    }
+    // A refused verdict must never read as ready.
+    expect(block).toContain('why unknown');
+    // THE THRESHOLD IS NOT DUPLICATED: the builder owns MAX_ATTEMPTS, so the
+    // reader prints the count and judges nothing. Code only, not comments —
+    // the comment explaining this names the constant on purpose.
+    const code = served
+      .split('\n')
+      .filter((l) => !l.trimStart().startsWith('#'))
+      .join('\n');
+    for (const forbidden of ['MAX_ATTEMPTS', 'max_attempts']) {
+      expect(code, forbidden).not.toContain(forbidden);
+    }
   });
 });
