@@ -91,7 +91,7 @@ describe('the Theater is honest', () => {
   it('no episode is published yet, so nothing is watchable and the shelf says planned or in production', () => {
     expect(validateEpisodes()).toEqual([]);
     expect(EPISODES.some(watchable)).toBe(false);
-    expect(EPISODES.map(shelfLabel)).toEqual(['IN PRODUCTION', 'PLANNED', 'PLANNED']);
+    expect(EPISODES.map(shelfLabel)).toEqual(['COMING SOON', 'COMING SOON', 'COMING SOON']);
     for (const e of EPISODES)
       expect(
         STORYBOOKS.some((b) => b.id === e.storybook),

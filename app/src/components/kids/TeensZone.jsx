@@ -252,7 +252,6 @@ export default function TeensZone({
               </button>
             ))}
           </div>
-          <ShotSlot id="teen-guides" what="the teens' own two guides, from their own approved reference" className="" />
         </div>
         <div className="kz-body">
           <div className="kz-grid">

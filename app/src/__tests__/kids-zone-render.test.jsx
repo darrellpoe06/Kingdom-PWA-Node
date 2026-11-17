@@ -120,7 +120,7 @@ describe('the tiles open real things', () => {
     click(q('[data-testid="tile-theater"]'));
     expect(q('[data-testid="theater"]').getAttribute('data-now')).toBe('channel');
     expect(q('[data-testid="theater-now"]').textContent).toMatch(/the church channel/i);
-    expect(q('[data-testid="episode-jonah"]').getAttribute('data-status')).toBe('in-production');
+    expect(q('[data-testid="episode-jonah"]').getAttribute('data-status')).toBe('planned');
     expect(q('[data-testid="theater-channel"]').getAttribute('href')).toBe(COLG_DEFAULT_CHURCH.media.youtube);
     click(q('[data-testid="theater-read-jonah"]'));
     await flush();

@@ -37,20 +37,20 @@ export function Shot({ id, alt = '', className = '', fallback = null, list = SHO
 }
 
 /**
- * The stand-in for a render that has not landed. When the approved reference
- * can stand in (a guide, the pair, a story page) it does, as a crop of the
- * reference with a small mark naming the render still to come; when nothing
- * approved can (the teens' own guides) a labeled slot says what is coming.
+ * The stand-in for a render that has not landed (Darrell, 2026-11-17: launch
+ * v1 with no visible developer placeholder). When the approved reference can
+ * stand in (a guide, the pair, a story page) it does, as a crop of the
+ * reference with nothing written on it; the registry still knows the shot is
+ * needed (data-needed) so the collection replaces it in place when it lands.
  * `who` names the narrator a story page shows beside its open Bible.
  */
 export function ShotSlot({ id, what = '', className = '', who = null }) {
   const art = interimFor(id);
   if (!art) {
+    // Nothing approved can stand in (the teens' own guides): a quiet gold emblem, no words.
     return (
-      <div className={`kz-slot ${className}`} data-shot={id} data-needed="true" role="img" aria-label={`${what || id} (artwork coming)`}>
-        <b>COMING</b>
-        <i>{id}</i>
-        {what ? <i>{what}</i> : null}
+      <div className={`kz-emblem ${className}`} data-shot={id} data-needed="true" aria-hidden="true">
+        <KidsIcon name="flag" />
       </div>
     );
   }
@@ -61,8 +61,7 @@ export function ShotSlot({ id, what = '', className = '', who = null }) {
       data-shot={id}
       data-needed="true"
       role="img"
-      aria-label={`${what || id} (final artwork coming)`}
-      title={`${id}: final render still to come`}
+      aria-label={what || id}
     >
       {art.kind === 'story' ? (
         <>
@@ -72,7 +71,6 @@ export function ShotSlot({ id, what = '', className = '', who = null }) {
       ) : (
         <img className="kz-interim-img" src={kidsAsset(art.file)} alt="" data-who={art.who} data-interim="true" />
       )}
-      <b className="kz-needed">{art.kind === 'story' ? 'SCENE COMING' : 'ART COMING'}</b>
     </div>
   );
 }

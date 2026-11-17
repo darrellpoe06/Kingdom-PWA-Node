@@ -20,7 +20,7 @@ const ep = (id, title, scripture, storybook, status, source = null) => ({ id, ti
 
 /** The Love Corner Bible Adventures, the original series. */
 export const EPISODES = Object.freeze([
-  ep('jonah', 'Jonah and the Great Fish', 'Jonah 1–3', 'jonah', 'in-production'),
+  ep('jonah', 'Jonah and the Great Fish', 'Jonah 1–3', 'jonah', 'planned'),
   ep('noah', 'Noah and the Door Yahweh Shut', 'Genesis 6–9', 'noah', 'planned'),
   ep('david', 'David and the Giant', '1 Samuel 17', 'david', 'planned'),
 ]);
@@ -52,6 +52,7 @@ export function watchable(e) {
 export function shelfLabel(e) {
   if (watchable(e)) return 'WATCH';
   if (e && e.status === 'in-production') return 'IN PRODUCTION';
+  if (e && e.status === 'planned') return 'COMING SOON';
   return 'PLANNED';
 }
 

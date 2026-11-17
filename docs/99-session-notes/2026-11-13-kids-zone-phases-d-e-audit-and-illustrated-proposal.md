@@ -138,3 +138,16 @@ Darrell, 2026-11-17: the children must look like the ORIGINAL approved reference
 **Previews of the running app at 390 px** (dev server with the CI stub env, Chromium, the real components): `docs/design/love-corner-kids/2026-11-17-app-preview-{1-kids-home,2-theater,3-storybook-p1,4-storybook-p3,5-word-builder,6-who-am-i,7-badges-map,8-games,9-adventure-lesson}.png`.
 
 **Still needed from the collection** (unchanged list, `SHOT_LIST`): the posed cutouts and headers of batch 1 replace the portrait crops; the 24 story scenes replace the scene cards; `pair-theater-wide` replaces the key-art poster when nothing plays. Each lands by file name and the registry flips it to `landed`; nothing else changes.
+
+## 10. 2026-11-17, later: launch v1 now (Darrell's direction) and the world after it
+
+Darrell: *"I want to get The Love Corner Kids Zone LIVE as soon as possible... Remove any visible developer placeholders such as ART COMING, SCENE COMING or INTERIM CUTOUT from the public experience... launch a working, attractive Kids Zone NOW and improve it continuously afterward."* Recorded as **DR-1520**.
+
+**The launch pass (same branch, held until his word):**
+
+- No visible placeholder anywhere in the public zone: the "ART COMING" / "SCENE COMING" marks are gone; a shot the reference cannot stand in for (the teens' own guides) shows a quiet gold emblem with no words, and the teens' hero no longer carries an empty slot. `data-needed` stays on every stand-in so the registry can replace it in place when a render lands.
+- The Theater shelf says COMING SOON for the three planned episodes; Jonah is no longer marked "in production", because no one is producing it yet (DR-0076).
+- Measured at 360, 390 and 414 px across nine screens (home, Theater, storybook, Word Builder, Who am I?, badges, grown-ups, the adventure lesson, the teens' home): zero elements past the viewport, zero tap targets under 36 px.
+- Suites green: every `kids-*` and `youth-zone*` test, the UI-standards set and the legibility guard; lint clean on `components/kids` and `lib/kids`.
+
+**Next phase, after launch (not started; nothing here holds the launch):** a console-inspired Bible Adventure World with the approved children, Noah's Ark first. The reality-trace before any code (DR-0061): the world reads the same Genesis 6–9 verses the storybook already loads, missions are the text's own acts (gather the gopher wood, pitch it within and without, bring the animals two by two, enter the door Yahweh shuts), every stop earns a learner record like a lesson, and the children move through environments rendered from the collection, never from a drawing. Engine: the browser's own canvas and Web Animations, no game-engine dependency unless a measured need appears (dependency skepticism; the PWA must install and run offline). Each mission is specified SHOULD → ARE → GAPS before it is built (DR-0219), and the first playable is the ark's deck with one mission, measured on a phone, before a second world is named.

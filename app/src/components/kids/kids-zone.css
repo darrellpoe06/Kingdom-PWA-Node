@@ -278,3 +278,5 @@
 .kz .kz-panel label.border,.kz .kz-panel button{border-radius:.75rem}
 .kz .kz-panel label.border{border-width:2px;padding:.5rem .625rem;font-size:.9rem}
 .kz .kz-panel .space-y-3>*+*{margin-top:.75rem}
+.kz-emblem{display:grid;place-items:center;border-radius:.875rem;background:linear-gradient(145deg,#2A1A1C,#3A1013);border:1px solid #5A2A2E;min-height:76px}
+.kz-emblem svg{width:40%;max-width:56px;height:auto;color:var(--lc-gold)}
