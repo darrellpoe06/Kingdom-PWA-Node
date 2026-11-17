@@ -355,12 +355,66 @@ def builder_state(home=BUILDER_HOME, run=None):
     return state
 
 
+def _head_from_files(repo):
+    """The mirror's HEAD read as FILES, with no subprocess at all.
+
+    WHY NOT git (DR-1518, measured): DR-1517 shipped this as
+    `git -C <repo> rev-parse HEAD` and the field stayed ABSENT for 59 minutes
+    across about four services-sync cycles, while DR-1511's census change had
+    reached the box in 16. So the shell-out was failing on the NAS, not waiting
+    on a pull. Every likely cause is a property of calling git as whichever user
+    the clock runs the census as -- `git` not on that user's PATH, or git
+    refusing the mirror it does not own with "fatal: detected dubious
+    ownership", which my shape test correctly turned into unknown rather than
+    publishing prose.
+    
+    Reading the files sidesteps all of it: `.git/HEAD` is a symbolic ref, the
+    ref file holds the sha, and `.git/packed-refs` holds it when the loose ref
+    has been packed away. No PATH, no ownership check, no subprocess.
+    """
+    try:
+        with open(os.path.join(repo, ".git", "HEAD"), encoding="utf-8") as fh:
+            head = fh.read().strip()
+    except OSError:
+        return None
+    if HEX_SHA.match(head):
+        return head  # a detached HEAD holds the sha itself
+    if not head.startswith("ref: "):
+        return None
+    ref = head[len("ref: "):].strip()
+    try:
+        with open(os.path.join(repo, ".git", *ref.split("/")), encoding="utf-8") as fh:
+            cand = fh.read().strip()
+        if HEX_SHA.match(cand):
+            return cand
+    except OSError:
+        pass
+    # The loose ref can be packed away; packed-refs is the same answer, written
+    # as "<sha> <ref>" lines with comments and peeled tags mixed in.
+    try:
+        with open(os.path.join(repo, ".git", "packed-refs"), encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith(("#", "^")):
+                    continue
+                parts = line.split()
+                if len(parts) == 2 and parts[1] == ref and HEX_SHA.match(parts[0]):
+                    return parts[0]
+    except OSError:
+        pass
+    return None
+
+
 def census_code_sha(repo=None, run=None):
-    """The mirror HEAD the census is running from, or None when it cannot be read.
+    """The mirror HEAD the census is running from, or None when unreadable.
 
     None rather than a guess: a reader must be able to tell "this came from code
-    I can name" from "I do not know which code answered".
+    I can name" from "I do not know which code answered" (DR-1517). The FILES
+    are asked first and `git` only as a fallback, for the reasons in
+    _head_from_files -- the subprocess is the part that failed in practice.
     """
+    sha = _head_from_files(repo or CENSUS_REPO)
+    if sha:
+        return sha
     if run is None:
 
         def run(argv):
