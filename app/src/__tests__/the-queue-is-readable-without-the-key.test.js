@@ -120,11 +120,27 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
     // The census invents neither: both lists come from lesson-queue-census.py,
     // and a key invented anywhere upstream must be dropped rather than relayed
     // (the shape 0318 proved for service names).
+    // MEMBERSHIP IN THE RIGHT LIST, not presence anywhere in the file.
+    // Measured 2026-11-17: dropping 'failed' from the migration's k_whys broke
+    // nothing, because `mig.toContain("'failed'")` was satisfied by k_status
+    // and by the service-word list. A literal appearing SOMEWHERE proves
+    // nothing about the list that governs it, and that weakness applied to
+    // roads, shapes and stalls too.
+    const listOf = (name) => {
+      const m = mig.match(new RegExp(`${name}\\s+text\\[\\]\\s*:=\\s*ARRAY\\[([^\\]]*)\\]`));
+      expect(m, `${name} is not declared in ${migFile}`).toBeTruthy();
+      return new Set([...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]));
+    };
+    const inList = (name, want, label) =>
+      expect(listOf(name).has(want), `${label} ${want} is missing from ${name} in ${migFile}`).toBe(
+        true
+      );
+
     const roadsBlock = census.match(/^ROADS = \(([^)]*)\)/m);
     expect(roadsBlock, 'ROADS could not be read from the census — the parse is wrong, not the migration').toBeTruthy();
     const roads = roadsBlock[1].match(/"([a-z-]+)"/g).map((s) => s.replace(/"/g, ''));
-    for (const r of roads) expect(mig, `by_road key ${r} is missing from the allowed list`).toContain(`'${r}'`);
-    expect(mig, 'a road the census buckets as "other" must be sayable too').toContain("'other'");
+    for (const r of roads) inList('k_roads', r, 'by_road key');
+    inList('k_roads', 'other', 'the bucket');
     // SCOPED TO ONE FUNCTION AT A TIME, which this never actually was. The slice
     // ran from `shape_of` all the way to `census_of`, so it harvested every
     // sibling in between and called them shapes. It passed only by luck —
@@ -142,22 +158,39 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
 
     const shapes = returnsOf('shape_of');
     expect(shapes.length, 'shape_of returned nothing — the parse is wrong, not the migration').toBeGreaterThan(3);
-    for (const s of shapes) expect(mig, `by_shape key ${s} is missing from the allowed list`).toContain(`'${s}'`);
+    for (const s of shapes) inList('k_shapes', s, 'by_shape key');
 
     // by_stall is published too, so its classes are checked rather than merely
     // swept up by a loose slice.
-    const stalls = returnsOf('stall_of');
-    expect(stalls.length, 'stall_of returned nothing').toBeGreaterThan(1);
-    for (const s of stalls) expect(mig, `by_stall key ${s} is missing from the allowed list`).toContain(`'${s}'`);
+    // `stall_of` RETURNS A VARIABLE, so its literal returns are only 'other':
+    // measured 2026-11-17 by dropping 'transient' from k_stalls and watching
+    // nothing fail. The classes live in the STALLS constant, so that is what is
+    // read — the same shape as ROADS, SERVICE_WORDS and WHYS.
+    const stallsBlock = census.match(/^STALLS = \(([^)]*)\)/m);
+    expect(stallsBlock, 'STALLS could not be read from the census').toBeTruthy();
+    const stalls = stallsBlock[1].match(/"([a-z-]+)"/g).map((s) => s.replace(/"/g, ''));
+    expect(stalls.length, 'STALLS parsed empty — the parse is wrong, not the migration').toBeGreaterThan(1);
+    for (const s of stalls) inList('k_stalls', s, 'by_stall class');
+    for (const s of returnsOf('stall_of')) inList('k_stalls', s, 'by_stall fallback');
 
     // The builder's service word (0327): systemd's vocabulary plus the census's
     // own fallback. A word the migration cannot say would be dropped silently.
     const svcBlock = census.match(/^SERVICE_WORDS = \(([^)]*)\)/m);
     if (svcBlock) {
       const words = svcBlock[1].match(/"([a-z]+)"/g).map((s) => s.replace(/"/g, ''));
-      for (const w of words) expect(mig, `service word ${w} is missing from the allowed list`).toContain(`'${w}'`);
-      for (const w of returnsOf('_service_word'))
-        expect(mig, `service fallback ${w} is missing from the allowed list`).toContain(`'${w}'`);
+      for (const w of words) inList('k_service', w, 'service word');
+      for (const w of returnsOf('_service_word')) inList('k_service', w, 'service fallback');
+    }
+    // The per-row VERDICT vocabulary (0328). Added after measuring that
+    // dropping 'failed' from the migration's k_whys broke nothing: the census
+    // could emit a verdict the SQL silently refused, and a refused verdict is
+    // invisible to every other check here.
+    const whysBlock = census.match(/^WHYS = \(([^)]*)\)/m);
+    if (whysBlock) {
+      const whys = whysBlock[1].match(/"([a-z-]+)"/g).map((s) => s.replace(/"/g, ''));
+      expect(whys.length, 'WHYS parsed empty — the parse is wrong, not the migration').toBeGreaterThan(3);
+      for (const w of whys) inList('k_whys', w, 'verdict');
+      for (const w of returnsOf('why_of')) inList('k_whys', w, 'verdict');
     }
     expect(mig).toMatch(/k = ANY\(k_roads\)/);
     expect(mig).toMatch(/k = ANY\(k_shapes\)/);

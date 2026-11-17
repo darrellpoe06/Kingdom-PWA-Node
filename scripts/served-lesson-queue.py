@@ -246,6 +246,20 @@ def judge(receipt, why, now=None):
                 bits.append(str(r.get("source")))
             shape = str(r.get("shape") or "unclassified")
             bits.append(shape + (f"/{r.get('stall')}" if r.get("stall") else ""))
+            # WHY IT WAITS (0328, DR-1515). Measured 2026-11-17: the builder was
+            # active and building nothing while three teachings had waited five
+            # days, because past its MAX_ATTEMPTS the builder leaves a row to the
+            # hourly Routine ON PURPOSE -- and `plain` could not tell an
+            # untouched row from a handed-over one. `why` says which, and
+            # `attempts` is printed beside it so exhaustion stays the reader's
+            # judgment: the threshold is the builder's and is not duplicated.
+            why = r.get("why")
+            if why:
+                n = r.get("attempts")
+                bits.append(str(why) + (f" after {n}" if isinstance(n, int) and n else ""))
+            else:
+                # A verdict the receipt refused reads as unknown, never as ready.
+                bits.append("why unknown")
             lines.append("  " + " | ".join(bits))
     elif isinstance(total, int) and total > 0:
         lines.append(

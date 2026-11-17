@@ -178,6 +178,58 @@ def stall_of(row):
     return "other"
 
 
+# WHY A ROW IS STILL WAITING, AND HOW MANY TRIES IT HAS HAD (DR-1515).
+# Measured 2026-11-17, the first read with 0327's builder block live: the
+# builder was `active`, `building now: 0`, its own record 14 minutes fresh --
+# and three teachings had waited five days. Reading
+# lesson_builder.eligibility() explained it: past LESSON_BUILD_MAX_ATTEMPTS a
+# row is "left for the hourly Routine" ON PURPOSE. The handoff works. Nothing
+# on the public road said so, and four more rows read `plain`, which means only
+# "none of the special tags" -- so a row nobody has touched looked exactly like
+# one the builder had handed over and was waiting on. Those ask for different
+# acts from a reader.
+#
+# THE THRESHOLD IS NOT COPIED HERE. MAX_ATTEMPTS is the builder's, settable by
+# its own environment, and two files computing one number is how they drift
+# (the lesson this repository already wrote about `Next ID`). So the ATTEMPT
+# COUNT travels and the comparison is the reader's.
+#
+# Codes only, from the tags, never a reason's text: a verdict is a tag shape,
+# which is what this file may emit.
+WHYS = ("declined", "deferred", "rate-limited", "failed", "ready")
+
+
+def attempts_of(row):
+    """How many times a build of this row has FAILED, from its stage tags."""
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    n = 0
+    for tag in tags:
+        if isinstance(tag, str) and tag.startswith("build:failed@"):
+            n += 1
+    return n
+
+
+def why_of(row):
+    """Why this row still waits, as one word from WHYS.
+
+    Mirrors the ORDER of lesson_builder.eligibility()'s remaining branches for
+    a row this census already counts as waiting (captured, withdrawn, building,
+    awaiting-review and not-a-lesson are excluded before they reach here).
+    `failed` carries no judgment about exhaustion -- `attempts` is published
+    beside it so the reader compares against the builder's own threshold.
+    """
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    if "lesson-declined" in tags:
+        return "declined"
+    if any(isinstance(x, str) and x.startswith("build:deferred@") for x in tags):
+        return "deferred"
+    if attempts_of(row):
+        return "rate-limited" if stall_of(row) == "rate-limited" else "failed"
+    return "ready"
+
+
 def _service_word(run):
     """systemd's word for the builder unit, or 'unknown'. Never 'inactive' on error."""
     try:
@@ -312,6 +364,11 @@ def census_of(rows, now=None, builder=None):
         }
         if shape == "build-failed":
             entry["stall"] = stall_of(r)
+        # WHY it waits, and how many tries it has had (DR-1515). `ready` means
+        # the builder should take it; `deferred` and an exhausted `failed` mean
+        # it was handed to the hourly Routine on purpose.
+        entry["why"] = why_of(r)
+        entry["attempts"] = attempts_of(r)
         waiting.append(entry)
     oldest = None
     for r in rows:
