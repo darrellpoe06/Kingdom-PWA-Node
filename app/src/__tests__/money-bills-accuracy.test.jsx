@@ -46,11 +46,14 @@ function household({ householdFigure = null, visaDueDay = null, statuses = null 
     transactions: tx,
     outflows: householdFigure != null ? { household: householdFigure } : {},
     inflows: { salaries: [], rentals: [] },
-    recurringObligations: [{ id: 'b-phone', name: 'Phone', amount: 120, frequency: 'monthly', nextDue: '2026-11-25', entityId: 'e-personal', accountId: 'a-7206', enabled: true }],
+    recurringObligations: [
+      { id: 'b-phone', name: 'Phone', amount: 120, frequency: 'monthly', nextDue: '2026-11-25', entityId: 'e-personal', accountId: 'a-7206', enabled: true },
+    ],
     moneyPlan,
   };
 }
-const run = (data, period = '30d', currentDate = TODAY) => buildSafeToSpend(data, { currentDate, period, scope: 'personal', settings: data.moneyPlan.settings });
+const run = (data, period = '30d', currentDate = TODAY) =>
+  buildSafeToSpend(data, { currentDate, period, scope: 'personal', settings: data.moneyPlan.settings });
 const outs = (r) => r.items.filter((i) => i.amount < 0);
 
 describe('repeating store purchases are spending, not bills', () => {
@@ -117,7 +120,12 @@ describe('a debt with no due date on file gets no invented date', () => {
   });
   it('a card WITH its due day on file is a confirmed bill on that day', () => {
     const r = run(household());
-    expect(r.windows.next30.items.find((i) => /Discover/.test(i.label))).toMatchObject({ date: '2026-11-20', dueDate: '2026-11-20', billClass: 'confirmed', dateUnknown: false });
+    expect(r.windows.next30.items.find((i) => /Discover/.test(i.label))).toMatchObject({
+      date: '2026-11-20',
+      dueDate: '2026-11-20',
+      billClass: 'confirmed',
+      dateUnknown: false,
+    });
     const withDay = run(household({ visaDueDay: 9 }));
     expect(withDay.windows.next30.items.find((i) => /Visa/.test(i.label))).toMatchObject({ date: '2026-12-09', billClass: 'confirmed' });
     expect(withDay.windows.dateNeeded.items).toEqual([]);
@@ -145,16 +153,39 @@ describe('the 30 days of bills in six groups', () => {
 });
 
 describe('Coming Up on a phone', () => {
-  let root; let host;
-  afterEach(() => { if (root) act(() => root.unmount()); if (host) host.remove(); root = null; host = null; });
+  let root;
+  let host;
+  afterEach(() => {
+    if (root) act(() => root.unmount());
+    if (host) host.remove();
+    root = null;
+    host = null;
+  });
   it('shows the 30-day bills by group, "date needed" for the card, and the repeating purchases apart', async () => {
     const data = household();
     const result = buildSafeToSpend(data, { currentDate: TODAY, period: '14d', scope: 'personal', settings: data.moneyPlan.settings });
-    host = document.createElement('div'); host.style.width = '360px'; document.body.appendChild(host);
-    await act(async () => { root = createRoot(host); root.render(createElement(MoneyComingUp, { result, extra: extraDebtCapacity(data, { currentDate: TODAY, period: '14d', scope: 'personal' }), show, entities: data.entities, settings: data.moneyPlan.settings, data, asOf: TODAY })); });
+    host = document.createElement('div');
+    host.style.width = '360px';
+    document.body.appendChild(host);
+    await act(async () => {
+      root = createRoot(host);
+      root.render(
+        createElement(MoneyComingUp, {
+          result,
+          extra: extraDebtCapacity(data, { currentDate: TODAY, period: '14d', scope: 'personal' }),
+          show,
+          entities: data.entities,
+          settings: data.moneyPlan.settings,
+          data,
+          asOf: TODAY,
+        })
+      );
+    });
     const next30 = host.querySelector('[data-testid="coming-up-next30"]');
     expect(next30.querySelector('[data-testid="bill-group-confirmed"]').textContent).toMatch(/Confirmed recurring bills/);
-    expect(next30.querySelector('[data-testid="bill-group-due-date-needed"]').textContent).toMatch(/date neededVisa · minimum · no due date on file; minimum reserved · Needs verification\$60\.00/);
+    expect(next30.querySelector('[data-testid="bill-group-due-date-needed"]').textContent).toMatch(
+      /date neededVisa · minimum · no due date on file; minimum reserved · Needs verification\$60\.00/
+    );
     expect(next30.querySelector('[data-testid="bill-group-due-date-needed"]').textContent).not.toMatch(/Confirmed/); // never shown as verified (approved 2026-11-17)
     expect(next30.querySelector('[data-testid="bill-group-inferred-review"]').textContent).toMatch(/NETFLIX[^$]*subscription, verify it/i);
     expect(next30.textContent).not.toMatch(/CIRCLE K|WALMART/i);

@@ -7,7 +7,9 @@ import { freqToMonths } from './financial-engineering.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function round2(x) { return Math.round((Number(x) || 0) * 100) / 100; }
+export function round2(x) {
+  return Math.round((Number(x) || 0) * 100) / 100;
+}
 
 // ── dates (local-day arithmetic; 'YYYY-MM-DD' in, 'YYYY-MM-DD' out) ─────────
 export function isoDay(d) {
@@ -22,16 +24,26 @@ export function parseDay(iso) {
   if (!iso) return null;
   const s = String(iso);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) { const d = new Date(s); return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  if (!m) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
-export function addDays(date, n) { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); d.setDate(d.getDate() + n); return d; }
+export function addDays(date, n) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + n);
+  return d;
+}
 export function addMonthsClamped(date, n, dayOfMonth) {
-  const y = date.getFullYear(); const m = date.getMonth() + n;
+  const y = date.getFullYear();
+  const m = date.getMonth() + n;
   const last = new Date(y, m + 1, 0).getDate();
   return new Date(y, m, Math.min(dayOfMonth || date.getDate(), last));
 }
-export function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / DAY_MS); }
+export function daysBetween(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / DAY_MS);
+}
 
 // ── twice a month: two FIXED days of the month (DEFECT-2, 2026-10-29) ─────────
 // "Twice a month (1st & 15th)" used to step the anchor + 15, so pay on the 1st
@@ -49,14 +61,19 @@ function semimonthlyAt(first, i) {
   const [a, b] = semimonthlyDays(first.getDate());
   // the i-th payday at or after `first`, walking month by month through the two days
   const out = [];
-  let y = first.getFullYear(); let m = first.getMonth();
+  let y = first.getFullYear();
+  let m = first.getMonth();
   while (out.length <= i) {
     const last = new Date(y, m + 1, 0).getDate();
     for (const day of [a, b]) {
       const at = new Date(y, m, Math.min(day, last));
       if (at >= first && !out.some((x) => x.getTime() === at.getTime())) out.push(at);
     }
-    m += 1; if (m > 11) { m = 0; y += 1; }
+    m += 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
   }
   return out[i];
 }
@@ -71,9 +88,12 @@ export function expandOccurrences(first, frequency, start, end, maxGuard = 400) 
   const anchorDay = due.getDate();
   const step = (d, i) => {
     switch (frequency) {
-      case 'weekly': return addDays(due, 7 * i);
-      case 'biweekly': return addDays(due, 14 * i);
-      case 'semimonthly': return semimonthlyAt(due, i);
+      case 'weekly':
+        return addDays(due, 7 * i);
+      case 'biweekly':
+        return addDays(due, 14 * i);
+      case 'semimonthly':
+        return semimonthlyAt(due, i);
       default: {
         const months = freqToMonths(frequency) || (frequency === 'monthly' ? 1 : 0);
         if (!months) return null;
