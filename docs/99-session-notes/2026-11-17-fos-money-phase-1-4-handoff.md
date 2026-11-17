@@ -17,6 +17,23 @@ Thread handoff: `MONEY_HANDOFF.md`.
 
 No live financial record was changed. No migration was run.
 
+**Production, verified 2026-11-17:**
+- **Deploys:** each succeeded.
+  - c52cd97 (1.3a), run 44153424654, at 19:09 UTC.
+  - 2b6f748 (1.3b, the final commit), run 44157360303, at 19:27 UTC.
+  - Phases 1.1 and 1.2 were deployed earlier: e1c4cf6 and 826edc8.
+- **Site-health** (run 44160016033, 19:35 UTC):
+  - **UP. Fresh.**
+  - Served build **2b6f748** = `main` tip **2b6f748**.
+  - `/poetech-app/` and the bundle returned 200.
+  - The sign-in road answered.
+- **Two warnings in that run are not Money's:**
+  - `/property-history` returned 502.
+  - The Moore order-path self-check was "not measured" (an anon-key mismatch).
+
+  Neither touches a file these PRs changed.
+- **Every Money file on `main`** (`lib/`, `components/money/`, `BooksUpload.jsx`, `BooksTransactions.jsx`) is byte-identical to the reviewed heads.
+
 ## 2. Decisions in force (Christina, 2026-11-17)
 
 1. Separate **Tithes / Church Giving** category: Phase 1.4. Until then the $837 church tithe is Personal → Charitable (done by hand in Transactions).
