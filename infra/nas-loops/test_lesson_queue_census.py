@@ -457,8 +457,15 @@ class WhyARowStillWaits(unittest.TestCase):
     Routine ON PURPOSE. Nothing on the public road said so, and `plain` could
     not tell an untouched row from a handed-over one."""
 
+    # created_by is DARRELL'S on purpose: these cases are about how the builder
+    # handles HIS rows. Without it every verdict is `waits-for-governor`, which
+    # is the correct answer for an unknown author and is pinned in
+    # AMembersRowWaitsForTheGovernor below.
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+
     def row(self, *tags):
-        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox", "tags": list(tags)}
+        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": self.OWNER, "tags": list(tags)}
 
     def test_an_untouched_row_is_ready_so_the_builder_should_take_it(self):
         self.assertEqual(qc.why_of(self.row("lesson")), "ready")
@@ -529,6 +536,62 @@ class WhyARowStillWaits(unittest.TestCase):
         self.assertEqual(c["waiting"][0]["attempts"], 1)
 
     def test_a_malformed_tag_list_never_raises(self):
+        # No author either, so the safe verdict is the Governor's queue rather
+        # than `ready`: an unknown row is never asserted as the builder's.
         for bad in (None, "not a list", 7, {"a": 1}):
-            self.assertEqual(qc.why_of({"tags": bad}), "ready")
+            self.assertEqual(qc.why_of({"tags": bad}), "waits-for-governor")
             self.assertEqual(qc.attempts_of({"tags": bad}), 0)
+            self.assertEqual(qc.why_of({"tags": bad, "created_by": self.OWNER}), "ready")
+
+
+class AMembersRowWaitsForTheGovernor(unittest.TestCase):
+    """Corrected 2026-11-17, from the first read with verdicts live: four rows
+    said `ready` while the builder sat active and idle, which READ AS the
+    builder neglecting them. The branch was missing. A member's row is never
+    built without `lesson-approved` (DR-0635), so `ready` was overclaiming on
+    the one case where it matters most -- somebody else's teaching."""
+
+    DARRELL = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+    PHONE = "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc"
+    MEMBER = "99999999-9999-9999-9999-999999999999"
+
+    def row(self, who, *tags):
+        return {"id": "r", "created_at": "2026-11-17T00:00:00Z", "source": "research-inbox",
+                "created_by": who, "tags": ["lesson"] + list(tags)}
+
+    def test_both_of_darrells_accounts_read_ready(self):
+        for who in (self.DARRELL, self.PHONE):
+            self.assertEqual(qc.why_of(self.row(who)), "ready")
+
+    def test_a_members_row_waits_for_the_governor_not_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER)), "waits-for-governor")
+
+    def test_an_approved_members_row_becomes_ready(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER, "lesson-approved")), "ready")
+
+    def test_a_declined_members_row_reads_declined_not_governor(self):
+        self.assertEqual(qc.why_of(self.row(self.MEMBER, "lesson-declined")), "declined")
+
+    def test_a_missing_created_by_is_treated_as_NOT_an_owner(self):
+        # The safe direction: an unknown author waits for the Governor rather
+        # than reading as the builder's to take.
+        self.assertEqual(qc.why_of({"tags": ["lesson"]}), "waits-for-governor")
+        self.assertEqual(qc.why_of({"tags": ["lesson"], "created_by": None}), "waits-for-governor")
+
+    def test_PROVEN_TO_CATCH_no_account_id_rides_the_public_road(self):
+        c = qc.census_of([self.row(self.MEMBER), self.row(self.DARRELL)])
+        blob = json.dumps(c)
+        for leak in (self.MEMBER, self.DARRELL, self.PHONE, "created_by"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+        self.assertEqual([w["why"] for w in c["waiting"]], ["waits-for-governor", "ready"])
+
+    def test_the_query_carries_created_by_so_the_check_can_happen_at_all(self):
+        self.assertIn("created_by", qc.waiting_query())
+
+    def test_the_OWNER_IDS_here_match_the_builders(self):
+        builder = os.path.join(os.path.dirname(qc.__file__), "..", "nas-lesson-builder", "lesson_builder.py")
+        if os.path.exists(builder):
+            with open(builder, encoding="utf-8") as fh:
+                src = fh.read()
+            for who in qc.OWNER_IDS:
+                self.assertIn(who, src, "the census and the builder disagree about whose rows these are")
