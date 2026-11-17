@@ -735,6 +735,8 @@ button.lc-tile{cursor:pointer}
 .lc-cust b{flex:1 1 auto;min-width:0;color:var(--lc-red)}
 .lc-cust-dots{display:flex;gap:.25rem}.lc-cust-dots i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
 .lc-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lc-pair-solo{grid-template-columns:1fr}
+.lc-pair-solo .lc-pair-card{min-height:120px}
 .lc-pair-card{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-height:150px;border-radius:1rem;padding:.75rem;text-align:left;color:#fff;border:0;cursor:pointer;justify-content:flex-end}
 .lc-pair-card .lc-h3{color:#fff;margin:0}
 .lc-pair-card em{font-family:var(--lc-display);font-style:italic;color:var(--lc-gold);font-size:.9rem}

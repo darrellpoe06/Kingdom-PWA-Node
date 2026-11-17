@@ -134,7 +134,7 @@ describe('no number is painted', () => {
     expect(q('[data-testid="lc-place"]').textContent).toContain('Worship');
     click(q('[data-testid="lc-customize"]'));
     click(q('[data-testid="lc-learning-zone"]'));
-    click(q('[data-testid="lc-youth"]'));
+    click(q('[data-testid="lc-play-bible-adventures"]'));
     click(q('[data-testid="lc-trio-ministries"]'));
     click(q('[data-testid="lc-trio-events"]'));
     click(q('[data-testid="lc-trio-connect"]'));
@@ -193,16 +193,24 @@ describe('the Bible Adventures entrance (Darrell 2026-11-17: the Kids Zone, dire
     expect(img).toBeTruthy();
     expect(img.getAttribute('src')).toContain('/lovecorner/kids/bible-adventures-key-art.jpg');
     expect(existsSync(join(PUBLIC, 'lovecorner', 'kids', 'bible-adventures-key-art.jpg'))).toBe(true);
-    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Play Bible Adventures/);
+    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Explore Kids & Youth Zone/);
   });
-  it('the Play button opens the Youth tab with the Kids door chosen, whatever door this phone chose last', () => {
+  it('the Explore button opens the Youth tab and leaves the door to the family (no door is forced)', () => {
     window.localStorage.setItem('poetech.youth.door', 'teens');
     const views = [];
     mount({ setChurchView: (v) => views.push(v) });
     click(q('[data-testid="lc-play-bible-adventures"]'));
     expect(views).toEqual(['youth']);
-    expect(window.localStorage.getItem('poetech.youth.door')).toBe('kids');
+    expect(window.localStorage.getItem('poetech.youth.door')).toBe('teens');
     window.localStorage.removeItem('poetech.youth.door');
+    expect(q('[data-testid="lc-bible-adventures"] h3').textContent).toBe('The Love Corner Kids & Youth Adventures');
+    expect(q('[data-testid="lc-play-bible-adventures"]').textContent).toMatch(/Explore Kids & Youth Zone/);
+  });
+  it('the orange Kids & Youth card is gone: one illustrated entrance, and the Word card stands alone', () => {
+    mount();
+    expect(q('[data-testid="lc-youth"]')).toBeNull();
+    expect(q('[data-testid="lc-learning-zone"]')).toBeTruthy();
+    expect(q('.lc-pair').classList.contains('lc-pair-solo')).toBe(true);
   });
   it('sits above Quick access, right under the hero', () => {
     mount();

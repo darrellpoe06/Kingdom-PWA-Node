@@ -36,16 +36,18 @@ import { LEARN_CATALOG } from '../../lib/learn-catalog.js';
 import { CHURCH_MINISTRIES } from '../../lib/church-ministries.js';
 import { INSTITUTE_META } from '../../lib/church-institute.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
-import { DOOR_PREF_KEY } from '../../lib/youth-zone.js';
 import { isChurchDoorContext } from '../../lib/church-own-door.js';
+
+const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
+const KEY_ART = `${BASE}lovecorner/kids/bible-adventures-key-art.jpg`;
 
 export const LOVE_CORNER_ASSETS = Object.freeze({
   // The Love Corner Experience seal and Bishop Gwin's portrait, attached by
   // Darrell 2026-11-12 and saved at web sizes (no generation, no retouching).
-  logo: '/lovecorner/love-corner-experience-logo-160.png',
-  logo512: '/lovecorner/love-corner-experience-logo-512.png',
-  bishop: '/lovecorner/bishop-lloyd-e-gwin-480.jpg',
-  bishopFull: '/lovecorner/bishop-lloyd-e-gwin-1200.jpg',
+  logo: `${BASE}lovecorner/love-corner-experience-logo-160.png`,
+  logo512: `${BASE}lovecorner/love-corner-experience-logo-512.png`,
+  bishop: `${BASE}lovecorner/bishop-lloyd-e-gwin-480.jpg`,
+  bishopFull: `${BASE}lovecorner/bishop-lloyd-e-gwin-1200.jpg`,
 });
 
 export const BISHOP = Object.freeze({ name: 'Bishop Lloyd E. Gwin', role: 'Senior Pastor' });
@@ -53,9 +55,6 @@ export const BISHOP = Object.freeze({ name: 'Bishop Lloyd E. Gwin', role: 'Senio
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 /** The eight quick-access doors (brief §2). Each opens a tab or a section that exists today. */
-const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
-const KEY_ART = `${BASE}lovecorner/kids/bible-adventures-key-art.jpg`;
-
 export const QUICK_DOORS = Object.freeze([
   { key: 'watch', words: 'Watch Live', icon: 'monitor', sub: 'home', section: 'worship', tone: 'gold' },
   { key: 'word', words: 'The Word', icon: 'bookOpen', sub: 'pulpit', section: null },
@@ -107,16 +106,6 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
     } catch {
       /* no window */
     }
-  };
-
-  // The Kids Zone, directly: the door pref is set to Kids before the tab opens.
-  const openKids = () => {
-    try {
-      window.localStorage.setItem(DOOR_PREF_KEY, 'kids');
-    } catch {
-      /* no storage */
-    }
-    open('youth');
   };
 
   const watchLabel = status.live && status.current ? `Live now · ${status.current.label}` : 'Watch · latest message';
@@ -200,19 +189,22 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
         </p>
       </section>
 
-      {/* BIBLE ADVENTURES: the Kids Zone's front door on the church home (Darrell 2026-11-17: a prominent
-          "Play Bible Adventures" entrance that opens the existing Kids Zone directly; the approved
-          illustration shown whole, never cropped). The tap sets the Kids door so the zone opens on Kids
-          whatever door this phone chose last. */}
+      {/* KIDS & YOUTH ADVENTURES: the single front door to the Youth Zone on the church home
+          (Darrell 2026-11-17: one illustrated entrance, the approved illustration shown whole,
+          never cropped; the family chooses Little Ones, Kids or Teens inside). The Love Corner
+          Bible Adventures is the name of the children's gaming and learning experience inside. */}
       <section className="lc-adv" aria-labelledby="lc-adv-h" data-testid="lc-bible-adventures">
         <img className="lc-adv-art" src={KEY_ART} alt="The Love Corner Bible Adventures: two children with their Bibles, ready for the adventure" />
         <div className="lc-adv-body">
           <h3 id="lc-adv-h" className="lc-adv-h">
-            The Love Corner Bible Adventures
+            The Love Corner Kids &amp; Youth Adventures
           </h3>
-          <p className="lc-adv-p">Play, read, watch and learn His Word: games, storybooks, the Theater, badges and your adventure map. Ages 3 to 17.</p>
-          <button type="button" onClick={openKids} className={`lc-btn lc-btn-red lc-adv-go ${FOCUS}`} data-testid="lc-play-bible-adventures">
-            Play Bible Adventures ▶
+          <p className="lc-adv-p">
+            Little Ones 3–6 · Kids 6–10 · Teens 11–17. Inside, The Love Corner Bible Adventures: games, storybooks, the Theater, badges and your adventure
+            map, all from His Word.
+          </p>
+          <button type="button" onClick={() => open('youth')} className={`lc-btn lc-btn-red lc-adv-go ${FOCUS}`} data-testid="lc-play-bible-adventures">
+            Explore Kids &amp; Youth Zone ›
           </button>
         </div>
       </section>
@@ -258,18 +250,13 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
         <span aria-hidden="true">›</span>
       </button>
 
-      {/* THE WORD · LEARNING ZONE and KIDS & YOUTH ZONE, side by side (the picture) */}
-      <div className="lc-pair">
+      {/* THE WORD · LEARNING ZONE (the Kids & Youth door is the illustrated entrance above, Darrell 2026-11-17) */}
+      <div className="lc-pair lc-pair-solo">
         <button type="button" onClick={() => open('learn')} className={`lc-pair-card lc-pair-word ${FOCUS}`} data-testid="lc-learning-zone">
           <b className="lc-h3">The Word</b>
           <em>Learning Zone</em>
           <span className="lc-small">Bible lessons · study plans · quizzes · memory verses</span>
           <span className="lc-pair-go">Start learning ›</span>
-        </button>
-        <button type="button" onClick={() => open('youth')} className={`lc-pair-card lc-pair-kids ${FOCUS}`} data-testid="lc-youth">
-          <b className="lc-h3">Kids &amp; Youth Zone</b>
-          <span className="lc-small">Games · challenges · Bible stories · rewards</span>
-          <span className="lc-pair-go">Explore the Youth Zone ›</span>
         </button>
       </div>
 
