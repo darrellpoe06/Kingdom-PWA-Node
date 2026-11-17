@@ -643,3 +643,75 @@ class WhichCodeAnswered(unittest.TestCase):
         c = qc.census_of([], builder={"code_sha": "297a00d80ade4aba"}, code_sha=self.SHA)
         self.assertEqual(c["builder"]["code_sha"], "297a00d80ade4aba")
         self.assertEqual(c["code_sha"], self.SHA)
+
+
+class TheHeadIsReadWithoutGit(unittest.TestCase):
+    """DR-1518, measured. DR-1517 shipped census_code_sha as `git rev-parse` and
+    the field stayed ABSENT for 59 minutes across about four services-sync
+    cycles -- while DR-1511's census change had reached the box in 16. So the
+    shell-out was failing on the NAS, not waiting on a pull, and every likely
+    cause is a property of calling git as the clock's user: git off that user's
+    PATH, or git refusing a mirror it does not own. The files answer the same
+    question with no PATH, no ownership check and no subprocess."""
+
+    SHA = "e427b604119aa1b2c3d4e5f6a7b8c9d0e1f20304"
+
+    def _repo(self, head=None, ref=None, packed=None):
+        d = tempfile.mkdtemp()
+        g = os.path.join(d, ".git")
+        os.makedirs(g)
+        if head is not None:
+            with open(os.path.join(g, "HEAD"), "w", encoding="utf-8") as fh:
+                fh.write(head)
+        if ref is not None:
+            os.makedirs(os.path.join(g, "refs", "heads"), exist_ok=True)
+            with open(os.path.join(g, "refs", "heads", "main"), "w", encoding="utf-8") as fh:
+                fh.write(ref)
+        if packed is not None:
+            with open(os.path.join(g, "packed-refs"), "w", encoding="utf-8") as fh:
+                fh.write(packed)
+        return d
+
+    def _never(self, argv):
+        raise AssertionError("git must not be called when the files answer")
+
+    def test_a_symbolic_head_resolves_through_the_loose_ref(self):
+        d = self._repo(head="ref: refs/heads/main\n", ref=self.SHA + "\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_detached_head_holds_the_sha_itself(self):
+        d = self._repo(head=self.SHA + "\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_PACKED_ref_is_found_when_the_loose_one_is_gone(self):
+        d = self._repo(head="ref: refs/heads/main\n",
+                       packed="# pack-refs with: peeled fully-peeled sorted \n"
+                              f"{self.SHA} refs/heads/main\n"
+                              "^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
+        self.assertEqual(qc.census_code_sha(d, self._never), self.SHA)
+
+    def test_a_peeled_line_is_never_mistaken_for_the_ref(self):
+        d = self._repo(head="ref: refs/heads/main\n",
+                       packed=f"^{self.SHA}\n0123456789abcdef0123456789abcdef01234567 refs/heads/main\n")
+        self.assertEqual(qc.census_code_sha(d, self._never),
+                         "0123456789abcdef0123456789abcdef01234567")
+
+    def test_GIT_IS_THE_FALLBACK_not_the_first_road(self):
+        # No .git at all: the files cannot answer, so git is asked.
+        d = tempfile.mkdtemp()
+        self.assertEqual(qc.census_code_sha(d, lambda a: self.SHA), self.SHA)
+
+    def test_PROVEN_TO_CATCH_gits_dubious_ownership_refusal(self):
+        # The exact failure this record exists for: git answers prose, not a
+        # sha, and the field must be absent rather than carry the sentence.
+        d = tempfile.mkdtemp()
+        msg = "fatal: detected dubious ownership in repository at '/volume1/PoeTech/repos'"
+        self.assertIsNone(qc.census_code_sha(d, lambda a: msg))
+
+    def test_an_unreadable_ref_falls_through_rather_than_raising(self):
+        d = self._repo(head="ref: refs/heads/main\n")  # no ref file, no packed-refs
+        self.assertIsNone(qc.census_code_sha(d, lambda a: ""))
+
+    def test_a_head_that_is_neither_a_sha_nor_a_ref_reads_unknown(self):
+        d = self._repo(head="gone fishing\n")
+        self.assertIsNone(qc.census_code_sha(d, lambda a: ""))
