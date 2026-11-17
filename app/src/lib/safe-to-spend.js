@@ -202,6 +202,14 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
   const salaries = (data?.inflows?.salaries || []).filter((s) => inScope(sc, s.entityId));
   const txns = data?.transactions || [];
   const accountEntity = new Map((data?.accounts || []).map((a) => [a.id, a.entityId ?? null]));
+  // The account a rhythm's deposits actually landed in (its latest one), so
+  // every projected deposit names where the money arrives.
+  const txById = new Map(txns.filter((t) => t && t.id != null).map((t) => [t.id, t]));
+  const depositAccount = (g) => {
+    if (!g || !Array.isArray(g.txIds)) return null;
+    const rows = g.txIds.map((id) => txById.get(id)).filter(Boolean).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return rows.length ? rows[rows.length - 1].accountId || null : null;
+  };
   // Inferred pay rhythms from real deposits (category salary, or a payroll-looking description).
   const payrollRows = txns.filter((t) => t && Number(t.amount) > 0 && !isTransferTxn(t) && !isBalanceAdjustment(t)
     && (String(t.category || '') === 'salary' || /payroll|salary|direct ?dep|paycheck/i.test(String(t.description || '')))
@@ -227,7 +235,7 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
       const first = parseDay(sched.nextDate);
       const per = sched.amount != null ? Number(sched.amount) : perPaycheck(amount, sched.frequency);
       for (const at of expandOccurrences(first, sched.frequency, start, end)) {
-        events.push({ date: isoDay(at), amount: round2(per), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'schedule', inferred: false, entityId: s.entityId ?? null });
+        events.push({ date: isoDay(at), amount: round2(per), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'schedule', inferred: false, status: 'confirmed', statusNote: 'pay schedule you entered', frequency: sched.frequency, salaryId: s.id, accountId: s.accountId || depositAccount(own) || null, entityId: s.entityId ?? null });
       }
       continue;
     }
@@ -240,8 +248,13 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
       let next = new Date(match.nextExpected.getFullYear(), match.nextExpected.getMonth(), match.nextExpected.getDate());
       let guard = 0;
       while (next < start && guard++ < 60) next = addDays(next, match.cadenceDays);
-      for (const at of expandOccurrences(next, cadenceToFrequency(match.cadence), start, end)) {
-        events.push({ date: isoDay(at), amount: round2(match.amount), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'inferred', inferred: true, entityId: s.entityId ?? null });
+      const freq = cadenceToFrequency(match.cadence);
+      const dates = expandOccurrences(next, freq, start, end);
+      // What a "Confirm" tap saves as this salary's pay schedule: the rhythm the
+      // deposits show, never a figure the family did not see first.
+      const confirm = dates.length ? { salaryId: s.id, frequency: freq, nextDate: isoDay(dates[0]), amount: round2(match.amount) } : null;
+      for (const at of dates) {
+        events.push({ date: isoDay(at), amount: round2(match.amount), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'inferred', inferred: true, status: 'inferred', statusNote: `pay dates inferred from ${match.count} deposits (${match.cadenceLabel}); not confirmed`, frequency: freq, salaryId: s.id, accountId: s.accountId || depositAccount(match) || null, confirm, entityId: s.entityId ?? null });
       }
       assumptions.push(`${s.source || 'Salary'}: pay dates inferred from ${match.count} deposits (${match.cadenceLabel}); set the pay schedule in Money → Settings to confirm.`);
       continue;
@@ -260,8 +273,10 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
     let guard = 0;
     while (next < start && guard++ < 60) next = addDays(next, g.cadenceDays);
     const payer = cleanName(g.label || '') || 'Paycheck';
-    for (const at of expandOccurrences(next, cadenceToFrequency(g.cadence), start, end)) {
-      events.push({ date: isoDay(at), amount: round2(g.amount), label: `Paycheck · ${payer}`, kind: 'income', source: 'inferred', inferred: true, entityId: null });
+    const freq = cadenceToFrequency(g.cadence);
+    const acct = depositAccount(g);
+    for (const at of expandOccurrences(next, freq, start, end)) {
+      events.push({ date: isoDay(at), amount: round2(g.amount), label: `Paycheck · ${payer}`, kind: 'income', source: 'inferred', inferred: true, status: 'inferred', statusNote: `seen in ${g.count} deposits (${g.cadenceLabel}); not tied to an income source, not confirmed`, frequency: freq, salaryId: null, accountId: acct, entityId: acct ? (accountEntity.get(acct) ?? null) : null });
     }
     assumptions.push(`Paycheck from ${payer}: about $${Math.round(g.amount).toLocaleString()} ${g.cadenceLabel}, seen in ${g.count} deposits; not confirmed. Set its pay dates in Money → Settings.`);
   }
@@ -276,7 +291,7 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
     const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(rentDay, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
     const first = anchor < start ? addMonthsClamped(anchor, 1, rentDay) : anchor;
     for (const at of expandOccurrences(first, 'monthly', start, end)) {
-      events.push({ date: isoDay(at), amount: round2(collected), label: `Rent · ${r.name || r.address || 'door'}`, kind: 'income', source: 'rental', inferred: !settings.rentDueDay, entityId: r.entityId ?? null });
+      events.push({ date: isoDay(at), amount: round2(collected), label: `Rent · ${r.name || r.address || 'door'}`, kind: 'income', source: 'rental', inferred: !settings.rentDueDay, status: settings.rentDueDay ? 'confirmed' : 'date-assumed', statusNote: settings.rentDueDay ? `rent on file, due day ${rentDay}` : 'rent on file; the day it lands is assumed (the 1st)', frequency: 'monthly', rentalId: r.id, accountId: r.accountId || null, entityId: r.entityId ?? null });
     }
   }
   if (!settings.rentDueDay && events.some((e) => e.source === 'rental')) assumptions.push('Rent is assumed to land on the 1st; set the rent due day in Money → Settings.');
@@ -297,6 +312,32 @@ function cadenceToFrequency(cadence) {
 }
 
 // ── dated outflows ───────────────────────────────────────────────────────────
+// Future-dated ledger rows on spendable accounts in scope: payments and
+// deposits the family typed into the register ahead of time. One reader for
+// the day-by-day walk (obligationEvents step 2) and the income windows
+// (comingUp), so a scheduled deposit is never in one and missing from the
+// other. A typed deposit is CONFIRMED income: the family entered it.
+// Money moving between the family's own accounts is never income or spend:
+// a pending Cash App transfer landing in Chase is the rent that already
+// arrived in Cash App (Darrell 2026-11-05: "Never count the same money
+// twice"), so it is skipped here like a flagged transfer.
+export function scheduledLedgerEvents(data, sc, asOf, start, end) {
+  const out = [];
+  const accountsById = new Map((data?.accounts || []).map((a) => [a.id, a]));
+  for (const t of (data?.transactions || [])) {
+    if (!t || !t.date) continue;
+    const d = parseDay(t.date); if (!d || d <= asOf || d < start || d > end) continue;
+    const acct = accountsById.get(t.accountId);
+    if (!acct || !SPENDABLE_TYPES.includes(acct.type) || acct.inLegal || acct.treatAsDebt) continue;
+    if (!inScope(sc, acct.entityId)) continue;
+    if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
+    const amt = Number(t.amount) || 0; if (!amt) continue;
+    const base = { date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false };
+    out.push(amt > 0 ? { ...base, inferred: false, status: 'confirmed', statusNote: 'scheduled in your register', frequency: 'once' } : base);
+  }
+  return out;
+}
+
 export function obligationEvents(data, sc, start, end, settings = {}, opts = {}) {
   const asOf = opts.asOf || start;
   const events = [];
@@ -397,20 +438,9 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
 
   // 2) Future-dated ledger rows on spendable accounts in scope (scheduled by hand).
   const scheduledKeys = new Set();
-  for (const t of (data?.transactions || [])) {
-    if (!t || !t.date) continue;
-    const d = parseDay(t.date); if (!d || d <= asOf || d < start || d > end) continue;
-    const acct = accountsById.get(t.accountId);
-    if (!acct || !SPENDABLE_TYPES.includes(acct.type) || acct.inLegal || acct.treatAsDebt) continue;
-    if (!inScope(sc, acct.entityId)) continue;
-    // Money moving between the family's own accounts is never income or spend:
-    // a pending Cash App transfer landing in Chase is the rent that already
-    // arrived in Cash App (Darrell 2026-11-05: "Never count the same money
-    // twice"), so it is skipped here like a flagged transfer.
-    if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
-    const amt = Number(t.amount) || 0; if (!amt) continue;
-    scheduledKeys.add(payeeKey(t.description || ''));
-    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false });
+  for (const ev of scheduledLedgerEvents(data, sc, asOf, start, end)) {
+    scheduledKeys.add(payeeKey(ev.label || ''));
+    events.push(ev);
   }
 
   // 3) Minimum debt payments + mortgage P&I/escrow, once each. A mortgage
@@ -901,13 +931,21 @@ export function ledgerFreshness(data, sc, asOf, settings = {}) {
 // bills, overdue items, creditor arrangements and settlements, and expected
 // income, each with the items that make it up (every number can be opened).
 function comingUp(data, sc, start, settings, opts) {
+  const accountNames = new Map((data?.accounts || []).map((a) => [a.id, a.name || a.id]));
   const end30 = addDays(start, 30);
   const end14 = addDays(start, 14);
   const end7 = addDays(start, 7);
   // One 30-day walk; the 7- and 14-day windows are its earlier days (the
   // events are the same whatever the end), so the three can never disagree.
   const ob = obligationEvents(data, sc, start, end30, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
-  const inc = incomeEvents(data, sc, addDays(start, 1), end30, settings, start);
+  // Income through 90 days, from tomorrow: the projected schedule plus every
+  // deposit typed into the register ahead of time (the walk already counts
+  // those; the windows did not, 2026-11-17).
+  const end60 = addDays(start, 60);
+  const end90 = addDays(start, 90);
+  const inc90 = incomeEvents(data, sc, addDays(start, 1), end90, settings, start);
+  const typed = scheduledLedgerEvents(data, sc, start, addDays(start, 1), end90).filter((e) => e.amount > 0);
+  const incomeAll = [...inc90.events, ...typed].sort((a, b) => a.date.localeCompare(b.date) || String(a.label).localeCompare(String(b.label)));
   const out30 = ob.events.filter((e) => e.amount < 0);
   const out = out30.filter((e) => e.date <= isoDay(end14));
   const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
@@ -916,7 +954,37 @@ function comingUp(data, sc, start, settings, opts) {
   // bills (Darrell 2026-11-11): a missed loan payment (overdue, in or past
   // its grace period) or a past-due balance entered as such.
   const isPastDue = (e) => !!e.overdue || !!e.graceState || e.obligationType === 'past-due';
-  const incomeThrough = (end) => { const xs = inc.events.filter((e) => e.date <= isoDay(end)); return { total: round2(xs.reduce((s, e) => s + e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) }; };
+  // EVERY DEPOSIT IN THE WINDOW, NAMED (Christina 2026-11-16: "The 30-day
+  // income forecast must show exactly which deposits make up the total").
+  // `total` is everything expected in the window; `confirmed` is what Safe to
+  // Spend counts (entered pay schedules, rent with its due day set, deposits
+  // typed into the register); `unconfirmed` is shown, never counted as cash
+  // (inferred pay rhythms, rent whose day is assumed).
+  const incomeItem = (e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred, confirmed: !e.inferred, status: e.status || (e.inferred ? 'inferred' : 'confirmed'), statusNote: e.statusNote || null, source: e.source, frequency: e.frequency || null, accountId: e.accountId || null, accountName: e.accountId ? (accountNames.get(e.accountId) || null) : null, entityId: e.entityId ?? null, salaryId: e.salaryId || null, confirm: e.confirm || null });
+  const incomeThrough = (end) => {
+    const xs = incomeAll.filter((e) => e.date <= isoDay(end));
+    const confirmed = round2(xs.filter((e) => !e.inferred).reduce((a, e) => a + e.amount, 0));
+    const total = round2(xs.reduce((a, e) => a + e.amount, 0));
+    return { total, confirmed, unconfirmed: round2(total - confirmed), through: isoDay(end), items: xs.map(incomeItem) };
+  };
+  // INCOME BEFORE EACH BILL — a different calculation from the window total
+  // (Christina 2026-11-16: "Distinguish total income expected during the next
+  // 30 days from income expected before specific bills become due"). For each
+  // bill in the 30 days, in date order: the bills due through its date, and
+  // the income arriving from tomorrow THROUGH that date (a deposit landing on
+  // the due day counts as arriving in time). A bill owed today has no income
+  // before it.
+  const billsBefore = out30.slice().sort((a, b) => a.date.localeCompare(b.date)).map((b, i, arr) => {
+    const upTo = arr.filter((x) => x.date <= b.date);
+    const arrived = incomeAll.filter((e) => e.date <= b.date);
+    return {
+      date: b.date, label: b.label, amount: round2(-b.amount), overdue: !!b.overdue, dueDate: b.dueDate || null, kind: b.kind, assumed: !!b.assumed, inferred: b.kind === 'inferred-bill',
+      billsThrough: round2(upTo.reduce((a, x) => a - x.amount, 0)),
+      confirmedIncomeBy: round2(arrived.filter((e) => !e.inferred).reduce((a, e) => a + e.amount, 0)),
+      unconfirmedIncomeBy: round2(arrived.filter((e) => e.inferred).reduce((a, e) => a + e.amount, 0)),
+      index: i,
+    };
+  });
   // What is NOT subtracted, shown beside what is: payments already paid and
   // cleared (in the ledger, marked paid outside, or inside the bank-checked
   // balance) and the possible duplicates counted once.
@@ -938,11 +1006,15 @@ function comingUp(data, sc, start, settings, opts) {
     pastDue: pick(out30.filter(isPastDue)),
     overdue: pick(out.filter((e) => e.overdue)),
     arrangements: pick(out.filter((e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement')),
-    // Income expected BEFORE each window's bills are due: what arrives inside
-    // the same window (counted only on the day it arrives, never earlier).
+    // Income expected INSIDE each window (from tomorrow through its last day),
+    // counted only on the day it arrives. This is the window's total, not
+    // "income before these bills are due"; that is billsBefore30.
     income7: incomeThrough(end7),
     income14: incomeThrough(end14),
     income30: incomeThrough(end30),
+    income60: incomeThrough(end60),
+    income90: incomeThrough(end90),
+    billsBefore30: { items: billsBefore },
   };
 }
 
@@ -1038,6 +1110,30 @@ export function reserveStatus(data, settings = {}, sc) {
     pct: goal > 0 ? Math.min(100, Math.round((designated / goal) * 100)) : null,
     goalSource: goalKey != null ? 'saved' : (sc.kind === 'personal' ? 'default' : 'none'),
   };
+}
+
+// One day-by-day walk of cash: start from `availableCash`, apply each dated
+// item on its day and the undated reserves from day 1. Returns the timeline,
+// the lowest day and the first day below zero.
+function walkCash(availableCash, items, start, days, dailyAccrual) {
+  const byDay = new Map();
+  for (const it of items) { if (!byDay.has(it.date)) byDay.set(it.date, []); byDay.get(it.date).push(it); }
+  const timeline = [];
+  let cash = availableCash;
+  let lowest = { amount: availableCash, date: isoDay(start) };
+  let overdraftDate = null;
+  for (let d = 0; d <= days; d++) {
+    const date = isoDay(addDays(start, d));
+    const dayItems = byDay.get(date) || [];
+    let inflow = 0; let outflow = 0;
+    for (const it of dayItems) { if (it.amount > 0) inflow += it.amount; else outflow += -it.amount; }
+    const accrued = d === 0 ? 0 : dailyAccrual;
+    cash = cash + inflow - outflow - accrued;
+    timeline.push({ date, cash: round2(cash), in: round2(inflow), out: round2(outflow + accrued), accrued: round2(accrued), items: dayItems });
+    if (cash < lowest.amount) lowest = { amount: round2(cash), date };
+    if (cash < 0 && !overdraftDate) overdraftDate = date;
+  }
+  return { timeline, lowest, overdraftDate };
 }
 
 export function buildSafeToSpend(data, opts = {}) {
@@ -1155,28 +1251,25 @@ function forScope(data, sc, asOf, settings, opts) {
   windows.reserveSource = reserve.source;
 
   // Day-by-day walk.
-  const items = [...income.events, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
-  const byDay = new Map();
-  for (const it of items) { if (!byDay.has(it.date)) byDay.set(it.date, []); byDay.get(it.date).push(it); }
+  // UNCONFIRMED INCOME IS NOT CASH (Christina 2026-11-16: "Unconfirmed income
+  // must be shown separately and must not be treated as guaranteed cash in
+  // Safe-to-Spend"). The walk Safe to Spend reads counts only CONFIRMED income
+  // (an entered pay schedule, rent with its due day set, a deposit typed into
+  // the register). Inferred pay rhythms and rent on an assumed day are walked
+  // a second time beside it, so the family sees what the figure WOULD be if
+  // that money arrives, never as the figure itself.
+  const confirmedIncome = income.events.filter((e) => !e.inferred);
+  const unconfirmedIncomeEvents = income.events.filter((e) => e.inferred);
+  const items = [...confirmedIncome, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
   const dailyLiving = accrual.living / DAYS_PER_MONTH;
   const dailyTax = accrual.tax / DAYS_PER_MONTH;
   const dailySavings = accrual.savings / DAYS_PER_MONTH;
-  const timeline = [];
-  let cash = availableCash;
-  let lowest = { amount: availableCash, date: isoDay(start) };
-  let overdraftDate = null;
   const days = Math.max(0, daysBetween(start, end));
-  for (let d = 0; d <= days; d++) {
-    const date = isoDay(addDays(start, d));
-    const dayItems = byDay.get(date) || [];
-    let inflow = 0; let outflow = 0;
-    for (const it of dayItems) { if (it.amount > 0) inflow += it.amount; else outflow += -it.amount; }
-    const accrued = d === 0 ? 0 : dailyLiving + dailyTax + dailySavings;
-    cash = cash + inflow - outflow - accrued;
-    timeline.push({ date, cash: round2(cash), in: round2(inflow), out: round2(outflow + accrued), accrued: round2(accrued), items: dayItems });
-    if (cash < lowest.amount) lowest = { amount: round2(cash), date };
-    if (cash < 0 && !overdraftDate) overdraftDate = date;
-  }
+  const walk = walkCash(availableCash, items, start, days, dailyLiving + dailyTax + dailySavings);
+  const { timeline, lowest, overdraftDate } = walk;
+  const withUnconfirmed = unconfirmedIncomeEvents.length
+    ? walkCash(availableCash, [...items, ...unconfirmedIncomeEvents].sort((a, b) => a.date.localeCompare(b.date)), start, days, dailyLiving + dailyTax + dailySavings)
+    : walk;
   const sum = (pred) => round2(items.filter(pred).reduce((s, it) => s + Math.abs(it.amount), 0));
   // THE SIMPLE BREAKDOWN RECONCILES WITH THE WALK (Christina 2026-10-28): the
   // sums THROUGH the lowest day are the walk's own terms, so
@@ -1203,6 +1296,7 @@ function forScope(data, sc, asOf, settings, opts) {
   const taxesDated = sum((it) => it.kind === 'tax');
   const otherCommitments = sum((it) => it.kind === 'incident');
   const expectedIncome = sum((it) => it.kind === 'income');
+  const unconfirmedIncome = round2(unconfirmedIncomeEvents.reduce((a, e) => a + e.amount, 0));
   const periodFraction = days / DAYS_PER_MONTH;
   const livingReserved = round2(accrual.living * periodFraction);
   const taxReserved = round2(accrual.tax * periodFraction + taxesDated);
@@ -1220,13 +1314,22 @@ function forScope(data, sc, asOf, settings, opts) {
   const safeToSpendNow = reconciliationRequired ? 0 : unreconciledSafe;
   const shortfall = round2(Math.max(0, minCushion - lowest.amount));
   const nextIncome = income.events.filter((e) => e.date > isoDay(asOf)).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+  // What Safe to Spend would read IF the unconfirmed income arrives on the
+  // days projected. Shown beside the figure, never in its place.
+  const ifUnconfirmedArrives = {
+    income: unconfirmedIncome,
+    items: unconfirmedIncomeEvents.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), status: e.status || 'inferred', statusNote: e.statusNote || null })),
+    lowest: withUnconfirmed.lowest,
+    safeToSpend: reconciliationRequired ? 0 : round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
+    unreconciledSafe: round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
+  };
 
   let status = 'verified';
   const reasons = [];
   if (!spendable.length) { status = 'unavailable'; reasons.push('No checking, savings or cash account in this scope yet.'); }
   else {
     if (freshness.stale) { status = 'estimate'; reasons.push(freshness.ledgerAsOf ? `The ledger's newest entry is ${freshness.staleDays} days old (older than ${freshness.staleAfter}).` : 'No ledger entries on the spendable accounts yet.'); }
-    if (income.events.some((e) => e.inferred)) { if (status === 'verified') status = 'estimate'; reasons.push('Some income timing is inferred, not entered.'); }
+    if (unconfirmedIncomeEvents.length) reasons.push(`$${unconfirmedIncome.toLocaleString()} of expected income is not confirmed, so it is left out of Safe to Spend; confirm the pay schedule or rent day to count it.`);
     if (obligations.events.some((e) => e.assumed && e.kind !== 'inferred-bill')) { if (status === 'verified') status = 'estimate'; reasons.push('Some payment due days are assumed.'); }
     if (obligations.waitingOnLedger) { if (status === 'verified') status = 'estimate'; reasons.push(`${obligations.waitingOnLedger} bill${obligations.waitingOnLedger === 1 ? ' is' : 's are'} marked paid but not in the ledger yet; still counted until the payment posts.`); }
     // VERIFIED MEANS CHECKED AGAINST THE BANK (Christina 2026-11-03: "label Safe
@@ -1244,7 +1347,7 @@ function forScope(data, sc, asOf, settings, opts) {
 
   const explanation = [
     `Start with ${balanceSources.filter((b) => b.counted).every((b) => b.verifiedOn) ? 'bank-checked' : 'ledger-calculated (not every account bank-checked)'} cash on ${spendable.length} spendable account${spendable.length === 1 ? '' : 's'}: $${availableCash.toLocaleString()}. Every ledger row dated ${isoDay(asOf)} or earlier is already inside this number, so pending rows are not subtracted again.`,
-    `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of expected income on the days it is expected.`,
+    `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of confirmed income on the days it is expected.${unconfirmedIncome ? ` $${unconfirmedIncome.toLocaleString()} of unconfirmed income is NOT counted (if it arrives as projected, Safe to Spend would read $${ifUnconfirmedArrives.unreconciledSafe.toLocaleString()}).` : ''}`,
     `Accrue the undated reserves day by day: $${accrual.living.toLocaleString()}/mo living expenses, $${accrual.tax.toLocaleString()}/mo tax set-aside, $${accrual.savings.toLocaleString()}/mo planned savings.`,
     `The lowest projected balance is $${lowest.amount.toLocaleString()} on ${lowest.date}. Keep the $${minCushion.toLocaleString()} cash cushion: ${lowest.amount - minCushion >= 0 ? `$${unreconciledSafe.toLocaleString()} could be spent today without any projected balance dropping below the cushion${reconciliationRequired ? ' IF the balances were right' : ''}.` : `the cushion is short by $${shortfall.toLocaleString()}, so nothing is safely spendable today.`}`,
   ];
@@ -1263,15 +1366,19 @@ function forScope(data, sc, asOf, settings, opts) {
     lines: {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
-      minCushion, otherCommitments, expectedIncome,
+      minCushion, otherCommitments, expectedIncome, unconfirmedIncome, ifUnconfirmedArrives,
       reserve: { goal: reserve.goal, designated: reserve.designated, remaining: reserve.remaining, pct: reserve.pct, source: reserve.source, goalSource: reserve.goalSource, key: reserve.key, typed: reserve.typed, designations: reserve.designations },
       projectedLowest: lowest,
       toLowest,
-      nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred } : null,
+      nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred, status: nextIncome.status || null } : null,
       potentialDebtPayment: safeToSpendNow,
     },
     monthly: { living: accrual.living, livingParts: accrual.livingParts, tax: accrual.tax, savings: accrual.savings, inferredBills: obligations.inferredMonthly },
     items, timeline, explanation, assumptions,
+    // Expected income that is NOT in the walk above (inferred pay rhythms, rent
+    // on an assumed day): kept whole so the budget-by-paycheck view can still
+    // cut its periods at those paydays, labeled inferred.
+    unconfirmedIncomeItems: unconfirmedIncomeEvents,
     settled: obligations.settled || [],
   };
 }
@@ -1317,6 +1424,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       ],
       assumptions: [...new Set(byEntity.flatMap((r) => r.assumptions))],
       items: byEntity.flatMap((r) => r.items),
+      unconfirmedIncomeItems: byEntity.flatMap((r) => r.unconfirmedIncomeItems || []),
       settled: byEntity.flatMap((r) => r.settled || []),
       byEntity,
     };
@@ -1339,7 +1447,14 @@ function consolidated(data, sc, asOf, settings, opts) {
     lines: {
       availableCash: sumLine('availableCash'), investmentsHeldApart: sumLine('investmentsHeldApart'), pendingHolds: 0,
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),
-      minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'),
+      minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'), unconfirmedIncome: sumLine('unconfirmedIncome'),
+      ifUnconfirmedArrives: {
+        income: sumLine('unconfirmedIncome'),
+        items: byEntity.flatMap((r) => ((r.lines.ifUnconfirmedArrives || {}).items || [])),
+        lowest: { amount: round2(byEntity.reduce((s, r) => s + (((r.lines.ifUnconfirmedArrives || {}).lowest || r.lines.projectedLowest).amount || 0), 0)), date: null },
+        safeToSpend: round2(byEntity.reduce((s, r) => s + ((r.lines.ifUnconfirmedArrives || {}).safeToSpend ?? r.safeToSpendNow), 0)),
+        unreconciledSafe: round2(byEntity.reduce((s, r) => s + ((r.lines.ifUnconfirmedArrives || {}).unreconciledSafe ?? (r.unreconciledSafe || 0)), 0)),
+      },
       reserve: ['goal', 'designated', 'remaining'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + (((r.lines || {}).reserve || {})[k] || 0), 0)); return acc; }, { pct: null, source: 'summed', goalSource: 'summed', key: null, typed: null, designations: [] }),
       projectedLowest: { amount: lowestSum, date: null },
       toLowest: ['income', 'bills', 'debtMinimums', 'taxesDated', 'other', 'living', 'taxes', 'savings', 'reserves', 'obligations'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + ((r.lines.toLowest || {})[k] || 0), 0)); return acc; }, { date: null, days: null }),
@@ -1347,6 +1462,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     },
     monthly: null,
     items: byEntity.flatMap((r) => r.items), timeline: [],
+    unconfirmedIncomeItems: byEntity.flatMap((r) => r.unconfirmedIncomeItems || []),
     explanation: [
       `Each entity is projected on its own and floored at $0, then summed — business and rental cash is never treated as personal spending money, and no pocket subsidizes another.`,
       ...byEntity.map((r) => `${r.scope.label}: lowest $${r.lines.projectedLowest.amount.toLocaleString()} on ${r.lines.projectedLowest.date}, cushion $${r.lines.minCushion.toLocaleString()} → safe $${r.safeToSpendNow.toLocaleString()}.`),
@@ -1356,9 +1472,14 @@ function consolidated(data, sc, asOf, settings, opts) {
     // The combined view lists every entity's bills and income side by side,
     // each item tagged with the pocket it comes out of — a total of what is
     // DUE, never a pool of who may spend what.
-    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30'].reduce((w, k) => {
+    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30', 'income60', 'income90', 'billsBefore30'].reduce((w, k) => {
       const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
       w[k] = {
+        ...(k.startsWith('income') ? {
+          confirmed: round2(parts.reduce((s, { part }) => s + (Number(part.confirmed) || 0), 0)),
+          unconfirmed: round2(parts.reduce((s, { part }) => s + (Number(part.unconfirmed) || 0), 0)),
+          through: (parts[0] && parts[0].part.through) || null,
+        } : {}),
         total: round2(parts.reduce((s, { part }) => s + (Number(part.total) || 0), 0)),
         items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))),
       };
