@@ -85,10 +85,11 @@ export async function processDoc(doc, ctx) {
 
   // A screenshot's answered day / balance choice re-shapes the extraction (its
   // rows take their year from the day; the chosen figure becomes the balance).
-  const reshape = !!(given.as_of || given.balance_kind);
+  const reshape = !!(given.as_of || given.balance_kind || given.signs);
+  const signs = given.signs === 'out' || given.signs === 'in' ? given.signs : null;
   const x = given.doc_type && given.doc_type !== 'unknown'
-    ? extractDocument(read, doc, { hint, forceType: given.doc_type, asOf: given.as_of || null, balanceKind: given.balance_kind || null })
-    : (reshape ? extractDocument(read, doc, { hint, forceType: firstPass.doc_type !== 'unknown' ? firstPass.doc_type : null, asOf: given.as_of || null, balanceKind: given.balance_kind || null }) : firstPass);
+    ? extractDocument(read, doc, { hint, forceType: given.doc_type, asOf: given.as_of || null, balanceKind: given.balance_kind || null, signs })
+    : (reshape ? extractDocument(read, doc, { hint, forceType: firstPass.doc_type !== 'unknown' ? firstPass.doc_type : null, asOf: given.as_of || null, balanceKind: given.balance_kind || null, signs }) : firstPass);
   if (given.doc_type) x.uncertain = x.uncertain.filter((u) => u !== 'doc_type');
   if (given.as_of) x.uncertain = x.uncertain.filter((u) => u !== 'as_of');
   if (given.balance_kind) x.uncertain = x.uncertain.filter((u) => u !== 'balance_kind');
@@ -154,6 +155,10 @@ export function planWrite(doc, { known = {} } = {}) {
   if (doc.recon && doc.recon.status === 'mismatch') return { kind: 'none', reason: 'the numbers do not add up; never written as fact' };
   const blocking = blockingOpen(doc.questions);
   if (blocking.length) return { kind: 'none', reason: `${blocking.length} question${blocking.length === 1 ? '' : 's'} still open` };
+  // "Hold it" means hold it: nothing is written (before 2026-11-17 a held
+  // screenshot's rows were written on Approve, with no balance).
+  const held = (doc.questions || []).find((qq) => qq && qq.status === 'answered' && qq.answer === 'hold');
+  if (held) return { kind: 'none', held: true, reason: 'held at your request; nothing is written until you upload a clearer copy or change the answer' };
   const m = doc.matched || {};
   const accountId = m.account && m.account.accountId;
   const createAccount = !accountId && (doc.questions || []).some((q) => q.field === 'account' && q.answer === 'create')
