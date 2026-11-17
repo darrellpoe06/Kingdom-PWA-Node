@@ -27,7 +27,20 @@ import { categorize, LOW_CONFIDENCE } from './categorize.js';
 // family's learned rules, or the person's choice. Measured hazard: the
 // built-in rules file every Zelle as "transfer", which would have hidden a bill
 // paid by Zelle (BG & Mom) and a tithe sent by Zelle from the books.
-const SAFE_SUGGESTIONS = new Set(['groceries', 'fuel', 'dining', 'utilities', 'insurance', 'subscription', 'medical', 'vehicle', 'household', 'charitable', 'professional', 'business']);
+const SAFE_SUGGESTIONS = new Set([
+  'groceries',
+  'fuel',
+  'dining',
+  'utilities',
+  'insurance',
+  'subscription',
+  'medical',
+  'vehicle',
+  'household',
+  'charitable',
+  'professional',
+  'business',
+]);
 
 /** The rows as they will be written: decisions applied, categories suggested. Excluded rows are dropped. */
 export function reviewLineItems(lineItems = [], decisions = {}, learned = null) {
@@ -64,14 +77,20 @@ export function rowStatuses(lineItems = [], decisions = {}, learned = null, plan
   });
   // Multiset of what the dedupe kept as new: a row that is not in it is already in the books.
   const left = new Map();
-  const key = (r) => `${r.date}|${Number(r.amount).toFixed(2)}|${String(r.description || '').trim().toLowerCase()}`;
+  const key = (r) =>
+    `${r.date}|${Number(r.amount).toFixed(2)}|${String(r.description || '')
+      .trim()
+      .toLowerCase()}`;
   for (const r of planned || []) left.set(key(r), (left.get(key(r)) || 0) + 1);
   return reviewed.map((x) => {
     if (x.excluded) return { ...x, status: 'excluded' };
     if (planned == null) return { ...x, status: 'new' };
     const k = key(x.row);
     const n = left.get(k) || 0;
-    if (n > 0) { left.set(k, n - 1); return { ...x, status: 'new' }; }
+    if (n > 0) {
+      left.set(k, n - 1);
+      return { ...x, status: 'new' };
+    }
     return { ...x, status: 'duplicate' };
   });
 }
