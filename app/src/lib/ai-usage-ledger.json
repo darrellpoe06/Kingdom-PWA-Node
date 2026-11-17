@@ -2766,6 +2766,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "DR-1517 shipped census_code_sha as git rev-parse and the field never arrived: 59 minutes and about four services-sync cycles after merge, two separate reads still printed that the census did not name its own code. Not a pull delay - DR-1511's census change had appeared 16 minutes after its merge, one cycle, so code refresh works and this one call was failing. Every likely cause is a property of the subprocess rather than the question: git off the PATH of whichever user the clock runs the census as, or git refusing a mirror it does not own with fatal detected dubious ownership, which the shape test correctly turned into unknown instead of publishing a sentence. The files answer the same question with no PATH, no ownership check and no subprocess: .git/HEAD, the ref file, and packed-refs. A test harness that raises if git is called proves the files come first rather than merely being preferred. The cause on the NAS is explicitly NOT confirmed - the sandbox cannot reach the box - so what is claimed is only that the subprocess form never answered while a file read cannot fail for any of those reasons."
+    },
+    {
+      "id": "a-row-with-no-words-says-so",
+      "date": "2026-11-17",
+      "task": "The last branch of the builder's eligibility is mirrored, so a ready verdict can be trusted",
+      "drs": [
+        "DR-1519"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1516 left eligibility()'s no-words branch unmirrored on the stated grounds that testing it would require reading the body. That premise was wrong, the fourth such correction in one night: PostgREST answers has-this-row-any-words as a filter returning only ids, which already ride this road, so no body is read even to be measured. My first design was a generated body_length column, a schema change on the table holding people's teachings, for an answer a where clause gives for free. Also caught in the act: 0331 was first generated from 0329 by hand and would have silently deleted 0330's code_sha, the exact failure every header in this series warns about, made while writing the warning - the generator now derives the definition in force from disk and both shas were verified present after regeneration. The budget brake in the census header was corrected from one read to two rather than left stale."
     }
   ]
 }

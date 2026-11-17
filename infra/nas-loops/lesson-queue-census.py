@@ -41,8 +41,11 @@
 # a person had marked not a lesson or TAKEN BACK (DR-1142). An overcount of the
 # queue is a plan to build from words somebody withdrew.
 #
-# BRAKES (DR-0248, P10): BUDGET -- at most one read and one write per cycle, no
-# retry loop, no pagination beyond the one request. LOCK -- one row, patched in
+# BRAKES (DR-0248, P10): BUDGET -- at most TWO reads and one write per cycle, no
+# retry loop, no pagination beyond those requests. (It was one read until
+# DR-1519 added the empty-body FILTER, which asks for ids only and whose own
+# failure is caught so a refusal costs that one answer and not the census.)
+# LOCK -- one row, patched in
 # place, so a second run in the same cycle overwrites rather than accumulates.
 # STOP -- `enabled: false` on its registry entry, which is deterministic logic
 # the clock reads, and a missing credential is a named quiet no-op (exit 0) that
@@ -138,6 +141,37 @@ def waiting_query(select="id,created_at,source,tags,created_by"):
     return "&".join(parts)
 
 
+def empty_body_query():
+    """The ids of waiting rows WITH NO WORDS, asked as a FILTER (DR-1519).
+
+    WHY A FILTER AND NOT A COLUMN. `eligibility()` refuses a row whose body is
+    empty -- "no words" -- and DR-1516 left that branch unmirrored because
+    testing it looked like it needed the body. It does not: PostgREST can ask
+    the question as a `where` and return only IDS, which already ride this road.
+    The first design on the table was a generated `body_length` column, a schema
+    change on the table holding people's teachings, for an answer a filter gives
+    for free.
+    
+    NO WORDS CROSS THE WIRE, not even to be measured. The census never selects
+    `body` -- here or anywhere -- so there is nothing to leak and nothing to
+    forget to drop.
+    
+    ITS LIMIT, STATED: `eligibility()` also refuses a body that is only
+    whitespace, and PostgREST cannot express `btrim(body) = ''` as a filter. A
+    whitespace-only row therefore still reads `ready`. Narrower than the
+    builder, never wider, and said out loud rather than discovered.
+    """
+    parts = [
+        "agent_inbox?select=id",
+        "tags=cs." + urllib.parse.quote(json.dumps([REQUIRED_TAG])),
+    ]
+    for tag in EXCLUDED_TAGS:
+        parts.append("tags=not.cs." + urllib.parse.quote(json.dumps([tag])))
+    # NULL or the empty string; the two the builder's `or ""` collapses together.
+    parts.append("or=(body.is.null,body.eq.)")
+    return "&".join(parts)
+
+
 def shape_of(row):
     """What kind of waiting row this is, from its tags alone -- never its body."""
     tags = row.get("tags") or []
@@ -205,7 +239,7 @@ def stall_of(row):
 #
 # Codes only, from the tags, never a reason's text: a verdict is a tag shape,
 # which is what this file may emit.
-WHYS = ("declined", "waits-for-governor", "deferred", "rate-limited", "failed", "ready")
+WHYS = ("declined", "waits-for-governor", "no-words", "deferred", "rate-limited", "failed", "ready")
 # Darrell's own two accounts (lesson_builder.OWNER_IDS). A row from anyone else
 # is a MEMBER's teaching and is never built without `lesson-approved` (DR-0635),
 # so it is not the builder neglecting it -- it waits for the Governor. The ids
@@ -227,7 +261,7 @@ def attempts_of(row):
     return n
 
 
-def why_of(row):
+def why_of(row, empty_ids=()):
     """Why this row still waits, as one word from WHYS.
 
     Mirrors the ORDER of lesson_builder.eligibility()'s remaining branches for
@@ -253,6 +287,13 @@ def why_of(row):
     # one case where it matters most -- somebody else's teaching.
     if str(row.get("created_by") or "") not in OWNER_IDS and "lesson-approved" not in tags:
         return "waits-for-governor"
+    # NO WORDS YET (DR-1519). eligibility()'s last branch, mirrored at last: the
+    # research road can write a row before its words arrive, and such a row read
+    # `ready` while the builder refused it -- which is how an idle builder came
+    # to look like a neglectful one. `empty_ids` comes from a FILTER; no body is
+    # ever read to learn this.
+    if row.get("id") in (empty_ids or ()):
+        return "no-words"
     if any(isinstance(x, str) and x.startswith("build:deferred@") for x in tags):
         return "deferred"
     if attempts_of(row):
@@ -435,7 +476,7 @@ def census_code_sha(repo=None, run=None):
     return cand if HEX_SHA.match(cand) else None
 
 
-def census_of(rows, now=None, builder=None, code_sha=None):
+def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=()):
     """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
     rows = rows or []
     by_road = {}
@@ -477,7 +518,7 @@ def census_of(rows, now=None, builder=None, code_sha=None):
         # WHY it waits, and how many tries it has had (DR-1515). `ready` means
         # the builder should take it; `deferred` and an exhausted `failed` mean
         # it was handed to the hourly Routine on purpose.
-        entry["why"] = why_of(r)
+        entry["why"] = why_of(r, empty_ids)
         entry["attempts"] = attempts_of(r)
         waiting.append(entry)
     oldest = None
@@ -614,8 +655,23 @@ def main():
             print(f"lesson-queue-census: no instance with slug '{slug}'")
             return 1
         rows = rest(url, key, "GET", waiting_query()) or []
+        # ONE extra request, ids only, and the BUDGET says so (two reads and one
+        # write per cycle now). A refusal here must not cost the whole census,
+        # so an unanswered question leaves empty_ids empty -- which means a row
+        # with no words reads `ready` rather than the census dying. Narrower
+        # than the truth, never wider.
+        try:
+            empty = rest(url, key, "GET", empty_body_query()) or []
+            empty_ids = tuple(r.get("id") for r in empty if isinstance(r, dict) and r.get("id"))
+        except (OSError, ValueError, KeyError):
+            empty_ids = ()
         body = json.dumps(
-            census_of(rows, builder=builder_state(), code_sha=census_code_sha())
+            census_of(
+                rows,
+                builder=builder_state(),
+                code_sha=census_code_sha(),
+                empty_ids=empty_ids,
+            )
         )
         what = publish(
             url,
