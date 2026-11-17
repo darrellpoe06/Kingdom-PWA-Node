@@ -57,23 +57,18 @@ jobs:
         with:
           sparse-checkout: .github/actions
           sparse-checkout-cone-mode: false
-      - name: Join the tailnet (ephemeral)
-        if: steps.gate.outputs.go == 'true'
-        uses: ./.github/actions/join-tailnet
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Verify the tailnet actually joined
-        if: steps.gate.outputs.go == 'true'
-        run: |
-          if ! tailscale status --peers=false >/dev/null 2>&1; then
-            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Update the secret, re-dispatch."
-            exit 1
-          fi
-          tailscale status --peers=false
       - name: Outside-in transport proof (the runner IS the outside)
-        if: steps.gate.outputs.go == 'true'
+        # NO `if` AND BEFORE THE JOIN, ON PURPOSE (DR-0108 Ways review,
+        # 2026-11-17). Every command below is a plain curl to poetech.us over
+        # the public internet: no ssh, no tailscale, no tailnet address. It had
+        # been sitting AFTER "Verify the tailnet actually joined", which exits 1
+        # on a dead TS_AUTHKEY -- so from 2026-11-04, when that key was refused,
+        # a dead network key silently took the team's KEYLESS outside eye with
+        # it, and nas-health could not say whether poetech.us was answering.
+        # The gate it waited on checks TS_AUTHKEY and NAS_SSH_KEY are PRESENT;
+        # this step needs neither. Proven keyless the same night: run
+        # 44010537006 reached poetech.us/sb/rest/v1/rpc/lesson_queue_receipt
+        # with TAILNET: false. The ssh steps below keep their own gate.
         env:
           PROBE_PIN: ${{ secrets.NAS_HEALTH_PROBE_PIN }}
         run: |
@@ -215,6 +210,21 @@ jobs:
               echo "OUTSIDE-IN REST (session shape): SKIPPED — probe sign-in returned no token above"
             fi
           fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Update the secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:

@@ -2661,6 +2661,21 @@
       "wallClockHours": 1.1,
       "estimateWithoutAiHours": 7,
       "notes": "Darrell challenged the claim that the queue was blocked on his key. It was not: services-sync pulls main to the NAS every ~15 min and DR-1269's replay-on-clock applies merged migrations on the NAS's own clock. My 'verified no self-pull loop' had come from grepping loop names, not reading services-sync.sh. The census now writes a waiting list and 0326 publishes it, rebuilt from a whitelist in SQL so a tag carrying a member's name cannot pass. Applied against a real PostgreSQL 16 with a name and a body planted in the payload: all dropped, and anon was refused the table by name."
+    },
+    {
+      "id": "keyless-eye-not-gated-on-a-key",
+      "date": "2026-11-17",
+      "task": "A keyless outside-in witness no longer waits on a dead network key",
+      "drs": [
+        "DR-1513"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found by reading nas-health.yml end to end during the Ways review rather than trusting its summary. Its outside-in probe of poetech.us is pure curl over the public internet, and it had been placed after the step that exits 1 on a dead TS_AUTHKEY, so from 2026-11-04 a dead network key silently took the team's keyless eye with it. Moved ahead of the join with its if removed; the ssh steps keep their gate, so nothing gains reach. My own first claim that the step was pure curl came from grepping 85 of its 143 lines, and the new test caught ssh and tailscale inside it before I saw both hits were in my comment prose - the conclusion held, the method did not."
     }
   ]
 }
