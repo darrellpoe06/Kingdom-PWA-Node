@@ -220,6 +220,38 @@ def judge(receipt, why, now=None):
         if isinstance(d, dict) and d:
             parts = ", ".join(f"{k}: {v}" for k, v in sorted(d.items()))
             lines.append(f"{label} -- {parts}.")
+    # WHICH ROWS WAIT (0326, DR-1511). Until now this road could say five
+    # teachings waited and never which five, so a session that could not join
+    # the tailnet could describe the queue and not act on it -- not even run
+    # the already-shipped sweep, which takes row ids. Counts and classes only:
+    # the SQL rebuilds each row from a whitelist, so a tag (which can carry a
+    # member's name) and a body cannot reach here even if the census held one.
+    rows = receipt.get("waiting")
+    if isinstance(rows, list) and rows:
+        named = [r for r in rows if isinstance(r, dict) and r.get("id")]
+        # THE COUNT AND THE NAMED LIST CAN HONESTLY DISAGREE, and the smaller
+        # number must never read as the queue. The function drops a row whose
+        # id is not uuid-shaped rather than publish it half-known, so fewer
+        # named than counted means rows it REFUSED, not rows that left.
+        if isinstance(total, int) and len(named) != total:
+            lines.append(
+                f"NAMED {len(named)} of {total}: the rest were refused by the receipt "
+                "(an id it could not read), so they wait unnamed -- not gone."
+            )
+        for r in named:
+            bits = [str(r.get("id"))]
+            if r.get("created_at"):
+                bits.append(str(r.get("created_at")))
+            if r.get("source"):
+                bits.append(str(r.get("source")))
+            shape = str(r.get("shape") or "unclassified")
+            bits.append(shape + (f"/{r.get('stall')}" if r.get("stall") else ""))
+            lines.append("  " + " | ".join(bits))
+    elif isinstance(total, int) and total > 0:
+        lines.append(
+            "The census named no rows, so this count cannot be acted on: a build needs "
+            "the row id the already-shipped sweep takes."
+        )
     excl = receipt.get("excludes")
     if isinstance(excl, list) and excl:
         lines.append(
