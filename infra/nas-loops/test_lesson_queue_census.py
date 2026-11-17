@@ -937,9 +937,15 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
                             "read": {"code_sha": True, "building": True, "status": True},
                             "status": st}}
 
+    # The receipt is stamped 22:11:08Z; judged by the wall clock it went stale
+    # fifteen minutes after it was written and every verdict below collapsed
+    # into "UNKNOWN, a stale count". The reader takes `now`, so the clock is
+    # frozen a minute after the stamp and the verdicts are about the STATE.
+    NOW = datetime(2026, 11, 17, 22, 12, 8, tzinfo=timezone.utc)
+
     def said(self, state=None, **kw):
         # judge() returns (code, read, count, lines); the lines are the surface.
-        return "\n".join(self.rd.judge(self.receipt(state, **kw), "ok")[3])
+        return "\n".join(self.rd.judge(self.receipt(state, **kw), "ok", now=self.NOW)[3])
 
     def test_waiting_on_a_writer_says_the_box_is_the_problem_not_the_words(self):
         out = self.said("waiting on a writer")
@@ -982,7 +988,7 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
         # same thing is noise on the surface that matters most.
         r = self.receipt(None)
         r["builder"]["read"]["status"] = False
-        out = "\n".join(self.rd.judge(r, "ok")[3])
+        out = "\n".join(self.rd.judge(r, "ok", now=self.NOW)[3])
         self.assertIn("its own record: unread", out)
         self.assertNotIn("neither readiness nor eligibility is ruled out", out)
 
@@ -996,6 +1002,6 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
             {"at": "2026-11-17T21:51:31Z", "state": "waiting on a writer for Mary Smith"})
         self.assertNotIn("state", fields)
         self.assertEqual(dropped, 1)
-        out = "\n".join(self.rd.judge(self.receipt(), "ok")[3])  # no state at all
+        out = "\n".join(self.rd.judge(self.receipt(), "ok", now=self.NOW)[3])  # no state at all
         self.assertNotIn("Mary", out)
         self.assertIn("UNKNOWN", out)
