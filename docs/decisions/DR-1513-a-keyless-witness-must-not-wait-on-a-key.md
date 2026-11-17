@@ -8,6 +8,8 @@
 **Found by:** the DR-0108 Ways review Darrell demanded — *Isn't there other ways built* / *Multiple paths?! Tested?!*
 **Pairs with:** DR-0108 (review our Ways), DR-0125 (the site has its own witness), DR-0076 (check, do not claim), DR-1269 (the keyless replay road), DR-1511 (the keyless census road)
 
+**Measurement:** `docs/99-session-notes/2026-11-17-the-keyless-roads-answered-and-three-gates-caught-me.md`
+
 ## Context
 
 `nas-health.yml` holds the only outside-in probe of poetech.us this team can
@@ -28,10 +30,8 @@ end to end instead of trusting its summary.
 - **Proven keyless the same night, not reasoned about.** Run 44010537006 reached
   `poetech.us/sb/rest/v1/rpc/lesson_queue_receipt` from a runner with
   `TAILNET: false` — the same host, the same `/sb` proxy.
-- **A correction I owe:** I first called the step pure-curl after grepping 85 of
-  its 143 lines; the new test then flagged `ssh` and `tailscale` inside it, both
-  in my own comment prose. The conclusion held, the way I reached it did not —
-  a truncated grep read as a verification is the DR-0076 §8 error again.
+- **A correction I owe:** my pure-curl claim came from grepping 85 of its 143
+  lines. Conclusion held, method did not — the note has it.
 
 ## Impact
 

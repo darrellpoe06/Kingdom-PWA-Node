@@ -7,6 +7,8 @@
 **Area:** `infra/nas-loops/lesson-queue-census.py`, `infra/supabase/migrations-auto/0327-the-builder-says-whether-it-is-running.sql`, `scripts/served-lesson-queue.py`
 **Pairs with:** DR-1511 (the rows are named), DR-0076 §8 (unknown is never zero), DR-0639 (a tag can carry a name), DR-1269 (the keyless replay road), DR-0669 (the NAS lesson builder) · found by the same DR-0108 Ways review as DR-1511 and DR-1513
 
+**Measurement:** `docs/99-session-notes/2026-11-17-the-keyless-roads-answered-and-three-gates-caught-me.md`
+
 ## Context
 
 0326 made the public road name the waiting rows. The first live read said six
@@ -46,15 +48,13 @@ local read is published through the existing receipt.
 
 ## Verification
 
-- 32 Python cases (10 new) and 15 reader cases green. Proven to catch: adding
-  one `bl.get('error')` to the reader fails the closed-set case **by name**.
-- **Applied to a real PostgreSQL 16** with a hostile builder block planted — an
+- 32 Python cases (10 new), 15 reader cases. Proven to catch: one added
+  `bl.get('error')` fails the closed-set case **by name**.
+- **Applied to a real PostgreSQL 16** with a hostile builder block planted (an
   error string quoting a member, a `last_row_body`, a prose "sha", a lock named
-  for a row, a stray `secret`, a systemd sentence. `anon` received **none**: the
-  service word read `unknown` not `inactive`, a leak scan over the whole
-  609-byte receipt found nothing, and `anon` was still refused the table —
-  permission denied for table agent_inbox.
-- A census with no builder block publishes **no** `builder` key (`? 'builder'`
-  false), so absent never reads as healthy.
+  for a row, a stray `secret`, a systemd sentence). `anon` received **none**,
+  the service word read `unknown` not `inactive`, and `anon` was still refused
+  the table. Byte-level detail in the note.
+- A census with no builder block publishes **no** `builder` key, so absent never reads as healthy.
 - **Not claimed:** nothing is exercised on the NAS yet; it arrives by the
   services-sync pull and `replay-on-clock.sh`. `re-review: 2026-11-24`.
