@@ -98,6 +98,8 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
           {x.line_items.length > 0 && (<><span className="text-[#5A5751]">Lines</span><span className="text-[#1A1815]">{x.line_items.length}{doc.plan && doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span></>)}
         </div>
       )}
+      {x && x.doc_type === 'account-snapshot' && <SnapshotRows doc={doc} x={x} />}
+      {doc.plan && doc.plan.held && <p className="text-[0.6875rem] text-[#8B6F47]" data-testid="intake-held">Held: {doc.plan.reason}.</p>}
       {doc.recon && x && x.doc_type !== 'unknown' && (
         <p className={`text-[0.6875rem] ${doc.recon.status === 'mismatch' ? 'text-[#7A1F1F]' : doc.recon.status === 'reconciled' ? 'text-[#5A6E3D]' : 'text-[#8B6F47]'}`}>{doc.recon.note}</p>
       )}
@@ -133,6 +135,32 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
         </button>
       )}
     </li>
+  );
+}
+
+// THE ROWS THEMSELVES, not a count (Christina 2026-11-16: "Present extracted
+// transactions for my approval before importing"). Before approval: the rows
+// that will be added (new ones; already-recorded ones are counted apart). While
+// a question is open: every row the screen showed, with what is still missing
+// (its day, or whether it is money in or out).
+function SnapshotRows({ doc, x }) {
+  const planned = doc.plan && doc.plan.kind === 'snapshot' ? doc.plan.rows || [] : null;
+  const list = planned || x.preview_items || [];
+  if (!list.length) return null;
+  const label = planned ? `${list.length} new row${list.length === 1 ? '' : 's'} to add` : `${list.length} row${list.length === 1 ? '' : 's'} read from the screen (not added yet)`;
+  return (
+    <details open className="text-[0.6875rem]" data-testid="intake-snapshot-rows">
+      <summary className="cursor-pointer text-[#5A5751]">{label}{planned && doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</summary>
+      <ul className="mt-1 space-y-0.5" style={MONO}>
+        {list.map((r, i) => (
+          <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex gap-2" data-testid="intake-snapshot-row">
+            <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date || (r.openDate ? `${r.openDate} · day needed` : 'day needed')}</span>
+            <span className="flex-1 min-w-0 break-words text-[#1A1815]">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
+            <span className={`shrink-0 ${r.signUnknown ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '−' : '+'}${money(Math.abs(r.amount))}`}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

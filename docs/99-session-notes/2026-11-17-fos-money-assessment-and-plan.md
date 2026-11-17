@@ -196,6 +196,24 @@ Measured on the test household: 30-day bills $675.49 → $375.49 ($300 of Circle
 
 Tests: `money-bills-accuracy.test.jsx` (12); 11 fail on the 1.1 base, all pass here. One forecast test comment updated (its numbers hold).
 
+## 4e. PR 1.3a Transaction import accuracy — what changed and why (2026-11-17)
+
+`lib/snapshot-rows.js` (new) reads a banking-app screenshot's rows; `books-intake-extract.js` uses it.
+
+Measured on the OLD reader with the same text: `$-45.00`, `−82.10`, `($161.04)`, `Today …`, rows under a date heading, and two-line rows were all dropped (no row); `-45.00 4,642.18` was saved as a **+$4,642.18 deposit** (the running balance); a screen without a known day produced no rows at all.
+
+Now:
+- every money form is read with its sign; two trailing amounts are amount then running balance;
+- Today / Yesterday, date headings and two-line rows are read;
+- signs are never guessed: on a screen that signs any row, unsigned rows are money in; on a screen that signs none, a blocking question asks "money out / money in / hold";
+- rows are shown on the review card before the day is answered ("day needed"), never written until then;
+- "hold" (balance or signs question) now writes nothing (before, Approve wrote the rows);
+- the review card lists the rows themselves (day, description, signed amount, pending / transfer / debt payment), not a count.
+
+Tests: `money-import-accuracy.test.jsx` (24): the pipeline, hold and card cases fail on the old code; the format cases are shown failing on the old reader above.
+
+Phase 1.3b (next): per-row approve / reject / edit / category on the card, learned category rules applied on import, refund / reimbursement / tithes categories. Not started in this PR.
+
 ## 5. Recommended first implementation
 
 PR 1.1 Income truth. Pure engine + UI, no migration, no stored record touched,
