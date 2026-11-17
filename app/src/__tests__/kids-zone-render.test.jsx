@@ -36,20 +36,45 @@ const VERSES = {
   'Jonah 1:17': 'Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in the belly of the fish three days and three nights.',
 };
 const loadVerse = async (ref) => VERSES[ref] || `Words of ${ref} for the test.`;
-const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
+const flush = () =>
+  act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 
 let container, root;
 beforeEach(() => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  try { window.localStorage.clear(); } catch { /* none */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* none */
+  }
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); });
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+});
 const q = (sel) => container.querySelector(sel);
 const qa = (sel) => [...container.querySelectorAll(sel)];
 const click = (el) => act(() => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-const mount = (props = {}) => act(() => root.render(createElement(YouthZone, { church: COLG_DEFAULT_CHURCH, now: MON, loadVerse, fetchRecords: async () => ({ records: [] }), saveRecord: async () => ({ ok: true }), ask: async () => ({ ok: false }), ...props })));
+const mount = (props = {}) =>
+  act(() =>
+    root.render(
+      createElement(YouthZone, {
+        church: COLG_DEFAULT_CHURCH,
+        now: MON,
+        loadVerse,
+        fetchRecords: async () => ({ records: [] }),
+        saveRecord: async () => ({ ok: true }),
+        ask: async () => ({ ok: false }),
+        ...props,
+      })
+    )
+  );
 
 describe('the doors and the worlds', () => {
   it('Kids opens the Kids Zone, Teens the Teens Zone, Little Ones the Kids Zone at the little door; the choice is remembered on the device', () => {
@@ -75,7 +100,9 @@ describe('the doors and the worlds', () => {
     const slots = qa('[data-needed="true"]');
     expect(slots.length).toBeGreaterThan(0);
     const ids = new Set(SHOT_LIST.map((s) => s.id));
-    for (const s of slots) if (s.getAttribute('data-shot') !== 'lesson-scene' && s.getAttribute('data-shot') !== 'teen-guides' && s.getAttribute('data-shot') !== 'teen-summit') expect(ids.has(s.getAttribute('data-shot')), s.getAttribute('data-shot')).toBe(true);
+    for (const s of slots)
+      if (s.getAttribute('data-shot') !== 'lesson-scene' && s.getAttribute('data-shot') !== 'teen-guides' && s.getAttribute('data-shot') !== 'teen-summit')
+        expect(ids.has(s.getAttribute('data-shot')), s.getAttribute('data-shot')).toBe(true);
     expect(container.querySelector('svg[data-art]')).toBeNull();
   });
   it('a landed render replaces the interim cutout in the same slot (the registry decides)', () => {
@@ -121,11 +148,24 @@ describe('the tiles open real things', () => {
 describe('a storybook', () => {
   it('shows the loaded verse word for word, grades from the Word, says not yet kindly, and signed out does not write a record', async () => {
     const saves = [];
-    await act(async () => { root.render(createElement(Storybook, { bookId: 'jonah', loadVerse, signedIn: false, saveRecord: async (r) => { saves.push(r); return { ok: true }; } })); });
+    await act(async () => {
+      root.render(
+        createElement(Storybook, {
+          bookId: 'jonah',
+          loadVerse,
+          signedIn: false,
+          saveRecord: async (r) => {
+            saves.push(r);
+            return { ok: true };
+          },
+        })
+      );
+    });
     await flush();
     const book = STORYBOOKS[0];
     expect(q('[data-testid="storybook-verse"]').textContent).toContain('Words of Jonah 1:1-3');
-    click(q('[data-testid="storybook-next"]')); click(q('[data-testid="storybook-next"]'));
+    click(q('[data-testid="storybook-next"]'));
+    click(q('[data-testid="storybook-next"]'));
     expect(q('[data-testid="storybook-verse"]').textContent).toContain(VERSES['Jonah 1:17']);
     expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('2');
     expect(q('[data-shot="jonah-3"][data-needed="true"]')).toBeTruthy();
@@ -133,7 +173,9 @@ describe('a storybook', () => {
     expect(q('[data-testid="storybook-questions"]')).toBeTruthy();
     click(q('[data-testid="story-q0-o1"]'));
     expect(q('[data-testid="story-q0-says"]').textContent).toMatch(/not yet/i);
-    click(q('[data-testid="story-q0-o0"]')); click(q('[data-testid="story-q1-o0"]')); click(q('[data-testid="story-q2-o0"]'));
+    click(q('[data-testid="story-q0-o0"]'));
+    click(q('[data-testid="story-q1-o0"]'));
+    click(q('[data-testid="story-q2-o0"]'));
     expect(q('[data-testid="story-q0-says"]').textContent).toMatch(/Yes/);
     click(q('[data-testid="storybook-finish"]'));
     await flush();
@@ -142,10 +184,24 @@ describe('a storybook', () => {
   });
   it('signed in, finishing writes one record for the book with the quiz result', async () => {
     const saves = [];
-    await act(async () => { root.render(createElement(Storybook, { bookId: 'noah', loadVerse, signedIn: true, saveRecord: async (r) => { saves.push(r); return { ok: true }; } })); });
+    await act(async () => {
+      root.render(
+        createElement(Storybook, {
+          bookId: 'noah',
+          loadVerse,
+          signedIn: true,
+          saveRecord: async (r) => {
+            saves.push(r);
+            return { ok: true };
+          },
+        })
+      );
+    });
     await flush();
     for (let i = 0; i < 8; i += 1) click(q('[data-testid="storybook-next"]'));
-    click(q('[data-testid="story-q0-o0"]')); click(q('[data-testid="story-q1-o0"]')); click(q('[data-testid="story-q2-o0"]'));
+    click(q('[data-testid="story-q0-o0"]'));
+    click(q('[data-testid="story-q1-o0"]'));
+    click(q('[data-testid="story-q2-o0"]'));
     click(q('[data-testid="storybook-finish"]'));
     await flush();
     expect(saves.length).toBe(1);

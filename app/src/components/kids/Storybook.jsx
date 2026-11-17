@@ -57,14 +57,23 @@ export default function Storybook({
     let alive = true;
     if (!book) return undefined;
     setTexts({});
-    Promise.all(book.pages.map((p) => Promise.resolve().then(() => loadVerse(p.ref)).catch(() => '')))
-      .then((all) => {
-        if (!alive) return;
-        const next = {};
-        book.pages.forEach((p, i) => { next[p.ref] = String(all[i] || ''); });
-        setTexts(next);
+    Promise.all(
+      book.pages.map((p) =>
+        Promise.resolve()
+          .then(() => loadVerse(p.ref))
+          .catch(() => '')
+      )
+    ).then((all) => {
+      if (!alive) return;
+      const next = {};
+      book.pages.forEach((p, i) => {
+        next[p.ref] = String(all[i] || '');
       });
-    return () => { alive = false; };
+      setTexts(next);
+    });
+    return () => {
+      alive = false;
+    };
   }, [book, loadVerse]);
 
   if (!book) return <p className="lc-notice">That storybook is not on the shelf.</p>;
@@ -75,7 +84,9 @@ export default function Storybook({
   const progress = storyProgress(book, index);
   const reading = tts && tts.state && tts.state.status === 'speaking';
 
-  const hear = (words) => { if (tts && tts.supported && words) tts.speak(words); };
+  const hear = (words) => {
+    if (tts && tts.supported && words) tts.speak(words);
+  };
   const color = () => {
     if (!page || !text) return;
     const mod = pageColoringModule(book, page, text);
@@ -91,7 +102,11 @@ export default function Storybook({
     const rec = storybookRecord(book, { passed: allRight, pct });
     let result = { skipped: 'signed-out' };
     if (signedIn) {
-      try { result = await saveRecord(rec); } catch (e) { result = { error: e }; }
+      try {
+        result = await saveRecord(rec);
+      } catch (e) {
+        result = { error: e };
+      }
     }
     setSaved(result);
     if (onDone) onDone(book.id, { passed: allRight, pct, result });
@@ -103,25 +118,49 @@ export default function Storybook({
         <>
           <div className="kz-book">
             <div className="kz-scene">
-              <Shot id={page.shot} alt={`${book.title}, page ${index + 1}`} list={shotList} fallback={<ShotSlot id={page.shot} what={`${page.ref}, with your guides`} />} />
+              <Shot
+                id={page.shot}
+                alt={`${book.title}, page ${index + 1}`}
+                list={shotList}
+                fallback={<ShotSlot id={page.shot} what={`${page.ref}, with your guides`} />}
+              />
             </div>
             <div className="kz-page">
-              <div className="kz-pn"><span>PAGE {index + 1} OF {book.pages.length}</span><span>READ-ALONG</span></div>
-              {loading && <p className="lc-small" data-testid="storybook-loading">Loading the Word…</p>}
+              <div className="kz-pn">
+                <span>
+                  PAGE {index + 1} OF {book.pages.length}
+                </span>
+                <span>READ-ALONG</span>
+              </div>
+              {loading && (
+                <p className="lc-small" data-testid="storybook-loading">
+                  Loading the Word…
+                </p>
+              )}
               {!loading && !text && (
                 <p className="lc-notice" data-testid="storybook-unavailable">
                   The words of {page.ref} are not on this device yet. Open the Scripture tab once while online and they will be.
                 </p>
               )}
               {!loading && text && (
-                <p className={`kz-v${reading ? ' reading' : ''}`} data-testid="storybook-verse">"{text}"</p>
+                <p className={`kz-v${reading ? ' reading' : ''}`} data-testid="storybook-verse">
+                  "{text}"
+                </p>
               )}
               <span className="kz-ref">{page.ref} · KJV</span>
             </div>
           </div>
-          <GuideBubble who={page.who} shot={page.who === 'girl' ? 'girl-point' : 'boy-reading-point'} list={shotList}>{page.caption}</GuideBubble>
+          <GuideBubble who={page.who} shot={page.who === 'girl' ? 'girl-point' : 'boy-reading-point'} list={shotList}>
+            {page.caption}
+          </GuideBubble>
           <div className="kz-actions kz-focus-visible">
-            <button type="button" className="kz-act blue kz-focus-visible" onClick={() => hear(text)} disabled={!text || !(tts && tts.supported)} data-testid="storybook-hear">
+            <button
+              type="button"
+              className="kz-act blue kz-focus-visible"
+              onClick={() => hear(text)}
+              disabled={!text || !(tts && tts.supported)}
+              data-testid="storybook-hear"
+            >
               <KidsIcon name="read" /> Hear this page
             </button>
             <button type="button" className="kz-act orange kz-focus-visible" onClick={color} disabled={!text} data-testid="storybook-color">
@@ -129,10 +168,19 @@ export default function Storybook({
             </button>
           </div>
           <div className="kz-dots" aria-hidden="true">
-            {book.pages.map((p, i) => <i key={p.ref} className={i < index ? 'done' : i === index ? 'on' : ''} />)}
+            {book.pages.map((p, i) => (
+              <i key={p.ref} className={i < index ? 'done' : i === index ? 'on' : ''} />
+            ))}
           </div>
           <div className="kz-actions kz-focus-visible">
-            <button type="button" className="kz-act plain kz-focus-visible" onClick={() => (index === 0 ? onBack && onBack() : setIndex(index - 1))} data-testid="storybook-back">◀ Back</button>
+            <button
+              type="button"
+              className="kz-act plain kz-focus-visible"
+              onClick={() => (index === 0 ? onBack && onBack() : setIndex(index - 1))}
+              data-testid="storybook-back"
+            >
+              ◀ Back
+            </button>
             <button type="button" className="kz-act green kz-focus-visible" onClick={() => setIndex(index + 1)} data-testid="storybook-next">
               {index === book.pages.length - 1 ? 'The questions ▶' : 'Next page ▶'}
             </button>
@@ -158,16 +206,38 @@ export default function Storybook({
                   >
                     <i>{String.fromCharCode(65 + oi)}</i>
                     {o}
-                    <span className="kz-spk" role="button" aria-label={`Hear: ${o}`} onClick={(e) => { e.stopPropagation(); hear(o); }}><KidsIcon name="speaker" /></span>
+                    <span
+                      className="kz-spk"
+                      role="button"
+                      aria-label={`Hear: ${o}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        hear(o);
+                      }}
+                    >
+                      <KidsIcon name="speaker" />
+                    </span>
                   </button>
                 ))}
-                {graded && <p className="lc-small" role="status" data-testid={`story-q${qi}-says`}>{graded.says} ({q.from})</p>}
+                {graded && (
+                  <p className="lc-small" role="status" data-testid={`story-q${qi}-says`}>
+                    {graded.says} ({q.from})
+                  </p>
+                )}
               </fieldset>
             );
           })}
           <div className="kz-actions kz-focus-visible">
-            <button type="button" className="kz-act plain kz-focus-visible" onClick={() => setIndex(book.pages.length - 1)}>◀ Back to the book</button>
-            <button type="button" className="kz-act green kz-focus-visible" onClick={finish} disabled={Object.keys(picks).length < book.questions.length} data-testid="storybook-finish">
+            <button type="button" className="kz-act plain kz-focus-visible" onClick={() => setIndex(book.pages.length - 1)}>
+              ◀ Back to the book
+            </button>
+            <button
+              type="button"
+              className="kz-act green kz-focus-visible"
+              onClick={finish}
+              disabled={Object.keys(picks).length < book.questions.length}
+              data-testid="storybook-finish"
+            >
               <KidsIcon name="star" /> Finish
             </button>
           </div>
@@ -175,12 +245,16 @@ export default function Storybook({
             <p className="lc-small" role="status" data-testid="storybook-saved">
               {saved.skipped === 'signed-out'
                 ? 'Finished! Sign in and a finished storybook lights a stop on your map.'
-                : saved.error ? 'Finished! Your stop could not be saved right now; it will count next time.' : 'Finished! That stop is lit on your map.'}
+                : saved.error
+                  ? 'Finished! Your stop could not be saved right now; it will count next time.'
+                  : 'Finished! That stop is lit on your map.'}
             </p>
           )}
         </div>
       )}
-      <p className="lc-small" style={{ marginTop: '.5rem' }}>{door === 'teens' ? 'Read the whole chapter in the Scripture tab.' : 'A grown-up can read along with you.'}</p>
+      <p className="lc-small" style={{ marginTop: '.5rem' }}>
+        {door === 'teens' ? 'Read the whole chapter in the Scripture tab.' : 'A grown-up can read along with you.'}
+      </p>
     </div>
   );
 }

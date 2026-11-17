@@ -89,19 +89,105 @@ export function AriStar({ className = 'kz-star' }) {
 export function KidsIcon({ name }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinejoin: 'round', strokeLinecap: 'round' };
   switch (name) {
-    case 'map': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" {...common} /></svg>;
-    case 'theater': return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="2" {...common} /><path d="M3 7l2-3h14l2 3M10 10.5v5l4-2.5z" {...common} /></svg>;
-    case 'game': return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5" {...common} /><path d="M7 10v5M4.5 12.5h5" {...common} /><circle cx="16" cy="11" r="1.3" fill="currentColor" /><circle cx="18.5" cy="13.5" r="1.3" fill="currentColor" /></svg>;
-    case 'star': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" {...common} /></svg>;
-    case 'adult': return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" {...common} /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" {...common} /></svg>;
-    case 'read': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a8 8 0 0 1 8 0 8 8 0 0 1 8 0v13a8 8 0 0 0-8 0 8 8 0 0 0-8 0z M12 6v13" {...common} /></svg>;
-    case 'flag': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4h12l-3 4 3 4H5" {...common} /></svg>;
-    case 'cal': return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" {...common} /><path d="M3 10h18M8 3v4M16 3v4" {...common} /></svg>;
-    case 'speaker': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor" /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" {...common} /></svg>;
-    case 'crayon': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 10-10-3-3L5 16z" {...common} /><path d="M14 6l3 3" {...common} /></svg>;
-    case 'bulb': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.1 1 1.9h5c.1-.8.4-1.4 1-1.9A6 6 0 0 0 12 3z" {...common} /></svg>;
-    case 'starfill': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="#CFA63C" stroke="#7A5C14" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
-    case 'starline': return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="none" stroke="#C9A86A" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
-    default: return null;
+    case 'map':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" {...common} />
+        </svg>
+      );
+    case 'theater':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="7" width="18" height="12" rx="2" {...common} />
+          <path d="M3 7l2-3h14l2 3M10 10.5v5l4-2.5z" {...common} />
+        </svg>
+      );
+    case 'game':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="11" rx="5" {...common} />
+          <path d="M7 10v5M4.5 12.5h5" {...common} />
+          <circle cx="16" cy="11" r="1.3" fill="currentColor" />
+          <circle cx="18.5" cy="13.5" r="1.3" fill="currentColor" />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" {...common} />
+        </svg>
+      );
+    case 'adult':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="7" r="4" {...common} />
+          <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" {...common} />
+        </svg>
+      );
+    case 'read':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6a8 8 0 0 1 8 0 8 8 0 0 1 8 0v13a8 8 0 0 0-8 0 8 8 0 0 0-8 0z M12 6v13" {...common} />
+        </svg>
+      );
+    case 'flag':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 21V4h12l-3 4 3 4H5" {...common} />
+        </svg>
+      );
+    case 'cal':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="2" {...common} />
+          <path d="M3 10h18M8 3v4M16 3v4" {...common} />
+        </svg>
+      );
+    case 'speaker':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor" />
+          <path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" {...common} />
+        </svg>
+      );
+    case 'crayon':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20l4-1 10-10-3-3L5 16z" {...common} />
+          <path d="M14 6l3 3" {...common} />
+        </svg>
+      );
+    case 'bulb':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.1 1 1.9h5c.1-.8.4-1.4 1-1.9A6 6 0 0 0 12 3z" {...common} />
+        </svg>
+      );
+    case 'starfill':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"
+            fill="#CFA63C"
+            stroke="#7A5C14"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case 'starline':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"
+            fill="none"
+            stroke="#C9A86A"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    default:
+      return null;
   }
 }

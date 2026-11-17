@@ -23,10 +23,21 @@ export default function WhoAmI({ door = 'kids', now = null, loadVerse = verseTex
   const tts = useTextToSpeech();
   useEffect(() => {
     let alive = true;
-    setTexts(null); setRevealed(1); setGuess(null);
-    Promise.all(person.clues.map((ref) => Promise.resolve().then(() => loadVerse(ref)).catch(() => '')))
-      .then((all) => { if (alive) setTexts(all.map((t) => String(t || ''))); });
-    return () => { alive = false; };
+    setTexts(null);
+    setRevealed(1);
+    setGuess(null);
+    Promise.all(
+      person.clues.map((ref) =>
+        Promise.resolve()
+          .then(() => loadVerse(ref))
+          .catch(() => '')
+      )
+    ).then((all) => {
+      if (alive) setTexts(all.map((t) => String(t || '')));
+    });
+    return () => {
+      alive = false;
+    };
   }, [person, loadVerse]);
   const choices = useMemo(() => choicesFor(person, roster, seed), [person, roster, seed]);
   const result = guess ? gradeGuess(person, guess, revealed) : null;
@@ -38,45 +49,88 @@ export default function WhoAmI({ door = 'kids', now = null, loadVerse = verseTex
           <h2>Guess the Bible hero</h2>
           <p>Three clues from the Word. Fewer clues, more stars.</p>
         </div>
-        <Shot id="who-am-i-header" alt="" className="kz-art" list={shotList} fallback={<ShotSlot id="who-am-i-header" className="kz-art" what="the boy with the magnifying glass" />} />
+        <Shot
+          id="who-am-i-header"
+          alt=""
+          className="kz-art"
+          list={shotList}
+          fallback={<ShotSlot id="who-am-i-header" className="kz-art" what="the boy with the magnifying glass" />}
+        />
       </div>
       <div className="kz-body">
-        {texts === null && <p className="lc-small" data-testid="whoami-loading">Loading the clues from the Word…</p>}
-        {texts && person.clues.map((ref, i) => {
-          const text = texts[i];
-          if (i >= revealed) {
-            return (
-              <button key={ref} type="button" className="kz-clue locked kz-focus-visible" onClick={() => setRevealed(i + 1)} data-testid={`clue-${i + 1}-reveal`} disabled={!!solved}>
-                <span className="kz-k">CLUE {i + 1} · tap to reveal</span>
-                <q>…</q>
-              </button>
-            );
-          }
-          if (!text) {
+        {texts === null && (
+          <p className="lc-small" data-testid="whoami-loading">
+            Loading the clues from the Word…
+          </p>
+        )}
+        {texts &&
+          person.clues.map((ref, i) => {
+            const text = texts[i];
+            if (i >= revealed) {
+              return (
+                <button
+                  key={ref}
+                  type="button"
+                  className="kz-clue locked kz-focus-visible"
+                  onClick={() => setRevealed(i + 1)}
+                  data-testid={`clue-${i + 1}-reveal`}
+                  disabled={!!solved}
+                >
+                  <span className="kz-k">CLUE {i + 1} · tap to reveal</span>
+                  <q>…</q>
+                </button>
+              );
+            }
+            if (!text) {
+              return (
+                <div key={ref} className="kz-clue kz-focus-visible" data-testid={`clue-${i + 1}`}>
+                  <span className="kz-k">CLUE {i + 1}</span>
+                  <p className="lc-notice">The words of {ref} are not on this device yet. Open the Scripture tab once while online and they will be.</p>
+                </div>
+              );
+            }
             return (
               <div key={ref} className="kz-clue kz-focus-visible" data-testid={`clue-${i + 1}`}>
                 <span className="kz-k">CLUE {i + 1}</span>
-                <p className="lc-notice">The words of {ref} are not on this device yet. Open the Scripture tab once while online and they will be.</p>
+                <q>
+                  {blankName(text, person.name).map((t, k) =>
+                    t.blank ? (
+                      <span key={k} className="kz-blankname" aria-label="the name">
+                        {solved ? t.word : ''}
+                      </span>
+                    ) : (
+                      <span key={k}>{t.word}</span>
+                    )
+                  )}
+                </q>
+                <span className="kz-ref">{ref} · KJV</span>
+                <button
+                  type="button"
+                  className="kz-spk"
+                  aria-label="Hear this clue"
+                  onClick={() => tts && tts.supported && tts.speak(text)}
+                  disabled={!(tts && tts.supported)}
+                >
+                  <KidsIcon name="speaker" />
+                </button>
               </div>
             );
-          }
-          return (
-            <div key={ref} className="kz-clue kz-focus-visible" data-testid={`clue-${i + 1}`}>
-              <span className="kz-k">CLUE {i + 1}</span>
-              <q>
-                {blankName(text, person.name).map((t, k) => (t.blank
-                  ? <span key={k} className="kz-blankname" aria-label="the name">{solved ? t.word : ''}</span>
-                  : <span key={k}>{t.word}</span>))}
-              </q>
-              <span className="kz-ref">{ref} · KJV</span>
-              <button type="button" className="kz-spk" aria-label="Hear this clue" onClick={() => tts && tts.supported && tts.speak(text)} disabled={!(tts && tts.supported)}><KidsIcon name="speaker" /></button>
-            </div>
-          );
-        })}
-        <GuideBubble who="girl" shot="girl-point" right list={shotList}>Who is it? Guess early for three stars, or reveal clue {CLUES_PER_PERSON} for one. No wrong answers here, only "not yet".</GuideBubble>
+          })}
+        <GuideBubble who="girl" shot="girl-point" right list={shotList}>
+          Who is it? Guess early for three stars, or reveal clue {CLUES_PER_PERSON} for one. No wrong answers here, only "not yet".
+        </GuideBubble>
         <div className="kz-names" role="group" aria-label="Who am I?">
           {choices.map((name) => (
-            <button key={name} type="button" className={`kz-name${guess === name ? ' pick' : ''} kz-focus-visible`} onClick={() => setGuess(name)} disabled={!!solved} data-testid={`name-${name}`}>{name}</button>
+            <button
+              key={name}
+              type="button"
+              className={`kz-name${guess === name ? ' pick' : ''} kz-focus-visible`}
+              onClick={() => setGuess(name)}
+              disabled={!!solved}
+              data-testid={`name-${name}`}
+            >
+              {name}
+            </button>
           ))}
         </div>
         {result && !result.right && (
@@ -86,12 +140,31 @@ export default function WhoAmI({ door = 'kids', now = null, loadVerse = verseTex
         )}
         {solved && (
           <div className="kz-panel" data-testid="whoami-solved">
-            <h3>Yes! {person.name}. {result.stars} {result.stars === 1 ? 'star' : 'stars'}.</h3>
-            <p className="lc-small">Read the story in {person.book} {person.chapter}.</p>
+            <h3>
+              Yes! {person.name}. {result.stars} {result.stars === 1 ? 'star' : 'stars'}.
+            </h3>
+            <p className="lc-small">
+              Read the story in {person.book} {person.chapter}.
+            </p>
             <div className="kz-actions kz-focus-visible">
-              {onOpenScripture && <button type="button" className="kz-act blue kz-focus-visible" onClick={() => onOpenScripture(person.book, person.chapter)} data-testid="whoami-read"><KidsIcon name="read" /> Read the story</button>}
-              <button type="button" className="kz-act green kz-focus-visible" onClick={() => setPerson(nextPerson(roster, person))} data-testid="whoami-next">Next hero ▶</button>
-              {onBack && <button type="button" className="kz-act plain kz-focus-visible" onClick={onBack}>Back</button>}
+              {onOpenScripture && (
+                <button
+                  type="button"
+                  className="kz-act blue kz-focus-visible"
+                  onClick={() => onOpenScripture(person.book, person.chapter)}
+                  data-testid="whoami-read"
+                >
+                  <KidsIcon name="read" /> Read the story
+                </button>
+              )}
+              <button type="button" className="kz-act green kz-focus-visible" onClick={() => setPerson(nextPerson(roster, person))} data-testid="whoami-next">
+                Next hero ▶
+              </button>
+              {onBack && (
+                <button type="button" className="kz-act plain kz-focus-visible" onClick={onBack}>
+                  Back
+                </button>
+              )}
             </div>
           </div>
         )}

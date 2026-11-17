@@ -41,7 +41,9 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
           <img className="kz-shot" src={kidsAsset(KIDS_BRAND.reference)} alt="The Love Corner Bible Adventures" style={{ width: '100%' }} />
         )}
         <div className="kz-page" style={{ borderTop: '2px solid var(--lc-gold)' }}>
-          <b style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }} data-testid="theater-now">Now showing: {now.title}</b>
+          <b style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }} data-testid="theater-now">
+            Now showing: {now.title}
+          </b>
           <small style={{ display: 'block', fontSize: '.72rem', fontWeight: 700, color: 'var(--lc-gold)' }}>
             {now.kind === 'episode'
               ? now.episode.scripture
@@ -53,9 +55,17 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
       </div>
 
       <div className="kz-strip" data-testid="theater-shelf">
-        <h3>The Love Corner Bible Adventures <small>our own series</small></h3>
+        <h3>
+          The Love Corner Bible Adventures <small>our own series</small>
+        </h3>
         {episodes.map((e) => (
-          <div key={e.id} className="kz-evt" style={{ display: 'flex', gap: '.625rem', alignItems: 'center', padding: '.5rem 0', borderTop: '2px dashed #F3E7C9' }} data-testid={`episode-${e.id}`} data-status={e.status}>
+          <div
+            key={e.id}
+            className="kz-evt"
+            style={{ display: 'flex', gap: '.625rem', alignItems: 'center', padding: '.5rem 0', borderTop: '2px dashed #F3E7C9' }}
+            data-testid={`episode-${e.id}`}
+            data-status={e.status}
+          >
             <span style={{ width: 64, height: 44, borderRadius: 10, overflow: 'hidden', flex: '0 0 auto' }}>
               <Shot id={`${e.storybook}-3`} alt="" list={shotList} fallback={<ShotSlot id={`${e.storybook}-3`} className="" what="" />} />
             </span>
@@ -64,37 +74,66 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
               <small style={{ display: 'block', fontSize: '.7rem', fontWeight: 700, color: '#5E4B8A' }}>{e.scripture}</small>
             </div>
             {watchable(e) ? (
-              <a href={e.source} target="_blank" rel="noopener noreferrer" className="kz-play red kz-focus-visible" style={{ marginTop: 0 }}>WATCH</a>
+              <a href={e.source} target="_blank" rel="noopener noreferrer" className="kz-play red kz-focus-visible" style={{ marginTop: 0 }}>
+                WATCH
+              </a>
             ) : (
-              <span className="kz-play kz-focus-visible" style={{ marginTop: 0, background: '#F3E7C9', color: '#7A5C14', fontSize: '.62rem' }}>{shelfLabel(e)}</span>
+              <span className="kz-play kz-focus-visible" style={{ marginTop: 0, background: '#F3E7C9', color: '#7A5C14', fontSize: '.62rem' }}>
+                {shelfLabel(e)}
+              </span>
             )}
           </div>
         ))}
         {c.media && c.media.youtube && (
           <div className="kz-evt" style={{ display: 'flex', gap: '.625rem', alignItems: 'center', padding: '.5rem 0', borderTop: '2px dashed #F3E7C9' }}>
-            <span style={{ width: 64, height: 44, borderRadius: 10, background: '#1A1012', display: 'grid', placeItems: 'center', color: '#fff', flex: '0 0 auto' }}>▶</span>
+            <span
+              style={{ width: 64, height: 44, borderRadius: 10, background: '#1A1012', display: 'grid', placeItems: 'center', color: '#fff', flex: '0 0 auto' }}
+            >
+              ▶
+            </span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '.86rem', fontWeight: 900 }}>The church channel</b>
               <small style={{ display: 'block', fontSize: '.7rem', fontWeight: 700, color: '#5E4B8A' }}>Live worship and messages</small>
             </div>
-            <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="kz-play red kz-focus-visible" style={{ marginTop: 0 }} data-testid="theater-channel">WATCH</a>
+            <a
+              href={c.media.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="kz-play red kz-focus-visible"
+              style={{ marginTop: 0 }}
+              data-testid="theater-channel"
+            >
+              WATCH
+            </a>
           </div>
         )}
       </div>
 
-      <GuideBubble who="girl" shot="girl-point" list={shotList}>Every episode is a true story from the Word. Open the Storybook to read it first, then watch it with me!</GuideBubble>
+      <GuideBubble who="girl" shot="girl-point" list={shotList}>
+        Every episode is a true story from the Word. Open the Storybook to read it first, then watch it with me!
+      </GuideBubble>
 
       <div className="kz-strip">
-        <h3>After you watch <small>earns a stop on your map</small></h3>
+        <h3>
+          After you watch <small>earns a stop on your map</small>
+        </h3>
         <div className="kz-actions kz-focus-visible" style={{ marginTop: 0 }}>
           {episodes.slice(0, 3).map((e) => (
-            <button key={e.id} type="button" className="kz-act orange kz-focus-visible" onClick={() => onOpenStorybook && onOpenStorybook(e.storybook)} data-testid={`theater-read-${e.storybook}`}>
+            <button
+              key={e.id}
+              type="button"
+              className="kz-act orange kz-focus-visible"
+              onClick={() => onOpenStorybook && onOpenStorybook(e.storybook)}
+              data-testid={`theater-read-${e.storybook}`}
+            >
               <KidsIcon name="map" /> Read {e.title.split(' and ')[0]}
             </button>
           ))}
         </div>
       </div>
-      <p className="kz-safety">Videos play inside the app from the church's own channel. No comments, no recommendations, no autoplay to anything we did not choose.</p>
+      <p className="kz-safety">
+        Videos play inside the app from the church's own channel. No comments, no recommendations, no autoplay to anything we did not choose.
+      </p>
     </div>
   );
 }
