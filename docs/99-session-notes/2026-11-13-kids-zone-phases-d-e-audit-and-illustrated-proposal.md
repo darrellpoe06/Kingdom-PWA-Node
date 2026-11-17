@@ -166,3 +166,16 @@ Darrell's final approval at 18:14 UTC: *"you have my final approval to launch Th
 - **Not verified from here:** the sandbox has no route to poetech.us and the artifact store is refused by its egress, so the stills were taken and kept by the runner and read as measurements, not viewed in this session. The page carries no `build-sha` meta, so the walk's build check reads empty; the served build is proven by site-health instead.
 
 The Kids Zone v1 is live at https://poetech.us/lovecorner/app/ under the church door's Youth tab. Next, after this verification: Reading Stars R1 (DR-1521), the sight-word, phonics and sentence activities, and the Bible Adventure World beginning with Noah's Ark (§10).
+
+## 12. 2026-11-17, after the launch: the new pair, the single entrance, and the swap that waits on five images (PR #2716, held)
+
+Darrell approved a NEW pair of children and a new Bible Adventures illustration (the key art: her braids in a top bun with pink beads, red hoodie, holding a Bible; him with short curly twists, blue hoodie, tan vest and backpack; a waterfall valley, a stone arch, the logo). His direction, in order: tell him which images the swap needs and how to send them; do not replace the characters until the new artwork is available; make Bible Adventures prominent on the church home; a small, separate PR; screenshots before merging.
+
+**Built and approved (Darrell: "I approve the updated Kids & Youth homepage design! I love the new entrance."):**
+
+- One illustrated entrance on the church home, headed The Love Corner Kids & Youth Adventures with an Explore Kids & Youth Zone button that opens the Youth Zone and forces no door; the key art shown whole; the redundant orange Kids & Youth card removed; the Word card alone, full width. The Love Corner Bible Adventures stays the name of the children's experience inside.
+- The church seal: `LOVE_CORNER_ASSETS` was root-absolute and missed under the app's base; served under the base now.
+- The floating A−/A+ pill and speaker in the previews: on the production bundle the reader docks into the bottom bar (DR-0716) and nothing floats; the dev server runs under React.StrictMode, whose simulated cleanup wiped the slot the dock published from a ref callback. `ChromeDock.jsx` publishes the slot from an effect keyed on the element now, so both agree. Measured before (slot in the DOM with 0 children, the pill fixed at the corner) and after (the slot holds the reader, 44 × 44, no floating button).
+- Measured on the production bundle at 360, 390 and 768 px: the art loads, the button is 52 px tall, no overflow; after the tap the Youth Zone opens with its three doors.
+
+**Waits on Darrell:** `guide-girl.png`, `guide-boy.png` (1000 × 1200, transparent), `guide-girl-face.png`, `guide-boy-face.png` (600 × 600, transparent), `guides-pair.png` (1600 × 900), attached in the chat like the key art. Then, in one commit on the same held PR: the registry's character bible to the new looks, every spot swapped, the old reference and its cutouts retired, the kids suites re-run, the zone captured at 360, 390 and 414 px for final approval. PR #2716 stays held until then, by his word.
