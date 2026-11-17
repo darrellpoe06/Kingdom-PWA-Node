@@ -37,6 +37,7 @@ const SAFE_SUGGESTIONS = new Set([
   'medical',
   'vehicle',
   'household',
+  'tithes',
   'charitable',
   'professional',
   'business',
