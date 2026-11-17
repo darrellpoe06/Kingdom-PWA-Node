@@ -154,11 +154,12 @@ def stall_of(row):
 
 
 def census_of(rows, now=None):
-    """Counts by road and by shape, plus the oldest wait. No ids, no bodies."""
+    """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
     rows = rows or []
     by_road = {}
     by_shape = {}
     by_stall = {}
+    waiting = []
     for r in rows:
         road = r.get("source") or ""
         bucket = road if road in ROADS else "other"
@@ -168,6 +169,30 @@ def census_of(rows, now=None):
         if shape == "build-failed":
             cls = stall_of(r)
             by_stall[cls] = by_stall.get(cls, 0) + 1
+        # WHICH ROWS WAIT, not only how many (DR-1511). The counts could say
+        # five teachings waited and never which five, so a session that cannot
+        # join the tailnet could DESCRIBE the queue and not act on it -- it
+        # could not even run the already-shipped sweep, which takes row ids.
+        # The NAS road that names rows needs a Tailscale key; this receipt
+        # rides the public road and does not (DR-1269's lesson, applied again).
+        #
+        # NEVER A TAG, and the reason is not tidiness: a tag can carry
+        # `lesson-name:<a member's name>` (DR-0639), and this receipt is read
+        # over the PUBLIC road. So the row's CLASS travels and its tags do
+        # not. Never a body either -- the census never reads that column.
+        entry = {
+            "id": r.get("id"),
+            "created_at": r.get("created_at"),
+            # The BUCKETED road, the same one by_road counts, never the raw
+            # column: an unexpected source string would otherwise be published
+            # verbatim over the public road, and the two readings of the same
+            # queue would disagree about which road a row came in by.
+            "source": bucket,
+            "shape": shape,
+        }
+        if shape == "build-failed":
+            entry["stall"] = stall_of(r)
+        waiting.append(entry)
     oldest = None
     for r in rows:
         at = r.get("created_at")
@@ -188,6 +213,8 @@ def census_of(rows, now=None):
         # build-failed count and is empty when nothing has failed.
         "by_stall": by_stall,
         "oldest_waiting": oldest,
+        # id, created_at, source and class per row. No tags, no body.
+        "waiting": waiting,
         # The definition travels WITH the count, so a reader can tell which
         # question was asked and never has to assume it was this one.
         "excludes": list(EXCLUDED_TAGS),
