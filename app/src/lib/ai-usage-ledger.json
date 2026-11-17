@@ -2826,6 +2826,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 12,
       "notes": "The quiz's light-on-cream text came from the night theme's utility remap inside .kz; pinned by class in kids-zone.css, measured before and after."
+    },
+    {
+      "id": "reading-stars-plan",
+      "date": "2026-11-17",
+      "task": "Reading Stars: the Kids Zone literacy development plan for the phase after the v1 launch, with the effort-and-improvement rule, the five skills, the shelf and celebrations, the badge connection, and the proven-to-catch tests each phase ships with",
+      "drs": [
+        "DR-1521"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
     }
   ]
 }
