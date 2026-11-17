@@ -306,6 +306,44 @@ def judge(receipt, why, now=None):
             # Said out loud so a short list never reads as a complete one.
             bits.append(f"{held} field(s) withheld by shape (free text never rides this road)")
         lines.append("The builder -- " + "; ".join(bits) + ".")
+        # WHAT THE STATE MEANS, not only what it is (DR-1522). `state` is the
+        # field that separates two causes with opposite fixes, so the reader
+        # says which one it points at rather than leaving it sorted in beside
+        # `attempts`. Measured 2026-11-17: an hourly heartbeat beside attempt
+        # counts frozen since 2026-11-12 fits both, and nothing in the receipt
+        # could tell them apart.
+        state = st.get("state") if isinstance(st, dict) else None
+        if state in ("waiting on a writer", "waiting on a push credential"):
+            thing = "a writer it can reach" if state.endswith("writer") else "a push credential"
+            lines.append(
+                f"It is NOT working the queue: readiness() refuses for want of {thing}, so the "
+                "builder returns before it ever reads a row -- which is why no attempt is "
+                "recorded while its heartbeat keeps advancing. Every `ready` verdict above is "
+                "real and is waiting on the box, not on the words."
+            )
+        elif state == "stopped":
+            lines.append(
+                "It is STOPPED by its own kill state, so no row will be built until that is "
+                "cleared. The verdicts above are unaffected."
+            )
+        elif state == "ready":
+            # SAY `words`, NEVER THE OTHER NOUN FOR THEM, anywhere in this span.
+            # the-waiting-queue-has-a-witness.test.js slices from the verdict
+            # loop to `excl =` and refuses that noun anywhere inside, comments
+            # included -- a cheap, strong canary over the whole span, worth
+            # keeping at full strength rather than narrowing its slice so one
+            # sentence may use the word. This comment was itself rejected once
+            # for naming the guard it was explaining.
+            lines.append(
+                "Readiness is NOT the cause: the builder has a writer and a push credential. "
+                "So a `ready` row it still refuses is refused by eligibility() -- and the one "
+                "branch this receipt cannot mirror is words that are only whitespace."
+            )
+        elif isinstance(st, dict) and read.get("status") is not False:
+            lines.append(
+                "Its readiness state did not ride this receipt, so WHY it is not building is "
+                "UNKNOWN -- neither readiness nor eligibility is ruled out."
+            )
     elif any(isinstance(d, dict) and d.get("build-failed") for d in [receipt.get("by_shape")]):
         lines.append(
             "A build has failed and this census carried no builder state, so whether the "

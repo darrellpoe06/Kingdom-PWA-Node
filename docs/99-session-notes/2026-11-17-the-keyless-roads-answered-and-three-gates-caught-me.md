@@ -165,3 +165,84 @@ names — it had also fired on a *checkout* step whose title contains
 A fresh **Reusable + Ephemeral** `TS_AUTHKEY` in Settings → Secrets and
 variables → Actions. It reopens the body road, the builder's ssh half and
 `nas-health`'s ssh half together. Nothing above is waiting on it.
+
+## 7. The layer every one of those fields missed (DR-1522, 22:11)
+
+DR-1518's fix worked on the first cycle: the 22:04 read came back stamped
+`Written by census code 2b6f74894a49`, which is main's HEAD, and the code at
+that sha carries `OWNER_IDS`, `waits-for-governor`, `no-words`,
+`empty_body_query` and `_head_from_files`. So the verdicts were readable at
+last — and they said four of Darrell's teachings are genuinely eligible beside
+a builder `active` with `building now: 0`.
+
+Then the number I had not thought to compare across two reads:
+
+| read | builder heartbeat | attempts on the three failed rows |
+|---|---|---|
+| 21:04 tick | `at: 2026-11-17T20:51:29Z` | 1, 1, 2 |
+| 22:04 tick | `at: 2026-11-17T21:51:31Z` | 1, 1, 2 |
+
+The heartbeat advances every hour. The attempts have not moved since
+**2026-11-12**. An hourly process that records no attempt is not working the
+queue — and `lesson_builder.py:2545` says exactly how that happens:
+
+    if kind not in ("sweep", "row") or not ready: return started
+
+When `readiness()` is false, `consider()` returns **before `db.pending()` is
+ever called**. No row is read, no attempt is recorded, no `lesson-building` tag
+is written — and `write_status(st)` at :2523 has already run, so the heartbeat
+keeps advancing over a builder that is touching nothing.
+
+**Five records asked better and better questions about the rows. The rows were
+never the problem.** 0327 through 0331 narrowed *which* rows are real; none of
+them could see the gate in front of the whole loop.
+
+### What I could NOT settle, and did not pretend to
+
+Attempts-frozen is consistent with **two** causes, because `eligibility()`
+failing also just `continue`s without recording an attempt (:2550):
+
+- **(a)** readiness refuses — the fix is a writer or a push credential on the box.
+- **(b)** readiness passes and eligibility refuses on DR-1519's one unmirrorable
+  branch, a whitespace-only body — the fix is that those teachings have no words.
+
+I cannot tell them apart from here. `state` can, and it was one of the four
+withheld fields — which is why the night's earlier attempt at the withheld
+fields was worth repeating, but **only** in a form my own gate accepts.
+
+### Why this one is safe when last night's was not
+
+| | last night (refused) | tonight |
+|---|---|---|
+| published | the withheld **key names** | one key's **value** |
+| accepted by | a shape, `^[a-z][a-z0-9_]{0,23}$` | **identity** against 4 literals |
+| hostile case | `error_from_mary_smith` **passes** | not identical to any literal |
+| bytes on the road | derived from the builder | the census's **own constant** |
+
+DR-1514's shape test is not weakened; this field simply does not use it. Proven
+on a real PostgreSQL 16.15: four states ride verbatim, and six hostile values —
+including `"waiting on a writer for Mary Smith"` and a `/volume1` path — read
+**absent**, with no name anywhere in the receipt.
+
+### Three mistakes caught in the act
+
+1. **Two bad drift tests.** The first swept every quoted string in
+   `lesson_builder.py` and "found" ten states that do not exist (`merge`,
+   `lesson`, `wait`) because `else "..."` matches any ternary. The second picked
+   up `": "` and `", "` out of the dict literals beside the field. It parses the
+   syntax tree now — a test that cries wolf gets deleted.
+2. **`&& echo "GUARD CLEAN"` after a `tail`.** I printed GUARD CLEAN while
+   `record-length-guard` still had a finding, because the `&&` was reading
+   `tail`'s success, not the guard's. Read the gate's own exit code.
+3. **Ruff 0.16.9 again.** Five findings on `served-lesson-queue.py` lines I never
+   touched. `/root/.local/bin/ruff` shadows the 0.17.3 CI pins; at the pinned
+   version, clean. Same trap as §4, one night later.
+
+### Needs Darrell only — unchanged, and narrower
+
+Still the one value: a fresh **Reusable + Ephemeral** `TS_AUTHKEY`. But the
+question it answers is now smaller. If the next census says
+`state: waiting on a writer` or `waiting on a push credential`, **the teachings
+are fine and the box needs a credential**. If it says `ready`, the refusal is in
+`eligibility()` and those four bodies are whitespace. Either way the next read
+answers it without a key.

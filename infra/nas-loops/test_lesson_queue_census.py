@@ -11,6 +11,7 @@
 #
 # No network: rest() is replaced by a recorder. Run from this dir:
 #   python3 -m unittest test_lesson_queue_census
+import ast
 import importlib.util
 import json
 import os
@@ -793,3 +794,208 @@ def urllib_quote(tag):
     import urllib.parse as _u
 
     return _u.quote(_j.dumps([tag]))
+
+
+class TheBuilderSaysWhyItIsNotReady(unittest.TestCase):
+    """DR-1522. Measured 2026-11-17 22:11: the builder's heartbeat advanced
+    hourly (20:51:29 -> 21:51:31) while three rows' attempt counts stayed frozen
+    at 1, 1 and 2 since 2026-11-12 and `building now` stayed 0. That signature
+    fits TWO causes with opposite fixes -- readiness() refusing, so consider()
+    returns at lesson_builder.py:2545 before `db.pending()` is ever called and
+    no attempt is recorded; or readiness passing and eligibility() refusing on
+    its one unmirrorable branch, a whitespace-only body. `state` separates them
+    and was one of the four fields the receipt withheld."""
+
+    def fields(self, value):
+        return qc._status_fields({"at": "2026-11-17T21:51:31Z", "state": value})
+
+    def test_each_of_the_four_real_states_rides(self):
+        # Every value readiness() and consider() can produce.
+        for s in ("ready", "waiting on a writer", "waiting on a push credential", "stopped"):
+            f, dropped = self.fields(s)
+            self.assertEqual(f.get("state"), s)
+            self.assertEqual(dropped, 0, s)
+
+    def test_PROVEN_TO_CATCH_a_name_that_a_SHAPE_would_have_let_through(self):
+        """The allowlist is the whole reason this field may ride at all.
+
+        Last night's refused design published withheld KEY NAMES against the
+        shape ^[a-z][a-z0-9_]{0,23}$ -- which `error_from_mary_smith` satisfies.
+        DR-1514's gate was right to refuse it. These are the values that a
+        shape test would pass and an identity match cannot."""
+        for hostile in ("waiting on a writer for Mary Smith",
+                        "ready",  # control: the only one of these that may ride
+                        "stopped: Bishop Gwin's notes are missing",
+                        "waiting on a push credential at /volume1/PoeTech/.token",
+                        "WAITING ON A WRITER",
+                        "waiting  on a writer",
+                        "waiting on a writer\n",
+                        " ready "):
+            f, dropped = self.fields(hostile)
+            if hostile == "ready":
+                self.assertEqual(f.get("state"), "ready")
+                continue
+            self.assertNotIn("state", f, hostile)
+            self.assertEqual(dropped, 1, hostile)
+            # And no fragment of it is anywhere in what would be published.
+            self.assertNotIn("Mary", json.dumps(f))
+            self.assertNotIn("Gwin", json.dumps(f))
+            self.assertNotIn("volume1", json.dumps(f))
+
+    def test_what_is_published_is_the_censuss_OWN_constant_not_the_builders_bytes(self):
+        """Identity match, then publish our own object. A caller cannot hand us
+        a str subclass carrying extra payload and see it echoed back."""
+
+        class Sneaky(str):
+            secret = "Mary Smith"
+
+        f, _ = self.fields(Sneaky("ready"))
+        self.assertEqual(f["state"], "ready")
+        self.assertNotIsInstance(f["state"], Sneaky)
+        self.assertIs(f["state"], qc.BUILDER_STATES[0])
+
+    def test_a_non_string_state_is_withheld_and_counted(self):
+        for junk in (None, 7, True, [], {}, ["ready"]):
+            f, dropped = self.fields(junk)
+            self.assertNotIn("state", f, repr(junk))
+            self.assertEqual(dropped, 1, repr(junk))
+
+    def test_the_allowlist_matches_the_builder_EXACTLY(self):
+        """The two files must not drift: a state the builder gains and this list
+        lacks reads as withheld, which is safe but blind, and the drift should
+        fail here rather than be discovered on a quiet receipt."""
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "nas-lesson-builder", "lesson_builder.py")
+        with open(src, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read())
+        # PARSED, not grepped. Two regex drafts both cried wolf: the first swept
+        # every quoted string in the file and "found" ten states that do not
+        # exist (`merge`, `lesson`, `wait`) because `else "..."` matches any
+        # ternary; the second picked up `": "` and `", "` out of the dict
+        # literals beside the field. A drift test that cries wolf gets deleted,
+        # so this asks the syntax tree the exact question: which string literals
+        # can actually reach a `state` binding?
+        found = set()
+
+        def strs(node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return {node.value}
+            if isinstance(node, ast.IfExp):  # the readiness() ternary chain
+                return strs(node.body) | strs(node.orelse)
+            return set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, ast.Name) and t.id == "state":
+                        found |= strs(node.value)
+            if isinstance(node, ast.Dict):
+                for k, v in zip(node.keys, node.values):
+                    if isinstance(k, ast.Constant) and k.value == "state":
+                        found |= strs(v)
+        self.assertTrue(found, "no state literal found -- did the builder move?")
+        missing = {s for s in found if s not in qc.BUILDER_STATES}
+        self.assertEqual(missing, set(),
+                         "lesson_builder.py can produce a state BUILDER_STATES does not list")
+        # And the allowlist is not padded with states the builder cannot produce.
+        self.assertEqual(set(qc.BUILDER_STATES), found,
+                         "BUILDER_STATES and lesson_builder.py disagree")
+
+    def test_a_withheld_state_still_leaves_the_rest_of_the_record_readable(self):
+        # A refusal costs that one field, never the stamp beside it.
+        f, dropped = qc._status_fields(
+            {"at": "2026-11-17T21:51:31Z", "attempts": 4, "state": "waiting on a writer, /srv/x"})
+        self.assertEqual(f["at"], "2026-11-17T21:51:31Z")
+        self.assertEqual(f["attempts"], 4)
+        self.assertNotIn("state", f)
+        self.assertEqual(dropped, 1)
+
+
+class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
+    """DR-1522. `state` is only worth publishing if the reader says what it
+    MEANS. Sorted in beside `attempts` it is a curiosity; lifted out it is the
+    difference between "fix the box" and "those teachings have no words"."""
+
+    @classmethod
+    def setUpClass(cls):
+        s = importlib.util.spec_from_file_location(
+            "served_lesson_queue", os.path.join(_ROOT, "scripts", "served-lesson-queue.py")
+        )
+        cls.rd = importlib.util.module_from_spec(s)
+        s.loader.exec_module(cls.rd)
+
+    def receipt(self, state=None, **status):
+        st = {"at": "2026-11-17T21:51:31Z", "attempts": 4}
+        st.update(status)
+        if state is not None:
+            st["state"] = state
+        return {"seen": True, "at": "2026-11-17T22:11:08Z", "total": 7,
+                "waiting": [{"id": "c671009b-04ee-4482-b5ef-921cb7f50d67",
+                             "created_at": "2026-11-17T03:32:12Z", "road": "research-inbox",
+                             "shape": "plain", "why": "ready"}],
+                "builder": {"service": "active", "building": 0, "code_sha": "297a00d80ade",
+                            "read": {"code_sha": True, "building": True, "status": True},
+                            "status": st}}
+
+    def said(self, state=None, **kw):
+        # judge() returns (code, read, count, lines); the lines are the surface.
+        return "\n".join(self.rd.judge(self.receipt(state, **kw), "ok")[3])
+
+    def test_waiting_on_a_writer_says_the_box_is_the_problem_not_the_words(self):
+        out = self.said("waiting on a writer")
+        self.assertIn("NOT working the queue", out)
+        self.assertIn("a writer it can reach", out)
+        self.assertIn("waiting on the box, not on the words", out)
+
+    def test_waiting_on_a_push_credential_names_THAT_and_not_the_writer(self):
+        out = self.said("waiting on a push credential")
+        self.assertIn("a push credential", out)
+        self.assertNotIn("a writer it can reach", out)
+
+    def test_ready_rules_readiness_OUT_and_points_at_eligibility(self):
+        out = self.said("ready")
+        self.assertIn("Readiness is NOT the cause", out)
+        self.assertIn("eligibility()", out)
+        self.assertIn("whitespace", out)
+        # The `never a body` guard refuses that word across this whole span of
+        # the reader, comments included; the sentence says `words` instead.
+        self.assertNotIn("body", out)
+        self.assertNotIn("NOT working the queue", out)
+
+    def test_stopped_says_the_kill_state_holds_it(self):
+        out = self.said("stopped")
+        self.assertIn("STOPPED by its own kill state", out)
+
+    def test_an_ABSENT_state_reads_UNKNOWN_and_rules_NOTHING_out(self):
+        # DR-0076 section 8 again: a cause nobody could read is not a cause
+        # eliminated. Before 0332 this was every read, and it is why four
+        # `ready` rows sat beside an active builder for five days unexplained.
+        out = self.said(None)
+        self.assertIn("UNKNOWN", out)
+        self.assertIn("neither readiness nor eligibility is ruled out", out)
+        for wrong in ("NOT working the queue", "Readiness is NOT the cause",
+                      "STOPPED by its own kill state"):
+            self.assertNotIn(wrong, out)
+
+    def test_an_UNREAD_record_does_not_get_the_unknown_line_twice(self):
+        # `its own record: unread` already says it; a second sentence saying the
+        # same thing is noise on the surface that matters most.
+        r = self.receipt(None)
+        r["builder"]["read"]["status"] = False
+        out = "\n".join(self.rd.judge(r, "ok")[3])
+        self.assertIn("its own record: unread", out)
+        self.assertNotIn("neither readiness nor eligibility is ruled out", out)
+
+    def test_no_state_the_allowlist_refused_can_reach_the_reader_as_prose(self):
+        """End to end: the census withholds it, so the reader never sees it.
+
+        This is the pair of checks that matter together -- the field is only
+        safe because the refusal happens BEFORE the row is written, not because
+        the reader is careful with it."""
+        fields, dropped = qc._status_fields(
+            {"at": "2026-11-17T21:51:31Z", "state": "waiting on a writer for Mary Smith"})
+        self.assertNotIn("state", fields)
+        self.assertEqual(dropped, 1)
+        out = "\n".join(self.rd.judge(self.receipt(), "ok")[3])  # no state at all
+        self.assertNotIn("Mary", out)
+        self.assertIn("UNKNOWN", out)

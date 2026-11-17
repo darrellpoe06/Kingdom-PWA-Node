@@ -105,11 +105,21 @@ BUILDER_UNIT = "poetech-lesson-builder"
 SERVICE_WORDS = ("active", "inactive", "failed", "activating", "deactivating", "reloading")
 # Keys of status.json that may be published AT ALL, and only when their value
 # passes the shape test below. A key outside this set is counted, never named.
-STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds")
+STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds", "state")
 # A git sha and an ISO stamp are STRUCTURE, not prose: neither can carry a
 # sentence, which is why these two are the only strings allowed through.
 HEX_SHA = re.compile(r"^[0-9a-f]{7,40}$")
 ISO_AT = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
+# `state` rides by an ALLOWLIST, not a shape -- and the difference is the whole
+# reason it may ride at all (DR-1522). DR-1514's shape test is right to refuse a
+# free string: a shape like ^[a-z_]+$ is SATISFIED by `error_from_mary_smith`,
+# which is how a member's name would reach a public endpoint. An allowlist
+# cannot be satisfied that way. These four are every value readiness() and
+# consider() can produce (lesson_builder.py:2251, :2516), and the census
+# publishes one of ITS OWN constants after an identity match -- so the bytes on
+# the road are chosen here, never passed through from the builder. Anything else
+# -- a new state, a reworded one, a hostile one -- is withheld and counted.
+BUILDER_STATES = ("ready", "waiting on a writer", "waiting on a push credential", "stopped")
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
@@ -329,7 +339,18 @@ def _status_fields(raw):
         if k not in STATUS_KEYS:
             dropped += 1
             continue
-        if isinstance(v, bool) or (isinstance(v, int) and -1 <= v <= 100000):
+        if k == "state":
+            # By IDENTITY against the allowlist, and what is published is the
+            # census's OWN constant -- `v` itself never reaches the row. So a
+            # value that merely LOOKS like a state cannot ride, and the field is
+            # checked here, ahead of the generic branches, so `state` has
+            # exactly one way through this function and no other.
+            match = [s for s in BUILDER_STATES if s == v]
+            if match:
+                fields[k] = match[0]
+            else:
+                dropped += 1
+        elif isinstance(v, bool) or (isinstance(v, int) and -1 <= v <= 100000):
             fields[k] = v
         elif k == "at" and isinstance(v, str) and ISO_AT.match(v):
             # The stamp only, never a free string: a timestamp cannot carry a
