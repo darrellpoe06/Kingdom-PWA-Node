@@ -58,17 +58,7 @@ jobs:
           sparse-checkout: .github/actions
           sparse-checkout-cone-mode: false
       - name: Outside-in transport proof (the runner IS the outside)
-        # NO `if` AND BEFORE THE JOIN, ON PURPOSE (DR-0108 Ways review,
-        # 2026-11-17). Every command below is a plain curl to poetech.us over
-        # the public internet: no ssh, no tailscale, no tailnet address. It had
-        # been sitting AFTER "Verify the tailnet actually joined", which exits 1
-        # on a dead TS_AUTHKEY -- so from 2026-11-04, when that key was refused,
-        # a dead network key silently took the team's KEYLESS outside eye with
-        # it, and nas-health could not say whether poetech.us was answering.
-        # The gate it waited on checks TS_AUTHKEY and NAS_SSH_KEY are PRESENT;
-        # this step needs neither. Proven keyless the same night: run
-        # 44010537006 reached poetech.us/sb/rest/v1/rpc/lesson_queue_receipt
-        # with TAILNET: false. The ssh steps below keep their own gate.
+        # No `if`, and BEFORE the join: pure curl, needs no key (DR-1513, pinned by app/src/__tests__/the-keyless-eye-does-not-wait-on-a-network-key.test.js).
         env:
           PROBE_PIN: ${{ secrets.NAS_HEALTH_PROBE_PIN }}
         run: |

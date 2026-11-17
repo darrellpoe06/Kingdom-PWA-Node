@@ -81,16 +81,14 @@ describe('the keyless outside eye does not wait on a network key', () => {
     const early = all.slice(0, eye).filter((s) => NEEDS_NETWORK.test(s.code));
     expect(
       early.map((s) => s.name),
-      'a step needing the tailnet was put BEFORE the keyless probe again: a dead ' +
-        'TS_AUTHKEY ends that job and takes the outside eye with it (DR-1513)',
+      'a step needing the tailnet was put BEFORE the keyless probe again: a dead ' + 'TS_AUTHKEY ends that job and takes the outside eye with it (DR-1513)'
     ).toEqual([]);
   });
 
   it('it is not gated on the key secrets it does not use', () => {
     expect(
       ifOf(all[eye].block),
-      'the keyless probe must carry no `if:` -- the gate it had checked that ' +
-        'TS_AUTHKEY and NAS_SSH_KEY were PRESENT, neither of which it needs',
+      'the keyless probe must carry no `if:` -- the gate it had checked that ' + 'TS_AUTHKEY and NAS_SSH_KEY were PRESENT, neither of which it needs'
     ).toBeNull();
   });
 
@@ -103,11 +101,7 @@ describe('the keyless outside eye does not wait on a network key', () => {
     ]
       .filter(([re]) => re.test(all[eye].code))
       .map(([, what]) => what);
-    expect(
-      leaks,
-      'the keyless probe grew a dependency on the private network; put that work ' +
-        'in a gated step below instead (DR-1513)',
-    ).toEqual([]);
+    expect(leaks, 'the keyless probe grew a dependency on the private network; put that work ' + 'in a gated step below instead (DR-1513)').toEqual([]);
   });
 
   it('it really is the outside-in probe of the live site', () => {
@@ -115,16 +109,10 @@ describe('the keyless outside eye does not wait on a network key', () => {
   });
 
   it('the steps that DO need the tailnet keep their own gate', () => {
-    const gated = all.filter(
-      (s, i) => i > eye && /^(Join the tailnet|Verify the tailnet|Observe)/.test(s.name),
-    );
-    expect(gated.map((s) => s.name).length, 'the ssh-side steps vanished').toBeGreaterThanOrEqual(
-      3,
-    );
+    const gated = all.filter((s, i) => i > eye && /^(Join the tailnet|Verify the tailnet|Observe)/.test(s.name));
+    expect(gated.map((s) => s.name).length, 'the ssh-side steps vanished').toBeGreaterThanOrEqual(3);
     for (const s of gated) {
-      expect(ifOf(s.block), `${s.name} lost its secrets gate`).toBe(
-        "steps.gate.outputs.go == 'true'",
-      );
+      expect(ifOf(s.block), `${s.name} lost its secrets gate`).toBe("steps.gate.outputs.go == 'true'");
     }
   });
 
@@ -160,12 +148,7 @@ describe('the keyless outside eye does not wait on a network key', () => {
     });
 
     it('catches ssh creeping into the probe body', () => {
-      const s = steps(
-        doc([
-          '      - name: Outside-in transport proof (the runner IS the outside)',
-          '        run: ssh nas "docker ps"',
-        ]),
-      );
+      const s = steps(doc(['      - name: Outside-in transport proof (the runner IS the outside)', '        run: ssh nas "docker ps"']));
       expect(/\bssh\b/.test(s[0].code)).toBe(true);
     });
   });
