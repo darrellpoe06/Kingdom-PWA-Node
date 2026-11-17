@@ -31,6 +31,7 @@ import { questionsFor, answerQuestion, blockingOpen, lessonFrom, applyLesson } f
 import { receiptShape } from './receipts.js';
 import { planAccountImport } from './bulk-statement-import.js';
 import { balanceCheckpointRow } from './financial-engineering.js';
+import { reviewLineItems, rowStatuses } from './intake-row-review.js';
 
 export const STATUS_LABEL = Object.freeze({
   received: 'Received', read: 'Read', 'needs-answer': 'Needs your answer', ready: 'Ready to confirm', added: 'Added', stored: 'Stored',
@@ -164,11 +165,16 @@ export function planWrite(doc, { known = {} } = {}) {
   const createAccount = !accountId && (doc.questions || []).some((q) => q.field === 'account' && q.answer === 'create')
     ? proposedAccount(x) : null;
 
+  // The person's per-row decisions and the suggested categories (Phase 1.3b):
+  // the rows that would be written are the REVIEWED rows, never the raw read.
+  const learned = known.categoryRules || null;
+  const rx = { ...x, line_items: reviewLineItems(x.line_items, doc.rowDecisions, learned) };
+
   switch (x.doc_type) {
     case 'transactions-export':
     case 'card-statement':
     case 'loan-statement': {
-      const rows = accountId ? newRowsFor(x, accountId, known.transactions) : { txns: ledgerRows(x), duplicates: 0 };
+      const rows = accountId ? newRowsFor(rx, accountId, known.transactions) : { txns: ledgerRows(rx), duplicates: 0 };
       return {
         kind: 'transactions', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates,
         summary: x.summary, due: x.dates.due, statement: x.doc_type !== 'transactions-export',
@@ -180,14 +186,15 @@ export function planWrite(doc, { known = {} } = {}) {
       // The balance on the screen becomes the bank-verified checkpoint for that
       // account on that day (never twice for the same day and figure), and the
       // rows go through the same dedupe as every import.
-      const rows = accountId ? newRowsFor(x, accountId, known.transactions) : { txns: ledgerRows(x), duplicates: 0 };
+      const rows = accountId ? newRowsFor(rx, accountId, known.transactions) : { txns: ledgerRows(rx), duplicates: 0 };
       const day = x.dates.document;
       const bal = x.summary.rowsOnly ? null : x.summary.newBalance;
       const basis = x.summary.balanceKind || 'available';
       const already = !!(accountId && day && bal != null && (known.transactions || []).some((t) => t && t.accountId === accountId && String(t.category || '') === 'balance-checkpoint'
         && String(t.date || '').slice(0, 10) === day && Math.abs(Number(t.reconciliation && t.reconciliation.balance) - bal) < 0.005));
       const checkpoint = day && bal != null ? { balance: bal, day, basis } : null;
-      return { kind: 'snapshot', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates, checkpoint, checkpointAlreadyRecorded: already, asOf: day, summary: x.summary };
+      return { kind: 'snapshot', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates, checkpoint, checkpointAlreadyRecorded: already, asOf: day, summary: x.summary,
+        rowStatuses: rowStatuses(x.line_items, doc.rowDecisions, learned, accountId ? rows.txns : null) };
     }
     case 'tax-form':
       return { kind: 'tax', year: x.tax_year, entityId: m.entity && m.entity.entityId, taxKind: x.summary.taxKind || 'other', pdf: /pdf$/i.test(doc.type) || /\.pdf$/i.test(doc.name) };
@@ -240,9 +247,13 @@ export async function commitDoc(doc, { store, sinks = {}, known = {}, demo = fal
     if (createdAccountId) links.push({ kind: 'account', id: createdAccountId, label: p.createAccount.name });
   }
   const accountId = p.accountId || createdAccountId;
+  // The rows written are the REVIEWED rows, the ones the card showed: rows the
+  // person left out are not written, their categories stand (Phase 1.3b; before
+  // this the write re-read the raw extraction and ignored the decisions).
+  const reviewed = { ...doc.extraction, line_items: reviewLineItems(doc.extraction.line_items, doc.rowDecisions, known.categoryRules || null) };
   if (p.kind === 'transactions' && accountId && sinks.commitImportedRows) {
     // Re-plan against the ledger as it is NOW, so a second tap adds nothing.
-    const fresh = planAccountImport(ledgerRows(doc.extraction), accountId, known.transactions || []);
+    const fresh = planAccountImport(ledgerRows(reviewed), accountId, known.transactions || []);
     const summary = fresh.txns.length ? await sinks.commitImportedRows(fresh.txns) : { total: 0, saved: 0 };
     links.push({ kind: 'transactions', accountId, count: fresh.txns.length, duplicates: fresh.duplicates, summary });
     if (p.statement && sinks.updateAccount && (p.due || (p.summary && p.summary.minimumPayment != null))) {
@@ -255,7 +266,7 @@ export async function commitDoc(doc, { store, sinks = {}, known = {}, demo = fal
   } else if (p.kind === 'snapshot' && accountId && sinks.commitImportedRows) {
     // Rows first (re-planned against the ledger as it is NOW), then the
     // bank-verified balance for the day, unless that exact checkpoint is there.
-    const fresh = planAccountImport(ledgerRows(doc.extraction), accountId, known.transactions || []);
+    const fresh = planAccountImport(ledgerRows(reviewed), accountId, known.transactions || []);
     const summary = fresh.txns.length ? await sinks.commitImportedRows(fresh.txns.map((r) => ({ ...r, source: 'screenshot', docId: doc.id }))) : { total: 0, saved: 0 };
     links.push({ kind: 'transactions', accountId, count: fresh.txns.length, duplicates: fresh.duplicates, summary });
     const cp = p.checkpoint;
@@ -302,6 +313,21 @@ export async function answer(doc, questionId, value, ctx) {
     if (answers) await ctx.store.putLayout(next.extraction.layout_key, { answers, learnedAt: new Date().toISOString(), from: next.id });
   }
   return processDoc(next, ctx);
+}
+
+/**
+ * Record the person's decisions on the rows of a document (Phase 1.3b):
+ * { [rowIndex]: { exclude?: boolean, category?: string } }, merged over earlier
+ * ones (an empty object clears a row's decision). Nothing is written; the plan
+ * is rebuilt so the card shows exactly what Approve will add.
+ */
+export async function decideRows(doc, decisions, ctx) {
+  const merged = { ...(doc.rowDecisions || {}) };
+  for (const [k, v] of Object.entries(decisions || {})) {
+    if (!v || (!v.exclude && !v.category)) delete merged[k];
+    else merged[k] = { ...(merged[k] || {}), ...v };
+  }
+  return processDoc({ ...doc, rowDecisions: merged }, ctx);
 }
 
 /** Take any batch of files: every one stored first, then each processed on its own. */
