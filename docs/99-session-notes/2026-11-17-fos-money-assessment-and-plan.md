@@ -244,6 +244,20 @@ Merge order when authorized: #2704, then #2705, #2706, #2707 (each retargets to 
 - The old screenshot reader saved a $45 purchase as a +$4,642.18 deposit (running balance); fixed.
 - A left-out import row was still written on Approve; fixed.
 
+### Decisions 2026-11-17 (morning, Christina)
+1. A separate Tithes / Church Giving category is added in Phase 1.4. Until then the $837 church tithe is Personal → Charitable (done by hand in Transactions; this work changes no live record).
+2. Remembering category corrections made on the import card is added in Phase 1.4.
+3. Christiana's accounts stay out of the current implementation; scope is Personal, Poe Properties and TLC Therapy Solutions.
+4. Phase 1.4 waits for authorized database access, a confirmed backup and a tested migration.
+5. The reconciliation of check #9879 ($2,200.88) with the $2,201 reimbursement from Poe Properties 3322 is preserved for Phase 1.4, with its $0.12 difference shown, never assumed away.
+6. Darrell's preview workflow is not modified without his approval.
+
+### Preview probe, verified 2026-11-17 12:22 UTC
+- On push, `preview-isolation-probe.yml` probes ONE hard-coded address (`…git-money-phase-7b032e…`, the preview of an earlier Money branch, added 2026-11-10 in #2591). On every newer `money/**` branch that address is Vercel's 404, so the probe stops before loading the build under test.
+- Dispatched by hand against each PR's real preview (runs 16, 17, 18, read-only, the workflow's own dispatch input): each lands on `vercel.com/login`. Vercel Deployment Protection is on, so the probe cannot measure these previews from outside at any address.
+- The probe is not part of deployment. Production deploys come from `deploy-cloudflare-pages.yml` on push to `main` (backstopped by `auto-merge.yml`); the live site is checked by `site-health.yml`. Neither reads the probe. Last five deploys succeeded (latest 10:43 UTC on e6997de); last site-health run succeeded.
+- None of the four PRs touches preview isolation, Supabase settings, Vercel, workflows, deploy or the service worker. All four branches merge cleanly onto `main` e6997de, and `main`'s new commits touch no Money file.
+
 ### Outstanding / needs your decision
 1. **Merge authorization** for #2704 → #2707, in order.
 2. **"Tithes / Church Giving" as its own category**: `charitable` is in the sync allow-list and possibly a database check; recommended with the Phase 1.4 database work. Today: file the $837 Zelle as Charitable under Personal.
