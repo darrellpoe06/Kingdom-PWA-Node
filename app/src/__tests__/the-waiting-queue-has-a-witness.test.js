@@ -165,4 +165,52 @@ describe('never a body', () => {
       expect(served, field).toContain(field);
     }
   });
+
+  it('the builder state it prints is a closed set of fields, never free text (DR-1514)', () => {
+    // 0327 lets the receipt carry the NAS builder's own state, so a reader can
+    // weigh `build-failed: 3` against whether the builder is running. That is
+    // a NEW kind of field on this road, and a builder's error string can quote
+    // the teaching it failed on -- so what the reader may print is pinned here
+    // the same way the producer is pinned above.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('bl = receipt.get("builder")'));
+    const quoted = new Set([...block.matchAll(/\bbl\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    // `read` and `status` are containers whose own keys the SQL whitelists.
+    expect(quoted).toEqual(new Set(['read', 'status', 'service', 'status_withheld']));
+    // Nothing that could carry a sentence is ever asked for.
+    for (const never of ['error', 'reason', 'message', 'last_row_body', 'locks', 'stderr', 'log']) {
+      expect(block, never).not.toContain(`'${never}'`);
+      expect(block, never).not.toContain(`"${never}"`);
+    }
+    // An unreadable source must print as unread, never as a reassuring zero.
+    expect(block).toContain('unread');
+    expect(block).toMatch(/UNKNOWN -- not idle/);
+  });
+
+  it('the per-row verdict is a code with its try count, never a reason (DR-1515)', () => {
+    // 0328 adds `why` and `attempts` per waiting row, because the builder
+    // leaves a row to the hourly Routine past its MAX_ATTEMPTS on purpose and
+    // `plain` could not tell that from untouched. A build reason's TEXT can
+    // quote the teaching it failed on, so what the reader may print is pinned.
+    const served = readFileSync(join(ROOT, 'scripts/served-lesson-queue.py'), 'utf8');
+    const block = served.slice(served.indexOf('why = r.get("why")'), served.indexOf('excl = receipt.get'));
+    expect(block, 'the verdict block was renamed or removed').toBeTruthy();
+    const asked = new Set([...block.matchAll(/\br\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    expect(asked).toEqual(new Set(['why', 'attempts']));
+    for (const never of ['build-reason', 'build_reason', 'reason', 'error', 'tags', 'body']) {
+      expect(block, never).not.toContain(never);
+    }
+    // A refused verdict must never read as ready.
+    expect(block).toContain('why unknown');
+    // THE THRESHOLD IS NOT DUPLICATED: the builder owns MAX_ATTEMPTS, so the
+    // reader prints the count and judges nothing. Code only, not comments —
+    // the comment explaining this names the constant on purpose.
+    const code = served
+      .split('\n')
+      .filter((l) => !l.trimStart().startsWith('#'))
+      .join('\n');
+    for (const forbidden of ['MAX_ATTEMPTS', 'max_attempts']) {
+      expect(code, forbidden).not.toContain(forbidden);
+    }
+  });
 });
