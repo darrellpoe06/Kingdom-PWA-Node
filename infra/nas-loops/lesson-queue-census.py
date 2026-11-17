@@ -87,6 +87,15 @@ ROADS = ("thinking-space", "lesson-voice-transcribe", "research-inbox", "chat-sp
 # status.json only booleans, small integers and ISO-shaped timestamps under a
 # whitelist. No free text ever -- a builder's error string can quote the
 # teaching it failed on, which is a person's own words.
+# WHICH CODE ANSWERED (DR-1517). Measured 2026-11-17 09:11: DR-1516 taught the
+# census to tell a member's row from Darrell's, and minutes later the read came
+# back with four rows reading `ready`. That is consistent with TWO different
+# worlds -- the new code running and those rows being his own, OR the old code
+# still on the box and the owner check not yet in play -- and nothing in the
+# payload could tell them apart. An answer whose code version is unknown cannot
+# be acted on (DR-0076 section 8), so the census now says which code wrote it:
+# the mirror's HEAD, the same value replay-on-clock reads for the same reason.
+CENSUS_REPO = "/volume1/PoeTech/repos/Kingdom-PWA-Node"
 BUILDER_HOME = "/volume1/PoeTech/lesson-builder"
 BUILDER_UNIT = "poetech-lesson-builder"
 # systemd's own vocabulary; anything else reads as "unknown", never as stopped.
@@ -346,7 +355,33 @@ def builder_state(home=BUILDER_HOME, run=None):
     return state
 
 
-def census_of(rows, now=None, builder=None):
+def census_code_sha(repo=None, run=None):
+    """The mirror HEAD the census is running from, or None when it cannot be read.
+
+    None rather than a guess: a reader must be able to tell "this came from code
+    I can name" from "I do not know which code answered".
+    """
+    if run is None:
+
+        def run(argv):
+            # Imported here, not at the top: only the NAS path ever needs it.
+            import subprocess
+
+            return subprocess.run(
+                argv, capture_output=True, text=True, timeout=10, check=False
+            ).stdout
+
+    try:
+        out = run(["git", "-C", repo or CENSUS_REPO, "rev-parse", "HEAD"])
+    # DELIBERATELY BLIND, as the service word is: the census must not die for
+    # failing to name itself, and every failure means the same thing -- unknown.
+    except Exception:  # noqa: BLE001
+        return None
+    cand = (out or "").strip().split("\n")[0].strip()
+    return cand if HEX_SHA.match(cand) else None
+
+
+def census_of(rows, now=None, builder=None, code_sha=None):
     """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
     rows = rows or []
     by_road = {}
@@ -417,6 +452,11 @@ def census_of(rows, now=None, builder=None):
         # whether the thing that builds is even running (DR-1514). Omitted
         # rather than faked when the caller did not gather it.
         **({"builder": builder} if builder is not None else {}),
+        # WHICH CODE WROTE THIS (DR-1517). Without it a verdict cannot be read:
+        # `ready` means different things before and after DR-1516's owner check,
+        # and nothing else in the payload distinguishes them. Absent, never
+        # faked, when the caller did not gather it.
+        **({"code_sha": code_sha} if code_sha is not None else {}),
         # The definition travels WITH the count, so a reader can tell which
         # question was asked and never has to assume it was this one.
         "excludes": list(EXCLUDED_TAGS),
@@ -520,7 +560,9 @@ def main():
             print(f"lesson-queue-census: no instance with slug '{slug}'")
             return 1
         rows = rest(url, key, "GET", waiting_query()) or []
-        body = json.dumps(census_of(rows, builder=builder_state()))
+        body = json.dumps(
+            census_of(rows, builder=builder_state(), code_sha=census_code_sha())
+        )
         what = publish(
             url,
             key,
