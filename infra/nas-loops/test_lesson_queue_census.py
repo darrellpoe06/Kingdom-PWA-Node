@@ -281,3 +281,66 @@ class WhyABuildFailed(unittest.TestCase):
                "tags": ["lesson", "build-failed",
                         "build-reason:no version passed every gate: the writer said rate-limited"]}
         self.assertEqual(qc.stall_of(row), "other")
+
+
+class WhichRowsWait(unittest.TestCase):
+    """The receipt names WHICH rows wait, and never a tag (DR-1511).
+
+    The counts alone could say five teachings waited and never which five, so a
+    session that cannot join the tailnet could describe the queue and not act on
+    it -- it could not even run the already-shipped sweep, which takes row ids.
+    These rows ride the PUBLIC road, so the safety assertion is the point: a
+    tag can carry `lesson-name:<a member's name>` (DR-0639) and must not travel.
+    """
+
+    def _rows(self):
+        return [
+            {
+                "id": "aaa",
+                "created_at": "2026-11-12T12:17:12Z",
+                "source": "research-inbox",
+                # A person's name planted BOTH in a reason tag and a name tag.
+                "tags": ["lesson", "build-failed", "reason:reset by Mary Smith"],
+            },
+            {
+                "id": "bbb",
+                "created_at": "2026-11-14T01:00:00Z",
+                "source": "research-inbox",
+                "tags": ["lesson"],
+            },
+            {
+                "id": "ccc",
+                "created_at": "2026-11-15T01:00:00Z",
+                "source": "lesson-voice-transcribe",
+                "tags": ["lesson", "voice", "lesson-name:Jane Doe"],
+            },
+        ]
+
+    def test_every_waiting_row_is_named_with_its_class(self):
+        c = qc.census_of(self._rows())
+        self.assertEqual(len(c["waiting"]), 3)
+        self.assertEqual([w["id"] for w in c["waiting"]], ["aaa", "bbb", "ccc"])
+        by_id = {w["id"]: w for w in c["waiting"]}
+        self.assertEqual(by_id["aaa"]["shape"], "build-failed")
+        self.assertEqual(by_id["aaa"]["stall"], "other")
+        self.assertEqual(by_id["bbb"]["shape"], "plain")
+        self.assertEqual(by_id["ccc"]["shape"], "voice-waiting-for-words")
+
+    def test_the_count_and_the_named_rows_can_never_disagree(self):
+        c = qc.census_of(self._rows())
+        self.assertEqual(c["total"], len(c["waiting"]))
+
+    def test_only_a_failed_row_carries_a_stall_class(self):
+        c = qc.census_of(self._rows())
+        carried = [w["id"] for w in c["waiting"] if "stall" in w]
+        self.assertEqual(carried, ["aaa"])
+
+    def test_PROVEN_TO_CATCH_no_tag_and_no_person_rides_the_public_road(self):
+        blob = json.dumps(qc.census_of(self._rows()))
+        for leak in ("tags", "lesson-name", "Jane Doe", "Mary Smith", "reason:"):
+            self.assertNotIn(leak, blob, f"{leak!r} reached the public receipt")
+
+    def test_a_quiet_queue_names_no_row_rather_than_omitting_the_key(self):
+        c = qc.census_of([])
+        self.assertEqual(c["waiting"], [])
+        self.assertEqual(c["total"], 0)
