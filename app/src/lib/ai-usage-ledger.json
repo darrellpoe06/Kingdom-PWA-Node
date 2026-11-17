@@ -2841,6 +2841,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 4,
       "notes": ""
+    },
+    {
+      "id": "builder-readiness-state",
+      "date": "2026-11-17",
+      "task": "The builder says why it is not ready: publish readiness state on the keyless census road by identity against a four-value allowlist, refused again independently in SQL, so an hourly heartbeat beside frozen attempt counts can be told apart from a builder refusing on eligibility",
+      "drs": [
+        "DR-1522"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 6,
+      "notes": "The field DR-1514 withheld as free text. Safe because the match is identity against four literals the census owns, not a shape: a shape is satisfied by error_from_mary_smith, which is how a name reaches a public endpoint. Proven on a real PostgreSQL 16.15 and five ways proven-to-catch."
     }
   ]
 }

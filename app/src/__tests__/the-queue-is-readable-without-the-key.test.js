@@ -194,6 +194,25 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
     }
     expect(mig).toMatch(/k = ANY\(k_roads\)/);
     expect(mig).toMatch(/k = ANY\(k_shapes\)/);
+
+    // The builder's READINESS state (0332, DR-1522). Unlike every list above,
+    // these values contain SPACES, so they are read with their own pattern —
+    // the `[a-z-]+` the others use would silently match nothing here and the
+    // check would pass while testing no value at all.
+    const statesBlock = census.match(/^BUILDER_STATES = \(([^)]*)\)/m);
+    expect(statesBlock, 'BUILDER_STATES could not be read from the census').toBeTruthy();
+    const states = [...statesBlock[1].matchAll(/"([a-z][a-z ]*)"/g)].map((m) => m[1]);
+    expect(states.length, 'BUILDER_STATES parsed empty — the parse is wrong, not the migration').toBe(4);
+    for (const s of states) inList('k_states', s, 'builder state');
+    // And the SQL must refuse by IDENTITY, never by a pattern: a shape is
+    // satisfied by 'waiting on a writer for Mary Smith', which is exactly how a
+    // member's name would reach a public endpoint (DR-1514's refusal, upheld).
+    expect(mig, 'state must be matched by identity against k_states').toMatch(
+      /k = 'state'[\s\S]{0,160}=\s*ANY\(k_states\)/
+    );
+    const stateClause = mig.match(/k = 'state'[\s\S]{0,200}?\)\)\)/);
+    expect(stateClause, "the migration's state clause was not found").toBeTruthy();
+    expect(stateClause[0], 'state must not be matched by a regex').not.toMatch(/~/);
   });
 
   it('the public key’s role may call it and nothing more', () => {
