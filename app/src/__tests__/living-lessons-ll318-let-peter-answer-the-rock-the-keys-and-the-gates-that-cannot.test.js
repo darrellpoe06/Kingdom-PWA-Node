@@ -15,5 +15,18 @@ livingLessonGate({
   order: 318,
   added: '2026-11-17',
   // [reference, a span every text quotes]: at least five the lesson cannot teach without.
-  spine: [['Matthew 16:18', '{{write: a span of this verse that every band quotes}}']],
+  // These six ARE the argument. Take any one away and the lesson stops standing:
+  // the sentence under dispute (16:18); the confession it answers (16:16); where
+  // that confession came from, which decides the whole thing before it starts
+  // (16:17); and then Peter answering the question about Peter three times over —
+  // preaching the stone (Acts 4:11), writing the corner stone (1 Peter 2:6), and
+  // calling himself a fellow elder rather than a foundation (1 Peter 5:1).
+  spine: [
+    ['Matthew 16:18', 'upon this rock I will build my church'],
+    ['Matthew 16:16', 'Thou art the Christ, the Son of the living God'],
+    ['Matthew 16:17', 'flesh and blood hath not revealed it unto thee'],
+    ['Acts 4:11', 'This is the stone which was set at nought of you builders'],
+    ['1 Peter 2:6', 'a chief corner stone, elect, precious'],
+    ['Revelation 1:18', 'I am he that liveth, and was dead'],
+  ],
 });
