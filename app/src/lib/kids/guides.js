@@ -11,7 +11,7 @@
 // reads, so the guides are the SAME two children on the home, in the
 // storybooks, in the Theater, in the games and at the rewards. Every asset is
 // cut from the approved reference image (app/public/lovecorner/kids/
-// guides-reference.png) and nothing here is drawn, generated or imitated:
+// bible-adventures-key-art.jpg) and nothing here is drawn, generated or imitated:
 // kids-guides-assets.test.js proves each listed file exists on disk, so a
 // surface can never point at a guide that is not there.
 //
@@ -31,37 +31,30 @@ export const GUIDES = Object.freeze({
   girl: Object.freeze({
     key: 'girl',
     name: null, // given by Darrell; never invented here
-    portrait: 'guide-girl.png', // full portrait, from the reference
-    face: 'guide-girl-face.png', // circular avatar, transparent
-    look: 'long braids with a red bow, hoop earrings, red hoodie with white stripes',
+    portrait: 'guide-girl.png', // waist-up, transparent, holding her Bible (approved 2026-11-17)
+    face: 'guide-girl-face.png', // head and shoulders, transparent, circle-safe
+    look: 'braids gathered in a top bun with pink and white beads, small stud earrings, red hoodie, black backpack',
   }),
   boy: Object.freeze({
     key: 'boy',
     name: null,
-    portrait: 'guide-boy.png',
-    face: 'guide-boy-face.png',
-    look: 'short curly twists, black hoodie with red lining',
+    portrait: 'guide-boy.png', // waist-up, transparent, arms folded (approved 2026-11-17)
+    face: 'guide-boy-face.png', // head and shoulders, transparent, circle-safe
+    look: 'short curly twists with a fade, blue hoodie, tan utility vest, backpack',
   }),
 });
 
-/** Brand and scene pieces cut from the same reference. */
+/** Brand and scene pieces from the approved illustration (the key art, 2026-11-17). */
 export const KIDS_BRAND = Object.freeze({
-  reference: 'guides-reference.png', // the whole approved image
-  logo: 'logo.png', // "The Love Corner Bible Adventures" lockup with the open Bible
-  pair: 'guides-pair.png', // both guides at the table over the open Bible
-  bible: 'bible-open.png', // the open Bible in the foreground
-  doors: Object.freeze({
-    stories: 'door-bible-stories.png',
-    games: 'door-games.png',
-    videos: 'door-videos.png',
-    memory: 'door-memory-verses.png',
-    activities: 'door-activities.png',
-  }),
+  reference: 'bible-adventures-key-art.jpg', // the whole approved illustration: the pair, the valley, the logo
+  logo: 'logo.png', // "The Love Corner Bible Adventures" lockup with the open Bible, from the key art
+  pair: 'guides-pair.png', // both guides reading the open Bible together, from their own approved scene
+  bible: 'bible-open.png', // the open Bible in their hands, from that scene
 });
 
 /** Every file the registry names, for the on-disk proof. */
 export function listedAssets() {
-  const out = [KIDS_BRAND.reference, KIDS_BRAND.logo, KIDS_BRAND.pair, KIDS_BRAND.bible, ...Object.values(KIDS_BRAND.doors)];
+  const out = [KIDS_BRAND.reference, KIDS_BRAND.logo, KIDS_BRAND.pair, KIDS_BRAND.bible];
   for (const g of Object.values(GUIDES)) out.push(g.portrait, g.face);
   return out;
 }

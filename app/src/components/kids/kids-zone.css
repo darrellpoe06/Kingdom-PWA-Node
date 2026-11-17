@@ -215,6 +215,9 @@
 /* ---- interim art: the approved reference standing in until a render lands (2026-11-17) ---- */
 .kz-interim{position:relative;overflow:hidden;border-radius:.875rem;background:linear-gradient(160deg,#FFE9A8,#FFC65C);min-height:76px}
 .kz-interim .kz-interim-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+/* the approved cutouts are transparent: a window shows the whole figure standing on its floor, never a cropped head */
+.kz-interim.portrait .kz-interim-img{object-fit:contain;object-position:50% 100%;padding:4px 4px 0}
+.kz-interim.pair .kz-interim-img{object-position:50% 30%}
 .kz-interim .kz-needed{position:absolute;left:6px;bottom:6px;z-index:2;background:rgba(26,16,18,.78);color:var(--lc-gold);border-radius:999px;padding:2px 8px;font-size:.52rem;font-weight:900;letter-spacing:.1em;line-height:1.5;pointer-events:none}
 .kz-interim.story{background:linear-gradient(180deg,var(--kz-story-a,#2F7BF5),var(--kz-story-b,#0E8F82))}
 .kz-interim.story.jonah{--kz-story-a:#1B3FA8;--kz-story-b:#19B5A6}
