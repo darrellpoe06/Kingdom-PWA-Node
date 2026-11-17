@@ -51,11 +51,6 @@ afterEach(() => {
 });
 const q = (sel) => container.querySelector(sel);
 const click = (el) => act(() => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-const tab = (label) => {
-  const t = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
-  if (!t) throw new Error(`tab not found: ${label}`);
-  click(t);
-};
 const mount = (props = {}) =>
   act(() => root.render(createElement(YouthZone, { church: COLG_DEFAULT_CHURCH, now: MON, loadVerse, fetchRecords: async () => ({ records: [] }), ...props })));
 
@@ -77,15 +72,20 @@ describe('the doors', () => {
 });
 
 describe("the week's lesson and the events", () => {
-  it('links the real module of the door’s course through the lesson link, and the events card is honest', async () => {
+  // Phases D and E (DR-1508): the adventure opens IN the zone (the age-paced
+  // reader, quiz, Ari and the coloring page), and the Learn link rides inside
+  // it; events and the channel live on the Teens door's Events tab.
+  it('opens the real module of the door’s course in the zone, links it in Learn, and the events card is honest', async () => {
     mount();
-    tab('This week');
-    const open = q('[data-testid="weekly-lesson-open"]');
     const expected = weeklyLesson('kids', MON);
-    // Kids 6–10 reads Living Lessons at the child band (true ages, DR-1508).
-    expect(open.getAttribute('href')).toContain(`course=living-lessons`);
-    expect(open.getAttribute('href')).toContain(`lesson=${encodeURIComponent(expected.lessonId)}`);
-    expect(q('[data-testid="weekly-lesson"]').textContent).toContain(expected.title);
+    click(q('[data-testid="weekly-lesson-open"]'));
+    await flush();
+    expect(q('[data-testid="kids-adventure"]').getAttribute('data-lesson')).toBe(expected.lessonId);
+    const learn = q('[data-testid="adventure-learn"]');
+    expect(learn.getAttribute('href')).toContain('course=living-lessons');
+    expect(learn.getAttribute('href')).toContain(`lesson=${encodeURIComponent(expected.lessonId)}`);
+    click(q('[data-testid="door-teens"]'));
+    click(q('[data-testid="kids-tab-events"]'));
     expect(q('[data-testid="youth-events-empty"]').textContent).toContain('No upcoming youth events');
     expect(q('[data-testid="youth-channel"]').getAttribute('href')).toBe(COLG_DEFAULT_CHURCH.media.youtube);
   });

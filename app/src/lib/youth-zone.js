@@ -10,14 +10,8 @@
 // profiles or unrestricted messaging."
 //
 // GROUNDED, NOT PAINTED (P15; DR-0076):
-//   • The doors are the app's own age bands (lib/learn-framework.js
-//     AGE_BANDS). TRUE AGES (DR-1508; the 2026-11-13 audit found the Kids door
-//     labeled 6–10 over Little Learners, whose own meta says about 3 to 6,
-//     and the Teens door reading at teen with the 11–14 youth band unused):
-//     Kids 6–10 reads Living Lessons at `child` (every lesson carries an
-//     authored, screened child level); Teens 11–17 reads at `youth` by
-//     default and `teen` on a tap (TEEN_BANDS); Little Ones 3–6 is the
-//     Little Learners course, kept as its own door inside Kids.
+//   • The two doors are the app's own age bands (lib/learn-framework.js
+//     AGE_BANDS): Kids reads at `child`, Teens at `teen` (youth falls to teen).
 //   • A memory verse's text is never typed here: only the REFERENCE is listed,
 //     and the game loads the words from the hosted King James text
 //     (lib/bible-kjv.js verseText) at play time. A verse the device cannot
@@ -29,6 +23,14 @@
 //   • The week's activity is a real lesson from a registered course, chosen
 //     deterministically by the ISO week so every child sees the same one and
 //     it changes on its own with the calendar.
+//   • TRUE AGES (DR-1508; the 2026-11-13 audit found the Kids door labeled
+//     6–10 over Little Learners, whose own meta says about 3 to 6, and the
+//     Teens door reading at teen with the 11–14 youth band unused): Kids 6–10
+//     reads Living Lessons at `child` (every lesson carries an authored,
+//     screened child level); Teens 11–17 reads at `youth` by default and
+//     `teen` on a tap (TEEN_BANDS); Little Ones 3–6 is the Little Learners
+//     course, kept as its own door inside Kids. The bullet above this one keeps
+//     its line (22): a Living Lesson cites it by number.
 // Pure: no React, no I/O, `now` passed in.
 import { AGE_BANDS } from './learn-framework.js';
 import { LITTLE_LEARNERS_MODULES } from './little-learners-class.js';

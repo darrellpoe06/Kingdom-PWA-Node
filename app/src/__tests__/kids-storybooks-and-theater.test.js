@@ -76,7 +76,7 @@ describe('the content gate over our own voice', () => {
     expect(checkVoices(theaterVoiceLines())).toEqual([]);
     expect(storybookVoiceLines().length).toBeGreaterThan(40);
   });
-  it('PROVEN-TO-CATCH: a fantasy device in a caption is named, and Scripture is never the gate\'s business', () => {
+  it("PROVEN-TO-CATCH: a fantasy device in a caption is named, and Scripture is never the gate's business", () => {
     const r = checkVoice('Jonah waved his magic wand and made a wish');
     expect(r.ok).toBe(false);
     expect(r.hits).toEqual(['magic', 'wand', 'wish']);
@@ -92,7 +92,11 @@ describe('the Theater is honest', () => {
     expect(validateEpisodes()).toEqual([]);
     expect(EPISODES.some(watchable)).toBe(false);
     expect(EPISODES.map(shelfLabel)).toEqual(['IN PRODUCTION', 'PLANNED', 'PLANNED']);
-    for (const e of EPISODES) expect(STORYBOOKS.some((b) => b.id === e.storybook), e.id).toBe(true);
+    for (const e of EPISODES)
+      expect(
+        STORYBOOKS.some((b) => b.id === e.storybook),
+        e.id
+      ).toBe(true);
   });
   it("now showing is the church's own channel from the record until an episode is published", () => {
     const now = nowShowing(COLG_DEFAULT_CHURCH);
