@@ -24,6 +24,60 @@
       "scope": "dev",
       "why": "vite 5 -> 8 is a migration, not a bump (DR-1262); the dev server the advisories name never runs in CI or on a device, only `vite build` does.",
       "reReview": "2026-12-05"
+    },
+    {
+      "name": "anymatch",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "chokidar",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "fast-glob",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "micromatch",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "picomatch",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "readdirp",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "sucrase",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "tailwindcss",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
+    },
+    {
+      "name": "tinyglobby",
+      "scope": "dev",
+      "why": "picomatch ReDoS (GHSA-fc5q-39xc-vjpf, published 2026-11-17; no fixed picomatch release, npm's only fix is tailwindcss 4) reached through tailwindcss 3's build-time content scanner, which globs only this repo's own paths from tailwind.config.js, never a pattern from outside; tailwindcss 3 -> 4 is a migration, not a bump (DR-1262 class).",
+      "reReview": "2026-12-05"
     }
   ]
 }

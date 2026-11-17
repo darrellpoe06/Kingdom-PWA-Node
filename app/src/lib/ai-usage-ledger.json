@@ -2781,6 +2781,66 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 3,
       "notes": "DR-1516 left eligibility()'s no-words branch unmirrored on the stated grounds that testing it would require reading the body. That premise was wrong, the fourth such correction in one night: PostgREST answers has-this-row-any-words as a filter returning only ids, which already ride this road, so no body is read even to be measured. My first design was a generated body_length column, a schema change on the table holding people's teachings, for an answer a where clause gives for free. Also caught in the act: 0331 was first generated from 0329 by hand and would have silently deleted 0330's code_sha, the exact failure every header in this series warns about, made while writing the warning - the generator now derives the definition in force from disk and both shas were verified present after regeneration. The budget brake in the census header was corrected from one read to two rather than left stale."
+    },
+    {
+      "id": "kids-zone-games-and-child-mode",
+      "date": "2026-11-13",
+      "task": "Kids Zone Phases D and E: the audit, the illustrated proposal (six screens, a parametric SVG cast of Black children and teens), and the pure Word Builder and Who Am I? engines over the hosted KJV with Ari's child-mode flag finally read; surfaces held for approval",
+      "drs": [
+        "DR-1508"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Audit first (DR-0061): the Youth Zone, its tests, the course bands and the in-flight Phase C PR, so the new files stay out of index.css and the shell. The ages conflict (Kids 6-10 reading a 3-6 course; the youth band unused) and two painted numbers on the approved screen were surfaced before drawing. The visual build waits on Darrell's own gate; what does not depend on it shipped proven."
+    },
+    {
+      "id": "the-coloring-page-is-a-picture",
+      "date": "2026-11-13",
+      "task": "The lesson coloring page redrawn as a coloring-book page: frame, bubble title, dotted trace verse and words, a composed scene of the lesson's pieces; one element list for both renderers; 309 sheets measured in Chromium",
+      "drs": [
+        "DR-1509"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell sent a live sheet and asked for better. The derivation was untouched; only the drawing changed. The reviewed-shapes gate did its job (it refused the new paths until they were rendered and looked at), and the width gate held; the bold title face needed 28px of slack, found by measuring every sheet in Chromium, not by the model."
+    },
+    {
+      "id": "kids-zone-v1-launch-pass",
+      "date": "2026-11-17",
+      "task": "Kids Zone v1 launch pass: the approved reference stands in on every surface with no visible placeholder, the Theater poster and tap-to-play, the badge shelf and quiz in the kids' world, nine screens measured at three phone widths, previews of the running app",
+      "drs": [
+        "DR-1520"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 12,
+      "notes": "The quiz's light-on-cream text came from the night theme's utility remap inside .kz; pinned by class in kids-zone.css, measured before and after."
+    },
+    {
+      "id": "reading-stars-plan",
+      "date": "2026-11-17",
+      "task": "Reading Stars: the Kids Zone literacy development plan for the phase after the v1 launch, with the effort-and-improvement rule, the five skills, the shelf and celebrations, the badge connection, and the proven-to-catch tests each phase ships with",
+      "drs": [
+        "DR-1521"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
     }
   ]
 }
