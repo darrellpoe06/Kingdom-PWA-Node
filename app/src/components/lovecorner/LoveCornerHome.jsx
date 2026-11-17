@@ -200,8 +200,8 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
             The Love Corner Kids &amp; Youth Adventures
           </h3>
           <p className="lc-adv-p">
-            Little Ones 3–6 · Kids 6–10 · Teens 11–17. Inside, The Love Corner Bible Adventures: games, storybooks, the Theater, badges and your adventure
-            map, all from His Word.
+            Little Ones 3–6 · Kids 6–10 · Teens 11–17. Inside, The Love Corner Bible Adventures: games, storybooks, the Theater, badges and your adventure map,
+            all from His Word.
           </p>
           <button type="button" onClick={() => open('youth')} className={`lc-btn lc-btn-red lc-adv-go ${FOCUS}`} data-testid="lc-play-bible-adventures">
             Explore Kids &amp; Youth Zone ›
