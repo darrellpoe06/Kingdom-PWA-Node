@@ -110,7 +110,7 @@ export function parseChurchPage(json) {
       const alt = /alt="([^"]*)"/i.exec(m[0]);
       return { path, alt: alt && alt[1] !== 'Picture' ? decodeEntities(alt[1]) : '' };
     })
-    .filter((p) => !/\/published\/icons8|\/editor\/|na-logo/i.test(p.path));
+    .filter((p) => !/\/published\/icons8|\/editor\/|\/background-images\/|na-logo/i.test(p.path));
   return {
     page: (json && json.page) || '',
     url: (json && json.url) || '',
