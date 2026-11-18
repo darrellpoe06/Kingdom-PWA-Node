@@ -1,4 +1,4 @@
-# DR-1528: The Teens skin repaints every light card, and a replaced file is a new URL
+# DR-1529: The Teens skin repaints every light card, and a replaced file is a new URL
 
 **Date:** 2026-11-18
 **Status:** Accepted (built, gated, shipped through the lane)
