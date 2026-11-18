@@ -30,6 +30,13 @@
 // and offering "start your own" CTA.
 // =============================================================================
 
+// A sample receipt image for the demo rows (inline SVG data URI, no network,
+// no binary in the repo). Marked SAMPLE so it can never pass as a real record.
+function sampleReceipt(merchant, amount, date) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="150" viewBox="0 0 220 150"><rect width="220" height="150" fill="#fff" stroke="#999"/><text x="110" y="28" font-family="monospace" font-size="13" text-anchor="middle">${merchant}</text><text x="110" y="50" font-family="monospace" font-size="11" text-anchor="middle">${date}</text><line x1="16" y1="64" x2="204" y2="64" stroke="#999" stroke-dasharray="3 3"/><text x="16" y="88" font-family="monospace" font-size="12">TOTAL</text><text x="204" y="88" font-family="monospace" font-size="12" text-anchor="end">$${amount}</text><text x="110" y="128" font-family="monospace" font-size="10" fill="#888" text-anchor="middle">SAMPLE RECEIPT</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 export function buildDemoPersonas(SEED_DATA) {
 const DEMO_DATA_FAMILY_OF_4 = {
   ...SEED_DATA,
@@ -167,15 +174,15 @@ const DEMO_DATA_SEPARATED = {
     { id: 'st-1',  date: '2026-05-01', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
     { id: 'st-2',  date: '2026-05-01', accountId: 'a-mom-chk', amount: -1450, description: 'Rent (mom\'s household)',                category: 'household' },
     { id: 'st-3',  date: '2026-05-03', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared',             category: 'transfer' },
-    { id: 'st-4',  date: '2026-05-04', accountId: 'a-shared',  amount: -185, description: 'Avery soccer fees (split agreement)',     category: 'household' },
+    { id: 'st-4',  date: '2026-05-04', accountId: 'a-shared',  amount: -185, description: 'Avery soccer fees (split agreement)',     category: 'household', receipt: { src: sampleReceipt('Youth Soccer League', '185.00', '2026-05-04'), merchant: 'Youth Soccer League', capturedAt: '2026-05-04' } },
     { id: 'st-5',  date: '2026-05-05', accountId: 'a-mom-chk', amount: -135, description: 'Aldi groceries',                          category: 'groceries' },
     { id: 'st-6',  date: '2026-05-06', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
     { id: 'st-7',  date: '2026-05-06', accountId: 'a-dad-chk', amount: -1100, description: 'Apt rent (dad\'s household)',            category: 'household' },
-    { id: 'st-8',  date: '2026-05-08', accountId: 'a-shared',  amount: -240, description: 'Avery doctor · co-pay (split 50/50)',     category: 'medical' },
+    { id: 'st-8',  date: '2026-05-08', accountId: 'a-shared',  amount: -240, description: 'Avery doctor · co-pay (split 50/50)',     category: 'medical', receipt: { src: sampleReceipt('Pediatric Clinic', '240.00', '2026-05-08'), merchant: 'Pediatric Clinic', capturedAt: '2026-05-08' } },
     { id: 'st-9',  date: '2026-05-10', accountId: 'a-dad-cc',  amount: -45, description: 'Dad · gas',                                category: 'fuel' },
     { id: 'st-10', date: '2026-05-12', accountId: 'a-mom-chk', amount: -210, description: 'Utilities (mom)',                         category: 'utilities' },
     { id: 'st-11', date: '2026-05-15', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
-    { id: 'st-12', date: '2026-05-15', accountId: 'a-shared',  amount: -120, description: 'Avery school clothes (split)',            category: 'household' },
+    { id: 'st-12', date: '2026-05-15', accountId: 'a-shared',  amount: -120, description: 'Avery school clothes (split)',            category: 'household', receipt: { src: sampleReceipt('Target', '120.00', '2026-05-15'), merchant: 'Target', capturedAt: '2026-05-15' } },
     { id: 'st-13', date: '2026-05-18', accountId: 'a-dad-chk', amount: -150, description: 'Dad · auto insurance',                    category: 'insurance' },
     { id: 'st-14', date: '2026-05-20', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
     { id: 'st-15', date: '2026-05-22', accountId: 'a-shared',  amount: 200, description: 'Dad → shared · extra agreed contribution', category: 'transfer' },
@@ -399,7 +406,7 @@ const DEMO_DATA_FAMILY_OF_1 = {
     { id: 'a-solo-chk',  entityId: 'e-solo', name: 'Checking',       institution: 'Ally',        type: 'checking',   fragment: '...5012', balance: 3400, openingBalance: 2075, isPrimary: true },
     { id: 'a-solo-em',   entityId: 'e-solo', name: 'Emergency Fund', institution: 'Ally',        type: 'savings',    fragment: '...5019', balance: 9600, openingBalance: 9200 },
     { id: 'a-solo-roth', entityId: 'e-solo', name: 'Roth IRA',       institution: 'Fidelity',    type: 'investment', fragment: '...7744', balance: 7200, openingBalance: 6900 },
-    { id: 'a-solo-cc',   entityId: 'e-solo', name: 'Cash-back Card', institution: 'Capital One', type: 'credit',     fragment: '...3390', balance: -180, openingBalance: -75 },
+    { id: 'a-solo-cc',   entityId: 'e-solo', name: 'Cash-back Card', institution: 'Capital One', type: 'credit',     fragment: '...3390', balance: -245.47, openingBalance: -75 },
   ],
   transactions: [
     { id: 'f1t-1',  date: '2026-05-01', accountId: 'a-solo-chk',  amount: 2050,  description: 'Paycheck',                  category: 'salary' },
@@ -414,11 +421,22 @@ const DEMO_DATA_FAMILY_OF_1 = {
     { id: 'f1t-10', date: '2026-05-12', accountId: 'a-solo-chk',  amount: -300,  description: '→ Roth IRA',          category: 'transfer' },
     { id: 'f1t-11', date: '2026-05-12', accountId: 'a-solo-roth', amount: 300,   description: 'Roth IRA · monthly',       category: 'transfer' },
     { id: 'f1t-12', date: '2026-05-14', accountId: 'a-solo-chk',  amount: -410,  description: 'Tithe · home church',      category: 'charitable' },
+    // "Every subscription ... is on the screen": each charge below has its row
+    // in data.subscriptions (Books -> Cart), so the tile's claim is in the sample.
+    { id: 'f1t-16', date: '2026-05-03', accountId: 'a-solo-cc',   amount: -11.99, description: 'Spotify',                 category: 'subscriptions' },
+    { id: 'f1t-17', date: '2026-05-07', accountId: 'a-solo-cc',   amount: -35,    description: 'Gym membership',          category: 'subscriptions' },
+    { id: 'f1t-18', date: '2026-05-09', accountId: 'a-solo-cc',   amount: -15.49, description: 'Streaming service',       category: 'subscriptions' },
+    { id: 'f1t-19', date: '2026-05-13', accountId: 'a-solo-cc',   amount: -2.99,  description: 'Cloud storage',           category: 'subscriptions' },
     { id: 'f1t-13', date: '2026-05-15', accountId: 'a-solo-chk',  amount: 2050,  description: 'Paycheck',                  category: 'salary' },
     { id: 'f1t-14', date: '2026-06-01', accountId: 'a-solo-chk',  amount: 2050,  description: 'Paycheck (upcoming)',      category: 'salary' },
     { id: 'f1t-15', date: '2026-06-01', accountId: 'a-solo-chk',  amount: -1200, description: 'Rent (upcoming)',          category: 'household' },
   ],
-  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
+  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [
+    { id: 'f1-sub-music',  name: 'Spotify',           category: 'entertainment', monthly: 11.99, status: 'keep',   entityId: 'e-solo', billingCycle: 'monthly', notes: 'Used daily' },
+    { id: 'f1-sub-gym',    name: 'Gym membership',    category: 'health',        monthly: 35,    status: 'keep',   entityId: 'e-solo', billingCycle: 'monthly', notes: '3x a week' },
+    { id: 'f1-sub-stream', name: 'Streaming service', category: 'entertainment', monthly: 15.49, status: 'review', entityId: 'e-solo', billingCycle: 'monthly', notes: 'Watched once last month' },
+    { id: 'f1-sub-cloud',  name: 'Cloud storage',     category: 'software',      monthly: 2.99,  status: 'keep',   entityId: 'e-solo', billingCycle: 'monthly', notes: '' },
+  ], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
   recurringObligations: [
     { id: 'f1-ro-rent',  name: 'Rent',         amount: 1200, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-solo', category: 'household',     enabled: true },
     { id: 'f1-ro-util',  name: 'Utilities',    amount: 95,   frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-solo', category: 'utilities',     enabled: true },
@@ -571,7 +589,9 @@ const DEMO_DATA_FAMILY_OF_5 = {
   accounts: [
     { id: 'a-f5-chk',  entityId: 'e-fam5', name: 'Main Checking',    institution: 'First National', type: 'checking', fragment: '...5010', balance: 6800,  openingBalance: 3760,  isPrimary: true },
     { id: 'a-f5-sav',  entityId: 'e-fam5', name: 'Family Savings',   institution: 'First National', type: 'savings',  fragment: '...5017', balance: 19000, openingBalance: 18400 },
-    { id: 'a-f5-529',  entityId: 'e-fam5', name: '529 College Funds', institution: 'Vanguard',      type: 'investment', fragment: '...9930', balance: 9500,  openingBalance: 9200 },
+    { id: 'a-f5-529',  entityId: 'e-fam5', name: '529 · Jonah (11)', institution: 'Vanguard',       type: 'investment', fragment: '...9930', balance: 4100,  openingBalance: 4000 },
+    { id: 'a-f5-529b', entityId: 'e-fam5', name: '529 · Lila (8)',   institution: 'Vanguard',       type: 'investment', fragment: '...9931', balance: 3100,  openingBalance: 3000 },
+    { id: 'a-f5-529c', entityId: 'e-fam5', name: '529 · Micah (4)',  institution: 'Vanguard',       type: 'investment', fragment: '...9932', balance: 2300,  openingBalance: 2200 },
     { id: 'a-f5-cc',   entityId: 'e-fam5', name: 'Visa',             institution: 'Capital One',    type: 'credit',   fragment: '...6612', balance: -640,  openingBalance: -400 },
     { id: 'a-f5-auto', entityId: 'e-fam5', name: 'Minivan Loan',     institution: 'Credit Union',   type: 'loan',     fragment: '...4420', balance: -9200, openingBalance: -9720 },
   ],
@@ -582,13 +602,17 @@ const DEMO_DATA_FAMILY_OF_5 = {
     { id: 'f5t-4',  date: '2026-05-04', accountId: 'a-f5-chk',  amount: -420,  description: 'Groceries · family of 5', category: 'groceries' },
     { id: 'f5t-5',  date: '2026-05-05', accountId: 'a-f5-cc',   amount: -90,   description: 'Gas',                  category: 'fuel' },
     { id: 'f5t-6',  date: '2026-05-06', accountId: 'a-f5-chk',  amount: -320,  description: 'Utilities',            category: 'utilities' },
-    { id: 'f5t-7',  date: '2026-05-08', accountId: 'a-f5-chk',  amount: -260,  description: 'Kids · activities',    category: 'household' },
+    { id: 'f5t-7',  date: '2026-05-08', accountId: 'a-f5-chk',  amount: -120,  description: 'Jonah · basketball league', category: 'household' },
+    { id: 'f5t-7b', date: '2026-05-08', accountId: 'a-f5-chk',  amount: -95,   description: 'Lila · piano lessons',  category: 'household' },
+    { id: 'f5t-7c', date: '2026-05-08', accountId: 'a-f5-chk',  amount: -45,   description: 'Micah · swim class',    category: 'household' },
     { id: 'f5t-8',  date: '2026-05-09', accountId: 'a-f5-chk',  amount: -600,  description: '→ Family Savings', category: 'transfer' },
     { id: 'f5t-9',  date: '2026-05-09', accountId: 'a-f5-sav',  amount: 600,   description: 'Savings · monthly',    category: 'transfer' },
     { id: 'f5t-10', date: '2026-05-10', accountId: 'a-f5-chk',  amount: -520,  description: 'Minivan payment',      category: 'debt-payment' },
     { id: 'f5t-11', date: '2026-05-10', accountId: 'a-f5-auto', amount: 520,   description: 'Minivan loan · principal', category: 'debt-payment' },
-    { id: 'f5t-12', date: '2026-05-11', accountId: 'a-f5-chk',  amount: -300,  description: '→ 529 College Funds', category: 'transfer' },
-    { id: 'f5t-13', date: '2026-05-11', accountId: 'a-f5-529',  amount: 300,   description: '529 · monthly',        category: 'transfer' },
+    { id: 'f5t-12', date: '2026-05-11', accountId: 'a-f5-chk',  amount: -300,  description: '→ 529s (3 × $100)',  category: 'transfer' },
+    { id: 'f5t-13', date: '2026-05-11', accountId: 'a-f5-529',  amount: 100,   description: '529 · Jonah · monthly', category: 'transfer' },
+    { id: 'f5t-13b',date: '2026-05-11', accountId: 'a-f5-529b', amount: 100,   description: '529 · Lila · monthly',  category: 'transfer' },
+    { id: 'f5t-13c',date: '2026-05-11', accountId: 'a-f5-529c', amount: 100,   description: '529 · Micah · monthly', category: 'transfer' },
     { id: 'f5t-14', date: '2026-05-12', accountId: 'a-f5-cc',   amount: -80,   description: 'Household supplies',   category: 'household' },
     { id: 'f5t-15', date: '2026-05-13', accountId: 'a-f5-cc',   amount: -70,   description: 'School lunches',       category: 'household' },
     { id: 'f5t-16', date: '2026-05-14', accountId: 'a-f5-chk',  amount: -840,  description: 'Tithe · home church',  category: 'charitable' },
@@ -698,6 +722,9 @@ const DEMO_DATA_FAMILY_OF_7 = {
   };
 }
 
+// The picker's intro line (shell renders it; surface-claims checks it).
+export const DEMO_PICKER_INTRO = 'One modular framework, multiple lenses. The working samples run the real system on sample numbers — tap one, nothing saves; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.';
+
 export const DEMO_PERSONA_META = {
   'family-of-1': {
     free: true,
@@ -714,8 +741,8 @@ export const DEMO_PERSONA_META = {
     headline: 'Two incomes pulling in one direction.',
     summary: 'Two incomes, shared books, joint goals.',
     audience: 'Couples combining finances and saving toward a first home.',
-    pitch: 'Two incomes, one plan. The house down-payment fund grows every month, the emergency fund is full, the car loan is shrinking, and who-paid-what is a number, not a feeling. The 1st is calm.',
-    vision: 'Shared per-profile views work today. Cross-device co-auth for two logins on one ledger is in build.',
+    pitch: 'Two incomes, one plan. The house down-payment fund grows every month, the emergency fund is full, the car loan is shrinking, and both paychecks land on the same record. The 1st is calm.',
+    vision: 'Two logins on one ledger works today through a family invite. A per-partner who-paid-what number and settle-up are in build.',
   },
   'family-of-3': {
     free: true,
@@ -732,8 +759,8 @@ export const DEMO_PERSONA_META = {
     headline: 'Know what\'s covered before the 1st — without guessing.',
     summary: 'Two parents, two kids in school.',
     audience: 'Married couples with school-age children.',
-    pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt down to almost nothing, savings growing. On every screen the system tells you what to do, when, why, and how. The 1st stops being a scramble.',
-    vision: 'Multi-device per-profile views shipped — a parent, a parent, and a "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
+    pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt down to almost nothing, savings growing. The forecast tells you what to do, when, why, and how. The 1st stops being a scramble.',
+    vision: 'Multi-device per-profile views shipped — a parent, a parent, and a "Family" rollup all work today. The what-when-why-how line is spreading from the forecast to every screen. Anonymous in-app specialist messaging is in design.',
   },
   'family-of-5': {
     free: true,
@@ -741,8 +768,8 @@ export const DEMO_PERSONA_META = {
     headline: 'Three kids, busier rhythm — same clarity.',
     summary: 'Two parents, three kids, a fuller calendar.',
     audience: 'Larger families keeping every kid\'s costs visible.',
-    pitch: 'More mouths, more dates, same four questions answered on every screen. Buffer funded, 529s growing for three, the minivan loan shrinking, tithe steady. Every kid\'s costs visible, nothing slips.',
-    vision: 'Per-profile family views work today. Per-kid activity + cost tracking deepens as the Home Command module ships.',
+    pitch: 'More mouths, more dates, same clarity. Buffer funded, a 529 growing for each of the three, the minivan loan shrinking, tithe steady. Each kid\'s activities on their own line, nothing slips.',
+    vision: 'Per-profile family views work today. A per-kid cost rollup (everything one child costs, in one place) is in build.',
   },
   'family-of-7': {
     free: true,
@@ -759,26 +786,26 @@ export const DEMO_PERSONA_META = {
     headline: 'A fair shared truth so money stops being the fight.',
     summary: 'Two households, one shared child.',
     audience: 'Co-parents who don\'t live together but co-fund the kids.',
-    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. He didn\'t show up for the exchange? The timestamp is in the log. She says you missed a payment? The receipt\'s right there. You don\'t have to argue about it in front of the kids — the system shows the truth.',
-    vision: 'Today this is two profiles on one device. Cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
+    pitch: 'Each household keeps its own books. A shared account for the child holds the split costs — every one recorded, the receipt attached, the bill marked paid or not. Someone says a payment was missed? The record and the receipt are right there. You don\'t have to argue about it in front of the kids — the system shows the truth.',
+    vision: 'Today this is two households on one device. In build: agreed split percentages with each parent\'s share owed, a timestamped exchange log, and cross-household sync (two phones, two logins, one shared-child ledger). Anonymous coordinated counseling sits in the same workstream.',
   },
   'professional': {
     free: false,
     label: 'For solo practice owners',
-    headline: 'Practice clean, personal clean, tax set-aside running.',
+    headline: 'Practice money and personal money, never mixed.',
     summary: 'Therapist, lawyer, or consultant running their own practice.',
     audience: 'Solo practitioners juggling personal income with practice revenue.',
-    pitch: 'No more "which money is whose." Owner draw clean. Quarterly tax set aside. CEUs and license renewals on the calendar so they never sneak up. Your books match what the IRS thinks they should be.',
-    vision: 'Today this is the financial backbone. Practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
+    pitch: 'No more "which money is whose": the practice and the household keep separate books. Quarterly estimated-tax dates and a tax set-aside account in view. CEUs and license renewals on the calendar so they never sneak up.',
+    vision: 'Today this is the financial backbone. In build: owner-draw tracking, a tax set-aside that funds itself from each deposit, and a check of your books against your filed return. Practice intake + contractor 1099 surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
   },
   'landlord': {
     free: false,
     label: 'For landlords',
-    headline: 'Know on the 1st — not at month-end when a deposit comes up short.',
+    headline: 'Every door\'s rent and mortgage on one page.',
     summary: 'Small landlord juggling rentals + a personal household.',
     audience: 'Owner-operators with 1-10 rental units.',
-    pitch: 'Per-property cash flow without spreadsheets. Late tenants flagged on the 1st. Mortgage timing protected. Capex reserve auto-funded. The portfolio runs itself; you decide.',
-    vision: 'Today the rental tracking is here. Tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
+    pitch: 'Each property\'s rent and mortgage side by side, without spreadsheets. A tenant marked late stays flagged until you mark the rent paid. Rent due dates and mortgage due dates on one timeline. You decide with the numbers in front of you.',
+    vision: 'Today the rental tracking is here, and signed-in landlords also get the tenant portal, leases and work orders. In build: late rent caught automatically on the 1st, a net cash-flow number per property, and a capex reserve that funds itself. Specialist access (attorney, accountant, property manager) is roadmap.',
   },
 };
 

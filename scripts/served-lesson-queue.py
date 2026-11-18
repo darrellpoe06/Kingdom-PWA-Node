@@ -283,6 +283,29 @@ def judge(receipt, why, now=None):
                 bits.append(str(r.get("source")))
             shape = str(r.get("shape") or "unclassified")
             bits.append(shape + (f"/{r.get('stall')}" if r.get("stall") else ""))
+            # THE CAUSE ITSELF (0335). `stall` says which SITE refused; these
+            # say WHAT refused, written by the box with no key and no hand.
+            # Both are vocabulary the receipt refuses independently, so the
+            # worst a corrupt census can do here is say nothing.
+            gates = r.get("gates")
+            if isinstance(gates, list) and gates:
+                named = [str(g) for g in gates if isinstance(g, str)]
+                if named:
+                    bits.append("gates refused: " + "+".join(named))
+            # WHICH PROBLEM (0336). The gate's name did not decide the fix:
+            # `quotation` refuses five different things and they call for
+            # opposite work. The kind is what a person acts on.
+            kinds = r.get("kinds")
+            if isinstance(kinds, list) and kinds:
+                named = [str(k) for k in kinds if isinstance(k, str)]
+                if named:
+                    bits.append("because: " + "+".join(named))
+            if r.get("exception"):
+                bits.append(f"crashed: {r.get('exception')}")
+            if shape == "build-failed" and not (gates or r.get("exception")):
+                # Absent is UNREAD, never "no cause" -- the census omits both
+                # when it could not read the builder's records.
+                bits.append("cause not stored")
             # WHY IT WAITS (0328, DR-1515). Measured 2026-11-17: the builder was
             # active and building nothing while three teachings had waited five
             # days, because past its MAX_ATTEMPTS the builder leaves a row to the

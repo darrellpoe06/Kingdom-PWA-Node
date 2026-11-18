@@ -105,6 +105,17 @@ describe('the header bar', () => {
     expect(q('[data-testid="lch-avatar"]')).toBeNull();
     for (const b of container.querySelectorAll('.lch-bar button')) expect(b.className, b.textContent).toMatch(/focus:outline/);
   });
+  it('carries a text-size button on every screen; a tap opens Personalize with the five sizes (Darrell 2026-11-18)', async () => {
+    await mount();
+    const aa = container.querySelector('[data-testid="lch-text-size"]');
+    expect(aa).toBeTruthy();
+    expect(aa.getAttribute('aria-label')).toMatch(/text size/i);
+    await act(async () => aa.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    const sheet = document.querySelector('[data-testid="lch-personalize-sheet"]');
+    expect(sheet, 'Personalize opened').toBeTruthy();
+    expect(sheet.querySelector('[aria-label="Text size — make reading text larger"]')).toBeTruthy();
+  });
+
   it('the brand tap goes home; the strip draws the same gated list the dock draws', async () => {
     const setChurchView = vi.fn();
     mount({ setChurchView, churchView: 'youth' });
