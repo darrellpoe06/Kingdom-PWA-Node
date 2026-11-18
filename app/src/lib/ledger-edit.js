@@ -119,6 +119,34 @@ export function undoLedgerEdit(editor, record) {
   return record.changes.length;
 }
 
+// ---- remembering a category chosen on the import card (Phase 1.4) -----------
+// Christina 2026-11-17, decision 2: a category she corrects while reviewing an
+// import is remembered, so the next import from that payee suggests it. Only a
+// RULE is saved (editor.learnPayeeRule writes data.categoryRules and nothing
+// else): no existing row is re-labelled, because an import approval must never
+// quietly change rows already in the books. Only the person's own choices are
+// learned, never a suggestion, never a row left out. Demo saves nothing.
+
+/** [{ description, category }] for every row the person gave a category and kept, one per payee (the last choice wins). */
+export function rulesFromDecisions(lineItems, decisions) {
+  const byPayee = new Map();
+  for (const [i, d] of Object.entries(decisions || {})) {
+    const row = (lineItems || [])[Number(i)];
+    const category = d && !d.exclude ? normalizeCategory(d.category) : '';
+    const key = row ? payeeKey(row.description) : '';
+    if (key && category) byPayee.set(key, { description: row.description, category });
+  }
+  return [...byPayee.values()];
+}
+
+/** Save those rules through the shell's write path. Returns how many were saved. */
+export function learnImportRules(editor, doc) {
+  if (!editor || editor.demo || typeof editor.learnPayeeRule !== 'function' || !doc) return 0;
+  const rules = rulesFromDecisions(doc.extraction && doc.extraction.line_items, doc.rowDecisions);
+  for (const r of rules) editor.learnPayeeRule(r.description, r.category);
+  return rules.length;
+}
+
 // ---- the "edited" marks ------------------------------------------------------
 // A small in-memory list of this session's edits, so the surface that was
 // edited (and any other surface showing the same row, payee or category) can

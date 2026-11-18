@@ -47,7 +47,7 @@ import LedgerProof from './LedgerProof.jsx';
 import LedgerEdit from './LedgerEdit.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 
-const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
+const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
 // TxHistory — the Books living-record proof: every edit/delete to this
 // transaction is an immutable, attributed version in record_events
@@ -761,7 +761,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     accountId: csvAccountId,
     amount: r.amount,
     description: r.desc.slice(0, 200),
-    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','tithes','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
     // Carry the bank's running balance so the account-of-record "reconciles" badge
     // can verify this account, matching the bulk path (2026-07-18).
     ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
@@ -1897,7 +1897,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             </tbody>
           </table>
         </div>
-        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        {cashFc.unconfirmedIncome && cashFc.unconfirmedIncome[90] > 0 && <p className="text-[0.6875rem] text-[#5A5751] mt-2" data-testid="forecast-unconfirmed-income">Not included above: expected income that is not confirmed yet ({fmt(cashFc.unconfirmedIncome[30])} by +30, {fmt(cashFc.unconfirmedIncome[60])} by +60, {fmt(cashFc.unconfirmedIncome[90])} by +90). Confirm the pay schedule in Money → Overview → Coming Up, or set the rent day in Money → Setup, to count it.</p>}<p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the Safe to Spend engine's own walk read at each horizon: <strong>Now</strong> is the bank-verified balance where one is on file (the day is under the account name), then every dated bill, debt minimum, mortgage, rent and paycheck on the day it is expected, placed on the account that pays or receives it. <strong>Confirmed</strong> figures are entered and dated; a figure marked <em>est</em> also carries estimates (inferred bills, assumed due days, and the living, tax and savings reserves accrued day by day) — hover the mark for the amount. Through +90: {fmt(Math.abs(forecastTotals.confirmed90))} of confirmed items and {fmt(Math.abs(forecastTotals.estimated90))} of estimates. Nothing is invented: a day with nothing on file moves nothing. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion.
         </p>
       </section>

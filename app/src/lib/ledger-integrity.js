@@ -22,6 +22,7 @@
 // =============================================================================
 import { deriveAccountBalances } from './financial-engineering.js';
 import { totals as importedTotals, isTransferTxn, isBalanceAdjustment, balanceCheckpoint } from './imported-view.js';
+import { notYetAtBank } from './outstanding-checks.js';
 
 // Integer-cents conversion — the same discipline reconciliation.js proved out:
 // compare money in cents so float noise can never flip a verdict.
@@ -55,7 +56,7 @@ export function checkBalanceDerivation(data, asOf = new Date()) {
     const d = parseDate(t.date);
     if (!d || d > asOf) continue;
     centsByAccount[t.accountId] = (centsByAccount[t.accountId] || 0) + toCents(t.amount);
-    (dated[t.accountId] ||= []).push({ day: String(t.date).slice(0, 10), cents: toCents(t.amount) });
+    (dated[t.accountId] ||= []).push({ day: String(t.date).slice(0, 10), cents: toCents(t.amount), outstanding: t.outstanding, clearedOn: t.clearedOn });
   }
   const mismatches = [];
   for (const a of data?.accounts || []) {
@@ -64,7 +65,7 @@ export function checkBalanceDerivation(data, asOf = new Date()) {
     const cp = cpByAccount[a.id];
     if (!cp && (data?.transactions || []).some((t) => t && t.accountId === a.id && balanceCheckpoint(t))) continue; // only later checkpoints: the engine counts back from them; not re-derived here
     const independent = cp
-      ? toCents(cp.balance) + (dated[a.id] || []).reduce((s, r) => (r.day > cp.day ? s + r.cents : s), 0)
+      ? toCents(cp.balance) + (dated[a.id] || []).reduce((s, r) => (r.day > cp.day || notYetAtBank(r, cp.day) ? s + r.cents : s), 0)
       : openingCents + (centsByAccount[a.id] || 0);
     const engine = toCents(derived[a.id]);
     if (independent !== engine) {

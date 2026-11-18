@@ -1,0 +1,30 @@
+# The LIVE Kids Zone walked as a child would, from a runner (DR-1520; DR-0104's
+# live review; DR-0125: the sandbox has no route to poetech.us, so a runner's
+# Chrome opens the production door at a phone width, walks the home, the
+# Theater, the games, a storybook, the badges and the map, the Teens door and
+# the church's Home tab, asserts what a user sees, and leaves the stills as an
+# artifact). Dispatch only; it reads the site and changes nothing. Budget: the
+# job ceiling below. No schedule, so no lock or kill-switch is owed (DR-0247).
+name: Live Kids Zone walk (the production door, from a runner)
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'The door to open'
+        required: false
+        default: 'https://poetech.us/lovecorner/app/'
+      expected_sha:
+        description: 'The merged commit the served build must carry (empty: not checked)'
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  walk:
+    uses: ./.github/workflows/_browser-probe.yml
+    with:
+      script: scripts/live-kids-zone-walk.mjs
+      args: ${{ format('"{0}" live-kids-walk "{1}"', inputs.base, inputs.expected_sha) }}
+      title: The live Kids Zone, walked at a phone width
+      artifact: live-kids-walk
+      timeout-minutes: 10

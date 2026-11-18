@@ -119,6 +119,14 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0, photos = u
     const cur = shots[i]; const next = shots[(i + 1) % shots.length];
     if (cur && !cur.storage_path) ask(cur, 'thumb');
     if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
+    // THE PICTURE ON THE CARD IS SHARP (DR-1533). Darrell, 2026-11-18:
+    // "Pictures on the main page is not clear... they are pixelated". The
+    // card drew the 640 px thumbnail across a full-width 4:3 frame -- on his
+    // tablet about 1,700 device pixels, a 2.5x stretch. The thumbnail still
+    // draws first so nothing waits; then the ONE picture on screen asks for
+    // its full image and swaps in. The next picture and the strip stay on
+    // thumbnails, so DR-1016's one-at-a-time budget holds.
+    if (cur && !cur.storage_path) ask(cur, 'full');
   }, [shots, i, ask]);
   // The strip's thumbnails, asked for ONLY once the row is seen on screen.
   // Where the browser cannot say (no IntersectionObserver: a test, an old
@@ -194,7 +202,7 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0, photos = u
             className="w-full h-full block cursor-zoom-in focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             <img
-              src={srcOf(shot)}
+              src={srcOf(shot, 'full')}
               alt={shot.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`}
               loading="lazy"
               className="w-full h-full object-cover"

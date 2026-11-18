@@ -22,7 +22,7 @@ import { categorize, TX_CATEGORIES } from './categorize.js';
 
 export const PRIORITY_TIERS = {
   essential: ['groceries', 'utilities', 'medical', 'insurance', 'fuel', 'vehicle', 'professional', 'business'],
-  covenant: ['charitable'],
+  covenant: ['tithes', 'charitable'],
   medium: ['household'],
   low: ['dining', 'subscription'],
   // salary / rental-income / transfer / debt-payment are money movement, not spending.

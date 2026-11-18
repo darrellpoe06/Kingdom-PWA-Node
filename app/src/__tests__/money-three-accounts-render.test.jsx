@@ -125,10 +125,10 @@ describe('Coming Up on the Fold — the seven answers, with the 30-day window, p
     expect(past).toMatch(/Regular bills in the next 30 days without these: \$822/); // 210 insurance + 612 Dec 1
     const next30 = q('[data-testid="coming-up-next30"]').textContent;
     expect(next30).toMatch(/Bills due in the next 30 days/);
-    expect(next30).toMatch(/income expected before these are due: \$700/);
+    expect(next30).toMatch(/income expected in the next 30 days: \$700/);
     expect(next30).toMatch(/Country Financial insurance/);
     const next7 = q('[data-testid="coming-up-next7"]').textContent;
-    expect(next7).toMatch(/no income expected in this window/);
+    expect(next7).toMatch(/no income expected in the next 7 days/);
     expect(q('[data-testid="coming-up-reserve"]')).toBeTruthy();
     expect(q('[data-testid="coming-up-safe"]')).toBeTruthy();
     expect(q('[data-testid="coming-up-extra"]')).toBeTruthy();

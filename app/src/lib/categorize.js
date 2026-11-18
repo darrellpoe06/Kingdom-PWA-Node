@@ -17,7 +17,7 @@
 
 export const TX_CATEGORIES = [
   'salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities',
-  'dining', 'medical', 'vehicle', 'household', 'charitable', 'business',
+  'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business',
   'professional', 'insurance', 'subscription', 'debt-payment', 'other',
 ];
 
@@ -58,7 +58,10 @@ const RULES = [
   // word "auto" (auto parts / auto repair), which never matches "autopay".
   [/autozone|o'?reilly|advance auto|\bauto (parts|repair|body|zone|service)\b|car wash|jiffy lube|\bmechanic\b|\btire\b|oil change|valvoline|midas|firestone|napa auto|carmax|\bdmv\b|secretary of state|\btoll\b|ipass|i-pass|take 5 oil/, 'vehicle', 0.85],
   [/michaels|home depot|lowe'?s|menards|hobby lobby|dollar (general|tree)|family dollar|ikea|wayfair|ace hardware|bed bath|container store|\bat home\b|homegoods|macy|kohl|jcpenney|best buy|\bamazon\b|amzn|jon.?s pipe/, 'household', 0.75],
-  [/church|tithe|\btithing\b|donation|charit|goodwill|salvation army|red cross|gofundme|ministr|offering/, 'charitable', 0.8],
+  // Tithes / Church Giving is its own category (Christina 2026-11-17): the
+  // tithe and church offerings are not the same line as other giving.
+  [/church|tithe|\btithing\b|ministr|offering/, 'tithes', 0.8],
+  [/donation|charit|goodwill|salvation army|red cross|gofundme/, 'charitable', 0.8],
   [/zwicker|collection|attorney|\blegal\b|law offic/, 'professional', 0.75],
   [/\bfee\b|service charge|overdraft|\bnsf\b|interest charge|maintenance fee|atm fee|foreign trans/, 'business', 0.7],
 ];
@@ -146,6 +149,7 @@ export function autoCategorizeSuggestions(transactions, learned = null, opts = {
 // only what the eye reads changes. Unknown values fall through to a generic
 // Title-Case of the slug (underscores/hyphens -> spaces), so nothing renders raw.
 const CATEGORY_LABELS = {
+  tithes: 'Tithes / Church Giving',
   // Raw bank transaction-type codes (Chase "Type" column, lowercased on import).
   acct_xfer: 'Transfer',
   account_transfer: 'Transfer',

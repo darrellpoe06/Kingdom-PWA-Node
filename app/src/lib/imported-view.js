@@ -16,6 +16,7 @@
 // is a live view of real flow).
 // =============================================================================
 
+import { notYetAtBank } from './outstanding-checks.js';
 const DAY_MS = 86400000;
 
 // Round to cents. Displayed rollups are money; float drift (0.1 + 0.2) must
@@ -411,7 +412,9 @@ export function runningBalanceByTxId(transactions, accounts) {
     for (const t of asc) {
       const cp = balanceCheckpoint(t);
       if (cp) {
-        bal = cp.balance;                   // the bank, verified: the chain restarts here
+        // the bank, verified: the chain restarts here, plus any check written
+        // before it that the bank had not yet taken (outstanding-checks.js)
+        bal = cp.balance + asc.reduce((s, x) => (!balanceCheckpoint(x) && dayOf(x) <= cp.day && notYetAtBank(x, cp.day) ? s + (Number(x.amount) || 0) : s), 0);
         anchored = true;
       } else if (!anchored && typeof t.balance === 'number' && Number.isFinite(t.balance)) {
         bal = t.balance;                    // bank's own running balance — authoritative
@@ -426,7 +429,8 @@ export function runningBalanceByTxId(transactions, accounts) {
     // carries Chase's own balance keeps it.
     const firstCp = asc.findIndex((t) => balanceCheckpoint(t));
     if (firstCp > 0) {
-      let back = balanceCheckpoint(asc[firstCp]).balance;
+      const first = balanceCheckpoint(asc[firstCp]);
+      let back = first.balance + asc.reduce((s, x) => (!balanceCheckpoint(x) && dayOf(x) <= first.day && notYetAtBank(x, first.day) ? s + (Number(x.amount) || 0) : s), 0);
       for (let i = firstCp - 1; i >= 0; i--) {
         const t = asc[i];
         if (!(typeof t.balance === 'number' && Number.isFinite(t.balance))) out[t.id] = Math.round(back * 100) / 100;
