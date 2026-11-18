@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   synthesizeSpeech, probeVoiceService, voiceServiceHealth, isVoiceServiceAnswering, isVoiceServiceReady,
   resetVoiceServiceHealthForTests, resetBuiltInVoiceProbe, SPEAK_TIMEOUT_MS, HEALTH_TIMEOUT_MS, HEALTH_CACHE_MS,
+  isVoiceAnswer,
 } from '../lib/voice-service.js';
 
 const realFetch = globalThis.fetch;
@@ -87,12 +88,12 @@ describe('the studio is asked whether it answers', () => {
     // the behaviour a Fire TV depends on: nobody types a URL into a television.
     delete import.meta.env.VITE_VOICE_SERVICE_URL;
     resetVoiceServiceHealthForTests();
-    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, clone: true }) }));
     expect(await probeVoiceService({ force: true })).toBe('up');
     expect(String(globalThis.fetch.mock.calls[0][0])).toBe(window.location.origin + '/voice/health');
   });
   it('GET {base}/health ok → up; the reader may trust it', async () => {
-    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health', json: async () => ({ ok: true }) }));
+    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health', json: async () => ({ ok: true, clone: true }) }));
     expect(await probeVoiceService()).toBe('up');
     expect(globalThis.fetch.mock.calls[0][0]).toBe('https://voice.example/health');
     expect(isVoiceServiceReady()).toBe(true);
@@ -109,6 +110,17 @@ describe('the studio is asked whether it answers', () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({ ok: false, error: 'studio-unreachable' }) }));
     expect(await probeVoiceService({ force: true })).toBe('down');
     expect(isVoiceServiceAnswering()).toBe(false);
+  });
+  it('PROVEN-TO-CATCH: the camera forwarder\'s { ok: true } on /voice/health reads as down (voice-health run 44325812074, 2026-11-18)', async () => {
+    // Measured from a runner on the public road: /voice was not mounted on the
+    // Funnel, and the camera forwarder's health came back in its place.
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, go2rtc: '1.9.14', streams: 65, forwarder: '76faac5a4f036820', max_live: 32 }) }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    expect(isVoiceAnswer({ ok: true })).toBe(false);
+    expect(isVoiceAnswer({ ok: true, engine: '  ' })).toBe(false);
+    expect(isVoiceAnswer({ ok: false, clone: true })).toBe(false);
+    expect(isVoiceAnswer({ ok: true, clone: true })).toBe(true);
+    expect(isVoiceAnswer({ ok: true, engine: 'nas-clone' })).toBe(true);
   });
   it('PROVEN-TO-CATCH: headers that arrive but a body that never ends read as down within the timeout — the request is ENDED, not left open (live-link-probe run 35931484959: /voice/health in flight for 60 s)', async () => {
     // What the runner measured on 2026-09-23: fetch resolved on n8n's 200
