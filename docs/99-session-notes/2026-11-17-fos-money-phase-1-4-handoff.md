@@ -39,7 +39,7 @@ No live financial record was changed. No migration was run.
 1. Separate **Tithes / Church Giving** category: Phase 1.4. Until then the $837 church tithe is Personal → Charitable (done by hand in Transactions).
 2. **Remember category corrections** made on the import card: Phase 1.4.
 3. **Christiana's accounts** stay out of scope. Entities: Personal, Poe Properties, TLC Therapy Solutions.
-4. Phase 1.4 **waits for** authorized database access (renewed `TS_AUTHKEY`), a **confirmed backup**, and a **tested migration**.
+4. Phase 1.4 **waits for** authorized database access (the NAS applies merged migrations itself, no key: DR-1269, corrected in DR-1525), a **confirmed backup**, and a **tested migration**.
 5. **Check #9879 ($2,200.88) ↔ $2,201 reimbursement** from Poe Properties 3322 to Personal 7206: preserved for Phase 1.4, linked with the **$0.12 difference shown**, never assumed away.
 6. Darrell's preview workflow is not modified without his approval.
 7. Every PR stays on `hold`; merge and deploy only with Christina's explicit approval.
@@ -58,14 +58,27 @@ Additive, nullable database columns only; no existing data rewritten.
 | Tithes category | Decision 1. | `tithes` category ("Tithes / Church Giving"), added to `TX_CATEGORIES`, the sync allow-list (`verified-ledger-sync.js`), spending priorities, and any DB check constraint found in the census. |
 | Remember corrections | Decision 2. | A rule-only save (no back-apply to past rows) wired from the import card; one hook from the app shell (its line budget is frozen, so an existing line carries the prop). |
 
-### Preconditions (all four, before any migration)
-1. `TS_AUTHKEY` renewed (a Reusable + Ephemeral key only Darrell can mint) so the runner road to the NAS works.
-2. A read-only census of the live tables (`scripts/money-records-read.sql`, run by ConnectBot on the phone per DR-1159 road 2; the repository is public, so no Money record is ever printed in a workflow log).
-3. A confirmed backup of the live database.
-4. The migration applied first to a throwaway PostgreSQL in CI (the repo's replay lane) and proven reversible/additive.
+### Preconditions (corrected 2026-11-18, DR-1525)
+The first version of this list routed two conditions through the runner's
+`TS_AUTHKEY` and a ConnectBot paste. The record already said otherwise, and
+the correction is DR-1525:
+1. **Applying a migration needs no key.** The NAS applies merged migrations on
+   its own clock (`replay-on-clock.sh`, DR-1269), and the proof is read over
+   poetech.us (DR-1398). Merging into `migrations-auto/` IS applying, so the
+   approval gate is the merge.
+2. **A confirmed backup is read from the house.** The `db-backup-receipt` rider
+   publishes `db_backup.sh`'s own verdict; `money_readiness_receipt()`
+   (migration 0334) returns it, with the schema facts, to the app
+   (`lib/money-readiness.js`) and to the keyless `money-readiness.yml` witness.
+   Ready = a verified dump within 36 h and a passing restore drill within 8 d.
+3. **The census is the same receipt:** which Phase 1.4 columns exist, whether
+   a CHECK limits categories, whether the obligations tables are live. No row
+   of any financial table is read.
+4. **A tested migration:** `scripts/money-migration-replay.sh` (#2725).
+Christina's approval stays the gate for every migration merge.
 
 ### Next implementation steps (in order)
-1. Census + backup confirmation (Christina/Darrell's hand; report what the census shows).
+1. Read `money-readiness.yml` (or the app): backup verified and drilled, schema as expected.
 2. Migration file (additive columns + tithes category) and its replay test; NO apply to production until approved.
 3. Engine: outstanding/pending/cleared balance math; pending→posted match; economic entity; receivable link. Tests first, including the $2,201 / $2,200.88 / $0.12 case.
 4. Sync: carry the new fields.

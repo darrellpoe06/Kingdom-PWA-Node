@@ -175,7 +175,14 @@
       "to": 23187,
       "dr": "DR-1520",
       "reason": "live-kids-zone-walk.yml, dispatch only: a runner's Chrome opens the production door at a phone width and walks the Kids Zone v1 the way a child does (the home, the Theater, the games, a storybook page, the badges and the map, the Teens door, the church's Home tab), asserts what a user sees, proves the served build is the merged commit, and leaves the stills as an artifact, because the sandbox has no route to poetech.us (DR-0125) and DR-0104 asks that the launch be reviewed on the live site. It calls the reusable _browser-probe.yml; the caller is the trigger, the brake and the arguments only. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-18",
+      "from": 23187,
+      "to": 23216,
+      "dr": "DR-1525",
+      "reason": "money-readiness.yml, a NEW keyless witness (DR-1360): it asks money_readiness_receipt() over poetech.us/sb with the anon key the site ships, prints where the install stands, and is red when FOS Money's migration preconditions (a verified backup within 36 h, a passing restore drill within 8 d) do not hold. It replaces a precondition that waited on the runner's refused Tailscale key and a phone paste; the Way a Service Comes Home requires a witness for the db-backup-receipt rider, and loops-health.yml (another steward's lane) was left untouched. Read-only, dispatch plus one daily schedule, a five-minute ceiling and a concurrency group. The header is folded to seven lines with the narrative in DR-1525. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23187
+  "totalLines": 23216
 }

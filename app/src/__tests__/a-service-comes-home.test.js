@@ -118,6 +118,11 @@ const LOOPS_ON_THE_WAY = {
   // diagnosis. The app-side reader (app/src/lib/lesson-queue-census.js) is the
   // second witness, and reads an uncounted queue as uncounted, never as empty.
   'lesson-queue-census': { witness: 'loops-health.yml' },
+  // Born BY the Way (FOS Money Phase 1.4, under DR-1360, 2026-11-18): the
+  // house publishes its own backup verdict; the keyless money-readiness.yml
+  // asks money_readiness_receipt() over poetech.us/sb and says where the
+  // install stands. No door, no code stamp: the rider IS the installer's run.
+  'db-backup-receipt': { witness: 'money-readiness.yml' },
   // Born BY the Way (DR-1427, under DR-1360, 2026-11-11): the NAS carries new
   // services to the archive itself, after the runner lane failed daily on an
   // expired tailnet key and The Word's months stopped at October. loops-health
