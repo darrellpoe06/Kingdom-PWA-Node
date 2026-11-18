@@ -2166,6 +2166,21 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "sov90-let-your-yea-be-yea",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 90 from one word over a forwarded ByteByteGo issue on reasoning models and overthinking: Word first on Acts 17:11 and Matthew 5:37, four hand-written bands, every verse generator-filled from the KJV, and our own gates read against the article (the quotation gate that once checked against itself, the duplicate finder's two drifts, the band ladder's floor with no length ceiling)",
+      "drs": [
+        "DR-1548"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Claimed week 90 while 89 was in flight; 89 landed first and 90 was re-spliced on it. DeepSeek's README read at the source; arxiv, openai and the newsletter's site gave no answer from this sandbox. The course lengths (week 1: 291 words, week 88: 3,668) were counted on this tree; whether length helps was not measured."
+    },
+    {
       "id": "matrix-0319-renter-seat-2026-11-13",
       "date": "2026-11-13",
       "task": "The matrix's one-person-one-house leg red on two runs: the 0319 smoke seated a renter role instance_members never had; the smoke now seats viewer and the withdraw CI bootstrap carries the live eight-role wall, proven to catch locally",
