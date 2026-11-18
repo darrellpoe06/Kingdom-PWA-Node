@@ -15,7 +15,7 @@ import { createRoot } from 'react-dom/client';
 import YouthZone from '../components/YouthZone.jsx';
 import Storybook from '../components/kids/Storybook.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { SHOT_LIST } from '../lib/kids/guides.js';
+import { SHOT_LIST, landedFile } from '../lib/kids/guides.js';
 import { STORYBOOKS } from '../lib/kids/storybooks.js';
 
 vi.mock('../lib/engagement-sync.js', () => ({
@@ -168,7 +168,9 @@ describe('a storybook', () => {
     click(q('[data-testid="storybook-next"]'));
     expect(q('[data-testid="storybook-verse"]').textContent).toContain(VERSES['Jonah 1:17']);
     expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('2');
-    expect(q('[data-shot="jonah-3"][data-needed="true"]')).toBeTruthy();
+    // The page shows the scene the folder holds, or names the render it still needs (the landed manifest decides).
+    if (landedFile('jonah-3')) expect(q(`.kz-scene img[data-shot="jonah-3"]`).getAttribute('src')).toContain(`/lovecorner/kids/${landedFile('jonah-3')}`);
+    else expect(q('[data-shot="jonah-3"][data-needed="true"]')).toBeTruthy();
     for (let i = 2; i < book.pages.length; i += 1) click(q('[data-testid="storybook-next"]'));
     expect(q('[data-testid="storybook-questions"]')).toBeTruthy();
     click(q('[data-testid="story-q0-o1"]'));

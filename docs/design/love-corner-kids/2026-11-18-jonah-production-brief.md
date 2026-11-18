@@ -128,8 +128,31 @@ The narration script, page by page:
 
 ## 6. Checklist
 
-- [ ] `jonah-1` … `jonah-8` (2 of 8 on disk, 2026-11-18: `jonah-1.jpg`, `jonah-2.jpg`; scene 2 has no guides in frame, approved as is by Darrell 2026-11-18)
+- [ ] `jonah-1` … `jonah-8`: 8 of 8 on disk (2026-11-18). Final: 1, 2, 4, 5, and 6 once its gate is confirmed. Temporary placeholders: 3, 7, 8. See section 7.
 - [ ] `narration/jonah-p1.m4a` … `jonah-p8.m4a` (0 of 8)
 - [ ] `episodes/jonah-poster.jpg` (0 of 1)
 - [ ] `episodes/jonah.mp4` (0 of 1; served off-repo)
 - [x] `episodes/jonah.en.vtt` script written; timing waits on the cut
+
+## 7. The artwork as it stands (2026-11-18)
+
+Darrell reviewed the comparison sheets and chose his own illustrations for the storybook, with Claude's Canva scenes as temporary placeholders where he has none. The goal for every scene is his brighter, more colourful 3D animated look.
+
+| Page | File | Source | Status | Checked against the Word |
+|---|---|---|---|---|
+| 1 · Jonah 1:1-3 | `jonah-1.jpg` | Darrell's Joppa dock (replaces the earlier scene 1) | Approved | Jonah boards with the fare paid; the girl's hand over her mouth |
+| 2 · Jonah 1:4 | `jonah-2.jpg` | Darrell's storm (byte-for-byte the approved file) | Approved | The great wind, the sailors afraid |
+| 3 · Jonah 1:17 | `jonah-3.jpg` | Claude (Canva) | **Placeholder; correction pending** | Calm fish, both guides, lantern and pointing. Jonah's face must be distressed (Jonah 2:2); the corrected render waits on Canva credits |
+| 4 · Jonah 2:1 | `jonah-4.jpg` | Darrell's version 4B | Approved | Kneeling, crying out, weeds about him (Jonah 2:2, 2:5); no guides inside the fish |
+| 5 · Jonah 2:10 | `jonah-5.jpg` | Darrell's version 5A | Approved | On dry land; the guides run to him |
+| 6 · Jonah 3:1-4 | `jonah-6.jpg` | Darrell's illustration, architecture corrected | **Approved; gate correction for his confirmation** | The blue glazed gate (Babylon's Ishtar Gate) is recoloured to tan carved stone by a local edit of the gate only; Jonah, the guides, the king and the crowd are untouched pixel for pixel. A full Assyrian gate with winged-bull guardians (lamassu) needs a new render |
+| 7 · Jonah 3:5 | `jonah-7.jpg` | Claude (Canva) | Placeholder | Everyone in sackcloth, kneeling, the king among them (Jonah 3:5-6) |
+| 8 · Jonah 3:10 | `jonah-8.jpg` | Claude (Canva) | **Placeholder; correction pending** | Jonah must not look pleased (Jonah 4:1, "displeased exceedingly"), and the guides must face Nineveh; the corrected render waits on Canva credits |
+
+Every person in all eight is Black. The two guides match the approved references in every frame they appear in. Sizes: Darrell's files are 1672×941 and Claude's are 1920×1080. All clear the storybook minimum of 1600×900; none reaches the 2400×1350 the episode asks for.
+
+**Phone check.** All eight pages walked on an emulated iPhone 13 against a local dev server, signed out, with stand-in Supabase settings passed on the command line. Each page loaded its own scene with the matching KJV verse and no page errors. Stills: `phone/2026-11-18-j2-art-p1.jpg` … `p8.jpg`.
+
+**Tests.** Two kids tests assumed `jonah-3` was not on disk. They now read the real manifest: the page shows the landed file by its real name, or names the render it still needs. All 16 kids and youth suites pass (136 tests).
+
+**Draft cut.** `scripts/kids-make-episode.mjs jonah` cut a 58-second silent draft from the eight scenes, with the KJV captions. It is a draft only: no narration, placeholders in it, and nothing published.
