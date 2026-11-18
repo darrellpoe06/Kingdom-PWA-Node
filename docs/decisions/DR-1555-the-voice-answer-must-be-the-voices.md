@@ -19,6 +19,10 @@ That is the camera forwarder's health, not the voice's. The Funnel had no `/voic
 
 The reader's probe checked only `ok === true`, so it read this as "the voice is up". This is the same class as 2026-09-23, when n8n's editor page answered the same path. The stranger was different, and the hole was the same.
 
+## Impact
+
+The reader stops treating a stranger's `ok: true` as the voice. While `/voice` is unmounted, the reader falls back to its NAS voice (voice-lite) right away. Before this fix, it first sent each piece to a door that could not speak it. The witness now shows plainly, without any key, whether the voice itself answered.
+
 ## Decision
 
 1. **The probe asks whose answer it is.** `isVoiceAnswer(body)` is true only for `ok: true` with `clone: true` (the tower's studio, `infra/voice-studio/server.py`) or a named `engine` (the NAS clone, `nas_clone_server.py`). Every other body reads as down, and the reader keeps its fallback voice.
