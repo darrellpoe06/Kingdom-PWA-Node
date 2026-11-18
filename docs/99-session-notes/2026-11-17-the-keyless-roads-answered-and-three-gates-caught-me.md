@@ -328,3 +328,53 @@ nothing is configured, it is a setup and I will bring the plan.
 
 Not claimed: 0333 is not on the NAS yet, and WHICH writer is still unknown.
 `re-review: 2026-11-24`.
+
+## 9. Review of the series' own open claims (asked for, 2026-11-18)
+
+Every record in this chain cites THIS note as its `Measurement`, which is where
+an answered "Not claimed" belongs — the records are append-only and are not
+rewritten. Eight of the ten open items are now closed by evidence, and the two
+that are not are named as such so the `2026-11-24` sweep asks only those.
+
+| record | the open question it wrote down | answered | by what |
+|---|---|---|---|
+| DR-1511 | nothing proven on the NAS itself | **yes** | census names all 7 rows by id |
+| DR-1513 | does the probe report while the ssh steps skip | **yes** | run 44176139872, 21:05:33Z |
+| DR-1514 | builder state not exercised on the box | **yes** | `service: active; building now: 0` |
+| DR-1515 | verdicts not exercised | **yes** | `failed after 1/1/2`, four `ready` |
+| DR-1516 | are the rows a member's or Darrell's own | **yes, HIS** | no row reads `waits-for-governor`, from code carrying the owner check |
+| DR-1517 | which code computed the verdicts | **yes** | `Written by census code d64cf1e3fac0` |
+| DR-1518 | does the file read deliver the sha | **yes** | field arrived on the first cycle |
+| DR-1522 | cause (a) readiness, or (b) eligibility | **yes, (a)** | `state: waiting on a writer`, 23:25:22Z |
+| DR-1519 | is the empty-body filter exercised | **NO** | `no-words` never appeared — equally consistent with no empty rows and with a refused filter. Still open. |
+| DR-1524 | which writer is failing | **NO** | 0333 merged 00:31; not on the NAS yet |
+
+### DR-1513's proof, which existed and went unread
+
+    success   Outside-in transport proof (the runner IS the outside)
+    failure   Join the tailnet (ephemeral)
+    skipped   Verify the tailnet actually joined
+    skipped   Observe (read-only -- GPU, containers, services, disk, uptime)
+
+Exactly what the record predicted: the keyless probe reports, the ssh steps
+skip, and the dead key no longer takes the witness dark. **It landed at 21:05
+and I did not read it** — while writing three later records resting on the same
+keyless-road premise. The cost is not a wrong record; it is that DR-1513 sat
+"unproven" for three hours after it was proven, and I kept telling Darrell the
+key was still the blocker for that witness.
+
+### What else was checked, and held
+
+- **Every `file:line` in DR-1522 and DR-1524 still resolves** to the line it
+  claims (`:2251` the state ternary, `:2516` the stopped write, `:2523` the
+  heartbeat write, `:2545` the early return, `:2550` the eligibility continue).
+  Line numbers drift; these had not. Checked, not assumed.
+- All eleven records pass `decision-record-guard`, `decision-citation-guard` and
+  `record-length-guard`: five headings, resolvable citations, 60-line ceiling,
+  700-character INDEX rows.
+
+### The one thing this review changes going forward
+
+Eight identical `re-review: 2026-11-24` dates would have re-asked settled
+questions. The dates stay in the records (append-only), and this table is what
+the sweep reads first. **Only DR-1519 and DR-1524 still carry real questions.**
