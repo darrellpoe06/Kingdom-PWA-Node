@@ -13,7 +13,7 @@
 // lesson reads two ways, remembered on the device: STEP BY STEP (the paced
 // plan, one segment at a time) or SCROLL (the whole lesson on one page, the
 // same segments stacked; Read to me reads it from the top).
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech } from '../../lib/tts.js';
 import { lessonPlanForAge, bandOpening } from '../../lib/learn-framework.js';
@@ -67,13 +67,14 @@ export function firstRef(anchor) {
 }
 
 /** Ask Ari, in the zone: a small chat that says plainly when Ari is resting. */
-export function AriChat({ module, meta, ask = askTutor }) {
+export function AriChat({ module, meta, ask = askTutor, firstQuestion = '' }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const send = async (e) => {
-    e.preventDefault();
-    const text = draft.trim();
+  const askedFirst = useRef(false);
+  const send = async (e, given = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const text = String(given != null ? given : draft).trim();
     if (!text || busy) return;
     const next = messages.concat([{ role: 'user', content: text }]);
     setMessages(next);
@@ -96,6 +97,15 @@ export function AriChat({ module, meta, ask = askTutor }) {
       ])
     );
   };
+  // A question typed on the Ask Ari card (Darrell 2026-11-18: "How do they
+  // ask Ari? No options?!") arrives here and is asked at once, once.
+  useEffect(() => {
+    if (firstQuestion && !askedFirst.current) {
+      askedFirst.current = true;
+      send(null, firstQuestion);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstQuestion]);
   return (
     <div className="kz-panel" data-testid="ari-chat" style={{ borderColor: 'var(--kz-violet)' }}>
       <h3>
@@ -136,6 +146,7 @@ export default function KidsAdventure({
   ask = askTutor,
   onBack = null,
   shotList = undefined,
+  firstQuestion = '',
 }) {
   const plan = useMemo(() => (module ? lessonPlanForAge(module, band) : null), [module, band]);
   // bandOpening returns { text, levelId, own, band }; the words are what the child reads.
@@ -300,7 +311,7 @@ export default function KidsAdventure({
           </p>
         )}
       </div>
-      <AriChat module={module} meta={meta} ask={ask} />
+      <AriChat module={module} meta={meta} ask={ask} firstQuestion={firstQuestion} />
       <ColoringSheet module={module} signedIn={signedIn} />
     </div>
   );

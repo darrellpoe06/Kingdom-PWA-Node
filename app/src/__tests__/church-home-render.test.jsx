@@ -26,7 +26,10 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
 });
-afterEach(() => { act(() => root.unmount()); container.remove(); });
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+});
 
 const noop = () => {};
 const baseProps = {
@@ -45,8 +48,7 @@ const baseProps = {
   addInquiry: noop,
 };
 
-const mount = (props = {}) =>
-  act(() => root.render(createElement(ChurchHome, { ...baseProps, ...props })));
+const mount = (props = {}) => act(() => root.render(createElement(ChurchHome, { ...baseProps, ...props })));
 
 // The Church home now flows as SectionTabs ("sliding tabs instead of a long
 // scroll", Darrell 2026-07-04): only the ACTIVE panel is mounted, so a section
@@ -59,6 +61,21 @@ const clickTab = (label) => {
 };
 
 describe('Love Corner — an obvious Log in / Create account for signed-out visitors', () => {
+  it("Give & Serve shows the church's own giving channels with QR codes, never a send-off to the website (Darrell 2026-11-18)", () => {
+    mount();
+    clickTab('Give');
+    const panel = container.querySelector('[data-testid="give-tab-channels"]');
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).not.toMatch(/runs on the church's own website/);
+    const channels = panel.querySelector('[data-testid="giving-channels"]');
+    expect(channels).toBeTruthy();
+    const zelle = panel.querySelector('[data-testid="giving-channel-zelle"]');
+    expect(zelle, 'Zelle card').toBeTruthy();
+    expect(zelle.querySelector('svg'), 'a QR code on the card').toBeTruthy();
+    expect(zelle.getAttribute('href')).toMatch(/^https:\/\//);
+    expect(panel.querySelectorAll('[data-testid^="giving-channel-"]').length).toBeGreaterThanOrEqual(3);
+  });
+
   it('shows a prominent Log in / Create account button when signed OUT', () => {
     mount({ signedIn: false });
     const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));
@@ -196,7 +213,13 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     let marked = 0;
     const noDest = { ...COLG_DEFAULT_CHURCH, contactEmail: null, site: null, links: {} };
     const prs = [{ id: 'pr1', requester: 'A', request: 'please pray', createdAt: '2026-07-01T00:00:00.000Z', shareWithChurch: true, sentAt: null }];
-    mount({ church: noDest, prayerRequests: prs, markPrayerRequestSent: () => { marked += 1; } });
+    mount({
+      church: noDest,
+      prayerRequests: prs,
+      markPrayerRequestSent: () => {
+        marked += 1;
+      },
+    });
     clickTab('Prayer');
     expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(false);
     expect(marked).toBe(0);
@@ -222,7 +245,8 @@ describe('ChurchHome — every inline section survived the extraction', () => {
   it('a custom church home replaces the COLG default (never COLG data on another church)', () => {
     mount({
       church: {
-        name: 'Grace Fellowship', site: 'https://example.org',
+        name: 'Grace Fellowship',
+        site: 'https://example.org',
         services: [{ id: 's1', day: 'Sunday', time: '9:00 AM', label: 'Worship', online: false }],
       },
     });
@@ -306,7 +330,10 @@ describe('church-home forms persist (no dropped write, no false confirmation)', 
     const open = [...container.querySelectorAll('button')].find((b) => /Invite them/i.test(b.textContent || ''));
     expect(open, 'no "Invite them" opener on the About tab').toBeTruthy();
     act(() => open.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    act(() => { setInput('#inv-church', 'Grace Chapel'); setInput('#inv-email', 'pastor@grace.example'); });
+    act(() => {
+      setInput('#inv-church', 'Grace Chapel');
+      setInput('#inv-email', 'pastor@grace.example');
+    });
     const send = [...container.querySelectorAll('button')].find((b) => /Send invite/i.test(b.textContent || ''));
     act(() => send.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(addInquiry).toHaveBeenCalledTimes(1);
