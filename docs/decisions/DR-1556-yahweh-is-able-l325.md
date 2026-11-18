@@ -20,10 +20,10 @@ Darrell asked in the forward whether the system can read an attached Word docume
 
 | what | measured |
 | --- | --- |
-| verses | 117 tokens filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults; 0 double-quoted spans without a reference |
-| length | adult 721 prose words |
-| band shares | child 0.55, youth 0.65, teen 0.63, senior 0.68 |
-| reading ladder | child 1.6, youth 4.6, teen 5.2, senior 7.1 |
+| verses | 122 tokens filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults; 0 double-quoted spans without a reference |
+| length | adult lesson 1,602 words (829 our prose), above the 1,500 reader floor |
+| band shares | child 0.57, youth 0.66, teen 0.66, senior 0.67 |
+| reading ladder | child 1.5, youth 4.3, teen 5.2, senior 7.1 |
 | band overlap | worst pair 0.00 (ceiling 0.5) |
 | source, tiered | documented: the thread's subject and date (read from Gmail this session). Reported: the outline text, read by the intake from the Word attachment. Not compared: his NKJV wording, because every quotation here is the KJV |
 
