@@ -4,7 +4,7 @@
 **Status:** Accepted (built, gated, shipped through the lane)
 **Tier:** A (a new read-only view over records the reader already reads under RLS; no schema, no auth, no money, no write)
 **Type:** decision
-**Area:** `app/src/modules/properties/portfolio.js` (the roll-up, pure); `app/src/modules/properties/cloud.js` (`loadPortfolioPulse`); `app/src/modules/properties/PortfolioTab.jsx`; `app/src/modules/properties/model.js` (`overview` on `MANAGER_TABS`); `app/src/modules/properties/PropertiesApp.jsx` (the case); `app/src/__tests__/every-door-at-once.test.jsx`
+**Area:** `app/src/modules/properties/portfolio.js` (the roll-up, pure); `app/src/modules/properties/portfolio-cloud.js` (`loadPortfolioPulse`; beside `cloud.js`, which is at its file-budget ceiling); `app/src/modules/properties/PortfolioTab.jsx`; `app/src/modules/properties/model.js` (`overview` on `MANAGER_TABS`); `app/src/modules/properties/PropertiesApp.jsx` (the case); `app/src/__tests__/every-door-at-once.test.jsx`
 **Sent in by:** Darrell, 2026-11-18, a tablet frame of one door's empty Messages tab: *"We need to be able to see all active work orders in the Poe Properties App... we should not need to look individually to find open work orders... or messages... the latest ones and sorting by KPI's or something instead of each asset individually... I need to see all at the same time in a list... maybe a list of each property with the latest everything... like messages... work orders... etc... another view... make sense?"*
 **Pairs with:** DR-1213 (work-order triage in the PoeTech shell), DR-0837 (the work is an option of the door), DR-0904 (a door's thread follows `rental_ref`), DR-1199 (the owner's preview is one door through that face's wall), DR-0076 (an unread part is never a zero)
 
@@ -26,5 +26,5 @@
 
 - `every-door-at-once.test.jsx` (11): tenancy→door by slug or id; per-door open work, latest message, reply owed, payments to confirm; the untied row keeps the totals equal to the rows (proven to catch: the orphan job is counted); strict preview drops it; every sort key; the open-work list and mixed feed order; the rendered tab opens the right door on the right tab; a failed read shows no KPIs; an unread part is named; a read that never answers ends bounded.
 - `every-poe-properties-page-is-reportable.test.jsx`: the surface count tripwire moves 27 → 28 knowingly; the Feedback form gains `properties-overview` automatically.
-- Legibility guard: the first amber (`#8A5A00`) failed on night/midnight at 2.95:1 and was replaced by the themed `#8A6510`; PASS. Lint clean.
+- File budget: `cloud.js` untouched; `PropertiesApp.jsx` 2682 → 2684 (one import, one case line), raise recorded in `scripts/file-budgets.json`. Legibility guard: the first amber (`#8A5A00`) failed on night/midnight at 2.95:1 and was replaced by the themed `#8A6510`; PASS. Lint clean.
 - Not yet observed on the live build with Darrell's own doors (the sandbox has no route to poetech.us). `re-review: 2026-11-25` — the Overview on the deployed Poe Properties App, signed in, shows his doors with real counts, or a why.

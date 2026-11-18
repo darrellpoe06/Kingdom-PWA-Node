@@ -19,7 +19,7 @@
 // The read is BOUNDED (boundedRead) so a stalled road can never freeze the tab.
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { loadPortfolioPulse } from './cloud.js';
+import { loadPortfolioPulse } from './portfolio-cloud.js';
 import { boundedRead, READ_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import {
   portfolioRows, sortPortfolio, activeOnly, portfolioTotals, allOpenWork, latestFeed, agoLabel, SORTS, UNTIED,

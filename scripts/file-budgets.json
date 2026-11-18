@@ -308,6 +308,13 @@
       "to": 6012,
       "date": "2026-11-13",
       "why": "DR-1481: the record's course folds open a lesson and a course. The Latest list's inline lesson door is named once (openLessonFromList) and shared, so the wiring is three short lines, a title lookup and three props, net of the three lines it removed; the fold, the lesson lists and their order live in LearnersPanel.jsx and lib/course-pace.js. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2682,
+      "to": 2684,
+      "date": "2026-11-18",
+      "why": "The Overview (DR-1530) is its own module (PortfolioTab.jsx, portfolio.js, portfolio-cloud.js); the shell of the module pays only its wiring: one import and one case line. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
@@ -317,7 +324,7 @@
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2682,
+    "app/src/modules/properties/PropertiesApp.jsx": 2684,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,

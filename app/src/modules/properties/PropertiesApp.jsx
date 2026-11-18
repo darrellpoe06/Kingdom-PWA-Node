@@ -1686,14 +1686,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { await patchRoom(id, patch); loadDoorData(); }}
             />
           );
-          // EVERY DOOR AT ONCE (DR-1530): a tap opens that door on the tab
-          // that holds it, so acting stays where it already works.
-          case 'overview': return (
-            <PortfolioTab
-              rentals={rentals} tenancies={doors} strict={Boolean(preview)}
-              onOpen={(id, to) => { setActiveId(id); setTab(face.tabs.some((t) => t.id === to && !t.locked) ? to : 'history'); }}
-            />
-          );
+          case 'overview': return <PortfolioTab rentals={rentals} tenancies={doors} strict={Boolean(preview)} onOpen={(id, to) => { setActiveId(id); setTab(face.tabs.some((t) => t.id === to && !t.locked) ? to : 'history'); }} />; // every door at once (DR-1530)
           case 'doors': return (
             <>
               <DoorsBoard
