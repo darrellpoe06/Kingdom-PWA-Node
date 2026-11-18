@@ -830,7 +830,21 @@ const REPO = join(HERE, '..', '..', '..');
 // a row the witness cannot read would count a figure nobody read (DR-0076
 // section 3). re-review: 2026-11-27 -- try those hosts from a runner; if WGU's
 // release and the WEF page read back, give the figures a row and lower this pin.
-const GAP = 37;
+// 37 -> 38 on 2026-11-18 for sov86-all-the-works-of-this-pattern (DR-1502), by
+// the SECOND remedy. Darrell forwarded the TLDR digest of 2026-11-06 (Gmail
+// thread 1a1b29d09bf45870) with one word: Lesson. The item taught is the
+// digest's three-sentence summary of a profile; the profile was NOT read
+// (search listings name The New York Times, 2026-11-05; the repost host
+// dnyuz.com did not resolve, ENOTFOUND; no further hosts tried). The lesson
+// states NO figure from it and keeps every claim in the reported pile, gated
+// in sovereign-ai-sov86-verses.test.js; the household figures it does state
+// (the ai-usage ledger, CLAUDE.md, llm-providers.js) are read back there from
+// their files, which no publisher could read back. So no lesson-sources.json
+// row (DR-0076 section 3). Raised again on the merged tree: main had moved to 37 for pm19, so this
+// lesson's raise lands at 38, measured below rather than taken from a side. re-review: 2026-11-27 -- read the
+// profile from a runner; if it reads back, compare it with the three
+// sentences taught and lower this pin.
+const GAP = 38;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
