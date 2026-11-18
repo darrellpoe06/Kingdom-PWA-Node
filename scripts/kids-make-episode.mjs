@@ -11,7 +11,8 @@
 //   • the narration narration/<book>-pN.m4a under each page when it exists
 //     (silence of the page's length where it does not), so the picture runs
 //     to the voice, not the voice to a guess;
-//   • the KJV verse and the guide's caption burned in as captions, from the
+//   • the KJV verse and the guide's caption as timed WebVTT captions (burned
+//     into the picture too only with --burn, for a copy with no caption track), from the
 //     storybook registry (the Word word for word, never typed here), and the
 //     same cues written out as the episode's WebVTT, timed to the cut;
 //   • a poster frame from page 3.
@@ -22,7 +23,7 @@
 // app/public/lovecorner/kids/episodes/ (or the NAS road) when they are the
 // episode you want children to watch.
 //
-//   node scripts/kids-make-episode.mjs jonah [outDir] [--seconds 12] [--size 1920x1080]
+//   node scripts/kids-make-episode.mjs jonah [outDir] [--seconds 12] [--size 1920x1080] [--burn]
 // =============================================================================
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
@@ -43,6 +44,11 @@ const opt = (name, dflt) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : dflt;
 };
 const PAGE_SECONDS = Number(opt('seconds', 12));
+// The words live in the WebVTT beside the film; the Theater's own player shows
+// them as captions. `--burn` also draws the verse and the caption onto the
+// picture, for a copy that goes where no caption track follows (a YouTube
+// upload, a TV). In the app, a burned copy would show every line twice.
+const BURN = args.includes('--burn');
 const [W, H] = String(opt('size', '1920x1080'))
   .split('x')
   .map((n) => Number(n));
@@ -138,10 +144,14 @@ async function main() {
     const vf = [
       `scale=${W * 1.25}:-2`,
       `zoompan=z='${zoom}':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=30`,
-      `drawbox=x=0:y=ih-ih*0.34:w=iw:h=ih*0.34:color=black@0.55:t=fill`,
-      `drawtext=fontfile=${FONT_SERIF}:text='${esc(wrap(`"${verse}"`, 60))}':fontcolor=white:fontsize=${Math.round(H * 0.037)}:line_spacing=10:x=(w-text_w)/2:y=h*0.68`,
-      `drawtext=fontfile=${FONT_SANS}:text='${esc(wrap(p.caption, 64))}':fontcolor=0xFFE08A:fontsize=${Math.round(H * 0.03)}:line_spacing=8:x=(w-text_w)/2:y=h*0.86`,
-      `drawtext=fontfile=${FONT_SANS}:text='${esc(`${p.ref} · KJV`)}':fontcolor=0xFFB020:fontsize=${Math.round(H * 0.022)}:x=w*0.04:y=h*0.955`,
+      ...(BURN
+        ? [
+            `drawbox=x=0:y=ih-ih*0.34:w=iw:h=ih*0.34:color=black@0.55:t=fill`,
+            `drawtext=fontfile=${FONT_SERIF}:text='${esc(wrap(`"${verse}"`, 60))}':fontcolor=white:fontsize=${Math.round(H * 0.037)}:line_spacing=10:x=(w-text_w)/2:y=h*0.68`,
+            `drawtext=fontfile=${FONT_SANS}:text='${esc(wrap(p.caption, 64))}':fontcolor=0xFFE08A:fontsize=${Math.round(H * 0.03)}:line_spacing=8:x=(w-text_w)/2:y=h*0.86`,
+            `drawtext=fontfile=${FONT_SANS}:text='${esc(`${p.ref} · KJV`)}':fontcolor=0xFFB020:fontsize=${Math.round(H * 0.022)}:x=w*0.04:y=h*0.955`,
+          ]
+        : []),
       `format=yuv420p`,
     ].join(',');
     const inputs = ['-loop', '1', '-t', String(seconds), '-i', scene.file];
@@ -255,7 +265,8 @@ async function main() {
     cue += 1;
     vtt.push(String(cue), `${ts(at + 0.2)} --> ${ts(at + half)}`, p.verse, '');
     cue += 1;
-    vtt.push(String(cue), `${ts(at + half)} --> ${ts(at + p.seconds - 0.2)}`, p.caption, '');
+    // The caption ends before the crossfade into the next page, so two cues never show at once.
+    vtt.push(String(cue), `${ts(at + half)} --> ${ts(at + p.seconds - FADE - 0.1)}`, p.caption, '');
     at += p.seconds - FADE;
   }
   writeFileSync(join(outDir, `${bookId}.en.vtt`), `${vtt.join('\n')}\n`);
@@ -267,6 +278,7 @@ async function main() {
     landedScenes: pages.filter((p) => p.landed).length,
     narratedPages: pages.filter((p) => p.narration).length,
     pages,
+    burnedCaptions: BURN,
     honest: pages.every((p) => p.landed && p.narration)
       ? 'every page cut from its landed scene and its recording'
       : 'a DRAFT cut: some pages use the interim art and/or silence; not the finished episode',
