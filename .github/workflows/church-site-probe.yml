@@ -39,3 +39,19 @@ jobs:
           echo "== EVENT-LIKE TEXT ON THE HOME PAGE (dates near words) =="
           sed -E 's/<[^>]+>/\n/g' home.html | grep -iE '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* [0-9]{1,2}|[0-9]{1,2}/[0-9]{1,2}/20[0-9]{2}|[0-9]{1,2}:[0-9]{2} ?(am|pm)' | sed -E 's/^\s+//' | grep -v '^$' | head -40
           echo "== ROBOTS =="; get "$SITE/robots.txt" robots.txt; head -20 robots.txt
+      - name: Read the calendar, current-events and letters pages as text (tags stripped), with images, embeds and links
+        env:
+          SITE: ${{ github.event.inputs.site }}
+        run: |
+          set -u
+          ua="Mozilla/5.0 (compatible; PoeTechProbe/1.0; +https://poetech.us)"
+          for p in /calendar.html /current-events.html /previous-events.html /letters-from-bg.html /stay-connected.html /broadcast.html; do
+            echo "== PAGE $p =="
+            curl -sS -L --max-time 30 -A "$ua" -o page.html -w "%{http_code} %{size_download}B\n" "$SITE$p" || { echo "curl failed: $p"; continue; }
+            echo "-- title --"; grep -oiE '<title>[^<]*' page.html | sed -E 's/<title>//' | head -1
+            echo "-- iframes / embeds --"; grep -oiE '<iframe[^>]+src="[^"]+"' page.html | sed -E 's/.*src="//; s/"$//' | head -10
+            echo "-- images (src | alt) --"; grep -oiE '<img[^>]+>' page.html | grep -viE 'editmysite|/icons/|logo' | sed -E 's/.*src="([^"]+)".*alt="([^"]*)".*/\1 | \2/; s/.*src="([^"]+)".*/\1/' | head -40
+            echo "-- outbound links --"; grep -oiE 'href="https?://[^"]+"' page.html | grep -viE 'editmysite|weebly|facebook.com/sharer|twitter.com/share|fonts\.' | sort -u | head -30
+            echo "-- text (tags, scripts and styles stripped) --"
+            perl -0pe 's/<script.*?<\/script>//gis; s/<style.*?<\/style>//gis; s/<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/td)[^>]*>/\n/gi; s/<[^>]+>//g; s/&nbsp;/ /g; s/&amp;/&/g; s/&#8203;//g' page.html | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' | grep -v '^$' | head -250
+          done

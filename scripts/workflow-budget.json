@@ -189,7 +189,14 @@
       "to": 23245,
       "dr": "DR-1540",
       "reason": "church-site-probe.yml, dispatch only and read-only: a runner reads the church's public website (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync Darrell asked for the same day (DR-1540) is built on what the site actually publishes, not on a guess. permissions {} and a concurrency group; nothing is written anywhere. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-18",
+      "from": 23245,
+      "to": 23261,
+      "dr": "DR-1540",
+      "reason": "church-site-probe.yml gains a second read-only step: the home page named /calendar.html, /current-events.html and the letters pages (no feed, no API; a Weebly site), so the probe now prints those pages as text with their images, embeds and links. That is what the announcements-and-events sync (DR-1540) parses; it is read before it is built. Still permissions {}, one at a time, nothing written. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23245
+  "totalLines": 23261
 }
