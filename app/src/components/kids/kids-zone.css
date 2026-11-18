@@ -350,4 +350,22 @@
 /* (!important: the house night theme paints every input near-black by attribute selectors the zone cannot out-rank; the zone is daylight by design.) */
 .kz .lc-small{color:#5E4B8A}
 .kz .kz-story>.lc-small,.kz .kz-game .lc-small{color:#5E4B8A}
-.kz .kz-act svg{width:22px;height:22px;flex:0 0 auto}
+.kz-act svg{width:22px;height:22px;flex:0 0 auto}
+/* ---- the Teens skin, every light card the kids stylesheet paints (Darrell 2026-11-18: white cards with white words in the Teens lesson). ---- */
+.tz .kz-bubble-big{background:var(--tz-card);border-color:var(--lc-gold);color:var(--tz-ink)}
+.tz .kz-act.plain{background:var(--tz-card);color:var(--tz-ink);border-color:var(--tz-line)}
+.tz .kz-chip{background:var(--tz-card);color:var(--tz-ink);border-color:var(--tz-line)}
+.tz .kz-chip[aria-selected="true"]{background:var(--lc-gold);border-color:var(--lc-gold);color:var(--lc-black)}
+.tz .kz-spk{background:var(--tz-card);border-color:var(--tz-line);color:var(--tz-ink)}
+.tz .kz-guides,.tz .kz-ari,.tz .kz-map,.tz .kz-trail,.tz .kz-next,.tz .kz-order-slot,.tz .kz-order-card,.tz .kz-stop-ic,.tz .kz-slot,.tz .kz-celebrate{background:var(--tz-card);border-color:var(--tz-line);color:var(--tz-ink)}
+.tz .kz-guides small,.tz .kz-order-empty,.tz .kz-stop-btn small,.tz .kz-safety{color:var(--tz-muted)}
+.tz .kz-lil{background:linear-gradient(135deg,#2A1A1C,#3A1013);border-color:var(--lc-gold);color:var(--tz-ink)}
+.tz .kz-lil small{color:var(--tz-muted)}
+.tz .kz-letter,.tz .kz-letter.f{background:var(--tz-card);color:var(--tz-ink)}
+.tz .kz-hint .kz-blank{background:#3A2528;color:var(--lc-gold)}
+.tz .kz-opt.no{background:#3A1A1C}
+.tz .kz-order-slot.no,.tz .kz-order-card.placed{background:#2A1A1C}
+.tz .kz-sent.on{background:#5A4210;box-shadow:0 0 0 3px #5A4210}
+.tz .kz-stop-btn{color:var(--tz-ink)}
+.tz .yz-verse{color:var(--tz-ink)}
+.tz .lc-small{color:var(--tz-muted)}
