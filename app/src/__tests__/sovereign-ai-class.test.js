@@ -173,17 +173,17 @@ describe('curriculum shape', () => {
     // take either side. Until 82 lands, the ten strict-contiguity gates
     // DR-1376 counted (sov52-54, sov57-63) are red on this branch by design,
     // which is what keeps it from merging ahead of its sibling.
-    // 84 AND 85 HELD HERE, recorded 2026-11-13 (DR-1502). Sovereign A.I. week
-    // 86 (All the works of this pattern) was built off an origin/main whose
-    // highest week was 83 (152cfb3b302), while two predecessors were unmerged
-    // on origin: 84 (claude/lesson-sov84, DR-1497, another session's) and 85
-    // (claude/lesson-sov85, a sibling builder). 86 was claimed as reserve/sov86
-    // with an empty lease. DELETE each entry in the merge that brings that week
-    // in -- recompute from the merged tree, never take either side. Until both
-    // land, the strict-contiguity gates DR-1376 counted (sov52-54, sov57-63)
-    // are red on this branch by design, which is what keeps 86 from merging
-    // ahead of its predecessors.
-    const HELD_IN_FLIGHT = [84, 85];
+    // 84 HELD HERE, recorded 2026-11-13 (DR-1500). Sovereign A.I. week 85
+    // (And it fell not) was built while week 83 was open as #2677 and week 84
+    // was claimed by another session (reserve/sov84, claude/lesson-sov84);
+    // this branch claimed reserve/sov85 with an empty lease and took the next
+    // free number rather than one a sibling held. It was first written as
+    // [83, 84]; 83 landed (#2677) the same afternoon and its entry was DELETED
+    // in the merge that brought it in, recomputed from the merged tree. DELETE
+    // the 84 entry the same way in the merge that brings 84. Until then the
+    // ten strict-contiguity gates DR-1376 counted (sov52-54, sov57-63) are red
+    // on this branch by design, which keeps it from merging ahead of 84.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);

@@ -120,19 +120,37 @@ describe('the chronological walk', () => {
     expect(sched).toMatchObject({ date: '2026-11-03', amount: -200, kind: 'scheduled' });
   });
   it('expected income counts on its day, never before — so the lowest point comes BEFORE payday', () => {
-    const r = buildSafeToSpend(fixture(), { currentDate: TODAY, period: '14d', scope: 'personal' });
+    // A CONFIRMED pay schedule (the family entered it) is in the walk on its day.
+    const w = fixture(); w.moneyPlan = { settings: { incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06', amount: 1500 } } } };
+    const r = buildSafeToSpend(w, { currentDate: TODAY, period: '14d', scope: 'personal' });
     const pay = r.items.filter((i) => i.kind === 'income');
     expect(pay.length).toBe(1);
-    expect(pay[0]).toMatchObject({ date: '2026-11-06', amount: 1500, inferred: true });
+    expect(pay[0]).toMatchObject({ date: '2026-11-06', amount: 1500, inferred: false, status: 'confirmed' });
     expect(r.lines.projectedLowest.date < '2026-11-06').toBe(true);
+    expect(r.lines.nextIncome).toMatchObject({ date: '2026-11-06', inferred: false });
+  });
+  it('an INFERRED paycheck is never counted as cash: it is shown apart, with what Safe to Spend would read if it arrives (Christina 2026-11-16)', () => {
+    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal', settings: { minCushion: 500 } });
+    expect(r.items.filter((i) => i.kind === 'income')).toEqual([]);
+    expect(r.unconfirmedIncomeItems).toHaveLength(1);
+    expect(r.unconfirmedIncomeItems[0]).toMatchObject({ date: '2026-11-06', amount: 1500, inferred: true, status: 'inferred' });
+    expect(r.lines.expectedIncome).toBe(0);
+    expect(r.lines.unconfirmedIncome).toBe(1500);
     expect(r.lines.nextIncome).toMatchObject({ date: '2026-11-06', inferred: true });
-    expect(r.status).toBe('estimate'); // inferred timing is labeled, never passed off as verified
+    // The what-if walk adds exactly the unconfirmed paycheck and nothing else.
+    const what = r.lines.ifUnconfirmedArrives;
+    expect(what.income).toBe(1500);
+    expect(what.lowest.date < '2026-11-06').toBe(true);
+    expect(what.unreconciledSafe).toBeGreaterThanOrEqual(r.unreconciledSafe);
+    expect(r.confidence.reasons.join(' ')).toMatch(/\$1,500 of expected income is not confirmed, so it is left out of Safe to Spend/);
+    expect(r.explanation.join(' ')).toMatch(/\$1,500 of unconfirmed income is NOT counted/);
   });
   it('a positive period-end balance does not make money spendable today', () => {
     // Rent 1500 on 11-01 + water 200 on 11-03 drain the balance before the 11-06 paycheck lifts it.
     // The household cushion is passed explicitly: with none saved, the Personal
     // pocket now reserves the $10,000 default (DR-1435), which is its own case.
-    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal', settings: { minCushion: 500 } });
+    // The paycheck is a confirmed schedule here, so it lifts the walk on 11-06.
+    const r = buildSafeToSpend(bankCheckAll(fixture(), '2026-10-28'), { currentDate: TODAY, period: '14d', scope: 'personal', settings: { minCushion: 500, incomeSchedule: { s1: { frequency: 'biweekly', nextDate: '2026-11-06', amount: 1500 } } } });
     const end = r.timeline[r.timeline.length - 1].cash;
     expect(end).toBeGreaterThan(r.lines.projectedLowest.amount);
     expect(r.safeToSpendNow).toBeLessThan(end - r.lines.minCushion);

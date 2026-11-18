@@ -89,10 +89,11 @@ describe('the TLC door opens in TLC’s colors, and no other door moved', () => 
 
   it('DR-1046 and DR-1060 stand: the family app opens in Heritage, the church in its red', () => {
     expect(DEFAULT_THEME).toBe('heritage');
-    expect(CHURCH_DEFAULT_THEME).toBe('lovecorner');
+    expect(CHURCH_DEFAULT_THEME).toBe('night'); // DR-1483
     expect(THEMES[0].key).toBe('heritage');
     expect(THEMES[1].key).toBe('lovecorner');
-    expect(THEMES[2].key).toBe('tlc');
+    expect(THEMES[2].key).toBe('night'); // the Love Corner by night rides beside its cream sibling (DR-1483)
+    expect(THEMES[3].key).toBe('tlc');
   });
 
   it('the theme paints the phone’s bars; the door no longer writes a fixed ink over them (DR-0744)', () => {

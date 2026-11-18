@@ -285,9 +285,12 @@ export default function LessonFigures({ module }) {
   // figure that is NOT the books' list (a sequence, a quadrant) is still read.
   const allLists = figures.every((f) => f.timeline);
   const quiet = allLists ? { 'data-read-skip': '', 'data-read-no-expand': '' } : {};
+  // The fold's own line names the books list and says "optional, open to
+  // review": a label to tap, never a sentence to hear, even when the fold
+  // also holds a figure that IS read (DR-1498).
   return (
     <details className="mt-2" data-testid="lesson-figures" data-count={figures.length} {...quiet}>
-      <summary className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#1A1815]" style={SERIF} data-testid="lesson-figures-summary">
+      <summary data-read-skip="" className="cursor-pointer min-h-[44px] flex items-center text-xs font-semibold text-[#1A1815]" style={SERIF} data-testid="lesson-figures-summary">
         {(timeline ? timeline.title : figures[0].title) + (figures.length > 1 ? ` and ${figures.length - 1} more` : '')} — optional, open to review
       </summary>
       {figures.map((f) => {
